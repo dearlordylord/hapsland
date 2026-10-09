@@ -1,0 +1,36 @@
+{
+  "at": "2026-10-09T17:09:57.169Z",
+  "runtime": "node",
+  "actualNativeForeignCalls": 4,
+  "immediate": true,
+  "sequential": true,
+  "overlapReversed": true,
+  "eventLoopHeartbeat": true,
+  "preAbort": true,
+  "waitingAbort": true,
+  "lateResponseFenced": true,
+  "beforeContinuationAbort": true,
+  "handlerRejection": true,
+  "cleanupFailureVisible": true,
+  "globalRuntimeContextUnchanged": true,
+  "unknownLayoutRejected": true,
+  "multipleCompiledEffects": true,
+  "continuationForms": [
+    "Runtime.parser_request",
+    "Runtime.parser_request",
+    "Emit"
+  ],
+  "explicitAllowlist": true,
+  "closed": 4,
+  "events": [
+    "start:1",
+    "start:2",
+    "reply:2",
+    "reply:1",
+    "start:1",
+    "closed:1",
+    "start:4",
+    "reply:4"
+  ],
+  "scope": "technical sequential foreign-effect dispatcher over actual emitted Bend continuations; not full resolver or adoption; synchronous engine plus controlled async lifecycle fixtures; no process.exit/BEND_IO scheduling"
+}

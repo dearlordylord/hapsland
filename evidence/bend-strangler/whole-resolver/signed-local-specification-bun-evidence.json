@@ -1,0 +1,25 @@
+{
+  "at": "2026-10-09T21:20:37.865Z",
+  "runtime": "bun",
+  "sources": {
+    "SignedLocalSpecification.bend": "0149b10bff0cdf6971127af9205abfaf9ae2849be4548bc04866cadf558f3005",
+    "SignedLocalSpecificationCheck.bend": "eb3db09bcba03c82f88c65d2111a9434c1955006d92530e4a0ac4ef8a21c89d4",
+    "SPEC.bend": "9b268ab51da41b678581a7de8a7ce3829ea183936d96b93a1a6d3c0258f55a5b",
+    "WholeObservation.bend": "fb5b827ca02597f7f58fb83a394fbc4f409d8eef2652cd31542e5d6b147d1e1e",
+    "Types.bend": "2b6fd594da1b8893916c4f924b779e804c446c81de126f602d2b255a6264ddaf",
+    "signed-local-specification-check.mjs": "aa8a1ba78050dbad776d0a4b52b5413bb67f1acfa13a07d3707d6eb89a2b27c1",
+    "frontend-codec.mjs": "fd9f41114adbfe7d6f1bd36bc975a8d0d37717b06288e408b65c85e141f0c787",
+    "service-session.mjs": "95509e353542510839c2edad58aeb50fbedb32717fd4758a308d20e44b9434ad",
+    "../local-graph-draft/SPEC.bend": "df774b762b54ccf67aaa23a7c996bb68e18d5e8b104a8641ebe9063846620167",
+    "../local-graph-draft/core.bend": "ce7c6b16db31c4918d7606aac838d2f5e49e63d63eff942cab54ed67a990ae36",
+    "../../../bun.lock": "31e126807cdbe31ec88e84714b4c55c1c0a16a78414ddeeaa0bde5dc969c293d",
+    "../../../packages/source-analysis/dist/direct-event/graph-resolver.js": "3e5c58f1930581041d84b66b13b7b3faade202a1489795ff29f18a8a866cca9a",
+    "../../../packages/canonical-policy/dist/canonical/graph-adapter.js": "6215c95faef52b3f1372c37bbd612074bddd4ecdbad8059ac7e1af917aace911"
+  },
+  "compared": 1776,
+  "negativeFailures": 640,
+  "negativeCompletions": 248,
+  "missingRoots": 4,
+  "negativeZeroNormalizesToZero": true,
+  "scope": "Independent signed-domain local interpretation versus actual native buildLocal. Ordered recursive value, scalar budget, visited/target membership and exact negative permit placement; no full ordered-map/forest projection, outer post-traversal guards, exception materialization, whole expansion proof, consumer or performance qualification."
+}

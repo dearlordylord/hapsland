@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-09T18:58:43.391827+00:00",
+  "purpose": "Attribute repeated known-target registration before map correspondence work",
+  "authority": "Instrumented diagnostic only",
+  "runtime": "Bun1.3.14",
+  "fixtures": 45,
+  "sweeps": 4,
+  "groups": {
+    "None": {
+      "calls": 128,
+      "setCalls": 128,
+      "milliseconds": 5.485999999998512
+    },
+    "Some": {
+      "calls": 28,
+      "setCalls": 28,
+      "milliseconds": 0.3336689999991904
+    }
+  },
+  "allResultsAndEffectsEqual": true,
+  "sampleSha256": "a399c9a4256196bdde6c2c5e82065fe97408a1a9e386502a622265fa95f8e817",
+  "decision": "Reject skip-identical-map-insertion as current performance remedy: existing Some registrations cost0.334ms total across4sweeps; insufficient to justify change or new lawful-map lemma obligations. Leave Resolve unchanged."
+}

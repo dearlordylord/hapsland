@@ -1,0 +1,21 @@
+{
+  "lane": "wholeBend",
+  "seconds": 3.0850611309999993,
+  "cases": 46,
+  "rounds": 3,
+  "allResultsAndEffectsEqual": true,
+  "checksum": "545430ae948a84e883b8334e60747a7b76eec205208aad63682d974b8550e4e6",
+  "at": "2026-10-09T18:48:42.161Z",
+  "runtime": "node",
+  "actualStableCapture": true,
+  "physicalRootIdentity": true,
+  "nativeReferenceSamePhysicalFiles": true,
+  "fullCaptureCacheMetadataCompared": true,
+  "sourceReadEffectsCompared": true,
+  "physicalFailureCases": [
+    "physical-root-identity-mismatch",
+    "physical-between-reads-change"
+  ],
+  "registryClosed": true,
+  "scope": "Unadopted whole resolver on actual stable filesystem capture; full result/error/clock/capture/source-read/cache/diagnostic comparison against native on same physical files, one warmup and three repeated sweeps; explicit root-identity mismatch and between-read source change refuse publication. Linux only; cancellation, descriptor-count leak audit, Windows/macOS, whole universal laws and performance parity not established."
+}

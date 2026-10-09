@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-09T13:14:31.695Z",
+  "compiler": "bend 2.0.36",
+  "scope": "mechanism feasibility only; actual Bend-owned IO continuation calls tree-sitter TypeScript engine through foreign JS. Not whole resolver implementation, pure proof, production adoption or timing qualification.",
+  "samples": {
+    "bun": {
+      "output": "accepted:program:38:2\nsyntax-refusal:program:11\nengine-failure\n",
+      "exitCode": 0
+    },
+    "node": {
+      "output": "accepted:program:38:2\nsyntax-refusal:program:11\nengine-failure\n",
+      "exitCode": 0
+    }
+  },
+  "sourceHashes": {
+    "Runtime.bend": "f69d92e972b887f4bdb07242b9f0479622bb2d05d30c645fdb3e7fa3e8ca3ed5",
+    "parser.js": "5c7839d8d480268fedb56607f55803c3abdc49486d3137f17585314fa7bebc92",
+    "run.mjs": "d9b7981ad5c208ed11c250589ec4eccd2e75b0bf20f784f1557673c1a468f2c4"
+  },
+  "encoding": {
+    "source": "JS text delivered to pinned parser; fixture includes astral Unicode; no text printed",
+    "positions": "UTF-16 indices; valid fixture38codeunits; invalid11",
+    "root": "typed parser metadata only"
+  },
+  "resources": {
+    "owner": "foreign call creates Parser and holds Tree/Node only locally; reset in finally; no native handle crosses typedreply",
+    "release": "native allocations finalized by Node binding GC; reset is not deterministic Tree disposal"
+  },
+  "requiredLaneEvidence": "current installed product bundles generated JavaScript; Bun and Node Linuxarm64 source runtime exercised; no C/nativeBend or macOS claim",
+  "boundary": "no GraphFrame/session.inspect/executeGraphCommand or application graph decisions in foreign binding; syntaxhasError returned asfact, branch selected in Bend"
+}

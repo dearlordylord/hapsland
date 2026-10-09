@@ -1,0 +1,159 @@
+{
+  "at": "2026-10-09T18:48:03.338Z",
+  "runtime": "bun",
+  "products": 164,
+  "validCases": 166,
+  "malformedCases": 9,
+  "pairs": 17,
+  "rounds": 20,
+  "meanRatio": 0.7965060750470369,
+  "samples": {
+    "before": [
+      {
+        "seconds": 0.022961218999999984,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.019014729999999987,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.019598651999999987,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.018557102000000016,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.018651643999999978,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.018453642000000003,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.018938646000000007,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.01847922699999998,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.018698478000000022,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.018897020999999996,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.019672527000000002,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.020313657000000034,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.019761153000000035,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.017886013000000048,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.018615644000000087,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.019426815999999916,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.027382920000000012,
+        "checksum": 2410720
+      }
+    ],
+    "after": [
+      {
+        "seconds": 0.015330618999999985,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.014664154999999995,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.013929482999999977,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.013674272000000001,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.01357102100000003,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.014186692999999992,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.013912398999999994,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.014288692999999967,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.013894858,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.01596699899999999,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.021613332999999953,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.015695703999999977,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.01325618499999996,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.014684697000000028,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.014292985000000044,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.01474244699999997,
+        "checksum": 2410720
+      },
+      {
+        "seconds": 0.02937118499999997,
+        "checksum": 2410720
+      }
+    ]
+  },
+  "sourceHashes": {
+    "decoder-baseline.mjs": "23f3409daabf7d264924e50ee43571b56c7960d9515626814a5f21a3e3c2c386",
+    "decoder-experiment.mjs": "b1bdd47bfbc988e294d23313abcb3e9da4847f0835ef86ae5ceac0664601c7d6",
+    "service-session.mjs": "95509e353542510839c2edad58aeb50fbedb32717fd4758a308d20e44b9434ad"
+  },
+  "inputSha256": "77bd8409ff84c91ec4790580844db6e5719a6924ad7ff3a64f409115d9abb2cf",
+  "scope": "Actual full-consumer ProductValue boundary conversion plus JSON serialization, exact values/descriptors/prototype/key order and malformed rejection compared. Diagnostic only; excludes graph algorithm/frontend/IO and cannot qualify whole execution parity."
+}

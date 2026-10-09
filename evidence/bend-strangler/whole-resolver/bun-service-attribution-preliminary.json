@@ -1,0 +1,240 @@
+{
+  "scope": "Bun per-case diagnostic; one native and one candidate worker,12sweeps; instrumentation timing and startup-inclusive CPU profiles are not parity qualification. Full ordered result/effects preserved. Selected bottleneck still unproven.",
+  "cases": [
+    {
+      "name": "rust-cargo-nested",
+      "nativeSeconds": 0.023119437916666655,
+      "candidateSeconds": 0.03763898766666663,
+      "deltaSeconds": 0.014519549749999975
+    },
+    {
+      "name": "large-import-diamond-cycle",
+      "nativeSeconds": 0.04848211908333327,
+      "candidateSeconds": 0.060120039583333146,
+      "deltaSeconds": 0.011637920499999878
+    },
+    {
+      "name": "rust-cargo-ambiguous-module",
+      "nativeSeconds": 0.010424088916666657,
+      "candidateSeconds": 0.018561996999999945,
+      "deltaSeconds": 0.008137908083333287
+    },
+    {
+      "name": "rust-cargo-child",
+      "nativeSeconds": 0.019116383833333278,
+      "candidateSeconds": 0.026591875083333397,
+      "deltaSeconds": 0.007475491250000119
+    },
+    {
+      "name": "rust-explicit-bin",
+      "nativeSeconds": 0.01335818741666668,
+      "candidateSeconds": 0.02081439633333351,
+      "deltaSeconds": 0.007456208916666828
+    },
+    {
+      "name": "nested-child",
+      "nativeSeconds": 0.013942428083333255,
+      "candidateSeconds": 0.02093097725000014,
+      "deltaSeconds": 0.006988549166666884
+    },
+    {
+      "name": "negative-graph-work",
+      "nativeSeconds": 0.011767592166666665,
+      "candidateSeconds": 0.01754385383333344,
+      "deltaSeconds": 0.005776261666666773
+    },
+    {
+      "name": "unsupported-frontend",
+      "nativeSeconds": 0.006305849500000043,
+      "candidateSeconds": 0.011438605750000004,
+      "deltaSeconds": 0.005132756249999961
+    },
+    {
+      "name": "tree-refusal",
+      "nativeSeconds": 0.0058242905,
+      "candidateSeconds": 0.01090362191666668,
+      "deltaSeconds": 0.005079331416666681
+    },
+    {
+      "name": "large-local-reuse",
+      "nativeSeconds": 0.005151212166666615,
+      "candidateSeconds": 0.009622674916666522,
+      "deltaSeconds": 0.004471462749999907
+    },
+    {
+      "name": "rust-automatic-bin",
+      "nativeSeconds": 0.012708599250000096,
+      "candidateSeconds": 0.016648260250000095,
+      "deltaSeconds": 0.003939660999999999
+    },
+    {
+      "name": "rust-cargo-depth",
+      "nativeSeconds": 0.006096493916666664,
+      "candidateSeconds": 0.009935656500000088,
+      "deltaSeconds": 0.0038391625833334234
+    },
+    {
+      "name": "function-import",
+      "nativeSeconds": 0.005796682499999993,
+      "candidateSeconds": 0.00962598716666654,
+      "deltaSeconds": 0.003829304666666548
+    },
+    {
+      "name": "bend-qualified-import",
+      "nativeSeconds": 0.005370783583333358,
+      "candidateSeconds": 0.00823048700000004,
+      "deltaSeconds": 0.002859703416666682
+    },
+    {
+      "name": "rust-date-library",
+      "nativeSeconds": 0.015734181083333357,
+      "candidateSeconds": 0.018351637749999972,
+      "deltaSeconds": 0.002617456666666615
+    },
+    {
+      "name": "rust-context-read-policy",
+      "nativeSeconds": 0.013420771333333296,
+      "candidateSeconds": 0.015634689916666656,
+      "deltaSeconds": 0.0022139185833333595
+    },
+    {
+      "name": "rust-cargo-cache-refusal",
+      "nativeSeconds": 0.006038965750000008,
+      "candidateSeconds": 0.00813041983333331,
+      "deltaSeconds": 0.0020914540833333025
+    },
+    {
+      "name": "rust-cargo-build",
+      "nativeSeconds": 0.005547378583333359,
+      "candidateSeconds": 0.007626638666666546,
+      "deltaSeconds": 0.002079260083333186
+    },
+    {
+      "name": "source-oversize",
+      "nativeSeconds": 0.005365210583333275,
+      "candidateSeconds": 0.00730172983333326,
+      "deltaSeconds": 0.0019365192499999845
+    },
+    {
+      "name": "capture-unavailable",
+      "nativeSeconds": 0.00535437383333336,
+      "candidateSeconds": 0.00676618391666663,
+      "deltaSeconds": 0.0014118100833332703
+    },
+    {
+      "name": "rust-custom-library",
+      "nativeSeconds": 0.012385194250000113,
+      "candidateSeconds": 0.01372867525,
+      "deltaSeconds": 0.0013434809999998878
+    },
+    {
+      "name": "cache-files",
+      "nativeSeconds": 0.005959367999999982,
+      "candidateSeconds": 0.007084818500000211,
+      "deltaSeconds": 0.0011254505000002288
+    },
+    {
+      "name": "rust-nonfile-manifest",
+      "nativeSeconds": 0.0024750604166666607,
+      "candidateSeconds": 0.0035159367499998854,
+      "deltaSeconds": 0.0010408763333332248
+    },
+    {
+      "name": "missing",
+      "nativeSeconds": 0.0004576490833334788,
+      "candidateSeconds": 0.0009271602499999668,
+      "deltaSeconds": 0.000469511166666488
+    },
+    {
+      "name": "ambiguous",
+      "nativeSeconds": 0.0003447423333333291,
+      "candidateSeconds": 0.0008065789999999804,
+      "deltaSeconds": 0.0004618366666666513
+    },
+    {
+      "name": "root-cycle",
+      "nativeSeconds": 0.0003855965833333812,
+      "candidateSeconds": 0.0007996969166665621,
+      "deltaSeconds": 0.0004141003333331809
+    },
+    {
+      "name": "rust-preparation-work-refusal",
+      "nativeSeconds": 0.006060341000000031,
+      "candidateSeconds": 0.006425362083333274,
+      "deltaSeconds": 0.0003650210833332432
+    },
+    {
+      "name": "bend-bundled-list",
+      "nativeSeconds": 0.0003535099166667806,
+      "candidateSeconds": 0.0006844394166667674,
+      "deltaSeconds": 0.0003309294999999868
+    },
+    {
+      "name": "unsupported-extension",
+      "nativeSeconds": 0.00025427641666669843,
+      "candidateSeconds": 0.0004092358333333929,
+      "deltaSeconds": 0.00015495941666669445
+    },
+    {
+      "name": "bend-import",
+      "nativeSeconds": 0.00020924466666663949,
+      "candidateSeconds": 0.00033057174999999005,
+      "deltaSeconds": 0.00012132708333335057
+    },
+    {
+      "name": "outside",
+      "nativeSeconds": 0.000282338750000027,
+      "candidateSeconds": 0.0003981801666666342,
+      "deltaSeconds": 0.00011584141666660719
+    },
+    {
+      "name": "rust-local",
+      "nativeSeconds": 0.00024246708333326217,
+      "candidateSeconds": 0.0003313219999999243,
+      "deltaSeconds": 8.885491666666215e-05
+    },
+    {
+      "name": "bundled",
+      "nativeSeconds": 0.00021899116666673988,
+      "candidateSeconds": 0.00026976266666679295,
+      "deltaSeconds": 5.077150000005307e-05
+    },
+    {
+      "name": "rust-deadline-before-complete",
+      "nativeSeconds": 0.00020183150000000678,
+      "candidateSeconds": 0.00021150850000007415,
+      "deltaSeconds": 9.677000000067365e-06
+    },
+    {
+      "name": "cache-bytes",
+      "nativeSeconds": 0.006367940416666727,
+      "candidateSeconds": 0.006202853333333373,
+      "deltaSeconds": -0.00016508708333335363
+    },
+    {
+      "name": "rust-no-manifest",
+      "nativeSeconds": 0.0007045468333332488,
+      "candidateSeconds": 0.0004622258333333775,
+      "deltaSeconds": -0.0002423209999998713
+    },
+    {
+      "name": "single-child",
+      "nativeSeconds": 0.007294888333333328,
+      "candidateSeconds": 0.0068244311666666516,
+      "deltaSeconds": -0.00047045716666667663
+    },
+    {
+      "name": "rust-unicode-multiple-roles",
+      "nativeSeconds": 0.02290121408333338,
+      "candidateSeconds": 0.0220383849166667,
+      "deltaSeconds": -0.0008628291666666829
+    },
+    {
+      "name": "rust-cargo-root",
+      "nativeSeconds": 0.015307650083333424,
+      "candidateSeconds": 0.01441292699999993,
+      "deltaSeconds": -0.0008947230833334947
+    }
+  ],
+  "nextDiagnostic": "Astra-confirmed same-files alternating full-consumer service-boundary attribution, counts and exclusive timing for IO/frontends/conversion/pure continuation; four selected fixtures, no algorithm or representation change."
+}

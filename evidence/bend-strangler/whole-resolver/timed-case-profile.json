@@ -1,0 +1,257 @@
+{
+  "scope": "Diagnostic Node profiler runs,12sweeps each,36fullconsumerfixtures; profiler overhead included; not a parity qualification or Bun attribution",
+  "cases": [
+    {
+      "case": "large-local-reuse",
+      "nativeMs": 6.518140583333377,
+      "candidateMs": 7.995176500000032,
+      "deltaMs": 1.4770359166666556,
+      "ratio": 1.2266038754124722
+    },
+    {
+      "case": "large-import-diamond-cycle",
+      "nativeMs": 83.38928224999997,
+      "candidateMs": 84.4385369166668,
+      "deltaMs": 1.049254666666846,
+      "ratio": 1.0125826082004303
+    },
+    {
+      "case": "rust-unicode-multiple-roles",
+      "nativeMs": 34.73521374999981,
+      "candidateMs": 32.93558866666664,
+      "deltaMs": -1.799625083333166,
+      "ratio": 0.9481901825540608
+    },
+    {
+      "case": "rust-nonfile-manifest",
+      "nativeMs": 1.746555416666562,
+      "candidateMs": 1.4952026666665008,
+      "deltaMs": -0.25135275000006124,
+      "ratio": 0.8560865875760257
+    },
+    {
+      "case": "rust-preparation-work-refusal",
+      "nativeMs": 11.638468666666789,
+      "candidateMs": 11.438335250000021,
+      "deltaMs": -0.20013341666676698,
+      "ratio": 0.9828041452532359
+    },
+    {
+      "case": "rust-deadline-before-complete",
+      "nativeMs": 0.42341308333338173,
+      "candidateMs": 0.2825612500000337,
+      "deltaMs": -0.14085183333334808,
+      "ratio": 0.6673418019479433
+    },
+    {
+      "case": "rust-custom-library",
+      "nativeMs": 24.508999166666793,
+      "candidateMs": 23.349045749999785,
+      "deltaMs": -1.1599534166670082,
+      "ratio": 0.9526723466438161
+    },
+    {
+      "case": "rust-automatic-bin",
+      "nativeMs": 25.094107833333336,
+      "candidateMs": 22.291447166666636,
+      "deltaMs": -2.802660666666703,
+      "ratio": 0.8883139944531586
+    },
+    {
+      "case": "rust-explicit-bin",
+      "nativeMs": 23.596478166666675,
+      "candidateMs": 22.641401333333476,
+      "deltaMs": -0.9550768333331967,
+      "ratio": 0.9595246025026575
+    },
+    {
+      "case": "rust-date-library",
+      "nativeMs": 24.35510208333333,
+      "candidateMs": 22.131449583333314,
+      "deltaMs": -2.2236525000000165,
+      "ratio": 0.9086986992544077
+    },
+    {
+      "case": "rust-cargo-depth",
+      "nativeMs": 12.360550750000016,
+      "candidateMs": 10.918900416666684,
+      "deltaMs": -1.4416503333333324,
+      "ratio": 0.8833668205817342
+    },
+    {
+      "case": "rust-local",
+      "nativeMs": 0.37370408333331784,
+      "candidateMs": 0.3571450000000027,
+      "deltaMs": -0.016559083333315103,
+      "ratio": 0.9556893165693735
+    },
+    {
+      "case": "rust-cargo-root",
+      "nativeMs": 24.30501475000005,
+      "candidateMs": 21.762734750000064,
+      "deltaMs": -2.542279999999987,
+      "ratio": 0.8954010097854402
+    },
+    {
+      "case": "rust-cargo-child",
+      "nativeMs": 34.112844416666675,
+      "candidateMs": 33.732765083333334,
+      "deltaMs": -0.3800793333333455,
+      "ratio": 0.9888581752758311
+    },
+    {
+      "case": "rust-cargo-nested",
+      "nativeMs": 46.657507833333256,
+      "candidateMs": 45.07355099999988,
+      "deltaMs": -1.5839568333333789,
+      "ratio": 0.9660514050816541
+    },
+    {
+      "case": "rust-cargo-ambiguous-module",
+      "nativeMs": 23.665857250000066,
+      "candidateMs": 22.644373416666724,
+      "deltaMs": -1.02148383333334,
+      "ratio": 0.9568372350706486
+    },
+    {
+      "case": "rust-cargo-build",
+      "nativeMs": 11.575891916666746,
+      "candidateMs": 10.535203500000005,
+      "deltaMs": -1.0406884166667407,
+      "ratio": 0.9100986408513043
+    },
+    {
+      "case": "rust-no-manifest",
+      "nativeMs": 0.6028830000000577,
+      "candidateMs": 0.6503661666666668,
+      "deltaMs": 0.04748316666660908,
+      "ratio": 1.0787601685013586
+    },
+    {
+      "case": "rust-cargo-cache-refusal",
+      "nativeMs": 10.772618333333412,
+      "candidateMs": 10.62504075,
+      "deltaMs": -0.14757758333341225,
+      "ratio": 0.9863006765145697
+    },
+    {
+      "case": "bundled",
+      "nativeMs": 0.21220675000002603,
+      "candidateMs": 0.24494633333345445,
+      "deltaMs": 0.032739583333428406,
+      "ratio": 1.154281535971049
+    },
+    {
+      "case": "negative-graph-work",
+      "nativeMs": 22.162689333333333,
+      "candidateMs": 21.547243499999922,
+      "deltaMs": -0.6154458333334084,
+      "ratio": 0.9722305436819095
+    },
+    {
+      "case": "single-child",
+      "nativeMs": 11.126072333333259,
+      "candidateMs": 12.601063083333372,
+      "deltaMs": 1.4749907500001131,
+      "ratio": 1.1325706597809095
+    },
+    {
+      "case": "bend-import",
+      "nativeMs": 0.24385250000015424,
+      "candidateMs": 0.2954708333335248,
+      "deltaMs": 0.051618333333370556,
+      "ratio": 1.2116785078411658
+    },
+    {
+      "case": "function-import",
+      "nativeMs": 11.411560749999996,
+      "candidateMs": 11.160058749999811,
+      "deltaMs": -0.2515020000001845,
+      "ratio": 0.9779607710540221
+    },
+    {
+      "case": "nested-child",
+      "nativeMs": 24.8462481666665,
+      "candidateMs": 22.988501249999977,
+      "deltaMs": -1.8577469166665208,
+      "ratio": 0.9252302840974254
+    },
+    {
+      "case": "tree-refusal",
+      "nativeMs": 12.248501249999928,
+      "candidateMs": 12.010481916666626,
+      "deltaMs": -0.23801933333330097,
+      "ratio": 0.9805674728299266
+    },
+    {
+      "case": "missing",
+      "nativeMs": 1.1103731666665908,
+      "candidateMs": 1.1811584999998481,
+      "deltaMs": 0.07078533333325712,
+      "ratio": 1.0637491389905964
+    },
+    {
+      "case": "ambiguous",
+      "nativeMs": 0.8483365833331126,
+      "candidateMs": 0.8942881666668352,
+      "deltaMs": 0.0459515833337226,
+      "ratio": 1.0541666883599183
+    },
+    {
+      "case": "outside",
+      "nativeMs": 0.49013574999978954,
+      "candidateMs": 0.4196770833332266,
+      "deltaMs": -0.0704586666665629,
+      "ratio": 0.8562466282726915
+    },
+    {
+      "case": "unsupported-extension",
+      "nativeMs": 0.41240949999998594,
+      "candidateMs": 0.3578846666666399,
+      "deltaMs": -0.05452483333334609,
+      "ratio": 0.8677895796936105
+    },
+    {
+      "case": "root-cycle",
+      "nativeMs": 0.7368530833332632,
+      "candidateMs": 0.9938479166666714,
+      "deltaMs": 0.2569948333334082,
+      "ratio": 1.3487735060710533
+    },
+    {
+      "case": "unsupported-frontend",
+      "nativeMs": 11.19481941666652,
+      "candidateMs": 11.078610416666834,
+      "deltaMs": -0.11620899999968681,
+      "ratio": 0.9896193948580646
+    },
+    {
+      "case": "source-oversize",
+      "nativeMs": 10.874733666666692,
+      "candidateMs": 10.542126749999927,
+      "deltaMs": -0.332606916666766,
+      "ratio": 0.9694147068919697
+    },
+    {
+      "case": "cache-files",
+      "nativeMs": 12.271845000000003,
+      "candidateMs": 10.872049666666726,
+      "deltaMs": -1.3997953333332782,
+      "ratio": 0.8859344024200698
+    },
+    {
+      "case": "cache-bytes",
+      "nativeMs": 12.187393166666729,
+      "candidateMs": 11.081999166666794,
+      "deltaMs": -1.105393999999935,
+      "ratio": 0.9093002100709071
+    },
+    {
+      "case": "capture-unavailable",
+      "nativeMs": 12.17485491666658,
+      "candidateMs": 11.910668833333261,
+      "deltaMs": -0.264186083333319,
+      "ratio": 0.9783006791340351
+    }
+  ]
+}

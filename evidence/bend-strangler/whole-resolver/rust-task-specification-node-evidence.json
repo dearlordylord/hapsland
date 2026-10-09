@@ -1,0 +1,187 @@
+{
+  "environmentCheck": false,
+  "at": "2026-10-09T21:15:44.634Z",
+  "runtime": "node",
+  "sources": {
+    "../../../bun.lock": "31e126807cdbe31ec88e84714b4c55c1c0a16a78414ddeeaa0bde5dc969c293d",
+    "../../../packages/source-analysis/dist/direct-event/languages/rust.js": "26b4273bee04af5ef0c0fa3550b5e17fd25159f3b37067b419f16663c75bb4c6",
+    "../../../packages/source-analysis/dist/direct-event/capture-budget.js": "05f34bf0031cd545d75437e1ff7d3f23054e5124a5b297603da2b10247855665",
+    "RustTaskSpecification.bend": "b21e892f4f4412b9970d1fdf60b3e177656ae182818e5ca692395767799cd497",
+    "ModuleSpecification.bend": "996e591994e83223eb5fb74ba94a2e47ec5e235fb639c4bcfa2223fe4090f7ff",
+    "CargoSpecification.bend": "7d2a48b224769cf4683746159b6a4d6e867a0b98c4d83db4f1424e9514637a8f",
+    "RustSpecification.bend": "f0e508f1deb7e7fc5e3f8e6cbff228adebe27ad7fec2f476a0bff732a1e4bf45",
+    "GraphSpecification.bend": "1d11a139f284729241bd8832cd19b1502d681b67090483c197f245ab79491332",
+    "Types.bend": "2b6fd594da1b8893916c4f924b779e804c446c81de126f602d2b255a6264ddaf",
+    "PreparationSpecification.bend": "bd030ff4c0915abac5a80c9eb4985a49ae37733a5739e8e2bae9cb824bfc3037",
+    "Environment.bend": "611ce8a8d3eebdde02c29c7d07d7c8c92c4e2ea86c57bcdc6cdebe71d1a327e9",
+    "WholeObservation.bend": "fb5b827ca02597f7f58fb83a394fbc4f409d8eef2652cd31542e5d6b147d1e1e",
+    "rust-task-specification-check.mjs": "eadb8d100eef6635a98de9e933b08a61864752015cadd816a0218cb61db89f1b",
+    "fixtures.mjs": "112494a84155362db05a37dd2dafee5a0108134572bfee400f4ebc65a2e3aa6a",
+    "frontend-codec.mjs": "fd9f41114adbfe7d6f1bd36bc975a8d0d37717b06288e408b65c85e141f0c787",
+    "service-session.mjs": "95509e353542510839c2edad58aeb50fbedb32717fd4758a308d20e44b9434ad",
+    "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/dist/direct-event/languages/rust-module-context.js": "f80c5868ead047674083896b6bf31575888f638808007300c4542f5adf6ab008"
+  },
+  "cases": [
+    {
+      "name": "rust-context-read-policy",
+      "steps": 20,
+      "effects": 17,
+      "pathQueries": 26,
+      "roles": 1,
+      "dependencies": 1,
+      "invalid": false
+    },
+    {
+      "name": "rust-unicode-multiple-roles",
+      "steps": 52,
+      "effects": 40,
+      "pathQueries": 56,
+      "roles": 2,
+      "dependencies": 3,
+      "invalid": false
+    },
+    {
+      "name": "rust-nonfile-manifest",
+      "steps": 6,
+      "effects": 7,
+      "pathQueries": 0,
+      "roles": 0,
+      "dependencies": 0,
+      "invalid": true
+    },
+    {
+      "name": "rust-preparation-work-refusal",
+      "steps": 20,
+      "effects": 17,
+      "pathQueries": 26,
+      "roles": 1,
+      "dependencies": 1,
+      "invalid": false
+    },
+    {
+      "name": "rust-deadline-before-complete",
+      "steps": 6,
+      "effects": 8,
+      "pathQueries": 0,
+      "roles": 0,
+      "dependencies": 0,
+      "invalid": true
+    },
+    {
+      "name": "rust-custom-library",
+      "steps": 20,
+      "effects": 17,
+      "pathQueries": 26,
+      "roles": 1,
+      "dependencies": 1,
+      "invalid": false
+    },
+    {
+      "name": "rust-automatic-bin",
+      "steps": 22,
+      "effects": 19,
+      "pathQueries": 28,
+      "roles": 1,
+      "dependencies": 1,
+      "invalid": false
+    },
+    {
+      "name": "rust-explicit-bin",
+      "steps": 18,
+      "effects": 16,
+      "pathQueries": 23,
+      "roles": 1,
+      "dependencies": 1,
+      "invalid": false
+    },
+    {
+      "name": "rust-date-library",
+      "steps": 20,
+      "effects": 17,
+      "pathQueries": 26,
+      "roles": 1,
+      "dependencies": 1,
+      "invalid": false
+    },
+    {
+      "name": "rust-cargo-depth",
+      "steps": 19,
+      "effects": 17,
+      "pathQueries": 14,
+      "roles": 0,
+      "dependencies": 1,
+      "invalid": true
+    },
+    {
+      "name": "rust-cargo-root",
+      "steps": 20,
+      "effects": 17,
+      "pathQueries": 26,
+      "roles": 1,
+      "dependencies": 1,
+      "invalid": false
+    },
+    {
+      "name": "rust-cargo-child",
+      "steps": 35,
+      "effects": 28,
+      "pathQueries": 37,
+      "roles": 1,
+      "dependencies": 2,
+      "invalid": false
+    },
+    {
+      "name": "rust-cargo-nested",
+      "steps": 50,
+      "effects": 40,
+      "pathQueries": 48,
+      "roles": 1,
+      "dependencies": 3,
+      "invalid": false
+    },
+    {
+      "name": "rust-cargo-ambiguous-module",
+      "steps": 34,
+      "effects": 28,
+      "pathQueries": 28,
+      "roles": 0,
+      "dependencies": 2,
+      "invalid": true
+    },
+    {
+      "name": "rust-cargo-build",
+      "steps": 12,
+      "effects": 14,
+      "pathQueries": 2,
+      "roles": 0,
+      "dependencies": 1,
+      "invalid": true
+    },
+    {
+      "name": "rust-no-manifest",
+      "steps": 2,
+      "effects": 4,
+      "pathQueries": 0,
+      "roles": 0,
+      "dependencies": 0,
+      "invalid": false
+    },
+    {
+      "name": "rust-cargo-cache-refusal",
+      "steps": 8,
+      "effects": 10,
+      "pathQueries": 0,
+      "roles": 0,
+      "dependencies": 0,
+      "invalid": true
+    }
+  ],
+  "utf16SortIncludesSupplementaryLoneSurrogatesNulAndDuplicates": true,
+  "limitations": [
+    "caller cache present in all cases; fresh invocation cache covered only by search tests",
+    "provider rejection, unavailable capture, cancellation and arbitrary protocol replies excluded",
+    "expired callback is preparation input; Binary64 clock boundary not qualified",
+    "source hashes cover declared owners/entry dependencies and lockfile, not entire installed dependency closure"
+  ],
+  "scope": "Independent full needs-binding Rust preparation on physical fixtures versus actual native owner, ordered physical/provider effects, bounded graph, semantic state, roles, UTF-16 dependency sort, remaining caps and final cache. Mechanical path tables have no query script and all actually evaluated arguments including eager branches are checked. No whole resolver/adapter/protocol/cancellation/universal proof or candidate performance qualification."
+}

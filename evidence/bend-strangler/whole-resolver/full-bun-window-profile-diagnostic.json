@@ -1,0 +1,470 @@
+{
+  "at": "2026-10-09T18:58:43.389808+00:00",
+  "purpose": "Find active full-consumer cost before one correction",
+  "authority": "Sampling diagnostic evidence, not parity qualification",
+  "runtime": "Bun1.3.14",
+  "samplingIntervalMicroseconds": 100,
+  "cpuAffinity": "11 nonexclusive",
+  "lanes": {
+    "bun": {
+      "result": {
+        "lane": "wholeBend",
+        "seconds": 6.489357606,
+        "cases": 45,
+        "rounds": 12,
+        "allResultsAndEffectsEqual": true,
+        "checksum": "f810bd91fa70c9711b1322e7ae9bf1f56db7863911c0e328fa6d43a99296286e",
+        "profileMeasurementWindow": {
+          "startTime": 1791572020805906.5,
+          "endTime": 1791572027295264.2,
+          "unit": "epoch microseconds",
+          "scope": "Only the measured repeated sweeps; excludes setup, compilation/import and warmup"
+        }
+      },
+      "profileSha256": "9cf5a9aaa785fccbb54ad9ccacf895535e10ec91e48a836f1e7995b29d46b0d1",
+      "sampledWindowMilliseconds": 6489.976,
+      "selfGroupsMilliseconds": {
+        "other": 4300.444,
+        "effect": 1396.338,
+        "bend": 551.837,
+        "boundary": 178.573,
+        "parser": 62.784
+      },
+      "topSelfFunctions": [
+        {
+          "name": "spawn",
+          "url": "",
+          "milliseconds": 1532.95
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 283.208
+        },
+        {
+          "name": "lstat",
+          "url": "",
+          "milliseconds": 281.255
+        },
+        {
+          "name": "alloc",
+          "url": "",
+          "milliseconds": 253.364
+        },
+        {
+          "name": "end",
+          "url": "",
+          "milliseconds": 219.203
+        },
+        {
+          "name": "Error",
+          "url": "",
+          "milliseconds": 158.5
+        },
+        {
+          "name": "runLoop",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 136.758
+        },
+        {
+          "name": "",
+          "url": "",
+          "milliseconds": 130.823
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaAST.js",
+          "milliseconds": 121.829
+        },
+        {
+          "name": "emit",
+          "url": "node:events",
+          "milliseconds": 75.94
+        },
+        {
+          "name": "freeze",
+          "url": "",
+          "milliseconds": 73.055
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "milliseconds": 70.241
+        },
+        {
+          "name": "copyDataProperties",
+          "url": "",
+          "milliseconds": 70.106
+        },
+        {
+          "name": "getCont",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 69.253
+        },
+        {
+          "name": "binary64",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/service-session.mjs",
+          "milliseconds": 68.54
+        },
+        {
+          "name": "nextTick",
+          "url": "",
+          "milliseconds": 67.036
+        },
+        {
+          "name": "index",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaAST.js",
+          "milliseconds": 60.88
+        },
+        {
+          "name": "parse",
+          "url": "",
+          "milliseconds": 60.315
+        },
+        {
+          "name": "normalizeSpawnArguments",
+          "url": "node:child_process",
+          "milliseconds": 53.622
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Predicate.js",
+          "milliseconds": 53.583
+        },
+        {
+          "name": "realpath",
+          "url": "",
+          "milliseconds": 47.571
+        },
+        {
+          "name": "makeSpanUnsafe",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 46.862
+        },
+        {
+          "name": "runSequential",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 45.291
+        },
+        {
+          "name": "values",
+          "url": "",
+          "milliseconds": 45.122
+        },
+        {
+          "name": "makeFiberContextCache",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 44.835
+        },
+        {
+          "name": "run_loop",
+          "url": "file:///tmp/hapsland-whole-connected-rzsVXq/runtime.mjs",
+          "milliseconds": 41.622
+        },
+        {
+          "name": "map",
+          "url": "",
+          "milliseconds": 38.65
+        },
+        {
+          "name": "useSpan",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 36.802
+        },
+        {
+          "name": "Set",
+          "url": "",
+          "milliseconds": 34.156
+        },
+        {
+          "name": "lookup",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Context.js",
+          "milliseconds": 32.998
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/packages/runtime-environment/dist/process/closed-stdin.js",
+          "milliseconds": 32.443
+        },
+        {
+          "name": "ExitPrimitive",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "milliseconds": 32.085
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Function.js",
+          "milliseconds": 31.65
+        },
+        {
+          "name": "$String$cmp$",
+          "url": "file:///tmp/hapsland-whole-connected-rzsVXq/runtime.mjs",
+          "milliseconds": 31.121
+        },
+        {
+          "name": "_cacheNodes",
+          "url": "",
+          "milliseconds": 30.965
+        },
+        {
+          "name": "",
+          "url": "file:///tmp/hapsland-whole-connected-rzsVXq/runtime.mjs",
+          "milliseconds": 30.486
+        },
+        {
+          "name": "annotate",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "milliseconds": 29.675
+        },
+        {
+          "name": "spawn",
+          "url": "node:child_process",
+          "milliseconds": 29.459
+        },
+        {
+          "name": "strictStruct",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/packages/canonical-policy/dist/canonical/boundary-schema.js",
+          "milliseconds": 28.493
+        },
+        {
+          "name": "setContext",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 28.463
+        }
+      ]
+    },
+    "native": {
+      "result": {
+        "lane": "typescript",
+        "seconds": 5.408003873,
+        "cases": 45,
+        "rounds": 12,
+        "allResultsAndEffectsEqual": true,
+        "checksum": "f810bd91fa70c9711b1322e7ae9bf1f56db7863911c0e328fa6d43a99296286e",
+        "profileMeasurementWindow": {
+          "startTime": 1791572097802048.8,
+          "endTime": 1791572103210052.8,
+          "unit": "epoch microseconds",
+          "scope": "Only the measured repeated sweeps; excludes setup, compilation/import and warmup"
+        }
+      },
+      "profileSha256": "08911ae715129683f5e86bc5557adc6c8e5b82f483b613c336326de33ce862f9",
+      "sampledWindowMilliseconds": 5408.264,
+      "selfGroupsMilliseconds": {
+        "other": 3971.83,
+        "effect": 1371.486,
+        "parser": 48.749,
+        "boundary": 16.199
+      },
+      "topSelfFunctions": [
+        {
+          "name": "spawn",
+          "url": "",
+          "milliseconds": 1449.637
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 246.572
+        },
+        {
+          "name": "end",
+          "url": "",
+          "milliseconds": 235.988
+        },
+        {
+          "name": "alloc",
+          "url": "",
+          "milliseconds": 189.953
+        },
+        {
+          "name": "lstat",
+          "url": "",
+          "milliseconds": 168.05
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaAST.js",
+          "milliseconds": 162.233
+        },
+        {
+          "name": "Error",
+          "url": "",
+          "milliseconds": 132.379
+        },
+        {
+          "name": "runLoop",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 121.614
+        },
+        {
+          "name": "",
+          "url": "",
+          "milliseconds": 88.146
+        },
+        {
+          "name": "runSequential",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 73.35
+        },
+        {
+          "name": "freeze",
+          "url": "",
+          "milliseconds": 73.188
+        },
+        {
+          "name": "emit",
+          "url": "node:events",
+          "milliseconds": 70.498
+        },
+        {
+          "name": "values",
+          "url": "",
+          "milliseconds": 65.049
+        },
+        {
+          "name": "parse",
+          "url": "",
+          "milliseconds": 60.755
+        },
+        {
+          "name": "PrimitiveImpl",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "milliseconds": 56.762
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "milliseconds": 47.844
+        },
+        {
+          "name": "normalizeSpawnArguments",
+          "url": "node:child_process",
+          "milliseconds": 47.755
+        },
+        {
+          "name": "onceWrapper",
+          "url": "node:events",
+          "milliseconds": 46.336
+        },
+        {
+          "name": "index",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaAST.js",
+          "milliseconds": 45.062
+        },
+        {
+          "name": "makeSpanUnsafe",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 44.926
+        },
+        {
+          "name": "ReasonBase",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "milliseconds": 41.451
+        },
+        {
+          "name": "nextTick",
+          "url": "",
+          "milliseconds": 40.351
+        },
+        {
+          "name": "validateArgumentNullCheck",
+          "url": "node:child_process",
+          "milliseconds": 38.875
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Function.js",
+          "milliseconds": 38.364
+        },
+        {
+          "name": "fiberStackAnnotations",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 37.221
+        },
+        {
+          "name": "realpath",
+          "url": "",
+          "milliseconds": 34.783
+        },
+        {
+          "name": "map",
+          "url": "",
+          "milliseconds": 34.73
+        },
+        {
+          "name": "~effect/Effect/evaluate",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "milliseconds": 32.582
+        },
+        {
+          "name": "ExitPrimitive",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "milliseconds": 32.521
+        },
+        {
+          "name": "$Canonical$058step_unchecked$",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/packages/agent-flow-bend/dist/canonical.generated.js",
+          "milliseconds": 31.477
+        },
+        {
+          "name": "stringSplitFast",
+          "url": "",
+          "milliseconds": 31.25
+        },
+        {
+          "name": "assignProperty",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/record.js",
+          "milliseconds": 31.061
+        },
+        {
+          "name": "strictStruct",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/packages/canonical-policy/dist/canonical/boundary-schema.js",
+          "milliseconds": 30.017
+        },
+        {
+          "name": "isFrozen",
+          "url": "",
+          "milliseconds": 29.957
+        },
+        {
+          "name": "Parser",
+          "url": "",
+          "milliseconds": 28.273
+        },
+        {
+          "name": "",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/packages/canonical-policy/dist/canonical/canonical-boundary.js",
+          "milliseconds": 27.227
+        },
+        {
+          "name": "concat",
+          "url": "",
+          "milliseconds": 26.65
+        },
+        {
+          "name": "getCont",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "milliseconds": 26.633
+        },
+        {
+          "name": "decodeCandidateFile",
+          "url": "file:///workspace/typescript/hapsland-bend-selection-ui/packages/canonical-policy/dist/canonical/canonical-boundary.js",
+          "milliseconds": 26.437
+        },
+        {
+          "name": "Set",
+          "url": "",
+          "milliseconds": 26.025
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "Profiling overhead included; single diagnostic worker per lane",
+    "Sampling includes native wait; no CPU/GC guarantee from self time",
+    "Foreign wait versus allocation remains only partially distinguished",
+    "No whole proof or adoption claim"
+  ],
+  "decision": "Effect self samples similar (~1396 vs1371ms), so separate runPromise is not established as dominant overhead. Candidate Bend/boundary samples add active cost. Inspect one concrete foreign conversion/allocation path before correction; do not change lifecycle architecture on this profile alone."
+}

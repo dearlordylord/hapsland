@@ -1,0 +1,339 @@
+{
+  "at": "2026-10-09T20:57:12.456Z",
+  "runtime": "bun",
+  "sources": {
+    "SPEC.bend": "9b268ab51da41b678581a7de8a7ce3829ea183936d96b93a1a6d3c0258f55a5b",
+    "GraphSpecification.bend": "1d11a139f284729241bd8832cd19b1502d681b67090483c197f245ab79491332",
+    "Environment.bend": "611ce8a8d3eebdde02c29c7d07d7c8c92c4e2ea86c57bcdc6cdebe71d1a327e9",
+    "WholeObservation.bend": "fb5b827ca02597f7f58fb83a394fbc4f409d8eef2652cd31542e5d6b147d1e1e",
+    "Types.bend": "2b6fd594da1b8893916c4f924b779e804c446c81de126f602d2b255a6264ddaf",
+    "specification-check.mjs": "8cc77b6cfd7e1e89a0599f37956a3e2cbda236dddc29b6088a5d34128d2a32e7",
+    "../local-graph-draft/SPEC.bend": "df774b762b54ccf67aaa23a7c996bb68e18d5e8b104a8641ebe9063846620167",
+    "../local-graph-draft/core.bend": "ce7c6b16db31c4918d7606aac838d2f5e49e63d63eff942cab54ed67a990ae36",
+    "fixtures.mjs": "112494a84155362db05a37dd2dafee5a0108134572bfee400f4ebc65a2e3aa6a",
+    "frontend-codec.mjs": "fd9f41114adbfe7d6f1bd36bc975a8d0d37717b06288e408b65c85e141f0c787",
+    "../../../packages/source-analysis/dist/direct-event/graph-resolver.js": "3e5c58f1930581041d84b66b13b7b3faade202a1489795ff29f18a8a866cca9a",
+    "../../../packages/source-analysis/dist/direct-event/languages/rust-module-context.js": "f80c5868ead047674083896b6bf31575888f638808007300c4542f5adf6ab008"
+  },
+  "cases": [
+    {
+      "name": "bend-unsupported-relative-import",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "absolute-import-spelling",
+      "status": "native-pre-frame-return",
+      "localComparison": false
+    },
+    {
+      "name": "typescript-js-replacement",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "typescript-uppercase-js-replacement",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "typescript-mjs-replacement",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "typescript-cjs-replacement",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "rust-context-read-policy",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "bend-qualified-import",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "bend-bundled-list",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "large-local-reuse",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 14
+    },
+    {
+      "name": "large-import-diamond-cycle",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 6,
+      "nodes": 1
+    },
+    {
+      "name": "rust-unicode-multiple-roles",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "rust-nonfile-manifest",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "rust-preparation-work-refusal",
+      "status": "native-pre-frame-return",
+      "localComparison": false
+    },
+    {
+      "name": "rust-deadline-before-complete",
+      "status": "native-pre-frame-return",
+      "localComparison": false
+    },
+    {
+      "name": "rust-custom-library",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "rust-automatic-bin",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "rust-explicit-bin",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "rust-date-library",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "rust-cargo-depth",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "rust-local",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "rust-cargo-root",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "rust-cargo-child",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "rust-cargo-nested",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "rust-cargo-ambiguous-module",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "rust-cargo-build",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "rust-no-manifest",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "rust-cargo-cache-refusal",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "bundled",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "negative-graph-work",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 2,
+      "nodes": 1
+    },
+    {
+      "name": "single-child",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "bend-import",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 0,
+      "nodes": 1
+    },
+    {
+      "name": "function-import",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "nested-child",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "tree-refusal",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "missing",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "ambiguous",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "outside",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "unsupported-extension",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "root-cycle",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "unsupported-frontend",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "source-oversize",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "cache-files",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "cache-bytes",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    },
+    {
+      "name": "capture-unavailable",
+      "status": "root-local-exact",
+      "localComparison": true,
+      "pending": 1,
+      "nodes": 1
+    }
+  ],
+  "rootComparisons": 42,
+  "independentRootValueAndPendingExact": true,
+  "statefulOperationSelectedEnvironment": true,
+  "waitingSeparateAndCompletionDoesNotReinvoke": true,
+  "wrongTokenOwnershipNotAssumed": true,
+  "nestedProviderEffectsOrdered": true,
+  "foreignInvocationLeaseIgnored": true,
+  "textCodeUnitDomainChecked": true,
+  "implementationBoundFailuresCannotCountAsCompletion": true,
+  "scope": "Root/local portion of independent whole SPEC on actual frontend facts, exact root value/property order and pending owner/index/payload, budget scalars. Pre-frame outcomes recorded, not independently compared. No whole Rust/expansion/forest projection proof, full-state equivalence, termination, cancellation or performance qualification."
+}

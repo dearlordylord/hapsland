@@ -1,0 +1,3088 @@
+{
+  "at": "2026-10-09T18:29:57.702Z",
+  "runtime": "bun",
+  "pairs": 7,
+  "sourceHashes": {
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/service-session.mjs": "08e728fe0fcb22698f1c473e5e0ddeea4eacdbe5bf6f51a2b0768240d8467a63",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Composition.bend": "9e355e57d59ea3ce294616ef6e93fd5f3972863f0604c75b9ffdbb5c818fc96d",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Machine.bend": "3822cbd3961af36b466442f7e9b8e08157ecaa17e4b07e9a73506ce440bcd81a",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Facts.bend": "583b75e7bda489c2fe8c92ff2c1b02f8b6fdffc3930bdfcc0bb9f44a9d93727f",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/result-check.mjs": "396ede7376edbcc009a67666b5237e4aa8f8ce07573bc4f411e275a82d006346",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Read.bend": "cbb2070936bf72515cd29079725e925986fc747ee6021da4e9f47fcabf52d8f8",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Root.bend": "6e8fd3233a0a99a3083551ad97559d0722eace8ca609e8ed1d0b98c534095112",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/service-session-check.mjs": "d1950b3e90157698f241e87b25fea14c33adee99799f441d45d90f38c90e702e",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/services.js": "946d1a793b7fd4112f95382adab18987b5a489f346c9d3d5904cc437837f10bd",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Core.bend": "cf6cfeb41ad1a80e850ba5ce54f43dcbc40bfc69e84c8f12547929f185a081bb",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/RustCargo.bend": "bc04d4d21d3b1a913b795d11214d8a27438b44cfcfa3691f99ec94a6b22d540b",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Cargo.bend": "8768ecf42e8abd21ba71ddc417d7b446170274ba7b1a91b4d17c743aa163d5fa",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/connected-performance.mjs": "e605e3e42d2a422748a55274478c8ce6163821384514288d9bee935981616cf2",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Check.bend": "b4e8348aee64f46160c953e89f8630253544d7ae6ff3d50592ca753da6310982",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Protocol.bend": "112f715af09c79ccb404bece84f4c768cc50b72d9c868b6fa5b168cacc9c6151",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/fixtures.mjs": "112494a84155362db05a37dd2dafee5a0108134572bfee400f4ebc65a2e3aa6a",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/ImportedRust.bend": "351d605835384c2fd2ac187ba0b7a7d503c71b5a7fd3c1c8a7ae43170de089e8",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/frontend-codec.mjs": "fd9f41114adbfe7d6f1bd36bc975a8d0d37717b06288e408b65c85e141f0c787",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/RustStorage.bend": "7a184481fcbef96512d47721257397c6bc80d3825770b9fdd64a54134bd4acfb",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Types.bend": "2b6fd594da1b8893916c4f924b779e804c446c81de126f602d2b255a6264ddaf",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/consumer.mjs": "1914b6e2342105e4cd5e20b2776fe0f48574284c67e08b044957d388bee46fd0",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/RustFollow.bend": "488f1db46ea6e7d453eadd65ae79bf1df83e3c07e133a9fa4d75d09de79355f7",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/RustMachine.bend": "14b41124301a591254f2615860525b0fb2f5ba64c50cd37de26a1a0179bb02fb",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Attach.bend": "b16c436d917200018af614f42671082a9a3ce96714ddab0719677225ca71406f",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/frontends.mjs": "c0d729377bc9a75d0bd186a2c3e2ac6e2d2c8920a0153a86ac32e548b66d5903",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Runtime.bend": "7ee9588ee45caf5fad2bfb82290bf6a6fee85d82b1bd36bbe647b1c2f87227ef",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Clock.bend": "6712fa3639757a518c6c87aa4aef468aeb1e16d4e8c6114eb3e72d9c64b60cd0",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/service-attribution.mjs": "3e4b2b51841835d91c8b1e107e3a7cfaf7f957f3b3b6a9bc6b7c6fdf3b974120",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Resolve.bend": "26070f9b7b376bdf0451d416bfb9e4ce0ec98b0af267cedacd4b49340e45829b",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/Loop.bend": "c79eb63aacc69626b3f946200d5c8a2ec3bc8ee4a05c2a49c94edeb651524a10",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/machine-check.mjs": "7dfbf5d072310ad0f04bb43b9307452d5f37109b5ad80bf7fa677e4a670ecffd",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/connected-worker.mjs": "3cbe4bda67a856515cca98c5d18826f97124849fe20a836bd9ebe416fac2398e",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/budget-counterexample.mjs": "372d4c3792c03341c27b2d75a6c11824bc685c299429b6a0675c529800246d86",
+    "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-resolver/State.bend": "3887a7b373b846724aead1e289d2196149e395796a0a4a0833edb399f0ac32f9",
+    "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/dist/direct-event/graph-resolver.js": "3e5c58f1930581041d84b66b13b7b3faade202a1489795ff29f18a8a866cca9a",
+    "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/dist/direct-event/languages/registry.js": "d6e5f8f3770298f81888722fd1f11adf5af529ddc68d932ea1c59fd4b7a9aa5b",
+    "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/dist/direct-event/languages/rust-adapter.js": "78d082744e31ffe9c8e52f38a79c040bb6ac456fe5fcea36375d48c1e28a6353",
+    "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/dist/direct-event/languages/rust-module-context.js": "f80c5868ead047674083896b6bf31575888f638808007300c4542f5adf6ab008"
+  },
+  "summary": [
+    {
+      "pair": 0,
+      "name": "large-local-reuse",
+      "lane": "typescript",
+      "milliseconds": 6.078671000000213,
+      "groups": {
+        "frontend": {
+          "count": 1,
+          "inclusiveMilliseconds": 5.678460000000086,
+          "exclusiveMilliseconds": 5.678460000000086
+        }
+      }
+    },
+    {
+      "pair": 0,
+      "name": "large-local-reuse",
+      "lane": "wholeBend",
+      "milliseconds": 10.305954000000384,
+      "groups": {
+        "abi-conversion": {
+          "count": 41,
+          "inclusiveMilliseconds": 0.06800100000054954,
+          "exclusiveMilliseconds": 0.04054299999961586
+        },
+        "continuation": {
+          "count": 8,
+          "inclusiveMilliseconds": 4.4832009999995535,
+          "exclusiveMilliseconds": 4.442657999999938
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0028330000000096334,
+          "exclusiveMilliseconds": 0.0028330000000096334
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0015829999997549749,
+          "exclusiveMilliseconds": 0.0015829999997549749
+        },
+        "service:Types.ReadClock": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.006583999999747903,
+          "exclusiveMilliseconds": 0.006583999999747903
+        },
+        "service:Types.InspectSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 5.614168000000063,
+          "exclusiveMilliseconds": 5.614168000000063
+        },
+        "service:Types.EncodeProduct": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.11175099999991289,
+          "exclusiveMilliseconds": 0.11175099999991289
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.038708999999926164,
+          "exclusiveMilliseconds": 0.038708999999926164
+        }
+      }
+    },
+    {
+      "pair": 0,
+      "name": "large-import-diamond-cycle",
+      "lane": "typescript",
+      "milliseconds": 98.42545999999993,
+      "groups": {
+        "frontend": {
+          "count": 8,
+          "inclusiveMilliseconds": 3.5419449999999415,
+          "exclusiveMilliseconds": 3.5419449999999415
+        },
+        "lstat": {
+          "count": 52,
+          "inclusiveMilliseconds": 17.866722999999183,
+          "exclusiveMilliseconds": 17.866722999999183
+        },
+        "access": {
+          "count": 14,
+          "inclusiveMilliseconds": 71.59721300000001,
+          "exclusiveMilliseconds": 71.59721300000001
+        }
+      }
+    },
+    {
+      "pair": 0,
+      "name": "large-import-diamond-cycle",
+      "lane": "wholeBend",
+      "milliseconds": 84.68977199999972,
+      "groups": {
+        "abi-conversion": {
+          "count": 1082,
+          "inclusiveMilliseconds": 3.234423000001243,
+          "exclusiveMilliseconds": 2.4543830000015987
+        },
+        "continuation": {
+          "count": 228,
+          "inclusiveMilliseconds": 7.8361820000009175,
+          "exclusiveMilliseconds": 5.381798999999319
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0072079999999914435,
+          "exclusiveMilliseconds": 0.0072079999999914435
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0029169999997975538,
+          "exclusiveMilliseconds": 0.0029169999997975538
+        },
+        "service:Types.ReadClock": {
+          "count": 42,
+          "inclusiveMilliseconds": 0.1737949999983357,
+          "exclusiveMilliseconds": 0.1737949999983357
+        },
+        "service:Types.InspectSource": {
+          "count": 8,
+          "inclusiveMilliseconds": 3.442026999999598,
+          "exclusiveMilliseconds": 3.442026999999598
+        },
+        "service:Types.EncodeProduct": {
+          "count": 16,
+          "inclusiveMilliseconds": 0.5478789999997389,
+          "exclusiveMilliseconds": 0.5478789999997389
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 13,
+          "inclusiveMilliseconds": 0.053834000000733795,
+          "exclusiveMilliseconds": 0.053834000000733795
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 52,
+          "inclusiveMilliseconds": 0.04854399999931047,
+          "exclusiveMilliseconds": 0.04854399999931047
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 52,
+          "inclusiveMilliseconds": 7.070096999998896,
+          "exclusiveMilliseconds": 7.070096999998896
+        },
+        "service:Types.AccessPath": {
+          "count": 14,
+          "inclusiveMilliseconds": 64.89699700000028,
+          "exclusiveMilliseconds": 64.89699700000028
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.07537599999932354,
+          "exclusiveMilliseconds": 0.07537599999932354
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.011416999999710242,
+          "exclusiveMilliseconds": 0.011416999999710242
+        },
+        "service:Types.CaptureSource": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.0845419999996011,
+          "exclusiveMilliseconds": 0.0845419999996011
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.024501999999756663,
+          "exclusiveMilliseconds": 0.024501999999756663
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.024583999999777006,
+          "exclusiveMilliseconds": 0.024583999999777006
+        }
+      }
+    },
+    {
+      "pair": 0,
+      "name": "rust-cargo-nested",
+      "lane": "typescript",
+      "milliseconds": 37.03694899999982,
+      "groups": {
+        "lstat": {
+          "count": 11,
+          "inclusiveMilliseconds": 2.0814339999997173,
+          "exclusiveMilliseconds": 2.0814339999997173
+        },
+        "access": {
+          "count": 8,
+          "inclusiveMilliseconds": 28.801470999999765,
+          "exclusiveMilliseconds": 28.801470999999765
+        },
+        "cargo-parser": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.05087499999990541,
+          "exclusiveMilliseconds": 0.05087499999990541
+        },
+        "rust-modules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.49262899999985166,
+          "exclusiveMilliseconds": 0.49262899999985166
+        },
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.5654209999997875,
+          "exclusiveMilliseconds": 0.5654209999997875
+        }
+      }
+    },
+    {
+      "pair": 0,
+      "name": "rust-cargo-nested",
+      "lane": "wholeBend",
+      "milliseconds": 75.66520300000002,
+      "groups": {
+        "abi-conversion": {
+          "count": 623,
+          "inclusiveMilliseconds": 1.0318849999980557,
+          "exclusiveMilliseconds": 0.5128809999969235
+        },
+        "continuation": {
+          "count": 131,
+          "inclusiveMilliseconds": 3.0404390000048807,
+          "exclusiveMilliseconds": 2.527558000007957
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.006041999999979453,
+          "exclusiveMilliseconds": 0.006041999999979453
+        },
+        "service:Types.PathExtension": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.006123999999999796,
+          "exclusiveMilliseconds": 0.006123999999999796
+        },
+        "service:Types.InsertRootCaptureCache": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004457999999885942,
+          "exclusiveMilliseconds": 0.004457999999885942
+        },
+        "service:Types.ReadPathSeparator": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0029580000000350992,
+          "exclusiveMilliseconds": 0.0029580000000350992
+        },
+        "service:Types.PathDirname": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.017042000000856206,
+          "exclusiveMilliseconds": 0.017042000000856206
+        },
+        "service:Types.PathJoin": {
+          "count": 15,
+          "inclusiveMilliseconds": 0.0389589999990676,
+          "exclusiveMilliseconds": 0.0389589999990676
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 11,
+          "inclusiveMilliseconds": 10.326705999999831,
+          "exclusiveMilliseconds": 10.326705999999831
+        },
+        "service:Types.ReadClock": {
+          "count": 21,
+          "inclusiveMilliseconds": 0.1167089999989912,
+          "exclusiveMilliseconds": 0.1167089999989912
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 19,
+          "inclusiveMilliseconds": 0.024835000000166474,
+          "exclusiveMilliseconds": 0.024835000000166474
+        },
+        "service:Types.AccessPath": {
+          "count": 8,
+          "inclusiveMilliseconds": 60.38875299999927,
+          "exclusiveMilliseconds": 60.38875299999927
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.040376000000378554,
+          "exclusiveMilliseconds": 0.040376000000378554
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.007499999999254214,
+          "exclusiveMilliseconds": 0.007499999999254214
+        },
+        "service:Types.CaptureSource": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.07966700000042692,
+          "exclusiveMilliseconds": 0.07966700000042692
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.008664999999837164,
+          "exclusiveMilliseconds": 0.008664999999837164
+        },
+        "service:Types.ParseCargo": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.06404199999997218,
+          "exclusiveMilliseconds": 0.06404199999997218
+        },
+        "service:Types.PathRelative": {
+          "count": 9,
+          "inclusiveMilliseconds": 0.016874999999345164,
+          "exclusiveMilliseconds": 0.016874999999345164
+        },
+        "service:Types.PathNormalize": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.004209000000173546,
+          "exclusiveMilliseconds": 0.004209000000173546
+        },
+        "service:Types.InspectRustModules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.44762799999944036,
+          "exclusiveMilliseconds": 0.44762799999944036
+        },
+        "service:Types.PathBasename": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.007250000000112777,
+          "exclusiveMilliseconds": 0.007250000000112777
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.6505470000001878,
+          "exclusiveMilliseconds": 0.6505470000001878
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.05874999999969077,
+          "exclusiveMilliseconds": 0.05874999999969077
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005749999999807187,
+          "exclusiveMilliseconds": 0.005749999999807187
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.006832999999915046,
+          "exclusiveMilliseconds": 0.006832999999915046
+        }
+      }
+    },
+    {
+      "pair": 0,
+      "name": "single-child",
+      "lane": "typescript",
+      "milliseconds": 15.444410000000062,
+      "groups": {
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.48350299999992785,
+          "exclusiveMilliseconds": 0.48350299999992785
+        },
+        "lstat": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.47450499999922613,
+          "exclusiveMilliseconds": 0.47450499999922613
+        },
+        "access": {
+          "count": 2,
+          "inclusiveMilliseconds": 13.633354000000054,
+          "exclusiveMilliseconds": 13.633354000000054
+        }
+      }
+    },
+    {
+      "pair": 0,
+      "name": "single-child",
+      "lane": "wholeBend",
+      "milliseconds": 7.828351999999995,
+      "groups": {
+        "abi-conversion": {
+          "count": 129,
+          "inclusiveMilliseconds": 0.26988399999981993,
+          "exclusiveMilliseconds": 0.12587800000073912
+        },
+        "continuation": {
+          "count": 27,
+          "inclusiveMilliseconds": 0.9150939999985894,
+          "exclusiveMilliseconds": 0.7892159999978503
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005500000000211003,
+          "exclusiveMilliseconds": 0.005500000000211003
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0027920000002268353,
+          "exclusiveMilliseconds": 0.0027920000002268353
+        },
+        "service:Types.ReadClock": {
+          "count": 6,
+          "inclusiveMilliseconds": 0.028584000000137166,
+          "exclusiveMilliseconds": 0.028584000000137166
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4551280000000588,
+          "exclusiveMilliseconds": 0.4551280000000588
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.047791000000415806,
+          "exclusiveMilliseconds": 0.047791000000415806
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.006041999999979453,
+          "exclusiveMilliseconds": 0.006041999999979453
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.003958999999667867,
+          "exclusiveMilliseconds": 0.003958999999667867
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.565005999999812,
+          "exclusiveMilliseconds": 0.565005999999812
+        },
+        "service:Types.AccessPath": {
+          "count": 2,
+          "inclusiveMilliseconds": 5.6685019999999895,
+          "exclusiveMilliseconds": 5.6685019999999895
+        },
+        "service:Types.CaptureSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.01766700000007404,
+          "exclusiveMilliseconds": 0.01766700000007404
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005666999999903055,
+          "exclusiveMilliseconds": 0.005666999999903055
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "name": "large-local-reuse",
+      "lane": "wholeBend",
+      "milliseconds": 11.230711000000156,
+      "groups": {
+        "abi-conversion": {
+          "count": 41,
+          "inclusiveMilliseconds": 0.06262600000172824,
+          "exclusiveMilliseconds": 0.03866600000037579
+        },
+        "continuation": {
+          "count": 8,
+          "inclusiveMilliseconds": 5.482332999999926,
+          "exclusiveMilliseconds": 5.44366699999955
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0017499999999017746,
+          "exclusiveMilliseconds": 0.0017499999999017746
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0013330000001587905,
+          "exclusiveMilliseconds": 0.0013330000001587905
+        },
+        "service:Types.ReadClock": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.010751000000254862,
+          "exclusiveMilliseconds": 0.010751000000254862
+        },
+        "service:Types.InspectSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 5.4845000000000255,
+          "exclusiveMilliseconds": 5.4845000000000255
+        },
+        "service:Types.EncodeProduct": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.13158500000008644,
+          "exclusiveMilliseconds": 0.13158500000008644
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0466670000000704,
+          "exclusiveMilliseconds": 0.0466670000000704
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "name": "large-local-reuse",
+      "lane": "typescript",
+      "milliseconds": 9.480780999999752,
+      "groups": {
+        "frontend": {
+          "count": 1,
+          "inclusiveMilliseconds": 8.933943,
+          "exclusiveMilliseconds": 8.933943
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "name": "large-import-diamond-cycle",
+      "lane": "wholeBend",
+      "milliseconds": 84.27039300000024,
+      "groups": {
+        "abi-conversion": {
+          "count": 1082,
+          "inclusiveMilliseconds": 1.5860099999999875,
+          "exclusiveMilliseconds": 0.7807919999963815
+        },
+        "continuation": {
+          "count": 228,
+          "inclusiveMilliseconds": 12.660221999999976,
+          "exclusiveMilliseconds": 11.879430000003595
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0037080000001878943,
+          "exclusiveMilliseconds": 0.0037080000001878943
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.002250000000003638,
+          "exclusiveMilliseconds": 0.002250000000003638
+        },
+        "service:Types.ReadClock": {
+          "count": 42,
+          "inclusiveMilliseconds": 0.18216899999924863,
+          "exclusiveMilliseconds": 0.18216899999924863
+        },
+        "service:Types.InspectSource": {
+          "count": 8,
+          "inclusiveMilliseconds": 3.425235000000157,
+          "exclusiveMilliseconds": 3.425235000000157
+        },
+        "service:Types.EncodeProduct": {
+          "count": 16,
+          "inclusiveMilliseconds": 0.5488789999994879,
+          "exclusiveMilliseconds": 0.5488789999994879
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 13,
+          "inclusiveMilliseconds": 0.07608200000049692,
+          "exclusiveMilliseconds": 0.07608200000049692
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 52,
+          "inclusiveMilliseconds": 0.06250199999840333,
+          "exclusiveMilliseconds": 0.06250199999840333
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 52,
+          "inclusiveMilliseconds": 5.955253000002358,
+          "exclusiveMilliseconds": 5.955253000002358
+        },
+        "service:Types.AccessPath": {
+          "count": 14,
+          "inclusiveMilliseconds": 60.746505000000525,
+          "exclusiveMilliseconds": 60.746505000000525
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.06366700000035053,
+          "exclusiveMilliseconds": 0.06366700000035053
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.012540999999146152,
+          "exclusiveMilliseconds": 0.012540999999146152
+        },
+        "service:Types.CaptureSource": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.09774899999956688,
+          "exclusiveMilliseconds": 0.09774899999956688
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.013210000000526634,
+          "exclusiveMilliseconds": 0.013210000000526634
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.026541000000179338,
+          "exclusiveMilliseconds": 0.026541000000179338
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "name": "large-import-diamond-cycle",
+      "lane": "typescript",
+      "milliseconds": 73.67722999999978,
+      "groups": {
+        "frontend": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.843394999999873,
+          "exclusiveMilliseconds": 2.843394999999873
+        },
+        "lstat": {
+          "count": 52,
+          "inclusiveMilliseconds": 5.247419999997419,
+          "exclusiveMilliseconds": 5.247419999997419
+        },
+        "access": {
+          "count": 14,
+          "inclusiveMilliseconds": 60.52170999999953,
+          "exclusiveMilliseconds": 60.52170999999953
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "name": "rust-cargo-nested",
+      "lane": "wholeBend",
+      "milliseconds": 33.06083600000011,
+      "groups": {
+        "abi-conversion": {
+          "count": 623,
+          "inclusiveMilliseconds": 0.8298890000082793,
+          "exclusiveMilliseconds": 0.4128020000075594
+        },
+        "continuation": {
+          "count": 131,
+          "inclusiveMilliseconds": 2.4896850000041013,
+          "exclusiveMilliseconds": 2.076882999996542
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00483299999996234,
+          "exclusiveMilliseconds": 0.00483299999996234
+        },
+        "service:Types.PathExtension": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.005834000000049855,
+          "exclusiveMilliseconds": 0.005834000000049855
+        },
+        "service:Types.InsertRootCaptureCache": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004666999999699328,
+          "exclusiveMilliseconds": 0.004666999999699328
+        },
+        "service:Types.ReadPathSeparator": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005042000000230473,
+          "exclusiveMilliseconds": 0.005042000000230473
+        },
+        "service:Types.PathDirname": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.013250999999399937,
+          "exclusiveMilliseconds": 0.013250999999399937
+        },
+        "service:Types.PathJoin": {
+          "count": 15,
+          "inclusiveMilliseconds": 0.024294999999710853,
+          "exclusiveMilliseconds": 0.024294999999710853
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 11,
+          "inclusiveMilliseconds": 2.5275610000003326,
+          "exclusiveMilliseconds": 2.5275610000003326
+        },
+        "service:Types.ReadClock": {
+          "count": 21,
+          "inclusiveMilliseconds": 0.08441499999980806,
+          "exclusiveMilliseconds": 0.08441499999980806
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 19,
+          "inclusiveMilliseconds": 0.015666999998757092,
+          "exclusiveMilliseconds": 0.015666999998757092
+        },
+        "service:Types.AccessPath": {
+          "count": 8,
+          "inclusiveMilliseconds": 26.485118000000057,
+          "exclusiveMilliseconds": 26.485118000000057
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.030874999999923602,
+          "exclusiveMilliseconds": 0.030874999999923602
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.006665999999313499,
+          "exclusiveMilliseconds": 0.006665999999313499
+        },
+        "service:Types.CaptureSource": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.040833999999904336,
+          "exclusiveMilliseconds": 0.040833999999904336
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.010332000000744301,
+          "exclusiveMilliseconds": 0.010332000000744301
+        },
+        "service:Types.ParseCargo": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.042291999999633845,
+          "exclusiveMilliseconds": 0.042291999999633845
+        },
+        "service:Types.PathRelative": {
+          "count": 9,
+          "inclusiveMilliseconds": 0.014625999999680062,
+          "exclusiveMilliseconds": 0.014625999999680062
+        },
+        "service:Types.PathNormalize": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.009708000000046013,
+          "exclusiveMilliseconds": 0.009708000000046013
+        },
+        "service:Types.InspectRustModules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.42083600000069055,
+          "exclusiveMilliseconds": 0.42083600000069055
+        },
+        "service:Types.PathBasename": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.003208000000086031,
+          "exclusiveMilliseconds": 0.003208000000086031
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.5154630000001816,
+          "exclusiveMilliseconds": 0.5154630000001816
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.043083999999907974,
+          "exclusiveMilliseconds": 0.043083999999907974
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004292000000077678,
+          "exclusiveMilliseconds": 0.004292000000077678
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.007000999999945634,
+          "exclusiveMilliseconds": 0.007000999999945634
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "name": "rust-cargo-nested",
+      "lane": "typescript",
+      "milliseconds": 30.89456999999993,
+      "groups": {
+        "lstat": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.7658399999995709,
+          "exclusiveMilliseconds": 0.7658399999995709
+        },
+        "access": {
+          "count": 8,
+          "inclusiveMilliseconds": 27.512293000000227,
+          "exclusiveMilliseconds": 27.512293000000227
+        },
+        "cargo-parser": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.021125000000211003,
+          "exclusiveMilliseconds": 0.021125000000211003
+        },
+        "rust-modules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.3378779999998187,
+          "exclusiveMilliseconds": 0.3378779999998187
+        },
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4023779999997714,
+          "exclusiveMilliseconds": 0.4023779999997714
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "name": "single-child",
+      "lane": "wholeBend",
+      "milliseconds": 6.666550999999799,
+      "groups": {
+        "abi-conversion": {
+          "count": 129,
+          "inclusiveMilliseconds": 0.18524600000182545,
+          "exclusiveMilliseconds": 0.0979999999995016
+        },
+        "continuation": {
+          "count": 27,
+          "inclusiveMilliseconds": 0.877755999999863,
+          "exclusiveMilliseconds": 0.7797560000003614
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0052910000003976165,
+          "exclusiveMilliseconds": 0.0052910000003976165
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0025000000000545697,
+          "exclusiveMilliseconds": 0.0025000000000545697
+        },
+        "service:Types.ReadClock": {
+          "count": 6,
+          "inclusiveMilliseconds": 0.03395899999941321,
+          "exclusiveMilliseconds": 0.03395899999941321
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4418380000001889,
+          "exclusiveMilliseconds": 0.4418380000001889
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.04062600000088423,
+          "exclusiveMilliseconds": 0.04062600000088423
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005625000000236469,
+          "exclusiveMilliseconds": 0.005625000000236469
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.004126000000269414,
+          "exclusiveMilliseconds": 0.004126000000269414
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.14387600000009115,
+          "exclusiveMilliseconds": 0.14387600000009115
+        },
+        "service:Types.AccessPath": {
+          "count": 2,
+          "inclusiveMilliseconds": 4.990122000000156,
+          "exclusiveMilliseconds": 4.990122000000156
+        },
+        "service:Types.CaptureSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.01608299999998053,
+          "exclusiveMilliseconds": 0.01608299999998053
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00491699999975026,
+          "exclusiveMilliseconds": 0.00491699999975026
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "name": "single-child",
+      "lane": "typescript",
+      "milliseconds": 7.9678939999998875,
+      "groups": {
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.337919000000511,
+          "exclusiveMilliseconds": 0.337919000000511
+        },
+        "lstat": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.07116799999994328,
+          "exclusiveMilliseconds": 0.07116799999994328
+        },
+        "access": {
+          "count": 2,
+          "inclusiveMilliseconds": 7.053303999999571,
+          "exclusiveMilliseconds": 7.053303999999571
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "name": "large-local-reuse",
+      "lane": "typescript",
+      "milliseconds": 4.161449000000175,
+      "groups": {
+        "frontend": {
+          "count": 1,
+          "inclusiveMilliseconds": 3.8372800000001916,
+          "exclusiveMilliseconds": 3.8372800000001916
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "name": "large-local-reuse",
+      "lane": "wholeBend",
+      "milliseconds": 13.378060999999889,
+      "groups": {
+        "abi-conversion": {
+          "count": 41,
+          "inclusiveMilliseconds": 0.07933899999898131,
+          "exclusiveMilliseconds": 0.0460440000001654
+        },
+        "continuation": {
+          "count": 8,
+          "inclusiveMilliseconds": 6.162004999999681,
+          "exclusiveMilliseconds": 6.1159609999995155
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00429100000019389,
+          "exclusiveMilliseconds": 0.00429100000019389
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0027090000003227033,
+          "exclusiveMilliseconds": 0.0027090000003227033
+        },
+        "service:Types.ReadClock": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.01079200000003766,
+          "exclusiveMilliseconds": 0.01079200000003766
+        },
+        "service:Types.InspectSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 6.983886999999868,
+          "exclusiveMilliseconds": 6.983886999999868
+        },
+        "service:Types.EncodeProduct": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.11729199999945195,
+          "exclusiveMilliseconds": 0.11729199999945195
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.041917000000012195,
+          "exclusiveMilliseconds": 0.041917000000012195
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "name": "large-import-diamond-cycle",
+      "lane": "typescript",
+      "milliseconds": 80.78995000000032,
+      "groups": {
+        "frontend": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.9275219999999536,
+          "exclusiveMilliseconds": 2.9275219999999536
+        },
+        "lstat": {
+          "count": 52,
+          "inclusiveMilliseconds": 9.959118000000672,
+          "exclusiveMilliseconds": 9.959118000000672
+        },
+        "access": {
+          "count": 14,
+          "inclusiveMilliseconds": 64.09857199999988,
+          "exclusiveMilliseconds": 64.09857199999988
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "name": "large-import-diamond-cycle",
+      "lane": "wholeBend",
+      "milliseconds": 76.30929100000003,
+      "groups": {
+        "abi-conversion": {
+          "count": 1082,
+          "inclusiveMilliseconds": 1.1514259999971728,
+          "exclusiveMilliseconds": 0.5941640000010011
+        },
+        "continuation": {
+          "count": 228,
+          "inclusiveMilliseconds": 9.189645999993445,
+          "exclusiveMilliseconds": 8.595481999992444
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0049579999999878055,
+          "exclusiveMilliseconds": 0.0049579999999878055
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0027090000003227033,
+          "exclusiveMilliseconds": 0.0027090000003227033
+        },
+        "service:Types.ReadClock": {
+          "count": 42,
+          "inclusiveMilliseconds": 0.14274999999861393,
+          "exclusiveMilliseconds": 0.14274999999861393
+        },
+        "service:Types.InspectSource": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.7972289999997884,
+          "exclusiveMilliseconds": 2.7972289999997884
+        },
+        "service:Types.EncodeProduct": {
+          "count": 16,
+          "inclusiveMilliseconds": 1.5225129999998899,
+          "exclusiveMilliseconds": 1.5225129999998899
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 13,
+          "inclusiveMilliseconds": 0.0595829999997477,
+          "exclusiveMilliseconds": 0.0595829999997477
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 52,
+          "inclusiveMilliseconds": 0.04866600000241306,
+          "exclusiveMilliseconds": 0.04866600000241306
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 52,
+          "inclusiveMilliseconds": 6.726964999999382,
+          "exclusiveMilliseconds": 6.726964999999382
+        },
+        "service:Types.AccessPath": {
+          "count": 14,
+          "inclusiveMilliseconds": 55.33600599999909,
+          "exclusiveMilliseconds": 55.33600599999909
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.04587800000035713,
+          "exclusiveMilliseconds": 0.04587800000035713
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.011334000000260858,
+          "exclusiveMilliseconds": 0.011334000000260858
+        },
+        "service:Types.CaptureSource": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.05896000000029744,
+          "exclusiveMilliseconds": 0.05896000000029744
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.011708999999882508,
+          "exclusiveMilliseconds": 0.011708999999882508
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.027458000000024185,
+          "exclusiveMilliseconds": 0.027458000000024185
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "name": "rust-cargo-nested",
+      "lane": "typescript",
+      "milliseconds": 41.915779000000384,
+      "groups": {
+        "lstat": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.3032119999998031,
+          "exclusiveMilliseconds": 0.3032119999998031
+        },
+        "access": {
+          "count": 8,
+          "inclusiveMilliseconds": 32.025992000000315,
+          "exclusiveMilliseconds": 32.025992000000315
+        },
+        "cargo-parser": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.023875000000316504,
+          "exclusiveMilliseconds": 0.023875000000316504
+        },
+        "rust-modules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.40333700000019235,
+          "exclusiveMilliseconds": 0.40333700000019235
+        },
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4230450000000019,
+          "exclusiveMilliseconds": 0.4230450000000019
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "name": "rust-cargo-nested",
+      "lane": "wholeBend",
+      "milliseconds": 45.666973999999755,
+      "groups": {
+        "abi-conversion": {
+          "count": 623,
+          "inclusiveMilliseconds": 0.694903000000977,
+          "exclusiveMilliseconds": 0.3362629999987803
+        },
+        "continuation": {
+          "count": 131,
+          "inclusiveMilliseconds": 2.1527200000004996,
+          "exclusiveMilliseconds": 1.8164570000017193
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.007834000000002561,
+          "exclusiveMilliseconds": 0.007834000000002561
+        },
+        "service:Types.PathExtension": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.006125000000338332,
+          "exclusiveMilliseconds": 0.006125000000338332
+        },
+        "service:Types.InsertRootCaptureCache": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0048750000000836735,
+          "exclusiveMilliseconds": 0.0048750000000836735
+        },
+        "service:Types.ReadPathSeparator": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004042000000026746,
+          "exclusiveMilliseconds": 0.004042000000026746
+        },
+        "service:Types.PathDirname": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.016039999999975407,
+          "exclusiveMilliseconds": 0.016039999999975407
+        },
+        "service:Types.PathJoin": {
+          "count": 15,
+          "inclusiveMilliseconds": 0.02766500000097949,
+          "exclusiveMilliseconds": 0.02766500000097949
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 11,
+          "inclusiveMilliseconds": 3.2731089999992946,
+          "exclusiveMilliseconds": 3.2731089999992946
+        },
+        "service:Types.ReadClock": {
+          "count": 21,
+          "inclusiveMilliseconds": 0.08375299999988783,
+          "exclusiveMilliseconds": 0.08375299999988783
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 19,
+          "inclusiveMilliseconds": 0.021252000000004045,
+          "exclusiveMilliseconds": 0.021252000000004045
+        },
+        "service:Types.AccessPath": {
+          "count": 8,
+          "inclusiveMilliseconds": 38.36908399999993,
+          "exclusiveMilliseconds": 38.36908399999993
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.041374999999789,
+          "exclusiveMilliseconds": 0.041374999999789
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.06370899999956237,
+          "exclusiveMilliseconds": 0.06370899999956237
+        },
+        "service:Types.CaptureSource": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.05066599999963728,
+          "exclusiveMilliseconds": 0.05066599999963728
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.012497999999595777,
+          "exclusiveMilliseconds": 0.012497999999595777
+        },
+        "service:Types.ParseCargo": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.04179199999998673,
+          "exclusiveMilliseconds": 0.04179199999998673
+        },
+        "service:Types.PathRelative": {
+          "count": 9,
+          "inclusiveMilliseconds": 0.019292999999834137,
+          "exclusiveMilliseconds": 0.019292999999834137
+        },
+        "service:Types.PathNormalize": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.0034160000000156288,
+          "exclusiveMilliseconds": 0.0034160000000156288
+        },
+        "service:Types.InspectRustModules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.48150399999985893,
+          "exclusiveMilliseconds": 0.48150399999985893
+        },
+        "service:Types.PathBasename": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0019999999999527063,
+          "exclusiveMilliseconds": 0.0019999999999527063
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.7195889999998144,
+          "exclusiveMilliseconds": 0.7195889999998144
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.04616600000008475,
+          "exclusiveMilliseconds": 0.04616600000008475
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005125000000134605,
+          "exclusiveMilliseconds": 0.005125000000134605
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004041000000142958,
+          "exclusiveMilliseconds": 0.004041000000142958
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "name": "single-child",
+      "lane": "typescript",
+      "milliseconds": 11.732089999999971,
+      "groups": {
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.44050400000014633,
+          "exclusiveMilliseconds": 0.44050400000014633
+        },
+        "lstat": {
+          "count": 4,
+          "inclusiveMilliseconds": 1.8230560000006335,
+          "exclusiveMilliseconds": 1.8230560000006335
+        },
+        "access": {
+          "count": 2,
+          "inclusiveMilliseconds": 8.78827500000034,
+          "exclusiveMilliseconds": 8.78827500000034
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "name": "single-child",
+      "lane": "wholeBend",
+      "milliseconds": 6.225256000000172,
+      "groups": {
+        "abi-conversion": {
+          "count": 129,
+          "inclusiveMilliseconds": 0.1590440000018134,
+          "exclusiveMilliseconds": 0.08308299999907831
+        },
+        "continuation": {
+          "count": 27,
+          "inclusiveMilliseconds": 0.8357149999992544,
+          "exclusiveMilliseconds": 0.752632000000176
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.003624999999829015,
+          "exclusiveMilliseconds": 0.003624999999829015
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0017920000000231084,
+          "exclusiveMilliseconds": 0.0017920000000231084
+        },
+        "service:Types.ReadClock": {
+          "count": 6,
+          "inclusiveMilliseconds": 0.0205429999991793,
+          "exclusiveMilliseconds": 0.0205429999991793
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.42871100000002116,
+          "exclusiveMilliseconds": 0.42871100000002116
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.03941799999984141,
+          "exclusiveMilliseconds": 0.03941799999984141
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0057500000002619345,
+          "exclusiveMilliseconds": 0.0057500000002619345
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.0031659999990552024,
+          "exclusiveMilliseconds": 0.0031659999990552024
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.10945900000024267,
+          "exclusiveMilliseconds": 0.10945900000024267
+        },
+        "service:Types.AccessPath": {
+          "count": 2,
+          "inclusiveMilliseconds": 4.672369000000344,
+          "exclusiveMilliseconds": 4.672369000000344
+        },
+        "service:Types.CaptureSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.008417000000008557,
+          "exclusiveMilliseconds": 0.008417000000008557
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0048750000000836735,
+          "exclusiveMilliseconds": 0.0048750000000836735
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "name": "large-local-reuse",
+      "lane": "wholeBend",
+      "milliseconds": 6.509758000000147,
+      "groups": {
+        "abi-conversion": {
+          "count": 41,
+          "inclusiveMilliseconds": 0.038038000002416084,
+          "exclusiveMilliseconds": 0.024081000000478525
+        },
+        "continuation": {
+          "count": 8,
+          "inclusiveMilliseconds": 1.8643459999998413,
+          "exclusiveMilliseconds": 1.8402649999993628
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0018749999999272404,
+          "exclusiveMilliseconds": 0.0018749999999272404
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.001209000000017113,
+          "exclusiveMilliseconds": 0.001209000000017113
+        },
+        "service:Types.ReadClock": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.006000000000312866,
+          "exclusiveMilliseconds": 0.006000000000312866
+        },
+        "service:Types.InspectSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 4.405283999999938,
+          "exclusiveMilliseconds": 4.405283999999938
+        },
+        "service:Types.EncodeProduct": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.12820900000042457,
+          "exclusiveMilliseconds": 0.12820900000042457
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.04420799999979863,
+          "exclusiveMilliseconds": 0.04420799999979863
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "name": "large-local-reuse",
+      "lane": "typescript",
+      "milliseconds": 6.040754000000106,
+      "groups": {
+        "frontend": {
+          "count": 1,
+          "inclusiveMilliseconds": 5.616543000000092,
+          "exclusiveMilliseconds": 5.616543000000092
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "name": "large-import-diamond-cycle",
+      "lane": "wholeBend",
+      "milliseconds": 76.89608700000008,
+      "groups": {
+        "abi-conversion": {
+          "count": 1082,
+          "inclusiveMilliseconds": 1.340529999989485,
+          "exclusiveMilliseconds": 0.6340039999995497
+        },
+        "continuation": {
+          "count": 228,
+          "inclusiveMilliseconds": 5.396212999994987,
+          "exclusiveMilliseconds": 4.762208999995437
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004917000000205007,
+          "exclusiveMilliseconds": 0.004917000000205007
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0015410000000883883,
+          "exclusiveMilliseconds": 0.0015410000000883883
+        },
+        "service:Types.ReadClock": {
+          "count": 42,
+          "inclusiveMilliseconds": 0.1580370000010589,
+          "exclusiveMilliseconds": 0.1580370000010589
+        },
+        "service:Types.InspectSource": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.8756469999998444,
+          "exclusiveMilliseconds": 2.8756469999998444
+        },
+        "service:Types.EncodeProduct": {
+          "count": 16,
+          "inclusiveMilliseconds": 0.42767000000094413,
+          "exclusiveMilliseconds": 0.42767000000094413
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 13,
+          "inclusiveMilliseconds": 0.05108700000027966,
+          "exclusiveMilliseconds": 0.05108700000027966
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 52,
+          "inclusiveMilliseconds": 0.04770899999630274,
+          "exclusiveMilliseconds": 0.04770899999630274
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 52,
+          "inclusiveMilliseconds": 7.123931000001448,
+          "exclusiveMilliseconds": 7.123931000001448
+        },
+        "service:Types.AccessPath": {
+          "count": 14,
+          "inclusiveMilliseconds": 60.24071000000049,
+          "exclusiveMilliseconds": 60.24071000000049
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.07170799999994415,
+          "exclusiveMilliseconds": 0.07170799999994415
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.011919000000489177,
+          "exclusiveMilliseconds": 0.011919000000489177
+        },
+        "service:Types.CaptureSource": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.07425099999909435,
+          "exclusiveMilliseconds": 0.07425099999909435
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.012791000000561326,
+          "exclusiveMilliseconds": 0.012791000000561326
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.022541999999702966,
+          "exclusiveMilliseconds": 0.022541999999702966
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "name": "large-import-diamond-cycle",
+      "lane": "typescript",
+      "milliseconds": 54.98825299999953,
+      "groups": {
+        "frontend": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.5165590000024167,
+          "exclusiveMilliseconds": 2.5165590000024167
+        },
+        "lstat": {
+          "count": 52,
+          "inclusiveMilliseconds": 6.736012000005758,
+          "exclusiveMilliseconds": 6.736012000005758
+        },
+        "access": {
+          "count": 14,
+          "inclusiveMilliseconds": 42.631280999999035,
+          "exclusiveMilliseconds": 42.631280999999035
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "name": "rust-cargo-nested",
+      "lane": "wholeBend",
+      "milliseconds": 31.25453000000016,
+      "groups": {
+        "abi-conversion": {
+          "count": 623,
+          "inclusiveMilliseconds": 0.746185000002697,
+          "exclusiveMilliseconds": 0.36033900000620633
+        },
+        "continuation": {
+          "count": 131,
+          "inclusiveMilliseconds": 1.962720000002264,
+          "exclusiveMilliseconds": 1.6023809999960577
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004124999999476131,
+          "exclusiveMilliseconds": 0.004124999999476131
+        },
+        "service:Types.PathExtension": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.0047079999994821264,
+          "exclusiveMilliseconds": 0.0047079999994821264
+        },
+        "service:Types.InsertRootCaptureCache": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0040829999998095445,
+          "exclusiveMilliseconds": 0.0040829999998095445
+        },
+        "service:Types.ReadPathSeparator": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0016250000007858034,
+          "exclusiveMilliseconds": 0.0016250000007858034
+        },
+        "service:Types.PathDirname": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.012041999999382824,
+          "exclusiveMilliseconds": 0.012041999999382824
+        },
+        "service:Types.PathJoin": {
+          "count": 15,
+          "inclusiveMilliseconds": 0.018709999999373395,
+          "exclusiveMilliseconds": 0.018709999999373395
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.3389609999994718,
+          "exclusiveMilliseconds": 0.3389609999994718
+        },
+        "service:Types.ReadClock": {
+          "count": 21,
+          "inclusiveMilliseconds": 0.06100099999912345,
+          "exclusiveMilliseconds": 0.06100099999912345
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 19,
+          "inclusiveMilliseconds": 0.030623999998169893,
+          "exclusiveMilliseconds": 0.030623999998169893
+        },
+        "service:Types.AccessPath": {
+          "count": 8,
+          "inclusiveMilliseconds": 27.557127999999466,
+          "exclusiveMilliseconds": 27.557127999999466
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.03262600000016391,
+          "exclusiveMilliseconds": 0.03262600000016391
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.009125000000494765,
+          "exclusiveMilliseconds": 0.009125000000494765
+        },
+        "service:Types.CaptureSource": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.037709000000177184,
+          "exclusiveMilliseconds": 0.037709000000177184
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.00633300000026793,
+          "exclusiveMilliseconds": 0.00633300000026793
+        },
+        "service:Types.ParseCargo": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.07283400000051188,
+          "exclusiveMilliseconds": 0.07283400000051188
+        },
+        "service:Types.PathRelative": {
+          "count": 9,
+          "inclusiveMilliseconds": 0.016457999999147432,
+          "exclusiveMilliseconds": 0.016457999999147432
+        },
+        "service:Types.PathNormalize": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.002541999999266409,
+          "exclusiveMilliseconds": 0.002541999999266409
+        },
+        "service:Types.InspectRustModules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.32862699999895995,
+          "exclusiveMilliseconds": 0.32862699999895995
+        },
+        "service:Types.PathBasename": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0019579999998313724,
+          "exclusiveMilliseconds": 0.0019579999998313724
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4774200000001656,
+          "exclusiveMilliseconds": 0.4774200000001656
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.0442510000002585,
+          "exclusiveMilliseconds": 0.0442510000002585
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0033329999996567494,
+          "exclusiveMilliseconds": 0.0033329999996567494
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.006041999999979453,
+          "exclusiveMilliseconds": 0.006041999999979453
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "name": "rust-cargo-nested",
+      "lane": "typescript",
+      "milliseconds": 69.92090899999948,
+      "groups": {
+        "lstat": {
+          "count": 11,
+          "inclusiveMilliseconds": 3.3569440000028408,
+          "exclusiveMilliseconds": 3.3569440000028408
+        },
+        "access": {
+          "count": 8,
+          "inclusiveMilliseconds": 63.454985000000306,
+          "exclusiveMilliseconds": 63.454985000000306
+        },
+        "cargo-parser": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.042000999999800115,
+          "exclusiveMilliseconds": 0.042000999999800115
+        },
+        "rust-modules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.37725200000113546,
+          "exclusiveMilliseconds": 0.37725200000113546
+        },
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.7526719999996203,
+          "exclusiveMilliseconds": 0.7526719999996203
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "name": "single-child",
+      "lane": "wholeBend",
+      "milliseconds": 6.908386999999493,
+      "groups": {
+        "abi-conversion": {
+          "count": 129,
+          "inclusiveMilliseconds": 0.19904199999746197,
+          "exclusiveMilliseconds": 0.11000099999637314
+        },
+        "continuation": {
+          "count": 27,
+          "inclusiveMilliseconds": 0.9519249999993917,
+          "exclusiveMilliseconds": 0.8419240000030186
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.006000000000312866,
+          "exclusiveMilliseconds": 0.006000000000312866
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0030000000006111804,
+          "exclusiveMilliseconds": 0.0030000000006111804
+        },
+        "service:Types.ReadClock": {
+          "count": 6,
+          "inclusiveMilliseconds": 0.04624999999941792,
+          "exclusiveMilliseconds": 0.04624999999941792
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.6163379999998142,
+          "exclusiveMilliseconds": 0.6163379999998142
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.0628339999993841,
+          "exclusiveMilliseconds": 0.0628339999993841
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00616600000012113,
+          "exclusiveMilliseconds": 0.00616600000012113
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.004208999999718799,
+          "exclusiveMilliseconds": 0.004208999999718799
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.14383400000133406,
+          "exclusiveMilliseconds": 0.14383400000133406
+        },
+        "service:Types.AccessPath": {
+          "count": 2,
+          "inclusiveMilliseconds": 4.885828999999831,
+          "exclusiveMilliseconds": 4.885828999999831
+        },
+        "service:Types.CaptureSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.010790999999699125,
+          "exclusiveMilliseconds": 0.010790999999699125
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00762499999927968,
+          "exclusiveMilliseconds": 0.00762499999927968
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "name": "single-child",
+      "lane": "typescript",
+      "milliseconds": 8.627983000000313,
+      "groups": {
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.3635439999998198,
+          "exclusiveMilliseconds": 0.3635439999998198
+        },
+        "lstat": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.5682549999992261,
+          "exclusiveMilliseconds": 0.5682549999992261
+        },
+        "access": {
+          "count": 2,
+          "inclusiveMilliseconds": 7.086510999999518,
+          "exclusiveMilliseconds": 7.086510999999518
+        }
+      }
+    },
+    {
+      "pair": 4,
+      "name": "large-local-reuse",
+      "lane": "typescript",
+      "milliseconds": 4.076947999999902,
+      "groups": {
+        "frontend": {
+          "count": 1,
+          "inclusiveMilliseconds": 3.782028999999966,
+          "exclusiveMilliseconds": 3.782028999999966
+        }
+      }
+    },
+    {
+      "pair": 4,
+      "name": "large-local-reuse",
+      "lane": "wholeBend",
+      "milliseconds": 7.082053999999516,
+      "groups": {
+        "abi-conversion": {
+          "count": 41,
+          "inclusiveMilliseconds": 0.06349999999474676,
+          "exclusiveMilliseconds": 0.03929199999583943
+        },
+        "continuation": {
+          "count": 8,
+          "inclusiveMilliseconds": 1.9749300000021321,
+          "exclusiveMilliseconds": 1.9356380000062927
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0037919999995210674,
+          "exclusiveMilliseconds": 0.0037919999995210674
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.002124999999978172,
+          "exclusiveMilliseconds": 0.002124999999978172
+        },
+        "service:Types.ReadClock": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.009791000000404892,
+          "exclusiveMilliseconds": 0.009791000000404892
+        },
+        "service:Types.InspectSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 4.891245000000708,
+          "exclusiveMilliseconds": 4.891245000000708
+        },
+        "service:Types.EncodeProduct": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.10179199999947741,
+          "exclusiveMilliseconds": 0.10179199999947741
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.03412500000013097,
+          "exclusiveMilliseconds": 0.03412500000013097
+        }
+      }
+    },
+    {
+      "pair": 4,
+      "name": "large-import-diamond-cycle",
+      "lane": "typescript",
+      "milliseconds": 58.71536500000002,
+      "groups": {
+        "frontend": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.66447799999969,
+          "exclusiveMilliseconds": 2.66447799999969
+        },
+        "lstat": {
+          "count": 52,
+          "inclusiveMilliseconds": 4.597289999998793,
+          "exclusiveMilliseconds": 4.597289999998793
+        },
+        "access": {
+          "count": 14,
+          "inclusiveMilliseconds": 48.24082500000077,
+          "exclusiveMilliseconds": 48.24082500000077
+        }
+      }
+    },
+    {
+      "pair": 4,
+      "name": "large-import-diamond-cycle",
+      "lane": "wholeBend",
+      "milliseconds": 70.1724949999998,
+      "groups": {
+        "abi-conversion": {
+          "count": 1082,
+          "inclusiveMilliseconds": 0.9152390000008381,
+          "exclusiveMilliseconds": 0.46145799998976145
+        },
+        "continuation": {
+          "count": 228,
+          "inclusiveMilliseconds": 4.77253400000609,
+          "exclusiveMilliseconds": 4.311076000016328
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00520799999958399,
+          "exclusiveMilliseconds": 0.00520799999958399
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0026250000000800355,
+          "exclusiveMilliseconds": 0.0026250000000800355
+        },
+        "service:Types.ReadClock": {
+          "count": 42,
+          "inclusiveMilliseconds": 2.1058909999974276,
+          "exclusiveMilliseconds": 2.1058909999974276
+        },
+        "service:Types.InspectSource": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.57964500000071,
+          "exclusiveMilliseconds": 2.57964500000071
+        },
+        "service:Types.EncodeProduct": {
+          "count": 16,
+          "inclusiveMilliseconds": 0.4282519999997021,
+          "exclusiveMilliseconds": 0.4282519999997021
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 13,
+          "inclusiveMilliseconds": 0.040208999999777006,
+          "exclusiveMilliseconds": 0.040208999999777006
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 52,
+          "inclusiveMilliseconds": 0.0419590000055905,
+          "exclusiveMilliseconds": 0.0419590000055905
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 52,
+          "inclusiveMilliseconds": 12.258593000001383,
+          "exclusiveMilliseconds": 12.258593000001383
+        },
+        "service:Types.AccessPath": {
+          "count": 14,
+          "inclusiveMilliseconds": 47.44553400000041,
+          "exclusiveMilliseconds": 47.44553400000041
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.05262500000117143,
+          "exclusiveMilliseconds": 0.05262500000117143
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.009956999998394167,
+          "exclusiveMilliseconds": 0.009956999998394167
+        },
+        "service:Types.CaptureSource": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.04366699999991397,
+          "exclusiveMilliseconds": 0.04366699999991397
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.01079099999878963,
+          "exclusiveMilliseconds": 0.01079099999878963
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.024750000000494765,
+          "exclusiveMilliseconds": 0.024750000000494765
+        }
+      }
+    },
+    {
+      "pair": 4,
+      "name": "rust-cargo-nested",
+      "lane": "typescript",
+      "milliseconds": 24.648479999999836,
+      "groups": {
+        "lstat": {
+          "count": 11,
+          "inclusiveMilliseconds": 1.0093830000005255,
+          "exclusiveMilliseconds": 1.0093830000005255
+        },
+        "access": {
+          "count": 8,
+          "inclusiveMilliseconds": 21.241370999998253,
+          "exclusiveMilliseconds": 21.241370999998253
+        },
+        "cargo-parser": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.07691700000032142,
+          "exclusiveMilliseconds": 0.07691700000032142
+        },
+        "rust-modules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.32296100000075967,
+          "exclusiveMilliseconds": 0.32296100000075967
+        },
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4126700000015262,
+          "exclusiveMilliseconds": 0.4126700000015262
+        }
+      }
+    },
+    {
+      "pair": 4,
+      "name": "rust-cargo-nested",
+      "lane": "wholeBend",
+      "milliseconds": 32.096244999999726,
+      "groups": {
+        "abi-conversion": {
+          "count": 623,
+          "inclusiveMilliseconds": 0.6231320000060805,
+          "exclusiveMilliseconds": 0.3043360000110624
+        },
+        "continuation": {
+          "count": 131,
+          "inclusiveMilliseconds": 2.005141000004187,
+          "exclusiveMilliseconds": 1.7008049999931245
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.003584000000046217,
+          "exclusiveMilliseconds": 0.003584000000046217
+        },
+        "service:Types.PathExtension": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.003875000000334694,
+          "exclusiveMilliseconds": 0.003875000000334694
+        },
+        "service:Types.InsertRootCaptureCache": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0036249999993742676,
+          "exclusiveMilliseconds": 0.0036249999993742676
+        },
+        "service:Types.ReadPathSeparator": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0032090000004245667,
+          "exclusiveMilliseconds": 0.0032090000004245667
+        },
+        "service:Types.PathDirname": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.011416999998800748,
+          "exclusiveMilliseconds": 0.011416999998800748
+        },
+        "service:Types.PathJoin": {
+          "count": 15,
+          "inclusiveMilliseconds": 0.020502999997006555,
+          "exclusiveMilliseconds": 0.020502999997006555
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 11,
+          "inclusiveMilliseconds": 1.2475500000000466,
+          "exclusiveMilliseconds": 1.2475500000000466
+        },
+        "service:Types.ReadClock": {
+          "count": 21,
+          "inclusiveMilliseconds": 0.059374999998908606,
+          "exclusiveMilliseconds": 0.059374999998908606
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 19,
+          "inclusiveMilliseconds": 0.0141250000015134,
+          "exclusiveMilliseconds": 0.0141250000015134
+        },
+        "service:Types.AccessPath": {
+          "count": 8,
+          "inclusiveMilliseconds": 27.434959000000163,
+          "exclusiveMilliseconds": 27.434959000000163
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.027875000000676664,
+          "exclusiveMilliseconds": 0.027875000000676664
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.006583999998838408,
+          "exclusiveMilliseconds": 0.006583999998838408
+        },
+        "service:Types.CaptureSource": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.02799900000081834,
+          "exclusiveMilliseconds": 0.02799900000081834
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.006499999999505235,
+          "exclusiveMilliseconds": 0.006499999999505235
+        },
+        "service:Types.ParseCargo": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.06766799999968498,
+          "exclusiveMilliseconds": 0.06766799999968498
+        },
+        "service:Types.PathRelative": {
+          "count": 9,
+          "inclusiveMilliseconds": 0.0174990000004982,
+          "exclusiveMilliseconds": 0.0174990000004982
+        },
+        "service:Types.PathNormalize": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.002624999999170541,
+          "exclusiveMilliseconds": 0.002624999999170541
+        },
+        "service:Types.InspectRustModules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.37791899999956513,
+          "exclusiveMilliseconds": 0.37791899999956513
+        },
+        "service:Types.PathBasename": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0020000000004074536,
+          "exclusiveMilliseconds": 0.0020000000004074536
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.5248780000001716,
+          "exclusiveMilliseconds": 0.5248780000001716
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.044917999998688174,
+          "exclusiveMilliseconds": 0.044917999998688174
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0035419999994701357,
+          "exclusiveMilliseconds": 0.0035419999994701357
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.003917000000001281,
+          "exclusiveMilliseconds": 0.003917000000001281
+        }
+      }
+    },
+    {
+      "pair": 4,
+      "name": "single-child",
+      "lane": "typescript",
+      "milliseconds": 32.022077999999965,
+      "groups": {
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4655880000009347,
+          "exclusiveMilliseconds": 0.4655880000009347
+        },
+        "lstat": {
+          "count": 4,
+          "inclusiveMilliseconds": 11.48575399999936,
+          "exclusiveMilliseconds": 11.48575399999936
+        },
+        "access": {
+          "count": 2,
+          "inclusiveMilliseconds": 19.100147000001016,
+          "exclusiveMilliseconds": 19.100147000001016
+        }
+      }
+    },
+    {
+      "pair": 4,
+      "name": "single-child",
+      "lane": "wholeBend",
+      "milliseconds": 10.102160000000367,
+      "groups": {
+        "abi-conversion": {
+          "count": 129,
+          "inclusiveMilliseconds": 0.19087800000124844,
+          "exclusiveMilliseconds": 0.09908700000050885
+        },
+        "continuation": {
+          "count": 27,
+          "inclusiveMilliseconds": 0.8755060000003141,
+          "exclusiveMilliseconds": 0.7764189999998052
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005541999999877589,
+          "exclusiveMilliseconds": 0.005541999999877589
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0027079999999841675,
+          "exclusiveMilliseconds": 0.0027079999999841675
+        },
+        "service:Types.ReadClock": {
+          "count": 6,
+          "inclusiveMilliseconds": 0.025958000001082837,
+          "exclusiveMilliseconds": 0.025958000001082837
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4612119999992501,
+          "exclusiveMilliseconds": 0.4612119999992501
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.045959000000948436,
+          "exclusiveMilliseconds": 0.045959000000948436
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005666000000019267,
+          "exclusiveMilliseconds": 0.005666000000019267
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.0034589999995660037,
+          "exclusiveMilliseconds": 0.0034589999995660037
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.15708400000039546,
+          "exclusiveMilliseconds": 0.15708400000039546
+        },
+        "service:Types.AccessPath": {
+          "count": 2,
+          "inclusiveMilliseconds": 8.38081399999919,
+          "exclusiveMilliseconds": 8.38081399999919
+        },
+        "service:Types.CaptureSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.01358299999992596,
+          "exclusiveMilliseconds": 0.01358299999992596
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005583000000115135,
+          "exclusiveMilliseconds": 0.005583000000115135
+        }
+      }
+    },
+    {
+      "pair": 5,
+      "name": "large-local-reuse",
+      "lane": "wholeBend",
+      "milliseconds": 12.198551000000407,
+      "groups": {
+        "abi-conversion": {
+          "count": 41,
+          "inclusiveMilliseconds": 0.05525000000397995,
+          "exclusiveMilliseconds": 0.035917000001973065
+        },
+        "continuation": {
+          "count": 8,
+          "inclusiveMilliseconds": 5.034120999999686,
+          "exclusiveMilliseconds": 4.998203999997713
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.002124999999978172,
+          "exclusiveMilliseconds": 0.002124999999978172
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0015420000008816714,
+          "exclusiveMilliseconds": 0.0015420000008816714
+        },
+        "service:Types.ReadClock": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.008250000000771252,
+          "exclusiveMilliseconds": 0.008250000000771252
+        },
+        "service:Types.InspectSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 6.915468999999575,
+          "exclusiveMilliseconds": 6.915468999999575
+        },
+        "service:Types.EncodeProduct": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.12387600000056409,
+          "exclusiveMilliseconds": 0.12387600000056409
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.038333999999849766,
+          "exclusiveMilliseconds": 0.038333999999849766
+        }
+      }
+    },
+    {
+      "pair": 5,
+      "name": "large-local-reuse",
+      "lane": "typescript",
+      "milliseconds": 4.6141600000000835,
+      "groups": {
+        "frontend": {
+          "count": 1,
+          "inclusiveMilliseconds": 4.146114999999554,
+          "exclusiveMilliseconds": 4.146114999999554
+        }
+      }
+    },
+    {
+      "pair": 5,
+      "name": "large-import-diamond-cycle",
+      "lane": "wholeBend",
+      "milliseconds": 126.36588200000006,
+      "groups": {
+        "abi-conversion": {
+          "count": 1082,
+          "inclusiveMilliseconds": 1.2623850000145467,
+          "exclusiveMilliseconds": 0.6203820000137057
+        },
+        "continuation": {
+          "count": 228,
+          "inclusiveMilliseconds": 6.65309500001058,
+          "exclusiveMilliseconds": 6.032712999996875
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0027919999993173406,
+          "exclusiveMilliseconds": 0.0027919999993173406
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00166700000045239,
+          "exclusiveMilliseconds": 0.00166700000045239
+        },
+        "service:Types.ReadClock": {
+          "count": 42,
+          "inclusiveMilliseconds": 0.13758400000006077,
+          "exclusiveMilliseconds": 0.13758400000006077
+        },
+        "service:Types.InspectSource": {
+          "count": 8,
+          "inclusiveMilliseconds": 3.6185270000023593,
+          "exclusiveMilliseconds": 3.6185270000023593
+        },
+        "service:Types.EncodeProduct": {
+          "count": 16,
+          "inclusiveMilliseconds": 0.5161260000004404,
+          "exclusiveMilliseconds": 0.5161260000004404
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 13,
+          "inclusiveMilliseconds": 0.05316699999912089,
+          "exclusiveMilliseconds": 0.05316699999912089
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 52,
+          "inclusiveMilliseconds": 0.060586000002331275,
+          "exclusiveMilliseconds": 0.060586000002331275
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 52,
+          "inclusiveMilliseconds": 30.366524000002755,
+          "exclusiveMilliseconds": 30.366524000002755
+        },
+        "service:Types.AccessPath": {
+          "count": 14,
+          "inclusiveMilliseconds": 84.41618799999833,
+          "exclusiveMilliseconds": 84.41618799999833
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.07096000000001368,
+          "exclusiveMilliseconds": 0.07096000000001368
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.021500999999261694,
+          "exclusiveMilliseconds": 0.021500999999261694
+        },
+        "service:Types.CaptureSource": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.06129099999907339,
+          "exclusiveMilliseconds": 0.06129099999907339
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.012290999998185725,
+          "exclusiveMilliseconds": 0.012290999998185725
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.02858399999968242,
+          "exclusiveMilliseconds": 0.02858399999968242
+        }
+      }
+    },
+    {
+      "pair": 5,
+      "name": "large-import-diamond-cycle",
+      "lane": "typescript",
+      "milliseconds": 57.27847899999961,
+      "groups": {
+        "frontend": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.5120190000006914,
+          "exclusiveMilliseconds": 2.5120190000006914
+        },
+        "lstat": {
+          "count": 52,
+          "inclusiveMilliseconds": 2.3304720000005545,
+          "exclusiveMilliseconds": 2.3304720000005545
+        },
+        "access": {
+          "count": 14,
+          "inclusiveMilliseconds": 49.162664000000404,
+          "exclusiveMilliseconds": 49.162664000000404
+        }
+      }
+    },
+    {
+      "pair": 5,
+      "name": "rust-cargo-nested",
+      "lane": "wholeBend",
+      "milliseconds": 58.16277799999989,
+      "groups": {
+        "abi-conversion": {
+          "count": 623,
+          "inclusiveMilliseconds": 0.6087140000036015,
+          "exclusiveMilliseconds": 0.3111780000035651
+        },
+        "continuation": {
+          "count": 131,
+          "inclusiveMilliseconds": 2.1246010000122624,
+          "exclusiveMilliseconds": 1.8134230000086973
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00537499999973079,
+          "exclusiveMilliseconds": 0.00537499999973079
+        },
+        "service:Types.PathExtension": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.0046249999995779945,
+          "exclusiveMilliseconds": 0.0046249999995779945
+        },
+        "service:Types.InsertRootCaptureCache": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0043750000004365575,
+          "exclusiveMilliseconds": 0.0043750000004365575
+        },
+        "service:Types.ReadPathSeparator": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004500000000007276,
+          "exclusiveMilliseconds": 0.004500000000007276
+        },
+        "service:Types.PathDirname": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.0108330000011847,
+          "exclusiveMilliseconds": 0.0108330000011847
+        },
+        "service:Types.PathJoin": {
+          "count": 15,
+          "inclusiveMilliseconds": 0.02299800000128016,
+          "exclusiveMilliseconds": 0.02299800000128016
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 11,
+          "inclusiveMilliseconds": 1.2964289999999892,
+          "exclusiveMilliseconds": 1.2964289999999892
+        },
+        "service:Types.ReadClock": {
+          "count": 21,
+          "inclusiveMilliseconds": 0.07741699999951379,
+          "exclusiveMilliseconds": 0.07741699999951379
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 19,
+          "inclusiveMilliseconds": 0.012877000002845307,
+          "exclusiveMilliseconds": 0.012877000002845307
+        },
+        "service:Types.AccessPath": {
+          "count": 8,
+          "inclusiveMilliseconds": 53.13953200000287,
+          "exclusiveMilliseconds": 53.13953200000287
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.029875000001084118,
+          "exclusiveMilliseconds": 0.029875000001084118
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.017791000000215718,
+          "exclusiveMilliseconds": 0.017791000000215718
+        },
+        "service:Types.CaptureSource": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.028748999999152147,
+          "exclusiveMilliseconds": 0.028748999999152147
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.009417000000212283,
+          "exclusiveMilliseconds": 0.009417000000212283
+        },
+        "service:Types.ParseCargo": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.053708999999798834,
+          "exclusiveMilliseconds": 0.053708999999798834
+        },
+        "service:Types.PathRelative": {
+          "count": 9,
+          "inclusiveMilliseconds": 0.013167000001885754,
+          "exclusiveMilliseconds": 0.013167000001885754
+        },
+        "service:Types.PathNormalize": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.0021249999990686774,
+          "exclusiveMilliseconds": 0.0021249999990686774
+        },
+        "service:Types.InspectRustModules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.42816900000070746,
+          "exclusiveMilliseconds": 0.42816900000070746
+        },
+        "service:Types.PathBasename": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.001750000000356522,
+          "exclusiveMilliseconds": 0.001750000000356522
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.5933380000005855,
+          "exclusiveMilliseconds": 0.5933380000005855
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.05291699999997945,
+          "exclusiveMilliseconds": 0.05291699999997945
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0039999999999054126,
+          "exclusiveMilliseconds": 0.0039999999999054126
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004167000000052212,
+          "exclusiveMilliseconds": 0.004167000000052212
+        }
+      }
+    },
+    {
+      "pair": 5,
+      "name": "rust-cargo-nested",
+      "lane": "typescript",
+      "milliseconds": 34.46876299999985,
+      "groups": {
+        "lstat": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.5173349999986385,
+          "exclusiveMilliseconds": 0.5173349999986385
+        },
+        "access": {
+          "count": 8,
+          "inclusiveMilliseconds": 29.623766999999134,
+          "exclusiveMilliseconds": 29.623766999999134
+        },
+        "cargo-parser": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.035250999999334454,
+          "exclusiveMilliseconds": 0.035250999999334454
+        },
+        "rust-modules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.72588099999939,
+          "exclusiveMilliseconds": 0.72588099999939
+        },
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.851173000000017,
+          "exclusiveMilliseconds": 0.851173000000017
+        }
+      }
+    },
+    {
+      "pair": 5,
+      "name": "single-child",
+      "lane": "wholeBend",
+      "milliseconds": 17.353798999999526,
+      "groups": {
+        "abi-conversion": {
+          "count": 129,
+          "inclusiveMilliseconds": 0.345167999998921,
+          "exclusiveMilliseconds": 0.20937499999672582
+        },
+        "continuation": {
+          "count": 27,
+          "inclusiveMilliseconds": 1.1135940000021947,
+          "exclusiveMilliseconds": 0.9042190000054688
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.009834000000410015,
+          "exclusiveMilliseconds": 0.009834000000410015
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.005500000000211003,
+          "exclusiveMilliseconds": 0.005500000000211003
+        },
+        "service:Types.ReadClock": {
+          "count": 6,
+          "inclusiveMilliseconds": 0.04666499999984808,
+          "exclusiveMilliseconds": 0.04666499999984808
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.9874660000004951,
+          "exclusiveMilliseconds": 0.9874660000004951
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.0566659999994954,
+          "exclusiveMilliseconds": 0.0566659999994954
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.013665999999830092,
+          "exclusiveMilliseconds": 0.013665999999830092
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.007749999999759893,
+          "exclusiveMilliseconds": 0.007749999999759893
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.31137800000124116,
+          "exclusiveMilliseconds": 0.31137800000124116
+        },
+        "service:Types.AccessPath": {
+          "count": 2,
+          "inclusiveMilliseconds": 14.540068999999676,
+          "exclusiveMilliseconds": 14.540068999999676
+        },
+        "service:Types.CaptureSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.010166999999455584,
+          "exclusiveMilliseconds": 0.010166999999455584
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.00779199999942648,
+          "exclusiveMilliseconds": 0.00779199999942648
+        }
+      }
+    },
+    {
+      "pair": 5,
+      "name": "single-child",
+      "lane": "typescript",
+      "milliseconds": 5.890419999999722,
+      "groups": {
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.3819199999998091,
+          "exclusiveMilliseconds": 0.3819199999998091
+        },
+        "lstat": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.1161679999986518,
+          "exclusiveMilliseconds": 0.1161679999986518
+        },
+        "access": {
+          "count": 2,
+          "inclusiveMilliseconds": 4.559659000000465,
+          "exclusiveMilliseconds": 4.559659000000465
+        }
+      }
+    },
+    {
+      "pair": 6,
+      "name": "large-local-reuse",
+      "lane": "typescript",
+      "milliseconds": 4.167615000000296,
+      "groups": {
+        "frontend": {
+          "count": 1,
+          "inclusiveMilliseconds": 3.8746549999996205,
+          "exclusiveMilliseconds": 3.8746549999996205
+        }
+      }
+    },
+    {
+      "pair": 6,
+      "name": "large-local-reuse",
+      "lane": "wholeBend",
+      "milliseconds": 6.370882000000165,
+      "groups": {
+        "abi-conversion": {
+          "count": 41,
+          "inclusiveMilliseconds": 0.05450000000291766,
+          "exclusiveMilliseconds": 0.03387400000156049
+        },
+        "continuation": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.250640999999632,
+          "exclusiveMilliseconds": 2.2167669999980717
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004249999999956344,
+          "exclusiveMilliseconds": 0.004249999999956344
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.002375000000029104,
+          "exclusiveMilliseconds": 0.002375000000029104
+        },
+        "service:Types.ReadClock": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.017417000000932603,
+          "exclusiveMilliseconds": 0.017417000000932603
+        },
+        "service:Types.InspectSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 3.8567800000000716,
+          "exclusiveMilliseconds": 3.8567800000000716
+        },
+        "service:Types.EncodeProduct": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.12766800000008516,
+          "exclusiveMilliseconds": 0.12766800000008516
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.046709000000191736,
+          "exclusiveMilliseconds": 0.046709000000191736
+        }
+      }
+    },
+    {
+      "pair": 6,
+      "name": "large-import-diamond-cycle",
+      "lane": "typescript",
+      "milliseconds": 50.307591999999204,
+      "groups": {
+        "frontend": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.9028129999996963,
+          "exclusiveMilliseconds": 2.9028129999996963
+        },
+        "lstat": {
+          "count": 52,
+          "inclusiveMilliseconds": 3.8469030000014754,
+          "exclusiveMilliseconds": 3.8469030000014754
+        },
+        "access": {
+          "count": 14,
+          "inclusiveMilliseconds": 40.15313899999819,
+          "exclusiveMilliseconds": 40.15313899999819
+        }
+      }
+    },
+    {
+      "pair": 6,
+      "name": "large-import-diamond-cycle",
+      "lane": "wholeBend",
+      "milliseconds": 49.47079399999984,
+      "groups": {
+        "abi-conversion": {
+          "count": 1082,
+          "inclusiveMilliseconds": 0.7990690000224276,
+          "exclusiveMilliseconds": 0.4127260000059323
+        },
+        "continuation": {
+          "count": 228,
+          "inclusiveMilliseconds": 4.393496000002415,
+          "exclusiveMilliseconds": 3.9807699999964825
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0041659999997136765,
+          "exclusiveMilliseconds": 0.0041659999997136765
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.002375000000029104,
+          "exclusiveMilliseconds": 0.002375000000029104
+        },
+        "service:Types.ReadClock": {
+          "count": 42,
+          "inclusiveMilliseconds": 0.09675000000243017,
+          "exclusiveMilliseconds": 0.09675000000243017
+        },
+        "service:Types.InspectSource": {
+          "count": 8,
+          "inclusiveMilliseconds": 2.624103000001014,
+          "exclusiveMilliseconds": 2.624103000001014
+        },
+        "service:Types.EncodeProduct": {
+          "count": 16,
+          "inclusiveMilliseconds": 0.42387999999937165,
+          "exclusiveMilliseconds": 0.42387999999937165
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 13,
+          "inclusiveMilliseconds": 0.03483299999970768,
+          "exclusiveMilliseconds": 0.03483299999970768
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 52,
+          "inclusiveMilliseconds": 0.03341699999782577,
+          "exclusiveMilliseconds": 0.03341699999782577
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 52,
+          "inclusiveMilliseconds": 4.428160999999818,
+          "exclusiveMilliseconds": 4.428160999999818
+        },
+        "service:Types.AccessPath": {
+          "count": 14,
+          "inclusiveMilliseconds": 37.01915700000063,
+          "exclusiveMilliseconds": 37.01915700000063
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.04099899999982881,
+          "exclusiveMilliseconds": 0.04099899999982881
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.015918000000056054,
+          "exclusiveMilliseconds": 0.015918000000056054
+        },
+        "service:Types.CaptureSource": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.039499000000432716,
+          "exclusiveMilliseconds": 0.039499000000432716
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 7,
+          "inclusiveMilliseconds": 0.010669999998754065,
+          "exclusiveMilliseconds": 0.010669999998754065
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.020042000000103144,
+          "exclusiveMilliseconds": 0.020042000000103144
+        }
+      }
+    },
+    {
+      "pair": 6,
+      "name": "rust-cargo-nested",
+      "lane": "typescript",
+      "milliseconds": 27.70266999999967,
+      "groups": {
+        "lstat": {
+          "count": 11,
+          "inclusiveMilliseconds": 1.66930400000183,
+          "exclusiveMilliseconds": 1.66930400000183
+        },
+        "access": {
+          "count": 8,
+          "inclusiveMilliseconds": 23.199217999999746,
+          "exclusiveMilliseconds": 23.199217999999746
+        },
+        "cargo-parser": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.02883300000030431,
+          "exclusiveMilliseconds": 0.02883300000030431
+        },
+        "rust-modules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.3288779999993494,
+          "exclusiveMilliseconds": 0.3288779999993494
+        },
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.5972959999990053,
+          "exclusiveMilliseconds": 0.5972959999990053
+        }
+      }
+    },
+    {
+      "pair": 6,
+      "name": "rust-cargo-nested",
+      "lane": "wholeBend",
+      "milliseconds": 26.89408000000003,
+      "groups": {
+        "abi-conversion": {
+          "count": 623,
+          "inclusiveMilliseconds": 0.5549319999881845,
+          "exclusiveMilliseconds": 0.287756999996418
+        },
+        "continuation": {
+          "count": 131,
+          "inclusiveMilliseconds": 1.859178000000611,
+          "exclusiveMilliseconds": 1.571421000004193
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.003957999999329331,
+          "exclusiveMilliseconds": 0.003957999999329331
+        },
+        "service:Types.PathExtension": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.004124999999476131,
+          "exclusiveMilliseconds": 0.004124999999476131
+        },
+        "service:Types.InsertRootCaptureCache": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.003917000000001281,
+          "exclusiveMilliseconds": 0.003917000000001281
+        },
+        "service:Types.ReadPathSeparator": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.003333999999995285,
+          "exclusiveMilliseconds": 0.003333999999995285
+        },
+        "service:Types.PathDirname": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.010792000000947155,
+          "exclusiveMilliseconds": 0.010792000000947155
+        },
+        "service:Types.PathJoin": {
+          "count": 15,
+          "inclusiveMilliseconds": 0.02237500000046566,
+          "exclusiveMilliseconds": 0.02237500000046566
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 11,
+          "inclusiveMilliseconds": 0.24633400000129768,
+          "exclusiveMilliseconds": 0.24633400000129768
+        },
+        "service:Types.ReadClock": {
+          "count": 21,
+          "inclusiveMilliseconds": 0.06766800000332296,
+          "exclusiveMilliseconds": 0.06766800000332296
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 19,
+          "inclusiveMilliseconds": 0.016163000000233296,
+          "exclusiveMilliseconds": 0.016163000000233296
+        },
+        "service:Types.AccessPath": {
+          "count": 8,
+          "inclusiveMilliseconds": 23.479386999998496,
+          "exclusiveMilliseconds": 23.479386999998496
+        },
+        "service:Types.SnapshotCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.025581999999303662,
+          "exclusiveMilliseconds": 0.025581999999303662
+        },
+        "service:Types.LookupCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.006209000000126252,
+          "exclusiveMilliseconds": 0.006209000000126252
+        },
+        "service:Types.CaptureSource": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.02366599999822938,
+          "exclusiveMilliseconds": 0.02366599999822938
+        },
+        "service:Types.StoreCaptureCache": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.006416999999601103,
+          "exclusiveMilliseconds": 0.006416999999601103
+        },
+        "service:Types.ParseCargo": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.05537499999991269,
+          "exclusiveMilliseconds": 0.05537499999991269
+        },
+        "service:Types.PathRelative": {
+          "count": 9,
+          "inclusiveMilliseconds": 0.01650200000131008,
+          "exclusiveMilliseconds": 0.01650200000131008
+        },
+        "service:Types.PathNormalize": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.00208199999997305,
+          "exclusiveMilliseconds": 0.00208199999997305
+        },
+        "service:Types.InspectRustModules": {
+          "count": 3,
+          "inclusiveMilliseconds": 0.3069610000002285,
+          "exclusiveMilliseconds": 0.3069610000002285
+        },
+        "service:Types.PathBasename": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004208000000289758,
+          "exclusiveMilliseconds": 0.004208000000289758
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4956290000000081,
+          "exclusiveMilliseconds": 0.4956290000000081
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.04387399999995978,
+          "exclusiveMilliseconds": 0.04387399999995978
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.003208000000086031,
+          "exclusiveMilliseconds": 0.003208000000086031
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004374999999527063,
+          "exclusiveMilliseconds": 0.004374999999527063
+        }
+      }
+    },
+    {
+      "pair": 6,
+      "name": "single-child",
+      "lane": "typescript",
+      "milliseconds": 11.366877999999815,
+      "groups": {
+        "frontend": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.41091899999992165,
+          "exclusiveMilliseconds": 0.41091899999992165
+        },
+        "lstat": {
+          "count": 4,
+          "inclusiveMilliseconds": 1.7673460000005434,
+          "exclusiveMilliseconds": 1.7673460000005434
+        },
+        "access": {
+          "count": 2,
+          "inclusiveMilliseconds": 8.516356000000087,
+          "exclusiveMilliseconds": 8.516356000000087
+        }
+      }
+    },
+    {
+      "pair": 6,
+      "name": "single-child",
+      "lane": "wholeBend",
+      "milliseconds": 19.089020999999775,
+      "groups": {
+        "abi-conversion": {
+          "count": 129,
+          "inclusiveMilliseconds": 0.1819630000009056,
+          "exclusiveMilliseconds": 0.11683499999890046
+        },
+        "continuation": {
+          "count": 27,
+          "inclusiveMilliseconds": 0.7059650000019246,
+          "exclusiveMilliseconds": 0.5891300000030242
+        },
+        "service:Types.StartClock": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0029580000000350992,
+          "exclusiveMilliseconds": 0.0029580000000350992
+        },
+        "service:Types.PathExtension": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.010041999999884865,
+          "exclusiveMilliseconds": 0.010041999999884865
+        },
+        "service:Types.ReadClock": {
+          "count": 6,
+          "inclusiveMilliseconds": 0.023167000002104032,
+          "exclusiveMilliseconds": 0.023167000002104032
+        },
+        "service:Types.InspectSource": {
+          "count": 2,
+          "inclusiveMilliseconds": 0.4129190000003291,
+          "exclusiveMilliseconds": 0.4129190000003291
+        },
+        "service:Types.EncodeProduct": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.038792999999714084,
+          "exclusiveMilliseconds": 0.038792999999714084
+        },
+        "service:Types.JoinedPathFacts": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.0036249999993742676,
+          "exclusiveMilliseconds": 0.0036249999993742676
+        },
+        "service:Types.PathIsAbsolute": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.003456999999798427,
+          "exclusiveMilliseconds": 0.003456999999798427
+        },
+        "service:Types.ReadFileStatus": {
+          "count": 4,
+          "inclusiveMilliseconds": 0.0949590000018361,
+          "exclusiveMilliseconds": 0.0949590000018361
+        },
+        "service:Types.AccessPath": {
+          "count": 2,
+          "inclusiveMilliseconds": 17.692510000000766,
+          "exclusiveMilliseconds": 17.692510000000766
+        },
+        "service:Types.CaptureSource": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.010707999999794993,
+          "exclusiveMilliseconds": 0.010707999999794993
+        },
+        "result-conversion": {
+          "count": 1,
+          "inclusiveMilliseconds": 0.004958999999871594,
+          "exclusiveMilliseconds": 0.004958999999871594
+        }
+      }
+    }
+  ],
+  "allResultsAndEffectsEqual": true,
+  "registryClosed": true,
+  "scope": "Diagnostic only: four complete consumers on same physical fixtures with fixture capture provider, alternating orders, seven pairs after warmup; instrumented copies preserve complete original result/effects. Exclusive nested span subtraction avoids double counting. Candidate continuation includes state processing plus uninstrumented compiler glue; generated public ABI marshallers timed separately. Native lstat/access/Rust module/Cargo parsing and graph session frontend boundaries observed. Startup excluded. Instrumentation overhead, microtask scheduling and omitted native/internal conversion mean these are not parity qualification or proof."
+}

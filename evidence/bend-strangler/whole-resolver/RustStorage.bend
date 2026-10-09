@@ -1,0 +1,218 @@
+import Base
+import ./Types.bend as T
+import ./State.bend as S
+import ./Loop.bend as Loop
+import ./Resolve.bend as Resolve
+import ./Read.bend as Read
+import ./RustMachine.bend as Rust
+import ./Core.bend as Materialize
+import ../../../packages/agent-flow-bend/ImportGraph.bend as Graph
+
+def requested(state: T.ResolverState) -> Nat:
+  Graph.source_cap(S.input_limits(S.state_input(state)))
+
+def invalid(state: T.ResolverState) -> Loop.Continuation:
+  Loop.RustInvalid{state}
+
+def invalid_facts(+state: T.ResolverState) -> Loop.Continuation:
+  Loop.RustTasks{Rust.set(state, S.with_rust_invalid(Rust.get(state), True{})), []}
+
+def diagnostic(value: T.CaptureDiagnostic, +state: T.ResolverState) -> Loop.Continuation:
+  Loop.ServiceStep{
+    S.request(
+      state,
+      T.RustDiagnostic{},
+      T.ObserveDiagnostic{S.scratch_capture_path(S.state_scratch(state)), value}
+    )
+  }
+
+def capture(selection: Maybe<&2, T.SelectionToken>, +state: T.ResolverState) -> Loop.Continuation:
+  match selection:
+    case None{}: Resolve.malformed()
+    case Some{selection}: Loop.ServiceStep{
+      S.request(state, T.RustCapture{}, T.CaptureSource{selection, requested(state)})
+    }
+
+def lookup(cache: Maybe<&2, T.CacheToken>, +state: T.ResolverState) -> Loop.Continuation:
+  match cache:
+    case None{}: Resolve.malformed()
+    case Some{cache}: Loop.ServiceStep{
+      S.request(
+        state,
+        T.RustCacheLookup{},
+        T.LookupCaptureCache{cache, S.scratch_capture_path(S.state_scratch(state))}
+      )
+    }
+
+def admitted(refusal: Maybe<&2, T.CaptureDiagnostic>, +state: T.ResolverState) -> Loop.Continuation:
+  match refusal:
+    case Some{value}: diagnostic(value, state)
+    case None{}: lookup(S.scratch_preparation_cache(S.state_scratch(state)), state)
+
+def snapshot(entries: List<&2, T.CaptureBytes>, +state: T.ResolverState) -> Loop.Continuation:
+  admitted(
+    Read.cache_refusal_for(
+      entries,
+      S.scratch_capture_path(S.state_scratch(state)),
+      requested(state)
+    ),
+    state
+  )
+
+def cache_snapshot(cache: Maybe<&2, T.CacheToken>, state: T.ResolverState) -> Loop.Continuation:
+  match cache:
+    case None{}: Resolve.malformed()
+    case Some{cache}: Loop.ServiceStep{
+      S.request(state, T.RustCacheSnapshot{}, T.SnapshotCaptureCache{cache})
+    }
+
+def accessed(outcome: T.AccessOutcome, +state: T.ResolverState) -> Loop.Continuation:
+  match outcome:
+    case T.AccessDenied{}: invalid(state)
+    case T.AccessAllowed{selection, path}: cache_snapshot(
+      S.scratch_preparation_cache(S.state_scratch(state)),
+      S.with_state_scratch(
+        state,
+        S.with_scratch_capture_path(
+          S.with_scratch_selection(S.state_scratch(state), Some{selection}),
+          path
+        )
+      )
+    )
+
+def inspect_modules(
+  allowed: Bool,
+  capture: T.CaptureToken,
+  state: T.ResolverState
+) -> Loop.Continuation:
+  match allowed:
+    case False{}: Loop.RustFollowInvalid{state}
+    case True{}: Loop.ServiceStep{
+      S.request(state, T.RustModuleInspect{}, T.InspectRustModules{capture})
+    }
+
+def inspect_route(
+  +route: T.RustRoute,
+  capture: T.CaptureToken,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match route:
+    case T.RustRoute{_, _, _, depth}: inspect_modules(
+      Nat.is_le(depth, Graph.depth_cap(S.input_limits(S.state_input(state)))),
+      capture,
+      S.with_state_scratch(state, S.with_scratch_working_route(S.state_scratch(state), Some{route}))
+    )
+
+def after_task(
+  task: Maybe<&2, T.RustTask>,
+  token: Maybe<&2, T.CaptureToken>,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match task token:
+    case Some{T.RustTask{_, None{}}} Some{capture}: Loop.ServiceStep{
+      S.request(state, T.RustCargoParse{}, T.ParseCargo{capture})
+    }
+    case Some{T.RustTask{_, Some{route}}} Some{capture}: inspect_route(
+      route,
+      capture,
+      S.with_state_rust_work(
+        state,
+        S.with_work_follow_return(S.state_rust_work(state), T.CapturedTaskReturn{})
+      )
+    )
+    case _ _: invalid(state)
+
+def dependencies(+machine: T.RustPreparation, +path: String) -> T.RustPreparation:
+  S.with_rust_dependencies(
+    machine,
+    Bool.pick(
+      List<&2, String>,
+      Rust.member(S.rust_dependencies(machine), path),
+      S.rust_dependencies(machine),
+      List.append(&2, String, S.rust_dependencies(machine), [path])
+    )
+  )
+
+def captured_size(allowed: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  match allowed:
+    case False{}: invalid(state)
+    case True{}: after_task(
+      S.rust_active(Rust.get(state)),
+      S.scratch_capture(S.state_scratch(state)),
+      Rust.set(state, dependencies(Rust.get(state), S.scratch_capture_path(S.state_scratch(state))))
+    )
+
+def inspect_capture(+state: T.ResolverState) -> Loop.Continuation:
+  captured_size(Nat.is_le(S.scratch_source_bytes(S.state_scratch(state)), requested(state)), state)
+
+def cache_result(outcome: T.CacheOutcome, +state: T.ResolverState) -> Loop.Continuation:
+  match outcome:
+    case T.CacheAbsent{}: capture(S.scratch_selection(S.state_scratch(state)), state)
+    case T.CachePresent{capture, bytes}: inspect_capture(
+      S.with_state_scratch(
+        state,
+        S.with_scratch_source_bytes(
+          S.with_scratch_capture(S.state_scratch(state), Some{capture}),
+          bytes
+        )
+      )
+    )
+
+def store(
+  cache: Maybe<&2, T.CacheToken>,
+  capture: T.CaptureToken,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match cache:
+    case None{}: Resolve.malformed()
+    case Some{cache}: Loop.ServiceStep{
+      S.request(
+        state,
+        T.RustStore{},
+        T.StoreCaptureCache{cache, S.scratch_capture_path(S.state_scratch(state)), capture}
+      )
+    }
+
+def capture_result(outcome: T.CaptureOutcome, +state: T.ResolverState) -> Loop.Continuation:
+  match outcome:
+    case T.CaptureUnavailable{value}: diagnostic(value, state)
+    case T.SourceCaptured{+capture, _, bytes}: store(
+      S.scratch_preparation_cache(S.state_scratch(state)),
+      capture,
+      S.with_state_scratch(
+        state,
+        S.with_scratch_source_bytes(
+          S.with_scratch_capture(S.state_scratch(state), Some{capture}),
+          bytes
+        )
+      )
+    )
+
+def cargo(outcome: T.CargoOutcome, state: T.ResolverState) -> Loop.Continuation:
+  match outcome:
+    case T.CargoUnsupported{}: invalid_facts(state)
+    case T.CargoInspected{syntax}: Loop.RustCargo{state, syntax}
+
+def modules(outcome: T.RustModulesOutcome, state: T.ResolverState) -> Loop.Continuation:
+  match outcome:
+    case T.RustModulesUnsupported{}: Loop.RustFollowInvalid{state}
+    case T.RustModulesInspected{names}: Loop.RustModules{state, names}
+
+def reply(
+  stage: T.ResolverStage,
+  outcome: T.ServiceOutcome,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match stage outcome:
+    case T.RustReaccess{} T.AccessResult{outcome}: accessed(outcome, state)
+    case T.RustCacheSnapshot{} T.CacheSnapshot{entries}: snapshot(entries, state)
+    case T.RustCacheLookup{} T.CacheResult{outcome}: cache_result(outcome, state)
+    case T.RustCapture{} T.CaptureResult{outcome}: capture_result(outcome, state)
+    case T.RustStore{} T.CacheStored{}: inspect_capture(state)
+    case T.RustDiagnostic{} T.DiagnosticObserved{}: invalid(state)
+    case T.RustCargoParse{} T.CargoResult{outcome}: cargo(outcome, state)
+    case T.RustModuleInspect{} T.RustModulesResult{outcome}: modules(outcome, state)
+    case _ _: Rust.reply(stage, outcome, state)
+
+def main() -> Unit:
+  Unit{}
