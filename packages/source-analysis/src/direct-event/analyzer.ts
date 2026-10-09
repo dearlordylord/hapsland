@@ -201,7 +201,7 @@ export const readyTypeUnits = (path: string, source: string): ReadonlyArray<Revi
 export const analyzeSingleType = (path: string, source: string): TypeDeclaration | undefined => {
   const units = readyTypeUnits(path, source)
   const artifact = units.length === 1 ? units[0]?.root.artifact : undefined
-  return artifact?.kind === "function" ? undefined : artifact
+  return artifact?.kind === "function" || artifact?.kind === "constant-group" ? undefined : artifact
 }
 
 /** Revalidation returns the named root only when its complete evidence remains available. */
@@ -210,5 +210,5 @@ export const analyzeNamedUnit = (path: string, source: string, name: string): Re
 
 export const analyzeNamedType = (path: string, source: string, name: string): TypeDeclaration | undefined => {
   const artifact = analyzeNamedUnit(path, source, name)?.root.artifact
-  return artifact?.kind === "function" ? undefined : artifact
+  return artifact?.kind === "function" || artifact?.kind === "constant-group" ? undefined : artifact
 }

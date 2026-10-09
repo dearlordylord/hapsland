@@ -14,7 +14,8 @@
       "languages": [
         "typescript",
         "rust",
-        "bend"
+        "bend",
+        "go"
       ],
       "kind": "type",
       "requires": [

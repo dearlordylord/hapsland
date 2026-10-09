@@ -212,7 +212,7 @@ describe("configuration documentation generator", () => {
       expect(ruleExample).toBeDefined()
       expect(decodeRuleText(ruleExample ?? "{}", "guide example").inputs[0]).toMatchObject({
         kind: "type",
-        languages: ["typescript", "rust", "bend"]
+        languages: ["typescript", "rust", "bend", "go"]
       })
       expect(codeBlocks(readme).map((example) => decodeConfigurationText(example, "readme").version)).toEqual([1])
       const configurationSchema = JSON.parse(readFileSync(files[3]!, "utf8"))

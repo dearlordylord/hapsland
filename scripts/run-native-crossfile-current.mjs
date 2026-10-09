@@ -10,7 +10,7 @@ import {
 import { NATIVE_AGENT_PROFILES, resolveNativeAgentProfile } from "./native-agent-profiles.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
-// Bounded real-host observation of TypeScript, Rust and Bend cross-file review.
+// Bounded real-host observation of TypeScript, Rust, Bend and Go cross-file review.
 // Raw host streams, source, provider bodies, and credentials stay in a disposable directory.
 import { spawnSync } from "node:child_process"
 import { executeNative } from "./native-process.mjs"
@@ -56,7 +56,7 @@ if (requestedProvider !== undefined && requestedProvider !== (host === "claude" 
 if (host === "pi" && requestedModel !== undefined && requestedModel !== "gpt-6-luna")
   throw new Error("Pi native checks require the existing gpt-6-luna profile")
 const language = process.argv.find((arg) => arg.startsWith("--language="))?.slice(11) ?? "typescript"
-if (!["typescript", "rust", "bend"].includes(language)) throw new Error("Choose a supported source language")
+if (!["typescript", "rust", "bend", "go"].includes(language)) throw new Error("Choose a supported source language")
 const scenario = process.argv.find((arg) => arg.startsWith("--scenario="))?.slice(11) ?? "adoption"
 if (
   ![
@@ -112,6 +112,15 @@ const fixtures = {
       "mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub struct PaymentState { pub status: PaymentStatus, pub receipt: Option<Receipt>, pub failure_reason: Option<String> }\n",
     good: "mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub enum PaymentState { Pending, Succeeded { receipt: Receipt }, Failed { failure_reason: String } }\n"
   },
+  go: {
+    entry: "payment.go",
+    support: "support.go",
+    supportSource:
+      "package payment\ntype PaymentStatus int\nconst (\n Pending PaymentStatus = iota\n Succeeded\n Failed\n)\ntype Receipt struct { Value string }\n",
+    initial:
+      "package payment\ntype PaymentState struct { Status PaymentStatus; Receipt *Receipt; FailureReason *string }\n",
+    good: "package payment\ntype PaymentState interface { paymentState() }\n"
+  },
   bend: {
     entry: "payment.bend",
     support: "support.bend",
@@ -147,7 +156,9 @@ const initialSourceMarker =
     ? "interface PaymentState"
     : language === "rust"
       ? "struct PaymentState"
-      : "PaymentState{status:"
+      : language === "go"
+        ? "type PaymentState struct"
+        : "PaymentState{status:"
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
@@ -335,6 +346,7 @@ try {
   writeFileSync(supportFile, fixture.supportSource)
   if (unicodeUpdate)
     writeFileSync(rootFile, initial.replace("failure_reason: string | null", "failure_reason: number | null"))
+  if (language === "go") writeFileSync(join(repo, "go.mod"), "module synthetic/payment\n\ngo 1.27\n")
   if (language === "rust")
     writeFileSync(join(repo, "Cargo.toml"), '[package]\nname="synthetic_payment"\nversion="0.1.0"\nedition="2021"\n')
   writeFileSync(
@@ -366,7 +378,9 @@ try {
             ? `${quote(process.execPath)} ${quote(join(project, "node_modules/typescript/bin/tsc"))} -p tsconfig.json`
             : language === "rust"
               ? "rustc --edition=2021 --crate-type=lib src/lib.rs -o fixture.rlib"
-              : "bend payment.bend --check-only"
+              : language === "go"
+                ? "go test ./..."
+                : "bend payment.bend --check-only"
       }
     })
   )
@@ -469,7 +483,7 @@ globalThis.fetch=async (...args)=>{
   }
   appendFileSync(process.env.HAPSLAND_NATIVE_SUMMARIES,JSON.stringify({provider:true,
     reviewer,taskCanaryPresent:body.includes(${JSON.stringify(TASK_CANARY)}),
-    expandedEvidence:body.includes('expanded'),supportDeclarationPresent:body.includes(${JSON.stringify(language === "typescript" ? "export interface Receipt" : language === "rust" ? "pub struct Receipt" : "type Receipt is Data:")}),
+    expandedEvidence:body.includes('expanded'),supportDeclarationPresent:body.includes(${JSON.stringify(language === "typescript" ? "export interface Receipt" : language === "rust" ? "pub struct Receipt" : language === "go" ? "type Receipt struct" : "type Receipt is Data:")}),
     bytes:Buffer.byteLength(body)})+'\\n',{mode:0o600});
   return original(...args);
 };
@@ -836,6 +850,17 @@ globalThis.fetch=async (...args)=>{
       timeout: 30000
     })
     invalid = { status: probe.status !== null && probe.status !== 0 && probe.stderr.includes("error[E0063]") ? 0 : 1 }
+  } else if (language === "go") {
+    writeFileSync(join(repo, "invalid.go"), "package payment\nvar invalid = PaymentState{}\n")
+    const probe = spawnSync("go", ["test", "./..."], { cwd: repo, env, encoding: "utf8", timeout: 30000 })
+    invalid = {
+      status:
+        probe.status !== null &&
+        probe.status !== 0 &&
+        probe.stderr.includes("invalid composite literal type PaymentState")
+          ? 0
+          : 1
+    }
   } else {
     writeFileSync(
       join(repo, "invalid.bend"),
@@ -907,14 +932,16 @@ globalThis.fetch=async (...args)=>{
     agentAcknowledgesAdvice: text.includes("HAPSLAND_ADVICE_APPLIED") && !text.includes("HAPSLAND_ADVICE_NOT_APPLIED"),
     agentQuotesFinding: !!finding && finding.ruleIds.some((id) => text.includes(feedbackMessages[id])),
     sourceChanged: !!source && source !== initial,
-    finalDesignConstrained:
+    [language === "go" ? "declaredInterfaceRepairObserved" : "finalDesignConstrained"]:
       language === "typescript"
         ? source.includes("status: 'succeeded'") && !source.includes("receipt: Receipt | null")
         : language === "rust"
           ? source.includes("pub enum PaymentState")
-          : source.includes("Succeeded{receipt: M.Receipt}") && !source.includes("PaymentState{status:"),
+          : language === "go"
+            ? source.includes("type PaymentState interface")
+            : source.includes("Succeeded{receipt: M.Receipt}") && !source.includes("PaymentState{status:"),
     sourceCompiles: check.status === 0,
-    missingReceiptRejected: invalid.status === 0,
+    [language === "go" ? "interfaceCompositeLiteralRejected" : "missingReceiptRejected"]: invalid.status === 0,
     followupObserved:
       !!repair &&
       stages.some((item) => item.atMs > repair.at - started && (item.stage === "clear" || item.stage === "findings"))

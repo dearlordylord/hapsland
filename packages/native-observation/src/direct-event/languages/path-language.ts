@@ -4,7 +4,8 @@ import { extname } from "node:path"
 export const LANGUAGE_EXTENSIONS = {
   typescript: [".ts", ".tsx", ".mts", ".cts"],
   rust: [".rs"],
-  bend: [".bend"]
+  bend: [".bend"],
+  go: [".go"]
 } as const
 export type RootLanguage = keyof typeof LANGUAGE_EXTENSIONS
 

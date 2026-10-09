@@ -9,7 +9,7 @@
 
 ## Current implementation
 
-TypeScript, Rust, and Bend use the shared review pipeline. The
+TypeScript, Rust, Bend and the partial Go active-package profile use the shared review pipeline. Go resolves package bindings across eligible active sibling files, preserving file-local imports and generic parameter shadows. It never resolves another package or assumes a closed set of interface implementers. See the [Go authority profile](type-function-review-proposal.md#go-active-package-constraint-subset). The
 [README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,

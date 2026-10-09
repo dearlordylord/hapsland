@@ -11,7 +11,7 @@ export type PostEditPosition = { readonly line: number; readonly column: number 
 export type PostEditLocation = { readonly start: PostEditPosition; readonly end: PostEditPosition }
 export type SupportedRootDeclaration = {
   readonly path: string
-  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype" | "function"
+  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype" | "defined-type" | "function"
   readonly name: string
   /** Half-open range of the complete root, including signature/header. */
   readonly location: PostEditLocation

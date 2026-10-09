@@ -14,13 +14,18 @@ export type TypeDeclaration = {
   readonly origin?: BundledArtifactOrigin
   readonly path?: string
   readonly id: string
-  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype"
+  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype" | "defined-type"
   readonly name: string
   readonly source: string
   readonly sourceHash: string
 }
 
-export type ReviewArtifact = TypeDeclaration | (Omit<TypeDeclaration, "kind"> & { readonly kind: "function" })
+export type ReviewArtifact =
+  | ConstantGroup
+  | TypeDeclaration
+  | (Omit<TypeDeclaration, "kind"> & { readonly kind: "function" })
+
+export type ConstantGroup = Omit<TypeDeclaration, "kind"> & { readonly kind: "constant-group" }
 
 export type ReferenceSite = { readonly symbol: string }
 
@@ -39,6 +44,7 @@ export type ArtifactReference =
 export type ReviewNode = { readonly artifact: ReviewArtifact; readonly references: ReadonlyArray<ArtifactReference> }
 
 export type ReviewUnit = {
+  readonly bindingFingerprint?: string
   /** Captured files establishing import binding, also checked for freshness. */
   readonly sourceDependencies?: ReadonlyArray<string>
   readonly root: ReviewNode

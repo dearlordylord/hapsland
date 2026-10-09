@@ -256,11 +256,10 @@ const resolveContextPatterns = (
   let overriddenContextIncludes: ReadonlyArray<PatternOrigin> = []
   let contextExcludes: ReadonlyArray<PatternOrigin> = []
   let explicitContextExcludes = false
-  let languages = originated<ReadonlyArray<"typescript" | "rust" | "bend">>(["typescript", "rust", "bend"], {
-    layer: "built-in",
-    source: "built-in",
-    field: "languages"
-  })
+  let languages = originated<ReadonlyArray<"typescript" | "rust" | "bend" | "go">>(
+    ["typescript", "rust", "bend", "go"],
+    { layer: "built-in", source: "built-in", field: "languages" }
+  )
   for (const layer of layers) {
     if (layer.document.contextIncludes !== undefined) {
       overriddenContextIncludes = dedupePatterns([

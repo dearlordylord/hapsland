@@ -79,6 +79,18 @@
     "./direct-event/languages/bend/lexical": {
       "types": "./dist/direct-event/languages/bend/lexical.d.ts",
       "default": "./dist/direct-event/languages/bend/lexical.js"
+    },
+    "./direct-event/languages/go-build-context": {
+      "types": "./dist/direct-event/languages/go-build-context.d.ts",
+      "default": "./dist/direct-event/languages/go-build-context.js"
+    },
+    "./direct-event/languages/go": {
+      "types": "./dist/direct-event/languages/go.d.ts",
+      "default": "./dist/direct-event/languages/go.js"
+    },
+    "./direct-event/languages/go-adapter": {
+      "types": "./dist/direct-event/languages/go-adapter.d.ts",
+      "default": "./dist/direct-event/languages/go-adapter.js"
     }
   },
   "dependencies": {
@@ -91,7 +103,8 @@
     "tree-sitter": "catalog:",
     "tree-sitter-rust": "catalog:",
     "tree-sitter-typescript": "catalog:",
-    "bun": "catalog:"
+    "bun": "catalog:",
+    "tree-sitter-go": "catalog:"
   },
   "scripts": {
     "build": "node ../../scripts/compile-package.mjs",
@@ -118,7 +131,9 @@
           "localBuild": "build/Release/tree_sitter_runtime_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter.node",
           "profiles": {
-            "linux-arm64": { "sourceBuild": true },
+            "linux-arm64": {
+              "sourceBuild": true
+            },
             "darwin-arm64": {}
           }
         }
@@ -132,7 +147,9 @@
           "localBuild": "build/Release/tree_sitter_typescript_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter-typescript.node",
           "profiles": {
-            "linux-arm64": { "sourceBuild": true },
+            "linux-arm64": {
+              "sourceBuild": true
+            },
             "darwin-arm64": {}
           }
         }
@@ -146,7 +163,25 @@
           "localBuild": "build/Release/tree_sitter_rust_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter-rust.node",
           "profiles": {
-            "linux-arm64": { "sourceBuild": true },
+            "linux-arm64": {
+              "sourceBuild": true
+            },
+            "darwin-arm64": {}
+          }
+        }
+      },
+      {
+        "source": "src/direct-event/languages/native-bindings.ts",
+        "path": "native/prebuilt/{profile}/tree-sitter-go/build/Release/tree_sitter_go_binding.node",
+        "producer": {
+          "kind": "package-binding",
+          "package": "tree-sitter-go",
+          "localBuild": "build/Release/tree_sitter_go_binding.node",
+          "publishedPrebuild": "prebuilds/{profile}/tree-sitter-go.node",
+          "profiles": {
+            "linux-arm64": {
+              "sourceBuild": true
+            },
             "darwin-arm64": {}
           }
         }

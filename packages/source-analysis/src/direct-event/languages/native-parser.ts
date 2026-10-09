@@ -12,6 +12,7 @@ if (!standalone && typeof Bun !== "undefined") Bun.plugin(physicalNativeBindings
 configureNativeBindings(nativeRoot)
 export const { default: Parser } = await import("tree-sitter")
 export const { default: TypeScript } = await import("tree-sitter-typescript")
+export const { default: Go } = await import("tree-sitter-go")
 export const { default: Rust } = await import("tree-sitter-rust")
 
 /** The pinned Node binding exposes indices and columns in UTF-16 code units. */

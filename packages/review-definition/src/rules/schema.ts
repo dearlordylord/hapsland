@@ -7,7 +7,7 @@ import { RuleIdentitySchema } from "@hapsland/runtime-inputs/domain/rule-identit
 export const RULE_SCHEMA_VERSION = 1 as const
 export const DEFAULT_RULE_THRESHOLD = 0.7
 const NonEmpty = Schema.String.check(Schema.isMinLength(1))
-export const RuleLanguage = Schema.Literals(["typescript", "rust", "bend"])
+export const RuleLanguage = Schema.Literals(["typescript", "rust", "bend", "go"])
 export type RuleLanguage = typeof RuleLanguage.Type
 export const RuleInput = Schema.Union([
   Schema.Struct({

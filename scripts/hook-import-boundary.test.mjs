@@ -28,7 +28,8 @@ const fixture = (t) => {
           "@effect/ai",
           "tree-sitter",
           "tree-sitter-typescript",
-          "tree-sitter-rust"
+          "tree-sitter-rust",
+          "tree-sitter-go"
         ]
       }
     ])
@@ -71,7 +72,7 @@ const fixture = (t) => {
   }
   return { root, manifest, source: resolve(root, "packages/hook/src/main.ts") }
 }
-for (const external of ["tree-sitter", "tree-sitter-typescript", "tree-sitter-rust"])
+for (const external of ["tree-sitter", "tree-sitter-typescript", "tree-sitter-rust", "tree-sitter-go"])
   test(`hook boundary rejects direct parser dependency: ${external}`, (t) => {
     const f = fixture(t)
     const records = ["hook", "shared", "admin", "pi"].map((name) => ({
