@@ -163,6 +163,18 @@ The [Pi attribution checks](../src/direct-event/pi-adapter.test.ts) and [install
 | Why outside Bend | Tree-sitter, filesystem access, Git queries, source-bearing syntax trees, pattern matching, and rule-pack decoding are native effects and data interpretation. Bend receives size-limited, source-free facts and owns the decisions about admission and budget. |
 | Review and limits | On 2026-09-30 the owner approved moving the two remaining rule-selection gates into Bend. Current individual rules author `inputs` and `requires`; TypeScript reports target and capability matches. The earlier rung-based review does not describe the current authoring contract; the [accepted rule contract](review-contract-compatibility.md#configuration-and-individual-rules) owns that amendment. This review does not move source parsing into Bend or change the file and rule contracts. |
 
+Final source freshness is observed only at delivery: TypeScript rebuilds canonical
+inputs, including import resolution, through a delivery-scoped shared source
+snapshot cache. Matching hashes alone cannot establish the resolved input. The
+cache's native map and remaining-member count stay in TypeScript;
+`sourceCacheCheck` sends that count and interruption status to Bend.
+`Handoff.drop_source_cache` requires immediate disposal when no members remain or
+the delivery is interrupted. The three cleanup laws prove that predicate for all
+counts and interruption states; unit tests check native sharing, byte erasure and
+scope retirement. The proofs do not establish native membership accounting or
+filesystem atomicity. Existing advice reservations charge cached source bytes
+and parsing workspaces through the capacity boundary below.
+
 ## TS-007 — Measure native data before Bend capacity admission
 
 | Field | Reviewed boundary |
@@ -378,6 +390,7 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | ruleEnableCheck | packEnabled, ruleEnabled |
 | ruleFindingCheck | probability, threshold |
 | ruleRankOrderCheck | left, leftRank, right, rightRank |
+| sourceCacheCheck | aborted, remaining |
 | startObservation | lifetime, observation, partition, round |
 | startReview | lifetime, operation, partition, round |
 | stopGroupEnded | group, lifetime, round, scopes |
@@ -593,6 +606,8 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | roundStopTerminal | decision | close, revokeProvisional |
 | ruleGate | decision | gate |
 | ruleOrder | decision | order |
+| sourceCacheDrop | decision | — |
+| sourceCacheRetain | decision | — |
 | staleClearSettled | event | — |
 | staleFindingRetired | event | — |
 | stopEnded | event | — |

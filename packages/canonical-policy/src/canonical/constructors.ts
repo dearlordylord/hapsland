@@ -499,6 +499,8 @@ export const CanonicalConstructors = {
   "Canonical.ReservationReleased": Schema.suspend(() =>
     Schema.Struct({ $: Schema.Literal("Canonical.ReservationReleased"), id: Nat })
   ),
+  "Canonical.SourceCacheDrop": Schema.Struct({ $: Schema.Literal("Canonical.SourceCacheDrop") }),
+  "Canonical.SourceCacheRetain": Schema.Struct({ $: Schema.Literal("Canonical.SourceCacheRetain") }),
   "Canonical.RetainCandidate": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.RetainCandidate") })),
   "Canonical.FindingRetained": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.FindingRetained") })),
   "Canonical.RetireCandidate": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.RetireCandidate") })),

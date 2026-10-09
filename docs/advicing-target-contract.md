@@ -314,10 +314,18 @@ whether the work is still current, and the advice age. A temporary failure
 of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is
 suppressed. The resident grants one tokenized lease per selected advice item.
-At the final IPC handoff, the resident captures each selected source file through
-its descriptor, subject to source-size limits, and supplies its freshness as a fact to
-the Bend candidate decision. A changed or unreadable source retires its
-selected finding.
+At the final handoff to a local caller or IPC transport, the resident captures
+each contributing source file through its descriptor, subject to source-size
+limits, rebuilds the complete evaluated input including supporting evidence and
+import resolution, and supplies its freshness as a fact to the Bend candidate
+decision. A hash match alone cannot establish import resolution: a newly added
+candidate can change resolution while previously captured files remain unchanged.
+Shared files are captured once per selected delivery. Changed canonical input
+retires its selected finding; temporarily unavailable input releases its lease
+for a later attempt. There is no source reread before Jev or during advice
+selection. The delivery's bounded source snapshot cache is charged to existing
+advice reservations and its bytes are erased after its last selected member or
+on interruption; a later delivery always starts a new cache.
 Overlapping collectors cannot own that item together. The collector releases a
 lease on a known pre-output failure; a completed advice submission records only
 submission to the runtime. Lost acknowledgements and uncertain submissions

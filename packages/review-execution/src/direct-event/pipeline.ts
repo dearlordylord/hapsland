@@ -76,6 +76,8 @@ import {
   type DirectFilePolicy
 } from "@hapsland/native-observation/direct-event/selection"
 
+export { checkHandoffSources, type HandoffSourceMember } from "./handoff-sources.ts"
+
 assertReviewEngineBoundary("pipeline")
 
 export const DIRECT_EVENT_DEADLINE_MS = 15_000 as const
@@ -1052,7 +1054,7 @@ export const preparedSourceLineStillCurrent = Effect.fn("DirectEvent.preparedSou
   )
 })
 
-/** Rebuild the named rule input under current file policy before a Jev request. */
+/** Explicit snapshot comparison for analysis callers; the review loop checks at publication. */
 export const preparedUnitStillCurrent = Effect.fn("DirectEvent.preparedUnitStillCurrent")(function* (
   observation: DirectObservation,
   prepared: PreparedUnit,
@@ -1450,7 +1452,6 @@ const evaluateObservedUnit = Effect.fn("DirectEvent.evaluateObservedUnit")(funct
     return { status: "root-stale" } as const
   }
   if (admission !== "admitReview") return { status: "skipped" } as const
-  if (!(yield* preparedUnitStillCurrent(observation, prepared, context))) return { status: "skipped" } as const
   return yield* evaluatePrepared(prepared)
 })
 const evaluateObservationUnits = Effect.fn("DirectEvent.evaluateObservationUnits")(function* (

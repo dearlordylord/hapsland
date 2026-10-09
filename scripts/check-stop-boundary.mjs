@@ -72,7 +72,7 @@ if (/listenEffect|closeEffect|(?:whenIdle|listen|close)\(\): Promise/u.test(serv
 }
 
 if (
-  /readonly (?:beforeRevalidate|beforeEvaluate|afterRevalidationWorkspaceReserved|afterAdvicePending|beforeFinalRevalidate|beforeResponseHandoff)\?/u.test(
+  /readonly (?:beforeSelection|beforeEvaluate|afterSourceWorkspaceReserved|afterAdvicePending|beforeFinalSelection|beforeResponseHandoff)\?/u.test(
     server
   ) ||
   /resident(?:BeforeRevalidate|BeforeEvaluate|AfterRevalidationWorkspaceReserved|AfterAdvicePending|BeforeFinalRevalidate|BeforeResponseHandoff)/u.test(

@@ -23,6 +23,7 @@ import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import {
   addEvent,
   makeReviewGitFixture as makeGitFixture,
@@ -159,6 +160,33 @@ const waitUntilIdle = async (server: ResidentRuntime): Promise<void> => {
 }
 
 describe("canonical resident capacity", () => {
+  it("reads one edited file once at preparation and once at delivery for seven review jobs", async () => {
+    const root = await makeGitFixture()
+    await put(root, "types.ts", Array.from({ length: 7 }, (_, index) => `type Count${index} = number`).join("\n"))
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["types.ts"])))
+    if (observation === undefined) throw new Error("missing fixture observation")
+    const reads: string[] = []
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
+      captureSource: (sourceRoot, path, _hooks, identity, maximum) =>
+        captureStable(sourceRoot, path, { sourceRead: (path) => reads.push(path) }, identity, maximum)
+    })
+    const dispatch = singleFindingDispatch(join(root, "consent"))
+    expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
+    await Effect.runPromise(server.whenIdle())
+    expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(7)
+    expect(reads).toEqual(["types.ts", "types.ts"])
+    const response = await Effect.runPromise(server.collect(root, observation.advicee, dispatch))
+    expect(response.status).toBe("advice")
+    if (response.status !== "advice") return
+    expect(response.findingCount).toBe(7)
+    expect(reads).toEqual(["types.ts", "types.ts", "types.ts", "types.ts"])
+    const metadata = await Effect.runPromise(server.pendingAdviceMetadata())
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(
+      metadata.reduce((bytes, advice) => bytes + advice.retainedBytes, 0) +
+        (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes
+    )
+  })
+
   it.each([
     [0.7, "empty"],
     [0.7000000000000001, "advice"]
@@ -2357,7 +2385,7 @@ describe("resident delivery lease", () => {
     if (first === undefined) return
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
     const dispatch = findingDispatch(statePath)
-    expect(await Effect.runPromise(server.admit(first, dispatch))).toEqual({ status: "accepted" })
+    expect(await Effect.runPromise(server.admit(first, dispatch, true))).toEqual({ status: "accepted" })
     await Effect.runPromise(server.whenIdle())
     const later = { ...first.advicee, toolUseId: "later-tool", turnId: "later-turn" }
     const collected = await Effect.runPromise(
@@ -2703,7 +2731,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
     const dispatch = findingDispatch(statePath)
-    expect(await Effect.runPromise(server.admit(observation, dispatch))).toEqual({ status: "accepted" })
+    expect(await Effect.runPromise(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" })
     await Effect.runPromise(server.whenIdle())
     const collected = await Effect.runPromise(
       server.handle({
@@ -3536,7 +3564,7 @@ describe("resident delivery lease", () => {
     const releases = new Map<string, Effect.Effect<void>>()
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       reviewControls: reviewControlsLayer({
-        beforeRevalidate: (id) =>
+        beforeSelection: (id) =>
           Effect.gen(function* () {
             const release = yield* Deferred.make<void>()
             entered.push(id)
@@ -3714,7 +3742,7 @@ describe("resident delivery lease", () => {
     let held = false
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       reviewControls: reviewControlsLayer({
-        beforeRevalidate: () =>
+        beforeSelection: () =>
           Effect.gen(function* () {
             if (held) return
             held = true
@@ -3763,7 +3791,7 @@ describe("resident delivery lease", () => {
     let clock = 100
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       reviewControls: reviewControlsLayer({
-        afterRevalidationWorkspaceReserved: () =>
+        afterSourceWorkspaceReserved: () =>
           Effect.gen(function* () {
             if (held) return
             held = true
@@ -3862,7 +3890,7 @@ describe("resident delivery lease", () => {
     let holdNextRevalidation = true
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       reviewControls: reviewControlsLayer({
-        afterRevalidationWorkspaceReserved: () =>
+        afterSourceWorkspaceReserved: () =>
           Effect.gen(function* () {
             if (!holdNextRevalidation) return
             holdNextRevalidation = false
@@ -4010,6 +4038,23 @@ describe("resident delivery lease", () => {
     expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1)
   })
 
+  it("does not publish advice when an added import candidate changes resolution without changing captured files", async () => {
+    const root = await makeGitFixture()
+    await put(root, "types.ts", "import type { Count } from './count';\nexport interface Order { count: Count }\n")
+    await put(root, "count.ts", "export type Count = number\n")
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["types.ts"])))
+    if (observation === undefined) throw new Error("missing fixture observation")
+    const dispatch = allFindingsDispatch(join(root, "consent"))
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
+    expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
+    await Effect.runPromise(server.whenIdle())
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1)
+
+    // Both captured files remain byte-for-byte equal; only the candidate set changes.
+    await put(root, "count.tsx", "export type Count = number\n")
+    expect((await Effect.runPromise(server.collect(root, observation.advicee, dispatch))).status).toBe("empty")
+  })
+
   it("revalidates and finalizes at the 16-item partition saturation boundary", async () => {
     const root = await makeGitFixture()
     const paths = Array.from({ length: 16 }, (_, index) => `type-${index}.ts`)
@@ -4111,7 +4156,7 @@ describe("resident delivery lease", () => {
     const visits: Array<string> = []
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       reviewControls: reviewControlsLayer({
-        beforeRevalidate: (id) =>
+        beforeSelection: (id) =>
           Effect.gen(function* () {
             visits.push(id)
           })
@@ -4396,7 +4441,7 @@ describe("resident bounded advice batches", () => {
     let bId = ""
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       reviewControls: reviewControlsLayer({
-        beforeRevalidate: (id) =>
+        beforeSelection: (id) =>
           Effect.gen(function* () {
             if (id !== bId) return
             yield* blocked.complete()
@@ -4444,7 +4489,7 @@ describe("resident bounded advice batches", () => {
     const release = deferred()
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       reviewControls: reviewControlsLayer({
-        beforeFinalRevalidate: (id) =>
+        beforeFinalSelection: (id) =>
           Effect.gen(function* () {
             if (id !== bId) return
             yield* blocked.complete()
@@ -4489,7 +4534,7 @@ describe("resident bounded advice batches", () => {
     const release = deferred()
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       reviewControls: reviewControlsLayer({
-        beforeFinalRevalidate: (id) =>
+        beforeFinalSelection: (id) =>
           Effect.gen(function* () {
             if (id !== bId) return
             yield* blocked.complete()

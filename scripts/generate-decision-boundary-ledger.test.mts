@@ -63,10 +63,12 @@ test("current production schemas and exports produce the maintained ledger witho
     )
   )
   const outputs = model.inventories.find((inventory) => inventory.name === "Canonical outputs")!
-  assert.equal(outputs.rows.length, 215)
+  assert.equal(outputs.rows.length, 217)
   assert.equal(outputs.rows.find((row) => row.kind === "prepare")?.category, "request")
   assert.equal(outputs.rows.find((row) => row.kind === "findingRetained")?.category, "event")
   assert.equal(outputs.rows.find((row) => row.kind === "collectionFits")?.category, "decision")
+  assert.equal(outputs.rows.find((row) => row.kind === "sourceCacheDrop")?.category, "decision")
+  assert.equal(outputs.rows.find((row) => row.kind === "sourceCacheRetain")?.category, "decision")
   assert.match(next, /Canonical outputs form one ordered stream/)
   assert.doesNotMatch(next, /### Canonical commands/)
   const marker = "<!-- decision-boundary-facts:start -->"

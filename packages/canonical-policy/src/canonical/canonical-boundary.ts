@@ -1225,6 +1225,11 @@ const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) =
   deliverySubmissionBatchCheck: encodeDeliverySubmissionBatchCheck,
   deliveryCredentialObserveCheck: encodeDeliveryCredentialObserveCheck,
   deliveryFinalCredentialCheck: encodeDeliveryFinalCredentialCheck,
+  sourceCacheCheck: (event) => ({
+    $: "Canonical.SourceCacheCheck",
+    remaining: event.remaining,
+    aborted: event.aborted
+  }),
   validationRouteCheck: encodeValidationRouteCheck,
   postValidationCheck: encodePostValidationCheck,
   finalCandidateCheck: encodeFinalCandidateCheck,
@@ -1806,6 +1811,8 @@ const decodeIgnoreCandidate = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
+      | "sourceCacheDrop"
+      | "sourceCacheRetain"
       | "ignoreCandidate"
       | "releaseCandidate"
       | "retireCandidate"
@@ -2184,6 +2191,8 @@ const outputDecoders: Readonly<Record<string, (value: unknown) => DecodedOutputF
   "Canonical.ReleaseCandidate": decodeIgnoreCandidate,
   "Canonical.RetireCandidate": decodeIgnoreCandidate,
   "Canonical.ContinueCandidate": decodeIgnoreCandidate,
+  "Canonical.SourceCacheDrop": decodeIgnoreCandidate,
+  "Canonical.SourceCacheRetain": decodeIgnoreCandidate,
   "Canonical.RetainCandidate": decodeIgnoreCandidate,
   "Canonical.RoundStopBegun": decodeRoundStopBegun,
   "Canonical.RoundStopRefused": decodeRoundStopBegun,
