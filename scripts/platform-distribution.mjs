@@ -96,7 +96,7 @@ export function homebrewFormula(manifest) {
   def caveats
     <<~EOS
       Package installation does not activate coding-agent hooks. Run:
-        #{opt_bin}/hapsland setup --target=#{opt_bin}/hapsland
+        hapsland setup
 
       To update an existing installation, keep old packages until activation:
         HOMEBREW_NO_INSTALL_CLEANUP=1 brew upgrade dearlordylord/tap/hapsland

@@ -109,12 +109,21 @@ credential and update details.
 
 **Audience:** End users on macOS arm64 or Linux arm64.
 
-With Homebrew installed:
+Install with Homebrew:
 
 ```sh
 brew install dearlordylord/tap/hapsland
+```
+
+Then, in the Git repository you want reviewed, start the guided setup:
+
+```sh
 hapsland setup
 ```
+
+Choose your coding agent in the terminal and confirm the hook changes shown by
+setup. Enter any Jev key in the masked terminal prompt. Restart the selected
+agent after setup completes.
 
 Homebrew downloads only the matching platform archive. Hapsland includes its
 runtime and native assets; no external Node/Bun or source build is needed.

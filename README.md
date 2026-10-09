@@ -166,6 +166,10 @@ brew install dearlordylord/tap/hapsland
 hapsland setup
 ```
 
+Run `hapsland setup` from the Git repository you want reviewed. Follow the
+terminal prompts to choose your coding agent and confirm installing its hooks,
+then restart that agent.
+
 The public npm package returned **404 on 2026-10-06**; the npm commands below
 require a separate npm publication. Contributors can still use the
 [local checkout installation](./docs/installation-workflows.md#install-before-publication),
