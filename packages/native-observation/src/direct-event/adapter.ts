@@ -84,21 +84,22 @@ const patchBodyLine = (candidate: PatchCandidate, line: string): boolean => {
   if (candidate.operation === "update" && line.startsWith("+")) candidate.addedLines.push(line.slice(1))
   return true
 }
+const endPatchFile = (frame: PatchFrame, candidate: PatchCandidate): boolean => {
+  if (
+    (candidate.operation !== "update" && candidate.operation !== "move") ||
+    frame.lastLine === undefined ||
+    !patchContextLine(frame.lastLine)
+  )
+    return false
+  frame.endOfFile = true
+  return true
+}
 const acceptPatchLine = (frame: PatchFrame, line: string): boolean => {
   const header = /^\*\*\* (Add|Update|Delete) File: (.+)$/.exec(line)
   if (header !== null) return addPatchFile(frame, header)
   if (frame.current === undefined) return false
   if (frame.endOfFile) return false
-  if (line === "*** End of File") {
-    if (
-      (frame.current.operation !== "update" && frame.current.operation !== "move") ||
-      frame.lastLine === undefined ||
-      !patchContextLine(frame.lastLine)
-    )
-      return false
-    frame.endOfFile = true
-    return true
-  }
+  if (line === "*** End of File") return endPatchFile(frame, frame.current)
   if (line.startsWith("*** Move to: ")) return movePatchFile(frame.current, line)
   if (line.startsWith("***")) return false
   frame.lastLine = line

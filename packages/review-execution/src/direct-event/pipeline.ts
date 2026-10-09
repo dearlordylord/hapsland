@@ -671,6 +671,9 @@ const functionExtractionFailures = (
     failures.push({ root: undefined, reason: "no-supported-function-root" })
   return failures
 }
+const hasCapturedGraph = ({ functionFile, graphFile }: ReturnType<typeof capturedCandidateFiles>): boolean =>
+  graphFile !== undefined ||
+  (functionFile !== undefined && functionFile.functions.size > 0 && functionFile.types.size === 0)
 const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate")(function* (
   candidateOperation: "add" | "update",
   path: string,
@@ -680,12 +683,7 @@ const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate
 ) {
   const files = capturedCandidateFiles(path, captured, frame.graphLimits)
   const { functionFile, graphFile } = files
-  const analysis = analyzeTypeFile(
-    path,
-    captured.text,
-    graphFile !== undefined ||
-      (functionFile !== undefined && functionFile.functions.size > 0 && functionFile.types.size === 0)
-  )
+  const analysis = analyzeTypeFile(path, captured.text, hasCapturedGraph(files))
   const candidateDeclarations = candidateDeclarationsForFiles(files, frame.contract)
   const analyses = unresolvedUnitAnalyses(candidateDeclarations)
   const selection = selectCapturedCandidate(
@@ -1344,19 +1342,28 @@ const reportInputFailure = Effect.fn("DirectEvent.reportInputFailure")(function*
   return { status: "input-invalid" } as const
 })
 
-/** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
-export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
-  prepared: PreparedSource,
-  beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
-  observe?: (evidence: EvaluationEvidence) => void
-) {
-  const emit = (evidence: EvaluationEvidence) => {
+const evaluationEvidenceEmitter =
+  (observe: ((evidence: EvaluationEvidence) => void) | undefined) =>
+  (evidence: EvaluationEvidence): void => {
     try {
       observe?.(evidence)
     } catch {
       /* Optional evidence cannot change evaluation. */
     }
   }
+
+const reportBackendFailure = (failure: unknown, emit: (evidence: EvaluationEvidence) => void) => {
+  emit({ kind: "evaluation-outcome", outcome: invalidModelOutput(failure) ? "invalid-response" : "backend" })
+  return { status: "backend" } as const
+}
+
+/** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
+export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
+  prepared: PreparedSource,
+  beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
+  observe?: (evidence: EvaluationEvidence) => void
+) {
+  const emit = evaluationEvidenceEmitter(observe)
 
   let inputFailure: CandidateInputFailure | undefined
   const providerInput = preparedProviderInput(prepared, (failure) => {
@@ -1396,11 +1403,7 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     Effect.result,
     Effect.onInterrupt(() => Effect.sync(() => emit({ kind: "evaluation-outcome", outcome: "interrupted" })))
   )
-  if (Result.isFailure(evaluated)) {
-    const invalid = invalidModelOutput(evaluated.failure)
-    emit({ kind: "evaluation-outcome", outcome: invalid ? "invalid-response" : "backend" })
-    return { status: "backend" } as const
-  }
+  if (Result.isFailure(evaluated)) return reportBackendFailure(evaluated.failure, emit)
   if (Option.isNone(evaluated.success)) {
     emit({ kind: "evaluation-outcome", outcome: "timeout" })
     return { status: "timeout" } as const

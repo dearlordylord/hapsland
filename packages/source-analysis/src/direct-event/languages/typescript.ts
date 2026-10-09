@@ -55,6 +55,10 @@ const rootTypeParameters = (declaration: SyntaxNode): ReadonlySet<string> => {
 const unsupportedReferenceNodes = new Set(["nested_type_identifier", "type_query", "computed_property_name"])
 const ignoredTypeParents = new Set(["type_parameter", "nested_type_identifier"])
 const intrinsicContainers = new Set(["Readonly", "ReadonlyArray", "Array"])
+const removeImportedIntrinsics = (statement: SyntaxNode, names: Set<string>): void => {
+  for (const binding of descendants(statement))
+    if (binding.type === "identifier" || binding.type === "type_identifier") names.delete(binding.text)
+}
 const unshadowedIntrinsicContainers = (nodes: ReadonlyArray<SyntaxNode>): ReadonlySet<string> => {
   const names = new Set(intrinsicContainers)
   for (const declaration of nodes) names.delete(declarationNameNode(declaration)?.text ?? "")
@@ -62,9 +66,7 @@ const unshadowedIntrinsicContainers = (nodes: ReadonlyArray<SyntaxNode>): Readon
   while (root.parent != null) root = root.parent
   for (const statement of root.namedChildren) {
     if (statement.type !== "import_statement") continue
-    for (const binding of descendants(statement)) {
-      if (binding.type === "identifier" || binding.type === "type_identifier") names.delete(binding.text)
-    }
+    removeImportedIntrinsics(statement, names)
   }
   return names
 }
