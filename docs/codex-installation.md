@@ -94,8 +94,8 @@ Release assembly builds and probes the native helpers and parser bindings on eac
 platform. The resulting `native/prebuilt/linux-arm64` and `native/prebuilt/darwin-arm64` trees are
 combined before running `npm run pack:release`, which rejects missing or wrong-architecture
 artifacts. The release archive is then tested with install scripts disabled on both platforms.
-Codex CLI 0.156.0 has a retained authenticated macOS arm64 host run through a controlled offline
-backend. The real Jev first-review milestone was observed with Codex CLI 0.155.1 on Linux arm64;
+Codex CLI has a retained authenticated macOS arm64 host run through a controlled offline
+backend. The real Jev first-review milestone was observed with Codex CLI on Linux arm64;
 this historical run does not expand the current runtime and platform support profile.
 The direct-event capture envelope remains narrower where documented. Every lifecycle automation request is supplied on
 stdin and every result is a single version-1 JSON object on stdout.

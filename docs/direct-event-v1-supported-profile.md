@@ -20,15 +20,15 @@ available preparation slots and per-edit completion, with a Stop deadline
 exception; they do not retroactively validate the earlier host run.
 
 This document records the previously measured support boundary. Jev is the external
-review backend. The measured v1 adapter profile was **Codex CLI 0.155.1 / Linux arm64 /
+review backend. The measured v1 adapter profile was **Codex CLI / Linux arm64 /
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
 recorded conformance environment, not broader runtime guarantees. The historical installed package
 profile was narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
 at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the packaged
 `openat` capture helper. The macOS controlled installed-package path is tested. The real
-Codex-host path is verified on macOS arm64 with Codex CLI 0.156.0 and a controlled offline
+Codex-host path is verified on macOS arm64 with Codex CLI and a controlled offline
 backend, including native interactive trust review. This does not establish a real-host run
-for Codex CLI 0.155.1 or other platform profiles. At that validation point, package metadata and `hapsland-doctor`
+for other Codex releases or platform profiles. At that validation point, package metadata and `hapsland-doctor`
 rejected undeclared versions and other platform profiles. These observations do not
 validate the current standalone Bun distribution; see
 [installed release compatibility](installed-release-compatibility.md).
@@ -84,7 +84,7 @@ checkout. It verifies parser loading, resident launch, file selection, one contr
 submission, advice collection, and actionable missing-command diagnosis. No package acquisition
 occurs during hook edits.
 
-The issue-63 fixture additionally uses an isolated real Codex 0.155.1 home and temporary Git
+The issue-63 fixture additionally uses an isolated real Codex home and temporary Git
 repository. It neither seeds repository trust nor bypasses hook trust, and drives both decisions
 through Codex's native interactive flow. The output-limited PTY reconstructs Codex's rendered terminal
 screen, waits for the repository and hook-review states, and confirms the native selections only
@@ -176,12 +176,12 @@ The external stages are kept separate:
 The corrected fresh pinned run observed all five for one Add with a controlled backend;
 model visibility required exact repetition of a randomized hook-only value absent from the
 prompt. That single observation does not establish reliable model visibility. Update and multi-file support
-is separately grounded in native `0.155.1` payload captures plus deterministic production
+is separately grounded in native payload captures plus deterministic production
 pipeline gates; it was not rerun live in this final Add conformance. Real child-specific
 delivery is unvalidated. [Pinned native child probes](https://github.com/dearlordylord/hapsland/blob/59dd9f17ca2187f0caa440836bcb43f25a86ce85/evidence/subagent-identity/probe.mjs)
 and their [Claude](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/subagent-identity/claude-2.1.218-linux-arm64.json),
-[Codex 0.155.1](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/subagent-identity/codex-0.155.1-linux-arm64.json), and
-[Codex 0.156.0](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/subagent-identity/codex-0.156.0-linux-arm64.json)
+[first Codex probe](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/subagent-identity/codex-0.155.1-linux-arm64.json), and
+[second Codex probe](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/subagent-identity/codex-0.156.0-linux-arm64.json)
 records verify child identity fields under Linux arm64, alongside deterministic
 partition isolation checks.
 

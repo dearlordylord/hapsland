@@ -160,8 +160,7 @@ not establish advice delivery.
 
 The [current matrix index](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/native-languages/index.json) points to six
 successful final runs on implementation commit
-`a241eb5f554c112609047df97079bc404580d339`: Codex CLI 0.155.1 and Claude Code
-2.1.218 each exercised all three languages and reached a clear follow-up.
+`a241eb5f554c112609047df97079bc404580d339`: Codex CLI and Claude Code each exercised all three languages and reached a clear follow-up.
 Final runs used 12 Jev requests; retained earlier attempts used another 8.
 Six subsequent controlled offline host runs also completed the adoption path
 without Jev requests; an earlier Claude Bend attempt that did not repair

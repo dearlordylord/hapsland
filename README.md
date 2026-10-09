@@ -192,7 +192,7 @@ After a stable release is published and verified, install manually:
    Space to toggle, Enter to continue). Installed clients are checked and labeled.
    Unchecking a client leaves its installation intact. To skip the selector, use
    `hapsland setup claude`, `hapsland setup codex`, or `hapsland setup pi`.
-   Pi requires Linux arm64 and Pi 1.0.0; OpenCode setup is unavailable.
+   Pi requires Linux arm64 and a release accepted by setup; OpenCode setup is unavailable.
 
    Setup previews owned hooks, asks before applying them, accepts a missing Jev key
    through masked input, shows the selected key source and replacement instructions,

@@ -376,7 +376,7 @@ deliberately select earlier advice is a separate, undecided behavior.
 
 ## Pi native handoff boundary
 
-Pi 1.0.0 uses its awaited `tool_call`/`tool_result` boundaries for source-free admission and matching successful native `edit` observation. Missing admission is an incomplete review observation and does not block the user's edit. `write`, nested calls, and child identities are unsupported in the initial profile. Review scheduling, freshness, collection, permits, and continuation limits remain resident policy.
+Pi uses its awaited `tool_call`/`tool_result` boundaries for source-free admission and matching successful native `edit` observation. Missing admission is an incomplete review observation and does not block the user's edit. `write`, nested calls, and child identities are unsupported in the initial profile. Review scheduling, freshness, collection, permits, and continuation limits remain resident policy.
 
 At native `agent_before_settle`, the extension requests the shared finish decision with the existing four-second safe wait. Actionable current advice is offered as a native `custom_message`; continuation is requested only when the shared decision permits it and the resulting native context admits continuation. The initial preview can end in an assistant message and report `canContinue: false`; the proposed custom message changes that projection before Pi performs its final continuation check. A cancelled or otherwise failed outcome closes work instead of requesting continuation.
 

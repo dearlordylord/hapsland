@@ -180,7 +180,7 @@ destination; a change to any of these invalidates reuse. See the
 [provider boundary](review-providers.md) for transport validation and declared limits.
 
 Update attribution currently requires an exact verified post-edit span. Codex
-`apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi 1.0.0
+`apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi
 native `edit` unified-result patches can supply one. Codex and Pi share post-edit
 patch verification with explicit placement rules: Codex requires a unique text
 match; Pi verifies native line coordinates against current source within capture limits without
