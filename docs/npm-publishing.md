@@ -15,6 +15,48 @@ differences emit a warning while source and archive admission remain mandatory. 
 Actions is optional supporting evidence. The source repository remains private;
 this flow provides no npm provenance attestation.
 
+## Platform archives and Homebrew
+
+The source repository is private. Public ready-made archives are published to
+[`dearlordylord/hapsland-releases`](https://github.com/dearlordylord/hapsland-releases);
+Homebrew uses [`dearlordylord/homebrew-tap`](https://github.com/dearlordylord/homebrew-tap).
+Neither channel requires publishing the source checkout.
+
+After preparing and committing a candidate, derive both platform archives without
+rebuilding. Run from the tooling checkout; `--candidate` names the clean checkout
+whose committed pin and retained audit match the accepted release:
+
+```sh
+npm run release:prepare:distribution -- --candidate=/path/to/prepared-checkout
+```
+
+The command prints a content-addressed distribution directory in the Git common
+artifact store. It retains shared package resources, the selected platform's
+commands and native assets, and checks every file hash and mode against the
+audited npm archive. The runtime layout is unchanged. Each archive has a
+`package/` root; extraction alone does not add its commands to PATH.
+
+Verify the directory, then publish its exact bytes:
+
+```sh
+node scripts/publish-platform-distribution.mjs --directory=/printed/directory --candidate=/path/to/prepared-checkout --verify-only
+node scripts/publish-platform-distribution.mjs --directory=/printed/directory --candidate=/path/to/prepared-checkout --publish
+```
+
+Publication creates a draft in the public artifact repository, downloads all
+uploaded assets and compares their hashes, then publishes the release. A failed
+verification retains the draft. Existing release tags/assets are never overwritten;
+resolve an incomplete draft explicitly before retrying. Stable releases become
+latest; candidate releases are marked prerelease.
+
+For a stable `latest` release, copy the generated `hapsland.rb` to
+`Formula/hapsland.rb` in the Homebrew tap. Prerelease archives remain available
+for direct installation; do not replace the stable formula with a `next` release.
+Before pushing it, install and test `dearlordylord/tap/hapsland` against the
+published archive. Keep each version's archive URLs and SHA-256 immutable.
+Homebrew installs the whole package under `libexec` and exposes all five commands
+through its existing launcher. npm publication remains a separate operation.
+
 ## Prepare stable or candidate coordinates
 
 Commit matching package versions in `package.json` and target coordinates in

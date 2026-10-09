@@ -1,6 +1,6 @@
 {
   "name": "@hapsland/hapsland",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "repository": {
     "type": "git",
@@ -113,7 +113,8 @@
     "interaction:diagrams:check": "npm run docs:generated:check",
     "typecheck:source": "node scripts/pinned-typescript.mjs -p tsconfig.json --noEmit && node scripts/package-graph.mjs --check && node scripts/generate-release-identity.mjs --check && node scripts/check-development-imports.mjs",
     "bend:base:generate": "node scripts/generate-bend-base-evidence.mjs --update",
-    "bend:base:check": "node scripts/generate-bend-base-evidence.mjs --check"
+    "bend:base:check": "node scripts/generate-bend-base-evidence.mjs --check",
+    "release:prepare:distribution": "node scripts/prepare-platform-distribution.mjs"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",
