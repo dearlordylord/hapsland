@@ -258,7 +258,8 @@ export async function mergeSourceFunctions(coverageMap, sourceMetadataCache = ne
         entry.end.column === null || entry.end.column === Infinity
           ? ends?.size === 1
             ? { ...entry, end: { ...entry.end, column: [...ends][0] } }
-            : corroboratedExpression && preciseStatementHits.has(JSON.stringify(corroboratedExpression))
+            : corroboratedExpression &&
+                (data.s[id] === 0 || preciseStatementHits.has(JSON.stringify(corroboratedExpression)))
               ? corroboratedExpression
               : undefined
           : undefined

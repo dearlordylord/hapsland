@@ -421,29 +421,45 @@ it("attributes positive partial ends to a unique executable statement", async ()
   }
 })
 
-it("corroborates an ambiguous expression statement only with a precise hit in the same context", async () => {
+it("resolves zero expression roots but requires same-context evidence for positive partial ranges", async () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-expression-statement-provenance-"))
   try {
     const filename = join(root, "subject.ts")
-    const source = "function choose(receiver: { run: () => boolean }) {\n  receiver.run()\n}\n"
+    const source =
+      "function choose(enabled: boolean, receiver: { run: () => boolean }) {\n  enabled && receiver.run()\n}\n"
     writeFileSync(filename, source)
-    const exact = { start: { line: 2, column: 2 }, end: { line: 2, column: source.split("\n")[1]!.length } }
+    const statementLine = source.split("\n")[1]!
+    const exact = { start: { line: 2, column: 2 }, end: { line: 2, column: statementLine.length } }
     const partial = { ...exact, end: { ...exact.end, column: null } }
-    const coverage = (statements: Record<string, typeof exact | typeof partial>, counts: Record<string, number>) => {
+    const partialSubexpression = {
+      start: { line: 2, column: statementLine.indexOf("receiver") },
+      end: { line: 2, column: null }
+    }
+    const functionEntry = {
+      name: "choose",
+      decl: { start: { line: 1, column: 0 }, end: { line: 1, column: source.split("\n")[0]!.length } },
+      loc: { start: { line: 1, column: source.split("\n")[0]!.indexOf("{") }, end: { line: 3, column: 1 } },
+      line: 1
+    }
+    const coverage = (
+      statements: Record<string, typeof exact | typeof partial | typeof partialSubexpression>,
+      counts: Record<string, number>,
+      functionCount = 0
+    ) => {
       const map = provider.getProvider().createCoverageMap()
       map.addFileCoverage({
         path: filename,
         statementMap: statements,
         s: counts,
-        fnMap: {},
-        f: {},
+        fnMap: { "0": functionEntry },
+        f: { "0": functionCount },
         branchMap: {},
         b: {}
       })
       return map
     }
 
-    const corroborated = coverage({ "0": exact, "1": partial }, { "0": 1, "1": 5 })
+    const corroborated = coverage({ "0": exact, "1": partial }, { "0": 1, "1": 5 }, 1)
     await mergeSourceFunctions(corroborated)
     expect(Object.values(corroborated.fileCoverageFor(filename).data.statementMap)).toEqual([exact])
     expect(Object.values(corroborated.fileCoverageFor(filename).data.s)).toEqual([5])
@@ -460,6 +476,65 @@ it("corroborates an ambiguous expression statement only with a precise hit in th
     const acrossContexts = partialContext.fileCoverageFor(filename).data
     expect(Object.values(acrossContexts.statementMap)).toEqual([partial, exact])
     expect(Object.values(acrossContexts.s)).toEqual([5, 1])
+
+    const zeroRoot = coverage({ "0": partial }, { "0": 0 })
+    const firstHit = coverage({ "0": exact }, { "0": 2 }, 2)
+    const secondHit = coverage({ "0": exact }, { "0": 3 }, 3)
+    await mergeSourceFunctions(zeroRoot)
+    await mergeSourceFunctions(firstHit)
+    await mergeSourceFunctions(secondHit)
+    const unhit = zeroRoot.fileCoverageFor(filename).data
+    expect(Object.values(unhit.statementMap)).toEqual([exact])
+    expect(Object.values(unhit.s)).toEqual([0])
+    expect(Object.values(unhit.f)).toEqual([0])
+    zeroRoot.merge(firstHit)
+    zeroRoot.merge(secondHit)
+    const resolvedAcrossContexts = zeroRoot.fileCoverageFor(filename).data
+    expect(Object.values(resolvedAcrossContexts.statementMap)).toEqual([exact])
+    expect(Object.values(resolvedAcrossContexts.s)).toEqual([5])
+    expect(Object.values(resolvedAcrossContexts.f)).toEqual([5])
+
+    expect(partialSubexpression.start.column).toBeGreaterThan(exact.start.column)
+    const shortCircuited = coverage({ "0": exact, "1": partialSubexpression }, { "0": 1, "1": 5 }, 1)
+    await mergeSourceFunctions(shortCircuited)
+    const subexpressionData = shortCircuited.fileCoverageFor(filename).data
+    expect(Object.values(subexpressionData.statementMap)).toEqual([exact, partialSubexpression])
+    expect(Object.values(subexpressionData.s)).toEqual([1, 5])
+    expect(Object.values(subexpressionData.f)).toEqual([1])
+
+    const initializerFile = join(root, "initializer.ts")
+    const initializerSource = "const callback = () => work()\n"
+    writeFileSync(initializerFile, initializerSource)
+    const initializerStart = initializerSource.indexOf("() =>")
+    const uninvokedInitializer = { start: { line: 1, column: initializerStart }, end: { line: 1, column: null } }
+    const initializerCoverage = provider.getProvider().createCoverageMap()
+    initializerCoverage.addFileCoverage({
+      path: initializerFile,
+      statementMap: { "0": uninvokedInitializer },
+      s: { "0": 0 },
+      fnMap: {
+        "0": {
+          name: "callback",
+          decl: {
+            start: { line: 1, column: initializerSource.indexOf("callback") },
+            end: { line: 1, column: initializerSource.indexOf("callback") + "callback".length }
+          },
+          loc: {
+            start: { line: 1, column: initializerSource.indexOf("work") },
+            end: { line: 1, column: initializerSource.length - 1 }
+          },
+          line: 1
+        }
+      },
+      f: { "0": 0 },
+      branchMap: {},
+      b: {}
+    })
+    await mergeSourceFunctions(initializerCoverage)
+    const initializerData = initializerCoverage.fileCoverageFor(initializerFile).data
+    expect(Object.values(initializerData.statementMap)).toEqual([uninvokedInitializer])
+    expect(Object.values(initializerData.s)).toEqual([0])
+    expect(Object.values(initializerData.f)).toEqual([0])
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
