@@ -24,6 +24,7 @@ async function fixture(t) {
     "standalone-environment.test.mjs"
   ])
     await writeFile(join(root, "scripts/test-harness", file), "// Passing prerequisite fixture\n")
+  await writeFile(join(root, "scripts/native-inputs.mjs"), "process.exit(0)\n")
   await writeFile(
     join(root, "scripts/coverage-provider.test.mts"),
     'import test from "node:test"; test("provider fixture", () => {})\n'
@@ -36,7 +37,14 @@ async function fixture(t) {
   return root
 }
 
-async function installCoverageSmokeStub(root, { exitCode = 0, omitSource, providerExitCode = 0 } = {}) {
+async function installCoverageSmokeStub(
+  root,
+  { exitCode = 0, omitSource, parserExitCode = 0, providerExitCode = 0 } = {}
+) {
+  await writeFile(
+    join(root, "scripts/native-inputs.mjs"),
+    `if (process.argv.slice(2).join(" ") !== "prepare-parsers host") process.exit(18);\nconsole.error("parser preparation witness"); process.exit(${parserExitCode})\n`
+  )
   const binary = join(root, "node_modules/.bin/vitest")
   await mkdir(join(root, "node_modules/.bin"), { recursive: true })
   const script = [
@@ -591,6 +599,7 @@ for (const lintExit of [0, 1]) {
         ? [
             "quality-preflight",
             "lint-code",
+            "native-parser-preparation",
             "quality-coverage-provider",
             "quality-coverage-bun",
             "quality-coverage-smoke",
@@ -601,7 +610,11 @@ for (const lintExit of [0, 1]) {
     )
     assert.match(await readFile(stages[1].logPath, "utf8"), /lint witness/u)
     if (lintExit === 0) {
+      const parserPreparation = stages.find((stage) => stage.name === "native-parser-preparation")
       const provider = stages.find((stage) => stage.name === "quality-coverage-provider")
+      assert.equal(parserPreparation.command, process.execPath)
+      assert.deepEqual(parserPreparation.args, ["scripts/native-inputs.mjs", "prepare-parsers", "host"])
+      assert.ok(stages.indexOf(parserPreparation) < stages.indexOf(provider))
       assert.equal(provider.command, join(root, "node_modules/.bin/vitest"))
       assert.ok(provider.args.includes("scripts/coverage-provider.test.mts"))
       const bun = stages.find((stage) => stage.name === "quality-coverage-bun")
@@ -623,6 +636,31 @@ for (const lintExit of [0, 1]) {
   })
 }
 
+test("parser preparation failure prevents provider, Bun, smoke and full coverage stages", async (t) => {
+  const root = await fixture(t)
+  await mkdir(join(root, "scripts"), { recursive: true })
+  await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
+  await installCoverageSmokeStub(root, { parserExitCode: 1 })
+  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
+  await runQualityStages(run, root)
+  assert.equal(await run.finish(), 1)
+  const stages = await stageResults(run.runDirectory)
+  assert.deepEqual(
+    stages.map(({ name, state }) => [name, state]),
+    [
+      ["quality-preflight", "passed"],
+      ["lint-code", "passed"],
+      ["native-parser-preparation", "failed"],
+      ["quality-coverage-provider", "not-started"],
+      ["quality-coverage-bun", "not-started"],
+      ["quality-coverage-smoke", "not-started"],
+      ["quality-coverage-evidence", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+  assert.match(await readFile(stages[2].logPath, "utf8"), /parser preparation witness/)
+})
+
 test("provider regression failure prevents Bun, Vitest smoke and full coverage stages", async (t) => {
   const root = await fixture(t)
   await mkdir(join(root, "scripts"), { recursive: true })
@@ -637,6 +675,7 @@ test("provider regression failure prevents Bun, Vitest smoke and full coverage s
     [
       ["quality-preflight", "passed"],
       ["lint-code", "passed"],
+      ["native-parser-preparation", "passed"],
       ["quality-coverage-provider", "failed"],
       ["quality-coverage-bun", "not-started"],
       ["quality-coverage-smoke", "not-started"],
@@ -970,6 +1009,7 @@ test("failed quality prerequisite blocks lint and coverage with retained diagnos
     [
       ["quality-preflight", "failed"],
       ["lint-code", "not-started"],
+      ["native-parser-preparation", "not-started"],
       ["quality-coverage-provider", "not-started"],
       ["quality-coverage-bun", "not-started"],
       ["quality-coverage-smoke", "not-started"],

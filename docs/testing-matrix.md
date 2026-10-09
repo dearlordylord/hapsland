@@ -118,9 +118,9 @@ stage evidence. Vitest and mixed selections prepare workspaces once before their
 tests. Both `test:focused` and verification profiles use this convention; test
 assertions and coverage requirements remain unchanged.
 
-Quality runs harness preflight, lint, coverage-provider regressions, a bounded
-Bun subprocess check and a four-file V8 coverage smoke before full coverage
-generation. The smoke requires emitted statement hits for each selected owner. Tests and invalid or missing
+Quality runs harness preflight, lint, the existing host parser preparation,
+coverage-provider regressions, a bounded Bun subprocess check and a four-file
+V8 coverage smoke before full coverage generation. The smoke requires emitted statement hits for each selected owner. Tests and invalid or missing
 coverage remain blocking. CRAP threshold breaches are advisory and appear in a
 machine-readable run artifact and the CI summary. The threshold remains a review
 baseline; it does not require splitting production functions to pass a number.

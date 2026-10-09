@@ -162,8 +162,16 @@ export async function runQualityReport({
   let toolExitCode = 0
   let toolSignal = null
   let toolError
+  let streamedStderr = false
   try {
-    const result = await execute(toolPath, ["--json"], { cwd: root, encoding: "utf8", maxBuffer: maximumOutputBytes })
+    const execution = execute(toolPath, ["--json"], { cwd: root, encoding: "utf8", maxBuffer: maximumOutputBytes })
+    const stderrStream = execution.child?.stderr
+    if (stderrStream) {
+      stderrStream.setEncoding("utf8")
+      stderrStream.on("data", writeStderr)
+      streamedStderr = true
+    }
+    const result = await execution
     stdout = result.stdout
     stderr = result.stderr
   } catch (error) {
@@ -173,7 +181,7 @@ export async function runQualityReport({
     toolSignal = error.signal ?? null
     if (!Number.isInteger(error.code)) toolError = cleanLine(error.message)
   }
-  if (stderr) writeStderr(stderr)
+  if (stderr && !streamedStderr) writeStderr(stderr)
 
   const stderrExcerpt = excerpt(stderr)
   let parsed

@@ -1,5 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import { writeFileSync } from "node:fs"
 import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
@@ -187,6 +188,49 @@ test("consumes real crap4ts JSON after its configured coverage command runs", as
   assert.match(await readFile(commandCountPath, "utf8"), /^called\n$/)
   assert.match(forwardedStderr, /coverage command stderr marker/)
   assert.match(await readFile(summaryPath, "utf8"), /Threshold 8 passed across 1 functions/)
+})
+
+test("forwards stderr before the child exits while retaining its complete excerpt", async (t) => {
+  const paths = await fixture(t, {
+    report: { version: 1, threshold: 8, rows: [row({ crap: 4 })], diagnostics: [] },
+    exitCode: 0
+  })
+  const releasePath = join(paths.root, "release-child")
+  const stderrMarker = "stderr stream is live\n"
+  const stdout = JSON.stringify({ version: 1, threshold: 8, rows: [row({ crap: 4 })], diagnostics: [] })
+  await writeFile(
+    paths.toolPath,
+    `#!${process.execPath}\n` +
+      `const fs = require("node:fs");\n` +
+      `process.stderr.write(${JSON.stringify(stderrMarker)});\n` +
+      `const deadline = Date.now() + 1000;\n` +
+      `const timer = setInterval(() => {\n` +
+      `  if (fs.existsSync(${JSON.stringify(releasePath)})) {\n` +
+      `    clearInterval(timer); process.stdout.write(${JSON.stringify(stdout)});\n` +
+      `  } else if (Date.now() >= deadline) {\n` +
+      `    clearInterval(timer); process.stderr.write("release timeout\\n"); process.exitCode = 70;\n` +
+      `  }\n` +
+      `}, 5);\n`
+  )
+  let forwardedStderr = ""
+  let releasedFromLiveCallback = false
+
+  const exitCode = await runQualityReport({
+    ...paths,
+    writeStderr: (chunk) => {
+      forwardedStderr += chunk
+      if (chunk.includes(stderrMarker) && !releasedFromLiveCallback) {
+        releasedFromLiveCallback = true
+        writeFileSync(releasePath, "released")
+      }
+    }
+  })
+
+  const report = JSON.parse(await readFile(join(paths.runDirectory, "quality-report.json"), "utf8"))
+  assert.equal(exitCode, 0)
+  assert.equal(releasedFromLiveCallback, true)
+  assert.equal(forwardedStderr, stderrMarker)
+  assert.equal(report.stderrExcerpt, stderrMarker)
 })
 
 test("keeps strict missing evidence, malformed reports, and tool failures blocking", async (t) => {

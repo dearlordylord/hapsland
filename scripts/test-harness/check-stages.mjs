@@ -10,6 +10,12 @@ export const qualityPreflight = [
   "scripts/test-harness/standalone-environment.test.mjs"
 ]
 export const qualityCoverageProvider = ["quality-coverage-provider", "scripts/coverage-provider.test.mts"]
+export const nativeParserPreparation = [
+  "native-parser-preparation",
+  "scripts/native-inputs.mjs",
+  "prepare-parsers",
+  "host"
+]
 export const qualityCoverageBun = [
   "quality-coverage-bun",
   "--test",
@@ -56,7 +62,7 @@ export const precheckStages = [
   ].map((name) => [name, `scripts/check-${name}.mjs`]),
   ["bend-progress", "packages/agent-flow-bend/scripts/check-progress.mjs"],
   ["content-isolation", "packages/agent-flow-bend/scripts/check-content-isolation.mjs"],
-  ["native-parser-preparation", "scripts/native-inputs.mjs", "prepare-parsers", "host"],
+  nativeParserPreparation,
   ["content-wire-mutants", "scripts/check-content-wire-mutants.mjs"],
   [
     "native-pi-observation",

@@ -11,7 +11,8 @@ import {
   qualityCoverageBun,
   qualityCoverageConsumer,
   qualityCoverageProvider,
-  qualityPreflight
+  qualityPreflight,
+  nativeParserPreparation
 } from "./check-stages.mjs"
 import { isNodeTestModule, nodeMtsTestFiles } from "./inventory.mjs"
 import { sourceSnapshot } from "./source-identity.mjs"
@@ -134,6 +135,25 @@ export async function showStatus(root, id, json = false, scope) {
 }
 
 export async function runQualityCoveragePreflight(run, root) {
+  const [parserPreparationName, ...parserPreparationArgs] = nativeParserPreparation
+  const parserPreparation = await run.runStage({
+    name: parserPreparationName,
+    command: process.execPath,
+    args: parserPreparationArgs,
+    cwd: root,
+    env: { NODE_TEST_CONTEXT: undefined }
+  })
+  if (parserPreparation.state !== "passed") {
+    for (const name of [
+      qualityCoverageProvider[0],
+      qualityCoverageBun[0],
+      "quality-coverage-smoke",
+      "quality-coverage-evidence"
+    ])
+      await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [parserPreparation.name] })
+    return { passed: false, failedStage: parserPreparation.name }
+  }
+
   const [providerName, providerFile] = qualityCoverageProvider
   const provider = await run.runStage({
     name: providerName,
@@ -233,6 +253,7 @@ export async function runQualityStages(run, root) {
   if (preflight.state !== "passed") {
     for (const name of [
       "lint-code",
+      nativeParserPreparation[0],
       qualityCoverageProvider[0],
       qualityCoverageBun[0],
       "quality-coverage-smoke",
@@ -333,6 +354,7 @@ export async function createRun({
               "source-identity",
               "quality-preflight",
               "lint-code",
+              nativeParserPreparation[0],
               qualityCoverageProvider[0],
               qualityCoverageBun[0],
               "quality-coverage-smoke",
