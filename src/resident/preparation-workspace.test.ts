@@ -27,7 +27,7 @@ const preflight = fc.option(
 const rules = fc.array(fc.record({ question: fc.string({ maxLength: 64 }), enabled: fc.boolean() }), { maxLength: 16 })
 
 it("charges measured empty TypeScript roots without the unknown-declaration fallback", () => {
-  const source = "import './fixture'; const run = () => 1\n" + "// fixture padding\n".repeat(1500)
+  const source = "import './fixture'; const value = 1\n" + "// fixture padding\n".repeat(1500)
   const sourceBytes = Buffer.byteLength(source)
   const facts = combinedAnalyzerMaterializationPreflight("fixture.ts", source)
   expect(facts).toEqual({ declarations: 0, expandedUnitBytes: 0, hasImports: true })

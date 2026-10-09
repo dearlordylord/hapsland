@@ -535,11 +535,9 @@ const attachCapturedChild = (
   visited: ReadonlySet<string>
 ): void => {
   const previous = bytes(frame.unit)
-  target.edge.owner.references[target.edge.index] = {
-    kind: "expanded",
-    site: { symbol: target.edge.symbol },
-    node: child.node
-  }
+  target.edge.owner.references[target.edge.index] = frame.visited.has(declaration.artifact.id)
+    ? { kind: "included", site: { symbol: target.edge.symbol }, target: declaration.artifact.id }
+    : { kind: "expanded", site: { symbol: target.edge.symbol }, node: child.node }
   const contribution = bytes(frame.unit) - previous
   advanceGraph(frame, {
     kind: "captured",
@@ -577,15 +575,9 @@ const inspectCapturedSource = (
   }
   // Rejected captures must not publish identities that later edges can include.
   const visited = new Set(frame.visited)
-  const child = buildLocal(
-    file,
-    path,
-    target.name,
-    visited,
-    frame.budget,
-    target.edge.depth + 1,
-    target.edge.expectedKind
-  )
+  const child = frame.visited.has(declaration.artifact.id)
+    ? { node: { artifact: declaration.artifact, references: [] }, pending: [] }
+    : buildLocal(file, path, target.name, visited, frame.budget, target.edge.depth + 1, target.edge.expectedKind)
   if (!permitLocalGraphFacts(frame.limits, frame.budget.work, 0, 0, frame.budget.graphWork)) {
     advanceGraph(frame, {
       kind: "captured",

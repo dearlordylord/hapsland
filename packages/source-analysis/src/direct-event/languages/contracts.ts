@@ -14,7 +14,7 @@ export type TypeExtractionFailure = {
   readonly reason: "extension" | "parse" | "import" | "declaration-limit" | "declaration-merge" | "no-declarations"
   readonly units: readonly []
 }
-export const MAX_TYPE_DECLARATIONS = 64
+export const MAX_TYPE_DECLARATIONS = 1024
 export type AnalyzerMaterializationPreflight = {
   readonly declarations: number
   readonly expandedUnitBytes: number

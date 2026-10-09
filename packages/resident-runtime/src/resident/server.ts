@@ -1,3 +1,9 @@
+import {
+  getResidentRequestNeedsSweep,
+  getResidentRequestUnsupported,
+  getResidentRequestNeedsSnapshot,
+  bindResidentRequestLifetime
+} from "@hapsland/canonical-policy/canonical/resident-request-adapter"
 import { getUpdateNoticeGrant } from "@hapsland/canonical-policy/canonical/update-notice-adapter"
 import {
   type NativeEditMetadata,
@@ -5247,27 +5253,27 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return residentResponse({ status })
   })
   const residentRequestNeedsSweep = (request: ResidentRequest): boolean =>
-    ["register-edit", "admit", "admit-and-collect", "begin-stop"].includes(request.operation)
+    getResidentRequestNeedsSweep(request.operation)
   const residentRequestUnsupported = (request: ResidentRequest): boolean =>
-    ("advicee" in request && request.advicee.host === "opencode") ||
-    ((request.operation === "admit" || request.operation === "admit-and-collect") &&
-      request.observation.advicee.host === "opencode")
+    getResidentRequestUnsupported(
+      request.operation,
+      "advicee" in request && request.advicee.host === "opencode",
+      (request.operation === "admit" || request.operation === "admit-and-collect") &&
+        request.observation.advicee.host === "opencode"
+    )
+  const residentRequestLifetimeMaterialize = bindResidentRequestLifetime<ResidentResponse | undefined>({
+    continue: () => undefined,
+    ready: () =>
+      residentResponse({ status: "ready", lifetime: runtime.lifetime, pid: process.pid, build: packageBuildIdentity }),
+    obsolete: () => residentResponse({ status: "obsolete-lifetime" }),
+    editLost: () => residentResponse({ requestRoute: "edit", status: "unavailable", reason: "lost" })
+  })
   const residentRequestLifetime = Effect.fn("ResidentRuntime.requestLifetime")(function* (request: ResidentRequest) {
-    if (request.operation === "hello") {
-      return residentResponse(
-        (yield* residentLedger.runtime.snapshot()).lifecycle === "active"
-          ? { status: "ready", lifetime: runtime.lifetime, pid: process.pid, build: packageBuildIdentity }
-          : { status: "obsolete-lifetime" }
-      )
-    }
-    if (request.lifetime !== runtime.lifetime || (yield* residentLedger.runtime.snapshot()).lifecycle !== "active") {
-      return residentResponse(
-        request.requestRoute === "edit"
-          ? { requestRoute: "edit", status: "unavailable", reason: "lost" }
-          : { status: "obsolete-lifetime" }
-      )
-    }
-    return undefined
+    const matched = "lifetime" in request && request.lifetime === runtime.lifetime
+    const active = getResidentRequestNeedsSnapshot(request.operation, matched)
+      ? (yield* residentLedger.runtime.snapshot()).lifecycle === "active"
+      : false
+    return residentRequestLifetimeMaterialize(request.operation, matched, active, request.requestRoute === "edit")
   })
   const residentHandleEditPolicy = Effect.fn("ResidentRuntime.handle.edit-policy")(function* (
     request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>

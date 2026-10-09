@@ -1,15 +1,16 @@
 import type { VerifiedPatchHunk } from "./edit-attribution.ts"
-import { parsePatchLine, verifyPostEditPatchHunks, type PatchLine } from "./patch-hunks.ts"
+import { parsePatchLine, verifyPostEditPatchHunks, type PatchLine, type PostEditPatchHunk } from "./patch-hunks.ts"
 
 type PatchSection = {
   readonly path: string
   readonly operation: "add" | "update" | "delete" | "move"
   readonly hunks: ReadonlyArray<ReadonlyArray<PatchLine>>
+  readonly endOfFile?: true
 }
 
 const MAX_COMMAND_BYTES = 65_536
 
-type MutableSection = { path: string; operation: PatchSection["operation"]; hunks: PatchLine[][] }
+type MutableSection = { path: string; operation: PatchSection["operation"]; hunks: PatchLine[][]; endOfFile?: true }
 type PatchParserState = { sections: MutableSection[]; paths: Set<string>; current?: MutableSection; hunk?: PatchLine[] }
 
 const fileOperation = (name: string | undefined): PatchSection["operation"] | undefined => {
@@ -65,6 +66,12 @@ const consumePatchLine = (state: PatchParserState, line: string): boolean => {
   if (file !== null) return beginFile(state, file)
   const section = state.current
   if (section === undefined) return false
+  if (section.endOfFile) return false
+  if (line === "*** End of File") {
+    if (state.hunk === undefined || !changedHunk(state.hunk)) return false
+    section.endOfFile = true
+    return true
+  }
   if (line.startsWith("*** Move to: ")) return moveFile(section, line)
   if (line === "@@" || line.startsWith("@@ ")) return beginHunk(state, section)
   if (line.startsWith("***")) return false
@@ -102,7 +109,12 @@ export const verifyCodexPostEditHunks = (
   const section = sections?.find((candidate) => candidate.path === relativePath)
   if (section?.operation !== "update") return undefined
   return verifyPostEditPatchHunks(
-    section.hunks.map((lines) => ({ lines, placement: { kind: "unique-text" } })),
+    section.hunks.map((lines, index): PostEditPatchHunk => {
+      if (!section.endOfFile || index !== section.hunks.length - 1) return { lines, placement: { kind: "unique-text" } }
+      const sourceLineCount = stableSource.split("\n").length - Number(stableSource.endsWith("\n"))
+      const postLineCount = lines.filter((entry) => entry.kind !== "-").length
+      return { lines, placement: { kind: "coordinates", startLine: sourceLineCount - postLineCount + 1 } }
+    }),
     relativePath,
     stableSource,
     "changed-blocks"

@@ -94,6 +94,13 @@ const scan = (directory) => {
     )
       obsoleteImports.push(path)
     if (
+      path !== "packages/canonical-policy/src/canonical/resident-request-adapter.ts" &&
+      /from ["'](?:[^"']*resident-request-policy\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/resident-request-policy)["']/.test(
+        source
+      )
+    )
+      obsoleteImports.push(path)
+    if (
       path !== "packages/canonical-policy/src/canonical/update-notice-adapter.ts" &&
       /from ["'](?:[^"']*update-notice-policy\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/update-notice-policy)["']/.test(
         source

@@ -1,0 +1,140 @@
+{
+  "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
+  "warmPreparationMatched": true,
+  "baselineRevision": "e31dac837d5ccb2e83fe4096b177400d94fd7792",
+  "startedAt": "2026-10-08T23:01:15.033Z",
+  "at": "2026-10-08T23:03:01.844Z",
+  "roots": {
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-master-e31dac83",
+    "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+  },
+  "command": [
+    "taskset",
+    "-c",
+    "11",
+    "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+    "scripts/build-workspaces.mjs"
+  ],
+  "affinity": "CPU 11 for both lanes; not exclusive",
+  "samples": {
+    "typescript": [
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 12.718616622999999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 7.6392691070000005,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.848964262000002,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.191496095000002,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.1100315079999925,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 8.128253295000002,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 8.811136804999988,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      }
+    ],
+    "integratedBend": [
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 7.473687575999999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 9.175632057,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.423942594,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.714456207000003,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.142949915000004,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.333002481000003,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 11.074650048000011,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      }
+    ]
+  },
+  "meanRatio": 0.8917681413016951,
+  "buildParity": true,
+  "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+}

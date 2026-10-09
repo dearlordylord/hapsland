@@ -116,8 +116,8 @@ const unitFor = (
     : { status: "unsupported", root: root.artifact, unit, reason: state.reason }
 }
 
-export const analyzeTypeFile = (path: string, source: string): TypeFileAnalysis => {
-  const parsed = parsedDeclarations(path, source)
+export const analyzeTypeFile = (path: string, source: string, allowImports = false): TypeFileAnalysis => {
+  const parsed = parsedDeclarations(path, source, allowImports)
   if ("status" in parsed) return parsed
   const byName = new Map(parsed.map((declaration) => [declaration.artifact.name, declaration]))
   const supporting = languageForPath(path)?.supportingTypes?.(path, source) ?? new Map()

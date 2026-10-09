@@ -34,8 +34,11 @@ describe("function native facts", () => {
 
   it("keeps overload groups and duplicate functions ambiguous", () => {
     expect(
-      analyzeFunctionFile("a.ts", "function f(x: string): string; function f(x: string) { return x }")
-    ).toBeUndefined()
+      analyzeFunctionFile(
+        "a.ts",
+        "function f(x: string): string; function f(x: string) { return x }"
+      )?.excludedFunctions.get("f")?.reason
+    ).toBe("function-overload")
     expect(analyzeFunctionFile("a.ts", "function f() {} function f() {}")).toBeUndefined()
   })
 
@@ -276,7 +279,7 @@ describe("function native facts", () => {
   it("rejects inapplicable files, malformed syntax, and nested-only functions", () => {
     expect(analyzeFunctionFile("a.js", "function f() {}")).toBeUndefined()
     expect(analyzeFunctionFile("a.ts", "function f( {")).toBeUndefined()
-    const file = analyzeFunctionFile("a.ts", "const f = () => 1; class C { method() {} }")
+    const file = analyzeFunctionFile("a.ts", "class C { method() {} }")
     expect(file?.functions.size).toBe(0)
   })
 })

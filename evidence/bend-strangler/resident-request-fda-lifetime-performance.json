@@ -1,0 +1,65 @@
+{
+  "startedAt": "2026-10-08T23:53:04.509Z",
+  "at": "2026-10-08T23:54:00.948Z",
+  "fixtures": 48,
+  "rounds": 10000,
+  "warmupPairs": 3,
+  "measuredPairs": 9,
+  "samples": {
+    "typescript": [
+      2.7260506789999965,
+      2.5684063730000015,
+      2.173461047000001,
+      1.8919020870000023,
+      2.2742915030000006,
+      1.901917082,
+      2.0874313339999935,
+      2.259907801000001,
+      2.2509230959999984
+    ],
+    "integratedBend": [
+      1.9791102560000038,
+      2.340021181,
+      1.9015454150000006,
+      1.8160999120000052,
+      2.4188789389999945,
+      2.3571314240000065,
+      2.1545216380000056,
+      2.5497181319999944,
+      2.246656138999999
+    ]
+  },
+  "cpuSamples": {
+    "typescript": [
+      2.726039,
+      2.568334,
+      2.173446,
+      1.891886,
+      2.2742829999999996,
+      1.90191,
+      2.087425,
+      2.259901,
+      2.250909
+    ],
+    "integratedBend": [
+      1.979101,
+      2.340036,
+      1.901539,
+      1.816093,
+      2.418873,
+      2.35712,
+      2.154514,
+      2.549706,
+      2.246651
+    ]
+  },
+  "cpuRatio": 0.9815984130034306,
+  "callers": 2,
+  "checksum": 1350000,
+  "meanRatio": 0.9815931951135917,
+  "executionParity": true,
+  "method": "two independent identical shared caller sites; each actual implementation through each site per pair",
+  "scope": "actual compiled lifetime Effect function, actual Effect.runSync, simulated snapshot and response ports; all response payloads and snapshot read counts agree; excludes physical IPC",
+  "baselineRevisionObserved": "fda9ba07db5dcb5c520d06b13fa4c42d7e818b20",
+  "baselineLabelCorrection": "baseline worktree advanced to fda9ba07 before this run; directory name and legacy runner label retain 5726758e"
+}

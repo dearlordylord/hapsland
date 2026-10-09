@@ -115,7 +115,7 @@ it("retains native candidate selection facts together and rejects mismatched dia
   }
 })
 
-it("enforces the accepted capture/preparation vocabulary and finite numeric arguments", () => {
+it("enforces the closed diagnostic vocabulary and finite numeric arguments", () => {
   const record = {
     version: 1,
     source: { id: inspectionSourceId("/private/socket", "life"), endpoint: "/private/socket", lifetime: "life" },
@@ -137,8 +137,17 @@ it("enforces the accepted capture/preparation vocabulary and finite numeric argu
       args: { phase: "materialization", requestedBytes: 100, constraint: "globalBytes" }
     },
     { stage: "preparation", code: "preparation-unavailable", args: { reason: "stale-round" } },
-    { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
+    { stage: "capture", code: "panic", args: { boundary: "stable-capture" } },
+    { stage: "provider-input", code: "review-input-invalid", args: { reason: "duplicate-expanded-target" } },
+    {
+      stage: "provider-input",
+      code: "review-input-limit",
+      args: { constraint: "tree-bytes", observedBytes: 300, limitBytes: 100 }
+    }
   ]
+  expect(
+    decodeInspectionRecord({ ...record, fact: { kind: "evaluation-outcome", outcome: "input-invalid" } }).fact
+  ).toEqual({ kind: "evaluation-outcome", outcome: "input-invalid" })
   for (const diagnostic of diagnostics) {
     expect(decodeInspectionRecord({ ...record, fact: { kind: "diagnostic", diagnostic } }).fact).toEqual({
       kind: "diagnostic",

@@ -91,6 +91,10 @@
     "./canonical/update-notice-adapter": {
       "types": "./dist/canonical/update-notice-adapter.d.ts",
       "default": "./dist/canonical/update-notice-adapter.js"
+    },
+    "./canonical/resident-request-adapter": {
+      "types": "./dist/canonical/resident-request-adapter.d.ts",
+      "default": "./dist/canonical/resident-request-adapter.js"
     }
   },
   "dependencies": {

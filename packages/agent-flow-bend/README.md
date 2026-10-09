@@ -101,6 +101,15 @@ Recipient identity, active-lifetime checking, atomic map pruning, the 1024-key
 capacity and ten-minute expiry remain host obligations. These laws do not prove
 clock behavior, delivery or native concurrency.
 
+`resident-request-policy/core.bend` owns request sweep selection, unsupported
+OpenCode recipient selection, snapshot-read selection and lifetime response plans.
+Four Astra-approved exact laws cover the finite operation and Boolean domain;
+the generator checks all 90 specializations against compiled Bend. The server
+retains strict lifetime equality, one snapshot read when selected, exact response
+payloads and incompatibility/lifetime/sweep/support guard ordering. These laws
+do not establish atomic admission or readiness after the snapshot. Current
+consumer and timing qualification is recorded in the migration checkpoint.
+
 `setup-policy/core.bend` owns per-agent setup commands, stage readiness and
 transition plans, including progress ordering, exact approval fences, fresh
 proposals, exit codes and activation before input cancellation. Five

@@ -15,7 +15,7 @@ This comparison concerns review inputs and data boundaries. Rule origins, loadin
 | **How is context collected?** | Related definitions are collected within file permissions and budgets. Each rule's evidence requirements are checked against the collected context. | Review receives a diff. Rules requiring the rest of the repository can be marked `deferred`, meaning they are not checked; they do not automatically run later. |
 | **Does review receive the user's task?** | Currently, the task text is not sent. Review uses code and related definitions. | Review may receive up to 600 characters of the latest suitable user task alongside the diff, if that text can be obtained. |
 | **How can users restrict file access?** | Configured exclusions are checked before Hapsland reads the declaration or supporting files. | There are built-in filename exclusions. A rule's configurable file scope limits that rule's review inputs; it is not a general prohibition on local reading or storage. |
-| **What is stored on disk?** | Collected review code and pending advice remain in memory. Hapsland's activity history does not contain source code. | Whole-turn review uses Git snapshots. Local session state can retain original source from affected files and the user task. |
+| **What is stored on disk?** | Pending review work remains in memory; activity history is source-free. Separately, [opt-in local inspection](status.md#opt-in-local-inspection) persists a source-bearing review journal. Recording is off by default. | Whole-turn review uses Git snapshots. Local session state can retain original source from affected files and the user task. |
 
 ## Credential lookup in setup and hooks
 

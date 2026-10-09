@@ -1,3 +1,4 @@
+import { callableInspectionProfile } from "./native-callable-inspection.mjs"
 import { runCodexInspectionProfile } from "./native-codex-inspection.mjs"
 import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs"
 import {
@@ -69,7 +70,8 @@ if (
     "pre-crash",
     "unsupported-write",
     "unicode-edit",
-    "inspection-exclusions"
+    "inspection-exclusions",
+    "callable-review"
   ].includes(scenario)
 )
   throw new Error("Choose an adoption, reviewer, POST-hook or PRE-hook scenario")
@@ -149,7 +151,7 @@ const initialSourceMarker =
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
-if (scenario === "inspection-exclusions") {
+if (scenario === "inspection-exclusions" || scenario === "callable-review") {
   if (
     host !== "codex" ||
     language !== "typescript" ||
@@ -161,6 +163,7 @@ if (scenario === "inspection-exclusions") {
   await runCodexInspectionProfile({
     project,
     archivePath: archiveArgument?.slice("--archive=".length),
+    profile: scenario === "callable-review" ? callableInspectionProfile : undefined,
     model: requestedModel
   })
   process.exit(0)

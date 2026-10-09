@@ -90,9 +90,9 @@ export const GLOBAL_ITEM_LIMIT = 512
 // Capture reserves eight times the bounded source plus metadata; analysis uses
 // measured facts when available. Unknown expansion may exceed a recipient's
 // budget and must remain refused. Logical reservations are not an RSS claim.
-export const GLOBAL_BYTE_LIMIT = 256 * 1024 * 1024
+export const GLOBAL_BYTE_LIMIT = 512 * 1024 * 1024
 export const PARTITION_ITEM_LIMIT = 16
-export const PARTITION_BYTE_LIMIT = 32 * 1024 * 1024
+export const PARTITION_BYTE_LIMIT = 256 * 1024 * 1024
 export const MAX_PARTITION_IDENTITIES = 8192
 export const MAX_PARTITION_KEY_BYTES = 1024 * 1024
 export const MAX_PARTITION_IDENTITY_BYTES = 64 * 1024 * 1024

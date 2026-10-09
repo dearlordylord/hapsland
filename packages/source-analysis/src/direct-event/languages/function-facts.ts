@@ -29,10 +29,17 @@ export type TypeDeclarationFact = {
   readonly location: FunctionDeclarationFact["location"]
 }
 
+export type FunctionExclusion = {
+  readonly reason: "function-overload" | "unsupported-callable"
+  readonly location: FunctionDeclarationFact["location"]
+}
+
 export type FunctionFileAnalysis = {
   readonly path: string
+  readonly failure?: "declaration-limit"
   readonly functions: ReadonlyMap<string, FunctionDeclarationFact>
   readonly types: ReadonlyMap<string, TypeDeclarationFact>
+  readonly excludedFunctions: ReadonlyMap<string, FunctionExclusion>
   /** Import specifiers are raw; path authorization and resolution belong to the caller. */
   readonly imports: ReadonlyMap<string, { readonly path: string; readonly name: string; readonly typeOnly: boolean }>
 }

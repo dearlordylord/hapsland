@@ -603,10 +603,32 @@ describe("resident logical capacity ledger", () => {
     const ledger = Effect.runSync(makeResidentState())
     expect(Effect.runSync(ledger.canonicalProjection()).limits).toEqual({
       globalItems: 512,
-      globalBytes: 256 * 1024 * 1024,
+      globalBytes: 512 * 1024 * 1024,
       partitionItems: 16,
-      partitionBytes: 32 * 1024 * 1024
+      partitionBytes: 256 * 1024 * 1024
     })
+  })
+
+  it("admits a Dalph-sized workspace and enforces enlarged default byte boundaries", () => {
+    const ledger = Effect.runSync(makeResidentState())
+    const partitionBytes = 256 * 1024 * 1024
+    const workspace = Effect.runSync(ledger.reserve("one", 203 * 1024 * 1024, "preparation"))
+    expect(workspace).toBeDefined()
+    if (workspace === undefined) throw new Error("large preparation workspace refused")
+    expect(Effect.runSync(ledger.resize(workspace, partitionBytes, "preparation"))).toMatchObject({ status: "resized" })
+    expect(Effect.runSync(ledger.resize(workspace, partitionBytes + 1, "preparation"))).toMatchObject({
+      status: "capacity-refused"
+    })
+    expect(Effect.runSync(ledger.reserve("one", 1, "reviewUnit"))).toBeUndefined()
+    const other = Effect.runSync(ledger.reserve("two", partitionBytes, "preparation"))
+    expect(other).toBeDefined()
+    expect(Effect.runSync(ledger.reserve("three", 1, "reviewUnit"))).toBeUndefined()
+    expect(Effect.runSync(ledger.snapshot())).toMatchObject({ bytes: 512 * 1024 * 1024, items: 2 })
+    expect(Effect.runSync(ledger.release(workspace))).toBe(true)
+    expect(Effect.runSync(ledger.release(workspace))).toBe(false)
+    if (other === undefined) throw new Error("second partition refused at global boundary")
+    expect(Effect.runSync(ledger.release(other))).toBe(true)
+    expect(Effect.runSync(ledger.snapshot())).toEqual({ bytes: 0, items: 0, partitions: {} })
   })
 
   it("accepts exact count boundaries and isolates partition pressure", () => {

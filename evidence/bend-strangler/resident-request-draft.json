@@ -1,0 +1,466 @@
+{
+  "at": "2026-10-08T22:51:08.954538+00:00",
+  "parent": "43d8575f",
+  "status": "qualified resident-request frontier on declared fda9ba07 baseline and current source hashes; whole migration active",
+  "owner": "packages/resident-runtime/src/resident/server.ts",
+  "lawNames": [
+    "sweep_exact",
+    "unsupported_exact",
+    "snapshot_exact",
+    "lifetime_exact"
+  ],
+  "coreSha256": "1f4983b36062ada1705c7ec8bfaebe8360b62efbc2d1e5728b006a648251c915",
+  "lawsSha256": "a6488d8875c46650ca665bdf920ee798025da87af6682484a58295eca43692a8",
+  "falsification": {
+    "cases": 78,
+    "passed": true,
+    "scope": "compiled Bend versus transpiled actual current native entry helpers; snapshot/response ports simulated synchronously, complete finite decisions and snapshot read presence; not physical runtime/IO or universal proof"
+  },
+  "initialCompilerFailure": "Ready constructor clashes with Base; changed four private response constructors to Request-prefixed names before law review",
+  "hostObligations": [
+    "strict native lifetime equality",
+    "typed direct/observation host facts",
+    "one snapshot read iff Hello or matching lifetime",
+    "exact native response payloads and owner identity",
+    "preserve incompatibility/lifetime/sweep/unsupported guard ordering"
+  ],
+  "goalComplete": false,
+  "approval": {
+    "reviewer": "Astra",
+    "beforeProofs": true,
+    "coreSha256": "1f4983b36062ada1705c7ec8bfaebe8360b62efbc2d1e5728b006a648251c915",
+    "lawsSha256": "a6488d8875c46650ca665bdf920ee798025da87af6682484a58295eca43692a8",
+    "amendments": null,
+    "limits": "conditional native facts and exact read/payload/order obligations; no atomic admission/readiness-after-snapshot/platform guarantee"
+  },
+  "proof": {
+    "passed": true,
+    "deadlineSeconds": 5,
+    "sha256": "b50e2620aa7d97fbfd5feaa73fb0863a95cc335f40ca75f34a7c62ba8f2b0716"
+  },
+  "mutants": {
+    "passed": true,
+    "count": 9,
+    "evidence": "resident-request-mutants.json"
+  },
+  "integration": {
+    "astraStaticReconfirmation": true,
+    "supportedScope": "decoded typed records; additional inert property reads, no getter/proxy support claim",
+    "producerTestsPassed": 62,
+    "focusedRun": "20261008225349610-3557563-d38a88",
+    "focused": {
+      "passed": 105,
+      "failedCases": 1,
+      "case": "does not let late A cleanup delete C after cached-clear B removes current state",
+      "targetedReproduction": "20261008225646883-3576126-deb9e7; same failure",
+      "control": {
+        "run": "20261008230756501-3625879-5dfc92",
+        "parent": "43d8575f",
+        "result": "same assertion and teardown failure reproduced",
+        "case": "cached-clear B leaves one pending advice instead of zero",
+        "scope": "same exact fixture before resident-request frontier; not a passing focused suite"
+      },
+      "controlPreparation": {
+        "run": "20261008230325512-3607267-e364de",
+        "result": "failed before tests",
+        "cause": "Bun postinstall omitted by frozen dependency installation with --ignore-scripts; turbo child Exec format error",
+        "repair": "ran node install.js in installed node_modules/bun; exited 0",
+        "retryRun": "20261008230609837-3615855-bacc93",
+        "retryStatus": "build passed; test collection failed because installed tree-sitter prebuild requires unavailable GLIBCXX_3.4.31",
+        "nextRepair": "prepare-parsers linux-arm64 using same imported native input bundle"
+      },
+      "reuseDiagnostic": {
+        "run": "20261008231208946-3640016-77c5fd",
+        "parent": "43d8575f",
+        "temporaryInstrumentationRemoved": true,
+        "observedRoutes": {
+          "seed-B-clear": "owner",
+          "A": "owner",
+          "cached-B": "no prepared-unit reuse route observed"
+        },
+        "sameSettingsPartition": true,
+        "nextDiagnostic": "trace cached-B before prepared-unit planning; failure is not yet attributable to cache lookup or revision deletion"
+      },
+      "preparationDiagnostic": {
+        "run": "20261008231309840-3645229-38d081",
+        "parent": "43d8575f",
+        "temporaryInstrumentationRemoved": true,
+        "observed": {
+          "seed-B-clear": "workspace admitted and prepared",
+          "A": "workspace admitted and prepared",
+          "cached-B": "workspace capacity-refused"
+        },
+        "nextDiagnostic": "verify capacity contract and revalidation workspace charge; retain memory bounds and generation cleanup semantics"
+      },
+      "fixtureRepair": {
+        "source": "docs/review-resources.md retained state and admission; unchanged neighboring retired-workspace fixture",
+        "cause": "two unknown-size capture workspaces exceed 32 MiB recipient partition",
+        "change": "hold A at existing beforeRevalidate collection barrier before capture reservation; preserve B clear/C generation assertions; always release barrier in finally",
+        "productionCapacityChanged": false,
+        "validation": {
+          "run": "20261008231455813-3657104-58b23f",
+          "passed": true,
+          "fixtures": 2,
+          "seconds": 17.712,
+          "scope": "late A cached-clear/C preservation and unchanged retired capture capacity refusal"
+        }
+      }
+    },
+    "build": "resident-request-build-performance.json",
+    "pureExecution": "resident-request-hot-performance.json",
+    "lifetimeExecution": {
+      "evidence": "resident-request-lifetime-performance.json",
+      "meanRatio": 0.9448040521987165,
+      "executionParity": true,
+      "observationalAgreement": "all 48 exact payload and snapshot read count fixtures",
+      "scope": "actual compiled lifetime Effect function, actual Effect.runSync, simulated snapshot and response ports; all response payloads and snapshot read counts agree; excludes physical IPC",
+      "retainedFailedAttempts": [
+        "resident-request-lifetime-first-performance.json",
+        "resident-request-lifetime-grouped-performance.json"
+      ],
+      "diagnostic": "resident-request-lifetime-diagnostic.json",
+      "qualification": "longer alternating paired samples after per-fixture diagnostic; no IPC claim"
+    },
+    "qualified": true,
+    "generatorOptimization": {
+      "change": "group equal compiled decision expressions across operation cases",
+      "bendCoreAndLawsChanged": false,
+      "specializationsPassed": 90,
+      "qualification": "lifetime ratio 1.1973196565382098, failed; retained grouped measurement",
+      "workspaceBuild": "46/46 successful, 4 cached, 39.704 seconds",
+      "astraReconfirmation": {
+        "approved": true,
+        "generatorSha256": "e7e3095b6e9bb097c9ffe3c8ae7a95bc9a25439c8f73e80d59b0c08c5fe3fca4",
+        "lawAmendments": null,
+        "scope": "static grouping equivalence and unknown operation fallback; no benchmark or IPC qualification"
+      }
+    },
+    "fast": {
+      "passed": true,
+      "log": "/tmp/hapsland-resident-request-fast.log",
+      "terminalExit": 0
+    },
+    "documentationGenerated": {
+      "passed": true,
+      "log": "/tmp/hapsland-resident-request-docs-generate.log"
+    },
+    "format": {
+      "passed": true,
+      "files": 3,
+      "formatter": "0.1.19",
+      "log": "/tmp/hapsland-resident-request-format.log"
+    },
+    "reproduciblePerformanceRunners": [
+      "resident-request-execution-performance.mjs",
+      "resident-request-lifetime-performance.mjs"
+    ],
+    "finalFocused": {
+      "run": "20261008231533487-3662325-3e16f5",
+      "status": "passed",
+      "selection": [
+        "src/resident/server.test.ts",
+        "src/resident/runtime.test.ts",
+        "src/resident/protocol.test.ts"
+      ],
+      "outerDeadlineSeconds": 240,
+      "testsPassed": 106,
+      "filesPassed": 3,
+      "seconds": 89.399,
+      "terminalExit": 0
+    },
+    "finalProducer": {
+      "passed": true,
+      "terminalExit": 0,
+      "log": "/tmp/hapsland-resident-request-final-producer.log"
+    },
+    "documentationChecked": {
+      "passed": true,
+      "documents": 109,
+      "linkErrors": 0,
+      "log": "/tmp/hapsland-resident-request-docs-check.log"
+    },
+    "packagePreparation": {
+      "status": "failed",
+      "run": "20261008231808374-3684467-d6f0bf",
+      "buildPassed": true,
+      "buildSeconds": 265.55,
+      "totalSeconds": 278.63,
+      "cause": "agent changed tracked/untracked evidence JSON during preparation; package source identity includes evidence",
+      "correctiveAction": "freeze all worktree files including evidence during retry; retain failure, never qualify changed inputs",
+      "retry": "same finite360second preparation after evidence record; no further writes until terminal"
+    },
+    "productionAuthority": {
+      "passed": true,
+      "log": "/tmp/hapsland-resident-request-authority.log"
+    },
+    "generatedArtifactCheck": {
+      "passed": true,
+      "cases": 90,
+      "mode": "--check"
+    },
+    "packagePreparationRetry": {
+      "passed": true,
+      "run": "20261008232336726-3705797-45044b",
+      "seconds": 152.902,
+      "artifact": {
+        "archivePath": "/workspace/typescript/jev/.git/hapsland-artifacts/archives/007f5ab52f458e9b732500b19b26d7380b00a6e7755d6f80399a8929c4fe24a9/hapsland-hapsland-0.1.0.tgz",
+        "archiveDigest": "007f5ab52f458e9b732500b19b26d7380b00a6e7755d6f80399a8929c4fe24a9"
+      },
+      "inputsFrozen": true
+    },
+    "installedJourney": {
+      "passed": true,
+      "run": "20261008232630363-3718608-26933c",
+      "seconds": 37.584,
+      "archive": "/workspace/typescript/jev/.git/hapsland-artifacts/archives/007f5ab52f458e9b732500b19b26d7380b00a6e7755d6f80399a8929c4fe24a9/hapsland-hapsland-0.1.0.tgz",
+      "scope": "installed Linux resident update journey on frozen pre-merge archive"
+    },
+    "directBindingApproval": {
+      "reviewer": "Astra",
+      "approved": true,
+      "lawAmendments": null,
+      "generatorSha256": "1ff880a0aa8892a37e84432f3f7815a69a5fa9ab00abbe4d231a2b48907c7497",
+      "adapterSha256": "479d92404d70fb67a428b0fc859a2a729310e23a8ca22c4794c615cea62f7c5a",
+      "abiSha256": "470640a73924f51d73dcc8034df34c14fa2cb48e2e38a00ef8fad48d34599aed",
+      "hostSha256": "a8ca22a2599944cfc8a3ccae7fe3466b40cdb1a73ca7ad575693ed2ee8839518",
+      "scope": "callback timing, selected materialization, unknown operations and guard preservation; no runtime/performance qualification"
+    },
+    "latestMasterProducer": {
+      "passed": true,
+      "tests": 62,
+      "seconds": 16.487115464,
+      "log": "/tmp/hapsland-resident-fda-producer.log"
+    },
+    "latestMasterFocused": {
+      "passed": true,
+      "tests": 213,
+      "run": "20261008234531039-3806632-26eedb",
+      "master": "fda9ba07",
+      "scope": "seven selected resident and changed direct-event owners; no full suite"
+    },
+    "latestMasterFast": {
+      "passed": true,
+      "master": "fda9ba07",
+      "log": "/tmp/hapsland-resident-fda-fast.log"
+    },
+    "latestMasterBuild": {
+      "passed": false,
+      "meanRatio": 1.0824133024789475,
+      "evidence": "resident-request-fda-build-first-performance.json",
+      "diagnostic": "last candidate wall 11.35s while Turbo reported 2.41s; phase timing required, no exclusion of retained samples"
+    },
+    "latestMasterExpandedBuild": {
+      "passed": true,
+      "meanRatio": 0.958221377619124,
+      "pairs": 17,
+      "evidence": "resident-request-fda-build-expanded-performance.json",
+      "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+    },
+    "latestMasterExecution": {
+      "sweepSupport": {
+        "evidence": "resident-request-fda-hot-performance.json",
+        "meanRatio": 0.5109956471577343
+      },
+      "lifetime": {
+        "evidence": "resident-request-fda-lifetime-performance.json",
+        "meanRatio": 0.9815931951135917
+      }
+    },
+    "latestMasterDocumentation": {
+      "generated": true,
+      "checked": true,
+      "documents": 113,
+      "linkErrors": 0
+    },
+    "latestMasterRemainingConsumers": {
+      "passed": true,
+      "tests": 36,
+      "run": "20261008235934252-3877293-714aff",
+      "scope": "hooks, inspection contract and callable owners"
+    },
+    "latestMasterAuthority": {
+      "receipts": 23,
+      "productionAuthority": true,
+      "canonicalAbi": true
+    },
+    "latestMasterBendFormat": {
+      "files": 6,
+      "passed": true
+    },
+    "latestMasterPackagePreparation": {
+      "status": "declared before run",
+      "expectedSeconds": 180,
+      "deadlineSeconds": 360,
+      "freeze": "all worktree source and evidence files",
+      "passed": true,
+      "run": "20261009000024355-3878993-6cecdb",
+      "archive": "/workspace/typescript/jev/.git/hapsland-artifacts/archives/49d90e96bfeb619951f08507a443db0e7b7b7fcc5388a0a4eefce81605eb41ce/hapsland-hapsland-0.1.0.tgz",
+      "archiveDigest": "49d90e96bfeb619951f08507a443db0e7b7b7fcc5388a0a4eefce81605eb41ce",
+      "seconds": 205.68,
+      "frozenInputsVerified": true
+    },
+    "proofWhitespaceCleanup": {
+      "removed": "one extra blank line at EOF for git diff --check",
+      "proofPassed": true,
+      "specializationsChecked": 90,
+      "coreAndLawsUnchanged": true,
+      "outputsUnchanged": true
+    }
+  },
+  "nextFrontierCandidate": {
+    "owner": "packages/resident-runtime/src/resident/server.ts",
+    "functions": [
+      "supportedAdviceeVersion",
+      "addressableAdvicee",
+      "residentCredentialRequired",
+      "residentCredentialShapeMatches",
+      "residentCredentialGenerationCurrent"
+    ],
+    "reason": "pure recipient/credential eligibility decisions before native settings/source/provider effects; native host version predicates, equality and credential generation IO stay projected obligations",
+    "status": "source inspection only; no laws or implementation yet",
+    "importantBoundary": "credential generation must not be read when credential is optional or absent; preserve short circuit"
+  },
+  "upstreamReassessment": {
+    "master": "5726758e",
+    "commits": [
+      "b19c5602 bounded arrows and Effect callable review",
+      "d2c0eb53 declaration bound1024",
+      "d7dbc50d resident budgets512/256MiB",
+      "5726758e user/contributor documentation split"
+    ],
+    "status": "master5726758e integrated in pending merge; frontier restored from retained named stash; post-merge qualification pending",
+    "fixtureRepair": "restored original workspace-reserved barrier after enlarged256MiB partition budget; retained finally cleanup only",
+    "nextDirection": "compare callable pure decision gaps versus preliminary recipient/credential frontier",
+    "callableCandidate": {
+      "owner": "packages/review-execution/src/direct-event/pipeline.ts",
+      "functions": [
+        "positionBefore",
+        "locationsOverlap",
+        "functionExclusionSelection",
+        "functionExtractionFailures"
+      ],
+      "possiblePureBoundary": "exclusion selection precedence and failure fallback decisions; retain native AST/capture/list projection and exact spans",
+      "status": "inspect accepted callable contract after merge; no law/proof authored"
+    },
+    "baselineControl": {
+      "root": "/workspace/typescript/hapsland-bend-baseline-master-5726758e",
+      "revision": "5726758ea",
+      "status": "detached checkout created; dependency preparation running",
+      "olderBaselineEvidence": "retained as historical e31 qualification only",
+      "nativeLinux": {
+        "passed": true,
+        "digest": "82b26ba989bcb7712953d4d1f2d641ca1f0fd6377b88270eb4713745f67c5518"
+      }
+    },
+    "postMergePlan": {
+      "checks": [
+        "check:fast",
+        "resident server/runtime/protocol",
+        "capacity/preparation-workspace",
+        "callable-review and function-callables unit",
+        "docs:check"
+      ],
+      "baselineBuild": "5726758e preparation running",
+      "lawsUnchanged": true,
+      "performance": "new572 baseline needed; historicale31 ratios not applied to merge"
+    },
+    "postMergeFocused": {
+      "run": "20261008232921872-3731585-80707c",
+      "passed": true,
+      "tests": 163,
+      "files": 7,
+      "seconds": 133.815
+    },
+    "postMergeBuild": {
+      "evidence": "resident-request-572-build-performance.json",
+      "meanRatio": 0.879980356266028,
+      "passed": true,
+      "samples": 14,
+      "cachedTasks": "23/46 every sample"
+    },
+    "postMergeExecution": {
+      "sweepUnsupported": {
+        "passed": true,
+        "ratio": 0.7032871036521972,
+        "evidence": "resident-request-572-hot-performance.json"
+      },
+      "lifetime": {
+        "passed": false,
+        "ratio": 1.0380905844521164,
+        "evidence": "resident-request-572-lifetime-first-performance.json",
+        "nextDiagnostic": "temporary host Effect.map/succeed experiment removing generator cost without modifying Bend decisions",
+        "mapExperiment": {
+          "passed": false,
+          "ratio": 1.0681792962393342,
+          "evidence": "resident-request-572-lifetime-map-experiment.json",
+          "productionApplied": false
+        },
+        "boundExperiment": {
+          "passed": true,
+          "ratio": 0.9379809873560887,
+          "evidence": "resident-request-572-lifetime-bound-experiment.json",
+          "productionQualification": "pending; generator emits binding, all90 outcomes and exactly one selected callback checked"
+        },
+        "boundProduction": {
+          "passed": false,
+          "ratio": 1.0706465370040181,
+          "evidence": "resident-request-572-lifetime-bound-first-performance.json",
+          "nextDiagnostic": "balanced dual callers and CPU/wall accounting; no repeated same-method pass hunting"
+        },
+        "balancedDiagnostic": {
+          "wallRatio": 0.976778725769575,
+          "reportedCpuRatio": 0.9767850223256523,
+          "evidence": "resident-request-572-lifetime-balanced-diagnostic.json",
+          "qualification": "diagnostic only; verify CPU clock and balanced caller methodology before final measurement"
+        }
+      }
+    }
+  },
+  "latestAppliedMaster": "fda9ba07db5dcb5c520d06b13fa4c42d7e818b20",
+  "sharedCallerCrossover": {
+    "evidence": "resident-request-572-lifetime-crossover-performance.json",
+    "meanRatio": 0.9331577414735842,
+    "cpuRatio": 0.9331677792039181,
+    "passed": true,
+    "scope": "actual compiled lifetime Effect function, actual Effect.runSync, simulated snapshot and response ports; all response payloads and snapshot read counts agree; excludes physical IPC",
+    "baseline": "5726758e; predates fda9ba07 integration",
+    "methodChangeReason": "Counterbalance shared caller sites after lane-specific callsite diagnostic; this does not establish cause of earlier failures."
+  },
+  "qualification": {
+    "at": "2026-10-09T00:07:53.918056+00:00",
+    "passed": true,
+    "masterRevision": "fda9ba07db5dcb5c520d06b13fa4c42d7e818b20",
+    "laws": "Astra approved exact hashes; unchanged",
+    "proofs": true,
+    "mutantsDetected": 9,
+    "producerTests": 62,
+    "focusedTests": 249,
+    "fast": true,
+    "documents": 113,
+    "linkErrors": 0,
+    "buildRatio": 0.958221377619124,
+    "sweepSupportRatio": 0.5109956471577343,
+    "lifetimeRatio": 0.9815931951135917,
+    "installedLinux": {
+      "passed": true,
+      "run": "20261009000533855-3892086-6ea948",
+      "seconds": 35.878,
+      "archiveDigest": "49d90e96bfeb619951f08507a443db0e7b7b7fcc5388a0a4eefce81605eb41ce"
+    },
+    "goalComplete": false,
+    "scope": "resident pure entry decisions and typed native host; selected offline owners, Linux installed resident update, paired warm build and controlled-port hot execution; not full suite, Darwin runtime, native agents or physical IPC timing",
+    "sourceSha256": {
+      "packages/agent-flow-bend/resident-request-policy/core.bend": "1f4983b36062ada1705c7ec8bfaebe8360b62efbc2d1e5728b006a648251c915",
+      "packages/agent-flow-bend/resident-request-policy/LAWS.bend": "a6488d8875c46650ca665bdf920ee798025da87af6682484a58295eca43692a8",
+      "packages/agent-flow-bend/resident-request-policy/PROOF.bend": "cb0aba55f87ac42b62242fee586488216951983c293daaf2f6888517b9862937",
+      "packages/agent-flow-bend/scripts/build-resident-request-policy.mjs": "1ff880a0aa8892a37e84432f3f7815a69a5fa9ab00abbe4d231a2b48907c7497",
+      "packages/agent-flow-bend/abi/resident-request-policy.generated.d.ts": "470640a73924f51d73dcc8034df34c14fa2cb48e2e38a00ef8fad48d34599aed",
+      "packages/canonical-policy/src/canonical/resident-request-adapter.ts": "479d92404d70fb67a428b0fc859a2a729310e23a8ca22c4794c615cea62f7c5a",
+      "packages/resident-runtime/src/resident/server.ts": "a8ca22a2599944cfc8a3ccae7fe3466b40cdb1a73ca7ad575693ed2ee8839518",
+      "src/resident/server.test.ts": "a9036a0e32e1283b97040abb072397dbab2aee17bb527611b75555cb5e45116e",
+      "scripts/bend-producer.mjs": "867a937f0c46b5ab53b84b9bd02e54c6d25f566fdcd21f017439cc659c5e6a3d",
+      "scripts/bend-producer.test.mjs": "1d2d1801cba30663c18da16484222d3975814533874e04239963dd270ce758cd",
+      "scripts/check-production-authority.mjs": "b3f62d8bb4213fe2f379a165305e8a146b8acb448b4a2335b7fd27b7e37cbbcc"
+    }
+  }
+}

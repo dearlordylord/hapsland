@@ -1,0 +1,36 @@
+{
+  "startedAt": "2026-10-08T23:07:25.140Z",
+  "at": "2026-10-08T23:07:27.897Z",
+  "fixtures": 48,
+  "rounds": 1000,
+  "warmupPairs": 3,
+  "measuredPairs": 9,
+  "samples": {
+    "typescript": [
+      0.08493086700000003,
+      0.09178996499999993,
+      0.08853627099999994,
+      0.08808514300000024,
+      0.09771722200000021,
+      0.08685004900000012,
+      0.0820310099999997,
+      0.07490024300000005,
+      0.0801065349999999
+    ],
+    "integratedBend": [
+      0.11501790600000004,
+      0.09117471000000023,
+      0.09290380700000014,
+      0.08653992100000005,
+      0.10679758900000025,
+      0.0763504210000001,
+      0.0822539700000002,
+      0.1033284349999999,
+      0.08273284800000011
+    ]
+  },
+  "checksum": 135000,
+  "meanRatio": 1.0802019719263374,
+  "executionParity": false,
+  "scope": "actual compiled lifetime Effect function, actual Effect.runSync, simulated snapshot and response ports; all response payloads and snapshot read counts agree; excludes physical IPC"
+}

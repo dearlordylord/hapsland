@@ -19,7 +19,6 @@ import {
   CUSTOM_RULE_EXAMPLE_PATH,
   RULE_CHECK_EXIT_CODES
 } from "@hapsland/administration/rules/cli-definition"
-import { CLI_NAME } from "@hapsland/runtime-environment/runtime/cli-names"
 import {
   authoringExampleFacts,
   authoringCheckCommands,
@@ -75,18 +74,17 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
   return [
     { path: "README.md", name: "agent-setup-instruction", text: `> ${SETUP_COPY.instruction}` },
     { path: "docs/installation-workflows.md", name: "agent-setup-instruction", text: `> ${SETUP_COPY.instruction}` },
-    { path: "README.md", name: "credential-policy", text: credentialText },
     { path: "docs/installation-workflows.md", name: "credential-policy", text: credentialText },
     ...authoringExampleFacts(),
     {
-      path: "docs/configuration.md",
+      path: "docs/rules.md",
       name: "rule-check-dashboard",
       text: `The [inspection dashboard](status.md#opt-in-local-inspection) provides another view of actual agent reviews after enabling \`${inspection}\`; its journal does not include this one-off command.`
     },
     {
-      path: "docs/configuration.md",
+      path: "docs/write-first-rule.md",
       name: "authoring-check-result",
-      text: `The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive \`value\` inside each wrapper is its representation, not itself a violation. A plain alias such as \`type CustomerId = string\` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No agent session is needed. Add \`--json\` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit ${RULE_CHECK_EXIT_CODES.evaluated} also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).`
+      text: `The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive \`value\` inside each wrapper is its representation, not itself a violation. A plain alias such as \`type CustomerId = string\` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No agent session is needed. Add \`--json\` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit ${RULE_CHECK_EXIT_CODES.evaluated} also includes findings. See [file/line check details](rules.md#try-a-rule-on-a-file-and-line).`
     },
     {
       path: "docs/configuration.md",
@@ -109,16 +107,15 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
       ].join("\n")
     },
     {
-      path: "docs/configuration.md",
+      path: "docs/write-first-rule.md",
       name: "authoring-default",
-      text: `Inspect [the enabled rules](#declarative-rules). The default \`${primitiveDomainDefinition.id}\` already addresses primitive domain values; inspect it before adding a custom variant. \`${CUSTOM_RULE_EXAMPLE_ID}\` below teaches custom authoring.`
+      text: `Inspect [the editable defaults](rules.md#default-rules). The default \`${primitiveDomainDefinition.id}\` already addresses primitive domain values; inspect it before adding a custom variant. \`${CUSTOM_RULE_EXAMPLE_ID}\` below is a teaching example, not an additional recommended default.`
     },
-    { path: "README.md", name: "rule-check-example", text: ["```sh", authoringCheckCommands[0], "```"].join("\n") },
     {
-      path: "docs/configuration.md",
+      path: "docs/rules.md",
       name: "rule-check-example",
       text: [
-        `\`${CUSTOM_RULE_EXAMPLE_ID}\` is the example custom rule created in the walkthrough, not a shipped default. Substitute an enabled ID from \`${ruleExampleCommand("list")}\`.`,
+        `\`${CUSTOM_RULE_EXAMPLE_ID}\` is the example custom rule created in the [walkthrough](write-first-rule.md), not a shipped default. Substitute an enabled ID from \`${ruleExampleCommand("list")}\`.`,
         "",
         "```sh",
         authoringCheckCommands[0],
@@ -127,24 +124,14 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
       ].join("\n")
     },
     {
-      path: "README.md",
-      name: "rule-check-exits",
-      text: `Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluation completed, including findings; exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped or unavailable.`
-    },
-    {
-      path: "docs/configuration.md",
+      path: "docs/rules.md",
       name: "rule-check-exits",
       text: `Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluated, **even with a finding**; exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped/unavailable or a local operation failure. Invalid command arguments are rejected before review.`
     },
     {
-      path: "README.md",
-      name: "rule-check-dashboard",
-      text: `To inspect **ordinary agent reviews**, enable the debug recording setting by adding \`"${inspection}": true\` into the repository's \`${PROJECT_CONFIGURATION_FILE}\`, make a new edit through an agent with [installed Hapsland](#installation), then run \`${CLI_NAME} dashboard\`. The dashboard lets you inspect classifier requests and responses. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off \`${CLI_NAME} rules check\` results are not recorded in the debug journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).`
-    },
-    {
       path: "docs/status.md",
       name: "rule-check-dashboard",
-      text: `For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is \`${inspection}\`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit, run \`${ruleExampleCommand("check", "--path FILE --line N")}\` (and optionally \`--id RULE\`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.`
+      text: `For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is \`${inspection}\`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit, run \`${ruleExampleCommand("check", "--path FILE --line N")}\` (and optionally \`--id RULE\`); see [file/line rule checks](rules.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.`
     },
     {
       path: "docs/installation-workflows.md",
@@ -157,22 +144,17 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
       text: `Inspect them with \`${ruleExampleCommand("list")}\` or \`${ruleExampleCommand("show", `--id ${DEFAULT_RULE_EXAMPLE_ID}`)}\`.`
     },
     {
-      path: "README.md",
-      name: "first-rule-inspection",
-      text: `Run \`${ruleExampleCommand("list")}\`, then \`${ruleExampleCommand("show", `--id ${DEFAULT_RULE_EXAMPLE_ID}`)}\` to inspect one and its source file.`
-    },
-    {
-      path: "docs/configuration.md",
+      path: "docs/write-first-rule.md",
       name: "first-rule-inspection",
       text: [
         "```sh",
         ruleExampleCommand("list"),
-        ruleExampleCommand("show", `--id ${DEFAULT_RULE_EXAMPLE_ID}`),
+        ruleExampleCommand("show", `--id ${primitiveDomainDefinition.id}`),
         "```"
       ].join("\n")
     },
     {
-      path: "docs/configuration.md",
+      path: "docs/rules.md",
       name: "rule-file-identity",
       text: `For example, \`${encodeURIComponent(DEFAULT_RULE_EXAMPLE_ID)}.json\` retains the stable rule ID \`${DEFAULT_RULE_EXAMPLE_ID}\`.`
     },
@@ -182,19 +164,14 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
       text: `By default, authorized setup enables ${SHIPPED_DEFAULT_RULES.length} editable JSON rule files with questions about code design.`
     },
     {
-      path: "README.md",
-      name: "first-rule-defaults",
-      text: `Start with the **${SHIPPED_DEFAULT_RULES.length} editable default rules**.`
-    },
-    {
-      path: "docs/configuration.md",
+      path: "docs/rules.md",
       name: "shipped-rules",
       text: `When no loaded configuration layer declares a \`rules\` field, authorized initial setup materializes ${SHIPPED_DEFAULT_RULES.length} editable default rule files normally under \`~/.config/hapsland/rules/defaults/\`.`
     },
     {
       path: "docs/configuration.md",
       name: "credential-reference",
-      text: `The built-in credential reference is \`${JEV_PROVIDER.credentialEnvVar}\`. Inspection reports its name and presence, never its value. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients).`
+      text: `The built-in credential reference is \`${JEV_PROVIDER.credentialEnvVar}\`. Inspection reports its name and presence, never its value. See [credential lookup](installation-workflows.md#credentials-and-login).`
     },
     {
       path: "docs/review-providers.md",
@@ -250,7 +227,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
       text: `Session analytics are disabled by default. Set \`${analytics}: true\` to retain source-free session totals and rule-ID history, subject to the limits in [status and analytics](status.md#optional-session-analytics).`
     },
     {
-      path: "docs/configuration.md",
+      path: "docs/rules.md",
       name: "rule-threshold",
       text: `The default threshold is ${DEFAULT_RULE_THRESHOLD}; a finding requires a probability strictly greater than its threshold.`
     },

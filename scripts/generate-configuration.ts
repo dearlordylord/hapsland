@@ -371,7 +371,7 @@ const shortIntroduction = (): string =>
   [
     "## Configuration",
     "",
-    "Configure file selection and exclusions, individual local rules and per-rule selection, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.",
+    "Configure file selection, related-code access, privacy exclusions, and per-rule application through personal and project JSONC settings. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.",
     "",
     "A small project configuration:",
     "",
@@ -379,7 +379,7 @@ const shortIntroduction = (): string =>
     configurationExample,
     "```",
     "",
-    "See the [complete configuration guide](./docs/configuration.md) for field details, rules, precedence, and runtime behavior."
+    "See the [complete configuration guide](./docs/configuration.md) for fields, precedence, rule selection, and when saved changes apply."
   ].join("\n")
 
 const fullConfigurationReference = (schema: JsonObject): string =>
@@ -436,7 +436,7 @@ export const renderInspectionArtifacts = (schema: Schema.Constraint) => {
 
 const fullRuleReference = (schema: JsonObject): string =>
   [
-    "### Rule commands",
+    "## Rule commands",
     "",
     "The command definitions generate this reference and terminal help. `hapsland rules` defaults to `list`; use `hapsland rules <command> --help` for command-specific flags and examples.",
     "",
@@ -448,13 +448,13 @@ const fullRuleReference = (schema: JsonObject): string =>
     ...ruleCommandReference().flatMap((command) => command.examples.map((example) => example.command)),
     "```",
     "",
-    "### Rule example",
+    "## Rule example",
     "",
     "```jsonc",
     ruleExample,
     "```",
     "",
-    "### Rule fields",
+    "## Rule fields",
     "",
     markdownTable(schema),
     "",
@@ -482,13 +482,6 @@ const replaceMarkedSection = (
   return `${source.slice(0, start + startMarker.length)}\n\n${generated.trimEnd()}\n\n${source.slice(end)}`
 }
 
-const replaceDocumentSections = (
-  source: string,
-  markers: ReadonlyArray<readonly [string, string]>,
-  generated: ReadonlyArray<string>
-): string =>
-  markers.reduce((document, marker, index) => replaceMarkedSection(document, marker, generated[index] ?? ""), source)
-
 const readMarkdown = async (path: string): Promise<string | undefined> => {
   try {
     return await readFile(path, "utf8")
@@ -505,7 +498,12 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
   const inspection = renderInspectionArtifacts(ConfigurationDocument)
   const readmePath = resolve(root, "README.md")
   const guidePath = resolve(root, "docs/configuration.md")
-  const [readme, guide] = await Promise.all([readMarkdown(readmePath), readMarkdown(guidePath)])
+  const rulesPath = resolve(root, "docs/rules.md")
+  const [readme, guide, rules] = await Promise.all([
+    readMarkdown(readmePath),
+    readMarkdown(guidePath),
+    readMarkdown(rulesPath)
+  ])
   const targets: Array<GeneratedTarget> = []
   const installationPath = resolve(root, "docs/installation-workflows.md")
   const installation = await readMarkdown(installationPath)
@@ -540,18 +538,7 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
     targets.push({ path: readmePath, problem: "source document is missing" })
   } else {
     try {
-      targets.push({
-        path: readmePath,
-        content: replaceMarkedSection(
-          replaceMarkedSection(
-            readme,
-            ["<!-- inspection-recording:start -->", "<!-- inspection-recording:end -->"],
-            inspection.notice("./docs/examples/session-inspection.jsonc")
-          ),
-          README_MARKERS,
-          shortIntroduction()
-        )
-      })
+      targets.push({ path: readmePath, content: replaceMarkedSection(readme, README_MARKERS, shortIntroduction()) })
     } catch {
       targets.push({ path: readmePath, problem: "expected exactly one ordered README marker pair" })
     }
@@ -563,15 +550,27 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
     try {
       targets.push({
         path: guidePath,
-        content: replaceDocumentSections(
-          guide,
-          [GUIDE_MARKERS, RULE_GUIDE_MARKERS],
-          [configurationArtifacts.documentation, fullRuleReference(ruleSchema)]
-        )
+        content: replaceMarkedSection(guide, GUIDE_MARKERS, configurationArtifacts.documentation)
       })
     } catch (cause) {
       const reason = cause instanceof Error ? cause.message : "invalid generated-section markers"
       targets.push({ path: guidePath, problem: reason })
+    }
+  }
+
+  if (rules === undefined) {
+    targets.push({ path: rulesPath, problem: "source document is missing" })
+  } else {
+    try {
+      targets.push({
+        path: rulesPath,
+        content: replaceMarkedSection(rules, RULE_GUIDE_MARKERS, fullRuleReference(ruleSchema))
+      })
+    } catch (cause) {
+      targets.push({
+        path: rulesPath,
+        problem: cause instanceof Error ? cause.message : "invalid generated-section markers"
+      })
     }
   }
 

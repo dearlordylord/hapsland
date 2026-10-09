@@ -349,7 +349,11 @@ function omissionLabel(reason) {
     'file-extension': 'Unsupported file extension',
     'git-administrative-path': 'Git administrative path',
     'unsafe-file-kind': 'Symlink or non-regular file',
-    'path-observation-unavailable': 'Filesystem or Git observation unavailable'
+    'path-observation-unavailable': 'Filesystem or Git observation unavailable',
+    'function-analysis-unavailable': 'Function extraction is unavailable under the supported syntax and binding profile',
+    'function-overload': 'Overload group excluded; its implementation is not review evidence',
+    'unsupported-callable': 'Callable form is outside the supported named const-arrow and Effect wrapper profile',
+    'no-supported-function-root': 'No supported top-level named function or const callable was found'
   };
   return labels[reason] || reason;
 }
@@ -370,12 +374,22 @@ function diagnosticLabel(diagnostic) {
     'capture-unavailable': 'Capture unavailable', 'capture-unstable': 'Source changed during capture',
     'capture-validation-failed': 'Capture validation refused', 'preparation-resource-refused': 'Preparation capacity refused',
     'preparation-unavailable': 'Preparation unavailable', 'attribution-unavailable': 'Native edit attribution unavailable',
+    'review-input-invalid': 'Review input could not be built', 'review-input-limit': 'Review input exceeds its size limit',
     'dispatch-unavailable': 'Review dispatch unavailable', 'unsupported-operation': 'Operation outside the supported review profile'
   };
   const label = diagnostic.code === 'panic' ? 'Unexpected failure at ' + args.boundary : labels[diagnostic.code] || omissionLabel(diagnostic.code);
   let details = '';
   if (diagnostic.code === 'file-extension') details = args.extension || '(no extension)';
   else if (diagnostic.code === 'capture-size-limit') details = args.observedBytes + ' bytes observed; limit ' + args.limitBytes + ' bytes';
+  else if (diagnostic.code === 'review-input-limit') details = args.observedBytes + ' bytes observed; limit ' + args.limitBytes + ' bytes';
+  else if (diagnostic.code === 'review-input-invalid') details = ({
+    'root-invalid': 'Root declaration does not match the selected review contract',
+    'supporting-artifact-invalid': 'Supporting declaration identity is invalid',
+    'duplicate-expanded-target': 'The same supporting declaration was expanded more than once',
+    'included-target-unavailable': 'A reference points to supporting evidence that was not included',
+    'projection-invalid': 'The evidence graph does not match the review input contract',
+    'request-invalid': 'The assembled provider request is invalid'
+  })[args.reason] || args.reason;
   else if (diagnostic.code === 'capture-budget-limit') details = args.resource + ': used ' + args.used + ', requested ' + args.requested + ', limit ' + args.limit;
   else if (diagnostic.code === 'preparation-resource-refused') details = args.phase + ': requested ' + args.requestedBytes + ' bytes' + (args.constraint ? '; constraint ' + args.constraint : '');
   else if (args.reason !== undefined) details = args.reason === 'unknown' ? 'precise cause not observed' : args.reason;

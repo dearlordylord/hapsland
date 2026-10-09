@@ -1,0 +1,438 @@
+{
+  "at": "2026-10-08T23:09:54.443Z",
+  "scope": "per fixture diagnostic, sequential lanes, not qualification",
+  "samples": [
+    {
+      "operation": "hello",
+      "matched": false,
+      "active": false,
+      "edit": false,
+      "typescript": 186.67574799999988,
+      "integratedBend": 133.858562,
+      "ratio": 0.717064554095158
+    },
+    {
+      "operation": "hello",
+      "matched": false,
+      "active": false,
+      "edit": true,
+      "typescript": 57.54839100000015,
+      "integratedBend": 41.866303000000016,
+      "ratio": 0.7274973682583047
+    },
+    {
+      "operation": "hello",
+      "matched": false,
+      "active": true,
+      "edit": false,
+      "typescript": 44.57165899999984,
+      "integratedBend": 51.49559199999999,
+      "ratio": 1.1553438475332536
+    },
+    {
+      "operation": "hello",
+      "matched": false,
+      "active": true,
+      "edit": true,
+      "typescript": 47.60010199999999,
+      "integratedBend": 49.182237999999984,
+      "ratio": 1.0332380800360468
+    },
+    {
+      "operation": "hello",
+      "matched": false,
+      "active": false,
+      "edit": false,
+      "typescript": 45.417665000000056,
+      "integratedBend": 52.087553999999955,
+      "ratio": 1.146856713131331
+    },
+    {
+      "operation": "hello",
+      "matched": false,
+      "active": false,
+      "edit": true,
+      "typescript": 44.04507199999989,
+      "integratedBend": 42.02805500000022,
+      "ratio": 0.9542056146485656
+    },
+    {
+      "operation": "hello",
+      "matched": false,
+      "active": true,
+      "edit": false,
+      "typescript": 43.065979999999854,
+      "integratedBend": 50.88450300000022,
+      "ratio": 1.1815475463463363
+    },
+    {
+      "operation": "hello",
+      "matched": false,
+      "active": true,
+      "edit": true,
+      "typescript": 47.22639000000004,
+      "integratedBend": 42.712395000000015,
+      "ratio": 0.9044179536060237
+    },
+    {
+      "operation": "register-edit",
+      "matched": false,
+      "active": false,
+      "edit": false,
+      "typescript": 48.481649999999945,
+      "integratedBend": 47.17351500000018,
+      "ratio": 0.9730179356519474
+    },
+    {
+      "operation": "register-edit",
+      "matched": false,
+      "active": false,
+      "edit": true,
+      "typescript": 40.364289999999755,
+      "integratedBend": 39.099905000000035,
+      "ratio": 0.968675653653273
+    },
+    {
+      "operation": "register-edit",
+      "matched": false,
+      "active": true,
+      "edit": false,
+      "typescript": 39.88286999999991,
+      "integratedBend": 38.73257000000012,
+      "ratio": 0.9711580435410042
+    },
+    {
+      "operation": "register-edit",
+      "matched": false,
+      "active": true,
+      "edit": true,
+      "typescript": 41.43705,
+      "integratedBend": 41.77451099999985,
+      "ratio": 1.0081439436446331
+    },
+    {
+      "operation": "register-edit",
+      "matched": true,
+      "active": false,
+      "edit": false,
+      "typescript": 53.41110600000002,
+      "integratedBend": 46.44780000000014,
+      "ratio": 0.8696281256561159
+    },
+    {
+      "operation": "register-edit",
+      "matched": true,
+      "active": false,
+      "edit": true,
+      "typescript": 44.361034000000245,
+      "integratedBend": 45.37574900000004,
+      "ratio": 1.0228740159663499
+    },
+    {
+      "operation": "register-edit",
+      "matched": true,
+      "active": true,
+      "edit": false,
+      "typescript": 42.68176900000003,
+      "integratedBend": 42.39364100000034,
+      "ratio": 0.9932493894524455
+    },
+    {
+      "operation": "register-edit",
+      "matched": true,
+      "active": true,
+      "edit": true,
+      "typescript": 43.76182000000017,
+      "integratedBend": 43.53244299999915,
+      "ratio": 0.9947585132427988
+    },
+    {
+      "operation": "admit",
+      "matched": false,
+      "active": false,
+      "edit": false,
+      "typescript": 40.4142080000006,
+      "integratedBend": 39.58132599999999,
+      "ratio": 0.9793913566238736
+    },
+    {
+      "operation": "admit",
+      "matched": false,
+      "active": false,
+      "edit": true,
+      "typescript": 40.87325499999952,
+      "integratedBend": 40.34137400000009,
+      "ratio": 0.9869870652582126
+    },
+    {
+      "operation": "admit",
+      "matched": false,
+      "active": true,
+      "edit": false,
+      "typescript": 41.950886999999966,
+      "integratedBend": 42.39826700000049,
+      "ratio": 1.0106643752252609
+    },
+    {
+      "operation": "admit",
+      "matched": false,
+      "active": true,
+      "edit": true,
+      "typescript": 41.998347000000194,
+      "integratedBend": 41.05888200000027,
+      "ratio": 0.977630905330633
+    },
+    {
+      "operation": "admit",
+      "matched": true,
+      "active": false,
+      "edit": false,
+      "typescript": 42.50018399999999,
+      "integratedBend": 42.69076800000039,
+      "ratio": 1.0044843099973497
+    },
+    {
+      "operation": "admit",
+      "matched": true,
+      "active": false,
+      "edit": true,
+      "typescript": 42.768728000000465,
+      "integratedBend": 41.45938299999989,
+      "ratio": 0.9693854584592612
+    },
+    {
+      "operation": "admit",
+      "matched": true,
+      "active": true,
+      "edit": false,
+      "typescript": 41.60826099999986,
+      "integratedBend": 46.92780400000038,
+      "ratio": 1.1278482414826358
+    },
+    {
+      "operation": "admit",
+      "matched": true,
+      "active": true,
+      "edit": true,
+      "typescript": 175.34415499999977,
+      "integratedBend": 62.008554000000004,
+      "ratio": 0.353639127577421
+    },
+    {
+      "operation": "admit-and-collect",
+      "matched": false,
+      "active": false,
+      "edit": false,
+      "typescript": 41.602134000000206,
+      "integratedBend": 40.73175200000014,
+      "ratio": 0.9790784290055876
+    },
+    {
+      "operation": "admit-and-collect",
+      "matched": false,
+      "active": false,
+      "edit": true,
+      "typescript": 42.052639,
+      "integratedBend": 42.209723999999824,
+      "ratio": 1.0037354373883605
+    },
+    {
+      "operation": "admit-and-collect",
+      "matched": false,
+      "active": true,
+      "edit": false,
+      "typescript": 41.91555400000016,
+      "integratedBend": 40.2239569999997,
+      "ratio": 0.9596427378724268
+    },
+    {
+      "operation": "admit-and-collect",
+      "matched": false,
+      "active": true,
+      "edit": true,
+      "typescript": 40.99804800000038,
+      "integratedBend": 40.390166999999565,
+      "ratio": 0.9851729282330512
+    },
+    {
+      "operation": "admit-and-collect",
+      "matched": true,
+      "active": false,
+      "edit": false,
+      "typescript": 44.10073899999952,
+      "integratedBend": 48.88406999999961,
+      "ratio": 1.1084637379886115
+    },
+    {
+      "operation": "admit-and-collect",
+      "matched": true,
+      "active": false,
+      "edit": true,
+      "typescript": 45.33516700000064,
+      "integratedBend": 69.50390699999934,
+      "ratio": 1.533112406975326
+    },
+    {
+      "operation": "admit-and-collect",
+      "matched": true,
+      "active": true,
+      "edit": false,
+      "typescript": 64.64682399999992,
+      "integratedBend": 47.28234900000007,
+      "ratio": 0.7313947704530717
+    },
+    {
+      "operation": "admit-and-collect",
+      "matched": true,
+      "active": true,
+      "edit": true,
+      "typescript": 41.79521900000009,
+      "integratedBend": 43.26477400000067,
+      "ratio": 1.0351608398080312
+    },
+    {
+      "operation": "begin-stop",
+      "matched": false,
+      "active": false,
+      "edit": false,
+      "typescript": 41.43400799999972,
+      "integratedBend": 43.38969100000031,
+      "ratio": 1.0471999474441527
+    },
+    {
+      "operation": "begin-stop",
+      "matched": false,
+      "active": false,
+      "edit": true,
+      "typescript": 53.18347999999969,
+      "integratedBend": 47.55118399999992,
+      "ratio": 0.8940968887331217
+    },
+    {
+      "operation": "begin-stop",
+      "matched": false,
+      "active": true,
+      "edit": false,
+      "typescript": 40.52741699999979,
+      "integratedBend": 40.18508099999963,
+      "ratio": 0.9915529775805806
+    },
+    {
+      "operation": "begin-stop",
+      "matched": false,
+      "active": true,
+      "edit": true,
+      "typescript": 41.95072200000004,
+      "integratedBend": 42.55847700000004,
+      "ratio": 1.014487354949457
+    },
+    {
+      "operation": "begin-stop",
+      "matched": true,
+      "active": false,
+      "edit": false,
+      "typescript": 42.98626999999988,
+      "integratedBend": 42.91993700000057,
+      "ratio": 0.998456879371034
+    },
+    {
+      "operation": "begin-stop",
+      "matched": true,
+      "active": false,
+      "edit": true,
+      "typescript": 42.244598000000224,
+      "integratedBend": 42.88072800000009,
+      "ratio": 1.0150582566793478
+    },
+    {
+      "operation": "begin-stop",
+      "matched": true,
+      "active": true,
+      "edit": false,
+      "typescript": 43.15106400000059,
+      "integratedBend": 44.37682300000051,
+      "ratio": 1.028406228870739
+    },
+    {
+      "operation": "begin-stop",
+      "matched": true,
+      "active": true,
+      "edit": true,
+      "typescript": 42.975978999999825,
+      "integratedBend": 47.795976999999766,
+      "ratio": 1.1121556300090327
+    },
+    {
+      "operation": "collect",
+      "matched": false,
+      "active": false,
+      "edit": false,
+      "typescript": 46.04971299999943,
+      "integratedBend": 44.08432300000004,
+      "ratio": 0.9573202551772817
+    },
+    {
+      "operation": "collect",
+      "matched": false,
+      "active": false,
+      "edit": true,
+      "typescript": 46.080880000000434,
+      "integratedBend": 41.3739659999992,
+      "ratio": 0.8978553794979351
+    },
+    {
+      "operation": "collect",
+      "matched": false,
+      "active": true,
+      "edit": false,
+      "typescript": 40.760419000000184,
+      "integratedBend": 40.14303899999959,
+      "ratio": 0.9848534432386332
+    },
+    {
+      "operation": "collect",
+      "matched": false,
+      "active": true,
+      "edit": true,
+      "typescript": 41.0859219999993,
+      "integratedBend": 40.17149800000152,
+      "ratio": 0.9777436173880242
+    },
+    {
+      "operation": "collect",
+      "matched": true,
+      "active": false,
+      "edit": false,
+      "typescript": 54.920202000000245,
+      "integratedBend": 60.3139970000002,
+      "ratio": 1.0982114923757915
+    },
+    {
+      "operation": "collect",
+      "matched": true,
+      "active": false,
+      "edit": true,
+      "typescript": 43.8762370000004,
+      "integratedBend": 41.61830099999952,
+      "ratio": 0.9485385221161774
+    },
+    {
+      "operation": "collect",
+      "matched": true,
+      "active": true,
+      "edit": false,
+      "typescript": 43.12906500000099,
+      "integratedBend": 42.01451400000042,
+      "ratio": 0.9741577750410182
+    },
+    {
+      "operation": "collect",
+      "matched": true,
+      "active": true,
+      "edit": true,
+      "typescript": 42.58593500000097,
+      "integratedBend": 42.75826900000084,
+      "ratio": 1.0040467351485851
+    }
+  ]
+}

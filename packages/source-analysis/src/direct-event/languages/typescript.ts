@@ -12,7 +12,7 @@ import {
   type GraphFacts
 } from "./contracts.ts"
 import * as Effect from "effect/Effect"
-import { analyzeFunctionFile } from "./typescript-functions.ts"
+import { analyzeFunctionFile, functionDeclarationNodes } from "./typescript-functions.ts"
 
 type ParsedDeclaration = {
   readonly node: SyntaxNode
@@ -54,14 +54,39 @@ const rootTypeParameters = (declaration: SyntaxNode): ReadonlySet<string> => {
 
 const unsupportedReferenceNodes = new Set(["nested_type_identifier", "type_query", "computed_property_name"])
 const ignoredTypeParents = new Set(["type_parameter", "nested_type_identifier"])
+const intrinsicContainers = new Set(["Readonly", "ReadonlyArray", "Array"])
+const unshadowedIntrinsicContainers = (nodes: ReadonlyArray<SyntaxNode>): ReadonlySet<string> => {
+  const names = new Set(intrinsicContainers)
+  for (const declaration of nodes) names.delete(declarationNameNode(declaration)?.text ?? "")
+  let root = nodes[0]!
+  while (root.parent != null) root = root.parent
+  for (const statement of root.namedChildren) {
+    if (statement.type !== "import_statement") continue
+    for (const binding of descendants(statement)) {
+      if (binding.type === "identifier" || binding.type === "type_identifier") names.delete(binding.text)
+    }
+  }
+  return names
+}
+const intrinsicContainerReference = (node: SyntaxNode, names: ReadonlySet<string>): boolean => {
+  const parent = node.parent
+  return (
+    parent?.type === "generic_type" &&
+    names.has(node.text) &&
+    sameSyntaxNode(parent.namedChildren[0]!, node) &&
+    parent.namedChildren.find((child) => child.type === "type_arguments")?.namedChildren.length === 1
+  )
+}
 const typeReference = (
   node: SyntaxNode,
   nameNode: SyntaxNode,
-  parameters: ReadonlySet<string>
+  parameters: ReadonlySet<string>,
+  intrinsicNames: ReadonlySet<string>
 ): ParsedDeclaration["references"][number] | undefined => {
   if (unsupportedReferenceNodes.has(node.type)) return { kind: "unsupported", name: node.text }
   if (node.type !== "type_identifier" || sameSyntaxNode(node, nameNode)) return undefined
   if (ignoredTypeParents.has(node.parent?.type ?? "") || parameters.has(node.text)) return undefined
+  if (intrinsicContainerReference(node, intrinsicNames)) return undefined
   return { kind: "named", name: node.text }
 }
 const distinctReferences = (references: ParsedDeclaration["references"]): ParsedDeclaration["references"] => {
@@ -73,11 +98,15 @@ const distinctReferences = (references: ParsedDeclaration["references"]): Parsed
     return true
   })
 }
-const referencesOf = (declaration: SyntaxNode, nameNode: SyntaxNode): ParsedDeclaration["references"] => {
+const referencesOf = (
+  declaration: SyntaxNode,
+  nameNode: SyntaxNode,
+  intrinsicNames: ReadonlySet<string>
+): ParsedDeclaration["references"] => {
   const parameters = rootTypeParameters(declaration)
   const references: Array<ParsedDeclaration["references"][number]> = []
   for (const node of descendants(declaration)) {
-    const reference = typeReference(node, nameNode, parameters)
+    const reference = typeReference(node, nameNode, parameters, intrinsicNames)
     if (reference !== undefined) references.push(reference)
   }
   return distinctReferences(references)
@@ -92,7 +121,11 @@ const topLevelTypes = (root: SyntaxNode): ReadonlyArray<SyntaxNode> =>
         ? []
         : [node]
   )
-const parseDeclaration = (path: string, node: SyntaxNode): ParsedDeclaration | undefined => {
+const parseDeclaration = (
+  path: string,
+  node: SyntaxNode,
+  intrinsicNames: ReadonlySet<string>
+): ParsedDeclaration | undefined => {
   const nameNode = declarationNameNode(node)
   const kind = kindOf(node)
   if (nameNode === undefined || kind === undefined || nameNode.text.length === 0 || node.hasError) return undefined
@@ -107,7 +140,7 @@ const parseDeclaration = (path: string, node: SyntaxNode): ParsedDeclaration | u
       source: rendered,
       sourceHash: createHash("sha256").update(rendered, "utf8").digest("hex")
     },
-    references: referencesOf(node, nameNode)
+    references: referencesOf(node, nameNode, intrinsicNames)
   }
 }
 const parseDeclarationNodes = (
@@ -116,9 +149,10 @@ const parseDeclarationNodes = (
 ): TypeExtractionFailure | ReadonlyArray<ParsedDeclaration> => {
   if (nodes.length === 0) return { status: "unsupported", reason: "no-declarations", units: [] }
   if (nodes.length > MAX_TYPE_DECLARATIONS) return { status: "unsupported", reason: "declaration-limit", units: [] }
+  const intrinsicNames = unshadowedIntrinsicContainers(nodes)
   const parsed: Array<ParsedDeclaration> = []
   for (const node of nodes) {
-    const declaration = parseDeclaration(path, node)
+    const declaration = parseDeclaration(path, node, intrinsicNames)
     if (declaration === undefined) return { status: "unsupported", reason: "parse", units: [] }
     parsed.push(declaration)
   }
@@ -237,10 +271,8 @@ const preflightDeclarations = (root: SyntaxNode): ReadonlyArray<SyntaxNode> =>
   root.namedChildren
     .flatMap((node) => (node.type === "export_statement" ? node.namedChildren.filter(isReviewDeclaration) : [node]))
     .filter(isReviewDeclaration)
-const functionPreflightBytes = (path: string, node: SyntaxNode): number | undefined => {
+const functionPreflightBytes = (path: string, node: SyntaxNode, name: string): number => {
   const rendered = exportedSourceNode(node)
-  const name = declarationNameNode(node)?.text
-  if (name === undefined) return undefined
   const artifact = {
     path,
     id: `${path}:function:${name}`,
@@ -257,11 +289,13 @@ const functionPreflightBytes = (path: string, node: SyntaxNode): number | undefi
   }
   return bytes
 }
-const allFunctionPreflightBytes = (path: string, functions: ReadonlyArray<SyntaxNode>): number | undefined => {
+const allFunctionPreflightBytes = (
+  path: string,
+  functions: readonly { readonly node: SyntaxNode; readonly name: string }[]
+): number => {
   let total = 0
-  for (const node of functions) {
-    const bytes = functionPreflightBytes(path, node)
-    if (bytes === undefined) return undefined
+  for (const { node, name } of functions) {
+    const bytes = functionPreflightBytes(path, node, name)
     total += bytes
   }
   return total
@@ -278,19 +312,18 @@ const rootPreflight = (
   typeBound: import("./contracts.ts").AnalyzerMaterializationPreflight | undefined
 ): import("./contracts.ts").AnalyzerMaterializationPreflight | undefined => {
   if (root.hasError) return undefined
-  const declarations = preflightDeclarations(root)
-  if (declarations.length > MAX_TYPE_DECLARATIONS) return undefined
+  const declarations = preflightDeclarations(root).filter((node) => kindOf(node) !== undefined)
+  const functions = functionDeclarationNodes(root)
+  const count = declarations.length + functions.length
+  if (count > MAX_TYPE_DECLARATIONS) return undefined
   // A valid file without supported roots materializes no review units. Keep
   // this measured empty result distinct from an unknown or invalid parse.
-  if (declarations.length === 0)
-    return { declarations: 0, expandedUnitBytes: 0, hasImports: preflightHasImports(root, typeBound) }
-  const functions = declarations.filter((node) => node.type === "function_declaration")
+  if (count === 0) return { declarations: 0, expandedUnitBytes: 0, hasImports: preflightHasImports(root, typeBound) }
   // Files containing types need a valid type bound; function-only files start at zero.
-  if (declarations.length !== functions.length && typeBound === undefined) return undefined
+  if (declarations.length > 0 && typeBound === undefined) return undefined
   const functionBytes = allFunctionPreflightBytes(path, functions)
-  if (functionBytes === undefined) return undefined
   return {
-    declarations: declarations.length,
+    declarations: count,
     expandedUnitBytes: preflightTypeBytes(typeBound) + functionBytes,
     hasImports: preflightHasImports(root, typeBound)
   }
@@ -311,7 +344,7 @@ export const combinedPreflight = (
 
 const functionFacts = (path: string, source: string): GraphFacts | undefined => {
   const file = analyzeFunctionFile(path, source)
-  if (file === undefined) return undefined
+  if (file === undefined || file.failure !== undefined) return undefined
   return {
     declarations: new Map(
       [...file.types.values(), ...file.functions.values()].map((fact) => [

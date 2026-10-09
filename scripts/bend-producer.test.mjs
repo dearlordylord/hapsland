@@ -88,6 +88,9 @@ async function fixture(t) {
   mkdirSync(resolve(directory, "setup-policy"), { recursive: true })
   writeFileSync(resolve(directory, "setup-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "setup-policy/core.bend"), "// Setup fixture\n")
+  mkdirSync(resolve(directory, "resident-request-policy"), { recursive: true })
+  writeFileSync(resolve(directory, "resident-request-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "resident-request-policy/core.bend"), "// Resident request fixture\n")
   mkdirSync(resolve(directory, "update-notice-policy"), { recursive: true })
   writeFileSync(resolve(directory, "update-notice-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "update-notice-policy/core.bend"), "// Update notice fixture\n")
@@ -116,6 +119,7 @@ async function fixture(t) {
     "build-direct-login-policy.mjs",
     "build-login-policy.mjs",
     "build-verification-policy.mjs",
+    "build-resident-request-policy.mjs",
     "build-update-notice-policy.mjs",
     "build-update-policy.mjs",
     "build-setup-policy.mjs",
@@ -133,6 +137,7 @@ async function fixture(t) {
     "direct-login-policy.generated.d.ts",
     "login-policy.generated.d.ts",
     "verification-policy.generated.d.ts",
+    "resident-request-policy.generated.d.ts",
     "update-notice-policy.generated.d.ts",
     "update-policy.generated.d.ts",
     "setup-policy.generated.d.ts",
@@ -152,6 +157,7 @@ async function fixture(t) {
     "direct-login-policy.generated.js",
     "login-policy.generated.js",
     "verification-policy.generated.js",
+    "resident-request-policy.generated.js",
     "update-notice-policy.generated.js",
     "update-policy.generated.js",
     "setup-policy.generated.js",
@@ -213,13 +219,13 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("valid receipt binds actual compiler/support/input bytes and exact twenty-eight outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact thirty outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 28)
+  assert.equal(f.receipt.outputs.length, 30)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
@@ -411,6 +417,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   writeFileSync(resolve(f.directory, "scripts/build-direct-login-policy.mjs"), generator("direct-login-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-login-policy.mjs"), generator("login-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-verification-policy.mjs"), generator("verification-policy"))
+  writeFileSync(resolve(f.directory, "scripts/build-resident-request-policy.mjs"), generator("resident-request-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-update-notice-policy.mjs"), generator("update-notice-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-update-policy.mjs"), generator("update-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-setup-policy.mjs"), generator("setup-policy"))
@@ -445,6 +452,7 @@ for (const file of [
   "direct-login-policy.generated.js",
   "login-policy.generated.js",
   "verification-policy.generated.js",
+  "resident-request-policy.generated.js",
   "update-notice-policy.generated.js",
   "update-policy.generated.js",
   "setup-policy.generated.js",
@@ -456,6 +464,7 @@ for (const file of [
   "direct-login-policy.generated.d.ts",
   "login-policy.generated.d.ts",
   "verification-policy.generated.d.ts",
+  "resident-request-policy.generated.d.ts",
   "update-notice-policy.generated.d.ts",
   "update-policy.generated.d.ts",
   "setup-policy.generated.d.ts",

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import fc from "fast-check"
 import { extractBendDeclarations } from "@hapsland/source-analysis/direct-event/languages/bend/extractor"
 import {
+  MAX_TYPE_DECLARATIONS,
   analyzeTypeFile,
   inspectGraphFile,
   combinedAnalyzerMaterializationPreflight
@@ -302,7 +303,10 @@ describe("bounded Bend datatype extraction", () => {
 
   it("contains recursive references and enforces shared budgets", () => {
     expect(analyze("type A is Type:\n  A{value: B}\ntype B is Type:\n  B{value: A}")[0]?.status).toBe("ready")
-    const many = Array.from({ length: 65 }, (_, index) => `type T${index} is Data:\n  C${index}{}`).join("\n")
+    const many = Array.from(
+      { length: MAX_TYPE_DECLARATIONS + 1 },
+      (_, index) => `type T${index} is Data:\n  C${index}{}`
+    ).join("\n")
     expect(analyzeTypeFile("model.bend", many)).toMatchObject({ status: "unsupported", reason: "declaration-limit" })
     const types = Array.from({ length: 17 }, (_, index) => `type T${index} is Data:\n  C${index}{}`).join("\n")
     const root = `type Root is Data:\n  Root{${Array.from({ length: 17 }, (_, index) => `f${index}: T${index}`).join(", ")}}`

@@ -27,7 +27,12 @@ import { selectEditedRoots } from "@hapsland/native-observation/direct-event/edi
 import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-event/codex-patch-hunks"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
-import { renderCandidateReviewInput, type CandidateReviewInput } from "./review-renderer.ts"
+import {
+  renderCandidateReviewInput,
+  type CandidateReviewInput,
+  type CandidateInputFailure,
+  type ReportCandidateInputFailure
+} from "./review-renderer.ts"
 import {
   analyzeTypeFile,
   combinedAnalyzerMaterializationPreflight,
@@ -506,9 +511,12 @@ const selectCandidateRoots = (
       hunks,
       declarations
     )
-    const names = new Set(attribution.selected.map((root) => root.name))
+    const roots = new Set(attribution.selected.map((root) => `${root.kind}:${root.name}`))
     return {
-      selected: analyses.filter((item) => names.has(analysisRoot(item).name)),
+      selected: analyses.filter((item) => {
+        const root = analysisRoot(item)
+        return roots.has(`${root.kind}:${root.name}`)
+      }),
       ambiguous: attribution.ambiguous.length > 0
     }
   } catch {
@@ -519,13 +527,10 @@ const selectCandidateRoots = (
 const capturedCandidateFiles = (
   path: string,
   captured: import("@hapsland/native-observation/direct-event/capture").StableCapture,
-  contract: string,
   limits: GraphLimits
 ) => {
   if (captured.byteLength > limits.sourceBytes) return { functionFile: undefined, graphFile: undefined }
-  if (contract === FUNCTION_INPUT_CONTRACT)
-    return { functionFile: analyzeFunctionFile(path, captured.text), graphFile: undefined }
-  return { functionFile: undefined, graphFile: inspectGraphFile(path, captured.text) }
+  return { functionFile: analyzeFunctionFile(path, captured.text), graphFile: inspectGraphFile(path, captured.text) }
 }
 const unresolvedUnitAnalyses = (declarations: readonly CandidateDeclaration[]): UnitAnalysis[] =>
   declarations.map(({ artifact }) => ({
@@ -598,6 +603,72 @@ const selectCapturedCandidate = (
     analyses
   )
 }
+const positionBefore = (
+  left: NonNullable<ReviewInput["rootLocation"]>["start"],
+  right: NonNullable<ReviewInput["rootLocation"]>["start"]
+): boolean => left.line < right.line || (left.line === right.line && left.column < right.column)
+const locationsOverlap = (
+  left: NonNullable<ReviewInput["rootLocation"]>,
+  right: NonNullable<ReviewInput["rootLocation"]>
+): boolean => positionBefore(left.start, right.end) && positionBefore(right.start, left.end)
+const functionExclusionSelection = (
+  file: NonNullable<ReturnType<typeof analyzeFunctionFile>>,
+  frame: PreparationFrame,
+  operation: "add" | "update",
+  path: string,
+  captured: import("@hapsland/native-observation/direct-event/capture").StableCapture,
+  frozen: ReadonlySet<string> | undefined
+) => {
+  if (frozen !== undefined) return { names: frozen, ambiguous: false }
+  const declarations = [...file.excludedFunctions].map(([name, value]) => ({
+    path,
+    kind: "function" as const,
+    name,
+    location: value.location
+  }))
+  const line = frame.observation.lineSelection?.line
+  if (line !== undefined)
+    return {
+      names: new Set(
+        declarations
+          .filter(
+            ({ location }) =>
+              line >= location.start.line &&
+              (line < location.end.line || (line === location.end.line && location.end.column > 1))
+          )
+          .map(({ name }) => name)
+      ),
+      ambiguous: false
+    }
+  const hunks = candidatePostEditHunks(frame.observation, { operation }, path, captured)
+  if (hunks === undefined) return { names: new Set<string>(), ambiguous: false }
+  const selection = selectEditedRoots({ path, operation, source: captured.text }, hunks, declarations)
+  return {
+    names: new Set(selection.selected.map(({ name }) => name)),
+    ambiguous: selection.ambiguous.some(({ location }) =>
+      declarations.some((declaration) => locationsOverlap(location, declaration.location))
+    )
+  }
+}
+const functionExtractionFailures = (
+  file: ReturnType<typeof analyzeFunctionFile>,
+  frame: PreparationFrame,
+  operation: "add" | "update",
+  path: string,
+  captured: import("@hapsland/native-observation/direct-event/capture").StableCapture,
+  frozen: ReadonlySet<string> | undefined
+): readonly AnalysisFailure[] => {
+  if (file === undefined) return [{ root: undefined, reason: "function-analysis-unavailable" }]
+  if (file.failure !== undefined) return [{ root: undefined, reason: file.failure }]
+  const { names, ambiguous } = functionExclusionSelection(file, frame, operation, path, captured, frozen)
+  const failures: AnalysisFailure[] = [...file.excludedFunctions].flatMap(([name, value]) =>
+    names.has(name) ? [{ root: name, reason: value.reason }] : []
+  )
+  if (ambiguous && failures.length === 0) failures.push({ root: undefined, reason: "unsupported-callable" })
+  if (file.functions.size === 0 && failures.length === 0)
+    failures.push({ root: undefined, reason: "no-supported-function-root" })
+  return failures
+}
 const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate")(function* (
   candidateOperation: "add" | "update",
   path: string,
@@ -605,9 +676,14 @@ const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate
   frame: PreparationFrame,
   frozen: ReadonlySet<string> | undefined
 ) {
-  const files = capturedCandidateFiles(path, captured, frame.contract, frame.graphLimits)
+  const files = capturedCandidateFiles(path, captured, frame.graphLimits)
   const { functionFile, graphFile } = files
-  const analysis = analyzeTypeFile(path, captured.text)
+  const analysis = analyzeTypeFile(
+    path,
+    captured.text,
+    graphFile !== undefined ||
+      (functionFile !== undefined && functionFile.functions.size > 0 && functionFile.types.size === 0)
+  )
   const candidateDeclarations = candidateDeclarationsForFiles(files, frame.contract)
   const analyses = unresolvedUnitAnalyses(candidateDeclarations)
   const selection = selectCapturedCandidate(
@@ -615,14 +691,18 @@ const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate
     candidateOperation,
     path,
     captured,
-    candidateDeclarations,
+    [...(graphFile?.declarations.values() ?? []), ...(functionFile?.functions.values() ?? [])],
     analyses,
     frozen
   )
   const selected = selection.selected
   const { units, graphFailures } = yield* resolveSelectedUnits(selected, path, captured, analysis, frame)
   const failures = [
-    ...(graphFile === undefined && functionFile === undefined ? extractionFailures(analysis) : []),
+    ...(frame.contract === FUNCTION_INPUT_CONTRACT
+      ? functionExtractionFailures(functionFile, frame, candidateOperation, path, captured, frozen)
+      : graphFile === undefined
+        ? extractionFailures(analysis)
+        : []),
     ...graphFailures,
     ...(selection.ambiguous ? [{ root: undefined, reason: "ambiguous-update" as const }] : [])
   ]
@@ -994,6 +1074,7 @@ export const preparedUnitStillCurrent = Effect.fn("DirectEvent.preparedUnitStill
 type Evaluation =
   | { readonly status: "evaluated"; readonly findings: ReadonlyArray<Finding> }
   | { readonly status: "input-limit" }
+  | { readonly status: "input-invalid" }
   | { readonly status: "backend" }
   | { readonly status: "timeout" }
 
@@ -1029,9 +1110,16 @@ const candidateRootArtifact = (
   }
 }
 
-export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput | undefined => {
+export const candidateReviewInput = (
+  input: ReviewInput,
+  report?: ReportCandidateInputFailure
+): CandidateReviewInput | undefined => {
+  const invalid = (reason: Extract<CandidateInputFailure, { code: "review-input-invalid" }>["args"]["reason"]) => {
+    report?.({ code: "review-input-invalid", args: { reason } })
+    return undefined
+  }
   const candidate = candidateRootArtifact(input)
-  if (candidate === undefined) return undefined
+  if (candidate === undefined) return invalid("root-invalid")
   const artifact = candidate.artifact
   const root = input.unit.root
   const nodes: CandidateReviewInput["nodes"][number][] = []
@@ -1043,9 +1131,10 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
   ): typeof root | undefined => {
     const child = reference.node
     const origin = child.artifact.origin
-    if (origin !== undefined && !isBundledBendArtifact(child.artifact)) return undefined
+    if (origin !== undefined && !isBundledBendArtifact(child.artifact)) return invalid("supporting-artifact-invalid")
     const domain = origin === undefined ? child.artifact.path : bundledArtifactDomain(origin)
-    if (domain === undefined || seen.has(child.artifact.id)) return undefined
+    if (domain === undefined) return invalid("supporting-artifact-invalid")
+    if (seen.has(child.artifact.id)) return invalid("duplicate-expanded-target")
     seen.add(child.artifact.id)
     nodes.push({
       id: child.artifact.id,
@@ -1078,7 +1167,10 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
         continue
       }
       if (reference.kind === "included") {
-        if (!seen.has(reference.target)) return false
+        if (!seen.has(reference.target)) {
+          invalid("included-target-unavailable")
+          return false
+        }
         edges.push({
           from: owner.artifact.id,
           to: reference.target,
@@ -1106,10 +1198,10 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
 }
 
 /** Exact source-bearing `DecisionModel` input before provider serialization. */
-export const preparedProviderInput = (prepared: PreparedSource) => {
+export const preparedProviderInput = (prepared: PreparedSource, report?: ReportCandidateInputFailure) => {
   if (prepared.input.contract === TYPE_INPUT_CONTRACT || prepared.input.contract === FUNCTION_INPUT_CONTRACT) {
-    const candidate = candidateReviewInput(prepared.input)
-    return candidate === undefined ? undefined : renderCandidateReviewInput(candidate)
+    const candidate = candidateReviewInput(prepared.input, report)
+    return candidate === undefined ? undefined : renderCandidateReviewInput(candidate, report)
   }
   return undefined
 }
@@ -1179,6 +1271,12 @@ const evaluateProbabilityAnswers = (prepared: PreparedSource, answers: Probabili
 }
 
 export type EvaluationEvidence =
+  | {
+      readonly kind: "diagnostic"
+      readonly path: string
+      readonly declaration: string
+      readonly diagnostic: CandidateInputFailure & { readonly stage: "provider-input" }
+    }
   | { readonly kind: "model-input"; readonly input: typeof Schema.Json.Type }
   | { readonly kind: "interpreted-findings"; readonly findings: ReadonlyArray<Finding> }
   | {
@@ -1191,6 +1289,7 @@ export type EvaluationEvidence =
         | "clear"
         | "findings"
         | "input-limit"
+        | "input-invalid"
         | "backend"
         | "invalid-response"
         | "timeout"
@@ -1223,6 +1322,26 @@ const interpretEvaluationAnswers = (
   return result
 }
 
+const reportInputFailure = Effect.fn("DirectEvent.reportInputFailure")(function* (
+  prepared: PreparedSource,
+  failure: CandidateInputFailure,
+  emit: (evidence: EvaluationEvidence) => void
+) {
+  const diagnostic = { stage: "provider-input" as const, ...failure }
+  emit({ kind: "diagnostic", path: prepared.input.path, declaration: prepared.input.declaration.name, diagnostic })
+  if (failure.code === "review-input-limit") {
+    emit({ kind: "evaluation-outcome", outcome: "input-limit" })
+    return { status: "input-limit" } as const
+  }
+  yield* Effect.logError("Hapsland review input assembly failed", {
+    path: prepared.input.path,
+    declaration: prepared.input.declaration.name,
+    ...diagnostic
+  })
+  emit({ kind: "evaluation-outcome", outcome: "input-invalid" })
+  return { status: "input-invalid" } as const
+})
+
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
   prepared: PreparedSource,
@@ -1237,12 +1356,25 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     }
   }
 
-  const providerInput = preparedProviderInput(prepared)
+  let inputFailure: CandidateInputFailure | undefined
+  const providerInput = preparedProviderInput(prepared, (failure) => {
+    inputFailure = failure
+  })
   const modelId = prepared.input.providerIdentity.model
-  if (
-    providerInput === undefined ||
-    requestLimitViolation(modelId, probabilityRequest(modelId, providerInput, prepared.input.rules)) !== undefined
-  ) {
+  if (providerInput === undefined)
+    return yield* reportInputFailure(
+      prepared,
+      inputFailure ?? { code: "review-input-invalid", args: { reason: "projection-invalid" } },
+      emit
+    )
+  const violation = requestLimitViolation(modelId, probabilityRequest(modelId, providerInput, prepared.input.rules))
+  if (violation === "invalid-input")
+    return yield* reportInputFailure(
+      prepared,
+      { code: "review-input-invalid", args: { reason: "request-invalid" } },
+      emit
+    )
+  if (violation !== undefined) {
     emit({ kind: "evaluation-outcome", outcome: "input-limit" })
     return { status: "input-limit" } as const
   }

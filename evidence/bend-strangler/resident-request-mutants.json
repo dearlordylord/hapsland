@@ -1,0 +1,69 @@
+{
+  "scope": "nine pure decision mutations against unchanged approved laws and universal proofs; no native mutation claim",
+  "passed": true,
+  "records": [
+    {
+      "name": "hello-swept",
+      "law": "sweep_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.sweep_exact\n6 |   match operation:\n7>|     case Core.Hello{}: {==}\n  |                        ^^^^\n8 |     case Core.RegisterEdit{}: {==}\n"
+    },
+    {
+      "name": "admit-not-swept",
+      "law": "sweep_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : False{}\n- observed : True{}\nLocation: Laws.sweep_exact\n 8 |     case Core.RegisterEdit{}: {==}\n 9>|     case Core.Admit{}: {==}\n   |                        ^^^^\n10 |     case Core.AdmitAndCollect{}: {==}\n"
+    },
+    {
+      "name": "admit-observation-ignored",
+      "law": "unsupported_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : False{}\n- observed : True{}\nLocation: Laws.unsupported_exact\n24 |     case Core.Admit{} False{} False{}: {==}\n25>|     case Core.Admit{} False{} True{}: {==}\n   |                                       ^^^^\n26 |     case Core.Admit{} True{} False{}: {==}\n"
+    },
+    {
+      "name": "direct-recipient-ignored",
+      "law": "unsupported_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : False{}\n- observed : True{}\nLocation: Laws.unsupported_exact\n17 |     case Core.Hello{} False{} True{}: {==}\n18>|     case Core.Hello{} True{} False{}: {==}\n   |                                       ^^^^\n19 |     case Core.Hello{} True{} True{}: {==}\n"
+    },
+    {
+      "name": "hello-snapshot-skipped",
+      "law": "snapshot_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : False{}\n- observed : True{}\nLocation: Laws.snapshot_exact\n42 |   match operation matched:\n43>|     case Core.Hello{} False{}: {==}\n   |                                ^^^^\n44 |     case Core.Hello{} True{}: {==}\n"
+    },
+    {
+      "name": "mismatch-snapshot-read",
+      "law": "snapshot_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.snapshot_exact\n44 |     case Core.Hello{} True{}: {==}\n45>|     case Core.RegisterEdit{} False{}: {==}\n   |                                       ^^^^\n46 |     case Core.RegisterEdit{} True{}: {==}\n"
+    },
+    {
+      "name": "foreign-lifetime-continued",
+      "law": "lifetime_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : Core.RequestContinue{}\n- observed : Core.RequestObsolete{}\nLocation: Laws.lifetime_exact\n67 |     case Core.RegisterEdit{} False{} False{} True{}: {==}\n68>|     case Core.RegisterEdit{} False{} True{} False{}: {==}\n   |                                                      ^^^^\n69 |     case Core.RegisterEdit{} False{} True{} True{}: {==}\n"
+    },
+    {
+      "name": "edit-refusal-shared",
+      "law": "lifetime_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : Core.RequestObsolete{}\n- observed : Core.RequestEditLost{}\nLocation: Laws.lifetime_exact\n66 |     case Core.RegisterEdit{} False{} False{} False{}: {==}\n67>|     case Core.RegisterEdit{} False{} False{} True{}: {==}\n   |                                                      ^^^^\n68 |     case Core.RegisterEdit{} False{} True{} False{}: {==}\n"
+    },
+    {
+      "name": "hello-not-ready",
+      "law": "lifetime_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : Core.RequestEditLost{}\n- observed : Core.RequestReady{}\nLocation: Laws.lifetime_exact\n59 |     case Core.Hello{} False{} False{} True{}: {==}\n60>|     case Core.Hello{} False{} True{} False{}: {==}\n   |                                               ^^^^\n61 |     case Core.Hello{} False{} True{} True{}: {==}\n"
+    }
+  ]
+}

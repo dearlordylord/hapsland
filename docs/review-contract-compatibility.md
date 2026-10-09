@@ -15,8 +15,8 @@ and input requirements.
 
 Individual rule documents separate intrinsic input requirements from configured
 application policy. This contract owns configuration composition, rule identity
-and input compatibility. The [configuration guide](configuration.md#configuration-composition)
-describes authoring and commands. Formats are version 1.
+and input compatibility. The [configuration guide](configuration.md#configuration-composition) describes
+composition; the [rule reference](rules.md) describes authoring and commands. Formats are version 1.
 
 Ordinary settings resolve from built-in defaults through user settings to project
 settings. Omission inherits. Includes and languages use the highest supplied list;
@@ -87,7 +87,7 @@ finite values between zero and one, inclusive.
 related code to the classifier, without an agent session or resident.
 Add `--id` to select one enabled rule. Results include probabilities and findings;
 `--json` includes code. Unsupported, ambiguous or stale selections cannot yield a
-valid result. See [usage and limits](configuration.md#try-a-rule-on-a-file-and-line).
+valid result. See [usage and limits](rules.md#try-a-rule-on-a-file-and-line).
 
 ## Review input and result identity
 

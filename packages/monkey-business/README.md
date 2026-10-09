@@ -109,9 +109,9 @@ agreement does not establish production workspace accounting.
 Production [workspace calculation](../resident-runtime/src/resident/preparation-workspace.ts)
 reserves unknown-size capture first, then measured analysis before materializing
 units. With `L(x)` the UTF-8 byte length of `canonicalValue(x)`, it uses
-`C(path,s) = 8*s + 64*(L(path)+512)` and
+`C(path,s) = 8*s + 1024*(L(path)+512)` and
 `A = C(path,s) + (hasImports ? 8 MiB : 0) + expandedUnitBytes + declarations*(L(rules)+s+4*L(path)+4096)`.
-Initial `s` is 262,144; absent preflight uses 64 declarations and 64*262,144
+Initial `s` is 2,097,152; absent preflight uses 1,024 declarations and 1024*2,097,152
 expanded bytes. The import margin is fixed, not the sum of traversed tree bytes.
 Source bytes, graph read bytes, evidence-tree bytes and retained workspace are
 therefore distinct facts. [Resident preparation](../resident-runtime/src/resident/server.ts)

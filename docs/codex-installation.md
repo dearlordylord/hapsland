@@ -105,7 +105,7 @@ journaled partial completion that requires recovery. Code 6 means setup needs us
 standalone credential-store failures also use code 6.
 
 Guided login defaults to the user plaintext credential file and offers project-local or
-native saving as explicit alternatives; see the generated [credential policy](installation-workflows.md#personal-development-on-your-own-clients).
+native saving as explicit alternatives; see the generated [credential policy](installation-workflows.md#credentials-and-login).
 When native storage is selected, Linux uses the session's persistent Secret Service
 collection and macOS uses the owned generic password in the selected default Keychain.
 It does not search, replace, or delete a matching item from another Keychain.
@@ -132,7 +132,7 @@ unavailable. On macOS, unlock or authorize the selected default Keychain from an
 
 Setup and hooks share key lookup: explicit process environment, repository `.env.local`,
 repository `.env`, then the user Hapsland configuration directory’s `.env`; see
-[credential lookup](installation-workflows.md#personal-development-on-your-own-clients).
+[credential lookup](installation-workflows.md#credentials-and-login).
 These sources take precedence over the native saved item. Selecting
 `credentialEnvVar` in user or project configuration is an explicit environment/file choice;
 missing, empty or invalid selected values do not fall back to the saved default. Replacement and

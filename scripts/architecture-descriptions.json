@@ -22,7 +22,7 @@
       },
       {
         "label": "rules",
-        "target": "docs/configuration.md#declarative-rules"
+        "target": "docs/rules.md#editable-rule-files"
       },
       {
         "label": "inspection",

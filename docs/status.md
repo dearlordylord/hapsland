@@ -9,19 +9,12 @@
 
 ## Source languages
 
-Hapsland reviews TypeScript interfaces, type aliases, and named functions, plus
-Rust structs, enums, and type aliases, and Bend `type` datatypes. Rust type
-context follows explicit local module bindings whose crate and module roles
-are verified from Cargo metadata and `mod` declarations. External crates,
-re-exports, inline modules, functions, macros, and conditional compilation are
-unsupported. Bend supports transitive context through explicit relative
-`.bend` imports with aliases. Bend functions, dependent types, laws/proofs, and
-hub, bare, or absolute imports are unsupported; this profile also skips files
-with string literals and requires single-line constructors indented with two spaces.
-See the [language table](../README.md#languages-and-limits) for file
-extensions and limitations. A file can still be skipped when its
-syntax or supporting evidence is unsupported; a skipped edit is not a clean
-review result.
+See the [language table](../README.md#languages-and-limits) for reviewed declarations,
+file extensions, and syntax and context limits. Unsupported syntax or missing
+supporting evidence can cause a skipped edit; a skipped edit is not a clean review
+result.
+
+## Diagnose readiness
 
 Run the offline, read-only doctor with an explicit repository and selected Codex home:
 
@@ -109,14 +102,20 @@ source is not captured. This preserves the bounded
 
 ## Opt-in local inspection
 
-| Use | Command | Page source |
-| --- | --- | --- |
-| Development | `npm run dev:inspection` from the repository root | Current checkout, with automatic browser reload |
-| Bundled production | `hapsland dashboard` | Installed package; source edits require a new package update |
+Function preparation distinguishes edited overload groups (`function-overload`),
+unsupported callable forms (`unsupported-callable`), unavailable extraction
+(`function-analysis-unavailable`) and files with no supported function roots
+(`no-supported-function-root`). These are preparation observations, not classifier
+findings or clear results. The [callable profile](type-function-review-proposal.md#named-typescript-callables-254)
+defines supported const-arrow and Effect forms and the retained limits.
+
+Run `hapsland dashboard` to inspect recorded agent reviews using the installed
+package. Contributors changing the page should use the
+[source dashboard workflow](installation-workflows.md#iterating-on-the-inspection-page).
 
 <!-- rule-check-dashboard:start -->
 
-For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is `sessionInspection`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit, run `hapsland rules check --path FILE --line N` (and optionally `--id RULE`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.
+For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is `sessionInspection`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit, run `hapsland rules check --path FILE --line N` (and optionally `--id RULE`); see [file/line rule checks](rules.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.
 
 <!-- rule-check-dashboard:end -->
 
@@ -142,20 +141,6 @@ prints its launch URL. It does not enable recording or start a resident. Enable
 recording through [configuration](configuration.md) to record new work;
 recording continues independently of the dashboard process. Source-bearing
 inspection history is separate from the source-free status and analytics below.
-
-From a checkout, `npm run dev:inspection` runs the same private, read-only
-inspector directly from source and prints its URL. Edits to
-[`packages/administration/src/inspection/page.ts`](../packages/administration/src/inspection/page.ts) automatically reload the
-visible browser page while keeping the server and capability URL alive. A page
-syntax error returns HTTP 503 until the source is fixed; the browser then reloads
-the repaired page. Server-side changes require restarting the command. Use
-`npm run dev:inspection -- --port=4318` to choose a port. This workflow uses the
-existing local journal and does not rebuild a package, invoke Tree-sitter,
-update installed hooks, or start a resident.
-
-Run `npm --prefix packages/agent-flow-viz run test:inspection-dev-browser` to
-check automatic reload, a stable private URL, syntax-error recovery, and HTTP
-route protection against the real page source.
 
 The **To agent** view renders the general message saved by Hapsland
 before the final socket handoff, with its intended recipient and original

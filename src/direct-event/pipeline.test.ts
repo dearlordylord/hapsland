@@ -33,6 +33,7 @@ import { attemptCodexHostOutput } from "@hapsland/delivery-output/direct-event/w
 import { Writable } from "node:stream"
 import { addEvent, makeGitFixture, put, advicee, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
 const findingAnswers = (): Readonly<Record<string, DecisionModel.ProviderAnswer>> =>
@@ -55,6 +56,96 @@ const enabledReview = (
   }).pipe(Effect.provide(controlledDecisionModelLayer(modelOptions)))
 
 describe("direct-event vertical slice", () => {
+  it.effect("does not call a function-only edit ambiguous in the type branch", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "mixed.ts",
+          "export type Label = { value: string }\nexport function title(value: string): string { return value + '!'; }\n"
+        )
+      )
+      const observation = yield* adaptCodexDirectEvent(
+        updateEvent(root, "mixed.ts", ["export function title(value: string): string { return value + '!'; }"])
+      )
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const result = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules
+      })
+      expect(
+        result.outcomes.some(
+          (outcome) => outcome.status === "ready" && outcome.prepared.input.declaration.name === "title"
+        )
+      ).toBe(true)
+      expect(
+        result.observation.outcomes.flatMap((outcome) =>
+          outcome.status === "observed" && outcome.analysis.status === "incomplete"
+            ? outcome.analysis.failures.map((failure) => failure.reason)
+            : []
+        )
+      ).not.toContain("ambiguous-update")
+    })
+  )
+
+  it.effect("does not report a supported type import as a file omission beside a reviewed function", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "task.ts", "export type Task = { title: string }"))
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "title.ts",
+          "import type { Task } from './task';\nexport function title(task: Task): string { return task.title; }"
+        )
+      )
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["title.ts"]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const result = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules
+      })
+      expect(
+        result.outcomes.some(
+          (outcome) => outcome.status === "ready" && outcome.prepared.input.declaration.name === "title"
+        )
+      ).toBe(true)
+      expect(
+        result.observation.outcomes.flatMap((outcome) =>
+          outcome.status === "observed" && outcome.analysis.status === "incomplete"
+            ? outcome.analysis.failures.map((failure) => failure.reason)
+            : []
+        )
+      ).not.toContain("import")
+    })
+  )
+
+  it.effect("keeps type and function roots with the same name distinct on Update", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const declaration = "export function Label(value: string): string { return value + '!'; }"
+      yield* Effect.promise(() => put(root, "mixed.ts", `export type Label = { value: string }\n${declaration}\n`))
+      const observation = yield* adaptCodexDirectEvent(updateEvent(root, "mixed.ts", [declaration]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const result = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules
+      })
+      expect(
+        result.outcomes.flatMap((outcome) =>
+          outcome.status === "ready" ? [outcome.prepared.input.declaration.kind] : []
+        )
+      ).toEqual(["function"])
+    })
+  )
+
   it.effect("refuses aggregate capture bytes before reading the next candidate", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
@@ -189,6 +280,262 @@ describe("direct-event vertical slice", () => {
           expect.objectContaining({ artifact: expect.objectContaining({ kind: "type-alias", name: "Command" }) })
         ])
       )
+    })
+  )
+
+  it.effect("sends all checkers domain types and rule questions through the provider boundary", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const source = yield* Effect.promise(() =>
+        readFile(new URL("./fixtures/checkers-core.ts.txt", import.meta.url), "utf8")
+      )
+      yield* Effect.promise(() => put(root, "src/core.ts", source))
+      const requests: Array<{ state: unknown; decisions: unknown }> = []
+      yield* enabledReview(root, addEvent(root, ["src/core.ts"]), {
+        answers: findingAnswers(),
+        inspectRequest: (request) =>
+          Effect.sync(() => {
+            requests.push({ state: request.state, decisions: request.decisions })
+          })
+      })
+      for (const name of ["Player", "Piece", "Board", "Move", "Game"]) {
+        expect(requests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              state: expect.objectContaining({ artifact: expect.objectContaining({ name }) }),
+              decisions: expect.objectContaining({ meaningless_combinations: expect.anything() })
+            })
+          ])
+        )
+      }
+    })
+  )
+
+  it.effect("sends Readonly supporting types without false missing evidence", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const source =
+        "type Piece = Readonly<{ value: number }>; export function identity(piece: Piece): Piece { return piece }"
+      yield* Effect.promise(() => put(root, "piece.ts", source))
+      const states: unknown[] = []
+      yield* enabledReview(root, addEvent(root, ["piece.ts"]), {
+        answers: findingAnswers(),
+        inspectRequest: (request) =>
+          Effect.sync(() => {
+            states.push(request.state)
+          })
+      })
+      expect(states).toContainEqual(
+        expect.objectContaining({
+          artifact: expect.objectContaining({
+            name: "identity",
+            source: "export function identity(piece: Piece): Piece { return piece }"
+          }),
+          inputContract: expect.objectContaining({ completeness: "complete" })
+        })
+      )
+    })
+  )
+
+  it.effect("reviews separately attributed roots beside a native end-of-file README hunk", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "core.ts",
+          [
+            "export type Game = {",
+            "  readonly board: number;",
+            "}",
+            "export function playMove(game: Game): Game {",
+            "  // Preserve the current game.",
+            "  return game;",
+            "}",
+            ""
+          ].join("\n")
+        )
+      )
+      yield* Effect.promise(() => put(root, "README.md", "Game rules are tested.\n"))
+      const event = {
+        ...addEvent(root),
+        tool_input: {
+          command: [
+            "*** Begin Patch",
+            "*** Update File: core.ts",
+            "@@",
+            "-  board: number;",
+            "+  readonly board: number;",
+            "@@",
+            " export function playMove(game: Game): Game {",
+            "+  // Preserve the current game.",
+            "   return game;",
+            "*** Update File: README.md",
+            "@@",
+            "+Game rules are tested.",
+            "*** End of File",
+            "*** End Patch"
+          ].join("\n")
+        },
+        tool_response:
+          "Exit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nM core.ts\nM README.md\n"
+      }
+      const requests: unknown[] = []
+      yield* enabledReview(root, event, {
+        answers: findingAnswers(),
+        inspectRequest: (request) =>
+          Effect.sync(() => {
+            requests.push(request.state)
+          })
+      })
+      for (const name of ["Game", "playMove"]) {
+        expect(requests).toContainEqual(expect.objectContaining({ artifact: expect.objectContaining({ name }) }))
+      }
+    })
+  )
+
+  it.effect("sends a function whose direct and transitive imports share a supporting type", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "core.ts",
+          "export type Player = 'black' | 'red'; export type Game = Readonly<{ winner: Player | null }>;"
+        )
+      )
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "winner.ts",
+          "import type { Game, Player } from './core'; export function winningPlayer(game: Game): Player | null { return game.winner }"
+        )
+      )
+      const requests: unknown[] = []
+      yield* enabledReview(root, addEvent(root, ["winner.ts"]), {
+        answers: findingAnswers(),
+        inspectRequest: (request) =>
+          Effect.sync(() => {
+            requests.push(request.state)
+          })
+      })
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          artifact: expect.objectContaining({ name: "winningPlayer" }),
+          inputContract: expect.objectContaining({ completeness: "complete" }),
+          evidence: expect.objectContaining({
+            nodes: [expect.objectContaining({ name: "Game" }), expect.objectContaining({ name: "Player" })]
+          })
+        })
+      )
+    })
+  )
+
+  it.effect("reports duplicate supporting evidence as an input build error before dispatch", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() =>
+        put(root, "types.ts", "type Player = 'black' | 'red'; type Game = { winner: Player | null };")
+      )
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["types.ts"]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const prepared = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules
+      })
+      const ready = prepared.outcomes.find(
+        (outcome) => outcome.status === "ready" && outcome.prepared.input.declaration.name === "Game"
+      )
+      if (ready?.status !== "ready") throw new Error("fixture preparation failed")
+      const references = ready.prepared.input.unit.root.references
+      const broken = {
+        ...ready.prepared,
+        input: {
+          ...ready.prepared.input,
+          unit: {
+            ...ready.prepared.input.unit,
+            root: { ...ready.prepared.input.unit.root, references: [...references, references[0]!] }
+          }
+        }
+      }
+      const evidence: EvaluationEvidence[] = []
+      let calls = 0
+      const result = yield* evaluatePrepared(broken, Effect.void, (event) => evidence.push(event)).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({
+            onRequest: Effect.sync(() => {
+              calls += 1
+            })
+          })
+        )
+      )
+      expect(calls).toBe(0)
+      expect(result.status).toBe("input-invalid")
+      expect(evidence).toEqual([
+        {
+          kind: "diagnostic",
+          path: "types.ts",
+          declaration: "Game",
+          diagnostic: {
+            stage: "provider-input",
+            code: "review-input-invalid",
+            args: { reason: "duplicate-expanded-target" }
+          }
+        },
+        { kind: "evaluation-outcome", outcome: "input-invalid" }
+      ])
+    })
+  )
+
+  it.effect("reports an actual review tree byte limit with measured sizes", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "types.ts", "type Player = 'black' | 'red';"))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["types.ts"]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const prepared = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules
+      })
+      const ready = prepared.outcomes.find((outcome) => outcome.status === "ready")
+      if (ready?.status !== "ready") throw new Error("fixture preparation failed")
+      const limited = {
+        ...ready.prepared,
+        input: { ...ready.prepared.input, graphLimits: { ...GRAPH_LIMIT_CEILINGS, treeBytes: 1 } }
+      }
+      const evidence: EvaluationEvidence[] = []
+      let calls = 0
+      const result = yield* evaluatePrepared(limited, Effect.void, (event) => evidence.push(event)).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({
+            onRequest: Effect.sync(() => {
+              calls += 1
+            })
+          })
+        )
+      )
+      expect(calls).toBe(0)
+      expect(result.status).toBe("input-limit")
+      expect(evidence).toEqual([
+        {
+          kind: "diagnostic",
+          path: "types.ts",
+          declaration: "Player",
+          diagnostic: {
+            stage: "provider-input",
+            code: "review-input-limit",
+            args: { constraint: "tree-bytes", observedBytes: expect.any(Number), limitBytes: 1 }
+          }
+        },
+        { kind: "evaluation-outcome", outcome: "input-limit" }
+      ])
+      const diagnostic = evidence[0]
+      if (diagnostic?.kind === "diagnostic" && diagnostic.diagnostic.code === "review-input-limit")
+        expect(diagnostic.diagnostic.args.observedBytes).toBeGreaterThan(diagnostic.diagnostic.args.limitBytes)
     })
   )
 

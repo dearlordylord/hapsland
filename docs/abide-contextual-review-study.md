@@ -70,7 +70,7 @@ Each TypeScript file combines the starting declaration and its related definitio
 
 The [frozen fixtures](../evidence/abide-rule-coverage-current/abide-rule-coverage-fixtures.mjs) own the tested inputs. For naturally contextual cases, related definitions were in unchanged `support.ts`; the [offline preparation record](../evidence/abide-rule-coverage-current/preflight.json) records which definitions entered Hapsland's graph. Count/HTTP-prefix examples are local. A related-definition example is not by itself proof that context caused an advantage.
 
-Setup provisions [seven defaults](./configuration.md#default-rules). The outcomes below retain the original questions and inputs and do not validate revised rules.
+Setup provisions [seven defaults](./rules.md#default-rules). The outcomes below retain the original questions and inputs and do not validate revised rules.
 
 ## Results by rule
 

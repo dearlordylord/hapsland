@@ -138,6 +138,30 @@ describe("resident client trust boundary", () => {
     }
     expect(received).toBe(3)
   })
+  it.each([undefined, "/fixture", "/selected"])(
+    "checks the selected resident build through its startup service: %s",
+    async (selectedBuild) => {
+      const startup = ResidentStartup.of({
+        selectedBuild: Effect.succeed(selectedBuild),
+        now: Effect.sync(() => performance.now()),
+        prepare: () => Effect.void,
+        probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1, build: "/fixture" }),
+        launch: () => Effect.die("ready owner must not launch"),
+        wait: (milliseconds) => Effect.sleep(milliseconds),
+        clearDiagnostic: () => Effect.void,
+        diagnostic: () => Effect.succeed("")
+      })
+      const result = Effect.runPromise(
+        ensureResidentEffect(residentPaths("/fixture")).pipe(Effect.provideService(ResidentStartup, startup))
+      )
+      if (selectedBuild === "/selected") {
+        await expect(result).rejects.toMatchObject({ message: "selected resident is not serving; run resident update" })
+      } else {
+        await expect(result).resolves.toMatchObject({ status: "ready", build: "/fixture" })
+      }
+    }
+  )
+
   effectIt.effect("uses one absolute readiness deadline and caps every operation to remaining time", () =>
     Effect.gen(function* () {
       const paths = residentPaths("/not-used")
@@ -145,6 +169,7 @@ describe("resident client trust boundary", () => {
       const launchCalls: Array<{ readonly at: number; readonly budget: number }> = []
       const probeBudgets: Array<number> = []
       const dependencies: ResidentStartupOperations = {
+        selectedBuild: Effect.succeed(undefined),
         now: Effect.sync(() => clock),
         clearDiagnostic: () => Effect.void,
         diagnostic: () => Effect.succeed(""),
@@ -193,6 +218,7 @@ describe("resident client trust boundary", () => {
       let ownerPresent = true
       const calls: Array<{ readonly operation: string; readonly at: number; readonly budget: number }> = []
       const dependencies: ResidentStartupOperations = {
+        selectedBuild: Effect.succeed(undefined),
         now: Effect.sync(() => clock),
         clearDiagnostic: () => Effect.void,
         diagnostic: () => Effect.succeed(""),
@@ -360,6 +386,7 @@ describe("resident client trust boundary", () => {
       )
       yield* Effect.promise(() => chmod(paths.socket, 0o600))
       const startup = ResidentStartup.of({
+        selectedBuild: Effect.succeed(undefined),
         now: Effect.sync(() => performance.now()),
         prepare: () => Effect.void,
         probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1, build: "/fixture" }),
@@ -610,6 +637,7 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
   const startup = Layer.succeed(
     ResidentStartup,
     ResidentStartup.of({
+      selectedBuild: Effect.succeed(undefined),
       now: Effect.sync(() => performance.now()),
       prepare: () => Effect.void,
       probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1, build: "/fixture" }),

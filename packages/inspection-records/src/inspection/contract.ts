@@ -131,6 +131,25 @@ export const InspectionPreparationDiagnostic = Schema.Union([
 ])
 export const InspectionDiagnostic = Schema.Union([
   Schema.Struct({
+    stage: Schema.Literal("provider-input"),
+    code: Schema.Literal("review-input-invalid"),
+    args: Schema.Struct({
+      reason: Schema.Literals([
+        "root-invalid",
+        "supporting-artifact-invalid",
+        "duplicate-expanded-target",
+        "included-target-unavailable",
+        "projection-invalid",
+        "request-invalid"
+      ])
+    })
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("provider-input"),
+    code: Schema.Literal("review-input-limit"),
+    args: Schema.Struct({ constraint: Schema.Literal("tree-bytes"), observedBytes: Count, limitBytes: Count })
+  }),
+  Schema.Struct({
     stage: Schema.Literal("observation"),
     code: Schema.Literal("attribution-unavailable"),
     args: Schema.Struct({})
@@ -271,7 +290,11 @@ export const InspectionFact = Schema.Union([
       "missing-evidence",
       "unsupported-reference",
       "reference-limit",
-      "ambiguous-update"
+      "ambiguous-update",
+      "function-analysis-unavailable",
+      "function-overload",
+      "unsupported-callable",
+      "no-supported-function-root"
     ])
   }),
   Schema.Struct({
@@ -354,6 +377,7 @@ export const InspectionFact = Schema.Union([
       "clear",
       "findings",
       "input-limit",
+      "input-invalid",
       "backend",
       "invalid-response",
       "timeout",
