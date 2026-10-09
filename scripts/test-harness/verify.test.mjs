@@ -67,6 +67,7 @@ test("acknowledged quality profile retains failed prerequisites without starting
     [
       ["quality-preflight", "failed"],
       ["lint-code", "not-started"],
+      ["native-parser-preparation", "not-started"],
       ["quality-coverage-provider", "not-started"],
       ["quality-coverage-bun", "not-started"],
       ["quality-coverage-smoke", "not-started"],
