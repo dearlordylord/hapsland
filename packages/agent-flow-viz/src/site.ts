@@ -499,6 +499,16 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
                   h.a([h.Href(DOWNLOADS), h.Class("button-primary")], ["Download Hapsland ↗"]),
                   h.a([h.Href("#setup"), h.Class("text-link")], ["Set up with your agent ↓"])
                 ]
+              ),
+              h.div(
+                [h.Class("hero-install")],
+                [
+                  h.p([h.Class("hero-install-label")], ["Or install with Homebrew"]),
+                  h.div(
+                    [h.Class("hero-install-row")],
+                    [h.pre([], [h.code([], [SETUP_COPY.install])]), copyButton(model, h, "install", "Copy")]
+                  )
+                ]
               )
             ]
           ),
@@ -585,19 +595,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.details(
             [h.Class("manual-setup")],
             [
-              h.summary([], ["Install with Homebrew"]),
+              h.summary([], ["Run setup manually after installing"]),
               h.div(
                 [h.Class("setup-command")],
                 [
-                  h.h3([], ["1. Install Hapsland"]),
-                  copyButton(model, h, "install", "Copy installation command"),
-                  h.pre([], [h.code([], [SETUP_COPY.install])])
-                ]
-              ),
-              h.div(
-                [h.Class("setup-command")],
-                [
-                  h.h3([], ["2. Run setup in your Git repository"]),
+                  h.h3([], ["Run setup in your Git repository"]),
                   copyButton(model, h, "setup", "Copy setup command"),
                   h.pre([], [h.code([], [SETUP_COPY.setup])])
                 ]

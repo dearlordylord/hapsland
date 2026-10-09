@@ -1569,3 +1569,43 @@ h3 {
   margin: 10px 0 0;
   font-size: 14px;
 }
+
+.hero-install {
+  margin-top: 16px;
+  max-width: 620px;
+}
+.hero-install-label {
+  color: #4d5147;
+  font-size: 12px;
+}
+.hero-install-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #eeede3;
+}
+.hero-install-row pre {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.hero-install-row .copy-control {
+  margin: 0;
+  flex-shrink: 0;
+}
+.hero-install-row .copy-status {
+  color: #4d5147;
+}
+@media (max-width: 600px) {
+  .hero-install-row pre {
+    flex-basis: 100%;
+  }
+}

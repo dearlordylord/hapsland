@@ -19,10 +19,11 @@ try {
   await page.getByRole("button", { name: "Copy instruction", exact: true }).click()
   await page.locator("#copy-instruction + .copy-status").getByText("Copied", { exact: true }).waitFor()
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), instruction)
-  await page.getByText("Install with Homebrew", { exact: true }).click()
-  await page.getByRole("button", { name: "Copy installation command", exact: true }).click()
+  assert.equal(await page.locator(".hero-install-row code").isVisible(), true)
+  await page.getByRole("button", { name: "Copy", exact: true }).click()
   await page.locator("#copy-install + .copy-status").getByText("Copied", { exact: true }).waitFor()
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "brew install dearlordylord/tap/hapsland")
+  await page.getByText("Run setup manually after installing", { exact: true }).click()
   await page.getByRole("button", { name: "Copy setup command", exact: true }).click()
   await page.locator("#copy-setup + .copy-status").getByText("Copied", { exact: true }).waitFor()
   assert.equal(
@@ -49,7 +50,6 @@ try {
   await httpPage.close()
 
   assert.deepEqual(await page.locator("#setup .setup-command code").allTextContents(), [
-    "brew install dearlordylord/tap/hapsland",
     '"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"'
   ])
   await page.locator(".lifecycle-collapsed").waitFor()
