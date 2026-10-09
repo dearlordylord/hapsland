@@ -1758,13 +1758,6 @@ function observation(
   )
 }
 
-function acceptedPreparationOutput(result: ReturnType<typeof stepCanonical>) {
-  if (result.rejection !== undefined) throw new Error("unexpected canonical preparation rejection")
-  const command = result.outputs[0]
-  if (command === undefined) throw new Error("invalid canonical preparation admission")
-  return command
-}
-
 function beginObservedPreparation(
   draft: CapacityDraft,
   partition: string,
@@ -1783,7 +1776,9 @@ function beginObservedPreparation(
   })
   if (result.rejection === "StaleRound") return { status: "unavailable", reason: "stale-round" }
   if (result.rejection === "WrongStage") return { status: "unavailable", reason: "wrong-stage" }
-  const command = acceptedPreparationOutput(result)
+  if (result.rejection !== undefined) throw new Error("unexpected canonical preparation rejection")
+  const command = result.outputs[0]
+  if (command === undefined) throw new Error("invalid canonical preparation admission")
   if (command.kind === "preparationRefused") return { status: "capacity-refused" }
   if (command.kind !== "prepare") throw new Error("unexpected canonical preparation command")
   const reservation = registerReservation(draft, command.reservation, partition, bytes, "preparation")
@@ -2108,24 +2103,16 @@ function isPreparationRelease(
   return command?.kind === "preparationReleased" && command.id === id
 }
 
-function isReplacementResult(
-  result: ReturnType<typeof stepCanonical>,
-  reservation: CapacityReservation,
-  count: number
-): boolean {
-  return (
-    result.rejection === undefined &&
-    isPreparationRelease(result.outputs[0], reservation.id) &&
-    result.outputs.length === count + 1
-  )
-}
-
 function validateReplacementResult(
   result: ReturnType<typeof stepCanonical>,
   reservation: CapacityReservation,
   count: number
 ): void {
-  if (!isReplacementResult(result, reservation, count)) {
+  if (
+    result.rejection !== undefined ||
+    !isPreparationRelease(result.outputs[0], reservation.id) ||
+    result.outputs.length !== count + 1
+  ) {
     throw new Error("invalid Bend capacity replacement result")
   }
 }

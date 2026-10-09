@@ -3868,12 +3868,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentControlledOutcomeLabel = (count: number): string =>
     count === 0 ? "completed-clear" : "completed-findings"
   const residentEvaluatedOutcome = (count: number): "clear" | "finding" => (count === 0 ? "clear" : "finding")
-  const discardedUnitFate = (disposition: string) =>
-    disposition === "stale"
-      ? { fate: "stale" as const, reason: "resident-stale" as const }
-      : disposition === "ignored"
-        ? { fate: "discarded" as const, reason: "settlement-ignored" as const }
-        : undefined
   const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")((job: UnitJob, sequence: number) =>
     Effect.suspend(() => {
       const server = runtime
@@ -4121,18 +4115,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               credentialGeneration: credential?.generation ?? null
             })
             const authorizePreparedUnit = Effect.fn("ResidentRuntime.authorizePreparedUnit")(function* () {
-              const preparedContextMismatch = () => {
-                const editConfiguration = job.settings.configuration
-                if (credentialRequired && dispatchCredential?.name !== editConfiguration.policy.credentialEnvVar.value)
-                  return "credential" as const
-                if (canonicalValue(job.prepared.input.providerIdentity) !== canonicalValue(settings.providerIdentity))
-                  return "provider" as const
-                return undefined
-              }
-              const contextMismatch = preparedContextMismatch()
-              if (contextMismatch === "credential") return yield* denyReady("credential")
-              if (contextMismatch !== undefined) return yield* denyReady()
               const editConfiguration = job.settings.configuration
+              if (credentialRequired && dispatchCredential?.name !== editConfiguration.policy.credentialEnvVar.value)
+                return yield* denyReady("credential")
+              if (canonicalValue(job.prepared.input.providerIdentity) !== canonicalValue(settings.providerIdentity))
+                return yield* denyReady()
               const dispatchRootVerified = yield* verifyObservationRoot(job.observation)
               if (!dispatchRootVerified) {
                 yield* observeDispatchAuthority({
@@ -4387,9 +4374,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             result.findings
           )
           const discardSettledUnit = Effect.fn("ResidentRuntime.discardSettledUnit")(function* () {
-            const discarded = discardedUnitFate(disposition)
-            if (discarded === undefined) return false
-            inspectionObserveUnitFate(job, result.findings, discarded.fate, discarded.reason)
+            if (disposition !== "ignored" && disposition !== "stale") return false
+            inspectionObserveUnitFate(
+              job,
+              result.findings,
+              disposition === "stale" ? "stale" : "discarded",
+              disposition === "stale" ? "resident-stale" : "settlement-ignored"
+            )
             yield* residentReleaseReuseClaim(job.evaluationKey)
             yield* residentReleaseUnit(job)
             return true
@@ -6167,18 +6158,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const context = yield* Ref.make<ResponseContext>({})
     let responseToken: string | undefined
     let handedToTransport = false
-    const closeCleanedHandoff = Effect.fn("ResidentRuntime.closeCleanedHandoff")(function* (handoff: ResidentResponse) {
-      if (handoff.status === "cleaned") yield* residentScheduleRetirementClose()
-    })
-    const writeHandoff = Effect.fn("ResidentRuntime.writeHandoff")(function* (handoff: ResidentResponse) {
-      if (!port.canWrite()) {
-        if (handoff.status === "advice") yield* server.releaseDelivery(handoff.token)
-        yield* closeCleanedHandoff(handoff)
-        return
-      }
-      handedToTransport = yield* port.write(encodeCurrentResidentResponse(handoff))
-      yield* closeCleanedHandoff(handoff)
-    })
     const respond = Effect.gen(function* () {
       const response = yield* residentHandle(decoded, context)
       if (response.status === "advice") responseToken = response.token
@@ -6196,7 +6175,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const selected = yield* residentResponseForHandoff(request, response, sourceCurrent, authority)
           const handoff = yield* residentReconcileFinishHandoff(decoded, response, selected, port.canWrite())
           yield* residentPruneCollectionTokenIds()
-          yield* writeHandoff(handoff)
+          if (!port.canWrite()) {
+            if (handoff.status === "advice") yield* server.releaseDelivery(handoff.token)
+            if (handoff.status === "cleaned") yield* residentScheduleRetirementClose()
+            return
+          }
+          handedToTransport = yield* port.write(encodeCurrentResidentResponse(handoff))
+          if (handoff.status === "cleaned") yield* residentScheduleRetirementClose()
         })
       )
       yield* port.closed

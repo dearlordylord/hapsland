@@ -47,7 +47,7 @@ test("acknowledged quality profile retains failed prerequisites without starting
     "run-checks.test.mjs",
     "verification-plan.test.mjs",
     "verify.test.mjs",
-    "check-complexity.test.mjs"
+    "quality-report.test.mjs"
   ])
     await writeFile(join(root, "scripts/test-harness", name), "// Passing prerequisite fixture\n")
   await writeFile(join(root, "scripts/test-harness/immediate-errors.test.mjs"), "throw new Error('profile witness')")
@@ -67,7 +67,10 @@ test("acknowledged quality profile retains failed prerequisites without starting
     [
       ["quality-preflight", "failed"],
       ["lint-code", "not-started"],
-      ["quality-complexity", "not-started"],
+      ["quality-coverage-provider", "not-started"],
+      ["quality-coverage-bun", "not-started"],
+      ["quality-coverage-smoke", "not-started"],
+      ["quality-coverage-evidence", "not-started"],
       ["quality", "not-started"]
     ]
   )
