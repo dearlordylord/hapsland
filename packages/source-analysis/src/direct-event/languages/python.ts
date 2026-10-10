@@ -387,7 +387,8 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
             "function_definition",
             "decorated_definition",
             "class_definition",
-            "pass_statement"
+            "pass_statement",
+            "comment"
           ].includes(member.type)
         ) {
           defining.push(location(member))

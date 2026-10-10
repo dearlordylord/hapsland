@@ -608,6 +608,15 @@ describe("Python same-file shipped review", () => {
       }
     })
   )
+  it("class comments preserve complete exact model source", () => {
+    const source =
+      'class Model:\n    "Model documentation"\n    value: str\n    # authored field context\n    other: str\n'
+    expect(analyzeTypeFile("model.py", source)).toMatchObject({
+      status: "analyzed",
+      units: [expect.objectContaining({ status: "ready" })]
+    })
+    expect(inspectGraphFile("model.py", source)!.declarations.get("Model")!.artifact.source).toBe(source.trimEnd())
+  })
   it.effect("schema mutations are attributed and omitted without admitting shipped provider input", () =>
     Effect.gen(function* () {
       for (const statement of [
