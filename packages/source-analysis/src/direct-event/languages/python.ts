@@ -278,12 +278,51 @@ export type PythonImport = {
   readonly module: boolean
   readonly prefix: string
 }
+const evaluatedNodes = (node: SyntaxNode): SyntaxNode[] => [
+  node,
+  ...node.namedChildren
+    .filter((child) => !(node.type === "function_definition" && child.type === "block"))
+    .flatMap(evaluatedNodes)
+]
+/** Dynamic loader or imported-namespace mutation cannot establish a static target. */
+const unavailableImportNamespace = (root: SyntaxNode, bindings: ReadonlyMap<string, string>): boolean =>
+  root.namedChildren
+    .filter((node) => !["class_definition", "function_definition", "decorated_definition"].includes(node.type))
+    .flatMap(evaluatedNodes)
+    .some((node) => {
+      if (node.type !== "call") return false
+      const name = node.childForFieldName("function")?.text ?? ""
+      return !["typing.NewType", "typing_extensions.NewType"].includes(identityFor(name, bindings) ?? "")
+    }) ||
+  evaluatedNodes(root).some((node) => {
+    if (["assignment", "augmented_assignment", "named_expression", "delete_statement"].includes(node.type)) {
+      const targets = node.type === "delete_statement" ? node.namedChildren : [node.childForFieldName("left")]
+      if (
+        targets.some(
+          (target) => target !== null && target.type !== "identifier" && bindings.has(target.text.split(/[.[]/u)[0]!)
+        )
+      )
+        return true
+    }
+    if (node.type !== "call") return false
+    const name = node.childForFieldName("function")?.text ?? ""
+    const identity = identityFor(name, bindings) ?? name
+    return (
+      /^(?:sys\.(?:path|meta_path|path_hooks|modules)(?:[.[]|$)|importlib\.|builtins\.(?:__import__|exec|eval|setattr|delattr))/u.test(
+        identity
+      ) || /^(?:__import__|exec|eval|globals|locals|setattr|delattr)(?:$|\()/u.test(identity)
+    )
+  })
 export const pythonImports = (source: string): ReadonlyMap<string, PythonImport> | undefined => {
   const root = rootFor(source)
   if (root.hasError) return undefined
   const { facts, bindings, staticBlocks } = moduleScope(root)
   if (descendants(root).some((node) => node.type === "wildcard_import")) return undefined
-  if (facts.some((fact) => ["__path__", "__getattr__"].includes(fact.name))) return undefined
+  if (
+    facts.some((fact) => ["__path__", "__getattr__"].includes(fact.name)) ||
+    unavailableImportNamespace(root, bindings)
+  )
+    return undefined
   const statements = root.namedChildren.flatMap((node) =>
     staticBlocks.has(node.startIndex) ? (node.childForFieldName("consequence")?.namedChildren ?? []) : [node]
   )
@@ -316,12 +355,6 @@ const staticPackageAuthority = (source: string): boolean => {
   const statements = root.namedChildren.flatMap((node) =>
     staticBlocks.has(node.startIndex) ? (node.childForFieldName("consequence")?.namedChildren ?? []) : [node]
   )
-  const runtimeNodes = (node: SyntaxNode): SyntaxNode[] => [
-    node,
-    ...node.namedChildren
-      .filter((child) => !(node.type === "function_definition" && child.type === "block"))
-      .flatMap(runtimeNodes)
-  ]
   for (const node of statements) {
     if (
       [
@@ -334,7 +367,7 @@ const staticPackageAuthority = (source: string): boolean => {
       ].includes(node.type)
     )
       return false
-    for (const evaluated of runtimeNodes(node)) {
+    for (const evaluated of evaluatedNodes(node)) {
       if (
         ["assignment", "augmented_assignment", "named_expression"].includes(evaluated.type) &&
         evaluated.childForFieldName("left")?.type !== "identifier"
@@ -626,7 +659,10 @@ export const inspectPython: LanguageAdapter["inspect"] = (path, source) => {
   if (declarations.length === 0 && imports.size === 0) return undefined
   const graphImports = new Map<string, { readonly path: string; readonly name: string }>()
   for (const [name, imported] of imports) {
-    if (!imported.module) graphImports.set(name, { path: imported.path, name: imported.name })
+    graphImports.set(name, {
+      path: imported.module && imported.prefix.includes(".") ? imported.path.split(".")[0]! : imported.path,
+      name: imported.name
+    })
   }
   for (const declaration of declarations)
     for (const reference of declaration.references) {

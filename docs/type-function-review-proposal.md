@@ -627,7 +627,12 @@ an unchanged positive declaration. Restoring the exact source and binding may
 make it current again. The provider receives only reachable declarations;
 authority-only metadata and initializer captures are source fingerprints, not
 invented declaration nodes. Independent complete roots remain eligible when
-another root has an omission. Qualified member chains retain initializer
+another root has an omission. Loader/path effects and imported-namespace mutation
+in edited or supporting modules cannot establish static import authority; effects
+inside an unevaluated function body do not change module bindings. Unknown
+module-level calls also make that module authority unavailable; the declared
+`typing.NewType` constructor remains supported. Independent modules retain their
+own root authority. Qualified member chains retain initializer
 binding authority: a bound class or rebound name is never guessed to be a
 sibling submodule. Only an unbound member or explicit module reexport can
 authorize the supported package-submodule fallback.

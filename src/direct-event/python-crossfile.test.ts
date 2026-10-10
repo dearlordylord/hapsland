@@ -74,7 +74,7 @@ describe("Python bounded local model evidence", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "pkg/base.py", base))
       yield* Effect.promise(() => put(root, "pkg/Base.py", "class Inner:\n    id: str\n"))
-      for (const initializer of ["", "from . import base\n"]) {
+      for (const initializer of ["", "from . import base\n", "import pkg.base as base\n"]) {
         yield* Effect.promise(() => put(root, "pkg/__init__.py", initializer))
         yield* Effect.promise(() =>
           put(root, "model.py", "from pkg import base as m\nclass Model(m.Base):\n    pass\n")
@@ -107,6 +107,51 @@ describe("Python bounded local model evidence", () => {
         const moduleResult = yield* prepare(addEvent(root, ["model.py"]))
         expect(moduleResult.ready.map((item) => preparedProviderInput(item)?.artifact.name)).toEqual(["Good"])
       }
+    })
+  )
+  it.effect("loader and imported namespace effects cannot establish cross-file bindings", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      for (const effects of [
+        'import sys\nsys.path.insert(0, "/outside")\n',
+        "import sys as system\nsystem.meta_path.insert(0, custom_loader)\n",
+        "from sys import path as paths\npaths.append(extra)\n",
+        "import support\nsupport.Base = Other\n",
+        "import sys\nsys.modules['support'] = other\n",
+        "import importlib as loader\nloader.import_module(dynamic_name)\n",
+        "exec(dynamic_loader)\n",
+        "def install_loader():\n    import sys\n    sys.meta_path.append(loader)\ninstall_loader()\n"
+      ]) {
+        yield* Effect.promise(() => put(root, "support.py", base))
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "model.py",
+            effects + "from support import Base\nclass Model(Base):\n    pass\nclass Good:\n    value: str\n"
+          )
+        )
+        yield* Effect.promise(() => put(root, "good.py", "class Independent:\n    value: str\n"))
+        const result = yield* prepare(addEvent(root, ["model.py", "good.py"]))
+        expect(
+          result.ready.map((item) => preparedProviderInput(item)?.artifact.name),
+          effects
+        ).toEqual(["Independent"])
+        yield* Effect.promise(() => put(root, "support.py", effects + base))
+        yield* Effect.promise(() =>
+          put(root, "model.py", "from support import Base\nclass Model(Base):\n    pass\nclass Good:\n    value: str\n")
+        )
+        const supporting = yield* prepare(addEvent(root, ["model.py"]))
+        expect(
+          supporting.ready.map((item) => preparedProviderInput(item)?.artifact.name),
+          effects
+        ).toEqual(["Good"])
+      }
+      yield* Effect.promise(() =>
+        put(root, "support.py", base + "def helper():\n    import sys\n    sys.path.append(extra)\n")
+      )
+      expect(
+        (yield* prepare(addEvent(root, ["model.py"]))).ready.map((item) => preparedProviderInput(item)?.artifact.name)
+      ).toEqual(["Model", "Good"])
     })
   )
   it.effect("relative imports, named initializer chains and source-layout qualified imports share the graph", () =>

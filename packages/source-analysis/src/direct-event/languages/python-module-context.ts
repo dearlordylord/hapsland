@@ -328,7 +328,7 @@ export const createPythonGraphPreparation = (
               }
               owner = target
               module = forwarded.path
-              member = [forwarded.name, ...tail].join(".")
+              member = [forwarded.name, ...tail].filter(Boolean).join(".")
               continue
             }
             if (hasPackageBinding(capture.text, head!)) return undefined
