@@ -783,7 +783,6 @@ try {
         join(repository, "Cargo.toml"),
         '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'
       )
-    await writeFile(join(repository, entry), source)
     await writeFile(join(repository, supportingEntry), supportingSource)
     const summaryPath = join(temporary, `${language}-cross-file-summary.jsonl`)
     const isolatedRuntime = join(temporary, `${language}-cross-file-runtime`)
@@ -800,6 +799,7 @@ try {
     const env = {
       ...launcherEnvironment,
       REVIEW_RESIDENT_DIR: isolatedRuntime,
+      REVIEW_ACTIVITY_PATH: join(temporary, `${language}-cross-file-activity`),
       REVIEW_STATE_PATH: join(temporary, `${language}-cross-file-state`),
       REVIEW_INSTALL_CONTROLLED: "1",
       REVIEW_USER_CONFIG_PATH: join(temporary, "cross-file-user.json"),
@@ -835,19 +835,34 @@ try {
         input: JSON.stringify(event),
         requireQuiet: true
       })
+      await writeFile(join(repository, entry), source)
       await mustRun(hook, ["--codex-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"], {
         cwd: repository,
         env,
         input: JSON.stringify({ ...event, hook_event_name: "PostToolUse" }),
         requireQuiet: true
       })
+      // Review preparation runs independently of the edit response. Observe the
+      // provider handoff within the same five-second bound used below.
+      for (let attempt = 0; attempt < 100; attempt++) {
+        if (await readFile(summaryPath, "utf8").catch(() => "")) break
+        await new Promise((resolveWait) => setTimeout(resolveWait, 50))
+      }
       await mustRun(hook, ["--composed-stop-hook", "--composed-host=codex-cli", "--controlled-reviewer"], {
         cwd: repository,
         env,
         input: JSON.stringify({ ...event, hook_event_name: "Stop", stop_hook_active: false }),
         requireQuiet: true
       })
-      const summaries = jsonLines(await readFile(summaryPath, "utf8"))
+      const encodedSummary = await readFile(summaryPath, "utf8").catch(() => "")
+      if (!encodedSummary) {
+        const activity = await readActivityMarkers(env.REVIEW_ACTIVITY_PATH)
+        const startup = await readFile(`${isolatedRuntime}/owner.lock.startup-error`, "utf8").catch(() => "")
+        throw new Error(
+          `installed ${language} provider handoff absent after bounded wait: ${JSON.stringify({ stages: activity.map(({ kind, stage, reason }) => ({ kind, stage, reason })), startup: startup.slice(-2048) })}`
+        )
+      }
+      const summaries = jsonLines(encodedSummary)
       if (!summaries.some((summary) => summary.evidenceNodes >= 1 && summary.expandedEdges >= 1))
         throw new Error(
           `installed ${language} cross-file review did not expand supporting evidence: ${JSON.stringify(summaries)}`
@@ -1273,7 +1288,6 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     throw new Error("local package update changed old grant files")
   }
   const source = "export interface Delivery { id: string; destination: string }\n"
-  await writeFile(join(repository, "profile.ts"), source, { mode: 0o600 })
   const addEvent = {
     hook_event_name: "PostToolUse",
     tool_name: "apply_patch",
@@ -1291,6 +1305,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     { ...addEvent, hook_event_name: "PreToolUse" },
     { cwd: temporary, env: installedHostEnvironment }
   )
+  await writeFile(join(repository, "profile.ts"), source, { mode: 0o600 })
   const postToolOutputs = await runInstalledHooks(codexHome, addEvent, {
     cwd: temporary,
     env: installedHostEnvironment
@@ -1316,7 +1331,14 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const packagedRules = configuredRules
   const expectedFindingLines = packagedRules.map((rule) => `profile.ts :: Delivery: ${rule.message}`).sort()
   const deliveryOutputs = [...postToolOutputs, ...stopOutputs]
-  let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length
+  const encodedCalls = await readFile(calls, "utf8").catch(() => "")
+  if (!encodedCalls) {
+    const markers = await readActivityMarkers(activity)
+    throw new Error(
+      `installed controlled provider handoff absent after bounded wait: ${JSON.stringify(markers.map(({ kind, stage, reason }) => ({ kind, stage, reason })))}`
+    )
+  }
+  let submissions = encodedCalls.trim().split("\n").filter(Boolean).length
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`)
   if (!nativeFindingsSubmittedOnce(deliveryOutputs, "profile.ts :: Delivery", expectedFindingLines)) {
     throw new Error(

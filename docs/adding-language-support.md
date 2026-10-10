@@ -188,12 +188,12 @@ are owned by the [Python amendment](type-function-review-proposal.md#python-same
 
 ### Python qualification for parent #267
 
-The same-file Python slice has local implementation evidence from 2026-10-09.
+The same-file Python slice has local implementation evidence from 2026-10-09–10.
 Keep this qualification current when its grammar, runtime, installed entrypoints,
 or model evidence contract changes; rerun the affected checks before extending it.
-The production-code candidate was `1d3d0f408ca9a0ecc0f5d1e53c7b6a221446b472`.
+The production-code candidate was `a11f7d08d7fd46a7d019c3869a05c718279cacc2`.
 Its reviewed Linux arm64 archive SHA-256 was
-`91ec7adc9b62f2e20073eb11eaee06c15eff3328305540334f3a6156a08c746b`.
+`2aac15d8bdea63247206d58779593e85c868817a26563c2f68bdcc39bff34d15`.
 Subsequent runner corrections isolate HOME, check the stable hook launcher and
 catalog-defined `exec` prefixes, and exercise a distinct hook-payload update while
 preserving the independently selected resident, as required by the
@@ -201,7 +201,7 @@ preserving the independently selected resident, as required by the
 
 Executed evidence:
 
-- Twenty focused Python/profile tests passed: eight admitted root families with
+- Twenty-three focused Python/profile tests passed: eight admitted root families with
   the three shipped rules, exact root/support source at the controlled provider,
   finding/clear/failure delivery, defining-edit selection, lexical shadows and
   generic bounds, independent omissions, exclusions, budgets and stale advice.
@@ -226,7 +226,12 @@ Earlier installed attempts failed because inherited HOME selected another
 installed resident and because conformance assumed obsolete direct hook command,
 semver-only update and coupled resident-update behavior. Retained failed fixture
 state was preserved; exact-command resident cleanup passed. Corrected runs passed
-with isolated homes and unchanged custody checks.
+with isolated homes and unchanged custody checks. Subsequent synthetic Add
+fixtures sometimes admitted incomplete evidence; investigation found that the
+target already existed before capture. Conformance now creates each target between the pre-edit
+and post-edit hooks, and bounded provider-handoff waits retain source-free
+diagnostics on failure. Official conformance passed on the archive above after
+that correction.
 
 Darwin execution and the full two-target archive remain unqualified here: the
 required Darwin arm64 native input bundle was unavailable on this Linux host.

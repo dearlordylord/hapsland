@@ -155,12 +155,18 @@ describe("Python same-file shipped review", () => {
         put(
           root,
           "model.py",
-          'from dataclasses import dataclass\nfrom typing import NewType\n@dataclass\nclass Empty:\n    pass\nUserId = NewType("UserId", str)\n'
+          'import dataclasses as dc\nimport typing as t\nimport typing_extensions as tx\nimport pydantic as pd\n@dc.dataclass\nclass Empty:\n    pass\nclass EmptyMapping(tx.TypedDict):\n    pass\nclass EmptySchema(pd.BaseModel):\n    pass\nUserId = t.NewType("UserId", str)\nPlain: tx.TypeAlias = str\n'
         )
       )
       const result = yield* prepare(addEvent(root, ["model.py"]))
       const ready = result.outcomes.filter((outcome) => outcome.status === "ready")
-      expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual(["Empty", "UserId"])
+      expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual([
+        "Empty",
+        "EmptyMapping",
+        "EmptySchema",
+        "UserId",
+        "Plain"
+      ])
       for (const outcome of ready) {
         expect(outcome.prepared.input.rules.map((rule) => rule.id).sort()).toEqual([
           "absence_confusion",
