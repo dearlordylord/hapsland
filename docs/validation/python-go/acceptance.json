@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "locally-qualified-awaiting-acceptance-review",
+  "status": "locally-qualified",
   "implementationBase": "69825bc5ae09c2da797939a7bb198c6f4c380be4",
   "historicalNativeRecords": [
     {
@@ -172,5 +172,14 @@
     "baseline": "Unavailable; no regression attribution",
     "qualificationRoute": "Pinned Bun identity probe; exact packaged hook/resident execution",
     "rawFailedPreview": "Not retained in this evidence revision; owner-reported historical measurements only"
+  },
+  "coverageHandoff": "https://github.com/dearlordylord/hapsland/issues/268#issuecomment-6098905156",
+  "acceptanceReview": {
+    "reviewedCommit": "a6bc8c19b4c2a8d0245098d6777a515081b5b573",
+    "base": "69825bc5ae09c2da797939a7bb198c6f4c380be4",
+    "round": 2,
+    "reasoning": "medium",
+    "result": "No reasonable blocking findings",
+    "reviewRanAdditionalTests": false
   }
 }
