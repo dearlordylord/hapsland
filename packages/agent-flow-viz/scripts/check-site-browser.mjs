@@ -3,6 +3,8 @@ import { mkdir } from "node:fs/promises"
 import { chromium } from "playwright"
 import { preview } from "astro"
 import { networkInterfaces } from "node:os"
+import { COMMENTS } from "../site/content.ts"
+const commentPattern = (index) => new RegExp(COMMENTS[index].quote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
 const server = await preview({ server: { host: "0.0.0.0", port: 0 } })
 let browser
 try {
@@ -45,43 +47,41 @@ try {
     await page.locator(".comment-stack:not(.is-swiping)").waitFor()
   }
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000))
-  assert.match(await activeComment.textContent(), /field be set in a state/)
+  assert.match(await activeComment.textContent(), commentPattern(0))
   assert.equal(await page.locator('.comment-card[aria-hidden="true"]').count(), 5)
   assert.equal(await page.locator(".comment-deck a").count(), 0, "cards no longer contain rule links")
   assert.deepEqual(
     await page.locator(".comment-code code").allTextContents(),
-    [
-      'type Order = {\n  status: "pending" | "delivered";\n  deliveredAt: Date | null;\n};\n\nconst order: Order = {\n  status: "pending",\n  deliveredAt: new Date()\n};',
-      'type UserId = string;\ntype OrderId = string;\n\nfunction userPath(id: UserId) {\n  return `/users/${id}`;\n}\n\nconst orderId: OrderId = "order-42";\nuserPath(orderId);',
-      "type MapPin = {\n  latitude?: number;\n  longitude?: number;\n};\n\nconst pin: MapPin = {\n  latitude: 51.5\n};",
-      'type Person = {\n  middleName?: string | null;\n};\n\nconst people: Person[] = [\n  {},\n  { middleName: null },\n  { middleName: "" }\n];',
-      "type Count = number;\n\nconst missing: Count = -1;\nconst partial: Count = 1.5;",
-      "function isExpired(at: number): boolean {\n  return Date.now() > at;\n}"
-    ],
+    COMMENTS.map((comment) => comment.code.map((token) => token.text).join("")),
     "syntax highlighting preserves every sample character"
   )
   const cardTitles = await page.locator(".comment-card blockquote").allTextContents()
-  assert.deepEqual(await page.locator(".comment-card-heading .micro").allTextContents(), [
-    "MEANINGLESS COMBINATIONS",
-    "DOMAIN VALUES",
-    "PARTS OF ONE FACT",
-    "ABSENCE CONFUSION",
-    "NAME AND TYPE",
-    "VISIBLE DEPENDENCIES"
-  ])
-  assert.deepEqual(await page.locator(".code-conflict").allTextContents(), [
-    "  deliveredAt: new Date()",
-    "  latitude: 51.5",
-    "-1",
-    "1.5"
-  ])
-  assert.equal(await page.locator(".code-attention").textContent(), "  middleName?: string | null;")
-  assert.equal(await page.locator(".comment-card").nth(3).locator(".code-conflict").count(), 0)
+  assert.equal(await page.locator(".comment-repair").count(), 6, "every issue has a design direction")
+  assert.equal(await page.locator(".comment-card-number").count(), 0, "decorative counters are removed")
+  assert.deepEqual(
+    await page.locator(".comment-card-heading .micro").allTextContents(),
+    COMMENTS.map((comment) => comment.label)
+  )
+  for (const emphasis of ["conflict", "attention"]) {
+    assert.deepEqual(
+      await page.locator(`.code-${emphasis}`).allTextContents(),
+      COMMENTS.flatMap((comment) =>
+        comment.code.filter((token) => token.emphasis === emphasis).map((token) => token.text)
+      )
+    )
+  }
   const conflict = page.locator(".comment-card").first().locator(".code-conflict")
   assert.equal(await conflict.count(), 1, "only the contradictory assignment is marked")
-  assert.equal(await conflict.textContent(), "  deliveredAt: new Date()")
+  assert.equal(await conflict.textContent(), COMMENTS[0].code.find((token) => token.emphasis === "conflict").text)
   assert.equal(await conflict.evaluate((el) => getComputedStyle(el).backgroundColor), "rgb(246, 221, 214)")
-  assert.equal(await conflict.evaluate((el) => getComputedStyle(el, "::before").content), '"×"')
+  assert.equal(await conflict.evaluate((el) => getComputedStyle(el, "::before").content), "none")
+  assert.equal(
+    await page
+      .locator(".comment-code-line.has-conflict")
+      .first()
+      .evaluate((el) => getComputedStyle(el, "::before").content),
+    '"×"'
+  )
   assert.equal(
     await conflict.evaluate((el) => getComputedStyle(el).textDecorationLine),
     "none",
@@ -105,30 +105,26 @@ try {
   await page.clock.runFor(4300)
   assert.notEqual(await activeComment.textContent(), clickedComment, "autoplay resumes after a click and pointer leave")
   await page.keyboard.press("ArrowLeft")
-  await waitForComment(/field be set in a state/)
+  await waitForComment(commentPattern(0))
   // Reset at a frozen clock boundary, then inspect one timer's progress and card switch.
   await page.locator(".comment-stack").focus()
   await page.keyboard.press("ArrowRight")
-  await waitForComment(/different domain meanings/)
+  await waitForComment(commentPattern(1))
   await page.keyboard.press("ArrowLeft")
-  await waitForComment(/field be set in a state/)
+  await waitForComment(commentPattern(0))
   assert.equal(await progress(), 0)
   await page.locator(".hero h1").click()
   await page.mouse.move(0, 0)
   await page.clock.runFor(32)
   await page.locator('.comment-stack[aria-live="off"]').waitFor()
   await page.clock.runFor(1500)
-  assert.match(await activeComment.textContent(), /field be set in a state/)
+  assert.match(await activeComment.textContent(), commentPattern(0))
   assert.ok((await progress()) >= 0.35 && (await progress()) <= 0.4, "bar tracks the four-second cycle")
   await page.clock.runFor(2000)
-  assert.match(
-    await activeComment.textContent(),
-    /field be set in a state/,
-    "card remains until its progress completes"
-  )
+  assert.match(await activeComment.textContent(), commentPattern(0), "card remains until its progress completes")
   assert.ok((await progress()) >= 0.85 && (await progress()) <= 0.9)
   await page.clock.runFor(500)
-  await waitForComment(/different domain meanings/)
+  await waitForComment(commentPattern(1))
   assert.ok((await progress()) <= 0.025, "progress resets with the card switch")
   await page.clock.runFor(1000)
   await page.locator(".comment-stack").hover()
@@ -137,7 +133,7 @@ try {
   const pausedProgress = await progress()
   await page.clock.fastForward(8000)
   assert.equal(await progress(), pausedProgress, "hover freezes progress and card selection together")
-  assert.match(await activeComment.textContent(), /different domain meanings/)
+  assert.match(await activeComment.textContent(), commentPattern(1))
   await page.locator(".comment-stack").focus()
   await page.mouse.move(0, 0)
   await page.clock.fastForward(8000)
@@ -164,7 +160,7 @@ try {
   await mouseDrag("left")
   await waitForComment(cardTitles[2])
   await mouseDrag("right")
-  await waitForComment(/different domain meanings/)
+  await waitForComment(commentPattern(1))
   await page.mouse.move(0, 0)
   await page.clock.runFor(700)
   assert.ok((await progress()) > 0.1, "autoplay resumes after a mouse drag outside the stack")
@@ -176,22 +172,22 @@ try {
   await swipeComment(-120)
   await waitForComment(cardTitles[0])
   await swipeComment(120)
-  await waitForComment(/body read or change/)
+  await waitForComment(commentPattern(5))
   await swipeComment(-15, 5)
-  assert.match(await activeComment.textContent(), /body read or change/, "small movements are taps")
+  assert.match(await activeComment.textContent(), commentPattern(5), "small movements are taps")
   await swipeComment(-80, 140)
-  assert.match(await activeComment.textContent(), /body read or change/, "vertical scrolling must not change the card")
+  assert.match(await activeComment.textContent(), commentPattern(5), "vertical scrolling must not change the card")
   await swipeComment(-120, 0, true)
-  assert.match(await activeComment.textContent(), /body read or change/, "cancelled gestures must not change the card")
+  assert.match(await activeComment.textContent(), commentPattern(5), "cancelled gestures must not change the card")
   await page.keyboard.press("ArrowRight")
-  await waitForComment(/field be set in a state/)
+  await waitForComment(commentPattern(0))
   await page.keyboard.press("ArrowLeft")
-  await waitForComment(/body read or change/)
+  await waitForComment(commentPattern(5))
   assert.equal(await progress(), 0, "keyboard navigation resets progress")
   await page.locator(".hero h1").click()
   await page.mouse.move(0, 0)
   await page.clock.runFor(4000)
-  await waitForComment(/field be set in a state/)
+  await waitForComment(commentPattern(0))
   await page.clock.resume()
   await page.emulateMedia({ reducedMotion: "reduce" })
   await page.clock.runFor(32)
@@ -199,11 +195,7 @@ try {
   const reducedProgress = await progress()
   await page.clock.fastForward(8000)
   assert.equal(await progress(), reducedProgress, "reduced motion freezes progress")
-  assert.match(
-    await activeComment.textContent(),
-    /field be set in a state/,
-    "changing motion preference stops autoplay"
-  )
+  assert.match(await activeComment.textContent(), commentPattern(0), "changing motion preference stops autoplay")
   await page.emulateMedia({ reducedMotion: "no-preference" })
   await page.clock.resume()
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"])
@@ -337,14 +329,14 @@ try {
   )
   await page.emulateMedia({ reducedMotion: "reduce" })
   await page.reload()
-  await waitForComment(/field be set in a state/)
+  await waitForComment(commentPattern(0))
   assert.equal(await page.getByRole("button", { name: /(?:Play|Pause) review comments/ }).count(), 0)
   await page.clock.fastForward(8000)
   assert.equal(await progress(), 0, "reduced-motion initial progress is static")
-  assert.match(await activeComment.textContent(), /field be set in a state/, "reduced-motion load is static")
+  assert.match(await activeComment.textContent(), commentPattern(0), "reduced-motion load is static")
   await swipeComment(-120)
-  await waitForComment(/different domain meanings/)
-  assert.match(await activeComment.textContent(), /different domain meanings/)
+  await waitForComment(commentPattern(1))
+  assert.match(await activeComment.textContent(), commentPattern(1))
   assert.equal(
     await page.locator(".card-position-0").evaluate((el) => getComputedStyle(el).transitionDuration),
     "0s",
@@ -366,6 +358,22 @@ try {
         .locator(".card-position-0")
         .evaluate((card) => card.scrollHeight <= card.clientHeight)
       assert.ok(contentFits, `card ${index + 1} content fits at ${width}px`)
+      for (const line of await page.locator(".card-position-0 .comment-code-line.has-conflict").all()) {
+        const markerRight = await line.evaluate((el) => {
+          const marker = getComputedStyle(el, "::before")
+          return Number.parseFloat(marker.left) + Number.parseFloat(marker.width)
+        })
+        assert.ok(markerRight <= -4, "cross stays in the gutter, clear of all source characters")
+      }
+      const repair = page.locator(".card-position-0 .comment-repair")
+      assert.equal(await repair.isVisible(), true)
+      assert.ok((await repair.locator("code").textContent()).trim().length > 0)
+      assert.equal(
+        await repair.evaluate((el) => el.scrollWidth <= el.clientWidth),
+        true,
+        "repair needs no horizontal scrolling"
+      )
+      assert.ok(await repair.locator("pre").evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize) >= 12))
       await page.locator(".comment-stack").focus()
       await page.keyboard.press("ArrowRight")
     }

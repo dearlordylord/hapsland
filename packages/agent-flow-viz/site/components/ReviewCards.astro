@@ -1,5 +1,21 @@
 ---
 import { COMMENTS, type CodeToken } from "../content"
+
+// Build-time line grouping gives markers a gutter without changing the source text.
+const codeLines = (tokens: readonly CodeToken[]) => {
+  let line: CodeToken[] = []
+  const lines = [line]
+  for (const token of tokens) {
+    for (const [index, text] of token.text.split("\n").entries()) {
+      if (index > 0) {
+        line = []
+        lines.push(line)
+      }
+      if (text) line.push({ ...token, text })
+    }
+  }
+  return lines
+}
 ---
 <aside class="comment-deck" aria-label="Familiar code review comments">
   <div class="comment-stack" id="review-comments" tabindex="0" aria-label="Review comments. Swipe left or right, or use the arrow keys." aria-live="off">
@@ -7,12 +23,17 @@ import { COMMENTS, type CodeToken } from "../content"
       <article class={`comment-card card-position-${Math.min(index, 3)}`} aria-hidden="false">
         <div class="comment-card-heading">
           <span class="micro">{comment.label}</span>
-          <span class="comment-card-number" aria-hidden="true">{`0${index + 1}`}</span>
         </div>
         <blockquote>{comment.quote}</blockquote>
-        <div class="comment-code">
-          <pre><code>{comment.code.map((token: CodeToken) => <span class={`code-${token.kind}${token.emphasis ? ` code-${token.emphasis}` : ""}`}>{token.text}</span>)}</code></pre>
+        <div class="comment-example comment-code">
+          <span class="comment-section-label">The issue</span>
+          <pre><code>{codeLines(comment.code).map((line, index) => <>{index > 0 && "\n"}<span class={`comment-code-line${line.some(token => token.emphasis === "conflict") ? " has-conflict" : ""}`}>{line.map((token) => <span class={`code-${token.kind}${token.emphasis ? ` code-${token.emphasis}` : ""}`}>{token.text}</span>)}</span></>)}</code></pre>
           <p>{comment.note}</p>
+        </div>
+        <div class="comment-example comment-repair">
+          <span class="comment-section-label">Design direction</span>
+          <pre><code>{comment.repair.map((token: CodeToken) => <span class={`code-${token.kind}${token.emphasis ? ` code-${token.emphasis}` : ""}`}>{token.text}</span>)}</code></pre>
+          <p>{comment.repairNote}</p>
         </div>
         <div class="comment-progress" aria-hidden="true"><div class="comment-progress-fill" style="transform:scaleX(0)"></div></div>
       </article>
