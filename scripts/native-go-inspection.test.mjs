@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { goConstantGroup, verifyGoSnapshot } from "./native-go-inspection.mjs"
+import { goConstantGroup, verifyGoSnapshot, createGoInspectionProfile } from "./native-go-inspection.mjs"
 import * as Schema from "effect/Schema"
 import { InspectionFact } from "@hapsland/inspection-records/inspection/contract"
 import { createHash } from "node:crypto"
@@ -69,4 +69,19 @@ test("stdout submission proof does not substitute for typed provider evidence", 
   assert.equal(verifyGoSnapshot(value, () => {}, true).deliveredAdvice, true)
   value.records = value.records.filter((record) => record.fact.kind !== "model-input")
   assert.throws(() => verifyGoSnapshot(value, () => {}, true))
+})
+
+test("selection-only native diagnostic cannot qualify installed review", async () => {
+  const profile = createGoInspectionProfile({ diagnosticOnly: true })
+  let phase
+  await assert.rejects(
+    profile.verify({
+      bounded: async () => packet(),
+      setPhase: (value) => {
+        phase = value
+      }
+    }),
+    /does not qualify installed review/
+  )
+  assert.equal(phase, "go-selection-diagnostic")
 })

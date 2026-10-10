@@ -94,6 +94,7 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         residentPreparation: profile?.prepareResident ? "installed-resident-before-native-tasks" : "native-startup",
         nativeColdStartupValidation: false,
         runtimeIdentityPreparation: profile?.prepareRuntime === true,
+        diagnosticOnly: profile?.diagnosticOnly === true,
         installationProbeRuntime: profile?.prepareRuntime
           ? "pinned-bun-with-packaged-native-entrypoint"
           : "packaged-native-runtime",

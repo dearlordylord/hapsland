@@ -100,13 +100,16 @@ export function verifyGoSnapshot(snapshot, setCheck = () => {}, nativeSubmission
   }
 }
 
-export function createGoInspectionProfile() {
+export function createGoInspectionProfile({
+  diagnosticOnly = process.env.HAPSLAND_GO_SELECTION_DIAGNOSTIC === "1"
+} = {}) {
   let observations
   let acknowledged = false
   let quoted = false
   return {
     source: new URL(import.meta.url),
     scenario: "go-package-model-review",
+    diagnosticOnly,
     browser: false,
     prepareResident: true,
     prepareRuntime: true,
@@ -123,7 +126,9 @@ export function createGoInspectionProfile() {
       observations = instrumentGoHooks({ ...inputs, finding })
     },
     prompts: [
-      `Use apply_patch to add payment.go with exactly this draft:\n${initial}\nRun npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, use apply_patch to replace PaymentState with this design:\n${repaired}\nRun npm test again; if review is pending run npm test again. Keep support.go unchanged. Use at most two source-edit calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote one actual delivered finding sentence.`
+      diagnosticOnly
+        ? `Use apply_patch to add payment.go with exactly this draft:\n${initial}\nRun npm test once. Keep support.go unchanged. Stop after this single source edit and test; do not repair the draft or inspect integration settings.`
+        : `Use apply_patch to add payment.go with exactly this draft:\n${initial}\nRun npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, use apply_patch to replace PaymentState with this design:\n${repaired}\nRun npm test again; if review is pending run npm test again. Keep support.go unchanged. Use at most two source-edit calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote one actual delivered finding sentence.`
     ],
     observeNative(output) {
       const messages = output
@@ -149,6 +154,23 @@ export function createGoInspectionProfile() {
             nativeAdmission: value.records
               .filter((record) => record.fact.kind === "edit-admission")
               .map((record) => record.fact.outcome),
+            selectionDiagnostics: value.records
+              .filter((record) => record.fact.kind === "edit-received")
+              .flatMap((record) =>
+                record.fact.candidates.map((candidate) => ({
+                  stage: candidate.selection.diagnostic?.stage ?? "none",
+                  code: candidate.selection.diagnostic?.code ?? "none",
+                  authority:
+                    candidate.selection.diagnostic?.code === "edit-policy-unavailable"
+                      ? "policy-authority-unavailable"
+                      : candidate.selection.diagnostic?.code === "path-observation-unavailable"
+                        ? "physical-path-observation-unavailable"
+                        : "not-unavailable"
+                }))
+              ),
+            attribution: value.records.some((record) => record.fact.kind === "edit-received")
+              ? "native-candidate-observed"
+              : "not-observed",
             nativeSelections: value.records
               .filter((record) => record.fact.kind === "edit-received")
               .flatMap((record) => record.fact.candidates.map((candidate) => candidate.selection.status)),
@@ -180,13 +202,21 @@ export function createGoInspectionProfile() {
               ])
             )
           })
-          return value.records.filter((record) => record.fact.kind === "evaluation-outcome").length >= 2
-            ? value
-            : undefined
+          return diagnosticOnly
+            ? value.records.some((record) => record.fact.kind === "edit-received")
+              ? value
+              : undefined
+            : value.records.filter((record) => record.fact.kind === "evaluation-outcome").length >= 2
+              ? value
+              : undefined
         },
         "installed Go initial and follow-up outcomes",
         30000
       )
+      if (diagnosticOnly) {
+        setPhase("go-selection-diagnostic")
+        throw new Error("Diagnostic-only selection observation does not qualify installed review")
+      }
       const submitted =
         observations &&
         readFileSync(observations, "utf8")
