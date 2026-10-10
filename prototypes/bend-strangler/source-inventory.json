@@ -3121,7 +3121,7 @@
     {
       "path": "whole-resolver/ArtifactComposition.bend",
       "capture": "whole-resolver/ArtifactComposition.bend.txt",
-      "sha256": "73d7eb37c87803de7e2c5a4770746dc932c64987bebdac4d31e2ece733f7419d"
+      "sha256": "df87263f4e42f4f2c485d56b804c844a202c8720b9dc5f502f2644d9699bd185"
     },
     {
       "path": "whole-resolver/ArtifactIndexSkipMutantCore.bend",
@@ -3152,6 +3152,11 @@
       "path": "whole-resolver/BoundaryValidationSpecification.bend",
       "capture": "whole-resolver/BoundaryValidationSpecification.bend.txt",
       "sha256": "99840c41d2da59956ca0d97604617f573174bce6f3e5ddd4d5679908dc2f5e80"
+    },
+    {
+      "path": "whole-resolver/CanonicalResolverOwner.bend",
+      "capture": "whole-resolver/CanonicalResolverOwner.bend.txt",
+      "sha256": "57047022db5b2691d0d452b1ee1b5f8efa091fc3a999a5febfa7708ac6264d46"
     },
     {
       "path": "whole-resolver/CaptureAdmission.bend",
@@ -3524,6 +3529,11 @@
       "sha256": "d644d167e242b82e008e51c535e6f3194c5ebc71202fe754b3c3e73727b7f132"
     },
     {
+      "path": "whole-resolver/artifact-dispatcher.mjs",
+      "capture": "whole-resolver/artifact-dispatcher.mjs",
+      "sha256": "c1d799ac4d23b185a07cd180341c45103bc1dcaf91303b098c9460f03f9e1d47"
+    },
+    {
       "path": "whole-resolver/boundary-attribution.mjs",
       "capture": "whole-resolver/boundary-attribution.mjs",
       "sha256": "449a4a8cefebbb84663c84567ec271aaa7e581df756f129e42134928cd5807d1"
@@ -3532,6 +3542,11 @@
       "path": "whole-resolver/budget-counterexample.mjs",
       "capture": "whole-resolver/budget-counterexample.mjs",
       "sha256": "372d4c3792c03341c27b2d75a6c11824bc685c299429b6a0675c529800246d86"
+    },
+    {
+      "path": "whole-resolver/canonical-owner-check.mjs",
+      "capture": "whole-resolver/canonical-owner-check.mjs",
+      "sha256": "1fdfd1515ac45fc252398625c78caa07e6680914e72954d6550abbd57789bef8"
     },
     {
       "path": "whole-resolver/cargo-specification-check.mjs",
@@ -3546,7 +3561,7 @@
     {
       "path": "whole-resolver/composed-root-check.mjs",
       "capture": "whole-resolver/composed-root-check.mjs",
-      "sha256": "9f49ca896472d03b2baf8a51e1549b9cfb444faa6b47d4f45a4e90de9d7b5b4d"
+      "sha256": "545fdf5ed02d88b54852ea285e3d6649cec02577d3a5f77dcfb1ad390befc80c"
     },
     {
       "path": "whole-resolver/connected-performance.mjs",
@@ -3561,7 +3576,7 @@
     {
       "path": "whole-resolver/consumer.mjs",
       "capture": "whole-resolver/consumer.mjs",
-      "sha256": "61f544e1f5754649d14662f8900c67356ef2a0fe309c050d1417f06154ec01da"
+      "sha256": "612263597ca6fa2c14276a3aa5256eea2d3fd98de1c82936fd48f9385bb3e025"
     },
     {
       "path": "whole-resolver/decoder-baseline.mjs",
@@ -3612,6 +3627,16 @@
       "path": "whole-resolver/machine-check.mjs",
       "capture": "whole-resolver/machine-check.mjs",
       "sha256": "48ce276fdc545f1ba5924ca36128c35df6e899ad4248ba1be13b3376b8591187"
+    },
+    {
+      "path": "whole-resolver/owned-artifact-driver.mjs",
+      "capture": "whole-resolver/owned-artifact-driver.mjs",
+      "sha256": "8a2b5bf60bfedc025412f9a189a6a812c363815bea59d14fc61b93ea489e57a7"
+    },
+    {
+      "path": "whole-resolver/owned-root-check.mjs",
+      "capture": "whole-resolver/owned-root-check.mjs",
+      "sha256": "75218804f47ecc88c7cb7758e757bf8ff7501e3b92379451085004fbcea718d5"
     },
     {
       "path": "whole-resolver/package-runtime.mjs",
@@ -3826,7 +3851,7 @@
     {
       "path": "whole-resolver/service-session.mjs",
       "capture": "whole-resolver/service-session.mjs",
-      "sha256": "856a5f56452be19f48bf873f3a3fca3264727a632554b1f2d663bb25d852b951"
+      "sha256": "2a641d122d5a34e010654426b906b00c8b74f2aa5d00b0dbd834af08d61fd67f"
     },
     {
       "path": "whole-resolver/services.js",

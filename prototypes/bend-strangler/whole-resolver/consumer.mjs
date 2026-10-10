@@ -61,24 +61,28 @@ export function createIODriver({resolve,registry}){
  })
 }
 
-export function createBendResolver({machine,foreign,registry,resolveIO,observeProduct}){
- const drive=resolveIO?createIODriver({resolve:resolveIO,registry}):createMachineDriver({machine,foreign,registry})
+export function createBendResolver({machine,foreign,registry,resolveIO,observeProduct,drive:ownedDrive,allocateInvocation,onConstructionFailure}){
+ const drive=ownedDrive??(resolveIO?createIODriver({resolve:resolveIO,registry}):createMachineDriver({machine,foreign,registry}))
  let invocation=0
  return async (path,capture,name,context,options={})=>{
   const limits={...GRAPH_LIMIT_CEILINGS,...context.limits}
-  const session=createServiceSession({
-   invocation:++invocation,root:context.root,now:context.now,callerCache:context.captureCache,
+  const activeInvocation=allocateInvocation?allocateInvocation():++invocation
+  let session,input
+  try{
+  session=createServiceSession({
+   invocation:activeInvocation,root:context.root,now:context.now,callerCache:context.captureCache,
    access:(file,{signal}={})=>Effect.runPromise(eligibleNamedPath(context.root,file,contextDirectFilePolicy(context.policy??DEFAULT_DIRECT_FILE_POLICY),context.rootIdentity),{signal}),
    capture:(selected,sourceCap,{signal}={})=>Effect.runPromise((context.captureSource??captureStable)(context.root,selected,context.captureHooks,context.rootIdentity,sourceCap),{signal}),
    frontend:inspectSourceFrontend,parseCargo:parseCargoSyntax,parsePythonSyntax,selectContextPath:path=>selectedByDirectFilePolicy(path,contextDirectFilePolicy(context.policy??DEFAULT_DIRECT_FILE_POLICY)),inspectRustModules:inspectRustModuleSyntax,
    diagnostic:context.observeCaptureDiagnostic
   })
-  const input=tagged('ResolverInput',{
+  input=tagged('ResolverInput',{
    invocation:BigInt(session.invocation),root_path:path,root_capture:pureReply(session.registerCapture(capture)),
    root_bytes:BigInt(capture.byteLength),root_name:name,root_source:capture.text,
    branch:tagged(context.branch==='function'?'FunctionBranch':'TypeBranch'),caller_cache:pureReply(session.callerCache),
    limits:{$:'../../../packages/agent-flow-bend/ImportGraph.Limits',version:1n,...Object.fromEntries(Object.entries(limits).map(([key,value])=>[({sourceBytes:'source_bytes',treeBytes:'tree_bytes',readBytes:'read_bytes',outgoingEdges:'outgoing_edges'})[key]??key,BigInt(value)]))}
   })
+  }catch(error){session?.close();onConstructionFailure?.(activeInvocation);throw error}
   const outcome=await drive(session,input,options)
   if(outcome.failure)throw new Error('Bend resolver technical failure: '+outcome.failure.$)
   if(outcome.result.$==='Types.NoReviewUnit')return undefined

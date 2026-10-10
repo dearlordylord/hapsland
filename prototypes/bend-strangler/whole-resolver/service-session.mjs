@@ -73,8 +73,8 @@ function fromDiagnostic(value) {
 export function createServiceSession({invocation,root,now=()=>performance.now(),callerCache,access,capture,frontend,parseCargo,inspectRustModules,selectContextPath,parsePythonSyntax,diagnostic}={}) {
   if(!Number.isSafeInteger(invocation)||invocation<0)throw new Error('invalid invocation')
   const resources={ClockToken:new Map(),CaptureToken:new Map(),SelectionToken:new Map(),ExceptionToken:new Map(),CacheToken:new Map()}
-  let next=1,closed=false
-  const register=(kind,value)=>{if(closed)throw new Error('closed service session');const id=next++;resources[kind].set(id,value);return tagged(kind,{invocation,id})}
+  let next=1,closed=false,accepting=true
+  const register=(kind,value)=>{if(closed||!accepting)throw new Error('closed service session');const id=next++;resources[kind].set(id,value);return tagged(kind,{invocation,id})}
   const lookup=(kind,token)=>{
     if(token?.$!==tag(kind)||hostNatural(token.invocation)!==invocation||!resources[kind].has(hostNatural(token.id)))throw new Error('invalid '+kind)
     return resources[kind].get(hostNatural(token.id))
@@ -82,7 +82,7 @@ export function createServiceSession({invocation,root,now=()=>performance.now(),
   const caller=callerCache===undefined?{$:'None'}:{$:'Some',value:register('CacheToken',callerCache)}
   const capturedResult=value=>tagged('CachePresent',{capture:register('CaptureToken',value),bytes:value.byteLength})
   async function perform(request,{signal}={}) {
-    if(closed||request?.$!==tag('Request')||hostNatural(request.invocation)!==invocation)throw new Error('invalid request owner')
+    if(closed||!accepting||request?.$!==tag('Request')||hostNatural(request.invocation)!==invocation)throw new Error('invalid request owner')
     const id=hostNatural(request.id),op=request.operation
     let outcome
     try {
@@ -125,10 +125,10 @@ export function createServiceSession({invocation,root,now=()=>performance.now(),
         case tag('EncodeSourceText'):outcome=tagged('SourceTextEncoded',{bytes:Buffer.byteLength(op.text,'utf8')});break
         default:throw new Error('unknown service operation')
       }
-    }catch(error){if(closed)throw error;outcome=tagged('ProviderRejected',{exception:register('ExceptionToken',error)})}
+    }catch(error){if(closed||!accepting)throw error;outcome=tagged('ProviderRejected',{exception:register('ExceptionToken',error)})}
     return tagged('Reply',{invocation,id,outcome})
   }
-  return Object.freeze({invocation,callerCache:caller,perform,registerCapture:value=>register('CaptureToken',value),exception:token=>lookup('ExceptionToken',token),cacheSnapshot:token=>[...lookup('CacheToken',token)],close(){closed=true;for(const table of Object.values(resources))table.clear()}})
+  return Object.freeze({invocation,callerCache:caller,perform,registerCapture:value=>register('CaptureToken',value),exception:token=>lookup('ExceptionToken',token),cacheSnapshot:token=>[...lookup('CacheToken',token)],revoke(){accepting=false},close(){closed=true;accepting=false;for(const table of Object.values(resources))table.clear()}})
 }
 
 export function createServiceRegistry() {

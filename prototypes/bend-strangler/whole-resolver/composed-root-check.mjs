@@ -10,21 +10,42 @@ import {eligibleNamedPath,DEFAULT_DIRECT_FILE_POLICY} from '../../../packages/na
 import {captureStable} from '../../../packages/native-observation/dist/direct-event/capture.js'
 import {createServiceRegistry} from './service-session.mjs'
 import {createBendResolver,pureReply} from './consumer.mjs'
+import {createArtifactMachine} from './artifact-dispatcher.mjs'
 const temp=await mkdtemp('/tmp/hapsland-composed-root-')
 try{
- const emitted=join(temp,'machine.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'ComposedMachine.bend'),'-o',emitted],{timeout:5000});const {default:machine}=await import(pathToFileURL(emitted))
- const registry=createServiceRegistry(),operations=[];let activeState,fences=0
+ let machine
+ if(process.env.HAPSLAND_SPLIT_ARTIFACTS){
+  const artifacts={}
+  for(const [key,name] of [['composition','ArtifactComposition'],['parent','GenericArtifact'],['python','PythonArtifact']]){
+   const emitted=join(temp,name+'.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,name+'.bend'),'-o',emitted],{timeout:5000});artifacts[key]=(await import(pathToFileURL(emitted))).default
+  }
+  const split=createArtifactMachine(artifacts)
+  const shadowPath=join(temp,'shadow.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'ComposedMachine.bend'),'-o',shadowPath],{timeout:5000});const shadow=(await import(pathToFileURL(shadowPath))).default
+  const observation=step=>step.$==='Types.AwaitService'?{kind:step.$,request:step.request}:step
+  const compare=pair=>{assert.deepEqual(observation(split.view(pair.split)),observation(shadow.view(pair.shadow)),'reachable split/monolithic observation');return pair}
+  machine={initial:input=>compare({split:split.initial(input),shadow:shadow.initial(input)}),resume:(state,event)=>compare({split:split.resume(state.split,event),shadow:shadow.resume(state.shadow,event)}),view:state=>split.view(state.split),dispose:split.dispose,get retainedHandles(){return split.retainedHandles}}
+ }else{
+  const emitted=join(temp,'machine.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'ComposedMachine.bend'),'-o',emitted],{timeout:5000});machine=(await import(pathToFileURL(emitted))).default
+ }
+ const registry=createServiceRegistry(),operations=[];let activeState,fences=0,terminalSuffixes=0
  const t=(name,fields={})=>({$:'Types.'+name,...fields})
- const guarded={...machine,view(state){activeState=state;return machine.view(state)}}
+ const guarded={...machine,view(state){activeState=state;const projection=machine.view(state)
+  if(projection.$!=='Types.AwaitService'){
+   assert.equal(machine.view(machine.resume(state,t('CancelInvocation',{invocation:0n}))).failure.$,'Types.ReplyAfterTerminal')
+   assert.equal(machine.view(machine.resume(state,t('ServiceReply',{reply:t('Reply',{invocation:0n,id:0n,outcome:t('ClockRead',{bits:t('Binary64',{high:0,low:0})})})}))).failure.$,'Types.ReplyAfterTerminal')
+  }
+  if(projection.$!=='Types.AwaitService')terminalSuffixes+=2
+  return projection}}
  const resolver=createBendResolver({machine:guarded,registry,foreign:async([request],options)=>{
   operations.push(request.operation.$)
   const reply=pureReply(await registry.get(Number(request.invocation)).perform(request,options))
   const cancelled=machine.resume(activeState,t('CancelInvocation',{invocation:request.invocation}))
   assert.equal(machine.view(cancelled).failure.$,'Types.InvocationCancelled')
+  assert.equal(machine.view(machine.resume(cancelled,t('CancelInvocation',{invocation:request.invocation}))).failure.$,'Types.ReplyAfterTerminal')
   assert.equal(machine.view(machine.resume(cancelled,t('ServiceReply',{reply}))).failure.$,'Types.ReplyAfterTerminal')
   assert.equal(machine.view(machine.resume(activeState,t('ServiceReply',{reply:{...reply,id:reply.id+1n}}))).failure.$,'Types.WrongCorrelation')
   assert.equal(machine.view(machine.resume(activeState,t('ServiceReply',{reply:{...reply,invocation:reply.invocation+1n}}))).failure.$,'Types.WrongInvocation')
-  fences+=4;return reply
+  fences+=5;return reply
  }})
  let cases=0
  for(const [index,fixture] of [
@@ -50,5 +71,6 @@ try{
   assert.deepEqual(actual,expected,'full root ReviewUnit '+index);cases++
  }
  assert.equal(registry.size,0)
- console.log(JSON.stringify({passed:true,cases,requests:operations.length,fences,scope:'actual resolveGraphUnit Python root/module/reexport consumer, composed preparation/cache/import/inspect and complete product; capture census/terminal revalidation and per-Await cancellation/wrong identity refusal; finite qualification, accepted terminal/provider lease lifetime and Canonical acceptance remain open'}))
+ machine.dispose?.();if(machine.retainedHandles!==undefined)assert.equal(machine.retainedHandles,0)
+ console.log(JSON.stringify({passed:true,cases,requests:operations.length,fences,terminalSuffixes,splitArtifacts:!!process.env.HAPSLAND_SPLIT_ARTIFACTS,scope:'actual resolveGraphUnit Python root/module/reexport consumer, composed preparation/cache/import/inspect and complete product; capture census/terminal revalidation and per-Await cancellation/wrong identity refusal; finite qualification, accepted terminal/provider lease lifetime and Canonical acceptance remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}
