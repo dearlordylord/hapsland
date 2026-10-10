@@ -31,6 +31,7 @@ try {
           (previous) => document.querySelector(".canonical-progress")?.textContent !== previous,
           prior
         )
+        await waitForText(".preparation-mini", "Preparation #")
         assert.match(await canonical.locator(".preparation-mini").textContent(), /Preparation #/)
       }
       await canonical.getByRole("button", { name: /^Next:/ }).click()
@@ -262,7 +263,7 @@ try {
   }
   assert.match(
     await canonical.innerText(),
-    /reviewCompleted accepted · 2 command\(s\): reservationReleased, reviewRecorded/
+    /reviewCompleted accepted · 2 output\(s\): reservationReleased, reviewRecorded/
   )
   assert.match(await page.locator(".production-flow").innerText(), /reviewCompleted accepted/)
   assert.equal(
@@ -628,13 +629,10 @@ try {
     assert.equal(await page.locator(".topology-route.active").filter({ hasText: "output authorized" }).count(), 0)
   }
   const imports = page.locator("#import-graph")
-  assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/)
-  for (let step = 1; step <= 9; step++) {
-    await imports.getByRole("button", { name: "Next import step", exact: true }).click()
-    await waitForText(".import-graph-progress", `Import step ${step} of 9`)
-  }
-  assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete/)
-  assert.doesNotMatch(await imports.locator(".import-graph-facts").innerText(), /D.ts/)
+  await imports.getByRole("button", { name: "C path gate", exact: true }).click()
+  await imports.getByRole("button", { name: "Result", exact: true }).click()
+  await imports.getByRole("heading", { name: "Returned ReviewUnit", exact: true }).waitFor()
+  assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete.*Excluded/)
   assert.match(await page.locator("#timing-diagrams").innerText(), /When advice can reach the agent/)
   assert.deepEqual(errors, [])
   console.log(

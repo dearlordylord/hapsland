@@ -9,6 +9,27 @@
 **Lifecycle:** Maintained alongside visualization source, fixtures, and build commands. Review whenever the shared adapter, page sections, replay behavior, or capacity projection changes, and at #137 final authority review.
 -->
 
+## Full preparation resolver replay
+
+The developer dashboard's `#import-graph` section stays below the main guided
+replay. Both C path gate and Branching tree budget run the full Bend resolver.
+One cursor selects Machine boundaries and their observed ImportGraph history;
+the original import process squares, file tree and budget view use that history.
+There is no independent dashboard ImportGraph replay or comparison view.
+
+Use `npm run preparation:generate` to refresh the record and
+`npm run preparation:check` to check drift. A non-mutating observer wraps the
+compiled ImportGraph step to record actual events, states and commands. Native
+access/capture facts are supplied by physical fixtures. Pure expansion and
+product construction between service boundaries have no invented animation
+frames. `npm run test:preparation-browser` checks both integrated examples.
+
+Maintain the record alongside resolver source; review after Machine, service or
+fixture changes. When the resolver moves to its production owner, consolidate
+this producer there and delete the prototype snapshot after transferring its
+current source references. Fixture execution does not establish universal
+equivalence or performance acceptance.
+
 ## Public site and shared import replay
 
 The local **inspection dashboard** uses a separate development command:
@@ -70,9 +91,11 @@ users open immediately and use manual steps, ending with Finish example.
 Reduced-motion users get manual illustration steps;
 changing that preference stops playback. No page calls Jev or reads repository source.
 
-`src/import-graph-replay.ts` owns shared scenario replay through the compiled
-ImportGraph adapter. `src/import-graph-diagram.ts` owns the shared graph display
-projection. The dashboard uses these modules for graph replay. The public page uses `src/site.ts` for its illustration and controls.
+`src/import-graph-replay.ts` supplies source-free public-site scenarios through
+the compiled ImportGraph adapter. `src/import-graph-diagram.ts` owns the shared
+graph display projection. The dashboard uses that display with observed full
+resolver transitions from `src/import-graph-view.ts`. The public page uses
+`src/site.ts` for its illustration and controls.
 
 Run `npm run test:site` for headless scenario checks and Chromium interactions.
 The scenario checks distinguish exclusion before a read command from a size

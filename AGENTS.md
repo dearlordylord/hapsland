@@ -28,6 +28,10 @@ owns commands and evidence boundaries.
 
 ## Review requests and acceptance decisions
 
+When explaining implementation changes, consider responsibility mapping: keep
+responsibilities aligned before/after, show changes in ownership, and link them
+to concrete code.
+
 When requesting owner review of a diagram or other visual artifact, present the
 specific before/after difference to inspect, identify the exact case or panel,
 and explain the observable behavior that should change. Link the relevant view

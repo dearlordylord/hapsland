@@ -30,7 +30,10 @@
     "test:inspection-dev-browser": "node scripts/check-inspection-dev-browser.mjs",
     "test:pi-inspection-browser": "node scripts/check-pi-inspection-browser.mjs",
     "test:inspection-outcomes-browser": "node scripts/check-inspection-outcomes-browser.mjs",
-    "test:inspection-reuse-browser": "node scripts/check-inspection-reuse-browser.mjs"
+    "test:inspection-reuse-browser": "node scripts/check-inspection-reuse-browser.mjs",
+    "preparation:generate": "node ../../scripts/generate-preparation-resolver.mjs",
+    "preparation:check": "node ../../scripts/generate-preparation-resolver.mjs --check",
+    "test:preparation-browser": "node scripts/check-preparation-resolver-browser.mjs"
   },
   "dependencies": {
     "@effect/platform-browser": "catalog:",

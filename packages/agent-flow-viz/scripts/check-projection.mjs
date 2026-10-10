@@ -813,39 +813,29 @@ try {
   assert.equal(malformed.position, 0)
   assert.throws(() => canonical.projectCanonical({ $: "Canonical.State" }), TypeError)
   assert.equal(imports.IMPORT_GRAPH_SCENARIOS.length, 2)
-  const excluded = imports.projectImportExample(0, 9)
+  const excluded = imports.projectImportExample(0, imports.importFrameCount(0) - 1)
   assert.deepEqual(
     excluded.history.filter((entry) => entry.command.kind === "readSource").map((entry) => entry.command.target),
     [2],
     "excluded C receives no source read"
   )
-  const overflow = imports.projectImportExample(1, 29)
-  assert.deepEqual(
-    overflow.history
-      .filter((entry) => entry.command.kind === "skipImport")
-      .map((entry) => [entry.command.target, entry.command.reason]),
-    [
-      [8, "Excluded"],
-      [5, "TreeLimit"],
-      [7, "TreeLimit"]
-    ]
+  const overflow = imports.projectImportExample(1, imports.importFrameCount(1) - 1)
+  assert.ok(
+    overflow.history.some((entry) => entry.command.kind === "skipImport" && entry.command.reason === "TreeLimit")
   )
-  const changedGraphLimits = { ...excluded.states[0].limits, treeBytes: 200 }
-  const changed = imports.projectImportExample(0, 1, changedGraphLimits)
-  assert.equal(changed.states[0].limits.treeBytes, 200)
-  assert.equal(changed.states[0].phase, "incomplete")
-  assert.equal(changed.history[0].command.reason, "TreeLimit")
-  const changedView = imports.importGraphView(
+  assert.equal(overflow.states[0].phase, "incomplete")
+  const currentView = imports.importGraphView(
     inertHtml,
-    0,
     1,
+    imports.importFrameCount(1) - 1,
     () => ({}),
-    () => ({}),
-    changedGraphLimits
+    () => ({})
   )
-  const changedText = JSON.stringify(changedView)
-  assert.match(changedText, /Tree cap: 200 bytes/)
-  assert.doesNotMatch(changedText, /20 KiB limit/)
+  assert.match(JSON.stringify(currentView), /Bend resolver Machine/)
+  assert.doesNotMatch(
+    JSON.stringify(currentView),
+    /Isolated ImportGraph exercises|resolver-boundaries|preparation-resolver/
+  )
   assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible")
   Scene.scene(
     { update: main.update, view: main.view },

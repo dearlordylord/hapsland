@@ -313,3 +313,11 @@ p { line-height: 1.5; }
 
 .resident-capacity-inset[role="button"] { cursor:pointer; }
 .resident-capacity-inset:focus-visible > rect { stroke:#245bb8; stroke-width:2; }
+
+.resolver-shell{border:2px solid #687e98;border-radius:12px;padding:18px;margin:18px 0}.resolver-current-stage,.resolver-service{padding:14px;border:1px solid #9babba;border-radius:6px;background:#f8faff}.resolver-current-stage{font-weight:700;color:#b54825;border-color:#d85d2f}.resolver-connection{padding:10px;color:#405b77}.resolver-inner-graph{border:1px solid #a3b3c7;padding:12px;border-radius:8px}.resolver-code{white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;background:#edf2f7;padding:15px;font-size:12px}.import-graph-section summary{overflow-wrap:anywhere}
+
+.resolver-scrubber{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0}.resolver-scrubber input{flex:1;min-width:180px}.resolver-construction{overflow-x:auto;overscroll-behavior-x:contain}.resolver-construction svg{display:block;min-width:920px;width:100%}
+
+.resolver-construction svg.resolver-process{min-width:1220px}
+
+.resolver-legend span{padding:3px 6px;border-radius:4px}.resolver-legend-graph{background:#e5efff}.resolver-legend-local{background:#eee5fa}.resolver-legend-machine{background:#e3f3e9}.resolver-legend-service{background:#edf1f6}

@@ -690,3 +690,263 @@ export const importGraphDiagram = <Message>(
       )
     ]
   )
+
+/** One connected resolver schematic; highlights only recorded service/graph states. */
+export const resolverGraphDiagram = <Message>(
+  h: HtmlBuilder<Message>,
+  active: ImportGraphStage | null,
+  operation: string | undefined,
+  stage: string,
+  units: readonly string[],
+  names: Readonly<Record<number, string>>,
+  history: readonly HistoryStep[],
+  states: readonly ImportGraphProjection[]
+) => {
+  const boxes = [
+    {
+      id: "inspect",
+      x: 30,
+      y: 30,
+      title: "Inspect source",
+      owner: "EXTERNAL FRONTEND",
+      detail: "Source → declaration / reference facts",
+      selected: operation === "InspectSource",
+      pure: false
+    },
+    {
+      id: "local",
+      x: 330,
+      y: 30,
+      title: "Expand declarations",
+      owner: "BEND",
+      detail: "Facts → nodes, links and pending imports",
+      selected: stage === "ExpandDeclarations",
+      pure: true
+    },
+    {
+      id: "product",
+      x: 630,
+      y: 30,
+      title: "Build ReviewUnit",
+      owner: "BEND",
+      detail: "Plan + artifacts → product",
+      selected: stage === "BuildReviewUnit",
+      pure: true
+    },
+    {
+      id: "measure",
+      x: 930,
+      y: 30,
+      title: "Measure product",
+      owner: "EXTERNAL ENCODER",
+      detail: "Encoded product → byte count",
+      selected: operation === "EncodeProduct" && stage !== "MeasuringCompletion",
+      pure: false
+    },
+    ...nodes.map((node) => ({
+      ...node,
+      detail:
+        node.id === "capture"
+          ? "Read allowed source → inspect and construct"
+          : node.id === "complete"
+            ? "Finish traversal → finalize ReviewUnit"
+            : node.detail,
+      y: node.y === 50 ? 280 : 510,
+      selected: active === node.id,
+      pure: false
+    })),
+    {
+      id: "finalize",
+      x: 930,
+      y: 510,
+      title: "Finalize ReviewUnit",
+      owner: "BEND + EXTERNAL ENCODER",
+      detail: "Completion checks and final measurement",
+      selected: stage === "MeasuringCompletion",
+      pure: false
+    },
+    {
+      id: "result",
+      x: 930,
+      y: 720,
+      title: "Return resolver result",
+      owner: "BEND",
+      detail: "ReviewUnit / no unit · rule selection follows",
+      selected: stage === "FinishedResolver",
+      pure: false
+    }
+  ]
+  const links = [
+    { id: "inspect-local", d: "M 280 82 H 330", label: "facts", x: 285, y: 70 },
+    { id: "local-product", d: "M 580 82 H 630", label: "plan", x: 585, y: 70 },
+    { id: "product-measure", d: "M 880 82 H 930", label: "value", x: 885, y: 70 },
+    {
+      id: "root-to-imports",
+      d: "M 1055 135 V 180 H 155 V 280",
+      label: "Root event · measured root and pending edges",
+      x: 300,
+      y: 173
+    },
+    {
+      id: "capture-to-inspect",
+      d: "M 755 280 V 220 H 155 V 135",
+      label: "ReadSource → capture → InspectSource",
+      x: 300,
+      y: 214
+    },
+    { id: "resolve-gate", d: "M 280 332 H 330", label: "found", x: 285, y: 320 },
+    { id: "gate-capture", d: "M 580 332 H 630", label: "allow", x: 585, y: 320 },
+    {
+      id: "measure-to-accept",
+      d: "M 1055 135 V 430 H 755 V 510",
+      label: "Captured event · source bytes, measured tree, edges",
+      x: 815,
+      y: 417
+    },
+    {
+      id: "continue-imports",
+      d: "M 880 562 H 900 V 250 H 155 V 280",
+      label: "More pending edges / skipped import → Next",
+      x: 290,
+      y: 244
+    },
+    { id: "accept-complete", d: "M 630 562 H 580", label: "done", x: 585, y: 550 },
+    { id: "gate-incomplete", d: "M 455 385 V 475 H 155 V 510", label: "exhausted with skips", x: 210, y: 467 },
+    { id: "resolve-incomplete", d: "M 30 332 H 10 V 562 H 30", label: "", x: 0, y: 0 },
+    {
+      id: "complete-finalize",
+      d: "M 455 615 V 675 H 1055 V 615",
+      label: "UnitComplete → resolver completion",
+      x: 600,
+      y: 668
+    },
+    {
+      id: "incomplete-finalize",
+      d: "M 155 615 V 695 H 1195 V 562 H 1180",
+      label: "UnitIncomplete → partial-result eligibility / no unit",
+      x: 260,
+      y: 688
+    },
+    { id: "finalize-result", d: "M 1055 615 V 720", label: "finished", x: 1068, y: 710 }
+  ]
+  return h.div(
+    [h.Class("chart-scroll import-graph-diagram resolver-construction")],
+    [
+      importReferenceGraph(h, units, names, history, states),
+      h.p(
+        [h.Class("import-graph-diagram-caption")],
+        ["Full resolver process · one connected construction, import and completion loop"]
+      ),
+      h.svg(
+        [
+          h.Class("resolver-process"),
+          h.ViewBox("0 0 1220 850"),
+          h.Role("img"),
+          h.AriaLabel("Connected Bend resolver process")
+        ],
+        [
+          h.defs(
+            [],
+            [
+              h.marker(
+                [
+                  h.Id("resolver-process-arrow"),
+                  h.ViewBox("0 0 10 10"),
+                  h.RefX("9"),
+                  h.RefY("5"),
+                  h.MarkerWidth("7"),
+                  h.MarkerHeight("7"),
+                  h.Orient("auto")
+                ],
+                [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])]
+              )
+            ]
+          ),
+          ...links.map((link) =>
+            h.g(
+              [],
+              [
+                h.path(
+                  [
+                    h.Class(`resolver-link ${link.id}`),
+                    h.D(link.d),
+                    h.Fill("none"),
+                    h.Stroke("#687e98"),
+                    h.StrokeWidth("2"),
+                    h.MarkerEnd("url(#resolver-process-arrow)")
+                  ],
+                  []
+                ),
+                h.text([h.X(String(link.x)), h.Y(String(link.y)), h.FontSize("11"), h.Fill("#52647d")], [link.label])
+              ]
+            )
+          ),
+          ...boxes.map((box) =>
+            h.g(
+              [
+                h.Class(
+                  `resolver-process-node resolver-node-${box.id}${["inspect", "local", "product", "measure"].includes(box.id) ? " resolver-construction-node" : ""}`
+                )
+              ],
+              [
+                h.rect(
+                  [
+                    h.X(String(box.x)),
+                    h.Y(String(box.y)),
+                    h.Width("250"),
+                    h.Height("105"),
+                    h.Rx("10"),
+                    h.Fill(
+                      box.owner.startsWith("EXTERNAL")
+                        ? "#edf1f6"
+                        : box.id === "local"
+                          ? "#eee5fa"
+                          : nodes.some((node) => node.id === box.id)
+                            ? "#e5efff"
+                            : "#e3f3e9"
+                    ),
+                    h.Stroke(box.selected ? "#e66035" : "#527cc4"),
+                    h.StrokeWidth(box.selected ? "4" : "2")
+                  ],
+                  []
+                ),
+                h.text(
+                  [
+                    h.X(String(box.x + 14)),
+                    h.Y(String(box.y + 22)),
+                    h.FontSize("10"),
+                    h.FontWeight("700"),
+                    h.Fill("#52647d")
+                  ],
+                  [box.owner]
+                ),
+                h.text(
+                  [
+                    h.X(String(box.x + 14)),
+                    h.Y(String(box.y + 49)),
+                    h.FontSize("16"),
+                    h.FontWeight("700"),
+                    h.Fill("#1e3048")
+                  ],
+                  [box.title]
+                ),
+                h.text(
+                  [h.X(String(box.x + 14)), h.Y(String(box.y + 78)), h.FontSize("11"), h.Fill("#52647d")],
+                  [box.detail]
+                ),
+                ...(box.pure
+                  ? [
+                      h.text(
+                        [h.X(String(box.x + 14)), h.Y(String(box.y + 96)), h.FontSize("10"), h.Fill("#52647d")],
+                        [box.id === "local" ? "Observed local reducer steps" : "Observed pure call · input / output"]
+                      )
+                    ]
+                  : [])
+              ]
+            )
+          )
+        ]
+      )
+    ]
+  )
+}

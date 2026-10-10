@@ -17,7 +17,7 @@ import { Effect, Option, Schema } from "effect"
 import { Command, type Runtime, type Update } from "foldkit"
 import { createLazy, type Document, type HtmlBuilder } from "foldkit/html"
 import { defineMessageUnion } from "foldkit/message"
-import { IMPORT_GRAPH_SCENARIOS, importGraphView } from "./import-graph-view"
+import { IMPORT_GRAPH_SCENARIOS, importGraphView, importFrameCount } from "./import-graph-view"
 import { TIMELINE_CASES } from "./timeline"
 import { timelineView } from "./timeline-view"
 import { CAPACITY_INVENTORY } from "./capacity-inventory.generated"
@@ -220,10 +220,7 @@ export const update = (model: Model, message: Message) =>
       }
     }),
     MovedImportCursor: ({ cursor }) => ({
-      model: {
-        ...model,
-        importCursor: Math.max(0, Math.min(IMPORT_GRAPH_SCENARIOS[model.importScenario].steps.length, cursor))
-      }
+      model: { ...model, importCursor: Math.max(0, Math.min(importFrameCount(model.importScenario) - 1, cursor)) }
     }),
     SelectedTimeline: ({ index }) => ({
       model: { ...model, timeline: index >= 0 && index < TIMELINE_CASES.length ? index : 0 }
