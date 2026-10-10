@@ -15,7 +15,7 @@ The local **inspection dashboard** uses a separate development command:
 `npm run dev:inspection` from the repository root. It serves current inspection
 page source with automatic browser reload. Its bundled production command is
 `hapsland dashboard`. See [the inspection guide](../../docs/status.md#opt-in-local-inspection).
-The Vite commands below serve the public site and decision visualization.
+Astro serves the public site; Vite serves the decision visualization.
 
 Install development dependencies from the repository root with the pinned Bun
 runtime and `bun install --frozen-lockfile` before running this workspace's
@@ -32,9 +32,12 @@ block in fast checks, pre-commit and the deterministic runner precheck.
 `npm run architecture:generate` updates only this diagram.
 This static export is not a replay trace or evidence that a native effect occurred.
 
-Run `npm run dev` in this package and open `/site.html` for the FoldKit public
-site, or `/index.html` for the full dashboard. `npm run build` emits both entries
-with relative asset paths. Building is separate from deploying either page.
+Run `npm run dev:site` in this package for the Astro public site at `/`.
+`npm run build:site` emits static HTML and assets in `site-dist/`. All page text
+and code examples are present without JavaScript; a small browser script adds
+card gestures, clipboard buttons and the canvas animation. No client framework
+is shipped. Run `npm run dev` for the dashboard at `/index.html`;
+`npm run build` emits its Vite bundle. Building is separate from deploying.
 
 The dashboard's entry cards describe four tasks: resident simulation, guided
 replay, import exploration and timing comparison. For a first walkthrough,
@@ -55,7 +58,7 @@ Gandi DNS must point the `hapsland` CNAME to the project's `pages.dev` hostname;
 register the domain with the Pages project before setting that record.
 
 The primary illustration adapts the research video's circular review flow in
-`src/review-loop-renderer.ts`, with FoldKit phase controls and a shared HTML code
+`src/review-loop-renderer.ts`, with browser phase controls and a shared static HTML code
 stage. Desktop uses the full actor loop; mobile uses a compact actor overview.
 Its six stages are edit, expanded code and question, Jev rule result, configured
 feedback to the agent, possible edit, and recheck. The public page keeps the review loop, file settings, rules, and setup; source-control replay and verification panels remain on the architecture dashboard.
@@ -82,7 +85,8 @@ mouse dragging and arrow-key navigation. No page calls Jev or reads repository s
 
 `src/import-graph-replay.ts` owns shared scenario replay through the compiled
 ImportGraph adapter. `src/import-graph-diagram.ts` owns the shared graph display
-projection. The dashboard uses these modules for graph replay. The public page uses `src/site.ts` for its illustration and controls.
+projection. The dashboard uses these modules for graph replay. The public page uses `site/pages/index.astro` and `site/components/` for markup,
+`site/content.ts` for card and stage copy, and `src/site-interactions.ts` for browser controls.
 
 Run `npm run test:site` for headless scenario checks and Chromium interactions.
 The scenario checks distinguish exclusion before a read command from a size
@@ -96,7 +100,7 @@ replay remain the behavior authorities. It shows no numeric classifier scores,
 pass seal, or commit gate. A possible agent edit is illustrative, not guaranteed.
 The shared HTML stage keeps expanded source readable in both layouts. TypeScript,
 the production build, and browser checks cover the adapted renderer, six-stage
-controls, paused Canvas output, mobile resizing, manual reduced-motion steps, and
+controls, continuous canvas output, mobile resizing, manual reduced-motion steps, and
 clipboard contents on secure and HTTP/IP origins. The linked captures below show
 the current circular composition.
 
@@ -109,7 +113,7 @@ recording and the inspection dashboard; recording contains source and does not
 backfill older edits. Text is owned by `../agent-flow-projection/src/setup-copy.ts`.
 The agent instruction also generates marked sections in the root README and
 installation guide through `npm run docs:generate`; `docs:generated:check` rejects drift.
-FoldKit commands call `src/site-clipboard.ts`. Secure origins use Clipboard API,
+Browser controls in `src/site-interactions.ts` copy the shared setup text. Secure origins use Clipboard API,
 with a temporary selection fallback for the HTTP/IP preview. Browser checks
 read the clipboard to verify the copied text, including the fallback. Commands
 follow the [installation guide](../../docs/installation-workflows.md).

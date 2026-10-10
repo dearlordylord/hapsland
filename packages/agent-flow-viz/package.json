@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build:pages": "npm run build && node scripts/prepare-pages.mjs",
+    "build:pages": "npm run build && npm run build:site && node scripts/prepare-pages.mjs",
     "deploy:pages": "npm run build:pages && npx --yes wrangler@4.146.0 pages deploy dist --project-name hapsland --branch master",
     "build": "node --experimental-strip-types scripts/build-capacity-inventory.mjs && npm --prefix ../agent-flow-projection run typecheck && node ../../scripts/pinned-typescript.mjs --noEmit && node scripts/check-flow-inference.mjs && node scripts/check-projection.mjs && vite build --configLoader runner",
     "test:browser": "node scripts/check-browser.mjs",
@@ -15,7 +15,7 @@
     "test:ensemble-browser": "node scripts/check-ensemble-browser.mjs",
     "test:resource-browser": "node scripts/check-resource-browser.mjs",
     "test:execution-pools-browser": "node scripts/check-execution-pools-browser.mjs",
-    "test:site": "node --experimental-strip-types scripts/check-site-scenarios.mjs && node scripts/check-site-browser.mjs",
+    "test:site": "node --experimental-strip-types scripts/check-site-scenarios.mjs && npm run build:site && node scripts/check-site-browser.mjs",
     "test:render-browser": "node scripts/check-render-browser.mjs",
     "test:camera-browser": "node scripts/check-camera-browser.mjs",
     "test:resident-capacity-browser": "node scripts/check-resident-capacity-browser.mjs",
@@ -30,7 +30,9 @@
     "test:inspection-dev-browser": "node scripts/check-inspection-dev-browser.mjs",
     "test:pi-inspection-browser": "node scripts/check-pi-inspection-browser.mjs",
     "test:inspection-outcomes-browser": "node scripts/check-inspection-outcomes-browser.mjs",
-    "test:inspection-reuse-browser": "node scripts/check-inspection-reuse-browser.mjs"
+    "test:inspection-reuse-browser": "node scripts/check-inspection-reuse-browser.mjs",
+    "dev:site": "astro dev --host 127.0.0.1",
+    "build:site": "astro build"
   },
   "dependencies": {
     "@effect/platform-browser": "catalog:",
@@ -53,7 +55,8 @@
     "playwright": "1.63.0",
     "typescript": "catalog:",
     "vite": "8.3.1",
-    "@hapsland/build-tooling": "workspace:*"
+    "@hapsland/build-tooling": "workspace:*",
+    "astro": "catalog:"
   },
   "hapsland": {
     "workspaceRole": "verification",

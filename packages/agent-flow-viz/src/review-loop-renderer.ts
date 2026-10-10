@@ -413,7 +413,7 @@ function feedback(c: Context, x: number, y: number) {
   tag(c, "HAPSLAND → AGENT · CONFIGURED MESSAGE", x - 387, y - 20, C.bad)
   text(c, SITE_EXAMPLE.feedbackMessage, x - 387, y + 13, 20, C.ink, 500)
 }
-/** Deterministic rendering; FoldKit owns timing, controls and canvas outputs. */
+/** Deterministic rendering; the browser controller owns timing and controls. */
 export function drawReviewLoop(c: Context, phase: number, progress: number, options: ReviewLoopOptions = {}) {
   const stage = Math.max(0, Math.min(REVIEW_LOOP_PHASE_COUNT - 1, Number.isFinite(phase) ? Math.floor(phase) : 0))
   const p = options.reducedMotion ? 0.5 : clamp(Number.isFinite(progress) ? progress : 0)

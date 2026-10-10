@@ -1,0 +1,21 @@
+---
+import { COMMENTS, type CodeToken } from "../content"
+---
+<aside class="comment-deck" aria-label="Familiar code review comments">
+  <div class="comment-stack" id="review-comments" tabindex="0" aria-label="Review comments. Swipe left or right, or use the arrow keys." aria-live="off">
+    {COMMENTS.map((comment, index) => (
+      <article class={`comment-card card-position-${Math.min(index, 3)}`} aria-hidden="false">
+        <div class="comment-card-heading">
+          <span class="micro">{comment.label}</span>
+          <span class="comment-card-number" aria-hidden="true">{`0${index + 1}`}</span>
+        </div>
+        <blockquote>{comment.quote}</blockquote>
+        <div class="comment-code">
+          <pre><code>{comment.code.map((token: CodeToken) => <span class={`code-${token.kind}${token.emphasis ? ` code-${token.emphasis}` : ""}`}>{token.text}</span>)}</code></pre>
+          <p>{comment.note}</p>
+        </div>
+        <div class="comment-progress" aria-hidden="true"><div class="comment-progress-fill" style="transform:scaleX(0)"></div></div>
+      </article>
+    ))}
+  </div>
+</aside>

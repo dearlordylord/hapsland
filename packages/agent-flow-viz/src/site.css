@@ -1665,3 +1665,5 @@ summary:active { color: var(--red); }
     font-size: 28px;
   }
 }
+
+[data-site-frame][hidden] { display: none; }

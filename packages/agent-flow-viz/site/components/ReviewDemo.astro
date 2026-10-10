@@ -1,0 +1,30 @@
+---
+import { PHASES, PHASE_COPY } from "../content"
+import { SITE_EXAMPLE } from "../../src/site-example"
+import CodeCard from "./CodeCard.astro"
+import DependencyGraph from "./DependencyGraph.astro"
+import poster from "../../src/brand/review-loop-static.png"
+---
+<div id="review-example" class="hero-illustration phase-0">
+  <div id="example-expanded-body" class="example-expanded-body">
+    <canvas id="review-loop-canvas" class="review-loop-canvas" role="img" aria-label={PHASE_COPY[0]}>Read the current stage below for the code and review details.</canvas>
+    <noscript><img class="review-loop-canvas" src={poster.src} alt={PHASE_COPY[0]} /></noscript>
+    <details class="stage-transcript">
+      <summary>Read this stage</summary>
+      {PHASES.map((_, phase) => <div class="hero-scene gallery-scene" data-site-frame={phase} hidden={phase !== 0}>
+        {phase === 0 && <CodeCard name="Agent edit" lines={SITE_EXAMPLE.initialDiff} tag="DIFF" />}
+        {phase === 1 && <DependencyGraph />}
+        {phase === 2 && <><DependencyGraph compact /><div class="rule-question"><span class="micro">REVIEW QUESTION</span><p>Can this type store two copies of the same fact that disagree?</p></div></>}
+        {phase === 3 && <div class="sample-feedback"><span class="micro">FEEDBACK SENT TO THE AGENT</span><p class="configured-feedback">{SITE_EXAMPLE.feedbackMessage}</p></div>}
+        {phase === 4 && <><CodeCard name="Gallery" lines={SITE_EXAMPLE.after} tag="EXAMPLE EDIT" /><p class="repair-explanation">Read the width from cover.dimensions.width instead of maintaining two copies.</p><p class="muted">This edit is shown for illustration. The agent chooses how to respond to feedback.</p></>}
+        {phase === 5 && <><CodeCard name="Gallery" lines={SITE_EXAMPLE.after} tag="RECHECK" />{SITE_EXAMPLE.dependencies.map((lines, index) => <CodeCard name={SITE_EXAMPLE.definitionNames[index + 1]} lines={lines} tag="RELATED TYPE" />)}</>}
+      </div>)}
+    </details>
+    <div class="animation-bottom">
+      <ol class="phase-steps" aria-label="Illustration stages">
+        {PHASES.map((phase, index) => <li class={index === 0 ? "active" : ""}><button type="button" data-site-phase={index} data-site-caption={PHASE_COPY[index]} aria-label={`Show stage ${index + 1}: ${phase}`} aria-current={index === 0 ? "step" : "false"}><span>{`0${index + 1}`}</span>{phase}</button></li>)}
+      </ol>
+      <p class="phase-caption" aria-live="off">{PHASE_COPY[0]}</p>
+    </div>
+  </div>
+</div>

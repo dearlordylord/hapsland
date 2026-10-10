@@ -1,0 +1,11 @@
+---
+interface Props { name: string; lines: readonly string[]; tag: string }
+const { name, lines, tag } = Astro.props
+const lineClass = (line: string) => line.includes("coverWidth:") ? "added-line"
+  : line.includes("cover:") || line.includes("dimensions:") ? "reference-line"
+  : line.includes("width:") ? "relevant-line" : ""
+---
+<div class="example-code-card">
+  <div class="code-heading">{name}<span class="code-tag">{tag}</span></div>
+  <pre><code>{lines.map((line, index) => <span class={lineClass(line)}>{line + (index < lines.length - 1 ? "\n" : "")}</span>)}</code></pre>
+</div>

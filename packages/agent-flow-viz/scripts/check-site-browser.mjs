@@ -1,17 +1,18 @@
 import assert from "node:assert/strict"
 import { mkdir } from "node:fs/promises"
 import { chromium } from "playwright"
-import { createServer } from "vite"
-const server = await createServer({ configLoader: "runner", server: { host: "0.0.0.0", port: 0 } })
+import { preview } from "astro"
+import { networkInterfaces } from "node:os"
+const server = await preview({ server: { host: "0.0.0.0", port: 0 } })
 let browser
 try {
-  await server.listen()
-  const url = new URL("site.html", server.resolvedUrls.local[0]).href
+  const url = `http://127.0.0.1:${server.port}/`
   browser = await chromium.launch({ headless: true })
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
   const page = await context.newPage()
   const errors = []
   page.on("pageerror", (error) => errors.push(error.message))
+  await page.clock.install()
   await page.goto(url)
   await page.getByRole("heading", { name: /^IMMEDIATE CODE REVIEW for coding agents$/ }).waitFor()
   assert.deepEqual(await page.locator(".hero-intro strong").allTextContents(), [
@@ -43,7 +44,6 @@ try {
     await page.clock.runFor(32)
     await page.locator(".comment-stack:not(.is-swiping)").waitFor()
   }
-  await page.clock.install()
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000))
   assert.match(await activeComment.textContent(), /field be set in a state/)
   assert.equal(await page.locator('.comment-card[aria-hidden="true"]').count(), 5)
@@ -228,7 +228,11 @@ try {
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), instruction)
   assert.equal(await page.locator("textarea[aria-hidden=true]").count(), 0)
   assert.equal(await page.evaluate(() => document.activeElement?.id), "copy-instruction")
-  const networkUrl = new URL("site.html", server.resolvedUrls.network[0]).href
+  const address = Object.values(networkInterfaces())
+    .flat()
+    .find((entry) => entry?.family === "IPv4" && !entry.internal)
+  assert.ok(address, "HTTP clipboard fallback requires a local network interface")
+  const networkUrl = `http://${address.address}:${server.port}/`
   const httpPage = await page.context().newPage()
   await httpPage.goto(networkUrl)
   assert.equal(await httpPage.evaluate(() => window.isSecureContext), false)
@@ -270,15 +274,21 @@ try {
   // Selecting a stage restarts its four-second dwell and then keeps playing.
   await selectStage(0)
   await page.locator(".hero-illustration").screenshot({ path: "docs/assets/site-hero-edit.png" })
-  assert.match(await page.locator("#example-expanded-body pre").textContent(), /\+  coverWidth: number;/)
-  assert.doesNotMatch(await page.locator("#example-expanded-body pre").textContent(), /interface Gallery/)
+  assert.match(await page.locator("[data-site-frame]:not([hidden]) pre").textContent(), /\+  coverWidth: number;/)
+  assert.doesNotMatch(await page.locator("[data-site-frame]:not([hidden]) pre").textContent(), /interface Gallery/)
   await selectStage(1)
-  assert.equal(await page.locator(".hero-dependency-graph .example-code-card").count(), 3)
-  assert.equal(await page.locator(".hero-dependency-graph .dependency-edge").count(), 2)
+  assert.equal(
+    await page.locator("[data-site-frame]:not([hidden]) .hero-dependency-graph .example-code-card").count(),
+    3
+  )
+  assert.equal(await page.locator("[data-site-frame]:not([hidden]) .hero-dependency-graph .dependency-edge").count(), 2)
   await page.locator(".hero-illustration").screenshot({ path: "docs/assets/site-hero-related.png" })
   await selectStage(2)
-  assert.equal(await page.locator(".hero-dependency-graph .example-code-card").count(), 3)
-  assert.equal(await page.locator(".hero-dependency-graph .dependency-edge").count(), 2)
+  assert.equal(
+    await page.locator("[data-site-frame]:not([hidden]) .hero-dependency-graph .example-code-card").count(),
+    3
+  )
+  assert.equal(await page.locator("[data-site-frame]:not([hidden]) .hero-dependency-graph .dependency-edge").count(), 2)
   await page.locator(".hero-illustration").screenshot({ path: "docs/assets/site-hero-context.png" })
   await selectStage(3)
   assert.doesNotMatch(await page.locator(".hero-illustration").innerText(), /\d+%|threshold|artifact/)
@@ -378,11 +388,25 @@ try {
   await page.locator(".hero-illustration").screenshot({ path: "docs/assets/site-hero-context.png" })
   await page.locator(".skip-link").focus()
   assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Skip to interactive example")
+  const staticContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 375, height: 1000 } })
+  const staticPage = await staticContext.newPage()
+  await staticPage.goto(url)
+  await staticPage.getByRole("heading", { name: /^IMMEDIATE CODE REVIEW for coding agents$/ }).waitFor()
+  for (const card of await staticPage.locator(".comment-card blockquote").all())
+    assert.equal(await card.isVisible(), true)
+  assert.deepEqual(await staticPage.locator(".comment-card blockquote").allTextContents(), cardTitles)
+  assert.equal(
+    await staticPage.locator(".hero-install-row code").textContent(),
+    "brew install dearlordylord/tap/hapsland"
+  )
+  assert.equal(await staticPage.locator("noscript img").isVisible(), true)
+  assert.equal(await staticPage.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+  await staticContext.close()
   assert.deepEqual(errors, [])
   console.log(
-    "site browser: review deck synchronized progress/autoplay, tokenized code, mouse click/resume, mouse dragging across boundaries, touch swipe discrimination/cancellation, keyboard, focus/hover and reduced motion; exact clipboard text (API and HTTP/IP fallback), continuous animation, selectable stages with fresh dwell, full recheck before looping, graph modes, mobile and static reduced motion passed"
+    "site browser: review deck synchronized progress/autoplay, tokenized code, mouse click/resume, mouse dragging across boundaries, touch swipe discrimination/cancellation, keyboard, focus/hover and reduced motion; exact clipboard text (API and HTTP/IP fallback), continuous animation, selectable stages with fresh dwell, full recheck before looping, graph modes, mobile, static reduced motion and readable HTML without JavaScript passed"
   )
 } finally {
   await browser?.close()
-  await server.close()
+  await server.stop()
 }

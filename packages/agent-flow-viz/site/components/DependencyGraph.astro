@@ -1,0 +1,17 @@
+---
+import CodeCard from "./CodeCard.astro"
+import { SITE_EXAMPLE } from "../../src/site-example"
+interface Props { compact?: boolean }
+const { compact = false } = Astro.props
+const definitions = compact ? [
+  ["interface Gallery {", "  cover: ImageFile;", "  coverWidth: number;", "  // other fields omitted", "}"],
+  ["interface ImageFile {", "  dimensions: Dimensions;", "  // other fields omitted", "}"],
+  ["interface Dimensions {", "  width: number;", "  // other fields omitted", "}"]
+] : [SITE_EXAMPLE.before, ...SITE_EXAMPLE.dependencies]
+---
+<div class={`hero-dependency-graph${compact ? " compact" : ""}`} aria-label="Gallery references ImageFile through cover; ImageFile references Dimensions through dimensions">
+  {definitions.map((lines, index) => <>
+    {index > 0 && <div class="dependency-edge"><span class="dependency-edge-label">{index === 1 ? "cover" : "dimensions"}</span><span class="dependency-arrow" aria-hidden="true">↓</span></div>}
+    <CodeCard name={SITE_EXAMPLE.definitionNames[index]} lines={lines} tag={compact ? "EXCERPT" : index === 0 ? "CHANGED TYPE" : "RELATED TYPE"} />
+  </>)}
+</div>
