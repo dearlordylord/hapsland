@@ -339,20 +339,25 @@ const unknownEvaluatedCall = (
     return unknownEvaluatedCall(child, bindings, shadowed)
   })
 }
+const namespaceTargets = (node: SyntaxNode): SyntaxNode[] =>
+  ["attribute", "subscript"].includes(node.type) ? [node] : node.namedChildren.flatMap(namespaceTargets)
 /** Dynamic loader or imported-namespace mutation cannot establish a static target. */
 const unavailableImportNamespace = (root: SyntaxNode, bindings: ReadonlyMap<string, string>): boolean =>
   unknownEvaluatedCall(root, bindings, new Set(moduleScope(root).facts.map((fact) => fact.name))) ||
   evaluatedNodes(root).some((node) => {
     if (["assignment", "augmented_assignment", "named_expression", "delete_statement"].includes(node.type)) {
-      const targets = node.type === "delete_statement" ? node.namedChildren : [node.childForFieldName("left")]
+      const target = node.childForFieldName("left")
+      const targets =
+        node.type === "delete_statement"
+          ? node.namedChildren.flatMap(namespaceTargets)
+          : target === null
+            ? []
+            : namespaceTargets(target)
       if (
-        targets.some(
-          (target) =>
-            target !== null &&
-            target.type !== "identifier" &&
-            moduleScope(root).facts.some(
-              (fact) => fact.identity !== undefined && fact.name === target.text.split(/[.[]/u)[0]!
-            )
+        targets.some((target) =>
+          moduleScope(root).facts.some(
+            (fact) => fact.identity !== undefined && fact.name === target.text.split(/[.[]/u)[0]!
+          )
         )
       )
         return true

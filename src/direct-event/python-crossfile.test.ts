@@ -117,6 +117,9 @@ describe("Python bounded local model evidence", () => {
         "import sys as system\nsystem.meta_path.insert(0, custom_loader)\n",
         "from sys import path as paths\npaths.append(extra)\n",
         "import support\nsupport.Base = Other\n",
+        "import support\nclass Helper:\n    (support.Base, x) = (Other, 1)\n",
+        "import support\nclass Helper:\n    [x, [support.Base, y]] = values\n",
+        "import support\nclass Helper:\n    del support.Base, other\n",
         "import sys\nsys.modules['support'] = other\n",
         "import importlib as loader\nloader.import_module(dynamic_name)\n",
         "exec(dynamic_loader)\n",
@@ -163,6 +166,29 @@ describe("Python bounded local model evidence", () => {
       expect(
         (yield* prepare(addEvent(root, ["model.py"]))).ready.map((item) => preparedProviderInput(item)?.artifact.name)
       ).toEqual(["Model", "Good"])
+    })
+  )
+  it.effect("destructured helper mutations omit the affected qualified field root", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "support.py", base))
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "model.py",
+          "import support\nclass Other:\n    id: int\nclass Helper:\n    (support.Base, x) = (Other, 1)\nclass Model:\n    value: support.Base\nclass Good:\n    id: str\n"
+        )
+      )
+      const omitted: string[] = []
+      const result = yield* prepare(addEvent(root, ["model.py"]), {
+        observePreparationOmission: (_path, name) => omitted.push(name)
+      })
+      expect(result.ready.map((item) => preparedProviderInput(item)?.artifact.name)).toEqual(["Other", "Good"])
+      expect(omitted).toContain("Model")
+      for (const item of result.ready) {
+        expect(preparedProviderInput(item)?.evidence?.nodes.some((node) => node.domain === "support.py")).not.toBe(true)
+        expect(item.input.rules.map((rule) => rule.id).sort()).toEqual(rules)
+      }
     })
   )
   it.effect("relative imports, named initializer chains and source-layout qualified imports share the graph", () =>
