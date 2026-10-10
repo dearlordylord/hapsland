@@ -160,7 +160,9 @@ describe("Python bounded local model evidence", () => {
         put(
           root,
           "support.py",
-          base + "def helper():\n    import sys\n    sys.path.append(extra)\nunused = lambda: install_loader()\n"
+          base +
+            "def helper():\n    import sys\n    sys.path.append(extra)\nunused = lambda: install_loader()\n" +
+            "from dataclasses import field\nclass Deferred:\n    value=field(default_factory=lambda: install_loader())\n"
         )
       )
       expect(

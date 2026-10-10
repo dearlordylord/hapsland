@@ -3181,7 +3181,7 @@
     {
       "path": "whole-resolver/Core.bend",
       "capture": "whole-resolver/Core.bend.txt",
-      "sha256": "08feb754fe6b61b6c302106b9e840048985684c917e10a76ad39680117b6189e"
+      "sha256": "d2f552d97eb05703bde1b3005361f4569193a9807bb1f6bfc771ce1c386a7fbf"
     },
     {
       "path": "whole-resolver/DeadlineLiteralCheck.bend",
@@ -3286,7 +3286,7 @@
     {
       "path": "whole-resolver/PythonModule.bend",
       "capture": "whole-resolver/PythonModule.bend.txt",
-      "sha256": "32be48e26217b0e0f7a019980a6dfb68d20497fe2f807570629871363a58c26e"
+      "sha256": "d3d9ea0173e075a08d5605871804c7c178a5c6dbe6ea6fbc4f9c85d2a37180f4"
     },
     {
       "path": "whole-resolver/RUNTIME_INVARIANT_LAWS.bend",
@@ -3581,7 +3581,7 @@
     {
       "path": "whole-resolver/python-authority-check.mjs",
       "capture": "whole-resolver/python-authority-check.mjs",
-      "sha256": "c4b865f8d484026b4ee4c5e074847b66f0729046940d343e943b91466f9672a7"
+      "sha256": "0560892e371ce18ff82c3e236422a7ece1b23caa3fcf6c60437fb172c8031991"
     },
     {
       "path": "whole-resolver/python-bindings-check.mjs",
@@ -3606,7 +3606,7 @@
     {
       "path": "whole-resolver/python-module/Authority.bend",
       "capture": "whole-resolver/python-module/Authority.bend.txt",
-      "sha256": "21ba4a65cf09be5b7c33113fe5e579d4097d2adb571d3fa776702c572170cf69"
+      "sha256": "b1117841a346d3c6c7f4b45a461f2d76960589e667583d4ba1f567c595d21ab4"
     },
     {
       "path": "whole-resolver/python-module/Bindings.bend",
@@ -3624,14 +3624,34 @@
       "sha256": "896ccaab4c1722cd3aa03aaf8348c5aa3aa6cf3db2430e71e9e1b7753be7a484"
     },
     {
+      "path": "whole-resolver/python-module/InspectMachine.bend",
+      "capture": "whole-resolver/python-module/InspectMachine.bend.txt",
+      "sha256": "6094264208880519050e70b5b2bab37d665cdd68a1795de8d558d046d97e342a"
+    },
+    {
       "path": "whole-resolver/python-module/MembershipMachine.bend",
       "capture": "whole-resolver/python-module/MembershipMachine.bend.txt",
       "sha256": "f31a993624ab9025d1046ef274824e8fb3132e1d66bcd4d1d5813d2c2c291e1f"
     },
     {
+      "path": "whole-resolver/python-module/ModuleTargetMachine.bend",
+      "capture": "whole-resolver/python-module/ModuleTargetMachine.bend.txt",
+      "sha256": "da528c8c8399125477352a6940a77f5e7cca448400da4182be3c1dbef9fcacd2"
+    },
+    {
       "path": "whole-resolver/python-module/PackageParentsMachine.bend",
       "capture": "whole-resolver/python-module/PackageParentsMachine.bend.txt",
       "sha256": "850f918d04d5714a44d4a55a21caf51da2aaeaefe4ddbbcf5174f3537dc736f2"
+    },
+    {
+      "path": "whole-resolver/python-module/PreparationMachine.bend",
+      "capture": "whole-resolver/python-module/PreparationMachine.bend.txt",
+      "sha256": "9459f45606b4f8124959c80f459922f172da9a88b47618b61c671d83e2488d42"
+    },
+    {
+      "path": "whole-resolver/python-module/ResolveImportMachine.bend",
+      "capture": "whole-resolver/python-module/ResolveImportMachine.bend.txt",
+      "sha256": "373ff87cf1f084a02cb82da27c850ac845a07b4f8654f9a3f4c8d03e13d64b1c"
     },
     {
       "path": "whole-resolver/python-module/RevalidationMachine.bend",
@@ -3679,6 +3699,16 @@
       "sha256": "8d22188ea7a676e4d9039918b8327df3d8a48ed9e376ef89ac212161488e003a"
     },
     {
+      "path": "whole-resolver/python-module-target-check.mjs",
+      "capture": "whole-resolver/python-module-target-check.mjs",
+      "sha256": "1c3a582e33416d7eb9ae6a87eaf0a49acb08cac6c26e86beec6cb8d19aef3b76"
+    },
+    {
+      "path": "whole-resolver/python-native-lambda-check.mjs",
+      "capture": "whole-resolver/python-native-lambda-check.mjs",
+      "sha256": "cfe9dcc5578137eb83028390f323cafdbf9cfbfaeb5e06b5152dd83a33e356c4"
+    },
+    {
       "path": "whole-resolver/python-parents-check.mjs",
       "capture": "whole-resolver/python-parents-check.mjs",
       "sha256": "a23aead020b63cfbb67520b3b1dec838accebe6fe446004dc53f4f43b524a624"
@@ -3689,6 +3719,11 @@
       "sha256": "fa7f1f1620732ff2b9c0c2718fb38d3a4eea883a3d06eab5562889d3eab98d07"
     },
     {
+      "path": "whole-resolver/python-resolve-import-check.mjs",
+      "capture": "whole-resolver/python-resolve-import-check.mjs",
+      "sha256": "187283d0324eb6286fa41bff6f3d2908336dc43be02366ad57ab2b7119a554cb"
+    },
+    {
       "path": "whole-resolver/python-root-policy-check.mjs",
       "capture": "whole-resolver/python-root-policy-check.mjs",
       "sha256": "8acc372631e85fdebf650f3c37128acb6216ff5fec607122d6f4f3b1b4e908f1"
@@ -3697,6 +3732,11 @@
       "path": "whole-resolver/python-roots-check.mjs",
       "capture": "whole-resolver/python-roots-check.mjs",
       "sha256": "a413750401674b01571d3b12b1542ab56367fc313aaad3e7d47fb8998671405d"
+    },
+    {
+      "path": "whole-resolver/python-session-check.mjs",
+      "capture": "whole-resolver/python-session-check.mjs",
+      "sha256": "25438c702060a345838f0a6d08ddde0e445ad25c46068691b63b2f1f7e5f7dd6"
     },
     {
       "path": "whole-resolver/python-stat-check.mjs",

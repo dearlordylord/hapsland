@@ -13,6 +13,10 @@ import ./python-module/Bindings.bend as Bindings
 import ./python-module/Scope.bend as Scope
 import ./python-module/Authority.bend as Authority
 import ./python-module/PackageParentsMachine.bend as Parents
+import ./python-module/ModuleTargetMachine.bend as Target
+import ./python-module/ResolveImportMachine.bend as Import
+import ./python-module/PreparationMachine.bend as Preparation
+import ./python-module/InspectMachine.bend as Inspect
 
 # Entry for the in-progress Python child. Resolver and Canonical composition
 # remain open; these functions do not constitute subsystem adoption.
@@ -123,6 +127,43 @@ def package_parents(session: S.Session, path: String, root: String, clock: T.Clo
 
 def resume_parents(step: Parents.Step, reply: T.Reply) -> Parents.Step:
   Parents.resume(step, reply)
+
+def module_target(session: S.Session, from: String, import_path: String, root_path: String,
+    clock: T.ClockToken, cache: T.CacheToken, separator: String, invocation: Nat, next_request: Nat) -> Target.Step:
+  Target.begin(session, from, import_path, root_path, clock, cache, separator, invocation, next_request)
+
+def resume_target(step: Target.Step, reply: T.Reply) -> Target.Step:
+  Target.resume(step, reply)
+
+def cached_roots(session: S.Session, roots: List<&2, String>) -> S.Session:
+  S.with_roots_attempted(S.with_roots(session, roots), True{})
+
+def resolve_import(session: S.Session, remaining: S.Remaining, from: String, import_path: String,
+    member: String, root_path: String, clock: T.ClockToken, cache: T.CacheToken, separator: String,
+    invocation: Nat, next_request: Nat) -> Import.Step:
+  Import.begin(session, remaining, from, import_path, member, root_path, clock, cache, separator, invocation, next_request)
+
+def resume_import(step: Import.Step, reply: T.Reply) -> Import.Step:
+  Import.resume(step, reply)
+
+def prepare_session(input: Preparation.Input, next: Nat) -> Preparation.Step:
+  Preparation.begin(input, next)
+
+def resume_preparation(step: Preparation.Step, reply: T.Reply) -> Preparation.Step:
+  Preparation.resume(step, reply)
+
+def inspect_session(branch: T.Branch, path: String, root_path: String, capture: T.CaptureToken,
+    invocation: Nat, next: Nat) -> Inspect.Step:
+  Inspect.begin(branch, path, root_path, capture, invocation, next)
+
+def resume_inspect(step: Inspect.Step, reply: T.Reply) -> Inspect.Step:
+  Inspect.resume(step, reply)
+
+def session_usage(session: S.Session) -> S.Usage:
+  S.usage(session)
+
+def session_remaining(session: S.Session, remaining: S.Remaining) -> S.Session:
+  S.with_remaining(session, remaining)
 
 def main() -> Unit:
   Unit{}

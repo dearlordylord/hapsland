@@ -181,12 +181,24 @@ def imported_name(facts: List<&2, B.Binding>, +key: String) -> Bool:
     case B.Binding{_, None{}} <> tail: imported_name(tail, key)
     case B.Binding{name, Some{_}} <> tail: Bool.or(String.eq(name, key), imported_name(tail, key))
 
+def namespace_leaf(imported: Bool, proceed: List<&2, Nat> -> Bool) -> Bool:
+  match imported:
+    case True{}: True{}
+    case False{}: proceed([])
+
+def namespace_target_kind(leaf: Bool, +node: T.PythonSyntaxNode,
+    facts: List<&2, B.Binding>, proceed: List<&2, Nat> -> Bool) -> Bool:
+  match leaf:
+    case True{}: namespace_leaf(imported_name(facts, namespace_head(X.node_text(node))), proceed)
+    case False{}: proceed(X.node_children(node))
+
 def namespace_target_item(node: Maybe<&2, T.PythonSyntaxNode>, syntax: T.PythonSyntax,
     facts: List<&2, B.Binding>, proceed: List<&2, Nat> -> Bool) -> Bool:
   match node:
     case None{}: True{}
-    case Some{+node}: B.decide(Bool, Bool.or(String.eq(X.node_kind(node), "attribute"), String.eq(X.node_kind(node), "subscript")),
-      _ => imported_name(facts, namespace_head(X.node_text(node))), _ => proceed(X.node_children(node)))
+    case Some{+node}: namespace_target_kind(
+      Bool.or(String.eq(X.node_kind(node), "attribute"), String.eq(X.node_kind(node), "subscript")),
+      node, facts, proceed)
 
 def namespace_target_walk(fuel: Nat, todo: List<&2, Nat>, +syntax: T.PythonSyntax, +facts: List<&2, B.Binding>) -> Bool:
   match fuel todo:

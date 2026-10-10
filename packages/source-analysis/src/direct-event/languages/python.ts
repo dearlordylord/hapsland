@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto"
 import { createPythonGraphPreparation } from "./python-module-context.ts"
 import { LANGUAGE_EXTENSIONS } from "@hapsland/native-observation/direct-event/languages/path-language"
-import { Parser, Python, type SyntaxNode, descendants } from "./native-parser.ts"
+import { Parser, Python, type SyntaxNode, descendants, sameSyntaxNode } from "./native-parser.ts"
 import {
   MAX_TYPE_DECLARATIONS,
   type GraphDeclaration,
@@ -284,7 +284,7 @@ const evaluatedNodes = (node: SyntaxNode): SyntaxNode[] => [
     .filter(
       (child) =>
         !(node.type === "function_definition" && child.type === "block") &&
-        !(node.type === "lambda" && child === node.childForFieldName("body"))
+        !(node.type === "lambda" && sameSyntaxNode(child, node.childForFieldName("body")))
     )
     .flatMap(evaluatedNodes)
 ]
@@ -325,7 +325,7 @@ const unknownEvaluatedCall = (
   }
   return node.namedChildren.some((child) => {
     if (node.type === "function_definition" && child.type === "block") return false
-    if (node.type === "lambda" && child === node.childForFieldName("body")) return false
+    if (node.type === "lambda" && sameSyntaxNode(child, node.childForFieldName("body"))) return false
     if (node.type === "class_definition" && child.type === "block") {
       const scoped = new Map(bindings)
       const localNames = new Set(shadowed)

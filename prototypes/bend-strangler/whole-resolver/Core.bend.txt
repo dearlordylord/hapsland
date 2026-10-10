@@ -319,14 +319,7 @@ def dependency_products(paths: List<&2, String>) -> List<&2, T.ProductValue>:
     case head <> tail: text(head) <> dependency_products(tail)
 
 def unit_product(root: T.ProductValue, dependencies: List<&2, String>) -> T.ProductValue:
-  match dependencies:
-    case []: object([field("root", root)])
-    case head <> tail: object(
-      [
-        field("root", root),
-        field("sourceDependencies", T.ProductArray{dependency_products(head <> tail)})
-      ]
-    )
+  object([field("root", root), field("sourceDependencies", T.ProductArray{dependency_products(dependencies)})])
 
 def review_unit(
   root: Nat,
