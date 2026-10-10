@@ -8,6 +8,16 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
  const current=()=>control?control.readState():state
  const invoke=(method,...args)=>control?control.invoke(method,args):owner[method](state,...args)
  const resources=new Map(),leases=new Map(),launches=new Map(),sessions=new Map(),finished=new Map()
+ const finalizedSessions=new WeakSet()
+ const finishSession=async session=>{
+  if(finalizedSessions.has(session))return
+  finalizedSessions.add(session)
+  await session.finish?.()
+ }
+ const closeUnregistered=async session=>{
+  if([...sessions.values()].includes(session)||registry.get(session.invocation)===session)return
+  try{await finishSession(session)}finally{session.close?.()}
+ }
  const stats={launches:0,resumes:0,accepted:0,providerStarts:0,providerCleanups:0,revoked:0,discarded:0}
  const list=value=>{const out=[];while(value.$==='Con'){out.push(value.head);value=value.tail}if(value.$!=='Nil')throw new Error('Malformed owner action list');return out}
  const save=(invocation,kind,value)=>{const id=nextHandle++;resources.set(id,{invocation,kind,value});return id}
@@ -94,13 +104,13 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   if(failure)throw failure
  }
  const driver={
-  allocateInvocation(parent,preparation=false){
+  allocateInvocation(parent,preparation=false,issuedScope=scope){
    if(current().next_invocation<1n||current().next_invocation>BigInt(Number.MAX_SAFE_INTEGER))throw new RangeError('Invocation exceeds exact native ID range')
    const inputId=save(0n,'pending-input',undefined)
-   try{apply(parent?invoke('launch_nested',parent,inputId):invoke(preparation?'launch_preparation':'launch',scope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
+   try{apply(parent?invoke('launch_nested',parent,inputId):invoke(preparation?'launch_preparation':'launch',issuedScope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
    catch(error){resources.delete(inputId);throw error}
   },
-  allocatePreparationInvocation(){return driver.allocateInvocation(undefined,true)},
+  allocatePreparationInvocation(issuedScope=scope){return driver.allocateInvocation(undefined,true,issuedScope)},
   handoffResult(receipt){
    const launch=launches.get(receipt.handoff)
    if(!launch||launch.receipt!==receipt)throw new Error('Unknown preparation handoff capability')
@@ -108,20 +118,39 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   },
   async driveHandoff(receipt,session,buildInput,options={}){
    const invocation=receipt.handoff
+   if([...sessions.values()].includes(session)||registry.get(session.invocation)===session)throw new Error('Session already owned by an active invocation')
+   // Refuse a consumed capability without cancelling its already-running child.
+   const launch=launches.get(invocation)
+   if(!launch||launch.receipt!==receipt){
+    await closeUnregistered(session)
+    throw new Error('Unknown or consumed preparation handoff capability')
+   }
+   let entered=false
    try {
     const result=driver.handoffResult(receipt)
     const input=buildInput(result,invocation,receipt.scope)
     if(input.invocation!==invocation)throw new Error('Post input changed Canonical invocation')
+    entered=true
     return await driver.drive(session,input,options)
-   }catch(error){const child=owner.find(invocation,current().children);if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation));throw error}
+   }catch(error){
+    const child=owner.find(invocation,current().children)
+    if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation))
+    throw error
+   }finally{
+    if(!entered)await closeUnregistered(session)
+   }
   },
   async drive(session,input,options={}){
+   if([...sessions.values()].includes(session)||registry.get(session.invocation)===session)throw new Error('Session already owned by an active invocation')
    const invocation=input.invocation,launch=launches.get(invocation)
    if(!launch)return registry.run(session,async()=>{throw new Error('Missing Canonical Launch')})
+   let taskEntered=false
+   try{
    launches.delete(invocation);sessions.set(invocation,session)
    machines.set(invocation,(selectMachine?selectMachine(input):undefined)??machine)
    resources.set(launch.input_handle,{invocation,kind:'input',value:input})
-   return registry.run(session,async()=>{
+   return await registry.run(session,async()=>{
+    taskEntered=true
     let abortFailure
     const abort=()=>{try{const child=owner.find(invocation,current().children);if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation))}catch(error){abortFailure??=error}}
     options.signal?.addEventListener('abort',abort,{once:true})
@@ -136,7 +165,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
       try{
        const signal=options.signal?AbortSignal.any([options.signal,lease.controller.signal]):lease.controller.signal
        hooks.beforeProvider?.({invocation,lease:leaseId,request:lease.request,driver})
-       payload={value:await foreign([lease.request],{...options,signal})}
+       payload={value:await foreign([lease.request],{...options,signal,ownerLease:Object.freeze({invocation,generation:child.generation,lease:leaseId,request:lease.request.id})})}
       }catch(error){payload={error}}
       const replyId=save(invocation,'reply',payload)
       try{
@@ -157,11 +186,23 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
     }finally{
      options.signal?.removeEventListener('abort',abort)
      // Provider await has settled before registry.run closes native resources.
-     await session.finish?.()
-     engine(invocation).disposeInvocation(invocation);machines.delete(invocation);sessions.delete(invocation);finished.delete(invocation)
-     for(const [id,held] of resources)if(held.invocation===invocation)release(id,invocation)
+     await finishSession(session)
     }
    })
+   }catch(error){
+    const child=owner.find(invocation,current().children)
+    if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation))
+    throw error
+   }finally{
+    try{await finishSession(session)}finally{
+     try{engine(invocation).disposeInvocation(invocation)}finally{
+      machines.delete(invocation);sessions.delete(invocation);finished.delete(invocation)
+      for(const [id,held] of resources)if(held.invocation===invocation)release(id,invocation)
+      // registry.run owns close when it registered; construction failure does not.
+      if(!taskEntered&&registry.get(Number(invocation))!==session)session.close?.()
+     }
+    }
+   }
   },
   constructionFailed(invocation){apply(invoke('cancel',BigInt(invocation)))},
   cancel(invocation){apply(invoke('cancel',BigInt(invocation)))},

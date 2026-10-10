@@ -27,18 +27,20 @@ import {logicalBytes} from '../../../packages/resident-runtime/src/resident/stat
 import {advicee} from '@hapsland/build-tooling/test-support/test-fixtures'
 import {evaluationSourcePartition} from '../../../packages/resident-runtime/src/resident/work-ownership/identity.ts'
 import {decodePreparationResult} from './preparation-result-codec.mjs'
-import {bendPostPreparation} from './post-preparation-host.mjs'
+import {bendPostPreparation,createPostPreparationProvider} from './post-preparation-host.mjs'
+import {providerTransaction,dispatchExecutionBoundary} from './resident-provider-permit.mjs'
 import {nativePostPreparation} from './native-post-preparation-child.mjs'
 
 // Actual semantic owners and one bridged resident transaction. Recording sinks
 // are limited to analytics/inspection; revision, reuse, round and dispatch are real.
 export async function consumeRetainedPreparation(connection,result,root,rootIdentity,mode) {
- const useBend=mode.startsWith('retention-bend-');mode=mode.replace('retention-bend-','retention-')
+ const faultJoinRestore=mode==='retention-owned-joined-pending-restore-fault'
+ const useOwned=mode.startsWith('retention-owned-'),useBend=mode.startsWith('retention-bend-');mode=mode.replace('retention-bend-','retention-').replace('retention-owned-','retention-');if(mode==='retention-duplicate-active')mode='retention-success';if(faultJoinRestore)mode='retention-joined-pending'
  const postFlow=(...args)=>useBend?bendPostPreparation(connection.postCore,...args):nativePostPreparation(...args)
  const run=Effect.runSync,identity=advicee(),accepted=[]
  run(connection.bridge.native((draft,records)=>[undefined,{...records,
   runtime:{...initialRuntimeRecords(),...records.runtime},revision:initialRevision(),reuse:initialEvaluationReuse(),joined:initialJoinedReviews(),rounds:initialRoundRecords(),advice:initialAdviceRecords(),delivery:initialDelivery(),dispatch:initialDispatchRegistry()}]))
- const transaction={...connection.transaction,commitAllEffect:operation=>connection.bridge.native(operation).pipe(Effect.map(publication=>publication.value))}
+ const transaction=providerTransaction(connection.transaction,connection.bridge)
  const ledger={...residentCapacity(transaction),runtime:residentRuntime(transaction),revision:residentRevision(transaction),rounds:residentRounds(transaction),dispatch:residentDispatch(transaction)}
  const reuse=residentReuse(transaction)(logicalBytes),joined=residentJoinedReviews(transaction)(logicalBytes),advice=residentAdvice(transaction),delivery=residentDelivery(transaction)()
  const admission=run(delivery.admitEdit('agent','retention-edit',0));assert.ok(admission)
@@ -46,7 +48,7 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
  assert.equal(round.canonicalRound,connection.round)
  const work=run(ledger.rounds.snapshot(round)).work
  const scope=run(Scope.make()),hold=run(Latch.make(false))
- const dispatcher=await Effect.runPromise(makeDispatcher(ledger,unit=>({operation:unit.canonicalOperationId,round:unit.canonicalRound}),entry=>Effect.sync(()=>accepted.push(entry.value)).pipe(Effect.andThen(hold.await))).pipe(Effect.provideService(Scope.Scope,scope)))
+ const dispatcher=await Effect.runPromise(makeDispatcher(ledger,unit=>({operation:unit.canonicalOperationId,round:unit.canonicalRound}),entry=>Effect.sync(()=>accepted.push(entry.value)).pipe(Effect.andThen(hold.await)),dispatchExecutionBoundary).pipe(Effect.provideService(Scope.Scope,scope)))
  const observation={root,rootIdentity,advicee:identity,candidates:[{operation:'add',path:'root.py'}]}
  const receipt={scope:{root},correlation:{fixture:'postflow'}}
  const job={kind:'ingress',inspectionReceipt:receipt,observation,partition:'agent',canonicalRound:connection.round,canonicalObservationId:1,round,work,workObservationId:1,settings:{configuration:{policy:{digest:'f'.repeat(64)}}},dispatch:{activityPath:undefined,credential:null,controlled:null}}
@@ -69,12 +71,36 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
  if(mode==='retention-fault-after-revision')ledger.rounds.policyWork=capability=>originalPolicyWork(capability).pipe(Effect.map(policy=>({...policy,spawn:()=>{throw new Error('injected before spawn state change')}})))
  let registrations=0
  context.deps.residentRegisterCurrentWork=(partition,input)=>lifecycle.residentRegisterCurrentWork(partition,input).pipe(Effect.tap(()=>Effect.gen(function*(){registrations++;if(mode==='retention-after-revision'&&registrations===1)yield* retire()})))
+ let postSession
+ if(useOwned){
+  postSession=createPostPreparationProvider(connection.owned.receipt.handoff,context,prepared,connection.preparation,observation,false)
+  connection.owned.postSessions.set(postSession.invocation,postSession)
+  if(['retention-before-enqueue','retention-after-queue-commit','retention-fault-after-queue-commit'].includes(mode)){
+   const modify=ledger.dispatch.modify;let injected=false
+   ledger.dispatch.modify=(...args)=>{
+    const cancel=Effect.sync(()=>{if(injected)return;injected=true;if(mode!=='retention-fault-after-queue-commit')connection.owned.driver.cancel(postSession.invocation)})
+    return mode==='retention-before-enqueue'?cancel.pipe(Effect.andThen(modify(...args))):modify(...args).pipe(Effect.tap(()=>injected?Effect.void:cancel.pipe(Effect.andThen(Effect.die(new Error('injected queue commit acknowledgement loss'))))))
+   }
+  }else if(['retention-after-enqueue-ack','retention-fault-after-enqueue-ack'].includes(mode)){
+   const enqueue=dispatcher.enqueue
+   context.deps.residentDispatcher={...dispatcher,enqueue:(...args)=>enqueue(...args).pipe(Effect.tap(accepted=>Effect.sync(()=>{assert.equal(accepted,true);if(mode!=='retention-fault-after-enqueue-ack')connection.owned.driver.cancel(postSession.invocation);throw new Error('injected committed enqueue acknowledgement loss')})))}
+  }
+ }
  try {
   if(mode==='retention-before-flow')await Effect.runPromise(retire())
   let continued
   try {
-   const flow=()=>Effect.runPromise(postFlow(context,prepared,connection.preparation,observation,false))
-   if(mode==='retention-fault-owner-claimed')await assert.rejects(flow,/injected after owner claim/)
+   const flow=async()=>{
+    if(!useOwned)return Effect.runPromise(postFlow(context,prepared,connection.preparation,observation,false))
+    const accepted=await connection.owned.driver.driveHandoff(connection.owned.receipt,postSession,projection=>{assert.equal(projection.preparation,result);return postSession.input})
+    if(accepted.reason?.$==='TechnicalFailure')throw postSession.error(accepted.reason.token)??new Error('Postflow technical failure')
+    return accepted.continued===true
+   }
+   if(useOwned&&mode==='retention-before-flow')await assert.rejects(flow,/Unknown or consumed/ )
+   else if(mode==='retention-preinstall-cancel')await assert.rejects(flow,/WrongGeneration/)
+   else if(mode==='retention-constructor-fault')await assert.rejects(flow,/injected post machine construction failure/)
+   else if(['retention-fault-after-enqueue-ack','retention-fault-after-queue-commit'].includes(mode))await assert.rejects(flow,/acknowledgement loss/)
+   else if(mode==='retention-fault-owner-claimed')await assert.rejects(flow,/injected after owner claim/)
    else if(mode==='retention-fault-after-revision')await assert.rejects(flow,/injected before spawn state change/)
    else continued=await flow()
    if(continued&&['retention-success','retention-cached-clear','retention-joined-claimed','retention-joined-pending'].includes(mode))await Effect.runPromise(completeSourcePreparation(context))
@@ -87,11 +113,20 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
     job.canonicalObservationId=secondObservation;job.workObservationId=secondObservation;job.completed=false
     context.activeWorkspaces.add(secondPreparation.reservation)
     context.expectedActivityUnits.length=0
-    continued=await Effect.runPromise(postFlow(context,prepared,secondPreparation,observation,false))
-    assert.equal(continued,true);await Effect.runPromise(completeSourcePreparation(context))
+    if(useOwned){
+     const sourceResult=await connection.owned.startPreparation(secondPreparation)
+     const secondPrepared=decodePreparationResult(sourceResult,identity)
+     assert.deepEqual(secondPrepared,prepared)
+     const secondSession=createPostPreparationProvider(connection.owned.receipt.handoff,context,secondPrepared,secondPreparation,observation,false)
+     connection.owned.postSessions.set(secondSession.invocation,secondSession)
+     const accepted=await connection.owned.driver.driveHandoff(connection.owned.receipt,secondSession,projection=>{assert.equal(projection.preparation,sourceResult);return secondSession.input})
+     if(faultJoinRestore){assert.equal(accepted.reason?.$,'TechnicalFailure');assert.match(String(secondSession.error(accepted.reason.token)),/injected pending restore acknowledgement loss/);continued=undefined}
+     else {if(accepted.reason?.$==='TechnicalFailure')throw secondSession.error(accepted.reason.token)??new Error('Joined postflow failed');continued=accepted.continued===true}
+    }else continued=await Effect.runPromise(postFlow(context,prepared,secondPreparation,observation,false))
+    if(!faultJoinRestore){assert.equal(continued,true);await Effect.runPromise(completeSourcePreparation(context))}
     const snapshot=run(transaction.read)
     assert.equal(snapshot.records.dispatch.entries.size,ownerUnits.length);assert.equal(registrations,ownerUnits.length)
-    for(const unit of ownerUnits){const entries=snapshot.records.joined.entries.get(unit.evaluationKey);assert.equal(entries.length,1);assert.equal(entries[0].admission,secondObservation);assert.equal(entries[0].revision,unit.revision);assert.equal(run(reuse.pending(unit.evaluationKey)),unit)}
+    for(const unit of ownerUnits){if(faultJoinRestore){assert.equal(run(ledger.revision.current(unit.revision,unit.prepared)),true);continue}const entries=snapshot.records.joined.entries.get(unit.evaluationKey);assert.equal(entries.length,1);assert.equal(entries[0].admission,secondObservation);assert.equal(entries[0].revision,unit.revision);assert.equal(run(reuse.pending(unit.evaluationKey)),unit)}
    }
   } finally {
    // Workflow resource custody survives child failure as well as cancellation.
@@ -99,8 +134,8 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
    for(const key of context.unassignedClaims)await Effect.runPromise(lifecycle.residentReleaseReuseClaim(key))
    if(!job.completed)await Effect.runPromise(ledger.observation('agent',job.canonicalObservationId,'interruptObservation',connection.round))
   }
-  if(mode==='retention-success'||mode==='retention-joined-pending') {
-   assert.equal(continued,true);assert.equal(registrations,prepared.outcomes.filter(outcome=>outcome.status==='ready').length)
+  if(mode==='retention-success'||mode==='retention-joined-pending'||mode==='retention-after-enqueue-ack'||mode==='retention-after-queue-commit'||mode==='retention-fault-after-queue-commit'||mode==='retention-fault-after-enqueue-ack') {
+   assert.equal(continued,faultJoinRestore||mode.startsWith('retention-fault-')?undefined:!['retention-after-enqueue-ack','retention-after-queue-commit'].includes(mode));assert.equal(registrations,['retention-after-enqueue-ack','retention-after-queue-commit','retention-fault-after-enqueue-ack','retention-fault-after-queue-commit'].includes(mode)?1:prepared.outcomes.filter(outcome=>outcome.status==='ready').length)
    const snapshot=run(transaction.read),pending=[...snapshot.records.reuse.pending.values()].filter(Boolean)
    assert.equal(pending.length,registrations);assert.equal(snapshot.records.revision.current.size,registrations)
    const units=[...snapshot.records.dispatch.entries.values()].map(entry=>entry.value)
@@ -120,7 +155,7 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
   } else {
    const snapshot=run(transaction.read)
    assert.equal(snapshot.records.dispatch.entries.size,0);assert.equal(snapshot.records.revision.current.size,0);assert.equal(snapshot.records.reuse.pending.size,0)
-   assert.equal(registrations,mode==='retention-after-revision'?1:0)
+   assert.equal(registrations,['retention-after-revision','retention-before-enqueue'].includes(mode)?1:0)
   }
   return {registrations,ready:prepared.outcomes.filter(outcome=>outcome.status==='ready').length}
  } finally {

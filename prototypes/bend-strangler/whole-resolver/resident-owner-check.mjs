@@ -40,6 +40,22 @@ try{
   assert.equal('canonical' in run(transaction.read).resolverCustody,false)
   event('InstallEvent',{invocation:1n,generation:0n,handle:11n,request:0n})
   event('ProviderStartEvent',{invocation:1n})
+  const credential={invocation:1n,generation:0n,lease:1n,request:0n}
+  for(const key of ['invocation','generation','lease','request']){
+   const before=run(transaction.read)
+   assert.throws(()=>run(bridge.nativeScoped({...credential,[key]:credential[key]+1n},(draft,nativeRecords)=>[undefined,{...nativeRecords,marker:999}])),/Revoked resident provider permit/)
+   assert.strictEqual(run(transaction.read),before)
+  }
+  assert.equal(run(bridge.nativeScoped(credential,(draft,nativeRecords)=>['permitted',nativeRecords])).value,'permitted')
+  // Opaque owner identity changes between the helper lookup and its commit.
+  const originalPending={revision:undefined},replacementPending={revision:undefined}
+  run(bridge.native((draft,nativeRecords)=>[undefined,{...nativeRecords,reuse:{pending:new Map([['opaque-pending',originalPending]])}}]))
+  const lookedUp=run(transaction.read).records.reuse.pending.get('opaque-pending')
+  run(bridge.native((draft,nativeRecords)=>[undefined,{...nativeRecords,reuse:{pending:new Map([['opaque-pending',replacementPending]])}}]))
+  const beforeRestore=run(transaction.read);let attemptedRestore=false
+  assert.throws(()=>run(bridge.nativeRestorePending(credential,{key:'opaque-pending',owner:lookedUp},(draft,nativeRecords)=>{attemptedRestore=true;return [undefined,nativeRecords]})),/Pending revision owner changed/)
+  assert.equal(attemptedRestore,false);assert.strictEqual(run(transaction.read),beforeRestore)
+
   if(variant==='single-action-consumer'){
    const before=published.length
    const step=bridge.control.invoke('cancel',[1n])
@@ -79,6 +95,9 @@ try{
     return [undefined,nativeRecords]
    }))
    else run(bridge.native((draft,nativeRecords)=>{retireRound(draft,'agent',round);return [undefined,{...nativeRecords,marker:1}]}))
+   const beforeDenied=run(transaction.read)
+   assert.throws(()=>run(bridge.nativeScoped(credential,(draft,nativeRecords)=>[undefined,{...nativeRecords,marker:999}])),/Revoked resident provider permit/)
+   assert.strictEqual(run(transaction.read),beforeDenied)
    const late=event('ProviderCompletedEvent',{invocation:1n,lease:1n,request:0n,reply_handle:60n})
    assert.deepEqual(late.actions.map(x=>x.$),['CleanupProvider'])
    assert.equal(event('ProviderCompletedEvent',{invocation:1n,lease:1n,request:0n,reply_handle:60n}).refusal.$,'WrongLease')

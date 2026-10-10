@@ -1,6 +1,6 @@
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
-import { Deferred, Effect, Exit, Fiber, Queue } from "effect"
+import { Context, Deferred, Effect, Exit, Fiber, Queue } from "effect"
 import { makeDispatcher } from "@hapsland/resident-runtime/resident/dispatch"
 import {
   initialCanonical,
@@ -367,5 +367,53 @@ it.effect("matches direct Bend outputs and projections across saturation and ter
     for (const job of jobs.slice(0, 8))
       trace({ kind: "dispatchSettled", partition, lifetime: 1, round, operation: job.operation })
     expect(yield* ledger.canonicalProjection()).toEqual(projectCanonical(direct))
+  })
+)
+
+it.effect("keeps admission under the caller permit and transfers execution and settlement to dispatch ownership", () =>
+  Effect.gen(function* () {
+    const callerPermit = Context.Reference("dispatch-test-caller-permit", { defaultValue: () => false })
+    const ledger = yield* makeResidentState<never, string, { operation: number; round: number }>()
+    const round = yield* ledger.roundId("agent")
+    const operation = yield* ledger.admitObservation("agent", round)
+    const release = yield* Deferred.make<void>()
+    const started = yield* Deferred.make<void>()
+    const observed: boolean[] = []
+    let callerLive = true
+    const modify = ledger.dispatch.modify
+    const scopedLedger = {
+      ...ledger,
+      dispatch: {
+        ...ledger.dispatch,
+        modify: <Result>(operation: Parameters<typeof modify<Result>>[0]) =>
+          Effect.gen(function* () {
+            const permit = yield* callerPermit
+            observed.push(permit)
+            if (permit && !callerLive) return yield* Effect.die(new Error("expired caller permit"))
+            return yield* modify(operation)
+          })
+      }
+    }
+    const dispatcher = yield* makeDispatcher(
+      scopedLedger,
+      (job) => job,
+      () =>
+        Effect.gen(function* () {
+          expect(yield* callerPermit).toBe(false)
+          yield* Deferred.succeed(started, undefined)
+          yield* Deferred.await(release)
+        }),
+      (execute) => Effect.provideService(execute, callerPermit, false)
+    )
+    expect(
+      yield* dispatcher.enqueue("agent", { operation, round }).pipe(Effect.provideService(callerPermit, true))
+    ).toBe(true)
+    yield* Deferred.await(started)
+    callerLive = false
+    yield* Deferred.succeed(release, undefined)
+    yield* dispatcher.whenIdle()
+    expect(observed).toContain(true)
+    expect(observed.at(-1)).toBe(false)
+    expect((yield* ledger.dispatch.read).entries.size).toBe(0)
   })
 )

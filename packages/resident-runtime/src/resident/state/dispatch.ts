@@ -56,7 +56,8 @@ export const makeDispatcher = <K, A>(
     readonly dispatch: DispatchState<K, A>
   },
   operation: (value: A) => { readonly operation: number; readonly round: number },
-  run: (entry: DispatchEntry<K, A>) => Effect.Effect<void, unknown>
+  run: (entry: DispatchEntry<K, A>) => Effect.Effect<void, unknown>,
+  executionBoundary: (execute: Effect.Effect<void>) => Effect.Effect<void> = (execute) => execute
 ): Effect.Effect<Dispatcher<K, A>, never, Scope.Scope> =>
   Effect.gen(function* () {
     const scope = yield* Scope.make()
@@ -222,7 +223,7 @@ export const makeDispatcher = <K, A>(
               Effect.ensuring(settle),
               Effect.uninterruptible
             )
-            yield* Effect.forkIn(execute, scope, { startImmediately: true })
+            yield* Effect.forkIn(executionBoundary(execute), scope, { startImmediately: true })
           }
         })
       )

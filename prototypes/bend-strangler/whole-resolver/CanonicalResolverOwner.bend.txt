@@ -161,6 +161,25 @@ def child_parent(child: Child) -> Maybe<&2, Parent>:
 def child_live(+canonical: C.State, +children: List<&2, Child>, +child: Child) -> Bool:
   Bool.and(live(canonical, child_scope_value(child)), parent_live(child_parent(child), children))
 
+# A provider permit authorizes only its exact current await and generation.
+# This predicate is evaluated against the resident draft inside its mutation commit.
+def provider_permit_matches(invocation: Nat, generation: Nat, lease: Nat, request: Nat, child: Child) -> Bool:
+  match child:
+    case Child{_, actual, current, _, ChildAwaiting{}, Some{+pending}, Some{Lease{id, leased}}, _}:
+      Bool.and(Nat.is_eq(invocation, actual), Bool.and(Nat.is_eq(generation, current),
+        Bool.and(Nat.is_eq(lease, id), Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased)))))
+    case _: False{}
+
+def provider_permit_found(+canonical: C.State, +children: List<&2, Child>, invocation: Nat, generation: Nat, lease: Nat, request: Nat, found: Maybe<&2, Child>) -> Bool:
+  match found:
+    case Some{+child}: Bool.and(provider_permit_matches(invocation, generation, lease, request, child), child_live(canonical, children, child))
+    case None{}: False{}
+
+def provider_live(+state: State, +invocation: Nat, generation: Nat, lease: Nat, request: Nat) -> Bool:
+  match state:
+    case State{canonical, _, _, +children}:
+      provider_permit_found(canonical, children, invocation, generation, lease, request, find(invocation, children))
+
 def preparation_scope_kind(scope: Scope) -> Bool:
   match scope:
     case PreparationScope{_, _, _, _}: True{}
@@ -235,7 +254,6 @@ def same_preparation(left: Scope, right: Scope) -> Bool:
 
 def preparation_claimed(phase: Phase) -> Bool:
   match phase:
-    case ChildCancelled{}: False{}
     case _: True{}
 
 def claimed_child(+scope: Scope, child: Child) -> Bool:

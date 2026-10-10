@@ -135,5 +135,5 @@ export function createServiceRegistry() {
  const sessions=new Map()
  const register=session=>{if(sessions.has(session.invocation))throw new Error('duplicate active invocation');sessions.set(session.invocation,session)}
  const remove=session=>{if(sessions.get(session.invocation)!==session)throw new Error('wrong registry owner');sessions.delete(session.invocation)}
- return Object.freeze({get:id=>sessions.get(id),get size(){return sessions.size},register,remove,async run(session,task){let registered=false;try{register(session);registered=true;return await task()}finally{if(registered){session.close();remove(session)}}}})
+ return Object.freeze({get:id=>sessions.get(id),get size(){return sessions.size},register,remove,async run(session,task){let registered=false;try{register(session);registered=true;return await task()}finally{if(registered){try{session.close()}finally{remove(session)}}}}})
 }

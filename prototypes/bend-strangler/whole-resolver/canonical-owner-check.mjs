@@ -3,6 +3,8 @@ import {execFileSync} from 'node:child_process'
 import {mkdtemp,rm} from 'node:fs/promises'
 import {join} from 'node:path'
 import {pathToFileURL} from 'node:url'
+import {createOwnedArtifactDriver} from './owned-artifact-driver.mjs'
+import {createServiceRegistry} from './service-session.mjs'
 const temp=await mkdtemp('/tmp/hapsland-canonical-owner-')
 try {
  const emitted=join(temp,'owner.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'CanonicalResolverOwner.bend'),'-o',emitted],{timeout:5000});const m=(await import(pathToFileURL(emitted))).default
@@ -20,6 +22,9 @@ try {
  let s=fresh();reject(m.launch(s,{...scope,preparation:1n},50n),'NotPreparing');assertions++
  let out=m.launch(s,scope,50n);assert.deepEqual(list(out.actions),[{$:'Launch',invocation:1n,input_handle:50n}]);s=advanced(out)
  s=advanced(m.install(s,1n,0n,11n,0n));out=m.provider_start(s,1n);assert.deepEqual(list(out.actions),[{$:'ExecuteProvider',invocation:1n,lease:1n,request:0n,state_handle:11n}]);s=advanced(out);assertions+=2
+ assert.equal(m.provider_live(s,1n,0n,1n,0n),true)
+ for(const tuple of [[2n,0n,1n,0n],[1n,1n,1n,0n],[1n,0n,2n,0n],[1n,0n,1n,1n]])assert.equal(m.provider_live(s,...tuple),false)
+ assert.equal(m.provider_live(advanced(m.cancel(s,1n)),1n,0n,1n,0n),false);assertions+=6
  reject(m.provider_completed(s,1n,2n,0n,60n),'WrongLease');reject(m.provider_completed(s,1n,1n,1n,60n),'WrongLease');assertions+=2
  out=m.provider_completed(s,1n,1n,0n,60n);assert.deepEqual(list(out.actions).map(x=>x.$),['Resume','RetireHandle','CleanupProvider']);s=advanced(out);assertions++
  reject(m.provider_completed(s,1n,1n,0n,60n),'WrongLease');reject(m.install(s,1n,0n,12n,1n),'WrongGeneration');assertions+=2
@@ -75,7 +80,22 @@ try {
  out=m.canonical_event(handoffState,c('InterruptObservation',{partition:1n,lifetime:1n,round:1n,observation:1n}));assert.ok(list(out.actions).some(action=>action.$==='CancelChild'&&action.invocation===2n));handoffState=advanced(out);assertions++
  out=m.provider_completed(handoffState,2n,1n,0n,306n);assert.deepEqual(list(out.actions).map(action=>action.$),['CleanupProvider']);assertions++
  let beforeInstall=fresh();beforeInstall=advanced(m.launch_preparation(beforeInstall,scope,400n));beforeInstall=advanced(m.terminal_preparation(beforeInstall,1n,0n,401n));out=m.cancel(beforeInstall,2n);assert.deepEqual(list(out.actions).map(action=>action.$),['CancelChild']);assertions++
+ let cancelledPreparation=fresh();cancelledPreparation=advanced(m.launch_preparation(cancelledPreparation,scope,600n));cancelledPreparation=advanced(m.cancel(cancelledPreparation,1n));reject(m.launch_preparation(cancelledPreparation,scope,601n),'NotPreparing');assertions++
  let failedPreparation=fresh();failedPreparation=advanced(m.launch_preparation(failedPreparation,scope,500n));out=m.terminal_preparation_failed(failedPreparation,1n,0n,501n);assert.deepEqual(list(out.actions).map(action=>action.$),['AcceptResult']);assertions++
  reject(m.terminal_preparation(fresh(),99n,0n,600n),'UnknownInvocation');assertions++
+ for(const failureAt of ['input','machine','register']) {
+  const registry=createServiceRegistry(),machine={initial:()=>({$:'PreparationFinished',result:{}}),view:value=>value,disposeInvocation(){},get retainedHandles(){return 0}}
+  const driver=createOwnedArtifactDriver({owner:m,initialState:fresh(),scope,registry,machine,selectMachine:input=>{if(input.postPreparation&&failureAt==='machine')throw new Error('machine construction');return machine},foreign:()=>{throw new Error('unexpected provider')}})
+  const invocation=driver.allocatePreparationInvocation()
+  const prepSession={invocation,close(){},revoke(){}}
+  const receipt=await driver.drive(prepSession,{invocation:BigInt(invocation)})
+  let finishes=0,closes=0
+  const session={invocation:Number(receipt.handoff),finish(){finishes++},close(){closes++},revoke(){}}
+  if(failureAt==='register')registry.register({invocation:session.invocation,close(){}})
+  await assert.rejects(driver.driveHandoff(receipt,session,()=>{if(failureAt==='input')throw new Error('input construction');return {invocation:receipt.handoff,postPreparation:{}}}))
+  assert.equal(finishes,1);assert.equal(closes,1)
+  assert.deepEqual(driver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0})
+  assertions+=3
+ }
  console.log(JSON.stringify({passed:true,assertions,scope:'actual Canonical admission/work invalidation plus source-free child generations, unique terminal and separate late-provider cleanup; opaque controlled handles only; actual split-child resident consumer, provisional rejected-handle disposal, retention/revision and universal proofs remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}
