@@ -565,11 +565,11 @@ declarations are emitted.
 
 | Edited root family | Shipped type rules | Evidence and controls |
 | --- | --- | --- |
-| Annotated class and local inherited model | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Declared fields and resolved same-file bases/types; unrelated method source retained |
+| Annotated class and local inherited model | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Declared fields and resolved eligible local bases/types; unrelated method source retained |
 | Dataclass | Same three | Imported marker, static options, declared fields; fieldless class is a clear control |
 | Class TypedDict | Same three | Imported marker, field annotations, Required/NotRequired and literal total; empty shape is clear |
 | Static BaseModel | Same three | Authored static field/base/configuration evidence; dynamic behavior is an omission, no runtime schema guarantee |
-| Explicit alias/type statement | Same three | Supported underlying expression and complete reachable same-file declarations; primitive/fieldless expressions are clear controls where criterion is absent |
+| Explicit alias/type statement | Same three | Supported underlying expression and complete reachable eligible local declarations; primitive/fieldless expressions are clear controls where criterion is absent |
 | NewType | Same three | Exact nominal wrapper and underlying type; nominal primitive wrapper is a clear control |
 
 All three rules preserve `root-declaration`, `resolved-outbound-types`, and
@@ -753,7 +753,7 @@ All three shipped rules retain their existing required type-closure capabilities
 This matrix states admissible evidence; it does not establish live classifier
 accuracy, compiler acceptance or installed native validation.
 
-The pinned `tree-sitter-go` 0.25.0 grammar and existing `tree-sitter` 0.25.0 runtime use the manifest-owned native producer and external loader. Compact semicolon-separated constant blocks are a known parse omission. Leading block-comment headers are unknown in this bounded membership profile. No syntax rewriting or compiler/system dependency traversal fills these gaps.
+The pinned `tree-sitter-go` 0.25.0 grammar and existing `tree-sitter` 0.25.1 runtime use the manifest-owned native producer and external loader. Compact semicolon-separated constant blocks are a known parse omission. Leading block-comment headers are unknown in this bounded membership profile. No syntax rewriting or compiler/system dependency traversal fills these gaps.
 
 Named local array bounds retain their defining constant group. Other computed array-bound expressions remain unsupported evidence; the adapter does not evaluate them.
 
