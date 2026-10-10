@@ -37,5 +37,26 @@ try {
   const late=m.provider_completed(state,1n,1n,0n,99n);assert.deepEqual(list(late.actions).map(x=>x.$),['CleanupProvider']);state=advanced(late)
   reject(m.provider_completed(state,1n,1n,0n,99n),'WrongLease');reject(m.terminal(state,1n,0n,99n),'WrongPhase');assertions+=4
  }
+ // Parent custody is tied to the exact outstanding generation/request.
+ let nested=fresh();nested=advanced(m.launch(nested,scope,100n));nested=advanced(m.install(nested,1n,0n,101n,7n));nested=advanced(m.provider_start(nested,1n))
+ const parent={$:'Parent',invocation:1n,generation:0n,request:7n}
+ reject(m.launch_nested(nested,{...parent,generation:1n},200n),'WrongPhase')
+ reject(m.launch_nested(nested,{...parent,request:8n},200n),'WrongPhase');assertions+=2
+ out=m.launch_nested(nested,parent,200n);assert.deepEqual(list(out.actions),[{$:'Launch',invocation:2n,input_handle:200n}]);nested=advanced(out)
+ reject(m.launch_nested(nested,parent,205n),'WrongPhase');assertions++
+ assert.deepEqual(m.find(2n,nested.children).value.parent.value,parent)
+ nested=advanced(m.install(nested,2n,0n,201n,0n));nested=advanced(m.provider_start(nested,2n));assertions++
+ reject(m.launch_nested(nested,{$:'Parent',invocation:2n,generation:0n,request:0n},300n),'WrongPhase');assertions++
+ out=m.cancel(nested,1n);assert.deepEqual(list(out.actions).filter(action=>action.$==='CancelChild').map(action=>action.invocation),[1n,2n]);nested=advanced(out)
+ assert.equal(m.find(1n,nested.children).value.phase.$,'ChildCancelled');assert.equal(m.find(2n,nested.children).value.phase.$,'ChildCancelled');assertions++
+ out=m.provider_completed(nested,2n,2n,0n,202n);assert.deepEqual(list(out.actions).map(action=>action.$),['CleanupProvider']);nested=advanced(out)
+ out=m.provider_completed(nested,1n,1n,7n,102n);assert.deepEqual(list(out.actions).map(action=>action.$),['CleanupProvider']);nested=advanced(out);assertions+=2
+ reject(m.terminal(nested,2n,0n,203n),'WrongPhase');reject(m.launch_nested(nested,parent,204n),'WrongPhase');assertions+=2
+ let successful=fresh();successful=advanced(m.launch(successful,scope,100n));successful=advanced(m.install(successful,1n,0n,101n,7n));successful=advanced(m.provider_start(successful,1n));successful=advanced(m.launch_nested(successful,parent,200n))
+ successful=advanced(m.terminal(successful,2n,0n,201n));successful=advanced(m.provider_completed(successful,1n,1n,7n,102n));successful=advanced(m.install(successful,1n,1n,103n,8n));successful=advanced(m.provider_start(successful,1n))
+ reject(m.launch_nested(successful,parent,202n),'WrongPhase');successful=advanced(m.launch_nested(successful,{...parent,generation:1n,request:8n},203n));assertions+=2
+ let premature=fresh();premature=advanced(m.launch(premature,scope,100n));premature=advanced(m.install(premature,1n,0n,101n,7n));premature=advanced(m.provider_start(premature,1n));premature=advanced(m.launch_nested(premature,parent,200n));premature=advanced(m.install(premature,2n,0n,201n,0n));premature=advanced(m.provider_start(premature,2n))
+ out=m.provider_completed(premature,1n,1n,7n,102n);assert.equal(list(out.actions).some(action=>action.$==='CancelChild'&&action.invocation===2n),true);premature=advanced(out);assertions++
+ reject(m.terminal(premature,2n,0n,203n),'WrongPhase');out=m.provider_completed(premature,2n,2n,0n,204n);assert.deepEqual(list(out.actions).map(action=>action.$),['CleanupProvider']);assertions+=2
  console.log(JSON.stringify({passed:true,assertions,scope:'actual Canonical admission/work invalidation plus source-free child generations, unique terminal and separate late-provider cleanup; opaque controlled handles only; actual split-child resident consumer, provisional rejected-handle disposal, retention/revision and universal proofs remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}

@@ -1,8 +1,9 @@
 import {createArtifactMachine} from './artifact-dispatcher.mjs'
 // Effect/lifetime adapter for actual Canonical owner actions. Root selection and
 // resident retention are not implemented here: this is a composed intermediate.
-export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,registry,foreign,hooks={},control}){
- const machine=createArtifactMachine({...artifacts,retainPrefixes:false})
+export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,registry,foreign,hooks={},control,machine:providedMachine,selectMachine}){
+ const machine=providedMachine??createArtifactMachine({...artifacts,retainPrefixes:false})
+ const machines=new Map(),engine=invocation=>machines.get(invocation)??machine
  let state=control?undefined:initialState,nextHandle=1n
  const current=()=>control?control.readState():state
  const invoke=(method,...args)=>control?control.invoke(method,args):owner[method](state,...args)
@@ -14,7 +15,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
  const release=(id,invocation)=>{const held=resources.get(id);if(held&&held.invocation===invocation){resources.delete(id);stats.discarded++}}
  const failed=()=>({failure:{$:'Types.InvocationCancelled'}})
  const settle=(invocation,generation,raw)=>{
-  const projection=machine.view(raw)
+  const projection=engine(invocation).view(raw)
   if(projection.$==='Types.AwaitService'){
    if(projection.request.invocation!==invocation)throw new Error('Artifact request owner mismatch')
    const id=save(invocation,'state',raw);let transferred=false
@@ -31,7 +32,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   switch(command.$){
    case 'Launch': launches.set(invocation,command);stats.launches++;break
    case 'ExecuteProvider':{
-    const raw=load(command.state_handle,invocation,'state'),request=machine.view(raw).request
+    const raw=load(command.state_handle,invocation,'state'),request=engine(invocation).view(raw).request
     if(request.invocation!==invocation||request.id!==command.request)throw new Error('Provider Await binding mismatch')
     if(leases.has(command.lease))throw new Error('Duplicate provider lease')
     leases.set(command.lease,{invocation,request,controller:new AbortController()});stats.providerStarts++;break
@@ -40,11 +41,11 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
     const raw=load(command.state_handle,invocation,'state'),reply=load(command.reply_handle,invocation,'reply')
     if(reply.error)throw reply.error
     stats.resumes++
-    settle(invocation,command.generation,machine.resume(raw,{$:'Types.ServiceReply',reply:reply.value}));break
+    settle(invocation,command.generation,engine(invocation).resume(raw,{$:'Types.ServiceReply',reply:reply.value}));break
    }
    case 'RetireHandle':release(command.state_handle,invocation);break
    case 'CancelChild':{
-    sessions.get(invocation)?.revoke();machine.disposeInvocation(invocation);stats.revoked++
+    sessions.get(invocation)?.revoke();engine(invocation).disposeInvocation(invocation);stats.revoked++
     const pending=launches.get(invocation);if(pending){release(pending.input_handle,invocation);launches.delete(invocation)}
     for(const lease of leases.values())if(lease.invocation===invocation)lease.controller.abort()
     if(sessions.has(invocation))finished.set(invocation,failed());break
@@ -57,7 +58,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    case 'AcceptResult':{
     // Synchronous handoff in this serialized turn; no queued acceptance permit.
     const result=load(command.result_handle,invocation,'result')
-    finished.set(invocation,result.$==='Types.FinishedResolver'?{result:result.result,finalFrame:result.final_frame}:{failure:result.failure})
+    finished.set(invocation,engine(invocation).accepted?engine(invocation).accepted(result):result.$==='Types.FinishedResolver'?{result:result.result,finalFrame:result.final_frame}:{failure:result.failure})
     release(command.result_handle,invocation);stats.accepted++;break
    }
    default:throw new Error('Unknown owner action '+command.$)
@@ -82,16 +83,17 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   if(failure)throw failure
  }
  const driver={
-  allocateInvocation(){
+  allocateInvocation(parent){
    if(current().next_invocation<1n||current().next_invocation>BigInt(Number.MAX_SAFE_INTEGER))throw new RangeError('Invocation exceeds exact native ID range')
    const inputId=save(0n,'pending-input',undefined)
-   try{apply(invoke('launch',scope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
+   try{apply(parent?invoke('launch_nested',parent,inputId):invoke('launch',scope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
    catch(error){resources.delete(inputId);throw error}
   },
   async drive(session,input,options={}){
    const invocation=input.invocation,launch=launches.get(invocation)
    if(!launch)return registry.run(session,async()=>{throw new Error('Missing Canonical Launch')})
    launches.delete(invocation);sessions.set(invocation,session)
+   machines.set(invocation,(selectMachine?selectMachine(input):undefined)??machine)
    resources.set(launch.input_handle,{invocation,kind:'input',value:input})
    return registry.run(session,async()=>{
     let abortFailure
@@ -100,7 +102,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
     try{
      if(options.signal?.aborted)abort()
      if(finished.has(invocation))return finished.get(invocation)
-     try{settle(invocation,0n,machine.initial(load(launch.input_handle,invocation,'input')))}finally{release(launch.input_handle,invocation)}
+     try{settle(invocation,0n,engine(invocation).initial(load(launch.input_handle,invocation,'input')))}finally{release(launch.input_handle,invocation)}
      while(!finished.has(invocation)){
       apply(invoke('provider_start',invocation))
       const child=owner.find(invocation,current().children).value,lease=leases.get(child.lease.value.id),leaseId=child.lease.value.id
@@ -129,7 +131,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
     }finally{
      options.signal?.removeEventListener('abort',abort)
      // Provider await has settled before registry.run closes native resources.
-     machine.disposeInvocation(invocation);sessions.delete(invocation);finished.delete(invocation)
+     engine(invocation).disposeInvocation(invocation);machines.delete(invocation);sessions.delete(invocation);finished.delete(invocation)
      for(const [id,held] of resources)if(held.invocation===invocation)release(id,invocation)
     }
    })
@@ -140,7 +142,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   acceptPublication(step){apply(step)},
   canonicalEvent(event){apply(invoke('canonical_event',event))},
   get state(){return current()},get stats(){return {...stats}},
-  get resources(){return {payloads:resources.size,leases:leases.size,sessions:sessions.size,artifactStates:machine.retainedHandles,launches:launches.size}}
+  get resources(){return {payloads:resources.size,leases:leases.size,sessions:sessions.size,artifactStates:[...new Set([machine,...machines.values()])].reduce((total,owned)=>total+owned.retainedHandles,0),launches:launches.size}}
  }
  return driver
 }

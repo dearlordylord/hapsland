@@ -478,7 +478,7 @@ def skip_candidate(+state: State, +path: String, reason: Maybe<&2, String>) -> S
 def refuse_candidate(state: State, +path: String, diagnostic: Diagnostic) -> Step:
   record_candidate(state, Incomplete{path, None{}, Some{diagnostic}} <> Nil{}, OutcomeSkipped{path} <> Nil{}, Nil{})
 
-def observed_candidate(state: State, context: Context, units: List<&2, T.ProductValue>, failures: List<&2, Failure>, outcomes: List<&2, Outcome>) -> Step:
+def observed_candidate(state: State, context: Context, +units: List<&2, T.ProductValue>, failures: List<&2, Failure>, outcomes: List<&2, Outcome>) -> Step:
   match context:
     case Context{Candidate{_, operation, _}, Capture{path, _, _, hash, _}, _}:
       record_candidate(state, Observed{path, operation, hash, units, failures} <> Nil{}, outcomes, units)
@@ -527,13 +527,13 @@ def eligible_operation(+state: State, +candidate: Candidate, operation: Operatio
 def source_cap(contract: Selection.Contract, limits: Graph.Limits) -> Maybe<&2, Nat>:
   Bool.pick(Maybe<&2, Nat>, Selection.graph_contract(contract), Some{Graph.source_cap(limits)}, None{})
 
-def capture_admission(captures: List<&2, Capture>) -> Maybe<&2, Diagnostic>:
+def capture_admission(+captures: List<&2, Capture>) -> Maybe<&2, Diagnostic>:
   Bool.pick(Maybe<&2, Diagnostic>, Nat.is_ge(List.length(&2, Capture, captures), 64n),
     Some{CaptureBudget{"files", List.length(&2, Capture, captures), 1n, 64n}},
     Bool.pick(Maybe<&2, Diagnostic>, Nat.is_gt(Nat.add(total_capture_bytes(captures), 2097152n), 16777216n),
       Some{CaptureBudget{"bytes", total_capture_bytes(captures), 2097152n, 16777216n}}, None{}))
 
-def capture_admitted(refusal: Maybe<&2, Diagnostic>, +state: State, candidate: Candidate, +path: String, selection: Nat, frozen: Maybe<&2, List<&2, String>>) -> Step:
+def capture_admitted(refusal: Maybe<&2, Diagnostic>, +state: State, candidate: Candidate, +path: String, +selection: Nat, frozen: Maybe<&2, List<&2, String>>) -> Step:
   match refusal:
     case Some{diagnostic}: refuse_candidate(state, path, diagnostic)
     case None{}: issue(state, AwaitCapture{candidate, path, selection, frozen},
@@ -557,7 +557,7 @@ def path_allowed(frozen_paths: Maybe<&2, List<&2, FrozenPath>>, +state: State, c
 def context_path(context: Context) -> String:
   capture_path(context_capture(context))
 
-def source_allowed(contract: Selection.Contract, limits: Graph.Limits, bytes: Nat) -> Bool:
+def source_allowed(contract: Selection.Contract, +limits: Graph.Limits, +bytes: Nat) -> Bool:
   Bool.or(Bool.not(Selection.graph_contract(contract)), Bool.and(Nat.is_le(bytes, Graph.source_cap(limits)), Nat.is_le(bytes, Graph.read_cap(limits))))
 
 def extract(+state: State, +context: Context) -> Step:
@@ -672,7 +672,7 @@ def declaration_names(roots: List<&2, Attribution.Declaration>) -> List<&2, Stri
 def selected_exclusion_failures(exclusions: List<&2, Exclusion>, +names: List<&2, String>) -> List<&2, Failure>:
   match exclusions:
     case Nil{}: Nil{}
-    case Exclusion{+name, reason, _} <> rest: Bool.pick(List<&2, Failure>, Selection.names_contain(name, names),
+    case Exclusion{+name, reason, _} <> +rest: Bool.pick(List<&2, Failure>, Selection.names_contain(name, names),
       Failure{Some{name}, reason} <> selected_exclusion_failures(rest, names), selected_exclusion_failures(rest, names))
 
 def add_function_empty(failures: List<&2, Failure>, no_functions: Bool) -> List<&2, Failure>:
@@ -702,9 +702,9 @@ def line_exclusion_names(roots: List<&2, Selection.Root>) -> List<&2, String>:
     case Selection.Root{_, Attribution.Declaration{_, _, name, _, _}} <> rest: name <> line_exclusion_names(rest)
 
 def function_exclusions(line: Maybe<&2, Nat>, frozen: Maybe<&2, List<&2, String>>, +input: Input, +context: Context, native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>, +exclusions: List<&2, Exclusion>, no_functions: Bool) -> List<&2, Failure>:
-  match frozen line:
-    case Some{names} _: add_function_empty(selected_exclusion_failures(exclusions, names), no_functions)
-    case None{} Some{line}: add_function_empty(selected_exclusion_failures(exclusions,
+  match line frozen:
+    case _ Some{names}: add_function_empty(selected_exclusion_failures(exclusions, names), no_functions)
+    case Some{line} None{}: add_function_empty(selected_exclusion_failures(exclusions,
       line_exclusion_names(Selection.matching_roots(exclusion_roots(context_path(context), exclusions), line))), no_functions)
     case None{} None{}: exclusion_hunks(Selection.patch_hunks(snapshot(context), capture_content_hash(context_capture(context)), input_verified(input), native_hunks), context, exclusions, no_functions)
 
@@ -855,7 +855,7 @@ def outcome_paths(outcomes: List<&2, Outcome>) -> List<&2, String>:
 def skipped_paths(paths: List<&2, PathOutcome>, +ready_paths: List<&2, String>) -> List<&2, Outcome>:
   match paths:
     case Nil{}: Nil{}
-    case +path <> rest: Bool.pick(List<&2, Outcome>, Selection.names_contain(path_name(path), ready_paths), skipped_paths(rest, ready_paths), OutcomeSkipped{path_name(path)} <> skipped_paths(rest, ready_paths))
+    case +path <> +rest: Bool.pick(List<&2, Outcome>, Selection.names_contain(path_name(path), ready_paths), skipped_paths(rest, ready_paths), OutcomeSkipped{path_name(path)} <> skipped_paths(rest, ready_paths))
 
 def normalize_merged_ready(branch: Branch, +ready: List<&2, Outcome>) -> Branch:
   match branch:
@@ -884,7 +884,7 @@ def finish(state: State) -> Step:
   match state:
     case State{_, _, _, _, shared, branches, _, _}: finish_branch(normalized_branches(branches), shared)
 
-def append_active(active: Maybe<&2, Selection.Contract>, state: State) -> State:
+def append_active(active: Maybe<&2, Selection.Contract>, +state: State) -> State:
   match active:
     case None{}: state
     case Some{_}: with_state_branches(state, List.append(&2, Branch, state_branches(state), state_branch(state) <> Nil{}))
@@ -905,7 +905,7 @@ def next_roots(roots: List<&2, Selection.Analysis>, +state: State, +context: Ana
     case Nil{}: render_needed(List.is_empty(&2, T.ProductValue, analysiscontext_units(context)), state, context)
     case +root <> rest: root_quota(Nat.is_ge(shared_selected(state_shared(state)), 64n), state, context, root, rest)
 
-def verified_matches(verified: Maybe<&2, Selection.VerifiedSpans>, capture: Capture) -> Bool:
+def verified_matches(verified: Maybe<&2, Selection.VerifiedSpans>, +capture: Capture) -> Bool:
   match verified:
     case None{}: False{}
     case Some{verified}: Selection.verify_match(verified, capture_path(capture), capture_content_hash(capture))
@@ -935,10 +935,10 @@ def advance(+state: State) -> Step:
 def remember_capture(+state: State, capture: Capture) -> State:
   with_state_shared(state, with_shared_captures(state_shared(state), List.append(&2, Capture, shared_captures(state_shared(state)), capture <> Nil{})))
 
-def admitted(result: CapacityResult, requested: Nat, +state: State, +context: Context) -> Step:
+def admitted(result: CapacityResult, +requested: Nat, +state: State, +context: Context) -> Step:
   match result:
     case Resized{}: extract(with_state_shared(state, with_shared_materialized(state_shared(state), append_unique(context_path(context), shared_materialized(state_shared(state))))), context)
-    case CapacityRefused{constraint}: refuse_candidate(with_state_shared(state, with_shared_refused(state_shared(state),
+    case CapacityRefused{+constraint}: refuse_candidate(with_state_shared(state, with_shared_refused(state_shared(state),
       RefusedPath{context_path(context), MaterializationRefused{requested, constraint}} <> shared_refused(state_shared(state)))), context_path(context), MaterializationRefused{requested, constraint})
     case _: refuse_candidate(with_state_shared(state, with_shared_refused(state_shared(state),
       RefusedPath{context_path(context), PreparationPanic{}} <> shared_refused(state_shared(state)))), context_path(context), PreparationPanic{})

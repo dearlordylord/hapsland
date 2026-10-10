@@ -3156,7 +3156,7 @@
     {
       "path": "whole-resolver/CanonicalResolverOwner.bend",
       "capture": "whole-resolver/CanonicalResolverOwner.bend.txt",
-      "sha256": "b4ec92a3c40f278990a9c2d33bb2eb1c49c49e746c4182b6e4c7cba429c54977"
+      "sha256": "1139266ed5fc1cf3571941dd0f1068cfcda44ec0ec4155a817cdf8efe420d6ac"
     },
     {
       "path": "whole-resolver/CaptureAdmission.bend",
@@ -3306,7 +3306,7 @@
     {
       "path": "whole-resolver/Preparation.bend",
       "capture": "whole-resolver/Preparation.bend.txt",
-      "sha256": "d30e6277b4f4ee57768c054111e72fde449eed030b3e271ff32ffb990f09323e"
+      "sha256": "03963896e848e718320b45729f07e60ad95e3e0c1b74a0798b73339b77f1ab66"
     },
     {
       "path": "whole-resolver/PreparationSelection.bend",
@@ -3561,7 +3561,7 @@
     {
       "path": "whole-resolver/canonical-owner-check.mjs",
       "capture": "whole-resolver/canonical-owner-check.mjs",
-      "sha256": "1fdfd1515ac45fc252398625c78caa07e6680914e72954d6550abbd57789bef8"
+      "sha256": "c9d53a5c31f61f3a5f8c2e73013375551b72a493d5ba739ef1c96c7387a03889"
     },
     {
       "path": "whole-resolver/cargo-specification-check.mjs",
@@ -3644,9 +3644,19 @@
       "sha256": "48ce276fdc545f1ba5924ca36128c35df6e899ad4248ba1be13b3376b8591187"
     },
     {
+      "path": "whole-resolver/native-post-preparation-child.mjs",
+      "capture": "whole-resolver/native-post-preparation-child.mjs",
+      "sha256": "aa210ce8e875df56e863d562876ed1ac68a323a7ab473bc5a53d6fc021120e22"
+    },
+    {
+      "path": "whole-resolver/native-preparation-children.mjs",
+      "capture": "whole-resolver/native-preparation-children.mjs",
+      "sha256": "28d7efa35028255f333c3a7595d987ee839c7827b6cd9417628eef9c60a67e86"
+    },
+    {
       "path": "whole-resolver/owned-artifact-driver.mjs",
       "capture": "whole-resolver/owned-artifact-driver.mjs",
-      "sha256": "95a84d8b9342eae0485447f74fe088489d54832a319e04a80f01a0eac6451680"
+      "sha256": "24de67ec81e2ee495ce06819d1e7b5fb70c9b393ddf98d0b566eebdcdb2be1c5"
     },
     {
       "path": "whole-resolver/owned-root-check.mjs",
@@ -3657,6 +3667,21 @@
       "path": "whole-resolver/package-runtime.mjs",
       "capture": "whole-resolver/package-runtime.mjs",
       "sha256": "e31e271205e2204939640eea6505e48f523d142ab8a4a7dea9b931ac6223ad4e"
+    },
+    {
+      "path": "whole-resolver/preparation-dispatcher.mjs",
+      "capture": "whole-resolver/preparation-dispatcher.mjs",
+      "sha256": "7afcaa319be7c35d02d3578cfccabab2dcd3786c68912a9940c17457b3507643"
+    },
+    {
+      "path": "whole-resolver/preparation-machine-check.mjs",
+      "capture": "whole-resolver/preparation-machine-check.mjs",
+      "sha256": "e3b516eb3ce0cd062e009fad20737ea04c92a81e1e92f2bd38eb6f7505c3bf2f"
+    },
+    {
+      "path": "whole-resolver/preparation-result-codec.mjs",
+      "capture": "whole-resolver/preparation-result-codec.mjs",
+      "sha256": "cd24990ab5191edce6df1c404fe97337e44b83e1274fc531bd7d7c437eddd4c3"
     },
     {
       "path": "whole-resolver/preparation-selection-check.mjs",
@@ -3846,12 +3871,22 @@
     {
       "path": "whole-resolver/resident-owner-transaction.mjs",
       "capture": "whole-resolver/resident-owner-transaction.mjs",
-      "sha256": "2f676d3ea0ebf221890de039d2a4ab738fb8b9b130e8979c6aff60e7501e08ac"
+      "sha256": "c2fd98dd9eae5822b5aab581262cf40d648921dc93320a426ba883f657f5e481"
+    },
+    {
+      "path": "whole-resolver/resident-preparation-check.mjs",
+      "capture": "whole-resolver/resident-preparation-check.mjs",
+      "sha256": "a6114f6d25279a1270d640139c1530f707ec632dc8fdd9f3515500fd43e6247d"
     },
     {
       "path": "whole-resolver/result-check.mjs",
       "capture": "whole-resolver/result-check.mjs",
       "sha256": "50c2e1e0e614694224b78f255f4ba725cc4760a34f30ef31bc9683f6326eeb1a"
+    },
+    {
+      "path": "whole-resolver/retention-consumer.mjs",
+      "capture": "whole-resolver/retention-consumer.mjs",
+      "sha256": "7864bd4da2fe3779a41426c5e5bf25312e2bba09ae4e27533cef1494d4e9fdff"
     },
     {
       "path": "whole-resolver/root-attribution-check.mjs",
