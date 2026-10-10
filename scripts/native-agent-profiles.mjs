@@ -16,7 +16,8 @@ export const NATIVE_AGENT_PROFILES = Object.freeze({
       ...sharedScenarios,
       "inspection-exclusions",
       "callable-review",
-      "go-package-model-review"
+      "go-package-model-review",
+      "go-module-model-review"
     ])
   }),
   claude: Object.freeze({

@@ -108,8 +108,8 @@ const expandLocalReference = (frame: LocalFrame, reference: FactReference, local
   frame.visited.add(local.artifact.id)
   const child = buildLocal(
     frame.file,
-    frame.path,
-    reference.name,
+    local.artifact.path ?? frame.path,
+    reference.bindingName ?? reference.name,
     frame.visited,
     frame.budget,
     frame.depth + 1,
@@ -200,7 +200,7 @@ const materializeLocalReference = (frame: LocalFrame, reference: FactReference):
     materializeBundledReference(frame, reference, reference.targetId)
     return
   }
-  const local = declarationFor(frame.file, reference.name, reference.expectedKind)
+  const local = declarationFor(frame.file, reference.bindingName ?? reference.name, reference.expectedKind)
   const imported = frame.file.imports.get(reference.name)
   fileTargets.add(localReferenceTargetKey(frame.path, reference.name, local, imported))
   budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size)

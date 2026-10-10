@@ -9,7 +9,7 @@
 
 ## Current implementation
 
-TypeScript, Rust, Bend, the bounded same-file Python profile and the partial Go active-package profile use the shared review pipeline. Go resolves package bindings across eligible active sibling files, preserving file-local imports and generic parameter shadows. It never resolves another package or assumes a closed set of interface implementers. See the [Go authority profile](type-function-review-proposal.md#go-active-package-constraint-subset). The
+TypeScript, Rust, Bend, the bounded same-file Python profile and the bounded Go local-module profile use the shared review pipeline. Go resolves package bindings across eligible active sibling files, preserving file-local imports and generic parameter shadows. It resolves ordinary/default/aliased imports only within one captured eligible local module and never assumes a closed set of interface implementers. See the [Go authority profile](type-function-review-proposal.md#go-active-package-constraint-subset). The
 [README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,
@@ -479,3 +479,45 @@ Darwin execution, a full two-target archive, other native hosts, ordinary native
 trust onboarding and classifier accuracy remain unqualified. The grammar pins,
 same-file support boundaries and #270/#268 continuation scope remain unchanged.
 No full coverage gate or remote CI result is claimed.
+
+
+## Go local-module continuation for #267 and #268
+
+**Authority:** Implementation and validation evidence for the accepted #272 profile;
+[the Go contract](type-function-review-proposal.md#go-active-package-constraint-subset)
+owns behavior. Update this maintained handoff after changes to the Go adapter,
+shared graph, rule capabilities or installed witness. Existing qualification
+records above retain their original revisions and narrower scopes.
+
+| Dimension | Current bounded Go profile | Explicit omission or continuation question |
+| --- | --- | --- |
+| Edited roots | Named top-level structs, interfaces, defined types and aliases; exact single/grouped source and attributed header/field edits | No independent functions/methods, unchanged dependents or whole-file fallback |
+| Package | Unique eligible active production package; private supporting declarations and complete relevant typed/iota groups | More than the shared file/work budget or incomplete/ambiguous membership omits required evidence |
+| Module/imports | Captured nearest eligible `go.mod`; actual declared package names, default/aliased imports, exported entry types/constants, `internal` visibility | Nested modules, workspaces, replacements, external/cache/vendor/outside-root and ambiguous imports |
+| Build | Frozen explicit GOOS/GOARCH/user-tag snapshot and #271 constraint subset reused across packages | Unknown constraints/cgo/generated source; no host-inferred target or Go invocation during analysis |
+| Constants | Exact complete groups, alias/conversion/constant propagation including resolved local imported bindings; comparisons remain untyped | Constants do not exhaust scalar values; constant-only edits remain a demand gap |
+| Rules | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` where declared closure requirements are met; root-only custom rules can retain marked omissions | Required external types prevent closure-dependent rule admission, rather than a fake complete/clear result |
+| Freshness/privacy | Context selection for every source/manifest; bounded positive/absent metadata and package alternatives plus captured source/build/configuration identity | No excluded source read; missing authority is an omission, not permission for wider discovery |
+| Budgets | Existing 8-file, 20 KiB encoded-tree, 4-depth, 16 outgoing-target, 128-work, source/read/deadline ceilings; 128 entries per package directory | Large-package selective authority is an open coverage experiment, not an automatic full-package upload |
+
+The shared V1 artifact/rule/provider contracts and existing grammar/runtime pins
+remain in place. The module implementation extends `go-adapter`, `go`, the
+adapter-owned `go-module-context` and shared graph lookup; it does not add a review
+pipeline or dependency resolver. `go.mod` is a narrowly eligible metadata basename,
+with the same supporting-source exclusion, ignore and physical gates.
+
+The reproducible installed command is the existing native runner with
+`--host=codex --provider=openai --model=default --language=go
+--scenario=go-module-model-review --archive=PATH`. It uses standard installed
+hooks, actual-name `models-v2` → `domain` binding, aliased internal state evidence,
+an exact iota group and only the required supporting declarations. Acceptance
+requires correlated controlled finding, final completed-agent acknowledgement
+and actual advice quotation, repair and a distinct clear evaluation. The fixture
+retains source-free evidence; its isolated compiler is a qualification tool only.
+
+Coverage measurement is not an implementation gate. For #268, begin with attributed
+supported/missed model edits from immutable target-user project revisions and an
+explicit denominator. Prioritize constant-only demand, external-type rule omissions,
+large-package authority, unsupported metadata/constraints and grammar gaps. Do not
+convert parser success, declaration counts or this controlled witness into edit
+coverage, classifier accuracy, interactive trust or another platform claim.

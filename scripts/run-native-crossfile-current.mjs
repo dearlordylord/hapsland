@@ -73,7 +73,8 @@ if (
     "unicode-edit",
     "inspection-exclusions",
     "callable-review",
-    "go-package-model-review"
+    "go-package-model-review",
+    "go-module-model-review"
   ].includes(scenario)
 )
   throw new Error("Choose an adoption, reviewer, POST-hook or PRE-hook scenario")
@@ -177,7 +178,7 @@ const initialSourceMarker =
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
-if (scenario === "go-package-model-review") {
+if (scenario === "go-package-model-review" || scenario === "go-module-model-review") {
   if (
     host !== "codex" ||
     language !== "go" ||
@@ -190,7 +191,7 @@ if (scenario === "go-package-model-review") {
     project,
     archivePath: archiveArgument?.slice("--archive=".length),
     model: requestedModel,
-    profile: createGoInspectionProfile()
+    profile: createGoInspectionProfile({ localModule: scenario === "go-module-model-review" })
   })
   process.exit(0)
 }

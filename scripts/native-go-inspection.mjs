@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { executeNative } from "./native-process.mjs"
 import { instrumentGoHooks } from "./native-go-hook-observation.mjs"
@@ -8,11 +8,20 @@ import { configuredRules } from "@hapsland/build-tooling/test-support/default-ru
 export const goConstantGroup = "const (\n Pending PaymentStatus = iota\n Succeeded\n Failed\n)"
 const initial =
   "package payment\ntype PaymentState struct { Status PaymentStatus; Receipt *Receipt; FailureReason *string }\n"
+const moduleInitial =
+  'package payment\nimport (\n "synthetic/payment/models-v2"\n state "synthetic/payment/internal/state"\n)\ntype PaymentState struct { Status state.PaymentStatus; Receipt *domain.Receipt; FailureReason *string }\n'
+const moduleReceipt =
+  'package domain\nimport state "synthetic/payment/internal/state"\ntype Receipt struct { ID string; Status state.PaymentStatus }\ntype Unrelated struct { Secret string }\n'
 const repaired = "package payment\ntype PaymentState interface { paymentState() }\n"
 const finding = configuredRules.find((rule) => rule.id === "meaningless_combinations").message
 
 /** Assert only the observed package-model seam; discard all source-bearing packets. */
-export function verifyGoSnapshot(snapshot, setCheck = () => {}, agentReceipt = { acknowledged: false, quoted: false }) {
+export function verifyGoSnapshot(
+  snapshot,
+  setCheck = () => {},
+  agentReceipt = { acknowledged: false, quoted: false },
+  localModule = false
+) {
   setCheck("prepared-native-roots")
   const records = snapshot.records
   const units = records.filter(
@@ -78,6 +87,26 @@ export function verifyGoSnapshot(snapshot, setCheck = () => {}, agentReceipt = {
   )
   assert.ok(nodes.some((node) => node.kind === "defined-type" && node.name === "PaymentStatus"))
   assert.ok(nodes.some((node) => node.kind === "struct" && node.name === "Receipt"))
+  if (localModule) {
+    setCheck("exact-local-module-evidence")
+    assert.deepEqual(
+      nodes.map((node) => [node.domain, node.kind, node.name]).sort(),
+      [
+        ["models-v2/receipt.go", "struct", "Receipt"],
+        ["internal/state/status.go", "defined-type", "PaymentStatus"],
+        ["internal/state/status.go", "constant-group", nodes.find((node) => node.kind === "constant-group")?.name]
+      ].sort()
+    )
+    assert.equal(
+      nodes.find((node) => node.name === "Receipt")?.source,
+      "type Receipt struct { ID string; Status state.PaymentStatus }"
+    )
+    assert.equal(nodes.find((node) => node.name === "PaymentStatus")?.source, "type PaymentStatus int")
+    assert.equal(value.artifact.source, moduleInitial.trim().split("\n").at(-1))
+    assert.ok(!JSON.stringify(value).includes("type Unrelated"))
+    assert.ok(!JSON.stringify(value).includes("module synthetic"))
+    assert.equal(value.evidence.edges.filter((edge) => edge.kind === "omitted").length, 0)
+  }
   setCheck("delivered-finding")
   assert.ok(
     agentReceipt.acknowledged === true && agentReceipt.quoted === true,
@@ -90,13 +119,15 @@ export function verifyGoSnapshot(snapshot, setCheck = () => {}, agentReceipt = {
     controlledReviewer: true,
     initialFinding: true,
     deliveredAdvice: true,
-    clearFollowup: true
+    clearFollowup: true,
+    ...(localModule ? { exactLocalModuleClosure: true, actualPackageName: true, aliasedInternalPackage: true } : {})
   }
 }
 
 export function createGoInspectionProfile({
   diagnosticOnly = process.env.HAPSLAND_GO_SELECTION_DIAGNOSTIC === "1",
-  observeStdout = false
+  observeStdout = false,
+  localModule = false
 } = {}) {
   let observations
   let acknowledged = false
@@ -105,7 +136,7 @@ export function createGoInspectionProfile({
   let acknowledgmentObservation = { final: "absent", aggregate: "absent", count: 0, order: [] }
   return {
     source: new URL(import.meta.url),
-    scenario: "go-package-model-review",
+    scenario: localModule ? "go-module-model-review" : "go-package-model-review",
     diagnosticOnly,
     hookInterposition: observeStdout ? "stdout-observer" : "standard-installed-hooks",
     browser: false,
@@ -113,10 +144,20 @@ export function createGoInspectionProfile({
     prepareRuntime: true,
     seed(repo) {
       writeFileSync(join(repo, "go.mod"), "module synthetic/payment\n\ngo 1.27\n")
-      writeFileSync(
-        join(repo, "support.go"),
-        `package payment\ntype PaymentStatus int\n${goConstantGroup}\ntype Receipt struct { ID string }\n`
-      )
+      if (localModule) {
+        mkdirSync(join(repo, "internal/state"), { recursive: true })
+        mkdirSync(join(repo, "models-v2"), { recursive: true })
+        writeFileSync(
+          join(repo, "internal/state/status.go"),
+          `package state\ntype PaymentStatus int\n${goConstantGroup}\n`
+        )
+        writeFileSync(join(repo, "models-v2/receipt.go"), moduleReceipt)
+      } else {
+        writeFileSync(
+          join(repo, "support.go"),
+          `package payment\ntype PaymentStatus int\n${goConstantGroup}\ntype Receipt struct { ID string }\n`
+        )
+      }
       writeFileSync(join(repo, "package.json"), JSON.stringify({ private: true, scripts: { test: "go test ./..." } }))
     },
     control: () => ({ findingOnSourceIncludes: "type PaymentState struct" }),
@@ -127,8 +168,8 @@ export function createGoInspectionProfile({
       : undefined,
     prompts: [
       diagnosticOnly
-        ? `Use apply_patch to add payment.go with exactly this draft:\n${initial}\nRun npm test once. Keep support.go unchanged. Stop after this single source edit and test; do not repair the draft or inspect integration settings.`
-        : `Use apply_patch to add payment.go with exactly this draft:\n${initial}\nRun npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, use apply_patch to replace PaymentState with this design:\n${repaired}\nRun npm test again; if review is pending run npm test again. Keep support.go unchanged. Use at most two source-edit calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote one actual delivered finding sentence.`
+        ? `Use apply_patch to add payment.go with exactly this draft:\n${localModule ? moduleInitial : initial}\nRun npm test once. Keep all supporting Go files and go.mod unchanged. Stop after this single source edit and test; do not repair the draft or inspect integration settings.`
+        : `Use apply_patch to add payment.go with exactly this draft:\n${localModule ? moduleInitial : initial}\nRun npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, use apply_patch to replace PaymentState with this design:\n${repaired}\nRun npm test again; if review is pending run npm test again. Keep all supporting Go files and go.mod unchanged. Use at most two source-edit calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote one actual delivered finding sentence.`
     ],
     observeNative(output) {
       const messages = output.split("\n").flatMap((line) => {
@@ -152,7 +193,9 @@ export function createGoInspectionProfile({
         order: messages.slice(-128).map(markerState)
       }
       acknowledged = acknowledgmentObservation.final === "affirmed"
-      quotedRuleIds = configuredRules.filter((rule) => combined.includes(rule.message)).map((rule) => rule.id)
+      quotedRuleIds = configuredRules
+        .filter((rule) => (messages.at(-1) ?? "").includes(rule.message))
+        .map((rule) => rule.id)
       quoted = quotedRuleIds.length > 0
       return { acknowledgment: acknowledgmentObservation, quoted }
     },
@@ -251,7 +294,12 @@ export function createGoInspectionProfile({
               configuredRules.some((rule) => rule.id === item.ruleId && rule.message === item.message)
           )
       )
-      const checks = verifyGoSnapshot(snapshot, (check) => setPhase(`go-${check}`), { acknowledged, quoted })
+      const checks = verifyGoSnapshot(
+        snapshot,
+        (check) => setPhase(`go-${check}`),
+        { acknowledged, quoted },
+        localModule
+      )
       setPhase("go-agent-advice-acknowledgment")
       assert.ok(acknowledged && quoted, "The real agent must acknowledge advice and quote its delivered finding")
       setPhase("go-interface-repair")
@@ -259,6 +307,14 @@ export function createGoInspectionProfile({
         readFileSync(join(repository, "payment.go"), "utf8"),
         /^package payment\s+type PaymentState interface\s*\{\s*paymentState\(\)\s*\}\s*$/u
       )
+      if (localModule) {
+        assert.equal(readFileSync(join(repository, "models-v2/receipt.go"), "utf8"), moduleReceipt)
+        assert.equal(
+          readFileSync(join(repository, "internal/state/status.go"), "utf8"),
+          `package state\ntype PaymentStatus int\n${goConstantGroup}\n`
+        )
+        assert.equal(readFileSync(join(repository, "go.mod"), "utf8"), "module synthetic/payment\n\ngo 1.27\n")
+      }
       setPhase("go-repair-compilation")
       const compiler = await executeNative("go", ["test", "./..."], { cwd: repository, timeout: 30000 })
       assert.equal(compiler.code, 0)

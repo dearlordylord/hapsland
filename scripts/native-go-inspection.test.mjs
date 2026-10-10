@@ -11,7 +11,7 @@ import { configuredRules } from "@hapsland/build-tooling/test-support/default-ru
 
 const receipt = { acknowledged: true, quoted: true }
 const verify = (value) => verifyGoSnapshot(value, () => {}, receipt)
-const packet = () => {
+const packet = (localModule = false) => {
   const fact = (evaluationId, payload, receiptId = evaluationId) => ({
     correlation: { evaluationId, receiptId },
     fact: payload
@@ -25,6 +25,17 @@ const packet = () => {
         { kind: "struct", name: "Receipt" }
       ]
     }
+  }
+  if (localModule) {
+    input.artifact.source =
+      "type PaymentState struct { Status state.PaymentStatus; Receipt *domain.Receipt; FailureReason *string }"
+    input.evidence.nodes[0].domain = "internal/state/status.go"
+    input.evidence.nodes[0].source = "type PaymentStatus int"
+    input.evidence.nodes[1].domain = "internal/state/status.go"
+    input.evidence.nodes[1].name = "GoConstants_fixture"
+    input.evidence.nodes[2].domain = "models-v2/receipt.go"
+    input.evidence.nodes[2].source = "type Receipt struct { ID string; Status state.PaymentStatus }"
+    input.evidence.edges = []
   }
   return {
     records: [
@@ -133,42 +144,70 @@ test("final native acknowledgment is independent of an earlier pending marker", 
   assert.equal(profile.observeNative(message("finished")).acknowledgment.final, "absent")
 })
 
-test(
-  "Go witness completes its success return after actual synthetic compilation",
-  { skip: process.env.HAPSLAND_GO_COMPILER_TEST !== "1" },
-  async () => {
-    const repository = mkdtempSync(join(tmpdir(), "hapsland-go-return-regression-"))
-    try {
-      const profile = createGoInspectionProfile({ diagnosticOnly: false })
-      profile.seed(repository)
-      writeFileSync(join(repository, "payment.go"), "package payment\ntype PaymentState interface { paymentState() }\n")
-      const rule = configuredRules.find((rule) => rule.id === "meaningless_combinations")
-      profile.observeNative(
-        JSON.stringify({
-          type: "item.completed",
-          item: { type: "agent_message", text: `HAPSLAND_ADVICE_APPLIED\n${rule.message}` }
+for (const localModule of [false, true])
+  test(
+    `Go ${localModule ? "module" : "package"} witness completes its success return after actual synthetic compilation`,
+    { skip: process.env.HAPSLAND_GO_COMPILER_TEST !== "1" },
+    async () => {
+      const repository = mkdtempSync(join(tmpdir(), "hapsland-go-return-regression-"))
+      try {
+        const profile = createGoInspectionProfile({ diagnosticOnly: false, localModule })
+        profile.seed(repository)
+        writeFileSync(
+          join(repository, "payment.go"),
+          "package payment\ntype PaymentState interface { paymentState() }\n"
+        )
+        const rule = configuredRules.find((rule) => rule.id === "meaningless_combinations")
+        profile.observeNative(
+          JSON.stringify({
+            type: "item.completed",
+            item: { type: "agent_message", text: `HAPSLAND_ADVICE_APPLIED\n${rule.message}` }
+          })
+        )
+        const snapshot = packet(localModule)
+        snapshot.records.push({
+          correlation: { evaluationId: "initial" },
+          fact: {
+            kind: "interpreted-findings",
+            payload: { status: "available", findings: [{ ruleId: rule.id, message: rule.message }] }
+          }
         })
-      )
-      const snapshot = packet()
-      snapshot.records.push({
-        correlation: { evaluationId: "initial" },
-        fact: {
-          kind: "interpreted-findings",
-          payload: { status: "available", findings: [{ ruleId: rule.id, message: rule.message }] }
-        }
-      })
-      const result = await profile.verify({
-        repository,
-        bounded: async () => snapshot,
-        setPhase: () => {},
-        reportDiagnostic: () => {}
-      })
-      assert.equal(result.verdict, "demonstrated")
-      assert.equal(result.checks.agentAcknowledgesAndQuotesAdvice, true)
-      assert.equal(result.checks.sourceCompiles, true)
-      assert.equal(result.checks.exactTypedIotaGroup, true)
-    } finally {
-      rmSync(repository, { recursive: true, force: true })
+        const result = await profile.verify({
+          repository,
+          bounded: async () => snapshot,
+          setPhase: () => {},
+          reportDiagnostic: () => {}
+        })
+        assert.equal(result.verdict, "demonstrated")
+        assert.equal(result.checks.agentAcknowledgesAndQuotesAdvice, true)
+        assert.equal(result.checks.sourceCompiles, true)
+        assert.equal(result.checks.exactTypedIotaGroup, true)
+      } finally {
+        rmSync(repository, { recursive: true, force: true })
+      }
     }
-  }
-)
+  )
+
+test("module witness retains exact cross-package source and rejects a wrong identity", () => {
+  assert.equal(verifyGoSnapshot(packet(true), () => {}, receipt, true).exactLocalModuleClosure, true)
+  const value = packet(true)
+  const input = value.records.find((record) => record.fact.kind === "model-input").fact.payload
+  const changed = JSON.parse(input.encoded)
+  changed.evidence.nodes[2].domain = "other/receipt.go"
+  input.encoded = JSON.stringify(changed)
+  assert.throws(() => verifyGoSnapshot(value, () => {}, receipt, true))
+})
+test("module fixture uses standard installed hooks and actual-name imports", () => {
+  const profile = createGoInspectionProfile({ localModule: true })
+  assert.equal(profile.scenario, "go-module-model-review")
+  assert.equal(profile.instrumentHooks, undefined)
+  assert.ok(profile.prompts[0].includes('"synthetic/payment/models-v2"'))
+  assert.ok(profile.prompts[0].includes("domain.Receipt"))
+  assert.ok(profile.prompts[0].includes('state "synthetic/payment/internal/state"'))
+})
+test("an earlier quote cannot qualify a final response that contains no advice", () => {
+  const message = (text) => JSON.stringify({ type: "item.completed", item: { type: "agent_message", text } })
+  const finding = configuredRules.find((rule) => rule.id === "meaningless_combinations").message
+  const profile = createGoInspectionProfile({ localModule: true })
+  assert.equal(profile.observeNative([message(finding), message("HAPSLAND_ADVICE_APPLIED")].join("\n")).quoted, false)
+})

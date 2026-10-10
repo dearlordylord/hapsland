@@ -50,6 +50,7 @@ export type GoConstantGroup = {
   readonly references: readonly GraphReference[]
 }
 export type GoFile = {
+  readonly imports: readonly { readonly path: string; readonly name?: string }[]
   readonly aliases: ReadonlyMap<string, string>
   readonly packageName: string
   readonly types: readonly GraphDeclaration[]
@@ -68,6 +69,7 @@ const artifact = (path: string, kind: ReviewArtifact["kind"], name: string, sour
   sourceHash: hash(source)
 })
 const imports = (root: SyntaxNode) => {
+  const bindings: { path: string; name?: string }[] = []
   const names = new Set<string>()
   let uncertain = false
   let cgo = false
@@ -75,13 +77,14 @@ const imports = (root: SyntaxNode) => {
     for (const spec of descendants(declaration).filter((node) => node.type === "import_spec")) {
       const imported = spec.childForFieldName("path")?.text.slice(1, -1)
       const name = spec.childForFieldName("name")?.text
+      if (imported !== undefined) bindings.push({ path: imported, ...(name === undefined ? {} : { name }) })
       if (imported === "C") cgo = true
       if (name === "_") continue
       if (name === ".") uncertain = true
       else if (name !== undefined) names.add(name)
     }
   }
-  return { names, uncertain, cgo }
+  return { names, uncertain, cgo, bindings }
 }
 const typeParameters = (node: SyntaxNode): Set<string> => {
   const parameters = new Set<string>()
@@ -120,7 +123,7 @@ const typeReferences = (node: SyntaxNode, name: SyntaxNode, imported: ReturnType
 const namedType = (node: SyntaxNode): string | undefined => {
   let current: SyntaxNode | undefined = node
   while (current?.type === "parenthesized_type") current = current.namedChildren[0]
-  return current?.type === "type_identifier"
+  return current?.type === "type_identifier" || current?.type === "qualified_type"
     ? current.text
     : current?.type === "generic_type"
       ? current.namedChildren[0]?.text
@@ -172,7 +175,7 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
         types.push({
           artifact: item,
           references: typeReferences(spec, name, imported),
-          exported: /^[A-Z]/u.test(name.text),
+          exported: /^\p{Lu}/u.test(name.text),
           location: {
             start: { line: sourceNode.startPosition.row + 1, column: sourceNode.startPosition.column + 1 },
             end: { line: sourceNode.endPosition.row + 1, column: sourceNode.endPosition.column + 1 }
@@ -258,6 +261,7 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
   if (types.length > MAX_TYPE_DECLARATIONS) return undefined
   return {
     packageName,
+    imports: imported.bindings,
     aliases,
     types,
     constants,
@@ -270,7 +274,9 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
 export const goGraphFacts = (
   files: readonly GoFile[],
   workLimit = 128
-): (GraphFacts & { readonly discoveryWork: number }) | undefined => {
+):
+  | (GraphFacts & { readonly discoveryWork: number; readonly constantTypes: ReadonlyMap<string, readonly string[]> })
+  | undefined => {
   let discoveryWork = files.reduce(
     (sum, file) =>
       sum +
@@ -304,6 +310,7 @@ export const goGraphFacts = (
       names.add(current)
       current = aliases.get(current)
     }
+    if (current !== undefined && /^[\p{L}_][\p{L}\p{N}_]*\.[\p{L}_][\p{L}\p{N}_]*$/u.test(current)) names.add(current)
     return [...names]
   }
   const typeExpression = (node: SyntaxNode | undefined, imported: ReadonlySet<string>): readonly string[] => {
@@ -313,6 +320,7 @@ export const goGraphFacts = (
       return imported.has(node.text)
         ? []
         : [...(memberBindings.has(node.text) ? memberTypes.get(memberBindings.get(node.text)!)! : [])]
+    if (node.type === "selector_expression") return [node.text]
     if (node.type === "parenthesized_expression") return typeExpression(node.namedChildren[0], imported)
     if (node.type === "unary_expression")
       return typeExpression(node.childForFieldName("operand") ?? undefined, imported)
@@ -331,12 +339,16 @@ export const goGraphFacts = (
         target = target.namedChildren[0] ?? null
       }
       const name =
-        target?.type === "identifier" || target?.type === "type_identifier"
+        target?.type === "identifier" ||
+        target?.type === "type_identifier" ||
+        target?.type === "qualified_type" ||
+        target?.type === "selector_expression"
           ? target.text
           : target?.type === "type_instantiation_expression" || target?.type === "generic_type"
             ? target.namedChildren[0]?.text
             : undefined
       if (name === undefined || imported.has(name)) return []
+      if (/^[\p{L}_][\p{L}\p{N}_]*\.[\p{L}_][\p{L}\p{N}_]*$/u.test(name)) return [name]
       if (typeNames.has(name)) return declaredTypes(name)
       if (["min", "max"].includes(name) && !packageNames.has(name))
         return (node.childForFieldName("arguments")?.namedChildren ?? []).flatMap((argument) =>
@@ -359,7 +371,9 @@ export const goGraphFacts = (
                 ? typeExpression(member.expression, file.importedNames)
                 : typeNames.has(member.typeName) && !file.importedNames.has(member.typeName)
                   ? declaredTypes(member.typeName)
-                  : []
+                  : /^[\p{L}_][\p{L}\p{N}_]*\.[\p{L}_][\p{L}\p{N}_]*$/u.test(member.typeName)
+                    ? [member.typeName]
+                    : []
             const known = memberTypes.get(member)!
             for (const name of inferred)
               if (!known.has(name)) {
@@ -419,7 +433,12 @@ export const goGraphFacts = (
         exported: false
       })
   }
-  return { declarations, imports: new Map(), discoveryWork }
+  return {
+    declarations,
+    imports: new Map(),
+    discoveryWork,
+    constantTypes: new Map([...relevantTypes].map(([group, names]) => [group.artifact.name, [...names]]))
+  }
 }
 export const parseGoTypes = (path: string, source: string): TypeExtractionFailure | readonly GraphDeclaration[] => {
   const file = inspectGoFile(path, source)
