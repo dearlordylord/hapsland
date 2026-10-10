@@ -23,7 +23,10 @@ as maintained snapshots. [research/](research) retains the original source-only
 manifests, inventories and replay scripts with exact upstream revisions/digests.
 Script comments preserve their historical replay declarations; original absolute
 local hints are advisory, not required artifact locations. Go replay verifies remote
-pinned file digests; Python replay takes an explicitly acquired local source tree.
+pinned file digests; Python replay accepts the pinned inventory JSON, fetches those exact public codeload
+archives and parses them without importing or executing surveyed projects. From the
+repository root: `python3 docs/validation/python-go/research/python-coverage-inventory.py
+docs/validation/python-go/research/python-coverage-inventory.json > /tmp/python-coverage-replay.json`.
 Parser probes record authored synthetic syntax only, never provider responses.
 
 These inventories are discovery evidence. Python's methods statistic has sampled
