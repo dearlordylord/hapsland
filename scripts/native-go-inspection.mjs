@@ -140,6 +140,13 @@ export function createGoInspectionProfile() {
         async () => {
           const value = await (await fetch(`${url}snapshot`, { signal: AbortSignal.timeout(10000) })).json()
           reportDiagnostic({
+            findingFates: value.records
+              .filter((record) => record.fact.kind === "finding-fate")
+              .map((record) => ({
+                evaluationId: record.correlation.evaluationId ?? null,
+                fate: record.fact.fate,
+                reason: record.fact.reason
+              })),
             facts: Object.fromEntries(
               ["edit-received", "unit-prepared", "model-input", "evaluation-outcome", "finding-fate"].map((kind) => [
                 kind,
