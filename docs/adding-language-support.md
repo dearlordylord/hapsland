@@ -159,7 +159,7 @@ Python type-parameter defaults and compact Go constant blocks remain explicit pa
 omissions. Grammar loading, exact extraction, binding authority, installed delivery
 and classifier accuracy are distinct claims.
 
-The [acceptance evidence index](../evidence/python-go/README.md) identifies source
+The [acceptance evidence index](validation/python-go/README.md) identifies source
 revisions, executed checks, sanitized native records and limitations. Child witnesses
 qualify their recorded revisions; merged-candidate qualification is labeled separately.
 Linux arm64 Codex qualification uses a controlled provider and explicit fixture trust

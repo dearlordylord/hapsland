@@ -3,12 +3,12 @@
 **Purpose:** Identify bounded-profile qualification and reproducible discovery evidence for #267 and the #268 coverage handoff.
 **Audience:** Product/specification owners, contributors including coding agents, and evaluation reviewers.
 **Status:** Acceptance candidate evidence; qualification outcomes are recorded in acceptance.json.
-**Authority:** Implementation and validation evidence. Accepted [review contracts](../../docs/type-function-review-proposal.md) and owner-approved #267 define behavior; inventories and controlled providers do not establish coverage or classifier accuracy.
+**Authority:** Implementation and validation evidence. Accepted [review contracts](../../type-function-review-proposal.md) and owner-approved #267 define behavior; inventories and controlled providers do not establish coverage or classifier accuracy.
 **Expected use:** Reproduce the named checks and resume #268 using the exact evidence scope and limitations.
 **Lifecycle:** Update qualification when profile, parser, capture, rule or native delivery boundaries change. Review upon acceptance of a support extension; remove superseded guidance while retaining source-bound records needed for current claims and open coverage decisions.
 
 The merged implementation base is `69825bc5ae09c2da797939a7bb198c6f4c380be4`,
-which incorporates #269/#270/#271/#272. [Current language guidance](../../docs/adding-language-support.md#python-and-go-bounded-profiles)
+which incorporates #269/#270/#271/#272. [Current language guidance](../../adding-language-support.md#python-and-go-bounded-profiles)
 and the README own navigation; the accepted contracts own precise support.
 [acceptance.json](acceptance.json) records this candidate's executed qualification.
 Native records under [native/](native) identify their own source revision and
