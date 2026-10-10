@@ -146,6 +146,24 @@ export function createGoInspectionProfile() {
         async () => {
           const value = await (await fetch(`${url}snapshot`, { signal: AbortSignal.timeout(10000) })).json()
           reportDiagnostic({
+            nativeAdmission: value.records
+              .filter((record) => record.fact.kind === "edit-admission")
+              .map((record) => record.fact.outcome),
+            nativeSelections: value.records
+              .filter((record) => record.fact.kind === "edit-received")
+              .flatMap((record) => record.fact.candidates.map((candidate) => candidate.selection.status)),
+            hookObservations: observations
+              ? (() => {
+                  try {
+                    return readFileSync(observations, "utf8")
+                      .trim()
+                      .split("\n")
+                      .map((line) => JSON.parse(line))
+                  } catch {
+                    return []
+                  }
+                })()
+              : [],
             nativeAgentAcknowledged: acknowledged,
             nativeAgentQuotedAdvice: quoted,
             findingFates: value.records

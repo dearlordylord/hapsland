@@ -206,6 +206,59 @@ After the binder fix, all 75 source unit tests and 39 focused Go tests against
 rebuilt workspace exports passed. The first new-base package attempt exceeded
 its internal packing deadline while building; it does not qualify installation.
 
+The continuation archive has SHA-256
+`9ff4c0aa2dd4816c218ec281943dd5ce7dca1a9032cbc98deb0d63ef2269c032`.
+Its runtime source revision is `4c33862e5d9b1fb82b20fc21fd59c96f929a7191`;
+later continuation changes affect native witness tooling and documentation.
+The owned build and release-native checks passed, including packaged Linux and
+Darwin arm64 assets; this establishes assets, not Darwin execution. The exact
+archive passed clean-package conformance (`clean-package-passed-real-host-not-requested`).
+A prior pending-activity failure remains an unsuccessful observation.
+
+The current-archive Claude attempt reached a Go edit but did not establish the
+provider/advice/repair loop; it does not qualify installed Go delivery. The
+Codex Go profile uses the existing installed inspection seam with an isolated
+user home, controlled offline reviewer and prepared installed runtime/resident.
+It requires exact original typed-group provider evidence, independently
+correlated outcomes, actual installed-hook stdout submission (or correlated
+delivery-finalized disposition), actual agent acknowledgment
+and quoted advice, and a compiling open-interface repair. It does not exercise
+the browser, cold startup, ordinary interactive trust, Darwin execution or live
+Jev review quality. Its fixture assertions include rejection of missing receipts,
+controlled policy, provider evidence and delivery; model-input fixtures decode
+through the current version-one inspection contract. Initial witness reader
+errors (raw JSON versus transport encoding) were corrected separately from
+intermittent installation compatibility failures. No product probe deadline was
+changed. The prepared Go fixture explicitly selects pinned Bun for installation
+compatibility probing through the existing runtime override; launcher bindings
+still select the exact installed native hook and resident. A source-free observer
+delegates the registered commands, preserves their flags and deadlines, forwards
+successful stdout unchanged, and records only submission booleans. Finding
+suppression or staleness alone cannot establish delivery; the agent must also
+acknowledge and quote actual advice before its repair qualifies. A direct retained
+native identity check took 3.49 seconds, exceeding the unchanged two-second
+installation probe. This fixture does not qualify default installation startup.
+Source-free local declarations/results preserve each failed attempt.
+
+The current archive has not yet qualified installed advice and agent repair.
+Codex attempt `1791606247590` passed exact typed-package provider evidence and
+both controlled outcomes, then failed the delivery assertion. Subsequent
+bounded disposition observation showed collection suppression and staleness,
+which alone do not prove delivery. The stdout-observed attempt ending
+`2026-10-10T04:53:30Z` reported an unavailable native selection, zero prepared
+units, zero advice submissions, and no agent acknowledgment or quoted advice.
+It is a failed witness, not a delivery claim. Installation failures additionally
+confirmed a timeout even with the pinned probe selected. A direct bounded
+control on the selected Bun invocation succeeded in 183 ms; the current-assets
+packaged hook identity succeeded in 3,516 ms. A verified installed #269 baseline
+was not available for the matched control, so regression attribution remains
+open. These source-free controls are retained under `.test-runs/`; no broader
+startup or host compatibility investigation is qualified here. The observer
+owner and Go consumer selection passed 31 checks, including failed-hook stdout
+and missing-provider negative controls. Acceptance remains blocked on a current
+installed advice/agent-use witness. The next Go package-import slice remains
+#272; #268 must retain these measured setup and delivery limitations.
+
 ## Real-agent verification
 
 The [native runner](../scripts/run-native-crossfile-current.mjs) contains
