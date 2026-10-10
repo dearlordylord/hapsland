@@ -102,6 +102,7 @@ export function createGoInspectionProfile({
   let acknowledged = false
   let quoted = false
   let quotedRuleIds = []
+  let acknowledgmentObservation = { final: "absent", aggregate: "absent" }
   return {
     source: new URL(import.meta.url),
     scenario: "go-package-model-review",
@@ -130,20 +131,25 @@ export function createGoInspectionProfile({
         : `Use apply_patch to add payment.go with exactly this draft:\n${initial}\nRun npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, use apply_patch to replace PaymentState with this design:\n${repaired}\nRun npm test again; if review is pending run npm test again. Keep support.go unchanged. Use at most two source-edit calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote one actual delivered finding sentence.`
     ],
     observeNative(output) {
-      const messages = output
-        .split("\n")
-        .flatMap((line) => {
-          try {
-            const value = JSON.parse(line)
-            return value.type === "item.completed" && value.item?.type === "agent_message" ? [value.item.text] : []
-          } catch {
-            return []
-          }
-        })
-        .join("\n")
-      acknowledged = messages.includes("HAPSLAND_ADVICE_APPLIED") && !messages.includes("HAPSLAND_ADVICE_NOT_APPLIED")
-      quotedRuleIds = configuredRules.filter((rule) => messages.includes(rule.message)).map((rule) => rule.id)
+      const messages = output.split("\n").flatMap((line) => {
+        try {
+          const value = JSON.parse(line)
+          return value.type === "item.completed" && value.item?.type === "agent_message" ? [value.item.text] : []
+        } catch {
+          return []
+        }
+      })
+      const markerState = (text) => {
+        const applied = text.includes("HAPSLAND_ADVICE_APPLIED")
+        const negative = text.includes("HAPSLAND_ADVICE_NOT_APPLIED")
+        return applied && negative ? "ambiguous" : applied ? "affirmed" : negative ? "negative" : "absent"
+      }
+      const combined = messages.join("\n")
+      acknowledgmentObservation = { final: markerState(messages.at(-1) ?? ""), aggregate: markerState(combined) }
+      acknowledged = acknowledgmentObservation.final === "affirmed"
+      quotedRuleIds = configuredRules.filter((rule) => combined.includes(rule.message)).map((rule) => rule.id)
       quoted = quotedRuleIds.length > 0
+      return { acknowledgment: acknowledgmentObservation, quoted }
     },
     async verify({ url, repository, bounded, reportDiagnostic, setPhase }) {
       setPhase("go-package-model-outcomes")
@@ -187,6 +193,7 @@ export function createGoInspectionProfile({
                 })()
               : [],
             nativeAgentAcknowledged: acknowledged,
+            nativeAcknowledgment: acknowledgmentObservation,
             nativeAgentQuotedAdvice: quoted,
             findingFates: value.records
               .filter((record) => record.fact.kind === "finding-fate")

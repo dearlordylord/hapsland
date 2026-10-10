@@ -104,3 +104,18 @@ test("selection-only native diagnostic cannot qualify installed review", async (
   )
   assert.equal(phase, "go-selection-diagnostic")
 })
+
+test("final native acknowledgment is independent of an earlier pending marker", () => {
+  const message = (text) => JSON.stringify({ type: "item.completed", item: { type: "agent_message", text } })
+  const profile = createGoInspectionProfile()
+  const receipt = profile.observeNative(
+    [message("HAPSLAND_ADVICE_NOT_APPLIED"), message("HAPSLAND_ADVICE_APPLIED")].join("\n")
+  )
+  assert.deepEqual(receipt.acknowledgment, { final: "affirmed", aggregate: "ambiguous" })
+  assert.equal(profile.observeNative(message("HAPSLAND_ADVICE_NOT_APPLIED")).acknowledgment.final, "negative")
+  assert.equal(
+    profile.observeNative(message("HAPSLAND_ADVICE_APPLIED HAPSLAND_ADVICE_NOT_APPLIED")).acknowledgment.final,
+    "ambiguous"
+  )
+  assert.equal(profile.observeNative(message("finished")).acknowledgment.final, "absent")
+})
