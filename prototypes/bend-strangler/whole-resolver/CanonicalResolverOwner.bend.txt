@@ -6,6 +6,8 @@ import ../../../packages/agent-flow-bend/Ledger.bend as Ledger
 # A preparation operation owns multiple independently fenced resolver invocations.
 type Scope is Data:
   Scope{partition: Nat, lifetime: Nat, round: Nat, preparation: Nat}
+  PreparationScope{partition: Nat, lifetime: Nat, round: Nat, preparation: Nat}
+  RetainingScope{partition: Nat, lifetime: Nat, round: Nat, observation: Nat, origin: Nat}
 type Phase is Data:
   ChildInstalling{}
   ChildReady{}
@@ -24,6 +26,7 @@ type State is Data:
   State{canonical: C.State, next_invocation: Nat, next_lease: Nat, children: List<&2, Child>}
 type Action is Data:
   Launch{invocation: Nat, input_handle: Nat}
+  LaunchPostPreparation{invocation: Nat, preparation_invocation: Nat, result_handle: Nat, scope: Scope}
   ExecuteProvider{invocation: Nat, lease: Nat, request: Nat, state_handle: Nat}
   Resume{invocation: Nat, generation: Nat, state_handle: Nat, reply_handle: Nat}
   RetireHandle{invocation: Nat, state_handle: Nat}
@@ -57,11 +60,28 @@ def preparing_live(canonical: C.State, +scope: Scope, found: Maybe<&2, C.Work>, 
         observation_live(C.find_work(partition, lifetime, round, observation, work)))
     case _ _ _ _: False{}
 
-def live(+canonical: C.State, +scope: Scope) -> Bool:
+def resolver_scope(scope: Scope) -> Scope:
+  match scope:
+    case Scope{partition, lifetime, round, preparation}: Scope{partition, lifetime, round, preparation}
+    case PreparationScope{partition, lifetime, round, preparation}: Scope{partition, lifetime, round, preparation}
+    case RetainingScope{partition, lifetime, round, _, _}: Scope{partition, lifetime, round, 0n}
+
+def source_live(current: Maybe<&2, C.Round>, partition: Nat, lifetime: Nat, round: Nat, found: Maybe<&2, C.Work>) -> Bool:
+  match current:
+    case Some{value}: Bool.and(C.same_round(partition, lifetime, round, value), observation_live(found))
+    case None{}: False{}
+
+def live_preparing(+canonical: C.State, +scope: Scope) -> Bool:
   match canonical scope:
     case C.State{_, rounds, work, _, _, _, _, _, _} Scope{+partition, +lifetime, +round, preparation}:
-      preparing_live(canonical, scope, C.find_work(partition, lifetime, round, preparation, work),
-        C.find_round(partition, rounds))
+      preparing_live(canonical, scope, C.find_work(partition, lifetime, round, preparation, work), C.find_round(partition, rounds))
+    case _ _: False{}
+
+def live(+canonical: C.State, scope: Scope) -> Bool:
+  match canonical scope:
+    case C.State{_, rounds, work, _, _, _, _, _, _} RetainingScope{+partition, +lifetime, +round, observation, _}:
+      source_live(C.find_round(partition, rounds), partition, lifetime, round, C.find_work(partition, lifetime, round, observation, work))
+    case _ other: live_preparing(canonical, resolver_scope(other))
 
 def active(phase: Phase) -> Bool:
   match phase:
@@ -141,10 +161,20 @@ def child_parent(child: Child) -> Maybe<&2, Parent>:
 def child_live(+canonical: C.State, +children: List<&2, Child>, +child: Child) -> Bool:
   Bool.and(live(canonical, child_scope_value(child)), parent_live(child_parent(child), children))
 
+def preparation_scope_kind(scope: Scope) -> Bool:
+  match scope:
+    case PreparationScope{_, _, _, _}: True{}
+    case _: False{}
+
+def validity_needed(phase: Phase, scope: Scope) -> Bool:
+  match phase:
+    case ChildAccepted{}: preparation_scope_kind(scope)
+    case other: active(other)
+
 def invalidate(+canonical: C.State, +children: List<&2, Child>, +child: Child) -> ChildUpdate:
   match child:
     case Child{scope, _, _, _, +phase, _, _, _}: invalidate_live(
-      Bool.or(Bool.not(active(phase)), child_live(canonical, children, child)), child)
+      Bool.or(Bool.not(validity_needed(phase, scope)), child_live(canonical, children, child)), child)
 
 type Invalidated is Data:
   Invalidated{children: List<&2, Child>, actions: List<&2, Action>}
@@ -193,7 +223,37 @@ def launched(valid: Bool, state: State, scope: Scope, input_handle: Nat) -> Step
     case False{} _: Rejected{state, NotPreparing{}}
 
 def launch(+state: State, +scope: Scope, input_handle: Nat) -> Step:
-  launched(live(state_canonical(state), scope), state, scope, input_handle)
+  match scope:
+    case Scope{_, _, _, _}: launched(live(state_canonical(state), scope), state, scope, input_handle)
+    case _: Rejected{state, NotPreparing{}}
+
+def same_preparation(left: Scope, right: Scope) -> Bool:
+  match left right:
+    case PreparationScope{p, l, r, operation} PreparationScope{q, m, s, other}:
+      Bool.and(Nat.is_eq(p, q), Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(operation, other))))
+    case _ _: False{}
+
+def preparation_claimed(phase: Phase) -> Bool:
+  match phase:
+    case ChildCancelled{}: False{}
+    case _: True{}
+
+def claimed_child(+scope: Scope, child: Child) -> Bool:
+  match child:
+    case Child{other, _, _, _, phase, _, _, _}: Bool.and(same_preparation(scope, other), preparation_claimed(phase))
+
+def claimed_preparation(+scope: Scope, children: List<&2, Child>) -> Bool:
+  match children:
+    case Nil{}: False{}
+    case child <> rest: Bool.or(claimed_child(scope, child), claimed_preparation(scope, rest))
+
+def launch_preparation_scope(+state: State, +scope: Scope, input_handle: Nat) -> Step:
+  launched(Bool.and(live(state_canonical(state), scope), Bool.not(claimed_preparation(scope, state_children(state)))), state, scope, input_handle)
+
+def launch_preparation(+state: State, scope: Scope, input_handle: Nat) -> Step:
+  match scope:
+    case Scope{partition, lifetime, round, preparation}: launch_preparation_scope(state, PreparationScope{partition, lifetime, round, preparation}, input_handle)
+    case _: Rejected{state, NotPreparing{}}
 
 def launched_nested(valid: Bool, state: State, parent: Parent, scope: Scope, input_handle: Nat) -> Step:
   match valid state:
@@ -221,7 +281,7 @@ def parent_used(+parent: Parent, children: List<&2, Child>) -> Bool:
 def nested_found(+state: State, +parent: Parent, found: Maybe<&2, Child>, input_handle: Nat) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: launched_nested(Bool.and(Bool.not(parent_used(parent, state_children(state))), Bool.and(parent_matches(parent, Some{child}), child_live(state_canonical(state), state_children(state), child))), state, parent, child_scope_value(child), input_handle)
+    case Some{+child}: launched_nested(Bool.and(Bool.not(parent_used(parent, state_children(state))), Bool.and(parent_matches(parent, Some{child}), Bool.and(live_preparing(state_canonical(state), resolver_scope(child_scope_value(child))), child_live(state_canonical(state), state_children(state), child)))), state, parent, resolver_scope(child_scope_value(child)), input_handle)
 
 def launch_nested(+state: State, +parent: Parent, input_handle: Nat) -> Step:
   nested_found(state, parent, find(parent_invocation(parent), state_children(state)), input_handle)
@@ -339,14 +399,61 @@ def terminal_allowed(valid: Bool, state: State, child: Child, result_handle: Nat
         AcceptResult{scope, invocation, result_handle} <> retire(invocation, handle)})
     case _ _: Rejected{state, WrongPhase{}}
 
+def generic_terminal(scope: Scope) -> Bool:
+  match scope:
+    case PreparationScope{_, _, _, _}: False{}
+    case _: True{}
+
 def terminal_found(+state: State, found: Maybe<&2, Child>, generation: Nat, result_handle: Nat) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: terminal_allowed(Bool.and(child_live(state_canonical(state), state_children(state), child),
-      install_matches(child, generation)), state, child, result_handle)
+    case Some{+child}: terminal_allowed(Bool.and(generic_terminal(child_scope_value(child)), Bool.and(child_live(state_canonical(state), state_children(state), child),
+      install_matches(child, generation))), state, child, result_handle)
 
 def terminal(+state: State, invocation: Nat, generation: Nat, result_handle: Nat) -> Step:
   terminal_found(state, find(invocation, state_children(state)), generation, result_handle)
+
+def preparation_failure_found(+state: State, found: Maybe<&2, Child>, generation: Nat, result_handle: Nat) -> Step:
+  match found:
+    case None{}: Rejected{state, UnknownInvocation{}}
+    case Some{+child}: terminal_allowed(Bool.and(preparation_scope_kind(child_scope_value(child)), Bool.and(child_live(state_canonical(state), state_children(state), child), install_matches(child, generation))), state, child, result_handle)
+
+def terminal_preparation_failed(+state: State, invocation: Nat, generation: Nat, result_handle: Nat) -> Step:
+  preparation_failure_found(state, find(invocation, state_children(state)), generation, result_handle)
+
+def preparation_parent(found: Maybe<&2, C.Work>) -> Maybe<&2, Nat>:
+  match found:
+    case Some{C.Work{_, _, _, _, _, C.Preparing{}, observation}}: Some{observation}
+    case _: None{}
+
+def preparation_observation(canonical: C.State, scope: Scope) -> Maybe<&2, Nat>:
+  match canonical scope:
+    case C.State{_, _, work, _, _, _, _, _, _} PreparationScope{partition, lifetime, round, preparation}:
+      preparation_parent(C.find_work(partition, lifetime, round, preparation, work))
+    case _ _: None{}
+
+def handoff(state: State, child: Child, result_handle: Nat, observation: Maybe<&2, Nat>) -> Step:
+  match state child observation:
+    case State{canonical, +next_invocation, next_lease, children}
+        Child{PreparationScope{+partition, +lifetime, +round, +preparation}, +invocation, generation, handle, _, _, None{}, None{}} Some{+observation}:
+      Advanced{State{canonical, Nat.add(next_invocation, 1n), next_lease,
+        Child{RetainingScope{partition, lifetime, round, observation, invocation}, next_invocation, 0n, 0n, ChildInstalling{}, None{}, None{}, None{}} <>
+        replace(invocation, children, Child{PreparationScope{partition, lifetime, round, preparation}, invocation, generation, 0n, ChildAccepted{}, None{}, None{}, None{}})}, Nil{},
+        LaunchPostPreparation{next_invocation, invocation, result_handle, RetainingScope{partition, lifetime, round, observation, invocation}} <> retire(invocation, handle)}
+    case _ _ _: Rejected{state, WrongPhase{}}
+
+def preparation_terminal_allowed(valid: Bool, +state: State, +child: Child, result_handle: Nat) -> Step:
+  match valid:
+    case True{}: handoff(state, child, result_handle, preparation_observation(state_canonical(state), child_scope_value(child)))
+    case False{}: Rejected{state, WrongPhase{}}
+
+def terminal_preparation_found(+state: State, found: Maybe<&2, Child>, generation: Nat, result_handle: Nat) -> Step:
+  match found:
+    case None{}: Rejected{state, UnknownInvocation{}}
+    case Some{+child}: preparation_terminal_allowed(Bool.and(child_live(state_canonical(state), state_children(state), child), install_matches(child, generation)), state, child, result_handle)
+
+def terminal_preparation(+state: State, invocation: Nat, generation: Nat, result_handle: Nat) -> Step:
+  terminal_preparation_found(state, find(invocation, state_children(state)), generation, result_handle)
 
 def initial(canonical: C.State) -> State:
   State{canonical, 1n, 1n, Nil{}}
@@ -361,11 +468,14 @@ type Custody is Data:
 type ResidentEvent is Data:
   CanonicalEvent{event: C.CanonicalEvent}
   LaunchEvent{scope: Scope, input_handle: Nat}
+  LaunchPreparationEvent{scope: Scope, input_handle: Nat}
   LaunchNestedEvent{parent: Parent, input_handle: Nat}
   InstallEvent{invocation: Nat, generation: Nat, handle: Nat, request: Nat}
   ProviderStartEvent{invocation: Nat}
   ProviderCompletedEvent{invocation: Nat, lease: Nat, request: Nat, reply_handle: Nat}
   CancelEvent{invocation: Nat}
+  TerminalPreparationFailedEvent{invocation: Nat, generation: Nat, result_handle: Nat}
+  TerminalPreparationEvent{invocation: Nat, generation: Nat, result_handle: Nat}
   TerminalEvent{invocation: Nat, generation: Nat, result_handle: Nat}
 type Publication is Data:
   Published{canonical: C.State, custody: Custody, outputs: List<&2, C.Output>, actions: List<&2, Action>}
@@ -389,12 +499,15 @@ def resident_event(state: State, event: ResidentEvent) -> Step:
   match event:
     case CanonicalEvent{event}: canonical_event(state, event)
     case LaunchEvent{scope, input_handle}: launch(state, scope, input_handle)
+    case LaunchPreparationEvent{scope, input_handle}: launch_preparation(state, scope, input_handle)
     case LaunchNestedEvent{parent, input_handle}: launch_nested(state, parent, input_handle)
     case InstallEvent{invocation, generation, handle, request}: install(state, invocation, generation, handle, request)
     case ProviderStartEvent{invocation}: provider_start(state, invocation)
     case ProviderCompletedEvent{invocation, lease, request, reply_handle}:
       provider_completed(state, invocation, lease, request, reply_handle)
     case CancelEvent{invocation}: cancel(state, invocation)
+    case TerminalPreparationFailedEvent{invocation, generation, result_handle}: terminal_preparation_failed(state, invocation, generation, result_handle)
+    case TerminalPreparationEvent{invocation, generation, result_handle}: terminal_preparation(state, invocation, generation, result_handle)
     case TerminalEvent{invocation, generation, result_handle}: terminal(state, invocation, generation, result_handle)
 
 def resident_step(canonical: C.State, custody: Custody, event: ResidentEvent) -> Publication:

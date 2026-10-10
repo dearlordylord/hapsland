@@ -215,12 +215,16 @@ export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit"
             admitted.operation
           )
   })
-  const workUnitId = yield* registerPreparedWork()
   const releaseUnspawnedUnit = Effect.fn("ResidentRuntime.releaseUnspawnedUnit")(function* () {
     if (item.kind === "owner") yield* context.deps.residentReleaseReuseClaim(item.evaluationKey)
     yield* context.deps.residentLedger.release(reservation)
     yield* context.deps.residentReleaseCurrentWork(revision)
   })
+  const workUnitId = yield* registerPreparedWork().pipe(
+    Effect.onError(() =>
+      context.deps.residentReleaseCurrentWork(revision).pipe(Effect.andThen(discardRemainingPreparedUnits()))
+    )
+  )
   if (context.job.round !== undefined && workUnitId === undefined) {
     yield* releaseUnspawnedUnit()
     return true

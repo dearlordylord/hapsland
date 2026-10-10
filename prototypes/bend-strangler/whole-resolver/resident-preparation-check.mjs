@@ -25,6 +25,7 @@ import {analyzeFunctionFile} from '@hapsland/source-analysis/direct-event/functi
 import {analysisWorkspaceBytes} from '../../../packages/resident-runtime/src/resident/work-ownership/workspace.ts'
 import {configuredRules} from '@hapsland/build-tooling/test-support/default-rules'
 import {nativePrepareReadyUnits} from './native-preparation-children.mjs'
+import {nativePostPreparationSource} from './native-post-preparation-child.mjs'
 import {consumeRetainedPreparation} from './retention-consumer.mjs'
 import {decodePreparationResult} from './preparation-result-codec.mjs'
 import {prepareObservation} from '@hapsland/review-execution/direct-event/pipeline'
@@ -50,14 +51,16 @@ try{
   const preparation=run(capacity.beginObservedPreparation('agent',observation,1000,round));assert.equal(preparation.status,'admitted');assert.equal(preparation.operation,2)
   let attachedDriver
   const bridge=createResidentOwnerTransaction({owner,transaction,onActions:actions=>Effect.sync(()=>{if(actions.length&&!attachedDriver)throw new Error('Unbound resident action consumer');attachedDriver?.acceptActions(actions)})})
-  return {control:bridge.control,bridge,transaction,preparation,round,partition,attachDriver:driver=>{attachedDriver=driver}}
+  return {postCore,control:bridge.control,bridge,transaction,preparation,round,partition,attachDriver:driver=>{attachedDriver=driver}}
  }
  const preparationEmission=join(temp,'Preparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'Preparation.bend'),'-o',preparationEmission],{timeout:5000})
  const core=(await import(pathToFileURL(preparationEmission))).default,preparationMachine=createPreparationMachine(core)
  const none={$:'None'},some=value=>({$:'Some',value})
  const location=value=>({$:'RootAttribution.Location',start:{$:'RootAttribution.Position',line:BigInt(value.start.line),column:BigInt(value.start.column)},end:{$:'RootAttribution.Position',line:BigInt(value.end.line),column:BigInt(value.end.column)}})
+ const postEmission=join(temp,'PostPreparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PostPreparation.bend'),'-o',postEmission],{timeout:5000})
+ const postCore=(await import(pathToFileURL(postEmission))).default
  let cases=0,requests=0
- for(const mode of ['two-roots','first-refused','parent-cancel-late-success','parent-cancel-late-rejection','resize-refused','mixed-contracts','retention-success','retention-before-flow','retention-owner-claimed','retention-after-revision']) {
+ for(const mode of ['two-roots','first-refused','parent-cancel-late-success','parent-cancel-late-rejection','resize-refused','mixed-contracts','retention-success','retention-before-flow','retention-owner-claimed','retention-after-revision','retention-fault-owner-claimed','retention-fault-after-revision','retention-cached-clear','retention-joined-claimed','retention-joined-pending','retention-bend-success','retention-bend-cached-clear','retention-bend-joined-claimed','retention-bend-joined-pending','retention-bend-after-revision','retention-bend-fault-after-revision']) {
   const currentPath=mode==='mixed-contracts'?'mixed.ts':'root.py'
   if(mode==='mixed-contracts')await writeFile(join(root,currentPath),'export interface Foo { value: string }\nexport function run(value: Foo): Foo { return value }\n')
   const connection=initial(),registry=createServiceRegistry(),cache=new Map(),rootCaptures=new Map(),selections=new Map();let parentInvocation,cancelled=false,roots=0,physicalLateSuccess=0
@@ -151,5 +154,5 @@ try{
   const rootFds=await Promise.all((await readdir('/proc/self/fd')).map(fd=>readlink('/proc/self/fd/'+fd).catch(()=>'')));assert.equal(rootFds.filter(path=>path===root||path.startsWith(root+'/')).length,0)
   cases++
  }
- console.log(JSON.stringify({passed:true,cases,requests,scope:'actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Python/TypeScript IO and full native preparation differential for successful branches; parent cancellation/late success/rejection and first semantic refusal; actual native preflight/workspace sizing/prepared input policy children; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers; native policy deletion, source-free Canonical progression and production adoption remain open'}))
+ console.log(JSON.stringify({passed:true,cases,requests,nativePostPreparationSource,scope:'actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Python/TypeScript IO and full native preparation differential for successful branches; parent cancellation/late success/rejection and first semantic refusal; actual native preflight/workspace sizing/prepared input policy children; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers plus owner-claim and pre-spawn exceptions with guaranteed cleanup; native policy deletion, source-free Canonical progression and production adoption remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}

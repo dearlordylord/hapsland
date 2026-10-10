@@ -58,5 +58,24 @@ try {
  let premature=fresh();premature=advanced(m.launch(premature,scope,100n));premature=advanced(m.install(premature,1n,0n,101n,7n));premature=advanced(m.provider_start(premature,1n));premature=advanced(m.launch_nested(premature,parent,200n));premature=advanced(m.install(premature,2n,0n,201n,0n));premature=advanced(m.provider_start(premature,2n))
  out=m.provider_completed(premature,1n,1n,7n,102n);assert.equal(list(out.actions).some(action=>action.$==='CancelChild'&&action.invocation===2n),true);premature=advanced(out);assertions++
  reject(m.terminal(premature,2n,0n,203n),'WrongPhase');out=m.provider_completed(premature,2n,2n,0n,204n);assert.deepEqual(list(out.actions).map(action=>action.$),['CleanupProvider']);assertions+=2
+ // Preparation acceptance produces a new retaining child; callers cannot launch it.
+ let handoffState=fresh();handoffState=advanced(m.launch_preparation(handoffState,scope,300n))
+ reject(m.launch_preparation(handoffState,scope,301n),'NotPreparing');assertions++
+ reject(m.terminal(handoffState,1n,0n,302n),'WrongPhase');assertions++
+ reject(m.terminal_preparation(handoffState,1n,1n,302n),'WrongPhase');assertions++
+ out=m.terminal_preparation(handoffState,1n,0n,302n)
+ const handoffAction=list(out.actions)[0],retaining={$:'RetainingScope',partition:1n,lifetime:1n,round:1n,observation:1n,origin:1n}
+ assert.deepEqual(handoffAction,{$:'LaunchPostPreparation',invocation:2n,preparation_invocation:1n,result_handle:302n,scope:retaining});handoffState=advanced(out);assertions++
+ assert.equal(m.find(1n,handoffState.children).value.phase.$,'ChildAccepted');assert.equal(m.find(2n,handoffState.children).value.parent.$,'None');assertions++
+ reject(m.launch(handoffState,retaining,303n),'NotPreparing');reject(m.launch_preparation(handoffState,retaining,303n),'NotPreparing');assertions+=2
+ reject(m.terminal_preparation(handoffState,1n,0n,304n),'WrongPhase');reject(m.terminal_preparation(handoffState,2n,0n,304n),'WrongPhase');assertions+=2
+ out=m.canonical_event(handoffState,c('PreparationCompleted',{partition:1n,lifetime:1n,round:1n,operation:2n,unit_bytes:{$:'Nil'}}))
+ handoffState=advanced(out);assert.equal(m.live(handoffState.canonical,retaining),true);assert.equal(m.find(2n,handoffState.children).value.phase.$,'ChildInstalling');assertions++
+ handoffState=advanced(m.install(handoffState,2n,0n,305n,0n));handoffState=advanced(m.provider_start(handoffState,2n))
+ out=m.canonical_event(handoffState,c('InterruptObservation',{partition:1n,lifetime:1n,round:1n,observation:1n}));assert.ok(list(out.actions).some(action=>action.$==='CancelChild'&&action.invocation===2n));handoffState=advanced(out);assertions++
+ out=m.provider_completed(handoffState,2n,1n,0n,306n);assert.deepEqual(list(out.actions).map(action=>action.$),['CleanupProvider']);assertions++
+ let beforeInstall=fresh();beforeInstall=advanced(m.launch_preparation(beforeInstall,scope,400n));beforeInstall=advanced(m.terminal_preparation(beforeInstall,1n,0n,401n));out=m.cancel(beforeInstall,2n);assert.deepEqual(list(out.actions).map(action=>action.$),['CancelChild']);assertions++
+ let failedPreparation=fresh();failedPreparation=advanced(m.launch_preparation(failedPreparation,scope,500n));out=m.terminal_preparation_failed(failedPreparation,1n,0n,501n);assert.deepEqual(list(out.actions).map(action=>action.$),['AcceptResult']);assertions++
+ reject(m.terminal_preparation(fresh(),99n,0n,600n),'UnknownInvocation');assertions++
  console.log(JSON.stringify({passed:true,assertions,scope:'actual Canonical admission/work invalidation plus source-free child generations, unique terminal and separate late-provider cleanup; opaque controlled handles only; actual split-child resident consumer, provisional rejected-handle disposal, retention/revision and universal proofs remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}

@@ -23,7 +23,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    finally{if(!transferred)release(id,invocation)}
   }else{
    const id=save(invocation,'result',projection)
-   try{hooks.beforeTerminal?.({invocation,generation,handle:id,driver});apply(invoke('terminal',invocation,generation,id))}
+   try{hooks.beforeTerminal?.({invocation,generation,handle:id,driver});const child=owner.find(invocation,current().children).value;const method=child.scope.$==='PreparationScope'?(projection.$==='PreparationFinished'?'terminal_preparation':'terminal_preparation_failed'):'terminal';apply(invoke(method,invocation,generation,id))}
    finally{release(id,invocation)}
   }
  }
@@ -31,6 +31,17 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   const invocation=command.invocation
   switch(command.$){
    case 'Launch': launches.set(invocation,command);stats.launches++;break
+   case 'LaunchPostPreparation': {
+    try {
+     const result=load(command.result_handle,command.preparation_invocation,'result')
+     if(result.$!=='PreparationFinished')throw new Error('Invalid preparation handoff payload')
+     const receipt=Object.freeze({handoff:invocation,scope:command.scope})
+     resources.set(command.result_handle,{invocation,kind:'input',value:result})
+     launches.set(invocation,{...command,input_handle:command.result_handle,receipt})
+     finished.set(command.preparation_invocation,receipt);stats.launches++;stats.accepted++
+    } catch(error){apply(invoke('cancel',invocation));throw error}
+    break
+   }
    case 'ExecuteProvider':{
     const raw=load(command.state_handle,invocation,'state'),request=engine(invocation).view(raw).request
     if(request.invocation!==invocation||request.id!==command.request)throw new Error('Provider Await binding mismatch')
@@ -83,11 +94,26 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   if(failure)throw failure
  }
  const driver={
-  allocateInvocation(parent){
+  allocateInvocation(parent,preparation=false){
    if(current().next_invocation<1n||current().next_invocation>BigInt(Number.MAX_SAFE_INTEGER))throw new RangeError('Invocation exceeds exact native ID range')
    const inputId=save(0n,'pending-input',undefined)
-   try{apply(parent?invoke('launch_nested',parent,inputId):invoke('launch',scope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
+   try{apply(parent?invoke('launch_nested',parent,inputId):invoke(preparation?'launch_preparation':'launch',scope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
    catch(error){resources.delete(inputId);throw error}
+  },
+  allocatePreparationInvocation(){return driver.allocateInvocation(undefined,true)},
+  handoffResult(receipt){
+   const launch=launches.get(receipt.handoff)
+   if(!launch||launch.receipt!==receipt)throw new Error('Unknown preparation handoff capability')
+   return {preparation:load(launch.input_handle,receipt.handoff,'input').result}
+  },
+  async driveHandoff(receipt,session,buildInput,options={}){
+   const invocation=receipt.handoff
+   try {
+    const result=driver.handoffResult(receipt)
+    const input=buildInput(result,invocation,receipt.scope)
+    if(input.invocation!==invocation)throw new Error('Post input changed Canonical invocation')
+    return await driver.drive(session,input,options)
+   }catch(error){const child=owner.find(invocation,current().children);if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation));throw error}
   },
   async drive(session,input,options={}){
    const invocation=input.invocation,launch=launches.get(invocation)
@@ -131,6 +157,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
     }finally{
      options.signal?.removeEventListener('abort',abort)
      // Provider await has settled before registry.run closes native resources.
+     await session.finish?.()
      engine(invocation).disposeInvocation(invocation);machines.delete(invocation);sessions.delete(invocation);finished.delete(invocation)
      for(const [id,held] of resources)if(held.invocation===invocation)release(id,invocation)
     }

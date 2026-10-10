@@ -72,6 +72,9 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
  const ownerStep=result=>result.raw.$==='Refused'?{$:'Rejected',refusal:result.raw.refusal}:{$:'Advanced',actions:result.raw.actions,outputs:result.raw.outputs}
  const methods={
   launch:(scope,input_handle)=>({$:'LaunchEvent',scope,input_handle}),
+  launch_preparation:(scope,input_handle)=>({$:'LaunchPreparationEvent',scope,input_handle}),
+  terminal_preparation:(invocation,generation,result_handle)=>({$:'TerminalPreparationEvent',invocation,generation,result_handle}),
+  terminal_preparation_failed:(invocation,generation,result_handle)=>({$:'TerminalPreparationFailedEvent',invocation,generation,result_handle}),
   launch_nested:(parent,input_handle)=>({$:'LaunchNestedEvent',parent,input_handle}),
   install:(invocation,generation,handle,request)=>({$:'InstallEvent',invocation,generation,handle,request}),
   provider_start:invocation=>({$:'ProviderStartEvent',invocation}),
