@@ -72,7 +72,8 @@ if (
     "unsupported-write",
     "unicode-edit",
     "inspection-exclusions",
-    "callable-review"
+    "callable-review",
+    "go-package-model-review"
   ].includes(scenario)
 )
   throw new Error("Choose an adoption, reviewer, POST-hook or PRE-hook scenario")
