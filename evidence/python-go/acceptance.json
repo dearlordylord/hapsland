@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "status": "qualification-pending",
+  "implementationBase": "69825bc5ae09c2da797939a7bb198c6f4c380be4",
+  "historicalNativeRecords": [
+    {
+      "path": "native/codex-go-package-model-review-1791611817055-result.json",
+      "sha256": "26fbf6ddabe389802de0595810c7be79bed613e1377a409fc2c613c982aee277",
+      "sourceCommit": "dc1d0ad03c4d46a62e275c7dc52fd52d320016d6",
+      "verdict": "demonstrated",
+      "scope": "Historical child witness; does not qualify merged candidate"
+    },
+    {
+      "path": "native/codex-go-package-model-review-1791611817055-declaration.json",
+      "sha256": "2502dd839f6a2448b01175367b90795cd10eec230339b945c0a7801ab48d2d4e",
+      "sourceCommit": "dc1d0ad03c4d46a62e275c7dc52fd52d320016d6",
+      "verdict": null,
+      "scope": "Historical child witness; does not qualify merged candidate"
+    },
+    {
+      "path": "native/issue-270-installed-summary.json",
+      "sha256": "e128900be389d5a04b0ccb81e09f3c33943fcafe9a8de34487bebb0d72edf013",
+      "sourceCommit": "257060baaaebc506b85d03c41dc88b569707dbf7",
+      "verdict": "demonstrated",
+      "scope": "Historical child witness; does not qualify merged candidate"
+    },
+    {
+      "path": "native/codex-go-module-model-review-1791640778427-declaration.json",
+      "sha256": "bc41ebca2128dca3476a72731a76ee0cc88bc4b8d7cb902baf2bf4735e650c77",
+      "sourceCommit": "417f570bf8f8f628ea3c6bf9ec6586fa29b25ecf",
+      "verdict": null,
+      "scope": "Historical child witness; does not qualify merged candidate"
+    },
+    {
+      "path": "native/codex-python-adoption-controlled-offline-1791612680970-declaration.json",
+      "sha256": "1b1313185246407220e517cc24e5a7220a9af8403199fe897cbf2b3b6c45fe01",
+      "sourceCommit": null,
+      "verdict": null,
+      "scope": "Historical child witness; does not qualify merged candidate"
+    },
+    {
+      "path": "native/codex-python-adoption-controlled-offline-1791612680970.json",
+      "sha256": "ab67a165365e4d9dab08d374b6eb7fed7377d0738d419ccd39387ff49e56b560",
+      "sourceCommit": "257060baaaebc506b85d03c41dc88b569707dbf7",
+      "verdict": "demonstrated",
+      "scope": "Historical child witness; does not qualify merged candidate"
+    },
+    {
+      "path": "native/codex-go-module-model-review-1791640778427-result.json",
+      "sha256": "87c1cb5ab657b23cc1b72925705e1761c86311bbec832ee688d6633a5c23c44e",
+      "sourceCommit": "417f570bf8f8f628ea3c6bf9ec6586fa29b25ecf",
+      "verdict": "demonstrated",
+      "scope": "Historical child witness; does not qualify merged candidate"
+    }
+  ],
+  "platform": "linux-arm64",
+  "grammarVersions": {
+    "tree-sitter": "0.25.1",
+    "tree-sitter-python": "0.25.0",
+    "tree-sitter-go": "0.25.0"
+  },
+  "coverage": "Discovery inventories only; no adapter/user-edit coverage percentage measured",
+  "limitations": [
+    "Darwin execution",
+    "Claude native delivery",
+    "ordinary interactive trust",
+    "default/cold installation",
+    "real classifier accuracy"
+  ],
+  "checks": []
+}

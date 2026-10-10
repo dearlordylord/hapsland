@@ -1,0 +1,55 @@
+{
+  "purpose": "Retain the selected published SO2026 AI coding language figures, not a measurement of frontier developers or type-model care.",
+  "source": "https://survey.stackoverflow.co/2026/technology/data/languages",
+  "accessDate": "2026-10-09",
+  "sourceClass": "META",
+  "verificationState": "DOCUMENTED",
+  "sourceLocation": "HTML hydration data demographic id used-for-ai, type technologyseries",
+  "n": 14099,
+  "question": "Which programming, scripting, and markup languages have you done extensive development work in over the past year, which do you want to work with over the next year, and which have you used AI tools or AI agents to work with? Select all that apply in each row.",
+  "attribution": "Stack Exchange Inc. (2026), Stack Overflow Developer Survey 2026. Data licensed ODbL 1.0.",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "limitations": [
+    "Percentages have all question respondents as denominator; these are not within-language AI adoption rates.",
+    "The AI series means coding with AI tools/agents, not building AI functionality.",
+    "There is no expertise, type-system concern or business-domain modeling filter.",
+    "Respondents self-select; these percentages are not population market share."
+  ],
+  "data": [
+    {
+      "language": "JavaScript",
+      "count": 5419,
+      "proportion": 0.384
+    },
+    {
+      "language": "Python",
+      "count": 5495,
+      "proportion": 0.39
+    },
+    {
+      "language": "TypeScript",
+      "count": 4293,
+      "proportion": 0.304
+    },
+    {
+      "language": "Java",
+      "count": 2052,
+      "proportion": 0.146
+    },
+    {
+      "language": "C#",
+      "count": 2277,
+      "proportion": 0.162
+    },
+    {
+      "language": "Rust",
+      "count": 1602,
+      "proportion": 0.114
+    },
+    {
+      "language": "Go",
+      "count": 1524,
+      "proportion": 0.108
+    }
+  ]
+}

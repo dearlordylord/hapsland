@@ -1,0 +1,10 @@
+// Derive inventory table and lexical import buckets; this performs no module resolution.
+import fs from 'node:fs';import crypto from 'node:crypto';
+const resultPath=process.argv[2],manifest=JSON.parse(fs.readFileSync(process.argv[3],'utf8')),result=JSON.parse(fs.readFileSync(resultPath,'utf8'));result.repositorySummary=[];
+for(const repo of manifest){
+ const response=await fetch(`https://raw.githubusercontent.com/${repo.repo}/${repo.commit}/go.mod`);if(!response.ok)throw new Error('Missing go.mod');const text=await response.text(),module=text.split('\n').find(x=>x.startsWith('module ')).split(/\s+/)[1];const all=result.records.filter(x=>x.repo===repo.repo),prod=all.filter(x=>!x.test&&!x.generated);
+ const roots=rs=>Object.fromEntries(['types','functions','methods'].map(k=>[k,rs.reduce((n,r)=>n+r.roots[k],0)]));const imports={local:0,standardOrDotless:0,external:0};for(const i of all.flatMap(x=>x.imports)){const p=JSON.parse(i.path),k=p===module||p.startsWith(module+'/')?'local':p.split('/')[0].includes('.')?'external':'standardOrDotless';imports[k]++;}
+ result.repositorySummary.push({repo:repo.repo,module,frameFiles:repo.frameFiles,sampleFiles:all.length,productionFiles:prod.length,allRoots:roots(all),productionRoots:roots(prod),goModSha256:crypto.createHash('sha256').update(text).digest('hex'),goModRelevantLines:text.split('\n').filter(x=>/^(go |toolchain |replace )/.test(x)),imports});
+}
+if(process.env.TREE_SITTER_PREBUILD){const binary=fs.readFileSync(process.env.TREE_SITTER_PREBUILD+'/build/Release/tree_sitter_runtime_binding.node');result.environment.runtimeArtifactSha256=crypto.createHash('sha256').update(binary).digest('hex');}
+result.limitations=['Sample is declaration inventory, not production-user edit distribution','Methods and type counts are top-level syntax roots; anonymous function counts are syntax nodes','External import means outside declared root module; go.work or replacements not resolved','StandardOrDotless is lexical path classification, not standard library resolution'];fs.writeFileSync(resultPath,JSON.stringify(result,null,2)+'\n');
