@@ -102,7 +102,7 @@ export function createGoInspectionProfile({
   let acknowledged = false
   let quoted = false
   let quotedRuleIds = []
-  let acknowledgmentObservation = { final: "absent", aggregate: "absent" }
+  let acknowledgmentObservation = { final: "absent", aggregate: "absent", count: 0, order: [] }
   return {
     source: new URL(import.meta.url),
     scenario: "go-package-model-review",
@@ -145,7 +145,12 @@ export function createGoInspectionProfile({
         return applied && negative ? "ambiguous" : applied ? "affirmed" : negative ? "negative" : "absent"
       }
       const combined = messages.join("\n")
-      acknowledgmentObservation = { final: markerState(messages.at(-1) ?? ""), aggregate: markerState(combined) }
+      acknowledgmentObservation = {
+        final: markerState(messages.at(-1) ?? ""),
+        aggregate: markerState(combined),
+        count: messages.length,
+        order: messages.slice(-128).map(markerState)
+      }
       acknowledged = acknowledgmentObservation.final === "affirmed"
       quotedRuleIds = configuredRules.filter((rule) => combined.includes(rule.message)).map((rule) => rule.id)
       quoted = quotedRuleIds.length > 0

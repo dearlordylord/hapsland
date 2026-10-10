@@ -111,8 +111,18 @@ test("final native acknowledgment is independent of an earlier pending marker", 
   const receipt = profile.observeNative(
     [message("HAPSLAND_ADVICE_NOT_APPLIED"), message("HAPSLAND_ADVICE_APPLIED")].join("\n")
   )
-  assert.deepEqual(receipt.acknowledgment, { final: "affirmed", aggregate: "ambiguous" })
+  assert.deepEqual(receipt.acknowledgment, {
+    final: "affirmed",
+    aggregate: "ambiguous",
+    count: 2,
+    order: ["negative", "affirmed"]
+  })
   assert.equal(profile.observeNative(message("HAPSLAND_ADVICE_NOT_APPLIED")).acknowledgment.final, "negative")
+  assert.equal(
+    profile.observeNative([message("HAPSLAND_ADVICE_APPLIED"), message("HAPSLAND_ADVICE_NOT_APPLIED")].join("\n"))
+      .acknowledgment.final,
+    "negative"
+  )
   assert.equal(
     profile.observeNative(message("HAPSLAND_ADVICE_APPLIED HAPSLAND_ADVICE_NOT_APPLIED")).acknowledgment.final,
     "ambiguous"
