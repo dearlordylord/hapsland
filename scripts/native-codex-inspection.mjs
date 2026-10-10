@@ -94,6 +94,9 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         residentPreparation: profile?.prepareResident ? "installed-resident-before-native-tasks" : "native-startup",
         nativeColdStartupValidation: false,
         runtimeIdentityPreparation: profile?.prepareRuntime === true,
+        installationProbeRuntime: profile?.prepareRuntime
+          ? "pinned-bun-with-packaged-native-entrypoint"
+          : "packaged-native-runtime",
         maximumJevRequests: 0,
         automaticHostRetries: 0,
         syntheticRepositoryOnly: true,
@@ -157,6 +160,10 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
           answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }]))
         }
       )
+    }
+    if (profile?.prepareRuntime) {
+      env.REVIEW_INSTALL_RUNTIME = resolveBunRuntime().executable
+      delete env.REVIEW_INSTALL_ENTRYPOINT
     }
     delete env.TYPESAFE_API_KEY
     const installer = await preparePackageInstall(installation, archive, env)
