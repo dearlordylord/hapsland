@@ -1,4 +1,5 @@
 import { callableInspectionProfile } from "./native-callable-inspection.mjs"
+import { createGoInspectionProfile } from "./native-go-inspection.mjs"
 import { runCodexInspectionProfile } from "./native-codex-inspection.mjs"
 import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs"
 import {
@@ -162,6 +163,23 @@ const initialSourceMarker =
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
+if (scenario === "go-package-model-review") {
+  if (
+    host !== "codex" ||
+    language !== "go" ||
+    mode !== "controlled-offline" ||
+    coexistence !== undefined ||
+    unicodeUpdate
+  )
+    throw new Error("Installed Go model review requires controlled Codex Go without coexistence or Unicode mutation")
+  await runCodexInspectionProfile({
+    project,
+    archivePath: archiveArgument?.slice("--archive=".length),
+    model: requestedModel,
+    profile: createGoInspectionProfile()
+  })
+  process.exit(0)
+}
 if (scenario === "inspection-exclusions" || scenario === "callable-review") {
   if (
     host !== "codex" ||
