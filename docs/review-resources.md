@@ -54,7 +54,7 @@ are current product policy, not user JSONC settings.
 
 ## Retained state and admission
 
-The [resident capacity ledger](../packages/resident-runtime/src/resident/state/capacity.ts) counts logical
+The [resident capacity ledger](../packages/resident-runtime/src/resident/state/resident/state.ts) counts logical
 reservations separately from dispatch slots:
 
 | Scope | Item bound | Logical byte bound |

@@ -1,5 +1,6 @@
 import type { CanonicalOutput } from "@hapsland/canonical-policy/canonical/adapter"
-import type { CapacityLedger, CapacityReservation } from "./capacity.ts"
+import type { CapacityLedger } from "./capacity/operations.ts"
+import type { CapacityReservation } from "./capacity/model.ts"
 import type { OperationalNotice, OperationalNoticeKind } from "./collection-facts.ts"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
 

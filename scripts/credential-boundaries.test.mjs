@@ -59,7 +59,7 @@ test("configuration boundary rejects unwrapping a key in the shared input reader
 
 test("retention boundary accepts formatting but rejects a changed peak operand", () => {
   fixture("check-retention-boundary.mjs", (root, run) => {
-    const file = join(root, "packages/resident-runtime/src/resident/state/capacity.ts")
+    const file = join(root, "packages/resident-runtime/src/resident/state/resident/transaction.ts")
     writeFileSync(
       file,
       readFileSync(file, "utf8").replace(
@@ -122,5 +122,31 @@ test("retired grant guard follows the extracted installation workflow", () => {
     const result = run()
     assert.notEqual(result.status, 0)
     assert.match(result.stderr, /retired repository grant/)
+  })
+})
+
+for (const owner of [
+  "state/capacity/reservations.ts",
+  "state/resident/advice.ts",
+  "state/delivery/finish-authorization.ts"
+]) {
+  test(`capacity boundary rejects a second state owner in ${owner}`, () => {
+    fixture("check-capacity-boundary.mjs", (root, run) => {
+      const file = join(root, "packages/resident-runtime/src/resident", owner)
+      writeFileSync(file, readFileSync(file, "utf8") + "\n// Ref.make({})\n")
+      const result = run()
+      assert.notEqual(result.status, 0)
+      assert.match(result.stderr, /one resident state creation and publication authority/)
+    })
+  })
+}
+
+test("delivery boundary examines the extracted authorization owner", () => {
+  fixture("check-delivery-boundary.mjs", (root, run) => {
+    const file = join(root, "packages/resident-runtime/src/resident/state/delivery/finish-authorization.ts")
+    writeFileSync(file, readFileSync(file, "utf8") + "\n// bendLeaseAuthorize\n")
+    const result = run()
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /submission policy bypass returned/)
   })
 })

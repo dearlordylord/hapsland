@@ -6,7 +6,7 @@ import type * as Effect from "effect/Effect"
 import { type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
 import { type ReviewSettingsSnapshot } from "@hapsland/review-definition/runtime/review-settings"
 import { type ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
-import { type makeResidentState, type CapacityReservation } from "../state/capacity.ts"
+import { type makeResidentState, type CapacityReservation } from "../state/resident/state.ts"
 
 export type IngressJob = {
   readonly inspectionReceipt?: InspectionReceipt

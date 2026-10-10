@@ -8,7 +8,7 @@ import {
 import { type RoundCloseReason } from "@hapsland/activity-observation/activity/status"
 import * as Effect from "effect/Effect"
 import { type ResidentRequest, type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
-import type { ComposedDelivery } from "../../state/composed-delivery.ts"
+import type { ComposedDelivery } from "../../state/delivery/operations.ts"
 import { recipientPartition } from "../../recipient/identity.ts"
 import { type HandoffContext, type Dependencies } from "./context.ts"
 import { residentEditCollectRequest } from "./workflow.ts"

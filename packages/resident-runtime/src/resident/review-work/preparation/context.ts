@@ -18,7 +18,7 @@ import {
   type ResidentDispatchContext,
   type ResidentUnavailableReason
 } from "@hapsland/resident-transport/resident/protocol"
-import { type CapacityReservation } from "../../state/capacity.ts"
+import { type CapacityReservation } from "../../state/resident/state.ts"
 import { type Dispatcher } from "../../state/dispatch.ts"
 import { type OperationalNoticeKind } from "../../state/collection-facts.ts"
 import type { PreparationControls } from "../../execution-controls/preparation-controls.ts"

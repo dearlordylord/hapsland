@@ -1,4 +1,4 @@
-import { residentRuntimeSourceFiles } from "./resident-runtime-source.mjs"
+import { readResidentStateSource, residentRuntimeSourceFiles } from "./resident-runtime-source.mjs"
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
@@ -14,7 +14,7 @@ for (const path of residentRuntimeSourceFiles(root)) {
     `${name} bypasses the canonical permit boundary`
   )
 }
-const delivery = readFileSync(resolve(resident, "state/composed-delivery.ts"), "utf8")
+const delivery = readResidentStateSource(root, "delivery")
 for (const kind of ["issuePermit", "consumePermit", "releasePermit", "expirePermit", "closePermitRound"]) {
   assert.match(delivery, new RegExp(`kind: "${kind}"`), `resident lacks ${kind} transition`)
 }

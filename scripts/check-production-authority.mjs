@@ -1,3 +1,4 @@
+import { readResidentStateSource } from "./resident-runtime-source.mjs"
 import assert from "node:assert/strict"
 import { readFileSync, readdirSync } from "node:fs"
 import { resolve } from "node:path"
@@ -7,7 +8,7 @@ import { readPackageGraph } from "./package-graph.mjs"
 const root = resolve(import.meta.dirname, "..")
 const read = (path) => readFileSync(resolve(root, path), "utf8")
 const required = [
-  "packages/resident-runtime/src/resident/state/capacity.ts",
+  "packages/resident-runtime/src/resident/state/capacity/canonical.ts",
   "packages/resident-runtime/src/resident/advice-delivery/collection.ts",
   "packages/review-definition/src/rules/decision.ts",
   "packages/runtime-inputs/src/configuration/decision.ts",
@@ -26,7 +27,7 @@ assert.doesNotMatch(
   "composed work must be a read-only canonical view"
 )
 assert.doesNotMatch(
-  read("packages/resident-runtime/src/resident/state/composed-delivery.ts"),
+  readResidentStateSource(root, "delivery"),
   /BendRound|\.policy|policy:\s*Bend/,
   "composed rounds must not advance independent policy state"
 )

@@ -141,7 +141,7 @@ try {
       const cooperative = await page.evaluate(async () => {
         const loaded = performance
           .getEntriesByType("resource")
-          .findLast((entry) => new URL(entry.name).pathname === "/src/simulation.ts")
+          .findLast((entry) => new URL(entry.name).pathname === "/src/simulation/index.ts")
         const resident = await import(loaded.name)
         const driverUrl = performance
           .getEntriesByType("resource")
@@ -260,7 +260,7 @@ try {
       const asyncOwnership = await page.evaluate(async () => {
         const loaded = performance
           .getEntriesByType("resource")
-          .findLast((entry) => new URL(entry.name).pathname === "/src/simulation.ts")
+          .findLast((entry) => new URL(entry.name).pathname === "/src/simulation/index.ts")
         const resident = await import(loaded.name)
         const originalNow = performance.now.bind(performance)
         let clock = 0

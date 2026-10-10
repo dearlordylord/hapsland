@@ -13,8 +13,8 @@
       "default": "./dist/resident/bend-work.js"
     },
     "./resident/capacity": {
-      "types": "./dist/resident/state/capacity.d.ts",
-      "default": "./dist/resident/state/capacity.js"
+      "types": "./dist/resident/state/resident/state.d.ts",
+      "default": "./dist/resident/state/resident/state.js"
     },
     "./resident/collection-decisions": {
       "types": "./dist/resident/advice-delivery/collection-decisions.d.ts",
@@ -25,8 +25,8 @@
       "default": "./dist/resident/advice-delivery/collection.js"
     },
     "./resident/composed-delivery": {
-      "types": "./dist/resident/state/composed-delivery.d.ts",
-      "default": "./dist/resident/state/composed-delivery.js"
+      "types": "./dist/resident/state/delivery/operations.d.ts",
+      "default": "./dist/resident/state/delivery/operations.js"
     },
     "./resident/dispatch-controls": {
       "types": "./dist/resident/execution-controls/dispatch-controls.d.ts",

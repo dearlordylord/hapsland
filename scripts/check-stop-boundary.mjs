@@ -1,13 +1,10 @@
-import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
+import { readResidentStateSource, readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
 const server = readResidentRuntimeSource(root)
-const delivery = readFileSync(
-  resolve(root, "packages/resident-runtime/src/resident/state/composed-delivery.ts"),
-  "utf8"
-)
+const delivery = readResidentStateSource(root, "delivery")
 const work = readFileSync(resolve(root, "packages/resident-runtime/src/resident/bend-work.ts"), "utf8")
 for (const name of ["bendLifecycleFinishGate", "bendLifecycleCutoff"]) {
   if (server.includes(name) || delivery.includes(name) || work.includes(name)) {
@@ -39,7 +36,7 @@ if (/Effect\.runSync|Effect\.runPromise|Ref\.getUnsafe/u.test(server)) {
   )
 }
 
-const capacity = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/capacity.ts"), "utf8")
+const capacity = readResidentStateSource(root, "capacity", "resident")
 if (
   !/const roundCommit = [\s\S]*?=>\s*commitAllEffect\(/u.test(capacity) ||
   !server.includes("yield* deps.residentLedger.rounds.bind") ||
@@ -48,9 +45,9 @@ if (
 ) {
   throw new Error("round mutations must compose atomic Effects without a synchronous commit bridge")
 }
-const roundSurface = capacity.slice(
-  capacity.indexOf("const rounds: RoundRecords"),
-  capacity.indexOf("const runtimeCommitEffect")
+const roundSurface = readFileSync(
+  resolve(root, "packages/resident-runtime/src/resident/state/resident/rounds.ts"),
+  "utf8"
 )
 if (
   roundSurface.includes("Ref.getUnsafe") ||

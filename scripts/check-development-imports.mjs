@@ -14,7 +14,7 @@ const inside = (root, path) => {
 }
 const packageName = (specifier) =>
   specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]
-const viteBrowserProfileSha256 = "d29ea8c6b12d1d09b057ad822cfe9406c382729516356f1f7beb7e18dc5112bd"
+const viteBrowserProfileSha256 = "744cb14c1fc62a816d2d5bcd34bd0d9aa095d1adb050fe5ca612ea6f6b9f9481"
 const npmLoaderProfileSha256 = "9e94276e613a799daef430e79855777559908ad1d63dc48b2759517ee6a4125f"
 const extensions = new Set([".ts", ".tsx", ".mts", ".mjs", ".js", ".cjs", ".cts"])
 
@@ -123,7 +123,7 @@ export const checkDevelopmentImports = (root) => {
     }
     const edge = (specifier, syntax) => {
       if (
-        specifier === "/src/simulation.ts" &&
+        specifier === "/src/simulation/controller.ts" &&
         owner.role === "verification" &&
         declared(owner, "vite") &&
         record.file === "packages/agent-flow-viz/scripts/check-render-browser.mjs" &&
@@ -137,7 +137,7 @@ export const checkDevelopmentImports = (root) => {
               candidate.node.callee.property.name === "evaluate"
           )
       ) {
-        const target = resolve(owner.path, "src/simulation.ts")
+        const target = resolve(owner.path, "src/simulation/controller.ts")
         if (
           !existsSync(target) ||
           !statSync(target).isFile() ||

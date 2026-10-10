@@ -2,6 +2,10 @@ import assert from "node:assert/strict"
 import { chromium } from "playwright"
 import { createServer } from "vite"
 import { createRun, restoreReplay } from "../../monkey-business/src/index.ts"
+const scopedSessions = [
+  { agent: "agent-1", editIntervalMs: 1000000000, variationMs: 0 },
+  { agent: "agent-2", editIntervalMs: 1000000000, variationMs: 0 }
+]
 const server = await createServer({ server: { host: "127.0.0.1", port: 0, hmr: false } })
 let browser
 let page
@@ -191,6 +195,7 @@ try {
     .locator(".simulation-stage-inspector")
     .screenshot({ path: "/tmp/hapsland-capacity-import-budgets-1512.png" })
   const ownership = createRun({
+    sessions: scopedSessions,
     inputs: [
       {
         at: 0,
@@ -204,6 +209,9 @@ try {
     outputProfile: { outcome: "certain", delayMs: 10000, leaseMs: 30000 },
     lifecycles: { collectors: { capacity: 64 }, encodedOutputBytes: 512 }
   })
+  // Declare both native advicees, but drive this fixture only through explicit inputs.
+  for (const scope of ownership.agentScopes)
+    ownership.applyControl({ kind: "suspendArrivals", suspended: true, agent: scope.agent })
   ownership.advance({ untilTime: 25, maxEvents: 1000 })
   ownership.schedule({ at: 25, kind: "canonical", event: { kind: "openRound", partition: 2, lifetime: 1 } })
   ownership.schedule({
@@ -215,6 +223,8 @@ try {
   ownership.schedule({ at: 25, kind: "canonical", event: { kind: "continuationConsume", group: 2, round: 2 } })
   ownership.advance({ untilTime: 25, maxEvents: 1000 })
   assert.equal(ownership.projection.delivery.slots.length, 1)
+  assert.ok(ownership.observations.some((frame) => frame.outputs.some((command) => command.kind === "collectionFits")))
+  assert.equal(ownership.observations.at(-1).capacityMetadata.encodedOutput.decision, undefined)
   await load(ownership)
   const partitions = ownership.projection.partitions.map((p) => p.partition).sort((a, b) => a - b)
   const selectPartition = async (partition) => {
@@ -225,7 +235,7 @@ try {
   await page.getByLabel("Resource delivery group", { exact: true }).selectOption("1")
   await settle()
   assert.match(await page.locator(".stage-resource-details").innerText(), /Group 1 · Occupied · round 1 · authorized/)
-  assert.match(await page.locator(".stage-resource-details").innerText(), /512 \/ 10240 · Fits/)
+  assert.match(await page.locator(".stage-resource-details").innerText(), /512 \/ 10240 · Fit decision not recorded/)
   await page.locator(".simulation-stage-inspector").screenshot({ path: "/tmp/hapsland-capacity-slot-held-1512.png" })
   await page.getByLabel("Resource delivery group", { exact: true }).selectOption("2")
   await settle()
@@ -278,9 +288,13 @@ try {
   })
   oversized.advance({ untilTime: 25, maxEvents: 1000 })
   assert.equal(oversized.projection.delivery.slots.length, 0)
+  assert.ok(
+    oversized.observations.some((frame) => frame.outputs.some((command) => command.kind === "collectionLimited"))
+  )
+  assert.equal(oversized.observations.at(-1).capacityMetadata.encodedOutput.decision, undefined)
   await load(oversized)
   await focus("delivery")
-  assert.match(await page.locator(".stage-resource-details").innerText(), /10241 \/ 10240 · Does not fit/)
+  assert.match(await page.locator(".stage-resource-details").innerText(), /10241 \/ 10240 · Fit decision not recorded/)
   await page
     .locator(".simulation-stage-inspector")
     .screenshot({ path: "/tmp/hapsland-capacity-output-oversized-1512.png" })
@@ -390,6 +404,7 @@ try {
     }
   })
   const scopedPermits = createRun({
+    sessions: scopedSessions,
     inputs: [
       {
         at: 0,
@@ -405,6 +420,8 @@ try {
       issue(2, 2, 3)
     ]
   })
+  for (const scope of scopedPermits.agentScopes)
+    scopedPermits.applyControl({ kind: "suspendArrivals", suspended: true, agent: scope.agent })
   scopedPermits.advance({ untilTime: 2, maxEvents: 100 })
   await load(scopedPermits)
   await focus("admission")

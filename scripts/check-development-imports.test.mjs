@@ -1,12 +1,12 @@
 import assert from "node:assert/strict"
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
 import { checkDevelopmentImports } from "./check-development-imports.mjs"
 
 const fixture = (t, source, dependencies = { "@hapsland/tools": "workspace:*", effect: "4.0.0" }) => {
-  const root = mkdtempSync(join(tmpdir(), "hapsland-development-imports-"))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-development-imports-")))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   for (const directory of ["scripts", "src", "packages/input/src"])
     mkdirSync(join(root, directory), { recursive: true })
@@ -185,7 +185,8 @@ test("browser-root imports require the exact bounded Vite profile and target", (
   )
   const path = join(root, directory, "scripts/check-render-browser.mjs")
   writeFileSync(path, source)
-  writeFileSync(join(root, directory, "src/simulation.ts"), "export const simulationRun = () => ({})")
+  mkdirSync(join(root, directory, "src/simulation"), { recursive: true })
+  writeFileSync(join(root, directory, "src/simulation/controller.ts"), "export const simulationRun = () => ({})")
   const result = checkDevelopmentImports(root)
   const edges = result.records.find((record) => record.file.endsWith("check-render-browser.mjs")).imports
   assert.equal(edges.filter((edge) => edge.profile === "vite-browser-root").length, 2)

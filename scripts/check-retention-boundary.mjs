@@ -1,4 +1,4 @@
-import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
+import { readResidentStateSource, readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
@@ -7,11 +7,8 @@ const server = readResidentRuntimeSource(root)
 const advice = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/advice-records.ts"), "utf8")
 const notices = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/notice-records.ts"), "utf8")
 const reuse = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/evaluation-reuse.ts"), "utf8")
-const collection = readFileSync(
-  resolve(root, "packages/resident-runtime/src/resident/state/composed-delivery.ts"),
-  "utf8"
-)
-const capacity = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/capacity.ts"), "utf8")
+const collection = readResidentStateSource(root, "delivery")
+const capacity = readResidentStateSource(root, "capacity", "resident")
 for (const name of [
   "bendCleanupGate",
   "bendCleanupCommit",

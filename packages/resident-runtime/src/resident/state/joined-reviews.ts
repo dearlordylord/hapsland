@@ -1,7 +1,7 @@
 import type { Effect } from "effect"
 import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import type { CollectorReason } from "@hapsland/canonical-policy/canonical/adapter"
-import type { CapacityLedger } from "./capacity.ts"
+import type { CapacityLedger } from "./capacity/operations.ts"
 import type { WorkRevision, RevisionOperations } from "./revision.ts"
 
 export type JoinedReview = {

@@ -38,3 +38,10 @@ export const readResidentRuntimeSource = (root) => {
 }
 
 export const residentRuntimeSourceFiles = (root) => sourceFiles(resolve(root, "packages/resident-runtime/src/resident"))
+
+// Native records and canonical drafts remain one resident state authority.
+export const readResidentStateSource = (root, ...owners) =>
+  owners
+    .flatMap((owner) => sourceFiles(resolve(root, "packages/resident-runtime/src/resident/state", owner)))
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n")

@@ -118,7 +118,7 @@ try {
     { evidence: [], changedStages: [], projectionChanged: false, storedResultConversions: [] }
   )
   const presentation = await server.ssrLoadModule("@hapsland/agent-flow-projection/production-flow-presentation")
-  const flowView = await server.ssrLoadModule("/src/production-flow-view.ts")
+  const flowView = await server.ssrLoadModule("/src/production-flow/view.ts")
   const numbering = await server.ssrLoadModule(
     `/@fs${resolve(import.meta.dirname, "../../agent-flow-projection/src/index.ts")}`
   )

@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { writeFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
+import { dirname, resolve } from "node:path"
 import { chromium } from "playwright"
 import { createServer } from "vite"
 
@@ -11,21 +12,51 @@ import { createServer } from "vite"
 const root = fileURLToPath(new URL("../", import.meta.url))
 const baseline = process.argv.find((arg) => arg.startsWith("--baseline="))?.slice(11)
 const repository = fileURLToPath(new URL("../../../", import.meta.url))
-const rendererFiles = ["fleet-simulation.ts", "production-main.ts", "production-flow-view.ts"]
-  .map((name) => `packages/agent-flow-viz/src/${name}`)
-  .concat("packages/agent-flow-projection/src/index.ts")
-const baselineSources = baseline
-  ? new Map(
-      rendererFiles.map((name) => [
-        `${repository}${name}`,
-        execFileSync("git", ["show", `${baseline}:${name}`], { cwd: root, encoding: "utf8" })
-      ])
-    )
-  : new Map()
+const sourceRoot = "packages/agent-flow-viz/src/"
+const rendererFiles = baseline
+  ? execFileSync("git", ["ls-tree", "-r", "--name-only", baseline, sourceRoot], { cwd: repository, encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter(
+        (name) =>
+          ["fleet-simulation.ts", "production-main.ts", "production-flow-view.ts"].some(
+            (entry) => name === sourceRoot + entry
+          ) || name.startsWith(sourceRoot + "production-flow/")
+      )
+      .concat("packages/agent-flow-projection/src/index.ts")
+  : []
+const baselineSources = new Map(
+  rendererFiles.map((name) => {
+    let source = execFileSync("git", ["show", `${baseline}:${name}`], { cwd: root, encoding: "utf8" })
+    let target = `${repository}${name}`
+    if (["fleet-simulation.ts", "production-main.ts"].some((entry) => name === sourceRoot + entry))
+      source = source
+        .replaceAll('"./production-flow-view"', '"./production-flow/view"')
+        .replaceAll('"./simulation"', '"./simulation/index"')
+    if (name === sourceRoot + "production-flow-view.ts") {
+      // Historical renderer source remains selectable after its physical owner moved.
+      source = source.replace(/from "(\.[^"]+)"/g, (_, specifier) => `from "${resolve(dirname(target), specifier)}"`)
+      target = `${repository}${sourceRoot}production-flow/view.ts`
+    }
+    return [target, source]
+  })
+)
+if (baseline && !rendererFiles.includes(sourceRoot + "fleet-simulation.ts"))
+  throw new Error("Baseline renderer inventory is missing its fleet owner")
+const baselineLoads = new Set()
 const server = await createServer({
   root,
   logLevel: "silent",
-  plugins: [{ name: "renderer-comparison", enforce: "pre", load: (id) => baselineSources.get(id) }],
+  plugins: [
+    {
+      name: "renderer-comparison",
+      enforce: "pre",
+      load: (id) => {
+        if (baselineSources.has(id)) baselineLoads.add(id)
+        return baselineSources.get(id)
+      }
+    }
+  ],
   server: { host: "127.0.0.1", port: 0, hmr: false }
 })
 let browser
@@ -42,10 +73,10 @@ try {
     await page.getByRole("button", { name, exact: true }).click()
     await settle()
   }
-  await page.getByLabel("Agent count", { exact: true }).fill("6")
+  await page.getByLabel("Advicee count", { exact: true }).fill("6")
   await click("Start resident")
   const processed = await page.evaluate(async () => {
-    const { simulationRun } = await import("/src/simulation.ts")
+    const { simulationRun } = await import("/src/simulation/controller.ts")
     const run = simulationRun()
     run.advance({ untilTime: 1_000_000, maxEvents: 600 })
     return run.eventCount
@@ -108,7 +139,7 @@ try {
   await cdp.send("Profiler.start")
   for (let index = 0; index < 10; index++) {
     await page.evaluate(async () => {
-      const { simulationRun } = await import("/src/simulation.ts")
+      const { simulationRun } = await import("/src/simulation/controller.ts")
       simulationRun().advance({ untilTime: 1_000_000, maxEvents: 50 })
     })
     await click("Step resident")
@@ -146,10 +177,10 @@ try {
     })
   )
   // Memoized handlers must remain live and refresh on agent/history changes.
-  await click("Select agent 6")
-  await click("Focus selected agent")
+  await click("Select advicee 6")
+  await click("Focus selected advicee")
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 1)
-  assert.match(await ensemble.locator(".ensemble-layer-title").textContent(), /AGENT 06/)
+  assert.match(await ensemble.locator(".ensemble-layer-title").textContent(), /ADVICEE 06/)
   await click("Step resident")
   assert.notEqual(await page.locator(".simulation-details pre").textContent(), detailsBefore)
   await click("3D layers")
@@ -160,6 +191,10 @@ try {
   await click("Previous history event")
   assert.match(await page.locator(".canonical-progress").textContent(), /Guided step 0/)
   assert.deepEqual(errors, [])
+  if (baseline) {
+    for (const entry of ["fleet-simulation.ts", "production-main.ts", "production-flow/view.ts"])
+      assert.ok(baselineLoads.has(`${repository}${sourceRoot}${entry}`), `Baseline renderer was not loaded: ${entry}`)
+  }
   console.log(
     "Renderer checks passed: fixed six-agent snapshot, camera isolation, history invalidation, agent focus, live guided handlers."
   )
