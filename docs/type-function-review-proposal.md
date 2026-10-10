@@ -552,7 +552,10 @@ explicitly uncertain. Type-parameter defaults unsupported by the pinned grammar 
 parse-unavailable. Literal `Annotated` metadata is retained; supported imported
 `Field`, `field`, and `ConfigDict` calls admit literal metadata and traverse
 `default_factory` and ConfigDict `ignored_types` as type references. Unknown executable metadata/defaults,
-conditional class schema statements, arbitrary executable class-body expressions,
+conditional class schema statements, assignments through attribute/subscript or
+destructuring targets, mutation of `__annotations__`, and unsupported class-body
+statements (including deletion and assertion) are explicit uncertainty with
+structural attribution. Arbitrary executable class-body expressions,
 custom constructors and decorated methods are explicit uncertainty, without
 helper/function traversal. Configuration and validator source is evidence of
 what was authored, never complete runtime constraints. Unknown external types

@@ -382,19 +382,20 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
       }
       for (const member of body?.namedChildren ?? []) {
         if (
-          [
-            "if_statement",
-            "for_statement",
-            "while_statement",
-            "try_statement",
-            "with_statement",
-            "match_statement"
+          ![
+            "expression_statement",
+            "function_definition",
+            "decorated_definition",
+            "class_definition",
+            "pass_statement"
           ].includes(member.type)
         ) {
           defining.push(location(member))
           extra.push({ kind: "unsupported", name: "schema-behavior" })
         }
         const config = assignment(member)
+        const target = config?.childForFieldName("left")
+        const schemaMutation = config && (target?.type !== "identifier" || target.text === "__annotations__")
         const untypedValue = config?.childForFieldName("type") ? undefined : config?.childForFieldName("right")
         const expression = config
           ? undefined
@@ -402,6 +403,7 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
             ? member.namedChildren[0]
             : undefined
         if (
+          schemaMutation ||
           (untypedValue &&
             config?.childForFieldName("left")?.text !== "model_config" &&
             !["identifier", "attribute"].includes(untypedValue.type) &&

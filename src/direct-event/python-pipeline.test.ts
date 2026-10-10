@@ -608,6 +608,40 @@ describe("Python same-file shipped review", () => {
       }
     })
   )
+  it.effect("schema mutations are attributed and omitted without admitting shipped provider input", () =>
+    Effect.gen(function* () {
+      for (const statement of [
+        '__annotations__["value"] = Foreign',
+        'del __annotations__["value"]',
+        "__annotations__ = Foreign",
+        "other.value = Foreign",
+        "value, other = Foreign",
+        "assert configure()",
+        "raise Foreign"
+      ]) {
+        const root = yield* Effect.promise(makeGitFixture)
+        const source = `from remote import Foreign\nclass Model:\n    value: str\n    ${statement}\nclass Good:\n    id: str\n`
+        yield* Effect.promise(() => put(root, "model.py", source))
+        const omissions: string[] = []
+        const added = yield* prepare(addEvent(root, ["model.py"]), (_path, name) => omissions.push(name))
+        const ready = added.outcomes.filter((outcome) => outcome.status === "ready")
+        expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual(["Good"])
+        expect(ready[0]!.prepared.input.rules.map((rule) => rule.id).sort()).toEqual([
+          "absence_confusion",
+          "bare_domain_value",
+          "meaningless_combinations"
+        ])
+        expect(preparedProviderInput(ready[0]!.prepared)?.artifact.name).toBe("Good")
+        expect(omissions).toEqual(["Model"])
+        omissions.length = 0
+        const updated = yield* prepare(updateEvent(root, "model.py", [`    ${statement}`]), (_path, name) =>
+          omissions.push(name)
+        )
+        expect(updated.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(0)
+        expect(omissions).toEqual(["Model"])
+      }
+    })
+  )
   it("Literal signed operands require actual integers rather than executable behavior", () => {
     for (const value of ["-make_code()", "+Foreign", "~1", 'f"{make_code()}"'])
       expect(
