@@ -51,3 +51,38 @@ results in the latter case. Rank validator/constant-only edits, external-type ru
 omissions, large-package authority, dynamic Python schemas/layouts, Go workspace/build
 forms and grammar gaps by observed demand and a concrete resolving experiment.
 No automatic expansion, 90% gate or budget increase is accepted.
+
+
+| Dimension | Python | Go |
+| --- | --- | --- |
+| Edited roots | Annotated model classes, bound dataclasses/TypedDict/BaseModel, explicit aliases/type statements, nominal NewType | Named structs, aliases, defined scalar/container types, interfaces and generic types |
+| Supporting evidence | Exact reachable declarations, local bases, eligible fallback stubs; full selected class source | Exact reachable package/module declarations, complete relevant typed/iota groups; scalar constants never exhaust runtime values |
+| Bindings | Imported identities and lexical shadows, named/module aliases, relative/absolute imports, explicit initializer reexports, static TYPE_CHECKING and simple forward annotations | File-scoped imports, actual package names/default aliases, exported entry bindings and internal visibility, package-scoped sibling declarations |
+| Authority | Unambiguous conventional flat/src packages and captured supported static setuptools metadata | One local module, explicit GOOS/GOARCH/user tags, active package membership and supported constraints |
+| Rules | Three shipped type rules when required closure is complete; root-only custom rules can accept declared omissions | Same evidence gates; interface structure is open, not closed implementation enumeration |
+| Opaque/unsupported | System/installed types, dynamic factories/exports/loaders/metaclasses, broad ORM/attrs, notebooks, validator-only edits | System/cache/vendor types, workspaces/replacements/nested modules, cgo, unknown constraints, dot-import ambiguity, constant-only edits |
+| Shared limits | 8 captured files, 2 MiB/source, 12 MiB reads, 20 KiB canonical tree, depth 4, 16 outgoing targets, 128 work, 5-second analysis deadline | Same ceilings, plus 128 entries per package directory; discovery is not whole-package upload |
+
+Every read obeys physical containment, ignores and context/source exclusions. Required
+static authority is fingerprinted even when it is not emitted. Authority alternatives,
+metadata and supporting-source changes invalidate prepared evidence; independent eligible
+roots can proceed. No application imports, compilers, generators or build scripts run
+during analysis. Qualification compilers operate only on isolated synthetic fixtures.
+
+Unresolved coverage experiments, ordered provisionally by likely utility (not measured
+frequency): (1) collect real validator-only Python and constant-only Go edits, check whether
+they need a separately selected model-root policy (low discovery cost, scope decision
+required); (2) quantify external-type rule omissions on those edits and test bounded leaf
+knowledge (medium); (3) replay a large Go package exceeding eight captured files, compare
+selective authority discovery within unchanged ceilings (high); (4) sample dynamic Python
+factories/layouts and Go workspace/build forms, identify one demand-backed binding extension
+(high); (5) run pinned syntax probes for Python parameter defaults and compact Go constants,
+compare a maintained compatible grammar fix (low probe cost, native packaging cost separate).
+
+Historical source corpus: Python inventory contains 4593 selected files across six
+purposive projects, 53123 function definitions and 30825 direct methods; Go contains 320
+evenly spaced sorted paths across four projects, including 119 test files and two generated
+files. The raw retained Python artifact's totals differ from the earlier advisory prose's
+4403-file/59.5% snapshot; use the artifact pins, digests and selection when replaying,
+not the prose percentage. Go's production-root/directory-size statistic is a separate
+subset. No current adapter measurement or target-user edit denominator exists.
