@@ -175,6 +175,10 @@ const installLocalPackageVariant = async ({ sourcePackage, temporary, version, r
     join(packageSource, "package-runtime.json"),
     `${JSON.stringify({ ...runtime, residentProtocol }, null, 2)}\n`
   )
+  // A semver-only repack is already current under implementation identity.
+  // Give the update fixture distinct hook bytes while preserving its behavior.
+  const hookPayload = join(packageSource, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-hook.js")
+  await writeFile(hookPayload, `${await readFile(hookPayload, "utf8")}\n// conformance package ${version}\n`)
   // This is a repack of an installed artifact, which intentionally lacks the
   // TypeScript build inputs. The primary source package below runs prepack.
   await mustRun("npm", ["pack", "--ignore-scripts=true", "--pack-destination", artifacts], { cwd: packageSource })
@@ -192,7 +196,11 @@ const installLocalPackageVariant = async ({ sourcePackage, temporary, version, r
   }
 }
 
-const assertInstalledDedicatedHooks = (configuration, executable) => {
+const assertInstalledDedicatedHooks = async (configuration, executable, codexHome) => {
+  const launcher = join(codexHome, ".hapsland", "codex-hook-launcher.sh")
+  if ((await readFile(launcher, "utf8")) !== `#!/bin/sh\nexec ${quote(executable)} "$@"\n`)
+    throw new Error("installed hook launcher does not select the exact dedicated package command")
+  const prefix = `${quote("/bin/sh")} ${quote(launcher)} `
   const definitions = Object.values(commandHooks.codex)
   for (const event of new Set(definitions.map((definition) => definition.event))) {
     const owned = (configuration.hooks?.[event] ?? [])
@@ -202,23 +210,15 @@ const assertInstalledDedicatedHooks = (configuration, executable) => {
       )
     const expected = definitions.filter((definition) => definition.event === event)
     const expectedCount = expected.length
-    if (
-      owned.length !== expectedCount ||
-      owned.some(
-        (handler) =>
-          handler.type !== "command" ||
-          !handler.command.includes(quote(executable)) ||
-          !handler.command.includes("/hapsland-hook'")
-      )
-    ) {
-      throw new Error(`installed ${event} does not target the complete dedicated hook group from the selected package`)
-    }
+    if (owned.length !== expectedCount || owned.some((handler) => handler.type !== "command"))
+      throw new Error(`installed ${event} does not have the complete dedicated hook group`)
     for (const definition of expected) {
       const matches = owned.filter((handler) =>
         definition.flags.every((flag) => handler.command.split(" ").includes(flag))
       )
       if (
         matches.length !== 1 ||
+        !matches[0].command.startsWith(`${definition.exec ? "exec " : ""}${prefix}`) ||
         matches[0].timeout !== definition.timeout ||
         (matches[0].async === true) !== (definition.async === true)
       )
@@ -641,7 +641,7 @@ try {
 
   const launcherEnvironment = standaloneEnvironment(
     join(temporary, "standalone-path"),
-    process.env,
+    { ...process.env, HOME: join(temporary, "home") },
     executeRealCodex ? ["codex"] : []
   )
   const doctorRun = await mustRun(doctor, ["--json"], { cwd: temporary, env: launcherEnvironment })
@@ -735,6 +735,30 @@ try {
     throw new Error("packaged Bend extractor did not resolve the same-file constructor payload")
   }
 
+  const pythonParserRun = await mustRun(parser, [], {
+    cwd: temporary,
+    env: launcherEnvironment,
+    input: JSON.stringify({
+      path: "fixture.py",
+      source:
+        "from dataclasses import dataclass\n@dataclass\nclass Receipt:\n    id: str\nclass Delivery:\n    receipt: Receipt\n"
+    })
+  })
+  const pythonParserResult = parseJson(pythonParserRun.stdout, "packaged Python parser")
+  if (
+    pythonParserResult.status !== "analyzed" ||
+    !pythonParserResult.units.some(
+      (unit) =>
+        unit.status === "ready" &&
+        unit.unit.root.artifact.kind === "class" &&
+        unit.unit.root.artifact.name === "Delivery" &&
+        unit.unit.root.references.some(
+          (reference) => reference.kind === "expanded" && reference.node.artifact.name === "Receipt"
+        )
+    )
+  )
+    throw new Error("packaged Python parser did not resolve same-file model evidence")
+
   progress("create-isolated-repository")
   await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository })
   const defaultNames = (await readdir(join(packageDirectory, "dist/rules/defaults")))
@@ -759,7 +783,6 @@ try {
         join(repository, "Cargo.toml"),
         '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'
       )
-    await writeFile(join(repository, entry), source)
     await writeFile(join(repository, supportingEntry), supportingSource)
     const summaryPath = join(temporary, `${language}-cross-file-summary.jsonl`)
     const isolatedRuntime = join(temporary, `${language}-cross-file-runtime`)
@@ -776,6 +799,7 @@ try {
     const env = {
       ...launcherEnvironment,
       REVIEW_RESIDENT_DIR: isolatedRuntime,
+      REVIEW_ACTIVITY_PATH: join(temporary, `${language}-cross-file-activity`),
       REVIEW_STATE_PATH: join(temporary, `${language}-cross-file-state`),
       REVIEW_INSTALL_CONTROLLED: "1",
       REVIEW_USER_CONFIG_PATH: join(temporary, "cross-file-user.json"),
@@ -811,19 +835,34 @@ try {
         input: JSON.stringify(event),
         requireQuiet: true
       })
+      await writeFile(join(repository, entry), source)
       await mustRun(hook, ["--codex-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"], {
         cwd: repository,
         env,
         input: JSON.stringify({ ...event, hook_event_name: "PostToolUse" }),
         requireQuiet: true
       })
+      // Review preparation runs independently of the edit response. Observe the
+      // provider handoff within the same five-second bound used below.
+      for (let attempt = 0; attempt < 100; attempt++) {
+        if (await readFile(summaryPath, "utf8").catch(() => "")) break
+        await new Promise((resolveWait) => setTimeout(resolveWait, 50))
+      }
       await mustRun(hook, ["--composed-stop-hook", "--composed-host=codex-cli", "--controlled-reviewer"], {
         cwd: repository,
         env,
         input: JSON.stringify({ ...event, hook_event_name: "Stop", stop_hook_active: false }),
         requireQuiet: true
       })
-      const summaries = jsonLines(await readFile(summaryPath, "utf8"))
+      const encodedSummary = await readFile(summaryPath, "utf8").catch(() => "")
+      if (!encodedSummary) {
+        const activity = await readActivityMarkers(env.REVIEW_ACTIVITY_PATH)
+        const startup = await readFile(`${isolatedRuntime}/owner.lock.startup-error`, "utf8").catch(() => "")
+        throw new Error(
+          `installed ${language} provider handoff absent after bounded wait: ${JSON.stringify({ stages: activity.map(({ kind, stage, reason }) => ({ kind, stage, reason })), startup: startup.slice(-2048) })}`
+        )
+      }
+      const summaries = jsonLines(encodedSummary)
       if (!summaries.some((summary) => summary.evidenceNodes >= 1 && summary.expandedEdges >= 1))
         throw new Error(
           `installed ${language} cross-file review did not expand supporting evidence: ${JSON.stringify(summaries)}`
@@ -1126,9 +1165,10 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (installResult.status !== "installed" || "sourceEgressAuthorized" in installResult) {
     throw new Error("packaged installation retained a retired repository grant field")
   }
-  assertInstalledDedicatedHooks(
+  await assertInstalledDedicatedHooks(
     parseJson(await readFile(join(codexHome, "hooks.json"), "utf8"), "installed registrations"),
-    ownedPreview.runtime.executable
+    ownedPreview.runtime.executable,
+    codexHome
   )
   const installedDoctorRun = await mustRun(cli, ["--doctor"], {
     cwd: temporary,
@@ -1185,11 +1225,11 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     updatePreview.status !== "preview" ||
     updatePreview.proposal?.current?.packageVersion !== installedManifest.version ||
     updatePreview.proposal?.target?.packageVersion !== targetPackage.version ||
-    updatePreview.restart?.required !== true ||
-    updatePreview.trust?.status !== "renewal-required" ||
+    updatePreview.restart?.required !== false ||
+    updatePreview.trust?.status !== "unchanged" ||
     updatePreview.trust?.modified !== false
   ) {
-    throw new Error("local package update preview did not expose runtime, hook, trust, and restart changes")
+    throw new Error("local package update preview did not preserve hook trust while selecting the target package")
   }
   const hooksBeforeUpdate = await readFile(join(codexHome, "hooks.json"), "utf8")
   const partialUpdateRun = await run(targetPackage.cli, ["--update"], {
@@ -1211,7 +1251,9 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     partialUpdate.recovery?.command?.request?.proposalDigest !== updatePreview.proposal.digest ||
     hooksAfterPartial !== hooksBeforeUpdate
   ) {
-    throw new Error("partial local package update did not retain the previous working hook and exact recovery request")
+    throw new Error(
+      `partial local package update mismatch: ${JSON.stringify({ code: partialUpdateRun.code, status: partialUpdate.status, recovery: partialUpdate.recovery, hooksUnchanged: hooksAfterPartial === hooksBeforeUpdate, expectedDigest: updatePreview.proposal.digest })}`
+    )
   }
   const updateRun = await mustRun(targetPackage.cli, ["--update"], {
     cwd: temporary,
@@ -1229,16 +1271,16 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (
     updateResult.status !== "updated" ||
     updateResult.resumed !== true ||
-    updateResult.restart?.required !== true ||
+    updateResult.restart?.required !== false ||
     updateResult.restart?.processesStopped !== false ||
-    !hooksAfterUpdate.includes(updatePreview.proposal.target.executable) ||
-    !hooksAfterUpdate.includes("/hapsland-hook")
+    hooksAfterUpdate !== hooksBeforeUpdate
   ) {
     throw new Error("compatible local package update did not complete from the target package")
   }
-  assertInstalledDedicatedHooks(
+  await assertInstalledDedicatedHooks(
     parseJson(hooksAfterUpdate, "updated installed registrations"),
-    updatePreview.proposal.target.executable
+    updatePreview.proposal.target.executable,
+    codexHome
   )
   activeCli = targetPackage.cli
   activeHook = targetPackage.hook
@@ -1246,7 +1288,6 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     throw new Error("local package update changed old grant files")
   }
   const source = "export interface Delivery { id: string; destination: string }\n"
-  await writeFile(join(repository, "profile.ts"), source, { mode: 0o600 })
   const addEvent = {
     hook_event_name: "PostToolUse",
     tool_name: "apply_patch",
@@ -1264,6 +1305,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     { ...addEvent, hook_event_name: "PreToolUse" },
     { cwd: temporary, env: installedHostEnvironment }
   )
+  await writeFile(join(repository, "profile.ts"), source, { mode: 0o600 })
   const postToolOutputs = await runInstalledHooks(codexHome, addEvent, {
     cwd: temporary,
     env: installedHostEnvironment
@@ -1289,7 +1331,14 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const packagedRules = configuredRules
   const expectedFindingLines = packagedRules.map((rule) => `profile.ts :: Delivery: ${rule.message}`).sort()
   const deliveryOutputs = [...postToolOutputs, ...stopOutputs]
-  let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length
+  const encodedCalls = await readFile(calls, "utf8").catch(() => "")
+  if (!encodedCalls) {
+    const markers = await readActivityMarkers(activity)
+    throw new Error(
+      `installed controlled provider handoff absent after bounded wait: ${JSON.stringify(markers.map(({ kind, stage, reason }) => ({ kind, stage, reason })))}`
+    )
+  }
+  let submissions = encodedCalls.trim().split("\n").filter(Boolean).length
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`)
   if (!nativeFindingsSubmittedOnce(deliveryOutputs, "profile.ts :: Delivery", expectedFindingLines)) {
     throw new Error(
@@ -1318,12 +1367,13 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     { cwd: temporary, env: installedHostEnvironment }
   )
   const reusableOwner = parseJson(await readFile(join(runtime, "owner.json"), "utf8"), "ready resident owner")
-  const selectedResident = ownedResidents.get(runtime)[1].executable
+  // Runtime-hook updates preserve the independently selected shared resident.
+  const selectedResident = ownedResidents.get(runtime)[0].executable
   let residentExecutableIdentity = "unobserved-on-this-platform"
   if (process.platform === "linux") {
     const actualResident = await realpath(`/proc/${reusableOwner.pid}/exe`)
     if (actualResident !== (await realpath(selectedResident)))
-      throw new Error("ready resident is not executing the selected target release")
+      throw new Error("runtime-hook update replaced the independently selected resident")
     residentExecutableIdentity = "linux-proc-executable-path-and-sha256"
   }
   const selectedResidentSha256 = createHash("sha256")
@@ -1335,7 +1385,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       .update(await readFile(`/proc/${reusableOwner.pid}/exe`))
       .digest("hex") !== selectedResidentSha256
   )
-    throw new Error("ready resident process executable bytes differ from the selected target release")
+    throw new Error("ready resident process executable bytes differ from the independently selected resident")
   const retainedStop = await mustRun(
     hook,
     ["--composed-stop-hook", "--composed-host=codex-cli", "--controlled-reviewer"],
@@ -1365,6 +1415,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const retainedReleaseResidentReuse = {
     status: "passed",
     previousReleaseHook: true,
+    runtimeHookUpdatePreservedResident: true,
     unchangedPidAndLifetime: true,
     residentExecutableIdentity,
     residentSha256: selectedResidentSha256

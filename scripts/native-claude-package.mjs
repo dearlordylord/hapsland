@@ -87,7 +87,7 @@ export const instrumentClaudeRegistrations = (settings, commands, observerComman
   )
 })
 
-export async function installClaudeNativeArchive({ project, archivePath, installation, execute = executeNative }) {
+export async function installNativeArchive({ project, archivePath, installation, execute = executeNative }) {
   const archive = resolve(archivePath)
   const archiveSha256 = hash(readFileSync(archive))
   const installer = await preparePackageInstall(installation, archive, {
@@ -95,15 +95,15 @@ export async function installClaudeNativeArchive({ project, archivePath, install
     HAPSLAND_BUILD_BUN: resolveBunRuntime().executable
   })
   const result = await execute(installer.executable, installer.args, { cwd: installation, timeout: 240000 })
-  if (result.code !== 0) throw new Error(`Claude archive installation failed (exit ${result.code ?? "signal"})`)
+  if (result.code !== 0) throw new Error(`Native archive installation failed (exit ${result.code ?? "signal"})`)
   const root = join(installation, "node_modules/@hapsland/hapsland")
   const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
   if (JSON.stringify(manifest) !== JSON.stringify(JSON.parse(readFileSync(join(project, "package.json"), "utf8"))))
-    throw new Error("Installed Claude archive manifest differs from the current package")
-  if (hash(readFileSync(archive)) !== archiveSha256) throw new Error("Claude archive changed during installation")
+    throw new Error("Installed native archive manifest differs from the current package")
+  if (hash(readFileSync(archive)) !== archiveSha256) throw new Error("Native archive changed during installation")
   const assets = nativePackageAssetsDigest(root)
   if (assets.sha256 !== nativePackageAssetsDigest(project).sha256)
-    throw new Error("Installed Claude archive assets differ from the current build")
+    throw new Error("Installed native archive assets differ from the current build")
   return {
     root,
     cli: join(installation, "node_modules/.bin/hapsland"),

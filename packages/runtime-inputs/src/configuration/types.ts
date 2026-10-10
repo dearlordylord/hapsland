@@ -71,7 +71,7 @@ const EnvironmentVariableName = Schema.String.check(Schema.isPattern(/^[A-Z_][A-
 
 export const RuleSettings = Schema.Struct({
   enabled: Schema.optionalKey(Schema.Boolean),
-  languages: Schema.optionalKey(Schema.Array(Schema.Literals(["typescript", "rust", "bend"]))),
+  languages: Schema.optionalKey(Schema.Array(Schema.Literals(["typescript", "rust", "bend", "python"]))),
   includes: Schema.optionalKey(Schema.Array(Pattern)),
   excludes: Schema.optionalKey(Schema.Array(Pattern)),
   threshold: Schema.optionalKey(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
@@ -138,7 +138,7 @@ export const ConfigurationDocument = Schema.Struct({
     })
   ),
   languages: Schema.optionalKey(
-    Schema.Array(Schema.Literals(["typescript", "rust", "bend"])).annotate({
+    Schema.Array(Schema.Literals(["typescript", "rust", "bend", "python"])).annotate({
       description: "Changed-root analyzer languages. Omission inherits; an empty array selects no roots."
     })
   ),
@@ -214,7 +214,7 @@ export type ResolvedPolicy = {
   readonly contextIncludes: ReadonlyArray<PatternOrigin>
   readonly overriddenContextIncludes: ReadonlyArray<PatternOrigin>
   readonly contextExcludes: ReadonlyArray<PatternOrigin>
-  readonly languages: Originated<ReadonlyArray<"typescript" | "rust" | "bend">>
+  readonly languages: Originated<ReadonlyArray<"typescript" | "rust" | "bend" | "python">>
   readonly protectedExcludes: ReadonlyArray<PatternOrigin>
   readonly credentialEnvVar: Originated<string>
   readonly claudeFeedbackMode: Originated<ClaudeFeedbackMode>

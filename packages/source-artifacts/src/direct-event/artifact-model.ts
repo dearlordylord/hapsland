@@ -14,7 +14,7 @@ export type TypeDeclaration = {
   readonly origin?: BundledArtifactOrigin
   readonly path?: string
   readonly id: string
-  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype"
+  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype" | "class"
   readonly name: string
   readonly source: string
   readonly sourceHash: string

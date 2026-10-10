@@ -17,7 +17,7 @@ export const CANDIDATE_RENDERER_DIGEST = sha256(
   "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,origin?,order],edges[from,to?,kind,symbol,reason?,order];omitted-symbol=bounded-opaque-source):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)"
 )
 
-type Kind = "interface" | "type-alias" | "struct" | "enum" | "datatype" | "function"
+type Kind = "interface" | "type-alias" | "struct" | "enum" | "datatype" | "class" | "function"
 type Artifact = Readonly<{
   id: string
   kind: Kind
@@ -102,6 +102,7 @@ const kind = (value: unknown): value is Kind =>
   value === "struct" ||
   value === "enum" ||
   value === "datatype" ||
+  value === "class" ||
   value === "function"
 const source = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_CANDIDATE_SOURCE_BYTES

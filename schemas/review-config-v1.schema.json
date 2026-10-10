@@ -38,7 +38,8 @@
         "enum": [
           "typescript",
           "rust",
-          "bend"
+          "bend",
+          "python"
         ]
       },
       "description": "Changed-root analyzer languages. Omission inherits; an empty array selects no roots."
@@ -341,7 +342,8 @@
                 "enum": [
                   "typescript",
                   "rust",
-                  "bend"
+                  "bend",
+                  "python"
                 ]
               }
             },
@@ -393,7 +395,8 @@
                 "enum": [
                   "typescript",
                   "rust",
-                  "bend"
+                  "bend",
+                  "python"
                 ]
               }
             },
