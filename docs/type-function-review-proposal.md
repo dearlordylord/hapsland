@@ -559,8 +559,9 @@ structural attribution. Arbitrary executable class-body expressions,
 custom constructors and decorated methods are explicit uncertainty, without
 helper/function traversal. Configuration and validator source is evidence of
 what was authored, never complete runtime constraints. Unknown external types
-remain opaque; this slice performs no cross-file or system dependency reads and
-emits no synthetic framework declarations.
+remain opaque. Local supporting declarations use the module authority amendment
+below; system dependencies are never traversed and no synthetic framework
+declarations are emitted.
 
 | Edited root family | Shipped type rules | Evidence and controls |
 | --- | --- | --- |
@@ -578,6 +579,72 @@ Python has no function-review input. The adopted cohort is Tree-sitter runtime
 0.25.1 and Python grammar 0.25.0, using existing manifest-owned native packaging.
 Executed installed/platform claims belong to task validation evidence, not this
 syntax and selection contract.
+
+### Python local module authority amendment (#270)
+
+The same installed type-review path resolves supporting Python declarations. It
+retains each exact declaration and its local base/type edges; it never flattens
+inherited fields, runs Python imports, evaluates annotations, executes build
+backends, or computes a framework schema. The language adapter owns Python
+binding and module authority. The shared graph reader owns source capture,
+containment, exclusions, canonical evidence, and the aggregate limits.
+
+| Authority or binding | Adopted forms | Unavailable forms |
+| --- | --- | --- |
+| Import roots | Conventional repository flat and `src` layouts; one literal setuptools root from captured `pyproject.toml` (`package-dir` with only `""`, or `packages.find.where` with one element) | Competing local module/package or root alternatives; conflicting metadata; `setup.py`/`setup.cfg` authorities; Poetry/Hatch/PDM loader configuration; editable installs, ambient PYTHONPATH, arbitrary loaders |
+| Packages | Conventional packages with a captured `__init__.py` or supporting `__init__.pyi` at every package boundary | Namespace packages, symlink traversal, outside-root paths, dynamic `__path__`/`__getattr__`, loader/path setup calls or conditional initializer authority, wildcard imports |
+| Imports | Named members, module imports, aliases and qualified names; relative imports within an established package; unique local absolute imports; explicit named initializer reexports, including bounded chains | Star exports, runtime conditional imports, ambiguous or rebound names; ordinary-module forwarding without an owned declaration; unresolved or over-budget chains/cycles |
+| Static types | Positive unshadowed `typing.TYPE_CHECKING` (including aliases/qualification) blocks containing only imports/comments/pass; the same supported simple/literal forward-expression subset as same-file review | Else branches, computed guards/annotations, runtime/type conflicts, lexical shadowing and rebindings |
+| Source and stub | Eligible `.py` governs each module/package route; `.pyi` supplies supporting declarations only when that route has no source implementation | Merging conflicting alternatives; replacing source bodies/constructors with stubs; newly attributing `.pyi` roots |
+| Local model ancestry | Annotated ordinary classes, dataclasses, class TypedDict and static Pydantic BaseModel ancestry, with exact local supporting source | Runtime framework behavior, generated schemas, custom constructors and unknown executable schema statements |
+| Rules | Existing `meaningless_combinations`, `absence_confusion`, `bare_domain_value`, with their unchanged evidence requirements | Any claim of complete closure when a needed edge is omitted; function review; validator-only edit attribution |
+
+Metadata is context evidence: it uses `contextIncludes`/`contextExcludes` when
+configured, otherwise the source include/exclusion policy. Metadata does not get
+an exclusion or include exception. Consequently source-only includes such as
+`**/*.py` do not establish absolute import-root authority unless context includes
+also admit the required metadata alternatives. Relative imports in conventional
+packages can resolve without unrelated project metadata. Existing sensitive,
+generated/vendor, Git-ignore, physical-root and file-kind checks still apply.
+Supporting `.pyi` and the named root-authority file `setup.cfg` are recognized
+context path forms; neither acquires model-root registration.
+
+All authority reads and supporting-source captures share the existing eight-file,
+2 MiB per-source, 12 MiB read, depth-four, sixteen-reference, 128-work, 20 KiB
+canonical-tree and five-second analysis ceilings. Metadata and initializers count
+as files/read bytes; every bounded membership probe and its final revalidation
+counts as work. Discovery probes only named import alternatives and their package
+ancestors. It does not index or send all project declarations. Failed stable captures retain their file/read reservations; failed semantic
+inspection also consumes the reader budget. Failure to reserve or revalidate
+within these limits declines the affected result.
+
+Uniqueness depends on positive captures and observed membership/absence of the
+bounded module, package, initializer, root and metadata alternatives. Revalidate
+those observations before admitting a unit. Queued/before-delivery freshness
+rebuilds the same provider input and root authority under current policy and
+budgets, so create/delete/rename of a previously absent alternative can invalidate
+an unchanged positive declaration. Restoring the exact source and binding may
+make it current again. The provider receives only reachable declarations;
+authority-only metadata and initializer captures are source fingerprints, not
+invented declaration nodes. Independent complete roots remain eligible when
+another root has an omission. Loader/path effects and imported-namespace mutation
+in edited or supporting modules cannot establish static import authority; effects
+inside an unevaluated function or lambda body do not change module bindings.
+Unknown evaluated calls, including class-body calls, decorators, custom
+metaclasses and function default expressions, make import authority unavailable.
+Recognized declarative dataclass/Pydantic metadata and validator decorators,
+standard method decorators and the declared `typing.NewType` constructor remain
+supported. Independent roots with only self-contained primitive evidence retain
+their own authority; unavailable module bindings cannot support cross-file
+declarations. Qualified member chains retain initializer
+binding authority: a bound class or rebound name is never guessed to be a
+sibling submodule. Only an unbound member or explicit module reexport can
+authorize the supported package-submodule fallback.
+
+The #268 continuation handoff owns executed acceptance evidence. This matrix does
+not establish classifier accuracy, Darwin execution, other native hosts, dynamic
+schema coverage, validator-only coverage or large-project budget sufficiency.
+
 ## Go active-package constraint subset
 
 The owner-approved active-package Go slice under #267 freezes this subset before

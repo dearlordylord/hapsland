@@ -9,7 +9,7 @@
 
 ## Current implementation
 
-TypeScript, Rust, Bend, the bounded same-file Python profile and the bounded Go local-module profile use the shared review pipeline. Go resolves package bindings across eligible active sibling files, preserving file-local imports and generic parameter shadows. It resolves ordinary/default/aliased imports only within one captured eligible local module and never assumes a closed set of interface implementers. See the [Go authority profile](type-function-review-proposal.md#go-active-package-constraint-subset). The
+TypeScript, Rust, Bend, the bounded Python model profile and the bounded Go local-module profile use the shared review pipeline. Go resolves package bindings across eligible active sibling files, preserving file-local imports and generic parameter shadows. It resolves ordinary/default/aliased imports only within one captured eligible local module and never assumes a closed set of interface implementers. See the [Go authority profile](type-function-review-proposal.md#go-active-package-constraint-subset). The
 [README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,
@@ -363,7 +363,7 @@ an earlier failed measurement. Keep the current summary in the index, with
 historical details in the records.
 
 Python same-file selection, marker forms, expression limits and shipped rule matrix
-are owned by the [Python amendment](type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). Python performs no cross-file or system traversal.
+are owned by the [Python amendment](type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). The [local module amendment](type-function-review-proposal.md#python-local-module-authority-amendment-270) owns local imports, initializer reexports, source/stub precedence and inheritance. System dependencies remain opaque.
 
 ### Python qualification for parent #267
 

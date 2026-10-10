@@ -86,7 +86,7 @@ describe("controlled request summaries", () => {
       summaryDirectories.push(directory)
       const requestSummaryPath = join(directory, "summary.jsonl")
       const layer = controlledDecisionModelLayer({ requestSummaryPath, findingOnSourceIncludes: "private source" })
-      for (const input of [
+      const inputs = [
         null,
         {},
         {
@@ -96,13 +96,25 @@ describe("controlled request summaries", () => {
             edges: [{ kind: "expanded" }, { kind: "included" }, { kind: "omitted" }, { kind: "other" }]
           }
         }
-      ]) {
+      ]
+      for (const input of inputs) {
         yield* Effect.gen(function* () {
           const model = yield* DecisionModel.DecisionModel
           yield* model.decide(definition, { input })
         }).pipe(Effect.provide(layer))
       }
       const text = readFileSync(requestSummaryPath, "utf8")
+      const summaries = text
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line))
+      for (let index = 0; index < inputs.length; index++) {
+        expect(summaries[index].inputBytes).toBe(Buffer.byteLength(JSON.stringify(inputs[index]), "utf8"))
+        expect(summaries[index].evidenceBytes).toBe(
+          Buffer.byteLength(JSON.stringify(inputs[index]?.evidence) ?? "null", "utf8")
+        )
+        expect(summaries[index].crossFileEvidenceNodes).toBe(0)
+      }
       const empty = {
         rootKind: "unknown",
         conditionalFindingSourceMatched: false,
@@ -116,7 +128,7 @@ describe("controlled request summaries", () => {
           .trim()
           .split("\n")
           .map((line) => JSON.parse(line))
-      ).toEqual([
+      ).toMatchObject([
         empty,
         empty,
         {

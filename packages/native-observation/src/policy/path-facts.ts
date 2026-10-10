@@ -22,6 +22,7 @@ const reviewableExtensions = new Set([
   ".md",
   ".php",
   ".py",
+  ".pyi",
   ".rb",
   ".rs",
   ".scala",
@@ -60,6 +61,8 @@ export const pathFacts = (path: string) => {
     generatedOrVendor:
       generatedNames.test(normalized) || normalized.split("/").some((segment) => generatedSegments.has(segment)),
     allowedExtension:
-      normalized.split("/").at(-1) === "go.mod" || reviewableExtensions.has(extname(normalized).toLowerCase())
+      normalized.split("/").at(-1) === "go.mod" ||
+      normalized.split("/").at(-1) === "setup.cfg" ||
+      reviewableExtensions.has(extname(normalized).toLowerCase())
   }
 }
