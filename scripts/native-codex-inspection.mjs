@@ -93,6 +93,7 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         nativeTasks: prompts.length,
         residentPreparation: profile?.prepareResident ? "installed-resident-before-native-tasks" : "native-startup",
         nativeColdStartupValidation: false,
+        runtimeIdentityPreparation: profile?.prepareRuntime === true,
         maximumJevRequests: 0,
         automaticHostRetries: 0,
         syntheticRepositoryOnly: true,
@@ -169,6 +170,20 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
     const assets = nativePackageAssetsDigest(installed)
     assert.equal(assets.sha256, expectedAssets.sha256, "Installed runtime must match the acceptance candidate")
     assert.equal(hash(readFileSync(archive)), archiveSha256)
+    if (profile?.prepareRuntime) {
+      phase = "installed-runtime-preparation"
+      const identity = await executeNative(
+        join(installed, "dist", "bin", `${process.platform}-${process.arch}`, "hapsland-hook"),
+        ["--runtime-identity"],
+        { cwd: repo, env, timeout: 10000 }
+      )
+      assert.equal(identity.code, 0)
+      assert.deepEqual(JSON.parse(identity.stdout), {
+        version: resolveBunRuntime().version,
+        platform: process.platform,
+        architecture: process.arch
+      })
+    }
     const json = async (flag, request) => {
       const result = await executeNative(cli, [flag], {
         cwd: repo,
@@ -176,8 +191,10 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         input: JSON.stringify(request),
         timeout: 30000
       })
+      const value = JSON.parse(result.stdout)
+      if (result.code !== 0) diagnostics = { operation: flag, exitCode: result.code, status: value.status }
       assert.equal(result.code, 0, `Installed ${flag} failed`)
-      return JSON.parse(result.stdout)
+      return value
     }
     phase = "install-preview"
     const preview = await json("--install-preview", {

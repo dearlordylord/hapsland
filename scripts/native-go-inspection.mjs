@@ -106,6 +106,7 @@ export function createGoInspectionProfile() {
     scenario: "go-package-model-review",
     browser: false,
     prepareResident: true,
+    prepareRuntime: true,
     seed(repo) {
       writeFileSync(join(repo, "go.mod"), "module synthetic/payment\n\ngo 1.27\n")
       writeFileSync(
