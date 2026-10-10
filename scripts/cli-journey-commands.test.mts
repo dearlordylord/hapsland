@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { resolve } from "node:path"
@@ -8,7 +8,9 @@ import { test } from "node:test"
 const execute = promisify(execFile)
 
 test("renaming parser commands and flags changes the journey index without registry edits", async () => {
-  const directory = await mkdtemp(resolve(import.meta.dirname, "../packages/administration/.journey-syntax-"))
+  const scratch = resolve(import.meta.dirname, "../.test-runs")
+  await mkdir(scratch, { recursive: true })
+  const directory = await mkdtemp(resolve(scratch, "journey-syntax-"))
   try {
     await cp(resolve(import.meta.dirname, "../packages/administration/src"), directory, { recursive: true })
     const file = resolve(directory, "rules/cli-definition.ts")

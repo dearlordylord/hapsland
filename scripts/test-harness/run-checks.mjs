@@ -6,7 +6,15 @@ import { promisify } from "node:util"
 import { randomBytes } from "node:crypto"
 import { resolve, join, relative, sep } from "node:path"
 import { fileURLToPath } from "node:url"
-import { precheckStages, qualityPreflight } from "./check-stages.mjs"
+import {
+  precheckStages,
+  qualityCoverageBun,
+  qualityCoverageConsumer,
+  qualityCoverageProvider,
+  qualityPreflight,
+  nativeParserPreparation
+} from "./check-stages.mjs"
+import { isNodeTestModule, nodeMtsTestFiles } from "./inventory.mjs"
 import { sourceSnapshot } from "./source-identity.mjs"
 
 const executeFile = promisify(execFile)
@@ -126,6 +134,113 @@ export async function showStatus(root, id, json = false, scope) {
   return status
 }
 
+export async function runQualityCoveragePreflight(run, root) {
+  const [parserPreparationName, ...parserPreparationArgs] = nativeParserPreparation
+  const parserPreparation = await run.runStage({
+    name: parserPreparationName,
+    command: process.execPath,
+    args: parserPreparationArgs,
+    cwd: root,
+    env: { NODE_TEST_CONTEXT: undefined }
+  })
+  if (parserPreparation.state !== "passed") {
+    for (const name of [
+      qualityCoverageProvider[0],
+      qualityCoverageBun[0],
+      "quality-coverage-smoke",
+      "quality-coverage-evidence"
+    ])
+      await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [parserPreparation.name] })
+    return { passed: false, failedStage: parserPreparation.name }
+  }
+
+  const [providerName, providerFile] = qualityCoverageProvider
+  const provider = await run.runStage({
+    name: providerName,
+    command: join(root, "node_modules", ".bin", "vitest"),
+    args: ["run", "--config", "scripts/vitest.config.ts", "--maxWorkers=1", providerFile],
+    cwd: root,
+    env: {
+      NODE_TEST_CONTEXT: undefined,
+      HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({ files: [providerFile], options: [] })
+    }
+  })
+  if (provider.state !== "passed") {
+    for (const name of [qualityCoverageBun[0], "quality-coverage-smoke", "quality-coverage-evidence"])
+      await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [provider.name] })
+    return { passed: false, failedStage: provider.name }
+  }
+
+  const [bunName, ...bunArgs] = qualityCoverageBun
+  const bun = await run.runStage({
+    name: bunName,
+    command: process.execPath,
+    args: bunArgs,
+    cwd: root,
+    env: { NODE_TEST_CONTEXT: undefined }
+  })
+  if (bun.state !== "passed") {
+    for (const name of ["quality-coverage-smoke", "quality-coverage-evidence"])
+      await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [bun.name] })
+    return { passed: false, failedStage: bun.name }
+  }
+
+  const coverageDirectory = join(run.runDirectory, "coverage-smoke")
+  const coverageOptions = [
+    "--coverage.enabled",
+    ...qualityCoverageConsumer.sourceFiles.map((filename) => `--coverage.include=${filename}`),
+    `--coverage.reportsDirectory=${coverageDirectory}`
+  ]
+  const smoke = await run.runStage({
+    name: "quality-coverage-smoke",
+    command: join(root, "node_modules", ".bin", "vitest"),
+    args: [
+      "run",
+      "--config",
+      "scripts/vitest.config.ts",
+      "--maxWorkers=1",
+      ...qualityCoverageConsumer.testFiles,
+      ...coverageOptions
+    ],
+    cwd: root,
+    env: {
+      HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({
+        files: qualityCoverageConsumer.testFiles,
+        options: coverageOptions
+      })
+    }
+  })
+  if (smoke.state !== "passed") {
+    await run.recordSkippedStage({
+      name: "quality-coverage-evidence",
+      reason: "prerequisite-failed",
+      dependsOn: [smoke.name]
+    })
+    return { passed: false, failedStage: smoke.name }
+  }
+
+  let evidence
+  try {
+    const reportPath = join(coverageDirectory, "coverage-final.json")
+    const report = await readJson(reportPath)
+    const files = qualityCoverageConsumer.sourceFiles.map((filename) => {
+      const coverage = report[resolve(root, filename)]
+      if (!coverage || Object.keys(coverage.statementMap ?? {}).length === 0)
+        throw new Error(`Coverage smoke omitted ${filename}`)
+      const counts = Object.values(coverage.s ?? {})
+      if (!counts.some((count) => Number.isFinite(count) && count > 0))
+        throw new Error(`Coverage smoke did not execute ${filename}`)
+      return { path: filename, statements: counts.length, hits: counts.filter((count) => count > 0).length }
+    })
+    evidence = { reportPath, files }
+  } catch (error) {
+    await run.recordFailedStage({ name: "quality-coverage-evidence", error })
+    return { passed: false, failedStage: "quality-coverage-evidence" }
+  }
+  await run.recordPassedStage({ name: "quality-coverage-evidence", evidence })
+  return { passed: true }
+}
+
 export async function runQualityStages(run, root) {
   const [name, ...args] = qualityPreflight
   const preflight = await run.runStage({
@@ -136,7 +251,15 @@ export async function runQualityStages(run, root) {
     env: { NODE_TEST_CONTEXT: undefined }
   })
   if (preflight.state !== "passed") {
-    for (const name of ["lint-code", "quality-complexity", "quality"])
+    for (const name of [
+      "lint-code",
+      nativeParserPreparation[0],
+      qualityCoverageProvider[0],
+      qualityCoverageBun[0],
+      "quality-coverage-smoke",
+      "quality-coverage-evidence",
+      "quality"
+    ])
       await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [preflight.name] })
     return
   }
@@ -146,16 +269,22 @@ export async function runQualityStages(run, root) {
     args: [join(root, "scripts/run-quality-lint.mjs")]
   })
   if (lint.state !== "passed") return
-  const complexity = await run.runStage({
-    name: "quality-complexity",
-    command: process.execPath,
-    args: [join(root, "scripts/test-harness/check-complexity.mjs")]
-  })
-  if (complexity.state !== "passed") {
-    await run.recordSkippedStage({ name: "quality", reason: "prerequisite-failed", dependsOn: [complexity.name] })
+
+  const coveragePreflight = await runQualityCoveragePreflight(run, root)
+  if (!coveragePreflight.passed) {
+    await run.recordSkippedStage({
+      name: "quality",
+      reason: "prerequisite-failed",
+      dependsOn: [coveragePreflight.failedStage]
+    })
     return
   }
-  await run.runStage({ name: "quality", command: join(root, "node_modules", ".bin", "crap4ts") })
+
+  await run.runStage({
+    name: "quality",
+    command: process.execPath,
+    args: [join(root, "scripts/test-harness/quality-report.mjs")]
+  })
 }
 
 export async function createRun({
@@ -221,7 +350,17 @@ export async function createRun({
       mode === "test"
         ? ["source-identity", ...precheckStages.map((stage) => stage[0]), "package-build", "package-pack", "vitest"]
         : mode === "quality"
-          ? ["source-identity", "quality-preflight", "lint-code", "quality"]
+          ? [
+              "source-identity",
+              "quality-preflight",
+              "lint-code",
+              nativeParserPreparation[0],
+              qualityCoverageProvider[0],
+              qualityCoverageBun[0],
+              "quality-coverage-smoke",
+              "quality-coverage-evidence",
+              "quality"
+            ]
           : [mode]
     await atomicJson(join(runDirectory, "manifest.json"), {
       ...context,
@@ -554,23 +693,7 @@ export async function createRun({
         ...(stage.dependsOn?.length ? { dependsOn: stage.dependsOn } : {})
       }))
     const success = !aborted && evaluatedStages.length > 0 && failedStages.length === 0 && errors.length === 0
-    const thresholdFailure = failedStages.find(
-      (stage) => ["quality", "quality-complexity"].includes(stage.name) && stage.exitCode === 2
-    )
-    const thresholdBreach =
-      mode === "quality" &&
-      !aborted &&
-      errors.length === 0 &&
-      thresholdFailure !== undefined &&
-      failedStages.every(
-        (stage) =>
-          stage === thresholdFailure ||
-          (stage.name === "quality" &&
-            stage.state === "not-started" &&
-            stage.reason === "prerequisite-failed" &&
-            stage.dependsOn?.includes(thresholdFailure.name))
-      )
-    const exitCode = success ? 0 : thresholdBreach ? 2 : 1
+    const exitCode = success ? 0 : 1
     if (!inherited) {
       const status = {
         id: context.id,
@@ -637,7 +760,7 @@ export async function runSelectedTests(run, root, selection, environment = {}) {
     await run.runStage({
       name: "node-focused",
       command: process.execPath,
-      args: ["--test", "--test-concurrency=1", ...selection.nodeFiles],
+      args: nodeTestArguments(selection.nodeFiles),
       env: environment
     })
   if (selection.vitestFiles.length)
@@ -659,6 +782,13 @@ export async function runSelectedTests(run, root, selection, environment = {}) {
     })
 }
 
+const nodeTestArguments = (files) => [
+  ...(files.some((file) => file.endsWith(".mts")) ? ["--experimental-strip-types"] : []),
+  "--test",
+  "--test-concurrency=1",
+  ...files
+]
+
 export async function focusedSelection(root, args) {
   const files = [...new Set(args.filter((arg) => !arg.startsWith("-") && /\.test\.(?:m?[jt]sx?|cjs)$/.test(arg)))]
   if (!files.length)
@@ -673,8 +803,18 @@ export async function focusedSelection(root, args) {
   if (other.some((arg) => !arg.startsWith("-") && !/^[0-9]+$/.test(arg)))
     throw new Error("Use explicit test files and --option=value syntax for focused options.")
   return {
-    nodeFiles: files.filter((file) => file.endsWith(".mjs") || file.endsWith(".cjs")),
-    vitestFiles: files.filter((file) => !file.endsWith(".mjs") && !file.endsWith(".cjs")),
+    nodeFiles: files.filter(
+      (file) =>
+        file.endsWith(".mjs") ||
+        file.endsWith(".cjs") ||
+        (file.endsWith(".mts") && isNodeTestModule(resolve(root, file)))
+    ),
+    vitestFiles: files.filter(
+      (file) =>
+        !file.endsWith(".mjs") &&
+        !file.endsWith(".cjs") &&
+        !(file.endsWith(".mts") && isNodeTestModule(resolve(root, file)))
+    ),
     options: other
   }
 }
@@ -779,6 +919,15 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
         } catch (error) {
           await run.recordFailedStage({ name: "package-archive", error })
           console.error(`FAIL package-archive: ${error instanceof Error ? error.message : String(error)}`)
+        }
+        if (!run.aborted && archive) {
+          const nativeTypeScriptTests = nodeMtsTestFiles(root)
+          if (nativeTypeScriptTests.length)
+            await run.runStage({
+              name: "node-typescript-tests",
+              command: process.execPath,
+              args: nodeTestArguments(nativeTypeScriptTests)
+            })
         }
         if (!run.aborted && archive)
           await run.runStage({

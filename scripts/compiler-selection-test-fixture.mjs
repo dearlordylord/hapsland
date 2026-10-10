@@ -12,7 +12,7 @@ import { authoredTaskToolingFiles } from "./authored-task-inputs.mjs"
 // compilation to the real pinned executable. Markers identify actual discovery
 // and compilation; version probes are deliberately excluded.
 export async function compilerSelectionFixture(t, { stampOwner = "root", mutation } = {}) {
-  const root = mkdtempSync(resolve(tmpdir(), "hapsland-compiler-selection-"))
+  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "hapsland-compiler-selection-")))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const repository = resolve(import.meta.dirname, ".."),
     scripts = resolve(root, "scripts"),

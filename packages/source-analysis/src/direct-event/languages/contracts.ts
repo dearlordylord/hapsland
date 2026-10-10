@@ -32,6 +32,10 @@ export type GraphDeclaration = {
   readonly artifact: TypeDeclaration
   readonly references: readonly GraphReference[]
   readonly exported: boolean
+  /** Update spans must touch model-defining ranges when present. */
+  readonly selectionLocations?: ReadonlyArray<
+    import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation
+  >
   readonly location: {
     readonly start: { readonly line: number; readonly column: number }
     readonly end: { readonly line: number; readonly column: number }
@@ -77,6 +81,8 @@ export type LanguageAdapter = {
   readonly extensions: readonly string[]
   readonly displayName: string
   readonly probe: { readonly path: string; readonly source: string }
+  /** Validate exact provenance for adapter-owned built-in support artifacts. */
+  isBundledArtifact?(artifact: ReviewArtifact): boolean
   analyzeFunctions?(path: string, source: string): import("./function-facts.ts").FunctionFileAnalysis | undefined
   parseTypes(path: string, source: string, allowImports?: boolean): TypeExtractionFailure | readonly GraphDeclaration[]
   inspect(path: string, source: string): GraphFile | undefined

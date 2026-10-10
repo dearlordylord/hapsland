@@ -6,8 +6,8 @@ const forbidden = paths.filter(
     existsSync(path) &&
     (path.startsWith("native/prebuilt/") ||
       /^prototypes\/bend-.*-source\.tar\.gz$/u.test(path) ||
-      /^evidence\/.*\/source-snapshot\.tar\.gz$/u.test(path))
+      path.startsWith("evidence/"))
 )
 if (forbidden.length)
-  throw new Error(`Generated binaries or source archives are tracked by Git:\n${forbidden.join("\n")}`)
-process.stdout.write("Repository assets: no tracked native outputs or source snapshot archives\n")
+  throw new Error(`Generated binaries, source archives, or run output are tracked by Git:\n${forbidden.join("\n")}`)
+process.stdout.write("Repository assets: no tracked native outputs, source snapshot archives, or evidence directory\n")

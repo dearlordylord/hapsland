@@ -214,7 +214,7 @@ owner or implementation changes rather than preserving that snapshot.
 
 | Field | Reviewed boundary |
 | --- | --- |
-| Decision | For the current direct-edit path, recognize a Codex CLI `PostToolUse` event for `apply_patch`, or a Claude Code `PostToolUse` event for `Edit` or `Write`, or a Pi 1.0.0 successful top-level native `edit` result, as a potential edit observation. Pi requires correlated tool-call identity and arguments, and successful unified-patch material verified against bounded ASCII current source; `write`, nested/child calls, failed results, unsupported versions, and mismatched evidence do not become attributed edits. Pi derives changed ranges from the native result patch independently of replacement grouping, including replacements spanning omitted context between hunks. Codex and Pi share post-edit patch verification; Pi uses native coordinates without a text-search fallback, while Codex requires unique text placement. The adapter also requires usable runtime identity and its supported success/attribution payload. An event that fails those checks does not become a direct edit observation. |
+| Decision | For the current direct-edit path, recognize a Codex CLI `PostToolUse` event for `apply_patch`, or a Claude Code `PostToolUse` event for `Edit` or `Write`, or a successful Pi top-level native `edit` result, as a potential edit observation. Pi requires correlated tool-call identity and arguments, and successful unified-patch material verified against bounded ASCII current source; `write`, nested/child calls, failed results, unsupported versions, and mismatched evidence do not become attributed edits. Pi derives changed ranges from the native result patch independently of replacement grouping, including replacements spanning omitted context between hunks. Codex and Pi share post-edit patch verification; Pi uses native coordinates without a text-search fallback, while Codex requires unique text placement. The adapter also requires usable runtime identity and its supported success/attribution payload. An event that fails those checks does not become a direct edit observation. |
 | TypeScript owner | [@hapsland/native-observation/direct-event/adapter](../packages/native-observation/src/direct-event/adapter.ts); [@hapsland/native-observation/direct-event/pi-adapter](../packages/native-observation/src/direct-event/pi-adapter.ts) |
 | Bend boundary | Bend does not receive the native hook name, tool name, or raw tool response. After TypeScript has formed an attributed observation, the resident may supply permit and observation-admission events to `Canonical.step`. Recognition alone does not open a round or guarantee that source is eligible for review. |
 | Why outside Bend | Runtime-specific event formats, identity fields, tool-result interpretation, and edit attribution belong at the agent-runtime boundary. The reducer operates on size-limited, source-free events and cannot inspect those native payloads. The choice of which tool events count remains product behavior and therefore belongs in this ledger. |
@@ -226,7 +226,7 @@ The [Pi attribution checks](../src/direct-event/pi-adapter.test.ts) and [install
 
 | Field | Reviewed boundary |
 | --- | --- |
-| Decision | TypeScript uses agent runtime and accepted version, session ID, and reliably supplied subagent ID to identify the root-independent recipient. Source partitions additionally qualify that recipient by physical working root; the first admitted eligible edit pins the round to its target root (#246). A native tool-use ID identifies an edit or permit, not the advicee. Missing or unreliable child attribution cannot authorize child-specific advice. Pi 1.0.0 uses runtime/version and session manager session ID for the recipient, and native tool call ID plus target root for its edit permit; nested calls and child identities are unsupported rather than reassigned to the main session. |
+| Decision | TypeScript uses agent runtime and accepted version, session ID, and reliably supplied subagent ID to identify the root-independent recipient. Source partitions additionally qualify that recipient by physical working root; the first admitted eligible edit pins the round to its target root (#246). A native tool-use ID identifies an edit or permit, not the advicee. Missing or unreliable child attribution cannot authorize child-specific advice. Pi uses runtime/version and session manager session ID for the recipient, and native tool call ID plus target root for its edit permit; nested calls and child identities are unsupported rather than reassigned to the main session. |
 | TypeScript owner | [@hapsland/native-observation/direct-event/adapter](../packages/native-observation/src/direct-event/adapter.ts); [@hapsland/native-observation/direct-event/pi-adapter](../packages/native-observation/src/direct-event/pi-adapter.ts) |
 | Bend boundary | Bend receives an opaque partition ID in source-free permit, admission, work, capacity, and delivery events. It does not parse native runtime events or infer a working root, session, or subagent from source. Partition identity alone does not open a virtual round; the first accepted attributed edit does. |
 | Why outside Bend | The agent runtime supplies these identity fields in its own event format, and physical-root resolution requires filesystem access. TypeScript must establish their meaning and reliability before sending a identity with length limits to the reducer. Bend applies the product rules to that established identity. |
@@ -311,6 +311,18 @@ The [Pi attribution checks](../src/direct-event/pi-adapter.test.ts) and [install
 | Bend boundary | [ImportGraph](../packages/agent-flow-bend/ImportGraph.bend) commands path checks and source reads and accounts for graph limits; it does not parse source text. [Canonical file and rule gates](../packages/agent-flow-bend/Canonical.bend) decide file protection, inclusion, candidate admission, rule enablement, target and capability compatibility, and declared-target and required-capability compatibility. The current `applicableRule` wrapper supplies fixed `sourceRung: 1` and `minimumRung: 1` interface values; these are not measurements of source quality or authored rule requirements. The [import graph dashboard](../packages/agent-flow-viz/src/import-graph-view.ts) visualizes this combined native-observation and Bend-decision flow. |
 | Why outside Bend | Tree-sitter, filesystem access, Git queries, source-bearing syntax trees, pattern matching, and rule-pack decoding are native effects and data interpretation. Bend receives size-limited, source-free facts and owns the decisions about admission and budget. |
 | Review and limits | On 2026-09-30 the owner approved moving the two remaining rule-selection gates into Bend. Current individual rules author `inputs` and `requires`; TypeScript reports target and capability matches. The earlier rung-based review does not describe the current authoring contract; the [accepted rule contract](review-contract-compatibility.md#configuration-and-individual-rules) owns that amendment. This review does not move source parsing into Bend or change the file and rule contracts. |
+
+Final source freshness is observed only at delivery: TypeScript rebuilds canonical
+inputs, including import resolution, through a delivery-scoped shared source
+snapshot cache. Matching hashes alone cannot establish the resolved input. The
+cache's native map and remaining-member count stay in TypeScript;
+`sourceCacheCheck` sends that count and interruption status to Bend.
+`Handoff.drop_source_cache` requires immediate disposal when no members remain or
+the delivery is interrupted. The three cleanup laws prove that predicate for all
+counts and interruption states; unit tests check native sharing, byte erasure and
+scope retirement. The proofs do not establish native membership accounting or
+filesystem atomicity. Existing advice reservations charge cached source bytes
+and parsing workspaces through the capacity boundary below.
 
 ## TS-007 — Measure native data before Bend capacity admission
 
@@ -527,6 +539,7 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | ruleEnableCheck | packEnabled, ruleEnabled |
 | ruleFindingCheck | probability, threshold |
 | ruleRankOrderCheck | left, leftRank, right, rightRank |
+| sourceCacheCheck | aborted, remaining |
 | startObservation | lifetime, observation, partition, round |
 | startReview | lifetime, operation, partition, round |
 | stopGroupEnded | group, lifetime, round, scopes |
@@ -742,6 +755,8 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | roundStopTerminal | decision | close, revokeProvisional |
 | ruleGate | decision | gate |
 | ruleOrder | decision | order |
+| sourceCacheDrop | decision | — |
+| sourceCacheRetain | decision | — |
 | staleClearSettled | event | — |
 | staleFindingRetired | event | — |
 | stopEnded | event | — |

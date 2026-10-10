@@ -1,5 +1,7 @@
 import { expect, it } from "vitest"
 import { join } from "node:path"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import {
   sourceRuntimeLayout,
   sourceRuntimeCommand,
@@ -20,6 +22,10 @@ import {
   packageRootFromEntrypoint,
   runtimeProbeArguments,
   runtimeVersion,
+  readResidentTarget,
+  selectResidentCommand,
+  selectedResidentCommand,
+  residentTargetPath,
   standaloneCommand,
   versionProbeArguments
 } from "@hapsland/runtime-environment/runtime/package-runtime"
@@ -64,4 +70,82 @@ it("keeps every prepared source role in one immutable runtime identity", () => {
   expect(sourceRuntimeFromEntrypoint(join(packageRoot, ".test-runs/source-runtime/latest/cli.mjs"))).toBeUndefined()
   expect(sourceRuntimeFromEntrypoint(join(layout.directory, "unknown.mjs"))).toBeUndefined()
   expect(() => sourceRuntimeLayout(packageRoot, "../other")).toThrow("Invalid source runtime identity")
+})
+
+it("keeps source resident commands ephemeral and honors an existing published selection", () => {
+  const root = mkdtempSync(join(tmpdir(), "resident-selection-"))
+  const previousHome = process.env.HOME
+  try {
+    process.env.HOME = root
+    const source = { executable: "/runtime/bun", args: ["/source/resident.mjs"] }
+    const sourceTarget = residentTargetPath()
+    expect(selectedResidentCommand()).toEqual(packageCommand("resident"))
+    expect(selectResidentCommand(() => source, sourceTarget, "source-build")).toEqual(source)
+    expect(existsSync(sourceTarget)).toBe(false)
+
+    const targetPath = join(root, "published-target.json")
+    const existing = {
+      version: 1,
+      build: "published-build-one",
+      command: { executable: "/published/resident-one", args: ["--resident"] }
+    }
+    const original = `${JSON.stringify(existing)}\n`
+    writeFileSync(targetPath, original)
+    expect(
+      selectResidentCommand(
+        () => {
+          throw new Error("an existing selection must not resolve a fallback")
+        },
+        targetPath,
+        "published-build-two"
+      )
+    ).toEqual(existing.command)
+    expect(readFileSync(targetPath, "utf8")).toBe(original)
+    expect(readResidentTarget(targetPath)).toEqual(existing)
+  } finally {
+    if (previousHome === undefined) delete process.env.HOME
+    else process.env.HOME = previousHome
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+it("publishes the first embedded resident choice as a private atomic target", () => {
+  const root = mkdtempSync(join(tmpdir(), "resident-publication-"))
+  try {
+    const targetPath = join(root, "state", "resident-target.json")
+    const command = { executable: "/published/hapsland-resident", args: [] }
+    expect(selectResidentCommand(() => command, targetPath, "published-build")).toEqual(command)
+    expect(readResidentTarget(targetPath)).toEqual({ version: 1, build: "published-build", command })
+    expect(readFileSync(targetPath, "utf8")).toBe(
+      `${JSON.stringify({ version: 1, build: "published-build", command })}\n`
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+it("uses a concurrently published resident target and removes its losing temporary file", () => {
+  const root = mkdtempSync(join(tmpdir(), "resident-publication-race-"))
+  try {
+    const targetPath = join(root, "state", "resident-target.json")
+    const winner = {
+      version: 1,
+      build: "concurrent-winner",
+      command: { executable: "/published/winning-resident", args: ["--shared"] }
+    }
+    const selected = selectResidentCommand(
+      () => {
+        mkdirSync(join(root, "state"), { recursive: true })
+        writeFileSync(targetPath, `${JSON.stringify(winner)}\n`, { flag: "wx" })
+        return { executable: "/published/losing-resident", args: [] }
+      },
+      targetPath,
+      "losing-build"
+    )
+    expect(selected).toEqual(winner.command)
+    expect(readResidentTarget(targetPath)).toEqual(winner)
+    expect(readdirSync(join(root, "state"))).toEqual(["resident-target.json"])
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })

@@ -5,7 +5,8 @@ const sharedModules = [
   "packages/source-analysis/src/direct-event/analyzer.ts",
   "packages/source-analysis/src/direct-event/function-analyzer.ts",
   "packages/source-analysis/src/direct-event/graph-resolver.ts",
-  "packages/review-execution/src/direct-event/pipeline.ts"
+  "packages/review-execution/src/direct-event/pipeline.ts",
+  "packages/review-execution/src/direct-event/review-renderer.ts"
 ]
 const publicLanguageModules = new Set([
   "./languages/registry.ts",

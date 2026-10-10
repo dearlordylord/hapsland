@@ -194,6 +194,7 @@ type CanonicalEvent is Data:
   DeliveryCredentialObserveCheck{invalid_seen: Bool, generation_valid: Bool,
     authorized: Bool}
   DeliveryFinalCredentialCheck{shared_collect: Bool, invalid_seen: Bool}
+  SourceCacheCheck{remaining: Nat, aborted: Bool}
   ValidationRouteCheck{owner_current: Bool, status: Handoff.ValidationStatus}
   PostValidationCheck{work_accepted: Bool, expired: Bool, has_fitting: Bool}
   FinalCandidateCheck{owner_current: Bool, credential_generation: Bool,
@@ -454,6 +455,8 @@ type PolicyDecision is Data:
   DeliveryBatchRelease{}
   DeliveryCredentialInvalid{}
   DeliveryCredentialValid{}
+  SourceCacheDrop{}
+  SourceCacheRetain{}
   IgnoreCandidate{}
   ReleaseCandidate{}
   RetireCandidate{}
@@ -4103,6 +4106,9 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       }
     case DeliveryFinalCredentialCheck{shared_collect, invalid_seen}:
       delivery_batch_result(state, Delivery.final_credential_gate(shared_collect, invalid_seen))
+    case SourceCacheCheck{remaining, aborted}:
+      Advanced{state, Bool.pick(Output, Handoff.drop_source_cache(remaining, aborted),
+        PolicyDecided{SourceCacheDrop{}}, PolicyDecided{SourceCacheRetain{}}) <> Nil{}}
     case ValidationRouteCheck{owner_current, status}:
       candidate_route_result(state, Handoff.validation_route(owner_current, status))
     case PostValidationCheck{work_accepted, expired, has_fitting}:

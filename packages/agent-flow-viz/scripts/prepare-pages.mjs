@@ -1,10 +1,10 @@
-import { copyFile, writeFile } from "node:fs/promises"
+import { copyFile, cp, writeFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 
 const output = new URL("../dist/", import.meta.url)
 // Keep the dashboard available while making the public site the homepage.
 await copyFile(new URL("index.html", output), new URL("dashboard.html", output))
-await copyFile(new URL("site.html", output), new URL("index.html", output))
+await cp(new URL("../site-dist/", import.meta.url), output, { recursive: true })
 const brand = new URL("../src/brand/", import.meta.url)
 await copyFile(new URL("favicon.ico", brand), new URL("favicon.ico", output))
 await copyFile(new URL("favicon.svg", brand), new URL("favicon.svg", output))

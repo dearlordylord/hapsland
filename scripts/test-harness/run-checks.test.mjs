@@ -2,16 +2,17 @@ import { execFileSync, spawnSync } from "node:child_process"
 import { writeFileSync } from "node:fs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs/promises"
+import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink, realpath } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun, stageResults, runQualityStages, focusedSelection, runSelectedTests, main } from "./run-checks.mjs"
+import { qualityCoverageConsumer } from "./check-stages.mjs"
 import { withBuildLock } from "../build-lock.mjs"
 import { workspaceCompilationReason } from "./inventory.mjs"
 
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"))
+  const root = await realpath(await mkdtemp(join(tmpdir(), "hapsland-checks-")))
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, "scripts/test-harness"), { recursive: true })
   for (const file of [
@@ -19,11 +20,53 @@ async function fixture(t) {
     "immediate-errors.test.mjs",
     "verification-plan.test.mjs",
     "verify.test.mjs",
-    "check-complexity.test.mjs"
+    "quality-report.test.mjs",
+    "standalone-environment.test.mjs"
   ])
     await writeFile(join(root, "scripts/test-harness", file), "// Passing prerequisite fixture\n")
-  await writeFile(join(root, "scripts/test-harness/check-complexity.mjs"), "process.exit(0)\n")
+  await writeFile(join(root, "scripts/native-inputs.mjs"), "process.exit(0)\n")
+  await writeFile(
+    join(root, "scripts/coverage-provider.test.mts"),
+    'import test from "node:test"; test("provider fixture", () => {})\n'
+  )
+  await writeFile(
+    join(root, "scripts/test-harness/bun-coverage.test.mjs"),
+    'import test from "node:test"; test("Bun source subprocess coverage preserves original branches and merges fresh process counters", () => {})\n'
+  )
+  await writeFile(join(root, "scripts/test-harness/quality-report.mjs"), "process.exit(0)\n")
   return root
+}
+
+async function installCoverageSmokeStub(
+  root,
+  { exitCode = 0, omitSource, parserExitCode = 0, providerExitCode = 0 } = {}
+) {
+  await writeFile(
+    join(root, "scripts/native-inputs.mjs"),
+    `if (process.argv.slice(2).join(" ") !== "prepare-parsers host") process.exit(18);\nconsole.error("parser preparation witness"); process.exit(${parserExitCode})\n`
+  )
+  const binary = join(root, "node_modules/.bin/vitest")
+  await mkdir(join(root, "node_modules/.bin"), { recursive: true })
+  const script = [
+    "#!" + process.execPath,
+    'const fs = require("node:fs");',
+    'const path = require("node:path");',
+    "const args = process.argv.slice(2);",
+    'const output = args.find((arg) => arg.startsWith("--coverage.reportsDirectory="))?.slice("--coverage.reportsDirectory=".length);',
+    'if (args.includes("scripts/coverage-provider.test.mts")) process.exit(' + providerExitCode + ");",
+    "if (!output) process.exit(17);",
+    "const report = {};",
+    "for (const file of " + JSON.stringify(qualityCoverageConsumer.sourceFiles) + ") {",
+    "  if (file === " + JSON.stringify(omitSource) + ") continue;",
+    "  const filename = path.resolve(process.cwd(), file);",
+    '  report[filename] = { path: filename, statementMap: { "0": { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } } }, s: { "0": 1 } };',
+    "}",
+    "fs.mkdirSync(output, { recursive: true });",
+    'fs.writeFileSync(path.join(output, "coverage-final.json"), JSON.stringify(report));',
+    "process.exit(" + exitCode + ");"
+  ].join("\n")
+  await writeFile(binary, script, { mode: 0o755 })
+  await chmod(binary, 0o755)
 }
 test("a stage inside its authenticated checkout lease passes before the enclosing transaction releases ownership", async (t) => {
   const root = await fixture(t)
@@ -172,6 +215,36 @@ test("focused mode refuses empty and broad selections", async (t) => {
   await assert.rejects(focusedSelection(root, ["missing.test.ts"]), /ENOENT/)
   const selection = await focusedSelection(root, ["src/one.test.ts", "--coverage"])
   assert.deepEqual(selection.vitestFiles, ["src/one.test.ts"])
+})
+
+test("focused selection routes native .mts tests to Node and preserves Vitest tests", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "scripts/native.test.mts"), 'import { test } from "node:test"; test("native", () => {})')
+  await writeFile(join(root, "scripts/vitest.test.mts"), 'import { it } from "vitest"; it("vitest", () => {})')
+  const selection = await focusedSelection(root, ["scripts/native.test.mts", "scripts/vitest.test.mts"])
+  assert.deepEqual(selection.nodeFiles, ["scripts/native.test.mts"])
+  assert.deepEqual(selection.vitestFiles, ["scripts/vitest.test.mts"])
+})
+
+test("focused native TypeScript tests use Node's strip-types loader", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "scripts/native.test.mts"), 'import { test } from "node:test"; test("native", () => {})')
+  const stages = []
+  await runSelectedTests({ runStage: async (stage) => (stages.push(stage), { state: "passed" }) }, root, {
+    nodeFiles: ["scripts/native.test.mts"],
+    vitestFiles: [],
+    options: []
+  })
+  assert.deepEqual(
+    stages.map(({ name }) => name),
+    ["node-focused"]
+  )
+  assert.deepEqual(stages[0].args, [
+    "--experimental-strip-types",
+    "--test",
+    "--test-concurrency=1",
+    "scripts/native.test.mts"
+  ])
 })
 
 test("source-only Node selection executes without workspace preparation", async (t) => {
@@ -323,19 +396,14 @@ test("nested test cannot extend its parent's absolute deadline", async (t) => {
   assert.equal(await run.finish(), 1)
 })
 
-test("quality preserves threshold breach exit two but test failure stays exit one", async (t) => {
+test("quality stages require the report wrapper to classify threshold exit two", async (t) => {
   const root = await fixture(t)
   const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
   await run.runStage(command("quality", "process.exit(2)"))
-  assert.equal(await run.finish(), 2)
+  assert.equal(await run.finish(), 1)
   const ordinary = await createRun({ root, mode: "test", timeoutMs: 30_000, output() {} })
   await ordinary.runStage(command("quality", "process.exit(2)"))
   assert.equal(await ordinary.finish(), 1)
-  const mixed = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
-  await mixed.runStage(command("quality-complexity", "process.exit(2)"))
-  await mixed.runStage(command("independent-error", "process.exit(1)"))
-  await mixed.recordSkippedStage({ name: "quality", reason: "prerequisite-failed", dependsOn: ["quality-complexity"] })
-  assert.equal(await mixed.finish(), 1)
 })
 
 test("failure events are surfaced during the run and retained in the final result", async (t) => {
@@ -442,9 +510,7 @@ require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--config
   assert.equal(status.sourceDigest, null)
   await mkdir(join(root, "scripts"), { recursive: true })
   await writeFile(join(root, "scripts", "run-quality-lint.mjs"), "process.exit(0)\n")
-  const qualityTool = join(root, "node_modules", ".bin", "crap4ts")
-  await writeFile(qualityTool, `#!${process.execPath}\nprocess.exit(0);\n`)
-  await chmod(qualityTool, 0o755)
+  await installCoverageSmokeStub(root)
   cli(["quality", "--ack-checks-policy", "--scope=quality-slice", "--timeout-ms=5000"])
   const qualityId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id
   const qualityManifest = JSON.parse(await readFile(join(root, ".test-runs", qualityId, "manifest.json"), "utf8"))
@@ -518,72 +584,143 @@ for (const lintExit of [0, 1]) {
   test(`quality records lint exit ${lintExit} and starts coverage only after lint passes`, async (t) => {
     const root = await fixture(t)
     await mkdir(join(root, "scripts"), { recursive: true })
-    await mkdir(join(root, "node_modules/.bin"), { recursive: true })
     await writeFile(
       join(root, "scripts/run-quality-lint.mjs"),
       `console.error("lint witness"); process.exit(${lintExit})`
     )
-    await writeFile(join(root, "node_modules/.bin/crap4ts"), `#!${process.execPath}\nprocess.exit(2)\n`, {
-      mode: 0o755
-    })
+    if (lintExit === 0) await installCoverageSmokeStub(root)
     const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
     await runQualityStages(run, root)
-    assert.equal(await run.finish(), lintExit === 0 ? 2 : 1)
+    assert.equal(await run.finish(), lintExit === 0 ? 0 : 1)
     const stages = await stageResults(run.runDirectory)
     assert.deepEqual(
       stages.map((stage) => stage.name),
       lintExit === 0
-        ? ["quality-preflight", "lint-code", "quality-complexity", "quality"]
+        ? [
+            "quality-preflight",
+            "lint-code",
+            "native-parser-preparation",
+            "quality-coverage-provider",
+            "quality-coverage-bun",
+            "quality-coverage-smoke",
+            "quality-coverage-evidence",
+            "quality"
+          ]
         : ["quality-preflight", "lint-code"]
     )
     assert.match(await readFile(stages[1].logPath, "utf8"), /lint witness/u)
-  })
-}
-
-for (const branches of [0, 8]) {
-  test(`real complexity prerequisite with ${branches} branches preserves the final coverage boundary`, async (t) => {
-    const root = await fixture(t)
-    await mkdir(join(root, "src"))
-    await writeFile(
-      join(root, "src/main.ts"),
-      `export function choose(value: number) { ${Array.from({ length: branches }, (_, index) => `if (value === ${index}) return ${index};`).join(" ")} return -1; }`
-    )
-    await symlink(fileURLToPath(new URL("../../node_modules", import.meta.url)), join(root, "node_modules"), "dir")
-    await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
-    await writeFile(
-      join(root, "scripts/test-harness/check-complexity.mjs"),
-      await readFile(new URL("./check-complexity.mjs", import.meta.url))
-    )
-    await writeFile(
-      join(root, "crap4ts.json"),
-      JSON.stringify({
-        sources: ["src"],
-        threshold: 8,
-        missing_evidence: "error",
-        coverage: {
-          path: "coverage.json",
-          command: [process.execPath, "-e", "require('node:fs').writeFileSync('coverage.json', '{}')"]
-        }
-      })
-    )
-    const run = await createRun({ root, mode: "quality", timeoutMs: 10000, output() {} })
-    await runQualityStages(run, root)
-    assert.equal(await run.finish(), branches === 8 ? 2 : 1)
-    const stages = await stageResults(run.runDirectory)
-    assert.deepEqual(
-      stages.slice(2).map(({ name, state }) => [name, state]),
-      [
-        ["quality-complexity", branches === 8 ? "failed" : "passed"],
-        ["quality", branches === 8 ? "not-started" : "failed"]
-      ]
-    )
-    if (branches === 8) await assert.rejects(readFile(join(root, "coverage.json")), /ENOENT/)
-    else {
-      assert.equal(await readFile(join(root, "coverage.json"), "utf8"), "{}")
-      assert.match(await readFile(stages.at(-1).logPath, "utf8"), /missing coverage evidence/)
+    if (lintExit === 0) {
+      const parserPreparation = stages.find((stage) => stage.name === "native-parser-preparation")
+      const provider = stages.find((stage) => stage.name === "quality-coverage-provider")
+      assert.equal(parserPreparation.command, process.execPath)
+      assert.deepEqual(parserPreparation.args, ["scripts/native-inputs.mjs", "prepare-parsers", "host"])
+      assert.ok(stages.indexOf(parserPreparation) < stages.indexOf(provider))
+      assert.equal(provider.command, join(root, "node_modules/.bin/vitest"))
+      assert.ok(provider.args.includes("scripts/coverage-provider.test.mts"))
+      const bun = stages.find((stage) => stage.name === "quality-coverage-bun")
+      assert.equal(bun.command, process.execPath)
+      assert.ok(bun.args.includes("scripts/test-harness/bun-coverage.test.mjs"))
+      assert.ok(bun.args.some((argument) => argument.includes("Bun source subprocess coverage")))
+      const smoke = stages.find((stage) => stage.name === "quality-coverage-smoke")
+      assert.ok(smoke.args.includes("src/activity/status.test.ts"))
+      assert.ok(smoke.args.includes("--coverage.include=packages/activity-observation/src/activity/status.ts"))
+      assert.ok(smoke.args.includes(`--coverage.reportsDirectory=${join(run.runDirectory, "coverage-smoke")}`))
+      const evidence = stages.find((stage) => stage.name === "quality-coverage-evidence")
+      assert.deepEqual(
+        evidence.evidence.files.map(({ path }) => path),
+        qualityCoverageConsumer.sourceFiles
+      )
+      assert.equal(stages.at(-1).command, process.execPath)
+      assert.equal(stages.at(-1).args[0], join(root, "scripts/test-harness/quality-report.mjs"))
     }
   })
 }
+
+test("parser preparation failure prevents provider, Bun, smoke and full coverage stages", async (t) => {
+  const root = await fixture(t)
+  await mkdir(join(root, "scripts"), { recursive: true })
+  await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
+  await installCoverageSmokeStub(root, { parserExitCode: 1 })
+  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
+  await runQualityStages(run, root)
+  assert.equal(await run.finish(), 1)
+  const stages = await stageResults(run.runDirectory)
+  assert.deepEqual(
+    stages.map(({ name, state }) => [name, state]),
+    [
+      ["quality-preflight", "passed"],
+      ["lint-code", "passed"],
+      ["native-parser-preparation", "failed"],
+      ["quality-coverage-provider", "not-started"],
+      ["quality-coverage-bun", "not-started"],
+      ["quality-coverage-smoke", "not-started"],
+      ["quality-coverage-evidence", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+  assert.match(await readFile(stages[2].logPath, "utf8"), /parser preparation witness/)
+})
+
+test("provider regression failure prevents Bun, Vitest smoke and full coverage stages", async (t) => {
+  const root = await fixture(t)
+  await mkdir(join(root, "scripts"), { recursive: true })
+  await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
+  await installCoverageSmokeStub(root, { providerExitCode: 1 })
+  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
+  await runQualityStages(run, root)
+  assert.equal(await run.finish(), 1)
+  const stages = await stageResults(run.runDirectory)
+  assert.deepEqual(
+    stages.map(({ name, state }) => [name, state]),
+    [
+      ["quality-preflight", "passed"],
+      ["lint-code", "passed"],
+      ["native-parser-preparation", "passed"],
+      ["quality-coverage-provider", "failed"],
+      ["quality-coverage-bun", "not-started"],
+      ["quality-coverage-smoke", "not-started"],
+      ["quality-coverage-evidence", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+})
+
+test("coverage smoke command failures block full coverage", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
+  await installCoverageSmokeStub(root, { exitCode: 1 })
+  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
+  await runQualityStages(run, root)
+  assert.equal(await run.finish(), 1)
+  const stages = await stageResults(run.runDirectory)
+  assert.deepEqual(
+    stages.slice(-3).map(({ name, state }) => [name, state]),
+    [
+      ["quality-coverage-smoke", "failed"],
+      ["quality-coverage-evidence", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+})
+
+test("coverage smoke requires emitted counters for every selected owner before full coverage", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
+  await installCoverageSmokeStub(root, { omitSource: qualityCoverageConsumer.sourceFiles[0] })
+  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
+  await runQualityStages(run, root)
+  assert.equal(await run.finish(), 1)
+  const stages = await stageResults(run.runDirectory)
+  assert.deepEqual(
+    stages.slice(-3).map(({ name, state }) => [name, state]),
+    [
+      ["quality-coverage-smoke", "passed"],
+      ["quality-coverage-evidence", "failed"],
+      ["quality", "not-started"]
+    ]
+  )
+  assert.ok(stages.at(-2).error.includes(`Coverage smoke omitted ${qualityCoverageConsumer.sourceFiles[0]}`))
+})
 
 test("artifact preparation shares a focused parent's records and cannot extend its deadline", async (t) => {
   const root = await fixture(t)
@@ -872,7 +1009,11 @@ test("failed quality prerequisite blocks lint and coverage with retained diagnos
     [
       ["quality-preflight", "failed"],
       ["lint-code", "not-started"],
-      ["quality-complexity", "not-started"],
+      ["native-parser-preparation", "not-started"],
+      ["quality-coverage-provider", "not-started"],
+      ["quality-coverage-bun", "not-started"],
+      ["quality-coverage-smoke", "not-started"],
+      ["quality-coverage-evidence", "not-started"],
       ["quality", "not-started"]
     ]
   )

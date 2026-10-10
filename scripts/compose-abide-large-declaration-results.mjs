@@ -3,8 +3,8 @@ import fs from "node:fs"
 import path from "node:path"
 import assert from "node:assert/strict"
 import crypto from "node:crypto"
-const initial = path.resolve(process.argv[2] ?? "evidence/abide-large-declarations-current")
-const replacement = path.resolve(process.argv[3] ?? "evidence/abide-large-moderation-corrected-current")
+const initial = path.resolve(process.argv[2] ?? ".test-runs/abide-large-declarations-current")
+const replacement = path.resolve(process.argv[3] ?? ".test-runs/abide-large-moderation-corrected-current")
 const read = (root, name) => JSON.parse(fs.readFileSync(path.join(root, name)))
 const original = read(initial, "comparison.json"),
   corrected = read(replacement, "comparison.json")

@@ -1,8 +1,0 @@
-{
-  "beforeMinifiedBytes": 407536,
-  "afterMinifiedBytes": 331062,
-  "interactiveModulesAfter": [],
-  "bodyPreservation": "direct-input normalized only masked-input-error import; class definition identical; all imports moved, old error definition/export deleted",
-  "focusedPassed": "20261008204135956-3150981-b75c01",
-  "coldCondition": "unchanged raw wall and CPU <=1 for both available and locked; 41 rounds; three lanes; CPU11; historical failure retained"
-}

@@ -22,6 +22,10 @@ const deadline = setTimeout(() => {
   process.exit(1)
 }, 45_000)
 try {
+  await writeFile(
+    join(fixture, "brand.ts"),
+    await readFile(new URL("../../../packages/administration/src/inspection/brand.ts", import.meta.url))
+  )
   await writeFile(source, original)
   const loadPage = makeDevelopmentInspectionPage(pathToFileURL(source))
   const server = await Effect.runPromise(
@@ -45,6 +49,9 @@ try {
   assert.equal((await page.goto(server.url)).status(), 200)
   await page.getByRole("heading", { name: "Hapsland inspection", exact: true }).waitFor()
   assert.equal(await page.getByRole("button", { name: "Copy message", exact: true }).count(), 0)
+  await page.getByRole("heading", { name: "Waiting for recorded edits", exact: true }).waitFor()
+  assert.equal(await page.locator("#recording-guide").isVisible(), true)
+  assert.match(await page.locator("#recording-guide").textContent(), /sessionInspection/)
   phase = "automatic reload"
   assert.equal(await page.evaluate(() => document.hidden), false)
   await writeFile(source, original.replaceAll("Hapsland inspection", "Inspection dev reload"))

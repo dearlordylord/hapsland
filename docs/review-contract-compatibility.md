@@ -153,11 +153,22 @@ Hapsland sends no request. A review input's identity includes the exact input co
 renderer, root, evidence tree and its omissions and completeness, selected rule
 definitions, and effective policy. Retain each contributing file's fingerprint
 for freshness checks; a changed fingerprint does not by itself change semantic
-identity when an unrelated comment moves. Before dispatch, captured files must
-still satisfy their source-role policy under the [edit-owned settings](#edit-owned-settings)
-and match the captured source exactly. Before advice, Hapsland rereads contributing
-files and rebuilds the unit under those settings; changed source input,
-attribution, or physical source identity retires the result.
+identity when an unrelated comment moves. Review requests use the captured input
+under the [edit-owned settings](#edit-owned-settings); source is not reread before
+dispatch or while selecting pending advice. Before a selected delivery is handed
+to its caller or IPC transport, Hapsland rebuilds the complete canonical review
+input under those settings and checks that the evaluated unit remains current.
+This includes supporting evidence and import resolution. File hashes alone are
+insufficient: adding a second import candidate can make resolution ambiguous
+without changing any previously captured file. Unrelated source changes may
+preserve the canonical unit input and therefore preserve its advice.
+Each delivery has a fresh, scoped source snapshot cache: selected results sharing
+the same physical root and path use one stable capture. Cached bytes remain
+charged to the resident capacity ledger; parsing and import resolution still run
+for each evaluated unit. Later results can enter a later delivery while reviews
+continue; they cannot reuse an earlier delivery's cache. The final member or an
+interrupted delivery immediately erases cached source bytes and clears the cache.
+Parsed trees are not retained in this cache.
 
 Recipient and physical-root identity follow the
 [advice contract](advicing-target-contract.md#advicee-identity-and-admission).
@@ -169,7 +180,7 @@ destination; a change to any of these invalidates reuse. See the
 [provider boundary](review-providers.md) for transport validation and declared limits.
 
 Update attribution currently requires an exact verified post-edit span. Codex
-`apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi 1.0.0
+`apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi
 native `edit` unified-result patches can supply one. Codex and Pi share post-edit
 patch verification with explicit placement rules: Codex requires a unique text
 match; Pi verifies native line coordinates against current source within capture limits without

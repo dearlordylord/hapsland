@@ -84,21 +84,22 @@ const patchBodyLine = (candidate: PatchCandidate, line: string): boolean => {
   if (candidate.operation === "update" && line.startsWith("+")) candidate.addedLines.push(line.slice(1))
   return true
 }
+const endPatchFile = (frame: PatchFrame, candidate: PatchCandidate): boolean => {
+  if (
+    (candidate.operation !== "update" && candidate.operation !== "move") ||
+    frame.lastLine === undefined ||
+    !patchContextLine(frame.lastLine)
+  )
+    return false
+  frame.endOfFile = true
+  return true
+}
 const acceptPatchLine = (frame: PatchFrame, line: string): boolean => {
   const header = /^\*\*\* (Add|Update|Delete) File: (.+)$/.exec(line)
   if (header !== null) return addPatchFile(frame, header)
   if (frame.current === undefined) return false
   if (frame.endOfFile) return false
-  if (line === "*** End of File") {
-    if (
-      (frame.current.operation !== "update" && frame.current.operation !== "move") ||
-      frame.lastLine === undefined ||
-      !patchContextLine(frame.lastLine)
-    )
-      return false
-    frame.endOfFile = true
-    return true
-  }
+  if (line === "*** End of File") return endPatchFile(frame, frame.current)
   if (line.startsWith("*** Move to: ")) return movePatchFile(frame.current, line)
   if (line.startsWith("***")) return false
   frame.lastLine = line
@@ -303,7 +304,12 @@ const composedEventMatches = (event: IdentifiedEvent, host: ComposedHost, name: 
   return true
 }
 const deliveryOpportunity = (value: unknown): string => (nonEmpty(value) ? value : "delivery-opportunity")
-const composedAdvicee = (event: IdentifiedEvent, host: ComposedHost, codexVersion: CodexHostVersion): DirectAdvicee => {
+const composedAdvicee = (
+  event: IdentifiedEvent,
+  host: ComposedHost,
+  codexVersion: CodexHostVersion,
+  claudeVersion: string
+): DirectAdvicee => {
   if (host === "codex-cli")
     return {
       host,
@@ -315,7 +321,7 @@ const composedAdvicee = (event: IdentifiedEvent, host: ComposedHost, codexVersio
     }
   return {
     host,
-    hostVersion: "2.1.218",
+    hostVersion: claudeVersion,
     sessionId: event.session_id,
     turnId: null,
     toolUseId: deliveryOpportunity(event.tool_use_id),
@@ -347,7 +353,8 @@ export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHoo
   value: unknown,
   host: ComposedHost,
   eventName: ComposedEventName,
-  codexVersion: CodexHostVersion = "0.155.1"
+  codexVersion: CodexHostVersion = "0.155.1",
+  claudeVersion: string = "2.1.218"
 ) {
   const event = record(value)
   if (!identifiedEvent(event) || !composedEventMatches(event, host, eventName)) return undefined
@@ -356,7 +363,7 @@ export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHoo
   const root = yield* canonicalGitRoot(event.cwd)
   return Object.freeze({
     root: editRoots[0] ?? (root._tag === "Some" ? root.value.root : resolve(event.cwd)),
-    advicee: Object.freeze(composedAdvicee(event, host, codexVersion)),
+    advicee: Object.freeze(composedAdvicee(event, host, codexVersion, claudeVersion)),
     ...(eventName === "PreToolUse" ? { editRoots: Object.freeze(editRoots) } : {})
   })
 })
@@ -559,10 +566,10 @@ const verifiedClaudeChange = (
   event.tool_name === "Edit"
     ? verifiedClaudeEdit(input, response, path, relativePath, text)
     : verifiedClaudeWrite(input, response, path, relativePath, text)
-const claudeAdvicee = (event: ClaudeEvent): Extract<DirectAdvicee, { host: "claude-code" }> =>
+const claudeAdvicee = (event: ClaudeEvent, claudeVersion: string): Extract<DirectAdvicee, { host: "claude-code" }> =>
   Object.freeze({
     host: "claude-code",
-    hostVersion: "2.1.218",
+    hostVersion: claudeVersion,
     sessionId: event.session_id,
     turnId: null,
     toolUseId: event.tool_use_id,
@@ -590,7 +597,8 @@ const claudeEditOperation = (event: ClaudeEvent, response: NonNullable<ReturnTyp
 /** Claude has no observed turn ID; preserve supplied child identity. */
 export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (
   value: unknown,
-  options: DirectCaptureOptions = {}
+  options: DirectCaptureOptions = {},
+  claudeVersion: string = "2.1.218"
 ) {
   const event = record(value)
   if (!claudeEvent(event)) return undefined
@@ -603,7 +611,7 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
   const selectedOptions = yield* captureOptionsForTarget(
     options,
     root.value.root,
-    claudeAdvicee(event),
+    claudeAdvicee(event, claudeVersion),
     root.value.absolutePath
   )
   const filePolicy = yield* captureFilePolicy(root.value.root, selectedOptions, options.userConfigPath)
@@ -616,7 +624,7 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
   const metadata: NativeEditMetadata = {
     root: root.value.root,
     rootIdentity: root.value.rootIdentity,
-    advicee: claudeAdvicee(event),
+    advicee: claudeAdvicee(event, claudeVersion),
     candidates: [{ position: 0, operation: claudeEditOperation(event, response), path: relativePath, selection }]
   }
   options.observeNative?.(metadata)
@@ -636,7 +644,7 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     nativeMetadata: [metadata],
     root: root.value.root,
     rootIdentity: root.value.rootIdentity,
-    advicee: claudeAdvicee(event),
+    advicee: claudeAdvicee(event, claudeVersion),
     candidates: Object.freeze([Object.freeze({ ...change.candidate, path: relativePath })]),
     ...claudeHunkEvidence(relativePath, content.contentHash, change.verifiedHunks)
   } satisfies DirectObservation)

@@ -27,14 +27,14 @@ describe("inspection edit review badges", () => {
       outcome(5, "clear")
     ]
     expect(badges(records)).toMatchObject([
-      { text: "Decision · 2", tone: "decision" },
+      { text: "Model calls · 2", tone: "decision" },
       { text: "Findings · 2", tone: "findings" }
     ])
   })
 
   it("shows green zero only after successful completion", () => {
     expect(badges([call, findings(2, 0), outcome(3, "clear")])).toMatchObject([
-      { text: "Decision · 1" },
+      { text: "Model calls · 1" },
       { text: "Findings · 0", tone: "clear" }
     ])
     for (const records of [
@@ -57,7 +57,7 @@ describe("inspection edit review badges", () => {
     })
     expect(
       badges([call, findings(2, 1), outcome(3, "findings"), record(4, { kind: "model-input" }), outcome(5, "timeout")])
-    ).toMatchObject([{ text: "Decision · 2" }, { text: "Findings · 1" }, { text: "Review failed", tone: "failed" }])
+    ).toMatchObject([{ text: "Model calls · 2" }, { text: "Findings · 1" }, { text: "Review failed", tone: "failed" }])
   })
 })
 
@@ -65,12 +65,14 @@ describe("inspection filter defaults", () => {
   it("uses the same reset state on loading and clearing filters", () => {
     const filter = { value: "payment" }
     const hideUnreviewed = { checked: false }
+    const outcomeFilter = { value: "failed" }
     const identityFilters = [{ element: { value: "project" } }, { element: { value: "runtime" } }]
     let renders = 0
     const context: {
       defaultFilters: typeof defaultInspectionFilters
       filter: { value: string }
       hideUnreviewed: { checked: boolean }
+      outcomeFilter: { value: string }
       identityFilters: Array<{ element: { value: string } }>
       current: object | null
       render: () => void
@@ -78,6 +80,7 @@ describe("inspection filter defaults", () => {
       defaultFilters: defaultInspectionFilters,
       filter,
       hideUnreviewed,
+      outcomeFilter,
       identityFilters,
       current: null,
       render: () => {
@@ -91,15 +94,18 @@ describe("inspection filter defaults", () => {
     reset()
     expect(filter.value).toBe("")
     expect(hideUnreviewed.checked).toBe(true)
+    expect(outcomeFilter.value).toBe("")
     expect(identityFilters.map((item) => item.element.value)).toEqual(["", ""])
     expect(renders).toBe(0)
     context.current = {}
     filter.value = "another search"
     hideUnreviewed.checked = false
+    outcomeFilter.value = "findings"
     identityFilters[0]!.element.value = "other project"
     reset()
     expect(filter.value).toBe(defaultInspectionFilters.search)
     expect(hideUnreviewed.checked).toBe(defaultInspectionFilters.hideUnreviewed)
+    expect(outcomeFilter.value).toBe(defaultInspectionFilters.outcome)
     expect(identityFilters.map((item) => item.element.value)).toEqual(["", ""])
     expect(renders).toBe(1)
     expect(script).toContain("addEventListener('click', resetFilters)")
@@ -140,5 +146,41 @@ describe("inspection activity timestamps", () => {
     expect(elements.get("#last-edit")!.datetime).toBe("")
     expect(elements.get("#last-event")!.textContent).toBe("No retained events")
     expect(script).toContain("renderActivity(snapshot.records)")
+  })
+})
+
+describe("inspection recorded outcome filtering", () => {
+  const matches = new Script(
+    script.slice(script.indexOf("function editReviewBadges("), script.indexOf("function renderFindings(")) +
+      "\nmatchesOutcome"
+  ).runInNewContext()
+
+  it("includes mixed findings and failures in both views without claiming a clear result", () => {
+    const records = [
+      call,
+      findings(2, 1),
+      outcome(3, "findings"),
+      record(4, { kind: "model-input" }),
+      outcome(5, "timeout")
+    ]
+    expect(matches(records, "findings")).toBe(true)
+    expect(matches(records, "failed")).toBe(true)
+    expect(matches(records, "clear")).toBe(false)
+    expect(matches(records, "pending")).toBe(false)
+  })
+
+  it("requires retained completion evidence for the no-findings view", () => {
+    expect(matches([call, findings(2, 0), outcome(3, "clear")], "clear")).toBe(true)
+    for (const records of [
+      [],
+      [call],
+      [call, outcome(2, "findings")],
+      [record(1, { kind: "evaluation-route", route: "cached" })]
+    ]) {
+      expect(matches(records, "clear")).toBe(false)
+      expect(matches(records, "findings")).toBe(false)
+    }
+    expect(matches([call], "pending")).toBe(true)
+    expect(matches([], "")).toBe(true)
   })
 })

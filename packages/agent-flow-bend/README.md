@@ -1,11 +1,13 @@
 # Hapsland agent flow in Bend
 
+<!--
 **Purpose:** Explain the Bend package, production boundary, generated artifacts, and executable checks.
 **Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Active package documentation.
 **Authority:** Maintained guidance; linked specifications own accepted product behavior.
 **Expected use:** Build, inspect, and change Bend models and their checked production adapters.
 **Lifecycle:** Maintained alongside package source, build scripts, and adapter changes. Review whenever a transition owner, generated ABI, build command, or model/production boundary changes, including #137 authority reconciliation and #138 import-graph adoption.
+-->
 
 `ImportGraph.bend` defines source-free supporting-reference traversal for one
 review unit. Its compiled graph and checked TypeScript adapter support the

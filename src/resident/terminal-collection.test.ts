@@ -212,7 +212,7 @@ describe("common collection and reuse invariants", () => {
     })
     const activityPath = join(data.root, "mixed-activity")
     const dispatch = { ...data.dispatch(0.9), activityPath }
-    const admission = await Effect.runPromise(server.admit(observation, dispatch))
+    const admission = await Effect.runPromise(server.admit(observation, dispatch, true))
     if (admission.status !== "accepted") throw new Error("not admitted")
     await Effect.runPromise(server.whenIdle())
     let delivered = false
@@ -239,7 +239,7 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000)
     const dispatch = data.dispatch(0.9)
-    const admission = await Effect.runPromise(server.admit(data.observation, dispatch))
+    const admission = await Effect.runPromise(server.admit(data.observation, dispatch, true))
     if (admission.status !== "accepted") throw new Error("not admitted")
     await Effect.runPromise(server.whenIdle())
     const outcomes = await Promise.all([collect(server, data, dispatch), collect(server, data, dispatch)])
@@ -255,11 +255,16 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     const dispatch = data.dispatch(0.9)
-    const finding = await Effect.runPromise(server.admit(data.observation, dispatch))
+    const finding = await Effect.runPromise(server.admit(data.observation, dispatch, true))
     const skipped = await Effect.runPromise(
       server.admit(
-        { ...data.observation, candidates: [{ operation: "delete", path: "type.ts", addedLines: [] }] },
-        dispatch
+        {
+          ...data.observation,
+          advicee: { ...data.observation.advicee, toolUseId: "tool-two" },
+          candidates: [{ operation: "delete", path: "type.ts", addedLines: [] }]
+        },
+        dispatch,
+        true
       )
     )
     if (finding.status !== "accepted" || skipped.status !== "accepted") throw new Error("not admitted")
@@ -275,10 +280,16 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     const dispatch = data.dispatch(0.9)
-    const first = await Effect.runPromise(server.admit(data.observation, dispatch))
+    const first = await Effect.runPromise(server.admit(data.observation, dispatch, true))
     if (first.status !== "accepted") throw new Error("first not admitted")
     await Effect.runPromise(server.whenIdle())
-    const second = await Effect.runPromise(server.admit(data.observation, dispatch))
+    const second = await Effect.runPromise(
+      server.admit(
+        { ...data.observation, advicee: { ...data.observation.advicee, toolUseId: "tool-two" } },
+        dispatch,
+        true
+      )
+    )
     if (second.status !== "accepted") throw new Error("second not admitted")
     await Effect.runPromise(server.whenIdle())
     let advice = await collect(server, data, dispatch)

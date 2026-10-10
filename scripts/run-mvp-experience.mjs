@@ -197,8 +197,8 @@ try {
     rawBackendMaterialRetained: false
   }
   record.verdict = host.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete"
-  await mkdir(join(root, "evidence/direct-event-v1"), { recursive: true })
-  await writeFile(join(root, "evidence/direct-event-v1/mvp-experience.json"), JSON.stringify(record, null, 2) + "\n")
+  await mkdir(join(root, ".test-runs/direct-event-v1"), { recursive: true })
+  await writeFile(join(root, ".test-runs/direct-event-v1/mvp-experience.json"), JSON.stringify(record, null, 2) + "\n")
   console.log(JSON.stringify(record, null, 2))
 } finally {
   owner ??= json(await readFile(residentPaths(runtime).owner, "utf8").catch(() => ""))

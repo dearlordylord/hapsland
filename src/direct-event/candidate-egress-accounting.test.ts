@@ -50,8 +50,9 @@ type CandidateRecord = {
   readonly httpBodySha256: string
 }
 
-const corpus = new URL("../../evidence/issue-138-adoption/", import.meta.url)
+const corpus = new URL("../test-support/fixtures/issue-138-adoption/", import.meta.url)
 const readJson = async <T>(name: string): Promise<T> => JSON.parse(await readFile(new URL(name, corpus), "utf8")) as T
+const sources = await readJson<Readonly<Record<string, string>>>("sources.json")
 const hash = (value: Uint8Array | string): string => createHash("sha256").update(value).digest("hex")
 const bytes = (value: string): number => Buffer.byteLength(value, "utf8")
 const sentinel = "OFFLINE_CANDIDATE_EGRESS_SENTINEL"
@@ -68,12 +69,13 @@ describe("T-case candidate HTTP body and source scope", () => {
       const root = await makeGitFixture()
       const sourceByPath = new Map<string, { source: Source; text: string }>()
       for (const source of fixture.sources) {
-        const data = await readFile(new URL(source.path, corpus))
+        const text = sources[source.path]
+        if (text === undefined) throw new Error(`${fixture.id}: missing source fixture: ${source.path}`)
+        const data = Buffer.from(text, "utf8")
         expect(data.byteLength).toBe(source.bytes)
         expect(hash(data)).toBe(source.sha256)
         const name = source.path.split("/").at(-1)
         if (name === undefined || name === "root.before.ts") continue
-        const text = data.toString("utf8")
         expect(Buffer.from(text).equals(data)).toBe(true)
         sourceByPath.set(name, { source, text })
         await put(root, name, text)

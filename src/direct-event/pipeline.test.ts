@@ -489,6 +489,86 @@ describe("direct-event vertical slice", () => {
     })
   )
 
+  it.effect("reports an unsupported prepared input contract without calling the classifier", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "types.ts", "type Count = number"))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["types.ts"]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const prepared = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules
+      })
+      const ready = prepared.outcomes.find((outcome) => outcome.status === "ready")
+      if (ready?.status !== "ready") throw new Error("fixture preparation failed")
+      const invalid = { ...ready.prepared, input: { ...ready.prepared.input, contract: "direct-event/unknown/v1" } }
+      const evidence: EvaluationEvidence[] = []
+      let calls = 0
+      const result = yield* evaluatePrepared(invalid, Effect.void, (event) => evidence.push(event)).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({
+            onRequest: Effect.sync(() => {
+              calls += 1
+            })
+          })
+        )
+      )
+      expect(calls).toBe(0)
+      expect(result.status).toBe("input-invalid")
+      expect(evidence).toEqual([
+        {
+          kind: "diagnostic",
+          path: "types.ts",
+          declaration: "Count",
+          diagnostic: { stage: "provider-input", code: "review-input-invalid", args: { reason: "projection-invalid" } }
+        },
+        { kind: "evaluation-outcome", outcome: "input-invalid" }
+      ])
+    })
+  )
+
+  it.effect("rejects a prepared unit with no decision rules before provider dispatch", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "types.ts", "type Count = number"))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["types.ts"]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const prepared = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules
+      })
+      const ready = prepared.outcomes.find((outcome) => outcome.status === "ready")
+      if (ready?.status !== "ready") throw new Error("fixture preparation failed")
+      const invalid = { ...ready.prepared, input: { ...ready.prepared.input, rules: [] } }
+      const evidence: EvaluationEvidence[] = []
+      let calls = 0
+      const result = yield* evaluatePrepared(invalid, Effect.void, (event) => evidence.push(event)).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({
+            onRequest: Effect.sync(() => {
+              calls += 1
+            })
+          })
+        )
+      )
+      expect(calls).toBe(0)
+      expect(result.status).toBe("input-invalid")
+      expect(evidence).toEqual([
+        {
+          kind: "diagnostic",
+          path: "types.ts",
+          declaration: "Count",
+          diagnostic: { stage: "provider-input", code: "review-input-invalid", args: { reason: "request-invalid" } }
+        },
+        { kind: "evaluation-outcome", outcome: "input-invalid" }
+      ])
+    })
+  )
+
   it.effect("reports an actual review tree byte limit with measured sizes", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)

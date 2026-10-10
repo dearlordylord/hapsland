@@ -374,11 +374,11 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     (record.checks.followupClearObserved || record.checks.followupFindingObserved)
       ? "demonstrated"
       : "incomplete"
-  mkdirSync(join(project, "evidence/native-136"), { recursive: true })
+  mkdirSync(join(project, ".test-runs/native-136"), { recursive: true })
   writeFileSync(
     join(
       project,
-      `evidence/native-136/${offlineControl ? "claude-count-offline" : countFixture ? "claude-count-live" : "claude-configured"}.json`
+      `.test-runs/native-136/${offlineControl ? "claude-count-offline" : countFixture ? "claude-count-live" : "claude-configured"}.json`
     ),
     JSON.stringify(record, null, 2) + "\n"
   )

@@ -59,15 +59,15 @@ agent execution and provider validity remain separate checks.
 
 Hapsland and Abide can operate alongside each other in Codex CLI and Claude Code. Keep both tools' hook registrations; each reviewer retains its own rules and configuration. A finding from one tool does not replace the other tool's review.
 
-The selected source-checkout trials with Abide 0.0.7, Codex CLI 0.155.1 and Claude Code 2.1.218 observed delivery from both tools, independent reviewer failures, and preservation of registrations across installation/uninstallation in both orders. Thirteen of fourteen native attempts demonstrated their declared checks; one incomplete attempt is retained separately. Four installer cells passed. These observations concern the declared source-checkout setup, rather than a newly validated installed Hapsland release or every hook ordering.
+The selected source-checkout trials with Abide 0.0.7, Codex CLI and Claude Code observed delivery from both tools, independent reviewer failures, and preservation of registrations across installation/uninstallation in both orders. Thirteen of fourteen native attempts demonstrated their declared checks; one incomplete attempt is retained separately. Four installer cells passed. These observations concern the declared source-checkout setup, rather than a newly validated installed Hapsland release or every hook ordering.
 
 File exclusions are independent. In the tested exclusion cases, Hapsland made no review request while Abide still reviewed the synthetic file. Configure access and review scope for both tools separately. See the [coexistence investigation](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-COEXISTENCE.md) and its [native evidence index](https://github.com/dearlordylord/hapsland-research/blob/master/evidence/native-coexistence/index.json).
 
 ## Measured review and repair
 
-The [study navigation](review-studies.md) connects the comparisons to readable code examples. The [large-declaration study](abide-large-declaration-study.md) covers six realistic synthetic domains, compact and larger layouts, valid controls, independent repair checks and the [declared methodology](abide-large-declaration-study.md#methodology). The [contextual and rule-coverage study](abide-contextual-review-study.md) explains the separate matrices across the nine rules.
+The [study navigation](review-studies.md) summarizes two completed comparisons. The [larger-declaration summary](abide-large-declaration-study.md) reports 11/12 Hapsland repairs and 2/12 Abide repairs across twelve selected defect sessions. The [nine-rule summary](abide-contextual-review-study.md) reports 12/12 versus 1/12 on duplicate-fact cases and 6/16 versus 3/16 on the broader rule matrix. Their immutable source reports and artifacts are linked from the summaries.
 
-These studies distinguish detection, feedback delivery, agent repair and preservation of valid behavior. Their input populations and repetitions differ, so their counts must not be combined into a general product ranking. They show selected workflow differences and counterexamples; they do not establish that Hapsland is universally better or that declaration size alone causes a difference.
+These historical studies distinguish detection, feedback delivery, agent repair and preservation of valid behavior. Their input populations and repetitions differ, so their counts must not be combined into a general product ranking. They show selected workflow differences and counterexamples; they do not establish that Hapsland is universally better or that declaration size alone causes a difference.
 
 ## Why a separate product?
 

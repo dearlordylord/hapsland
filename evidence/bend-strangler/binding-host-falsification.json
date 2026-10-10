@@ -1,6 +1,0 @@
-{
-  "passed": true,
-  "cases": 40,
-  "exceptionCases": 284,
-  "scope": "actual compiled unchanged native helpers versus generated staged binder; all 32 conditional action cases and 8 assignment cases with exact read/effect traces; injected exceptions at every binding trace event; no real parser or universal host correctness claim"
-}

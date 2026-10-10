@@ -449,6 +449,9 @@ export const resolveCredential = Effect.fn("Credentials.resolve")((options: Cred
   )
 )
 
+const validCredentialValue = (value: string): boolean =>
+  value.length !== 0 && Buffer.byteLength(value, "utf8") <= 32_768
+
 const saveNativeCredential = Effect.fn("Credentials.saveNative")(
   (value: string, path?: string, expectedGeneration?: number) =>
     Effect.gen(function* () {
@@ -458,7 +461,7 @@ const saveNativeCredential = Effect.fn("Credentials.saveNative")(
         statePath,
         "indeterminate",
         Effect.gen(function* () {
-          if (value.length === 0 || Buffer.byteLength(value, "utf8") > 32_768) {
+          if (!validCredentialValue(value)) {
             return { status: "invalid" as const, state: readCredentialState(statePath) }
           }
           const previous = readCredentialState(statePath)
@@ -672,7 +675,7 @@ export const makeCredentialOwner = (options: {
               saveObservation.status = "stale"
               return { status: "unavailable" as const, state: previous }
             }
-            if (value.length === 0 || Buffer.byteLength(value) > 32_768) {
+            if (!validCredentialValue(value)) {
               saveObservation.status = "invalid"
               return { status: "invalid" as const, state: previous }
             }

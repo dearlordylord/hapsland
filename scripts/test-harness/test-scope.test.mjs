@@ -6,14 +6,19 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { testDiscovery } from "./test-scope.mjs"
+import { nodeMtsTestFiles } from "./inventory.mjs"
 import { precheckStages } from "./check-stages.mjs"
 
 test("ordinary test and release plans leave development modules optional", () => {
-  assert.deepEqual(testDiscovery(undefined), {
+  const nativeTypeScriptTests = nodeMtsTestFiles(fileURLToPath(new URL("../../", import.meta.url)))
+  assert.ok(nativeTypeScriptTests.includes("scripts/cli-journey-commands.test.mts"))
+  assert.ok(nativeTypeScriptTests.includes("scripts/generate-decision-boundary-ledger.test.mts"))
+  assert.deepEqual(testDiscovery(undefined, nativeTypeScriptTests), {
     include: ["src/**/*.test.ts", "scripts/**/*.test.mts"],
     exclude: [
       "vendor/**",
       "node_modules/**",
+      ...nativeTypeScriptTests,
       "scripts/game-*.test.mts",
       "packages/monkey-business/**",
       "src/canonical/session-port.test.ts"
@@ -34,6 +39,11 @@ test("ordinary test and release plans leave development modules optional", () =>
 test("explicit optional selection remains runnable without enabling the whole suite", () => {
   const files = ["scripts/game-balance-lab.test.mts", "packages/monkey-business/src/outcomes.test.ts"]
   assert.deepEqual(testDiscovery(files), { include: files, exclude: ["vendor/**", "node_modules/**"] })
+})
+
+test("explicit native TypeScript tests are excluded from Vitest discovery", () => {
+  const files = ["scripts/cli-journey-commands.test.mts"]
+  assert.deepEqual(testDiscovery(files, files), { include: files, exclude: ["vendor/**", "node_modules/**", ...files] })
 })
 
 test("optional callers plan generated checks and explicit finite suites separately", () => {

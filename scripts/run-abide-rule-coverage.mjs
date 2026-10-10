@@ -7,7 +7,7 @@ import { spawn, spawnSync } from "node:child_process"
 import { cases, tasks } from "./abide-rule-coverage-fixtures.mjs"
 const project = path.resolve(import.meta.dirname, "..")
 const root = path.resolve(
-  process.argv.find((arg) => arg.startsWith("--out="))?.slice(6) ?? "evidence/abide-rule-coverage-current"
+  process.argv.find((arg) => arg.startsWith("--out="))?.slice(6) ?? ".test-runs/abide-rule-coverage-current"
 )
 assert(process.argv.includes("--execute"), "Explicit execution flag required")
 assert(!fs.existsSync(path.join(root, "declaration.json")), "Never overwrite a declared campaign")

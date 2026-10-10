@@ -101,53 +101,59 @@ type SetupProgress = {
   readonly pending: Array<string>
 }
 
+const reportDisabledRepositorySettings = (settings: ReviewSettings, root: string, progress: SetupProgress) => {
+  const { stages, actions, completed, pending } = progress
+  const excludedAll = settings.configuration.policy.excludes.some(
+    (entry) => entry.origin.layer === "user" && entry.value === "**/*"
+  )
+  stages.push({
+    stage: "repository",
+    status: excludedAll ? "complete" : "pending",
+    summary: excludedAll ? "user file settings exclude all files" : "review disablement requires a user exclusion",
+    observed: {
+      configurationDigest: settings.configuration.policy.digest,
+      ruleDigests: settings.ruleDigests ?? [],
+      canonicalRoot: root,
+      effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value)
+    }
+  })
+  if (excludedAll) completed.push("user file settings disable review")
+  else {
+    actions.push({
+      stage: "repository",
+      code: "exclude-all-files",
+      action: 'set excludes to ["**/*"] in user review settings, then rerun setup'
+    })
+    pending.push("exclude all files in user review settings")
+  }
+}
+
+const reportEnabledRepositorySettings = (settings: ReviewSettings, root: string, progress: SetupProgress) => {
+  const { stages, completed } = progress
+  stages.push({
+    stage: "repository",
+    status: "complete",
+    summary: "effective file settings loaded",
+    observed: {
+      configurationDigest: settings.configuration.policy.digest,
+      ruleDigests: settings.ruleDigests ?? [],
+      canonicalRoot: root,
+      effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value),
+      effectiveExcludes: settings.configuration.policy.excludes.map((entry) => entry.value)
+    }
+  })
+  completed.push("effective file settings loaded")
+}
+
 const reportRepositorySettings = (
   request: SetupRequest,
   settings: ReviewSettings,
   root: string,
   progress: SetupProgress
-) => {
-  const { stages, actions, completed, pending } = progress
-  if (request.scope.review === "disabled") {
-    const excludedAll = settings.configuration.policy.excludes.some(
-      (entry) => entry.origin.layer === "user" && entry.value === "**/*"
-    )
-    stages.push({
-      stage: "repository",
-      status: excludedAll ? "complete" : "pending",
-      summary: excludedAll ? "user file settings exclude all files" : "review disablement requires a user exclusion",
-      observed: {
-        configurationDigest: settings.configuration.policy.digest,
-        ruleDigests: settings.ruleDigests ?? [],
-        canonicalRoot: root,
-        effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value)
-      }
-    })
-    if (excludedAll) completed.push("user file settings disable review")
-    else {
-      actions.push({
-        stage: "repository",
-        code: "exclude-all-files",
-        action: 'set excludes to ["**/*"] in user review settings, then rerun setup'
-      })
-      pending.push("exclude all files in user review settings")
-    }
-  } else {
-    stages.push({
-      stage: "repository",
-      status: "complete",
-      summary: "effective file settings loaded",
-      observed: {
-        configurationDigest: settings.configuration.policy.digest,
-        ruleDigests: settings.ruleDigests ?? [],
-        canonicalRoot: root,
-        effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value),
-        effectiveExcludes: settings.configuration.policy.excludes.map((entry) => entry.value)
-      }
-    })
-    completed.push("effective file settings loaded")
-  }
-}
+) =>
+  request.scope.review === "disabled"
+    ? reportDisabledRepositorySettings(settings, root, progress)
+    : reportEnabledRepositorySettings(settings, root, progress)
 
 const reportExecutionContext = (installed: boolean, hostName: string, progress: SetupProgress) => {
   const { stages, actions, pending: _pending } = progress
@@ -459,6 +465,34 @@ const setupNewCredential = Effect.fn("Setup.newCredential")(function* (
     reportCredentialResolution(request, settings, environmentOnly, result.resolution, progress)
 })
 
+const setupSelectedCredential = Effect.fn("Setup.selectedCredential")(function* (
+  request: SetupRequest,
+  options: SetupOptions,
+  settings: ReviewSettings,
+  installed: boolean,
+  environmentOnly: boolean,
+  progress: SetupProgress
+) {
+  let resolution = yield* resolveCredential({
+    envVar: settings.credentialEnvVar,
+    environmentOnly,
+    root: settings.configuration.policy.root
+  })
+  let interactiveOutcome: InteractiveCredentialOutcome | undefined
+  const readCredential = maskedCredentialReader(request, options, resolution, installed)
+  if (readCredential !== undefined) {
+    const result = yield* readInteractiveCredential(readCredential, settings)
+    if (result.saved !== undefined) reportStoredCredential(result.saved, progress)
+    interactiveOutcome = result.interactiveOutcome
+    if (result.resolution !== undefined) resolution = result.resolution
+  }
+  if (interactiveOutcome !== undefined) {
+    reportInteractiveCredential(interactiveOutcome, progress)
+  } else {
+    reportCredentialResolution(request, settings, environmentOnly, resolution, progress)
+  }
+})
+
 const setupCredential = Effect.fn("Setup.credential")(function* (
   request: SetupRequest,
   options: SetupOptions,
@@ -472,28 +506,8 @@ const setupCredential = Effect.fn("Setup.credential")(function* (
     yield* setupNewCredential(request, options, settings, installed, environmentOnly, progress)
     return
   }
-  if (request.credential === "skip") {
-    reportSkippedCredential(request, progress)
-  } else {
-    let resolution = yield* resolveCredential({
-      envVar: settings.credentialEnvVar,
-      environmentOnly,
-      root: settings.configuration.policy.root
-    })
-    let interactiveOutcome: InteractiveCredentialOutcome | undefined
-    const readCredential = maskedCredentialReader(request, options, resolution, installed)
-    if (readCredential !== undefined) {
-      const result = yield* readInteractiveCredential(readCredential, settings)
-      if (result.saved !== undefined) reportStoredCredential(result.saved, progress)
-      interactiveOutcome = result.interactiveOutcome
-      if (result.resolution !== undefined) resolution = result.resolution
-    }
-    if (interactiveOutcome !== undefined) {
-      reportInteractiveCredential(interactiveOutcome, progress)
-    } else {
-      reportCredentialResolution(request, settings, environmentOnly, resolution, progress)
-    }
-  }
+  if (request.credential === "skip") return reportSkippedCredential(request, progress)
+  yield* setupSelectedCredential(request, options, settings, installed, environmentOnly, progress)
 })
 
 const reportCompatibility = (

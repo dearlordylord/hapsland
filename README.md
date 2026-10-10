@@ -1,14 +1,16 @@
 # Hapsland
 
+<!--
 **Purpose:** Introduce Hapsland and help users choose, install, and configure it.
 **Status:** Active product introduction.
 **Authority:** Maintained user guidance; linked contracts and evidence own behavior and validation claims.
 **Expected use:** Understand review boundaries, choose an installation path, and find detailed guidance.
 **Lifecycle:** Update with user-facing behavior and distribution changes; review when supported runtimes, source scope, or setup changes.
+-->
 
 <p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
 
-Catch design mistakes before your agent builds on them. Immediately slap its hand.
+Catch questionable data and code decisions while your coding agent is still working.
 
 Hapsland lets you apply auto-review your coding agent changes and give it immediate feedback.
 
@@ -36,13 +38,6 @@ Hapsland finds the changed type or function and follows its references to gather
 related definitions, including those in other files. Each rule reviews the
 changed declaration with the related code it needs. If the necessary code is
 unavailable, Hapsland skips that rule.
-
-> [!WARNING]
-> Hapsland focuses automatic review on agent edits made through supported native
-> editing tools, such as [`apply_patch`](https://developers.openai.com/codex/hooks#tool-coverage),
-> Codex’s standard file-editing tool. Changes made through other paths—including
-> Python or shell scripts and linter autofixes—are outside that scope and are not
-> automatically reviewed.
 
 ## Subagents
 
@@ -168,8 +163,12 @@ Ready-made packages are available for macOS arm64 and Linux arm64:
 
 ```sh
 brew install dearlordylord/tap/hapsland
-"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"
+hapsland setup
 ```
+
+Run `hapsland setup` from the Git repository you want reviewed. Follow the
+terminal prompts to choose your coding agent and confirm installing its hooks,
+then restart that agent.
 
 The public npm package returned **404 on 2026-10-06**; the npm commands below
 require a separate npm publication. Contributors can still use the
@@ -197,7 +196,7 @@ After a stable release is published and verified, install manually:
    Space to toggle, Enter to continue). Installed clients are checked and labeled.
    Unchecking a client leaves its installation intact. To skip the selector, use
    `hapsland setup claude`, `hapsland setup codex`, or `hapsland setup pi`.
-   Pi requires Linux arm64 and Pi 1.0.0; OpenCode setup is unavailable.
+   Pi requires Linux arm64 and a release accepted by setup; OpenCode setup is unavailable.
 
    Setup previews owned hooks, asks before applying them, accepts a missing Jev key
    through masked input, shows the selected key source and replacement instructions,
@@ -259,6 +258,7 @@ See the [complete configuration guide](./docs/configuration.md) for fields, prec
 | --- | --- | --- |
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with related local types and imports, within configured limits | Unsupported syntax or unresolved evidence can prevent review. |
 | Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Hapsland resolves explicit local `mod`/`use` bindings and aliases. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
+| Python (`.py`) | Same-file explicit annotated classes, dataclasses, class TypedDict, static BaseModel, explicit aliases/type statements and NewType. | Static authored evidence only; unknown executable constraints and external user types are omissions. No method/function roots or dependency execution. See the [bounded Python contract](docs/type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). |
 | Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, ordinary or erased datatype parameters, and literal quantity arguments. Related definitions come from the same file, explicit relative `.bend` alias imports, or the pinned Base `List`, within configured limits. | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. Constructors must occupy one line with two-space indentation. Literals inside datatype syntax remain unsupported; literals in unrelated bodies do not block extraction. |
 
 Rust cross-file context requires a selected `Cargo.toml` with an explicit

@@ -6,10 +6,6 @@ import {
 } from "../../scripts/first-review-live-runner-policy.mjs"
 
 const runner = readFileSync(new URL("../../scripts/run-first-review-live-milestone.mjs", import.meta.url), "utf8")
-const evidenceGuide = readFileSync(new URL("../../evidence/first-review/README.md", import.meta.url), "utf8")
-const historicalEvidence = JSON.parse(
-  readFileSync(new URL("../../evidence/first-review/live-installed-codex-0.155.1.json", import.meta.url), "utf8")
-) as { readonly package: { readonly source: string; readonly cliResolvedInsideInstalledArtifact?: boolean } }
 
 describe("first-review live runner provenance policy", () => {
   it("derives the installed CLI and artifact digest from its own npm pack result", () => {
@@ -28,14 +24,11 @@ describe("first-review live runner provenance policy", () => {
     expect(runner.indexOf("if (!explicitLive)")).toBeLessThan(runner.indexOf("await mkdtemp"))
   })
 
-  it("distinguishes future self-verified provenance from the externally supplied historical record", () => {
+  it("records provenance established by the current runner", () => {
     expect(runner).toContain(
       'source: registryArtifact ? "npm-registry-installation" : "runner-packed-release-installation"'
     )
     expect(runner).toContain("cliResolvedInsideInstalledArtifact: true")
-    expect(historicalEvidence.package).toMatchObject({ source: "packed-release-installation" })
-    expect(historicalEvidence.package.cliResolvedInsideInstalledArtifact).toBeUndefined()
-    expect(evidenceGuide).toContain("supplied externally and were not independently verified")
   })
 
   it("rejects a pre-existing owned installation without making it cleanup-owned", () => {

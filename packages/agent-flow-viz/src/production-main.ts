@@ -463,6 +463,12 @@ const examplesView = (
         [h.Id("canonical-replay"), h.Class("card chart-panel production-flow canonical-replay")],
         [
           h.h2([], ["Guided replay"]),
+          h.p(
+            [h.Class("section-guidance")],
+            [
+              "Choose a scenario, then use Next to apply its next event. Previous and Redo revisit recorded events; the diagram and details describe the selected history position."
+            ]
+          ),
           h.div(
             [h.Class("canonical-controls")],
             [
@@ -822,7 +828,46 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               [h.img([h.Src(productIcon), h.Alt(""), h.Width("40"), h.Height("40")]), "HAPSLAND"]
             ),
             h.h1([], ["From agent edit to Jev and back"]),
-            h.p([h.Class("intro")], ["Run the simulator or step through a guided replay."])
+            h.p([h.Class("intro")], ["Explore the resident’s decisions and the evidence behind each transition."]),
+            h.p(
+              [h.Class("dashboard-boundary")],
+              [
+                "Development examples · compiled Bend decisions with synthetic native and review responses. This page does not inspect your local agent sessions."
+              ]
+            ),
+            h.nav(
+              [h.Class("dashboard-navigation"), h.AriaLabel("Dashboard sections")],
+              [
+                h.a(
+                  [h.Href("#monkey-business")],
+                  [
+                    h.strong([], ["Resident simulator"]),
+                    h.span([], ["Play shared work, pause, then inspect an advicee and its resources."])
+                  ]
+                ),
+                h.a(
+                  [h.Href("#canonical-replay")],
+                  [
+                    h.strong([], ["Guided replay"]),
+                    h.span([], ["Choose a scenario and follow one checked event at a time."])
+                  ]
+                ),
+                h.a(
+                  [h.Href("#import-graph")],
+                  [
+                    h.strong([], ["Import exploration"]),
+                    h.span([], ["See which supporting files are read, skipped or limited."])
+                  ]
+                ),
+                h.a(
+                  [h.Href("#timing-diagrams")],
+                  [
+                    h.strong([], ["Timing diagrams"]),
+                    h.span([], ["Compare lifecycle cases and their stated evidence boundaries."])
+                  ]
+                )
+              ]
+            )
           ]
         ),
         simulationView(model.simulation, h, simulationAction, simulationChanged),

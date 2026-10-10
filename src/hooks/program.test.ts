@@ -118,14 +118,15 @@ it.each(["before-edit", "background", "stop", "prompt"])(
   }
 )
 it("routes direct Claude with its checked observation", async () => {
-  await run(["--claude-hook", "--composed-edit-hook"])
+  await run(["--claude-hook", "--composed-edit-hook", "--claude-version=2.1.293"])
   expect(ports.adaptClaude).toHaveBeenCalledWith(
     { fixture: true },
     {
       userConfigPath: "/tmp/fixture-user.json",
       capturePolicy: expect.any(Function),
       observeNative: expect.any(Function)
-    }
+    },
+    "2.1.293"
   )
   expect(ports.write).toHaveBeenCalledWith('{"channel":"claude"}\n', expect.any(Number))
 })
@@ -266,4 +267,49 @@ it("suppresses update notices at Stop and child Stop without producing an edit-e
     await run(["--composed-stop-hook", "--composed-host=codex-cli", "--codex-hook"])
   }
   expect(ports.write).not.toHaveBeenCalled()
+})
+
+it.each([
+  { input: { decision: "block", reason: "denied" }, kind: "block" },
+  { input: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "finding" } }, kind: "context" },
+  { input: { systemMessage: "existing" }, kind: "system" },
+  { input: { custom: true }, kind: "unchanged" },
+  { input: { hookSpecificOutput: null }, kind: "unchanged" },
+  { input: { hookSpecificOutput: { additionalContext: 1 } }, kind: "unchanged" },
+  { input: null, kind: "unchanged" },
+  { input: "native text", kind: "unchanged" },
+  { input: [], kind: "unchanged" }
+])("preserves native output decisions when an update notice is granted: $input", async ({ input, kind }) => {
+  ports.codex.mockReturnValue(
+    Effect.gen(function* () {
+      yield* (yield* ResidentUpdateNotice).record
+      return { handled: true, output: input }
+    })
+  )
+  await run(["--codex-hook", "--composed-edit-hook"])
+  const encoded = ports.write.mock.calls.at(-1)?.[0]
+  const output = typeof input === "string" ? encoded : JSON.parse(encoded)
+  if (kind === "block") {
+    expect(output).toEqual({
+      decision: "block",
+      reason: expect.stringMatching(/^denied\n\nHapsland hooks are incompatible/)
+    })
+  } else if (kind === "context") {
+    expect(output).toEqual({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: expect.stringMatching(/^finding\n\nHapsland hooks are incompatible/)
+      }
+    })
+  } else if (kind === "system") {
+    expect(output).toEqual({
+      systemMessage: "existing",
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: expect.stringContaining("Update this runtime")
+      }
+    })
+  } else {
+    expect(output).toEqual(input)
+  }
 })

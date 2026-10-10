@@ -1,7 +1,0 @@
-{
-  "at": "2026-10-08T05:56:02.552Z",
-  "cases": 2048,
-  "commands": 8,
-  "result": "pass",
-  "scope": "all source-free fact combinations against frozen login reducer; native fact computation and secret lifetime remain separate"
-}

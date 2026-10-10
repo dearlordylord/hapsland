@@ -122,6 +122,30 @@ const localPackage = (root: string, version: string, residentProtocol = 1) => {
   return entrypoint
 }
 
+const standalonePackage = (root: string, name: string, marker: string, captureHelperAsset?: string) => {
+  const packageRoot = join(root, name)
+  const entrypoint = join(packageRoot, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-hook")
+  mkdirSync(dirname(entrypoint), { recursive: true })
+  writeFileSync(join(packageRoot, "package.json"), JSON.stringify({ version: "0.1.0" }))
+  writeFileSync(
+    join(packageRoot, "package-runtime.json"),
+    JSON.stringify({ ...installationPackageDeclaration(), runtime: { name: "bun", version: BUN_VERSION } })
+  )
+  writeFileSync(
+    entrypoint,
+    `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ version: BUN_VERSION, platform: process.platform, architecture: process.arch })}'\n# ${marker}\n`,
+    { mode: 0o700 }
+  )
+  for (const role of ["hapsland-parser", "hapsland-resident"])
+    writeFileSync(join(dirname(entrypoint), role), "fixture", { mode: 0o700 })
+  if (captureHelperAsset !== undefined) {
+    const captureHelper = join(packageRoot, "native/prebuilt/darwin-arm64/capture-open")
+    mkdirSync(dirname(captureHelper), { recursive: true })
+    writeFileSync(captureHelper, captureHelperAsset, { mode: 0o700 })
+  }
+  return entrypoint
+}
+
 const invokeCli = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv = process.env) => {
   const fixtureEnvironment =
     env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
@@ -1214,6 +1238,38 @@ responses_websockets_v2 = true`)
     )
   })
 
+  it("resumes a published launcher selection from its exact update proposal", async () => {
+    const { root, home, bin } = fixture()
+    const previous = standalonePackage(root, "published-recovery-one", "one")
+    const target = standalonePackage(root, "published-recovery-two", "two")
+    const environment = (entrypoint: string) => ({
+      ...process.env,
+      REVIEW_INSTALL_RUNTIME: entrypoint,
+      REVIEW_INSTALL_ENTRYPOINT: entrypoint
+    })
+    await previewAndInstall(home, bin, environment(previous))
+    const request = { codexHome: home, codexExecutable: bin }
+    const targetEnvironment = environment(target)
+    const preview = await invoke({ ...request, operation: "update-preview" }, targetEnvironment)
+    const digest = (preview.proposal as { digest: string }).digest
+    expect(preview.proposal).toMatchObject({
+      changes: expect.arrayContaining([
+        expect.objectContaining({ file: join(home, ".hapsland", "codex-hook-launcher.sh") })
+      ])
+    })
+    expect(
+      await invoke(
+        { ...request, operation: "update", proposalDigest: digest },
+        { ...targetEnvironment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" }
+      )
+    ).toMatchObject({ status: "partial", recovery: { proposalDigest: digest } })
+    expect(await invoke({ ...request, operation: "update", proposalDigest: digest }, targetEnvironment)).toMatchObject({
+      status: "updated",
+      resumed: true
+    })
+    expect(readFileSync(join(home, ".hapsland", "codex-hook-launcher.sh"), "utf8")).toContain(shellQuote(target))
+  })
+
   it("preserves a concurrent independent-hook edit during update recovery", async () => {
     const { root, home, bin } = fixture()
     const firstEntrypoint = localPackage(root, "1.0.0")
@@ -1698,17 +1754,15 @@ it.each(["install", "update"])("reports invalid ownership during %s without star
 
 it("resumes an interrupted uninstall using only its original approved digest", async () => {
   const { root, home, bin } = fixture()
-  const entrypoint = createInstallationPackageFixture(root)
+  const entrypoint = standalonePackage(root, "published-uninstall", "uninstall")
+  const environment = { REVIEW_INSTALL_RUNTIME: entrypoint, REVIEW_INSTALL_ENTRYPOINT: entrypoint }
   const request = { codexHome: home, codexExecutable: bin }
   const run = <A, E>(effect: Effect.Effect<A, E>, failAfter = "-1") =>
     Effect.runPromise(
       effect.pipe(
         Effect.provide(
           ConfigProvider.layer(
-            ConfigProvider.fromUnknown({
-              REVIEW_INSTALL_ENTRYPOINT: entrypoint,
-              REVIEW_INSTALL_FAIL_AFTER_WRITES: failAfter
-            })
+            ConfigProvider.fromUnknown({ ...environment, REVIEW_INSTALL_FAIL_AFTER_WRITES: failAfter })
           )
         )
       )
@@ -1741,6 +1795,7 @@ it("resumes an interrupted uninstall using only its original approved digest", a
   })
   expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(false)
   expect(existsSync(join(home, ".hapsland", "installation-v1.json"))).toBe(false)
+  expect(existsSync(join(home, ".hapsland", "codex-hook-launcher.sh"))).toBe(false)
   expect(readFileSync(join(home, "config.toml"), "utf8")).toContain(config)
   expect(readFileSync(join(home, "config.toml"), "utf8")).not.toContain("hooks = true")
 })
@@ -1761,26 +1816,9 @@ const runFixtureInstallation = <A, E>(home: string, effect: Effect.Effect<A, E>)
 
 it("keeps published native hook definitions and trust stable across implementation updates", async () => {
   const { root, home, bin } = fixture()
-  const standalone = (name: string, marker: string) => {
-    const packageRoot = join(root, name)
-    const entrypoint = join(packageRoot, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-hook")
-    mkdirSync(dirname(entrypoint), { recursive: true })
-    writeFileSync(join(packageRoot, "package.json"), JSON.stringify({ version: "0.1.0" }))
-    writeFileSync(
-      join(packageRoot, "package-runtime.json"),
-      JSON.stringify({ ...installationPackageDeclaration(), runtime: { name: "bun", version: BUN_VERSION } })
-    )
-    writeFileSync(
-      entrypoint,
-      `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ version: BUN_VERSION, platform: process.platform, architecture: process.arch })}'\n# ${marker}\n`,
-      { mode: 0o700 }
-    )
-    for (const role of ["hapsland-parser", "hapsland-resident"])
-      writeFileSync(join(dirname(entrypoint), role), "fixture", { mode: 0o700 })
-    return entrypoint
-  }
-  const previous = standalone("published-one", "one")
-  const next = standalone("published-two", "two")
+  const captureHelperAsset = "fixture capture helper"
+  const previous = standalonePackage(root, "published-one", "one", captureHelperAsset)
+  const next = standalonePackage(root, "published-two", "two", captureHelperAsset)
   const environment = (entrypoint: string) => ({
     ...process.env,
     REVIEW_INSTALL_RUNTIME: entrypoint,
@@ -1806,7 +1844,7 @@ it("keeps published native hook definitions and trust stable across implementati
   expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(native)
   expect(readFileSync(join(home, "config.toml"), "utf8")).toBe(config)
   expect(readFileSync(join(home, ".hapsland/codex-hook-launcher.sh"), "utf8")).toContain(shellQuote(next))
-  const identical = standalone("published-three", "two")
+  const identical = standalonePackage(root, "published-three", "two", captureHelperAsset)
   const unchanged = await invoke({ ...request, operation: "update-preview" }, environment(identical))
   expect(unchanged).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } })
 })

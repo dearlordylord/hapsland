@@ -1,6 +1,8 @@
 # Offline evaluation substrate
 
+<!--
 **Audience:** Evaluation contributors and reviewers maintaining the offline evaluation substrate.
+-->
 
 `src/evaluation/` is the host-independent model and bounded execution seam for the
 rule-meaning milestone. `runner.ts` invokes the production `ReviewBackend` service,

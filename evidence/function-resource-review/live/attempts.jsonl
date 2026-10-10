@@ -1,6 +1,0 @@
-{"id":"5985a832-4c5b-4664-9176-9f067ad694a5","at":1790986994524,"candidate":"hapsland","caseId":"clock-sensitive-expiry","phase":"edit","stage":"A","pass":0}
-{"id":"ff70bf28-2d78-4d86-b505-a8606c9a80c5","at":1790986995558,"candidate":"abide","caseId":"clock-sensitive-expiry","phase":"edit","stage":"A","pass":0}
-{"id":"446e2ae4-9cd8-41a6-be0c-e449afd19c09","at":1790986996259,"candidate":"hapsland","caseId":"hidden-audit-write","phase":"edit","stage":"A","pass":0}
-{"id":"95de5859-f053-40e2-8e1d-9619660962f4","at":1790986997129,"candidate":"abide","caseId":"hidden-audit-write","phase":"edit","stage":"A","pass":0}
-{"id":"d946c145-8088-4a66-a730-5569d4dae763","at":1790986997764,"candidate":"hapsland","caseId":"clean-explicit-time","phase":"edit","stage":"A","pass":0}
-{"id":"fd6988b0-0930-44cc-adc3-28767cc0515f","at":1790986998545,"candidate":"abide","caseId":"clean-explicit-time","phase":"edit","stage":"A","pass":0}

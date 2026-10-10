@@ -1,8 +1,0 @@
-{
-  "at": "2026-10-08T04:50:51.210Z",
-  "cases": 32,
-  "lookupComparisons": 32,
-  "saveComparisons": 96,
-  "result": "pass",
-  "scope": "exhaustive Boolean planning domain against current TypeScript; not a proof or IO qualification"
-}

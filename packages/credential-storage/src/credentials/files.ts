@@ -36,6 +36,8 @@ const ancestors = (file: string) => {
   }
   return paths
 }
+const unsafeParent = (stats: import("node:fs").Stats): boolean =>
+  !stats.isDirectory() || stats.isSymbolicLink() || ((stats.mode & 0o022) !== 0 && (stats.mode & 0o1000) === 0)
 const validateParents = (file: string) => {
   for (const path of ancestors(file)) {
     let stats
@@ -45,8 +47,7 @@ const validateParents = (file: string) => {
       if (absent(error)) continue
       throw error
     }
-    if (!stats.isDirectory() || stats.isSymbolicLink() || ((stats.mode & 0o022) !== 0 && (stats.mode & 0o1000) === 0))
-      throw new Error("Credential parent is unsafe or symlinked")
+    if (unsafeParent(stats)) throw new Error("Credential parent is unsafe or symlinked")
   }
 }
 const parentObservations = (file: string) =>

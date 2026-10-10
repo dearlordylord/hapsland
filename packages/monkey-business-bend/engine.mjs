@@ -4512,6 +4512,14 @@ function $$$$047agent$045flow$045bend$047Handoff$058lease$suppresses$(_state_0, 
   return $Bool$and$(($Nat$is_eq$(_owner_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($$$$047agent$045flow$045bend$047Handoff$058lease$suppress_phase$(_phase_0, _requested_0)))));
 }
 
+function $$$$047agent$045flow$045bend$047Handoff$058drop_source_cache$(_remaining_0, _aborted_0) {
+  if (_aborted_0) {
+    return true;
+  } else {
+    return $Nat$is_eq$(_remaining_0, 0);
+  }
+}
+
 function $$$$047agent$045flow$045bend$047Round$058stop_terminal$(_has_output_0, _authorized_0, _requested_close_0) {
   const _x_0 = ($Bool$and$(_has_output_0, ($Bool$not$(_authorized_0))));
   return {$: "Round.StopTerminal", "revoke_provisional": ($Bool$and$(_has_output_0, ($Bool$not$(_authorized_0)))), "close": (_requested_close_0 || _x_0)};
@@ -12000,6 +12008,10 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     const _shared_collect_0 = _event_0["shared_collect"];
     const _invalid_seen_1 = _event_0["invalid_seen"];
     return $$$$047agent$045flow$045bend$047Canonical$058delivery_batch_result$(_state_0, ($$$$047agent$045flow$045bend$047Delivery$058final_credential_gate$(_shared_collect_0, _invalid_seen_1)));
+  } else if (_event_0.$ === "Canonical.SourceCacheCheck") {
+    const _remaining_1 = _event_0["remaining"];
+    const _aborted_0 = _event_0["aborted"];
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Handoff$058drop_source_cache$(_remaining_1, _aborted_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SourceCacheDrop"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SourceCacheRetain"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ValidationRouteCheck") {
     const _owner_current_0 = _event_0["owner_current"];
     const _status_0 = _event_0["status"];
@@ -12175,12 +12187,12 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     return $$$$047agent$045flow$045bend$047Canonical$058cache_discard_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058clear$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))))));
   } else if (_event_0.$ === "Canonical.NoticeAdvance") {
     const _key_0 = _event_0["key"];
-    const _remaining_1 = _event_0["remaining"];
+    const _remaining_2 = _event_0["remaining"];
     const _maximum_keys_0 = _event_0["maximum_keys"];
     const _proposed_0 = _event_0["proposed"];
     const _sequence_0 = _event_0["sequence"];
     const _max_count_0 = _event_0["max_count"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_advance_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058advance$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_0, _remaining_1, _maximum_keys_0, _proposed_0, _sequence_0, _max_count_0)));
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_advance_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058advance$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_0, _remaining_2, _maximum_keys_0, _proposed_0, _sequence_0, _max_count_0)));
   } else if (_event_0.$ === "Canonical.NoticeCommit") {
     const _key_1 = _event_0["key"];
     const _partition_34 = _event_0["partition"];
@@ -24151,6 +24163,8 @@ function $AdviceeScope$058event_reference$(_value_0) {
     return {$: "AdviceeScope.Context"};
   } else if (_value_0.$ === "Canonical.DeliveryFinalCredentialCheck") {
     return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SourceCacheCheck") {
+    return {$: "AdviceeScope.Shared"};
   } else if (_value_0.$ === "Canonical.ValidationRouteCheck") {
     return {$: "AdviceeScope.Context"};
   } else if (_value_0.$ === "Canonical.PostValidationCheck") {
@@ -24624,6 +24638,10 @@ function $AdviceeScope$058command_reference$(_value_0) {
       return {$: "AdviceeScope.Context"};
     } else if (_t_1.$ === "Canonical.DeliveryCredentialValid") {
       return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SourceCacheDrop") {
+      return {$: "AdviceeScope.Shared"};
+    } else if (_t_1.$ === "Canonical.SourceCacheRetain") {
+      return {$: "AdviceeScope.Shared"};
     } else if (_t_1.$ === "Canonical.IgnoreCandidate") {
       return {$: "AdviceeScope.Context"};
     } else if (_t_1.$ === "Canonical.ReleaseCandidate") {
@@ -29637,7 +29655,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4f1ff2008d7c773919e12a16817106640406d70e0d909722e0e6ee951e366a67";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4012c10e2f544e9a987294fd810eab3e75d0d165cfb5800a7a6675f1ab651185";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4bf47dcf9e6197c160cbd1ba42515da47172af78f80d50cddb56bc90cece88f5";
 
 const facts = value => {

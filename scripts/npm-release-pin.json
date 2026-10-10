@@ -2,11 +2,11 @@
   "format": 1,
   "packageName": "@hapsland/hapsland",
   "repositoryUrl": "https://github.com/dearlordylord/hapsland.git",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "tag": "latest",
-  "sourceCommit": "5f335a724d42f76ce308d4d8de30603b61ea2596",
-  "sourceTreeSha256": "6cc3ef71971b48bfbdb568a989144b5d72bf3e16c509013f9bc14674fc755e61",
+  "sourceCommit": "7df4f6c53a4d7c8aecac3c5ce90a0dd1b5bfb0a0",
+  "sourceTreeSha256": "3f6eb5adf1a358ddec92cafef0f3933a7713171d18910ba3cfc68a7824185a53",
   "buildPlatform": "darwin-arm64",
-  "archiveSha256": "dff256744728ab376107584046a77eb44cf8c23e482220c4c8d6b057339ffab1",
-  "auditSha256": "7804c7326b0cb66425c091f8e8b51f48f4a8df5922abe5048b971ca7a1640589"
+  "archiveSha256": "7f33da919a60375eabcad7cef9945f14353a4603035b4c24a586ce670b47343d",
+  "auditSha256": "23f960e5e3efa818916fc3d7d4ec04c5e0e311f55dc19ef47cb08f1a1acbb15f"
 }

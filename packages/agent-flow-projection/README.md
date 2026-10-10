@@ -1,11 +1,13 @@
 # Canonical flow projection
 
+<!--
 **Purpose:** Describe the package boundary for reducer-derived flow evidence.
 **Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Active package documentation.
 **Authority:** Maintained implementation guidance; the canonical reducer and accepted product specifications remain authoritative.
 **Expected use:** Use this package to locate checked records in conceptual flow stages and explain an accepted canonical step.
 **Lifecycle:** Maintain with the projection API and canonical adapter. Review when canonical fields, events, outputs, or the displayed flow stages change.
+-->
 
 `projectFlowStep` reads the checked projection before and after one canonical event,
 the event, ordered outputs, and any rejection. It reports identified stage

@@ -38,6 +38,18 @@ export interface DirectHookOptions {
   readonly composedEdit: boolean
 }
 
+const recordUnavailableDispatchMetadata = (
+  observation: DirectObservation,
+  userConfigPath: string | undefined,
+  activityPath: string
+) => {
+  const metadata = observation.nativeMetadata?.map((metadata) => ({
+    ...metadata,
+    diagnostic: { stage: "admission" as const, code: "dispatch-unavailable" as const, args: {} }
+  }))
+  return metadata === undefined ? Effect.void : recordNativeMetadataEffect(metadata, userConfigPath, activityPath)
+}
+
 export const makeDirectHookDispatch = (options: DirectHookOptions) => {
   const directHookDeadline = options.deadline
   const isControlledWriter = options.controlledWriter
@@ -80,14 +92,16 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
   const retireNativeEditPermits = Effect.fn("NativeHook.retireUnusedPermits")(function* (
     event: unknown,
     host: "codex-cli" | "claude-code",
-    version: CodexHostVersion = "0.155.1"
+    version: CodexHostVersion = "0.155.1",
+    claudeVersion?: string
   ) {
     if (event === null || typeof event !== "object" || Array.isArray(event)) return
     const identity = yield* adaptComposedHookIdentity(
       { ...event, hook_event_name: "PreToolUse" },
       host,
       "PreToolUse",
-      version
+      version,
+      claudeVersion
     ).pipe(Effect.catch(() => Effect.succeed(undefined)))
     if (identity === undefined) return
     for (const root of identity.editRoots ?? [])
@@ -208,6 +222,11 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
           )
         ? "skipped"
         : "unavailable"
+  type CodexPrepared = Effect.Success<ReturnType<typeof codexSourceDispatch>>
+  const codexDispatchReady = (
+    prepared: CodexPrepared | undefined
+  ): prepared is CodexPrepared & { dispatch: NonNullable<CodexPrepared["dispatch"]> } =>
+    prepared?.dispatch !== undefined && isControlledWriter
   const runDirectCodexHook = (
     nativeEvent: unknown,
     hostVersion: CodexHostVersion,
@@ -235,7 +254,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
       yield* recordCodexObservationTrace(observation)
       // The direct dispatcher owns every native apply_patch event. Unsupported
       // shapes remain quiet and can never create review work.
-      if (observation === undefined || prepared?.dispatch === undefined || !isControlledWriter) {
+      if (observation === undefined || !codexDispatchReady(prepared)) {
         if (prepared !== undefined)
           yield* recordNativeMetadataEffect(prepared.metadata, userConfigPath, activityPath).pipe(
             Effect.catch(() => Effect.void)
@@ -265,6 +284,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
     deliveryCwd?: string,
     nativeMetadata?: NativeEditMetadata
   ): Effect.fn.Return<unknown, never, ResidentStartup> {
+    if (!isControlledWriter) return {}
     const deadline = directHookDeadline
     const bounded = <A, E, R>(task: Effect.Effect<A, E, R>): Effect.Effect<A | undefined, never, R> =>
       Effect.gen(function* () {
@@ -291,11 +311,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
       )
     )
     if (dispatch === undefined) {
-      const metadata = observation.nativeMetadata?.map((metadata) => ({
-        ...metadata,
-        diagnostic: { stage: "admission" as const, code: "dispatch-unavailable" as const, args: {} }
-      }))
-      if (metadata !== undefined) yield* bounded(recordNativeMetadataEffect(metadata, userConfigPath, activityPath))
+      yield* bounded(recordUnavailableDispatchMetadata(observation, userConfigPath, activityPath))
       return {}
     }
     const outcome = yield* bounded(

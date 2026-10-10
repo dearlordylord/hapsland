@@ -1137,3 +1137,17 @@ def Laws.stop_bundle_failed_stage_keeps_original(original):
 
 def Laws.stop_bundle_terminal_records_every_member():
   {==}
+
+def Laws.last_source_cache_member_drops_cache(aborted):
+  match aborted:
+    case True{}: {==}
+    case False{}: {==}
+
+def Laws.aborted_delivery_drops_source_cache(remaining):
+  {==}
+
+def Laws.outstanding_source_cache_member_retains_cache(remaining):
+  {==}
+
+def Laws.changed_contributing_source_retires_final_candidate():
+  {==}

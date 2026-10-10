@@ -1,5 +1,0 @@
-{
-  "cases": 78,
-  "passed": true,
-  "scope": "compiled Bend versus transpiled actual current native entry helpers; snapshot/response ports simulated synchronously, complete finite decisions and snapshot read presence; not physical runtime/IO or universal proof"
-}

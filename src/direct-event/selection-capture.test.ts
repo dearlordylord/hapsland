@@ -414,6 +414,23 @@ describe("stable bounded source capture", () => {
       diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
     })
     expect(JSON.stringify(panic)).not.toContain("secret")
+    const operationalCodes = [
+      ["ENOENT", { stage: "capture", code: "capture-unavailable", args: { reason: "missing" } }],
+      ["EACCES", { stage: "capture", code: "capture-unavailable", args: { reason: "access" } }],
+      ["EPERM", { stage: "capture", code: "capture-unavailable", args: { reason: "access" } }],
+      ["ELOOP", { stage: "capture", code: "capture-validation-failed", args: { reason: "file-kind" } }],
+      ["ENOTDIR", { stage: "capture", code: "capture-validation-failed", args: { reason: "file-kind" } }],
+      ["EIO", { stage: "capture", code: "capture-unavailable", args: { reason: "io" } }]
+    ] as const
+    for (const [code, diagnostic] of operationalCodes) {
+      const classified = await Effect.runPromise(
+        captureStable(root, eligible, {
+          betweenReads: () => Effect.fail(Object.assign(new Error("private operating-system detail"), { code }))
+        })
+      )
+      expect(classified).toEqual({ status: "unavailable", diagnostic })
+      expect(JSON.stringify(classified)).not.toContain("private operating-system detail")
+    }
     expect(
       await Effect.runPromise(
         captureStable(root, eligible, {

@@ -34,9 +34,9 @@ const declaration = Object.freeze({
 })
 console.log(JSON.stringify({ milestone: "rust-paired-designs", declaration }))
 if (!process.argv.includes("--execute-paid")) process.exit(2)
-await mkdir(join(root, "evidence/rust-support"), { recursive: true })
+await mkdir(join(root, ".test-runs/rust-support"), { recursive: true })
 await writeFile(
-  join(root, "evidence/rust-support/paired-declaration-2.json"),
+  join(root, ".test-runs/rust-support/paired-declaration-2.json"),
   JSON.stringify({ declaredAt: new Date().toISOString(), declaration }, null, 2) + "\n"
 )
 let key = process.env.TYPESAFE_API_KEY
@@ -161,7 +161,7 @@ const record = {
   verdict: passed ? "demonstrated" : "incomplete",
   rawBackendMaterialRetained: false
 }
-await mkdir(join(root, "evidence/rust-support"), { recursive: true })
-await writeFile(join(root, "evidence/rust-support/paired-designs.json"), JSON.stringify(record, null, 2) + "\n")
+await mkdir(join(root, ".test-runs/rust-support"), { recursive: true })
+await writeFile(join(root, ".test-runs/rust-support/paired-designs.json"), JSON.stringify(record, null, 2) + "\n")
 console.log(JSON.stringify(record, null, 2))
 if (!passed) process.exitCode = 1

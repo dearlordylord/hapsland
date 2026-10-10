@@ -20,15 +20,15 @@ available preparation slots and per-edit completion, with a Stop deadline
 exception; they do not retroactively validate the earlier host run.
 
 This document records the previously measured support boundary. Jev is the external
-review backend. The measured v1 adapter profile was **Codex CLI 0.155.1 / Linux arm64 /
+review backend. The measured v1 adapter profile was **Codex CLI / Linux arm64 /
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
 recorded conformance environment, not broader runtime guarantees. The historical installed package
 profile was narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
 at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the packaged
 `openat` capture helper. The macOS controlled installed-package path is tested. The real
-Codex-host path is verified on macOS arm64 with Codex CLI 0.156.0 and a controlled offline
+Codex-host path is verified on macOS arm64 with Codex CLI and a controlled offline
 backend, including native interactive trust review. This does not establish a real-host run
-for Codex CLI 0.155.1 or other platform profiles. At that validation point, package metadata and `hapsland-doctor`
+for other Codex releases or platform profiles. At that validation point, package metadata and `hapsland-doctor`
 rejected undeclared versions and other platform profiles. These observations do not
 validate the current standalone Bun distribution; see
 [installed release compatibility](installed-release-compatibility.md).
@@ -66,7 +66,7 @@ secret- or source-bearing fields in the new evidence records.
 | 8 | Logical capacity and transport | Global 512 items/256 MiB; partition 16 items/32 MiB; accounting through work/cache/outcomes/advice; 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
 | 9 | Operational failure diagnostics | First capacity/backend failure recorded; same kind/partition suppressed before 60,000 ms and refreshed at equality; 64 length-limited keys; restart reset; never included in agent output | 3 obligations |
 | 10 | Singleton lifecycle | 10 s readiness; 4 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
-| 11 | Effective file settings | Default selection, accumulated exclusions, protected paths, and current settings before dispatch; retired grant operations leave saved files untouched | 3 obligations |
+| 11 | Effective file settings | Default selection, accumulated exclusions, protected paths, and edit-owned settings through dispatch; retired grant operations leave saved files untouched | 3 obligations |
 | 12 | Jev request/evidence boundary | One provider-neutral `DecisionModel` request per unit; 15-second deadline; zero automatic retries; source-free live outcome classification; admission is not a provider-call counter | 3 obligations |
 
 The original profile recorded 39 obligations and 95 unique mapped checks passing through
@@ -84,7 +84,7 @@ checkout. It verifies parser loading, resident launch, file selection, one contr
 submission, advice collection, and actionable missing-command diagnosis. No package acquisition
 occurs during hook edits.
 
-The issue-63 fixture additionally uses an isolated real Codex 0.155.1 home and temporary Git
+The issue-63 fixture additionally uses an isolated real Codex home and temporary Git
 repository. It neither seeds repository trust nor bypasses hook trust, and drives both decisions
 through Codex's native interactive flow. The output-limited PTY reconstructs Codex's rendered terminal
 screen, waits for the repository and hook-review states, and confirms the native selections only
@@ -93,12 +93,12 @@ The retained second run separately observed one provider submission and one term
 `completed-findings` resident outcome correlated by source-free native event identity.
 `OPENAI_API_KEY` and `TYPESAFE_API_KEY` were absent from the hook environment; no Jev call was
 possible. The sanitized record is
-[`evidence/package/clean-linux-node-24.20.0-arm64.json`](../evidence/package/clean-linux-node-24.20.0-arm64.json).
+[`evidence/package/clean-linux-node-24.20.0-arm64.json`](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/package/clean-linux-node-24.20.0-arm64.json).
 It establishes the clean installed-package and real-host seam in the recorded Linux arm64
 environment. It does not broaden the adapter, platform, mode, or review-semantics profile.
 
 The macOS runner record is
-[`evidence/package/clean-darwin-node-24.20.0-arm64.json`](../evidence/package/clean-darwin-node-24.20.0-arm64.json).
+[`evidence/package/clean-darwin-node-24.20.0-arm64.json`](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/package/clean-darwin-node-24.20.0-arm64.json).
 It establishes the clean packaged CLI, parser, descriptor-anchored capture, portable resident,
 controlled offline submission, advice-return path, and native Keychain credential lifecycle on
 macOS 14 arm64. The Keychain cell includes separate-process persistence, fresh-resident reuse,
@@ -149,9 +149,10 @@ is in memory, so a forced process death can still lose pending review work.
 
 Effective file settings select all otherwise eligible files by default. User
 exclusions accumulate with project exclusions, and an exclude-all user setting
-turns review off. Current settings are checked before dispatch; a change cannot
-recall a request already sent. Hooks never prompt. Missing credentials prevent
-Jev dispatch.
+turns review off. Each edit keeps the settings snapshot captured at registration
+or admission through preparation, dispatch and delivery; a later settings change
+applies to a later edit. This follows the [edit-owned settings contract](review-contract-compatibility.md#edit-owned-settings).
+Hooks never prompt. Missing credentials prevent Jev dispatch.
 
 The Add hook admits work to the resident reviewer and normally returns before evaluation.
 A later mapped hook may collect current advice. Exclusions, unsupported operations, no
@@ -175,12 +176,12 @@ The external stages are kept separate:
 The corrected fresh pinned run observed all five for one Add with a controlled backend;
 model visibility required exact repetition of a randomized hook-only value absent from the
 prompt. That single observation does not establish reliable model visibility. Update and multi-file support
-is separately grounded in native `0.155.1` payload captures plus deterministic production
+is separately grounded in native payload captures plus deterministic production
 pipeline gates; it was not rerun live in this final Add conformance. Real child-specific
-delivery is unvalidated. [Pinned native child probes](../evidence/subagent-identity/probe.mjs)
-and their [Claude](../evidence/subagent-identity/claude-2.1.218-linux-arm64.json),
-[Codex 0.155.1](../evidence/subagent-identity/codex-0.155.1-linux-arm64.json), and
-[Codex 0.156.0](../evidence/subagent-identity/codex-0.156.0-linux-arm64.json)
+delivery is unvalidated. [Pinned native child probes](https://github.com/dearlordylord/hapsland/blob/59dd9f17ca2187f0caa440836bcb43f25a86ce85/evidence/subagent-identity/probe.mjs)
+and their [Claude](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/subagent-identity/claude-2.1.218-linux-arm64.json),
+[first Codex probe](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/subagent-identity/codex-0.155.1-linux-arm64.json), and
+[second Codex probe](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/subagent-identity/codex-0.156.0-linux-arm64.json)
 records verify child identity fields under Linux arm64, alongside deterministic
 partition isolation checks.
 

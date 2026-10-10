@@ -142,10 +142,11 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
   const remaining = deadline - (yield* monotonicMillis)
   if (remaining <= 0) return yield* Effect.fail(new ResidentIpcError({ message: "resident request deadline exceeded" }))
   const notice = yield* Effect.serviceOption(ResidentUpdateNotice)
-  const caller = Option.isSome(notice) && !notice.value.eligible ? { ...request, updateNotice: false } : request
+  const eligibleNotice = Option.filter(notice, (notice) => notice.eligible)
+  const caller = Option.isSome(notice) && Option.isNone(eligibleNotice) ? { ...request, updateNotice: false } : request
   const response = yield* requestConnected(paths, caller, remaining)
   if (response.status === "update-required") {
-    if (response.warn && Option.isSome(notice) && notice.value.eligible) yield* notice.value.record
+    if (response.warn && Option.isSome(eligibleNotice)) yield* eligibleNotice.value.record
     return yield* Effect.fail(
       new ResidentIpcError({ message: "resident hook contract incompatible; update this runtime's hooks" })
     )

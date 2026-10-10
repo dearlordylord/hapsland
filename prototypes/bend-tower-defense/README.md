@@ -1,11 +1,13 @@
 # Bend architecture tower defense
 
+<!--
 **Purpose:** Explore a native Bend tower-defense game with safe queue roads, dangerous building arrivals, separate storage and worker permits, per-edit advice readiness, byte batches, bounded automatic Stop decisions, four automatic architectural support towers, optional automatic wave starts, and read-only placement stat and dynamic-effect previews.
 **Audience:** Prototype contributors and evaluators; Product and specification owners.
 **Status:** Throwaway gameplay prototype; see validation evidence for executed checks.
 **Authority:** Implementation and validation evidence, not an accepted Hapsland product contract.
 **Expected use:** Play the road/building tower-defense prototype locally on macOS or Linux, reproduce its mechanics checks, and use the retained queue-board and combat experiments as diagnostic comparisons.
 **Lifecycle:** At the tower-defense direction decision milestone, consolidate useful mechanics and evidence into its owning game specification or issue, update inbound links, and delete rejected prototype code and temporary evidence. Preserve provenance in the isolated prototype worktree/branch or source bundle. Revisit these instructions when native controls or the tested Bend version change.
+-->
 
 ## Current direction: roads, buildings and construction
 

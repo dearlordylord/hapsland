@@ -12,7 +12,7 @@ const { cases: allCases, tasks: allTasks } = await import(
 const cases = allCases.filter((f) => f.candidateId === "moderation-decision")
 const tasks = allTasks.filter((f) => f.candidateId === "moderation-decision")
 const root = path.resolve(
-  process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? "evidence/abide-large-moderation-corrected-current"
+  process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? ".test-runs/abide-large-moderation-corrected-current"
 )
 assert(process.argv.includes("--execute"), "Explicit execution flag required")
 assert(!fs.existsSync(path.join(root, "declaration.json")), "Never replace a declared campaign")

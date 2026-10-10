@@ -1,0 +1,176 @@
+---
+import ReviewCards from "../components/ReviewCards.astro"
+import ReviewDemo from "../components/ReviewDemo.astro"
+import "../../src/site.css"
+import productIcon from "../../src/brand/product-icon.svg?url"
+import githubIcon from "../../src/github.svg?url"
+import faviconSvg from "../../src/brand/favicon.svg?url"
+import faviconIco from "../../src/brand/favicon.ico?url"
+import { SETUP_COPY } from "../../../agent-flow-projection/src/setup-copy"
+---
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Early feedback on your coding agent's types and functions, with related code and rules you control."
+    />
+    <meta name="theme-color" content="#f5f2e9" />
+    <link rel="icon" type="image/svg+xml" href={faviconSvg} />
+    <link rel="icon" href={faviconIco} sizes="any" />
+    <title>Hapsland — realtime semantic agentic feedback</title>
+  </head>
+<body><div id="root">
+    <main class="site">
+<a class="skip-link" href="#review-example">Skip to interactive example</a>
+<header class="site-header">
+<a class="wordmark" href="#">
+<img width="48" height="48" class="brand-mark" src={productIcon} alt="">Hapsland<span class="brand-period">.</span>
+</a>
+<nav aria-label="Main navigation">
+<a href="#review-example">See an example</a>
+<a href="#control">Your controls</a>
+<a class="nav-setup" href="#setup">Get started</a>
+<a aria-label="Hapsland repository on GitHub" class="github-link" href="https://github.com/dearlordylord/hapsland">
+<img width="24" height="24" src={githubIcon} alt="">
+</a>
+</nav>
+</header>
+<section class="hero section">
+<div class="hero-lead">
+<div class="hero-copy">
+<h1>IMMEDIATE CODE REVIEW for coding agents</h1>
+<p class="hero-subtitle">and make invalid states unrepresentable™</p>
+<p class="hero-intro">
+<strong>Catch questionable decisions</strong> while your coding agent is still working. Hapsland reviews changed types and functions against your rules and catches mistakes before they waste tokens and time. <strong>Stop context poisoning before it starts</strong>
+</p>
+<div class="hero-actions">
+<a class="button-primary" href="https://github.com/dearlordylord/hapsland-releases/releases/latest">Download Hapsland ↗</a>
+<a class="text-link" href="#setup">Set up with your agent ↓</a>
+</div>
+<div class="hero-install">
+<p class="hero-install-label">Or install with Homebrew</p>
+<div class="hero-install-row">
+<pre><code>{SETUP_COPY.install}</code></pre>
+<div class="copy-control">
+<button class="copy-button" type="button" id="copy-install" data-copy-target="install" data-copy-value={SETUP_COPY.install}>Copy</button>
+<span aria-live="polite" class="copy-status">
+</span>
+</div>
+</div>
+</div>
+</div>
+<ReviewCards />
+</div>
+<ReviewDemo />
+</section>
+<section aria-label="How review works" class="section review-workflow">
+<p class="eyebrow">FROM EDIT TO FEEDBACK</p>
+<h2>Review the decision before more code depends on it.</h2>
+<ol class="workflow-steps">
+<li>
+<span aria-hidden="true" class="step-number">01</span>
+<h3>Your agent makes an edit</h3>
+<p>Hapsland selects eligible changed declarations using your file settings.</p>
+</li>
+<li>
+<span aria-hidden="true" class="step-number">02</span>
+<h3>Your rules get code context</h3>
+<p>Related definitions enrich the diff. Jev classifies the supplied code against your questions.</p>
+</li>
+<li>
+<span aria-hidden="true" class="step-number">03</span>
+<h3>Your agent gets feedback</h3>
+<p>Hapsland prepares a message from the result and your settings, so the agent can reconsider its approach.</p>
+</li>
+</ol>
+</section>
+<section class="section story-grid" id="control">
+<article>
+<p class="eyebrow">FILE SETTINGS</p>
+<h2>Choose which files can enter the review.</h2>
+<p>Sending source to another service is a data-sharing decision. Retention after submission depends on the review service’s policy. Set includes, exclusions and privacy exclusions to choose which files can be used. Supporting files pass the same checks before reading; a project’s include cannot restore your exclusion.</p>
+<pre class="config-example"><code>&#123;
+  "version": 1,
+  "includes": ["src/**"],
+  "privacyExcludes": ["src/private/**"]
+&#125;</code></pre>
+<p class="fine-print">Selected definitions contain source code. With credentials and no file settings, all otherwise eligible files are selected. The current recipient is Jev; there is no per-request approval prompt. The integration is designed for other classifiers too.</p>
+<a class="text-link" href="https://github.com/dearlordylord/hapsland/blob/master/docs/configuration.md">Explore file settings ↗</a>
+</article>
+<article>
+<p class="eyebrow">RULES</p>
+<h2>Built-in questions. Room for your own.</h2>
+<p>Hapsland’s default rules ask about data and code design. Type rules examine what values a type permits. The built-in function rule asks whether a body uses structure its declaration does not reveal.</p>
+<blockquote>Can this type store the same fact twice, with copies that disagree?</blockquote>
+<p>Jev classifies code against the questions; Hapsland uses the result and your settings to choose the feedback message. Add local rules for your team's concerns. Choose their scope, thresholds and feedback messages. Rules run only when the supplied code meets their evidence needs. No feedback does not mean every check passed: a check may be skipped or fail to run.</p>
+<a class="text-link" href="https://github.com/dearlordylord/hapsland/blob/master/docs/rules.md#editable-rule-files">See custom rules ↗</a>
+</article>
+</section>
+<section class="section setup" id="setup">
+<p class="eyebrow">SETUP</p>
+<h2>Install and set up Hapsland.</h2>
+<p>Ready-made packages for macOS arm64 and Linux arm64. Runtime included; no source build required.</p>
+<div class="download-strip">
+<div>
+<h3>1. Install Hapsland</h3>
+<a class="download-link" href="https://github.com/dearlordylord/hapsland-releases/releases/latest">Download a ready-made package ↗</a>
+</div>
+<p>macOS arm64 · Linux arm64 · Archives and checksums</p>
+</div>
+<div class="agent-setup">
+<h3>2. Set up your agent</h3>
+<p>Copy this instruction into your agent’s conversation. Setup previews hook changes and asks before applying them.</p>
+<div class="copy-control">
+<button class="button-primary copy-button" type="button" id="copy-instruction" data-copy-target="instruction" data-copy-value={SETUP_COPY.instruction}>Copy instruction</button>
+<span aria-live="polite" class="copy-status">
+</span>
+</div>
+<pre class="agent-instruction"><code>{SETUP_COPY.instruction}</code></pre>
+</div>
+<details class="manual-setup">
+<summary>Run setup manually after installing</summary>
+<div class="setup-command">
+<h3>Run setup in your Git repository</h3>
+<div class="copy-control">
+<button class="copy-button" type="button" id="copy-setup" data-copy-target="setup" data-copy-value={SETUP_COPY.setup}>Copy setup command</button>
+<span aria-live="polite" class="copy-status">
+</span>
+</div>
+<pre><code>{SETUP_COPY.setup}</code></pre>
+</div>
+<p>Homebrew installs the runtime and commands. Setup previews changes to your agent hooks before applying them.</p>
+</details>
+<p>Choose Claude Code, Codex CLI, or both. Setup previews the hooks, asks before applying them, and requests your Jev key if needed. Restart the selected client and complete its trust prompts.</p>
+<p class="fine-print">The integration applies to your client profile. File settings determine which repositories and files can be reviewed. Setup itself sends no review request.</p>
+<a class="text-link" href="https://github.com/dearlordylord/hapsland/blob/master/docs/installation-workflows.md">Installation details and development builds ↗</a>
+<div class="verify-setup">
+<h3>3. Check a new edit</h3>
+<p>Restart the selected agent and complete its trust prompts. To inspect a review, enable local recording, make a new supported edit, then run:</p>
+<pre><code>hapsland dashboard</code></pre>
+<p class="fine-print">Recording is opt-in and contains source code and review messages. It does not backfill earlier edits. Opening the dashboard does not enable it.</p>
+<a class="text-link" href="https://github.com/dearlordylord/hapsland/blob/master/docs/status.md#opt-in-local-inspection">Enable recording and inspect a review ↗</a>
+</div>
+</section>
+<footer class="site-footer">
+<a class="wordmark" href="#">
+<img width="48" height="48" class="brand-mark" src={productIcon} alt="">Hapsland. <span class="footer-tagline">Slap that hand.</span>
+</a>
+<a aria-label="Source on GitHub" class="github-link" href="https://github.com/dearlordylord/hapsland">
+<img width="28" height="28" src={githubIcon} alt="">
+</a>
+</footer>
+</main>
+    <noscript>This interactive explanation needs JavaScript. Read the Hapsland guide at
+      <a href="https://github.com/dearlordylord/hapsland#installation">GitHub</a
+      >.</noscript>
+
+
+
+</div>
+<script>import "../../src/site-interactions"</script>
+<noscript><style>.comment-stack{height:auto;display:block} .comment-card:not(.card-position-0)>*{visibility:visible}.comment-card{position:relative;transform:none!important;opacity:1!important;visibility:visible!important;margin-bottom:16px}.comment-progress{display:none}canvas.review-loop-canvas{display:none}</style></noscript>
+</body></html>

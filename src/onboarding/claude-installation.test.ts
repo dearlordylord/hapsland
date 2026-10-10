@@ -95,6 +95,23 @@ describe("Claude installation lifecycle", () => {
     expect(existsSync(join(home, "settings.json"))).toBe(false)
   })
 
+  it("preserves an unowned Claude launcher instead of adopting it", async () => {
+    const { home, claudeExecutable } = fixture()
+    const launcherDirectory = join(home, ".hapsland")
+    mkdirSync(launcherDirectory)
+    const launcher = join(launcherDirectory, "claude-hook-launcher.sh")
+    const original = "#!/bin/sh\necho user-managed\n"
+    writeFileSync(launcher, original, { mode: 0o600 })
+
+    expect(await runPreview(previewClaudeInstallation({ claudeHome: home, claudeExecutable }))).toMatchObject({
+      status: "conflict",
+      error: { message: "Claude hook launcher was locally modified or is not owned" }
+    })
+    expect(readFileSync(launcher, "utf8")).toBe(original)
+    expect(existsSync(join(home, "settings.json"))).toBe(false)
+    expect(existsSync(join(launcherDirectory, "claude-installation-v1.json"))).toBe(false)
+  })
+
   it("previews a pinned host, preserves unrelated settings, and removes only its owned hook", async () => {
     const { home, claudeExecutable } = fixture()
     const original = {
@@ -170,6 +187,24 @@ describe("Claude installation lifecycle", () => {
     expect((settings(home).hooks as Record<string, unknown>).SubagentStop).toBeDefined()
   })
 
+  it("refuses malformed composed ownership without changing Claude settings", async () => {
+    const { home, claudeExecutable } = fixture()
+    const request = { claudeHome: home, claudeExecutable }
+    const proposal = await runPreview(previewClaudeInstallation(request))
+    await runInstallation(installClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) }))
+    const settingsBefore = readFileSync(join(home, "settings.json"), "utf8")
+    const recordPath = join(home, ".hapsland", "claude-installation-v1.json")
+    const record = JSON.parse(readFileSync(recordPath, "utf8")) as { composed: Record<string, unknown> }
+    record.composed.stopDigest = 42
+    writeFileSync(recordPath, JSON.stringify(record))
+
+    expect(await runPreview(inspectClaudeInstallation(request))).toMatchObject({
+      status: "conflict",
+      error: expect.objectContaining({ message: expect.stringContaining("unsupported shape") })
+    })
+    expect(readFileSync(join(home, "settings.json"), "utf8")).toBe(settingsBefore)
+  })
+
   it("updates an owned asynchronous PostToolUse group to synchronous delivery while preserving Stop", async () => {
     const { home, claudeExecutable } = fixture()
     const request = { claudeHome: home, claudeExecutable }
@@ -207,8 +242,25 @@ describe("Claude installation lifecycle", () => {
     expect(await runPreview(inspectClaudeInstallation(request))).toMatchObject({ installed: true })
   })
 
-  it("requires the exact tested host profile and an approval digest", async () => {
-    const { home, claudeExecutable } = fixture("2.1.219")
+  it("installs an untested stable Claude version and passes it to every hook", async () => {
+    const { home, claudeExecutable } = fixture("2.1.293 (Claude Code)")
+    const request = { claudeHome: home, claudeExecutable }
+    const preview = await runPreview(previewClaudeInstallation(request))
+    expect(preview.status).toBe("preview")
+    expect(
+      (await runInstallation(installClaudeIntegration({ ...request, proposalDigest: digestOf(preview) }))).status
+    ).toBe("complete")
+    const hooks = settings(home).hooks as Record<string, Array<{ hooks: Array<{ command: string }> }>>
+    for (const groups of Object.values(hooks))
+      for (const group of groups)
+        for (const hook of group.hooks) expect(hook.command).toContain("--claude-version=2.1.293")
+    expect(
+      (await runPreview(diagnoseClaudeIntegration(request))).checks.find((check) => check.stage === "host")?.status
+    ).toBe("ready")
+  })
+
+  it("rejects malformed host versions and requires an approval digest", async () => {
+    const { home, claudeExecutable } = fixture("invalid")
     const request = { claudeHome: home, claudeExecutable }
     expect((await runPreview(previewClaudeInstallation(request))).status).toBe("unsupported")
     expect(
@@ -367,8 +419,13 @@ it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
 
 it("updates a published Claude implementation without rewriting native settings", async () => {
   const { root, home, claudeExecutable } = fixture()
+  const binaryDirectory = join(root, "dist/bin/darwin-arm64")
+  const captureDirectory = join(root, "native/prebuilt/darwin-arm64")
+  mkdirSync(binaryDirectory, { recursive: true })
+  mkdirSync(captureDirectory, { recursive: true })
+  writeFileSync(join(captureDirectory, "capture-open"), "capture fixture")
   const standalone = (name: string, marker: string) => {
-    const entrypoint = join(root, name)
+    const entrypoint = join(binaryDirectory, name)
     writeFileSync(entrypoint, `#!/bin/sh\nprintf '%s\\n' '${BUN_VERSION}'\n# ${marker}\n`, { mode: 0o700 })
     return entrypoint
   }

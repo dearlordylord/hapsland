@@ -2,8 +2,37 @@ import { LANGUAGE_EXTENSIONS } from "@hapsland/native-observation/direct-event/l
 import { extname, dirname, join, normalize, relative } from "node:path"
 import * as rust from "./rust.ts"
 import * as Effect from "effect/Effect"
-import type { LanguageAdapter } from "./contracts.ts"
+import type { GraphSession, LanguageAdapter } from "./contracts.ts"
 import { resolveRustModuleContext } from "./rust-module-context.ts"
+import type { GraphInspectionOptions } from "./rust.ts"
+
+const rustModuleOptions = (
+  file: string,
+  rootPath: string,
+  options: GraphInspectionOptions | undefined
+): GraphInspectionOptions => {
+  if (file === rootPath) return options ?? {}
+  if (options?.rustCrateModules === undefined) return { rustExternalModule: true }
+  return {
+    rustExternalModule: true,
+    rustCrateModules: new Map(
+      [...options.rustCrateModules].map(([name, target]) => [
+        name,
+        relative(dirname(file), join(dirname(rootPath), target)) || "."
+      ])
+    )
+  }
+}
+
+const rustGraphSession = (rootPath: string, options: GraphInspectionOptions | undefined): GraphSession => ({
+  inspect: (file, source, branch) =>
+    branch === "function" ? undefined : rust.inspectRust(file, source, rustModuleOptions(file, rootPath, options)),
+  importCandidates: (from, importPath) => {
+    const base = normalize(join(dirname(from), importPath))
+    return extname(base) === "" ? [`${base}.rs`, join(base, "mod.rs")] : []
+  }
+})
+
 export const rustAdapter: LanguageAdapter = {
   id: "rust",
   extensions: LANGUAGE_EXTENSIONS.rust,
@@ -26,37 +55,6 @@ export const rustAdapter: LanguageAdapter = {
     )
       return undefined
     const options = binding.options
-    return {
-      dependencies: binding.dependencies,
-      limits: binding.remaining,
-      session: {
-        inspect: (file: string, source: string, branch: "type" | "function") =>
-          branch === "function"
-            ? undefined
-            : rust.inspectRust(
-                file,
-                source,
-                file === path
-                  ? options
-                  : {
-                      rustExternalModule: true,
-                      ...(options?.rustCrateModules === undefined
-                        ? {}
-                        : {
-                            rustCrateModules: new Map(
-                              [...options.rustCrateModules].map(([name, target]) => [
-                                name,
-                                relative(dirname(file), join(dirname(path), target)) || "."
-                              ])
-                            )
-                          })
-                    }
-              ),
-        importCandidates: (from: string, importPath: string) => {
-          const base = normalize(join(dirname(from), importPath))
-          return extname(base) === "" ? [`${base}.rs`, join(base, "mod.rs")] : []
-        }
-      }
-    }
+    return { dependencies: binding.dependencies, limits: binding.remaining, session: rustGraphSession(path, options) }
   })
 }

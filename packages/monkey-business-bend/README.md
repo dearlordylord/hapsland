@@ -1,11 +1,13 @@
 # Shared Monkey Business engine and runner
 
+<!--
 **Purpose:** Explain the shared source-free simulation core and its checks.
 **Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Maintained implementation guidance.
 **Authority:** Implementation and validation evidence; #176/#179/#180, [#234](https://github.com/dearlordylord/hapsland/issues/234), and the accepted advice/handoff contract own behavior. Candidate laws remain proposals.
 **Expected use:** Extend the common scenario driver or validate its JavaScript/native boundary.
 **Lifecycle:** Update with state, driver, ABI or check changes; review when runner ownership changes or a candidate law receives an owner decision.
+-->
 
 Generation and optional native/proof checks require the same exact **Bend 2.0.36**
 compiler declared by `packages/agent-flow-bend/package.json`. Install it with

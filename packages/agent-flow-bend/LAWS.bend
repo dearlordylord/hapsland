@@ -2261,3 +2261,23 @@ law stop_bundle_terminal_records_every_member:
     }
     : SubmissionState.Decision
   }
+
+# The last selected member releases its delivery-local cache immediately.
+law last_source_cache_member_drops_cache:
+  for aborted: Bool
+  {Handoff.drop_source_cache(0n, aborted) == True{} : Bool}
+
+# Cancellation releases the whole scope regardless of outstanding members.
+law aborted_delivery_drops_source_cache:
+  for remaining: Nat
+  {Handoff.drop_source_cache(remaining, True{}) == True{} : Bool}
+
+# A completed member cannot discard source snapshots needed by later members.
+law outstanding_source_cache_member_retains_cache:
+  for remaining: Nat
+  {Handoff.drop_source_cache((1n + remaining : Nat), False{}) == False{} : Bool}
+
+# A changed contributing canonical input enters final selection as stale work.
+law changed_contributing_source_retires_final_candidate:
+  {Handoff.final_candidate(True{}, True{}, True{}, False{}, False{}, True{}) ==
+    Handoff.RetireCandidate{} : Handoff.CandidateAction}

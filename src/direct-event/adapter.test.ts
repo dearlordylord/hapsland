@@ -30,6 +30,31 @@ describe("direct-event Codex Add adapter", () => {
     expect(
       await Effect.runPromise(adaptCodexDirectEvent({ ...event, tool_input: { ...event.tool_input, cwd: caller } }))
     ).toBeUndefined()
+    expect(
+      await Effect.runPromise(
+        adaptComposedHookIdentity(
+          { ...event, hook_event_name: "PreToolUse", tool_input: { ...event.tool_input, cwd: caller } },
+          "codex-cli",
+          "PreToolUse"
+        )
+      )
+    ).toBeUndefined()
+    expect(
+      await Effect.runPromise(
+        adaptComposedHookIdentity(
+          {
+            hook_event_name: "PreToolUse",
+            tool_name: "Write",
+            cwd: target,
+            session_id: "claude",
+            tool_use_id: "write",
+            tool_input: { file_path: join(target, "type.ts") }
+          },
+          "claude-code",
+          "PreToolUse"
+        )
+      )
+    ).toMatchObject({ root: target, advicee: { host: "claude-code", sessionId: "claude" }, editRoots: [target] })
   })
   it("maps background and Stop identities for both hosts without inferring a child", async () => {
     const root = await makeGitFixture()
@@ -52,12 +77,20 @@ describe("direct-event Codex Add adapter", () => {
           agent_id: "child"
         },
         "claude-code",
-        "PostToolUse"
+        "PostToolUse",
+        undefined,
+        "2.1.293"
       )
     )
     expect(claude).toMatchObject({
       root,
-      advicee: { host: "claude-code", sessionId: "claude", toolUseId: "tool", subagentId: "child" }
+      advicee: {
+        host: "claude-code",
+        hostVersion: "2.1.293",
+        sessionId: "claude",
+        toolUseId: "tool",
+        subagentId: "child"
+      }
     })
     expect(
       await Effect.runPromise(
@@ -184,7 +217,10 @@ describe("direct-event Codex Add adapter", () => {
 
   it("adapts the pinned Codex 0.155.1 native event fixture", async () => {
     const root = await makeGitFixture()
-    const encoded = await readFile(join(process.cwd(), "evidence/codex/0.155.1/post-tool-use-file-create.json"), "utf8")
+    const encoded = await readFile(
+      new URL("../test-support/fixtures/codex/0.155.1/post-tool-use-file-create.json", import.meta.url),
+      "utf8"
+    )
     const fixture = JSON.parse(encoded) as Record<string, unknown>
     const native = {
       ...fixture,
@@ -222,6 +258,7 @@ describe("direct-event Codex Add adapter", () => {
     const cases = [
       addEvent(root, ["a.ts"], { session_id: "" }),
       addEvent(root, ["a.ts"], { tool_response: { success: false } }),
+      addEvent(root, ["../outside.ts"]),
       addEvent(
         root,
         Array.from({ length: MAX_CODEX_CANDIDATES + 1 }, (_, index) => `${index}.ts`)
@@ -233,6 +270,11 @@ describe("direct-event Codex Add adapter", () => {
       })
     ]
     for (const value of cases) expect(await Effect.runPromise(adaptCodexDirectEvent(value))).toBeUndefined()
+  })
+
+  it("rejects NUL-bearing target paths before root discovery", async () => {
+    const root = await makeGitFixture()
+    expect(await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["unsafe\0.ts"])))).toBeUndefined()
   })
 
   it.each([

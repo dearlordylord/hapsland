@@ -1,5 +1,5 @@
 import { DEFAULT_REVIEW_BACKEND } from "@hapsland/runtime-environment/runtime/backend"
-import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
+import { isBundledArtifact, languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
 import {
   toCodexDirectEventOutput,
@@ -65,7 +65,6 @@ import {
   type PathObservationOutcome
 } from "@hapsland/review-definition/direct-event/model"
 import { bundledArtifactDomain, type ReviewUnit } from "@hapsland/source-artifacts/direct-event/artifact-model"
-import { isBundledBendArtifact } from "@hapsland/source-analysis/direct-event/languages/bend/bundled-evidence"
 import { type DirectObservation, type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
@@ -75,6 +74,8 @@ import {
   selectedByDirectFilePolicy,
   type DirectFilePolicy
 } from "@hapsland/native-observation/direct-event/selection"
+
+export { checkHandoffSources, type HandoffSourceMember } from "./handoff-sources.ts"
 
 assertReviewEngineBoundary("pipeline")
 
@@ -198,7 +199,7 @@ const unitHasOmissions = (unit: ReviewUnit): boolean => {
 }
 
 const addNodeDependency = (unit: ReviewUnit, node: ReviewUnit["root"], paths: Set<string>): boolean => {
-  if (node.artifact.origin !== undefined) return node !== unit.root && isBundledBendArtifact(node.artifact)
+  if (node.artifact.origin !== undefined) return node !== unit.root && isBundledArtifact(node.artifact)
   if (node.artifact.path === undefined) return false
   paths.add(node.artifact.path)
   return true
@@ -287,6 +288,7 @@ type PreparationFrame = {
 }
 type CandidateDeclaration = {
   readonly artifact: ReviewUnit["root"]["artifact"]
+  readonly selectionLocations?: ReadonlyArray<NonNullable<ReviewInput["rootLocation"]>>
   readonly location: NonNullable<ReviewInput["rootLocation"]>
 }
 const graphResolutionOptions = (frame: PreparationFrame, candidatePath: string) => ({
@@ -351,7 +353,7 @@ const freezePreparedUnitInput = (
   sourceFingerprints: NonNullable<ReviewInput["sourceFingerprints"]>,
   frame: PreparationFrame,
   partial: boolean,
-  language: "typescript" | "rust" | "bend"
+  language: "typescript" | "rust" | "bend" | "python"
 ): ReviewInput => {
   const declaration = unit.root.artifact
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
@@ -373,8 +375,8 @@ const freezePreparedUnitInput = (
     interpretation: "probability-strictly-greater-than-threshold"
   } satisfies ReviewInput)
 }
-const supportedRuleLanguage = (language: string | undefined): language is "typescript" | "rust" | "bend" =>
-  language === "typescript" || language === "rust" || language === "bend"
+const supportedRuleLanguage = (language: string | undefined): language is "typescript" | "rust" | "bend" | "python" =>
+  language === "typescript" || language === "rust" || language === "bend" || language === "python"
 const missingRequiredRootLocation = (contract: string, location: ReviewInput["rootLocation"]): boolean =>
   isGraphInputContract(contract) && location === undefined
 const prepareResolvedUnit = (
@@ -499,10 +501,11 @@ const selectCandidateRoots = (
 ) => {
   const hunks = candidatePostEditHunks(observation, candidate, path, captured)
   if (hunks === undefined) return { selected: [] as UnitAnalysis[], ambiguous: true }
-  const declarations = candidateDeclarations.map(({ artifact, location }) => ({
+  const declarations = candidateDeclarations.map(({ artifact, location, selectionLocations }) => ({
     path,
     kind: artifact.kind,
     name: artifact.name,
+    ...(selectionLocations === undefined ? {} : { selectionLocations }),
     location
   }))
   try {
@@ -669,6 +672,9 @@ const functionExtractionFailures = (
     failures.push({ root: undefined, reason: "no-supported-function-root" })
   return failures
 }
+const hasCapturedGraph = ({ functionFile, graphFile }: ReturnType<typeof capturedCandidateFiles>): boolean =>
+  graphFile !== undefined ||
+  (functionFile !== undefined && functionFile.functions.size > 0 && functionFile.types.size === 0)
 const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate")(function* (
   candidateOperation: "add" | "update",
   path: string,
@@ -678,12 +684,7 @@ const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate
 ) {
   const files = capturedCandidateFiles(path, captured, frame.graphLimits)
   const { functionFile, graphFile } = files
-  const analysis = analyzeTypeFile(
-    path,
-    captured.text,
-    graphFile !== undefined ||
-      (functionFile !== undefined && functionFile.functions.size > 0 && functionFile.types.size === 0)
-  )
+  const analysis = analyzeTypeFile(path, captured.text, hasCapturedGraph(files))
   const candidateDeclarations = candidateDeclarationsForFiles(files, frame.contract)
   const analyses = unresolvedUnitAnalyses(candidateDeclarations)
   const selection = selectCapturedCandidate(
@@ -1052,7 +1053,7 @@ export const preparedSourceLineStillCurrent = Effect.fn("DirectEvent.preparedSou
   )
 })
 
-/** Rebuild the named rule input under current file policy before a Jev request. */
+/** Explicit snapshot comparison for analysis callers; the review loop checks at publication. */
 export const preparedUnitStillCurrent = Effect.fn("DirectEvent.preparedUnitStillCurrent")(function* (
   observation: DirectObservation,
   prepared: PreparedUnit,
@@ -1131,7 +1132,7 @@ export const candidateReviewInput = (
   ): typeof root | undefined => {
     const child = reference.node
     const origin = child.artifact.origin
-    if (origin !== undefined && !isBundledBendArtifact(child.artifact)) return invalid("supporting-artifact-invalid")
+    if (origin !== undefined && !isBundledArtifact(child.artifact)) return invalid("supporting-artifact-invalid")
     const domain = origin === undefined ? child.artifact.path : bundledArtifactDomain(origin)
     if (domain === undefined) return invalid("supporting-artifact-invalid")
     if (seen.has(child.artifact.id)) return invalid("duplicate-expanded-target")
@@ -1342,19 +1343,28 @@ const reportInputFailure = Effect.fn("DirectEvent.reportInputFailure")(function*
   return { status: "input-invalid" } as const
 })
 
-/** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
-export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
-  prepared: PreparedSource,
-  beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
-  observe?: (evidence: EvaluationEvidence) => void
-) {
-  const emit = (evidence: EvaluationEvidence) => {
+const evaluationEvidenceEmitter =
+  (observe: ((evidence: EvaluationEvidence) => void) | undefined) =>
+  (evidence: EvaluationEvidence): void => {
     try {
       observe?.(evidence)
     } catch {
       /* Optional evidence cannot change evaluation. */
     }
   }
+
+const reportBackendFailure = (failure: unknown, emit: (evidence: EvaluationEvidence) => void) => {
+  emit({ kind: "evaluation-outcome", outcome: invalidModelOutput(failure) ? "invalid-response" : "backend" })
+  return { status: "backend" } as const
+}
+
+/** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
+export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
+  prepared: PreparedSource,
+  beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
+  observe?: (evidence: EvaluationEvidence) => void
+) {
+  const emit = evaluationEvidenceEmitter(observe)
 
   let inputFailure: CandidateInputFailure | undefined
   const providerInput = preparedProviderInput(prepared, (failure) => {
@@ -1394,11 +1404,7 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     Effect.result,
     Effect.onInterrupt(() => Effect.sync(() => emit({ kind: "evaluation-outcome", outcome: "interrupted" })))
   )
-  if (Result.isFailure(evaluated)) {
-    const invalid = invalidModelOutput(evaluated.failure)
-    emit({ kind: "evaluation-outcome", outcome: invalid ? "invalid-response" : "backend" })
-    return { status: "backend" } as const
-  }
+  if (Result.isFailure(evaluated)) return reportBackendFailure(evaluated.failure, emit)
   if (Option.isNone(evaluated.success)) {
     emit({ kind: "evaluation-outcome", outcome: "timeout" })
     return { status: "timeout" } as const
@@ -1450,7 +1456,6 @@ const evaluateObservedUnit = Effect.fn("DirectEvent.evaluateObservedUnit")(funct
     return { status: "root-stale" } as const
   }
   if (admission !== "admitReview") return { status: "skipped" } as const
-  if (!(yield* preparedUnitStillCurrent(observation, prepared, context))) return { status: "skipped" } as const
   return yield* evaluatePrepared(prepared)
 })
 const evaluateObservationUnits = Effect.fn("DirectEvent.evaluateObservationUnits")(function* (

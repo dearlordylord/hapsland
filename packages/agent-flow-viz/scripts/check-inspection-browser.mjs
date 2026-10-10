@@ -80,7 +80,12 @@ try {
             Effect.tap(() =>
               Effect.sync(() => {
                 if (record.fact.kind === "recording-state") recordingPublished.resolve()
-                if (record.fact.kind === "finding-fate" && record.fact.fate === "stale") retired.resolve()
+                if (
+                  record.fact.kind === "finding-fate" &&
+                  record.fact.fate === "discarded" &&
+                  record.fact.reason === "publication-retired"
+                )
+                  retired.resolve()
                 if (record.fact.kind === "agent-message") messagePublished.resolve()
                 if (
                   (record.fact.kind === "finding-fate" && record.fact.fate === "retained") ||
@@ -203,6 +208,29 @@ try {
       .sort()
   )
   assert.equal(new Set(copiedRequests).size, 2)
+  // A finding opens its own retained request, even after another request was selected.
+  const findingCard = page.locator("#finding-summary p").filter({ hasText: requestDeclarations[0] }).first()
+  await findingCard
+    .getByRole("button", { name: /^Inspect reviewed code for / })
+    .first()
+    .focus()
+  await page.keyboard.press("Enter")
+  assert.equal(JSON.parse(await page.locator("#request-metadata").textContent()).declaration, requestDeclarations[0])
+  assert.equal(await page.locator("#panel-request").evaluate((panel) => panel.open), true)
+  assert.equal(await page.evaluate(() => document.activeElement?.parentElement?.id), "panel-request")
+  await page.locator("#outcome-filter").selectOption("findings")
+  assert.equal(await page.locator("#edits button").count(), 1)
+  await page.locator("#outcome-filter").selectOption("failed")
+  assert.equal(await page.locator("#edits button").count(), 0)
+  assert.match(await page.locator("#selection-status").textContent(), /outside current filters/)
+  assert.equal(await page.locator("#edit-content").isVisible(), true)
+  await page.getByRole("button", { name: "Show all retained edits", exact: true }).click()
+  assert.equal(await page.locator("#outcome-filter").inputValue(), "")
+  assert.equal(await page.locator("#hide-unreviewed").isChecked(), false)
+  assert.equal(await page.locator("#edits button").count(), 1)
+  await page.getByRole("button", { name: "File selection", exact: true }).click()
+  assert.equal(await page.locator("#panel-files").evaluate((panel) => panel.open), true)
+  assert.equal(await page.evaluate(() => document.activeElement?.parentElement?.id), "panel-files")
   await page.locator("#requests button").first().focus()
   await page.keyboard.press("Enter")
   assert.match(await page.locator("#files").textContent(), /Physically read:[\s\S]*support\.ts/)
@@ -224,11 +252,29 @@ try {
   assert.match(await page.locator("#results").textContent(), /Validated backend answers:[\s\S]*0.7/)
   assert.match(await page.locator("#results").textContent(), /Interpreted findings:[\s\S]*Inspect browser 日本語 cases/)
   const selection = await page.locator("#detail").textContent()
+  const readingFinding = await page
+    .locator("#finding-summary p")
+    .first()
+    .evaluate((paragraph) => {
+      const message = [...paragraph.childNodes].find((node) => node.nodeType === Node.TEXT_NODE)
+      const range = document.createRange()
+      range.setStart(message, 0)
+      range.setEnd(message, Math.min(20, message.textContent.length))
+      getSelection().removeAllRanges()
+      getSelection().addRange(range)
+      return getSelection().toString()
+    })
+  assert.ok(readingFinding.length > 0)
   const hostile = "<img onerror=alert(1)>.ts"
   await put(root, hostile, "type OtherCount = number\n")
   await edit(hostile, "during-live-update")
   await page.getByRole("button", { name: /<img onerror/ }).waitFor()
   assert.equal(await page.locator("#edits button").count(), 2)
+  assert.equal(
+    await page.evaluate(() => getSelection().toString()),
+    readingFinding,
+    "unrelated live events preserve finding text selection"
+  )
   assert.equal(await page.locator("#detail").textContent(), selection)
   assert.equal(await page.locator("#edits img").count(), 0)
   assert.equal(await page.locator("#detail").textContent(), selection)
@@ -343,9 +389,12 @@ try {
   await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("Mixed outcomes"))
   assert.match(await page.locator("#files").textContent(), /Skipped:[\s\S]*bad\.ts/)
   await page.waitForFunction(() =>
-    /Omitted:[\s\S]*bad\.ts[\s\S]*import/.test(document.querySelector("#files").textContent)
+    /Omitted:[\s\S]*bad\.ts[\s\S]*BadCount[\s\S]*missing-evidence/.test(document.querySelector("#files").textContent)
   )
-  assert.match(await page.locator("#files").textContent(), /Omitted:[\s\S]*bad\.ts[\s\S]*import/)
+  assert.match(
+    await page.locator("#files").textContent(),
+    /Omitted:[\s\S]*bad\.ts[\s\S]*BadCount[\s\S]*missing-evidence/
+  )
   assert.equal(dispatched.length, 5, "failed preparation must not create a classifier request")
   await put(root, "type.ts", "type OrderCount = string;\n")
   phase = "collection listener"
@@ -368,7 +417,7 @@ try {
   )
   await retired.promise
   await originalRow.click()
-  await page.waitForFunction(() => document.querySelector("#results").textContent.includes('"fate": "stale"'))
+  await page.waitForFunction(() => document.querySelector("#results").textContent.includes('"fate": "discarded"'))
   assert.match(await page.locator("#results").textContent(), /Observed finding fates \(independent of submission\)/)
   assert.match(await page.locator("#results").textContent(), /"fate": "retained"/)
   assert.equal(dispatched.length, 5, "advice revalidation must not invent another classifier request")
@@ -434,6 +483,8 @@ try {
   ).json()
   assert.equal(expiredMessage.reason, "expired")
   await page.waitForFunction(() => document.querySelectorAll("#edits button").length === 0)
+  await page.getByRole("heading", { name: "This edit is no longer retained", exact: true }).waitFor()
+  assert.equal(await page.locator("#recording-guide").isVisible(), true)
   assert.deepEqual(errors, [])
   console.log(
     "inspection browser: real review history, per-unit request selection and JSON preview, resident-owned messages, batch edit links, keyboard controls, live reading stability, live updates and recovery gaps, live payload expiry and narrow layout passed"

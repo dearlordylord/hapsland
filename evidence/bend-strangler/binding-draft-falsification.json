@@ -1,7 +1,0 @@
-{
-  "passed": true,
-  "cases": 42,
-  "laws": 3,
-  "scope": "exhaustive conditional Boolean facts against independent literal Python oracle and actual law spec definitions; no native AST or universal proof claim",
-  "deadlineSeconds": 5
-}

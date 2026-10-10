@@ -8,7 +8,112 @@ import {
   encodedBytesWithin
 } from "@hapsland/resident-runtime/resident/capacity"
 
+const preparedReview = () => {
+  const ledger = Effect.runSync(makeResidentState())
+  const round = Effect.runSync(ledger.roundId("review-agent"))
+  const observation = Effect.runSync(ledger.admitObservation("review-agent", round))
+  if (!Effect.runSync(ledger.observation("review-agent", observation, "startObservation", round))) {
+    throw new Error("fixture observation did not start")
+  }
+  const preparation = Effect.runSync(ledger.beginObservedPreparation("review-agent", observation, 20, round))
+  if (preparation.status !== "admitted") throw new Error("fixture preparation refused")
+  const [unit] = Effect.runSync(
+    ledger.completePreparation("review-agent", preparation.operation, preparation.reservation, [10], round)
+  )
+  if (unit === undefined) throw new Error("fixture review unit refused")
+  return { ledger, round, unit }
+}
+
 describe("resident logical capacity ledger", () => {
+  it("does not prepare observation work discarded by the finish decision", () => {
+    const ledger = Effect.runSync(makeResidentState())
+    const partition = Effect.runSync(ledger.partitionId("agent"))
+    const round = Effect.runSync(ledger.roundId("agent"))
+    const observation = Effect.runSync(ledger.admitObservation("agent", round))
+    expect(Effect.runSync(ledger.observation("agent", observation, "startObservation", round))).toBe(true)
+    const decision = Effect.runSync(
+      ledger.transition({
+        kind: "stopGroupPolled",
+        group: partition,
+        lifetime: 1,
+        round,
+        scopes: [{ partition, round }],
+        deadline: true,
+        extraPending: false,
+        continuations: 0
+      })
+    )
+    expect(decision.rejection).toBeUndefined()
+
+    const beforeLatePreparation = Effect.runSync(ledger.canonicalProjection())
+    expect(Effect.runSync(ledger.beginObservedPreparation("agent", observation, 10, round))).toEqual({
+      status: "unavailable",
+      reason: "wrong-stage"
+    })
+    expect(Effect.runSync(ledger.canonicalProjection())).toEqual(beforeLatePreparation)
+  })
+
+  it.each(["finding", "clear", "unavailable", "interrupted", "discarded"] as const)(
+    "settles completed review outcome %s and retains bytes only for a finding",
+    (outcome) => {
+      const { ledger, round, unit } = preparedReview()
+      const forged = Object.freeze({ id: unit.reservation.id, partition: unit.reservation.partition })
+
+      expect(Effect.runSync(ledger.completeReview("review-agent", unit.operation, forged, outcome, round))).toBe(false)
+      expect(Effect.runSync(ledger.reservationSnapshot(unit.reservation))?.purpose).toBe("reviewUnit")
+
+      expect(Effect.runSync(ledger.startReview("review-agent", unit.operation, round))).toBe(true)
+      expect(
+        Effect.runSync(ledger.completeReview("review-agent", unit.operation, unit.reservation, outcome, round))
+      ).toBe(true)
+
+      if (outcome === "finding") {
+        expect(Effect.runSync(ledger.reservationSnapshot(unit.reservation))).toEqual({
+          bytes: 10,
+          purpose: "storedResult"
+        })
+        expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 1, bytes: 10 })
+      } else {
+        expect(Effect.runSync(ledger.reservationSnapshot(unit.reservation))).toBeUndefined()
+        expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} })
+      }
+    }
+  )
+
+  it.each([
+    ["finding", true, "findingRetained"],
+    ["clear", true, "clearSettled"],
+    ["clear", false, "staleClearSettled"],
+    ["finding", false, "staleFindingRetired"]
+  ] as const)(
+    "maps observed %s with currentWork=%s to %s and releases only non-current results",
+    (outcome, currentWork, disposition) => {
+      const { ledger, round, unit } = preparedReview()
+      const forged = Object.freeze({ id: unit.reservation.id, partition: unit.reservation.partition })
+      expect(() =>
+        Effect.runSync(ledger.observeReview("review-agent", unit.operation, forged, outcome, currentWork, round))
+      ).toThrow("unknown review reservation")
+      expect(Effect.runSync(ledger.reservationSnapshot(unit.reservation))?.purpose).toBe("reviewUnit")
+      expect(Effect.runSync(ledger.startReview("review-agent", unit.operation, round))).toBe(true)
+      expect(
+        Effect.runSync(
+          ledger.observeReview("review-agent", unit.operation, unit.reservation, outcome, currentWork, round)
+        )
+      ).toBe(disposition)
+
+      if (disposition === "findingRetained") {
+        expect(Effect.runSync(ledger.reservationSnapshot(unit.reservation))).toEqual({
+          bytes: 10,
+          purpose: "storedResult"
+        })
+        expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 1, bytes: 10 })
+      } else {
+        expect(Effect.runSync(ledger.reservationSnapshot(unit.reservation))).toBeUndefined()
+        expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} })
+      }
+    }
+  )
+
   it("distinguishes preparation capacity refusal from invalid measurement and wrong stage", () => {
     const ledger = Effect.runSync(
       makeResidentState({ globalItems: 4, globalBytes: 100, partitionItems: 3, partitionBytes: 80 })
@@ -269,6 +374,24 @@ describe("resident logical capacity ledger", () => {
     Effect.runSync(ledger.discardUnusedPartition("preparing"))
     expect(Effect.runSync(ledger.canonicalProjection())).toEqual(forgotten)
     expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(0)
+  })
+
+  it("retains a native round identity until the canonical round is retired", () => {
+    const ledger = Effect.runSync(makeResidentState())
+    const round = Effect.runSync(ledger.roundId("round-owner"))
+    const partition = Effect.runSync(ledger.knownPartitionId("round-owner"))
+    expect(partition).toBeDefined()
+
+    Effect.runSync(ledger.discardUnusedPartition("round-owner"))
+    expect(Effect.runSync(ledger.currentRoundId("round-owner"))).toBe(round)
+    expect(Effect.runSync(ledger.knownPartitionId("round-owner"))).toBe(partition)
+    expect(Effect.runSync(ledger.canonicalProjection()).rounds).toHaveLength(1)
+
+    Effect.runSync(ledger.retireRound("round-owner", round))
+    Effect.runSync(ledger.discardUnusedPartition("round-owner"))
+    expect(Effect.runSync(ledger.currentRoundId("round-owner"))).toBeUndefined()
+    expect(Effect.runSync(ledger.knownPartitionId("round-owner"))).toBeUndefined()
+    expect(Effect.runSync(ledger.partitionIdentityBytes())).toBe(0)
   })
 
   it("does not accumulate Bend delivery counters across completed rounds", () => {

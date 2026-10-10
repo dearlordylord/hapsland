@@ -1,5 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import { realpathSync } from "node:fs"
 import { mkdtemp, mkdir, writeFile, readdir, readFile, rm, cp, symlink } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
 import { join, resolve } from "node:path"
@@ -85,7 +86,7 @@ test("compiled executables load the owned coverage preload without embedded deve
 })
 
 test("Bun source subprocess coverage preserves original branches and merges fresh process counters", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "hapsland-bun-coverage-"))
+  const root = await mkdtemp(join(realpathSync(tmpdir()), "hapsland-bun-coverage-"))
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, "src"))
   const path = join(root, "src/subject.ts")
@@ -102,9 +103,22 @@ test("Bun source subprocess coverage preserves original branches and merges fres
   }
   const bun = resolveBunRuntime().executable
   assert.equal(execFileSync(bun, [path, "yes"], { env, encoding: "utf8", timeout: 10000 }), "yes\n")
-  const first = JSON.parse(await readFile(join(directory, (await readdir(directory))[0]), "utf8"))
+  const first = JSON.parse(
+    await readFile(
+      join(
+        directory,
+        (await readdir(directory)).find((name) => name.endsWith(".json"))
+      ),
+      "utf8"
+    )
+  )
   assert.deepEqual(Object.values(first.coverage[path].b)[0], [1, 0])
+  const cacheDirectory = join(directory, "instrumented-source")
+  const cacheFiles = async () => (await readdir(cacheDirectory)).filter((name) => name.endsWith(".json")).sort()
+  const coldCacheFiles = await cacheFiles()
+  assert.ok(coldCacheFiles.length > 0)
   assert.equal(execFileSync(bun, [path, "no"], { env, encoding: "utf8", timeout: 10000 }), "no\n")
+  assert.deepEqual(await cacheFiles(), coldCacheFiles)
   const coverage = provider.getProvider().createCoverageMap()
   await mergeBunCoverage(coverage, directory, root)
   const data = coverage.fileCoverageFor(path).data
@@ -112,10 +126,16 @@ test("Bun source subprocess coverage preserves original branches and merges fres
   assert.equal(Object.values(data.f)[0], 2)
   assert.equal(data.fnMap[0].loc.start.line, 1)
   await assert.rejects(mergeBunCoverage(coverage, directory, join(root, "foreign")), /provenance is invalid/)
+  await writeFile(
+    path,
+    'export function choose(flag: boolean) { return flag ? "new" : "no" }\nconsole.log(choose(process.argv[2] === "yes"))\n'
+  )
+  assert.equal(execFileSync(bun, [path, "yes"], { env, encoding: "utf8", timeout: 10000 }), "new\n")
+  assert.equal((await cacheFiles()).length, coldCacheFiles.length + 1)
 })
 
 test("Bun private workspace exports record original source hits and uncalled functions", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "hapsland-bun-private-coverage-"))
+  const root = await mkdtemp(join(realpathSync(tmpdir()), "hapsland-bun-private-coverage-"))
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, "src"))
   await mkdir(join(root, "packages/subject/src"), { recursive: true })
@@ -179,7 +199,7 @@ test("Bun private workspace exports record original source hits and uncalled fun
 })
 
 test("portable instrumented bundles retain nested, untouched and fresh counters in another checkout", async (t) => {
-  const temp = await mkdtemp(join(tmpdir(), "hapsland-bundle-coverage-"))
+  const temp = await mkdtemp(join(realpathSync(tmpdir()), "hapsland-bundle-coverage-"))
   t.after(() => rm(temp, { recursive: true, force: true }))
   const first = join(temp, "first"),
     second = join(temp, "second")

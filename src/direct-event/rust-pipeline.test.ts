@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
+import { rm } from "node:fs/promises"
 import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
@@ -13,6 +14,7 @@ import {
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { resolveRustModuleContext } from "@hapsland/source-analysis/direct-event/languages/rust-module-context"
+import { rustAdapter } from "@hapsland/source-analysis/direct-event/languages/rust-adapter"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
@@ -49,6 +51,43 @@ const prepare = (event: unknown, closure = true) =>
   })
 
 describe("Rust direct review integration", () => {
+  it.effect("keeps Rust graph sessions type-only and resolves module candidates from source paths", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() => put(root, "model.rs", "struct Root { value: u8 }"))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.rs"]))
+        if (observation === undefined) throw new Error("fixture adaptation failed")
+        const selected = yield* eligibleNamedPath(
+          root,
+          "model.rs",
+          DEFAULT_DIRECT_FILE_POLICY,
+          observation.rootIdentity
+        )
+        if (selected === undefined) throw new Error("Rust root path was not eligible")
+        const captured = yield* captureStable(root, selected, {}, observation.rootIdentity)
+        if (captured.status !== "captured") throw new Error("Rust root capture failed")
+        const graph = yield* rustAdapter.prepareGraph(
+          "model.rs",
+          captured.capture,
+          { root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY },
+          GRAPH_LIMIT_CEILINGS,
+          () => false
+        )
+        if (graph === undefined) throw new Error("Rust graph session was not prepared")
+        expect(graph.session.inspect("model.rs", captured.capture.text, "type")?.declarations.has("Root")).toBe(true)
+        expect(graph.session.inspect("model.rs", captured.capture.text, "function")).toBeUndefined()
+        expect(graph.session.inspect("child.rs", "struct Child { value: u8 }", "type")?.declarations.has("Child")).toBe(
+          true
+        )
+        expect(graph.session.importCandidates("model.rs", "./child")).toEqual(["child.rs", "child/mod.rs"])
+        expect(graph.session.importCandidates("model.rs", "./child.rs")).toEqual([])
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+
   it.effect("does not bind TypeScript imports to Rust declarations", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)

@@ -220,3 +220,50 @@ it.effect("disconnected update disposes the fenced owner even when its acknowled
     })
   )
 )
+
+it.effect("idle checks retain a live IPC connection and retire after its last release", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const directory = yield* Effect.acquireRelease(
+        Effect.promise(() => mkdtemp(join(tmpdir(), "haps-idle-resident-"))),
+        (path) => Effect.promise(() => rm(path, { recursive: true, force: true }))
+      )
+      const paths = residentPaths(directory)
+      const runtime = yield* makeResidentRuntime(paths)
+      yield* runtime.listen()
+
+      const socket = yield* Effect.acquireRelease(
+        Effect.sync(() => createConnection(paths.socket)),
+        (socket) => Effect.sync(() => socket.destroy())
+      )
+      yield* Effect.promise(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            socket.once("error", reject)
+            socket.once("connect", resolve)
+          })
+      )
+      yield* Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve)))
+
+      yield* TestClock.adjust("20 seconds")
+      expect(yield* runtime.handle({ requestRoute: "shared", operation: "hello" })).toMatchObject({
+        status: "ready",
+        lifetime: runtime.lifetime
+      })
+
+      yield* Effect.promise(
+        () =>
+          new Promise<void>((resolve) => {
+            socket.once("close", resolve)
+            socket.destroy()
+          })
+      )
+      yield* Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve)))
+      yield* TestClock.adjust("20 seconds")
+      yield* TestClock.adjust("10 millis")
+      yield* runtime.operations.whenClosed
+      expect(existsSync(paths.socket)).toBe(false)
+      expect(existsSync(paths.owner)).toBe(false)
+    })
+  )
+)

@@ -176,7 +176,7 @@ The runner downloads the exact package name/version in the release checkout mani
 installs it in a fresh prefix with lifecycle scripts disabled, and exercises
 the package, setup, controlled offline review, update/recovery, and native
 Codex host path. Record the resulting source-free evidence in the release
-record. The existing Codex runner targets Linux arm64 / Codex CLI 0.155.1 and macOS arm64 / 0.156.0. It does not validate Claude; Claude needs its own exact installed-artifact lifecycle and authenticated native-host trial before a release support claim.
+record. The existing Codex runner targets Linux arm64 / Codex CLI and macOS arm64. It does not validate Claude; Claude needs its own exact installed-artifact lifecycle and authenticated native-host trial before a release support claim.
 The `--real-codex` path needs authenticated Codex and may invoke it locally.
 The checkout is the test harness; the installed code comes from the registry
 archive.

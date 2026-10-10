@@ -5,14 +5,7 @@ export default defineConfig({
   // Worktrees can share node_modules, but optimizer caches include checkout paths.
   cacheDir: fileURLToPath(new URL("../../.test-runs/vite-agent-flow-viz/", import.meta.url)),
   base: "./",
-  build: {
-    rollupOptions: {
-      input: {
-        dashboard: fileURLToPath(new URL("./index.html", import.meta.url)),
-        site: fileURLToPath(new URL("./site.html", import.meta.url))
-      }
-    }
-  },
+  build: { rollupOptions: { input: { dashboard: fileURLToPath(new URL("./index.html", import.meta.url)) } } },
   resolve: {
     // Configuration schemas and browser decoders must share Effect's runtime
     // identities even when the root and this package have separate installs.

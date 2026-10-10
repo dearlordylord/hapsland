@@ -696,6 +696,8 @@ export const CanonicalPolicyDecisionSchema = Schema.suspend(() =>
     Schema.Struct({
       category: Schema.Literal("decision"),
       kind: Schema.Union([
+        Schema.Literal("sourceCacheDrop"),
+        Schema.Literal("sourceCacheRetain"),
         Schema.Literal("ignoreCandidate"),
         Schema.Literal("releaseCandidate"),
         Schema.Literal("retireCandidate"),
@@ -1320,6 +1322,7 @@ export const CanonicalEventSchema = Schema.Union([
     sharedCollect: Schema.Boolean,
     invalidSeen: Schema.Boolean
   }),
+  Schema.Struct({ kind: Schema.Literal("sourceCacheCheck"), remaining: Nat, aborted: Schema.Boolean }),
   Schema.Struct({
     kind: Schema.Literal("validationRouteCheck"),
     ownerCurrent: Schema.Boolean,

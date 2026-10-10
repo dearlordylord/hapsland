@@ -2,11 +2,11 @@ import { Context, Effect, Layer, Schema } from "effect"
 import type { PreparedUnit } from "@hapsland/review-definition/direct-event/model"
 
 const ReviewControlPhase = Schema.Literals([
-  "beforeRevalidate",
+  "beforeSelection",
   "beforeEvaluate",
   "workspaceReserved",
   "advicePending",
-  "beforeFinalRevalidate",
+  "beforeFinalSelection",
   "beforeResponseHandoff"
 ])
 export type ReviewControlPhase = typeof ReviewControlPhase.Type
@@ -16,11 +16,11 @@ export class ReviewControlError extends Schema.TaggedError<ReviewControlError>()
 }) {}
 
 export interface ReviewControls {
-  readonly beforeRevalidate: (adviceId: string) => Effect.Effect<void, ReviewControlError>
+  readonly beforeSelection: (adviceId: string) => Effect.Effect<void, ReviewControlError>
   readonly beforeEvaluate: (prepared: PreparedUnit) => Effect.Effect<void, ReviewControlError>
-  readonly afterRevalidationWorkspaceReserved: (adviceId: string) => Effect.Effect<void, ReviewControlError>
+  readonly afterSourceWorkspaceReserved: (adviceId: string) => Effect.Effect<void, ReviewControlError>
   readonly afterAdvicePending: (adviceId: string) => Effect.Effect<void, ReviewControlError>
-  readonly beforeFinalRevalidate: (adviceId: string) => Effect.Effect<void, ReviewControlError>
+  readonly beforeFinalSelection: (adviceId: string) => Effect.Effect<void, ReviewControlError>
   readonly beforeResponseHandoff: () => Effect.Effect<void, ReviewControlError>
 }
 
@@ -30,13 +30,13 @@ export class ResidentReviewControls extends Context.Service<ResidentReviewContro
 ) {}
 
 export const defaultReviewControls = ResidentReviewControls.of({
-  beforeRevalidate: Effect.fn("ResidentReviewControls.beforeRevalidate")((_adviceId: string) => Effect.void),
+  beforeSelection: Effect.fn("ResidentReviewControls.beforeSelection")((_adviceId: string) => Effect.void),
   beforeEvaluate: Effect.fn("ResidentReviewControls.beforeEvaluate")((_prepared: PreparedUnit) => Effect.void),
-  afterRevalidationWorkspaceReserved: Effect.fn("ResidentReviewControls.workspaceReserved")(
+  afterSourceWorkspaceReserved: Effect.fn("ResidentReviewControls.workspaceReserved")(
     (_adviceId: string) => Effect.void
   ),
   afterAdvicePending: Effect.fn("ResidentReviewControls.advicePending")((_adviceId: string) => Effect.void),
-  beforeFinalRevalidate: Effect.fn("ResidentReviewControls.beforeFinalRevalidate")((_adviceId: string) => Effect.void),
+  beforeFinalSelection: Effect.fn("ResidentReviewControls.beforeFinalSelection")((_adviceId: string) => Effect.void),
   beforeResponseHandoff: Effect.fn("ResidentReviewControls.beforeResponseHandoff")(() => Effect.void)
 })
 

@@ -55,6 +55,37 @@ const requestedRuleChange = Effect.fn("Rules.requestedChange")(function* (
     return yield* Effect.fail(new Error(`rules ${action} requires --id with a rule identity.`))
   return { action, scope, id: options.id }
 })
+export const makeRuleChangeOwner = (
+  root: string,
+  action: RuleChange["action"],
+  options: RulesOptions,
+  configuration: Parameters<typeof loadRuleInventory>[1]
+) => ({
+  preview: (scope: RuleChange["scope"]) =>
+    Effect.gen(function* () {
+      const change = yield* requestedRuleChange(action, scope, options)
+      const plan = yield* previewRuleChange(root, change, configuration)
+      const safe: RulePlan = {
+        action,
+        scope,
+        digest: plan.digest,
+        configuration: plan.configurationPath,
+        rule: plan.path ?? options.id ?? "authored rule",
+        enabled: plan.enabled === true
+      }
+      return safe
+    }),
+  apply: (approved: RulePlan) =>
+    Effect.gen(function* () {
+      const change = yield* requestedRuleChange(action, approved.scope, options)
+      return yield* applyRuleChange(root, change, approved.digest, configuration).pipe(
+        Effect.map((result) => ({ kind: "applied" as const, result })),
+        Effect.catchTag("ConfigurationError", (error) =>
+          error.field === "digest" ? Effect.succeed({ kind: "stale" as const }) : Effect.fail(error)
+        )
+      )
+    })
+})
 const ruleChangeOutput = (
   result: Effect.Success<ReturnType<typeof applyRuleChange>>,
   change: RuleChange,
@@ -86,32 +117,7 @@ export const runRulesCommand = Effect.fn("Rules.command")(function* (options: Ru
   const terminal = Boolean(process.stdin.isTTY && process.stderr.isTTY)
   if (inspectionAction(action)) return yield* inspectRules(action, options, root, configuration)
   if (terminal) {
-    const owner = {
-      preview: (scope: RuleChange["scope"]) =>
-        Effect.gen(function* () {
-          const change = yield* requestedRuleChange(action, scope, options)
-          const plan = yield* previewRuleChange(root, change, configuration)
-          const safe: RulePlan = {
-            action,
-            scope,
-            digest: plan.digest,
-            configuration: plan.configurationPath,
-            rule: plan.path ?? options.id ?? "authored rule",
-            enabled: plan.enabled === true
-          }
-          return safe
-        }),
-      apply: (approved: RulePlan) =>
-        Effect.gen(function* () {
-          const change = yield* requestedRuleChange(action, approved.scope, options)
-          return yield* applyRuleChange(root, change, approved.digest, configuration).pipe(
-            Effect.map((result) => ({ kind: "applied" as const, result })),
-            Effect.catchTag("ConfigurationError", (error) =>
-              error.field === "digest" ? Effect.succeed({ kind: "stale" as const }) : Effect.fail(error)
-            )
-          )
-        })
-    }
+    const owner = makeRuleChangeOwner(root, action, options, configuration)
     yield* withInteractionSession(
       (input) =>
         Effect.gen(function* () {

@@ -45,7 +45,7 @@ const declaration = Object.freeze({
 console.log(JSON.stringify({ milestone: "cross-file-paired-designs", runId, declaration, prepareOnly }))
 if (!execute && !prepareOnly) process.exit(2)
 if (execute && prepareOnly) throw new Error("Choose one execution mode")
-const evidence = join(root, "evidence/cross-file-support")
+const evidence = join(root, ".test-runs/cross-file-support")
 if (execute) {
   await mkdir(evidence, { recursive: true })
   await writeFile(

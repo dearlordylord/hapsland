@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
 import assert from "node:assert/strict"
-const root = path.resolve(process.argv[2] ?? "evidence/abide-rule-coverage-current")
+const root = path.resolve(process.argv[2] ?? ".test-runs/abide-rule-coverage-current")
 const read = (name) => JSON.parse(fs.readFileSync(path.join(root, name)))
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex")
 const write = (name, value) =>

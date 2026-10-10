@@ -9,7 +9,7 @@
 
 ## Current implementation
 
-TypeScript, Rust, and Bend use the shared review pipeline. The
+TypeScript, Rust, Bend, and the bounded same-file Python profile use the shared review pipeline. The
 [README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,
@@ -129,9 +129,9 @@ Run focused tests, `npm run typecheck`, and the required repository checks.
 [Clean-package conformance](../scripts/run-clean-package-conformance.mjs) and
 [native artifact verification](../scripts/verify-native-release.mjs) establish
 separate packaging properties. Current adapter-layout package checkpoints are
-recorded for [Linux arm64](../evidence/cross-file-support/adapter-linux-package.json)
-and [macOS arm64](../evidence/cross-file-support/adapter-macos-package.json);
-the [offline preparation record](../evidence/cross-file-support/adapter-offline-preparation.json)
+recorded for [Linux arm64](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/cross-file-support/adapter-linux-package.json)
+and [macOS arm64](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/cross-file-support/adapter-macos-package.json);
+the [offline preparation record](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/cross-file-support/adapter-offline-preparation.json)
 covers split-file compiler and freshness checks. Each record identifies its
 own revision and artifact; none substitutes for validation after a new change.
 
@@ -158,10 +158,9 @@ than admissions. Use the production Effect integration. A completed hook write
 alone does not establish model visibility, and compiler acceptance alone does
 not establish advice delivery.
 
-The [current matrix index](../evidence/native-languages/index.json) points to six
+The [current matrix index](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/native-languages/index.json) points to six
 successful final runs on implementation commit
-`a241eb5f554c112609047df97079bc404580d339`: Codex CLI 0.155.1 and Claude Code
-2.1.218 each exercised all three languages and reached a clear follow-up.
+`a241eb5f554c112609047df97079bc404580d339`: Codex CLI and Claude Code each exercised all three languages and reached a clear follow-up.
 Final runs used 12 Jev requests; retained earlier attempts used another 8.
 Six subsequent controlled offline host runs also completed the adoption path
 without Jev requests; an earlier Claude Bend attempt that did not repair
@@ -171,7 +170,7 @@ source-checkout entry points and explicitly configured lifecycle hooks. They do
 not establish normal Codex trust onboarding, installed-package behavior, newer
 runtime compatibility, general review accuracy, or unprompted agent quality.
 Bend compiler checks do not establish formal proofs.
-The [negative matrix](../evidence/native-negative/index.json) separately covers
+The [negative matrix](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/native-negative/index.json) separately covers
 reviewer failure, failed or slow edit hooks, and an older finding after a newer
 edit, all with real agents and a controlled offline reviewer. It makes no Jev
 requests and does not extend the paid adoption claim.
@@ -183,3 +182,121 @@ distinguish scope omissions, product defects, harness errors, and unknown causes
 After a harness correction, make a new declared attempt rather than relabeling
 an earlier failed measurement. Keep the current summary in the index, with
 historical details in the records.
+
+Python same-file selection, marker forms, expression limits and shipped rule matrix
+are owned by the [Python amendment](type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). Python performs no cross-file or system traversal.
+
+### Python qualification for parent #267
+
+The same-file Python slice has local implementation evidence from 2026-10-09–10.
+Keep this qualification current when its grammar, runtime, installed entrypoints,
+or model evidence contract changes; rerun the affected checks before extending it.
+The production-code candidate was `bcbbd110a133db37679364ae997fb83f85fd4758`.
+Its reviewed Linux arm64 archive SHA-256 was
+`d1564c1375f5c802713d97523306ad20f21e0a31ab10369e35358e77810a2290`.
+Subsequent runner corrections isolate HOME, check the stable hook launcher and
+catalog-defined `exec` prefixes, and exercise a distinct hook-payload update while
+preserving the independently selected resident, as required by the
+[update contract](update-context.md). They do not change installed product bytes.
+
+Executed evidence:
+
+- Twenty-six focused Python/profile tests passed: eight admitted root families with
+  the three shipped rules, exact root/support source at the controlled provider,
+  finding/clear/failure delivery, defining-edit selection, lexical shadows and
+  generic bounds, conditional schema and type-parameter marker omissions,
+  independent omissions, exclusions, budgets and stale advice. The final controls
+  also cover opaque schema mutation/deletion and unsupported class statements,
+  while preserving comments and docstrings in complete class source.
+- The fast gate passed; 257 selected existing TS/Rust/Bend, attribution, renderer,
+  rule and format consumer tests passed. Ninety-five native packaging/loader/
+  assembly/distribution tooling tests passed. Documentation generation and
+  documentation checks passed. These are selected checks, not full-suite coverage.
+- The Linux arm64 build verified six native executable assets. Clean installed
+  conformance passed with Node 24.20.0 as harness and packaged Bun 1.3.14,
+  without Node/Bun on the installed PATH. It loaded Python same-file evidence,
+  preserved Rust/Bend preparation, and exercised installed hooks, controlled
+  advice, interrupted update recovery, resident reuse and scoped uninstall.
+- The installed controlled Python adoption scenario passed all eleven assertions
+  with Codex CLI 0.155.1, OpenAI `gpt-6-luna`, Python 3.11.2, Tree-sitter 0.25.1
+  and Python grammar 0.25.0. Six controlled review inputs comprised five added
+  classes and one repaired alias; support expanded at the provider boundary,
+  advice was delivered/quoted, the agent repaired the model, and follow-up was
+  clear. There were zero Jev requests. Python compilation and rejection of a
+  missing constructor argument establish only those exercised runtime boundaries.
+
+Earlier installed attempts failed because inherited HOME selected another
+installed resident and because conformance assumed obsolete direct hook command,
+semver-only update and coupled resident-update behavior. Retained failed fixture
+state was preserved; exact-command resident cleanup passed. Corrected runs passed
+with isolated homes and unchanged custody checks. Subsequent synthetic Add
+fixtures sometimes admitted incomplete evidence; investigation found that the
+target already existed before capture. Conformance now creates each target between the pre-edit
+and post-edit hooks, and bounded provider-handoff waits retain source-free
+diagnostics on failure. Official conformance passed on the archive above after
+that correction. One subsequent native attempt created source without an edit-hook
+event or provider handoff and remains recorded as incomplete. A new attempt
+with the unchanged runner and final archive demonstrated all eleven assertions;
+the source-free result was `codex-python-adoption-controlled-offline-1791592321569.json`.
+
+Recovery qualification on the production candidate above passed the 26 focused
+tests and fast gate. Host replacements interrupted archive preparation; documented
+stopped-writer reconciliation preserved the abandoned custody records. A later
+product assembly hit its inherited admission-lock deadline; no custody check was
+weakened. The final archive preparation passed workspace/native compilation,
+product assembly, package validation and packing. Clean installed conformance
+passed on that archive. The first native attempt had no edit-hook event or provider
+handoff and remains incomplete in
+`codex-python-adoption-controlled-offline-1791594765757.json`. One newly declared
+attempt with unchanged runner and archive passed all eleven assertions in
+`codex-python-adoption-controlled-offline-1791594816312.json`. These native attempts
+used no automatic host retry and made zero Jev requests.
+
+Darwin execution and the full two-target archive remain unqualified here: the
+required Darwin arm64 native input bundle was unavailable on this Linux host.
+This evidence does not establish cross-file/system traversal, runtime framework
+validation, ordinary native trust onboarding, other hosts/platforms, or live
+classifier accuracy. Known grammar gaps remain explicit unsupported outcomes.
+No coverage study (#268) was performed. Integration with the parallel Go slice
+must retain both grammar pins/registrations/assets and additive loader/build
+policies, then rerun the affected shared and installed checks on the merged base.
+
+### Rebased Python qualification, 2026-10-10
+
+The complete retained Python commit sequence was applied to base
+`47fdf0f0afffc6eca9f613813eee7e533808e082`, preserving its Astro website changes.
+The acceptance candidate tested here was
+`256115f854cfdce0d3f3c78edb51f75be663abd1`; the only rebase conflict was resolved
+by retaining both Astro and Python grammar catalog entries. Product code matches
+the retained candidate above. A fresh medium-reasoning review of the base-to-head
+diff against #269, #267 and repository instructions found no reasonable blockers.
+
+Fresh local checks passed on Linux arm64 with Node 24.20.0 and Bun 1.3.14:
+
+- `npm run typecheck`, `npm run check:fast`, and explicit base-to-head lint/format
+  checks passed. Build commands removed inherited `NODE_PATH`, as required by the
+  Bend producer's environment contract.
+- The focused runner passed 286 tests in 13 files, including 21 Python pipeline
+  and five language-boundary tests, plus existing TS/Rust/Bend, attribution,
+  renderer and rule consumers. Run: `20261010032740501-4151494-6bfb56`.
+- Selected native task, input/receipt, binding, loader, build-boundary, assembly,
+  distribution and native installation tooling checks passed. Early probes lacked
+  the current native bundle or overlapped workspace output preparation; rebuilding
+  current inputs and running affected probes after preparation resolved them.
+  Offline documentation links and heading anchors passed with Lychee 0.24.2.
+- `HAPSLAND_BUILD_PROFILE=linux-arm64 node scripts/prepare-package.mjs --timeout-ms=300000`
+  passed fresh build, six-native-asset validation, packing and integrity checks
+  in run `20261010032928563-4161301-bc6cec`. Archive SHA-256:
+  `62e3eb42a0ff02da4775c0c14a4f995f67a97e1294f93d2fa712c21d520ee308`.
+- `npm run conformance:package -- --archive=PATH` passed against that archive.
+  The existing installed Codex Python adoption command from the
+  [testing matrix](testing-matrix.md) passed all eleven assertions using the same
+  archive, Codex CLI 0.155.1 and OpenAI `gpt-6-luna`, with zero Jev requests.
+  Source-free native record:
+  `codex-python-adoption-controlled-offline-1791603151742.json`.
+
+This fresh evidence supersedes reliance on the predecessor archive for this base.
+Darwin execution, a full two-target archive, other native hosts, ordinary native
+trust onboarding and classifier accuracy remain unqualified. The grammar pins,
+same-file support boundaries and #270/#268 continuation scope remain unchanged.
+No full coverage gate or remote CI result is claimed.

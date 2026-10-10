@@ -27,6 +27,26 @@ class ControllingInput extends PassThrough {
     return this
   }
 }
+const isWouldBlock = (error: unknown): error is Error & { readonly code: "EAGAIN" } =>
+  error instanceof Error && "code" in error && error.code === "EAGAIN"
+
+export const readControllingInputChunk = (
+  fd: number,
+  input: Pick<PassThrough, "write" | "end">,
+  read: typeof readSync = readSync
+): void => {
+  const buffer = Buffer.alloc(256)
+  try {
+    const count = read(fd, buffer, 0, buffer.length, null)
+    if (count) input.write(Buffer.from(buffer.subarray(0, count)))
+    else input.end()
+  } catch (error) {
+    if (!isWouldBlock(error)) throw error
+  } finally {
+    buffer.fill(0)
+  }
+}
+
 export const acquireControllingInput = Effect.gen(function* () {
   // Capture before constructing tty.ReadStream or changing raw mode.
   // Release last, after both prompt raw-mode cleanup and descriptor cleanup.
@@ -81,18 +101,7 @@ export const acquireControllingInput = Effect.gen(function* () {
         // Do not consume typeahead outside an active prompt.
         if (owned.input.readableFlowing === true) {
           yield* Effect.try({
-            try: () => {
-              const buffer = Buffer.alloc(256)
-              try {
-                const count = readSync(owned.fd, buffer, 0, buffer.length, null)
-                if (count) owned.input.write(Buffer.from(buffer.subarray(0, count)))
-                else owned.input.end()
-              } catch (error) {
-                if (!(error instanceof Error && "code" in error && error.code === "EAGAIN")) throw error
-              } finally {
-                buffer.fill(0)
-              }
-            },
+            try: () => readControllingInputChunk(owned.fd, owned.input),
             catch: () => new Terminal.QuitError({})
           })
         }

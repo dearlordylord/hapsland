@@ -6,9 +6,36 @@ export const qualityPreflight = [
   "scripts/test-harness/immediate-errors.test.mjs",
   "scripts/test-harness/verification-plan.test.mjs",
   "scripts/test-harness/verify.test.mjs",
-  "scripts/test-harness/check-complexity.test.mjs",
+  "scripts/test-harness/quality-report.test.mjs",
   "scripts/test-harness/standalone-environment.test.mjs"
 ]
+export const qualityCoverageProvider = ["quality-coverage-provider", "scripts/coverage-provider.test.mts"]
+export const nativeParserPreparation = [
+  "native-parser-preparation",
+  "scripts/native-inputs.mjs",
+  "prepare-parsers",
+  "host"
+]
+export const qualityCoverageBun = [
+  "quality-coverage-bun",
+  "--test",
+  "--test-name-pattern=^Bun source subprocess coverage preserves original branches and merges fresh process counters$",
+  "scripts/test-harness/bun-coverage.test.mjs"
+]
+export const qualityCoverageConsumer = Object.freeze({
+  testFiles: [
+    "src/activity/status.test.ts",
+    "src/onboarding/interaction-terminal.test.ts",
+    "src/onboarding/maintenance.test.ts",
+    "src/direct-event/native-bindings.test.ts"
+  ],
+  sourceFiles: [
+    "packages/activity-observation/src/activity/status.ts",
+    "packages/administration/src/interaction/terminal.ts",
+    "packages/administration/src/onboarding/maintenance.ts",
+    "packages/source-analysis/src/direct-event/languages/native-bindings.ts"
+  ]
+})
 export const precheckStages = [
   qualityPreflight,
   ["bend-generation", "scripts/build-bend-producers.mjs"],
@@ -35,7 +62,7 @@ export const precheckStages = [
   ].map((name) => [name, `scripts/check-${name}.mjs`]),
   ["bend-progress", "packages/agent-flow-bend/scripts/check-progress.mjs"],
   ["content-isolation", "packages/agent-flow-bend/scripts/check-content-isolation.mjs"],
-  ["native-parser-preparation", "scripts/native-inputs.mjs", "prepare-parsers", "host"],
+  nativeParserPreparation,
   ["content-wire-mutants", "scripts/check-content-wire-mutants.mjs"],
   [
     "native-pi-observation",

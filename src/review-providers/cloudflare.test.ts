@@ -103,6 +103,30 @@ describe("Cloudflare DecisionModel wire contract", () => {
     )
   }
 
+  it.effect("rejects provider/model mismatches before HTTP", () =>
+    Effect.gen(function* () {
+      let calls = 0
+      const httpClient = HttpClient.make((request) => {
+        calls++
+        return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(envelope())))
+      })
+      for (const invalidIdentity of [
+        { ...identity(), provider: "openai" as const },
+        { ...identity(), model: "gpt-6-luna" as const }
+      ]) {
+        const result = yield* decide({ state: {}, decisions: { rule: decision } }).pipe(
+          Effect.provide(
+            liveLayer({ identity: invalidIdentity, credentialEnvVar: "CLOUDFLARE_API_TOKEN", httpClient })
+          ),
+          Effect.provide(tokenLayer),
+          Effect.result
+        )
+        expect(result._tag).toBe("Failure")
+      }
+      expect(calls).toBe(0)
+    })
+  )
+
   it.effect("accepts 64 questions and rejects 65 before HTTP", () =>
     Effect.gen(function* () {
       let calls = 0

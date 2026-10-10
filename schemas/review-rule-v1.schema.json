@@ -64,7 +64,8 @@
                       "enum": [
                         "typescript",
                         "rust",
-                        "bend"
+                        "bend",
+                        "python"
                       ]
                     },
                     "minItems": 1,
@@ -103,7 +104,8 @@
                       "enum": [
                         "typescript",
                         "rust",
-                        "bend"
+                        "bend",
+                        "python"
                       ]
                     },
                     "minItems": 1,

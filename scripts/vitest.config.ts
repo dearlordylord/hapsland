@@ -3,7 +3,7 @@ import { readPackageGraph } from "./package-graph.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { join, resolve } from "node:path"
 import { defineConfig } from "vitest/config"
-import { inventoryTestHarness } from "./test-harness/inventory.mjs"
+import { inventoryTestHarness, nodeMtsTestFiles } from "./test-harness/inventory.mjs"
 import { testDiscovery } from "./test-harness/test-scope.mjs"
 import { UNIT_TEST_TIMEOUT_MS } from "./test-harness/policy.mjs"
 
@@ -26,7 +26,7 @@ export default defineConfig({
     testTimeout: UNIT_TEST_TIMEOUT_MS,
     setupFiles: [join(repositoryRoot, "scripts/test-harness/setup.mts")],
     provide: { harnessInventory: inventoryTestHarness(repositoryRoot, selectedFiles) },
-    ...testDiscovery(selectedFiles),
+    ...testDiscovery(selectedFiles, nodeMtsTestFiles(repositoryRoot)),
     coverage: {
       provider: "custom",
       customProviderModule: join(repositoryRoot, "scripts/coverage-provider.mjs"),

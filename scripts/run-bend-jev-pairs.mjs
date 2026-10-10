@@ -33,9 +33,9 @@ const declaration = Object.freeze({
 })
 console.log(JSON.stringify({ milestone: "bend-paired-designs", declaration }))
 if (!process.argv.includes("--execute-paid")) process.exit(2)
-await mkdir(join(root, "evidence/bend-support"), { recursive: true })
+await mkdir(join(root, ".test-runs/bend-support"), { recursive: true })
 await writeFile(
-  join(root, "evidence/bend-support/paired-declaration-1.json"),
+  join(root, ".test-runs/bend-support/paired-declaration-1.json"),
   JSON.stringify({ declaredAt: new Date().toISOString(), declaration }, null, 2) + "\n",
   { flag: "wx" }
 )
@@ -150,8 +150,8 @@ const record = {
   verdict: passed ? "demonstrated" : "incomplete",
   rawBackendMaterialRetained: false
 }
-await mkdir(join(root, "evidence/bend-support"), { recursive: true })
-await writeFile(join(root, "evidence/bend-support/paired-designs.json"), JSON.stringify(record, null, 2) + "\n", {
+await mkdir(join(root, ".test-runs/bend-support"), { recursive: true })
+await writeFile(join(root, ".test-runs/bend-support/paired-designs.json"), JSON.stringify(record, null, 2) + "\n", {
   flag: "wx"
 })
 console.log(JSON.stringify(record, null, 2))

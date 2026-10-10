@@ -593,3 +593,10 @@ def lease.suppresses(state: Lease, round: Nat, requested: Surface) -> Bool:
     case Lease{_, owner, closed, _, phase}:
       Bool.and(Nat.is_eq(owner, round),
         Bool.and(Bool.not(closed), lease.suppress_phase(phase, requested)))
+
+# Source fingerprints are scoped to one selected delivery, never to an edit.
+# Native IO is sequential; interruption settles its capture before cleanup.
+def drop_source_cache(remaining: Nat, aborted: Bool) -> Bool:
+  match aborted:
+    case True{}: True{}
+    case False{}: Nat.is_eq(remaining, 0n)

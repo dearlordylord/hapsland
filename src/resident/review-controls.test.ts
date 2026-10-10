@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest"
-import { Deferred, Effect, Exit, Layer, Ref } from "effect"
+import { Deferred, Effect, Exit, Fiber, Layer, Ref } from "effect"
 import { rm } from "node:fs/promises"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
@@ -101,7 +101,7 @@ it.effect("releases revalidation workspace after its reserved control fails", ()
     Effect.gen(function* () {
       const { runtime, root, observation, dispatch } = yield* fixture(
         reviewControlsLayer({
-          afterRevalidationWorkspaceReserved: () => Effect.fail(new ReviewControlError({ phase: "workspaceReserved" }))
+          afterSourceWorkspaceReserved: () => Effect.fail(new ReviewControlError({ phase: "workspaceReserved" }))
         })
       )
       yield* runtime.admit(observation, dispatch)
@@ -114,7 +114,7 @@ it.effect("releases revalidation workspace after its reserved control fails", ()
   )
 )
 
-for (const phase of ["beforeRevalidate", "beforeFinalRevalidate"] as const) {
+for (const phase of ["beforeSelection", "beforeFinalSelection"] as const) {
   it.effect(`releases the provisional lease when ${phase} fails`, () =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -135,3 +135,32 @@ for (const phase of ["beforeRevalidate", "beforeFinalRevalidate"] as const) {
     )
   )
 }
+
+it.effect("releases the final source workspace and lease when local delivery is interrupted", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const entered = yield* Deferred.make<void>()
+      const hold = yield* Ref.make(true)
+      const { runtime, root, observation, dispatch } = yield* fixture(
+        reviewControlsLayer({
+          afterSourceWorkspaceReserved: () =>
+            Effect.gen(function* () {
+              if (!(yield* Ref.get(hold))) return
+              yield* Deferred.succeed(entered, undefined)
+              yield* Effect.never
+            })
+        })
+      )
+      yield* runtime.admit(observation, dispatch)
+      yield* runtime.whenIdle()
+      const before = (yield* runtime.stats()).retainedBytes
+      const collecting = yield* runtime.collect(root, observation.advicee, dispatch).pipe(Effect.forkChild)
+      yield* Deferred.await(entered)
+      yield* Fiber.interrupt(collecting)
+      expect((yield* runtime.stats()).retainedBytes).toBe(before)
+      expect(yield* runtime.pendingAdviceMetadata()).toMatchObject([{ delivery: "available" }])
+      yield* Ref.set(hold, false)
+      expect((yield* runtime.collect(root, observation.advicee, dispatch)).status).toBe("advice")
+    })
+  )
+)

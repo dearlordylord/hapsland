@@ -333,15 +333,21 @@ export const simulationView = <Message>(
                 [],
                 [
                   h.p([h.Class("eyebrow")], ["MONKEY BUSINESS / SHARED RESIDENT"]),
-                  h.h2([], ["One resident. Opaque advicees."]),
+                  h.h2([], ["Many advicees. One shared resident."]),
                   h.p(
                     [],
                     [
-                      "Each advicee generates its own events. All layers share one capacity ledger, one Jev pool and one timeline."
+                      "Each advicee is a simulated recipient of review feedback and generates its own events. All layers share one capacity ledger, one Jev pool and one timeline."
                     ]
                   )
                 ]
               )
+            ]
+          ),
+          h.p(
+            [h.Class("section-guidance")],
+            [
+              "Start with one advicee. Play or Step the resident, select a layer, then pause and select a stage to inspect it. Change the advicee count and Start resident to begin a new run."
             ]
           ),
           h.div(
@@ -403,7 +409,10 @@ export const simulationView = <Message>(
                 [h.Class("ensemble-agents"), h.AriaLabel("Advicee layers")],
                 [
                   h.p([h.Class("ensemble-sidebar-label")], ["ADVICEE LAYERS"]),
-                  h.p([h.Class("ensemble-hover-hint")], ["Hover to reveal a layer. Click to select."]),
+                  h.p(
+                    [h.Class("ensemble-hover-hint")],
+                    ["Select a layer to inspect its work. Hover or keyboard focus reveals it."]
+                  ),
                   h.p([h.Class("ensemble-hover-hint")], ["The same resident pools are shown on every layer."]),
                   ...layers.map(({ agent, index, current, history }) =>
                     h.button(

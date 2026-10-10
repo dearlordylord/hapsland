@@ -41,9 +41,9 @@ New setup provisions seven defaults: `meaningless_combinations`,
 Repeated setup preserves existing selections and user-edited files.
 Use `hapsland rules disable --id <authored-id> --scope personal` to disable a rule.
 
-The [compact study](./abide-contextual-review-study.md#results-by-rule) and
-[larger study](./abide-large-declaration-study.md#results) record classifier
-observations for their named definitions and inputs.
+The [historical nine-rule comparison](./abide-contextual-review-study.md) and
+[larger-declaration comparison](./abide-large-declaration-study.md) summarize
+classifier observations for their original rule definitions and inputs.
 
 ## Rule document format
 
@@ -252,8 +252,8 @@ hapsland rules disable --id no-primitive-obsession --scope project
 | `threshold` | number (0–1) | Optional | — | — |
 | `inputs` | array of object with `languages` and `kind` and `requires` (at least 1 item) | Required | — | — |
 | `inputs[]` | object with `languages` and `kind` and `requires` | Array item (array may be empty) | — | — |
-| `inputs[].languages` | array of "typescript" or "rust" or "bend" (at least 1 item) | Required (object form) | — | — |
-| `inputs[].languages[]` | "typescript" or "rust" or "bend" | Array item (array may be empty) | — | — |
+| `inputs[].languages` | array of "typescript" or "rust" or "bend" or "python" (at least 1 item) | Required (object form) | — | — |
+| `inputs[].languages[]` | "typescript" or "rust" or "bend" or "python" | Array item (array may be empty) | — | — |
 | `inputs[].kind` | "type" or "function" or fixed value "schema" | Required (object form) | — | — |
 | `inputs[].requires` | array of non-empty string (may be empty) | Required (object form) | — | — |
 | `inputs[].requires[]` | non-empty string | Array item (array may be empty) | — | — |

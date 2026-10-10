@@ -149,7 +149,7 @@ test("changes to manifests, test fixtures and newly added tooling remain verific
     "bun.lock",
     "tsconfig.build.json",
     ".hapsland.jsonc",
-    "evidence/input.json",
+    "src/test-support/fixtures/input.json",
     "scripts/new-check.mjs"
   ]) {
     await mkdir(dirname(join(root, path)), { recursive: true })

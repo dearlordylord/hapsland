@@ -61,19 +61,21 @@ const appendPatchContent = (state: PatchParserState, section: MutableSection, li
   return true
 }
 
+const endPatchSection = (state: PatchParserState, section: MutableSection): boolean => {
+  if (state.hunk === undefined || !changedHunk(state.hunk)) return false
+  section.endOfFile = true
+  return true
+}
+const hunkMarker = (line: string): boolean => line === "@@" || line.startsWith("@@ ")
 const consumePatchLine = (state: PatchParserState, line: string): boolean => {
   const file = /^\*\*\* (Add|Update|Delete) File: (.+)$/.exec(line)
   if (file !== null) return beginFile(state, file)
   const section = state.current
   if (section === undefined) return false
   if (section.endOfFile) return false
-  if (line === "*** End of File") {
-    if (state.hunk === undefined || !changedHunk(state.hunk)) return false
-    section.endOfFile = true
-    return true
-  }
+  if (line === "*** End of File") return endPatchSection(state, section)
   if (line.startsWith("*** Move to: ")) return moveFile(section, line)
-  if (line === "@@" || line.startsWith("@@ ")) return beginHunk(state, section)
+  if (hunkMarker(line)) return beginHunk(state, section)
   if (line.startsWith("***")) return false
   return appendPatchContent(state, section, line)
 }

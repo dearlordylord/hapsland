@@ -1,6 +1,6 @@
 {
   "name": "@hapsland/hapsland",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "private": false,
   "repository": {
     "type": "git",
@@ -82,7 +82,6 @@
     "conformance:client-lifecycle": "npm run build && node scripts/run-client-lifecycle-conformance.mjs",
     "conformance:setup-package": "node scripts/run-setup-package-conformance.mjs",
     "conformance:first-review-live": "node scripts/run-first-review-live-milestone.mjs",
-    "conformance:installed-release": "node scripts/verify-installed-release.mjs",
     "conformance:live": "node scripts/run-direct-event-live-milestone.mjs",
     "test:coverage": "npm test -- --coverage",
     "quality:check": "node scripts/test-harness/run-checks.mjs quality",
@@ -143,7 +142,8 @@
     "turbo": "2.11.7",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "tree-sitter-python": "catalog:"
   },
   "allowScripts": {
     "tree-sitter@0.25.1": true,
@@ -201,7 +201,8 @@
           "@effect/ai",
           "tree-sitter",
           "tree-sitter-typescript",
-          "tree-sitter-rust"
+          "tree-sitter-rust",
+          "tree-sitter-python"
         ]
       },
       "pi-extension": {
@@ -218,7 +219,8 @@
           "@effect/ai",
           "tree-sitter",
           "tree-sitter-typescript",
-          "tree-sitter-rust"
+          "tree-sitter-rust",
+          "tree-sitter-python"
         ]
       }
     }
@@ -244,6 +246,8 @@
     "tree-sitter-typescript": "0.23.2",
     "typescript": "7.0.2",
     "vitest": "5.0.1",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "astro": "7.3.8",
+    "tree-sitter-python": "0.25.0"
   }
 }

@@ -7,7 +7,7 @@ import { makeUpdateNoticeOutput, UPDATE_REQUIRED_TEXT } from "../resident/update
 import * as Option from "effect/Option"
 import { readFileSync } from "node:fs"
 import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { isCodexHostVersion } from "@hapsland/native-observation/direct-event/observation"
+import { isCodexHostVersion, isClaudeHostVersion } from "@hapsland/native-observation/direct-event/observation"
 import { runPiHook } from "../pi/transport.ts"
 import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import type { ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
@@ -86,6 +86,7 @@ const runComposed = Effect.fn("Hook.runComposed")(function* (
     host: options["composed-host"] === "claude-code" ? "claude-code" : "codex-cli",
     event,
     codexVersion,
+    ...(options["claude-version"] === undefined ? {} : { claudeVersion: options["claude-version"] }),
     ...hookRuntimeOptions(context)
   })
 })
@@ -93,28 +94,21 @@ const runComposed = Effect.fn("Hook.runComposed")(function* (
 const hookCallerCwd = (event: unknown): string | undefined =>
   event !== null && typeof event === "object" && "cwd" in event && typeof event.cwd === "string" ? event.cwd : undefined
 
-const runNative = Effect.fn("Hook.runNative")(function* (
+const runClaudeNative = Effect.fn("Hook.runClaudeNative")(function* (
   options: HookArguments,
-  codexVersion: CodexVersion,
   context: HookContext,
-  dispatch: DirectDispatch
+  dispatch: DirectDispatch,
+  event: unknown
 ) {
-  const event = yield* Effect.try({
-    try: () => JSON.parse(context.input) as unknown,
-    catch: () => new Error("stdin is not valid JSON")
-  })
   const { statePath, activityPath, userConfigPath, controlled } = context
-  if (options["pi-hook"])
-    return yield* runPiHook(event, hookRuntimeOptions(context)).pipe(
-      Effect.catch(() => Effect.succeed({ status: "unavailable" }))
-    )
-  if (options["claude-hook"]) {
-    if (!options["composed-edit-hook"]) return {}
-    let editPolicy: ResidentEditPolicy | undefined
-    let metadata: NativeEditMetadata | undefined
-    let skippedOtherRoot = false
-    const callerCwd = hookCallerCwd(event)
-    const observation = yield* adaptClaudeDirectEvent(event, {
+  if (!options["composed-edit-hook"]) return {}
+  let editPolicy: ResidentEditPolicy | undefined
+  let metadata: NativeEditMetadata | undefined
+  let skippedOtherRoot = false
+  const callerCwd = hookCallerCwd(event)
+  const observation = yield* adaptClaudeDirectEvent(
+    event,
+    {
       ...(userConfigPath === undefined ? {} : { userConfigPath }),
       observeNative: (value) => {
         metadata = skippedOtherRoot
@@ -138,21 +132,41 @@ const runNative = Effect.fn("Hook.runNative")(function* (
             return policy?.filePolicy
           })
         )
-    })
-    if (observation === undefined) yield* dispatch.retireNativeEditPermits(event, "claude-code")
-    return yield* dispatch
-      .runDirectBoundedHook(
-        observation,
-        controlled,
-        statePath,
-        activityPath,
-        userConfigPath,
-        editPolicy,
-        callerCwd,
-        metadata
-      )
-      .pipe(Effect.catch(() => Effect.succeed({})))
-  }
+    },
+    options["claude-version"]
+  )
+  if (observation === undefined)
+    yield* dispatch.retireNativeEditPermits(event, "claude-code", undefined, options["claude-version"])
+  return yield* dispatch
+    .runDirectBoundedHook(
+      observation,
+      controlled,
+      statePath,
+      activityPath,
+      userConfigPath,
+      editPolicy,
+      callerCwd,
+      metadata
+    )
+    .pipe(Effect.catch(() => Effect.succeed({})))
+})
+
+const runNative = Effect.fn("Hook.runNative")(function* (
+  options: HookArguments,
+  codexVersion: CodexVersion,
+  context: HookContext,
+  dispatch: DirectDispatch
+) {
+  const event = yield* Effect.try({
+    try: () => JSON.parse(context.input) as unknown,
+    catch: () => new Error("stdin is not valid JSON")
+  })
+  const { statePath, activityPath, userConfigPath, controlled } = context
+  if (options["pi-hook"])
+    return yield* runPiHook(event, hookRuntimeOptions(context)).pipe(
+      Effect.catch(() => Effect.succeed({ status: "unavailable" }))
+    )
+  if (options["claude-hook"]) return yield* runClaudeNative(options, context, dispatch, event)
   if (options["codex-hook"]) {
     const direct = yield* dispatch.runDirectCodexHook(
       event,
@@ -236,6 +250,7 @@ const attachUpdateNotice = Effect.fn("Hook.attachUpdateNotice")(function* (
 export const runHookProgram = async (options: HookArguments, startedAt: number): Promise<void> => {
   const kind = composedKind(options)
   if (unsupportedCodexVersion(options, kind)) return
+  if (options["claude-version"] !== undefined && !isClaudeHostVersion(options["claude-version"])) return
   const codexVersion = isCodexHostVersion(options["codex-version"]) ? options["codex-version"] : "0.155.1"
   const deadline = startedAt + (options["codex-hook"] && options["composed-edit-hook"] ? 9_000 : 3_900)
   const dispatch = makeDirectHookDispatch({

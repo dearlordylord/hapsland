@@ -1,11 +1,13 @@
 # monkey-business
 
+<!--
 **Purpose:** Explain the supported source-free deterministic simulator API.
 **Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Maintained package guidance.
 **Authority:** Implementation guidance and validation scope; issues #176–#200, #152–#157, and [#234](https://github.com/dearlordylord/hapsland/issues/234) own requirements, and accepted Hapsland contracts own product behavior.
 **Expected use:** Run headless experiments or consume checked frames in a dashboard.
 **Lifecycle:** Keep current with public API and tests; review whenever supported simulation boundaries or replay identity change.
+-->
 
 ```ts
 import { createRun, replayRun } from './src/index.ts';

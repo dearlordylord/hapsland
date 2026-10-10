@@ -17,7 +17,7 @@ import {
 
 const root = resolve(new URL("../", import.meta.url).pathname)
 const primaryEnv = "/workspace/typescript/jev/.env"
-const outputPath = join(root, "evidence/direct-event-v1/live-jev-milestone.json")
+const outputPath = join(root, ".test-runs/direct-event-v1/live-jev-milestone.json")
 const declaration = Object.freeze({
   fixtureIds: ["direct-event-add-single-unit-v1"],
   intendedProviderCallCeiling: 1,
@@ -261,7 +261,7 @@ try {
     verdict: gaps.length > 0 ? "not-run-environment-gap" : successfulEvaluation ? "passed" : "inconclusive"
   }
   if (process.argv.includes("--write-evidence")) {
-    await mkdir(join(root, "evidence/direct-event-v1"), { recursive: true })
+    await mkdir(join(root, ".test-runs/direct-event-v1"), { recursive: true })
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`, { mode: 0o600 })
   }
 } finally {

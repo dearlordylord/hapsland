@@ -330,7 +330,7 @@ const collectImportSpecifiers = (
   }
   for (const specifier of descendants(clause).filter((child) => child.type === "import_specifier")) {
     const names = specifier.namedChildren.filter((child) => child.type === "identifier")
-    const imported = names[0]?.text
+    const imported = specifier.namedChildren.some((child) => child.type === "string") ? undefined : names[0]?.text
     const local = names.at(-1)?.text
     if (!importNativeSpecifierAdmission(imported, local, imports)) return false
     imports.set(local!, { path: module, name: imported!, typeOnly: importNativeTypeOnly(node, specifier) })
@@ -539,17 +539,20 @@ const collectTypeFact = (
   })
   return true
 }
+const collectOverloadExclusion = (node: SyntaxNode, state: FunctionAnalysisState): void => {
+  const name = declarationName(node, "identifier")
+  if (name === undefined) return
+  state.excludedFunctions.set(name, {
+    reason: "function-overload",
+    location: {
+      start: state.excludedFunctions.get(name)?.location.start ?? exportSource(node).location.start,
+      end: exportSource(node).location.end
+    }
+  })
+}
 const collectCallableExclusions = (node: SyntaxNode, state: FunctionAnalysisState): void => {
   if (node.type === "function_signature") {
-    const name = declarationName(node, "identifier")
-    if (name !== undefined)
-      state.excludedFunctions.set(name, {
-        reason: "function-overload",
-        location: {
-          start: state.excludedFunctions.get(name)?.location.start ?? exportSource(node).location.start,
-          end: exportSource(node).location.end
-        }
-      })
+    collectOverloadExclusion(node, state)
     return
   }
   if (node.type !== "lexical_declaration" && node.type !== "variable_declaration") return

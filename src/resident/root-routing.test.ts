@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { Effect } from "effect"
 import { join } from "node:path"
@@ -22,6 +22,20 @@ import { residentUnitReservationBytes } from "@hapsland/resident-runtime/residen
 import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import type { ResidentDispatchContext, ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
+import * as residentCapacity from "@hapsland/resident-runtime/resident/capacity"
+import type { CapacityLimits } from "@hapsland/resident-runtime/resident/capacity"
+
+const smallCapacityLimits: CapacityLimits = {
+  globalItems: 512,
+  globalBytes: 64 * 1024,
+  partitionItems: 16,
+  partitionBytes: 64 * 1024
+}
+const originalMakeResidentState = residentCapacity.makeResidentState
+const makeResidentStateWithSmallCapacity = <Pending, DispatchKey, DispatchValue>(
+  _limits?: CapacityLimits,
+  requestedLifetime?: string
+) => originalMakeResidentState<Pending, DispatchKey, DispatchValue>(smallCapacityLimits, requestedLifetime)
 
 describe("target-root virtual rounds", () => {
   it("selects the admitted root's credential context when the first provisional root becomes stale", async () => {
@@ -256,37 +270,50 @@ describe("target-root virtual rounds", () => {
     const target = await put(b, "value.ts", "const value = 1\n")
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(a, [target])))
     if (observation === undefined) throw new Error("missing capacity observation")
-    const server = await acquireResidentFixture(residentPaths(join(a, "runtime")))
     const dispatch: ResidentDispatchContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
       controlled: { answers: {} }
     }
-    // Exercise resident byte admission itself, below the IPC frame's independent refusal boundary.
-    const oversized = {
-      ...observation,
-      nativePatchCommand: undefined,
-      candidateRoots: undefined,
-      candidates: [{ operation: "add" as const, path: "value.ts", addedLines: ["x".repeat(33 * 1024 * 1024)] }]
+    const capacityFactory = vi
+      .spyOn(residentCapacity, "makeResidentState")
+      .mockImplementation(makeResidentStateWithSmallCapacity)
+    let closeServer: (() => Promise<void>) | undefined
+    try {
+      const server = await acquireResidentFixture(residentPaths(join(a, "runtime")))
+      closeServer = () => Effect.runPromise(server.close)
+      // Keep the tested payload under IPC's separate 256 KiB frame limit.
+      const oversized = {
+        ...observation,
+        nativePatchCommand: undefined,
+        candidateRoots: undefined,
+        candidates: [{ operation: "add" as const, path: "value.ts", addedLines: ["x".repeat(65 * 1024)] }]
+      }
+      const { nativePatchCommand: _command, candidateRoots: _roots, ...boundedShape } = oversized
+      expect((await Effect.runPromise(server.admit(boundedShape, dispatch, true))).status).toBe("rejected-capacity")
+      expect(
+        await Effect.runPromise(
+          server.handle({
+            requestRoute: "shared",
+            operation: "recipient-root",
+            lifetime: server.lifetime,
+            root: b,
+            advicee: observation.advicee
+          })
+        )
+      ).toEqual({ status: "recipient-root", root: null })
+      const freshTarget = await put(a, "value.ts", "const value = 2\n")
+      const fresh = await Effect.runPromise(adaptCodexDirectEvent(addEvent(a, [freshTarget], { tool_use_id: "fresh" })))
+      if (fresh === undefined) throw new Error("missing fresh capacity target")
+      expect((await Effect.runPromise(server.admit(fresh, dispatch, true))).status).toBe("accepted")
+    } finally {
+      try {
+        await closeServer?.()
+      } finally {
+        capacityFactory.mockRestore()
+      }
     }
-    const { nativePatchCommand: _command, candidateRoots: _roots, ...boundedShape } = oversized
-    expect((await Effect.runPromise(server.admit(boundedShape, dispatch, true))).status).toBe("rejected-capacity")
-    expect(
-      await Effect.runPromise(
-        server.handle({
-          requestRoute: "shared",
-          operation: "recipient-root",
-          lifetime: server.lifetime,
-          root: b,
-          advicee: observation.advicee
-        })
-      )
-    ).toEqual({ status: "recipient-root", root: null })
-    const freshTarget = await put(a, "value.ts", "const value = 2\n")
-    const fresh = await Effect.runPromise(adaptCodexDirectEvent(addEvent(a, [freshTarget], { tool_use_id: "fresh" })))
-    if (fresh === undefined) throw new Error("missing fresh capacity target")
-    expect((await Effect.runPromise(server.admit(fresh, dispatch, true))).status).toBe("accepted")
   })
   it("uses the immutable pre-edit policy and skips native source capture for another pinned root", async () => {
     const a = await makeReviewGitFixture()

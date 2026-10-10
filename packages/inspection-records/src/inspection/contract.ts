@@ -3,7 +3,7 @@ import * as Schema from "effect/Schema"
 
 export const MAX_INSPECTION_MESSAGE_BYTES = 16 * 1024
 export const MAX_INSPECTION_INPUT_BYTES = 16 * 1024
-export const INSPECTION_VERSION = 1 as const
+export const INSPECTION_VERSION = 2 as const
 export const MAX_INSPECTION_RECORD_BYTES = 128 * 1024
 export const MAX_INSPECTION_QUEUE_BYTES = 4 * 1024 * 1024
 export const MAX_INSPECTION_QUEUE_ITEMS = 128

@@ -92,11 +92,16 @@ const permit = async (
 }
 // Delivery fixtures establish review readiness before starting the response deadline.
 // The fresh collector admission creates no review work and cannot replace the finding's source.
-const collectorObservation = (observation: DirectObservation): DirectObservation => ({
-  ...observation,
-  advicee: { ...observation.advicee, toolUseId: `${observation.advicee.toolUseId}-collector` },
-  candidates: [{ operation: "delete", path: "collector.ts", addedLines: [] }]
-})
+const collectorObservation = (observation: DirectObservation): DirectObservation => {
+  // This synthetic no-work admission has no native edit payload of its own.
+  const { nativeMetadata: _nativeMetadata, ...base } = observation
+  return {
+    ...base,
+    advicee: { ...observation.advicee, toolUseId: `${observation.advicee.toolUseId}-collector` },
+    candidates: [{ operation: "delete", path: "collector.ts", addedLines: [] }]
+  }
+}
+
 const admitReady = async (
   server: ResidentServer,
   observation: DirectObservation,
@@ -597,7 +602,7 @@ describe("registry-free Claude edit response", () => {
     let pause = true
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       reviewControls: reviewControlsLayer({
-        beforeRevalidate: Effect.fn("NativeFixture.beforeRevalidate")(function* () {
+        beforeSelection: Effect.fn("NativeFixture.beforeSelection")(function* () {
           if (pause) {
             yield* entered.complete(undefined)
             yield* release.wait
@@ -751,11 +756,12 @@ describe("registry-free Claude edit response", () => {
     try {
       await permit(server, observation)
       if (observation.advicee.host !== "claude-code") throw new Error("expected Claude observation")
+      const { nativeMetadata: _nativeMetadata, ...synthetic } = observation
       for (const mismatched of [
-        { ...observation, advicee: { ...observation.advicee, toolUseId: "wrong" } },
-        { ...observation, advicee: { ...observation.advicee, sessionId: "wrong" } },
-        { ...observation, advicee: { ...observation.advicee, subagentId: "wrong" } },
-        { ...observation, root: join(data.root, "other-root") }
+        { ...synthetic, advicee: { ...observation.advicee, toolUseId: "wrong" } },
+        { ...synthetic, advicee: { ...observation.advicee, sessionId: "wrong" } },
+        { ...synthetic, advicee: { ...observation.advicee, subagentId: "wrong" } },
+        { ...synthetic, root: join(data.root, "other-root") }
       ])
         expect((await send(server, mismatched, data.dispatch)).status).toBe("rejected-stale")
       expect(

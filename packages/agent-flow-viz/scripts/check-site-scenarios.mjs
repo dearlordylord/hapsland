@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { createServer } from "vite"
-const server = await createServer({ server: { middlewareMode: true } })
+const server = await createServer({ configLoader: "runner", server: { middlewareMode: true } })
 try {
   const { SITE_SCENARIOS, replaySiteScenario } = await server.ssrLoadModule("/src/site-scenarios.ts")
   const { SITE_EXAMPLE } = await server.ssrLoadModule("/src/site-example.ts")

@@ -7,7 +7,7 @@ user configuration. Project configuration cannot grant that authority.
 Blocking asks Claude Code to keep working after an edit, so it needs stronger
 authorization than advisory feedback. This decision was implemented for the
 synchronous Claude `Edit`/`Write` path in `f139bc0` and is described with its
-evidence in [the Claude adapter record](../../evidence/host-94/decision-and-evidence.md).
+evidence in [the Claude adapter record](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/host-94/decision-and-evidence.md).
 
 This record preserves the direct-edit decision. It does not specify the composed
 Background/Stop behavior in issue #105, and it does not yet add blocking to the

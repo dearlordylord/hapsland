@@ -603,6 +603,12 @@ const dispatchOpencodeInstallation = Effect.fn("Cli.dispatchOpencodeInstallation
 })
 
 type CodexInstallationOperation = Exclude<InstallationOperation, { host: "claude" | "opencode" | "pi" | "resident" }>
+type CodexInstallOperation = Extract<CodexInstallationOperation, { operation: "install-preview" | "install" }>
+type CodexLifecycleOperation = Extract<
+  CodexInstallationOperation,
+  { operation: "update-preview" | "update" | "uninstall" }
+>
+type CodexDoctorOperation = Extract<CodexInstallationOperation, { operation: "doctor" }>
 const codexInstallationRequest = (operation: CodexInstallationOperation) => {
   return {
     ...installationReinstall(operation),
@@ -614,41 +620,55 @@ const codexInstallationRequest = (operation: CodexInstallationOperation) => {
   }
 }
 
+const dispatchCodexInstall = Effect.fn("Cli.dispatchCodexInstall")(function* (
+  operation: CodexInstallOperation,
+  request: ReturnType<typeof codexInstallationRequest>
+) {
+  const { previewCodexInstallation, installCodexIntegration } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/codex-installation")
+  )
+  return operation.operation === "install-preview"
+    ? yield* previewCodexInstallation(request)
+    : yield* installCodexIntegration(request)
+})
+
+const dispatchCodexLifecycleOperation = Effect.fn("Cli.dispatchCodexLifecycleOperation")(function* (
+  operation: CodexLifecycleOperation,
+  request: ReturnType<typeof codexInstallationRequest>
+) {
+  const { previewCodexUpdate, updateCodexIntegration, uninstallCodexIntegration } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/codex-installation")
+  )
+  if (operation.operation === "update-preview") return yield* previewCodexUpdate(request)
+  if (operation.operation === "update") return yield* updateCodexIntegration(request)
+  return yield* uninstallCodexIntegration(request)
+})
+
+const dispatchCodexDoctor = Effect.fn("Cli.dispatchCodexDoctor")(function* (
+  operation: CodexDoctorOperation,
+  request: ReturnType<typeof codexInstallationRequest>,
+  userConfigPath: string | undefined
+) {
+  const { diagnoseInstalledIntegration } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/doctor")
+  )
+  const repositoryResult = yield* doctorRepositoryChecks(operation.cwd, userConfigPath)
+  return yield* diagnoseInstalledIntegration({
+    installation: request,
+    repository: repositoryResult.repository,
+    credential: repositoryResult.credential
+  })
+})
+
 const dispatchCodexInstallation = Effect.fn("Cli.dispatchCodexInstallation")(function* (
   operation: CodexInstallationOperation,
   userConfigPath: string | undefined
 ) {
   const request = codexInstallationRequest(operation)
-  const {
-    previewCodexInstallation,
-    installCodexIntegration,
-    previewCodexUpdate,
-    updateCodexIntegration,
-    uninstallCodexIntegration
-  } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/codex-installation"))
-  switch (operation.operation) {
-    case "doctor": {
-      const { diagnoseInstalledIntegration } = yield* Effect.promise(
-        () => import("@hapsland/administration/onboarding/doctor")
-      )
-      const repositoryResult = yield* doctorRepositoryChecks(operation.cwd, userConfigPath)
-      return yield* diagnoseInstalledIntegration({
-        installation: request,
-        repository: repositoryResult.repository,
-        credential: repositoryResult.credential
-      })
-    }
-    case "install-preview":
-      return yield* previewCodexInstallation(request)
-    case "install":
-      return yield* installCodexIntegration(request)
-    case "update-preview":
-      return yield* previewCodexUpdate(request)
-    case "update":
-      return yield* updateCodexIntegration(request)
-    case "uninstall":
-      return yield* uninstallCodexIntegration(request)
-  }
+  if (operation.operation === "doctor") return yield* dispatchCodexDoctor(operation, request, userConfigPath)
+  if (operation.operation === "install-preview" || operation.operation === "install")
+    return yield* dispatchCodexInstall(operation, request)
+  return yield* dispatchCodexLifecycleOperation(operation, request)
 })
 
 const piInstallationDoctor = Effect.fn("Cli.piInstallationDoctor")(function* (
@@ -1400,20 +1420,23 @@ const writeLogoutEnvironmentWarning = (result: Readonly<Record<string, unknown>>
       )
   }
 }
+const writeStoredCredentialSummary = (result: Readonly<Record<string, unknown>>): void => {
+  const destination = result.destination as { target?: string } | undefined
+  const active = result.activeCredential as { source?: string; file?: string; status?: string } | undefined
+  process.stdout.write(
+    `${JEV_PROVIDER.name} key saved in ${destination?.target ?? (process.platform === "darwin" ? "Keychain" : "Secret Service")}. No ${JEV_PROVIDER.name} request or review was sent.\n${active === undefined ? "" : `Effective credential: ${active.source}${active.file === undefined ? "" : ` (${active.file})`}; ${active.status}.\n`}Next: run ${setupCommand("claude")} or ${setupCommand("codex")}, then complete client sign-in and native trust.\n`
+  )
+}
+const writeCredentialOutcomeSummary = (result: Readonly<Record<string, unknown>>): void => {
+  const next = credentialNextAction(result)
+  process.stdout.write(
+    `${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`
+  )
+  writeLogoutEnvironmentWarning(result)
+}
 const writeCredentialSummary = (result: Readonly<Record<string, unknown>>): void => {
-  if (result.operation === "login" && result.status === "stored") {
-    const destination = result.destination as { target?: string } | undefined
-    const active = result.activeCredential as { source?: string; file?: string; status?: string } | undefined
-    process.stdout.write(
-      `${JEV_PROVIDER.name} key saved in ${destination?.target ?? (process.platform === "darwin" ? "Keychain" : "Secret Service")}. No ${JEV_PROVIDER.name} request or review was sent.\n${active === undefined ? "" : `Effective credential: ${active.source}${active.file === undefined ? "" : ` (${active.file})`}; ${active.status}.\n`}Next: run ${setupCommand("claude")} or ${setupCommand("codex")}, then complete client sign-in and native trust.\n`
-    )
-  } else {
-    const next = credentialNextAction(result)
-    process.stdout.write(
-      `${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`
-    )
-    writeLogoutEnvironmentWarning(result)
-  }
+  if (result.operation === "login" && result.status === "stored") return writeStoredCredentialSummary(result)
+  writeCredentialOutcomeSummary(result)
 }
 const interactiveCredentialOutput = (): boolean =>
   isCredentialCommand() && !cliSwitch("json") && !cliSwitch("credential-stdin") && process.stdin.isTTY
@@ -1438,16 +1461,21 @@ const runHumanDoctor = Effect.fn("Cli.humanDoctor")(function* (args: ClientArgum
   const hosts = args.host === undefined ? registeredClients(args.flags, reportClientFailure) : [args.host]
   if (hosts.length === 0)
     process.stderr.write(`${formatOutcome("warning", "No Hapsland integrations found. Run hapsland setup first.")}\n`)
-  for (const host of hosts) {
-    const result = yield* diagnoseClientProcess(host).pipe(Effect.result)
-    if (result._tag === "Failure") {
-      reportClientFailure(host, result.failure)
-      continue
-    }
-    process.stdout.write(formatDoctor(result.success.diagnosis, host).join("\n") + "\n")
-    if (result.success.exitCode !== 0 || result.success.status === "not-ready")
-      process.exitCode = result.success.exitCode || 6
+  for (const host of hosts) yield* reportHumanDoctorResult(host, formatDoctor)
+})
+
+const reportHumanDoctorResult = Effect.fn("Cli.reportHumanDoctorResult")(function* (
+  host: SetupClient,
+  formatDoctor: typeof import("@hapsland/administration/onboarding/client-lifecycle").formatDoctor
+) {
+  const result = yield* diagnoseClientProcess(host).pipe(Effect.result)
+  if (result._tag === "Failure") {
+    reportClientFailure(host, result.failure)
+    return
   }
+  process.stdout.write(formatDoctor(result.success.diagnosis, host).join("\n") + "\n")
+  if (result.success.exitCode !== 0 || result.success.status === "not-ready")
+    process.exitCode = result.success.exitCode || 6
 })
 
 const runUnattended = Effect.fn("Cli.unattended")(function* (args: ClientArguments) {
@@ -1480,8 +1508,9 @@ const runLocalLifecycle = Effect.fn("Cli.localLifecycle")(function* (command: Cl
   if (command === "reinstall") return yield* cliJourney("reinstall", () => maintenanceInteractive(command))
   if (command === "uninstall") return yield* cliJourney("uninstall", () => maintenanceInteractive(command))
   if (unattendedRequested(args)) return yield* runUnattended(args)
-  if (args.host === undefined) return yield* cliJourney("setup", () => chooseSetupClients())
-  return yield* cliJourney("setup-agent", () => pilotSetupSession(args.host!))
+  const host = args.host
+  if (host === undefined) return yield* cliJourney("setup", () => chooseSetupClients())
+  return yield* cliJourney("setup-agent", () => pilotSetupSession(host))
 })
 
 const runLifecycle = Effect.fn("Cli.lifecycle")(function* (

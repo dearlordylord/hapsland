@@ -6,7 +6,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 const root = resolve(new URL("../", import.meta.url).pathname)
-const outputPath = join(root, "evidence/direct-event-v1/host-codex-0.155.1-linux-arm64.json")
+const outputPath = join(root, ".test-runs/direct-event-v1/host-codex-0.155.1-linux-arm64.json")
 const run = (command, args, options = {}) =>
   new Promise((resolveRun, reject) => {
     const child = spawn(command, args, {
@@ -297,12 +297,10 @@ appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
       independentlyObservedModelVisibility: visibility
     },
     updateAndMultiFileEvidence: {
-      status: "deterministic-and-native-payload-only",
+      status: "deterministic-only",
       liveHostRun: false,
       checks: [
-        "src/direct-event/pipeline.test.ts: revalidates delayed Add, Update, and multi-file work through deterministic backend gates",
-        "evidence/codex/0.155.1/native-update-emission-2026-09-20.json",
-        "evidence/codex/0.155.1/post-tool-use-multi-file.json"
+        "src/direct-event/pipeline.test.ts: revalidates delayed Add, Update, and multi-file work through deterministic backend gates"
       ]
     },
     childSpecificDelivery: { status: "unvalidated", deterministicIdentityIsolationOnly: true },
@@ -339,7 +337,7 @@ appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
   }
 
   if (process.argv.includes("--write-evidence")) {
-    await mkdir(join(root, "evidence/direct-event-v1"), { recursive: true })
+    await mkdir(join(root, ".test-runs/direct-event-v1"), { recursive: true })
     await writeFile(outputPath, `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 })
   }
 } finally {

@@ -31,9 +31,9 @@ and need neither Node nor Bun on PATH. Building from source requires the develop
 
 | Agent | Setup choice | Compatibility requirement |
 | --- | --- | --- |
-| Claude Code | `claude` | Claude Code 2.1.218 |
+| Claude Code | `claude` | Stable release; setup checks your executable |
 | Codex CLI | `codex` | Lifecycle-hook capability; setup probes your executable |
-| Pi | `pi` | Pi 1.0.0 on Linux arm64 |
+| Pi | `pi` | Supported release on Linux arm64; setup checks your executable |
 | OpenCode | Unavailable | [Current integration limitation](opencode-installation.md) |
 
 Standalone build targets are macOS arm64 and Linux arm64. Builds and offline
@@ -109,12 +109,21 @@ credential and update details.
 
 **Audience:** End users on macOS arm64 or Linux arm64.
 
-With Homebrew installed:
+Install with Homebrew:
 
 ```sh
 brew install dearlordylord/tap/hapsland
-"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"
 ```
+
+Then, in the Git repository you want reviewed, start the guided setup:
+
+```sh
+hapsland setup
+```
+
+Choose your coding agent in the terminal and confirm the hook changes shown by
+setup. Enter any Jev key in the masked terminal prompt. Restart the selected
+agent after setup completes.
 
 Homebrew downloads only the matching platform archive. Hapsland includes its
 runtime and native assets; no external Node/Bun or source build is needed.
@@ -123,11 +132,11 @@ activation completes, and select the new package explicitly to skip npm acquisit
 
 ```sh
 HOMEBREW_NO_INSTALL_CLEANUP=1 brew upgrade dearlordylord/tap/hapsland
-"$(brew --prefix hapsland)/bin/hapsland" update --target="$(brew --prefix hapsland)/bin/hapsland"
+hapsland update --target="$(command -v hapsland)"
 ```
 
 Do not run cleanup while hooks or running sessions still depend on an old keg.
-The explicit Homebrew path also avoids invoking a different Hapsland earlier on PATH. Offline package checks do not establish every
+The update target uses the installed executable found on PATH. Offline package checks do not establish every
 agent compatibility profile.
 
 For installation without Homebrew, download the matching archive and
@@ -307,7 +316,7 @@ An installed integration can still end setup with:
 
 Use an absolute executable path if the prefix's `bin` directory is not on PATH. See the [Claude guide](claude-installation.md) , [Codex guide](codex-installation.md), and [Pi guide](pi-installation.md) for automation, ownership, credentials, and host-specific limits. Guided saving defaults to the user credential file; hooks do not prompt.
 
-Registry lookup returned HTTP 404 on 2026-10-06; no public package was available at that check. The commands above become usable after publication; this document does not claim an existing registry release. Pi installation targets exact 1.0.0 on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Claude targets 2.1.218. Codex installation checks lifecycle-hook capability rather than a fixed version allowlist; 0.155.1/0.156.0 are historical tested profiles. Hapsland commands contain Bun 1.3.14; agent runtimes remain separate. The standalone build targets Linux/macOS arm64, with execution validation recorded separately. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
+Registry lookup returned HTTP 404 on 2026-10-06; no public package was available at that check. The commands above become usable after publication; this document does not claim an existing registry release. Pi setup checks for the supported release on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Claude accepts stable releases. Codex installation checks lifecycle-hook capability rather than a fixed version allowlist. Hapsland commands contain Bun 1.3.14; agent runtimes remain separate. The standalone build targets Linux/macOS arm64, with execution validation recorded separately. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
 
 ### User-owned prefix alternative
 

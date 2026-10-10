@@ -56,7 +56,7 @@ const capacityFrame = (command) => ({
   local: command.after.local,
   charges: command.after.charges
 })
-const server = await createServer({ server: { middlewareMode: true }, appType: "custom" })
+const server = await createServer({ configLoader: "runner", server: { middlewareMode: true }, appType: "custom" })
 try {
   const main = await server.ssrLoadModule("/src/production-main.ts")
   const canonical = await server.ssrLoadModule("/src/canonical-replay.ts")

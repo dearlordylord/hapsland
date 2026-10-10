@@ -1,11 +1,13 @@
 # Current edit-admission proof prototype
 
+<!--
 **Purpose:** Preserve three checked Current admission properties and their falsification controls.
 **Audience:** Prototype contributors and evaluators; Product and specification owners.
 **Status:** Temporary model/proof evidence; the rejected post-only A experiments have been deleted.
 **Authority:** Owner-approved model laws and implementation evidence, not a replacement for the accepted product contract.
 **Expected use:** Run the Current gates, inspect their explicit assumptions, and retain useful controls until production-aligned replacement checks exist.
 **Lifecycle:** At the edit-admission design decision milestone, consolidate accepted requirements into `docs/advicing-target-contract.md` and production law/test owners; delete this prototype after replacement checks pass. Unresolved runtime validation remains scoped below until verified or transferred to the replacement checks.
+-->
 
 ## Retained checked properties
 
@@ -63,8 +65,8 @@ the original frozen whole-core hash still matches. No new laws were proved.
 Pinned proof-only mathlib remains at `7601039f3fe561cb30e4bb7adefbcfba708c1f6c`.
 Bend is 2.0.34 and every checker invocation uses `bend-check`'s five-second limit.
 `lawcheck`/`bend-falsify` are unavailable; literal substitution is the disclosed
-fallback, not a claimed invocation of those tools. No native PRE fault evidence
-was deleted; the source-free reports remain in `evidence/native-negative/` with their original bounded claims.
+fallback, not a claimed invocation of those tools. Historical native PRE fault
+reports are available in [Git history](https://github.com/dearlordylord/hapsland/tree/e0a071afe/evidence/native-negative), with their original bounded claims.
 
 ## Remaining validation boundary
 

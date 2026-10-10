@@ -1462,298 +1462,12 @@ export const simulationView = <Message>(
     [
       h.h2([], ["Resident controls & event history"]),
       h.p([], ["Run, adjust settings, and select a square to inspect its work."]),
-      h.div(
-        [h.Class("simulation-controls")],
+      h.nav(
+        [h.Class("simulation-navigation"), h.AriaLabel("Resident inspection sections")],
         [
-          button("Normal findings scenario", "preset:normal"),
-          button("Slow Jev scenario", "preset:slow"),
-          button("Failure → recovery scenario", "preset:failure"),
-          button("Capacity pressure scenario", "preset:capacity"),
-          button("Freshness change scenario", "preset:stale"),
-          button("Credential recovery scenario", "preset:credential"),
-          button("Uncertain output scenario", "preset:uncertain"),
-          button("Expired delivery lease scenario", "preset:expired"),
-          button("Unreadable final source scenario", "preset:source"),
-          button("Credential rotation scenario", "preset:rotation"),
-          controlForm("start", [
-            input("seed", "Seed", model.seed),
-            input("variation", "Edit interval variation (virtual ms)", model.variation),
-            input("editsPerTask", "Edits per task", model.editsPerTask),
-            input("taskPause", "Pause between tasks (virtual ms)", model.taskPause),
-            h.label(
-              [],
-              [
-                "Advice response",
-                h.select(
-                  [
-                    h.AriaLabel("Advice response"),
-                    h.Value(model.adviceResponse),
-                    h.OnChange((raw) => changed("adviceResponse", raw))
-                  ],
-                  [
-                    h.option([h.Value("ignore")], ["Ignore advice"]),
-                    h.option([h.Value("noAction")], ["Record no action"]),
-                    h.option([h.Value("promptRepair")], ["Prompt repair"]),
-                    h.option([h.Value("delayedRepair")], ["Delayed repair"])
-                  ]
-                )
-              ]
-            ),
-            input("repairDelay", "Repair response delay (virtual ms)", model.repairDelay),
-            submit("Start / reset")
-          ]),
-          button(model.playing ? "Pause" : "Resume", "play"),
-          button("Single step", "step"),
-          controlForm("speed", [
-            input("speed", "Playback speed (virtual ms / wall ms)", model.speed),
-            submit("Apply playback speed")
-          ]),
-          h.span([h.Class("applied-speed")], [`Active speed: ${model.appliedSpeed}×`])
-        ]
-      ),
-      h.div(
-        [h.Class("simulation-controls")],
-        [
-          ...(run && !activeReplay?.config.session && !activeReplay?.config.sessions?.length
-            ? [h.p([], ["Scripted events · no generator controls"])]
-            : [
-                controlForm("pace", [
-                  input("pace", "Edit interval (virtual ms)", model.pace),
-                  submit("Apply edit pace")
-                ]),
-                controlForm("editDuration", [
-                  h.label(
-                    [],
-                    [
-                      "Simulated edit duration (virtual ms)",
-                      h.input([
-                        h.Type("number"),
-                        h.AriaLabel("Simulated edit duration (virtual ms)"),
-                        h.Min("0"),
-                        h.Max("1000000000"),
-                        h.Step("1"),
-                        h.Key(`edit-duration:${model.draftEpoch}`),
-                        h.Attribute("value", model.editDuration),
-                        h.OnInput((raw) => changed("editDuration", raw))
-                      ])
-                    ]
-                  ),
-                  submit("Apply edit duration")
-                ]),
-                h.p(
-                  [],
-                  [
-                    "Time between PRE and POST. Start applies it to all agents; Apply changes future edits for the selected agent. Edits already in progress keep their duration."
-                  ]
-                ),
-                controlForm("burst", [input("burst", "Burst count (1–100)", model.burst), submit("Inject edit burst")]),
-                button(model.suspended ? "Resume edit generation" : "Suspend edit generation", "suspend")
-              ])
-        ]
-      ),
-      h.div(
-        [h.Class("simulation-controls")],
-        [
-          input("delay", "Simulated Jev delay (virtual ms)", model.delay),
-          ...(run && !run.appliedSettings.config.session && !run.appliedSettings.config.sessions?.length
-            ? []
-            : [
-                controlForm("sizes", [
-                  input("bytes", "Reservation bytes per edit", model.bytes),
-                  submit("Apply reservation size")
-                ])
-              ])
-        ]
-      ),
-      ...(run
-        ? [
-            adviceeLifecycleControls(h, observed!.adviceeLifecycles, run.agentScopes, action, Boolean(replaySource)),
-            permitControls(h, run.editPermitLimits, run.futurePermitProfile, action, Boolean(replaySource))
-          ]
-        : []),
-      controlForm("permitLimits", [
-        input("permitPerAdvicee", "Per-advicee pending permits", model.permitPerAdvicee),
-        input("permitResident", "Resident-wide pending permits", model.permitResident),
-        submit("Apply permit limits")
-      ]),
-      controlForm("permitTiming", [
-        input("permitDuration", "PRE to POST duration (virtual ms)", model.permitDuration),
-        input("permitLifetime", "Permit lifetime (virtual ms)", model.permitLifetime),
-        submit("Apply PRE/POST timing")
-      ]),
-      ...(run ? [noticeControls(h, run.projection, run.agentScopes, action, Boolean(replaySource))] : []),
-      ...(run
-        ? [
-            writerControls(
-              h,
-              run.projection,
-              run.agentScopes,
-              run.now,
-              observed!.writerReports,
-              action,
-              Boolean(replaySource),
-              run.capacityMetadata.collectors?.capacity ?? 1
-            ),
-            collectionResponseControls(
-              h,
-              run.projection,
-              run.agentScopes,
-              run.now,
-              observed!.collectionResponseReports,
-              action,
-              Boolean(replaySource)
-            )
-          ]
-        : []),
-      ...(run
-        ? [callbackControls(h, observed!.callbackTargets, observed!.callbackReports, action, Boolean(replaySource))]
-        : []),
-      ...(run
-        ? [outputAttemptControls(h, observed!.outputAttempts, observed!.outputReports, action, Boolean(replaySource))]
-        : []),
-      ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, Boolean(replaySource))] : []),
-      controlForm("graphLimits", [
-        graphLimitControls(h, graphDrafts(model), (field, value) => changed(graphFields[field], value)),
-        submit("Apply graph limits")
-      ]),
-      h.details(
-        [h.Class("simulation-file-trees")],
-        [
-          h.summary([], ["Generated import trees"]),
-          h.p(
-            [],
-            [
-              "File counts include the allowed root. Import depth starts at 0. Permissions are sampled per imported file; the seed reproduces each artifact's tree."
-            ]
-          ),
-          h.div(
-            [h.Class("simulation-controls")],
-            [button("Balanced trees", "trees:balanced"), button("Tree budget pressure", "trees:pressure")]
-          ),
-          controlForm("fileTrees", [
-            h.fieldset(
-              [h.Class("simulation-tree-range")],
-              [
-                h.legend([], ["Generated files per artifact"]),
-                treeInput("treeMinFiles", "Generated files per artifact · minimum", 1, 64, "Minimum"),
-                treeInput("treeMaxFiles", "Generated files per artifact · maximum", 1, 64, "Maximum")
-              ]
-            ),
-            treeInput("treeMaxImports", "Maximum imports per file", 0, 16),
-            treeInput("treeMaxDepth", "Maximum import depth", 0, 12),
-            treeInput("treeDeniedPercent", "Denied import targets (%)", 0, 100),
-            treeInput("treeMissingPercent", FILE_TREE_LABELS.missingPercent, 0, 100),
-            treeInput("treeUnsupportedPercent", FILE_TREE_LABELS.unsupportedPercent, 0, 100),
-            treeInput("treeUnreadablePercent", FILE_TREE_LABELS.unreadablePercent, 0, 100),
-            treeInput("treeRepeatedPercent", FILE_TREE_LABELS.repeatedEdgePercent, 0, 100),
-            treeInput("treeCyclicPercent", FILE_TREE_LABELS.cyclicEdgePercent, 0, 100),
-            treeInput("treeDeadlineStep", FILE_TREE_LABELS.deadlineStep, 0, 511),
-            treeInput("treeLocalWork", FILE_TREE_LABELS.localWork, 0, 1048576),
-
-            h.fieldset(
-              [h.Class("simulation-tree-range")],
-              [
-                h.legend([], ["Source bytes per file"]),
-                treeInput("treeMinSourceBytes", "Source bytes per file · minimum", 1, 1048576, "Minimum"),
-                treeInput("treeMaxSourceBytes", "Source bytes per file · maximum", 1, 1048576, "Maximum")
-              ]
-            ),
-            h.fieldset(
-              [h.Class("simulation-tree-range")],
-              [
-                h.legend([], ["Evidence-tree bytes per file"]),
-                treeInput("treeMinTreeBytes", "Evidence-tree bytes per file · minimum", 1, 1048576, "Minimum"),
-                treeInput("treeMaxTreeBytes", "Evidence-tree bytes per file · maximum", 1, 1048576, "Maximum")
-              ]
-            ),
-            submit("Apply to future preparations")
-          ]),
-          h.p([h.Class("simulation-tree-draft")], [treeDraftStatus]),
-          h.p(
-            [h.Class("simulation-tree-active")],
-            [
-              activeTrees
-                ? `Applied to new preparations: ${treeSummary(activeTrees)} · source ${activeTrees.minSourceBytes}–${activeTrees.maxSourceBytes} B/file · evidence ${activeTrees.minTreeBytes}–${activeTrees.maxTreeBytes} B/file.`
-                : "Start / reset applies the draft generation settings."
-            ]
-          ),
-          h.p(
-            [],
-            [
-              "Changes apply when a preparation starts. In-flight trees stay fixed. Graph limits above use production validation. Generated facts may exceed the captured limits. Reservation bytes are a separate review admission fact."
-            ]
-          )
-        ]
-      ),
-      h.div(
-        [h.Class("simulation-resource-scenario")],
-        [
-          select("resourceScenario", "Optional resource exercise · applies on Start resident", model.resourceScenario, [
-            "none",
-            "notices",
-            "fit",
-            "oversized"
-          ]),
-          h.p(
-            [],
-            [
-              "Notices use simulated failures and cooldown clocks. Output bytes are supplied synthetic facts; native encoding is not measured."
-            ]
-          )
-        ]
-      ),
-      h.details(
-        [h.Class("simulation-outcome-mix")],
-        [
-          h.summary([], ["Simulated Jev outcome mix · " + draftMix]),
-          h.p([], ["Changes affect new requests. Relative weights determine the displayed probabilities."]),
-          ...JEV_OUTCOME_ORDER.map((outcome) =>
-            h.label(
-              [h.Class("simulation-outcome-slider")],
-              [
-                outcomeNames[outcome],
-                h.input([
-                  h.Type("range"),
-                  h.Min("0"),
-                  h.Max("100"),
-                  h.Step("1"),
-                  h.AriaLabel(outcomeNames[outcome]),
-                  h.Value(String(weights[outcome])),
-                  h.OnInput((raw) => changed(weightField(outcome), raw))
-                ]),
-                h.span(
-                  [],
-                  [
-                    `weight ${weights[outcome]} · ${weightTotal > 0 ? ((weights[outcome] / weightTotal) * 100).toFixed(1) + "%" : "probability unavailable"}`
-                  ]
-                )
-              ]
-            )
-          ),
-          h.p(
-            [h.Class("simulation-mix-total")],
-            [
-              `Total relative weight: ${weightTotal}. ${weightTotal > 0 ? "Normalized probability total: 100%." : "Choose at least one nonzero weight; active mix remains unchanged."}`
-            ]
-          )
-        ]
-      ),
-      h.div(
-        [h.Class("simulation-controls")],
-        [
-          controlForm("environment", [
-            select("currentWork", "Work freshness", model.currentWork, ["current", "stale"]),
-            select("credentialReady", "Credential availability", model.credentialReady, ["ready", "unavailable"]),
-            input("credentialGeneration", "Credential generation", model.credentialGeneration),
-            select("sourceReadable", "Source readability", model.sourceReadable, ["readable", "unreadable"]),
-            submit("Apply environment facts")
-          ]),
-          controlForm("output", [
-            select("outputOutcome", "Host output outcome", model.outputOutcome, ["certain", "uncertain", "failed"]),
-            input("outputDelay", "Host output delay (virtual ms)", model.outputDelay),
-            input("outputLease", "Delivery lease lifetime (virtual ms)", model.outputLease),
-            submit("Apply host output profile")
-          ])
+          h.a([h.Href("#resident-stage-inspector")], ["Inspect a stage"]),
+          h.a([h.Href("#resident-event-history")], ["Read event history"]),
+          h.a([h.Href("#resident-scenario-settings")], ["Adjust scenario settings"])
         ]
       ),
       h.p(
@@ -1838,7 +1552,7 @@ export const simulationView = <Message>(
         [
           h.summary([], ["Control history"]),
           h.pre(
-            [],
+            [h.Tabindex(0)],
             [
               activeReplay
                 ? JSON.stringify(
@@ -1856,6 +1570,8 @@ export const simulationView = <Message>(
       ),
       h.div(
         [
+          h.Id("resident-stage-inspector"),
+          h.Tabindex(-1),
           h.Class(
             `simulation-stage-inspector${model.focus ? " capacity-selected" : ""}${model.focus === "preparation" ? " preparation-selected" : ""}`
           )
@@ -2002,10 +1718,10 @@ export const simulationView = <Message>(
                   : "Synthetic environment facts and checked product outcomes are shown separately below."
             ]
           ),
-          h.pre([], [current ? JSON.stringify(current, null, 2) : "No checked transition yet."])
+          h.pre([h.Tabindex(0)], [current ? JSON.stringify(current, null, 2) : "No checked transition yet."])
         ]
       ),
-      h.p([], ["Recent 100 events"]),
+      h.h3([h.Id("resident-event-history"), h.Tabindex(-1)], ["Recent 100 events"]),
       button(model.filter === "all" ? "Show refusals and delivery problems" : "Show all events", "filter"),
       h.div(
         [h.Class("simulation-history")],
@@ -2066,6 +1782,329 @@ export const simulationView = <Message>(
             { _tag: "Prop", key: "defaultValue", value: String(current?.sequence ?? 0) },
             h.OnInput((raw) => action(`scrub:${raw}`))
           ])
+        ]
+      ),
+      h.details(
+        [h.Id("resident-scenario-settings"), h.Class("simulation-settings"), h.Open(true)],
+        [
+          h.summary([], ["Scenario and environment settings"]),
+          h.p(
+            [h.Class("section-guidance")],
+            [
+              "Settings below change the run endpoint. A selected historical event keeps its recorded facts. Start / reset begins a new run; each Apply control states which future work it affects."
+            ]
+          ),
+          h.div(
+            [h.Class("simulation-controls")],
+            [
+              button("Normal findings scenario", "preset:normal"),
+              button("Slow Jev scenario", "preset:slow"),
+              button("Failure → recovery scenario", "preset:failure"),
+              button("Capacity pressure scenario", "preset:capacity"),
+              button("Freshness change scenario", "preset:stale"),
+              button("Credential recovery scenario", "preset:credential"),
+              button("Uncertain output scenario", "preset:uncertain"),
+              button("Expired delivery lease scenario", "preset:expired"),
+              button("Unreadable final source scenario", "preset:source"),
+              button("Credential rotation scenario", "preset:rotation"),
+              controlForm("start", [
+                input("seed", "Seed", model.seed),
+                input("variation", "Edit interval variation (virtual ms)", model.variation),
+                input("editsPerTask", "Edits per task", model.editsPerTask),
+                input("taskPause", "Pause between tasks (virtual ms)", model.taskPause),
+                h.label(
+                  [],
+                  [
+                    "Advice response",
+                    h.select(
+                      [
+                        h.AriaLabel("Advice response"),
+                        h.Value(model.adviceResponse),
+                        h.OnChange((raw) => changed("adviceResponse", raw))
+                      ],
+                      [
+                        h.option([h.Value("ignore")], ["Ignore advice"]),
+                        h.option([h.Value("noAction")], ["Record no action"]),
+                        h.option([h.Value("promptRepair")], ["Prompt repair"]),
+                        h.option([h.Value("delayedRepair")], ["Delayed repair"])
+                      ]
+                    )
+                  ]
+                ),
+                input("repairDelay", "Repair response delay (virtual ms)", model.repairDelay),
+                submit("Start / reset")
+              ]),
+              button(model.playing ? "Pause" : "Resume", "play"),
+              button("Single step", "step"),
+              controlForm("speed", [
+                input("speed", "Playback speed (virtual ms / wall ms)", model.speed),
+                submit("Apply playback speed")
+              ]),
+              h.span([h.Class("applied-speed")], [`Active speed: ${model.appliedSpeed}×`])
+            ]
+          ),
+          h.div(
+            [h.Class("simulation-controls")],
+            [
+              ...(run && !activeReplay?.config.session && !activeReplay?.config.sessions?.length
+                ? [h.p([], ["Scripted events · no generator controls"])]
+                : [
+                    controlForm("pace", [
+                      input("pace", "Edit interval (virtual ms)", model.pace),
+                      submit("Apply edit pace")
+                    ]),
+                    controlForm("editDuration", [
+                      h.label(
+                        [],
+                        [
+                          "Simulated edit duration (virtual ms)",
+                          h.input([
+                            h.Type("number"),
+                            h.AriaLabel("Simulated edit duration (virtual ms)"),
+                            h.Min("0"),
+                            h.Max("1000000000"),
+                            h.Step("1"),
+                            h.Key(`edit-duration:${model.draftEpoch}`),
+                            h.Attribute("value", model.editDuration),
+                            h.OnInput((raw) => changed("editDuration", raw))
+                          ])
+                        ]
+                      ),
+                      submit("Apply edit duration")
+                    ]),
+                    h.p(
+                      [],
+                      [
+                        "Time between PRE and POST. Start applies it to all agents; Apply changes future edits for the selected agent. Edits already in progress keep their duration."
+                      ]
+                    ),
+                    controlForm("burst", [
+                      input("burst", "Burst count (1–100)", model.burst),
+                      submit("Inject edit burst")
+                    ]),
+                    button(model.suspended ? "Resume edit generation" : "Suspend edit generation", "suspend")
+                  ])
+            ]
+          ),
+          h.div(
+            [h.Class("simulation-controls")],
+            [
+              input("delay", "Simulated Jev delay (virtual ms)", model.delay),
+              ...(run && !run.appliedSettings.config.session && !run.appliedSettings.config.sessions?.length
+                ? []
+                : [
+                    controlForm("sizes", [
+                      input("bytes", "Reservation bytes per edit", model.bytes),
+                      submit("Apply reservation size")
+                    ])
+                  ])
+            ]
+          ),
+          ...(run
+            ? [
+                adviceeLifecycleControls(
+                  h,
+                  observed!.adviceeLifecycles,
+                  run.agentScopes,
+                  action,
+                  Boolean(replaySource)
+                ),
+                permitControls(h, run.editPermitLimits, run.futurePermitProfile, action, Boolean(replaySource))
+              ]
+            : []),
+          controlForm("permitLimits", [
+            input("permitPerAdvicee", "Per-advicee pending permits", model.permitPerAdvicee),
+            input("permitResident", "Resident-wide pending permits", model.permitResident),
+            submit("Apply permit limits")
+          ]),
+          controlForm("permitTiming", [
+            input("permitDuration", "PRE to POST duration (virtual ms)", model.permitDuration),
+            input("permitLifetime", "Permit lifetime (virtual ms)", model.permitLifetime),
+            submit("Apply PRE/POST timing")
+          ]),
+          ...(run ? [noticeControls(h, run.projection, run.agentScopes, action, Boolean(replaySource))] : []),
+          ...(run
+            ? [
+                writerControls(
+                  h,
+                  run.projection,
+                  run.agentScopes,
+                  run.now,
+                  observed!.writerReports,
+                  action,
+                  Boolean(replaySource),
+                  run.capacityMetadata.collectors?.capacity ?? 1
+                ),
+                collectionResponseControls(
+                  h,
+                  run.projection,
+                  run.agentScopes,
+                  run.now,
+                  observed!.collectionResponseReports,
+                  action,
+                  Boolean(replaySource)
+                )
+              ]
+            : []),
+          ...(run
+            ? [callbackControls(h, observed!.callbackTargets, observed!.callbackReports, action, Boolean(replaySource))]
+            : []),
+          ...(run
+            ? [
+                outputAttemptControls(
+                  h,
+                  observed!.outputAttempts,
+                  observed!.outputReports,
+                  action,
+                  Boolean(replaySource)
+                )
+              ]
+            : []),
+          ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, Boolean(replaySource))] : []),
+          controlForm("graphLimits", [
+            graphLimitControls(h, graphDrafts(model), (field, value) => changed(graphFields[field], value)),
+            submit("Apply graph limits")
+          ]),
+          h.details(
+            [h.Class("simulation-file-trees")],
+            [
+              h.summary([], ["Generated import trees"]),
+              h.p(
+                [],
+                [
+                  "File counts include the allowed root. Import depth starts at 0. Permissions are sampled per imported file; the seed reproduces each artifact's tree."
+                ]
+              ),
+              h.div(
+                [h.Class("simulation-controls")],
+                [button("Balanced trees", "trees:balanced"), button("Tree budget pressure", "trees:pressure")]
+              ),
+              controlForm("fileTrees", [
+                h.fieldset(
+                  [h.Class("simulation-tree-range")],
+                  [
+                    h.legend([], ["Generated files per artifact"]),
+                    treeInput("treeMinFiles", "Generated files per artifact · minimum", 1, 64, "Minimum"),
+                    treeInput("treeMaxFiles", "Generated files per artifact · maximum", 1, 64, "Maximum")
+                  ]
+                ),
+                treeInput("treeMaxImports", "Maximum imports per file", 0, 16),
+                treeInput("treeMaxDepth", "Maximum import depth", 0, 12),
+                treeInput("treeDeniedPercent", "Denied import targets (%)", 0, 100),
+                treeInput("treeMissingPercent", FILE_TREE_LABELS.missingPercent, 0, 100),
+                treeInput("treeUnsupportedPercent", FILE_TREE_LABELS.unsupportedPercent, 0, 100),
+                treeInput("treeUnreadablePercent", FILE_TREE_LABELS.unreadablePercent, 0, 100),
+                treeInput("treeRepeatedPercent", FILE_TREE_LABELS.repeatedEdgePercent, 0, 100),
+                treeInput("treeCyclicPercent", FILE_TREE_LABELS.cyclicEdgePercent, 0, 100),
+                treeInput("treeDeadlineStep", FILE_TREE_LABELS.deadlineStep, 0, 511),
+                treeInput("treeLocalWork", FILE_TREE_LABELS.localWork, 0, 1048576),
+
+                h.fieldset(
+                  [h.Class("simulation-tree-range")],
+                  [
+                    h.legend([], ["Source bytes per file"]),
+                    treeInput("treeMinSourceBytes", "Source bytes per file · minimum", 1, 1048576, "Minimum"),
+                    treeInput("treeMaxSourceBytes", "Source bytes per file · maximum", 1, 1048576, "Maximum")
+                  ]
+                ),
+                h.fieldset(
+                  [h.Class("simulation-tree-range")],
+                  [
+                    h.legend([], ["Evidence-tree bytes per file"]),
+                    treeInput("treeMinTreeBytes", "Evidence-tree bytes per file · minimum", 1, 1048576, "Minimum"),
+                    treeInput("treeMaxTreeBytes", "Evidence-tree bytes per file · maximum", 1, 1048576, "Maximum")
+                  ]
+                ),
+                submit("Apply to future preparations")
+              ]),
+              h.p([h.Class("simulation-tree-draft")], [treeDraftStatus]),
+              h.p(
+                [h.Class("simulation-tree-active")],
+                [
+                  activeTrees
+                    ? `Applied to new preparations: ${treeSummary(activeTrees)} · source ${activeTrees.minSourceBytes}–${activeTrees.maxSourceBytes} B/file · evidence ${activeTrees.minTreeBytes}–${activeTrees.maxTreeBytes} B/file.`
+                    : "Start / reset applies the draft generation settings."
+                ]
+              ),
+              h.p(
+                [],
+                [
+                  "Changes apply when a preparation starts. In-flight trees stay fixed. Graph limits above use production validation. Generated facts may exceed the captured limits. Reservation bytes are a separate review admission fact."
+                ]
+              )
+            ]
+          ),
+          h.div(
+            [h.Class("simulation-resource-scenario")],
+            [
+              select(
+                "resourceScenario",
+                "Optional resource exercise · applies on Start resident",
+                model.resourceScenario,
+                ["none", "notices", "fit", "oversized"]
+              ),
+              h.p(
+                [],
+                [
+                  "Notices use simulated failures and cooldown clocks. Output bytes are supplied synthetic facts; native encoding is not measured."
+                ]
+              )
+            ]
+          ),
+          h.details(
+            [h.Class("simulation-outcome-mix")],
+            [
+              h.summary([], ["Simulated Jev outcome mix · " + draftMix]),
+              h.p([], ["Changes affect new requests. Relative weights determine the displayed probabilities."]),
+              ...JEV_OUTCOME_ORDER.map((outcome) =>
+                h.label(
+                  [h.Class("simulation-outcome-slider")],
+                  [
+                    outcomeNames[outcome],
+                    h.input([
+                      h.Type("range"),
+                      h.Min("0"),
+                      h.Max("100"),
+                      h.Step("1"),
+                      h.AriaLabel(outcomeNames[outcome]),
+                      h.Value(String(weights[outcome])),
+                      h.OnInput((raw) => changed(weightField(outcome), raw))
+                    ]),
+                    h.span(
+                      [],
+                      [
+                        `weight ${weights[outcome]} · ${weightTotal > 0 ? ((weights[outcome] / weightTotal) * 100).toFixed(1) + "%" : "probability unavailable"}`
+                      ]
+                    )
+                  ]
+                )
+              ),
+              h.p(
+                [h.Class("simulation-mix-total")],
+                [
+                  `Total relative weight: ${weightTotal}. ${weightTotal > 0 ? "Normalized probability total: 100%." : "Choose at least one nonzero weight; active mix remains unchanged."}`
+                ]
+              )
+            ]
+          ),
+          h.div(
+            [h.Class("simulation-controls")],
+            [
+              controlForm("environment", [
+                select("currentWork", "Work freshness", model.currentWork, ["current", "stale"]),
+                select("credentialReady", "Credential availability", model.credentialReady, ["ready", "unavailable"]),
+                input("credentialGeneration", "Credential generation", model.credentialGeneration),
+                select("sourceReadable", "Source readability", model.sourceReadable, ["readable", "unreadable"]),
+                submit("Apply environment facts")
+              ]),
+              controlForm("output", [
+                select("outputOutcome", "Host output outcome", model.outputOutcome, ["certain", "uncertain", "failed"]),
+                input("outputDelay", "Host output delay (virtual ms)", model.outputDelay),
+                input("outputLease", "Delivery lease lifetime (virtual ms)", model.outputLease),
+                submit("Apply host output profile")
+              ])
+            ]
+          )
         ]
       ),
       h.div(

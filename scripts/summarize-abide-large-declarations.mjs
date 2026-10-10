@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
 import assert from "node:assert/strict"
-const root = path.resolve(process.argv[2] ?? "evidence/abide-large-declarations-current")
+const root = path.resolve(process.argv[2] ?? ".test-runs/abide-large-declarations-current")
 const read = (n) => JSON.parse(fs.readFileSync(path.join(root, n)))
 const hash = (b) => crypto.createHash("sha256").update(b).digest("hex")
 const write = (n, v) => fs.writeFileSync(path.join(root, n), JSON.stringify(v, null, 2) + "\n", { flag: "wx" })

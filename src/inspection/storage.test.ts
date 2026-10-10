@@ -10,7 +10,8 @@ import {
   rm,
   statfs,
   realpath,
-  open
+  open,
+  link
 } from "node:fs/promises"
 import { constants } from "node:fs"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
@@ -126,7 +127,7 @@ const fixture = async () => {
   return realpath(directory)
 }
 const record = (sequence: number, capturedAt = 100, lifetime = "first"): InspectionRecord => ({
-  version: 1,
+  version: 2,
   source: { id: inspectionSourceId("/private/resident.sock", lifetime), endpoint: "/private/resident.sock", lifetime },
   sequence,
   capturedAt,
@@ -142,6 +143,40 @@ const record = (sequence: number, capturedAt = 100, lifetime = "first"): Inspect
 })
 const publish = (store: ReturnType<typeof makeInspectionStorage>, value: InspectionRecord, allowed = () => true) =>
   Effect.runPromise(store.write(value, JSON.stringify(value), { allowed, commit: allowed }))
+
+it.each([1, undefined])(
+  "ignores obsolete version %s history and removes it before publishing current records",
+  async (version) => {
+    const directory = await fixture()
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576, now: () => 100 })
+    const obsolete = record(1)
+    const name = `${obsolete.source.id}-0000000000000001.json`
+    // An old record need not satisfy the current candidate schema.
+    const encoded = JSON.stringify({ ...obsolete, version, fact: { kind: "edit-received", candidates: [] } })
+    const lossName = `${obsolete.source.id}-0000000000000001.loss`
+    await writeFile(join(directory, name), encoded, { mode: 0o600 })
+    await writeFile(join(directory, lossName), JSON.stringify({ version }), { mode: 0o600 })
+    await publish(store, record(2))
+    // Put another old record beside valid history to exercise the read-only path.
+    await writeFile(join(directory, name), encoded, { mode: 0o600 })
+    expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([2])
+    expect(await readFile(join(directory, name), "utf8")).toBe(encoded)
+    await publish(store, record(3))
+    expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([2, 3])
+    expect(await readdir(directory)).not.toContain(name)
+    expect(await readdir(directory)).not.toContain(lossName)
+  }
+)
+
+it.each([2, 3])("preserves malformed current or future version %s records and reports failure", async (version) => {
+  const directory = await fixture()
+  const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576, now: () => 100 })
+  const name = `${record(1).source.id}-0000000000000001.json`
+  await writeFile(join(directory, name), JSON.stringify({ version }), { mode: 0o600 })
+  await expect(Effect.runPromise(store.snapshot())).rejects.toThrow("inspection storage unavailable")
+  await expect(publish(store, record(2))).rejects.toThrow("inspection storage unavailable")
+  expect(await readdir(directory)).toEqual([name])
+})
 
 it("reads expired history and unfinished publications without changing any journal files", async () => {
   const directory = await fixture()
@@ -204,6 +239,41 @@ it("reuses immutable payloads while observing another writer and isolating retur
 })
 
 describe("private inspection journal", () => {
+  it("rejects a symlink used as a recognized unfinished publication without reading its target", async () => {
+    const directory = await fixture()
+    const external = await fixture()
+    const target = join(external, "private-record.json")
+    const content = JSON.stringify(record(1))
+    const pending = "pending-00000000-0000-0000-0000-000000000000"
+    await writeFile(target, content, { mode: 0o600 })
+    await symlink(target, join(directory, pending))
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576, now: () => 100 })
+
+    await expect(publish(store, record(2))).rejects.toThrow("inspection storage unavailable")
+    expect((await lstat(join(directory, pending))).isSymbolicLink()).toBe(true)
+    expect(await readFile(target, "utf8")).toBe(content)
+    expect(await readdir(directory)).toEqual([pending])
+  })
+
+  it("rejects multiply linked records without changing either link", async () => {
+    const directory = await fixture()
+    const external = await fixture()
+    const existing = record(1)
+    const name = `${existing.source.id}-${String(existing.sequence).padStart(16, "0")}.json`
+    const externalPath = join(external, "preserved-record.json")
+    const journalPath = join(directory, name)
+    const content = JSON.stringify(existing)
+    await writeFile(externalPath, content, { mode: 0o600 })
+    await link(externalPath, journalPath)
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576, now: () => 100 })
+
+    await expect(publish(store, record(2))).rejects.toThrow("inspection storage unavailable")
+    expect((await lstat(journalPath)).nlink).toBe(2)
+    expect(await readFile(journalPath, "utf8")).toBe(content)
+    expect(await readFile(externalPath, "utf8")).toBe(content)
+    expect(await readdir(directory)).toEqual([name])
+  })
+
   it.each(["changed", "added", "removed", "permissions"] as const)(
     "refuses a %s file after quota inventory validation",
     async (change) => {
@@ -445,7 +515,7 @@ describe("private inspection journal", () => {
     await publish(store, record(3, 101))
     const pruned = await Effect.runPromise(store.snapshot())
     expect(pruned.losses).toEqual([
-      { version: 1, sourceId: record(1).source.id, sequence: 1, capturedAt: 51, removedAt: 101, reason: "expired" }
+      { version: 2, sourceId: record(1).source.id, sequence: 1, capturedAt: 51, removedAt: 101, reason: "expired" }
     ])
     expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([2, 3])
     expect((await readdir(directory)).filter((name) => name.endsWith(".json"))).toHaveLength(2)

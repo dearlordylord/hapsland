@@ -11,8 +11,9 @@
 document says what Hapsland must do at the agent-runtime boundary. The candidate
 production path implements parts of it; the [implementation and evidence
 status](https://github.com/dearlordylord/hapsland/blob/6d6f1617c1942faa56e39781684bf0e6c78f62f5/evidence/advicing-linux/README.md) identifies observed behavior and
-remaining gaps. Exact installed-release support is declared separately in
-[installed release compatibility](installed-release-compatibility.md). Terms have
+remaining gaps. The distribution runtime and platform targets are summarized in
+the [runtime and platform support guide](installed-release-compatibility.md); host-specific
+requirements and observed limits remain in their installation guides. Terms have
 their canonical meanings in the [product vocabulary](../CONTEXT.md).
 
 ## Outcome and observation boundary
@@ -314,10 +315,18 @@ whether the work is still current, and the advice age. A temporary failure
 of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is
 suppressed. The resident grants one tokenized lease per selected advice item.
-At the final IPC handoff, the resident captures each selected source file through
-its descriptor, subject to source-size limits, and supplies its freshness as a fact to
-the Bend candidate decision. A changed or unreadable source retires its
-selected finding.
+At the final handoff to a local caller or IPC transport, the resident captures
+each contributing source file through its descriptor, subject to source-size
+limits, rebuilds the complete evaluated input including supporting evidence and
+import resolution, and supplies its freshness as a fact to the Bend candidate
+decision. A hash match alone cannot establish import resolution: a newly added
+candidate can change resolution while previously captured files remain unchanged.
+Shared files are captured once per selected delivery. Changed canonical input
+retires its selected finding; temporarily unavailable input releases its lease
+for a later attempt. There is no source reread before Jev or during advice
+selection. The delivery's bounded source snapshot cache is charged to existing
+advice reservations and its bytes are erased after its last selected member or
+on interruption; a later delivery always starts a new cache.
 Overlapping collectors cannot own that item together. The collector releases a
 lease on a known pre-output failure; a completed advice submission records only
 submission to the runtime. Lost acknowledgements and uncertain submissions
@@ -367,7 +376,7 @@ deliberately select earlier advice is a separate, undecided behavior.
 
 ## Pi native handoff boundary
 
-Pi 1.0.0 uses its awaited `tool_call`/`tool_result` boundaries for source-free admission and matching successful native `edit` observation. Missing admission is an incomplete review observation and does not block the user's edit. `write`, nested calls, and child identities are unsupported in the initial profile. Review scheduling, freshness, collection, permits, and continuation limits remain resident policy.
+Pi uses its awaited `tool_call`/`tool_result` boundaries for source-free admission and matching successful native `edit` observation. Missing admission is an incomplete review observation and does not block the user's edit. `write`, nested calls, and child identities are unsupported in the initial profile. Review scheduling, freshness, collection, permits, and continuation limits remain resident policy.
 
 At native `agent_before_settle`, the extension requests the shared finish decision with the existing four-second safe wait. Actionable current advice is offered as a native `custom_message`; continuation is requested only when the shared decision permits it and the resulting native context admits continuation. The initial preview can end in an assistant message and report `canContinue: false`; the proposed custom message changes that projection before Pi performs its final continuation check. A cancelled or otherwise failed outcome closes work instead of requesting continuation.
 

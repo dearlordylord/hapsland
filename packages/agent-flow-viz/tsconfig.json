@@ -11,5 +11,5 @@
     "paths": { "@hapsland/agent-flow-projection": ["../agent-flow-projection/src/index.ts"] },
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "site/**/*.ts"]
 }

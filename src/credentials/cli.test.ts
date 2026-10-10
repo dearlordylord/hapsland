@@ -208,6 +208,76 @@ console.log('{"version":1,"status":"missing"}');
     }
   )
 
+  it.skipIf(!terminalAvailable)("summarizes an approved interactive key save without printing the key", async () => {
+    const root = mkdtempSync(join(tmpdir(), "credential-login-summary-pty-"))
+    const helper = join(root, "helper.mjs")
+    const marker = "interactive-cli-secret-marker"
+    const entrypoint = join(process.cwd(), "packages", "cli-entry", "src", "cli.ts")
+    writeFileSync(
+      helper,
+      `#!/usr/bin/env node
+if (process.argv[2] === "get") console.log('{"version":1,"status":"missing"}');
+else console.log('{"version":1,"status":"available"}');
+`,
+      { mode: 0o700 }
+    )
+    const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'"
+    const child = spawn(terminalCommand, terminalArguments(`${quote(bunExecutable())} ${quote(entrypoint)} --login`), {
+      cwd: root,
+      env: {
+        ...process.env,
+        HOME: root,
+        XDG_CONFIG_HOME: join(root, "config"),
+        XDG_STATE_HOME: join(root, "state"),
+        TYPESAFE_API_KEY: "active-env-marker",
+        REVIEW_CREDENTIAL_HELPER: helper,
+        REVIEW_CREDENTIAL_STATE_PATH: join(root, "state", "credentials.json")
+      },
+      stdio: ["pipe", "pipe", "pipe"]
+    })
+    let output = ""
+    let selected = false
+    let supplied = false
+    let approved = false
+    child.stdout.on("data", (chunk: Buffer) => {
+      output += chunk.toString("utf8")
+      if (!selected && output.includes("Where should Hapsland save your Jev key?")) {
+        selected = true
+        child.stdin.write("\n")
+      }
+      if (!supplied && output.includes("Jev API key:")) {
+        supplied = true
+        child.stdin.write(`${marker}\n`)
+      }
+      if (!approved && output.includes("Save this key? [y/N]")) {
+        approved = true
+        child.stdin.write("y\n")
+      }
+    })
+    child.stderr.on("data", (chunk: Buffer) => {
+      output += chunk.toString("utf8")
+    })
+    const status = await new Promise<number | null>((resolveExit, rejectExit) => {
+      const timeout = setTimeout(() => {
+        child.kill("SIGKILL")
+        rejectExit(new Error(`interactive login timed out: ${output}`))
+      }, DEFAULT_CHILD_TIMEOUT_MS)
+      child.once("exit", (code) => {
+        clearTimeout(timeout)
+        resolveExit(code)
+      })
+      child.once("error", rejectExit)
+    })
+    expect(status, output).toBe(0)
+    expect(selected && supplied && approved).toBe(true)
+    expect(output).toContain("Jev key saved in")
+    expect(output).toContain("Effective credential: environment; present.")
+    expect(output).toContain("No Jev request or review was sent.")
+    expect(output).toContain("Next: run hapsland setup claude or hapsland setup codex")
+    expect(output).not.toContain(marker)
+    expect(output).not.toContain("active-env-marker")
+  })
+
   it.skipIf(!terminalAvailable).each([
     { label: "Ctrl+C", key: "\x03" },
     { label: "Escape", key: "\x1b" },
@@ -251,7 +321,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
       }
       if (!interrupted && output.includes("Jev API key:")) {
         interrupted = true
-        child.stdin.write(key)
+        setTimeout(() => child.stdin.write(key), 75)
       }
     })
     child.stderr.on("data", (chunk: Buffer) => {
