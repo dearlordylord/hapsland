@@ -256,15 +256,36 @@ packaged hook identity succeeded in 3,516 ms. A verified installed #269 baseline
 was not available for the matched control, so regression attribution remains
 open. These source-free controls are retained under `.test-runs/`; no broader
 startup or host compatibility investigation is qualified here. The observer
-owner and Go consumer selection passed 33 checks, including failed-hook stdout,
+owner and Go consumer selection passed 35 checks with no skips, including failed-hook stdout,
 missing-provider, missing acknowledgment and missing unseen-quotation controls.
 A subsequent interrupted 90-second selection diagnostic retained selected
 candidates, one prepared unit, one provider input and one outcome in its private
 journal; only enum/count projections are retained, and the interrupted run does
 not qualify delivery. Matched direct child controls passed in both checkout and
 synthetic working directories; they do not establish the cause of intermittent
-installed-preview timeouts. Acceptance remains blocked on a current
-installed advice/agent-use witness. The next Go package-import slice remains
+installed-preview timeouts. The native acknowledgment reader initially combined every agent response and
+rejected an earlier negative marker even when the final response affirmed use.
+Attempt `1791609961545` measured marker order `absent, negative, absent, affirmed`,
+with an unseen controlled finding quotation and both correlated provider outcomes.
+The reader now requires an affirmative final response without a final negative
+marker and correlates its actual quotation with interpreted Go findings. Negative
+controls cover reversed marker order, mixed final markers, and missing receipt,
+quotation and follow-up. A stale stdout-observer variable in the success return
+was removed; the focused success-return regression executes the real synthetic
+compiler and returns demonstrated. The final fast gate passed all 75 unit tests.
+
+The isolated fixture compiler is official Go 1.27.2 Linux arm64, archive SHA256
+`94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8`,
+checked against the preparation record and executable version. Only the specific
+test environment selects its bin path, local toolchain and isolated caches;
+product analysis does not execute the compiler. Attempt `1791610458512` failed
+installation because the unchanged pinned-runtime probe timed out and adds no
+native delivery evidence. Acceptance remains blocked on a completed current
+installed advice/agent-use/repair/compilation witness. The 05:39–05:42 preparation
+pause produced no native declaration: an interrupted documentation prerequisite
+had left local owner exports incomplete. The owned export cohort subsequently
+recovered, the manual generated-document check passed, and full runner import
+validation passed before any installation. The next Go package-import slice remains
 #272; #268 must retain these measured setup and delivery limitations.
 
 ## Real-agent verification
