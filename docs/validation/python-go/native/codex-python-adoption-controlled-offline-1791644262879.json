@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-10T14:58:26.575Z",
+  "commit": "3d70f91f5f599c8b95c227d5dd589230b4d4ccbc",
+  "sourceWorktreeDirty": false,
+  "language": "python",
+  "scenario": "adoption",
+  "runnerHash": "0ea34bf7ac6ebace3fe3e087a133c370b27b7f91d64fce881ef4f33ebd891c22",
+  "executionProfile": {
+    "runtime": "installed-artifact",
+    "installedPackageValidated": true,
+    "installedArchive": {
+      "adapterSha256": "c6067b119426192cfc336aee60e66bcaa6f684ac8e8e77c50175c9a4f9110a4f",
+      "archiveSha256": "b74630943c88418d620235f5054b8334a1b5043d5a566cdfd966f9f34927818b",
+      "runtimeAssets": {
+        "sha256": "2368fb6d36d8ab3f41e4c76f382930adf6a62baed6f9c30f5ba3a0ef48f0a0c6",
+        "files": 29
+      },
+      "packageManager": "bun",
+      "operatingSystem": "linux",
+      "architecture": "arm64",
+      "version": "0.1.3"
+    },
+    "normalTrustValidated": false,
+    "syntheticRepositoryOnly": true
+  },
+  "runtime": "Codex CLI",
+  "version": "codex-cli 0.155.1",
+  "mode": "controlled-offline",
+  "declaration": {
+    "scenario": "adoption",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 2,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "codex-cli 0.155.1",
+    "runtimeSurface": "installed-artifact"
+  },
+  "hostDiagnostics": {
+    "permissionDenials": 0,
+    "finalMentionsPermission": false,
+    "finalMentionsEditLimit": false,
+    "toolErrors": 0
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 43755,
+  "providerCalls": 0,
+  "requestShapes": [
+    {
+      "rootKind": "class",
+      "inputBytes": 1175,
+      "evidenceBytes": 653,
+      "conditionalFindingSourceMatched": true,
+      "evidenceNodes": 2,
+      "crossFileEvidenceNodes": 2,
+      "expandedEdges": 2,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    },
+    {
+      "rootKind": "type-alias",
+      "inputBytes": 1718,
+      "evidenceBytes": 1259,
+      "conditionalFindingSourceMatched": false,
+      "evidenceNodes": 4,
+      "crossFileEvidenceNodes": 4,
+      "expandedEdges": 4,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    }
+  ],
+  "pythonCrossfile": true,
+  "readVolumeBoundary": "source preparation replay of the final native edit; installed provider input bytes are in requestShapes",
+  "outcomeSummaries": [
+    {
+      "outcome": "completed-findings",
+      "toolUseHash": "4da0a697b2a21e0546b635a3dd3a8faf7923ddd8f5af1bedccdfd3cf92a37c08"
+    },
+    {
+      "outcome": "completed-clear",
+      "toolUseHash": "1c8b03b036540d05873e5ef068f4303c45d528007dfef0f3262455064a50530c"
+    }
+  ],
+  "postEditPreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1
+  },
+  "nativeUpdatePreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1,
+    "operations": [
+      "update"
+    ],
+    "sourceReadCount": 6,
+    "sourceReadBytes": 1058,
+    "canonicalTreeBytes": [
+      1608
+    ]
+  },
+  "nativeResponseShape": {
+    "responseType": "string",
+    "responseKeys": [],
+    "explicitSuccess": false,
+    "successWord": true,
+    "startsSuccessDot": false,
+    "containsSuccessDot": true,
+    "startsPatchApplied": false,
+    "failureWord": false,
+    "verifiedHunks": 1,
+    "normalizedPatchPresent": true,
+    "normalizedVerifiedHunks": 1,
+    "patchPathAbsolute": false,
+    "patchPathRelativeMatch": true,
+    "patchPathInsideRepo": false,
+    "patchHasCarriageReturn": false
+  },
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 15094
+    },
+    {
+      "stage": "pending",
+      "atMs": 15319
+    },
+    {
+      "stage": "findings",
+      "atMs": 15355
+    },
+    {
+      "stage": "pending",
+      "atMs": 36368
+    },
+    {
+      "stage": "pending",
+      "atMs": 36819
+    },
+    {
+      "stage": "clear",
+      "atMs": 36856
+    }
+  ],
+  "hookEvents": [
+    {
+      "kind": "prompt",
+      "monoMs": 4459.027388989925,
+      "atMs": 4459,
+      "durationMs": 2688,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "before-edit",
+      "monoMs": 13876.59265100956,
+      "atMs": 13877,
+      "durationMs": 552,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": "4da0a697b2a21e0546b635a3dd3a8faf7923ddd8f5af1bedccdfd3cf92a37c08",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "background",
+      "monoMs": 14490.360472023487,
+      "atMs": 14491,
+      "durationMs": 519,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 250,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": "4da0a697b2a21e0546b635a3dd3a8faf7923ddd8f5af1bedccdfd3cf92a37c08",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "edit",
+      "monoMs": 14484.310090005398,
+      "atMs": 14484,
+      "durationMs": 631,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 250,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": "4da0a697b2a21e0546b635a3dd3a8faf7923ddd8f5af1bedccdfd3cf92a37c08",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "stop",
+      "monoMs": 24597.530341029167,
+      "atMs": 24598,
+      "durationMs": 2565,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "ruleIds": [
+        "meaningless_combinations"
+      ],
+      "initial": true,
+      "sourceBytes": 250,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "before-edit",
+      "monoMs": 32551.429072022438,
+      "atMs": 32552,
+      "durationMs": 2295,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 250,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": "1c8b03b036540d05873e5ef068f4303c45d528007dfef0f3262455064a50530c",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "edit",
+      "monoMs": 34988.05971002579,
+      "atMs": 34988,
+      "durationMs": 1404,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 186,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": "1c8b03b036540d05873e5ef068f4303c45d528007dfef0f3262455064a50530c",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "background",
+      "monoMs": 35001.11089903116,
+      "atMs": 35001,
+      "durationMs": 3282,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 186,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": "1c8b03b036540d05873e5ef068f4303c45d528007dfef0f3262455064a50530c",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "stop",
+      "monoMs": 40098.61227500439,
+      "atMs": 40099,
+      "durationMs": 1029,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 186,
+      "sessionHash": "2438c95ff656682da7a195fef4b98bbc81cecd01012360b052eed40625ed1059",
+      "rootHash": "80fe77714e5348b37daabf9b785c5d56b87e1837cdd13caafa8834ff89c0a71a",
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "crossFileExpanded": true,
+    "findingDelivered": true,
+    "editAfterFinding": true,
+    "agentAcknowledgesAdvice": true,
+    "agentQuotesFinding": true,
+    "sourceChanged": true,
+    "finalDesignConstrained": true,
+    "sourceCompiles": true,
+    "declaredSuccessRequiresReceipt": true,
+    "installedHookStdoutSubmittedAdvice": true,
+    "installedCrossFileEvidence": true,
+    "installedInputSizesRecorded": true,
+    "preparationReadVolumeRecorded": true,
+    "followupObserved": true
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 4841,
+  "verdict": "demonstrated"
+}

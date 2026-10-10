@@ -2,7 +2,7 @@
 
 **Purpose:** Identify bounded-profile qualification and reproducible discovery evidence for #267 and the #268 coverage handoff.
 **Audience:** Product/specification owners, contributors including coding agents, and evaluation reviewers.
-**Status:** Acceptance candidate evidence; qualification outcomes are recorded in acceptance.json.
+**Status:** Locally qualified candidate evidence; qualification outcomes are recorded in acceptance.json.
 **Authority:** Implementation and validation evidence. Accepted [review contracts](../../type-function-review-proposal.md) and owner-approved #267 define behavior; inventories and controlled providers do not establish coverage or classifier accuracy.
 **Expected use:** Reproduce the named checks and resume #268 using the exact evidence scope and limitations.
 **Lifecycle:** Update qualification when profile, parser, capture, rule or native delivery boundaries change. Review upon acceptance of a support extension; remove superseded guidance while retaining source-bound records needed for current claims and open coverage decisions.
@@ -36,11 +36,13 @@ edit frequency. No adapter coverage corpus or ecosystem percentage is establishe
 
 The Linux arm64 Codex controlled fixtures use explicit trust/sandbox settings and
 prepared residents. Go selects pinned Bun for installation identity probing while
-registered execution uses packaged hook/resident binaries. A prior default packaged
+registered execution uses packaged hook/resident binaries. Owner-reported historical measurements: a prior default packaged
 probe took 3516 ms against the 2000 ms bound; its Bun control took 183 ms. No verified
 baseline established regression attribution. Default/cold setup, ordinary interactive
 trust, Darwin execution, Claude delivery and real Jev classifier accuracy remain
-unqualified. The default probe bound is unchanged.
+unqualified. The default probe bound is unchanged; raw failed preview receipts are unavailable in this revision.
+The final unchanged package conformance command passed after two earlier pre-preparation
+Rust admission failures. Startup timing is a suspected cause, not established attribution.
 
 For #268, acquire immutable target-user model edits with project/build context and
 consent; classify useful supported and missed cases through the direct-edit/provider
@@ -79,10 +81,11 @@ factories/layouts and Go workspace/build forms, identify one demand-backed bindi
 (high); (5) run pinned syntax probes for Python parameter defaults and compact Go constants,
 compare a maintained compatible grammar fix (low probe cost, native packaging cost separate).
 
-Historical source corpus: Python inventory contains 4593 selected files across six
-purposive projects, 53123 function definitions and 30825 direct methods; Go contains 320
-evenly spaced sorted paths across four projects, including 119 test files and two generated
-files. The raw retained Python artifact's totals differ from the earlier advisory prose's
-4403-file/59.5% snapshot; use the artifact pins, digests and selection when replaying,
-not the prose percentage. Go's production-root/directory-size statistic is a separate
-subset. No current adapter measurement or target-user edit denominator exists.
+Historical source corpus: Python's raw selected stratum contains 4593 files across six
+purposive projects, 53123 function definitions and 30825 direct methods. Its explicitly
+focused subsample contains 4403 files, 51458 functions and 30616 methods; the earlier
+59.5% statistic is 30616/51458 in that subsample. Each stratum has one parse error.
+Go contains 320 evenly spaced sorted paths across four projects, including 119 test
+files and two generated files. Go's 53.1% production-root/directory-size statistic
+uses its separate production subset. Neither statistic measures Hapsland misses or
+user-edit coverage. No target-user edit denominator exists.
