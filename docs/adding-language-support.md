@@ -242,7 +242,8 @@ native identity check took 3.49 seconds, exceeding the unchanged two-second
 installation probe. This fixture does not qualify default installation startup.
 Source-free local declarations/results preserve each failed attempt.
 
-The current archive has not yet qualified installed advice and agent repair.
+The earlier current-archive attempts below did not qualify installed advice and
+agent repair; the completed final witness is recorded after them.
 Codex attempt `1791606247590` passed exact typed-package provider evidence and
 both controlled outcomes, then failed the delivery assertion. Subsequent
 bounded disposition observation showed collection suppression and staleness,
@@ -280,13 +281,34 @@ checked against the preparation record and executable version. Only the specific
 test environment selects its bin path, local toolchain and isolated caches;
 product analysis does not execute the compiler. Attempt `1791610458512` failed
 installation because the unchanged pinned-runtime probe timed out and adds no
-native delivery evidence. Acceptance remains blocked on a completed current
-installed advice/agent-use/repair/compilation witness. The 05:39–05:42 preparation
+native delivery evidence. The 05:39–05:42 preparation
 pause produced no native declaration: an interrupted documentation prerequisite
 had left local owner exports incomplete. The owned export cohort subsequently
 recovered, the manual generated-document check passed, and full runner import
-validation passed before any installation. The next Go package-import slice remains
-#272; #268 must retain these measured setup and delivery limitations.
+validation passed before any installation.
+
+The final owned watcher began within the fresh Python preparation pause at
+`2026-10-10T05:56:54.447Z` and completed at `05:57:39.896Z`, without a retry.
+Current-archive witness `1791611817055` returned `demonstrated` on actual
+Codex CLI 0.155.1, Linux arm64, with standard installed hooks and zero Jev calls.
+All ten independent checks passed: attributed native edits, complete package
+closure, exact original typed iota group, controlled reviewer, initial finding,
+delivered advice, correlated clear follow-up, actual final agent acknowledgment
+and unseen finding quotation, repaired open interface, and real Go compilation.
+The declaration/result identify witness source
+`dc1d0ad03c4d46a62e275c7dc52fd52d320016d6`, runner/profile digests and
+44 matching native assets (digest
+`7cbda648fb8417ce3f87c805548cb4fc04b0cd8181b15b869491e9586b051c7e`).
+That witness source includes tooling and qualification records; the archive's
+runtime source remains `4c33862e5d9b1fb82b20fc21fd59c96f929a7191`.
+The source-free declaration/result remain under ignored `evidence/inspection/`;
+raw host streams, source and provider bodies were not retained. This qualifies
+the bounded installed Go package-model slice through the explicit pinned-Bun
+setup route. It does not qualify default installation startup, Claude delivery,
+Darwin execution, browser behavior, cold startup or live Jev review quality.
+The preparation pause declares only the Python owner's compiler inactivity,
+not the absence of foreign load. The next Go package-import slice remains #272;
+#268 must retain these measured setup limitations and the precise partial profile.
 
 ## Real-agent verification
 
