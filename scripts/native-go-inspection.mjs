@@ -12,7 +12,7 @@ const repaired = "package payment\ntype PaymentState interface { paymentState() 
 const finding = configuredRules.find((rule) => rule.id === "meaningless_combinations").message
 
 /** Assert only the observed package-model seam; discard all source-bearing packets. */
-export function verifyGoSnapshot(snapshot, setCheck = () => {}, nativeSubmission = false) {
+export function verifyGoSnapshot(snapshot, setCheck = () => {}, agentReceipt = { acknowledged: false, quoted: false }) {
   setCheck("prepared-native-roots")
   const records = snapshot.records
   const units = records.filter(
@@ -80,14 +80,8 @@ export function verifyGoSnapshot(snapshot, setCheck = () => {}, nativeSubmission
   assert.ok(nodes.some((node) => node.kind === "struct" && node.name === "Receipt"))
   setCheck("delivered-finding")
   assert.ok(
-    nativeSubmission ||
-      records.some(
-        (record) =>
-          record.correlation.evaluationId === initialUnit.correlation.evaluationId &&
-          record.fact.kind === "finding-fate" &&
-          record.fact.reason === "delivery-finalized"
-      ),
-    "The initial finding must be delivered"
+    agentReceipt.acknowledged === true && agentReceipt.quoted === true,
+    "The real agent must acknowledge advice and quote its unseen delivered finding"
   )
   return {
     nativeEdits: true,
@@ -101,7 +95,8 @@ export function verifyGoSnapshot(snapshot, setCheck = () => {}, nativeSubmission
 }
 
 export function createGoInspectionProfile({
-  diagnosticOnly = process.env.HAPSLAND_GO_SELECTION_DIAGNOSTIC === "1"
+  diagnosticOnly = process.env.HAPSLAND_GO_SELECTION_DIAGNOSTIC === "1",
+  observeStdout = false
 } = {}) {
   let observations
   let acknowledged = false
@@ -110,6 +105,7 @@ export function createGoInspectionProfile({
     source: new URL(import.meta.url),
     scenario: "go-package-model-review",
     diagnosticOnly,
+    hookInterposition: observeStdout ? "stdout-observer" : "standard-installed-hooks",
     browser: false,
     prepareResident: true,
     prepareRuntime: true,
@@ -122,9 +118,11 @@ export function createGoInspectionProfile({
       writeFileSync(join(repo, "package.json"), JSON.stringify({ private: true, scripts: { test: "go test ./..." } }))
     },
     control: () => ({ findingOnSourceIncludes: "type PaymentState struct" }),
-    instrumentHooks(inputs) {
-      observations = instrumentGoHooks({ ...inputs, finding })
-    },
+    instrumentHooks: observeStdout
+      ? (inputs) => {
+          observations = instrumentGoHooks({ ...inputs, finding })
+        }
+      : undefined,
     prompts: [
       diagnosticOnly
         ? `Use apply_patch to add payment.go with exactly this draft:\n${initial}\nRun npm test once. Keep support.go unchanged. Stop after this single source edit and test; do not repair the draft or inspect integration settings.`
@@ -217,16 +215,7 @@ export function createGoInspectionProfile({
         setPhase("go-selection-diagnostic")
         throw new Error("Diagnostic-only selection observation does not qualify installed review")
       }
-      const submitted =
-        observations &&
-        readFileSync(observations, "utf8")
-          .trim()
-          .split("\n")
-          .some((line) => {
-            const value = JSON.parse(line)
-            return value.initialRoot === true && value.adviceSubmitted === true && value.exitCode === 0
-          })
-      const checks = verifyGoSnapshot(snapshot, (check) => setPhase(`go-${check}`), submitted)
+      const checks = verifyGoSnapshot(snapshot, (check) => setPhase(`go-${check}`), { acknowledged, quoted })
       setPhase("go-agent-advice-acknowledgment")
       assert.ok(acknowledged && quoted, "The real agent must acknowledge advice and quote its delivered finding")
       setPhase("go-interface-repair")

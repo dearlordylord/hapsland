@@ -95,6 +95,7 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         nativeColdStartupValidation: false,
         runtimeIdentityPreparation: profile?.prepareRuntime === true,
         diagnosticOnly: profile?.diagnosticOnly === true,
+        hookInterposition: profile?.hookInterposition ?? "standard-installed-hooks",
         installationProbeRuntime: profile?.prepareRuntime
           ? "pinned-bun-with-packaged-native-entrypoint"
           : "packaged-native-runtime",

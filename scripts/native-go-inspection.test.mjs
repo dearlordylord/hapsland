@@ -4,7 +4,10 @@ import { goConstantGroup, verifyGoSnapshot, createGoInspectionProfile } from "./
 import * as Schema from "effect/Schema"
 import { InspectionFact } from "@hapsland/inspection-records/inspection/contract"
 import { createHash } from "node:crypto"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 
+const receipt = { acknowledged: true, quoted: true }
+const verify = (value) => verifyGoSnapshot(value, () => {}, receipt)
 const packet = () => {
   const fact = (evaluationId, payload, receiptId = evaluationId) => ({
     correlation: { evaluationId, receiptId },
@@ -45,30 +48,46 @@ const packet = () => {
 }
 test("installed Go witness requires complete original typed group and correlated delivered follow-up", () => {
   Schema.decodeUnknownSync(InspectionFact)(packet().records.find((record) => record.fact.kind === "model-input").fact)
-  assert.equal(verifyGoSnapshot(packet()).exactTypedIotaGroup, true)
-  for (const missing of ["model-input", "finding-fate", "edit-received", "unit-policy"]) {
+  assert.equal(verify(packet()).exactTypedIotaGroup, true)
+  for (const missing of ["model-input", "edit-received", "unit-policy", "evaluation-outcome"]) {
     const value = packet()
     value.records = value.records.filter((record) => record.fact.kind !== missing)
-    assert.throws(() => verifyGoSnapshot(value))
+    assert.throws(() => verify(value))
   }
   const incomplete = packet()
   incomplete.records.find((record) => record.fact.kind === "unit-prepared").fact.completeness = "incomplete-irrelevant"
-  assert.throws(() => verifyGoSnapshot(incomplete))
+  assert.throws(() => verify(incomplete))
   const isolated = packet()
   const payload = isolated.records.find((record) => record.fact.kind === "model-input").fact.payload
   const input = JSON.parse(payload.encoded)
   input.evidence.nodes[1].source = "const Succeeded PaymentStatus = 1"
   payload.encoded = JSON.stringify(input)
-  assert.throws(() => verifyGoSnapshot(isolated), /original typed iota group/)
+  assert.throws(() => verify(isolated), /original typed iota group/)
 })
 
-test("stdout submission proof does not substitute for typed provider evidence", () => {
+test("agent acknowledgment and unseen quotation are both required independently of private finding fate", () => {
   const value = packet()
   value.records = value.records.filter((record) => record.fact.kind !== "finding-fate")
-  assert.throws(() => verifyGoSnapshot(value))
-  assert.equal(verifyGoSnapshot(value, () => {}, true).deliveredAdvice, true)
+  assert.equal(verify(value).deliveredAdvice, true)
+  for (const missing of [
+    { acknowledged: false, quoted: true },
+    { acknowledged: true, quoted: false }
+  ])
+    assert.throws(() => verifyGoSnapshot(value, () => {}, missing), /real agent/)
+  assert.throws(() => verifyGoSnapshot(packet()), /real agent/)
   value.records = value.records.filter((record) => record.fact.kind !== "model-input")
-  assert.throws(() => verifyGoSnapshot(value, () => {}, true))
+  assert.throws(() => verify(value))
+})
+
+test("standard installed hooks carry no stdout interposition and task prompt excludes expected finding", () => {
+  const profile = createGoInspectionProfile()
+  assert.equal(profile.instrumentHooks, undefined)
+  assert.equal(profile.hookInterposition, "standard-installed-hooks")
+  assert.ok(
+    profile.prompts.every(
+      (prompt) => !prompt.includes(configuredRules.find((rule) => rule.id === "meaningless_combinations").message)
+    )
+  )
 })
 
 test("selection-only native diagnostic cannot qualify installed review", async () => {
