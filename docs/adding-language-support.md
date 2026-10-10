@@ -191,9 +191,9 @@ are owned by the [Python amendment](type-function-review-proposal.md#python-same
 The same-file Python slice has local implementation evidence from 2026-10-09–10.
 Keep this qualification current when its grammar, runtime, installed entrypoints,
 or model evidence contract changes; rerun the affected checks before extending it.
-The production-code candidate was `a11f7d08d7fd46a7d019c3869a05c718279cacc2`.
+The production-code candidate was `3f4f803d09aa39f525ab2a54d298ad446150935f`.
 Its reviewed Linux arm64 archive SHA-256 was
-`2aac15d8bdea63247206d58779593e85c868817a26563c2f68bdcc39bff34d15`.
+`f6413a2d17d81a4bd7cb1333b1a1b49f6f3f505389749b399c9cc79802bcf354`.
 Subsequent runner corrections isolate HOME, check the stable hook launcher and
 catalog-defined `exec` prefixes, and exercise a distinct hook-payload update while
 preserving the independently selected resident, as required by the
@@ -201,10 +201,11 @@ preserving the independently selected resident, as required by the
 
 Executed evidence:
 
-- Twenty-three focused Python/profile tests passed: eight admitted root families with
+- Twenty-four focused Python/profile tests passed: eight admitted root families with
   the three shipped rules, exact root/support source at the controlled provider,
   finding/clear/failure delivery, defining-edit selection, lexical shadows and
-  generic bounds, independent omissions, exclusions, budgets and stale advice.
+  generic bounds, conditional schema and type-parameter marker omissions,
+  independent omissions, exclusions, budgets and stale advice.
 - The fast gate passed; 257 selected existing TS/Rust/Bend, attribution, renderer,
   rule and format consumer tests passed. Ninety-five native packaging/loader/
   assembly/distribution tooling tests passed. Documentation generation and
@@ -231,7 +232,10 @@ fixtures sometimes admitted incomplete evidence; investigation found that the
 target already existed before capture. Conformance now creates each target between the pre-edit
 and post-edit hooks, and bounded provider-handoff waits retain source-free
 diagnostics on failure. Official conformance passed on the archive above after
-that correction.
+that correction. One subsequent native attempt created source without an edit-hook
+event or provider handoff and remains recorded as incomplete. A new attempt
+with the unchanged runner and final archive demonstrated all eleven assertions;
+the source-free result is `codex-python-adoption-controlled-offline-1791592321569.json`.
 
 Darwin execution and the full two-target archive remain unqualified here: the
 required Darwin arm64 native input bundle was unavailable on this Linux host.
