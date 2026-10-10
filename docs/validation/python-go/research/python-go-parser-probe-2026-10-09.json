@@ -1,0 +1,354 @@
+{
+  "date": "2026-10-09",
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "arm64",
+  "runtime": "0.25.1",
+  "runtimeArtifactSha256": "d4dbe0dcf6fe46de813fe1b70799c11f9ff76ad61a2e7f870c131ba7ecee5765",
+  "expected": "Record grammar acceptance and errors for each synthetic construct; unsupported constructs are retained, not treated as successful coverage.",
+  "scope": "Synthetic syntax-only fixtures. No Python/Go compiler check, imports, semantic resolution, application corpus, Bun packaging, Hapsland review or runtime execution.",
+  "results": [
+    {
+      "language": "python",
+      "id": "pep758-unparenthesized-exceptions",
+      "grammarVersion": "0.25.0",
+      "source": "def run():\n    try:\n        return 1\n    except ValueError, TypeError:\n        return None\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (function_definition name: (identifier) parameters: (parameters) body: (block (try_statement body: (block (return_statement (integer))) (except_clause value: (identifier) value: (identifier) (block (return_statement (none))))))))"
+    },
+    {
+      "language": "python",
+      "id": "imports-and-relative-reexports",
+      "grammarVersion": "0.25.0",
+      "source": "import typing as t\nfrom ..models import Payment as P\nfrom . import state\nfrom models import *\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_statement name: (aliased_import name: (dotted_name (identifier)) alias: (identifier))) (import_from_statement module_name: (relative_import (import_prefix) (dotted_name (identifier))) name: (aliased_import name: (dotted_name (identifier)) alias: (identifier))) (import_from_statement module_name: (relative_import (import_prefix)) name: (dotted_name (identifier))) (import_from_statement module_name: (dotted_name (identifier)) (wildcard_import)))"
+    },
+    {
+      "language": "python",
+      "id": "type-checking-forward-reference",
+      "grammarVersion": "0.25.0",
+      "source": "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from .user import User\ndef owner(x: 'User') -> 'User':\n    return x\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_from_statement module_name: (dotted_name (identifier)) name: (dotted_name (identifier))) (if_statement condition: (identifier) consequence: (block (import_from_statement module_name: (relative_import (import_prefix) (dotted_name (identifier))) name: (dotted_name (identifier))))) (function_definition name: (identifier) parameters: (parameters (typed_parameter (identifier) type: (type (string (string_start) (string_content) (string_end))))) return_type: (type (string (string_start) (string_content) (string_end))) body: (block (return_statement (identifier)))))"
+    },
+    {
+      "language": "python",
+      "id": "pep695-generic-alias",
+      "grammarVersion": "0.25.0",
+      "source": "type Result[T] = T | None\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (type_alias_statement left: (type (generic_type (identifier) (type_parameter (type (identifier))))) right: (type (binary_operator left: (identifier) right: (none)))))"
+    },
+    {
+      "language": "python",
+      "id": "pep695-generic-class",
+      "grammarVersion": "0.25.0",
+      "source": "class Box[T]:\n    value: T\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (class_definition name: (identifier) type_parameters: (type_parameter (type (identifier))) body: (block (expression_statement (assignment left: (identifier) type: (type (identifier)))))))"
+    },
+    {
+      "language": "python",
+      "id": "pep695-generic-function",
+      "grammarVersion": "0.25.0",
+      "source": "def identity[T](x: T) -> T:\n    return x\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (function_definition name: (identifier) type_parameters: (type_parameter (type (identifier))) parameters: (parameters (typed_parameter (identifier) type: (type (identifier)))) return_type: (type (identifier)) body: (block (return_statement (identifier)))))"
+    },
+    {
+      "language": "python",
+      "id": "pep696-type-parameter-default",
+      "grammarVersion": "0.25.0",
+      "source": "class Box[T = str]:\n    value: T\n",
+      "hasError": true,
+      "errors": [
+        {
+          "type": "ERROR",
+          "missing": false,
+          "start": {
+            "row": 0,
+            "column": 10
+          },
+          "end": {
+            "row": 0,
+            "column": 13
+          }
+        }
+      ],
+      "tree": "(module (class_definition name: (identifier) type_parameters: (type_parameter (ERROR (identifier)) (type (identifier))) body: (block (expression_statement (assignment left: (identifier) type: (type (identifier)))))))"
+    },
+    {
+      "language": "python",
+      "id": "pep750-template-string",
+      "grammarVersion": "0.25.0",
+      "source": "def greeting(name: str):\n    return t\"Hello {name}\"\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (function_definition name: (identifier) parameters: (parameters (typed_parameter (identifier) type: (type (identifier)))) body: (block (return_statement (string (string_start) (string_content) (interpolation expression: (identifier)) (string_end))))))"
+    },
+    {
+      "language": "python",
+      "id": "dataclass-fields",
+      "grammarVersion": "0.25.0",
+      "source": "from dataclasses import dataclass, field\n@dataclass(frozen=True, kw_only=True)\nclass State:\n    ready: bool\n    items: list[str] = field(default_factory=list)\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_from_statement module_name: (dotted_name (identifier)) name: (dotted_name (identifier)) name: (dotted_name (identifier))) (decorated_definition (decorator (call function: (identifier) arguments: (argument_list (keyword_argument name: (identifier) value: (true)) (keyword_argument name: (identifier) value: (true))))) definition: (class_definition name: (identifier) body: (block (expression_statement (assignment left: (identifier) type: (type (identifier)))) (expression_statement (assignment left: (identifier) type: (type (generic_type (identifier) (type_parameter (type (identifier))))) right: (call function: (identifier) arguments: (argument_list (keyword_argument name: (identifier) value: (identifier))))))))))"
+    },
+    {
+      "language": "python",
+      "id": "pydantic-validator",
+      "grammarVersion": "0.25.0",
+      "source": "from pydantic import BaseModel, model_validator\nclass Payment(BaseModel):\n    paid: bool\n    receipt: str | None = None\n    @model_validator(mode='after')\n    def validate(self):\n        return self\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_from_statement module_name: (dotted_name (identifier)) name: (dotted_name (identifier)) name: (dotted_name (identifier))) (class_definition name: (identifier) superclasses: (argument_list (identifier)) body: (block (expression_statement (assignment left: (identifier) type: (type (identifier)))) (expression_statement (assignment left: (identifier) type: (type (binary_operator left: (identifier) right: (none))) right: (none))) (decorated_definition (decorator (call function: (identifier) arguments: (argument_list (keyword_argument name: (identifier) value: (string (string_start) (string_content) (string_end)))))) definition: (function_definition name: (identifier) parameters: (parameters (identifier)) body: (block (return_statement (identifier))))))))"
+    },
+    {
+      "language": "python",
+      "id": "typed-dict-class",
+      "grammarVersion": "0.25.0",
+      "source": "from typing import TypedDict, NotRequired, ReadOnly\nclass State(TypedDict):\n    ready: bool\n    receipt: NotRequired[ReadOnly[str]]\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_from_statement module_name: (dotted_name (identifier)) name: (dotted_name (identifier)) name: (dotted_name (identifier)) name: (dotted_name (identifier))) (class_definition name: (identifier) superclasses: (argument_list (identifier)) body: (block (expression_statement (assignment left: (identifier) type: (type (identifier)))) (expression_statement (assignment left: (identifier) type: (type (generic_type (identifier) (type_parameter (type (generic_type (identifier) (type_parameter (type (identifier)))))))))))))"
+    },
+    {
+      "language": "python",
+      "id": "typed-dict-functional",
+      "grammarVersion": "0.25.0",
+      "source": "from typing import TypedDict\nState = TypedDict('State', {'ready': bool, 'value': str})\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_from_statement module_name: (dotted_name (identifier)) name: (dotted_name (identifier))) (expression_statement (assignment left: (identifier) right: (call function: (identifier) arguments: (argument_list (string (string_start) (string_content) (string_end)) (dictionary (pair key: (string (string_start) (string_content) (string_end)) value: (identifier)) (pair key: (string (string_start) (string_content) (string_end)) value: (identifier))))))))"
+    },
+    {
+      "language": "python",
+      "id": "annotated-literal-union",
+      "grammarVersion": "0.25.0",
+      "source": "from typing import Annotated, Literal\ntype State = Annotated[Literal['ready', 'pending'] | None, 'state']\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_from_statement module_name: (dotted_name (identifier)) name: (dotted_name (identifier)) name: (dotted_name (identifier))) (type_alias_statement left: (type (identifier)) right: (type (generic_type (identifier) (type_parameter (type (union_type (type (generic_type (identifier) (type_parameter (type (string (string_start) (string_content) (string_end))) (type (string (string_start) (string_content) (string_end)))))) (type (none)))) (type (string (string_start) (string_content) (string_end))))))))"
+    },
+    {
+      "language": "python",
+      "id": "async-decorated-method",
+      "grammarVersion": "0.25.0",
+      "source": "class Agent:\n    @staticmethod\n    async def run(x: str) -> str:\n        return x\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (class_definition name: (identifier) body: (block (decorated_definition (decorator (identifier)) definition: (function_definition name: (identifier) parameters: (parameters (typed_parameter (identifier) type: (type (identifier)))) return_type: (type (identifier)) body: (block (return_statement (identifier))))))))"
+    },
+    {
+      "language": "python",
+      "id": "stub-overloads",
+      "grammarVersion": "0.25.0",
+      "source": "from typing import overload\n@overload\ndef get(x: int) -> int: ...\n@overload\ndef get(x: str) -> str: ...\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_from_statement module_name: (dotted_name (identifier)) name: (dotted_name (identifier))) (decorated_definition (decorator (identifier)) definition: (function_definition name: (identifier) parameters: (parameters (typed_parameter (identifier) type: (type (identifier)))) return_type: (type (identifier)) body: (block (expression_statement (ellipsis))))) (decorated_definition (decorator (identifier)) definition: (function_definition name: (identifier) parameters: (parameters (typed_parameter (identifier) type: (type (identifier)))) return_type: (type (identifier)) body: (block (expression_statement (ellipsis))))))"
+    },
+    {
+      "language": "python",
+      "id": "match-state",
+      "grammarVersion": "0.25.0",
+      "source": "def handle(state):\n    match state:\n        case {'kind': 'ready', 'value': value}:\n            return value\n        case _:\n            return None\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (function_definition name: (identifier) parameters: (parameters (identifier)) body: (block (match_statement subject: (identifier) body: (block alternative: (case_clause (case_pattern (dict_pattern key: (string (string_start) (string_content) (string_end)) value: (case_pattern (string (string_start) (string_content) (string_end))) key: (string (string_start) (string_content) (string_end)) value: (case_pattern (dotted_name (identifier))))) consequence: (block (return_statement (identifier)))) alternative: (case_clause (case_pattern) consequence: (block (return_statement (none)))))))))"
+    },
+    {
+      "language": "python",
+      "id": "dynamic-import",
+      "grammarVersion": "0.25.0",
+      "source": "import importlib\nmodels = importlib.import_module('app.models')\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(module (import_statement name: (dotted_name (identifier))) (expression_statement (assignment left: (identifier) right: (call function: (attribute object: (identifier) attribute: (identifier)) arguments: (argument_list (string (string_start) (string_content) (string_end)))))))"
+    },
+    {
+      "language": "go",
+      "id": "import-alias-dot-blank",
+      "grammarVersion": "0.25.0",
+      "source": "package app\nimport ( alias \"example.org/app/model\"; . \"example.org/app/types\"; _ \"example.org/app/driver\" )\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (import_declaration (import_spec_list (import_spec name: (package_identifier) path: (interpreted_string_literal (interpreted_string_literal_content))) (import_spec name: (dot) path: (interpreted_string_literal (interpreted_string_literal_content))) (import_spec name: (blank_identifier) path: (interpreted_string_literal (interpreted_string_literal_content))))))"
+    },
+    {
+      "language": "go",
+      "id": "struct-tags-embedding",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype Payment struct { Base; Paid bool `json:\"paid\"`; Receipt *string `json:\"receipt,omitempty\"` }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type: (struct_type (field_declaration_list (field_declaration type: (type_identifier)) (field_declaration name: (field_identifier) type: (type_identifier) tag: (raw_string_literal (raw_string_literal_content))) (field_declaration name: (field_identifier) type: (pointer_type (type_identifier)) tag: (raw_string_literal (raw_string_literal_content))))))))"
+    },
+    {
+      "language": "go",
+      "id": "generic-struct",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype Result[T any] struct { Value T; Err error }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type_parameters: (type_parameter_list (type_parameter_declaration name: (identifier) type: (type_constraint (type_identifier)))) type: (struct_type (field_declaration_list (field_declaration name: (field_identifier) type: (type_identifier)) (field_declaration name: (field_identifier) type: (type_identifier)))))))"
+    },
+    {
+      "language": "go",
+      "id": "generic-alias-go124",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype Set[T comparable] = map[T]bool\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_alias name: (type_identifier) type_parameters: (type_parameter_list (type_parameter_declaration name: (identifier) type: (type_constraint (type_identifier)))) type: (map_type key: (type_identifier) value: (type_identifier)))))"
+    },
+    {
+      "language": "go",
+      "id": "defined-versus-alias",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype UserID string\ntype ID = UserID\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type: (type_identifier))) (type_declaration (type_alias name: (type_identifier) type: (type_identifier))))"
+    },
+    {
+      "language": "go",
+      "id": "constant-enum",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype Status int\nconst (\n Pending Status = iota\n Ready\n Failed\n)\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type: (type_identifier))) (const_declaration (const_spec name: (identifier) type: (type_identifier) value: (expression_list (iota))) (const_spec name: (identifier)) (const_spec name: (identifier))))"
+    },
+    {
+      "language": "go",
+      "id": "compact-constant-enum",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype Status int\nconst ( Pending Status = iota; Ready; Failed )\n",
+      "hasError": true,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type: (type_identifier))) (const_declaration (const_spec name: (identifier) type: (type_identifier) value: (expression_list (iota))) (const_spec name: (identifier)) (const_spec name: (identifier)) (MISSING \"source_file_token1\")))"
+    },
+    {
+      "language": "go",
+      "id": "grouped-type-declarations",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype (\n UserID string\n Payment struct { ID UserID; Values map[string][]byte; Events chan<- int }\n)\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type: (type_identifier)) (type_spec name: (type_identifier) type: (struct_type (field_declaration_list (field_declaration name: (field_identifier) type: (type_identifier)) (field_declaration name: (field_identifier) type: (map_type key: (type_identifier) value: (slice_type element: (type_identifier)))) (field_declaration name: (field_identifier) type: (channel_type value: (type_identifier))))))))"
+    },
+    {
+      "language": "go",
+      "id": "interfaces-and-type-set",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype Number interface { ~int | ~float64 }\ntype Reader interface { Read(p []byte) (n int, err error) }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type: (interface_type (type_elem (negated_type (type_identifier)) (negated_type (type_identifier)))))) (type_declaration (type_spec name: (type_identifier) type: (interface_type (method_elem name: (field_identifier) parameters: (parameter_list (parameter_declaration name: (identifier) type: (slice_type element: (type_identifier)))) result: (parameter_list (parameter_declaration name: (identifier) type: (type_identifier)) (parameter_declaration name: (identifier) type: (type_identifier))))))))"
+    },
+    {
+      "language": "go",
+      "id": "generic-function",
+      "grammarVersion": "0.25.0",
+      "source": "package app\nfunc Identity[T any](x T) T { return x }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (function_declaration name: (identifier) type_parameters: (type_parameter_list (type_parameter_declaration name: (identifier) type: (type_constraint (type_identifier)))) parameters: (parameter_list (parameter_declaration name: (identifier) type: (type_identifier))) result: (type_identifier) body: (block (statement_list (return_statement (expression_list (identifier)))))))"
+    },
+    {
+      "language": "go",
+      "id": "receiver-method",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype State struct { Ready bool }\nfunc (s *State) IsReady() bool { return s.Ready }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type: (struct_type (field_declaration_list (field_declaration name: (field_identifier) type: (type_identifier)))))) (method_declaration receiver: (parameter_list (parameter_declaration name: (identifier) type: (pointer_type (type_identifier)))) name: (field_identifier) parameters: (parameter_list) result: (type_identifier) body: (block (statement_list (return_statement (expression_list (selector_expression operand: (identifier) field: (field_identifier))))))))"
+    },
+    {
+      "language": "go",
+      "id": "generic-receiver",
+      "grammarVersion": "0.25.0",
+      "source": "package app\ntype Box[T any] struct { Value T }\nfunc (b Box[T]) Get() T { return b.Value }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type_parameters: (type_parameter_list (type_parameter_declaration name: (identifier) type: (type_constraint (type_identifier)))) type: (struct_type (field_declaration_list (field_declaration name: (field_identifier) type: (type_identifier)))))) (method_declaration receiver: (parameter_list (parameter_declaration name: (identifier) type: (generic_type type: (type_identifier) type_arguments: (type_arguments (type_elem (type_identifier)))))) name: (field_identifier) parameters: (parameter_list) result: (type_identifier) body: (block (statement_list (return_statement (expression_list (selector_expression operand: (identifier) field: (field_identifier))))))))"
+    },
+    {
+      "language": "go",
+      "id": "build-constraint-and-generate",
+      "grammarVersion": "0.25.0",
+      "source": "//go:build linux && !integration\n\npackage app\n//go:generate go run ./cmd/generate\ntype State struct { Ready bool }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (comment) (package_clause (package_identifier)) (comment) (type_declaration (type_spec name: (type_identifier) type: (struct_type (field_declaration_list (field_declaration name: (field_identifier) type: (type_identifier)))))))"
+    },
+    {
+      "language": "go",
+      "id": "external-test-package",
+      "grammarVersion": "0.25.0",
+      "source": "package app_test\nimport \"testing\"\nfunc TestState(t *testing.T) {}\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (import_declaration (import_spec path: (interpreted_string_literal (interpreted_string_literal_content)))) (function_declaration name: (identifier) parameters: (parameter_list (parameter_declaration name: (identifier) type: (pointer_type (qualified_type package: (package_identifier) name: (type_identifier))))) body: (block)))"
+    },
+    {
+      "language": "go",
+      "id": "range-over-function-go123",
+      "grammarVersion": "0.25.0",
+      "source": "package app\nfunc Count(seq func(func(int) bool)) int { n := 0; for range seq { n++ }; return n }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (function_declaration name: (identifier) parameters: (parameter_list (parameter_declaration name: (identifier) type: (function_type parameters: (parameter_list (parameter_declaration type: (function_type parameters: (parameter_list (parameter_declaration type: (type_identifier))) result: (type_identifier))))))) result: (type_identifier) body: (block (statement_list (short_var_declaration left: (expression_list (identifier)) right: (expression_list (int_literal))) (for_statement (range_clause right: (identifier)) body: (block (statement_list (inc_statement (identifier))))) (return_statement (expression_list (identifier)))))))"
+    },
+    {
+      "language": "go",
+      "id": "type-switch",
+      "grammarVersion": "0.25.0",
+      "source": "package app\nfunc Handle(v any) { switch x := v.(type) { case string: _ = x; default: } }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (function_declaration name: (identifier) parameters: (parameter_list (parameter_declaration name: (identifier) type: (type_identifier))) body: (block (statement_list (type_switch_statement alias: (expression_list (identifier)) value: (identifier) (type_case type: (type_identifier) (statement_list (assignment_statement left: (expression_list (identifier)) right: (expression_list (identifier))))) (default_case))))))"
+    },
+    {
+      "language": "go",
+      "id": "cgo-preamble",
+      "grammarVersion": "0.25.0",
+      "source": "package app\n/* int value(void); */\nimport \"C\"\nfunc Value() int { return int(C.value()) }\n",
+      "hasError": false,
+      "errors": [],
+      "tree": "(source_file (package_clause (package_identifier)) (comment) (import_declaration (import_spec path: (interpreted_string_literal (interpreted_string_literal_content)))) (function_declaration name: (identifier) parameters: (parameter_list) result: (type_identifier) body: (block (statement_list (return_statement (expression_list (call_expression function: (identifier) arguments: (argument_list (call_expression function: (selector_expression operand: (identifier) field: (field_identifier)) arguments: (argument_list))))))))))"
+    }
+  ],
+  "repositoryHead": "c61bec49f0781bc3ec3da5d7a6028aa7a38659e4",
+  "exitCode": 0,
+  "interpretation": "Probe exits successfully when results are recorded; fixture errors remain in the record and do not imply semantic review coverage.",
+  "replay": "Install tree-sitter@0.25.1 tree-sitter-python@0.25.0 tree-sitter-go@0.25.0 in an isolated npm directory; copy python-go-parser-probe.mjs there. Run TREE_SITTER_PREBUILD=/absolute/path/to/source-built/tree-sitter node python-go-parser-probe.mjs. See earlier parser-smoke record for runtime artifact preparation.",
+  "scriptSha256": "fe2de0d197987460c24afc6ad9d6d22f83e3e2a25ec8727c7e619f0108c04df1",
+  "summary": {
+    "python": {
+      "fixtures": 17,
+      "withoutSyntaxErrors": 16,
+      "errors": [
+        "pep696-type-parameter-default"
+      ]
+    },
+    "go": {
+      "fixtures": 17,
+      "withoutSyntaxErrors": 16,
+      "errors": [
+        "compact-constant-enum"
+      ]
+    }
+  }
+}

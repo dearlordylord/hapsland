@@ -186,8 +186,8 @@ resolved selection before expecting a review result.
 | `includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `excludes` | array of non-empty string (may be empty) | Optional | — | Changed-root repository-relative exclusions. Exclusions accumulate across configuration layers and always win for roots. |
 | `excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `languages` | array of "typescript" or "rust" or "bend" or "python" (may be empty) | Optional | — | Changed-root analyzer languages. Omission inherits; an empty array selects no roots. |
-| `languages[]` | "typescript" or "rust" or "bend" or "python" | Array item (array may be empty) | — | — |
+| `languages` | array of "typescript" or "rust" or "bend" or "python" or "go" (may be empty) | Optional | — | Changed-root analyzer languages. Omission inherits; an empty array selects no roots. |
+| `languages[]` | "typescript" or "rust" or "bend" or "python" or "go" | Array item (array may be empty) | — | — |
 | `contextIncludes` | array of non-empty string (may be empty) | Optional | — | Supporting-context patterns. Omission inherits effective root includes; an empty array selects no supporting paths. |
 | `contextIncludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `contextExcludes` | array of non-empty string (may be empty) | Optional | — | Supporting-context exclusions accumulate across layers. Omission inherits effective root exclusions. |
@@ -208,6 +208,12 @@ resolved selection before expecting a review result.
 | `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |
 | `editPermitLimits.resident` | integer (1–65536) | Optional | 4096 | Maximum simultaneously pending edit permits across the shared resident. |
 | `virtualRoundQuietMs` | integer (10000–3600000) | Optional | 300000 | Continuous fully quiet time before an open virtual round closes without Stop, in milliseconds. User configuration only; captured when the round opens. |
+| `analysis` | object | Optional | — | — |
+| `analysis.go` | object | Optional | — | — |
+| `analysis.go.goos` | "aix" or "android" or "darwin" or "dragonfly" or "freebsd" or "hurd" or "illumos" or "ios" or "js" or "linux" or "netbsd" or "openbsd" or "plan9" or "solaris" or "wasip1" or "windows" | Required | — | — |
+| `analysis.go.goarch` | "386" or "amd64" or "arm" or "arm64" or "loong64" or "mips" or "mipsle" or "mips64" or "mips64le" or "ppc64" or "ppc64le" or "riscv64" or "s390x" or "wasm" | Required | — | — |
+| `analysis.go.tags` | array of string matching a pattern (at most 64 items) | Required | — | — |
+| `analysis.go.tags[]` | string matching a pattern | Array item (array may be empty) | — | — |
 | `graphLimits` | object | Optional | — | Import graph limits; omitted values inherit. |
 | `graphLimits.version` | fixed value 1 | Required | — | Import graph limits profile version. |
 | `graphLimits.sourceBytes` | integer (1–2097152) | Optional | 2097152 | Maximum source bytes in each graph file. |
@@ -221,8 +227,8 @@ resolved selection before expecting a review result.
 | `rules[]` | non-empty string or object with `path` or object with `id` | Array item (array may be empty) | — | A local rule path or inherited rule ID, with optional selection settings. |
 | `rules[].path` | non-empty string | Required (path form) | — | — |
 | `rules[].enabled` | boolean | Optional | — | — |
-| `rules[].languages` | array of "typescript" or "rust" or "bend" or "python" (may be empty) | Optional | — | — |
-| `rules[].languages[]` | "typescript" or "rust" or "bend" or "python" | Array item (array may be empty) | — | — |
+| `rules[].languages` | array of "typescript" or "rust" or "bend" or "python" or "go" (may be empty) | Optional | — | — |
+| `rules[].languages[]` | "typescript" or "rust" or "bend" or "python" or "go" | Array item (array may be empty) | — | — |
 | `rules[].includes` | array of non-empty string (may be empty) | Optional | — | — |
 | `rules[].includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `rules[].excludes` | array of non-empty string (may be empty) | Optional | — | — |

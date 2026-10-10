@@ -5,7 +5,8 @@ export const LANGUAGE_EXTENSIONS = {
   typescript: [".ts", ".tsx", ".mts", ".cts"],
   rust: [".rs"],
   bend: [".bend"],
-  python: [".py"]
+  python: [".py"],
+  go: [".go"]
 } as const
 export type RootLanguage = keyof typeof LANGUAGE_EXTENSIONS
 

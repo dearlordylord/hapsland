@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-10T14:57:42.881Z",
+  "host": "codex",
+  "language": "python",
+  "mode": "controlled-offline",
+  "scenario": "adoption",
+  "declaration": {
+    "scenario": "adoption",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 2,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "codex-cli 0.155.1",
+    "runtimeSurface": "installed-artifact"
+  }
+}

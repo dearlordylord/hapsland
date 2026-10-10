@@ -292,6 +292,13 @@ type CandidateDeclaration = {
   readonly location: NonNullable<ReviewInput["rootLocation"]>
 }
 const graphResolutionOptions = (frame: PreparationFrame, candidatePath: string) => ({
+  analysisConfiguration:
+    frame.context.settings.configuration?.policy.layers.reduce<
+      NonNullable<
+        import("@hapsland/source-analysis/direct-event/languages/contracts").LanguageGraphHost["analysisConfiguration"]
+      >
+    >((current, layer) => ({ ...current, ...layer.document.analysis }), {}) ?? {},
+  analysisConfigurationIdentity: frame.context.settings.configuration?.policy.digest ?? "unconfigured",
   root: frame.observation.root,
   rootIdentity: frame.observation.rootIdentity,
   policy: currentPolicy(frame.context),
@@ -353,7 +360,7 @@ const freezePreparedUnitInput = (
   sourceFingerprints: NonNullable<ReviewInput["sourceFingerprints"]>,
   frame: PreparationFrame,
   partial: boolean,
-  language: "typescript" | "rust" | "bend" | "python"
+  language: "typescript" | "rust" | "bend" | "python" | "go"
 ): ReviewInput => {
   const declaration = unit.root.artifact
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
@@ -375,8 +382,10 @@ const freezePreparedUnitInput = (
     interpretation: "probability-strictly-greater-than-threshold"
   } satisfies ReviewInput)
 }
-const supportedRuleLanguage = (language: string | undefined): language is "typescript" | "rust" | "bend" | "python" =>
-  language === "typescript" || language === "rust" || language === "bend" || language === "python"
+const supportedRuleLanguage = (
+  language: string | undefined
+): language is "typescript" | "rust" | "bend" | "python" | "go" =>
+  language === "typescript" || language === "rust" || language === "bend" || language === "python" || language === "go"
 const missingRequiredRootLocation = (contract: string, location: ReviewInput["rootLocation"]): boolean =>
   isGraphInputContract(contract) && location === undefined
 const prepareResolvedUnit = (
@@ -501,13 +510,19 @@ const selectCandidateRoots = (
 ) => {
   const hunks = candidatePostEditHunks(observation, candidate, path, captured)
   if (hunks === undefined) return { selected: [] as UnitAnalysis[], ambiguous: true }
-  const declarations = candidateDeclarations.map(({ artifact, location, selectionLocations }) => ({
-    path,
-    kind: artifact.kind,
-    name: artifact.name,
-    ...(selectionLocations === undefined ? {} : { selectionLocations }),
-    location
-  }))
+  const declarations = candidateDeclarations.flatMap(({ artifact, location, selectionLocations }) =>
+    artifact.kind === "constant-group"
+      ? []
+      : [
+          {
+            path,
+            kind: artifact.kind,
+            name: artifact.name,
+            ...(selectionLocations === undefined ? {} : { selectionLocations }),
+            location
+          }
+        ]
+  )
   try {
     const attribution = selectEditedRoots(
       { path, operation: candidate.operation, source: captured.text },
@@ -520,7 +535,12 @@ const selectCandidateRoots = (
         const root = analysisRoot(item)
         return roots.has(`${root.kind}:${root.name}`)
       }),
-      ambiguous: attribution.ambiguous.length > 0
+      ambiguous: attribution.ambiguous.length > 0,
+      ambiguousReason:
+        languageForPath(path)?.unselectedTypeEditReason?.(
+          captured.text,
+          attribution.ambiguous.map((span) => span.location)
+        ) ?? ("ambiguous-update" as const)
     }
   } catch {
     return { selected: [] as UnitAnalysis[], ambiguous: true }
@@ -705,7 +725,14 @@ const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate
         ? extractionFailures(analysis)
         : []),
     ...graphFailures,
-    ...(selection.ambiguous ? [{ root: undefined, reason: "ambiguous-update" as const }] : [])
+    ...(selection.ambiguous
+      ? [
+          {
+            root: undefined,
+            reason: "ambiguousReason" in selection ? selection.ambiguousReason : ("ambiguous-update" as const)
+          }
+        ]
+      : [])
   ]
   return { units, failures, candidateDeclarations }
 })
@@ -1094,6 +1121,7 @@ const candidateRootArtifact = (
   const path = root.artifact.path
   if (
     root.artifact.origin !== undefined ||
+    root.artifact.kind === "constant-group" ||
     path === undefined ||
     path !== input.path ||
     root.artifact.id !== input.declaration.id

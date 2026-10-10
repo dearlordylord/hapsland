@@ -174,3 +174,18 @@ it("enforces the closed diagnostic vocabulary and finite numeric arguments", () 
     })
   ).toThrow()
 })
+
+it("persists constant-only follow-up gaps as source-free preparation omissions", () => {
+  const record = {
+    version: 2,
+    source: { id: inspectionSourceId("/private/socket", "life"), endpoint: "/private/socket", lifetime: "life" },
+    sequence: 1,
+    consentEpoch: 1,
+    capturedAt: 1,
+    correlation: { batchId: "batch" },
+    scope: { root: "/project", runtime: "codex-cli", runtimeVersion: null, sessionId: "session", subagentId: null },
+    fact: { kind: "preparation-omission", path: "status.go", reason: "constant-only-demand-gap" }
+  }
+  expect(decodeInspectionRecord(record).fact).toEqual(record.fact)
+  expect(() => decodeInspectionRecord({ ...record, fact: { ...record.fact, source: "const Secret = 1" } })).toThrow()
+})

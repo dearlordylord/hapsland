@@ -1,6 +1,6 @@
 import { flowInteraction } from "../interaction/flow-input.ts"
 import { Context, Effect, Exit, Layer, Schema } from "effect"
-import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
+import { formatOutcome, formatStatusOutcome } from "../interaction/outcome.ts"
 import { profileFields } from "./client-command.ts"
 import {
   activateCurrentPackage,
@@ -22,6 +22,7 @@ import {
   type MaintenanceOperation,
   type MaintenanceOutcome
 } from "./maintenance-model.ts"
+
 export type { MaintenanceCommand } from "./maintenance-model.ts"
 
 type LifecycleResult = Effect.Success<ReturnType<typeof invokeLifecycle>>

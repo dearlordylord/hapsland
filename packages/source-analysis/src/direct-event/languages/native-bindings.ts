@@ -6,7 +6,8 @@ const bindings = {
   "tree-sitter": "tree_sitter_runtime_binding.node",
   "tree-sitter-typescript": "tree_sitter_typescript_binding.node",
   "tree-sitter-rust": "tree_sitter_rust_binding.node",
-  "tree-sitter-python": "tree_sitter_python_binding.node"
+  "tree-sitter-python": "tree_sitter_python_binding.node",
+  "tree-sitter-go": "tree_sitter_go_binding.node"
 } as const
 export const sourceNativeParserRoot = (root: string, profile = `${process.platform}-${process.arch}`): string =>
   join(root, "packages/source-analysis/artifacts/native", profile)
@@ -15,7 +16,8 @@ const bindingEnvironment = {
   "tree-sitter": "TREE_SITTER_PREBUILD",
   "tree-sitter-typescript": "TREE_SITTER_TYPESCRIPT_PREBUILD",
   "tree-sitter-rust": "TREE_SITTER_RUST_PREBUILD",
-  "tree-sitter-python": "TREE_SITTER_PYTHON_PREBUILD"
+  "tree-sitter-python": "TREE_SITTER_PYTHON_PREBUILD",
+  "tree-sitter-go": "TREE_SITTER_GO_PREBUILD"
 } as const
 export const configureNativeBindings = (root: string): void => {
   for (const name of Object.keys(bindings) as Array<keyof typeof bindings>) {
@@ -37,7 +39,7 @@ export const transformNativeBindingModule = (
   runtimeLoader = false
 ): NativeBindingTransformation => {
   const contents = readFileSync(path, "utf8")
-  const matchedName = path.match(/\/(tree-sitter(?:-typescript|-rust|-python)?)\//)?.[1]
+  const matchedName = path.match(/\/(tree-sitter(?:-typescript|-rust|-python|-go)?)\//)?.[1]
   if (!matchedName || !Object.hasOwn(bindings, matchedName))
     throw new Error(`Unsupported native binding module: ${path}`)
   const packageName = matchedName as keyof typeof bindings
@@ -64,7 +66,7 @@ export const physicalNativeBindings = (
   name: "hapsland-physical-native-bindings",
   setup(build) {
     build.onLoad(
-      { filter: /\/tree-sitter(?:-typescript|-rust|-python)?\/(?:index\.js|bindings\/node\/index\.js)$/ },
+      { filter: /\/tree-sitter(?:-typescript|-rust|-python|-go)?\/(?:index\.js|bindings\/node\/index\.js)$/ },
       ({ path }) => {
         const transformation = transformNativeBindingModule(path, rootExpression, runtimeLoader)
         observe?.(transformation)

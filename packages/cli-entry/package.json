@@ -11,13 +11,8 @@
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",
-    "@hapsland/activity-observation": "workspace:*",
     "@hapsland/administration": "workspace:*",
-    "@hapsland/credential-storage": "workspace:*",
     "@hapsland/delivery-output": "workspace:*",
-    "@hapsland/native-observation": "workspace:*",
-    "@hapsland/resident-transport": "workspace:*",
-    "@hapsland/review-definition": "workspace:*",
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
     "effect": "catalog:"

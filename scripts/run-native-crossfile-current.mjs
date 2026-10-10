@@ -1,4 +1,6 @@
+import { instrumentCodexHooks } from "./native-codex-hook-observation.mjs"
 import { callableInspectionProfile } from "./native-callable-inspection.mjs"
+import { createGoInspectionProfile } from "./native-go-inspection.mjs"
 import { runCodexInspectionProfile } from "./native-codex-inspection.mjs"
 import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs"
 import {
@@ -10,7 +12,7 @@ import {
 import { NATIVE_AGENT_PROFILES, resolveNativeAgentProfile } from "./native-agent-profiles.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
-// Bounded real-host observation of TypeScript, Rust and Bend cross-file review.
+// Bounded real-host observation of TypeScript, Rust, Bend and Go cross-file review.
 // Raw host streams, source, provider bodies, and credentials stay in a disposable directory.
 import { spawnSync } from "node:child_process"
 import { executeNative } from "./native-process.mjs"
@@ -28,7 +30,7 @@ import {
   writeFileSync
 } from "node:fs"
 import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import * as Effect from "effect/Effect"
@@ -55,7 +57,8 @@ if (requestedProvider !== undefined && requestedProvider !== (host === "claude" 
 if (host === "pi" && requestedModel !== undefined && requestedModel !== "gpt-6-luna")
   throw new Error("Pi native checks require the existing gpt-6-luna profile")
 const language = process.argv.find((arg) => arg.startsWith("--language="))?.slice(11) ?? "typescript"
-if (!["typescript", "rust", "bend", "python"].includes(language)) throw new Error("Choose a supported source language")
+if (!["typescript", "rust", "bend", "python", "go"].includes(language))
+  throw new Error("Choose a supported source language")
 const scenario = process.argv.find((arg) => arg.startsWith("--scenario="))?.slice(11) ?? "adoption"
 if (
   ![
@@ -70,7 +73,9 @@ if (
     "unsupported-write",
     "unicode-edit",
     "inspection-exclusions",
-    "callable-review"
+    "callable-review",
+    "go-package-model-review",
+    "go-module-model-review"
   ].includes(scenario)
 )
   throw new Error("Choose an adoption, reviewer, POST-hook or PRE-hook scenario")
@@ -93,6 +98,9 @@ if (suppliedStaleDelay !== undefined && scenario !== "stale-result")
 const staleDelayMs = suppliedStaleDelay === undefined ? 9000 : Number(suppliedStaleDelay)
 if (!Number.isInteger(staleDelayMs) || staleDelayMs < 1000 || staleDelayMs > 14000)
   throw new Error("Controlled stale delay must be 1000–14000 ms")
+const pythonCrossfile = process.argv.includes("--python-crossfile")
+if (pythonCrossfile && (language !== "python" || scenario !== "adoption" || host !== "codex"))
+  throw new Error("--python-crossfile requires Codex Python adoption")
 const pythonSupport =
   "from dataclasses import dataclass\nfrom typing import TypeAlias\n@dataclass\nclass Receipt:\n    value: str\n@dataclass\nclass Pending:\n    pass\n@dataclass\nclass Succeeded:\n    receipt: Receipt\n@dataclass\nclass Failed:\n    failure_reason: str\n"
 const fixtures = {
@@ -122,6 +130,15 @@ const fixtures = {
       "mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub struct PaymentState { pub status: PaymentStatus, pub receipt: Option<Receipt>, pub failure_reason: Option<String> }\n",
     good: "mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub enum PaymentState { Pending, Succeeded { receipt: Receipt }, Failed { failure_reason: String } }\n"
   },
+  go: {
+    entry: "payment.go",
+    support: "support.go",
+    supportSource:
+      "package payment\ntype PaymentStatus int\nconst (\n Pending PaymentStatus = iota\n Succeeded\n Failed\n)\ntype Receipt struct { Value string }\n",
+    initial:
+      "package payment\ntype PaymentState struct { Status PaymentStatus; Receipt *Receipt; FailureReason *string }\n",
+    good: "package payment\ntype PaymentState interface { paymentState() }\n"
+  },
   bend: {
     entry: "payment.bend",
     support: "support.bend",
@@ -132,7 +149,20 @@ const fixtures = {
     good: "import Base\nimport ./support.bend as M\ntype PaymentState is Data:\n  Pending{}\n  Succeeded{receipt: M.Receipt}\n  Failed{failure_reason: String}\n"
   }
 }
-const baseFixture = fixtures[language]
+const pythonCrossfileImports =
+  "from dataclasses import dataclass\nfrom typing import TypeAlias\nfrom domain import Receipt, Pending, Succeeded, Failed, PaymentBase\n"
+const baseFixture = pythonCrossfile
+  ? {
+      entry: "payment.py",
+      support: "domain/__init__.py",
+      supportSource: "from .models import Receipt, Pending, Succeeded, Failed, PaymentBase\n",
+      extraFiles: { "domain/models.py": pythonSupport + "class PaymentBase:\n    order_id: str\n" },
+      initial:
+        pythonCrossfileImports +
+        "@dataclass\nclass PaymentState(PaymentBase):\n    status: str\n    receipt: Receipt | None\n    failure_reason: str | None\n",
+      good: pythonCrossfileImports + "PaymentState: TypeAlias = Pending | Succeeded | Failed\n"
+    }
+  : fixtures[language]
 const fixture = unicodeUpdate
   ? {
       ...baseFixture,
@@ -159,10 +189,29 @@ const initialSourceMarker =
       ? "struct PaymentState"
       : language === "python"
         ? "class PaymentState"
-        : "PaymentState{status:"
+        : language === "go"
+          ? "type PaymentState struct"
+          : "PaymentState{status:"
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
+if (scenario === "go-package-model-review" || scenario === "go-module-model-review") {
+  if (
+    host !== "codex" ||
+    language !== "go" ||
+    mode !== "controlled-offline" ||
+    coexistence !== undefined ||
+    unicodeUpdate
+  )
+    throw new Error("Installed Go model review requires controlled Codex Go without coexistence or Unicode mutation")
+  await runCodexInspectionProfile({
+    project,
+    archivePath: archiveArgument?.slice("--archive=".length),
+    model: requestedModel,
+    profile: createGoInspectionProfile({ localModule: scenario === "go-module-model-review" })
+  })
+  process.exit(0)
+}
 if (scenario === "inspection-exclusions" || scenario === "callable-review") {
   if (
     host !== "codex" ||
@@ -187,7 +236,7 @@ if (
   archiveArgument &&
   (language !== "python" || scenario !== "adoption" || mode !== "controlled-offline" || coexistence || unicodeUpdate)
 )
-  throw new Error("Codex archive adoption requires controlled same-file Python without coexistence or Unicode mutation")
+  throw new Error("Codex archive adoption requires controlled Python models without coexistence or Unicode mutation")
 if (host === "claude")
   validateClaudeArchiveProfile({
     host,
@@ -351,9 +400,16 @@ try {
   const init = spawnSync("git", ["init", "--quiet", "--initial-branch=master", repo])
   if (init.status !== 0) throw new Error("Disposable Git setup failed")
   mkdirSync(join(repo, "src"), { recursive: true })
+  mkdirSync(dirname(supportFile), { recursive: true })
   writeFileSync(supportFile, fixture.supportSource)
+  for (const [path, source] of Object.entries(fixture.extraFiles ?? {})) {
+    const target = join(repo, path)
+    mkdirSync(dirname(target), { recursive: true })
+    writeFileSync(target, source)
+  }
   if (unicodeUpdate)
     writeFileSync(rootFile, initial.replace("failure_reason: string | null", "failure_reason: number | null"))
+  if (language === "go") writeFileSync(join(repo, "go.mod"), "module synthetic/payment\n\ngo 1.27\n")
   if (language === "rust")
     writeFileSync(join(repo, "Cargo.toml"), '[package]\nname="synthetic_payment"\nversion="0.1.0"\nedition="2021"\n')
   writeFileSync(
@@ -387,7 +443,9 @@ try {
               ? "rustc --edition=2021 --crate-type=lib src/lib.rs -o fixture.rlib"
               : language === "python"
                 ? "python3 -m py_compile payment.py"
-                : "bend payment.bend --check-only"
+                : language === "go"
+                  ? "go test ./..."
+                  : "bend payment.bend --check-only"
       }
     })
   )
@@ -499,7 +557,7 @@ globalThis.fetch=async (...args)=>{
   }
   appendFileSync(process.env.HAPSLAND_NATIVE_SUMMARIES,JSON.stringify({provider:true,
     reviewer,taskCanaryPresent:body.includes(${JSON.stringify(TASK_CANARY)}),
-    expandedEvidence:body.includes('expanded'),supportDeclarationPresent:body.includes(${JSON.stringify(language === "typescript" ? "export interface Receipt" : language === "rust" ? "pub struct Receipt" : "type Receipt is Data:")}),
+    expandedEvidence:body.includes('expanded'),supportDeclarationPresent:body.includes(${JSON.stringify(language === "typescript" ? "export interface Receipt" : language === "rust" ? "pub struct Receipt" : language === "go" ? "type Receipt struct" : "type Receipt is Data:")}),
     bytes:Buffer.byteLength(body)})+'\\n',{mode:0o600});
   return original(...args);
 };
@@ -547,7 +605,17 @@ globalThis.fetch=async (...args)=>{
   )
   connectDefaultRuleFixture(repo, config)
   const home = coexistence ? join(temp, "profile", ".codex") : join(temp, "codex-home")
+  let codexSubmissionObservations
   if (host === "codex") {
+    if (pythonCrossfile)
+      codexSubmissionObservations = instrumentCodexHooks({
+        settings,
+        temporary: temp,
+        repository: repo,
+        finding: feedbackMessages.meaningless_combinations,
+        entry: fixture.entry,
+        sourceMarker: initialSourceMarker
+      })
     mkdirSync(home, { mode: 0o700, recursive: true })
     symlinkSync(join(process.env.CODEX_HOME ?? "/home/node/.codex", "auth.json"), join(home, "auth.json"))
     writeFileSync(join(home, "config.toml"), "[features]\nhooks = true\n")
@@ -822,11 +890,13 @@ globalThis.fetch=async (...args)=>{
           patchHasCarriageReturn: lastNativeEdit?.tool_input?.command?.includes("\r") ?? false
         }
       : undefined
+  const preparationReads = []
   const nativeUpdatePreparation =
     nativeObservation === undefined
       ? { status: "adaptation-failed" }
       : await Effect.runPromise(
           prepareObservation(nativeObservation, {
+            captureHooks: { sourceRead: (path) => preparationReads.push({ bytes: statSync(join(repo, path)).size }) },
             controlledWriter: true,
             advicee: nativeObservation.advicee,
             settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
@@ -844,7 +914,12 @@ globalThis.fetch=async (...args)=>{
               : []
           ),
           readyUnits: prepared.outcomes.filter((item) => item.status === "ready").length,
-          operations: nativeObservation.candidates.map((item) => item.operation)
+          operations: nativeObservation.candidates.map((item) => item.operation),
+          sourceReadCount: preparationReads.length,
+          sourceReadBytes: preparationReads.reduce((sum, item) => sum + item.bytes, 0),
+          canonicalTreeBytes: prepared.outcomes
+            .filter((item) => item.status === "ready")
+            .map((item) => Buffer.byteLength(JSON.stringify(item.prepared.input.unit), "utf8"))
         }))
   const check = spawnSync("npm", ["test"], { cwd: repo, env, encoding: "utf8", timeout: 30_000 })
   let invalid
@@ -866,6 +941,15 @@ globalThis.fetch=async (...args)=>{
       timeout: 30000
     })
     invalid = { status: probe.status !== null && probe.status !== 0 && probe.stderr.includes("error[E0063]") ? 0 : 1 }
+  } else if (pythonCrossfile) {
+    // Source-only fixture check; do not execute project imports, decorators or constructors.
+    const support = readFileSync(join(repo, "domain/models.py"), "utf8")
+    invalid = {
+      status:
+        support === fixture.extraFiles["domain/models.py"] && support.includes("class Succeeded:\n    receipt: Receipt")
+          ? 0
+          : 1
+    }
   } else if (language === "python") {
     const probe = spawnSync("python3", ["-c", "from payment import Succeeded; Succeeded()"], {
       cwd: repo,
@@ -879,6 +963,17 @@ globalThis.fetch=async (...args)=>{
         probe.status !== 0 &&
         probe.stderr.includes("TypeError") &&
         probe.stderr.includes("receipt")
+          ? 0
+          : 1
+    }
+  } else if (language === "go") {
+    writeFileSync(join(repo, "invalid.go"), "package payment\nvar invalid = PaymentState{}\n")
+    const probe = spawnSync("go", ["test", "./..."], { cwd: repo, env, encoding: "utf8", timeout: 30000 })
+    invalid = {
+      status:
+        probe.status !== null &&
+        probe.status !== 0 &&
+        probe.stderr.includes("invalid composite literal type PaymentState")
           ? 0
           : 1
     }
@@ -945,15 +1040,14 @@ globalThis.fetch=async (...args)=>{
         }
       : {}),
     initialDraftObserved: native.some((item) => item.initial),
-    [language === "python" ? "sameFileSupportingEvidenceExpanded" : "crossFileExpanded"]: requestShapes.some(
-      (item) => item.expandedEdges > 0 || (item.expandedEvidence && item.supportDeclarationPresent)
-    ),
+    [language === "python" && !pythonCrossfile ? "sameFileSupportingEvidenceExpanded" : "crossFileExpanded"]:
+      requestShapes.some((item) => item.expandedEdges > 0 || (item.expandedEvidence && item.supportDeclarationPresent)),
     findingDelivered: !!finding,
     editAfterFinding: !!repair,
     agentAcknowledgesAdvice: text.includes("HAPSLAND_ADVICE_APPLIED") && !text.includes("HAPSLAND_ADVICE_NOT_APPLIED"),
     agentQuotesFinding: !!finding && finding.ruleIds.some((id) => text.includes(feedbackMessages[id])),
     sourceChanged: !!source && source !== initial,
-    finalDesignConstrained:
+    [language === "go" ? "declaredInterfaceRepairObserved" : "finalDesignConstrained"]:
       language === "typescript"
         ? source.includes("status: 'succeeded'") && !source.includes("receipt: Receipt | null")
         : language === "rust"
@@ -961,9 +1055,31 @@ globalThis.fetch=async (...args)=>{
           : language === "python"
             ? source.includes("PaymentState: TypeAlias = Pending | Succeeded | Failed") &&
               !source.includes("class PaymentState")
-            : source.includes("Succeeded{receipt: M.Receipt}") && !source.includes("PaymentState{status:"),
+            : language === "go"
+              ? source.includes("type PaymentState interface")
+              : source.includes("Succeeded{receipt: M.Receipt}") && !source.includes("PaymentState{status:"),
     sourceCompiles: check.status === 0,
-    missingReceiptRejected: invalid.status === 0,
+    [language === "go"
+      ? "interfaceCompositeLiteralRejected"
+      : pythonCrossfile
+        ? "declaredSuccessRequiresReceipt"
+        : "missingReceiptRejected"]: invalid.status === 0,
+    ...(pythonCrossfile
+      ? {
+          installedHookStdoutSubmittedAdvice:
+            !!codexSubmissionObservations &&
+            safeLines(codexSubmissionObservations).some(
+              (item) => item.initialRoot && item.adviceSubmitted && item.exitCode === 0
+            ),
+          installedCrossFileEvidence: requestShapes.some((item) => item.crossFileEvidenceNodes >= 2),
+          installedInputSizesRecorded:
+            requestShapes.length > 0 && requestShapes.every((item) => item.inputBytes > 0 && item.evidenceBytes > 0),
+          preparationReadVolumeRecorded:
+            nativeUpdatePreparation.sourceReadCount > 0 &&
+            nativeUpdatePreparation.sourceReadBytes > 0 &&
+            nativeUpdatePreparation.canonicalTreeBytes?.every((bytes) => bytes <= 20480)
+        }
+      : {}),
     followupObserved:
       !!repair &&
       stages.some((item) => item.atMs > repair.at - started && (item.stage === "clear" || item.stage === "findings"))
@@ -1128,6 +1244,13 @@ globalThis.fetch=async (...args)=>{
     elapsedMs: Date.now() - started,
     providerCalls,
     requestShapes,
+    ...(pythonCrossfile
+      ? {
+          pythonCrossfile: true,
+          readVolumeBoundary:
+            "source preparation replay of the final native edit; installed provider input bytes are in requestShapes"
+        }
+      : {}),
     outcomeSummaries,
     postEditPreparation,
     nativeUpdatePreparation,

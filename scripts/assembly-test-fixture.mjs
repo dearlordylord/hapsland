@@ -26,7 +26,8 @@ export function assemblyFixture(t) {
       "tree-sitter",
       "tree-sitter-typescript",
       "tree-sitter-rust",
-      "tree-sitter-python"
+      "tree-sitter-python",
+      "tree-sitter-go"
     ]
   }
   write(

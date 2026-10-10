@@ -1,0 +1,78 @@
+{
+  "authority": "Historical advisory discovery, not product requirements or adapter coverage. Four temporary reports consolidated into accepted contracts, guidance and #268; only reproducible inventories/replayers retained.",
+  "archiveSha256": "2b23c99c65c8f2ed043e1456f225c04991268a9ec8bdf6de0b421dd7eae60ae7",
+  "files": [
+    {
+      "path": "docs/research/evidence/ai-coding-language-survey-2026.json",
+      "sha256": "bb6e053ad35dfc0419caf04fd8dd732d637d5540f159f261b0fc6b7956de8140",
+      "bytes": 1893,
+      "retainedPath": "research/ai-coding-language-survey-2026.json"
+    },
+    {
+      "path": "docs/research/evidence/go-coverage-authority.mjs",
+      "sha256": "c7aa731fae3d2399f3f3f72f2f0789d22913350d4cc4d65a073f0546c3d33c01",
+      "bytes": 1697,
+      "retainedPath": "research/go-coverage-authority.mjs"
+    },
+    {
+      "path": "docs/research/evidence/go-coverage-inventory-2026-10-09.json",
+      "sha256": "48ff66fe1466ed5e5d7ed87aab275ef7749726a106f71c9d4e6371f173280035",
+      "bytes": 863968,
+      "retainedPath": "research/go-coverage-inventory-2026-10-09.json"
+    },
+    {
+      "path": "docs/research/evidence/go-coverage-inventory.mjs",
+      "sha256": "472aaed3d904e0ccc9357c6ed101b5520e3916844ba257f85e8e880204532209",
+      "bytes": 3526,
+      "retainedPath": "research/go-coverage-inventory.mjs"
+    },
+    {
+      "path": "docs/research/evidence/go-coverage-manifest-2026-10-09.json",
+      "sha256": "68f7e5b67c6f313b4c995317bf554a3dc683edfd9c4f37bf77b251c5c2678f07",
+      "bytes": 56394,
+      "retainedPath": "research/go-coverage-manifest-2026-10-09.json"
+    },
+    {
+      "path": "docs/research/evidence/go-coverage-summary.mjs",
+      "sha256": "d20eacdc9a4914a7d730ec734fe53ff424b57d42a9a8885c96db6cf57c89a6f8",
+      "bytes": 2095,
+      "retainedPath": "research/go-coverage-summary.mjs"
+    },
+    {
+      "path": "docs/research/evidence/language-parser-smoke-2026-10-09.json",
+      "sha256": "79d83b684b7792fe75b1b754a9e82c53d74f28e8fd250fa71b778b4add4d0eef",
+      "bytes": 4217,
+      "retainedPath": "research/language-parser-smoke-2026-10-09.json"
+    },
+    {
+      "path": "docs/research/evidence/language-parser-smoke.mjs",
+      "sha256": "d8dcc835ad3963f7cbc1a88dd4da750f78209ab252ff0c0b9813b275cbd5e70b",
+      "bytes": 1501,
+      "retainedPath": "research/language-parser-smoke.mjs"
+    },
+    {
+      "path": "docs/research/evidence/python-coverage-inventory.json",
+      "sha256": "86f1dde8b352a1cfbd7c3c15940d55a07899580abba20f38fffc4e4f36d9000d",
+      "bytes": 3141324,
+      "retainedPath": "research/python-coverage-inventory.json"
+    },
+    {
+      "path": "docs/research/evidence/python-coverage-inventory.py",
+      "sha256": "54962e7164a2a6012e1027110005fced5668101d37457510d302d5fa03d12a77",
+      "bytes": 6630,
+      "retainedPath": "research/python-coverage-inventory.py"
+    },
+    {
+      "path": "docs/research/evidence/python-go-parser-probe-2026-10-09.json",
+      "sha256": "62be727f046828edc8b518bc2140f133c5659170506380536b64b3af4a607515",
+      "bytes": 26283,
+      "retainedPath": "research/python-go-parser-probe-2026-10-09.json"
+    },
+    {
+      "path": "docs/research/evidence/python-go-parser-probe.mjs",
+      "sha256": "fe2de0d197987460c24afc6ad9d6d22f83e3e2a25ec8727c7e619f0108c04df1",
+      "bytes": 6286,
+      "retainedPath": "research/python-go-parser-probe.mjs"
+    }
+  ]
+}

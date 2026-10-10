@@ -108,8 +108,8 @@ const expandLocalReference = (frame: LocalFrame, reference: FactReference, local
   frame.visited.add(local.artifact.id)
   const child = buildLocal(
     frame.file,
-    frame.path,
-    reference.name,
+    local.artifact.path ?? frame.path,
+    reference.bindingName ?? reference.name,
     frame.visited,
     frame.budget,
     frame.depth + 1,
@@ -200,7 +200,7 @@ const materializeLocalReference = (frame: LocalFrame, reference: FactReference):
     materializeBundledReference(frame, reference, reference.targetId)
     return
   }
-  const local = declarationFor(frame.file, reference.name, reference.expectedKind)
+  const local = declarationFor(frame.file, reference.bindingName ?? reference.name, reference.expectedKind)
   const imported = frame.file.imports.get(reference.name)
   fileTargets.add(localReferenceTargetKey(frame.path, reference.name, local, imported))
   budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size)
@@ -258,6 +258,8 @@ type GraphFrame = GraphBinding & {
   readonly targetIds: Map<string, number>
   readonly artifactsByTarget: Map<number, string>
   readonly captured: Map<string, { readonly file: FactFile; readonly sourceBytes: number }>
+  readonly sourceCaptures: Map<string, StableCapture>
+  readonly failedCaptures: Set<string>
   nextId: number
   nextTargetId: number
   state: unknown
@@ -288,9 +290,10 @@ const prepareGraphBinding = Effect.fn("DirectEvent.prepareGraphBinding")(functio
 })
 const rootExpectedKind = (context: GraphResolveContext): "function" | undefined =>
   context.branch === "function" ? "function" : undefined
-const rootReviewUnit = (built: Built, dependencies: readonly string[]): ReviewUnit => ({
+const rootReviewUnit = (built: Built, dependencies: readonly string[], bindingFingerprint?: string): ReviewUnit => ({
+  ...(bindingFingerprint === undefined ? {} : { bindingFingerprint }),
   root: built.node,
-  ...(dependencies.length === 0 ? {} : { sourceDependencies: dependencies })
+  sourceDependencies: dependencies
 })
 const addGraphEdges = (frame: GraphFrame, edges: readonly Pending[]): number[] =>
   edges.map((edge) => {
@@ -330,7 +333,7 @@ const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(function* (
     !permitLocalGraphFacts(binding.limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 0)
   )
     return undefined
-  const unit = rootReviewUnit(built, binding.dependencies)
+  const unit = rootReviewUnit(built, binding.dependencies, binding.bindingFingerprint)
   const frame: GraphFrame = {
     ...binding,
     unit,
@@ -343,6 +346,8 @@ const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(function* (
     targetIds: new Map([[`${rootPath}\0${binding.branch}\0${name}`, 1]]),
     artifactsByTarget: new Map([[1, rootDeclaration.artifact.id]]),
     captured: new Map([[rootPath, { file: rootFile, sourceBytes: rootCapture.byteLength }]]),
+    sourceCaptures: new Map([[rootPath, rootCapture]]),
+    failedCaptures: new Set(),
     state: initialImportGraph(binding.limits),
     command: { kind: "none" }
   }
@@ -438,6 +443,20 @@ const resolveGraphEdge = Effect.fn("DirectEvent.resolveGraphEdge")(function* (
     advanceGraph(frame, { kind: "resolved", target: targetId, result: "found" })
     includeKnownTarget(frame, targetId, edge)
     frame.pathForTarget.set(targetId, { kind: "bundled", ...edge.bundled, edge })
+    return "next"
+  }
+  if (frame.session.resolveImport !== undefined) {
+    const resolved = yield* frame.session.resolveImport(
+      edge.from,
+      edge.importPath,
+      edge.name,
+      remainingAuthorityBudget(frame)
+    )
+    if (resolved === undefined || !authorityBudgetAvailable(frame)) {
+      advanceGraph(frame, { kind: "resolved", target: frame.nextTargetId++, result: "unsupported" })
+      return "next"
+    }
+    resolveKnownTarget(frame, resolved.path, { ...edge, name: resolved.name })
     return "next"
   }
   const base = normalize(join(dirname(edge.from), edge.importPath))
@@ -665,11 +684,31 @@ const readSelectedGraphSource = Effect.fn("DirectEvent.readSelectedGraphSource")
     advanceGraph(frame, { kind: "captureFailed" })
     return "next"
   }
+  const usage = frame.session.authorityUsage?.() ?? { files: 0, readBytes: 0, work: 0 }
+  const spent = sourceCaptureUsage(frame)
+  const alreadyCaptured = frame.sourceCaptures.has(selected.relativePath)
+  const reservedBytes = alreadyCaptured
+    ? 0
+    : (frame.context.captureCache?.get(selected.relativePath)?.byteLength ?? frame.limits.sourceBytes)
+  if (
+    spent.files + usage.files + (alreadyCaptured ? 0 : 1) > frame.limits.files ||
+    spent.readBytes + usage.readBytes + reservedBytes > frame.limits.readBytes
+  ) {
+    advanceGraph(frame, { kind: "captureFailed" })
+    return "next"
+  }
+  if (frame.failedCaptures.has(selected.relativePath)) {
+    advanceGraph(frame, { kind: "captureFailed" })
+    return "next"
+  }
+  if (!alreadyCaptured) frame.failedCaptures.add(selected.relativePath)
   const source = yield* captureGraphSource(frame, selected)
   if (source === undefined) {
     advanceGraph(frame, { kind: "captureFailed" })
     return "next"
   }
+  frame.failedCaptures.delete(selected.relativePath)
+  frame.sourceCaptures.set(selected.relativePath, source)
   if (source.byteLength > frame.limits.sourceBytes) {
     // Reject measured source bytes in Bend before inspecting or retaining text.
     advanceGraph(frame, { kind: "captured", sourceBytes: source.byteLength, treeBytes: 0, edges: [] })
@@ -707,10 +746,41 @@ const executeGraphCommand = (frame: GraphFrame): Effect.Effect<GraphCommandResul
       return Effect.succeed("invalid")
   }
 }
+/** Captures that fail semantic inspection still consume the reader's budget. */
+const sourceCaptureUsage = (frame: GraphFrame) => {
+  const spent = projectImportGraph(frame.state)
+  return {
+    files: Math.max(spent.files, frame.sourceCaptures.size + frame.failedCaptures.size),
+    readBytes: Math.max(
+      spent.readBytes,
+      [...frame.sourceCaptures.values()].reduce((sum, capture) => sum + capture.byteLength, 0) +
+        frame.failedCaptures.size * frame.limits.sourceBytes
+    ),
+    work: spent.work
+  }
+}
+const remainingAuthorityBudget = (frame: GraphFrame) => {
+  const spent = sourceCaptureUsage(frame)
+  return {
+    files: frame.limits.files - spent.files,
+    readBytes: frame.limits.readBytes - spent.readBytes,
+    work: frame.limits.work - spent.work
+  }
+}
+const authorityBudgetAvailable = (frame: GraphFrame): boolean => {
+  const usage = frame.session.authorityUsage?.()
+  if (usage === undefined) return true
+  const spent = sourceCaptureUsage(frame)
+  return (
+    spent.files + usage.files <= frame.limits.files &&
+    spent.readBytes + usage.readBytes <= frame.limits.readBytes &&
+    spent.work + usage.work <= frame.limits.work
+  )
+}
 const graphIteration = Effect.fn("DirectEvent.graphIteration")(function* (
   frame: GraphFrame
 ): Effect.fn.Return<GraphIteration> {
-  if (frame.expired()) {
+  if (frame.expired() || !authorityBudgetAvailable(frame)) {
     advanceGraph(frame, { kind: "deadlineReached" })
     return { done: true, unit: undefined }
   }
@@ -732,7 +802,15 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   if (frame === undefined) return undefined
   for (let step = 0; step < frame.limits.work * 8 + 16; step += 1) {
     const outcome = yield* graphIteration(frame)
-    if (outcome.done) return outcome.unit
+    if (outcome.done) {
+      if (outcome.unit === undefined) return undefined
+      if (
+        frame.session.validateAuthority !== undefined &&
+        !(yield* frame.session.validateAuthority(remainingAuthorityBudget(frame)))
+      )
+        return undefined
+      return !frame.expired() && authorityBudgetAvailable(frame) ? outcome.unit : undefined
+    }
   }
   return undefined
 })

@@ -1,7 +1,8 @@
+import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
-const source = readFileSync(resolve(import.meta.dirname, "../packages/resident-runtime/src/resident/server.ts"), "utf8")
+const source = readResidentRuntimeSource(resolve(import.meta.dirname, ".."))
 for (const name of [
   "bendWorkPreparedOffer",
   "bendWorkEmptyPrepared",

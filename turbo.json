@@ -257,14 +257,9 @@
     },
     "@hapsland/cli-entry#build": {
       "dependsOn": [
-        "@hapsland/activity-observation#build",
         "@hapsland/administration#build",
         "@hapsland/cli-entry#clean:compiler",
-        "@hapsland/credential-storage#build",
         "@hapsland/delivery-output#build",
-        "@hapsland/native-observation#build",
-        "@hapsland/resident-transport#build",
-        "@hapsland/review-definition#build",
         "@hapsland/runtime-environment#build",
         "@hapsland/runtime-inputs#build"
       ],

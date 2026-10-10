@@ -80,6 +80,7 @@ describe("changed-root and supporting-context selection", () => {
     for (const field of ["contextIncludes", "contextExcludes"]) {
       expect(() => resolve({}, { [field]: ["../private/**"] })).toThrow()
     }
-    expect(() => resolve({}, { languages: ["python"] })).toThrow()
+    expect(resolve({}, { languages: ["python"] }).languages.value).toEqual(["python"])
+    expect(() => resolve({}, { languages: ["ruby"] })).toThrow()
   })
 })

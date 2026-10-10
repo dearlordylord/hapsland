@@ -559,16 +559,17 @@ structural attribution. Arbitrary executable class-body expressions,
 custom constructors and decorated methods are explicit uncertainty, without
 helper/function traversal. Configuration and validator source is evidence of
 what was authored, never complete runtime constraints. Unknown external types
-remain opaque; this slice performs no cross-file or system dependency reads and
-emits no synthetic framework declarations.
+remain opaque. Local supporting declarations use the module authority amendment
+below; system dependencies are never traversed and no synthetic framework
+declarations are emitted.
 
 | Edited root family | Shipped type rules | Evidence and controls |
 | --- | --- | --- |
-| Annotated class and local inherited model | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Declared fields and resolved same-file bases/types; unrelated method source retained |
+| Annotated class and local inherited model | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Declared fields and resolved eligible local bases/types; unrelated method source retained |
 | Dataclass | Same three | Imported marker, static options, declared fields; fieldless class is a clear control |
 | Class TypedDict | Same three | Imported marker, field annotations, Required/NotRequired and literal total; empty shape is clear |
 | Static BaseModel | Same three | Authored static field/base/configuration evidence; dynamic behavior is an omission, no runtime schema guarantee |
-| Explicit alias/type statement | Same three | Supported underlying expression and complete reachable same-file declarations; primitive/fieldless expressions are clear controls where criterion is absent |
+| Explicit alias/type statement | Same three | Supported underlying expression and complete reachable eligible local declarations; primitive/fieldless expressions are clear controls where criterion is absent |
 | NewType | Same three | Exact nominal wrapper and underlying type; nominal primitive wrapper is a clear control |
 
 All three rules preserve `root-declaration`, `resolved-outbound-types`, and
@@ -578,3 +579,182 @@ Python has no function-review input. The adopted cohort is Tree-sitter runtime
 0.25.1 and Python grammar 0.25.0, using existing manifest-owned native packaging.
 Executed installed/platform claims belong to task validation evidence, not this
 syntax and selection contract.
+
+### Python local module authority amendment (#270)
+
+The same installed type-review path resolves supporting Python declarations. It
+retains each exact declaration and its local base/type edges; it never flattens
+inherited fields, runs Python imports, evaluates annotations, executes build
+backends, or computes a framework schema. The language adapter owns Python
+binding and module authority. The shared graph reader owns source capture,
+containment, exclusions, canonical evidence, and the aggregate limits.
+
+| Authority or binding | Adopted forms | Unavailable forms |
+| --- | --- | --- |
+| Import roots | Conventional repository flat and `src` layouts; one literal setuptools root from captured `pyproject.toml` (`package-dir` with only `""`, or `packages.find.where` with one element) | Competing local module/package or root alternatives; conflicting metadata; `setup.py`/`setup.cfg` authorities; Poetry/Hatch/PDM loader configuration; editable installs, ambient PYTHONPATH, arbitrary loaders |
+| Packages | Conventional packages with a captured `__init__.py` or supporting `__init__.pyi` at every package boundary | Namespace packages, symlink traversal, outside-root paths, dynamic `__path__`/`__getattr__`, loader/path setup calls or conditional initializer authority, wildcard imports |
+| Imports | Named members, module imports, aliases and qualified names; relative imports within an established package; unique local absolute imports; explicit named initializer reexports, including bounded chains | Star exports, runtime conditional imports, ambiguous or rebound names; ordinary-module forwarding without an owned declaration; unresolved or over-budget chains/cycles |
+| Static types | Positive unshadowed `typing.TYPE_CHECKING` (including aliases/qualification) blocks containing only imports/comments/pass; the same supported simple/literal forward-expression subset as same-file review | Else branches, computed guards/annotations, runtime/type conflicts, lexical shadowing and rebindings |
+| Source and stub | Eligible `.py` governs each module/package route; `.pyi` supplies supporting declarations only when that route has no source implementation | Merging conflicting alternatives; replacing source bodies/constructors with stubs; newly attributing `.pyi` roots |
+| Local model ancestry | Annotated ordinary classes, dataclasses, class TypedDict and static Pydantic BaseModel ancestry, with exact local supporting source | Runtime framework behavior, generated schemas, custom constructors and unknown executable schema statements |
+| Rules | Existing `meaningless_combinations`, `absence_confusion`, `bare_domain_value`, with their unchanged evidence requirements | Any claim of complete closure when a needed edge is omitted; function review; validator-only edit attribution |
+
+Metadata is context evidence: it uses `contextIncludes`/`contextExcludes` when
+configured, otherwise the source include/exclusion policy. Metadata does not get
+an exclusion or include exception. Consequently source-only includes such as
+`**/*.py` do not establish absolute import-root authority unless context includes
+also admit the required metadata alternatives. Relative imports in conventional
+packages can resolve without unrelated project metadata. Existing sensitive,
+generated/vendor, Git-ignore, physical-root and file-kind checks still apply.
+Supporting `.pyi` and the named root-authority file `setup.cfg` are recognized
+context path forms; neither acquires model-root registration.
+
+All authority reads and supporting-source captures share the existing eight-file,
+2 MiB per-source, 12 MiB read, depth-four, sixteen-reference, 128-work, 20 KiB
+canonical-tree and five-second analysis ceilings. Metadata and initializers count
+as files/read bytes; every bounded membership probe and its final revalidation
+counts as work. Discovery probes only named import alternatives and their package
+ancestors. It does not index or send all project declarations. Failed stable captures retain their file/read reservations; failed semantic
+inspection also consumes the reader budget. Failure to reserve or revalidate
+within these limits declines the affected result.
+
+Uniqueness depends on positive captures and observed membership/absence of the
+bounded module, package, initializer, root and metadata alternatives. Revalidate
+those observations before admitting a unit. Queued/before-delivery freshness
+rebuilds the same provider input and root authority under current policy and
+budgets, so create/delete/rename of a previously absent alternative can invalidate
+an unchanged positive declaration. Restoring the exact source and binding may
+make it current again. The provider receives only reachable declarations;
+authority-only metadata and initializer captures are source fingerprints, not
+invented declaration nodes. Independent complete roots remain eligible when
+another root has an omission. Loader/path effects and imported-namespace mutation
+in edited or supporting modules cannot establish static import authority; effects
+inside an unevaluated function or lambda body do not change module bindings.
+Unknown evaluated calls, including class-body calls, decorators, custom
+metaclasses and function default expressions, make import authority unavailable.
+Recognized declarative dataclass/Pydantic metadata and validator decorators,
+standard method decorators and the declared `typing.NewType` constructor remain
+supported. Independent roots with only self-contained primitive evidence retain
+their own authority; unavailable module bindings cannot support cross-file
+declarations. Qualified member chains retain initializer
+binding authority: a bound class or rebound name is never guessed to be a
+sibling submodule. Only an unbound member or explicit module reexport can
+authorize the supported package-submodule fallback.
+
+The #268 continuation handoff owns executed acceptance evidence. This matrix does
+not establish classifier accuracy, Darwin execution, other native hosts, dynamic
+schema coverage, validator-only coverage or large-project budget sufficiency.
+
+## Go active-package constraint subset
+
+The owner-approved active-package Go slice under #267 freezes this subset before
+membership implementation. This section defines the supported authority envelope;
+the implemented adapter follows it. Installed-platform and native-session validation require separate evidence.
+
+Analysis uses a frozen Hapsland configuration snapshot declaring both GOOS and
+GOARCH plus an explicit complete user-tag list. It never adopts the host process's
+Go environment. Project configuration replaces the user Go analysis object as a
+whole; omission inherits. Missing target context may establish membership only
+for files without target-dependent constraints or platform suffixes. Target
+values come from the named platform tables in the implementation, rather than
+arbitrary strings; unsupported future platforms require a reviewed table change.
+
+Supported constraints are filename `_GOOS`, `_GOARCH` and `_GOOS_GOARCH` suffixes,
+and one leading `//go:build` expression with identifiers, `!`, `&&`, `||` and
+parentheses. User tags are explicit positive facts; absent ordinary user tags
+are false only with a complete configuration snapshot. `go1.*`, `goexperiment.*`,
+architecture feature tags, `cgo`, compiler tags and legacy `// +build` constraints
+are unknown. Unsupported facts remain unknown even in a boolean branch that
+would otherwise short-circuit. Cgo imports are unsupported authority. This
+profile does not execute the Go driver, repository scripts or generators.
+
+| Derived fact | Supported interpretation |
+| --- | --- |
+| GOOS and GOARCH tags | Exactly the declared target, with the OS aliases below |
+| `android` target | Also satisfies `linux` |
+| `illumos` target | Also satisfies `solaris` |
+| `ios` target | Also satisfies `darwin` |
+| `unix` | True for aix, android, darwin, dragonfly, freebsd, hurd, illumos, ios, linux, netbsd, openbsd, solaris |
+| Ordinary user tag | True exactly when present in the declared tag set |
+| Language, experiment, architecture feature, compiler or cgo tag | Unknown; no host-derived default |
+
+Filename suffixes also use the documented OS aliases above.
+Dot/underscore-prefixed and `_test.go` files do not belong to this production
+package profile. Constraint parsing has finite byte, token and nesting bounds;
+exhaustion yields unknown membership. Unknown membership, incomplete directory
+inventory or conflicting active bindings must prevent a claim of unique package
+identity. Supporting declarations and constant groups remain bounded separately
+by the existing capture and graph ceilings.
+
+The subset follows the official [Go build constraints](https://pkg.go.dev/cmd/go#hdr-Build_constraints).
+
+The Go profile under #271 and #272 uses one eligible production-package directory
+at a time within one captured local module. Each directory inventory observes at
+most 128 direct entries. The configured graph file ceiling (8 by default) is
+shared by the edited file, captured `go.mod` and active/possibly active package
+files. Known filename-inactive files are not read. Source headers establishing
+membership, captured metadata and supporting files spend the same source/read
+ceilings; declaration and constant discovery, metadata alternatives and package
+links spend the existing work ceiling. Expanded evidence retains the depth,
+outgoing-reference and encoded-tree ceilings. Exhaustion establishes missing
+evidence, never permission for a whole-file fallback or larger limits.
+
+Module identity comes from the nearest `go.mod` inside the captured physical
+root, found within the configured depth bound. Exactly one ordinary unquoted
+`module` declaration establishes the module path. Block-comment metadata and
+replacement directives are unsupported. Applicable `go.work` presence inside
+the physical root prevents module import authority. Module discovery must reach
+the physical root within its bound to establish workspace absence. Analysis
+never invokes Go, application code, generators or dependency downloads.
+
+Only exact `go.mod` basenames are added to the protected extension allowlist for
+metadata capture; arbitrary `.mod` files remain unsupported. Metadata uses the
+same context include/exclusion patterns, sensitive/generated/vendor protection,
+Git-ignore and physical regular-file/symlink gates as supporting source. An
+excluded or unavailable nearest manifest cannot authorize a search for a more
+convenient ancestor. Presence/absence and unsafe/unavailable alternatives are
+bounded local identity observations; they are not transmitted source.
+
+Imports whose paths match that module map to directories within its boundary.
+Every intervening `go.mod` presence blocks crossing a nested module. No workspace,
+replace, outside-root, module-cache, vendor or system declaration traversal is
+introduced. A default import binds the uniquely established active package's
+**declared name**, including when that name differs from the path suffix. Explicit
+aliases bind that same package identity; duplicate/ambiguous bindings remain
+omissions. Blank imports bind no types. Dot imports remain unsupported for
+affected references. Cross-package entry references must be exported (Unicode
+uppercase), and `internal` imports must originate within the directory tree
+permitted by the internal segment. Supporting private declarations reachable
+inside an admitted package remain eligible. A `main` package is not importable.
+
+Only reachable actual declaration identities and exact relevant constant groups
+go to the provider. Lookup keys remain internal; evidence reference sites retain
+the source qualifier and supporting artifacts keep their actual names, paths and
+source. No supporting declaration becomes an edited root. Unresolved external
+references stay explicit per-rule omissions: a root-only rule may proceed with
+marked missing closure; all three shipped rules retain their actual closure
+requirements. An unrelated eligible root can proceed independently.
+
+Fresh preparation fingerprints module/build source and configuration authority,
+package inventories, captured alternatives and positive/absent metadata/package
+resolution observations. Changes, creation, deletion, rename and restored source
+are checked by repeating bounded discovery, rather than trusting an old dependency
+list. Discovery metadata and unrelated package bodies are not provider input.
+
+| Go model family | Shipped rule inputs intended for this slice | Evidence boundary |
+| --- | --- | --- |
+| Structs, embedded fields, pointers, maps and slices | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Exact declaration plus resolved local-module type closure; unknown external fields omit closure-dependent rules |
+| Defined scalar/container types and aliases | The same rules where their domain question applies | Nominal defined types remain distinct from aliases; constants are declared examples, never exhaustive runtime values |
+| Interfaces and generic constraints | The same rules only about declared structure | Interface method signatures and type sets are source structure, not a closed set of implementing runtime types |
+| Typed constant/iota groups | Supporting evidence for edited/referenced named types | Original complete group including ordinal predecessors and implicit expressions; no synthesized enumerator values |
+| Constant-only, function-only or receiver-method-only edits | None | No unchanged type root is selected; constant-only demand is an explicit follow-up gap |
+
+All three shipped rules retain their existing required type-closure capabilities.
+This matrix states admissible evidence; it does not establish live classifier
+accuracy, compiler acceptance or installed native validation.
+
+The pinned `tree-sitter-go` 0.25.0 grammar and existing `tree-sitter` 0.25.1 runtime use the manifest-owned native producer and external loader. Compact semicolon-separated constant blocks are a known parse omission. Leading block-comment headers are unknown in this bounded membership profile. No syntax rewriting or compiler/system dependency traversal fills these gaps.
+
+Named local array bounds retain their defining constant group. Other computed array-bound expressions remain unsupported evidence; the adapter does not evaluate them.
+
+Constant discovery infers types per binding for explicit named types, direct conversions, aliases, parentheses, unary and arithmetic/bitwise/boolean expressions, shifts from their left operand, and builtin min/max. Comparisons yield an untyped boolean and do not bring their groups into scalar evidence. Named alias identity follows only established package bindings. Expression inference and alias steps spend the same work ceiling; no constant values are computed. Local imported type/alias/conversion/constant bindings can establish typed constant demands across captured packages; their original groups remain intact. Comparisons remain untyped and do not add reverse demands. External qualifiers and dot-import uncertainty remain explicit omissions in relevant groups.

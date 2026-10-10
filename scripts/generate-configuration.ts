@@ -35,7 +35,7 @@ const ruleExample = JSON.stringify(
     message: "Review this declaration's representable states.",
     inputs: [
       {
-        languages: ["typescript", "rust", "bend"],
+        languages: ["typescript", "rust", "bend", "python", "go"],
         kind: "type",
         requires: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"]
       }

@@ -1,9 +1,10 @@
+import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const revision = readFileSync(resolve(root, "packages/resident-runtime/src/resident/revision.ts"), "utf8")
-const server = readFileSync(resolve(root, "packages/resident-runtime/src/resident/server.ts"), "utf8")
+const revision = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/revision.ts"), "utf8")
+const server = readResidentRuntimeSource(root)
 for (const name of ["bendRevisionRegister", "bendRevisionSuperseded", "#nextWorkGeneration", "retained.members"]) {
   if (server.includes(name) || revision.includes(name)) throw new Error(`resident revision bypass returned: ${name}`)
 }
@@ -25,11 +26,11 @@ if (/\bRef\.(?:make|modify|update|set)\s*(?:<|\()/.test(revision)) {
   throw new Error("revision operations must share the resident state Ref")
 }
 
-const capacity = readFileSync(resolve(root, "packages/resident-runtime/src/resident/capacity.ts"), "utf8")
+const capacity = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/capacity.ts"), "utf8")
 if (
   !capacity.includes('register: Effect.fn("RevisionRecords.register")') ||
   !capacity.includes("commitAllEffect(revisionChange((operations) => operations.register(...args)))") ||
-  !server.includes("yield* residentLedger.revision.register(")
+  !server.includes("yield* deps.residentLedger.revision.register(")
 ) {
   throw new Error("revision registration must compose as an atomic Effect")
 }

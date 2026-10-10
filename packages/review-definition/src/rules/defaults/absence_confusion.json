@@ -15,7 +15,7 @@
         "typescript",
         "rust",
         "bend",
-        "python"
+        "python", "go"
       ],
       "kind": "type",
       "requires": [

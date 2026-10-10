@@ -14,25 +14,10 @@
   ],
   "references": [
     {
-      "path": "../activity-observation/tsconfig.json"
-    },
-    {
       "path": "../administration/tsconfig.json"
     },
     {
-      "path": "../credential-storage/tsconfig.json"
-    },
-    {
       "path": "../delivery-output/tsconfig.json"
-    },
-    {
-      "path": "../native-observation/tsconfig.json"
-    },
-    {
-      "path": "../resident-transport/tsconfig.json"
-    },
-    {
-      "path": "../review-definition/tsconfig.json"
     },
     {
       "path": "../runtime-environment/tsconfig.json"

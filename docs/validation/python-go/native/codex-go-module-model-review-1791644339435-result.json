@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-10T14:59:39.840Z",
+  "scenario": "go-module-model-review",
+  "runtime": "codex-cli 0.155.1",
+  "mode": "controlled-offline",
+  "archiveSha256": "b74630943c88418d620235f5054b8334a1b5043d5a566cdfd966f9f34927818b",
+  "runtimeAssets": {
+    "sha256": "2368fb6d36d8ab3f41e4c76f382930adf6a62baed6f9c30f5ba3a0ef48f0a0c6",
+    "files": 29
+  },
+  "sourceCommit": "3d70f91f5f599c8b95c227d5dd589230b4d4ccbc",
+  "runnerSha256": "a688930b7bcae0c8b5d53df24fb9880a61efac972534aafb84efa38e546769f2",
+  "profileSha256": "a7a3e43b91f25fff1d5c102bf27e5e2e1050014fc093b31515ca6c77c8232882",
+  "operatingSystem": "linux",
+  "architecture": "arm64",
+  "checks": {
+    "nativeEdits": true,
+    "completePackageClosure": true,
+    "exactTypedIotaGroup": true,
+    "controlledReviewer": true,
+    "initialFinding": true,
+    "deliveredAdvice": true,
+    "clearFollowup": true,
+    "exactLocalModuleClosure": true,
+    "actualPackageName": true,
+    "aliasedInternalPackage": true,
+    "agentAcknowledgesAndQuotesAdvice": true,
+    "repairedOpenInterface": true,
+    "sourceCompiles": true
+  },
+  "maximumJevRequests": 0,
+  "nativeColdStartupValidated": false,
+  "browserValidated": false,
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "verdict": "demonstrated"
+}

@@ -134,14 +134,20 @@ test("production child dispatch and the generated composition graph must agree",
 
 test("CLI journeys must retain their actual handler and input-flow bindings", (t) => {
   const root = fixture(t)
-  const cli = join(root, "packages/cli-entry/src/cli.ts")
+  const cli = join(root, "packages/administration/src/onboarding/lifecycle-invocation.ts")
   const source = readFileSync(cli, "utf8")
   writeFileSync(
     cli,
-    source.replace('cliJourney("setup", () => chooseSetupClients())', 'cliJourney("setup", () => updateInteractive())')
+    source.replace(
+      'cliJourney("setup", () => chooseSetupClients(session))',
+      'cliJourney("setup", () => updateInteractive(session))'
+    )
   )
   assert.throws(() => checkUiFlows(root), /CLI journey binding does not match its registered entry/)
-  writeFileSync(cli, source.replace('cliJourney("setup", () => chooseSetupClients())', "chooseSetupClients()"))
+  writeFileSync(
+    cli,
+    source.replace('cliJourney("setup", () => chooseSetupClients(session))', "chooseSetupClients(session)")
+  )
   assert.throws(() => checkUiFlows(root), /CLI journey has no production binding: setup/)
   writeFileSync(cli, source)
   const registry = join(root, "packages/administration/src/interaction/flow-registry.ts")

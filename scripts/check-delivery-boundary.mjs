@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const delivery = readFileSync(resolve(root, "packages/resident-runtime/src/resident/composed-delivery.ts"), "utf8")
+const delivery = readFileSync(
+  resolve(root, "packages/resident-runtime/src/resident/state/composed-delivery.ts"),
+  "utf8"
+)
 const work = readFileSync(resolve(root, "packages/resident-runtime/src/resident/bend-work.ts"), "utf8")
 for (const name of [
   "bendLeaseInitial",

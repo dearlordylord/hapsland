@@ -1,0 +1,338 @@
+import assert from "node:assert/strict"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
+import { executeNative } from "./native-process.mjs"
+import { instrumentGoHooks } from "./native-go-hook-observation.mjs"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+
+export const goConstantGroup = "const (\n Pending PaymentStatus = iota\n Succeeded\n Failed\n)"
+const initial =
+  "package payment\ntype PaymentState struct { Status PaymentStatus; Receipt *Receipt; FailureReason *string }\n"
+const moduleInitial =
+  'package payment\nimport (\n "synthetic/payment/models-v2"\n state "synthetic/payment/internal/state"\n)\ntype PaymentState struct { Status state.PaymentStatus; Receipt *domain.Receipt; FailureReason *string }\n'
+const moduleReceipt =
+  'package domain\nimport state "synthetic/payment/internal/state"\ntype Receipt struct { ID string; Status state.PaymentStatus }\ntype Unrelated struct { Secret string }\n'
+const repaired = "package payment\ntype PaymentState interface { paymentState() }\n"
+const finding = configuredRules.find((rule) => rule.id === "meaningless_combinations").message
+
+/** Assert only the observed package-model seam; discard all source-bearing packets. */
+export function verifyGoSnapshot(
+  snapshot,
+  setCheck = () => {},
+  agentReceipt = { acknowledged: false, quoted: false },
+  localModule = false
+) {
+  setCheck("prepared-native-roots")
+  const records = snapshot.records
+  const units = records.filter(
+    (record) => record.fact.kind === "unit-prepared" && record.fact.declaration === "PaymentState"
+  )
+  assert.ok(units.length >= 2, "Both attributed PaymentState edits must prepare")
+  assert.ok(units.every((unit) => unit.fact.completeness === "complete"))
+  for (const unit of units) {
+    assert.ok(
+      records.some(
+        (record) =>
+          record.correlation.receiptId === unit.correlation.receiptId &&
+          record.fact.kind === "edit-received" &&
+          record.fact.candidates.some(
+            (candidate) => candidate.path === "payment.go" && candidate.selection.status === "selected"
+          )
+      )
+    )
+    assert.ok(
+      records.some(
+        (record) =>
+          record.correlation.evaluationId === unit.correlation.evaluationId &&
+          record.fact.kind === "unit-policy" &&
+          record.fact.activity === "controlled"
+      ),
+      "Each invocation must use the controlled reviewer"
+    )
+  }
+  setCheck("correlated-outcomes")
+  const initialUnit = units.find((unit) =>
+    records.some(
+      (record) =>
+        record.correlation.evaluationId === unit.correlation.evaluationId &&
+        record.fact.kind === "evaluation-outcome" &&
+        record.fact.outcome === "findings"
+    )
+  )
+  const followup = units.find((unit) =>
+    records.some(
+      (record) =>
+        record.correlation.evaluationId === unit.correlation.evaluationId &&
+        record.fact.kind === "evaluation-outcome" &&
+        record.fact.outcome === "clear"
+    )
+  )
+  assert.ok(
+    initialUnit && followup && initialUnit.correlation.evaluationId !== followup.correlation.evaluationId,
+    "An initial finding and independent clear follow-up are required"
+  )
+  setCheck("captured-provider-input")
+  const input = records.find(
+    (record) =>
+      record.correlation.evaluationId === initialUnit.correlation.evaluationId && record.fact.kind === "model-input"
+  )
+  assert.equal(input?.fact.payload.status, "available")
+  const value = JSON.parse(input.fact.payload.encoded)
+  assert.equal(value.artifact.kind, "struct")
+  setCheck("typed-package-evidence")
+  const nodes = value.evidence.nodes
+  assert.ok(
+    nodes.some((node) => node.kind === "constant-group" && node.source === goConstantGroup),
+    "The original typed iota group must reach the provider"
+  )
+  assert.ok(nodes.some((node) => node.kind === "defined-type" && node.name === "PaymentStatus"))
+  assert.ok(nodes.some((node) => node.kind === "struct" && node.name === "Receipt"))
+  if (localModule) {
+    setCheck("exact-local-module-evidence")
+    assert.deepEqual(
+      nodes.map((node) => [node.domain, node.kind, node.name]).sort(),
+      [
+        ["models-v2/receipt.go", "struct", "Receipt"],
+        ["internal/state/status.go", "defined-type", "PaymentStatus"],
+        ["internal/state/status.go", "constant-group", nodes.find((node) => node.kind === "constant-group")?.name]
+      ].sort()
+    )
+    assert.equal(
+      nodes.find((node) => node.name === "Receipt")?.source,
+      "type Receipt struct { ID string; Status state.PaymentStatus }"
+    )
+    assert.equal(nodes.find((node) => node.name === "PaymentStatus")?.source, "type PaymentStatus int")
+    assert.equal(value.artifact.source, moduleInitial.trim().split("\n").at(-1))
+    assert.ok(!JSON.stringify(value).includes("type Unrelated"))
+    assert.ok(!JSON.stringify(value).includes("module synthetic"))
+    assert.equal(value.evidence.edges.filter((edge) => edge.kind === "omitted").length, 0)
+  }
+  setCheck("delivered-finding")
+  assert.ok(
+    agentReceipt.acknowledged === true && agentReceipt.quoted === true,
+    "The real agent must acknowledge advice and quote its unseen delivered finding"
+  )
+  return {
+    nativeEdits: true,
+    completePackageClosure: true,
+    exactTypedIotaGroup: true,
+    controlledReviewer: true,
+    initialFinding: true,
+    deliveredAdvice: true,
+    clearFollowup: true,
+    ...(localModule ? { exactLocalModuleClosure: true, actualPackageName: true, aliasedInternalPackage: true } : {})
+  }
+}
+
+export function createGoInspectionProfile({
+  diagnosticOnly = process.env.HAPSLAND_GO_SELECTION_DIAGNOSTIC === "1",
+  observeStdout = false,
+  localModule = false
+} = {}) {
+  let observations
+  let acknowledged = false
+  let quoted = false
+  let quotedRuleIds = []
+  let acknowledgmentObservation = { final: "absent", aggregate: "absent", count: 0, order: [] }
+  return {
+    source: new URL(import.meta.url),
+    scenario: localModule ? "go-module-model-review" : "go-package-model-review",
+    diagnosticOnly,
+    hookInterposition: observeStdout ? "stdout-observer" : "standard-installed-hooks",
+    browser: false,
+    prepareResident: true,
+    prepareRuntime: true,
+    seed(repo) {
+      writeFileSync(join(repo, "go.mod"), "module synthetic/payment\n\ngo 1.27\n")
+      if (localModule) {
+        mkdirSync(join(repo, "internal/state"), { recursive: true })
+        mkdirSync(join(repo, "models-v2"), { recursive: true })
+        writeFileSync(
+          join(repo, "internal/state/status.go"),
+          `package state\ntype PaymentStatus int\n${goConstantGroup}\n`
+        )
+        writeFileSync(join(repo, "models-v2/receipt.go"), moduleReceipt)
+      } else {
+        writeFileSync(
+          join(repo, "support.go"),
+          `package payment\ntype PaymentStatus int\n${goConstantGroup}\ntype Receipt struct { ID string }\n`
+        )
+      }
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ private: true, scripts: { test: "go test ./..." } }))
+    },
+    control: () => ({ findingOnSourceIncludes: "type PaymentState struct" }),
+    instrumentHooks: observeStdout
+      ? (inputs) => {
+          observations = instrumentGoHooks({ ...inputs, finding })
+        }
+      : undefined,
+    prompts: [
+      diagnosticOnly
+        ? `Use apply_patch to add payment.go with exactly this draft:\n${localModule ? moduleInitial : initial}\nRun npm test once. Keep all supporting Go files and go.mod unchanged. Stop after this single source edit and test; do not repair the draft or inspect integration settings.`
+        : `Use apply_patch to add payment.go with exactly this draft:\n${localModule ? moduleInitial : initial}\nRun npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, use apply_patch to replace PaymentState with this design:\n${repaired}\nRun npm test again; if review is pending run npm test again. Keep all supporting Go files and go.mod unchanged. Use at most two source-edit calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote one actual delivered finding sentence.`
+    ],
+    observeNative(output) {
+      const messages = output.split("\n").flatMap((line) => {
+        try {
+          const value = JSON.parse(line)
+          return value.type === "item.completed" && value.item?.type === "agent_message" ? [value.item.text] : []
+        } catch {
+          return []
+        }
+      })
+      const markerState = (text) => {
+        const applied = text.includes("HAPSLAND_ADVICE_APPLIED")
+        const negative = text.includes("HAPSLAND_ADVICE_NOT_APPLIED")
+        return applied && negative ? "ambiguous" : applied ? "affirmed" : negative ? "negative" : "absent"
+      }
+      const combined = messages.join("\n")
+      acknowledgmentObservation = {
+        final: markerState(messages.at(-1) ?? ""),
+        aggregate: markerState(combined),
+        count: messages.length,
+        order: messages.slice(-128).map(markerState)
+      }
+      acknowledged = acknowledgmentObservation.final === "affirmed"
+      quotedRuleIds = configuredRules
+        .filter((rule) => (messages.at(-1) ?? "").includes(rule.message))
+        .map((rule) => rule.id)
+      quoted = quotedRuleIds.length > 0
+      return { acknowledgment: acknowledgmentObservation, quoted }
+    },
+    async verify({ url, repository, bounded, reportDiagnostic, setPhase }) {
+      setPhase("go-package-model-outcomes")
+      const snapshot = await bounded(
+        async () => {
+          const value = await (await fetch(`${url}snapshot`, { signal: AbortSignal.timeout(10000) })).json()
+          reportDiagnostic({
+            nativeAdmission: value.records
+              .filter((record) => record.fact.kind === "edit-admission")
+              .map((record) => record.fact.outcome),
+            selectionDiagnostics: value.records
+              .filter((record) => record.fact.kind === "edit-received")
+              .flatMap((record) =>
+                record.fact.candidates.map((candidate) => ({
+                  stage: candidate.selection.diagnostic?.stage ?? "none",
+                  code: candidate.selection.diagnostic?.code ?? "none",
+                  authority:
+                    candidate.selection.diagnostic?.code === "edit-policy-unavailable"
+                      ? "policy-authority-unavailable"
+                      : candidate.selection.diagnostic?.code === "path-observation-unavailable"
+                        ? "physical-path-observation-unavailable"
+                        : "not-unavailable"
+                }))
+              ),
+            attribution: value.records.some((record) => record.fact.kind === "edit-received")
+              ? "native-candidate-observed"
+              : "not-observed",
+            nativeSelections: value.records
+              .filter((record) => record.fact.kind === "edit-received")
+              .flatMap((record) => record.fact.candidates.map((candidate) => candidate.selection.status)),
+            hookObservations: observations
+              ? (() => {
+                  try {
+                    return readFileSync(observations, "utf8")
+                      .trim()
+                      .split("\n")
+                      .map((line) => JSON.parse(line))
+                  } catch {
+                    return []
+                  }
+                })()
+              : [],
+            nativeAgentAcknowledged: acknowledged,
+            nativeAcknowledgment: acknowledgmentObservation,
+            nativeAgentQuotedAdvice: quoted,
+            findingFates: value.records
+              .filter((record) => record.fact.kind === "finding-fate")
+              .map((record) => ({
+                evaluationId: record.correlation.evaluationId ?? null,
+                fate: record.fact.fate,
+                reason: record.fact.reason
+              })),
+            facts: Object.fromEntries(
+              ["edit-received", "unit-prepared", "model-input", "evaluation-outcome", "finding-fate"].map((kind) => [
+                kind,
+                value.records.filter((record) => record.fact.kind === kind).length
+              ])
+            )
+          })
+          return diagnosticOnly
+            ? value.records.some((record) => record.fact.kind === "edit-received")
+              ? value
+              : undefined
+            : value.records.filter((record) => record.fact.kind === "evaluation-outcome").length >= 2
+              ? value
+              : undefined
+        },
+        "installed Go initial and follow-up outcomes",
+        30000
+      )
+      if (diagnosticOnly) {
+        setPhase("go-selection-diagnostic")
+        throw new Error("Diagnostic-only selection observation does not qualify installed review")
+      }
+      quoted = snapshot.records.some(
+        (record) =>
+          record.fact.kind === "interpreted-findings" &&
+          record.fact.payload.status === "available" &&
+          snapshot.records.some(
+            (unit) =>
+              unit.correlation.evaluationId === record.correlation.evaluationId &&
+              unit.fact.kind === "unit-prepared" &&
+              unit.fact.declaration === "PaymentState"
+          ) &&
+          snapshot.records.some(
+            (outcome) =>
+              outcome.correlation.evaluationId === record.correlation.evaluationId &&
+              outcome.fact.kind === "evaluation-outcome" &&
+              outcome.fact.outcome === "findings"
+          ) &&
+          record.fact.payload.findings.some(
+            (item) =>
+              quotedRuleIds.includes(item.ruleId) &&
+              configuredRules.some((rule) => rule.id === item.ruleId && rule.message === item.message)
+          )
+      )
+      const checks = verifyGoSnapshot(
+        snapshot,
+        (check) => setPhase(`go-${check}`),
+        { acknowledged, quoted },
+        localModule
+      )
+      setPhase("go-agent-advice-acknowledgment")
+      assert.ok(acknowledged && quoted, "The real agent must acknowledge advice and quote its delivered finding")
+      setPhase("go-interface-repair")
+      assert.match(
+        readFileSync(join(repository, "payment.go"), "utf8"),
+        /^package payment\s+type PaymentState interface\s*\{\s*paymentState\(\)\s*\}\s*$/u
+      )
+      if (localModule) {
+        assert.equal(readFileSync(join(repository, "models-v2/receipt.go"), "utf8"), moduleReceipt)
+        assert.equal(
+          readFileSync(join(repository, "internal/state/status.go"), "utf8"),
+          `package state\ntype PaymentStatus int\n${goConstantGroup}\n`
+        )
+        assert.equal(readFileSync(join(repository, "go.mod"), "utf8"), "module synthetic/payment\n\ngo 1.27\n")
+      }
+      setPhase("go-repair-compilation")
+      const compiler = await executeNative("go", ["test", "./..."], { cwd: repository, timeout: 30000 })
+      assert.equal(compiler.code, 0)
+      return {
+        checks: {
+          ...checks,
+          agentAcknowledgesAndQuotesAdvice: true,
+          repairedOpenInterface: true,
+          sourceCompiles: true
+        },
+        maximumJevRequests: 0,
+        nativeColdStartupValidated: false,
+        browserValidated: false,
+        rawHostStreamRetained: false,
+        sourceRetained: false,
+        providerBodyRetained: false,
+        verdict: "demonstrated"
+      }
+    }
+  }
+}

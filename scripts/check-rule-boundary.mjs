@@ -1,3 +1,4 @@
+import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
@@ -6,7 +7,7 @@ const source = (path) => readFileSync(resolve(root, path), "utf8")
 const compiler = source("packages/review-definition/src/rules/compiler.ts")
 const policy = source("packages/review-execution/src/policy/rules.ts")
 const direct = source("packages/review-execution/src/direct-event/pipeline.ts")
-const resident = source("packages/resident-runtime/src/resident/server.ts")
+const resident = readResidentRuntimeSource(root)
 const adapter = source("packages/review-definition/src/rules/decision.ts")
 
 if (

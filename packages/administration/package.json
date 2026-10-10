@@ -303,6 +303,66 @@
     "./credentials/masked-input-error": {
       "types": "./dist/credentials/masked-input-error.d.ts",
       "default": "./dist/credentials/masked-input-error.js"
+    },
+    "./invocation/session": {
+      "types": "./dist/invocation/session.d.ts",
+      "default": "./dist/invocation/session.js"
+    },
+    "./invocation/failure-message": {
+      "types": "./dist/invocation/failure-message.d.ts",
+      "default": "./dist/invocation/failure-message.js"
+    },
+    "./invocation/session-options": {
+      "types": "./dist/invocation/session-options.d.ts",
+      "default": "./dist/invocation/session-options.js"
+    },
+    "./invocation/json-input": {
+      "types": "./dist/invocation/json-input.d.ts",
+      "default": "./dist/invocation/json-input.js"
+    },
+    "./composition/read-request": {
+      "types": "./dist/composition/read-request.d.ts",
+      "default": "./dist/composition/read-request.js"
+    },
+    "./onboarding/installation/request": {
+      "types": "./dist/onboarding/installation/request.d.ts",
+      "default": "./dist/onboarding/installation/request.js"
+    },
+    "./onboarding/demo-invocation": {
+      "types": "./dist/onboarding/demo-invocation.d.ts",
+      "default": "./dist/onboarding/demo-invocation.js"
+    },
+    "./onboarding/setup-invocation": {
+      "types": "./dist/onboarding/setup-invocation.d.ts",
+      "default": "./dist/onboarding/setup-invocation.js"
+    },
+    "./evaluation/invocation": {
+      "types": "./dist/evaluation/invocation.d.ts",
+      "default": "./dist/evaluation/invocation.js"
+    },
+    "./composition/read-command": {
+      "types": "./dist/composition/read-command.d.ts",
+      "default": "./dist/composition/read-command.js"
+    },
+    "./onboarding/installation/dispatch": {
+      "types": "./dist/onboarding/installation/dispatch.d.ts",
+      "default": "./dist/onboarding/installation/dispatch.js"
+    },
+    "./credentials/command": {
+      "types": "./dist/credentials/command.d.ts",
+      "default": "./dist/credentials/command.js"
+    },
+    "./credentials/summary": {
+      "types": "./dist/credentials/summary.d.ts",
+      "default": "./dist/credentials/summary.js"
+    },
+    "./onboarding/lifecycle-invocation": {
+      "types": "./dist/onboarding/lifecycle-invocation.d.ts",
+      "default": "./dist/onboarding/lifecycle-invocation.js"
+    },
+    "./invocation/result": {
+      "types": "./dist/invocation/result.d.ts",
+      "default": "./dist/invocation/result.js"
     }
   },
   "dependencies": {

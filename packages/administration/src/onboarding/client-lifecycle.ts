@@ -1,5 +1,5 @@
 import { SUPPORTED_CLIENTS } from "@hapsland/runtime-environment/runtime/agent-clients"
-import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
+import { formatOutcome, formatStatusOutcome } from "../interaction/outcome.ts"
 import { currentCommand, type RuntimeCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
 import * as Effect from "effect/Effect"
 import { execFileClosedStdin } from "@hapsland/runtime-environment/process/closed-stdin"

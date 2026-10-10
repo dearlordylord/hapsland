@@ -18,7 +18,7 @@ import {
 import { captureCredential } from "../credentials/masked-input.ts"
 import { MaskedInputError } from "../credentials/masked-input-error.ts"
 import { credentialSourceGuidance } from "./credential-guidance.ts"
-import { formatOutcome } from "./human-output.ts"
+import { formatOutcome } from "../interaction/outcome.ts"
 import type { SetupClient } from "./client-selection.ts"
 import { verifyJevKey } from "./credential-verification.ts"
 import {

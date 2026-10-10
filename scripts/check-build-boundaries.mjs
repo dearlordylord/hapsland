@@ -45,7 +45,8 @@ export const checkBuildBoundary = (root, analysis, name, graph = readPackageGrap
       "tree-sitter",
       "tree-sitter-typescript",
       "tree-sitter-rust",
-      "tree-sitter-python"
+      "tree-sitter-python",
+      "tree-sitter-go"
     ].some((dependency) => !policy.forbiddenExternalPackages.includes(dependency))
   )
     throw new Error(`Build boundary policy omits protected capabilities: ${name}`)

@@ -353,6 +353,7 @@ function omissionLabel(reason) {
     'git-administrative-path': 'Git administrative path',
     'unsafe-file-kind': 'Symlink or non-regular file',
     'path-observation-unavailable': 'Filesystem or Git observation unavailable',
+    'constant-only-demand-gap': 'Constant-only edits need follow-up review; no unchanged type was selected',
     'function-analysis-unavailable': 'Function extraction is unavailable under the supported syntax and binding profile',
     'function-overload': 'Overload group excluded; its implementation is not review evidence',
     'unsupported-callable': 'Callable form is outside the supported named const-arrow and Effect wrapper profile',

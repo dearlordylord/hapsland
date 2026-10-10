@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-10T14:59:20.582Z",
+  "package": {
+    "name": "@hapsland/hapsland",
+    "version": "0.1.3",
+    "artifact": "reviewed-local.tgz",
+    "source": "reviewed-local-archive",
+    "sha256": "b74630943c88418d620235f5054b8334a1b5043d5a566cdfd966f9f34927818b"
+  },
+  "environment": {
+    "harnessNode": "v24.20.0",
+    "installedRuntime": {
+      "version": "1.3.14",
+      "platform": "linux",
+      "architecture": "arm64"
+    },
+    "nodeOrBunOnInstalledPath": false,
+    "operatingSystem": "linux",
+    "architecture": "arm64"
+  },
+  "isolation": {
+    "temporaryInstallation": true,
+    "developmentDependencies": false,
+    "checkoutPathUsedAtRuntime": false,
+    "retainedSyntheticSource": false
+  },
+  "entryPoints": {
+    "cli": "passed",
+    "parser": "passed",
+    "resident": "passed",
+    "hook": "passed"
+  },
+  "retainedReleaseResidentReuse": {
+    "status": "passed",
+    "previousReleaseHook": true,
+    "runtimeHookUpdatePreservedResident": true,
+    "unchangedPidAndLifetime": true,
+    "residentExecutableIdentity": "linux-proc-executable-path-and-sha256",
+    "residentSha256": "c9a084bc0cb13abc035e261d628ea0c41a1fcdcd56ff76577276395126657b0d"
+  },
+  "rustPreparation": {
+    "status": "passed",
+    "installedCliReview": true,
+    "supportingEvidenceExpanded": true,
+    "noExternalInterpreterOnPath": true
+  },
+  "bendPreparation": {
+    "status": "passed",
+    "installedCliReview": true,
+    "supportingEvidenceExpanded": true,
+    "noExternalInterpreterOnPath": true
+  },
+  "installation": {
+    "packageManager": "bun",
+    "preview": "passed",
+    "installed": "passed",
+    "idempotent": "passed",
+    "scopedUninstall": "passed",
+    "customQuotedHome": true,
+    "independentHookPreserved": true,
+    "fileSelection": "effective-settings",
+    "disableDispatchGate": "passed",
+    "update": {
+      "fromVersion": "0.1.3",
+      "toVersion": "0.0.1-local",
+      "preview": "passed",
+      "protocolIncompatibility": "rejected-before-write",
+      "partialRecovery": "resumed",
+      "previousHookRetainedOnPartialFailure": true,
+      "oldGrantFilesPreserved": true,
+      "credentialState": "not-configured",
+      "trustRecordsModified": false,
+      "processesStopped": false,
+      "controlledReviewAfterUpdate": "passed",
+      "independentHookAfterUpdate": "passed"
+    }
+  },
+  "review": {
+    "backend": "controlled-offline",
+    "submissions": 1,
+    "adviceReturned": true,
+    "activity": {
+      "submitted": {
+        "instrumentation": "resident-v1",
+        "kind": "submitted",
+        "submission": "submitted",
+        "modelReaction": "unavailable"
+      },
+      "restart": {
+        "before": "pending",
+        "after": "restarted/lost",
+        "modelReaction": "unavailable"
+      }
+    }
+  },
+  "credentialLifecycle": {
+    "status": "not-requested"
+  },
+  "realCodex": {
+    "status": "not-requested"
+  },
+  "transientPackageDownloadPerEdit": false,
+  "verdict": "clean-package-passed-real-host-not-requested",
+  "qualificationScope": "Diagnostic external runner enabled sessionInspection for Rust/Bend and retained synthetic fixture; separate from unmodified required gate"
+}

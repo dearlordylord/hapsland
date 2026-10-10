@@ -11,7 +11,14 @@ import type { PhysicalRootIdentity } from "@hapsland/native-observation/direct-e
 import type { DirectFilePolicy } from "@hapsland/native-observation/direct-event/selection"
 export type TypeExtractionFailure = {
   readonly status: "unsupported"
-  readonly reason: "extension" | "parse" | "import" | "declaration-limit" | "declaration-merge" | "no-declarations"
+  readonly reason:
+    | "extension"
+    | "parse"
+    | "import"
+    | "declaration-limit"
+    | "declaration-merge"
+    | "no-declarations"
+    | "constant-only-demand-gap"
   readonly units: readonly []
 }
 export const MAX_TYPE_DECLARATIONS = 1024
@@ -24,6 +31,8 @@ export type AnalyzerMaterializationPreflight = {
 export type GraphReference = {
   readonly kind: "named" | "unsupported"
   readonly name: string
+  /** Adapter-owned local lookup key; the source reference name remains the wire site. */
+  readonly bindingName?: string
   readonly expectedKind?: "type" | "function"
   /** Explicit identity for language-owned supporting evidence, never a project lookup. */
   readonly targetId?: string
@@ -56,6 +65,10 @@ export type GraphFacts = {
   readonly kindAware?: boolean
 }
 export type LanguageGraphHost = {
+  readonly analysisConfigurationIdentity?: string
+  readonly analysisConfiguration?: {
+    readonly go?: { readonly goos: string; readonly goarch: string; readonly tags: readonly string[] }
+  }
   readonly branch?: "type" | "function"
   readonly root: string
   readonly rootIdentity: PhysicalRootIdentity
@@ -70,8 +83,22 @@ export type LanguageGraphHost = {
 export type GraphSession = {
   inspect(path: string, source: string, branch: "type" | "function"): GraphFacts | undefined
   importCandidates(from: string, importPath: string): readonly string[]
+  /** Language-owned binding authority, charged together with the canonical graph. */
+  resolveImport?(
+    from: string,
+    importPath: string,
+    name: string,
+    remaining: { readonly files: number; readonly readBytes: number; readonly work: number }
+  ): Effect.Effect<{ readonly path: string; readonly name: string } | undefined>
+  authorityUsage?(): { readonly files: number; readonly readBytes: number; readonly work: number }
+  validateAuthority?(remaining: {
+    readonly files: number
+    readonly readBytes: number
+    readonly work: number
+  }): Effect.Effect<boolean>
 }
 export type PreparedGraph = {
+  readonly bindingFingerprint?: string
   readonly session: GraphSession
   readonly dependencies: readonly string[]
   readonly limits: GraphLimits
@@ -87,6 +114,10 @@ export type LanguageAdapter = {
   parseTypes(path: string, source: string, allowImports?: boolean): TypeExtractionFailure | readonly GraphDeclaration[]
   inspect(path: string, source: string): GraphFile | undefined
   supportingTypes?(path: string, source: string): ReadonlyMap<string, GraphDeclaration>
+  unselectedTypeEditReason?(
+    source: string,
+    spans: readonly import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation[]
+  ): "constant-only-demand-gap" | undefined
   hasImports(source: string): boolean
   combinedPreflight(
     path: string,

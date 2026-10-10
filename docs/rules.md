@@ -224,7 +224,9 @@ hapsland rules disable --id no-primitive-obsession --scope project
       "languages": [
         "typescript",
         "rust",
-        "bend"
+        "bend",
+        "python",
+        "go"
       ],
       "kind": "type",
       "requires": [
@@ -252,8 +254,8 @@ hapsland rules disable --id no-primitive-obsession --scope project
 | `threshold` | number (0–1) | Optional | — | — |
 | `inputs` | array of object with `languages` and `kind` and `requires` (at least 1 item) | Required | — | — |
 | `inputs[]` | object with `languages` and `kind` and `requires` | Array item (array may be empty) | — | — |
-| `inputs[].languages` | array of "typescript" or "rust" or "bend" or "python" (at least 1 item) | Required (object form) | — | — |
-| `inputs[].languages[]` | "typescript" or "rust" or "bend" or "python" | Array item (array may be empty) | — | — |
+| `inputs[].languages` | array of "typescript" or "rust" or "bend" or "python" or "go" (at least 1 item) | Required (object form) | — | — |
+| `inputs[].languages[]` | "typescript" or "rust" or "bend" or "python" or "go" | Array item (array may be empty) | — | — |
 | `inputs[].kind` | "type" or "function" or fixed value "schema" | Required (object form) | — | — |
 | `inputs[].requires` | array of non-empty string (may be empty) | Required (object form) | — | — |
 | `inputs[].requires[]` | non-empty string | Array item (array may be empty) | — | — |

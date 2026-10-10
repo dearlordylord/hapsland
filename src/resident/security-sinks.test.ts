@@ -1,3 +1,4 @@
+import { packageCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 /** Resident source-free diagnostic and process-sink regression witnesses. */
@@ -73,7 +74,8 @@ describe("security sink prototype", () => {
         ...process.env,
         REVIEW_RESIDENT_DIR: runtime,
         REVIEW_RESIDENT_CONTROLLED: "1",
-        REVIEW_RESIDENT_DEBUG: "1"
+        REVIEW_RESIDENT_DEBUG: "1",
+        HAPSLAND_TEST_RESIDENT_LAUNCH: JSON.stringify({ command: packageCommand("resident"), environment: {} })
       },
       stdio: ["ignore", "pipe", "pipe"]
     })
@@ -114,21 +116,18 @@ describe("security sink prototype", () => {
     })}\n`
     expect(admissionFrame).toContain(marker)
     const paths = residentPaths(runtime)
-    expect(
-      (
-        await runClient(
-          residentRequest(paths, {
-            requestRoute: "shared",
-            operation: "register-edit",
-            ...(dispatch.userConfigPath === null ? {} : { userConfigPath: dispatch.userConfigPath }),
-            lifetime: owner.lifetime,
-            root,
-            advicee: observation.advicee,
-            startedAt: monotonicNow()
-          })
-        )
-      ).status
-    ).toBe("advanced")
+    const registration = await runClient(
+      residentRequest(paths, {
+        requestRoute: "shared",
+        operation: "register-edit",
+        ...(dispatch.userConfigPath === null ? {} : { userConfigPath: dispatch.userConfigPath }),
+        lifetime: owner.lifetime,
+        root,
+        advicee: observation.advicee,
+        startedAt: monotonicNow()
+      })
+    )
+    expect(registration, JSON.stringify(registration)).toMatchObject({ status: "advanced" })
     const admissionResponse = await new Promise<string>((resolve, reject) => {
       const socket = connect(paths.socket)
       let response = ""
@@ -175,7 +174,7 @@ describe("security sink prototype", () => {
     const script = [
       "import * as Effect from 'effect/Effect';",
       "import {Layer} from 'effect';",
-      "import {ResidentPreparationControls,PreparationControlError,defaultPreparationControls} from './packages/resident-runtime/src/resident/preparation-controls.ts';",
+      "import {ResidentPreparationControls,PreparationControlError,defaultPreparationControls} from './packages/resident-runtime/src/resident/execution-controls/preparation-controls.ts';",
       "import {adaptCodexDirectEvent} from './packages/native-observation/src/direct-event/adapter.ts';",
       "import {updateEvent} from '@hapsland/build-tooling/test-support/test-fixtures';",
       "import {makeResidentRuntime} from './packages/resident-runtime/src/resident/server.ts';",

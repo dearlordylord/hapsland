@@ -5,7 +5,7 @@ import { ConfigurationError } from "@hapsland/runtime-inputs/configuration/error
 import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 import { setupCommand as setupInvocation } from "@hapsland/runtime-environment/runtime/cli-names"
 import type { HostProcessResult } from "@hapsland/runtime-environment/process/closed-stdin"
-import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
+import { formatOutcome, formatStatusOutcome } from "../interaction/outcome.ts"
 import type { profileFields } from "./client-command.ts"
 import { formatInstallationRequirements, formatProposal } from "./client-lifecycle.ts"
 import type { SetupClient } from "./client-selection.ts"

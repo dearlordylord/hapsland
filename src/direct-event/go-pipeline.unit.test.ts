@@ -1,0 +1,909 @@
+import { describe, expect, it } from "@effect/vitest"
+import * as Effect from "effect/Effect"
+import { captureConfiguration, resolveConfiguration } from "@hapsland/runtime-inputs/configuration/index"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import type { SourcePreparationContext } from "@hapsland/review-execution/direct-event/pipeline"
+import { rm, symlink } from "node:fs/promises"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent,
+  evaluatePrepared
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
+import { addEvent, makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+const rules = [
+  compileRule(
+    {
+      version: 1,
+      id: "model",
+      question: "Does the type admit invalid states?",
+      criteria: { false: "No", true: "Yes" },
+      message: "Represent the states distinctly.",
+      inputs: [
+        {
+          languages: ["go"],
+          kind: "type",
+          requires: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"]
+        }
+      ]
+    },
+    "go-test"
+  )
+]
+const context = {
+  settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+  rules,
+  inputContract: TYPE_INPUT_CONTRACT
+}
+const prepare = (event: unknown, overrides: Partial<SourcePreparationContext> = {}) =>
+  Effect.gen(function* () {
+    const observation = yield* adaptCodexDirectEvent(event)
+    if (observation === undefined) throw new Error("adaptation")
+    return {
+      observation,
+      result: yield* prepareObservation(observation, {
+        ...context,
+        ...overrides,
+        advicee: observation.advicee,
+        controlledWriter: true
+      })
+    }
+  })
+const support =
+  "package payment\ntype Status int\nconst (\n Pending Status = iota\n Paid\n Failed\n)\ntype Receipt struct { Value string }\n"
+const source = "package payment\ntype Payment struct { Status Status; Receipt *Receipt; Failure *string }\n"
+describe("Go active local package review", () => {
+  it.effect("captures split-package types and exact iota group through the provider boundary", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() => put(root, "payment.go", source))
+        yield* Effect.promise(() => put(root, "support.go", support))
+        const { result } = yield* prepare(addEvent(root, ["payment.go"]))
+        const ready = result.outcomes.filter((outcome) => outcome.status === "ready")
+        expect(ready).toHaveLength(1)
+        const unit = ready[0]
+        if (unit?.status !== "ready") throw new Error("missing unit")
+        const input = JSON.stringify(preparedProviderInput(unit.prepared))
+        expect(input).toContain("constant-group")
+        expect(input).toContain("Pending Status = iota")
+        expect(input).toContain("type Receipt struct")
+        expect(input).not.toContain("package payment")
+        expect(unit.prepared.input.unit.sourceDependencies).toEqual(["support.go"])
+        const evaluated = yield* evaluatePrepared(unit.prepared).pipe(
+          Effect.provide(
+            controlledDecisionModelLayer({ answers: { model: { _tag: "Probability", probability: 0.99 } } })
+          )
+        )
+        expect(evaluated.status).toBe("evaluated")
+        if (evaluated.status === "evaluated") expect(evaluated.findings).toHaveLength(1)
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("transmits the original parenthesized typed iota group with its predecessors", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const group = "const (\n _ = iota\n A (Status) = iota\n B\n)"
+      try {
+        yield* Effect.promise(() => put(root, "payment.go", "package payment\ntype Payment struct { Status Status }\n"))
+        yield* Effect.promise(() => put(root, "support.go", `package payment\ntype Status int\n${group}\n`))
+        const { result } = yield* prepare(addEvent(root, ["payment.go"]))
+        const ready = result.outcomes.find((outcome) => outcome.status === "ready")
+        if (ready?.status !== "ready") throw new Error("missing unit")
+        const input = JSON.stringify(preparedProviderInput(ready.prepared))
+        expect(input).toContain(JSON.stringify(group).slice(1, -1))
+        expect(ready.prepared.input.completeness).toBe("complete")
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("does not transmit constants from a generic parameter alias to a shadowed package type", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() => put(root, "state.go", "package p\ntype State int\n"))
+        yield* Effect.promise(() =>
+          put(root, "alias.go", "package p\ntype Alias[State ~int] = (State)\nconst Ready Alias[int] = 1\n")
+        )
+        const { result } = yield* prepare(addEvent(root, ["state.go"]))
+        const ready = result.outcomes.find((outcome) => outcome.status === "ready")
+        if (ready?.status !== "ready") throw new Error("missing unit")
+        const input = JSON.stringify(preparedProviderInput(ready.prepared))
+        expect(input).not.toContain("const Ready")
+        expect(input).not.toContain("constant-group")
+        expect(ready.prepared.input.completeness).toBe("complete")
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("rechecks alternative package identities and restored source", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() => put(root, "payment.go", source))
+        yield* Effect.promise(() => put(root, "support.go", support))
+        const { result, observation } = yield* prepare(addEvent(root, ["payment.go"]))
+        const unit = result.outcomes.find((outcome) => outcome.status === "ready")
+        if (unit?.status !== "ready") throw new Error("missing unit")
+        expect(
+          yield* preparedUnitStillCurrent(observation, unit.prepared, {
+            ...context,
+            controlledWriter: true,
+            advicee: observation.advicee
+          })
+        ).toBe(true)
+        yield* Effect.promise(() => put(root, "variant.go", "package payment\ntype Receipt struct { Other int }\n"))
+        expect(
+          yield* preparedUnitStillCurrent(observation, unit.prepared, {
+            ...context,
+            controlledWriter: true,
+            advicee: observation.advicee
+          })
+        ).toBe(false)
+        yield* Effect.promise(() => rm(`${root}/variant.go`))
+        expect(
+          yield* preparedUnitStillCurrent(observation, unit.prepared, {
+            ...context,
+            controlledWriter: true,
+            advicee: observation.advicee
+          })
+        ).toBe(true)
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  for (const [label, name, extra] of [
+    ["ambiguous bindings", "support.go", "package payment\ntype Receipt struct { Value string }\ntype Receipt int\n"],
+    ["missing target context", "support_linux.go", "package payment\ntype Receipt struct { Value string }\n"],
+    ["external fields", "support.go", 'package payment\nimport "time"\ntype Receipt struct { Value time.Time }\n']
+  ])
+    it.effect(`omits ${label}`, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        try {
+          yield* Effect.promise(() =>
+            put(root, "payment.go", "package payment\ntype Payment struct { Receipt *Receipt }\n")
+          )
+          yield* Effect.promise(() => put(root, name!, extra!))
+          const { result } = yield* prepare(addEvent(root, ["payment.go"]))
+          expect(result.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(0)
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      })
+    )
+  it.effect("admits the shipped model rules with declared headers and exact field evidence", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "model.go",
+            'package payment\ntype Model[T any] struct { Value T; Name string `json:"name"`; *Receipt }\n'
+          )
+        )
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "receipt.go",
+            "//go:build linux && arm64 && customer\n\npackage payment\ntype Receipt struct { ID string }\n"
+          )
+        )
+        const configuration = captureConfiguration(
+          resolveConfiguration(
+            [
+              {
+                name: "project",
+                source: "declared.json",
+                document: { version: 1, analysis: { go: { goos: "linux", goarch: "arm64", tags: ["customer"] } } }
+              }
+            ],
+            root
+          )
+        )
+        const { result } = yield* prepare(addEvent(root, ["model.go"]), {
+          rules: configuredRules,
+          settings: { ...context.settings, configuration }
+        })
+        const ready = result.outcomes.find((outcome) => outcome.status === "ready")
+        if (ready?.status !== "ready") throw new Error("missing unit")
+        const input = JSON.stringify(preparedProviderInput(ready.prepared))
+        expect(input).toContain("json:")
+        expect(ready.prepared.input.rules.map((rule) => rule.id).sort()).toEqual([
+          "absence_confusion",
+          "bare_domain_value",
+          "meaningless_combinations"
+        ])
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("omits oversized constant groups while an independent type remains eligible", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() =>
+          put(root, "model.go", "package payment\ntype Status string\ntype Independent struct { Value int }\n")
+        )
+        yield* Effect.promise(() =>
+          put(root, "constant.go", `package payment\nconst Huge Status = "${"x".repeat(22000)}"\n`)
+        )
+        const { result } = yield* prepare(addEvent(root, ["model.go"]))
+        expect(
+          result.outcomes
+            .filter((outcome) => outcome.status === "ready")
+            .map((outcome) => (outcome.status === "ready" ? outcome.prepared.input.declaration.name : ""))
+        ).toEqual(["Independent"])
+        expect(JSON.stringify(result.outcomes)).not.toContain('"name":"Huge"')
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  for (const [name, constants, eligible] of [
+    [
+      "imported iota remains missing evidence",
+      'package payment\nimport iota "example.org/external"\nconst A Status = iota.External\n',
+      false
+    ],
+    [
+      "unrelated boolean constants do not gate the scalar",
+      'package payment\nimport "example.org/external"\nconst A Status = 1\nconst B = A == external.Limit\n',
+      true
+    ]
+  ] as const)
+    it.effect(name, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        try {
+          yield* Effect.promise(() => put(root, "status.go", "package payment\ntype Status int\n"))
+          yield* Effect.promise(() => put(root, "constants.go", constants))
+          const { result } = yield* prepare(addEvent(root, ["status.go"]))
+          const ready = result.outcomes.filter((outcome) => outcome.status === "ready")
+          expect(ready.length).toBe(eligible ? 1 : 0)
+          if (ready[0]?.status === "ready")
+            expect(JSON.stringify(preparedProviderInput(ready[0].prepared))).not.toContain("external.Limit")
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      })
+    )
+  it.effect("records constant-only demand without selecting an unchanged type", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() => put(root, "support.go", support))
+        const event = updateEvent(root, "support.go", [" Settled"])
+        yield* Effect.promise(() => put(root, "support.go", support.replace(" Paid", " Settled")))
+        const { result } = yield* prepare(event)
+        expect(result.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(0)
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("selects declared platform variants and rejects a stale configuration identity", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() =>
+          put(root, "payment.go", "package payment\ntype Payment struct { Receipt Receipt }\n")
+        )
+        yield* Effect.promise(() =>
+          put(root, "receipt_linux.go", "package payment\ntype Receipt struct { Value string }\n")
+        )
+        yield* Effect.promise(() =>
+          put(root, "receipt_windows.go", "package payment\ntype Receipt struct { Other int }\n")
+        )
+        const settings = {
+          ...context.settings,
+          configuration: captureConfiguration(
+            resolveConfiguration(
+              [
+                {
+                  name: "project",
+                  source: "declared.json",
+                  document: { version: 1, analysis: { go: { goos: "linux", goarch: "arm64", tags: [] } } }
+                }
+              ],
+              root
+            )
+          )
+        }
+        const { result, observation } = yield* prepare(addEvent(root, ["payment.go"]), { settings })
+        const ready = result.outcomes.find((outcome) => outcome.status === "ready")
+        if (ready?.status !== "ready") throw new Error("declared platform missing")
+        expect(JSON.stringify(preparedProviderInput(ready.prepared))).toContain("Value string")
+        expect(JSON.stringify(preparedProviderInput(ready.prepared))).not.toContain("Other int")
+        const changed = {
+          ...context.settings,
+          configuration: captureConfiguration(
+            resolveConfiguration(
+              [
+                {
+                  name: "project",
+                  source: "declared.json",
+                  document: { version: 1, analysis: { go: { goos: "windows", goarch: "arm64", tags: [] } } }
+                }
+              ],
+              root
+            )
+          )
+        }
+        expect(
+          yield* preparedUnitStillCurrent(observation, ready.prepared, {
+            ...context,
+            settings: changed,
+            controlledWriter: true,
+            advicee: observation.advicee
+          })
+        ).toBe(false)
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("refuses excluded evidence before capture and large inventories before sibling reads", () =>
+    Effect.gen(function* () {
+      for (const mode of ["excluded", "budget"]) {
+        const root = yield* Effect.promise(makeGitFixture)
+        const reads: string[] = []
+        try {
+          yield* Effect.promise(() => put(root, "payment.go", source))
+          yield* Effect.promise(() => put(root, "support.go", support))
+          if (mode === "budget")
+            for (let i = 0; i < 8; i++)
+              yield* Effect.promise(() => put(root, `sibling${i}.go`, `package payment\ntype Sibling${i} int\n`))
+          const { result } = yield* prepare(addEvent(root, ["payment.go"]), {
+            policy: {
+              includes: ["**/*"],
+              excludes: [],
+              ...(mode === "excluded" ? { contextExcludes: ["support.go"] } : {})
+            },
+            captureSource: Effect.fn(function* (...args: Parameters<typeof captureStable>) {
+              reads.push(args[1].relativePath)
+              return yield* captureStable(...args)
+            })
+          })
+          expect(result.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(0)
+          expect(reads).toEqual(["payment.go"])
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      }
+    })
+  )
+  it.effect("attributes header/field updates independently of a simultaneous constant edit", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        const edited =
+          "package payment\ntype Model[T any] struct { Values []T }\ntype Unchanged int\nconst Marker = 2\n"
+        yield* Effect.promise(() => put(root, "model.go", edited))
+        const { result } = yield* prepare(
+          updateEvent(root, "model.go", [], {
+            tool_input: {
+              command:
+                "*** Begin Patch\n*** Update File: model.go\n@@\n-type Model[T any] struct { Value T }\n+type Model[T any] struct { Values []T }\n@@\n-const Marker = 1\n+const Marker = 2\n*** End Patch"
+            }
+          })
+        )
+        expect(
+          result.outcomes
+            .filter((outcome) => outcome.status === "ready")
+            .map((outcome) => outcome.prepared.input.declaration.name)
+        ).toEqual(["Model"])
+        expect(JSON.stringify(result.observation)).toContain("constant-only-demand-gap")
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+})
+
+describe("Go captured local-module review", () => {
+  const module = "module example.org/shop\n\ngo 1.27\n"
+  const model =
+    'package payment\nimport "example.org/shop/wire-v2"\ntype Payment struct { Receipt domain.Receipt }\ntype Independent struct { Value string }\n'
+  const receipt =
+    'package domain\nimport s "example.org/shop/internal/state"\ntype Receipt struct { State s.Status; ID privateID }\ntype privateID string\ntype Unrelated struct { Secret string }\n'
+  const status = "package state\ntype Status int\nconst (\n Pending Status = iota\n Paid\n)\n"
+  const fixture = (root: string) =>
+    Effect.gen(function* () {
+      yield* Effect.promise(() => put(root, "go.mod", module))
+      yield* Effect.promise(() => put(root, "payment.go", model))
+      yield* Effect.promise(() => put(root, "wire-v2/receipt.go", receipt))
+      yield* Effect.promise(() => put(root, "internal/state/status.go", status))
+    })
+  it.effect("resolves a child package import of the bare module path to its root package", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() => put(root, "go.mod", module))
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "receipt.go",
+            "package domain\ntype Receipt struct { ID string }\ntype Unrelated struct { Secret string }\n"
+          )
+        )
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "payment/payment.go",
+            'package payment\nimport "example.org/shop"\ntype Payment struct { Receipt domain.Receipt }\n'
+          )
+        )
+        const { result } = yield* prepare(addEvent(root, ["payment/payment.go"]), { rules: configuredRules })
+        const ready = result.outcomes.filter((outcome) => outcome.status === "ready")
+        expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual(["Payment"])
+        const unit = ready[0]
+        if (unit === undefined) throw new Error("missing child root")
+        expect(unit.prepared.input.completeness).toBe("complete")
+        const input = JSON.stringify(preparedProviderInput(unit.prepared))
+        expect(input).toContain("receipt.go:struct:Receipt")
+        expect(input).toContain("type Receipt struct { ID string }")
+        expect(input).not.toContain("Unrelated")
+        expect(unit.prepared.input.rules).toHaveLength(3)
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("binds actual package names and aliases, retaining transitive private and constant evidence", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* fixture(root)
+        const { result } = yield* prepare(addEvent(root, ["payment.go"]), { rules: configuredRules })
+        const ready = result.outcomes.filter((outcome) => outcome.status === "ready")
+        expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual(["Payment", "Independent"])
+        const payment = ready.find((outcome) => outcome.prepared.input.declaration.name === "Payment")
+        if (payment === undefined) throw new Error("missing module root")
+        const input = JSON.stringify(preparedProviderInput(payment.prepared))
+        expect(input).toContain("wire-v2/receipt.go:struct:Receipt")
+        expect(input).toContain("type privateID string")
+        expect(input).toContain("Pending Status = iota")
+        expect(input).not.toContain("Unrelated")
+        expect(input).not.toContain("module example.org")
+        expect(input).not.toContain("package domain")
+        expect(payment.prepared.input.completeness).toBe("complete")
+        expect(payment.prepared.input.rules.map((rule) => rule.id).sort()).toEqual([
+          "absence_confusion",
+          "bare_domain_value",
+          "meaningless_combinations"
+        ])
+        const evaluated = yield* evaluatePrepared(payment.prepared).pipe(
+          Effect.provide(
+            controlledDecisionModelLayer({
+              answers: {
+                meaningless_combinations: { _tag: "Probability", probability: 0.99 },
+                absence_confusion: { _tag: "Probability", probability: 0.01 },
+                bare_domain_value: { _tag: "Probability", probability: 0.01 }
+              }
+            })
+          )
+        )
+        expect(evaluated.status).toBe("evaluated")
+        if (evaluated.status === "evaluated") expect(evaluated.findings).toHaveLength(1)
+        const repaired = model.replace("Receipt domain.Receipt", "Receipt *domain.Receipt")
+        const event = updateEvent(root, "payment.go", [], {
+          tool_input: {
+            command:
+              "*** Begin Patch\n*** Update File: payment.go\n@@\n-type Payment struct { Receipt domain.Receipt }\n+type Payment struct { Receipt *domain.Receipt }\n*** End Patch"
+          }
+        })
+        yield* Effect.promise(() => put(root, "payment.go", repaired))
+        const changed = yield* prepare(event)
+        const changedReady = changed.result.outcomes.filter((outcome) => outcome.status === "ready")
+        expect(changedReady.map((outcome) => outcome.prepared.input.declaration.name)).toEqual(["Payment"])
+        const unit = changedReady[0]
+        if (unit === undefined) throw new Error("missing update")
+        const clear = yield* evaluatePrepared(unit.prepared).pipe(
+          Effect.provide(
+            controlledDecisionModelLayer({ answers: { model: { _tag: "Probability", probability: 0.01 } } })
+          )
+        )
+        expect(clear.status).toBe("evaluated")
+        if (clear.status === "evaluated") expect(clear.findings).toEqual([])
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  for (const [label, modify] of [
+    [
+      "outside-module path",
+      (root: string) =>
+        put(root, "payment.go", model.replace("example.org/shop/wire-v2", "example.org/shop/../outside"))
+    ],
+    [
+      "vendor path",
+      (root: string) =>
+        put(root, "payment.go", model.replace("example.org/shop/wire-v2", "example.org/shop/vendor/library"))
+    ],
+    [
+      "internal visibility",
+      (root: string) =>
+        put(root, "payment.go", model.replace("example.org/shop/wire-v2", "example.org/shop/other/internal/models"))
+    ],
+    ["ambiguous module declaration", (root: string) => put(root, "go.mod", module + "module other.example/shop\n")],
+    [
+      "path suffix cannot bind",
+      (root: string) => put(root, "payment.go", model.replace("domain.Receipt", "wire.Receipt"))
+    ],
+    ["blank imports bind nothing", (root: string) => put(root, "payment.go", model.replace('import "', 'import _ "'))],
+    [
+      "dot imports remain unsupported",
+      (root: string) =>
+        put(root, "payment.go", model.replace('import "', 'import . "').replace("domain.Receipt", "Receipt"))
+    ],
+    [
+      "unexported imported declaration",
+      (root: string) => put(root, "payment.go", model.replace("domain.Receipt", "domain.privateID"))
+    ],
+    ["nested modules", (root: string) => put(root, "wire-v2/go.mod", "module example.org/shop/wire-v2\n")],
+    ["workspace authority", (root: string) => put(root, "go.work", "go 1.27\nuse .\n")],
+    [
+      "replacement authority",
+      (root: string) => put(root, "go.mod", module + "replace example.org/other => ../outside\n")
+    ],
+    [
+      "external required type",
+      (root: string) =>
+        put(root, "wire-v2/receipt.go", 'package domain\nimport "time"\ntype Receipt struct { Value time.Time }\n')
+    ],
+    ["ambiguous package names", (root: string) => put(root, "wire-v2/other.go", "package other\ntype Other string\n")],
+    ["missing package", (root: string) => rm(`${root}/wire-v2`, { recursive: true, force: true })],
+    [
+      "large package",
+      async (root: string) => {
+        for (let i = 0; i < 8; i++) await put(root, `wire-v2/other${i}.go`, `package domain\ntype Other${i} string\n`)
+      }
+    ]
+  ] as const)
+    it.effect(`omits ${label} without suppressing an independent root`, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        try {
+          yield* fixture(root)
+          yield* Effect.promise(async () => {
+            await modify(root)
+          })
+          const { result } = yield* prepare(addEvent(root, ["payment.go"]))
+          expect(
+            result.outcomes
+              .filter((outcome) => outcome.status === "ready")
+              .map((outcome) => outcome.prepared.input.declaration.name)
+          ).toEqual(["Independent"])
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      })
+    )
+  it.effect("does not capture excluded module or package source", () =>
+    Effect.gen(function* () {
+      for (const excluded of ["go.mod", "wire-v2/**"]) {
+        const root = yield* Effect.promise(makeGitFixture)
+        const reads: string[] = []
+        try {
+          yield* fixture(root)
+          const { result } = yield* prepare(addEvent(root, ["payment.go"]), {
+            policy: { includes: ["**/*"], excludes: [], contextExcludes: [excluded] },
+            captureSource: Effect.fn(function* (...args: Parameters<typeof captureStable>) {
+              reads.push(args[1].relativePath)
+              return yield* captureStable(...args)
+            })
+          })
+          expect(
+            result.outcomes
+              .filter((outcome) => outcome.status === "ready")
+              .map((outcome) => outcome.prepared.input.declaration.name)
+          ).toEqual(["Independent"])
+          expect(reads.some((path) => (excluded === "go.mod" ? path === "go.mod" : path.startsWith("wire-v2/")))).toBe(
+            false
+          )
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      }
+    })
+  )
+  it.effect("revalidates metadata, membership and restored sources", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* fixture(root)
+        const { result, observation } = yield* prepare(addEvent(root, ["payment.go"]))
+        const ready = result.outcomes.find(
+          (outcome) => outcome.status === "ready" && outcome.prepared.input.declaration.name === "Payment"
+        )
+        if (ready?.status !== "ready") throw new Error("missing module root")
+        const current = () =>
+          preparedUnitStillCurrent(observation, ready.prepared, {
+            ...context,
+            controlledWriter: true,
+            advicee: observation.advicee
+          })
+        expect(yield* current()).toBe(true)
+        for (const [path, changed, restored] of [
+          ["go.mod", module.replace("shop", "other"), module],
+          ["wire-v2/receipt.go", receipt.replace("ID privateID", "ID string"), receipt],
+          ["internal/state/status.go", status.replace("Paid", "Settled"), status]
+        ]) {
+          yield* Effect.promise(() => put(root, path!, changed!))
+          expect(yield* current()).toBe(false)
+          yield* Effect.promise(() => put(root, path!, restored!))
+          expect(yield* current()).toBe(true)
+        }
+        for (const [path, source] of [
+          ["wire-v2/variant.go", "package domain\ntype Receipt int\n"],
+          ["wire-v2/go.mod", module],
+          ["go.work", "go 1.27\nuse .\n"]
+        ]) {
+          yield* Effect.promise(() => put(root, path!, source!))
+          expect(yield* current()).toBe(false)
+          yield* Effect.promise(() => rm(`${root}/${path}`))
+          expect(yield* current()).toBe(true)
+        }
+        yield* Effect.promise(() => rm(`${root}/wire-v2/receipt.go`))
+        expect(yield* current()).toBe(false)
+        yield* Effect.promise(() => put(root, "wire-v2/renamed.go", receipt))
+        expect(yield* current()).toBe(false)
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("admits only a root-only rule when another rule lacks external closure", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() =>
+          put(root, "payment.go", 'package payment\nimport "time"\ntype Payment struct { Date time.Time }\n')
+        )
+        const rootRule = compileRule(
+          {
+            version: 1,
+            id: "root_only",
+            question: "Is the declared representation confusing?",
+            criteria: { false: "No", true: "Yes" },
+            message: "Clarify the declared representation.",
+            inputs: [{ languages: ["go"], kind: "type", requires: ["root-declaration"] }]
+          },
+          "go-root-only"
+        )
+        const { result } = yield* prepare(addEvent(root, ["payment.go"]), { rules: [...rules, rootRule] })
+        const ready = result.outcomes.find((outcome) => outcome.status === "ready")
+        if (ready?.status !== "ready") throw new Error("missing root-only review")
+        expect(ready.prepared.input.rules.map((rule) => rule.id)).toEqual(["root_only"])
+        expect(ready.prepared.input.completeness).toBe("incomplete-irrelevant")
+        const input = preparedProviderInput(ready.prepared)
+        expect(input?.evidence.edges).toContainEqual(expect.objectContaining({ kind: "omitted", symbol: "time.Time" }))
+        expect(input?.evidence.nodes).toEqual([])
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+  it.effect("refuses source behind symlinks without reading outside the root", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const outside = yield* Effect.promise(makeGitFixture)
+      const reads: string[] = []
+      try {
+        yield* Effect.promise(() => put(root, "go.mod", module))
+        yield* Effect.promise(() => put(root, "payment.go", model))
+        yield* Effect.promise(() => put(outside, "receipt.go", "package domain\ntype Receipt string\n"))
+        yield* Effect.promise(() => symlink(outside, `${root}/wire-v2`))
+        const { result } = yield* prepare(addEvent(root, ["payment.go"]), {
+          captureSource: Effect.fn(function* (...args: Parameters<typeof captureStable>) {
+            reads.push(args[1].relativePath)
+            return yield* captureStable(...args)
+          })
+        })
+        expect(
+          result.outcomes
+            .filter((outcome) => outcome.status === "ready")
+            .map((outcome) => outcome.prepared.input.declaration.name)
+        ).toEqual(["Independent"])
+        expect(reads).toEqual(["payment.go", "go.mod"])
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        yield* Effect.promise(() => rm(outside, { recursive: true, force: true }))
+      }
+    })
+  )
+  for (const [label, graphLimits] of [
+    ["file", { files: 2 }],
+    ["work", { work: 10 }],
+    ["depth", { depth: 1 }],
+    ["read", { sourceBytes: 512, readBytes: 600 }]
+  ] as const)
+    it.effect(`omits exhausted ${label} closure without suppressing an independent root`, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        try {
+          yield* fixture(root)
+          const configuration = captureConfiguration(
+            resolveConfiguration(
+              [
+                {
+                  name: "project",
+                  source: "declared.json",
+                  document: { version: 1, graphLimits: { version: 1, ...graphLimits } }
+                }
+              ],
+              root
+            )
+          )
+          const { result } = yield* prepare(addEvent(root, ["payment.go"]), {
+            settings: { ...context.settings, configuration }
+          })
+          expect(
+            result.outcomes
+              .filter((outcome) => outcome.status === "ready")
+              .map((outcome) => outcome.prepared.input.declaration.name)
+          ).toEqual(["Independent"])
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      })
+    )
+  for (const form of ["typed", "conversion", "propagated"] as const)
+    it.effect(`preserves sibling-file import identity for ${form} constants`, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        try {
+          yield* Effect.promise(() => put(root, "go.mod", module))
+          yield* Effect.promise(() =>
+            put(
+              root,
+              "payment.go",
+              'package payment\nimport a "example.org/shop/state"\nimport b "example.org/shop/other"\ntype PaymentA struct { State a.Status }\ntype PaymentB struct { State b.Status }\n'
+            )
+          )
+          for (const [suffix, directory] of [
+            ["A", "state"],
+            ["B", "other"]
+          ] as const) {
+            yield* Effect.promise(() =>
+              put(
+                root,
+                `alias${suffix}.go`,
+                `package payment\nimport d "example.org/shop/${directory}"\ntype Alias${suffix} = d.Status\n${form === "propagated" ? `const Seed${suffix} = d.Status(1)\n` : ""}`
+              )
+            )
+            yield* Effect.promise(() => put(root, `${directory}/status.go`, "package domain\ntype Status int\n"))
+          }
+          const declaration = (suffix: string) =>
+            form === "typed"
+              ? `const Ready${suffix} Alias${suffix} = 1`
+              : `const Ready${suffix} = ${form === "conversion" ? `Alias${suffix}(1)` : `Seed${suffix}`}`
+          yield* Effect.promise(() =>
+            put(root, "constants.go", `package payment\n${declaration("A")}\n${declaration("B")}\n`)
+          )
+          const { result } = yield* prepare(addEvent(root, ["payment.go"]))
+          const ready = result.outcomes.filter((outcome) => outcome.status === "ready")
+          expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual(["PaymentA", "PaymentB"])
+          for (const [index, suffix, directory, other] of [
+            [0, "A", "state", "B"],
+            [1, "B", "other", "A"]
+          ] as const) {
+            const unit = ready[index]
+            if (unit === undefined) throw new Error("missing sibling binding")
+            expect(unit.prepared.input.completeness).toBe("complete")
+            const input = JSON.stringify(preparedProviderInput(unit.prepared))
+            expect(input).toContain(`${directory}/status.go:defined-type:Status`)
+            expect(input).toContain(declaration(suffix))
+            expect(input).not.toContain(`Ready${other}`)
+            if (form !== "propagated") expect(input).toContain(`type Alias${suffix} = d.Status`)
+          }
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      })
+    )
+  for (const [name, group] of [
+    ["explicit", "const Local domain.Status = 1"],
+    ["conversion", "const Local = domain.Status(1)"],
+    ["imported constant", "const Local = domain.Ready"],
+    ["imported alias", "type Alias = domain.Status\nconst Local Alias = 1"],
+    ["comparison", "const Unrelated = domain.Status(0) == domain.Ready"]
+  ])
+    it.effect(`retains ${name} constant identity through actual local imports`, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        try {
+          yield* Effect.promise(() => put(root, "go.mod", module))
+          yield* Effect.promise(() =>
+            put(
+              root,
+              "payment.go",
+              `package payment\nimport "example.org/shop/wire-v2"\ntype Payment struct { Status domain.Status }\n${group}\n`
+            )
+          )
+          yield* Effect.promise(() =>
+            put(root, "wire-v2/status.go", "package domain\ntype Status int\nconst Ready Status = 1\n")
+          )
+          const { result } = yield* prepare(addEvent(root, ["payment.go"]))
+          const ready = result.outcomes.find(
+            (outcome) => outcome.status === "ready" && outcome.prepared.input.declaration.name === "Payment"
+          )
+          if (ready?.status !== "ready") throw new Error("missing imported constant closure")
+          const input = JSON.stringify(preparedProviderInput(ready.prepared))
+          expect(input).toContain("const Ready Status = 1")
+          if (name === "comparison") expect(input).not.toContain("const Unrelated")
+          else expect(input).toContain("const Local")
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      })
+    )
+  it.effect("uses the frozen build context across imported package alternatives", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() => put(root, "go.mod", module))
+        yield* Effect.promise(() => put(root, "payment.go", model))
+        yield* Effect.promise(() =>
+          put(root, "wire-v2/receipt_linux.go", "package domain\ntype Receipt struct { Linux string }\n")
+        )
+        yield* Effect.promise(() =>
+          put(root, "wire-v2/receipt_windows.go", "package domain\ntype Receipt struct { Windows int }\n")
+        )
+        const configuration = captureConfiguration(
+          resolveConfiguration(
+            [
+              {
+                name: "project",
+                source: "declared.json",
+                document: { version: 1, analysis: { go: { goos: "linux", goarch: "arm64", tags: [] } } }
+              }
+            ],
+            root
+          )
+        )
+        const settings = { ...context.settings, configuration }
+        const { result, observation } = yield* prepare(addEvent(root, ["payment.go"]), { settings })
+        const ready = result.outcomes.find(
+          (outcome) => outcome.status === "ready" && outcome.prepared.input.declaration.name === "Payment"
+        )
+        if (ready?.status !== "ready") throw new Error("missing imported build closure")
+        const input = JSON.stringify(preparedProviderInput(ready.prepared))
+        expect(input).toContain("Linux string")
+        expect(input).not.toContain("Windows int")
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "wire-v2/receipt_linux.go",
+            "//go:build windows\n\npackage domain\ntype Receipt struct { Linux string }\n"
+          )
+        )
+        expect(
+          yield* preparedUnitStillCurrent(observation, ready.prepared, {
+            ...context,
+            settings,
+            controlledWriter: true,
+            advicee: observation.advicee
+          })
+        ).toBe(false)
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+})

@@ -137,6 +137,7 @@
     "oxlint-tsgolint": "7.0.2001",
     "smol-toml": "catalog:",
     "tree-sitter": "catalog:",
+    "tree-sitter-go": "catalog:",
     "tree-sitter-rust": "catalog:",
     "tree-sitter-typescript": "catalog:",
     "turbo": "2.11.7",
@@ -148,7 +149,8 @@
   "allowScripts": {
     "tree-sitter@0.25.1": true,
     "tree-sitter-javascript@0.23.1": true,
-    "tree-sitter-typescript@0.23.2": true
+    "tree-sitter-typescript@0.23.2": true,
+    "tree-sitter-go@0.25.0": true
   },
   "lint-staged": {
     "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "node scripts/run-quality-lint.mjs --staged --fix"
@@ -202,7 +204,8 @@
           "tree-sitter",
           "tree-sitter-typescript",
           "tree-sitter-rust",
-          "tree-sitter-python"
+          "tree-sitter-python",
+          "tree-sitter-go"
         ]
       },
       "pi-extension": {
@@ -220,7 +223,8 @@
           "tree-sitter",
           "tree-sitter-typescript",
           "tree-sitter-rust",
-          "tree-sitter-python"
+          "tree-sitter-python",
+          "tree-sitter-go"
         ]
       }
     }
@@ -248,6 +252,7 @@
     "vitest": "5.0.1",
     "zod": "4.6.5",
     "astro": "7.3.8",
-    "tree-sitter-python": "0.25.0"
+    "tree-sitter-python": "0.25.0",
+    "tree-sitter-go": "0.25.0"
   }
 }
