@@ -1,6 +1,6 @@
 import { appendFileSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import type { RepeatEditDiagnostic } from "../state/composed-delivery.ts"
+import type { RepeatEditDiagnostic } from "../state/delivery/operations.ts"
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
 import { recordAnalytics, type AnalyticsKind } from "@hapsland/activity-observation/activity/analytics"
 import * as Effect from "effect/Effect"

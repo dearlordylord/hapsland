@@ -25,7 +25,7 @@ import {
   type ReviewSettingsOperations
 } from "@hapsland/review-definition/runtime/review-settings"
 import { type ResidentDispatchContext, type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
-import { type CapacityReservation } from "../state/capacity.ts"
+import { type CapacityReservation } from "../state/resident/state.ts"
 import { type Dispatcher } from "../state/dispatch.ts"
 import { type ResidentLedger, type IngressJob, type Job } from "../work-ownership/jobs.ts"
 import { RESERVATION_OVERHEAD_BYTES } from "../work-ownership/reservation.ts"

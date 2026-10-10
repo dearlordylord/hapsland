@@ -321,7 +321,8 @@ try {
       (count) => document.querySelectorAll("#monkey-business .simulation-history button").length === count,
       unfilteredHistoryCount
     )
-    const simulationModule = `/@fs${fileURLToPath(new URL("../src/simulation.ts", import.meta.url))}`
+    const simulationModule = `/@fs${fileURLToPath(new URL("../src/simulation/index.ts", import.meta.url))}`
+    const historyModule = `/@fs${fileURLToPath(new URL("../src/simulation/history-model.ts", import.meta.url))}`
     const identityCoverage = await page.evaluate(
       async ({ core, view }) => {
         const { createRun } = await import(core)
@@ -338,7 +339,7 @@ try {
           focused: isolated.observations.filter((frame) => followsRecord(frame, "operation:1")).length
         }
       },
-      { core: publicModule, view: simulationModule }
+      { core: publicModule, view: historyModule }
     )
     assert.ok(identityCoverage.focused > 0)
     assert.ok(identityCoverage.focused < identityCoverage.total)

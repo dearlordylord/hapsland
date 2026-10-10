@@ -1,5 +1,5 @@
 import { canonicalValue, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
-import type { CapacityLedger } from "./capacity.ts"
+import type { CapacityLedger } from "./capacity/operations.ts"
 
 export type WorkRevision = { readonly subject: string; readonly token: string; readonly generation: number }
 type CurrentWork = { readonly token: string; readonly generation: number; readonly inputIdentity: number }

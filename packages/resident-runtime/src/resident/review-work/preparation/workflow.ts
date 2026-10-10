@@ -2,7 +2,7 @@ import { effectiveSessionAnalytics } from "@hapsland/runtime-inputs/configuratio
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import * as Effect from "effect/Effect"
 import { verifyObservationRoot } from "@hapsland/native-observation/direct-event/adapter"
-import { type CapacityReservation } from "../../state/capacity.ts"
+import { type CapacityReservation } from "../../state/resident/state.ts"
 import { type IngressJob } from "../../work-ownership/jobs.ts"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { decodeControlledOptions } from "../../authorization/controlled.ts"

@@ -1,6 +1,7 @@
 import { canonicalValue, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
 import type { EvaluatedUnit } from "@hapsland/review-execution/direct-event/pipeline"
-import type { CapacityLedger, CapacityReservation } from "./capacity.ts"
+import type { CapacityLedger } from "./capacity/operations.ts"
+import type { CapacityReservation } from "./capacity/model.ts"
 
 export const SUCCESS_CACHE_ENTRY_LIMIT = 8
 export const SUCCESS_CACHE_BYTE_LIMIT = 128 * 1024

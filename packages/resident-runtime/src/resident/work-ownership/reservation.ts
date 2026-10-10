@@ -3,7 +3,7 @@ import { toCodexDirectEventOutput, type Finding } from "@hapsland/delivery-outpu
 import { workSubject, type WorkRevision } from "../state/revision.ts"
 import { type PreparedUnit, type MaterializationAdmission } from "@hapsland/review-definition/direct-event/model"
 import { type ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
-import { type CapacityResize } from "../state/capacity.ts"
+import { type CapacityResize } from "../state/resident/state.ts"
 import { residentEvaluationIdentity } from "../state/evaluation-reuse.ts"
 import { findingFromProbability } from "@hapsland/review-definition/rules/decision"
 import { logicalBytes } from "../state/encoded-size.ts"

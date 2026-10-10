@@ -1,4 +1,4 @@
-import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
+import { readResidentStateSource, readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
@@ -26,7 +26,7 @@ if (/\bRef\.(?:make|modify|update|set)\s*(?:<|\()/.test(revision)) {
   throw new Error("revision operations must share the resident state Ref")
 }
 
-const capacity = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/capacity.ts"), "utf8")
+const capacity = readResidentStateSource(root, "capacity", "resident")
 if (
   !capacity.includes('register: Effect.fn("RevisionRecords.register")') ||
   !capacity.includes("commitAllEffect(revisionChange((operations) => operations.register(...args)))") ||
@@ -53,9 +53,9 @@ for (const operation of ["count", "generation", "superseded", "current"]) {
   }
 }
 
-const revisionSurface = capacity.slice(
-  capacity.indexOf("    revision: (() =>"),
-  capacity.indexOf("    dispatch: {", capacity.indexOf("    revision: (() =>"))
+const revisionSurface = readFileSync(
+  resolve(root, "packages/resident-runtime/src/resident/state/resident/revision.ts"),
+  "utf8"
 )
 if (/\bcommitAll\(|runSync|revisionCommit/.test(revisionSurface)) {
   throw new Error("revision service restored a synchronous commit bridge")

@@ -37,7 +37,7 @@ import {
   tryAppendCanonical,
   type ReplayEvent
 } from "./canonical-replay"
-import { productionFlowView } from "./production-flow-view"
+import { productionFlowView } from "./production-flow/view"
 import { numberRecords, recordLabel, type RecordNumbers } from "@hapsland/agent-flow-projection"
 import { PLACE_ORDER, SQUARES } from "../../agent-flow-projection/src/production-flow-presentation"
 import type { CapacityPurpose, CanonicalOutput } from "@hapsland/canonical-policy/canonical/adapter"

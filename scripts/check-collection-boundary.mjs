@@ -1,14 +1,11 @@
-import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
+import { readResidentStateSource, readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
 const server = readResidentRuntimeSource(root)
 const advice = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/advice-records.ts"), "utf8")
-const delivery = readFileSync(
-  resolve(root, "packages/resident-runtime/src/resident/state/composed-delivery.ts"),
-  "utf8"
-)
+const delivery = readResidentStateSource(root, "delivery")
 const collection = readFileSync(
   resolve(root, "packages/resident-runtime/src/resident/advice-delivery/collection.ts"),
   "utf8"

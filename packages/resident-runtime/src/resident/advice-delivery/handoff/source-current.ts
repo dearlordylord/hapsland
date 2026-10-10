@@ -10,7 +10,7 @@ import {
 import { verifyObservationRoot } from "@hapsland/native-observation/direct-event/adapter"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
-import { type AdviceCapture } from "../../state/capacity.ts"
+import { type AdviceCapture } from "../../state/resident/state.ts"
 import { resizePreparationAdmission } from "../../work-ownership/reservation.ts"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { logicalBytes } from "../../state/encoded-size.ts"

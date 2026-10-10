@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Latch from "effect/Latch"
 import * as Scope from "effect/Scope"
-import type { CapacityLedger } from "./capacity.ts"
+import type { CapacityLedger } from "./capacity/operations.ts"
 
 export type DispatchEntry<K, A> = { readonly key: K; readonly sequence: number; readonly value: A }
 export type DispatchSnapshot = { readonly queued: number; readonly running: number }

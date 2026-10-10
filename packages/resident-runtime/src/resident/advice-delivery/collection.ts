@@ -10,7 +10,12 @@ import {
   type ClaudeHostOutput
 } from "@hapsland/delivery-output/direct-event/claude-output"
 import { initialCanonical, stepCanonical, type CanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
-import { GLOBAL_BYTE_LIMIT, GLOBAL_ITEM_LIMIT, PARTITION_BYTE_LIMIT, PARTITION_ITEM_LIMIT } from "../state/capacity.ts"
+import {
+  GLOBAL_BYTE_LIMIT,
+  GLOBAL_ITEM_LIMIT,
+  PARTITION_BYTE_LIMIT,
+  PARTITION_ITEM_LIMIT
+} from "../state/resident/state.ts"
 import {
   type OperationalNotice,
   type FindingSelectionFacts,

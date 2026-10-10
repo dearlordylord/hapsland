@@ -9,6 +9,16 @@
 **Lifecycle:** Maintained alongside visualization source, fixtures, and build commands. Review whenever the shared adapter, page sections, replay behavior, or capacity projection changes, and at #137 final authority review.
 -->
 
+The [production-flow view](src/production-flow/view.ts) assembles activity facts,
+route rendering, stage resource panels and transition details. These modules
+format checked projections and never own product decisions. The
+[simulation interface](src/simulation/index.ts) groups model drafts, one replay
+controller and the [view](src/simulation/view.ts). Scenario controls, replay
+files, settings, inspection and history retain their own modules. Every rendered
+panel receives the same completed observation snapshot; it does not read or
+advance the controller independently. Matching projection and browser scripts
+remain the verification owners.
+
 ## Public site and shared import replay
 
 The local **inspection dashboard** uses a separate development command:

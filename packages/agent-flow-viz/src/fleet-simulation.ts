@@ -2,16 +2,17 @@ import { Schema } from "effect"
 import { createKeyedLazy, createLazy, type HtmlBuilder } from "foldkit/html"
 import { numberRecords } from "@hapsland/agent-flow-projection"
 import { preparationSnapshot } from "./preparation-mini"
-import { productionFlowView, INFRASTRUCTURE_CONTACTS } from "./production-flow-view"
-import { projectAgent } from "../../monkey-business/src/index"
+import { productionFlowView } from "./production-flow/view"
+import { INFRASTRUCTURE_CONTACTS } from "./production-flow/infrastructure"
+import { projectAgent } from "@hapsland/monkey-business"
 import { sharedResidentView, AGENT_COLORS } from "./shared-resident-view"
 import {
   SimulationModel as ResidentModel,
   initialSimulation as initialResident,
-  actSimulation as actResident,
   changeSimulation as changeResident,
-  tickSimulation as tickResident,
   simulationView as residentView,
+  actSimulation as actResident,
+  tickSimulation as tickResident,
   simulationRun,
   simulationReadRun,
   finishSimulationAdvance,
