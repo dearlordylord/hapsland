@@ -515,6 +515,37 @@ requires correlated controlled finding, final completed-agent acknowledgement
 and actual advice quotation, repair and a distinct clear evaluation. The fixture
 retains source-free evidence; its isolated compiler is a qualification tool only.
 
+The #272 implementation witness is revision
+`417f570bf8f8f628ea3c6bf9ec6586fa29b25ecf` (2026-10-10), including the
+child-package import of the bare module path. Current local checks passed:
+`check:fast` (106 tests, source types and changed-file lint), the testing-matrix
+focused selection (13 files, 280 tests), and the Go/native owner selection
+(39 tests, including isolated compiler checks). A fresh development archive
+passed installed package conformance and standard Codex module qualification on
+Linux arm64, Node 24.20.0, packaged Bun 1.3.14, Codex CLI 0.155.1 and the
+checksum-verified isolated Go 1.27.2 fixture compiler. Analysis never invokes Go.
+
+Archive SHA-256:
+`1a9916dbab9c77942928eca3b12d54b1de2f8842f3c1062134c61db2f7f63215`;
+prepared source identity:
+`693410c1d6023a5814b7a9d29e0094f3a4deb852447813c38f1552fb5315d5aa`;
+installed runtime-assets identity:
+`6898999e8faad5faa3a703ba05b7f492e99d0df66e07637a3c0cc3a888041430`.
+The source-free native declaration/result pair is
+`codex-go-module-model-review-1791640778427`, with SHA-256
+`bc41ebca2128dca3476a72731a76ee0cc88bc4b8d7cb902baf2bf4735e650c77` and
+`87c1cb5ab657b23cc1b72925705e1761c86311bbec832ee688d6633a5c23c44e`,
+respectively. Run outputs remain outside tracked repository source; the parent
+continuation retains this pair and package-conformance evidence.
+
+The native result demonstrated exact local-module closure, typed iota source,
+actual package names, aliased internal evidence, correlated controlled finding,
+final completed-agent advice quotation, repair and an independent clear result.
+It made zero Jev requests. The fixture prepares the installed resident and
+bypasses interactive trust/sandbox prompts: cold startup, interactive trust,
+browser behavior, other host/platform profiles, classifier accuracy, coverage
+and CI were not validated by this witness.
+
 Coverage measurement is not an implementation gate. For #268, begin with attributed
 supported/missed model edits from immutable target-user project revisions and an
 explicit denominator. Prioritize constant-only demand, external-type rule omissions,
