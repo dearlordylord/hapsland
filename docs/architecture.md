@@ -3,9 +3,9 @@
 **Purpose:** Give technical users a short map of review context, user control, and verification boundaries.
 **Audience:** Prospective technical users; contributors, including coding agents; product and specification owners.
 **Status:** Active architecture explanation; public copy remains subject to editorial review.
-**Authority:** Maintained explanatory guidance. The linked accepted contracts own product behavior; this page introduces no new guarantees.
+**Authority:** Maintained explanatory guidance, except “Canonical ownership of the product flow”, which records the owner's accepted migration architecture decision of 2026-10-10. Linked product contracts continue to own observable behavior and guarantees.
 **Expected use:** Understand what can leave the repository, why context is structured, and which guarantees have executable evidence.
-**Lifecycle:** Update alongside changes to review inputs, file policy, reducer authority, provider routing, or runtime ownership. Review before public publication and whenever one of those boundaries changes.
+**Lifecycle:** Update alongside changes to review inputs, file policy, reducer authority, provider routing, or runtime ownership. Review before public publication and whenever one of those boundaries or the accepted migration architecture changes.
 
 Hapsland helps a coding agent revisit data-model and API decisions before more code builds on them. After an edit, it reviews the changed type or function together with related definitions, using built-in rules and rules you supply. The selected review backend evaluates the supplied code against rule questions. Hapsland chooses which code and rules can be sent, maps the result to configured feedback, and checks that feedback still applies to the current code.
 
@@ -148,6 +148,41 @@ Generated from [the hook catalog](../packages/runtime-environment/src/runtime/ho
 The [installation workflows](installation-workflows.md) explain hook registration
 and updates. The [advice contract](advicing-target-contract.md) owns feedback
 admission and finish behavior; the inventory above is registration evidence.
+
+## Canonical ownership of the product flow
+
+**Authority:** Accepted migration architecture decision, approved by the owner
+on 2026-10-10. This section defines the target architecture; it does not claim
+that the current implementation or its verification has reached that target.
+
+Canonical is the single control entry point for the overall product flow.
+Specialized Bend modules and child machines may own their algorithms and
+internal state. Canonical owns their inclusion in the product flow: admission,
+launch, lifecycle, cancellation, result acceptance, and progression to the next
+product stage through commands and events.
+
+For graph resolution, the resolver machine owns root preparation, local
+traversal, import resolution, graph construction, attachment and result
+construction. It may reuse the existing ImportGraph reducer internally.
+Canonical commands start or continue that work, and its results or failures
+return as events under the existing identity, revision and lifetime fences.
+The host executes requested operations and returns observations; it does not
+choose the next product subsystem or retain a parallel product state machine.
+
+This ownership does not require one function, one source file, or copying all
+child state into Canonical. Preserve the accepted source-free and source-bearing
+boundaries when connecting child machines. Filesystem access and stable capture,
+parser engines, credentials, network calls, clocks, native cancellation and
+resource lifetime remain external effects with their existing enforcement
+obligations. ABI conversion and physical effect execution belong to the host;
+product decisions and orchestration belong to Bend.
+
+Completing a subsystem migration requires qualifying its internal algorithms,
+connecting its flow to Canonical and removing the superseded TypeScript
+algorithms and product orchestration. Validate the composed flow against the
+accepted product contracts, including stale results, cancellation and errors.
+The [migration guide](bend-migration.md) owns the implementation workflow and
+acceptance procedure for reaching this target.
 
 ## What verification establishes
 
