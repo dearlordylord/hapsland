@@ -50,6 +50,7 @@ export type GoConstantGroup = {
   readonly references: readonly GraphReference[]
 }
 export type GoFile = {
+  readonly path: string
   readonly imports: readonly { readonly path: string; readonly name?: string }[]
   readonly aliases: ReadonlyMap<string, string>
   readonly packageName: string
@@ -260,6 +261,7 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
   }
   if (types.length > MAX_TYPE_DECLARATIONS) return undefined
   return {
+    path,
     packageName,
     imports: imported.bindings,
     aliases,
@@ -275,7 +277,10 @@ export const goGraphFacts = (
   files: readonly GoFile[],
   workLimit = 128
 ):
-  | (GraphFacts & { readonly discoveryWork: number; readonly constantTypes: ReadonlyMap<string, readonly string[]> })
+  | (GraphFacts & {
+      readonly discoveryWork: number
+      readonly constantTypes: ReadonlyMap<string, readonly { readonly name: string; readonly sourcePath?: string }[]>
+    })
   | undefined => {
   let discoveryWork = files.reduce(
     (sum, file) =>
@@ -302,35 +307,51 @@ export const goGraphFacts = (
   const memberBindings = new Map(members.filter((member) => member.name !== "_").map((member) => [member.name, member]))
   const memberTypes = new Map(members.map((member) => [member, new Set<string>()]))
   const aliases = new Map(files.flatMap((file) => [...file.aliases]))
+  const aliasFiles = new Map(files.flatMap((file) => [...file.aliases.keys()].map((name) => [name, file] as const)))
+  const qualifiedTypes = new Map<string, { readonly name: string; readonly sourcePath: string }>()
+  // Qualified spellings are file scoped, including those reached through an
+  // alias or copied from another constant. Keep provenance in inference keys.
+  const qualifiedType = (name: string, file: GoFile): string => {
+    const identity = JSON.stringify([file.path, name])
+    qualifiedTypes.set(identity, { name, sourcePath: file.path })
+    return identity
+  }
   const declaredTypes = (name: string): readonly string[] => {
     const names = new Set<string>()
     let current: string | undefined = name
+    let origin: GoFile | undefined
     while (current !== undefined && typeNames.has(current) && !names.has(current)) {
       if (++discoveryWork > workLimit) throw new RangeError("constant-discovery-work")
       names.add(current)
+      origin = aliasFiles.get(current)
       current = aliases.get(current)
     }
-    if (current !== undefined && /^[\p{L}_][\p{L}\p{N}_]*\.[\p{L}_][\p{L}\p{N}_]*$/u.test(current)) names.add(current)
+    if (
+      current !== undefined &&
+      origin !== undefined &&
+      /^[\p{L}_][\p{L}\p{N}_]*\.[\p{L}_][\p{L}\p{N}_]*$/u.test(current)
+    )
+      names.add(qualifiedType(current, origin))
     return [...names]
   }
-  const typeExpression = (node: SyntaxNode | undefined, imported: ReadonlySet<string>): readonly string[] => {
+  const typeExpression = (node: SyntaxNode | undefined, file: GoFile): readonly string[] => {
+    const imported = file.importedNames
     if (node === undefined) return []
     if (++discoveryWork > workLimit) throw new RangeError("constant-discovery-work")
     if (["identifier", "iota", "true", "false"].includes(node.type))
       return imported.has(node.text)
         ? []
         : [...(memberBindings.has(node.text) ? memberTypes.get(memberBindings.get(node.text)!)! : [])]
-    if (node.type === "selector_expression") return [node.text]
-    if (node.type === "parenthesized_expression") return typeExpression(node.namedChildren[0], imported)
-    if (node.type === "unary_expression")
-      return typeExpression(node.childForFieldName("operand") ?? undefined, imported)
+    if (node.type === "selector_expression") return [qualifiedType(node.text, file)]
+    if (node.type === "parenthesized_expression") return typeExpression(node.namedChildren[0], file)
+    if (node.type === "unary_expression") return typeExpression(node.childForFieldName("operand") ?? undefined, file)
     if (node.type === "binary_expression") {
       const operator = node.childForFieldName("operator")?.text
       if (["==", "!=", "<", "<=", ">", ">="].includes(operator ?? "")) return []
-      const left = typeExpression(node.childForFieldName("left") ?? undefined, imported)
+      const left = typeExpression(node.childForFieldName("left") ?? undefined, file)
       return operator === "<<" || operator === ">>"
         ? left
-        : [...left, ...typeExpression(node.childForFieldName("right") ?? undefined, imported)]
+        : [...left, ...typeExpression(node.childForFieldName("right") ?? undefined, file)]
     }
     if (node.type === "call_expression" || node.type === "type_conversion_expression") {
       let target = node.childForFieldName(node.type === "call_expression" ? "function" : "type")
@@ -348,11 +369,11 @@ export const goGraphFacts = (
             ? target.namedChildren[0]?.text
             : undefined
       if (name === undefined || imported.has(name)) return []
-      if (/^[\p{L}_][\p{L}\p{N}_]*\.[\p{L}_][\p{L}\p{N}_]*$/u.test(name)) return [name]
+      if (/^[\p{L}_][\p{L}\p{N}_]*\.[\p{L}_][\p{L}\p{N}_]*$/u.test(name)) return [qualifiedType(name, file)]
       if (typeNames.has(name)) return declaredTypes(name)
       if (["min", "max"].includes(name) && !packageNames.has(name))
         return (node.childForFieldName("arguments")?.namedChildren ?? []).flatMap((argument) =>
-          typeExpression(argument, imported)
+          typeExpression(argument, file)
         )
     }
     return []
@@ -368,11 +389,11 @@ export const goGraphFacts = (
             if (++discoveryWork > workLimit) return undefined
             const inferred =
               member.typeName === undefined
-                ? typeExpression(member.expression, file.importedNames)
+                ? typeExpression(member.expression, file)
                 : typeNames.has(member.typeName) && !file.importedNames.has(member.typeName)
                   ? declaredTypes(member.typeName)
                   : /^[\p{L}_][\p{L}\p{N}_]*\.[\p{L}_][\p{L}\p{N}_]*$/u.test(member.typeName)
-                    ? [member.typeName]
+                    ? [qualifiedType(member.typeName, file)]
                     : []
             const known = memberTypes.get(member)!
             for (const name of inferred)
@@ -437,7 +458,12 @@ export const goGraphFacts = (
     declarations,
     imports: new Map(),
     discoveryWork,
-    constantTypes: new Map([...relevantTypes].map(([group, names]) => [group.artifact.name, [...names]]))
+    constantTypes: new Map(
+      [...relevantTypes].map(([group, names]) => [
+        group.artifact.name,
+        [...names].map((name) => qualifiedTypes.get(name) ?? { name })
+      ])
+    )
   }
 }
 export const parseGoTypes = (path: string, source: string): TypeExtractionFailure | readonly GraphDeclaration[] => {

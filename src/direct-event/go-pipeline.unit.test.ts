@@ -763,6 +763,60 @@ describe("Go captured local-module review", () => {
         }
       })
     )
+  for (const form of ["typed", "conversion", "propagated"] as const)
+    it.effect(`preserves sibling-file import identity for ${form} constants`, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        try {
+          yield* Effect.promise(() => put(root, "go.mod", module))
+          yield* Effect.promise(() =>
+            put(
+              root,
+              "payment.go",
+              'package payment\nimport a "example.org/shop/state"\nimport b "example.org/shop/other"\ntype PaymentA struct { State a.Status }\ntype PaymentB struct { State b.Status }\n'
+            )
+          )
+          for (const [suffix, directory] of [
+            ["A", "state"],
+            ["B", "other"]
+          ] as const) {
+            yield* Effect.promise(() =>
+              put(
+                root,
+                `alias${suffix}.go`,
+                `package payment\nimport d "example.org/shop/${directory}"\ntype Alias${suffix} = d.Status\n${form === "propagated" ? `const Seed${suffix} = d.Status(1)\n` : ""}`
+              )
+            )
+            yield* Effect.promise(() => put(root, `${directory}/status.go`, "package domain\ntype Status int\n"))
+          }
+          const declaration = (suffix: string) =>
+            form === "typed"
+              ? `const Ready${suffix} Alias${suffix} = 1`
+              : `const Ready${suffix} = ${form === "conversion" ? `Alias${suffix}(1)` : `Seed${suffix}`}`
+          yield* Effect.promise(() =>
+            put(root, "constants.go", `package payment\n${declaration("A")}\n${declaration("B")}\n`)
+          )
+          const { result } = yield* prepare(addEvent(root, ["payment.go"]))
+          const ready = result.outcomes.filter((outcome) => outcome.status === "ready")
+          expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual(["PaymentA", "PaymentB"])
+          for (const [index, suffix, directory, other] of [
+            [0, "A", "state", "B"],
+            [1, "B", "other", "A"]
+          ] as const) {
+            const unit = ready[index]
+            if (unit === undefined) throw new Error("missing sibling binding")
+            expect(unit.prepared.input.completeness).toBe("complete")
+            const input = JSON.stringify(preparedProviderInput(unit.prepared))
+            expect(input).toContain(`${directory}/status.go:defined-type:Status`)
+            expect(input).toContain(declaration(suffix))
+            expect(input).not.toContain(`Ready${other}`)
+            if (form !== "propagated") expect(input).toContain(`type Alias${suffix} = d.Status`)
+          }
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      })
+    )
   for (const [name, group] of [
     ["explicit", "const Local domain.Status = 1"],
     ["conversion", "const Local = domain.Status(1)"],

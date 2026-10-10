@@ -252,7 +252,10 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
   const key = (directory: string, name: string) => (directory === rootDirectory ? name : `${directory}::${name}`)
   for (const [directory, pkg] of packages) {
     if (pkg === undefined) continue
-    for (const file of pkg.files) {
+    const fileBindings = new Map<GoFile, Map<string, (string | undefined)[]>>()
+    const bindingsFor = (file: GoFile) => {
+      const cached = fileBindings.get(file)
+      if (cached !== undefined) return cached
       const bindings = new Map<string, (string | undefined)[]>()
       for (const imported of file.imports) {
         if (imported.name === "_" || imported.name === "." || moduleBase === undefined || moduleName === undefined)
@@ -268,12 +271,16 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
           targetPackage.name !== "main"
         bindings.set(name, [...(bindings.get(name) ?? []), eligible ? target : undefined])
       }
-      const remap = (reference: GraphReference) => {
+      fileBindings.set(file, bindings)
+      return bindings
+    }
+    for (const file of pkg.files) {
+      const remap = (reference: GraphReference, origin = file) => {
         const qualified = /^([\p{L}_][\p{L}\p{N}_]*)\.([\p{L}_][\p{L}\p{N}_]*)$/u.exec(reference.name)
         if (reference.kind === "unsupported" && qualified !== null) {
           const qualifier = qualified[1] ?? ""
           const member = qualified[2] ?? ""
-          const targets = bindings.get(qualifier)
+          const targets = bindingsFor(origin).get(qualifier)
           const target = targets?.length === 1 ? targets[0] : undefined
           const targetPackage = target === undefined ? undefined : packages.get(target)
           const constant = targetPackage?.files
@@ -292,11 +299,13 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
       for (const group of file.constants) {
         const inferred = pkg.facts.constantTypes.get(group.artifact.name) ?? []
         const groupKey = key(directory, group.artifact.name)
-        if (inferred.some((name) => name.includes("."))) foreignGroups.add(groupKey)
+        if (inferred.some(({ name }) => name.includes("."))) foreignGroups.add(groupKey)
         constantDemands.set(
           groupKey,
-          inferred.flatMap((name) => {
-            const reference = remap({ kind: name.includes(".") ? "unsupported" : "named", name })
+          inferred.flatMap(({ name, sourcePath }) => {
+            const origin = sourcePath === undefined ? file : pkg.files.find((item) => item.path === sourcePath)
+            if (origin === undefined) return []
+            const reference = remap({ kind: name.includes(".") ? "unsupported" : "named", name }, origin)
             return reference.kind === "named" ? [reference.bindingName ?? reference.name] : []
           })
         )
@@ -306,7 +315,7 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
         if (facts !== undefined)
           declarations.set(key(directory, declaration.artifact.name), {
             ...facts,
-            references: facts.references.map(remap)
+            references: facts.references.map((reference) => remap(reference))
           })
       }
     }
