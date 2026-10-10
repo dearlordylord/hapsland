@@ -4,6 +4,14 @@ import ../local-graph-draft/core.bend as Local
 import ../../../packages/agent-flow-bend/ImportGraph.bend as Graph
 
 type Continuation is Data:
+  PythonIteration{state: T.ResolverState}
+  PythonTerminal{state: T.ResolverState, result: T.ResolverStep}
+  AdmitPythonCapture{state: T.ResolverState, cached: T.CacheOutcome}
+  PythonCaptured{state: T.ResolverState, outcome: T.CaptureOutcome}
+  InspectPythonTarget{state: T.ResolverState, capture: T.CaptureToken}
+  ResolvePython{state: T.ResolverState, edge: Local.Pending}
+  PreparePython{state: T.ResolverState}
+  InspectPythonRoot{state: T.ResolverState}
   PrepareRust{state: T.ResolverState}
   PreparedRust{state: T.ResolverState, prepared: T.PreparedLanguage, frontend: T.RustContext}
   RustAdvance{state: T.ResolverState, event: Graph.GraphEvent}

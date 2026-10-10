@@ -152,11 +152,16 @@ def deadline(frame: Maybe<&2, T.ResolverFrame>) -> Loop.Continuation:
     case Some{frame}: Loop.ServiceStep{T.FinishedResolver{
       T.NoReviewUnit{}, Some{S.advance(frame, Graph.DeadlineReached{})}}}
 
+def iteration_language(language: Maybe<&2, T.Language>, +state: T.ResolverState) -> Loop.Continuation:
+  match language:
+    case Some{T.PythonLanguage{}}: Loop.PythonIteration{state}
+    case _: iteration_frame(S.state_frame(state), state)
+
 def iteration(expired: Bool, +state: T.ResolverState) -> Loop.Continuation:
   match expired:
     case True{}: deadline(S.state_frame(state))
     case False{}:
-      iteration_frame(S.state_frame(state), state)
+      iteration_language(S.state_language(state), state)
 
 def elapsed(bits: T.Binary64, state: T.ResolverState) -> Loop.Continuation:
   iteration(Clock.expired(bits), state)

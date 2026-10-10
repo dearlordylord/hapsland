@@ -1,7 +1,7 @@
 import Base
 import ./Types.bend as T
 import ./Loop.bend as Loop
-import ./Machine.bend as Machine
+import ./ComposedMachine.bend as Machine
 
 # Runtime shell only; never imported from laws or proofs.
 def perform(request: T.Request) -> IO(T.Reply):
@@ -13,17 +13,22 @@ def call_service(request: T.Request) -> IO(T.Reply):
 # Runtime-only effect loop. The pure machine owns all iteration budgets and
 # terminal decisions. No new service-count cutoff changes its result.
 # This module, including unsafe IO recursion, is outside the proof closure.
-@unsafe def run(+step: Loop.Continuation) -> IO(Loop.Continuation):
-  match step:
-    case Loop.ServiceStep{T.AwaitService{_, request}}:
-      do IO<Loop.Continuation>:
+@unsafe def run_service(+step: Machine.Step, service: T.ResolverStep) -> IO(Machine.Step):
+  match service:
+    case T.AwaitService{_, request}:
+      do IO<Machine.Step>:
         reply : T.Reply <- perform(request)
         run(Machine.resume(step, T.ServiceReply{reply}))
-    case Loop.ServiceStep{_}: IO.pure(Loop.Continuation, step)
-    case _: IO.pure(Loop.Continuation, Machine.malformed())
+    case _: IO.pure(Machine.Step, step)
 
+@unsafe def run(+step: Machine.Step) -> IO(Machine.Step):
+  run_service(step, Machine.view(step))
+
+# Preserve the existing debug ABI: child state stays inside the Bend runtime.
 def resolve_debug(input: T.ResolverInput) -> IO(Loop.Continuation):
-  run(Machine.initial(input))
+  do IO<Loop.Continuation>:
+    step : Machine.Step <- run(Machine.initial(input))
+    return Loop.ServiceStep{Machine.view(step)}
 
 def terminal(step: Loop.Continuation) -> T.RuntimeOutcome:
   match step:

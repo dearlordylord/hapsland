@@ -21,8 +21,8 @@ export function createMachineDriver({machine,foreign,registry,observeTransition,
   let state=machine.initial(input)
   const operations=trace?[]:undefined
   for(;;){
-   if(state.$!=='Loop.ServiceStep')throw new Error('unsettled Bend continuation')
-   const step=state.step
+   const step=machine.view?machine.view(state):state.step
+   if(!step)throw new Error('unsettled Bend continuation')
    if(step.$==='Types.FinishedResolver'){
     observeFinished?.(step)
     return {result:step.result,finalFrame:step.final_frame,trace:operations}

@@ -3119,9 +3119,19 @@
       "sha256": "fd45fbb60ae91dd8d93864e7c74a6b5a5ba16c1226a30a570ce83f726aa1fa00"
     },
     {
+      "path": "whole-resolver/ArtifactComposition.bend",
+      "capture": "whole-resolver/ArtifactComposition.bend.txt",
+      "sha256": "73d7eb37c87803de7e2c5a4770746dc932c64987bebdac4d31e2ece733f7419d"
+    },
+    {
       "path": "whole-resolver/ArtifactIndexSkipMutantCore.bend",
       "capture": "whole-resolver/ArtifactIndexSkipMutantCore.bend.txt",
       "sha256": "94ef48120ab3e21d32be1a88dd4d3432a31421b6434c3446c5fe1b637b52c0f9"
+    },
+    {
+      "path": "whole-resolver/ArtifactProtocol.bend",
+      "capture": "whole-resolver/ArtifactProtocol.bend.txt",
+      "sha256": "101cfb547de064d3cd5cd2f17ad909615bb38c35c1fab7eaa67693023385011d"
     },
     {
       "path": "whole-resolver/Attach.bend",
@@ -3172,6 +3182,16 @@
       "path": "whole-resolver/Clock.bend",
       "capture": "whole-resolver/Clock.bend.txt",
       "sha256": "6712fa3639757a518c6c87aa4aef468aeb1e16d4e8c6114eb3e72d9c64b60cd0"
+    },
+    {
+      "path": "whole-resolver/ComposedBudget.bend",
+      "capture": "whole-resolver/ComposedBudget.bend.txt",
+      "sha256": "f79105dee0c9d58ef7a1986136de39f52d719ca90402d18800be6fe22e664f4b"
+    },
+    {
+      "path": "whole-resolver/ComposedMachine.bend",
+      "capture": "whole-resolver/ComposedMachine.bend.txt",
+      "sha256": "91db05081efed17aa287d92620ada037f7d27775c42bab1f0a295a58613ad847"
     },
     {
       "path": "whole-resolver/Composition.bend",
@@ -3239,6 +3259,11 @@
       "sha256": "66565693a31813415d5b619f76b9c2d5f5ca76da4c6017a9cbcd5e5f12f266db"
     },
     {
+      "path": "whole-resolver/GenericArtifact.bend",
+      "capture": "whole-resolver/GenericArtifact.bend.txt",
+      "sha256": "0842235f968fe60acffd07e87dbeba4e9bbd32ad43ecc123945aaef2906c745b"
+    },
+    {
       "path": "whole-resolver/GraphSpecification.bend",
       "capture": "whole-resolver/GraphSpecification.bend.txt",
       "sha256": "1d11a139f284729241bd8832cd19b1502d681b67090483c197f245ab79491332"
@@ -3251,17 +3276,17 @@
     {
       "path": "whole-resolver/Loop.bend",
       "capture": "whole-resolver/Loop.bend.txt",
-      "sha256": "7c9bc40248bf0bd60b6076cfdcf27fa34d25e6eeeb3ffda4c07034439dee45ae"
+      "sha256": "afcdf7054ac6d7215f2d722686c1f33ea2b878771508f37dfe21ca0aa8623b2d"
     },
     {
       "path": "whole-resolver/LoopPolicy.bend",
       "capture": "whole-resolver/LoopPolicy.bend.txt",
-      "sha256": "f1934f72611d5236af3751e6242688d85da9ca319b7c9041dce78b0ef7f0f0f7"
+      "sha256": "ee84398e1f615dae21bc97f760bcdc03d65507666960d38606bd0367312e3dbf"
     },
     {
       "path": "whole-resolver/Machine.bend",
       "capture": "whole-resolver/Machine.bend.txt",
-      "sha256": "e49f6ee27f75cbf989b92a9091f3801ffe6550b4c0b452a42bad06e97e0c0943"
+      "sha256": "fd02d00118eea18098479022a37adaf2596180e458ec9ef16aec0a9134763192"
     },
     {
       "path": "whole-resolver/MechanicalPathAlgebra.bend",
@@ -3282,6 +3307,11 @@
       "path": "whole-resolver/Protocol.bend",
       "capture": "whole-resolver/Protocol.bend.txt",
       "sha256": "4eec46f56690463805dedd02e8dafe7bb8bc416956d14f4f6e3d7089274b63a5"
+    },
+    {
+      "path": "whole-resolver/PythonArtifact.bend",
+      "capture": "whole-resolver/PythonArtifact.bend.txt",
+      "sha256": "9b41c9cc0fcd7dc81a192908c0d2df34626405588a80b43ec34b123f48f406e7"
     },
     {
       "path": "whole-resolver/PythonModule.bend",
@@ -3311,7 +3341,7 @@
     {
       "path": "whole-resolver/Read.bend",
       "capture": "whole-resolver/Read.bend.txt",
-      "sha256": "527db596cef7cbd0b8f331e32b9ade119be848d3dc529d81bd0165121459dde2"
+      "sha256": "c5577a0c0e26902cdf3a5f9152609918858a7afd2d503492b03f0e5e0814890f"
     },
     {
       "path": "whole-resolver/ReferenceGroupMutantCore.bend",
@@ -3321,7 +3351,7 @@
     {
       "path": "whole-resolver/Resolve.bend",
       "capture": "whole-resolver/Resolve.bend.txt",
-      "sha256": "22cc8406dbba4b450306d5b37e559708c65525def5f92ed31ffe925900f611b3"
+      "sha256": "3ddf928caf418f1bfbb502c03b90b185949c4b4dd5f2b97da62b52b47adaf375"
     },
     {
       "path": "whole-resolver/Root.bend",
@@ -3336,7 +3366,7 @@
     {
       "path": "whole-resolver/Runtime.bend",
       "capture": "whole-resolver/Runtime.bend.txt",
-      "sha256": "7ee9588ee45caf5fad2bfb82290bf6a6fee85d82b1bd36bbe647b1c2f87227ef"
+      "sha256": "7afcbe3d1affd3662b692d25e9f44b7bdb171380bb1966ef00e38108a5005a70"
     },
     {
       "path": "whole-resolver/RuntimeCancellationPhaseProof.bend",
@@ -3474,6 +3504,11 @@
       "sha256": "3887a7b373b846724aead1e289d2196149e395796a0a4a0833edb399f0ac32f9"
     },
     {
+      "path": "whole-resolver/TerminalMachine.bend",
+      "capture": "whole-resolver/TerminalMachine.bend.txt",
+      "sha256": "ee5173b8ad3d9d6b28d93ed46cd9196f8c42722499d1d9675882c938da8bc81d"
+    },
+    {
       "path": "whole-resolver/Types.bend",
       "capture": "whole-resolver/Types.bend.txt",
       "sha256": "11a742ca4dc47062cfe290b971bd7b8b55cf4011e9fe976cb2383d67ba72ae4c"
@@ -3504,6 +3539,16 @@
       "sha256": "3c40f56e0a20e97bb29c5534ecf8e2949cf38bee15b3d22eb20876fec4e85c5f"
     },
     {
+      "path": "whole-resolver/composed-budget-check.mjs",
+      "capture": "whole-resolver/composed-budget-check.mjs",
+      "sha256": "dbf54bc5b9ad83b75ff023cedc5a2a66903829584d02b87b341aec36a38707e6"
+    },
+    {
+      "path": "whole-resolver/composed-root-check.mjs",
+      "capture": "whole-resolver/composed-root-check.mjs",
+      "sha256": "9f49ca896472d03b2baf8a51e1549b9cfb444faa6b47d4f45a4e90de9d7b5b4d"
+    },
+    {
       "path": "whole-resolver/connected-performance.mjs",
       "capture": "whole-resolver/connected-performance.mjs",
       "sha256": "784ab9e35faacacb213c0c8803f776066ac727cf05ab93c45d7b91712d76a495"
@@ -3516,7 +3561,7 @@
     {
       "path": "whole-resolver/consumer.mjs",
       "capture": "whole-resolver/consumer.mjs",
-      "sha256": "9ac5085fee77a2eb5f26fc221108777f8486dbf2c256b2f8d30de25eb7775020"
+      "sha256": "61f544e1f5754649d14662f8900c67356ef2a0fe309c050d1417f06154ec01da"
     },
     {
       "path": "whole-resolver/decoder-baseline.mjs",

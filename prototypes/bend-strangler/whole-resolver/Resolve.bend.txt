@@ -383,22 +383,20 @@ def bundled_frame(frame: Maybe<&2, T.ResolverFrame>, +handle: Nat,
       Local.map_result(Maybe<&2, T.CapturedFacts>, Map.get(Maybe<&2, T.CapturedFacts>, None{},
         S.frame_captured(frame), from_path(edge))), frame, handle, edge, state)
 
+def imported(language: Maybe<&2, T.Language>, +edge: Local.Pending, +state: T.ResolverState) -> Loop.Continuation:
+  match language:
+    case Some{T.PythonLanguage{}}: Loop.ResolvePython{state, edge}
+    case _: Loop.ServiceStep{S.request(S.with_state_scratch(state,
+      S.with_scratch_pending_edge(S.state_scratch(state), Some{edge})),
+      T.ReadingJoinedPathFacts{}, T.JoinedPathFacts{from_path(edge), import_path(edge)})}
+
 def pending(edge: Maybe<&2, Local.Pending>, +state: T.ResolverState) -> Loop.Continuation:
   match edge:
     case None{}: invalid(state)
     case Some{+edge}:
       match edge:
         case Local.Pending{_, _, _, _, _, _, _, Local.Imported{_, _}}:
-          Loop.ServiceStep{
-            S.request(
-              S.with_state_scratch(
-                state,
-                S.with_scratch_pending_edge(S.state_scratch(state), Some{edge})
-              ),
-              T.ReadingJoinedPathFacts{},
-              T.JoinedPathFacts{from_path(edge), import_path(edge)}
-            )
-          }
+          imported(S.state_language(state), edge, state)
         case Local.Pending{_, _, _, _, _, _, _, Local.BundledTarget{handle}}: bundled_frame(
           S.state_frame(state),
           handle,

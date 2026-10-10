@@ -34,8 +34,16 @@ def capture(selection: Maybe<&2, T.SelectionToken>, +state: T.ResolverState) -> 
     case Some{selection}: Loop.ServiceStep{S.request(state, T.CapturingTarget{},
       T.CaptureSource{selection, source_cap(S.state_frame(state))})}
 
-def capture_now(+state: T.ResolverState) -> Loop.Continuation:
+def capture_now_unchecked(+state: T.ResolverState) -> Loop.Continuation:
   capture(S.scratch_selection(S.state_scratch(state)), state)
+
+def capture_now_language(language: Maybe<&2, T.Language>, state: T.ResolverState) -> Loop.Continuation:
+  match language:
+    case Some{T.PythonLanguage{}}: Loop.AdmitPythonCapture{state, T.CacheAbsent{}}
+    case _: capture_now_unchecked(state)
+
+def capture_now(+state: T.ResolverState) -> Loop.Continuation:
+  capture_now_language(S.state_language(state), state)
 
 def inspect(language: Maybe<&2, T.Language>, capture: Maybe<&2, T.CaptureToken>,
     +state: T.ResolverState) -> Loop.Continuation:
@@ -62,17 +70,7 @@ def inspect(language: Maybe<&2, T.Language>, capture: Maybe<&2, T.CaptureToken>,
         }
       )
     }
-    case Some{T.PythonLanguage{}} Some{capture}: Loop.ServiceStep{
-      S.request(
-        state,
-        T.InspectingTarget{},
-        T.InspectSource{
-          S.scratch_capture_path(S.state_scratch(state)),
-          capture,
-          T.PythonSourceContext{S.input_branch(S.state_input(state))}
-        }
-      )
-    }
+    case Some{T.PythonLanguage{}} Some{capture}: Loop.InspectPythonTarget{state, capture}
     case Some{T.RustLanguage{}} Some{_}: Loop.PrepareImportedRust{state}
     case _ _: ResolveOwner.malformed()
 
@@ -98,9 +96,9 @@ def inspect_capture(+state: T.ResolverState) -> Loop.Continuation:
     state
   )
 
-def cache_lookup(outcome: T.CacheOutcome, +state: T.ResolverState) -> Loop.Continuation:
+def cache_lookup_unchecked(outcome: T.CacheOutcome, +state: T.ResolverState) -> Loop.Continuation:
   match outcome:
-    case T.CacheAbsent{}: capture_now(state)
+    case T.CacheAbsent{}: capture_now_unchecked(state)
     case T.CachePresent{capture, bytes}: inspect_capture(
       S.with_state_scratch(
         state,
@@ -110,6 +108,14 @@ def cache_lookup(outcome: T.CacheOutcome, +state: T.ResolverState) -> Loop.Conti
         )
       )
     )
+
+def cache_lookup_language(language: Maybe<&2, T.Language>, outcome: T.CacheOutcome, state: T.ResolverState) -> Loop.Continuation:
+  match language:
+    case Some{T.PythonLanguage{}}: Loop.AdmitPythonCapture{state, outcome}
+    case _: cache_lookup_unchecked(outcome, state)
+
+def cache_lookup(outcome: T.CacheOutcome, +state: T.ResolverState) -> Loop.Continuation:
+  cache_lookup_language(S.state_language(state), outcome, state)
 
 def lookup(cache: Maybe<&2, T.CacheToken>, +state: T.ResolverState) -> Loop.Continuation:
   match cache:
@@ -156,13 +162,21 @@ def store(
     case Some{cache}: Loop.ServiceStep{S.request(state, T.StoringTargetCapture{},
       T.StoreCaptureCache{cache, S.scratch_capture_path(S.state_scratch(state)), capture})}
 
-def captured(outcome: T.CaptureOutcome, +state: T.ResolverState) -> Loop.Continuation:
+def captured_unchecked(outcome: T.CaptureOutcome, +state: T.ResolverState) -> Loop.Continuation:
   match outcome:
     case T.CaptureUnavailable{value}: diagnostic(value, state)
     case T.SourceCaptured{+capture, _, bytes}: store(
       S.input_caller_cache(S.state_input(state)), capture,
       S.with_state_scratch(state, S.with_scratch_source_bytes(
         S.with_scratch_capture(S.state_scratch(state), Some{capture}), bytes)))
+
+def captured_language(language: Maybe<&2, T.Language>, outcome: T.CaptureOutcome, state: T.ResolverState) -> Loop.Continuation:
+  match language:
+    case Some{T.PythonLanguage{}}: Loop.PythonCaptured{state, outcome}
+    case _: captured_unchecked(outcome, state)
+
+def captured(outcome: T.CaptureOutcome, +state: T.ResolverState) -> Loop.Continuation:
+  captured_language(S.state_language(state), outcome, state)
 
 def inspected(outcome: T.SourceOutcome, state: T.ResolverState) -> Loop.Continuation:
   match outcome:

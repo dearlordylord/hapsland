@@ -1,0 +1,322 @@
+import Base
+import ./Types.bend as T
+import ./State.bend as S
+import ./ArtifactProtocol.bend as A
+import ./Protocol.bend as Protocol
+import ./Loop.bend as Loop
+import ./ComposedBudget.bend as Budget
+import ./python-module/Session.bend as Python
+import ./Clock.bend as Clock
+import ../local-graph-draft/core.bend as Local
+import ../../../packages/agent-flow-bend/ImportGraph.bend as Graph
+
+# Source-bearing composition policy. Algorithm artifacts are not imported.
+# The dispatcher executes closed commands; every continuation is selected here.
+type Context is Data:
+  Context{invocation: Nat, session: Maybe<&2, Python.Session>, cache: Maybe<&2, T.CacheToken>, census: Budget.Census}
+type Return is Data:
+  PreparationReturn{state: T.ResolverState}
+  RootReturn{state: T.ResolverState}
+  TargetReturn{state: T.ResolverState}
+  ImportReturn{state: T.ResolverState, edge: Local.Pending}
+  ValidationReturn{state: T.ResolverState, result: T.ResolverStep}
+type ParentCommand is Data:
+  Initial{input: T.ResolverInput}
+  ResumeParent{handle: A.StateHandle, event: T.ResolverEvent}
+  Execute{action: A.ParentAction}
+type PythonDispatch is Data:
+  BeginPython{command: A.PythonCommand}
+  ResumePython{handle: A.StateHandle, reply: T.Reply}
+type AwaitOwner is Data:
+  ParentAwait{handle: A.StateHandle, state: T.ResolverState}
+  PythonAwait{handle: A.StateHandle, continuation: Return}
+  FinalAwait{state: T.ResolverState, result: T.ResolverStep}
+type Step is Data:
+  ParentCall{context: Context, command: ParentCommand}
+  PythonCall{context: Context, continuation: Return, command: PythonDispatch}
+  Service{context: Context, owner: AwaitOwner, request: T.Request}
+  Terminal{context: Context, result: T.ResolverStep}
+
+def owner(context: Context) -> Nat:
+  match context:
+    case Context{invocation, _, _, _}: invocation
+
+def cache(context: Context) -> Maybe<&2, T.CacheToken>:
+  match context:
+    case Context{_, _, cache, _}: cache
+
+def census(context: Context) -> Budget.Census:
+  match context:
+    case Context{_, _, _, census}: census
+
+def session(context: Context) -> Maybe<&2, Python.Session>:
+  match context:
+    case Context{_, session, _, _}: session
+
+def with_session(context: Context, replacement: Maybe<&2, Python.Session>) -> Context:
+  match replacement context:
+    case None{} _: context
+    case Some{session} Context{invocation, _, cache, census}: Context{invocation, Some{session}, cache, census}
+
+def with_census(context: Context, replacement: Budget.Census) -> Context:
+  match context:
+    case Context{invocation, session, cache, _}: Context{invocation, session, cache, replacement}
+
+def failure(context: Context, failure: T.TechnicalFailure) -> Step:
+  Terminal{context, T.FailedResolver{failure}}
+
+def malformed(context: Context) -> Step:
+  failure(context, T.MalformedReply{})
+
+def parent(context: Context, action: A.ParentAction) -> Step:
+  ParentCall{context, Execute{action}}
+
+def return_state(continuation: Return) -> T.ResolverState:
+  match continuation:
+    case PreparationReturn{state}: state
+    case RootReturn{state}: state
+    case TargetReturn{state}: state
+    case ImportReturn{state, _}: state
+    case ValidationReturn{state, _}: state
+
+def with_return_next(continuation: Return, next: Nat) -> Return:
+  match continuation:
+    case PreparationReturn{state}: PreparationReturn{S.with_state_next_request(state, next)}
+    case RootReturn{state}: RootReturn{S.with_state_next_request(state, next)}
+    case TargetReturn{state}: TargetReturn{S.with_state_next_request(state, next)}
+    case ImportReturn{state, edge}: ImportReturn{S.with_state_next_request(state, next), edge}
+    case ValidationReturn{state, result}: ValidationReturn{S.with_state_next_request(state, next), result}
+
+def source(facts: Maybe<&2, T.SourceFacts>) -> T.SourceOutcome:
+  match facts:
+    case None{}: T.SourceUnsupported{}
+    case Some{facts}: T.SourceInspected{facts}
+
+def final_clock(clock: Maybe<&2, T.ClockToken>, +context: Context, +state: T.ResolverState, result: T.ResolverStep) -> Step:
+  match clock:
+    case None{}: malformed(context)
+    case Some{clock}:
+      +next = S.state_next_request(state)
+      Service{context, FinalAwait{S.with_state_next_request(state, Nat.add(next, 1n)), result},
+        T.Request{owner(context), next, T.ReadClock{clock}}}
+
+def validation_result(valid: Bool, context: Context, +state: T.ResolverState, result: T.ResolverStep) -> Step:
+  match valid:
+    case False{}: parent(context, A.Unavailable{})
+    case True{}: final_clock(S.state_clock(state), context, state, result)
+
+def import_allowed(allowed: Bool, context: Context, state: T.ResolverState, edge: Local.Pending,
+    result: Maybe<&2, A.Resolution>) -> Step:
+  match allowed:
+    case False{}: parent(context, A.PythonUnresolved{state})
+    case True{}: parent(context, A.ImportResolved{state, edge, result})
+
+def import_result(frame: Maybe<&2, T.ResolverFrame>, +context: Context, +state: T.ResolverState,
+    edge: Local.Pending, +session: Python.Session, result: Maybe<&2, A.Resolution>) -> Step:
+  match frame:
+    case None{}: malformed(context)
+    case Some{+frame}: import_allowed(Budget.available(census(context), session, frame), context,
+      S.with_state_frame(state, Some{S.with_frame_dependencies(frame, Python.dependencies(session))}), edge, result)
+
+def returned(context: Context, continuation: Return, result: A.PythonResult) -> Step:
+  match continuation result:
+    case PreparationReturn{state} A.PreparationUnavailable{}: parent(context, A.Unavailable{})
+    case PreparationReturn{state} A.Prepared{session, cache}: parent(
+      Context{owner(context), Some{session}, Some{cache}, census(context)}, A.RootBudget{state})
+    case RootReturn{state} A.Inspected{facts}: parent(context, A.RootInspected{state, source(facts)})
+    case TargetReturn{state} A.Inspected{facts}: parent(context, A.TargetInspected{state, source(facts)})
+    case ImportReturn{+state, edge} A.Resolved{+session, result}: import_result(S.state_frame(state),
+      with_session(context, Some{session}), state, edge, session, result)
+    case ValidationReturn{state, result} A.Revalidated{session, valid}:
+      validation_result(valid, with_session(context, Some{session}), state, result)
+    case _ _: malformed(context)
+
+def child_view(context: Context, continuation: Return, handle: A.StateHandle, view: A.PythonView) -> Step:
+  match view:
+    case A.Await{request, session, next}: Service{with_session(context, session),
+      PythonAwait{handle, with_return_next(continuation, next)}, request}
+    case A.Returned{result, next}: returned(context, with_return_next(continuation, next), result)
+    case A.Failed{failure, session, _}: failure(with_session(context, session), failure)
+
+def child_handle(valid: Bool, context: Context, continuation: Return, handle: A.StateHandle, view: A.PythonView) -> Step:
+  match valid:
+    case True{}: child_view(context, continuation, handle, view)
+    case False{}: malformed(context)
+
+def receive_python(step: Step, +handle: A.StateHandle, view: A.PythonView) -> Step:
+  match step handle:
+    case PythonCall{+context, continuation, _} A.StateHandle{invocation, _}:
+      child_handle(Nat.is_eq(owner(context), invocation), context, continuation, handle, view)
+    case _ _: malformed(Context{0n, None{}, None{}, Budget.initial("", 0n)})
+
+def prepare(clock: Maybe<&2, T.ClockToken>, +context: Context, +state: T.ResolverState) -> Step:
+  match clock:
+    case None{}: malformed(context)
+    case Some{clock}:
+      +input = S.state_input(state)
+      +limits = S.input_limits(input)
+      PythonCall{context, PreparationReturn{state}, BeginPython{A.Prepare{S.input_root_path(input),
+        S.input_root_capture(input), S.input_root_bytes(input), Graph.file_cap(limits), Graph.read_cap(limits),
+        Graph.work_cap(limits), Graph.source_cap(limits), Graph.depth_cap(limits), clock, owner(context),
+        S.input_caller_cache(input), S.state_next_request(state)}}}
+
+def inspect(+context: Context, +state: T.ResolverState, capture: T.CaptureToken, path: String, continuation: Return) -> Step:
+  +input = S.state_input(state)
+  PythonCall{context, continuation, BeginPython{A.Inspect{S.input_branch(input), path,
+    S.input_root_path(input), capture, owner(context), S.state_next_request(state)}}}
+
+def import_path(edge: Local.Pending) -> String:
+  match edge:
+    case Local.Pending{_, _, _, _, _, _, _, Local.Imported{path, _}}: path
+    case _: ""
+
+def import_from(edge: Local.Pending) -> String:
+  match edge:
+    case Local.Pending{_, _, from, _, _, _, _, _}: from
+
+def import_name(edge: Local.Pending) -> String:
+  match edge:
+    case Local.Pending{_, _, _, _, name, _, _, _}: name
+
+def resolve(context: Context, +state: T.ResolverState, +edge: Local.Pending,
+    frame: Maybe<&2, T.ResolverFrame>, clock: Maybe<&2, T.ClockToken>) -> Step:
+  match context frame clock:
+    case Context{+invocation, Some{session}, Some{+cache}, +census} Some{frame} Some{clock}:
+      +input = S.state_input(state)
+      PythonCall{Context{invocation, Some{session}, Some{cache}, census}, ImportReturn{state, edge},
+        BeginPython{A.ResolveImport{session, Budget.remaining(census, frame), import_from(edge), import_path(edge),
+          import_name(edge), S.input_root_path(input), clock, cache, S.state_separator(state), invocation, S.state_next_request(state)}}}
+    case _ _ _: malformed(context)
+
+def iteration(allowed: Bool, context: Context, state: T.ResolverState) -> Step:
+  match allowed:
+    case True{}: parent(context, A.Iteration{state})
+    case False{}: parent(context, A.Deadline{state})
+
+def guard(context: Context, state: T.ResolverState, frame: Maybe<&2, T.ResolverFrame>) -> Step:
+  match context frame:
+    case Context{invocation, Some{+session}, cache, +census} Some{frame}:
+      iteration(Budget.available(census, session, frame), Context{invocation, Some{session}, cache, census}, state)
+    case _ _: malformed(context)
+
+def validate(context: Context, +state: T.ResolverState, result: T.ResolverStep,
+    frame: Maybe<&2, T.ResolverFrame>, clock: Maybe<&2, T.ClockToken>) -> Step:
+  match context frame clock:
+    case Context{+invocation, Some{session}, cache, +census} Some{frame} Some{clock}:
+      PythonCall{Context{invocation, Some{session}, cache, census}, ValidationReturn{state, result},
+        BeginPython{A.Revalidate{session, Budget.remaining(census, frame), clock, S.state_separator(state), invocation, S.state_next_request(state)}}}
+    case _ _ _: malformed(context)
+
+def cached_bytes(cached: T.CacheOutcome) -> Maybe<&2, Nat>:
+  match cached:
+    case T.CacheAbsent{}: None{}
+    case T.CachePresent{_, bytes}: Some{bytes}
+
+def admitted_cached(context: Context, +state: T.ResolverState, cached: T.CacheOutcome) -> Step:
+  match cached:
+    case T.CacheAbsent{}: parent(context, A.CaptureAdmitted{state, cached})
+    case T.CachePresent{+capture, +bytes}: parent(with_census(context,
+      Budget.succeeded(census(context), S.scratch_capture_path(S.state_scratch(state)), bytes)),
+      A.CaptureAdmitted{state, T.CachePresent{capture, bytes}})
+
+def admission(reserved: Maybe<&2, Budget.Census>, context: Context, state: T.ResolverState, cached: T.CacheOutcome) -> Step:
+  match reserved:
+    case None{}: parent(context, A.CaptureRefused{state})
+    case Some{census}: admitted_cached(with_census(context, census), state, cached)
+
+def admit(+context: Context, +state: T.ResolverState, +cached: T.CacheOutcome,
+    session: Maybe<&2, Python.Session>, frame: Maybe<&2, T.ResolverFrame>) -> Step:
+  match session frame:
+    case Some{session} Some{frame}: admission(Budget.reserve(census(context), session, frame,
+      S.scratch_capture_path(S.state_scratch(state)), cached_bytes(cached)), context, state, cached)
+    case _ _: malformed(context)
+
+def captured(+context: Context, state: T.ResolverState, outcome: T.CaptureOutcome) -> Step:
+  match outcome:
+    case T.SourceCaptured{+capture, +path, +bytes}: parent(with_census(context,
+      Budget.succeeded(census(context), path, bytes)), A.CaptureFinished{state, T.SourceCaptured{capture, path, bytes}})
+    case _: parent(context, A.CaptureFinished{state, outcome})
+
+def parent_service(context: Context, handle: A.StateHandle, service: T.ResolverStep) -> Step:
+  match service:
+    case T.AwaitService{state, request}: Service{context, ParentAwait{handle, state}, request}
+    case _: Terminal{context, service}
+
+def parent_view(+context: Context, handle: A.StateHandle, continuation: Loop.Continuation) -> Step:
+  match continuation:
+    case Loop.ServiceStep{service}: parent_service(context, handle, service)
+    case Loop.PreparePython{+state}: prepare(S.state_clock(state), context, state)
+    case Loop.InspectPythonRoot{+state}: inspect(context, state, S.input_root_capture(S.state_input(state)),
+      S.input_root_path(S.state_input(state)), RootReturn{state})
+    case Loop.InspectPythonTarget{+state, capture}: inspect(context, state, capture,
+      S.scratch_capture_path(S.state_scratch(state)), TargetReturn{state})
+    case Loop.ResolvePython{+state, edge}: resolve(context, state, edge, S.state_frame(state), S.state_clock(state))
+    case Loop.PythonIteration{+state}: guard(context, state, S.state_frame(state))
+    case Loop.PythonTerminal{+state, result}: validate(context, state, result, S.state_frame(state), S.state_clock(state))
+    case Loop.AdmitPythonCapture{+state, cached}: admit(context, state, cached, session(context), S.state_frame(state))
+    case Loop.PythonCaptured{state, outcome}: captured(context, state, outcome)
+    case _: malformed(context)
+
+def parent_handle(valid: Bool, context: Context, handle: A.StateHandle, continuation: Loop.Continuation) -> Step:
+  match valid:
+    case True{}: parent_view(context, handle, continuation)
+    case False{}: malformed(context)
+
+def receive_parent(step: Step, +handle: A.StateHandle, continuation: Loop.Continuation) -> Step:
+  match step handle:
+    case ParentCall{+context, _} A.StateHandle{invocation, _}:
+      parent_handle(Nat.is_eq(owner(context), invocation), context, handle, continuation)
+    case _ _: malformed(Context{0n, None{}, None{}, Budget.initial("", 0n)})
+
+def final_available(allowed: Bool, context: Context, result: T.ResolverStep) -> Step:
+  match allowed:
+    case True{}: Terminal{context, result}
+    case False{}: parent(context, A.Unavailable{})
+
+def final_result(+context: Context, frame: Maybe<&2, T.ResolverFrame>, expired: Bool, result: T.ResolverStep) -> Step:
+  match session(context) frame:
+    case Some{session} Some{frame}: final_available(Bool.and(Bool.not(expired), Budget.available(census(context), session, frame)), context, result)
+    case _ _: malformed(context)
+
+def final_outcome(context: Context, +state: T.ResolverState, result: T.ResolverStep, outcome: T.ServiceOutcome) -> Step:
+  match outcome:
+    case T.ClockRead{bits}: final_result(context, S.state_frame(state), Clock.expired(bits), result)
+    case T.ProviderRejected{exception}: failure(context, T.ForeignProviderFailure{exception})
+    case _: malformed(context)
+
+def accepted(context: Context, target: AwaitOwner, reply: T.Reply) -> Step:
+  match target:
+    case ParentAwait{handle, _}: ParentCall{context, ResumeParent{handle, T.ServiceReply{reply}}}
+    case PythonAwait{handle, continuation}: PythonCall{context, continuation, ResumePython{handle, reply}}
+    case FinalAwait{state, result}: final_outcome(context, state, result, Protocol.reply_outcome(reply))
+
+def checked(context: Context, target: AwaitOwner, reply: T.Reply, checked: Protocol.CheckedReply) -> Step:
+  match checked:
+    case Protocol.RejectedReply{failure}: failure(context, failure)
+    case Protocol.CheckedOutcome{_}: accepted(context, target, reply)
+
+def resume_reply(step: Step, +reply: T.Reply) -> Step:
+  match step:
+    case Service{context, target, request}: checked(context, target, reply, Protocol.check(request, reply))
+    case Terminal{context, _}: failure(context, T.ReplyAfterTerminal{})
+    case ParentCall{context, _}: failure(context, T.WrongReplyKind{})
+    case PythonCall{context, _, _}: failure(context, T.WrongReplyKind{})
+
+def target_state(target: AwaitOwner) -> T.ResolverState:
+  match target:
+    case ParentAwait{_, state}: state
+    case PythonAwait{_, continuation}: return_state(continuation)
+    case FinalAwait{state, _}: state
+
+def view(step: Step) -> T.ResolverStep:
+  match step:
+    case Service{_, target, request}: T.AwaitService{target_state(target), request}
+    case Terminal{_, result}: result
+    case _: T.FailedResolver{T.WrongReplyKind{}}
+
+def initial(+input: T.ResolverInput) -> Step:
+  ParentCall{Context{S.input_invocation(input), None{}, None{},
+    Budget.initial(S.input_root_path(input), S.input_root_bytes(input))}, Initial{input}}
+
+def main() -> Unit:
+  Unit{}
