@@ -220,9 +220,10 @@ provider/advice/repair loop; it does not qualify installed Go delivery. The
 Codex Go profile uses the existing installed inspection seam with an isolated
 user home, controlled offline reviewer and prepared installed runtime/resident.
 It requires exact original typed-group provider evidence, independently
-correlated outcomes, actual installed-hook stdout submission (or correlated
-delivery-finalized disposition), actual agent acknowledgment
-and quoted advice, and a compiling open-interface repair. It does not exercise
+correlated outcomes, actual agent acknowledgment and an exact quotation of the
+controlled finding absent from the task prompt, and a compiling open-interface
+repair. The default profile runs standard installed hooks without command
+interposition. Private finding fate alone is not delivery evidence. It does not exercise
 the browser, cold startup, ordinary interactive trust, Darwin execution or live
 Jev review quality. Its fixture assertions include rejection of missing receipts,
 controlled policy, provider evidence and delivery; model-input fixtures decode
@@ -231,10 +232,11 @@ errors (raw JSON versus transport encoding) were corrected separately from
 intermittent installation compatibility failures. No product probe deadline was
 changed. The prepared Go fixture explicitly selects pinned Bun for installation
 compatibility probing through the existing runtime override; launcher bindings
-still select the exact installed native hook and resident. A source-free observer
-delegates the registered commands, preserves their flags and deadlines, forwards
-successful stdout unchanged, and records only submission booleans. Finding
-suppression or staleness alone cannot establish delivery; the agent must also
+still select the exact installed native hook and resident. An optional comparison
+observer delegates registered commands, preserves flags and deadlines, forwards
+successful stdout unchanged, and records only submission booleans; it is not
+required for qualification. Finding suppression or staleness alone cannot
+establish delivery; the agent must
 acknowledge and quote actual advice before its repair qualifies. A direct retained
 native identity check took 3.49 seconds, exceeding the unchanged two-second
 installation probe. This fixture does not qualify default installation startup.
@@ -254,8 +256,14 @@ packaged hook identity succeeded in 3,516 ms. A verified installed #269 baseline
 was not available for the matched control, so regression attribution remains
 open. These source-free controls are retained under `.test-runs/`; no broader
 startup or host compatibility investigation is qualified here. The observer
-owner and Go consumer selection passed 31 checks, including failed-hook stdout
-and missing-provider negative controls. Acceptance remains blocked on a current
+owner and Go consumer selection passed 33 checks, including failed-hook stdout,
+missing-provider, missing acknowledgment and missing unseen-quotation controls.
+A subsequent interrupted 90-second selection diagnostic retained selected
+candidates, one prepared unit, one provider input and one outcome in its private
+journal; only enum/count projections are retained, and the interrupted run does
+not qualify delivery. Matched direct child controls passed in both checkout and
+synthetic working directories; they do not establish the cause of intermittent
+installed-preview timeouts. Acceptance remains blocked on a current
 installed advice/agent-use witness. The next Go package-import slice remains
 #272; #268 must retain these measured setup and delivery limitations.
 

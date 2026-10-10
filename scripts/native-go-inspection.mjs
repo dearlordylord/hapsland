@@ -101,6 +101,7 @@ export function createGoInspectionProfile({
   let observations
   let acknowledged = false
   let quoted = false
+  let quotedRuleIds = []
   return {
     source: new URL(import.meta.url),
     scenario: "go-package-model-review",
@@ -141,7 +142,8 @@ export function createGoInspectionProfile({
         })
         .join("\n")
       acknowledged = messages.includes("HAPSLAND_ADVICE_APPLIED") && !messages.includes("HAPSLAND_ADVICE_NOT_APPLIED")
-      quoted = messages.includes(finding)
+      quotedRuleIds = configuredRules.filter((rule) => messages.includes(rule.message)).map((rule) => rule.id)
+      quoted = quotedRuleIds.length > 0
     },
     async verify({ url, repository, bounded, reportDiagnostic, setPhase }) {
       setPhase("go-package-model-outcomes")
@@ -215,6 +217,28 @@ export function createGoInspectionProfile({
         setPhase("go-selection-diagnostic")
         throw new Error("Diagnostic-only selection observation does not qualify installed review")
       }
+      quoted = snapshot.records.some(
+        (record) =>
+          record.fact.kind === "interpreted-findings" &&
+          record.fact.payload.status === "available" &&
+          snapshot.records.some(
+            (unit) =>
+              unit.correlation.evaluationId === record.correlation.evaluationId &&
+              unit.fact.kind === "unit-prepared" &&
+              unit.fact.declaration === "PaymentState"
+          ) &&
+          snapshot.records.some(
+            (outcome) =>
+              outcome.correlation.evaluationId === record.correlation.evaluationId &&
+              outcome.fact.kind === "evaluation-outcome" &&
+              outcome.fact.outcome === "findings"
+          ) &&
+          record.fact.payload.findings.some(
+            (item) =>
+              quotedRuleIds.includes(item.ruleId) &&
+              configuredRules.some((rule) => rule.id === item.ruleId && rule.message === item.message)
+          )
+      )
       const checks = verifyGoSnapshot(snapshot, (check) => setPhase(`go-${check}`), { acknowledged, quoted })
       setPhase("go-agent-advice-acknowledgment")
       assert.ok(acknowledged && quoted, "The real agent must acknowledge advice and quote its delivered finding")
