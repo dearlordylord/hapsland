@@ -25,17 +25,22 @@ import {completeSourcePreparation} from '../../../packages/resident-runtime/src/
 import {defaultPreparationControls} from '../../../packages/resident-runtime/src/resident/execution-controls/preparation-controls.ts'
 import {logicalBytes} from '../../../packages/resident-runtime/src/resident/state/encoded-size.ts'
 import {advicee} from '@hapsland/build-tooling/test-support/test-fixtures'
+import {sourcePartition} from '../../../packages/resident-runtime/src/resident/recipient/identity.ts'
 import {evaluationSourcePartition} from '../../../packages/resident-runtime/src/resident/work-ownership/identity.ts'
 import {decodePreparationResult} from './preparation-result-codec.mjs'
 import {bendPostPreparation,createPostPreparationProvider} from './post-preparation-host.mjs'
-import {providerTransaction,dispatchExecutionBoundary} from './resident-provider-permit.mjs'
+import {providerTransaction,dispatchExecutionBoundary,ResidentProviderPermit,ResidentResourceReceipt} from './resident-provider-permit.mjs'
 import {nativePostPreparation} from './native-post-preparation-child.mjs'
 
 // Actual semantic owners and one bridged resident transaction. Recording sinks
 // are limited to analytics/inspection; revision, reuse, round and dispatch are real.
 export async function consumeRetainedPreparation(connection,result,root,rootIdentity,mode) {
+ const cleanupReceiptFault=mode==='retention-owned-fault-clear-cleanup-receipt'
+ const sharedRelease=mode==='retention-owned-fault-clear-shared-release'||cleanupReceiptFault
+ const reuseFaults={'retention-owned-fault-reuse-claim':['LookupReuse','retention-success'],'retention-owned-fault-clear-register':['RegisterClear','retention-cached-clear'],'retention-owned-fault-clear-release':['ReleaseClear','retention-cached-clear'],'retention-owned-fault-joined-append':['AppendJoined','retention-joined-claimed'],'retention-owned-fault-clear-shared-release':['ReleaseClear','retention-cached-clear'],'retention-owned-fault-clear-cleanup-receipt':['Cleanup','retention-cached-clear']}
+ const reuseFault=reuseFaults[mode]
  const faultJoinRestore=mode==='retention-owned-joined-pending-restore-fault'
- const useOwned=mode.startsWith('retention-owned-'),useBend=mode.startsWith('retention-bend-');mode=mode.replace('retention-bend-','retention-').replace('retention-owned-','retention-');if(mode==='retention-duplicate-active')mode='retention-success';if(faultJoinRestore)mode='retention-joined-pending'
+ const useOwned=mode.startsWith('retention-owned-'),useBend=mode.startsWith('retention-bend-');mode=mode.replace('retention-bend-','retention-').replace('retention-owned-','retention-');if(mode==='retention-duplicate-active')mode='retention-success';if(faultJoinRestore)mode='retention-joined-pending';if(reuseFault)mode=reuseFault[1]
  const postFlow=(...args)=>useBend?bendPostPreparation(connection.postCore,...args):nativePostPreparation(...args)
  const run=Effect.runSync,identity=advicee(),accepted=[]
  run(connection.bridge.native((draft,records)=>[undefined,{...records,
@@ -48,7 +53,7 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
  assert.equal(round.canonicalRound,connection.round)
  const work=run(ledger.rounds.snapshot(round)).work
  const scope=run(Scope.make()),hold=run(Latch.make(false))
- const dispatcher=await Effect.runPromise(makeDispatcher(ledger,unit=>({operation:unit.canonicalOperationId,round:unit.canonicalRound}),entry=>Effect.sync(()=>accepted.push(entry.value)).pipe(Effect.andThen(hold.await)),dispatchExecutionBoundary).pipe(Effect.provideService(Scope.Scope,scope)))
+ const dispatcher=await Effect.runPromise(makeDispatcher(ledger,unit=>({operation:unit.canonicalOperationId,round:unit.canonicalRound}),entry=>Effect.gen(function*(){assert.equal(yield* ResidentProviderPermit,undefined);assert.equal(yield* ResidentResourceReceipt,undefined);accepted.push(entry.value);yield* hold.await}),dispatchExecutionBoundary).pipe(Effect.provideService(Scope.Scope,scope)))
  const observation={root,rootIdentity,advicee:identity,candidates:[{operation:'add',path:'root.py'}]}
  const receipt={scope:{root},correlation:{fixture:'postflow'}}
  const job={kind:'ingress',inspectionReceipt:receipt,observation,partition:'agent',canonicalRound:connection.round,canonicalObservationId:1,round,work,workObservationId:1,settings:{configuration:{policy:{digest:'f'.repeat(64)}}},dispatch:{activityPath:undefined,credential:null,controlled:null}}
@@ -58,7 +63,8 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
  const retire=()=>Effect.gen(function*(){assert.equal(yield* ledger.rounds.retire(round),true);round.controller.abort()})
  const prepared=decodePreparationResult(result,identity)
  const context={deps:{...deps,...lifecycle,inspection:{isEnabled:()=>false},residentRecordOperationalFailure:()=>Effect.void,residentRecordJoinedOutcomes:()=>Effect.void,residentRetainAdvice:()=>{throw new Error('Unexpected cached path')},residentPreparationControls:{...defaultPreparationControls,afterReuseBoundary:phase=>phase==='ownerClaimed'?(mode==='retention-owner-claimed'?retire():mode==='retention-fault-owner-claimed'?Effect.die(new Error('injected after owner claim')):Effect.void):Effect.void}},job,sequence:1,expectedActivityUnits:[],unassignedClaims:new Set(),activeWorkspaces:new Set([connection.preparation.reservation]),preparationSignal:work.controller.signal}
- const seededKeys=[]
+ const seededKeys=[],existingRevisions=[]
+ if(sharedRelease)for(const outcome of prepared.outcomes.filter(outcome=>outcome.status==='ready'))existingRevisions.push({prepared:outcome.prepared,revision:run(lifecycle.residentRegisterCurrentWork(sourcePartition(observation.root,observation.advicee),outcome.prepared))})
  if(mode==='retention-cached-clear'||mode==='retention-joined-claimed') {
   const partition=evaluationSourcePartition(observation,work.id,'controlled',job.settings.configuration.policy.digest)
   for(const outcome of prepared.outcomes.filter(outcome=>outcome.status==='ready')) {
@@ -100,6 +106,7 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
    else if(mode==='retention-preinstall-cancel')await assert.rejects(flow,/WrongGeneration/)
    else if(mode==='retention-constructor-fault')await assert.rejects(flow,/injected post machine construction failure/)
    else if(['retention-fault-after-enqueue-ack','retention-fault-after-queue-commit'].includes(mode))await assert.rejects(flow,/acknowledgement loss/)
+   else if(reuseFault)await assert.rejects(flow,cleanupReceiptFault?/injected original clear release failure/:/injected reuse commit acknowledgement loss/)
    else if(mode==='retention-fault-owner-claimed')await assert.rejects(flow,/injected after owner claim/)
    else if(mode==='retention-fault-after-revision')await assert.rejects(flow,/injected before spawn state change/)
    else continued=await flow()
@@ -134,7 +141,14 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
    for(const key of context.unassignedClaims)await Effect.runPromise(lifecycle.residentReleaseReuseClaim(key))
    if(!job.completed)await Effect.runPromise(ledger.observation('agent',job.canonicalObservationId,'interruptObservation',connection.round))
   }
-  if(mode==='retention-success'||mode==='retention-joined-pending'||mode==='retention-after-enqueue-ack'||mode==='retention-after-queue-commit'||mode==='retention-fault-after-queue-commit'||mode==='retention-fault-after-enqueue-ack') {
+  if(reuseFault){
+   const snapshot=run(transaction.read)
+   assert.equal(continued,undefined);assert.equal(snapshot.records.dispatch.entries.size,0);assert.equal(snapshot.records.revision.current.size,existingRevisions.length)
+   for(const existing of existingRevisions)assert.equal(run(ledger.revision.current(existing.revision,existing.prepared)),true,'lost release ack removed pre-existing revision owner')
+   assert.deepEqual(context.expectedActivityUnits,[])
+   if(reuseFault[0]==='AppendJoined'){assert.equal([...snapshot.records.joined.entries.values()].flat().length,1);assert.equal(run(joined.hasAdmission(1)),true)}
+   else assert.equal(snapshot.records.reuse.pending.size,0)
+  }else if(mode==='retention-success'||mode==='retention-joined-pending'||mode==='retention-after-enqueue-ack'||mode==='retention-after-queue-commit'||mode==='retention-fault-after-queue-commit'||mode==='retention-fault-after-enqueue-ack') {
    assert.equal(continued,faultJoinRestore||mode.startsWith('retention-fault-')?undefined:!['retention-after-enqueue-ack','retention-after-queue-commit'].includes(mode));assert.equal(registrations,['retention-after-enqueue-ack','retention-after-queue-commit','retention-fault-after-enqueue-ack','retention-fault-after-queue-commit'].includes(mode)?1:prepared.outcomes.filter(outcome=>outcome.status==='ready').length)
    const snapshot=run(transaction.read),pending=[...snapshot.records.reuse.pending.values()].filter(Boolean)
    assert.equal(pending.length,registrations);assert.equal(snapshot.records.revision.current.size,registrations)
@@ -165,6 +179,7 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
   for(const unit of pending){await Effect.runPromise(lifecycle.residentReleaseUnit(unit));await Effect.runPromise(lifecycle.residentReleaseReuseClaim(unit.evaluationKey))}
   for(const key of seededKeys)if(mode==='retention-joined-claimed')await Effect.runPromise(lifecycle.residentReleaseReuseClaim(key))
   if(mode==='retention-cached-clear')await Effect.runPromise(reuse.clear())
+  for(const existing of existingRevisions)await Effect.runPromise(lifecycle.residentReleaseCurrentWork(existing.revision))
   const terminal=run(transaction.read)
   assert.equal(terminal.reservations.size,0,mode+' reservations after cleanup')
   assert.equal(terminal.records.revision.current.size,0,mode+' revisions after cleanup')

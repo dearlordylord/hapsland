@@ -3186,7 +3186,7 @@
     {
       "path": "whole-resolver/CanonicalResolverOwner.bend",
       "capture": "whole-resolver/CanonicalResolverOwner.bend.txt",
-      "sha256": "f45b1529f6b9b554f11c18f4dfdcb5b81251661bd591e7cd712a9a61ab207d83"
+      "sha256": "f119b04d3eb004cd8f84caf8cd59aaa9ddc8ccfc4026aa2235fb12333ae3f064"
     },
     {
       "path": "whole-resolver/CaptureAdmission.bend",
@@ -3336,7 +3336,7 @@
     {
       "path": "whole-resolver/PostPreparation.bend",
       "capture": "whole-resolver/PostPreparation.bend.txt",
-      "sha256": "b62ee4442a4ac51cb0c8fbbf304725818932cdac0cecd565e5123956f415719a"
+      "sha256": "eeac28b443a7d53b98448f57d5892d123dd64fc418793f7917efd18eb70a47a9"
     },
     {
       "path": "whole-resolver/Preparation.bend",
@@ -3574,6 +3574,11 @@
       "sha256": "fb5b827ca02597f7f58fb83a394fbc4f409d8eef2652cd31542e5d6b147d1e1e"
     },
     {
+      "path": "whole-resolver/advice-tail-provider.mjs",
+      "capture": "whole-resolver/advice-tail-provider.mjs",
+      "sha256": "a221f348a317426848b9a46fdd4844799537b04b0d9daa80dc3ff0cb714703d5"
+    },
+    {
       "path": "whole-resolver/aggregate-pure-costs.mjs",
       "capture": "whole-resolver/aggregate-pure-costs.mjs",
       "sha256": "d644d167e242b82e008e51c535e6f3194c5ebc71202fe754b3c3e73727b7f132"
@@ -3596,7 +3601,7 @@
     {
       "path": "whole-resolver/canonical-owner-check.mjs",
       "capture": "whole-resolver/canonical-owner-check.mjs",
-      "sha256": "22952fb769b19c6e6a3bc815c76b69608ecce77f1502293f83eb8b627c7eaa0d"
+      "sha256": "a16a5035ec4afa0b94ed0fa4067b674618220ddb110dbd22fc2637a0045884e5"
     },
     {
       "path": "whole-resolver/cargo-specification-check.mjs",
@@ -3706,17 +3711,17 @@
     {
       "path": "whole-resolver/post-preparation-check.mjs",
       "capture": "whole-resolver/post-preparation-check.mjs",
-      "sha256": "b60502758e6c6454db862fe0e4ebcf6d28a2485b86624c343b8b01dd6016078f"
+      "sha256": "2da9bf30712ca9bbc830bac01604412ce857b4b105c60bce0ed8660095a9202d"
     },
     {
       "path": "whole-resolver/post-preparation-dispatcher.mjs",
       "capture": "whole-resolver/post-preparation-dispatcher.mjs",
-      "sha256": "53e708c12e4e6e8a8f9180dc938de37c29624f148820edc07d24b40c9c48a412"
+      "sha256": "a584d98bb472f63436aac12b27911395aae9226647bab2b49f697f9aeb83c29d"
     },
     {
       "path": "whole-resolver/post-preparation-host.mjs",
       "capture": "whole-resolver/post-preparation-host.mjs",
-      "sha256": "2d512885a82041b48fbf66356c6f3e7720eae3cfaf2e5946430faa041853e998"
+      "sha256": "ee36b5cf5504c20f450e2970275a2227d2e7e6ebfdfba3781aa906aca119e9b6"
     },
     {
       "path": "whole-resolver/preparation-dispatcher.mjs",
@@ -3916,22 +3921,22 @@
     {
       "path": "whole-resolver/resident-owner-check.mjs",
       "capture": "whole-resolver/resident-owner-check.mjs",
-      "sha256": "5d472a64257504a0c5f4635118d572d55ed1756943394c2663dc825c69c544e4"
+      "sha256": "da60324317411efda83418e4d3e472b89179623da14ed82b95b840a41b8d83e6"
     },
     {
       "path": "whole-resolver/resident-owner-transaction.mjs",
       "capture": "whole-resolver/resident-owner-transaction.mjs",
-      "sha256": "7dbc62ef88033e2bf43cfe53535e709d3fc8279a3d8cf1641bfac1cd2b7291a4"
+      "sha256": "75cba4a419b8721f0ae4800e35b98a67a60a3dfe08af73c745fa9f1fb953f3ed"
     },
     {
       "path": "whole-resolver/resident-preparation-check.mjs",
       "capture": "whole-resolver/resident-preparation-check.mjs",
-      "sha256": "94046de0be1985a7e20ffe490e6ab5ff266fcd1bdf927d81bc74e0fd3b49a0ec"
+      "sha256": "05cbad423a095f5c13822b138fea66d73e7526745a1171e214a5f85ee77cc588"
     },
     {
       "path": "whole-resolver/resident-provider-permit.mjs",
       "capture": "whole-resolver/resident-provider-permit.mjs",
-      "sha256": "3a5480119924b55bfd578184e5cee41193870f6d43472c8a4e0dd10a68ba8dcf"
+      "sha256": "1c92af09cd33f158fb9a1cc601078bfa886867f3be8de032d8abb85b0870e030"
     },
     {
       "path": "whole-resolver/result-check.mjs",
@@ -3941,7 +3946,7 @@
     {
       "path": "whole-resolver/retention-consumer.mjs",
       "capture": "whole-resolver/retention-consumer.mjs",
-      "sha256": "5fe76de89d039c6cd310defbae4edd51bc5f3ca3e85d9493306d79c474333a23"
+      "sha256": "43251d4bc5b229260b7b711dbf317ac2a868dd32a3bdd9ca3a89b1f2dbbe62b7"
     },
     {
       "path": "whole-resolver/root-attribution-check.mjs",

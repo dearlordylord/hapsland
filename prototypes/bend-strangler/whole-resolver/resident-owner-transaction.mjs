@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect'
+import {residentAdvice} from '../../../packages/resident-runtime/src/resident/state/resident/advice.ts'
 import {encodeCanonicalEvent} from '@hapsland/canonical-policy/canonical/adapter'
 import {projectTrustedCanonical} from '@hapsland/canonical-policy/canonical/canonical-boundary'
 import {freezeCanonicalData} from '@hapsland/canonical-policy/canonical/immutable'
@@ -46,8 +47,16 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
  const event=input=>finish(committedEvent(input))
  // Existing native capacity operations run once. Their resulting state and child
  // invalidation are published by the same actual resident commitAllEffect.
- const nativeCommit=(operation,credential,onCommitted,pendingRestore)=>finish(transaction.commitAllEffect((draft,records)=>{
+ const nativeCommit=(operation,credential,onCommitted,pendingRestore,adviceTail)=>finish(transaction.commitAllEffect((draft,records)=>{
   if(credential&&!owner.provider_live(owner.assembled(convert(draft.canonical,true),draft.resolverCustody),credential.invocation,credential.generation,credential.lease,credential.request))throw new Error('Revoked resident provider permit')
+  const child=credential?owner.find(credential.invocation,draft.resolverCustody.children):undefined
+  const tailScope=child?.$==='Some'&&child.value.scope.$==='AdviceTailScope'?child.value.scope:undefined
+  if(tailScope){
+   if(!adviceTail||!owner.advice_provider_allowed(owner.assembled(convert(draft.canonical,true),draft.resolverCustody),credential.invocation,credential.generation,credential.lease,credential.request,adviceTail.permission))throw new Error('Advice tail requires a closed capability operation')
+   const capability=adviceTail.capability
+   if(tailScope.partition!==BigInt(draft.partitionIds.get(capability.partition)??0)||tailScope.lifetime!==1n||tailScope.round!==BigInt(capability.canonicalRound)||tailScope.operation!==BigInt(capability.canonicalOperationId))throw new Error('Advice capability differs from issued tail scope')
+   if(adviceTail.permission.$==='TailPublish'&&records.advice.entries.get(capability.id)?.capability!==capability)throw new Error('Advice capability no longer owned')
+  }else if(adviceTail)throw new Error('Closed advice operation requires tail authority')
   if(pendingRestore&&records.reuse.pending.get(pendingRestore.key)!==pendingRestore.owner)throw new Error('Pending revision owner changed before commit')
   // Observe every assignment, including reset -> recreation in one callback.
   // This prototype interception is replaced by closed production capacity calls.
@@ -69,11 +78,25 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   const result=publication(draft,owner.resident_reconcile(convert(canonical,true),draft.resolverCustody))
   const joined=[...actions,...result.actions]
   const bendList=joined.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
-  return [{...result,actions:joined,raw:{...result.raw,actions:bendList},value,restoredPending:pendingRestore&&value?.revision?{pendingOwnerIdentity:pendingRestore.owner,revision:value.revision}:undefined,claimedKeys:credential&&nextRecords.reuse?[...nextRecords.reuse.pending.keys()].filter(key=>!records.reuse.pending.has(key)):[],transferredUnits:credential&&nextRecords.dispatch?[...nextRecords.dispatch.entries].filter(([id])=>!records.dispatch.entries.has(id)).map(([,entry])=>entry.value):[]},nextRecords]
+  return [{...result,adviceOwnership:adviceTail?{capability:adviceTail.capability,presentBefore:records.advice.entries.get(adviceTail.capability.id)?.capability===adviceTail.capability,presentAfter:nextRecords.advice.entries.get(adviceTail.capability.id)?.capability===adviceTail.capability}:undefined,actions:joined,raw:{...result.raw,actions:bendList},value,restoredPending:pendingRestore&&value?.revision?{pendingOwnerIdentity:pendingRestore.owner,revision:value.revision}:undefined,claimedKeys:credential&&nextRecords.reuse?[...nextRecords.reuse.pending.keys()].filter(key=>!records.reuse.pending.has(key)):[],transferredUnits:credential&&nextRecords.dispatch?[...nextRecords.dispatch.entries].filter(([id])=>!records.dispatch.entries.has(id)).map(([,entry])=>entry.value):[]},nextRecords]
  }),onCommitted)
- const native=operation=>nativeCommit(operation)
+ const native=(operation,onCommitted)=>nativeCommit(operation,undefined,onCommitted)
  const nativeScoped=(credential,operation,onCommitted)=>nativeCommit(operation,credential,onCommitted)
  const nativeRestorePending=(credential,pendingOwner,operation,onCommitted)=>nativeCommit(operation,credential,onCommitted,pendingOwner)
+ // Closed effect bindings: callers cannot supply a native transaction callback.
+ const adviceTailBinding=(credential,capability,permission,onCommitted)=>residentAdvice({...transaction,
+  commitAllEffect:operation=>nativeCommit(operation,credential,onCommitted,undefined,{capability,permission}).pipe(Effect.map(result=>result.value))
+ })
+ const adviceTailPublish=(credential,capability,onCommitted)=>adviceTailBinding(credential,capability,{$:'TailPublish'},onCommitted).publish(capability)
+ const adviceTailRemove=(credential,capability,onCommitted)=>{
+  let ownership
+  return adviceTailBinding(credential,capability,{$:'TailRemove'},publication=>{ownership=publication.adviceOwnership;onCommitted?.(publication)}).remove(capability,'stale').pipe(Effect.map(removed=>({removed,absent:ownership?.presentAfter===false})))
+ }
+ // A registry finalizer can remove only its exact capability after the lease ends.
+ // Native advice.remove confirms absence without touching a replacement identity.
+ const adviceCleanup=(capability,onCommitted)=>residentAdvice({...transaction,
+  commitAllEffect:operation=>native(operation,onCommitted).pipe(Effect.map(result=>result.value))
+ }).remove(capability,'stale')
  const ownerStep=result=>result.raw.$==='Refused'?{$:'Rejected',refusal:result.raw.refusal}:{$:'Advanced',actions:result.raw.actions,outputs:result.raw.outputs}
  const methods={
   launch:(scope,input_handle)=>({$:'LaunchEvent',scope,input_handle}),
@@ -94,5 +117,5 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   readState(){const snapshot=Effect.runSync(transaction.read);return owner.assembled(convert(snapshot.canonical,true),snapshot.resolverCustody)},
   invoke(method,args){if(!Object.hasOwn(methods,method))throw new Error('Unknown resident owner entry');return ownerStep(Effect.runSync(committedEvent(methods[method](...args))))}
  }
- return {read:transaction.read,event,native,nativeScoped,nativeRestorePending,control,ownerStep,canonical:input=>event({$:'CanonicalEvent',event:convert(encodeCanonicalEvent(input),true)})}
+ return {read:transaction.read,event,native,nativeScoped,nativeRestorePending,adviceTailPublish,adviceTailRemove,adviceCleanup,control,ownerStep,canonical:input=>event({$:'CanonicalEvent',event:convert(encodeCanonicalEvent(input),true)})}
 }

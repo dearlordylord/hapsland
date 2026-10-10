@@ -25,3 +25,22 @@ export function createPostPreparationMachine(core) {
   get retainedHandles(){return 0}
  }
 }
+
+// The same module implements the independent post-insert continuation.
+export function createAdviceTailMachine(core){
+ return {
+  initial:input=>core.advice_initial(input.invocation,input.adviceTail.advice),
+  resume:(step,event)=>{
+   if(event.$!=='Types.ServiceReply')throw new Error('Invalid advice tail reply envelope')
+   return core.advice_resume(step,event.reply)
+  },
+  view:step=>{
+   if(step.$==='AdviceAwait')return {$:'Types.AwaitService',request:step.request}
+   if(step.$==='AdviceFinished')return {$:'AdviceTailFinished'}
+   if(step.$==='AdviceStopped'||step.$==='AdviceCleanupPending')return {$:'AdviceTailStopped',reason:step.reason,cleanupPending:step.$==='AdviceCleanupPending'}
+   throw new Error('Unsettled advice tail projection')
+  },
+  accepted:projection=>projection.$==='AdviceTailFinished'?{adviceRetained:true}:{adviceRetained:false,reason:projection.reason,cleanupPending:projection.cleanupPending},
+  disposeInvocation(){},get retainedHandles(){return 0}
+ }
+}

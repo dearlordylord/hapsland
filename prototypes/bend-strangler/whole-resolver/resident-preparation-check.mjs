@@ -61,14 +61,14 @@ try{
  const postEmission=join(temp,'PostPreparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PostPreparation.bend'),'-o',postEmission],{timeout:5000})
  const postCore=(await import(pathToFileURL(postEmission))).default,postMachine=createPostPreparationMachine(postCore)
  let cases=0,requests=0,postRequests=0
- for(const mode of ['two-roots','first-refused','parent-cancel-late-success','parent-cancel-late-rejection','resize-refused','mixed-contracts','retention-success','retention-before-flow','retention-owner-claimed','retention-after-revision','retention-fault-owner-claimed','retention-fault-after-revision','retention-cached-clear','retention-joined-claimed','retention-joined-pending','retention-bend-success','retention-bend-cached-clear','retention-bend-joined-claimed','retention-bend-joined-pending','retention-bend-after-revision','retention-bend-fault-after-revision','retention-owned-success','retention-owned-cached-clear','retention-owned-joined-claimed','retention-owned-after-revision','retention-owned-fault-after-revision','retention-owned-before-flow','retention-owned-before-enqueue','retention-owned-after-enqueue-ack','retention-owned-after-queue-commit','retention-owned-fault-after-queue-commit','retention-owned-fault-after-enqueue-ack','retention-owned-preinstall-cancel','retention-owned-constructor-fault','retention-owned-duplicate-active','retention-owned-joined-pending','retention-owned-joined-pending-restore-fault']) {
+ for(const mode of ['two-roots','first-refused','parent-cancel-late-success','parent-cancel-late-rejection','resize-refused','mixed-contracts','retention-success','retention-before-flow','retention-owner-claimed','retention-after-revision','retention-fault-owner-claimed','retention-fault-after-revision','retention-cached-clear','retention-joined-claimed','retention-joined-pending','retention-bend-success','retention-bend-cached-clear','retention-bend-joined-claimed','retention-bend-joined-pending','retention-bend-after-revision','retention-bend-fault-after-revision','retention-owned-success','retention-owned-cached-clear','retention-owned-joined-claimed','retention-owned-after-revision','retention-owned-fault-after-revision','retention-owned-before-flow','retention-owned-before-enqueue','retention-owned-after-enqueue-ack','retention-owned-after-queue-commit','retention-owned-fault-after-queue-commit','retention-owned-fault-after-enqueue-ack','retention-owned-preinstall-cancel','retention-owned-constructor-fault','retention-owned-duplicate-active','retention-owned-joined-pending','retention-owned-joined-pending-restore-fault','retention-owned-fault-reuse-claim','retention-owned-fault-clear-register','retention-owned-fault-clear-release','retention-owned-fault-joined-append','retention-owned-fault-clear-shared-release','retention-owned-fault-clear-cleanup-receipt']) {
   const owned=mode.startsWith('retention-owned-'),postSessions=new Map()
   const currentPath=mode==='mixed-contracts'?'mixed.ts':'root.py'
   if(mode==='mixed-contracts')await writeFile(join(root,currentPath),'export interface Foo { value: string }\nexport function run(value: Foo): Foo { return value }\n')
   const connection=initial(),registry=createServiceRegistry(),cache=new Map(),rootCaptures=new Map(),selections=new Map();let parentInvocation,cancelled=false,roots=0,physicalLateSuccess=0
   const context={root,rootIdentity,policy:DEFAULT_DIRECT_FILE_POLICY,branch:'type',limits:GRAPH_LIMIT_CEILINGS,now:()=>0,captureCache:cache,captureSource:(...args)=>captureStable(...args).pipe(Effect.tap(result=>Effect.sync(()=>{if(cancelled&&result.status==='captured')physicalLateSuccess++})),Effect.flatMap(result=>mode==='parent-cancel-late-rejection'&&cancelled?Effect.fail(new Error('injected native late capture failure')):Effect.succeed(result)))}
   const snapshotCaptures=()=>list([...cache].map(([path,capture],index)=>({$:'Capture',path,handle:BigInt(index+1),text:capture.text,content_hash:capture.contentHash,bytes:BigInt(capture.byteLength)})))
-  let duplicateChecked=false
+  let duplicateChecked=false,reuseFaultInjected=false,originalCleanupFailure=false
   const driver=createOwnedArtifactDriver({owner,control:connection.control,scope,artifacts,registry,
    hooks:{beforeInstall:({invocation})=>{if(mode==='retention-owned-preinstall-cancel'&&postSessions.has(Number(invocation)))driver.cancel(invocation)}},
    selectMachine:input=>{if(input.postPreparation&&mode==='retention-owned-constructor-fault')throw new Error('injected post machine construction failure');return input.preparation?preparationMachine:input.postPreparation?postMachine:undefined},foreign:async([request],options)=>{
@@ -80,6 +80,9 @@ try{
      await assert.rejects(driver.driveHandoff(connection.owned.receipt,postSession,()=>postSession.input),/Session already owned/)
      assert.strictEqual(Effect.runSync(connection.transaction.read),before);assert.deepEqual(driver.resources,resources)
     }
+    const faultCommand={'retention-owned-fault-reuse-claim':'LookupReuse','retention-owned-fault-clear-register':'RegisterClear','retention-owned-fault-clear-release':'ReleaseClear','retention-owned-fault-joined-append':'AppendJoined','retention-owned-fault-clear-shared-release':'ReleaseClear'}[mode]
+    if(mode==='retention-owned-fault-clear-cleanup-receipt')return postSession.perform(request,{...options,beforeCommand:command=>{if(command.$==='ReleaseClear'&&!originalCleanupFailure){originalCleanupFailure=true;throw new Error('injected original clear release failure')}},afterCommit:(command,publication)=>{if(command.$==='Cleanup'&&publication.releasedAcquisition!==undefined&&!reuseFaultInjected){reuseFaultInjected=true;throw new Error('injected cleanup release action sink failure')}}})
+    if(faultCommand)return postSession.perform(request,{...options,afterCommit:command=>{if(!reuseFaultInjected&&command.$===faultCommand){reuseFaultInjected=true;throw new Error('injected reuse commit acknowledgement loss')}}})
     return postSession.perform(request,mode==='retention-owned-joined-pending-restore-fault'?{...options,afterPendingRestore:()=>{throw new Error('injected pending restore acknowledgement loss')}}:options)
    }
    if(request.operation) {
@@ -174,6 +177,7 @@ try{
    }
   }
   if(mode==='retention-owned-duplicate-active')assert.equal(duplicateChecked,true)
+  if(mode.includes('-fault-reuse-')||mode.includes('-fault-clear-')||mode.includes('-fault-joined-'))assert.equal(reuseFaultInjected,true)
   assert.equal(driver.stats.providerStarts,driver.stats.providerCleanups)
   assert.deepEqual(driver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0});assert.equal(registry.size,0)
   const rootFds=await Promise.all((await readdir('/proc/self/fd')).map(fd=>readlink('/proc/self/fd/'+fd).catch(()=>'')));assert.equal(rootFds.filter(path=>path===root||path.startsWith(root+'/')).length,0)

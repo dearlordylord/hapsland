@@ -83,6 +83,25 @@ try {
  let cancelledPreparation=fresh();cancelledPreparation=advanced(m.launch_preparation(cancelledPreparation,scope,600n));cancelledPreparation=advanced(m.cancel(cancelledPreparation,1n));reject(m.launch_preparation(cancelledPreparation,scope,601n),'NotPreparing');assertions++
  let failedPreparation=fresh();failedPreparation=advanced(m.launch_preparation(failedPreparation,scope,500n));out=m.terminal_preparation_failed(failedPreparation,1n,0n,501n);assert.deepEqual(list(out.actions).map(action=>action.$),['AcceptResult']);assertions++
  reject(m.terminal_preparation(fresh(),99n,0n,600n),'UnknownInvocation');assertions++
+ // Advice custody is born at PendingFinding and survives source/round cutoff.
+ let adviceState=fresh();adviceState=advanced(m.launch_preparation(adviceState,scope,700n));adviceState=advanced(m.terminal_preparation(adviceState,1n,0n,701n))
+ adviceState=advanced(m.canonical_event(adviceState,c('PreparationCompleted',{partition:1n,lifetime:1n,round:1n,operation:2n,unit_bytes:{$:'Con',head:100n,tail:{$:'Nil'}}})))
+ adviceState=advanced(m.install(adviceState,2n,0n,702n,0n));adviceState=advanced(m.provider_start(adviceState,2n))
+ reject(m.handoff_advice(adviceState,2n,0n,1n,0n,3n,703n),'WrongPhase');assertions++
+ adviceState=advanced(m.canonical_event(adviceState,c('StartReview',{partition:1n,lifetime:1n,round:1n,operation:3n})))
+ adviceState=advanced(m.canonical_event(adviceState,c('ReviewCompleted',{partition:1n,lifetime:1n,round:1n,operation:3n,outcome:c('Finding')})))
+ for(const tuple of [[2n,1n,1n,0n],[2n,0n,2n,0n],[2n,0n,1n,1n]]){reject(m.handoff_advice(adviceState,...tuple,3n,703n),'WrongLease');assertions++}
+ out=m.handoff_advice(adviceState,2n,0n,1n,0n,3n,703n);assert.deepEqual(list(out.actions),[{$:'LaunchAdviceTail',invocation:3n,origin:2n,operation:3n,input_handle:703n}]);adviceState=advanced(out);assertions++
+ reject(m.handoff_advice(adviceState,2n,0n,1n,0n,3n,704n),'WrongPhase');assertions++
+ const tail=m.find(3n,adviceState.children).value;assert.equal(tail.parent.$,'None');reject(m.launch(adviceState,tail.scope,704n),'NotPreparing');reject(m.install(adviceState,3n,0n,705n,0n),'WrongGeneration');reject(m.install_advice(adviceState,3n,0n,705n,0n,{$:'TailPublish'}),'WrongGeneration');reject(m.terminal(adviceState,3n,0n,706n),'WrongPhase');assertions+=5
+ adviceState=advanced(m.install_advice(adviceState,3n,0n,705n,0n,{$:'TailBarrier'}));adviceState=advanced(m.provider_start(adviceState,3n))
+ adviceState=advanced(m.cancel(adviceState,2n));assert.equal(m.find(3n,adviceState.children).value.phase.$,'ChildAwaiting');assert.equal(m.provider_live(adviceState,3n,0n,2n,0n),true);assert.equal(m.advice_provider_allowed(adviceState,3n,0n,2n,0n,{$:'TailPublish'}),false);assertions+=3
+ adviceState=advanced(m.canonical_event(adviceState,c('InterruptObservation',{partition:1n,lifetime:1n,round:1n,observation:1n})));assert.equal(m.provider_live(adviceState,3n,0n,2n,0n),true);assertions++
+ adviceState=advanced(m.provider_completed(adviceState,3n,2n,0n,707n));adviceState=advanced(m.install_advice(adviceState,3n,1n,708n,1n,{$:'TailActive'}));adviceState=advanced(m.provider_start(adviceState,3n));adviceState=advanced(m.provider_completed(adviceState,3n,3n,1n,709n))
+ adviceState=advanced(m.install_advice(adviceState,3n,2n,710n,2n,{$:'TailPublish'}));adviceState=advanced(m.provider_start(adviceState,3n));assert.equal(m.advice_provider_allowed(adviceState,3n,2n,4n,2n,{$:'TailPublish'}),true);assert.equal(m.advice_provider_allowed(adviceState,3n,2n,4n,2n,{$:'TailRemove'}),false);assertions+=2
+ adviceState=advanced(m.cancel(adviceState,3n));assert.equal(m.advice_provider_allowed(adviceState,3n,2n,4n,2n,{$:'TailPublish'}),false);assert.equal(m.advice_provider_allowed(adviceState,3n,2n,4n,2n,{$:'TailRemove'}),true);assertions+=2
+ adviceState=advanced(m.provider_completed(adviceState,3n,4n,2n,711n));reject(m.install_advice(adviceState,3n,3n,712n,3n,{$:'TailPublish'}),'WrongGeneration');assertions++
+ adviceState=advanced(m.install_advice(adviceState,3n,3n,712n,3n,{$:'TailRemove'}));adviceState=advanced(m.provider_start(adviceState,3n));adviceState=advanced(m.provider_completed(adviceState,3n,5n,3n,713n));adviceState=advanced(m.terminal(adviceState,3n,4n,714n));assert.equal(m.find(3n,adviceState.children).value.phase.$,'ChildAccepted');assert.equal(m.provider_live(adviceState,3n,4n,5n,3n),false);reject(m.advice_cleanup_only(adviceState,3n),'WrongPhase');assertions+=3
  for(const failureAt of ['input','machine','register']) {
   const registry=createServiceRegistry(),machine={initial:()=>({$:'PreparationFinished',result:{}}),view:value=>value,disposeInvocation(){},get retainedHandles(){return 0}}
   const driver=createOwnedArtifactDriver({owner:m,initialState:fresh(),scope,registry,machine,selectMachine:input=>{if(input.postPreparation&&failureAt==='machine')throw new Error('machine construction');return machine},foreign:()=>{throw new Error('unexpected provider')}})
