@@ -4,6 +4,9 @@ import { goConstantGroup, verifyGoSnapshot, createGoInspectionProfile } from "./
 import * as Schema from "effect/Schema"
 import { InspectionFact } from "@hapsland/inspection-records/inspection/contract"
 import { createHash } from "node:crypto"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 
 const receipt = { acknowledged: true, quoted: true }
@@ -129,3 +132,43 @@ test("final native acknowledgment is independent of an earlier pending marker", 
   )
   assert.equal(profile.observeNative(message("finished")).acknowledgment.final, "absent")
 })
+
+test(
+  "Go witness completes its success return after actual synthetic compilation",
+  { skip: process.env.HAPSLAND_GO_COMPILER_TEST !== "1" },
+  async () => {
+    const repository = mkdtempSync(join(tmpdir(), "hapsland-go-return-regression-"))
+    try {
+      const profile = createGoInspectionProfile({ diagnosticOnly: false })
+      profile.seed(repository)
+      writeFileSync(join(repository, "payment.go"), "package payment\ntype PaymentState interface { paymentState() }\n")
+      const rule = configuredRules.find((rule) => rule.id === "meaningless_combinations")
+      profile.observeNative(
+        JSON.stringify({
+          type: "item.completed",
+          item: { type: "agent_message", text: `HAPSLAND_ADVICE_APPLIED\n${rule.message}` }
+        })
+      )
+      const snapshot = packet()
+      snapshot.records.push({
+        correlation: { evaluationId: "initial" },
+        fact: {
+          kind: "interpreted-findings",
+          payload: { status: "available", findings: [{ ruleId: rule.id, message: rule.message }] }
+        }
+      })
+      const result = await profile.verify({
+        repository,
+        bounded: async () => snapshot,
+        setPhase: () => {},
+        reportDiagnostic: () => {}
+      })
+      assert.equal(result.verdict, "demonstrated")
+      assert.equal(result.checks.agentAcknowledgesAndQuotesAdvice, true)
+      assert.equal(result.checks.sourceCompiles, true)
+      assert.equal(result.checks.exactTypedIotaGroup, true)
+    } finally {
+      rmSync(repository, { recursive: true, force: true })
+    }
+  }
+)
