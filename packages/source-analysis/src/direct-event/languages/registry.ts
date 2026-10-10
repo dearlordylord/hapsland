@@ -5,7 +5,14 @@ import { tsAdapter } from "./typescript.ts"
 import { rustAdapter } from "./rust-adapter.ts"
 import { bendAdapter } from "./bend/adapter.ts"
 import { pythonAdapter } from "./python.ts"
-export const registeredLanguages: readonly LanguageAdapter[] = [tsAdapter, rustAdapter, bendAdapter, pythonAdapter]
+import { goAdapter } from "./go-adapter.ts"
+export const registeredLanguages: readonly LanguageAdapter[] = [
+  tsAdapter,
+  rustAdapter,
+  bendAdapter,
+  pythonAdapter,
+  goAdapter
+]
 
 export const languageForPath = (path: string): LanguageAdapter | undefined =>
   registeredLanguages.find((language) => language.extensions.includes(extname(path).toLowerCase()))

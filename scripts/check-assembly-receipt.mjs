@@ -47,7 +47,7 @@ export const checkAssemblyReceipt = (root, receipt, context, entry, output, nati
       !transformation?.path ||
       transformed.has(transformation.path) ||
       transformation.policy !== "physical-native-bindings" ||
-      !["tree-sitter", "tree-sitter-typescript", "tree-sitter-rust", "tree-sitter-python"].includes(
+      !["tree-sitter", "tree-sitter-typescript", "tree-sitter-rust", "tree-sitter-python", "tree-sitter-go"].includes(
         transformation.packageName
       ) ||
       !/^[a-f0-9]{64}$/.test(transformation.transformedSha256 ?? "") ||
@@ -68,7 +68,9 @@ export const checkAssemblyReceipt = (root, receipt, context, entry, output, nati
   const seen = new Set()
   for (const input of receipt.inputs) {
     if (
-      ["tree-sitter", "tree-sitter-typescript", "tree-sitter-rust", "tree-sitter-python"].includes(input.external) &&
+      ["tree-sitter", "tree-sitter-typescript", "tree-sitter-rust", "tree-sitter-python", "tree-sitter-go"].includes(
+        input.external
+      ) &&
       input.path?.endsWith(".js") &&
       !transformed.has(input.path)
     )

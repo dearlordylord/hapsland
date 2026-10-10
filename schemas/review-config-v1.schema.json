@@ -39,7 +39,8 @@
           "typescript",
           "rust",
           "bend",
-          "python"
+          "python",
+          "go"
         ]
       },
       "description": "Changed-root analyzer languages. Omission inherits; an empty array selects no roots."
@@ -118,6 +119,72 @@
       "maximum": 3600000,
       "description": "Continuous fully quiet time before an open virtual round closes without Stop, in milliseconds. User configuration only; captured when the round opens.",
       "default": 300000
+    },
+    "analysis": {
+      "type": "object",
+      "properties": {
+        "go": {
+          "type": "object",
+          "properties": {
+            "goos": {
+              "type": "string",
+              "enum": [
+                "aix",
+                "android",
+                "darwin",
+                "dragonfly",
+                "freebsd",
+                "hurd",
+                "illumos",
+                "ios",
+                "js",
+                "linux",
+                "netbsd",
+                "openbsd",
+                "plan9",
+                "solaris",
+                "wasip1",
+                "windows"
+              ]
+            },
+            "goarch": {
+              "type": "string",
+              "enum": [
+                "386",
+                "amd64",
+                "arm",
+                "arm64",
+                "loong64",
+                "mips",
+                "mipsle",
+                "mips64",
+                "mips64le",
+                "ppc64",
+                "ppc64le",
+                "riscv64",
+                "s390x",
+                "wasm"
+              ]
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^(?!(?:aix|android|darwin|dragonfly|freebsd|hurd|illumos|ios|js|linux|netbsd|openbsd|plan9|solaris|wasip1|windows|386|amd64|arm|arm64|loong64|mips|mipsle|mips64|mips64le|ppc64|ppc64le|riscv64|s390x|wasm|unix|cgo|gc|gccgo)$)[A-Za-z0-9_]+$"
+              },
+              "maxItems": 64
+            }
+          },
+          "required": [
+            "goos",
+            "goarch",
+            "tags"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     },
     "graphLimits": {
       "$ref": "#/$defs/GraphLimitsSettings"
@@ -343,7 +410,8 @@
                   "typescript",
                   "rust",
                   "bend",
-                  "python"
+                  "python",
+                  "go"
                 ]
               }
             },
@@ -396,7 +464,8 @@
                   "typescript",
                   "rust",
                   "bend",
-                  "python"
+                  "python",
+                  "go"
                 ]
               }
             },

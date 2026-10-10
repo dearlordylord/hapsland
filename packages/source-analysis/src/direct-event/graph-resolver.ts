@@ -288,7 +288,8 @@ const prepareGraphBinding = Effect.fn("DirectEvent.prepareGraphBinding")(functio
 })
 const rootExpectedKind = (context: GraphResolveContext): "function" | undefined =>
   context.branch === "function" ? "function" : undefined
-const rootReviewUnit = (built: Built, dependencies: readonly string[]): ReviewUnit => ({
+const rootReviewUnit = (built: Built, dependencies: readonly string[], bindingFingerprint?: string): ReviewUnit => ({
+  ...(bindingFingerprint === undefined ? {} : { bindingFingerprint }),
   root: built.node,
   ...(dependencies.length === 0 ? {} : { sourceDependencies: dependencies })
 })
@@ -330,7 +331,7 @@ const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(function* (
     !permitLocalGraphFacts(binding.limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 0)
   )
     return undefined
-  const unit = rootReviewUnit(built, binding.dependencies)
+  const unit = rootReviewUnit(built, binding.dependencies, binding.bindingFingerprint)
   const frame: GraphFrame = {
     ...binding,
     unit,

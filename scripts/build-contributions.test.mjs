@@ -32,7 +32,9 @@ const fixture = (t) => {
           "@effect/ai-typesafe",
           "tree-sitter",
           "tree-sitter-typescript",
-          "tree-sitter-rust"
+          "tree-sitter-rust",
+          "tree-sitter-python",
+          "tree-sitter-go"
         ]
       }
     ])

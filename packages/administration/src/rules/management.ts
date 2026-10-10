@@ -47,7 +47,7 @@ const generatedRule = (id: string) => ({
   },
   message: "Review the authored domain constraint.",
   threshold: DEFAULT_RULE_THRESHOLD,
-  inputs: [{ languages: ["typescript", "rust", "bend"], kind: "type", requires: ["root-declaration"] }]
+  inputs: [{ languages: ["typescript", "rust", "bend", "python", "go"], kind: "type", requires: ["root-declaration"] }]
 })
 
 const generatedRuleText = (id: string): string => {

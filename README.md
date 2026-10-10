@@ -259,12 +259,15 @@ See the [complete configuration guide](./docs/configuration.md) for fields, prec
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with related local types and imports, within configured limits | Unsupported syntax or unresolved evidence can prevent review. |
 | Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Hapsland resolves explicit local `mod`/`use` bindings and aliases. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
 | Python (`.py`) | Same-file explicit annotated classes, dataclasses, class TypedDict, static BaseModel, explicit aliases/type statements and NewType. | Static authored evidence only; unknown executable constraints and external user types are omissions. No method/function roots or dependency execution. See the [bounded Python contract](docs/type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). |
+| Go (`.go`) | Edited named structs, defined types, aliases, interfaces and generics, with eligible active sibling types and original relevant typed constant groups. | Target-dependent packages need explicit `analysis.go` GOOS/GOARCH/tags. External packages, cgo, legacy/version/experiment constraints, functions and methods are outside this partial profile. Constant-only edits record a follow-up gap. |
 | Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, ordinary or erased datatype parameters, and literal quantity arguments. Related definitions come from the same file, explicit relative `.bend` alias imports, or the pinned Base `List`, within configured limits. | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. Constructors must occupy one line with two-space indentation. Literals inside datatype syntax remain unsupported; literals in unrelated bodies do not block extraction. |
 
 Rust cross-file context requires a selected `Cargo.toml` with an explicit
 2018, 2021, or 2024 edition and accepted library/binary targets. Workspace-inherited
 editions, custom build targets, and test/example/bench target tables are outside
 this profile. Module paths must be unambiguous; excluded supporting files stay unread.
+
+Go package membership uses bounded direct-directory discovery and the [declared constraint subset](./docs/type-function-review-proposal.md#go-active-package-constraint-subset). Unknown membership or incomplete type closure can prevent review. The pinned grammar currently rejects compact semicolon-separated constant blocks; source is never rewritten to bypass that gap.
 
 Language support applies to source review; it does not select an agent runtime.
 If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence

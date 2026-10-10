@@ -61,6 +61,7 @@ export type PathObservationOutcome =
                 | "declaration-limit"
                 | "declaration-merge"
                 | "no-declarations"
+                | "constant-only-demand-gap"
                 | "missing-evidence"
                 | "unsupported-reference"
                 | "reference-limit"

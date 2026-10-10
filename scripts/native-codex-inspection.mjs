@@ -63,6 +63,11 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
   const archive = resolve(archivePath)
   const archiveSha256 = hash(readFileSync(archive))
   const expectedAssets = nativePackageAssetsDigest(project)
+  const sourceCommit = (
+    await executeNative("git", ["-C", project, "rev-parse", "HEAD"], { timeout: 5000 })
+  ).stdout.trim()
+  const runnerSha256 = hash(readFileSync(new URL(import.meta.url)))
+  const profileSha256 = profile?.source ? hash(readFileSync(profile.source)) : undefined
   const scenario = profile?.scenario ?? "inspection-exclusions"
   const prompts = profile?.prompts ?? [
     profile?.prompt ??
@@ -80,11 +85,20 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         scenario,
         runtime: version.stdout.trim(),
         archiveSha256,
+        sourceCommit,
+        runnerSha256,
+        profileSha256,
         mode: "controlled-offline",
         hostCeilingMs: 240000,
         nativeTasks: prompts.length,
         residentPreparation: profile?.prepareResident ? "installed-resident-before-native-tasks" : "native-startup",
         nativeColdStartupValidation: false,
+        runtimeIdentityPreparation: profile?.prepareRuntime === true,
+        diagnosticOnly: profile?.diagnosticOnly === true,
+        hookInterposition: profile?.hookInterposition ?? "standard-installed-hooks",
+        installationProbeRuntime: profile?.prepareRuntime
+          ? "pinned-bun-with-packaged-native-entrypoint"
+          : "packaged-native-runtime",
         maximumJevRequests: 0,
         automaticHostRetries: 0,
         syntheticRepositoryOnly: true,
@@ -92,9 +106,12 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         hookTrustBypass: true,
         sandboxAndApprovalBypass: true,
         interactiveTrustValidation: false,
-        requiredSeam: profile
-          ? "installed native hooks -> resident -> private journal -> public HTTP -> browser -> replay"
-          : "installed native hooks -> resident -> private journal -> public HTTP/SSE -> browser"
+        requiredSeam:
+          profile?.browser === false
+            ? "installed native hooks -> prepared resident -> controlled provider -> delivered advice -> clear follow-up"
+            : profile
+              ? "installed native hooks -> resident -> private journal -> public HTTP -> browser -> replay"
+              : "installed native hooks -> resident -> private journal -> public HTTP/SSE -> browser"
       },
       null,
       2
@@ -140,9 +157,15 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
       REVIEW_CREDENTIAL_STATE_PATH: join(temporary, "credential-state.json"),
       HAPSLAND_ACTIVE_DISPATCH: "1",
       HAPSLAND_BUILD_BUN: resolveBunRuntime().executable,
-      REVIEW_CONTROL_JSON: JSON.stringify({
-        answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }]))
-      })
+      REVIEW_CONTROL_JSON: JSON.stringify(
+        profile?.control?.(repo) ?? {
+          answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }]))
+        }
+      )
+    }
+    if (profile?.prepareRuntime) {
+      env.REVIEW_INSTALL_RUNTIME = resolveBunRuntime().executable
+      delete env.REVIEW_INSTALL_ENTRYPOINT
     }
     delete env.TYPESAFE_API_KEY
     const installer = await preparePackageInstall(installation, archive, env)
@@ -156,6 +179,20 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
     const assets = nativePackageAssetsDigest(installed)
     assert.equal(assets.sha256, expectedAssets.sha256, "Installed runtime must match the acceptance candidate")
     assert.equal(hash(readFileSync(archive)), archiveSha256)
+    if (profile?.prepareRuntime) {
+      phase = "installed-runtime-preparation"
+      const identity = await executeNative(
+        join(installed, "dist", "bin", `${process.platform}-${process.arch}`, "hapsland-hook"),
+        ["--runtime-identity"],
+        { cwd: repo, env, timeout: 10000 }
+      )
+      assert.equal(identity.code, 0)
+      assert.deepEqual(JSON.parse(identity.stdout), {
+        version: resolveBunRuntime().version,
+        platform: process.platform,
+        architecture: process.arch
+      })
+    }
     const json = async (flag, request) => {
       const result = await executeNative(cli, [flag], {
         cwd: repo,
@@ -163,8 +200,23 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         input: JSON.stringify(request),
         timeout: 30000
       })
+      const value = JSON.parse(result.stdout)
+      if (result.code !== 0)
+        diagnostics = {
+          operation: flag,
+          exitCode: result.code,
+          status: value.status,
+          codexSupported: value.host?.compatibility?.codex?.supported ?? null,
+          pinnedProbeSelected: value.host?.compatibility?.runtime?.checks?.runtime?.path === env.REVIEW_INSTALL_RUNTIME,
+          runtimeChecks: Object.fromEntries(
+            Object.entries(value.host?.compatibility?.runtime?.checks ?? {}).map(([name, check]) => [
+              name,
+              { ready: check.ready, timedOut: check.observed === "timed-out" }
+            ])
+          )
+        }
       assert.equal(result.code, 0, `Installed ${flag} failed`)
-      return JSON.parse(result.stdout)
+      return value
     }
     phase = "install-preview"
     const preview = await json("--install-preview", {
@@ -203,6 +255,7 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
     // Keep the installed registrations and deadlines; select the supported offline reviewer.
     for (const groups of Object.values(settings.hooks))
       for (const group of groups) for (const hook of group.hooks) hook.command += " --controlled-reviewer"
+    await profile?.instrumentHooks?.({ settings, repository: repo, temporary, installed })
     writeFileSync(settingsPath, JSON.stringify(settings), { mode: 0o600 })
     let preparedResidentPid
     if (profile?.prepareResident) {
@@ -250,6 +303,7 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         { cwd: repo, env, timeout: remaining }
       )
       assert.equal(native.code, 0, "Real Codex session failed")
+      profile?.observeNative?.(native.stdout)
     }
     phase = "resident-selection"
     if (preparedResidentPid !== undefined) {
@@ -282,18 +336,22 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
       "dashboard startup"
     )
     if (profile !== undefined) {
-      phase = "browser-launch"
-      const { chromium } = createRequire(new URL("../packages/agent-flow-viz/package.json", import.meta.url))(
-        "playwright"
-      )
-      browserServer = await chromium.launchServer({ headless: true, timeout: 15000 })
-      browser = await chromium.connect(browserServer.wsEndpoint(), { timeout: 15000 })
-      const page = await browser.newPage()
       const errors = []
-      page.on("pageerror", (error) => errors.push(error.message))
+      let page
+      if (profile.browser !== false) {
+        phase = "browser-launch"
+        const { chromium } = createRequire(new URL("../packages/agent-flow-viz/package.json", import.meta.url))(
+          "playwright"
+        )
+        browserServer = await chromium.launchServer({ headless: true, timeout: 15000 })
+        browser = await chromium.connect(browserServer.wsEndpoint(), { timeout: 15000 })
+        page = await browser.newPage()
+        page.on("pageerror", (error) => errors.push(error.message))
+      }
       const verified = await profile.verify({
         url,
         page,
+        repository: repo,
         bounded,
         reportDiagnostic: (value) => {
           diagnostics = value
@@ -311,6 +369,9 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         mode: "controlled-offline",
         archiveSha256,
         runtimeAssets: assets,
+        sourceCommit,
+        runnerSha256,
+        profileSha256,
         operatingSystem: process.platform,
         architecture: process.arch,
         ...verified

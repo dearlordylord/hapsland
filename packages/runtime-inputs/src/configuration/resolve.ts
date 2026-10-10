@@ -256,8 +256,8 @@ const resolveContextPatterns = (
   let overriddenContextIncludes: ReadonlyArray<PatternOrigin> = []
   let contextExcludes: ReadonlyArray<PatternOrigin> = []
   let explicitContextExcludes = false
-  let languages = originated<ReadonlyArray<"typescript" | "rust" | "bend" | "python">>(
-    ["typescript", "rust", "bend", "python"],
+  let languages = originated<ReadonlyArray<"typescript" | "rust" | "bend" | "python" | "go">>(
+    ["typescript", "rust", "bend", "python", "go"],
     { layer: "built-in", source: "built-in", field: "languages" }
   )
   for (const layer of layers) {

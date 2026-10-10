@@ -17,7 +17,16 @@ export const CANDIDATE_RENDERER_DIGEST = sha256(
   "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,origin?,order],edges[from,to?,kind,symbol,reason?,order];omitted-symbol=bounded-opaque-source):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)"
 )
 
-type Kind = "interface" | "type-alias" | "struct" | "enum" | "datatype" | "class" | "function"
+type Kind =
+  | "interface"
+  | "type-alias"
+  | "struct"
+  | "enum"
+  | "datatype"
+  | "class"
+  | "defined-type"
+  | "function"
+  | "constant-group"
 type Artifact = Readonly<{
   id: string
   kind: Kind
@@ -103,6 +112,8 @@ const kind = (value: unknown): value is Kind =>
   value === "enum" ||
   value === "datatype" ||
   value === "class" ||
+  value === "defined-type" ||
+  value === "constant-group" ||
   value === "function"
 const source = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_CANDIDATE_SOURCE_BYTES
@@ -256,7 +267,9 @@ const rootedProjection = (root: Artifact, edges: ReadonlyArray<Edge>, ids: Reado
   return reached.size === ids.size
 }
 const artifactMatchesContract = (root: Artifact, contract: CandidateReviewInput["contract"]): boolean =>
-  contract === "direct-event/function/v1" ? root.kind === "function" : root.kind !== "function"
+  contract === "direct-event/function/v1"
+    ? root.kind === "function"
+    : root.kind !== "function" && root.kind !== "constant-group"
 
 const freeze = <A>(value: A): A => {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {

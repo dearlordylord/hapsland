@@ -12,7 +12,8 @@ const publicLanguageModules = new Set([
   "./languages/registry.ts",
   "./languages/contracts.ts",
   "./languages/function-facts.ts",
-  "@hapsland/source-analysis/direct-event/languages/registry"
+  "@hapsland/source-analysis/direct-event/languages/registry",
+  "@hapsland/source-analysis/direct-event/languages/contracts"
 ])
 
 describe("source-language architecture boundary", () => {

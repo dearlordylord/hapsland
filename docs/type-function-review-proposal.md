@@ -578,3 +578,77 @@ Python has no function-review input. The adopted cohort is Tree-sitter runtime
 0.25.1 and Python grammar 0.25.0, using existing manifest-owned native packaging.
 Executed installed/platform claims belong to task validation evidence, not this
 syntax and selection contract.
+## Go active-package constraint subset
+
+The owner-approved active-package Go slice under #267 freezes this subset before
+membership implementation. This section defines the supported authority envelope;
+the implemented adapter follows it. Installed-platform and native-session validation require separate evidence.
+
+Analysis uses a frozen Hapsland configuration snapshot declaring both GOOS and
+GOARCH plus an explicit complete user-tag list. It never adopts the host process's
+Go environment. Project configuration replaces the user Go analysis object as a
+whole; omission inherits. Missing target context may establish membership only
+for files without target-dependent constraints or platform suffixes. Target
+values come from the named platform tables in the implementation, rather than
+arbitrary strings; unsupported future platforms require a reviewed table change.
+
+Supported constraints are filename `_GOOS`, `_GOARCH` and `_GOOS_GOARCH` suffixes,
+and one leading `//go:build` expression with identifiers, `!`, `&&`, `||` and
+parentheses. User tags are explicit positive facts; absent ordinary user tags
+are false only with a complete configuration snapshot. `go1.*`, `goexperiment.*`,
+architecture feature tags, `cgo`, compiler tags and legacy `// +build` constraints
+are unknown. Unsupported facts remain unknown even in a boolean branch that
+would otherwise short-circuit. Cgo imports are unsupported authority. This
+profile does not execute the Go driver, repository scripts or generators.
+
+| Derived fact | Supported interpretation |
+| --- | --- |
+| GOOS and GOARCH tags | Exactly the declared target, with the OS aliases below |
+| `android` target | Also satisfies `linux` |
+| `illumos` target | Also satisfies `solaris` |
+| `ios` target | Also satisfies `darwin` |
+| `unix` | True for aix, android, darwin, dragonfly, freebsd, hurd, illumos, ios, linux, netbsd, openbsd, solaris |
+| Ordinary user tag | True exactly when present in the declared tag set |
+| Language, experiment, architecture feature, compiler or cgo tag | Unknown; no host-derived default |
+
+Filename suffixes also use the documented OS aliases above.
+Dot/underscore-prefixed and `_test.go` files do not belong to this production
+package profile. Constraint parsing has finite byte, token and nesting bounds;
+exhaustion yields unknown membership. Unknown membership, incomplete directory
+inventory or conflicting active bindings must prevent a claim of unique package
+identity. Supporting declarations and constant groups remain bounded separately
+by the existing capture and graph ceilings.
+
+The subset follows the official [Go build constraints](https://pkg.go.dev/cmd/go#hdr-Build_constraints).
+
+The Go slice uses the production-package directory as its local authority unit.
+It inspects at most 128 direct directory entries and at most the configured graph
+file ceiling (8 by default), including inactive files whose headers establish
+alternative identities. It never searches parent directories, module caches,
+imports or generated/vendor directories. A larger inventory is missing evidence,
+not permission to increase limits. All captured bytes count toward the existing
+source/read ceilings and all expanded declarations/groups count toward work,
+depth, outgoing-reference and encoded-tree ceilings. Constant discovery, including propagation through constant aliases, spends the same work budget before graph expansion; exhaustion omits evidence. Source-only membership
+metadata is fingerprinted locally; only reachable declarations and exact relevant
+constant groups go to the provider. New, removed or renamed directory entries,
+header/source changes and configuration facts change binding identity on fresh
+preparation. Revalidation repeats the bounded discovery rather than trusting the
+old dependency list.
+
+| Go model family | Shipped rule inputs intended for this slice | Evidence boundary |
+| --- | --- | --- |
+| Structs, embedded fields, pointers, maps and slices | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Exact declaration plus resolved package type closure; unknown external fields omit closure-dependent rules |
+| Defined scalar/container types and aliases | The same rules where their domain question applies | Nominal defined types remain distinct from aliases; constants are declared examples, never exhaustive runtime values |
+| Interfaces and generic constraints | The same rules only about declared structure | Interface method signatures and type sets are source structure, not a closed set of implementing runtime types |
+| Typed constant/iota groups | Supporting evidence for edited/referenced named types | Original complete group including ordinal predecessors and implicit expressions; no synthesized enumerator values |
+| Constant-only, function-only or receiver-method-only edits | None | No unchanged type root is selected; constant-only demand is an explicit follow-up gap |
+
+All three shipped rules retain their existing required type-closure capabilities.
+This matrix states admissible evidence; it does not establish live classifier
+accuracy, compiler acceptance or installed native validation.
+
+The pinned `tree-sitter-go` 0.25.0 grammar and existing `tree-sitter` 0.25.0 runtime use the manifest-owned native producer and external loader. Compact semicolon-separated constant blocks are a known parse omission. Leading block-comment headers are unknown in this bounded membership profile. No syntax rewriting or compiler/system dependency traversal fills these gaps.
+
+Named local array bounds retain their defining constant group. Other computed array-bound expressions remain unsupported evidence; the adapter does not evaluate them.
+
+Constant discovery infers types per binding for explicit named types, direct conversions, aliases, parentheses, unary and arithmetic/bitwise/boolean expressions, shifts from their left operand, and builtin min/max. Comparisons yield an untyped boolean and do not bring their groups into scalar evidence. Named alias identity follows only established package bindings. Expression inference and alias steps spend the same work ceiling; no constant values are computed. File-local imported qualifiers and dot-import uncertainty remain explicit omissions in relevant groups.

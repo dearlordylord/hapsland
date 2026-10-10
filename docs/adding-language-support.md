@@ -9,7 +9,7 @@
 
 ## Current implementation
 
-TypeScript, Rust, Bend, and the bounded same-file Python profile use the shared review pipeline. The
+TypeScript, Rust, Bend, the bounded same-file Python profile and the partial Go active-package profile use the shared review pipeline. Go resolves package bindings across eligible active sibling files, preserving file-local imports and generic parameter shadows. It never resolves another package or assumes a closed set of interface implementers. See the [Go authority profile](type-function-review-proposal.md#go-active-package-constraint-subset). The
 [README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,
@@ -113,8 +113,8 @@ Test plausible-looking bindings as well as happy paths:
 
 | Coverage | Existing examples |
 | --- | --- |
-| Extraction, references, exact source/ranges, shadowing, syntax omissions | [TypeScript](../src/direct-event/analyzer.test.ts), [Rust](../src/direct-event/rust-analyzer.test.ts), [Bend](../src/direct-event/bend-analyzer.test.ts) |
-| Attribution, rendering, rule admission, supporting captures and freshness | [TypeScript](../src/direct-event/pipeline.test.ts), [Rust](../src/direct-event/rust-pipeline.test.ts), [Bend](../src/direct-event/bend-pipeline.test.ts) |
+| Extraction, references, exact source/ranges, shadowing, syntax omissions | [TypeScript](../src/direct-event/analyzer.test.ts), [Rust](../src/direct-event/rust-analyzer.test.ts), [Bend](../src/direct-event/bend-analyzer.test.ts), [Go](../src/direct-event/go-analyzer.unit.test.ts) |
+| Attribution, rendering, rule admission, supporting captures and freshness | [TypeScript](../src/direct-event/pipeline.test.ts), [Rust](../src/direct-event/rust-pipeline.test.ts), [Bend](../src/direct-event/bend-pipeline.test.ts), [Go](../src/direct-event/go-pipeline.unit.test.ts) |
 | Cohesive adapter ownership | [Architecture guard](../src/direct-event/language-boundary.test.ts) |
 | Shared graph authority and traversal | [Authority tests](../src/direct-event/graph-resolver-authority.test.ts), [resolver tests](../src/direct-event/graph-resolver.test.ts) |
 
@@ -135,12 +135,191 @@ the [offline preparation record](https://github.com/dearlordylord/hapsland/blob/
 covers split-file compiler and freshness checks. Each record identifies its
 own revision and artifact; none substitutes for validation after a new change.
 
+## Retained Go partial-profile qualification
+
+The #271 package slice was qualified on 2026-10-09 with Node 24.20.0,
+Bun 1.3.14, pinned tree-sitter runtime 0.25.0 and Go grammar 0.25.0,
+Claude Code 2.1.218 and Go 1.27.2 on Linux arm64. Analysis target authority
+remains the frozen configuration described in the contract; the installed
+fixture is unconditional, and its compiler used GOOS=linux, GOARCH=arm64,
+CGO_ENABLED=0. No review-host target was inferred.
+
+`npm run typecheck`, `npm run check:fast` (71 unit tests plus source types,
+assets and changed-file lint), the affected shared/language consumer checks,
+120 focused native-owner/receipt/loader/boundary tests and 3 native binding
+probes passed. Product assembly and native-release validation covered Linux
+arm64 and Darwin arm64 assets; only Linux execution was tested. Clean-package
+conformance passed including partial update recovery, exact independently
+selected resident executable/hash/lifetime and controlled review. Earlier
+missing workspace exports, submodule/native-input prerequisites, loader
+allowlists and inherited-home harness failures did not qualify.
+
+The installed controlled Go adoption witness demonstrated native Write/Edit
+attribution, sibling evidence at provider input (3 evidence nodes, 3 expanded
+edges, no omissions), delivered advice, agent acknowledgement, repair,
+compiler acceptance, rejected interface composite literal and completed clear
+follow-up. Archive SHA-256 was
+`baa575a9f8819d0b4cd1a7efbeb5bfd90f773e266c6eb6352bb5534fe9da2677`;
+its 44 runtime assets had digest
+`2763246aa7c06c9d3c30e3f0518fa75c7c3afa939d8a3ea2e1d9abde99b5bbcc`.
+The executable source and harness fixes were present in the worktree while
+HEAD was d8204ffc; the later handoff documentation does not change those
+runtime inputs. Source-free local witness
+`claude-go-adoption-controlled-offline-1791589588864.json` reported
+`demonstrated`, zero Jev requests and no retained source/provider body/raw host
+stream/credentials. Normal interactive trust and live Jev quality were not
+tested. The open-interface repair proves the observed loop and compiler case,
+not a closed hierarchy or exclusion of every invalid runtime state.
+
+This is a parent #267 handoff for the local-package slice, not the #268 coverage
+study. External packages, cgo authority and unknown build constraints remain
+explicit omissions; functions/methods and constant-only review demand remain
+outside this profile. The shared V1 artifact, rule, native and packaging owners
+must merge both Go and Python registrations/pins/assets at integration. These
+checks qualify this slice, not the combined Python/Go candidate.
+
+## Go continuation qualification
+
+The continuation reapplies retained candidate `f564aa221007e6a52ebf642e645e4a1db0c4c3be`
+onto base `47fdf0f0afffc6eca9f613813eee7e533808e082`, preserving the Astro
+website changes. The retained observations above keep their original source,
+archive and runtime identities; they are not new-base execution claims.
+Their original source-free declaration and result are retained locally under
+`evidence/native-languages/` (ignored validation artifacts).
+
+A fresh independent review found a missing constant group for parenthesized
+explicit named types and aliases. The fix preserves those identities, including
+instantiated aliases, without rewriting source or computing constant values.
+The second review found that a generic alias parameter could be mistaken for
+a same-named package type. Alias identity now uses the same parameter scope as
+type references; analyzer and provider regressions exclude unrelated constants.
+The original imported-source shared consumer run passed 222 tests. The fixed
+source passed all 73 unit tests, including the new analyzer and actual provider
+projection regressions, and `check:fast` with `VITEST_MAX_WORKERS=1`; test and
+product deadlines were unchanged. The original parallel unit run timed out in
+an existing directory-budget test; serial qualification passed that case.
+The current native owner, loader, receipt, loading/packaging and hook-boundary
+selection passed 139 checks. Manual `docs:generated:check` passed after preparing
+current exports. Missing-export and overlapping-preparation attempts do not
+qualify. These are focused local checks, not full-project coverage.
+After the binder fix, all 75 source unit tests and 39 focused Go tests against
+rebuilt workspace exports passed. The first new-base package attempt exceeded
+its internal packing deadline while building; it does not qualify installation.
+
+The continuation archive has SHA-256
+`9ff4c0aa2dd4816c218ec281943dd5ce7dca1a9032cbc98deb0d63ef2269c032`.
+Its runtime source revision is `4c33862e5d9b1fb82b20fc21fd59c96f929a7191`;
+later continuation changes affect native witness tooling and documentation.
+The owned build and release-native checks passed, including packaged Linux and
+Darwin arm64 assets; this establishes assets, not Darwin execution. The exact
+archive passed clean-package conformance (`clean-package-passed-real-host-not-requested`).
+A prior pending-activity failure remains an unsuccessful observation.
+
+The current-archive Claude attempt reached a Go edit but did not establish the
+provider/advice/repair loop; it does not qualify installed Go delivery. The
+Codex Go profile uses the existing installed inspection seam with an isolated
+user home, controlled offline reviewer and prepared installed runtime/resident.
+It requires exact original typed-group provider evidence, independently
+correlated outcomes, actual agent acknowledgment and an exact quotation of the
+controlled finding absent from the task prompt, and a compiling open-interface
+repair. The default profile runs standard installed hooks without command
+interposition. Private finding fate alone is not delivery evidence. It does not exercise
+the browser, cold startup, ordinary interactive trust, Darwin execution or live
+Jev review quality. Its fixture assertions include rejection of missing receipts,
+controlled policy, provider evidence and delivery; model-input fixtures decode
+through the current version-one inspection contract. Initial witness reader
+errors (raw JSON versus transport encoding) were corrected separately from
+intermittent installation compatibility failures. No product probe deadline was
+changed. The prepared Go fixture explicitly selects pinned Bun for installation
+compatibility probing through the existing runtime override; launcher bindings
+still select the exact installed native hook and resident. An optional comparison
+observer delegates registered commands, preserves flags and deadlines, forwards
+successful stdout unchanged, and records only submission booleans; it is not
+required for qualification. Finding suppression or staleness alone cannot
+establish delivery; the agent must
+acknowledge and quote actual advice before its repair qualifies. A direct retained
+native identity check took 3.49 seconds, exceeding the unchanged two-second
+installation probe. This fixture does not qualify default installation startup.
+Source-free local declarations/results preserve each failed attempt.
+
+The earlier current-archive attempts below did not qualify installed advice and
+agent repair; the completed final witness is recorded after them.
+Codex attempt `1791606247590` passed exact typed-package provider evidence and
+both controlled outcomes, then failed the delivery assertion. Subsequent
+bounded disposition observation showed collection suppression and staleness,
+which alone do not prove delivery. The stdout-observed attempt ending
+`2026-10-10T04:53:30Z` reported an unavailable native selection, zero prepared
+units, zero advice submissions, and no agent acknowledgment or quoted advice.
+It is a failed witness, not a delivery claim. Installation failures additionally
+confirmed a timeout even with the pinned probe selected. A direct bounded
+control on the selected Bun invocation succeeded in 183 ms; the current-assets
+packaged hook identity succeeded in 3,516 ms. A verified installed #269 baseline
+was not available for the matched control, so regression attribution remains
+open. These source-free controls are retained under `.test-runs/`; no broader
+startup or host compatibility investigation is qualified here. The observer
+owner and Go consumer selection passed 35 checks with no skips, including failed-hook stdout,
+missing-provider, missing acknowledgment and missing unseen-quotation controls.
+A subsequent interrupted 90-second selection diagnostic retained selected
+candidates, one prepared unit, one provider input and one outcome in its private
+journal; only enum/count projections are retained, and the interrupted run does
+not qualify delivery. Matched direct child controls passed in both checkout and
+synthetic working directories; they do not establish the cause of intermittent
+installed-preview timeouts. The native acknowledgment reader initially combined every agent response and
+rejected an earlier negative marker even when the final response affirmed use.
+Attempt `1791609961545` measured marker order `absent, negative, absent, affirmed`,
+with an unseen controlled finding quotation and both correlated provider outcomes.
+The reader now requires an affirmative final response without a final negative
+marker and correlates its actual quotation with interpreted Go findings. Negative
+controls cover reversed marker order, mixed final markers, and missing receipt,
+quotation and follow-up. A stale stdout-observer variable in the success return
+was removed; the focused success-return regression executes the real synthetic
+compiler and returns demonstrated. The final fast gate passed all 75 unit tests.
+
+The isolated fixture compiler is official Go 1.27.2 Linux arm64, archive SHA256
+`94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8`,
+checked against the preparation record and executable version. Only the specific
+test environment selects its bin path, local toolchain and isolated caches;
+product analysis does not execute the compiler. Attempt `1791610458512` failed
+installation because the unchanged pinned-runtime probe timed out and adds no
+native delivery evidence. The 05:39–05:42 preparation
+pause produced no native declaration: an interrupted documentation prerequisite
+had left local owner exports incomplete. The owned export cohort subsequently
+recovered, the manual generated-document check passed, and full runner import
+validation passed before any installation.
+
+The final owned watcher began within the fresh Python preparation pause at
+`2026-10-10T05:56:54.447Z` and completed at `05:57:39.896Z`, without a retry.
+Current-archive witness `1791611817055` returned `demonstrated` on actual
+Codex CLI 0.155.1, Linux arm64, with standard installed hooks and zero Jev calls.
+All ten independent checks passed: attributed native edits, complete package
+closure, exact original typed iota group, controlled reviewer, initial finding,
+delivered advice, correlated clear follow-up, actual final agent acknowledgment
+and unseen finding quotation, repaired open interface, and real Go compilation.
+The declaration/result identify witness source
+`dc1d0ad03c4d46a62e275c7dc52fd52d320016d6`, runner/profile digests and
+44 matching native assets (digest
+`7cbda648fb8417ce3f87c805548cb4fc04b0cd8181b15b869491e9586b051c7e`).
+That witness source includes tooling and qualification records; the archive's
+runtime source remains `4c33862e5d9b1fb82b20fc21fd59c96f929a7191`.
+The source-free declaration/result remain under ignored `evidence/inspection/`;
+raw host streams, source and provider bodies were not retained. This qualifies
+the bounded installed Go package-model slice through the explicit pinned-Bun
+setup route. It does not qualify default installation startup, Claude delivery,
+Darwin execution, browser behavior, cold startup or live Jev review quality.
+The preparation pause declares only the Python owner's compiler inactivity,
+not the absence of foreign load. The next Go package-import slice remains #272;
+#268 must retain these measured setup limitations and the precise partial profile.
+
 ## Real-agent verification
 
 The [native runner](../scripts/run-native-crossfile-current.mjs) contains
-TypeScript, Rust, and Bend cross-file payment-state fixtures and compiler probes.
+TypeScript, Rust, Bend, and Go cross-file payment-state fixtures and compiler probes.
+The partial Go adoption fixture captures sibling defined types and an original
+typed iota group. Its repair uses an open interface: the compiler rejects a
+composite literal of that interface, but this does not establish a closed set
+of implementers or eliminate every invalid runtime state.
 The [testing matrix](testing-matrix.md) owns the commands for its controlled,
-paid, and negative scenarios across both agent runtimes and all three languages.
+paid, and negative scenarios across the declared agent and language profiles.
 Paid runs require a checkout with dependencies, compiler tools, agent
 authentication, and a Jev credential available.
 

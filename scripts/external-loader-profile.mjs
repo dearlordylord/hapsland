@@ -28,6 +28,11 @@ export const pinnedExternalLoaderProfiles = Object.freeze({
     nativeBinding: "tree_sitter_python_binding.node",
     policy: "tree-sitter-native"
   }),
+  "tree-sitter-go": Object.freeze({
+    originalSha256: "6b1e96de49fede8f4a49ec2f2c5b267f8d9cadb45248eebd56a3960e5d9b5dbb",
+    nativeBinding: "tree_sitter_go_binding.node",
+    policy: "tree-sitter-native"
+  }),
   "tree-sitter-rust": Object.freeze({
     originalSha256: "e0a42d089243cc2ea9539fdd3b154f620a644abca0cc4d800e8b97e63490d147",
     nativeBinding: "tree_sitter_rust_binding.node",

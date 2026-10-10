@@ -291,6 +291,7 @@ export const InspectionFact = Schema.Union([
       "unsupported-reference",
       "reference-limit",
       "ambiguous-update",
+      "constant-only-demand-gap",
       "function-analysis-unavailable",
       "function-overload",
       "unsupported-callable",

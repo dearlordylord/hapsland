@@ -71,7 +71,7 @@ const EnvironmentVariableName = Schema.String.check(Schema.isPattern(/^[A-Z_][A-
 
 export const RuleSettings = Schema.Struct({
   enabled: Schema.optionalKey(Schema.Boolean),
-  languages: Schema.optionalKey(Schema.Array(Schema.Literals(["typescript", "rust", "bend", "python"]))),
+  languages: Schema.optionalKey(Schema.Array(Schema.Literals(["typescript", "rust", "bend", "python", "go"]))),
   includes: Schema.optionalKey(Schema.Array(Pattern)),
   excludes: Schema.optionalKey(Schema.Array(Pattern)),
   threshold: Schema.optionalKey(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
@@ -138,7 +138,7 @@ export const ConfigurationDocument = Schema.Struct({
     })
   ),
   languages: Schema.optionalKey(
-    Schema.Array(Schema.Literals(["typescript", "rust", "bend", "python"])).annotate({
+    Schema.Array(Schema.Literals(["typescript", "rust", "bend", "python", "go"])).annotate({
       description: "Changed-root analyzer languages. Omission inherits; an empty array selects no roots."
     })
   ),
@@ -186,6 +186,56 @@ export const ConfigurationDocument = Schema.Struct({
       default: DEFAULT_VIRTUAL_ROUND_QUIET_MS
     })
   ),
+  analysis: Schema.optionalKey(
+    Schema.Struct({
+      go: Schema.optionalKey(
+        Schema.Struct({
+          goos: Schema.Literals([
+            "aix",
+            "android",
+            "darwin",
+            "dragonfly",
+            "freebsd",
+            "hurd",
+            "illumos",
+            "ios",
+            "js",
+            "linux",
+            "netbsd",
+            "openbsd",
+            "plan9",
+            "solaris",
+            "wasip1",
+            "windows"
+          ]),
+          goarch: Schema.Literals([
+            "386",
+            "amd64",
+            "arm",
+            "arm64",
+            "loong64",
+            "mips",
+            "mipsle",
+            "mips64",
+            "mips64le",
+            "ppc64",
+            "ppc64le",
+            "riscv64",
+            "s390x",
+            "wasm"
+          ]),
+          tags: Schema.Array(
+            Schema.String.check(
+              Schema.isMaxLength(128),
+              Schema.isPattern(
+                /^(?!(?:aix|android|darwin|dragonfly|freebsd|hurd|illumos|ios|js|linux|netbsd|openbsd|plan9|solaris|wasip1|windows|386|amd64|arm|arm64|loong64|mips|mipsle|mips64|mips64le|ppc64|ppc64le|riscv64|s390x|wasm|unix|cgo|gc|gccgo)$)[A-Za-z0-9_]+$/u
+              )
+            )
+          ).check(Schema.isMaxLength(64))
+        })
+      )
+    })
+  ),
   graphLimits: Schema.optionalKey(GraphLimitsSettings),
   rules: Schema.optionalKey(Schema.Array(RuleReference))
 }).annotate({
@@ -214,7 +264,7 @@ export type ResolvedPolicy = {
   readonly contextIncludes: ReadonlyArray<PatternOrigin>
   readonly overriddenContextIncludes: ReadonlyArray<PatternOrigin>
   readonly contextExcludes: ReadonlyArray<PatternOrigin>
-  readonly languages: Originated<ReadonlyArray<"typescript" | "rust" | "bend" | "python">>
+  readonly languages: Originated<ReadonlyArray<"typescript" | "rust" | "bend" | "python" | "go">>
   readonly protectedExcludes: ReadonlyArray<PatternOrigin>
   readonly credentialEnvVar: Originated<string>
   readonly claudeFeedbackMode: Originated<ClaudeFeedbackMode>

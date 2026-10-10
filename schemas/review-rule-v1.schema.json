@@ -65,7 +65,8 @@
                         "typescript",
                         "rust",
                         "bend",
-                        "python"
+                        "python",
+                        "go"
                       ]
                     },
                     "minItems": 1,
@@ -105,7 +106,8 @@
                         "typescript",
                         "rust",
                         "bend",
-                        "python"
+                        "python",
+                        "go"
                       ]
                     },
                     "minItems": 1,

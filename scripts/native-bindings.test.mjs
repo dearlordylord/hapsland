@@ -11,21 +11,30 @@ for (const runtime of [
   { name: "Node", executable: process.execPath },
   { name: "Bun", ...resolveBunRuntime() }
 ])
-  test(`source ${runtime.name} loads physical TypeScript and Rust parser bindings`, () => {
+  test(`source ${runtime.name} loads physical TypeScript, Rust and Go parser bindings`, () => {
     const probe = `
-    const { Parser, Rust, typeScriptRoot } = await import("./packages/source-analysis/src/direct-event/languages/native-parser.ts");
+    const { Parser, Rust, Go, typeScriptRoot } = await import("./packages/source-analysis/src/direct-event/languages/native-parser.ts");
     const ts = typeScriptRoot("fixture.ts", "type Count = number");
     const parser = new Parser();
     parser.setLanguage(Rust);
     const rust = parser.parse("type Count = u32;").rootNode;
-    console.log(JSON.stringify({ ts: ts.type, tsError: ts.hasError, rust: rust.type, rustError: rust.hasError }));
+    parser.setLanguage(Go);
+    const go = parser.parse("package p\\ntype Count int\\n").rootNode;
+    console.log(JSON.stringify({ go: go.type, goError: go.hasError, ts: ts.type, tsError: ts.hasError, rust: rust.type, rustError: rust.hasError }));
   `
     const result = execFileSync(runtime.executable, ["-e", probe], {
       cwd: new URL("..", import.meta.url),
       encoding: "utf8",
       timeout: 10000
     })
-    assert.deepEqual(JSON.parse(result), { ts: "program", tsError: false, rust: "source_file", rustError: false })
+    assert.deepEqual(JSON.parse(result), {
+      go: "source_file",
+      goError: false,
+      ts: "program",
+      tsError: false,
+      rust: "source_file",
+      rustError: false
+    })
   })
 
 test("materialized Bun runtime loads the owner parser artifacts", (t) => {
