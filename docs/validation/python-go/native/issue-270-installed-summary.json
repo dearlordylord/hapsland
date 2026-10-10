@@ -1,0 +1,73 @@
+{
+  "commit": "257060baaaebc506b85d03c41dc88b569707dbf7",
+  "archiveSha256": "12789ac2d33268585270d07d62c7202198b28779c03cd8326059c3364646aca0",
+  "platform": "linux/arm64",
+  "harnessNode": "24.20.0",
+  "installedBun": "1.3.14",
+  "host": "Codex CLI",
+  "hostVersion": "codex-cli 0.155.1",
+  "elapsedMs": 20231,
+  "controlledJevRequests": 0,
+  "normalTrustValidated": false,
+  "requestShapes": [
+    {
+      "rootKind": "class",
+      "inputBytes": 1175,
+      "evidenceBytes": 653,
+      "conditionalFindingSourceMatched": true,
+      "evidenceNodes": 2,
+      "crossFileEvidenceNodes": 2,
+      "expandedEdges": 2,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    },
+    {
+      "rootKind": "type-alias",
+      "inputBytes": 1718,
+      "evidenceBytes": 1259,
+      "conditionalFindingSourceMatched": false,
+      "evidenceNodes": 4,
+      "crossFileEvidenceNodes": 4,
+      "expandedEdges": 4,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    }
+  ],
+  "readVolumeBoundary": "source preparation replay of the final native edit; installed provider input bytes are in requestShapes",
+  "preparationReplay": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1,
+    "operations": [
+      "update"
+    ],
+    "sourceReadCount": 6,
+    "sourceReadBytes": 1058,
+    "canonicalTreeBytes": [
+      1608
+    ]
+  },
+  "checks": {
+    "initialDraftObserved": true,
+    "crossFileExpanded": true,
+    "findingDelivered": true,
+    "editAfterFinding": true,
+    "agentAcknowledgesAdvice": true,
+    "agentQuotesFinding": true,
+    "sourceChanged": true,
+    "finalDesignConstrained": true,
+    "sourceCompiles": true,
+    "declaredSuccessRequiresReceipt": true,
+    "installedHookStdoutSubmittedAdvice": true,
+    "installedCrossFileEvidence": true,
+    "installedInputSizesRecorded": true,
+    "preparationReadVolumeRecorded": true,
+    "followupObserved": true
+  },
+  "verdict": "demonstrated",
+  "nativeEvidenceFile": "codex-python-adoption-controlled-offline-1791612680970.json",
+  "nativeEvidenceSha256": "ab67a165365e4d9dab08d374b6eb7fed7377d0738d419ccd39387ff49e56b560",
+  "packageConformanceVerdict": "clean-package-passed-real-host-not-requested",
+  "packageConformanceSha256": "acbb687ae2afcc01fa6cf0cc23692177b6b53e62b0047d9f24c3193b24f64b2a"
+}

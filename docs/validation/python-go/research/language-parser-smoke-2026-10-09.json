@@ -1,0 +1,68 @@
+{
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "arm64",
+  "runtime": "0.25.1",
+  "scope": "one valid syntax fixture per grammar, Node only, no Hapsland adapter or Bun packaging",
+  "outcomes": [
+    {
+      "name": "tree-sitter-go",
+      "version": "0.25.0",
+      "hasError": false,
+      "root": "(source_file (package_clause (package_identifier)) (type_declaration (type_spec name: (type_identifier) type: (struct_type (field_declaration_list (field_declaration name: (field_identifier) type: (type_identifier)) (field_declaration name: (field_identifier) type: (pointer_type (type_identifier))))))))",
+      "status": "parsed"
+    },
+    {
+      "name": "tree-sitter-python",
+      "version": "0.25.0",
+      "hasError": false,
+      "root": "(module (import_from_statement module_name: (dotted_name (identifier)) name: (dotted_name (identifier)) name: (dotted_name (identifier))) (class_definition name: (identifier) superclasses: (argument_list (identifier)) body: (block (expression_statement (assignment left: (identifier) type: (type (identifier)))) (expression_statement (assignment left: (identifier) type: (type (generic_type (identifier) (type_parameter (type (identifier))))))))))",
+      "status": "parsed"
+    },
+    {
+      "name": "tree-sitter-c-sharp",
+      "version": "0.23.5",
+      "hasError": false,
+      "root": "(compilation_unit (record_declaration (modifier) name: (identifier) (parameter_list (parameter type: (predefined_type) name: (identifier)) (parameter type: (nullable_type type: (predefined_type)) name: (identifier)))))",
+      "status": "parsed"
+    },
+    {
+      "name": "tree-sitter-java",
+      "version": "0.23.5",
+      "hasError": false,
+      "root": "(program (interface_declaration (modifiers) name: (identifier) permits: (permits (type_list (type_identifier) (type_identifier))) body: (interface_body)) (record_declaration name: (identifier) parameters: (formal_parameters) interfaces: (super_interfaces (type_list (type_identifier))) body: (class_body)) (record_declaration name: (identifier) parameters: (formal_parameters (formal_parameter type: (type_identifier) name: (identifier))) interfaces: (super_interfaces (type_list (type_identifier))) body: (class_body)))",
+      "status": "parsed"
+    }
+  ],
+  "date": "2026-10-09",
+  "repositoryHead": "48c32e18a758aa92e7dcbe5e06380d4954bcbd60",
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "exitCode": 0,
+  "expected": "Each grammar loads and parses its synthetic fixture without syntax errors.",
+  "install": "npm install --ignore-scripts --legacy-peer-deps --no-audit --no-fund tree-sitter@0.25.1 tree-sitter-go@0.25.0 tree-sitter-python@0.25.0 tree-sitter-c-sharp@0.23.5 tree-sitter-java@0.23.5",
+  "preparation": [
+    "npm rebuild tree-sitter-java (60-second command bound)",
+    "TREE_SITTER_PREBUILD points to the existing Hapsland linux-arm64 source-built runtime artifact, whose digest is recorded below."
+  ],
+  "replay": "Copy language-parser-smoke.mjs into the isolated package directory; run TREE_SITTER_PREBUILD=/absolute/path/to/runtime-binding-directory node language-parser-smoke.mjs. Native directory contains build/Release/tree_sitter_runtime_binding.node.",
+  "limitations": [
+    "No adapter implementation, graph binding, compiler acceptance, Bun standalone packaging, macOS, Jev evaluation or agent delivery was tested.",
+    "legacy-peer-deps bypasses declared Java peer mismatch; one passing fixture does not certify a supported cohort.",
+    "Dependency installation was isolated under /tmp; repository dependencies were unchanged."
+  ],
+  "initialAttempts": [
+    {
+      "stage": "default npm runtime load",
+      "exitCode": 1,
+      "error": "GLIBCXX_3.4.31 missing from host libstdc++; existing project source-built runtime used subsequently."
+    },
+    {
+      "stage": "first grammar fixtures",
+      "exitCode": 0,
+      "go": "Missing final newline produced hasError=true; amended fixture then passed. No Go compiler test was run.",
+      "java": "No published linux-arm64 prebuild found in installed package; rebuilt locally then passed."
+    }
+  ],
+  "runtimeArtifactSha256": "d4dbe0dcf6fe46de813fe1b70799c11f9ff76ad61a2e7f870c131ba7ecee5765"
+}
