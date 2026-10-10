@@ -266,7 +266,6 @@ export function createGoInspectionProfile({
         checks: {
           ...checks,
           agentAcknowledgesAndQuotesAdvice: true,
-          installedHookStdoutSubmittedAdvice: submitted,
           repairedOpenInterface: true,
           sourceCompiles: true
         },
