@@ -259,6 +259,7 @@ type GraphFrame = GraphBinding & {
   readonly artifactsByTarget: Map<number, string>
   readonly captured: Map<string, { readonly file: FactFile; readonly sourceBytes: number }>
   readonly sourceCaptures: Map<string, StableCapture>
+  readonly failedCaptures: Set<string>
   nextId: number
   nextTargetId: number
   state: unknown
@@ -345,6 +346,7 @@ const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(function* (
     artifactsByTarget: new Map([[1, rootDeclaration.artifact.id]]),
     captured: new Map([[rootPath, { file: rootFile, sourceBytes: rootCapture.byteLength }]]),
     sourceCaptures: new Map([[rootPath, rootCapture]]),
+    failedCaptures: new Set(),
     state: initialImportGraph(binding.limits),
     command: { kind: "none" }
   }
@@ -694,11 +696,17 @@ const readSelectedGraphSource = Effect.fn("DirectEvent.readSelectedGraphSource")
     advanceGraph(frame, { kind: "captureFailed" })
     return "next"
   }
+  if (frame.failedCaptures.has(selected.relativePath)) {
+    advanceGraph(frame, { kind: "captureFailed" })
+    return "next"
+  }
+  if (!alreadyCaptured) frame.failedCaptures.add(selected.relativePath)
   const source = yield* captureGraphSource(frame, selected)
   if (source === undefined) {
     advanceGraph(frame, { kind: "captureFailed" })
     return "next"
   }
+  frame.failedCaptures.delete(selected.relativePath)
   frame.sourceCaptures.set(selected.relativePath, source)
   if (source.byteLength > frame.limits.sourceBytes) {
     // Reject measured source bytes in Bend before inspecting or retaining text.
@@ -741,10 +749,11 @@ const executeGraphCommand = (frame: GraphFrame): Effect.Effect<GraphCommandResul
 const sourceCaptureUsage = (frame: GraphFrame) => {
   const spent = projectImportGraph(frame.state)
   return {
-    files: Math.max(spent.files, frame.sourceCaptures.size),
+    files: Math.max(spent.files, frame.sourceCaptures.size + frame.failedCaptures.size),
     readBytes: Math.max(
       spent.readBytes,
-      [...frame.sourceCaptures.values()].reduce((sum, capture) => sum + capture.byteLength, 0)
+      [...frame.sourceCaptures.values()].reduce((sum, capture) => sum + capture.byteLength, 0) +
+        frame.failedCaptures.size * frame.limits.sourceBytes
     ),
     work: spent.work
   }

@@ -1,4 +1,4 @@
-import { rm, rename, symlink } from "node:fs/promises"
+import { appendFile, rm, rename, symlink } from "node:fs/promises"
 import { join } from "node:path"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
@@ -97,6 +97,15 @@ describe("Python bounded local model evidence", () => {
         )
         const result = yield* prepare(addEvent(root, ["model.py"]))
         expect(result.ready.map((item) => preparedProviderInput(item)?.artifact.name)).toEqual(["Good"])
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "model.py",
+            `import pkg as p\nclass Model:\n    value: p.${reference}\nclass Good:\n    value: str\n`
+          )
+        )
+        const moduleResult = yield* prepare(addEvent(root, ["model.py"]))
+        expect(moduleResult.ready.map((item) => preparedProviderInput(item)?.artifact.name)).toEqual(["Good"])
       }
     })
   )
@@ -472,6 +481,39 @@ describe("Python bounded local model evidence", () => {
       }
       yield* Effect.promise(() => put(root, "pkg/__init__.py", "from .base import Base\n__all__ = ['Base']\n"))
       expect((yield* prepare(addEvent(root, ["model.py"]))).ready).toHaveLength(1)
+    })
+  )
+  it.effect("unstable authority and source captures consume file and read reservations", () =>
+    Effect.gen(function* () {
+      for (const packages of [true, false]) {
+        const root = yield* Effect.promise(makeGitFixture)
+        const imports: string[] = [],
+          fields: string[] = []
+        for (let i = 0; i < 12; i++) {
+          const path = packages ? `pkg${i}/__init__.py` : `support${i}.py`
+          yield* Effect.promise(() => put(root, path, packages ? "from .base import Base\n" : base))
+          imports.push(`from ${packages ? "pkg" : "support"}${i} import Base as B${i}`)
+          fields.push(`    field${i}: B${i}`)
+        }
+        yield* Effect.promise(() =>
+          put(root, "model.py", imports.join("\n") + "\nclass Model:\n" + fields.join("\n") + "\n")
+        )
+        const reads: string[] = []
+        let last = ""
+        const result = yield* prepare(addEvent(root, ["model.py"]), {
+          captureHooks: {
+            sourceRead: (path) => {
+              reads.push(path)
+              last = path
+            },
+            betweenReads: () =>
+              last === "model.py" ? Effect.void : Effect.promise(() => appendFile(join(root, last), "# changed\n"))
+          }
+        })
+        expect(result.ready).toHaveLength(0)
+        expect(new Set(reads).size).toBeLessThanOrEqual(8)
+        expect(reads.some((path) => path !== "model.py")).toBe(true)
+      }
     })
   )
   it.effect("failed supporting declaration inspection still consumes the eight-file read ceiling", () =>

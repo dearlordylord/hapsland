@@ -365,7 +365,7 @@ const importedReference = (name: string, imports: ReadonlyMap<string, PythonImpo
   if (imported.module) {
     if (!name.startsWith(`${imported.prefix}.`)) return undefined
     const rest = name.slice(imported.prefix.length + 1).split(".")
-    return { path: imported.path + (rest.length > 1 ? "." + rest.slice(0, -1).join(".") : ""), name: rest.at(-1)! }
+    return { path: imported.path, name: rest.join(".") }
   }
   return { path: imported.path, name: [imported.name, ...tail].join(".") }
 }

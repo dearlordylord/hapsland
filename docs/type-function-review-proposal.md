@@ -614,8 +614,9 @@ All authority reads and supporting-source captures share the existing eight-file
 canonical-tree and five-second analysis ceilings. Metadata and initializers count
 as files/read bytes; every bounded membership probe and its final revalidation
 counts as work. Discovery probes only named import alternatives and their package
-ancestors. It does not index or send all project declarations. Failure to reserve
-or revalidate within these limits declines the affected result.
+ancestors. It does not index or send all project declarations. Failed stable captures retain their file/read reservations; failed semantic
+inspection also consumes the reader budget. Failure to reserve or revalidate
+within these limits declines the affected result.
 
 Uniqueness depends on positive captures and observed membership/absence of the
 bounded module, package, initializer, root and metadata alternatives. Revalidate
@@ -626,7 +627,10 @@ an unchanged positive declaration. Restoring the exact source and binding may
 make it current again. The provider receives only reachable declarations;
 authority-only metadata and initializer captures are source fingerprints, not
 invented declaration nodes. Independent complete roots remain eligible when
-another root has an omission.
+another root has an omission. Qualified member chains retain initializer
+binding authority: a bound class or rebound name is never guessed to be a
+sibling submodule. Only an unbound member or explicit module reexport can
+authorize the supported package-submodule fallback.
 
 The #268 continuation handoff owns executed acceptance evidence. This matrix does
 not establish classifier accuracy, Darwin execution, other native hosts, dynamic

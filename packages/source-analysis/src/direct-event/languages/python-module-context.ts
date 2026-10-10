@@ -63,6 +63,7 @@ export const createPythonGraphPreparation = (
     captures.set(rootPath, rootCapture)
     const dependencies: string[] = []
     const authority = new Map<string, StableCapture>()
+    const failedCaptures = new Set<string>()
     const canonicalCaptures = new Set([rootPath])
     const membership = new Map<string, Membership>()
     let work = 0
@@ -73,8 +74,9 @@ export const createPythonGraphPreparation = (
       work: limits.work
     }
     const usage = () => ({
-      files: authority.size,
-      readBytes: [...authority.values()].reduce((n, item) => n + item.byteLength, 0),
+      files: authority.size + failedCaptures.size,
+      readBytes:
+        [...authority.values()].reduce((n, item) => n + item.byteLength, 0) + failedCaptures.size * limits.sourceBytes,
       work
     })
     const permit = (reserveFiles = 0, reserveBytes = 0): boolean => {
@@ -139,6 +141,7 @@ export const createPythonGraphPreparation = (
     const readAuthority = Effect.fn("Python.captureAuthority")(function* (path: string) {
       const known = authority.get(path)
       if (known !== undefined) return known
+      if (failedCaptures.has(path)) return undefined
       // Every full-file reservation consumes the same source/read/file limits as graph evidence.
       const cached = captures.get(path)
       if (canonicalCaptures.has(path)) return permit() ? cached : undefined
@@ -152,6 +155,7 @@ export const createPythonGraphPreparation = (
       }
       let capture = cached
       if (capture === undefined) {
+        failedCaptures.add(path)
         const result = yield* (host.captureSource ?? captureStable)(
           host.root,
           selected,
@@ -164,6 +168,7 @@ export const createPythonGraphPreparation = (
           return undefined
         }
         capture = result.capture
+        failedCaptures.delete(path)
         captures.set(path, capture)
       }
       if (capture.byteLength > limits.sourceBytes || !permit(1, capture.byteLength)) return undefined
