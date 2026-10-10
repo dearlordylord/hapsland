@@ -1,9 +1,11 @@
 import {createArtifactMachine} from './artifact-dispatcher.mjs'
 // Effect/lifetime adapter for actual Canonical owner actions. Root selection and
 // resident retention are not implemented here: this is a composed intermediate.
-export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,registry,foreign,hooks={}}){
+export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,registry,foreign,hooks={},control}){
  const machine=createArtifactMachine({...artifacts,retainPrefixes:false})
- let state=initialState,nextHandle=1n
+ let state=control?undefined:initialState,nextHandle=1n
+ const current=()=>control?control.readState():state
+ const invoke=(method,...args)=>control?control.invoke(method,args):owner[method](state,...args)
  const resources=new Map(),leases=new Map(),launches=new Map(),sessions=new Map(),finished=new Map()
  const stats={launches:0,resumes:0,accepted:0,providerStarts:0,providerCleanups:0,revoked:0,discarded:0}
  const list=value=>{const out=[];while(value.$==='Con'){out.push(value.head);value=value.tail}if(value.$!=='Nil')throw new Error('Malformed owner action list');return out}
@@ -16,11 +18,11 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   if(projection.$==='Types.AwaitService'){
    if(projection.request.invocation!==invocation)throw new Error('Artifact request owner mismatch')
    const id=save(invocation,'state',raw);let transferred=false
-   try{hooks.beforeInstall?.({invocation,generation,handle:id,request:projection.request,driver});const step=owner.install(state,invocation,generation,id,projection.request.id);apply(step);transferred=true}
+   try{hooks.beforeInstall?.({invocation,generation,handle:id,request:projection.request,driver});const step=invoke('install',invocation,generation,id,projection.request.id);apply(step);transferred=true}
    finally{if(!transferred)release(id,invocation)}
   }else{
    const id=save(invocation,'result',projection)
-   try{hooks.beforeTerminal?.({invocation,generation,handle:id,driver});apply(owner.terminal(state,invocation,generation,id))}
+   try{hooks.beforeTerminal?.({invocation,generation,handle:id,driver});apply(invoke('terminal',invocation,generation,id))}
    finally{release(id,invocation)}
   }
  }
@@ -61,24 +63,29 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    default:throw new Error('Unknown owner action '+command.$)
   }
  }
- const apply=step=>{
-  // Commit revoked continuation rights before any output or physical action.
-  state=step.state
-  if(step.$==='Rejected')throw new Error('Canonical resolver refused: '+step.refusal.$)
-  if(step.$!=='Advanced')throw new Error('Unknown owner step')
+ const executeActions=commands=>{
   let failure
-  for(const command of list(step.actions)){
+  for(const command of commands){
    if(failure&&!['RetireHandle','CleanupProvider','CancelChild'].includes(command.$))continue
    try{action(command)}catch(error){failure??=error}
   }
+  if(failure)throw failure
+ }
+ const apply=step=>{
+  // External control has already committed through resident Ref.modify.
+  if(!control)state=step.state
+  if(step.$==='Rejected')throw new Error('Canonical resolver refused: '+step.refusal.$)
+  if(step.$!=='Advanced')throw new Error('Unknown owner step')
+  let failure
+  try{executeActions(list(step.actions))}catch(error){failure=error}
   try{hooks.canonicalOutputs?.(list(step.outputs))}catch(error){failure??=error}
   if(failure)throw failure
  }
  const driver={
   allocateInvocation(){
-   if(state.next_invocation<1n||state.next_invocation>BigInt(Number.MAX_SAFE_INTEGER))throw new RangeError('Invocation exceeds exact native ID range')
+   if(current().next_invocation<1n||current().next_invocation>BigInt(Number.MAX_SAFE_INTEGER))throw new RangeError('Invocation exceeds exact native ID range')
    const inputId=save(0n,'pending-input',undefined)
-   try{apply(owner.launch(state,scope,inputId));const invocation=state.next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
+   try{apply(invoke('launch',scope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
    catch(error){resources.delete(inputId);throw error}
   },
   async drive(session,input,options={}){
@@ -88,15 +95,15 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    resources.set(launch.input_handle,{invocation,kind:'input',value:input})
    return registry.run(session,async()=>{
     let abortFailure
-    const abort=()=>{try{const child=owner.find(invocation,state.children);if(child.$==='Some'&&owner.child_active(child.value))apply(owner.cancel(state,invocation))}catch(error){abortFailure??=error}}
+    const abort=()=>{try{const child=owner.find(invocation,current().children);if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation))}catch(error){abortFailure??=error}}
     options.signal?.addEventListener('abort',abort,{once:true})
     try{
      if(options.signal?.aborted)abort()
      if(finished.has(invocation))return finished.get(invocation)
      try{settle(invocation,0n,machine.initial(load(launch.input_handle,invocation,'input')))}finally{release(launch.input_handle,invocation)}
      while(!finished.has(invocation)){
-      apply(owner.provider_start(state,invocation))
-      const child=owner.find(invocation,state.children).value,lease=leases.get(child.lease.value.id),leaseId=child.lease.value.id
+      apply(invoke('provider_start',invocation))
+      const child=owner.find(invocation,current().children).value,lease=leases.get(child.lease.value.id),leaseId=child.lease.value.id
       let payload
       try{
        const signal=options.signal?AbortSignal.any([options.signal,lease.controller.signal]):lease.controller.signal
@@ -106,18 +113,18 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
       const replyId=save(invocation,'reply',payload)
       try{
        hooks.beforeCompletion?.({invocation,lease:leaseId,request:lease.request,driver})
-       apply(owner.provider_completed(state,invocation,leaseId,lease.request.id,replyId))
+       apply(invoke('provider_completed',invocation,leaseId,lease.request.id,replyId))
       }catch(error){
-       try{const child=owner.find(invocation,state.children);if(child.$==='Some'&&owner.child_active(child.value))apply(owner.cancel(state,invocation))}
-       finally{if(leases.has(leaseId))apply(owner.provider_completed(state,invocation,leaseId,lease.request.id,replyId))}
+       try{const child=owner.find(invocation,current().children);if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation))}
+       finally{if(leases.has(leaseId))apply(invoke('provider_completed',invocation,leaseId,lease.request.id,replyId))}
        throw error
       }finally{release(replyId,invocation)}
      }
      if(abortFailure)throw abortFailure
      return finished.get(invocation)
     }catch(error){
-     const child=owner.find(invocation,state.children)
-     if(child.$==='Some'&&owner.child_active(child.value))apply(owner.cancel(state,invocation))
+     const child=owner.find(invocation,current().children)
+     if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation))
      throw error
     }finally{
      options.signal?.removeEventListener('abort',abort)
@@ -127,10 +134,12 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
     }
    })
   },
-  constructionFailed(invocation){apply(owner.cancel(state,BigInt(invocation)))},
-  cancel(invocation){apply(owner.cancel(state,BigInt(invocation)))},
-  canonicalEvent(event){apply(owner.canonical_event(state,event))},
-  get state(){return state},get stats(){return {...stats}},
+  constructionFailed(invocation){apply(invoke('cancel',BigInt(invocation)))},
+  cancel(invocation){apply(invoke('cancel',BigInt(invocation)))},
+  acceptActions(commands){executeActions(commands)},
+  acceptPublication(step){apply(step)},
+  canonicalEvent(event){apply(invoke('canonical_event',event))},
+  get state(){return current()},get stats(){return {...stats}},
   get resources(){return {payloads:resources.size,leases:leases.size,sessions:sessions.size,artifactStates:machine.retainedHandles,launches:launches.size}}
  }
  return driver

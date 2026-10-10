@@ -3156,7 +3156,7 @@
     {
       "path": "whole-resolver/CanonicalResolverOwner.bend",
       "capture": "whole-resolver/CanonicalResolverOwner.bend.txt",
-      "sha256": "57047022db5b2691d0d452b1ee1b5f8efa091fc3a999a5febfa7708ac6264d46"
+      "sha256": "b4ec92a3c40f278990a9c2d33bb2eb1c49c49e746c4182b6e4c7cba429c54977"
     },
     {
       "path": "whole-resolver/CaptureAdmission.bend",
@@ -3304,6 +3304,16 @@
       "sha256": "996e591994e83223eb5fb74ba94a2e47ec5e235fb639c4bcfa2223fe4090f7ff"
     },
     {
+      "path": "whole-resolver/Preparation.bend",
+      "capture": "whole-resolver/Preparation.bend.txt",
+      "sha256": "d30e6277b4f4ee57768c054111e72fde449eed030b3e271ff32ffb990f09323e"
+    },
+    {
+      "path": "whole-resolver/PreparationSelection.bend",
+      "capture": "whole-resolver/PreparationSelection.bend.txt",
+      "sha256": "21aaad9b3b7fec38a4fa51f817576361a401745977c194e7b50835f384bc081d"
+    },
+    {
       "path": "whole-resolver/PreparationSpecification.bend",
       "capture": "whole-resolver/PreparationSpecification.bend.txt",
       "sha256": "79c02a7b81c1eff66039f008d2630a33519fc14b35d31ea9135a6cb35aa28a9d"
@@ -3362,6 +3372,11 @@
       "path": "whole-resolver/Root.bend",
       "capture": "whole-resolver/Root.bend.txt",
       "sha256": "ec07e5716260da13e25368de684ba16d4943ba1dfb03c16ad3b34b26452ff2e2"
+    },
+    {
+      "path": "whole-resolver/RootAttribution.bend",
+      "capture": "whole-resolver/RootAttribution.bend.txt",
+      "sha256": "bebd240a55b42d5ff499a1e2b1c7e35b1d1ffaea1bde7c5fb706e8b04247af1d"
     },
     {
       "path": "whole-resolver/RootPlanning.bend",
@@ -3631,7 +3646,7 @@
     {
       "path": "whole-resolver/owned-artifact-driver.mjs",
       "capture": "whole-resolver/owned-artifact-driver.mjs",
-      "sha256": "8a2b5bf60bfedc025412f9a189a6a812c363815bea59d14fc61b93ea489e57a7"
+      "sha256": "95a84d8b9342eae0485447f74fe088489d54832a319e04a80f01a0eac6451680"
     },
     {
       "path": "whole-resolver/owned-root-check.mjs",
@@ -3642,6 +3657,11 @@
       "path": "whole-resolver/package-runtime.mjs",
       "capture": "whole-resolver/package-runtime.mjs",
       "sha256": "e31e271205e2204939640eea6505e48f523d142ab8a4a7dea9b931ac6223ad4e"
+    },
+    {
+      "path": "whole-resolver/preparation-selection-check.mjs",
+      "capture": "whole-resolver/preparation-selection-check.mjs",
+      "sha256": "f6306ece96fe93e7fe7321c3a2d5ae13dd25f178f049966700abb5adf815af02"
     },
     {
       "path": "whole-resolver/python-alternatives-check.mjs",
@@ -3814,9 +3834,29 @@
       "sha256": "1aae3b110c7df24444874fd940cca5651d938c7794cfcb37894a964e540c22e7"
     },
     {
+      "path": "whole-resolver/resident-owned-root-check.mjs",
+      "capture": "whole-resolver/resident-owned-root-check.mjs",
+      "sha256": "f63023255338ec52396253139fdc3379093af3d9ae2f0ab0a20e816f32ed2c4c"
+    },
+    {
+      "path": "whole-resolver/resident-owner-check.mjs",
+      "capture": "whole-resolver/resident-owner-check.mjs",
+      "sha256": "37a276de042015360190d6640d47bdb6c017f9c599c9c8215fa8cd1172000361"
+    },
+    {
+      "path": "whole-resolver/resident-owner-transaction.mjs",
+      "capture": "whole-resolver/resident-owner-transaction.mjs",
+      "sha256": "2f676d3ea0ebf221890de039d2a4ab738fb8b9b130e8979c6aff60e7501e08ac"
+    },
+    {
       "path": "whole-resolver/result-check.mjs",
       "capture": "whole-resolver/result-check.mjs",
       "sha256": "50c2e1e0e614694224b78f255f4ba725cc4760a34f30ef31bc9683f6326eeb1a"
+    },
+    {
+      "path": "whole-resolver/root-attribution-check.mjs",
+      "capture": "whole-resolver/root-attribution-check.mjs",
+      "sha256": "bd50a153ed2b36f9a0a21e8a4998b4684f1eb1ee5fc05d11d37bd47d0e86d17f"
     },
     {
       "path": "whole-resolver/runtime-model-check.mjs",

@@ -282,5 +282,63 @@ def initial(canonical: C.State) -> State:
 def initial_limits(global_items: Nat, global_bytes: Nat, partition_items: Nat, partition_bytes: Nat) -> State:
   initial(C.initial(Ledger.Limits{global_items, global_bytes, partition_items, partition_bytes}))
 
+# Resident stores only this custody beside its sole Canonical state. State above
+# is an ephemeral call value, never a second mutable Canonical authority.
+type Custody is Data:
+  Custody{next_invocation: Nat, next_lease: Nat, children: List<&2, Child>}
+type ResidentEvent is Data:
+  CanonicalEvent{event: C.CanonicalEvent}
+  LaunchEvent{scope: Scope, input_handle: Nat}
+  InstallEvent{invocation: Nat, generation: Nat, handle: Nat, request: Nat}
+  ProviderStartEvent{invocation: Nat}
+  ProviderCompletedEvent{invocation: Nat, lease: Nat, request: Nat, reply_handle: Nat}
+  CancelEvent{invocation: Nat}
+  TerminalEvent{invocation: Nat, generation: Nat, result_handle: Nat}
+type Publication is Data:
+  Published{canonical: C.State, custody: Custody, outputs: List<&2, C.Output>, actions: List<&2, Action>}
+  Refused{refusal: Refusal}
+
+def initial_custody() -> Custody:
+  Custody{1n, 1n, Nil{}}
+
+def assembled(canonical: C.State, custody: Custody) -> State:
+  match custody:
+    case Custody{next_invocation, next_lease, children}:
+      State{canonical, next_invocation, next_lease, children}
+
+def publish(step: Step) -> Publication:
+  match step:
+    case Advanced{State{canonical, next_invocation, next_lease, children}, outputs, actions}:
+      Published{canonical, Custody{next_invocation, next_lease, children}, outputs, actions}
+    case Rejected{_, refusal}: Refused{refusal}
+
+def resident_event(state: State, event: ResidentEvent) -> Step:
+  match event:
+    case CanonicalEvent{event}: canonical_event(state, event)
+    case LaunchEvent{scope, input_handle}: launch(state, scope, input_handle)
+    case InstallEvent{invocation, generation, handle, request}: install(state, invocation, generation, handle, request)
+    case ProviderStartEvent{invocation}: provider_start(state, invocation)
+    case ProviderCompletedEvent{invocation, lease, request, reply_handle}:
+      provider_completed(state, invocation, lease, request, reply_handle)
+    case CancelEvent{invocation}: cancel(state, invocation)
+    case TerminalEvent{invocation, generation, result_handle}: terminal(state, invocation, generation, result_handle)
+
+def resident_step(canonical: C.State, custody: Custody, event: ResidentEvent) -> Publication:
+  publish(resident_event(assembled(canonical, custody), event))
+
+# Transitional seam for existing native capacity operations: reconcile their
+# final Canonical state inside the same transaction, without stepping it twice.
+def reconcile_join(canonical: C.State, custody: Custody, invalidated: Invalidated) -> Publication:
+  match custody invalidated:
+    case Custody{next_invocation, next_lease, _} Invalidated{children, actions}:
+      Published{canonical, Custody{next_invocation, next_lease, children}, Nil{}, actions}
+
+def custody_children(custody: Custody) -> List<&2, Child>:
+  match custody:
+    case Custody{_, _, children}: children
+
+def resident_reconcile(+canonical: C.State, +custody: Custody) -> Publication:
+  reconcile_join(canonical, custody, invalidate_all(canonical, custody_children(custody)))
+
 def main() -> Unit:
   Unit{}
