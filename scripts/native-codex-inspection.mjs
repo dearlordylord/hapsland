@@ -192,7 +192,19 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         timeout: 30000
       })
       const value = JSON.parse(result.stdout)
-      if (result.code !== 0) diagnostics = { operation: flag, exitCode: result.code, status: value.status }
+      if (result.code !== 0)
+        diagnostics = {
+          operation: flag,
+          exitCode: result.code,
+          status: value.status,
+          codexSupported: value.host?.compatibility?.codex?.supported ?? null,
+          runtimeChecks: Object.fromEntries(
+            Object.entries(value.host?.compatibility?.runtime?.checks ?? {}).map(([name, check]) => [
+              name,
+              { ready: check.ready, timedOut: check.observed === "timed-out" }
+            ])
+          )
+        }
       assert.equal(result.code, 0, `Installed ${flag} failed`)
       return value
     }

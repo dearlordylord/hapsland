@@ -154,7 +154,10 @@ export function createGoInspectionProfile() {
               ])
             )
           })
-          return value.records.filter((record) => record.fact.kind === "evaluation-outcome").length >= 2
+          return value.records.filter((record) => record.fact.kind === "evaluation-outcome").length >= 2 &&
+            value.records.some(
+              (record) => record.fact.kind === "finding-fate" && record.fact.reason === "delivery-finalized"
+            )
             ? value
             : undefined
         },
