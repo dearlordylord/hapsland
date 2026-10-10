@@ -205,6 +205,7 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
           exitCode: result.code,
           status: value.status,
           codexSupported: value.host?.compatibility?.codex?.supported ?? null,
+          pinnedProbeSelected: value.host?.compatibility?.runtime?.checks?.runtime?.path === env.REVIEW_INSTALL_RUNTIME,
           runtimeChecks: Object.fromEntries(
             Object.entries(value.host?.compatibility?.runtime?.checks ?? {}).map(([name, check]) => [
               name,
@@ -252,6 +253,7 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
     // Keep the installed registrations and deadlines; select the supported offline reviewer.
     for (const groups of Object.values(settings.hooks))
       for (const group of groups) for (const hook of group.hooks) hook.command += " --controlled-reviewer"
+    await profile?.instrumentHooks?.({ settings, repository: repo, temporary, installed })
     writeFileSync(settingsPath, JSON.stringify(settings), { mode: 0o600 })
     let preparedResidentPid
     if (profile?.prepareResident) {

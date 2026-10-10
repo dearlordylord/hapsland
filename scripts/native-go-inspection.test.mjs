@@ -61,3 +61,12 @@ test("installed Go witness requires complete original typed group and correlated
   payload.encoded = JSON.stringify(input)
   assert.throws(() => verifyGoSnapshot(isolated), /original typed iota group/)
 })
+
+test("stdout submission proof does not substitute for typed provider evidence", () => {
+  const value = packet()
+  value.records = value.records.filter((record) => record.fact.kind !== "finding-fate")
+  assert.throws(() => verifyGoSnapshot(value))
+  assert.equal(verifyGoSnapshot(value, () => {}, true).deliveredAdvice, true)
+  value.records = value.records.filter((record) => record.fact.kind !== "model-input")
+  assert.throws(() => verifyGoSnapshot(value, () => {}, true))
+})

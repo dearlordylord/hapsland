@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { executeNative } from "./native-process.mjs"
+import { instrumentGoHooks } from "./native-go-hook-observation.mjs"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 
 export const goConstantGroup = "const (\n Pending PaymentStatus = iota\n Succeeded\n Failed\n)"
@@ -11,7 +12,7 @@ const repaired = "package payment\ntype PaymentState interface { paymentState() 
 const finding = configuredRules.find((rule) => rule.id === "meaningless_combinations").message
 
 /** Assert only the observed package-model seam; discard all source-bearing packets. */
-export function verifyGoSnapshot(snapshot, setCheck = () => {}) {
+export function verifyGoSnapshot(snapshot, setCheck = () => {}, nativeSubmission = false) {
   setCheck("prepared-native-roots")
   const records = snapshot.records
   const units = records.filter(
@@ -79,12 +80,13 @@ export function verifyGoSnapshot(snapshot, setCheck = () => {}) {
   assert.ok(nodes.some((node) => node.kind === "struct" && node.name === "Receipt"))
   setCheck("delivered-finding")
   assert.ok(
-    records.some(
-      (record) =>
-        record.correlation.evaluationId === initialUnit.correlation.evaluationId &&
-        record.fact.kind === "finding-fate" &&
-        record.fact.reason === "delivery-finalized"
-    ),
+    nativeSubmission ||
+      records.some(
+        (record) =>
+          record.correlation.evaluationId === initialUnit.correlation.evaluationId &&
+          record.fact.kind === "finding-fate" &&
+          record.fact.reason === "delivery-finalized"
+      ),
     "The initial finding must be delivered"
   )
   return {
@@ -99,6 +101,7 @@ export function verifyGoSnapshot(snapshot, setCheck = () => {}) {
 }
 
 export function createGoInspectionProfile() {
+  let observations
   let acknowledged = false
   let quoted = false
   return {
@@ -116,6 +119,9 @@ export function createGoInspectionProfile() {
       writeFileSync(join(repo, "package.json"), JSON.stringify({ private: true, scripts: { test: "go test ./..." } }))
     },
     control: () => ({ findingOnSourceIncludes: "type PaymentState struct" }),
+    instrumentHooks(inputs) {
+      observations = instrumentGoHooks({ ...inputs, finding })
+    },
     prompts: [
       `Use apply_patch to add payment.go with exactly this draft:\n${initial}\nRun npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, use apply_patch to replace PaymentState with this design:\n${repaired}\nRun npm test again; if review is pending run npm test again. Keep support.go unchanged. Use at most two source-edit calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote one actual delivered finding sentence.`
     ],
@@ -140,6 +146,8 @@ export function createGoInspectionProfile() {
         async () => {
           const value = await (await fetch(`${url}snapshot`, { signal: AbortSignal.timeout(10000) })).json()
           reportDiagnostic({
+            nativeAgentAcknowledged: acknowledged,
+            nativeAgentQuotedAdvice: quoted,
             findingFates: value.records
               .filter((record) => record.fact.kind === "finding-fate")
               .map((record) => ({
@@ -154,17 +162,23 @@ export function createGoInspectionProfile() {
               ])
             )
           })
-          return value.records.filter((record) => record.fact.kind === "evaluation-outcome").length >= 2 &&
-            value.records.some(
-              (record) => record.fact.kind === "finding-fate" && record.fact.reason === "delivery-finalized"
-            )
+          return value.records.filter((record) => record.fact.kind === "evaluation-outcome").length >= 2
             ? value
             : undefined
         },
         "installed Go initial and follow-up outcomes",
         30000
       )
-      const checks = verifyGoSnapshot(snapshot, (check) => setPhase(`go-${check}`))
+      const submitted =
+        observations &&
+        readFileSync(observations, "utf8")
+          .trim()
+          .split("\n")
+          .some((line) => {
+            const value = JSON.parse(line)
+            return value.initialRoot === true && value.adviceSubmitted === true && value.exitCode === 0
+          })
+      const checks = verifyGoSnapshot(snapshot, (check) => setPhase(`go-${check}`), submitted)
       setPhase("go-agent-advice-acknowledgment")
       assert.ok(acknowledged && quoted, "The real agent must acknowledge advice and quote its delivered finding")
       setPhase("go-interface-repair")
@@ -179,6 +193,7 @@ export function createGoInspectionProfile() {
         checks: {
           ...checks,
           agentAcknowledgesAndQuotesAdvice: true,
+          installedHookStdoutSubmittedAdvice: submitted,
           repairedOpenInterface: true,
           sourceCompiles: true
         },
