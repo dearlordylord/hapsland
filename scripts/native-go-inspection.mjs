@@ -11,7 +11,8 @@ const repaired = "package payment\ntype PaymentState interface { paymentState() 
 const finding = configuredRules.find((rule) => rule.id === "meaningless_combinations").message
 
 /** Assert only the observed package-model seam; discard all source-bearing packets. */
-export function verifyGoSnapshot(snapshot) {
+export function verifyGoSnapshot(snapshot, setCheck = () => {}) {
+  setCheck("prepared-native-roots")
   const records = snapshot.records
   const units = records.filter(
     (record) => record.fact.kind === "unit-prepared" && record.fact.declaration === "PaymentState"
@@ -39,6 +40,7 @@ export function verifyGoSnapshot(snapshot) {
       "Each invocation must use the controlled reviewer"
     )
   }
+  setCheck("correlated-outcomes")
   const initialUnit = units.find((unit) =>
     records.some(
       (record) =>
@@ -59,6 +61,7 @@ export function verifyGoSnapshot(snapshot) {
     initialUnit && followup && initialUnit.correlation.evaluationId !== followup.correlation.evaluationId,
     "An initial finding and independent clear follow-up are required"
   )
+  setCheck("captured-provider-input")
   const input = records.find(
     (record) =>
       record.correlation.evaluationId === initialUnit.correlation.evaluationId && record.fact.kind === "model-input"
@@ -67,6 +70,7 @@ export function verifyGoSnapshot(snapshot) {
   const source = Buffer.from(input.fact.payload.encoded, "base64").toString("utf8")
   const value = JSON.parse(source)
   assert.equal(value.artifact.kind, "struct")
+  setCheck("typed-package-evidence")
   const nodes = value.evidence.nodes
   assert.ok(
     nodes.some((node) => node.kind === "constant-group" && node.source === goConstantGroup),
@@ -74,6 +78,7 @@ export function verifyGoSnapshot(snapshot) {
   )
   assert.ok(nodes.some((node) => node.kind === "defined-type" && node.name === "PaymentStatus"))
   assert.ok(nodes.some((node) => node.kind === "struct" && node.name === "Receipt"))
+  setCheck("delivered-finding")
   assert.ok(
     records.some(
       (record) =>
@@ -149,9 +154,15 @@ export function createGoInspectionProfile() {
         "installed Go initial and follow-up outcomes",
         30000
       )
-      const checks = verifyGoSnapshot(snapshot)
+      const checks = verifyGoSnapshot(snapshot, (check) => setPhase(`go-${check}`))
+      setPhase("go-agent-advice-acknowledgment")
       assert.ok(acknowledged && quoted, "The real agent must acknowledge advice and quote its delivered finding")
-      assert.equal(readFileSync(join(repository, "payment.go"), "utf8").trim(), repaired.trim())
+      setPhase("go-interface-repair")
+      assert.match(
+        readFileSync(join(repository, "payment.go"), "utf8"),
+        /^package payment\s+type PaymentState interface\s*\{\s*paymentState\(\)\s*\}\s*$/u
+      )
+      setPhase("go-repair-compilation")
       const compiler = await executeNative("go", ["test", "./..."], { cwd: repository, timeout: 30000 })
       assert.equal(compiler.code, 0)
       return {
