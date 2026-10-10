@@ -67,8 +67,7 @@ export function verifyGoSnapshot(snapshot, setCheck = () => {}) {
       record.correlation.evaluationId === initialUnit.correlation.evaluationId && record.fact.kind === "model-input"
   )
   assert.equal(input?.fact.payload.status, "available")
-  const source = Buffer.from(input.fact.payload.encoded, "base64").toString("utf8")
-  const value = JSON.parse(source)
+  const value = JSON.parse(input.fact.payload.encoded)
   assert.equal(value.artifact.kind, "struct")
   setCheck("typed-package-evidence")
   const nodes = value.evidence.nodes

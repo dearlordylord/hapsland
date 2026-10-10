@@ -1,6 +1,9 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { goConstantGroup, verifyGoSnapshot } from "./native-go-inspection.mjs"
+import * as Schema from "effect/Schema"
+import { InspectionFact } from "@hapsland/inspection-records/inspection/contract"
+import { createHash } from "node:crypto"
 
 const packet = () => {
   const fact = (evaluationId, payload, receiptId = evaluationId) => ({
@@ -28,13 +31,20 @@ const packet = () => {
       fact("followup", { kind: "evaluation-outcome", outcome: "clear" }),
       fact("initial", {
         kind: "model-input",
-        payload: { status: "available", encoded: Buffer.from(JSON.stringify(input)).toString("base64") }
+        representation: "decision-model-json",
+        payload: {
+          status: "available",
+          encoded: JSON.stringify(input),
+          byteLength: Buffer.byteLength(JSON.stringify(input)),
+          sha256: createHash("sha256").update(JSON.stringify(input)).digest("hex")
+        }
       }),
       fact("initial", { kind: "finding-fate", reason: "delivery-finalized" })
     ]
   }
 }
 test("installed Go witness requires complete original typed group and correlated delivered follow-up", () => {
+  Schema.decodeUnknownSync(InspectionFact)(packet().records.find((record) => record.fact.kind === "model-input").fact)
   assert.equal(verifyGoSnapshot(packet()).exactTypedIotaGroup, true)
   for (const missing of ["model-input", "finding-fate", "edit-received", "unit-policy"]) {
     const value = packet()
@@ -46,8 +56,8 @@ test("installed Go witness requires complete original typed group and correlated
   assert.throws(() => verifyGoSnapshot(incomplete))
   const isolated = packet()
   const payload = isolated.records.find((record) => record.fact.kind === "model-input").fact.payload
-  const input = JSON.parse(Buffer.from(payload.encoded, "base64"))
+  const input = JSON.parse(payload.encoded)
   input.evidence.nodes[1].source = "const Succeeded PaymentStatus = 1"
-  payload.encoded = Buffer.from(JSON.stringify(input)).toString("base64")
+  payload.encoded = JSON.stringify(input)
   assert.throws(() => verifyGoSnapshot(isolated), /original typed iota group/)
 })
