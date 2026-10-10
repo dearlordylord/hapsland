@@ -88,6 +88,24 @@ describe("Go active local package review", () => {
       }
     })
   )
+  it.effect("transmits the original parenthesized typed iota group with its predecessors", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const group = "const (\n _ = iota\n A (Status) = iota\n B\n)"
+      try {
+        yield* Effect.promise(() => put(root, "payment.go", "package payment\ntype Payment struct { Status Status }\n"))
+        yield* Effect.promise(() => put(root, "support.go", `package payment\ntype Status int\n${group}\n`))
+        const { result } = yield* prepare(addEvent(root, ["payment.go"]))
+        const ready = result.outcomes.find((outcome) => outcome.status === "ready")
+        if (ready?.status !== "ready") throw new Error("missing unit")
+        const input = JSON.stringify(preparedProviderInput(ready.prepared))
+        expect(input).toContain(JSON.stringify(group).slice(1, -1))
+        expect(ready.prepared.input.completeness).toBe("complete")
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
   it.effect("rechecks alternative package identities and restored source", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)

@@ -27,6 +27,23 @@ describe("Go named type identity and source", () => {
       { kind: "named", name: "ID" }
     ])
   })
+  it("retains typed groups through parenthesized types and instantiated aliases", () => {
+    for (const [definition, constant] of [
+      ["type Status int", "const A (Status) = 1"],
+      ["type Status int", "const A ((Status)) = 1"],
+      ["type Status int\ntype Alias = (Status)", "const A Alias = 1"],
+      ["type Status[T any] int\ntype Alias = Status[int]", "const A Alias = 1"]
+    ]) {
+      const file = inspectGoFile("model.go", `package p\n${definition}\n${constant}\n`)
+      if (file === undefined) throw new Error("parse failed")
+      const facts = goGraphFacts([file])
+      const reference = facts?.declarations
+        .get("Status")
+        ?.references.find((entry) => facts.declarations.get(entry.name)?.artifact.kind === "constant-group")
+      expect(reference, constant).toBeDefined()
+      expect(facts?.declarations.get(reference!.name)?.artifact.source).toBe(constant)
+    }
+  })
   it("does not give init functions or blank functions package bindings", () => {
     const root = inspectGoFile("root.go", "package p\ntype Root struct { ID string }\nfunc init() {}\nfunc _() {}\n")
     const sibling = inspectGoFile("sibling.go", "package p\nfunc init() {}\nfunc _() {}\n")

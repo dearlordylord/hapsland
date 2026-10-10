@@ -135,7 +135,7 @@ the [offline preparation record](https://github.com/dearlordylord/hapsland/blob/
 covers split-file compiler and freshness checks. Each record identifies its
 own revision and artifact; none substitutes for validation after a new change.
 
-## Go partial-profile qualification
+## Retained Go partial-profile qualification
 
 The #271 package slice was qualified on 2026-10-09 with Node 24.20.0,
 Bun 1.3.14, pinned tree-sitter runtime 0.25.0 and Go grammar 0.25.0,
@@ -177,6 +177,28 @@ explicit omissions; functions/methods and constant-only review demand remain
 outside this profile. The shared V1 artifact, rule, native and packaging owners
 must merge both Go and Python registrations/pins/assets at integration. These
 checks qualify this slice, not the combined Python/Go candidate.
+
+## Go continuation qualification
+
+The continuation reapplies retained candidate `f564aa221007e6a52ebf642e645e4a1db0c4c3be`
+onto base `47fdf0f0afffc6eca9f613813eee7e533808e082`, preserving the Astro
+website changes. The retained observations above keep their original source,
+archive and runtime identities; they are not new-base execution claims.
+Their original source-free declaration and result are retained locally under
+`evidence/native-languages/` (ignored validation artifacts).
+
+A fresh independent review found a missing constant group for parenthesized
+explicit named types and aliases. The fix preserves those identities, including
+instantiated aliases, without rewriting source or computing constant values.
+The original imported-source shared consumer run passed 222 tests. The fixed
+source passed all 73 unit tests, including the new analyzer and actual provider
+projection regressions, and `check:fast` with `VITEST_MAX_WORKERS=1`; test and
+product deadlines were unchanged. The original parallel unit run timed out in
+an existing directory-budget test; serial qualification passed that case.
+The current native owner, loader, receipt, loading/packaging and hook-boundary
+selection passed 139 checks. Manual `docs:generated:check` passed after preparing
+current exports. Missing-export and overlapping-preparation attempts do not
+qualify. These are focused local checks, not full-project coverage.
 
 ## Real-agent verification
 

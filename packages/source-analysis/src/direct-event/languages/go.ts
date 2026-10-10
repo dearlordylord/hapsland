@@ -112,6 +112,16 @@ const typeReferences = (node: SyntaxNode, name: SyntaxNode, imported: ReturnType
   }
   return [...references.values()]
 }
+/** Parentheses preserve a named type's identity, including instantiated aliases. */
+const namedType = (node: SyntaxNode): string | undefined => {
+  let current: SyntaxNode | undefined = node
+  while (current?.type === "parenthesized_type") current = current.namedChildren[0]
+  return current?.type === "type_identifier"
+    ? current.text
+    : current?.type === "generic_type"
+      ? current.namedChildren[0]?.text
+      : undefined
+}
 export const inspectGoFile = (path: string, source: string): GoFile | undefined => {
   const root = nodes(source)
   const packageName = root?.namedChildren.find((node) => node.type === "package_clause")?.namedChildren[0]?.text
@@ -130,13 +140,14 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
         const name = spec.childForFieldName("name")
         const type = spec.childForFieldName("type")
         if (name === null || type === null) return undefined
+        const aliasTarget = namedType(type)
         if (
           spec.type === "type_alias" &&
-          type.type === "type_identifier" &&
+          aliasTarget !== undefined &&
           !imported.uncertain &&
-          !imported.names.has(type.text)
+          !imported.names.has(aliasTarget)
         )
-          aliases.set(name.text, type.text)
+          aliases.set(name.text, aliasTarget)
         const kind =
           spec.type === "type_alias"
             ? "type-alias"
@@ -174,12 +185,7 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
         const value = spec.childForFieldName("value")
         const type = spec.childForFieldName("type")
         if (type !== null) {
-          implicitType =
-            type.type === "type_identifier"
-              ? type.text
-              : type.type === "generic_type"
-                ? type.namedChildren[0]?.text
-                : undefined
+          implicitType = namedType(type)
           for (const part of [type, ...descendants(type)]) {
             if (part.type === "qualified_type") references.set(part.text, { kind: "unsupported", name: part.text })
             else if (part.type === "type_identifier" && part.parent?.type !== "qualified_type")
