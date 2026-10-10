@@ -7,7 +7,8 @@ import {
   preparedProviderInput,
   evaluatePrepared,
   preparedUnitStillCurrent,
-  reviewCodexDirectEvent
+  reviewCodexDirectEvent,
+  type DirectReviewContext
 } from "@hapsland/review-execution/direct-event/pipeline"
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
@@ -17,7 +18,7 @@ import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { addEvent, makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 
-const prepare = (event: unknown) =>
+const prepare = (event: unknown, observePreparationOmission?: DirectReviewContext["observePreparationOmission"]) =>
   Effect.gen(function* () {
     const observation = yield* adaptCodexDirectEvent(event)
     if (!observation) throw new Error("fixture adaptation failed")
@@ -28,7 +29,8 @@ const prepare = (event: unknown) =>
       rules: configuredRules.filter((rule) =>
         ["meaningless_combinations", "absence_confusion", "bare_domain_value"].includes(rule.id)
       ),
-      inputContract: TYPE_INPUT_CONTRACT
+      inputContract: TYPE_INPUT_CONTRACT,
+      ...(observePreparationOmission ? { observePreparationOmission } : {})
     })
   })
 const familySource = `from dataclasses import dataclass as dc
@@ -574,6 +576,38 @@ describe("Python same-file shipped review", () => {
         units: [expect.objectContaining({ status: "unsupported" }), expect.objectContaining({ status: "ready" })]
       })
   })
+  it.effect("conditional schema and type-parameter marker shadows omit only affected roots", () =>
+    Effect.gen(function* () {
+      for (const declaration of [
+        "class Model:\n    value: str\n    if feature_enabled:\n        extra: Foreign\n",
+        "class Model:\n    value: str\n    configure()\n",
+        "class Model:\n    value: str\n    extra = configure()\n",
+        "class Model[Field]:\n    value: Annotated[str, Field(description='opaque')]\n",
+        "class Model[Literal]:\n    value: Literal['opaque']\n",
+        "class Model[Annotated]:\n    value: Annotated[str, Field(description='opaque')]\n",
+        "class Model[BaseModel](BaseModel):\n    value: str\n"
+      ]) {
+        const root = yield* Effect.promise(makeGitFixture)
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "model.py",
+            "from __future__ import annotations\nfrom remote import Foreign\nfrom typing import Annotated, Literal\nfrom pydantic import Field, BaseModel\n" +
+              declaration +
+              "class Good:\n    id: str\n"
+          )
+        )
+        const omissions: string[] = []
+        const result = yield* prepare(addEvent(root, ["model.py"]), (_path, name) => omissions.push(name))
+        expect(
+          result.outcomes
+            .filter((outcome) => outcome.status === "ready")
+            .map((outcome) => outcome.prepared.input.declaration.name)
+        ).toEqual(["Good"])
+        expect(omissions).toContain("Model")
+      }
+    })
+  )
   it("Literal signed operands require actual integers rather than executable behavior", () => {
     for (const value of ["-make_code()", "+Foreign", "~1", 'f"{make_code()}"'])
       expect(

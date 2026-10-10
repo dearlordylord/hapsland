@@ -537,7 +537,8 @@ fallback.
 
 Import identity recognizes named/qualified imports and import aliases from
 `dataclasses`, `typing`, `typing_extensions`, and `pydantic`. Competing module
-bindings invalidate markers. Supported model markers are `@dataclass` and
+bindings invalidate markers; type parameters and class-local bindings shadow typing
+and metadata markers in their lexical scope. Supported model markers are `@dataclass` and
 `@dataclass(...)` with literal keyword options, `TypedDict` with literal `total`,
 and `BaseModel`. This does not import or execute framework code. Unknown
 or computed decorators/bases produce omissions. Conditional runtime framework
@@ -551,6 +552,7 @@ explicitly uncertain. Type-parameter defaults unsupported by the pinned grammar 
 parse-unavailable. Literal `Annotated` metadata is retained; supported imported
 `Field`, `field`, and `ConfigDict` calls admit literal metadata and traverse
 `default_factory` and ConfigDict `ignored_types` as type references. Unknown executable metadata/defaults,
+conditional class schema statements, arbitrary executable class-body expressions,
 custom constructors and decorated methods are explicit uncertainty, without
 helper/function traversal. Configuration and validator source is evidence of
 what was authored, never complete runtime constraints. Unknown external types

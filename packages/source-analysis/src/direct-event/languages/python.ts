@@ -155,6 +155,10 @@ type Scope = {
   readonly parameters: ReadonlySet<string>
   readonly shadowed: ReadonlySet<string>
 }
+const scopedIdentity = (text: string, scope: Scope): string | undefined => {
+  const head = text.split(".")[0]!
+  return scope.parameters.has(head) || scope.shadowed.has(head) ? undefined : identityFor(text, scope.bindings)
+}
 const references = (node: SyntaxNode, scope: Scope): GraphReference[] => {
   if (node.type === "type") return node.namedChildren.flatMap((child) => references(child, scope))
   if (["identifier", "attribute"].includes(node.type)) {
@@ -189,7 +193,8 @@ const references = (node: SyntaxNode, scope: Scope): GraphReference[] => {
     const children = node.namedChildren
     const base = children[0]
     if (base === undefined) return [{ kind: "unsupported", name: "annotation" }]
-    const identity = identityFor(base.text, scope.bindings)
+    if (scope.parameters.has(base.text.split(".")[0]!)) return [{ kind: "unsupported", name: "annotation" }]
+    const identity = scopedIdentity(base.text, scope)
     const args = children
       .slice(1)
       .flatMap((child) => (child.type === "type_parameter" ? child.namedChildren : [child]))
@@ -223,7 +228,7 @@ const staticValue = (node: SyntaxNode): boolean =>
 const metadataReferences = (node: SyntaxNode, scope: Scope): GraphReference[] => {
   if (staticValue(node)) return []
   if (node.type !== "call") return [{ kind: "unsupported", name: "metadata" }]
-  const identity = identityFor(node.childForFieldName("function")?.text ?? "", scope.bindings)
+  const identity = scopedIdentity(node.childForFieldName("function")?.text ?? "", scope)
   if (!["pydantic.Field", "dataclasses.field", "pydantic.ConfigDict"].includes(identity ?? ""))
     return [{ kind: "unsupported", name: "metadata" }]
   return (node.childForFieldName("arguments")?.namedChildren ?? []).flatMap((arg): GraphReference[] => {
@@ -354,7 +359,8 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
             !staticValue(base.childForFieldName("value")!)
           )
             extra.push({ kind: "unsupported", name: "base" })
-        } else extra.push(...references(base, { bindings, locals, parameters, shadowed: new Set() }))
+        } else if (parameters.has(base.text.split(".")[0]!)) extra.push({ kind: "unsupported", name: "base" })
+        else extra.push(...references(base, { bindings, locals, parameters, shadowed: new Set() }))
       }
       for (const decorator of node.namedChildren.filter((child) => child.type === "decorator")) {
         const marker = decorator.namedChildren[0]
@@ -375,7 +381,36 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
           extra.push({ kind: "unsupported", name: "decorator" })
       }
       for (const member of body?.namedChildren ?? []) {
+        if (
+          [
+            "if_statement",
+            "for_statement",
+            "while_statement",
+            "try_statement",
+            "with_statement",
+            "match_statement"
+          ].includes(member.type)
+        ) {
+          defining.push(location(member))
+          extra.push({ kind: "unsupported", name: "schema-behavior" })
+        }
         const config = assignment(member)
+        const untypedValue = config?.childForFieldName("type") ? undefined : config?.childForFieldName("right")
+        const expression = config
+          ? undefined
+          : member.type === "expression_statement"
+            ? member.namedChildren[0]
+            : undefined
+        if (
+          (untypedValue &&
+            config?.childForFieldName("left")?.text !== "model_config" &&
+            !["identifier", "attribute"].includes(untypedValue.type) &&
+            !staticValue(untypedValue)) ||
+          (expression && !staticValue(expression))
+        ) {
+          defining.push(location(member))
+          extra.push({ kind: "unsupported", name: "schema-behavior" })
+        }
         if (config?.childForFieldName("left")?.text === "model_config") {
           defining.push(location(member))
           const right = config.childForFieldName("right")
