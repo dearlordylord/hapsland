@@ -3174,6 +3174,11 @@
       "sha256": "99840c41d2da59956ca0d97604617f573174bce6f3e5ddd4d5679908dc2f5e80"
     },
     {
+      "path": "whole-resolver/CaptureAdmission.bend",
+      "capture": "whole-resolver/CaptureAdmission.bend.txt",
+      "sha256": "e8ac33ed462e303c9e3fa31c6ef60c7f743e09981487b7ab7cf830703d04e624"
+    },
+    {
       "path": "whole-resolver/Cargo.bend",
       "capture": "whole-resolver/Cargo.bend.txt",
       "sha256": "8768ecf42e8abd21ba71ddc417d7b446170274ba7b1a91b4d17c743aa163d5fa"
@@ -3306,7 +3311,12 @@
     {
       "path": "whole-resolver/Protocol.bend",
       "capture": "whole-resolver/Protocol.bend.txt",
-      "sha256": "112f715af09c79ccb404bece84f4c768cc50b72d9c868b6fa5b168cacc9c6151"
+      "sha256": "4eec46f56690463805dedd02e8dafe7bb8bc416956d14f4f6e3d7089274b63a5"
+    },
+    {
+      "path": "whole-resolver/PythonModule.bend",
+      "capture": "whole-resolver/PythonModule.bend.txt",
+      "sha256": "87771a99159d109c1a621e91296e91c94bf80a38c527bf6619255bf2b6c1253d"
     },
     {
       "path": "whole-resolver/RUNTIME_INVARIANT_LAWS.bend",
@@ -3331,7 +3341,7 @@
     {
       "path": "whole-resolver/Read.bend",
       "capture": "whole-resolver/Read.bend.txt",
-      "sha256": "e1376ca4b9e6fb06b35adca5ba518718efb880b4b7787ed4f5c19d9dc9fed0cf"
+      "sha256": "527db596cef7cbd0b8f331e32b9ade119be848d3dc529d81bd0165121459dde2"
     },
     {
       "path": "whole-resolver/ReferenceGroupMutantCore.bend",
@@ -3496,7 +3506,7 @@
     {
       "path": "whole-resolver/Types.bend",
       "capture": "whole-resolver/Types.bend.txt",
-      "sha256": "c36534eadd2ef0819a78bce1f6c0936b401cffde62828de842ba00b071425e57"
+      "sha256": "11a742ca4dc47062cfe290b971bd7b8b55cf4011e9fe976cb2383d67ba72ae4c"
     },
     {
       "path": "whole-resolver/WholeObservation.bend",
@@ -3536,7 +3546,7 @@
     {
       "path": "whole-resolver/consumer.mjs",
       "capture": "whole-resolver/consumer.mjs",
-      "sha256": "820c2eb9f772e487fd570a802c9a35c61e8a8285eea2a23f2bd3b4591dc4f1ce"
+      "sha256": "9ac5085fee77a2eb5f26fc221108777f8486dbf2c256b2f8d30de25eb7775020"
     },
     {
       "path": "whole-resolver/decoder-baseline.mjs",
@@ -3576,7 +3586,7 @@
     {
       "path": "whole-resolver/frontends.mjs",
       "capture": "whole-resolver/frontends.mjs",
-      "sha256": "588cde65ccf320a4326c06dbdec12d209901ef63a2fce5a49d7011a3c1c1ac31"
+      "sha256": "5ce6b76096944dca8f063cdaa278fa1a9b69a8e1847d49c1b5c09aca83b2696d"
     },
     {
       "path": "whole-resolver/graph-specification-check.mjs",
@@ -3594,9 +3604,74 @@
       "sha256": "e31e271205e2204939640eea6505e48f523d142ab8a4a7dea9b931ac6223ad4e"
     },
     {
+      "path": "whole-resolver/python-capture-check.mjs",
+      "capture": "whole-resolver/python-capture-check.mjs",
+      "sha256": "a72022058fcde7a2cf729deb32ddb9812ae3c0766abb8fc1e35cba0fe501fb14"
+    },
+    {
       "path": "whole-resolver/python-clock-failure-check.mjs",
       "capture": "whole-resolver/python-clock-failure-check.mjs",
       "sha256": "b460970af034c586523040ded128d9e1e6fb91a94e874ac2422a17455c3aedaf"
+    },
+    {
+      "path": "whole-resolver/python-module-check.mjs",
+      "capture": "whole-resolver/python-module-check.mjs",
+      "sha256": "8d22188ea7a676e4d9039918b8327df3d8a48ed9e376ef89ac212161488e003a"
+    },
+    {
+      "path": "whole-resolver/python-module/CaptureMachine.bend",
+      "capture": "whole-resolver/python-module/CaptureMachine.bend.txt",
+      "sha256": "6f984bdf6e910e66f0ad21a4bb3c2e516c71492194aebcb27e00458e4dc2c762"
+    },
+    {
+      "path": "whole-resolver/python-module/ImportName.bend",
+      "capture": "whole-resolver/python-module/ImportName.bend.txt",
+      "sha256": "896ccaab4c1722cd3aa03aaf8348c5aa3aa6cf3db2430e71e9e1b7753be7a484"
+    },
+    {
+      "path": "whole-resolver/python-module/MembershipMachine.bend",
+      "capture": "whole-resolver/python-module/MembershipMachine.bend.txt",
+      "sha256": "f31a993624ab9025d1046ef274824e8fb3132e1d66bcd4d1d5813d2c2c291e1f"
+    },
+    {
+      "path": "whole-resolver/python-module/RevalidationMachine.bend",
+      "capture": "whole-resolver/python-module/RevalidationMachine.bend.txt",
+      "sha256": "fc5d23f6c9a0024b548c3988f79ba444e76518ef5cf19fd0d8dfa3f7cd7c5a28"
+    },
+    {
+      "path": "whole-resolver/python-module/RootPolicyMachine.bend",
+      "capture": "whole-resolver/python-module/RootPolicyMachine.bend.txt",
+      "sha256": "b9e59c27b1e5f26946d9c5ebea92521436d5452982453d677f45e7a851cb4534"
+    },
+    {
+      "path": "whole-resolver/python-module/RootsMachine.bend",
+      "capture": "whole-resolver/python-module/RootsMachine.bend.txt",
+      "sha256": "a001e6373f6c8c0450641fe70580bf7210ba9673b99509bdf1e113e6e42e35ac"
+    },
+    {
+      "path": "whole-resolver/python-module/Session.bend",
+      "capture": "whole-resolver/python-module/Session.bend.txt",
+      "sha256": "05b3b97947cf06cf448181c3dede10c552e75e5775045967f5ad4362900e3181"
+    },
+    {
+      "path": "whole-resolver/python-module/StatMachine.bend",
+      "capture": "whole-resolver/python-module/StatMachine.bend.txt",
+      "sha256": "57b1c0108e98dd24e3959be8170e0116480a6f8c400f55f43fce81dc9a006b73"
+    },
+    {
+      "path": "whole-resolver/python-module/syntax-projection.mjs",
+      "capture": "whole-resolver/python-module/syntax-projection.mjs",
+      "sha256": "aef228857dc618c239d54804fba0e1e58306fb2e161cd85fdb3fdee5b60ab3b6"
+    },
+    {
+      "path": "whole-resolver/python-physical-check.mjs",
+      "capture": "whole-resolver/python-physical-check.mjs",
+      "sha256": "fa7f1f1620732ff2b9c0c2718fb38d3a4eea883a3d06eab5562889d3eab98d07"
+    },
+    {
+      "path": "whole-resolver/python-stat-check.mjs",
+      "capture": "whole-resolver/python-stat-check.mjs",
+      "sha256": "1aae3b110c7df24444874fd940cca5651d938c7794cfcb37894a964e540c22e7"
     },
     {
       "path": "whole-resolver/result-check.mjs",
@@ -3636,7 +3711,7 @@
     {
       "path": "whole-resolver/service-session.mjs",
       "capture": "whole-resolver/service-session.mjs",
-      "sha256": "14c6df428786adfb19027dc4ad6dfcb2c9572bcf4b86a316dd6692c62fb2e3be"
+      "sha256": "856a5f56452be19f48bf873f3a3fca3264727a632554b1f2d663bb25d852b951"
     },
     {
       "path": "whole-resolver/services.js",

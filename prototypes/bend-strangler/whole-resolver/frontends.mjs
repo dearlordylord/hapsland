@@ -5,6 +5,7 @@ import {bendAdapter} from '../../../packages/source-analysis/dist/direct-event/l
 import {parse} from 'smol-toml'
 import {sourceFacts,tomlValue} from './frontend-codec.mjs'
 import {unlist} from './service-session.mjs'
+import {projectPythonSyntax} from './python-module/syntax-projection.mjs'
 const tag=name=>'Types.'+name
 const optional=value=>{if(value?.$==='None')return undefined;if(value?.$==='Some')return value.value;throw new Error('invalid optional context')}
 function branch(value){if(value?.$===tag('TypeBranch'))return 'type';if(value?.$===tag('FunctionBranch'))return 'function';throw new Error('invalid branch context')}
@@ -31,3 +32,16 @@ export function inspectSourceFrontend(path,source,context){
 }
 export function parseCargoSyntax(source){let syntax;try{syntax=parse(source)}catch{return undefined}return tomlValue(syntax)}
 export const inspectRustModuleSyntax=inspectRustModules
+
+// Native-parser syntax projection only. No module-scope/binding/import policy.
+export async function parsePythonSyntax(source){
+ const {Parser,Python}=await import('../../../packages/source-analysis/dist/direct-event/languages/native-parser.js')
+ const parser=new Parser()
+ // The pinned native Node binding exposes reset, not tree/parser delete. Native
+ // objects stay call-local; the returned projection contains no engine handles.
+ try {
+  parser.setLanguage(Python)
+  const tree=parser.parse(source)
+  return projectPythonSyntax(tree.rootNode)
+ } finally {parser.reset()}
+}

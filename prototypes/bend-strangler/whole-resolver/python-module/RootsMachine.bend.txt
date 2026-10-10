@@ -1,0 +1,298 @@
+import Base
+import ../Types.bend as T
+import ../Protocol.bend as Protocol
+import ./Session.bend as S
+import ./StatMachine.bend as Stat
+import ./CaptureMachine.bend as Capture
+import ./RootPolicyMachine.bend as Policy
+
+# Complete absoluteRoots flow, with rootsAttempted recorded before the first
+# metadata probe. TOML parsing is reused as raw syntax, never as a root policy.
+type Stage is Data:
+  MetadataStat{}
+  MetadataCapture{}
+  MetadataParse{}
+  MetadataPolicy{}
+  AlternativePy{}
+  AlternativeCfg{}
+type State is Data:
+  State{
+    session: S.Session,
+    clock: T.ClockToken,
+    cache: T.CacheToken,
+    separator: String,
+    invocation: Nat,
+    next_request: Nat,
+    selected: List<&2, String>,
+    stat_child: Maybe<&2, Stat.Step>,
+    capture_child: Maybe<&2, Capture.Step>,
+    policy_child: Maybe<&2, Policy.Step>,
+    stage: Stage
+  }
+type Step is Data:
+  Await{state: State, request: T.Request}
+  Returned{session: S.Session, roots: Maybe<&2, List<&2, String>>, next_request: Nat}
+  Failed{failure: T.TechnicalFailure, session: S.Session, next_request: Nat}
+type Transition is Data:
+  Settled{step: Step}
+  StatChild{state: State, step: Stat.Step}
+  CaptureChild{state: State, step: Capture.Step}
+  PolicyChild{state: State, step: Policy.Step}
+
+def state_session(state: State) -> S.Session:
+  match state:
+    case State{session, _, _, _, _, _, _, _, _, _, _}: session
+
+def with_session(state: State, replacement: S.Session) -> State:
+  match state:
+    case State{_, clock, cache, separator, invocation, next_request, selected, stat_child, capture_child, policy_child, stage}:
+      State{replacement, clock, cache, separator, invocation, next_request, selected, stat_child, capture_child, policy_child, stage}
+
+def state_clock(state: State) -> T.ClockToken:
+  match state:
+    case State{_, clock, _, _, _, _, _, _, _, _, _}: clock
+
+def with_clock(state: State, replacement: T.ClockToken) -> State:
+  match state:
+    case State{session, _, cache, separator, invocation, next_request, selected, stat_child, capture_child, policy_child, stage}:
+      State{session, replacement, cache, separator, invocation, next_request, selected, stat_child, capture_child, policy_child, stage}
+
+def state_cache(state: State) -> T.CacheToken:
+  match state:
+    case State{_, _, cache, _, _, _, _, _, _, _, _}: cache
+
+def with_cache(state: State, replacement: T.CacheToken) -> State:
+  match state:
+    case State{session, clock, _, separator, invocation, next_request, selected, stat_child, capture_child, policy_child, stage}:
+      State{session, clock, replacement, separator, invocation, next_request, selected, stat_child, capture_child, policy_child, stage}
+
+def state_separator(state: State) -> String:
+  match state:
+    case State{_, _, _, separator, _, _, _, _, _, _, _}: separator
+
+def with_separator(state: State, replacement: String) -> State:
+  match state:
+    case State{session, clock, cache, _, invocation, next_request, selected, stat_child, capture_child, policy_child, stage}:
+      State{session, clock, cache, replacement, invocation, next_request, selected, stat_child, capture_child, policy_child, stage}
+
+def state_invocation(state: State) -> Nat:
+  match state:
+    case State{_, _, _, _, invocation, _, _, _, _, _, _}: invocation
+
+def with_invocation(state: State, replacement: Nat) -> State:
+  match state:
+    case State{session, clock, cache, separator, _, next_request, selected, stat_child, capture_child, policy_child, stage}:
+      State{session, clock, cache, separator, replacement, next_request, selected, stat_child, capture_child, policy_child, stage}
+
+def state_next_request(state: State) -> Nat:
+  match state:
+    case State{_, _, _, _, _, next_request, _, _, _, _, _}: next_request
+
+def with_next_request(state: State, replacement: Nat) -> State:
+  match state:
+    case State{session, clock, cache, separator, invocation, _, selected, stat_child, capture_child, policy_child, stage}:
+      State{session, clock, cache, separator, invocation, replacement, selected, stat_child, capture_child, policy_child, stage}
+
+def state_selected(state: State) -> List<&2, String>:
+  match state:
+    case State{_, _, _, _, _, _, selected, _, _, _, _}: selected
+
+def with_selected(state: State, replacement: List<&2, String>) -> State:
+  match state:
+    case State{session, clock, cache, separator, invocation, next_request, _, stat_child, capture_child, policy_child, stage}:
+      State{session, clock, cache, separator, invocation, next_request, replacement, stat_child, capture_child, policy_child, stage}
+
+def state_stat_child(state: State) -> Maybe<&2, Stat.Step>:
+  match state:
+    case State{_, _, _, _, _, _, _, stat_child, _, _, _}: stat_child
+
+def with_stat_child(state: State, replacement: Maybe<&2, Stat.Step>) -> State:
+  match state:
+    case State{session, clock, cache, separator, invocation, next_request, selected, _, capture_child, policy_child, stage}:
+      State{session, clock, cache, separator, invocation, next_request, selected, replacement, capture_child, policy_child, stage}
+
+def state_capture_child(state: State) -> Maybe<&2, Capture.Step>:
+  match state:
+    case State{_, _, _, _, _, _, _, _, capture_child, _, _}: capture_child
+
+def with_capture_child(state: State, replacement: Maybe<&2, Capture.Step>) -> State:
+  match state:
+    case State{session, clock, cache, separator, invocation, next_request, selected, stat_child, _, policy_child, stage}:
+      State{session, clock, cache, separator, invocation, next_request, selected, stat_child, replacement, policy_child, stage}
+
+def state_policy_child(state: State) -> Maybe<&2, Policy.Step>:
+  match state:
+    case State{_, _, _, _, _, _, _, _, _, policy_child, _}: policy_child
+
+def with_policy_child(state: State, replacement: Maybe<&2, Policy.Step>) -> State:
+  match state:
+    case State{session, clock, cache, separator, invocation, next_request, selected, stat_child, capture_child, _, stage}:
+      State{session, clock, cache, separator, invocation, next_request, selected, stat_child, capture_child, replacement, stage}
+
+def state_stage(state: State) -> Stage:
+  match state:
+    case State{_, _, _, _, _, _, _, _, _, _, stage}: stage
+
+def with_stage(state: State, replacement: Stage) -> State:
+  match state:
+    case State{session, clock, cache, separator, invocation, next_request, selected, stat_child, capture_child, policy_child, _}:
+      State{session, clock, cache, separator, invocation, next_request, selected, stat_child, capture_child, policy_child, replacement}
+
+def failed(failure: T.TechnicalFailure, +state: State) -> Transition:
+  Settled{Failed{failure, state_session(state), state_next_request(state)}}
+
+def refused(+state: State) -> Transition:
+  Settled{Returned{state_session(state), None{}, state_next_request(state)}}
+
+def request(+state: State, stage: Stage, operation: T.Operation) -> Transition:
+  Settled{Await{with_next_request(with_stage(state, stage), Nat.add(state_next_request(state), 1n)),
+    T.Request{state_invocation(state), state_next_request(state), operation}}}
+
+def stat_path(+state: State, path: String, stage: Stage) -> Transition:
+  StatChild{with_stage(state, stage), Stat.begin(state_session(state), path, state_clock(state), state_separator(state),
+    state_invocation(state), state_next_request(state))}
+
+def complete(+state: State) -> Transition:
+  Settled{Returned{S.discovered_roots(state_session(state), state_selected(state)),
+    Some{state_selected(state)}, state_next_request(state)}}
+
+def absent(observation: Maybe<&2, T.PathMembership>) -> Bool:
+  match observation:
+    case None{}: True{}
+    case Some{T.MembershipAbsent{}}: True{}
+    case Some{T.MembershipFailed{}}: True{}
+    case _: False{}
+
+def alternative_absent(absent: Bool, stage: Stage, +state: State) -> Transition:
+  match absent stage:
+    case False{} _: refused(state)
+    case True{} AlternativePy{}: stat_path(state, "setup.cfg", AlternativeCfg{})
+    case True{} AlternativeCfg{}: complete(state)
+    case _ _: failed(T.MalformedReply{}, state)
+
+def metadata_status(observation: Maybe<&2, T.PathMembership>, +state: State) -> Transition:
+  match observation:
+    case Some{T.MembershipPresent{True{}, _, _, _}}: CaptureChild{with_stage(state, MetadataCapture{}),
+      Capture.begin(state_session(state), "pyproject.toml", state_clock(state), state_cache(state),
+        state_invocation(state), state_next_request(state))}
+    case Some{T.MembershipPresent{False{}, _, _, _}}: refused(state)
+    case _: stat_path(state, "setup.py", AlternativePy{})
+
+def stat_available(available: Bool, stage: Stage, state: State,
+    observation: Maybe<&2, T.PathMembership>) -> Transition:
+  match available stage:
+    case False{} _: refused(state)
+    case True{} MetadataStat{}: metadata_status(observation, state)
+    case True{} stage: alternative_absent(absent(observation), stage, state)
+
+def stat_received(step: Stat.Step, +state: State) -> Transition:
+  match step:
+    case Stat.Failed{failure}: failed(failure, state)
+    case Stat.Await{+child_state, +request}: Settled{Await{
+      with_stat_child(with_next_request(with_session(state, Stat.state_session(child_state)),
+        Stat.state_next_request(child_state)), Some{Stat.Await{child_state, request}}), request}}
+    case Stat.Returned{+session, observation, next}: stat_available(S.available(session), state_stage(state),
+      with_next_request(with_session(with_stat_child(state, None{}), session), next), observation)
+
+def captured(capture: Maybe<&2, T.CaptureToken>, +state: State) -> Transition:
+  match capture:
+    case None{}: refused(state)
+    case Some{capture}: request(state, MetadataParse{}, T.ParseCargo{capture})
+
+def capture_received(step: Capture.Step, +state: State) -> Transition:
+  match step:
+    case Capture.Failed{failure}: failed(failure, state)
+    case Capture.Await{+child_state, +request}: Settled{Await{
+      with_capture_child(with_next_request(with_session(state, Capture.state_session(child_state)),
+        Capture.state_next_request(child_state)), Some{Capture.Await{child_state, request}}), request}}
+    case Capture.Returned{session, capture, next}: captured(capture,
+      with_next_request(with_session(with_capture_child(state, None{}), session), next))
+
+def declared_root(root: Maybe<&2, String>, +state: State) -> Transition:
+  match root:
+    case None{}: refused(state)
+    case Some{root}: stat_path(with_selected(state, S.append_new("." <> "src" <> [], root)), "setup.py", AlternativePy{})
+
+def policy_received(step: Policy.Step, +state: State) -> Transition:
+  match step:
+    case Policy.Failed{failure}: failed(failure, state)
+    case Policy.Await{+child_state, +request}: Settled{Await{
+      with_policy_child(with_next_request(state, Policy.state_next_request(child_state)),
+        Some{Policy.Await{child_state, request}}), request}}
+    case Policy.Returned{root, next}: declared_root(root, with_next_request(with_policy_child(state, None{}), next))
+
+def parsed(outcome: T.CargoOutcome, +state: State) -> Transition:
+  match outcome:
+    case T.CargoUnsupported{}: refused(state)
+    case T.CargoInspected{syntax}: PolicyChild{with_stage(state, MetadataPolicy{}),
+      Policy.begin(syntax, state_separator(state), state_invocation(state), state_next_request(state))}
+
+def checked(reply: Protocol.CheckedReply, +state: State) -> Transition:
+  match reply:
+    case Protocol.RejectedReply{failure}: failed(failure, state)
+    case Protocol.CheckedOutcome{T.CargoResult{outcome}}: parsed(outcome, state)
+    case Protocol.CheckedOutcome{T.ProviderRejected{exception}}: failed(T.ForeignProviderFailure{exception}, state)
+    case _: failed(T.MalformedReply{}, state)
+
+def apply_reply(stat: Maybe<&2, Stat.Step>, capture: Maybe<&2, Capture.Step>, policy: Maybe<&2, Policy.Step>,
+    state: State, request: T.Request, reply: T.Reply) -> Transition:
+  match stat capture policy:
+    case Some{child} _ _: StatChild{state, Stat.resume(child, reply)}
+    case None{} Some{child} _: CaptureChild{state, Capture.resume(child, reply)}
+    case None{} None{} Some{child}: PolicyChild{state, Policy.resume(child, reply)}
+    case None{} None{} None{}: checked(Protocol.check(request, reply), state)
+
+def transition_session(transition: Transition) -> S.Session:
+  match transition:
+    case Settled{Await{state, _}}: state_session(state)
+    case Settled{Returned{session, _, _}}: session
+    case Settled{Failed{_, session, _}}: session
+    case StatChild{state, _}: state_session(state)
+    case CaptureChild{state, _}: state_session(state)
+    case PolicyChild{state, _}: state_session(state)
+
+def settle(fuel: Nat, +transition: Transition) -> Step:
+  match fuel transition:
+    case _ Settled{step}: step
+    case 0n _: Failed{T.MalformedReply{}, transition_session(transition), 0n}
+    case 1n++rest StatChild{state, step}: settle(rest, stat_received(step, state))
+    case 1n++rest CaptureChild{state, step}: settle(rest, capture_received(step, state))
+    case 1n++rest PolicyChild{state, step}: settle(rest, policy_received(step, state))
+
+def step_session(step: Step) -> S.Session:
+  match step:
+    case Await{state, _}: state_session(state)
+    case Returned{session, _, _}: session
+    case Failed{_, session, _}: session
+
+def step_next(step: Step) -> Nat:
+  match step:
+    case Await{state, _}: state_next_request(state)
+    case Returned{_, _, next}: next
+    case Failed{_, _, next}: next
+
+def resume(+step: Step, reply: T.Reply) -> Step:
+  match step:
+    case Await{+state, request}: settle(16n, apply_reply(state_stat_child(state), state_capture_child(state),
+      state_policy_child(state), state, request, reply))
+    case _: Failed{T.MalformedReply{}, step_session(step), step_next(step)}
+
+def known(roots: List<&2, String>, session: S.Session, next: Nat) -> Step:
+  match roots:
+    case []: Returned{session, None{}, next}
+    case +roots: Returned{session, Some{roots}, next}
+
+def attempted(attempted: Bool, +session: S.Session, clock: T.ClockToken, cache: T.CacheToken,
+    separator: String, invocation: Nat, next_request: Nat) -> Step:
+  match attempted:
+    case True{}: known(S.roots(session), session, next_request)
+    case False{}: settle(16n, stat_path(State{S.with_roots_attempted(session, True{}), clock, cache,
+      separator, invocation, next_request, "." <> "src" <> [], None{}, None{}, None{}, MetadataStat{}},
+      "pyproject.toml", MetadataStat{}))
+
+def begin(+session: S.Session, clock: T.ClockToken, cache: T.CacheToken, separator: String,
+    invocation: Nat, next_request: Nat) -> Step:
+  attempted(S.roots_attempted(session), session, clock, cache, separator, invocation, next_request)
+
+def main() -> Unit:
+  Unit{}

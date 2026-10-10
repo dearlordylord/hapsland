@@ -5,6 +5,7 @@ import ./Loop.bend as Loop
 import ./Resolve.bend as Resolve
 import ./Failure.bend as ResolveOwner
 import ./Core.bend as Materialize
+import ./CaptureAdmission.bend as Admission
 import ../local-graph-draft/core.bend as Local
 import ../../../packages/agent-flow-bend/ImportGraph.bend as Graph
 
@@ -116,52 +117,12 @@ def lookup(cache: Maybe<&2, T.CacheToken>, +state: T.ResolverState) -> Loop.Cont
     case Some{cache}: Loop.ServiceStep{S.request(state, T.LookingUpCapture{},
       T.LookupCaptureCache{cache, S.scratch_capture_path(S.state_scratch(state))})}
 
-def cache_has(entries: List<&2, T.CaptureBytes>, +path: String) -> Bool:
-  match entries:
-    case []: False{}
-    case T.CaptureBytes{key, _} <> tail: Bool.or(String.eq(key, path), cache_has(tail, path))
+def cache_refusal_for(entries: List<&2, T.CaptureBytes>, path: String,
+    requested: Nat) -> Maybe<&2, T.CaptureDiagnostic>:
+  Admission.cache_refusal_for(entries, path, requested)
 
-def cache_bytes(entries: List<&2, T.CaptureBytes>) -> Nat:
-  match entries:
-    case []: 0n
-    case T.CaptureBytes{_, bytes} <> tail: (bytes + cache_bytes(tail) : Nat)
-
-# The observation cache owns independent aggregate limits, not Graph.Limits.
-# requestedBytes defaults to the original source ceiling, even for a tighter unit.
-def bytes_refusal_for(+used: Nat, +requested: Nat) -> Maybe<&2, T.CaptureDiagnostic>:
-  Bool.pick(Maybe<&2, T.CaptureDiagnostic>, Nat.is_gt((used + requested : Nat), 16777216n),
-    Some{T.CaptureBudgetDiagnostic{"bytes", used, requested, 16777216n}}, None{})
-
-def files_refusal_for(
-  +entries: List<&2, T.CaptureBytes>,
-  requested: Nat
-) -> Maybe<&2, T.CaptureDiagnostic>:
-  yes : Unit -> Maybe<&2, T.CaptureDiagnostic> = _ => Some{T.CaptureBudgetDiagnostic{
-    "files", List.length(&2, T.CaptureBytes, entries), 1n, 64n}}
-  no : Unit -> Maybe<&2, T.CaptureDiagnostic> = _ => bytes_refusal_for(
-    cache_bytes(entries),
-    requested
-  )
-  Materialize.decide(
-    Maybe<&2, T.CaptureDiagnostic>,
-    Nat.is_ge(List.length(&2, T.CaptureBytes, entries), 64n),
-    yes,
-    no
-  )
-
-def cache_refusal_for(
-  +entries: List<&2, T.CaptureBytes>,
-  path: String, requested: Nat
-) -> Maybe<&2, T.CaptureDiagnostic>:
-  yes : Unit -> Maybe<&2, T.CaptureDiagnostic> = _ => None{}
-  no : Unit -> Maybe<&2, T.CaptureDiagnostic> = _ => files_refusal_for(entries, requested)
-  Materialize.decide(Maybe<&2, T.CaptureDiagnostic>, cache_has(entries, path), yes, no)
-
-def cache_refusal(
-  entries: List<&2, T.CaptureBytes>,
-  path: String
-) -> Maybe<&2, T.CaptureDiagnostic>:
-  cache_refusal_for(entries, path, 2097152n)
+def cache_refusal(entries: List<&2, T.CaptureBytes>, path: String) -> Maybe<&2, T.CaptureDiagnostic>:
+  Admission.cache_refusal(entries, path)
 
 def admitted(refusal: Maybe<&2, T.CaptureDiagnostic>, +state: T.ResolverState) -> Loop.Continuation:
   match refusal:

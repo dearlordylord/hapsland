@@ -1,8 +1,8 @@
 import * as Effect from 'effect/Effect'
 import {TransportFailure} from '../whole-resolver-runtime-probe/transport.mjs'
 import {createServiceSession,fromProductValue} from './service-session.mjs'
-import {inspectSourceFrontend,parseCargoSyntax,inspectRustModuleSyntax} from './frontends.mjs'
-import {eligibleNamedPath,DEFAULT_DIRECT_FILE_POLICY,contextDirectFilePolicy} from '../../../packages/native-observation/dist/direct-event/selection.js'
+import {inspectSourceFrontend,parseCargoSyntax,inspectRustModuleSyntax,parsePythonSyntax} from './frontends.mjs'
+import {eligibleNamedPath,DEFAULT_DIRECT_FILE_POLICY,contextDirectFilePolicy,selectedByDirectFilePolicy} from '../../../packages/native-observation/dist/direct-event/selection.js'
 import {captureStable} from '../../../packages/native-observation/dist/direct-event/capture.js'
 import {GRAPH_LIMIT_CEILINGS} from '../../../packages/canonical-policy/dist/canonical/graph-limits.js'
 import {readNat} from '../../../packages/canonical-policy/dist/canonical/boundary-schema.js'
@@ -70,7 +70,7 @@ export function createBendResolver({machine,foreign,registry,resolveIO,observePr
    invocation:++invocation,root:context.root,now:context.now,callerCache:context.captureCache,
    access:(file,{signal}={})=>Effect.runPromise(eligibleNamedPath(context.root,file,contextDirectFilePolicy(context.policy??DEFAULT_DIRECT_FILE_POLICY),context.rootIdentity),{signal}),
    capture:(selected,sourceCap,{signal}={})=>Effect.runPromise((context.captureSource??captureStable)(context.root,selected,context.captureHooks,context.rootIdentity,sourceCap),{signal}),
-   frontend:inspectSourceFrontend,parseCargo:parseCargoSyntax,inspectRustModules:inspectRustModuleSyntax,
+   frontend:inspectSourceFrontend,parseCargo:parseCargoSyntax,parsePythonSyntax,selectContextPath:path=>selectedByDirectFilePolicy(path,contextDirectFilePolicy(context.policy??DEFAULT_DIRECT_FILE_POLICY)),inspectRustModules:inspectRustModuleSyntax,
    diagnostic:context.observeCaptureDiagnostic
   })
   const input=tagged('ResolverInput',{

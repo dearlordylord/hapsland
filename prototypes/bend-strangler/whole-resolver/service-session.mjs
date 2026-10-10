@@ -70,7 +70,7 @@ function fromDiagnostic(value) {
  if(value?.$===tag('CaptureBudgetDiagnostic'))return {stage:'capture',code:'capture-budget-limit',args:{resource:value.resource,used:hostNatural(value.used),requested:hostNatural(value.requested),limit:hostNatural(value.limit)}}
  throw new Error('invalid capture diagnostic')
 }
-export function createServiceSession({invocation,root,now=()=>performance.now(),callerCache,access,capture,frontend,parseCargo,inspectRustModules,diagnostic}={}) {
+export function createServiceSession({invocation,root,now=()=>performance.now(),callerCache,access,capture,frontend,parseCargo,inspectRustModules,selectContextPath,parsePythonSyntax,diagnostic}={}) {
   if(!Number.isSafeInteger(invocation)||invocation<0)throw new Error('invalid invocation')
   const resources={ClockToken:new Map(),CaptureToken:new Map(),SelectionToken:new Map(),ExceptionToken:new Map(),CacheToken:new Map()}
   let next=1,closed=false
@@ -99,6 +99,17 @@ export function createServiceSession({invocation,root,now=()=>performance.now(),
         case tag('PathIsAbsolute'):outcome=tagged('AbsoluteResult',{absolute:path.isAbsolute(op.path)});break
         case tag('JoinedPathFacts'):{const normalized=path.normalize(path.join(path.dirname(op.from),op.leaf));outcome=tagged('JoinedPathFactsResult',{separator:path.sep,normalized,absolute:path.isAbsolute(normalized),extension:path.extname(normalized),leaf_extension:path.extname(op.leaf)});break}
         case tag('ReadFileStatus'):{const status=await lstat(path.join(root,op.path)).catch(()=>undefined);outcome=tagged('StatusResult',{status:tagged(status===undefined?'FileAbsent':status.isFile()?'ExistingFile':'ExistingOther')});break}
+        case tag('ReadPathMembership'):{
+          let membership
+          try {
+            const status=await lstat(path.join(root,op.path))
+            membership=tagged('MembershipPresent',{is_file:status.isFile(),is_directory:status.isDirectory(),is_symlink:status.isSymbolicLink(),signature:[status.mode,status.dev,status.ino,status.size,status.mtimeMs,status.ctimeMs].join(':')})
+          } catch(error) { membership=tagged(error?.code==='ENOENT'?'MembershipAbsent':'MembershipFailed') }
+          outcome=tagged('MembershipResult',{membership});break
+        }
+        case tag('SelectContextPath'):outcome=tagged('ContextSelectionResult',{selected:await selectContextPath(op.path)});break
+        case tag('ParsePythonSyntax'):{const source=lookup('CaptureToken',op.capture);outcome=tagged('PythonSyntaxResult',{syntax:await parsePythonSyntax(source.text)});break}
+        case tag('ReadIdentifierCharacters'):outcome=tagged('IdentifierCharactersResult',{characters:list(Array.from(op.text,text=>tagged('IdentifierCharacter',{text,id_start:/^\p{ID_Start}$/u.test(text),id_continue:/^\p{ID_Continue}$/u.test(text)})))});break
         case tag('CreateInvocationCache'):outcome=tagged('InvocationCacheCreated',{cache:register('CacheToken',new Map())});break
         case tag('LookupCaptureCache'):{const cache=lookup('CacheToken',op.cache),value=cache.get(op.path);outcome=tagged('CacheResult',{outcome:value===undefined?tagged('CacheAbsent'):capturedResult(value)});break}
         case tag('SnapshotCaptureCache'):{const cache=lookup('CacheToken',op.cache);outcome=tagged('CacheSnapshot',{entries:list([...cache].map(([p,c])=>tagged('CaptureBytes',{path:p,bytes:c.byteLength})))});break}

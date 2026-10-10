@@ -132,6 +132,23 @@ type FileStatus is Data:
   FileAbsent{}
   ExistingFile{}
   ExistingOther{}
+# Exact physical observations. MembershipFailed is non-ENOENT lstat failure,
+# not absence, policy refusal, cancellation or a transport failure.
+type PathMembership is Data:
+  MembershipAbsent{}
+  MembershipFailed{}
+  MembershipPresent{is_file: Bool, is_directory: Bool, is_symlink: Bool, signature: String}
+type SyntaxField is Data:
+  SyntaxField{name: String, child: Nat}
+type PythonSyntaxNode is Data:
+  PythonSyntaxNode{
+    id: Nat, kind: String, text: String, start: Nat, end: Nat,
+    children: List<&2, Nat>, fields: List<&2, SyntaxField>
+  }
+type PythonSyntax is Data:
+  PythonSyntax{has_error: Bool, root: Nat, nodes: List<&2, PythonSyntaxNode>}
+type IdentifierCharacter is Data:
+  IdentifierCharacter{text: String, id_start: Bool, id_continue: Bool}
 type AccessOutcome is Data:
   AccessDenied{}
   AccessAllowed{selection: SelectionToken, relative_path: String}
@@ -165,6 +182,10 @@ type Operation is Data:
   PathIsAbsolute{path: String}
   JoinedPathFacts{from: String, leaf: String}
   ReadFileStatus{path: String}
+  ReadPathMembership{path: String}
+  SelectContextPath{path: String}
+  ParsePythonSyntax{capture: CaptureToken}
+  ReadIdentifierCharacters{text: String}
   AccessPath{path: String}
   CreateInvocationCache{}
   LookupCaptureCache{cache: CacheToken, path: String}
@@ -198,6 +219,10 @@ type ServiceOutcome is Data:
     leaf_extension: String
   }
   StatusResult{status: FileStatus}
+  MembershipResult{membership: PathMembership}
+  ContextSelectionResult{selected: Bool}
+  PythonSyntaxResult{syntax: PythonSyntax}
+  IdentifierCharactersResult{characters: List<&2, IdentifierCharacter>}
   AccessResult{outcome: AccessOutcome}
   InvocationCacheCreated{cache: CacheToken}
   CacheResult{outcome: CacheOutcome}
