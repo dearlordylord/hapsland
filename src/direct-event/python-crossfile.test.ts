@@ -120,7 +120,14 @@ describe("Python bounded local model evidence", () => {
         "import sys\nsys.modules['support'] = other\n",
         "import importlib as loader\nloader.import_module(dynamic_name)\n",
         "exec(dynamic_loader)\n",
-        "def install_loader():\n    import sys\n    sys.meta_path.append(loader)\ninstall_loader()\n"
+        "def install_loader():\n    import sys\n    sys.meta_path.append(loader)\ninstall_loader()\n",
+        "def install_loader():\n    import sys\n    sys.path.insert(0, '/outside')\nclass Bootstrap:\n    install_loader()\n",
+        "@install_loader()\nclass Bootstrap:\n    pass\n",
+        "@install_loader\nclass Bootstrap:\n    pass\n",
+        "property = install_loader\nclass Bootstrap:\n    @property\n    def value(self):\n        pass\n",
+        "def helper(value=install_loader()):\n    pass\n",
+        "class Bootstrap(metaclass=install_loader):\n    pass\n",
+        "from pydantic import Field\nclass Bootstrap:\n    Field = install_loader\n    value = Field()\n"
       ]) {
         yield* Effect.promise(() => put(root, "support.py", base))
         yield* Effect.promise(() =>
@@ -135,7 +142,7 @@ describe("Python bounded local model evidence", () => {
         expect(
           result.ready.map((item) => preparedProviderInput(item)?.artifact.name),
           effects
-        ).toEqual(["Independent"])
+        ).toEqual(["Good", "Independent"])
         yield* Effect.promise(() => put(root, "support.py", effects + base))
         yield* Effect.promise(() =>
           put(root, "model.py", "from support import Base\nclass Model(Base):\n    pass\nclass Good:\n    value: str\n")
@@ -147,7 +154,11 @@ describe("Python bounded local model evidence", () => {
         ).toEqual(["Good"])
       }
       yield* Effect.promise(() =>
-        put(root, "support.py", base + "def helper():\n    import sys\n    sys.path.append(extra)\n")
+        put(
+          root,
+          "support.py",
+          base + "def helper():\n    import sys\n    sys.path.append(extra)\nunused = lambda: install_loader()\n"
+        )
       )
       expect(
         (yield* prepare(addEvent(root, ["model.py"]))).ready.map((item) => preparedProviderInput(item)?.artifact.name)

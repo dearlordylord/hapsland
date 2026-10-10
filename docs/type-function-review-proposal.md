@@ -629,10 +629,14 @@ authority-only metadata and initializer captures are source fingerprints, not
 invented declaration nodes. Independent complete roots remain eligible when
 another root has an omission. Loader/path effects and imported-namespace mutation
 in edited or supporting modules cannot establish static import authority; effects
-inside an unevaluated function body do not change module bindings. Unknown
-module-level calls also make that module authority unavailable; the declared
-`typing.NewType` constructor remains supported. Independent modules retain their
-own root authority. Qualified member chains retain initializer
+inside an unevaluated function or lambda body do not change module bindings.
+Unknown evaluated calls, including class-body calls, decorators, custom
+metaclasses and function default expressions, make import authority unavailable.
+Recognized declarative dataclass/Pydantic metadata and validator decorators,
+standard method decorators and the declared `typing.NewType` constructor remain
+supported. Independent roots with only self-contained primitive evidence retain
+their own authority; unavailable module bindings cannot support cross-file
+declarations. Qualified member chains retain initializer
 binding authority: a bound class or rebound name is never guessed to be a
 sibling submodule. Only an unbound member or explicit module reexport can
 authorize the supported package-submodule fallback.

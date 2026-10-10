@@ -55,7 +55,8 @@ const signature = (status: Awaited<ReturnType<typeof lstat>> | undefined): strin
 export const createPythonGraphPreparation = (
   inspectPython: LanguageAdapter["inspect"],
   staticPackageAuthority: (source: string) => boolean,
-  hasPackageBinding: (source: string, name: string) => boolean
+  hasPackageBinding: (source: string, name: string) => boolean,
+  staticModuleAuthority: (source: string) => boolean
 ): LanguageAdapter["prepareGraph"] =>
   Effect.fn("Python.prepareGraph")(function* (rootPath, rootCapture, host, limits, expired) {
     if (expired() || limits.files < 1 || limits.work < 1) return undefined
@@ -364,7 +365,10 @@ export const createPythonGraphPreparation = (
       dependencies,
       limits,
       session: {
-        inspect: (path, source, branch) => (branch === "type" ? inspectPython(path, source) : undefined),
+        inspect: (path, source, branch) =>
+          branch === "type" && (path === rootPath || staticModuleAuthority(source))
+            ? inspectPython(path, source)
+            : undefined,
         importCandidates: () => [],
         resolveImport,
         authorityUsage: usage,

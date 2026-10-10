@@ -281,25 +281,78 @@ export type PythonImport = {
 const evaluatedNodes = (node: SyntaxNode): SyntaxNode[] => [
   node,
   ...node.namedChildren
-    .filter((child) => !(node.type === "function_definition" && child.type === "block"))
+    .filter(
+      (child) =>
+        !(node.type === "function_definition" && child.type === "block") &&
+        !(node.type === "lambda" && child === node.childForFieldName("body"))
+    )
     .flatMap(evaluatedNodes)
 ]
+const declarativeImportCalls = new Set([
+  "dataclasses.dataclass",
+  "dataclasses.field",
+  "pydantic.Field",
+  "pydantic.ConfigDict",
+  "pydantic.field_validator",
+  "pydantic.model_validator",
+  "pydantic.validator",
+  "pydantic.root_validator",
+  "typing.NewType",
+  "typing_extensions.NewType"
+])
+/** Class bodies, decorators and defaults execute; function/lambda bodies do not. */
+const unknownEvaluatedCall = (
+  node: SyntaxNode,
+  bindings: ReadonlyMap<string, string>,
+  shadowed: ReadonlySet<string>
+): boolean => {
+  if (
+    node.type === "class_definition" &&
+    node
+      .childForFieldName("superclasses")
+      ?.namedChildren.some(
+        (base) => base.type === "keyword_argument" && base.childForFieldName("name")?.text === "metaclass"
+      )
+  )
+    return true
+  if (node.type === "call" || node.type === "decorator") {
+    const marker = node.type === "decorator" ? node.namedChildren[0] : node
+    const name = marker?.type === "call" ? (marker.childForFieldName("function")?.text ?? "") : (marker?.text ?? "")
+    const identity = identityFor(name, bindings)
+    const builtinDecorator =
+      node.type === "decorator" && !shadowed.has(name) && ["classmethod", "staticmethod", "property"].includes(name)
+    if (!builtinDecorator && !declarativeImportCalls.has(identity ?? "")) return true
+  }
+  return node.namedChildren.some((child) => {
+    if (node.type === "function_definition" && child.type === "block") return false
+    if (node.type === "lambda" && child === node.childForFieldName("body")) return false
+    if (node.type === "class_definition" && child.type === "block") {
+      const scoped = new Map(bindings)
+      const localNames = new Set(shadowed)
+      for (const member of child.namedChildren)
+        for (const binding of scopeBindings(member)) {
+          scoped.delete(binding.name)
+          localNames.add(binding.name)
+        }
+      return unknownEvaluatedCall(child, scoped, localNames)
+    }
+    return unknownEvaluatedCall(child, bindings, shadowed)
+  })
+}
 /** Dynamic loader or imported-namespace mutation cannot establish a static target. */
 const unavailableImportNamespace = (root: SyntaxNode, bindings: ReadonlyMap<string, string>): boolean =>
-  root.namedChildren
-    .filter((node) => !["class_definition", "function_definition", "decorated_definition"].includes(node.type))
-    .flatMap(evaluatedNodes)
-    .some((node) => {
-      if (node.type !== "call") return false
-      const name = node.childForFieldName("function")?.text ?? ""
-      return !["typing.NewType", "typing_extensions.NewType"].includes(identityFor(name, bindings) ?? "")
-    }) ||
+  unknownEvaluatedCall(root, bindings, new Set(moduleScope(root).facts.map((fact) => fact.name))) ||
   evaluatedNodes(root).some((node) => {
     if (["assignment", "augmented_assignment", "named_expression", "delete_statement"].includes(node.type)) {
       const targets = node.type === "delete_statement" ? node.namedChildren : [node.childForFieldName("left")]
       if (
         targets.some(
-          (target) => target !== null && target.type !== "identifier" && bindings.has(target.text.split(/[.[]/u)[0]!)
+          (target) =>
+            target !== null &&
+            target.type !== "identifier" &&
+            moduleScope(root).facts.some(
+              (fact) => fact.identity !== undefined && fact.name === target.text.split(/[.[]/u)[0]!
+            )
         )
       )
         return true
@@ -375,17 +428,7 @@ const staticPackageAuthority = (source: string): boolean => {
         return false
       if (evaluated.type !== "call") continue
       const identity = identityFor(evaluated.childForFieldName("function")?.text ?? "", bindings)
-      if (
-        ![
-          "dataclasses.dataclass",
-          "dataclasses.field",
-          "pydantic.Field",
-          "pydantic.ConfigDict",
-          "typing.NewType",
-          "typing_extensions.NewType"
-        ].includes(identity ?? "")
-      )
-        return false
+      if (!declarativeImportCalls.has(identity ?? "")) return false
     }
   }
   return true
@@ -409,9 +452,8 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
   const locals = new Set(bindingFacts.map((fact) => fact.name))
   const uncertainBindings = root.namedChildren.some(
     (node) =>
-      (["if_statement", "for_statement", "while_statement", "try_statement", "with_statement"].includes(node.type) &&
-        !staticBlocks.has(node.startIndex)) ||
-      (assignment(node) !== undefined && assignment(node)?.childForFieldName("left")?.type !== "identifier")
+      ["if_statement", "for_statement", "while_statement", "try_statement", "with_statement"].includes(node.type) &&
+      !staticBlocks.has(node.startIndex)
   )
   const counts = new Map<string, number>()
   for (const fact of bindingFacts) counts.set(fact.name, (counts.get(fact.name) ?? 0) + 1)
@@ -422,7 +464,8 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
     return cls?.type === "class_definition" ? [{ node, cls, name: cls.childForFieldName("name")?.text ?? "" }] : []
   })
   if (classes.length > MAX_TYPE_DECLARATIONS) return { status: "unsupported", reason: "declaration-limit", units: [] }
-  const imports = pythonImports(source) ?? new Map<string, PythonImport>()
+  const resolvedImports = pythonImports(source)
+  const imports = resolvedImports ?? new Map<string, PythonImport>()
   const admitted = new Set<string>()
   for (let pass = 0; pass <= classes.length; pass++) {
     let changed = false
@@ -621,8 +664,18 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
     }
     if (name !== undefined && (counts.get(name) ?? 0) > 1) extra.push({ kind: "unsupported", name: "namespace" })
     if (!name || !/^[\p{ID_Start}_][\p{ID_Continue}]*$/u.test(name)) continue
+    if (
+      resolvedImports === undefined &&
+      descendants(node).some(
+        (part) =>
+          ["identifier", "attribute", "dotted_name"].includes(part.type) && bindings.has(part.text.split(".")[0]!)
+      )
+    )
+      extra.push({ kind: "unsupported", name: "import-authority" })
     const rendered = source.slice(node.startIndex, node.endIndex)
     const refs = [...extra, ...expressions.flatMap((expression) => references(expression, scope))]
+    if (resolvedImports === undefined && refs.some((reference) => reference.kind === "named"))
+      refs.push({ kind: "unsupported", name: "import-authority" })
     declarations.push({
       artifact: {
         path,
@@ -653,8 +706,8 @@ const parseTypes: LanguageAdapter["parseTypes"] = (path, source) => {
 }
 export const inspectPython: LanguageAdapter["inspect"] = (path, source) => {
   const parsed = parseTypes(path, source)
-  const imports = pythonImports(source)
-  if (imports === undefined || ("status" in parsed && parsed.reason !== "no-declarations")) return undefined
+  const imports = pythonImports(source) ?? new Map<string, PythonImport>()
+  if ("status" in parsed && parsed.reason !== "no-declarations") return undefined
   const declarations = "status" in parsed ? [] : parsed
   if (declarations.length === 0 && imports.size === 0) return undefined
   const graphImports = new Map<string, { readonly path: string; readonly name: string }>()
@@ -683,7 +736,10 @@ export const pythonAdapter: LanguageAdapter = {
   inspect: inspectPython,
   hasImports: (source) => (pythonImports(source)?.size ?? 0) > 0,
   combinedPreflight: (_path, _source, bound) => bound,
-  prepareGraph: createPythonGraphPreparation(inspectPython, staticPackageAuthority, (source, name) =>
-    moduleScope(rootFor(source)).facts.some((fact) => fact.name === name)
+  prepareGraph: createPythonGraphPreparation(
+    inspectPython,
+    staticPackageAuthority,
+    (source, name) => moduleScope(rootFor(source)).facts.some((fact) => fact.name === name),
+    (source) => pythonImports(source) !== undefined
   )
 }
