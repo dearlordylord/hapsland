@@ -44,6 +44,21 @@ describe("Go named type identity and source", () => {
       expect(facts?.declarations.get(reference!.name)?.artifact.source).toBe(constant)
     }
   })
+  it("keeps generic alias parameter identity separate from package bindings", () => {
+    for (const target of ["State", "(State)"]) {
+      const file = inspectGoFile(
+        "model.go",
+        `package p\ntype State int\ntype Alias[State ~int] = ${target}\nconst Ready Alias[int] = 1\n`
+      )
+      if (file === undefined) throw new Error("parse failed")
+      expect(file.aliases.has("Alias")).toBe(false)
+      const facts = goGraphFacts([file])
+      expect(facts?.declarations.get("State")?.references).toEqual([])
+      expect(facts?.declarations.get("Alias")?.references).toHaveLength(1)
+      const reference = facts!.declarations.get("Alias")!.references[0]!
+      expect(facts?.declarations.get(reference.name)?.artifact.source).toBe("const Ready Alias[int] = 1")
+    }
+  })
   it("does not give init functions or blank functions package bindings", () => {
     const root = inspectGoFile("root.go", "package p\ntype Root struct { ID string }\nfunc init() {}\nfunc _() {}\n")
     const sibling = inspectGoFile("sibling.go", "package p\nfunc init() {}\nfunc _() {}\n")

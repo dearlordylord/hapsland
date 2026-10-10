@@ -190,6 +190,9 @@ Their original source-free declaration and result are retained locally under
 A fresh independent review found a missing constant group for parenthesized
 explicit named types and aliases. The fix preserves those identities, including
 instantiated aliases, without rewriting source or computing constant values.
+The second review found that a generic alias parameter could be mistaken for
+a same-named package type. Alias identity now uses the same parameter scope as
+type references; analyzer and provider regressions exclude unrelated constants.
 The original imported-source shared consumer run passed 222 tests. The fixed
 source passed all 73 unit tests, including the new analyzer and actual provider
 projection regressions, and `check:fast` with `VITEST_MAX_WORKERS=1`; test and
@@ -199,6 +202,9 @@ The current native owner, loader, receipt, loading/packaging and hook-boundary
 selection passed 139 checks. Manual `docs:generated:check` passed after preparing
 current exports. Missing-export and overlapping-preparation attempts do not
 qualify. These are focused local checks, not full-project coverage.
+After the binder fix, all 75 source unit tests and 39 focused Go tests against
+rebuilt workspace exports passed. The first new-base package attempt exceeded
+its internal packing deadline while building; it does not qualify installation.
 
 ## Real-agent verification
 

@@ -83,12 +83,16 @@ const imports = (root: SyntaxNode) => {
   }
   return { names, uncertain, cgo }
 }
-const typeReferences = (node: SyntaxNode, name: SyntaxNode, imported: ReturnType<typeof imports>): GraphReference[] => {
+const typeParameters = (node: SyntaxNode): Set<string> => {
   const parameters = new Set<string>()
   for (const parameter of descendants(node.childForFieldName("type_parameters") ?? { ...node, namedChildren: [] })) {
     if (parameter.type === "identifier" && parameter.parent?.type === "type_parameter_declaration")
       parameters.add(parameter.text)
   }
+  return parameters
+}
+const typeReferences = (node: SyntaxNode, name: SyntaxNode, imported: ReturnType<typeof imports>): GraphReference[] => {
+  const parameters = typeParameters(node)
   const references = new Map<string, GraphReference>()
   const add = (kind: GraphReference["kind"], value: string) => references.set(`${kind}:${value}`, { kind, name: value })
   for (const child of descendants(node)) {
@@ -145,7 +149,8 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
           spec.type === "type_alias" &&
           aliasTarget !== undefined &&
           !imported.uncertain &&
-          !imported.names.has(aliasTarget)
+          !imported.names.has(aliasTarget) &&
+          !typeParameters(spec).has(aliasTarget)
         )
           aliases.set(name.text, aliasTarget)
         const kind =

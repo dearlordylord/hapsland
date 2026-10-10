@@ -106,6 +106,26 @@ describe("Go active local package review", () => {
       }
     })
   )
+  it.effect("does not transmit constants from a generic parameter alias to a shadowed package type", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() => put(root, "state.go", "package p\ntype State int\n"))
+        yield* Effect.promise(() =>
+          put(root, "alias.go", "package p\ntype Alias[State ~int] = (State)\nconst Ready Alias[int] = 1\n")
+        )
+        const { result } = yield* prepare(addEvent(root, ["state.go"]))
+        const ready = result.outcomes.find((outcome) => outcome.status === "ready")
+        if (ready?.status !== "ready") throw new Error("missing unit")
+        const input = JSON.stringify(preparedProviderInput(ready.prepared))
+        expect(input).not.toContain("const Ready")
+        expect(input).not.toContain("constant-group")
+        expect(ready.prepared.input.completeness).toBe("complete")
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
   it.effect("rechecks alternative package identities and restored source", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
