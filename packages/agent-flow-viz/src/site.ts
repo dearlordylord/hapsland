@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { type Runtime, Command, type Update } from "foldkit"
 import type { Document, HtmlBuilder } from "foldkit/html"
 import { defineMessageUnion } from "foldkit/message"
@@ -14,12 +14,13 @@ const DOWNLOADS = "https://github.com/dearlordylord/hapsland-releases/releases/l
 const REPOSITORY = "https://github.com/dearlordylord/hapsland"
 const guide = (name: string) => `${REPOSITORY}/blob/master/docs/${name}.md`
 export const Model = Schema.Struct({
-  lifecycle: Schema.Literals(["collapsed", "expanding", "running", "collapsing"]),
-  hasRun: Schema.Boolean,
+  commentIndex: Schema.Number,
+  commentElapsed: Schema.Number,
+  commentSwipe: Schema.NullOr(Schema.Struct({ x: Schema.Number, y: Schema.Number, pointerId: Schema.Number })),
+  commentsHovered: Schema.Boolean,
+  commentsFocus: Schema.Literals(["none", "pointer", "keyboard"]),
   phase: Schema.Number,
-  transitionElapsed: Schema.Number,
   elapsed: Schema.Number,
-  playing: Schema.Boolean,
   reducedMotion: Schema.Boolean,
   compactLoop: Schema.Boolean,
   copyInstruction: Schema.String,
@@ -30,11 +31,14 @@ export interface Model extends Schema.Schema.Type<typeof Model> {}
 export const Message = defineMessageUnion({
   Copy: { target: Schema.Literals(["instruction", "install", "setup"]) },
   Copied: { target: Schema.Literals(["instruction", "install", "setup"]), success: Schema.Boolean },
-  OpenExample: {},
-  CloseExample: {},
-  Play: {},
-  Pause: {},
-  HeroNext: {},
+  CommentStep: { direction: Schema.Literals(["previous", "next"]) },
+  CommentSwipeStart: { x: Schema.Number, y: Schema.Number, pointerId: Schema.Number },
+  CommentSwipeEnd: { x: Schema.Number, y: Schema.Number, pointerId: Schema.Number },
+  CommentSwipeCancel: { pointerId: Schema.NullOr(Schema.Number) },
+  CommentTick: {},
+  CommentHover: { hovered: Schema.Boolean },
+  CommentFocus: { focused: Schema.Boolean },
+  HeroSelect: { phase: Schema.Number },
   Tick: { deltaMs: Schema.Number },
   MotionChanged: { reduced: Schema.Boolean },
   ViewportChanged: { compact: Schema.Boolean },
@@ -42,18 +46,20 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 export const init: Runtime.ApplicationInit<Model, Message> = () => {
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
   const model: Model = {
+    commentIndex: 0,
+    commentElapsed: 0,
+    commentSwipe: null,
+    commentsHovered: false,
+    commentsFocus: "none",
     copyInstruction: "",
     copyInstall: "",
     copySetup: "",
-    lifecycle: "collapsed",
-    hasRun: false,
     phase: 0,
-    transitionElapsed: 0,
     elapsed: 0,
-    playing: false,
     compactLoop: window.matchMedia("(max-width: 760px)").matches,
-    reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    reducedMotion
   }
   return { model, commands: [paintLoop(model)] }
 }
@@ -98,88 +104,74 @@ const PaintLoop = Command.define("PaintLoop", {
 const paintLoop = (model: Model) =>
   PaintLoop({
     phase: model.phase,
-    progress: model.elapsed > 0 ? model.elapsed / 4000 : model.playing ? 0 : 1,
+    progress: model.reducedMotion ? 1 : model.elapsed / 4000,
     compact: model.compactLoop,
     reducedMotion: model.reducedMotion
   })
-const closeExample = (model: Model): Model => ({
-  ...model,
-  lifecycle: model.reducedMotion ? "collapsed" : "collapsing",
-  hasRun: true,
-  transitionElapsed: 0,
-  elapsed: 0,
-  playing: false
-})
-const ReturnExampleFocus = Command.define("ReturnExampleFocus", {
-  messages: [Message.LoopPainted],
-  execute: Effect.sync(() => {
-    const panel = document.getElementById("example-expanded-body")
-    if (panel?.contains(document.activeElement))
-      document.getElementById("example-starter")?.focus({ preventScroll: true })
-    return Message.LoopPainted()
-  })
-})
 const updateModel = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     Copy: ({ target }) => ({ model: { ...model, [copyField(target)]: "" }, commands: [CopyText({ target })] }),
     Copied: ({ target, success }) => ({
       model: { ...model, [copyField(target)]: success ? "Copied" : "Could not copy. Select and copy the text below." }
     }),
-    OpenExample: () => ({
-      model:
-        model.lifecycle !== "collapsed"
-          ? model
-          : {
-              ...model,
-              lifecycle: model.reducedMotion ? "running" : "expanding",
-              phase: 0,
-              elapsed: 0,
-              transitionElapsed: 0,
-              playing: false
-            }
-    }),
-    CloseExample: () => ({ model: closeExample(model) }),
-    Play: () => ({
-      model: { ...model, phase: model.phase === 5 ? 0 : model.phase, elapsed: 0, playing: !model.reducedMotion }
-    }),
-    Pause: () => ({ model: { ...model, playing: false } }),
-    MotionChanged: ({ reduced }) => ({
+    CommentStep: ({ direction }) => ({
       model: {
         ...model,
-        reducedMotion: reduced,
-        playing: false,
-        lifecycle:
-          reduced && model.lifecycle === "expanding"
-            ? "running"
-            : reduced && model.lifecycle === "collapsing"
-              ? "collapsed"
-              : model.lifecycle
+        commentElapsed: 0,
+        commentsFocus: "keyboard",
+        commentIndex: (model.commentIndex + (direction === "next" ? 1 : COMMENTS.length - 1)) % COMMENTS.length
       }
     }),
-    HeroNext: () => ({
-      model: model.phase === 5 ? closeExample(model) : { ...model, phase: model.phase + 1, elapsed: 0, playing: false }
+    CommentSwipeStart: ({ x, y, pointerId }) => ({
+      model: model.commentSwipe ? model : { ...model, commentsFocus: "pointer", commentSwipe: { x, y, pointerId } }
     }),
+    CommentSwipeEnd: ({ x, y, pointerId }) => {
+      const start = model.commentSwipe
+      if (!start || start.pointerId !== pointerId) return { model }
+      const horizontal = x - start.x
+      const vertical = y - start.y
+      const swipe = Math.abs(horizontal) >= 48 && Math.abs(horizontal) > Math.abs(vertical) * 1.5
+      return {
+        model: {
+          ...model,
+          commentSwipe: null,
+          commentElapsed: swipe ? 0 : model.commentElapsed,
+          commentIndex: swipe
+            ? (model.commentIndex + (horizontal < 0 ? 1 : COMMENTS.length - 1)) % COMMENTS.length
+            : model.commentIndex
+        }
+      }
+    },
+    CommentSwipeCancel: ({ pointerId }) => ({
+      model:
+        pointerId === null || model.commentSwipe?.pointerId === pointerId ? { ...model, commentSwipe: null } : model
+    }),
+    CommentTick: () => {
+      if (!commentsAutoPlaying(model)) return { model }
+      const elapsed = model.commentElapsed + COMMENT_TICK_MS
+      return {
+        model: {
+          ...model,
+          commentElapsed: elapsed % COMMENT_CYCLE_MS,
+          commentIndex: elapsed >= COMMENT_CYCLE_MS ? (model.commentIndex + 1) % COMMENTS.length : model.commentIndex
+        }
+      }
+    },
+    CommentHover: ({ hovered }) => ({ model: { ...model, commentsHovered: hovered } }),
+    CommentFocus: ({ focused }) => ({
+      model: {
+        ...model,
+        commentsFocus: focused ? (model.commentsFocus === "pointer" ? "pointer" : "keyboard") : "none"
+      }
+    }),
+    MotionChanged: ({ reduced }) => ({ model: { ...model, reducedMotion: reduced, elapsed: 0 } }),
+    HeroSelect: ({ phase }) => ({ model: { ...model, phase, elapsed: 0 } }),
     Tick: ({ deltaMs }) => {
       if (!Number.isFinite(deltaMs) || deltaMs < 0) return { model }
       const elapsed = model.elapsed + Math.min(deltaMs, 100)
-      const transitionElapsed = model.transitionElapsed + Math.min(deltaMs, 100)
-      if (model.lifecycle === "expanding")
-        return {
-          model:
-            transitionElapsed >= 500
-              ? { ...model, lifecycle: "running", transitionElapsed: 0, elapsed: 0, playing: !model.reducedMotion }
-              : { ...model, transitionElapsed }
-        }
-      if (model.lifecycle === "collapsing")
-        return {
-          model:
-            transitionElapsed >= 450
-              ? { ...model, lifecycle: "collapsed", transitionElapsed: 0, elapsed: 0 }
-              : { ...model, transitionElapsed }
-        }
-      if (!model.playing || model.lifecycle !== "running") return { model }
+      if (model.reducedMotion) return { model }
       if (elapsed < 4000) return { model: { ...model, elapsed } }
-      return { model: model.phase === 5 ? closeExample(model) : { ...model, phase: model.phase + 1, elapsed: 0 } }
+      return { model: { ...model, phase: (model.phase + 1) % 6, elapsed: 0 } }
     },
     ViewportChanged: ({ compact }) => ({ model: { ...model, compactLoop: compact } }),
     LoopPainted: () => ({ model })
@@ -187,18 +179,260 @@ const updateModel = (model: Model, message: Message) =>
 export const update = (model: Model, message: Message): Update.Return<Model, Message> => {
   const result = updateModel(model, message)
   const commands = [...(result.commands ?? [])]
-  if (
-    ["OpenExample", "Play", "Pause", "HeroNext", "Tick", "MotionChanged", "ViewportChanged"].includes(message._tag) &&
-    result.model.lifecycle !== "collapsed"
-  )
+  if (["HeroSelect", "Tick", "MotionChanged", "ViewportChanged"].includes(message._tag))
     commands.push(paintLoop(result.model))
-  if (
-    model.lifecycle === "running" &&
-    (result.model.lifecycle === "collapsing" || result.model.lifecycle === "collapsed")
-  )
-    commands.push(ReturnExampleFocus())
   return { ...result, commands }
 }
+export const COMMENT_TICK_MS = 100
+const COMMENT_CYCLE_MS = 4000
+type CodeToken = {
+  readonly kind: "plain" | "keyword" | "type" | "string" | "function"
+  readonly text: string
+  readonly emphasis?: "conflict" | "attention"
+}
+// Fixed, pre-tokenized samples: the displayed source is never parsed at runtime.
+const COMMENTS = [
+  {
+    label: "MEANINGLESS COMBINATIONS",
+    quote: "Can a field be set in a state where it has no meaning?",
+    code: [
+      { kind: "keyword", text: "type" },
+      { kind: "plain", text: " " },
+      { kind: "type", text: "Order" },
+      { kind: "plain", text: " = {\n  status: " },
+      { kind: "string", text: '"pending"' },
+      { kind: "plain", text: " | " },
+      { kind: "string", text: '"delivered"' },
+      { kind: "plain", text: ";\n  deliveredAt: " },
+      { kind: "type", text: "Date" },
+      { kind: "plain", text: " | " },
+      { kind: "keyword", text: "null" },
+      { kind: "plain", text: ";\n};\n\n" },
+      { kind: "keyword", text: "const" },
+      { kind: "plain", text: " order: " },
+      { kind: "type", text: "Order" },
+      { kind: "plain", text: " = {\n  status: " },
+      { kind: "string", text: '"pending"' },
+      { kind: "plain", text: ",\n" },
+      { kind: "plain", text: "  deliveredAt: new Date()", emphasis: "conflict" },
+      { kind: "plain", text: "\n};" }
+    ],
+    note: "This compiles. A pending order has no delivery time."
+  },
+  {
+    label: "DOMAIN VALUES",
+    quote: "Can values with different domain meanings be used interchangeably?",
+    code: [
+      { kind: "keyword", text: "type" },
+      { kind: "plain", text: " " },
+      { kind: "type", text: "UserId" },
+      { kind: "plain", text: " = " },
+      { kind: "type", text: "string" },
+      { kind: "plain", text: ";\n" },
+      { kind: "keyword", text: "type" },
+      { kind: "plain", text: " " },
+      { kind: "type", text: "OrderId" },
+      { kind: "plain", text: " = " },
+      { kind: "type", text: "string" },
+      { kind: "plain", text: ";\n\n" },
+      { kind: "keyword", text: "function" },
+      { kind: "plain", text: " " },
+      { kind: "function", text: "userPath" },
+      { kind: "plain", text: "(id: " },
+      { kind: "type", text: "UserId" },
+      { kind: "plain", text: ") {\n  " },
+      { kind: "keyword", text: "return" },
+      { kind: "plain", text: " " },
+      { kind: "string", text: "`/users/${id}`" },
+      { kind: "plain", text: ";\n}\n\n" },
+      { kind: "keyword", text: "const" },
+      { kind: "plain", text: " orderId: " },
+      { kind: "type", text: "OrderId" },
+      { kind: "plain", text: " = " },
+      { kind: "string", text: '"order-42"' },
+      { kind: "plain", text: ";\n" },
+      { kind: "function", text: "userPath" },
+      { kind: "plain", text: "(orderId);" }
+    ],
+    note: "Example: userPath(orderId) compiles despite receiving an order ID."
+  },
+  {
+    label: "PARTS OF ONE FACT",
+    quote: "Can one part of a fact be supplied without the rest?",
+    code: [
+      { kind: "keyword", text: "type" },
+      { kind: "plain", text: " " },
+      { kind: "type", text: "MapPin" },
+      { kind: "plain", text: " = {\n  latitude?: " },
+      { kind: "type", text: "number" },
+      { kind: "plain", text: ";\n  longitude?: " },
+      { kind: "type", text: "number" },
+      { kind: "plain", text: ";\n};\n\n" },
+      { kind: "keyword", text: "const" },
+      { kind: "plain", text: " pin: " },
+      { kind: "type", text: "MapPin" },
+      { kind: "plain", text: " = {\n" },
+      { kind: "plain", text: "  latitude: 51.5", emphasis: "conflict" },
+      { kind: "plain", text: "\n};" }
+    ],
+    note: "This compiles. Latitude alone cannot place a pin on a map."
+  },
+  {
+    label: "ABSENCE CONFUSION",
+    quote: "Can the same absence be represented in different ways?",
+    code: [
+      { kind: "keyword", text: "type" },
+      { kind: "plain", text: " " },
+      { kind: "type", text: "Person" },
+      { kind: "plain", text: " = {\n" },
+      { kind: "plain", text: "  middleName?: string | null;", emphasis: "attention" },
+      { kind: "plain", text: "\n};\n\n" },
+      { kind: "keyword", text: "const" },
+      { kind: "plain", text: " people: " },
+      { kind: "type", text: "Person" },
+      { kind: "plain", text: "[] = [\n  {},\n  { middleName: " },
+      { kind: "keyword", text: "null" },
+      { kind: "plain", text: " },\n  { middleName: " },
+      { kind: "string", text: '""' },
+      { kind: "plain", text: " }\n];" }
+    ],
+    note: "No middle name, three representations. Callers must account for all three."
+  },
+  {
+    label: "NAME AND TYPE",
+    quote: "Does the type allow values its name rules out?",
+    code: [
+      { kind: "keyword", text: "type" },
+      { kind: "plain", text: " " },
+      { kind: "type", text: "Count" },
+      { kind: "plain", text: " = " },
+      { kind: "type", text: "number" },
+      { kind: "plain", text: ";\n\n" },
+      { kind: "keyword", text: "const" },
+      { kind: "plain", text: " missing: " },
+      { kind: "type", text: "Count" },
+      { kind: "plain", text: " = " },
+      { kind: "plain", text: "-1", emphasis: "conflict" },
+      { kind: "plain", text: ";\n" },
+      { kind: "keyword", text: "const" },
+      { kind: "plain", text: " partial: " },
+      { kind: "type", text: "Count" },
+      { kind: "plain", text: " = " },
+      { kind: "plain", text: "1.5", emphasis: "conflict" },
+      { kind: "plain", text: ";" }
+    ],
+    note: "Both compile. A count of items cannot be negative or fractional."
+  },
+  {
+    label: "VISIBLE DEPENDENCIES",
+    quote: "Does the body read or change anything its declaration leaves out?",
+    code: [
+      { kind: "keyword", text: "function" },
+      { kind: "plain", text: " " },
+      { kind: "function", text: "isExpired" },
+      { kind: "plain", text: "(at: " },
+      { kind: "type", text: "number" },
+      { kind: "plain", text: "): " },
+      { kind: "type", text: "boolean" },
+      { kind: "plain", text: " {\n  " },
+      { kind: "keyword", text: "return" },
+      { kind: "plain", text: " " },
+      { kind: "type", text: "Date" },
+      { kind: "plain", text: "." },
+      { kind: "function", text: "now" },
+      { kind: "plain", text: "() > at;\n}" }
+    ],
+    note: "Example: the result depends on a clock absent from the declaration."
+  }
+] as const satisfies readonly { label: string; quote: string; code: readonly CodeToken[]; note: string }[]
+export const commentsAutoPlaying = (model: Model) =>
+  !model.reducedMotion && !model.commentsHovered && model.commentsFocus !== "keyboard" && !model.commentSwipe
+const commentDeck = (model: Model, h: HtmlBuilder<Message>) =>
+  h.aside(
+    [
+      h.Class("comment-deck"),
+      h.AriaLabel("Familiar code review comments"),
+      h.OnMouseEnter(Message.CommentHover({ hovered: true })),
+      h.OnMouseLeave(Message.CommentHover({ hovered: false })),
+      h.OnFocusEnter(Message.CommentFocus({ focused: true })),
+      h.OnFocusLeave(Message.CommentFocus({ focused: false })),
+      h.OnKeyDownPreventDefault((key) =>
+        key === "ArrowLeft" || key === "ArrowRight"
+          ? Option.some(Message.CommentStep({ direction: key === "ArrowLeft" ? "previous" : "next" }))
+          : Option.none()
+      )
+    ],
+    [
+      h.div(
+        [
+          h.Class(`comment-stack${model.commentSwipe ? " is-swiping" : ""}`),
+          h.Id("review-comments"),
+          h.Tabindex(0),
+          h.AriaLabel("Review comments. Swipe left or right, or use the arrow keys."),
+          h.AriaLive(commentsAutoPlaying(model) ? "off" : "polite"),
+          h.OnPointerDown((_pointerType, button, x, y, _time, _clientX, _clientY, pointerId) =>
+            button === 0 ? Option.some(Message.CommentSwipeStart({ x, y, pointerId })) : Option.none()
+          )
+        ],
+        COMMENTS.map((comment, index) => {
+          const position = (index - model.commentIndex + COMMENTS.length) % COMMENTS.length
+          return h.article(
+            [
+              h.Key(comment.label),
+              h.Class(`comment-card card-position-${Math.min(position, 3)}`),
+              h.AriaHidden(position !== 0)
+            ],
+            [
+              h.div(
+                [h.Class("comment-card-heading")],
+                [
+                  h.span([h.Class("micro")], [comment.label]),
+                  h.span([h.Class("comment-card-number"), h.AriaHidden(true)], [`0${index + 1}`])
+                ]
+              ),
+              h.blockquote([], [comment.quote]),
+              h.div(
+                [h.Class("comment-code")],
+                [
+                  h.pre(
+                    [],
+                    [
+                      h.code(
+                        [],
+                        comment.code.map((token: CodeToken) =>
+                          h.span(
+                            [h.Class(`code-${token.kind}${token.emphasis ? ` code-${token.emphasis}` : ""}`)],
+                            [token.text]
+                          )
+                        )
+                      )
+                    ]
+                  ),
+                  h.p([], [comment.note])
+                ]
+              ),
+              h.div(
+                [h.Class("comment-progress"), h.AriaHidden(true)],
+                [
+                  h.div(
+                    [
+                      h.Class("comment-progress-fill"),
+                      h.Style({
+                        transform: `scaleX(${position === 0 ? model.commentElapsed / COMMENT_CYCLE_MS : 0})`,
+                        transition: position === 0 && commentsAutoPlaying(model) ? "transform 100ms linear" : "none"
+                      })
+                    ],
+                    []
+                  )
+                ]
+              )
+            ]
+          )
+        })
+      )
+    ]
+  )
+
 const PHASES = ["The edit", "Related code", "Review request", "Agent feedback", "Example edit", "Recheck"]
 const PHASE_COPY = [
   "The agent adds a field for the cover image’s width. The diff shows the new line and the lines around it.",
@@ -274,164 +508,102 @@ const hero = (model: Model, h: HtmlBuilder<Message>) => {
     )
   }
   return h.div(
+    [h.Id("review-example"), h.Class(`hero-illustration phase-${model.phase}`)],
     [
-      h.Id("review-example"),
-      h.Class(`hero-illustration phase-${model.phase} lifecycle-${model.lifecycle}${model.hasRun ? " has-run" : ""}`)
-    ],
-    [
-      h.button(
+      h.div(
+        [h.Id("example-expanded-body"), h.Class("example-expanded-body")],
         [
-          h.Id("example-starter"),
-          h.Type("button"),
-          h.Class("example-starter"),
-          h.OnClick(Message.OpenExample()),
-          h.AriaExpanded(model.lifecycle !== "collapsed"),
-          h.AriaControls("example-expanded-body"),
-          h.Inert(model.lifecycle === "running" || model.lifecycle === "expanding")
-        ],
-        [
-          h.span([h.Class("starter-title")], ["Example edit"]),
-          h.pre(
-            [],
+          h.canvas(
             [
-              h.code(
-                [],
-                SITE_EXAMPLE.initialDiff.map((line) =>
-                  h.span([h.Class(line.startsWith("+") ? "added-line" : "")], [line + "\n"])
-                )
+              h.Id("review-loop-canvas"),
+              h.Class("review-loop-canvas"),
+              h.Role("img"),
+              h.AriaLabel(PHASE_COPY[model.phase])
+            ],
+            ["Read the current stage below for the code and review details."]
+          ),
+          h.details(
+            [h.Class("stage-transcript"), h.Open(model.compactLoop)],
+            [
+              h.summary([], ["Read this stage"]),
+              h.div(
+                [h.Class("hero-scene gallery-scene")],
+                [
+                  ...(model.phase === 0 ? [codeCard("Agent edit", SITE_EXAMPLE.initialDiff, "DIFF")] : []),
+                  ...(model.phase === 1 ? [dependencyGraph(false)] : []),
+                  ...(model.phase === 2
+                    ? [
+                        dependencyGraph(true),
+                        h.div(
+                          [h.Class("rule-question")],
+                          [
+                            h.span([h.Class("micro")], ["REVIEW QUESTION"]),
+                            h.p([], ["Can this type store two copies of the same fact that disagree?"])
+                          ]
+                        )
+                      ]
+                    : []),
+                  ...(model.phase === 3
+                    ? [
+                        h.div(
+                          [h.Class("sample-feedback")],
+                          [
+                            h.span([h.Class("micro")], ["FEEDBACK SENT TO THE AGENT"]),
+                            h.p([h.Class("configured-feedback")], [SITE_EXAMPLE.feedbackMessage])
+                          ]
+                        )
+                      ]
+                    : []),
+                  ...(model.phase === 4
+                    ? [
+                        codeCard("Gallery", SITE_EXAMPLE.after, "EXAMPLE EDIT"),
+                        h.p(
+                          [h.Class("repair-explanation")],
+                          ["Read the width from cover.dimensions.width instead of maintaining two copies."]
+                        ),
+                        h.p(
+                          [h.Class("muted")],
+                          ["This edit is shown for illustration. The agent chooses how to respond to feedback."]
+                        )
+                      ]
+                    : []),
+                  ...(model.phase === 5
+                    ? [
+                        codeCard("Gallery", SITE_EXAMPLE.after, "RECHECK"),
+                        ...SITE_EXAMPLE.dependencies.map((lines, i) =>
+                          codeCard(SITE_EXAMPLE.definitionNames[i + 1], lines, "RELATED TYPE")
+                        )
+                      ]
+                    : [])
+                ]
               )
             ]
           ),
-          h.span(
-            [h.Class("click-sticker")],
-            [
-              model.hasRun ? "Replay example ↗" : "✦ CLICK ME ✦",
-              ...(!model.hasRun
-                ? [0, 1, 2, 3].map((i) =>
-                    h.span([h.Class(`emitted-star star-${i}`), h.AriaHidden(true)], [i % 2 ? "✧" : "✦"])
-                  )
-                : [])
-            ]
-          )
-        ]
-      ),
-      h.div(
-        [h.Class("example-expand-grid"), h.Inert(model.lifecycle === "collapsed" || model.lifecycle === "collapsing")],
-        [
           h.div(
-            [h.Id("example-expanded-body"), h.Class("example-expanded-body")],
+            [h.Class("animation-bottom")],
             [
-              h.canvas(
-                [
-                  h.Id("review-loop-canvas"),
-                  h.Class("review-loop-canvas"),
-                  h.Role("img"),
-                  h.AriaLabel(PHASE_COPY[model.phase])
-                ],
-                ["Read the current stage below for the code and review details."]
-              ),
-              h.details(
-                [h.Class("stage-transcript"), h.Open(model.compactLoop)],
-                [
-                  h.summary([], ["Read this stage"]),
-                  h.div(
-                    [h.Class("hero-scene gallery-scene")],
+              h.ol(
+                [h.Class("phase-steps"), h.AriaLabel("Illustration stages")],
+                PHASES.map((phase, i) =>
+                  h.li(
+                    [h.Class(i === model.phase ? "active" : i < model.phase ? "done" : "")],
                     [
-                      ...(model.phase === 0 ? [codeCard("Agent edit", SITE_EXAMPLE.initialDiff, "DIFF")] : []),
-                      ...(model.phase === 1 ? [dependencyGraph(false)] : []),
-                      ...(model.phase === 2
-                        ? [
-                            dependencyGraph(true),
-                            h.div(
-                              [h.Class("rule-question")],
-                              [
-                                h.span([h.Class("micro")], ["REVIEW QUESTION"]),
-                                h.p([], ["Can this type store two copies of the same fact that disagree?"])
-                              ]
-                            )
-                          ]
-                        : []),
-                      ...(model.phase === 3
-                        ? [
-                            h.div(
-                              [h.Class("sample-feedback")],
-                              [
-                                h.span([h.Class("micro")], ["FEEDBACK SENT TO THE AGENT"]),
-                                h.p([h.Class("configured-feedback")], [SITE_EXAMPLE.feedbackMessage])
-                              ]
-                            )
-                          ]
-                        : []),
-                      ...(model.phase === 4
-                        ? [
-                            codeCard("Gallery", SITE_EXAMPLE.after, "EXAMPLE EDIT"),
-                            h.p(
-                              [h.Class("repair-explanation")],
-                              ["Read the width from cover.dimensions.width instead of maintaining two copies."]
-                            ),
-                            h.p(
-                              [h.Class("muted")],
-                              ["This edit is shown for illustration. The agent chooses how to respond to feedback."]
-                            )
-                          ]
-                        : []),
-                      ...(model.phase === 5
-                        ? [
-                            codeCard("Gallery", SITE_EXAMPLE.after, "RECHECK"),
-                            ...SITE_EXAMPLE.dependencies.map((lines, i) =>
-                              codeCard(SITE_EXAMPLE.definitionNames[i + 1], lines, "RELATED TYPE")
-                            )
-                          ]
-                        : [])
-                    ]
-                  )
-                ]
-              ),
-              h.div(
-                [h.Class("animation-bottom")],
-                [
-                  h.ol(
-                    [h.Class("phase-steps"), h.AriaLabel("Illustration stages")],
-                    PHASES.map((phase, i) =>
-                      h.li(
-                        [h.Class(i === model.phase ? "active" : i < model.phase ? "done" : "")],
+                      h.button(
+                        [
+                          h.Type("button"),
+                          h.OnClick(Message.HeroSelect({ phase: i })),
+                          h.AriaLabel(`Show stage ${i + 1}: ${phase}`),
+                          h.AriaCurrent(i === model.phase ? "step" : "false")
+                        ],
                         [h.span([], [`0${i + 1}`]), phase]
                       )
-                    )
-                  ),
-                  h.p([h.Class("phase-caption"), h.AriaLive("polite")], [PHASE_COPY[model.phase]]),
-                  h.div(
-                    [h.Class("animation-controls")],
-                    [
-                      ...(model.reducedMotion
-                        ? [h.span([h.Class("muted")], ["Reduced motion · manual steps"])]
-                        : [
-                            h.button(
-                              [h.Type("button"), h.OnClick(model.playing ? Message.Pause() : Message.Play())],
-                              [
-                                model.playing
-                                  ? "Pause animation"
-                                  : model.phase === 5
-                                    ? "Replay animation"
-                                    : "Play animation"
-                              ]
-                            )
-                          ]),
-                      h.button(
-                        [h.Type("button"), h.OnClick(Message.HeroNext())],
-                        [model.phase === 5 ? "Finish example" : "Next frame →"]
-                      ),
-                      h.button([h.Type("button"), h.OnClick(Message.CloseExample())], ["Close example"])
-                    ]
-                  ),
-                  h.p(
-                    [h.Class("sample-provenance muted")],
-                    [
-                      "Example adapted from our video demo. The edit is shown for illustration. ",
-                      h.a([h.Href(SITE_EXAMPLE.recordedSample.source)], ["Source ↗"])
                     ]
                   )
-                ]
+                )
+              ),
+              h.p(
+                [h.Class("phase-caption"), h.AriaLive(model.reducedMotion ? "polite" : "off")],
+                [PHASE_COPY[model.phase]]
               )
             ]
           )
@@ -441,7 +613,7 @@ const hero = (model: Model, h: HtmlBuilder<Message>) => {
   )
 }
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: "Hapsland — review the decisions behind an edit",
+  title: "Hapsland — realtime semantic agentic feedback",
   body: h.main(
     [h.Class("site")],
     [
@@ -475,40 +647,41 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [h.Class("hero section")],
         [
           h.div(
-            [h.Class("hero-copy")],
+            [h.Class("hero-lead")],
             [
-              h.h1(
-                [],
-                [
-                  "IMMEDIATE CODE REVIEW for coding agents: ",
-                  h.span([h.Style({ color: "var(--red)" })], ["SLAP THAT HAND!"])
-                ]
-              ),
-              h.p([h.Class("hero-subtitle")], ["to make invalid states unrepresentable™"]),
-              h.p(
-                [h.Class("hero-intro")],
-                [
-                  "Catch questionable data and code decisions while your coding agent is still working. Hapsland reviews changed types and functions against your rules and prepares feedback for the agent. ",
-                  h.strong([], ["The agent decides how to respond."])
-                ]
-              ),
               h.div(
-                [h.Class("hero-actions")],
+                [h.Class("hero-copy")],
                 [
-                  h.a([h.Href(DOWNLOADS), h.Class("button-primary")], ["Download Hapsland ↗"]),
-                  h.a([h.Href("#setup"), h.Class("text-link")], ["Set up with your agent ↓"])
-                ]
-              ),
-              h.div(
-                [h.Class("hero-install")],
-                [
-                  h.p([h.Class("hero-install-label")], ["Or install with Homebrew"]),
+                  h.h1([], ["IMMEDIATE CODE REVIEW for coding agents"]),
+                  h.p([h.Class("hero-subtitle")], ["and make invalid states unrepresentable™"]),
+                  h.p(
+                    [h.Class("hero-intro")],
+                    [
+                      h.strong([], ["Catch questionable decisions"]),
+                      " while your coding agent is still working. Hapsland reviews changed types and functions against your rules and catches mistakes before they waste tokens and time. ",
+                      h.strong([], ["Stop context poisoning before it starts"])
+                    ]
+                  ),
                   h.div(
-                    [h.Class("hero-install-row")],
-                    [h.pre([], [h.code([], [SETUP_COPY.install])]), copyButton(model, h, "install", "Copy")]
+                    [h.Class("hero-actions")],
+                    [
+                      h.a([h.Href(DOWNLOADS), h.Class("button-primary")], ["Download Hapsland ↗"]),
+                      h.a([h.Href("#setup"), h.Class("text-link")], ["Set up with your agent ↓"])
+                    ]
+                  ),
+                  h.div(
+                    [h.Class("hero-install")],
+                    [
+                      h.p([h.Class("hero-install-label")], ["Or install with Homebrew"]),
+                      h.div(
+                        [h.Class("hero-install-row")],
+                        [h.pre([], [h.code([], [SETUP_COPY.install])]), copyButton(model, h, "install", "Copy")]
+                      )
+                    ]
                   )
                 ]
-              )
+              ),
+              commentDeck(model, h)
             ]
           ),
           hero(model, h)
@@ -555,10 +728,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
                 ]
               )
             ]
-          ),
-          h.p(
-            [h.Class("fine-print")],
-            ["An example illustrates the flow. No feedback does not establish that every rule ran or passed."]
           )
         ]
       ),

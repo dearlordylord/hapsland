@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { createServer } from "vite"
 import reviewFixture from "../../../conformance/canonical-review-v1.json" with { type: "json" }
 
-const server = await createServer({ server: { middlewareMode: true }, appType: "custom" })
+const server = await createServer({ configLoader: "runner", server: { middlewareMode: true }, appType: "custom" })
 try {
   const replay = await server.ssrLoadModule("/src/canonical-replay.ts")
   const flow = await server.ssrLoadModule("@hapsland/agent-flow-projection")

@@ -73,12 +73,12 @@ study linked in `src/site-example.ts`; the site is not a live review or a
 current-integration benchmark. Function review is
 explained separately through the built-in `noul/r9_body_reaches_undeclared`.
 The README retains its repair GIF; the interactive site does not repeat it.
-The animation initially shows only an Example edit card with a Click me sign.
-Clicking expands the panel and starts the six-stage loop; completing the final
-stage collapses it back to a replayable card with a muted sign. Reduced-motion
-users open immediately and use manual steps, ending with Finish example.
-Reduced-motion users get manual illustration steps;
-changing that preference stops playback. No page calls Jev or reads repository source.
+The animation starts immediately and repeats all six stages. Clicking a stage
+selects it and restarts its four-second interval without pausing playback.
+The stage buttons are the only playback navigation. Reduced-motion users get
+static frames selected through those same buttons; changing that preference
+stops motion. The hero's six review cards support timed progress, swiping,
+mouse dragging and arrow-key navigation. No page calls Jev or reads repository source.
 
 `src/import-graph-replay.ts` owns shared scenario replay through the compiled
 ImportGraph adapter. `src/import-graph-diagram.ts` owns the shared graph display
@@ -86,8 +86,8 @@ projection. The dashboard uses these modules for graph replay. The public page u
 
 Run `npm run test:site` for headless scenario checks and Chromium interactions.
 The scenario checks distinguish exclusion before a read command from a size
-omission after synthetic capture. Browser checks cover playback controls,
-automatic expansion and collapse, replay, mobile overflow and reduced motion.
+omission after synthetic capture. Browser checks cover continuous playback,
+stage selection, review-card progress and gestures, mobile overflow and reduced motion.
 Chromium requires the same system libraries as the dashboard browser checks.
 
 The adapted drawing primitives preserve their research-source provenance.
