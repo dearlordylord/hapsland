@@ -1019,11 +1019,6 @@
       "sha256": "e4002bd467f1fed6f22654a29cad6fbffa5f4ba2aa92d523c4dd385f35c233df"
     },
     {
-      "path": "local-graph-representation-prototypes/interned-pilot.mjs",
-      "capture": "local-graph-representation-prototypes/interned-pilot.mjs",
-      "sha256": "1df6c500722066d5546f6390626d9460bbb3afc9c7754d4d85f353bb3d028d1e"
-    },
-    {
       "path": "local-graph-representation-prototypes/interned/Own.bend",
       "capture": "local-graph-representation-prototypes/interned/Own.bend.txt",
       "sha256": "b580984fcb5afdd71166c9757545be429134193cb45a6486d779d504c932747f"
@@ -1032,6 +1027,11 @@
       "path": "local-graph-representation-prototypes/interned/core.bend",
       "capture": "local-graph-representation-prototypes/interned/core.bend.txt",
       "sha256": "72d7b0a8ccb5fb1a056acb6904aaaa8e85c82f220281515cc94c90febe910688"
+    },
+    {
+      "path": "local-graph-representation-prototypes/interned-pilot.mjs",
+      "capture": "local-graph-representation-prototypes/interned-pilot.mjs",
+      "sha256": "1df6c500722066d5546f6390626d9460bbb3afc9c7754d4d85f353bb3d028d1e"
     },
     {
       "path": "local-graph-representation-prototypes/lean-label/Own.bend",
@@ -1669,14 +1669,24 @@
       "sha256": "551d3c4be3bf67c7d5160b49e9c02cd98fcd529abbdb002ab9d4ae7014786bad"
     },
     {
+      "path": "local-graph-representation-prototypes/ownlist/BOUNDARY.bend",
+      "capture": "local-graph-representation-prototypes/ownlist/BOUNDARY.bend.txt",
+      "sha256": "50d6522a6862136d7e4e24c8eeee088d8819878c967c460173bb149a665ce546"
+    },
+    {
+      "path": "local-graph-representation-prototypes/ownlist/Own.bend",
+      "capture": "local-graph-representation-prototypes/ownlist/Own.bend.txt",
+      "sha256": "07ceb9ccf74980ec5cd8dc737af50c64ab37e33821f6916a7d2180ee70b90516"
+    },
+    {
+      "path": "local-graph-representation-prototypes/ownlist/core.bend",
+      "capture": "local-graph-representation-prototypes/ownlist/core.bend.txt",
+      "sha256": "6e9819280e6111e3d9bb53929810415f4ecb5f7a95ce1e683f4e792bad63b592"
+    },
+    {
       "path": "local-graph-representation-prototypes/ownlist-bulk-pilot.mjs",
       "capture": "local-graph-representation-prototypes/ownlist-bulk-pilot.mjs",
       "sha256": "f79b197c8e2466aa5fcaa8db972a26c7b08a2eaf701e93b55e9b286f7f282451"
-    },
-    {
-      "path": "local-graph-representation-prototypes/ownlist-fast-equality-pilot.mjs",
-      "capture": "local-graph-representation-prototypes/ownlist-fast-equality-pilot.mjs",
-      "sha256": "96430fe1dea6b98e549852e3c76934b96e176dc698304e1d72729e88f05c3a57"
     },
     {
       "path": "local-graph-representation-prototypes/ownlist-fast-equality/BOUNDARY.bend",
@@ -1694,19 +1704,9 @@
       "sha256": "d22633c804efab5684088a59db72a3a08d7c29f1752919b6dcfab40c4bf69837"
     },
     {
-      "path": "local-graph-representation-prototypes/ownlist/BOUNDARY.bend",
-      "capture": "local-graph-representation-prototypes/ownlist/BOUNDARY.bend.txt",
-      "sha256": "50d6522a6862136d7e4e24c8eeee088d8819878c967c460173bb149a665ce546"
-    },
-    {
-      "path": "local-graph-representation-prototypes/ownlist/Own.bend",
-      "capture": "local-graph-representation-prototypes/ownlist/Own.bend.txt",
-      "sha256": "07ceb9ccf74980ec5cd8dc737af50c64ab37e33821f6916a7d2180ee70b90516"
-    },
-    {
-      "path": "local-graph-representation-prototypes/ownlist/core.bend",
-      "capture": "local-graph-representation-prototypes/ownlist/core.bend.txt",
-      "sha256": "6e9819280e6111e3d9bb53929810415f4ecb5f7a95ce1e683f4e792bad63b592"
+      "path": "local-graph-representation-prototypes/ownlist-fast-equality-pilot.mjs",
+      "capture": "local-graph-representation-prototypes/ownlist-fast-equality-pilot.mjs",
+      "sha256": "96430fe1dea6b98e549852e3c76934b96e176dc698304e1d72729e88f05c3a57"
     },
     {
       "path": "local-graph-representation-prototypes/split-symbol/Own.bend",
@@ -3104,36 +3104,6 @@
       "sha256": "58a92d8ed270581850615917a85887dbfad321d5d6649511fd7a759af76493be"
     },
     {
-      "path": "whole-resolver-runtime-probe/Embedding.bend",
-      "capture": "whole-resolver-runtime-probe/Embedding.bend.txt",
-      "sha256": "8ed56cd20b46ffb2dadbfd0c37c9d1a77cc03d374aa5814cef696dab10419405"
-    },
-    {
-      "path": "whole-resolver-runtime-probe/Runtime.bend",
-      "capture": "whole-resolver-runtime-probe/Runtime.bend.txt",
-      "sha256": "f69d92e972b887f4bdb07242b9f0479622bb2d05d30c645fdb3e7fa3e8ca3ed5"
-    },
-    {
-      "path": "whole-resolver-runtime-probe/embedding-check.mjs",
-      "capture": "whole-resolver-runtime-probe/embedding-check.mjs",
-      "sha256": "92f899df7c3ad0a82d805ec3b92c065813ad5fa1e6c4e8fc0fb1b8ae863e285e"
-    },
-    {
-      "path": "whole-resolver-runtime-probe/parser.js",
-      "capture": "whole-resolver-runtime-probe/parser.js",
-      "sha256": "5c7839d8d480268fedb56607f55803c3abdc49486d3137f17585314fa7bebc92"
-    },
-    {
-      "path": "whole-resolver-runtime-probe/run.mjs",
-      "capture": "whole-resolver-runtime-probe/run.mjs",
-      "sha256": "d9b7981ad5c208ed11c250589ec4eccd2e75b0bf20f784f1557673c1a468f2c4"
-    },
-    {
-      "path": "whole-resolver-runtime-probe/transport.mjs",
-      "capture": "whole-resolver-runtime-probe/transport.mjs",
-      "sha256": "377ada3453377baa593e95d6679630d606bfe163f5238ce5cbdd8ae40fd0bab8"
-    },
-    {
       "path": "whole-resolver/.runtime-cancellation-closure-diagnostic.bend",
       "capture": "whole-resolver/.runtime-cancellation-closure-diagnostic.bend.txt",
       "sha256": "9fa12ea6909a1cb34058164c83fd779fa8ab7e543df1cbdda4ae39171a419713"
@@ -3316,7 +3286,7 @@
     {
       "path": "whole-resolver/PythonModule.bend",
       "capture": "whole-resolver/PythonModule.bend.txt",
-      "sha256": "87771a99159d109c1a621e91296e91c94bf80a38c527bf6619255bf2b6c1253d"
+      "sha256": "32be48e26217b0e0f7a019980a6dfb68d20497fe2f807570629871363a58c26e"
     },
     {
       "path": "whole-resolver/RUNTIME_INVARIANT_LAWS.bend",
@@ -3604,6 +3574,21 @@
       "sha256": "e31e271205e2204939640eea6505e48f523d142ab8a4a7dea9b931ac6223ad4e"
     },
     {
+      "path": "whole-resolver/python-alternatives-check.mjs",
+      "capture": "whole-resolver/python-alternatives-check.mjs",
+      "sha256": "e08d672b8ac10a558360213b0dc7e473a9efe5cd93fb956896e4b30087f16ba5"
+    },
+    {
+      "path": "whole-resolver/python-authority-check.mjs",
+      "capture": "whole-resolver/python-authority-check.mjs",
+      "sha256": "c4b865f8d484026b4ee4c5e074847b66f0729046940d343e943b91466f9672a7"
+    },
+    {
+      "path": "whole-resolver/python-bindings-check.mjs",
+      "capture": "whole-resolver/python-bindings-check.mjs",
+      "sha256": "7ae4bf205fc492f81e71898808efca5c94ba56488f7015aa82efc17d844d2699"
+    },
+    {
       "path": "whole-resolver/python-capture-check.mjs",
       "capture": "whole-resolver/python-capture-check.mjs",
       "sha256": "a72022058fcde7a2cf729deb32ddb9812ae3c0766abb8fc1e35cba0fe501fb14"
@@ -3614,9 +3599,19 @@
       "sha256": "b460970af034c586523040ded128d9e1e6fb91a94e874ac2422a17455c3aedaf"
     },
     {
-      "path": "whole-resolver/python-module-check.mjs",
-      "capture": "whole-resolver/python-module-check.mjs",
-      "sha256": "8d22188ea7a676e4d9039918b8327df3d8a48ed9e376ef89ac212161488e003a"
+      "path": "whole-resolver/python-module/AlternativesMachine.bend",
+      "capture": "whole-resolver/python-module/AlternativesMachine.bend.txt",
+      "sha256": "e7122aa38618856adeb25d4839a74946df258682249528501cf626b374ed53ca"
+    },
+    {
+      "path": "whole-resolver/python-module/Authority.bend",
+      "capture": "whole-resolver/python-module/Authority.bend.txt",
+      "sha256": "21ba4a65cf09be5b7c33113fe5e579d4097d2adb571d3fa776702c572170cf69"
+    },
+    {
+      "path": "whole-resolver/python-module/Bindings.bend",
+      "capture": "whole-resolver/python-module/Bindings.bend.txt",
+      "sha256": "b2b339bb90322878aaef2dc196012d1990f62f5bc57c7b78a17a3f3a94a69bcd"
     },
     {
       "path": "whole-resolver/python-module/CaptureMachine.bend",
@@ -3634,6 +3629,11 @@
       "sha256": "f31a993624ab9025d1046ef274824e8fb3132e1d66bcd4d1d5813d2c2c291e1f"
     },
     {
+      "path": "whole-resolver/python-module/PackageParentsMachine.bend",
+      "capture": "whole-resolver/python-module/PackageParentsMachine.bend.txt",
+      "sha256": "850f918d04d5714a44d4a55a21caf51da2aaeaefe4ddbbcf5174f3537dc736f2"
+    },
+    {
       "path": "whole-resolver/python-module/RevalidationMachine.bend",
       "capture": "whole-resolver/python-module/RevalidationMachine.bend.txt",
       "sha256": "fc5d23f6c9a0024b548c3988f79ba444e76518ef5cf19fd0d8dfa3f7cd7c5a28"
@@ -3646,7 +3646,12 @@
     {
       "path": "whole-resolver/python-module/RootsMachine.bend",
       "capture": "whole-resolver/python-module/RootsMachine.bend.txt",
-      "sha256": "a001e6373f6c8c0450641fe70580bf7210ba9673b99509bdf1e113e6e42e35ac"
+      "sha256": "e026c440beea2e4c7a53d2dcfebc2d2efa772018091e26d646e2ea74f87b7379"
+    },
+    {
+      "path": "whole-resolver/python-module/Scope.bend",
+      "capture": "whole-resolver/python-module/Scope.bend.txt",
+      "sha256": "79e23672423bd3abb2af327e6c498b004a294ef96d4c87819cc1e7203dfe071f"
     },
     {
       "path": "whole-resolver/python-module/Session.bend",
@@ -3659,14 +3664,39 @@
       "sha256": "57b1c0108e98dd24e3959be8170e0116480a6f8c400f55f43fce81dc9a006b73"
     },
     {
+      "path": "whole-resolver/python-module/Syntax.bend",
+      "capture": "whole-resolver/python-module/Syntax.bend.txt",
+      "sha256": "b59de94560e394dd2dfd76e6f9dc1314bbe8c0d23930a18780d7d865311e8766"
+    },
+    {
       "path": "whole-resolver/python-module/syntax-projection.mjs",
       "capture": "whole-resolver/python-module/syntax-projection.mjs",
       "sha256": "aef228857dc618c239d54804fba0e1e58306fb2e161cd85fdb3fdee5b60ab3b6"
     },
     {
+      "path": "whole-resolver/python-module-check.mjs",
+      "capture": "whole-resolver/python-module-check.mjs",
+      "sha256": "8d22188ea7a676e4d9039918b8327df3d8a48ed9e376ef89ac212161488e003a"
+    },
+    {
+      "path": "whole-resolver/python-parents-check.mjs",
+      "capture": "whole-resolver/python-parents-check.mjs",
+      "sha256": "a23aead020b63cfbb67520b3b1dec838accebe6fe446004dc53f4f43b524a624"
+    },
+    {
       "path": "whole-resolver/python-physical-check.mjs",
       "capture": "whole-resolver/python-physical-check.mjs",
       "sha256": "fa7f1f1620732ff2b9c0c2718fb38d3a4eea883a3d06eab5562889d3eab98d07"
+    },
+    {
+      "path": "whole-resolver/python-root-policy-check.mjs",
+      "capture": "whole-resolver/python-root-policy-check.mjs",
+      "sha256": "8acc372631e85fdebf650f3c37128acb6216ff5fec607122d6f4f3b1b4e908f1"
+    },
+    {
+      "path": "whole-resolver/python-roots-check.mjs",
+      "capture": "whole-resolver/python-roots-check.mjs",
+      "sha256": "a413750401674b01571d3b12b1542ab56367fc313aaad3e7d47fb8998671405d"
     },
     {
       "path": "whole-resolver/python-stat-check.mjs",
@@ -3732,6 +3762,36 @@
       "path": "whole-resolver/stable-capture-cancellation-check.mjs",
       "capture": "whole-resolver/stable-capture-cancellation-check.mjs",
       "sha256": "48319226357af27b3d5a1727ab36de4b71359bfc574b37ca9fcc0eb15fd75e9a"
+    },
+    {
+      "path": "whole-resolver-runtime-probe/Embedding.bend",
+      "capture": "whole-resolver-runtime-probe/Embedding.bend.txt",
+      "sha256": "8ed56cd20b46ffb2dadbfd0c37c9d1a77cc03d374aa5814cef696dab10419405"
+    },
+    {
+      "path": "whole-resolver-runtime-probe/Runtime.bend",
+      "capture": "whole-resolver-runtime-probe/Runtime.bend.txt",
+      "sha256": "f69d92e972b887f4bdb07242b9f0479622bb2d05d30c645fdb3e7fa3e8ca3ed5"
+    },
+    {
+      "path": "whole-resolver-runtime-probe/embedding-check.mjs",
+      "capture": "whole-resolver-runtime-probe/embedding-check.mjs",
+      "sha256": "92f899df7c3ad0a82d805ec3b92c065813ad5fa1e6c4e8fc0fb1b8ae863e285e"
+    },
+    {
+      "path": "whole-resolver-runtime-probe/parser.js",
+      "capture": "whole-resolver-runtime-probe/parser.js",
+      "sha256": "5c7839d8d480268fedb56607f55803c3abdc49486d3137f17585314fa7bebc92"
+    },
+    {
+      "path": "whole-resolver-runtime-probe/run.mjs",
+      "capture": "whole-resolver-runtime-probe/run.mjs",
+      "sha256": "d9b7981ad5c208ed11c250589ec4eccd2e75b0bf20f784f1557673c1a468f2c4"
+    },
+    {
+      "path": "whole-resolver-runtime-probe/transport.mjs",
+      "capture": "whole-resolver-runtime-probe/transport.mjs",
+      "sha256": "377ada3453377baa593e95d6679630d606bfe163f5238ce5cbdd8ae40fd0bab8"
     }
   ]
 }

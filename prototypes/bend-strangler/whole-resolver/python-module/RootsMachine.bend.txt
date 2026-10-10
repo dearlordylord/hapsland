@@ -251,10 +251,19 @@ def transition_session(transition: Transition) -> S.Session:
     case CaptureChild{state, _}: state_session(state)
     case PolicyChild{state, _}: state_session(state)
 
+def transition_next(transition: Transition) -> Nat:
+  match transition:
+    case Settled{Await{state, _}}: state_next_request(state)
+    case Settled{Returned{_, _, next}}: next
+    case Settled{Failed{_, _, next}}: next
+    case StatChild{state, _}: state_next_request(state)
+    case CaptureChild{state, _}: state_next_request(state)
+    case PolicyChild{state, _}: state_next_request(state)
+
 def settle(fuel: Nat, +transition: Transition) -> Step:
   match fuel transition:
     case _ Settled{step}: step
-    case 0n _: Failed{T.MalformedReply{}, transition_session(transition), 0n}
+    case 0n _: Failed{T.MalformedReply{}, transition_session(transition), transition_next(transition)}
     case 1n++rest StatChild{state, step}: settle(rest, stat_received(step, state))
     case 1n++rest CaptureChild{state, step}: settle(rest, capture_received(step, state))
     case 1n++rest PolicyChild{state, step}: settle(rest, policy_received(step, state))

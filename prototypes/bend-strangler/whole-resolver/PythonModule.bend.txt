@@ -8,6 +8,11 @@ import ./python-module/StatMachine.bend as Stat
 import ./python-module/RevalidationMachine.bend as Revalidation
 import ./python-module/RootsMachine.bend as Roots
 import ./python-module/RootPolicyMachine.bend as RootPolicy
+import ./python-module/AlternativesMachine.bend as Alternatives
+import ./python-module/Bindings.bend as Bindings
+import ./python-module/Scope.bend as Scope
+import ./python-module/Authority.bend as Authority
+import ./python-module/PackageParentsMachine.bend as Parents
 
 # Entry for the in-progress Python child. Resolver and Canonical composition
 # remain open; these functions do not constitute subsystem adoption.
@@ -77,6 +82,47 @@ def declared_root(syntax: T.TomlValue, separator: String, invocation: Nat,
 
 def resume_declared_root(step: RootPolicy.Step, reply: T.Reply) -> RootPolicy.Step:
   RootPolicy.resume(step, reply)
+
+def alternatives(session: S.Session, base: String, clock: T.ClockToken, separator: String,
+    invocation: Nat, next_request: Nat) -> Alternatives.Step:
+  Alternatives.begin(session, base, clock, separator, invocation, next_request)
+
+def resume_alternatives(step: Alternatives.Step, reply: T.Reply) -> Alternatives.Step:
+  Alternatives.resume(step, reply)
+
+def scope_bindings(syntax: T.PythonSyntax, id: Nat, static: Bool) -> List<&2, Bindings.Binding>:
+  Bindings.scope_bindings(syntax, id, static)
+
+def identities(facts: List<&2, Bindings.Binding>) -> List<&2, Bindings.Binding>:
+  Bindings.identities(facts)
+
+def module_scope(syntax: T.PythonSyntax) -> Scope.Scope:
+  Scope.module_scope(syntax)
+
+def python_imports(syntax: T.PythonSyntax) -> Maybe<&2, List<&2, Authority.Import>>:
+  Authority.python_imports(syntax)
+
+def static_package_authority(syntax: T.PythonSyntax) -> Bool:
+  Authority.static_package_authority(syntax)
+
+def has_package_binding(syntax: T.PythonSyntax, name: String) -> Bool:
+  Authority.has_package_binding(syntax, name)
+
+def unavailable_namespace(syntax: T.PythonSyntax, scope: Scope.Scope) -> Bool:
+  Authority.unavailable_namespace(syntax, scope)
+
+def unknown_evaluated(syntax: T.PythonSyntax, scope: Scope.Scope) -> Bool:
+  Authority.unknown_evaluated(syntax, scope)
+
+def dynamic_call(name: String) -> Bool:
+  Authority.dynamic_call(name)
+
+def package_parents(session: S.Session, path: String, root: String, clock: T.ClockToken, cache: T.CacheToken,
+    separator: String, invocation: Nat, next_request: Nat) -> Parents.Step:
+  Parents.begin(session, path, root, clock, cache, separator, invocation, next_request)
+
+def resume_parents(step: Parents.Step, reply: T.Reply) -> Parents.Step:
+  Parents.resume(step, reply)
 
 def main() -> Unit:
   Unit{}
