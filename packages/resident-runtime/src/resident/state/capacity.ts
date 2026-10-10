@@ -32,7 +32,7 @@ import {
   type RoundWork,
   type WorkCohort
 } from "./round-records.ts"
-import { workView } from "./bend-work.ts"
+import { workView } from "../bend-work.ts"
 import {
   initialJoinedReviews,
   draftJoinedReviews,
@@ -84,6 +84,7 @@ import {
 } from "@hapsland/canonical-policy/canonical/adapter"
 import { randomUUID } from "node:crypto"
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
+
 export type { CapacityPurpose } from "@hapsland/canonical-policy/canonical/adapter"
 
 export const GLOBAL_ITEM_LIMIT = 512

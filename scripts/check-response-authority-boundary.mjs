@@ -1,14 +1,15 @@
+import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import assert from "node:assert/strict"
 import { readFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
 const read = (path) => readFileSync(resolve(root, path), "utf8")
-const server = read("packages/resident-runtime/src/resident/server.ts")
+const server = readResidentRuntimeSource(root)
 const client = read("packages/resident-transport/src/resident/client.ts")
 const canonical = read("packages/agent-flow-bend/Canonical.bend")
 const collection = read("packages/agent-flow-bend/CollectionState.bend")
-const joined = read("packages/resident-runtime/src/resident/joined-reviews.ts")
+const joined = read("packages/resident-runtime/src/resident/state/joined-reviews.ts")
 for (const source of [server, client, canonical, collection]) {
   assert.doesNotMatch(
     source,
@@ -28,7 +29,7 @@ assert.match(server, /Effect\.raceFirst\(port\.closed\)/)
 assert.match(server, /Ref\.set\(context, \{\}\)/)
 assert.match(
   server,
-  /if \(\(!handedToTransport \|\| port\.errored\(\)\) && token !== undefined\) yield\* server\.releaseDelivery\(token\)/
+  /if \(\(!handedToTransport \|\| port\.errored\(\)\) && token !== undefined\) yield\* deps\.releaseDelivery\(token\)/
 )
 assert.match(server, /Ref\.update\(context, \(state\) => \(\{ \.\.\.state, token: response\.token \}\)\)/)
 assert.ok(

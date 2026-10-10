@@ -1,5 +1,6 @@
+import { residentRuntimeSourceFiles } from "./resident-runtime-source.mjs"
 import assert from "node:assert/strict"
-import { existsSync, readFileSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
@@ -9,16 +10,17 @@ assert.equal(
   false,
   "retired direct ledger artifact returned"
 )
-for (const name of readdirSync(resident)) {
+for (const path of residentRuntimeSourceFiles(root)) {
+  const name = path.slice(resident.length + 1)
   if (!name.endsWith(".ts") || name.endsWith(".test.ts")) continue
-  const source = readFileSync(resolve(resident, name), "utf8")
+  const source = readFileSync(path, "utf8")
   assert.doesNotMatch(
     source,
     /bend-ledger\.generated|bendLedger(?:Initial|Reserve|Resize|Release|Clear|Total|PartitionUsage)/,
     `${name} bypasses the canonical capacity boundary`
   )
 }
-const adapter = readFileSync(resolve(resident, "capacity.ts"), "utf8")
+const adapter = readFileSync(resolve(resident, "state/capacity.ts"), "utf8")
 assert.match(
   adapter,
   /from "@hapsland\/canonical-policy\/canonical\/adapter"/,

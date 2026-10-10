@@ -1,5 +1,5 @@
 /** Native lifetime facts; Bend remains the authority for cleanup permission. */
-export type ResidentConnection = { readonly lifetime: string }
+type ResidentConnection = { readonly lifetime: string }
 export type RuntimeRecordsState = {
   readonly lifecycle: "active" | "retiring" | "closed"
   readonly connections: ReadonlySet<ResidentConnection>
@@ -9,7 +9,7 @@ export type RuntimeRecordsState = {
   readonly maxMaterializedPreparedUnits: number
   readonly nextDispatchAuthoritySequence: number
 }
-export type RuntimeRecordsDraft = {
+type RuntimeRecordsDraft = {
   -readonly [K in keyof RuntimeRecordsState]: RuntimeRecordsState[K] extends ReadonlySet<infer A>
     ? Set<A>
     : RuntimeRecordsState[K]

@@ -1,0 +1,3 @@
+export const RESIDENT_IDLE_CHECK_MS = 20_000
+
+export const VIRTUAL_ROUND_QUIET_CHECK_MS = 20_000

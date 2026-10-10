@@ -17,7 +17,7 @@ import {
 } from "@hapsland/runtime-environment/runtime/backend"
 import { captureCredential, MaskedInputError } from "../credentials/masked-input.ts"
 import { credentialSourceGuidance } from "./credential-guidance.ts"
-import { formatOutcome } from "./human-output.ts"
+import { formatOutcome } from "../interaction/outcome.ts"
 import type { SetupClient } from "./client-selection.ts"
 import { verifyJevKey } from "./credential-verification.ts"
 import {

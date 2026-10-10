@@ -1,10 +1,18 @@
+import {
+  administrationWorkflowSourceFiles,
+  readAdministrationWorkflowSource
+} from "./administration-workflow-source.mjs"
+import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const read = (path) => readFileSync(resolve(root, path), "utf8")
+const read = (path) =>
+  path === "packages/resident-runtime/src/resident/server.ts"
+    ? readResidentRuntimeSource(root)
+    : readFileSync(resolve(root, path), "utf8")
 for (const path of [
-  "packages/cli-entry/src/cli.ts",
+  ...administrationWorkflowSourceFiles(root),
   "packages/administration/src/onboarding/setup.ts",
   "packages/administration/src/onboarding/first-review-demo.ts",
   "packages/review-execution/src/direct-event/pipeline.ts",
@@ -227,7 +235,7 @@ if (
   throw new Error("interactive client selection must use caller Effect runtime and scoped terminal ownership")
 }
 
-const interactiveCli = read("packages/cli-entry/src/cli.ts")
+const interactiveCli = readAdministrationWorkflowSource(root)
 if (/new Promise|setInterval\(|spawnSync\(|\basync\b|process\.env(?:\.|\[)/u.test(interactiveCli)) {
   throw new Error("CLI workflows must compose Effects and use scoped native adapters")
 }

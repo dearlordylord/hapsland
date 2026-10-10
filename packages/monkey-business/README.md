@@ -108,7 +108,7 @@ ImportGraph decisions do not derive or resize the preparation reservation from
 the generated root, preflight metadata or graph observations. Execution-lane
 agreement does not establish production workspace accounting.
 
-Production [workspace calculation](../resident-runtime/src/resident/preparation-workspace.ts)
+Production [workspace calculation](../resident-runtime/src/resident/work-ownership/workspace.ts)
 reserves unknown-size capture first, then measured analysis before materializing
 units. With `L(x)` the UTF-8 byte length of `canonicalValue(x)`, it uses
 `C(path,s) = 8*s + 1024*(L(path)+512)` and

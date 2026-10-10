@@ -1,9 +1,13 @@
+import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const server = readFileSync(resolve(root, "packages/resident-runtime/src/resident/server.ts"), "utf8")
-const delivery = readFileSync(resolve(root, "packages/resident-runtime/src/resident/composed-delivery.ts"), "utf8")
+const server = readResidentRuntimeSource(root)
+const delivery = readFileSync(
+  resolve(root, "packages/resident-runtime/src/resident/state/composed-delivery.ts"),
+  "utf8"
+)
 const work = readFileSync(resolve(root, "packages/resident-runtime/src/resident/bend-work.ts"), "utf8")
 for (const name of ["bendLifecycleFinishGate", "bendLifecycleCutoff"]) {
   if (server.includes(name) || delivery.includes(name) || work.includes(name)) {
@@ -35,12 +39,12 @@ if (/Effect\.runSync|Effect\.runPromise|Ref\.getUnsafe/u.test(server)) {
   )
 }
 
-const capacity = readFileSync(resolve(root, "packages/resident-runtime/src/resident/capacity.ts"), "utf8")
+const capacity = readFileSync(resolve(root, "packages/resident-runtime/src/resident/state/capacity.ts"), "utf8")
 if (
   !/const roundCommit = [\s\S]*?=>\s*commitAllEffect\(/u.test(capacity) ||
-  !server.includes("yield* residentLedger.rounds.bind") ||
-  !server.includes("yield* residentLedger.rounds.replaceWork") ||
-  !server.includes("yield* residentLedger.rounds.retire")
+  !server.includes("yield* deps.residentLedger.rounds.bind") ||
+  !server.includes("yield* deps.residentLedger.rounds.replaceWork") ||
+  !server.includes("yield* deps.residentLedger.rounds.retire")
 ) {
   throw new Error("round mutations must compose atomic Effects without a synchronous commit bridge")
 }
@@ -59,7 +63,7 @@ if (/const runtimeCommit\s*=/u.test(capacity) || server.includes("responseFiber"
   throw new Error("runtime mutations and IPC responses must compose Effects without synchronous mutation bridges")
 }
 for (const ownership of [
-  "Effect.forkIn(residentAccept(socket), residentIpcScope",
+  "Effect.forkIn(workflows.ipc.residentAccept(socket), residentIpcScope",
   "Scope.close(residentIpcScope, Exit.void)",
   "(connection) => port.close.pipe(Effect.andThen"
 ]) {

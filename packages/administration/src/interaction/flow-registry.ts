@@ -96,11 +96,16 @@ export const interactionInfrastructure = [
 ] as const
 export const interactionCompositionRoots = [
   "packages/cli-entry/src/cli.ts",
-  "packages/administration/src/rules/command.ts"
+  "packages/administration/src/rules/command.ts",
+  "packages/administration/src/credentials/command.ts",
+  "packages/administration/src/onboarding/lifecycle-invocation.ts",
+  "packages/administration/src/onboarding/setup-invocation.ts",
+  "packages/administration/src/onboarding/maintenance-invocation.ts",
+  "packages/administration/src/onboarding/update-invocation.ts"
 ] as const
 export const directUiExceptions = {
   "interactive-json-setup": {
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/onboarding/setup-invocation.ts",
     entry: "runJsonSetup",
     composes: ["login"],
     reason:
@@ -113,13 +118,13 @@ export const directUiExceptions = {
     reason: "Explicit direct native-save automation; no dialog."
   },
   logout: {
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/credentials/command.ts",
     entry: "logoutSavedCredential",
     composes: [],
     reason: "Direct native deletion; no dialog."
   },
   inspection: {
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/composition/read-command.ts",
     entry: "runOperation",
     composes: [],
     reason: "Doctor, rules inspection and dashboard report observations without input dialogs."
@@ -136,49 +141,49 @@ export const directUiExceptions = {
 export const uiJourneys = {
   setup: {
     title: "Set up selected agents",
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/onboarding/setup-invocation.ts",
     entry: "chooseSetupClients",
     root: "setup-selection",
     diagramFlow: "setup"
   },
   "setup-agent": {
     title: "Set up a named agent",
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/onboarding/setup-invocation.ts",
     entry: "pilotSetupSession",
     root: "setup",
     diagramFlow: "setup"
   },
   login: {
     title: "Save a credential",
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/credentials/command.ts",
     entry: "loginCredential",
     root: "login",
     diagramFlow: "login"
   },
   update: {
     title: "Update installed agents",
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/onboarding/update-invocation.ts",
     entry: "updateInteractive",
     root: "update",
     diagramFlow: "update"
   },
   repair: {
     title: "Repair an installation",
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/onboarding/maintenance-invocation.ts",
     entry: "maintenanceInteractive",
     root: "maintenance",
     diagramFlow: "maintenance"
   },
   reinstall: {
     title: "Reinstall an agent",
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/onboarding/maintenance-invocation.ts",
     entry: "maintenanceInteractive",
     root: "maintenance",
     diagramFlow: "maintenance"
   },
   uninstall: {
     title: "Uninstall an agent",
-    owner: "packages/cli-entry/src/cli.ts",
+    owner: "packages/administration/src/onboarding/maintenance-invocation.ts",
     entry: "maintenanceInteractive",
     root: "maintenance",
     diagramFlow: "maintenance"

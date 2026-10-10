@@ -3,7 +3,6 @@ import type { CodexDirectEventOutput, Finding } from "@hapsland/delivery-output/
 import { toCodexDirectEventOutput } from "@hapsland/delivery-output/direct-event/output"
 import { formatReviewFeedback } from "@hapsland/delivery-output/feedback/message"
 import * as Effect from "effect/Effect"
-
 import { encodedCodexHostOutputBytes } from "@hapsland/delivery-output/direct-event/writer"
 import {
   claudeStopHostOutput,
@@ -11,27 +10,29 @@ import {
   type ClaudeHostOutput
 } from "@hapsland/delivery-output/direct-event/claude-output"
 import { initialCanonical, stepCanonical, type CanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
-import { GLOBAL_BYTE_LIMIT, GLOBAL_ITEM_LIMIT, PARTITION_BYTE_LIMIT, PARTITION_ITEM_LIMIT } from "./capacity.ts"
+import { GLOBAL_BYTE_LIMIT, GLOBAL_ITEM_LIMIT, PARTITION_BYTE_LIMIT, PARTITION_ITEM_LIMIT } from "../state/capacity.ts"
+import {
+  type OperationalNotice,
+  type FindingSelectionFacts,
+  type CanonicalFindingOffer
+} from "../state/collection-facts.ts"
 
 export const PENDING_ADVICE_EXPIRY_MS = 600_000
+
 export const MAX_COMBINED_RESPONSE_BYTES = 10 * 1024
-
-export type OperationalNoticeKind = "capacity" | "backend" | "credential" | "output-limit"
-
-export type OperationalNotice = { readonly kind: OperationalNoticeKind; readonly suppressedCount: number }
 
 export type ClaudeOutputMode = "advisory" | "block-current-findings"
 
 export type CollectionCandidate = { readonly sequence: number; readonly pendingAt: number }
 
-const standaloneLimits = {
+export const standaloneLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,
   globalBytes: GLOBAL_BYTE_LIMIT,
   partitionItems: PARTITION_ITEM_LIMIT,
   partitionBytes: PARTITION_BYTE_LIMIT
 }
 
-const canonicalCollectionDecision = (event: CanonicalEvent): string => {
+export const canonicalCollectionDecision = (event: CanonicalEvent): string => {
   const result = stepCanonical(initialCanonical(standaloneLimits), event)
   if (result.rejection !== undefined || result.outputs.length !== 1) {
     throw new Error("canonical collection decision refused")
@@ -49,7 +50,7 @@ export const collectionOrder = <A extends Pick<CollectionCandidate, "sequence">>
   )
 }
 
-const elapsedForBend = (now: number, started: number, limit: number): number => {
+export const elapsedForBend = (now: number, started: number, limit: number): number => {
   const bounded = Math.min(limit, Math.max(0, now - started))
   return Number.isNaN(bounded) ? 0 : Math.floor(bounded)
 }
@@ -67,7 +68,7 @@ export const encodedHostOutputBytes = (output: CodexDirectEventOutput): number =
 export const combinedFindingOutput = (groups: ReadonlyArray<ReadonlyArray<Finding>>): CodexDirectEventOutput =>
   toCodexDirectEventOutput(groups.flatMap((findings) => findings))
 
-const noticeText = (notice: OperationalNotice): string => {
+export const noticeText = (notice: OperationalNotice): string => {
   const message =
     notice.kind === "capacity"
       ? "Operational notice: review capacity was unavailable; some eligible edits were not reviewed."
@@ -118,7 +119,7 @@ export const encodedClaudeStopOutputBytes = (
     "utf8"
   )
 
-const fitsBendBatch = (items: number, bytes: number): boolean => {
+export const fitsBendBatch = (items: number, bytes: number): boolean => {
   try {
     return canonicalCollectionDecision({ kind: "collectionFitCheck", items, bytes }) === "collectionFits"
   } catch {
@@ -126,20 +127,7 @@ const fitsBendBatch = (items: number, bytes: number): boolean => {
   }
 }
 
-/** The exact host encoding is measured here; Bend owns the inclusion rule. */
-export type FindingSelectionFacts = {
-  readonly partition: number
-  readonly round: number
-  readonly unit: number
-  readonly snapshot: number
-  readonly currentSnapshot: number
-  readonly credential: number
-  readonly currentCredential: number
-  readonly ageMs: number
-  readonly collectionReady: boolean
-}
-
-const previouslyValidated: FindingSelectionFacts = {
+export const previouslyValidated: FindingSelectionFacts = {
   partition: 1,
   round: 1,
   unit: 1,
@@ -151,40 +139,33 @@ const previouslyValidated: FindingSelectionFacts = {
   collectionReady: true
 }
 
-export type CanonicalFindingOffer = (input: {
-  readonly selectionPartition: number
-  readonly selectionRound: number
-  readonly facts: FindingSelectionFacts
-  readonly selectedCount: number
-  readonly soloBytes: number
-  readonly prospectiveBytes: number
-}) => Effect.Effect<"selected" | "retained" | "limited" | "expired">
-
 export type CanonicalNoticeOffer = (items: number, bytes: number, skipUnfitting: boolean) => "include" | "skip" | "stop"
 
-const standaloneFindingOffer: CanonicalFindingOffer = Effect.fn("Collection.standaloneFindingOffer")(function* (input) {
-  const facts = input.facts
-  const command = canonicalCollectionDecision({
-    kind: "collectionFindingCheck",
-    selectionPartition: input.selectionPartition,
-    selectionRound: input.selectionRound,
-    unit: facts.unit,
-    partition: facts.partition,
-    round: facts.round,
-    snapshot: facts.snapshot,
-    currentSnapshot: facts.currentSnapshot,
-    credential: facts.credential,
-    currentCredential: facts.currentCredential,
-    ageMs: facts.ageMs,
-    soloBytes: input.soloBytes,
-    collectionReady: facts.collectionReady,
-    selectedCount: input.selectedCount,
-    prospectiveBytes: input.prospectiveBytes
-  })
-  return findingCollectionOutcome(command)
-})
+export const standaloneFindingOffer: CanonicalFindingOffer = Effect.fn("Collection.standaloneFindingOffer")(
+  function* (input) {
+    const facts = input.facts
+    const command = canonicalCollectionDecision({
+      kind: "collectionFindingCheck",
+      selectionPartition: input.selectionPartition,
+      selectionRound: input.selectionRound,
+      unit: facts.unit,
+      partition: facts.partition,
+      round: facts.round,
+      snapshot: facts.snapshot,
+      currentSnapshot: facts.currentSnapshot,
+      credential: facts.credential,
+      currentCredential: facts.currentCredential,
+      ageMs: facts.ageMs,
+      soloBytes: input.soloBytes,
+      collectionReady: facts.collectionReady,
+      selectedCount: input.selectedCount,
+      prospectiveBytes: input.prospectiveBytes
+    })
+    return findingCollectionOutcome(command)
+  }
+)
 
-const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {
+export const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {
   const command = canonicalCollectionDecision({ kind: "collectionNoticeCheck", items, bytes, skipUnfitting })
   switch (command) {
     case "collectionNoticeIncluded":
@@ -198,7 +179,7 @@ const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting
   }
 }
 
-const selectBendFindings = Effect.fn("Collection.selectBendFindings")(
+export const selectBendFindings = Effect.fn("Collection.selectBendFindings")(
   function* (
     retained: ReadonlyArray<Finding>,
     candidates: ReadonlyArray<Finding>,
@@ -238,7 +219,7 @@ const selectBendFindings = Effect.fn("Collection.selectBendFindings")(
 )
 
 /** Final writer barrier: every offered finding carries its own current facts. */
-const collectionFindingsBytes = (
+export const collectionFindingsBytes = (
   mode: ClaudeOutputMode | "codex" | "claude-stop",
   findings: ReadonlyArray<Finding>
 ): number => {
@@ -430,3 +411,10 @@ export const selectFittingNotices = (
   }
   return selected
 }
+
+export type {
+  OperationalNoticeKind,
+  OperationalNotice,
+  FindingSelectionFacts,
+  CanonicalFindingOffer
+} from "../state/collection-facts.ts"

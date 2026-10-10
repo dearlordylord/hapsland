@@ -1,6 +1,6 @@
 import { flowInteraction } from "../interaction/flow-input.ts"
 import { Context, Effect, Exit, Layer } from "effect"
-import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
+import { formatOutcome, formatStatusOutcome } from "../interaction/outcome.ts"
 import { profileFields } from "./client-command.ts"
 import {
   activatePackage,

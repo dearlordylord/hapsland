@@ -1,7 +1,7 @@
 import type { Effect } from "effect"
 import type { DirectAdvicee, PhysicalRootIdentity } from "@hapsland/native-observation/direct-event/observation"
 import type { CapacityLedger } from "./capacity.ts"
-import type { BendWorkView } from "./bend-work.ts"
+import type { BendWorkView } from "../bend-work.ts"
 
 export type WorkCohort = { readonly id: string; readonly controller: AbortController }
 export type RoundActivity = {

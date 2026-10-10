@@ -28,6 +28,7 @@
 | Audience and task | Start here |
 | --- | --- |
 | Contributors: set up source development and code style | [Contributing](../CONTRIBUTING.md) |
+| Contributors: organize modules, types, packages, and dependencies | [Source organization policy](source-organization.md) |
 | Contributors and coding agents: find contracts, code, tests, website, or research | [Repository map](agents/navigation.md) and [project instructions](../AGENTS.md) |
 | Contributors: select checks and interpret their evidence | [Checks policy](../CHECKS.md), then [testing matrix](testing-matrix.md) |
 | Build and release maintainers: assemble and publish | [Publishing runbook](npm-publishing.md), [build contract](build-workflow-contract.md), and [runtime support profile](installed-release-compatibility.md) |

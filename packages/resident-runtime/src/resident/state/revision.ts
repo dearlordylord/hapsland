@@ -8,7 +8,7 @@ export type RevisionState = {
   readonly current: ReadonlyMap<string, CurrentWork>
   readonly nextIdentity: number
 }
-export type RevisionDraft = { identities: Map<string, number>; current: Map<string, CurrentWork>; nextIdentity: number }
+type RevisionDraft = { identities: Map<string, number>; current: Map<string, CurrentWork>; nextIdentity: number }
 export const initialRevision = (): RevisionState => ({ identities: new Map(), current: new Map(), nextIdentity: 1 })
 export const draftRevision = (state: RevisionState): RevisionDraft => ({
   ...state,

@@ -20,6 +20,10 @@ explains qualification ownership for delegated work. Report only checks actually
 
 ## Code style
 
+Before changing module, type, package, or dependency organization, follow
+[source organization](docs/source-organization.md) for mandatory domain ownership,
+capability slices, interfaces, and structural review.
+
 Run `npm run format` to apply Oxlint fixes and dprint/OXC formatting.
 `npm run lint:code` checks all authored code; `npm run lint:changed` checks staged,
 unstaged and untracked code against `HEAD`. For a branch comparison, use

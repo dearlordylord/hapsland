@@ -267,7 +267,7 @@ or running dispatch operation. Issued physical requests remain unchanged until
 their original callback settles them. The commands are `ReservationReleased`,
 `CancelWork`, and applicable `DispatchDiscarded`; cancellation does not record a
 review outcome. Missing/wrong tuples and other work kinds refuse atomically.
-This represents the existing scoped release behavior in `packages/resident-runtime/src/resident/capacity.ts`
+This represents the existing scoped release behavior in `packages/resident-runtime/src/resident/state/capacity.ts`
 without using a fabricated backend completion; accepted release/retention
 behavior remains owned by `docs/advicing-target-contract.md`.
 

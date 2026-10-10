@@ -22,9 +22,8 @@ import * as Option from "effect/Option"
 import * as NodeServices from "@effect/platform-node/NodeServices"
 import { clientCommandDefinitions, type ClientCommand } from "./onboarding/client-command.ts"
 import type { SetupClient } from "./onboarding/client-selection.ts"
-import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 import { makeRulesCommand, interactiveRuleCommands, type RulesOptions } from "./rules/cli-definition.ts"
-import { ROOT_OPERATIONS, operationHelp, rootOperationExample } from "./cli-help.ts"
+import { operationHelp, rootOperationExample } from "./cli-help.ts"
 import { PACKAGE_VERSION, VERSION_FLAG } from "@hapsland/runtime-environment/runtime/cli-information"
 import {
   NEW_KEY_OPTION,
@@ -34,6 +33,12 @@ import {
   UPDATE_CHANNELS,
   DEFAULT_UPDATE_CHANNEL
 } from "@hapsland/runtime-environment/runtime/cli-names"
+import {
+  type AutomationOptions,
+  type ClientArguments,
+  automationFlags,
+  operationFlags
+} from "./invocation/arguments.ts"
 
 const validate = <A>(read: () => A) =>
   Effect.try({
@@ -67,34 +72,7 @@ const profiles = {
     Flag.withDescription("Codex executable to probe; defaults to runtime discovery")
   )
 }
-const operationFlags = Object.fromEntries(
-  Object.keys(ROOT_OPERATIONS).map((key) => {
-    const information = operationHelp(key as keyof typeof ROOT_OPERATIONS)
-    return [
-      key,
-      switchFlag(information.flag ?? key, information.aliases ?? [], information.hidden ?? false).pipe(
-        Flag.withDescription(information.description)
-      )
-    ]
-  })
-) as { readonly [Key in keyof typeof ROOT_OPERATIONS]: Flag.Flag<boolean> }
-const automationFlags = {
-  ...operationFlags,
-  [NEW_KEY_OPTION]: switchFlag(NEW_KEY_OPTION, [], false).pipe(
-    Flag.withDescription(
-      `With setup or --pilot, request a new saved ${JEV_PROVIDER.name} key instead of checking the existing key`
-    )
-  ),
-  human: switchFlag("human", ["status-human"], false).pipe(
-    Flag.withDescription("Human output for --status; JSON is the status default")
-  ),
-  json: switchFlag("json", [], false).pipe(
-    Flag.withDescription("Structured credential login/logout output; JSON-stdin operations already return JSON")
-  ),
-  "credential-stdin": switchFlag("credential-stdin"),
-  "evaluation-live": switchFlag("evaluation-live"),
-  "controlled-reviewer": switchFlag("controlled-reviewer")
-}
+
 export const unattendedSetupOptions = {
   "no-input": switchFlag("no-input", [], false).pipe(
     Flag.withDescription("Suppress prompts; previews unless application is authorized separately")
@@ -120,7 +98,9 @@ export const unattendedSetupOptions = {
     Flag.withDescription("Structured unattended setup results; does not authorize applying changes")
   )
 }
+
 const setupFlag = (name: keyof typeof unattendedSetupOptions): string => `--${name}`
+
 export const unattendedSetupTemplates = (): ReadonlyArray<string> => {
   const base = `${CLI_NAME} ${SETUP_COMMAND} codex ${setupFlag("no-input")} ${setupFlag("review")} ${SETUP_REVIEW_CHOICES[0]} ${setupFlag("credential")}`
   return [
@@ -130,13 +110,10 @@ export const unattendedSetupTemplates = (): ReadonlyArray<string> => {
     `${CLI_NAME} ${SETUP_COMMAND} ${setupFlag("no-input")} ${setupFlag("apply-plan")} setup-plan.json ${setupFlag("json")}`
   ]
 }
+
 export const unattendedSetupUsage = (): string =>
   `Unattended setup requires an explicit client, ${setupFlag("review")} ${SETUP_REVIEW_CHOICES.join("|")} and ${setupFlag("credential")} ${SETUP_CREDENTIAL_CHOICES.join("|")}. Preview example: ${unattendedSetupTemplates()[0]}. Add ${setupFlag("apply")} to authorize changes, or use ${setupFlag("apply-plan")} FILE.`
-export type AutomationOptions = Command.Command.Config.Infer<typeof automationFlags>
-export interface ClientArguments {
-  readonly host: SetupClient | undefined
-  readonly flags: ReadonlyMap<string, string>
-}
+
 export type Invocation =
   | { readonly kind: "dashboard"; readonly host: string; readonly port: number }
   | { readonly kind: "rules"; readonly options: RulesOptions }
@@ -148,12 +125,14 @@ type ClientArgumentValues = {
   readonly client?: Option.Option<SetupClient>
   readonly [name: string]: unknown
 }
+
 const selectedClientHost = (values: ClientArgumentValues): SetupClient | undefined => {
   const positional = values.client === undefined ? undefined : Option.getOrUndefined(values.client)
   if (positional !== undefined && values.host !== undefined && positional !== values.host)
     throw new Error("Positional client and --host disagree.")
   return positional ?? values.host
 }
+
 const clientArguments = (values: ClientArgumentValues): ClientArguments => {
   const host = selectedClientHost(values)
   const flags = new Map<string, string>()
@@ -175,13 +154,19 @@ const parentOptions = {
     Argument.withDescription(`Agent runtime: ${SUPPORTED_CLIENTS.join(" | ")}; guided --pilot selection only`)
   )
 }
+
 type ParentOptions = Command.Command.Config.Infer<typeof parentOptions>
+
 const activeOption = (value: unknown): boolean => value !== false && value !== undefined
+
 const automationOptionNames = new Set(Object.keys(automationFlags))
+
 const forbiddenPilotOption = (name: string): boolean =>
   automationOptionNames.has(name) && name !== "pilot" && name !== NEW_KEY_OPTION
+
 const pilotConflicts = (values: ParentOptions): boolean =>
   Object.entries(values).some(([name, value]) => forbiddenPilotOption(name) && activeOption(value))
+
 const validateAutomationMode = (values: ParentOptions, operations: ReadonlyArray<string>): void => {
   if (values.pilot && pilotConflicts(values))
     throw new Error(`--pilot accepts only client profile, --target and ${NEW_KEY_FLAG} options.`)
@@ -189,6 +174,7 @@ const validateAutomationMode = (values: ParentOptions, operations: ReadonlyArray
   if (values["credential-stdin"] && !values.login) throw new Error("--credential-stdin requires --login.")
   if (operations.length > 1) throw new Error("Operation options cannot be combined.")
 }
+
 const hasClientProfile = (values: ParentOptions): boolean =>
   [
     Option.getOrUndefined(values.client),
@@ -201,10 +187,12 @@ const hasClientProfile = (values: ParentOptions): boolean =>
     values["pi-executable"],
     values.target
   ].some((value) => value !== undefined)
+
 const validateClientProfile = (values: ParentOptions): void => {
   if (!values.pilot && hasClientProfile(values))
     throw new Error("Client options require a lifecycle command or --pilot.")
 }
+
 const validateAutomation = (values: ParentOptions): void => {
   const operations = (Object.keys(operationFlags) as Array<keyof typeof operationFlags>).filter((key) => values[key])
   validateAutomationMode(values, operations)
@@ -212,9 +200,9 @@ const validateAutomation = (values: ParentOptions): void => {
 }
 
 const lifecycleClientName = "client"
+
 const lifecycleClient = Argument.Literals(lifecycleClientName, SUPPORTED_CLIENTS).pipe(Argument.optional)
 
-/** Project parser declarations into the public journey index; no duplicate command spellings. */
 export const cliJourneyCommands = (): Record<UiJourneyId, readonly string[]> => {
   const root = makeCliCommand(() => {})
   const lifecycle = (name: ClientCommand): readonly [string, string] => {
@@ -234,7 +222,6 @@ export const cliJourneyCommands = (): Record<UiJourneyId, readonly string[]> => 
   }
 }
 
-/** One command tree supplies parsing, terminal help and generated references. */
 export const makeCliCommand = (invoke: (invocation: Invocation) => void) => {
   const parent = Command.make(CLI_NAME, parentOptions, (values) =>
     validate(() => {

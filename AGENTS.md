@@ -19,6 +19,13 @@ user explicitly requests it or an accepted release contract requires it. Report
 any known GitHub CI status separately, and make validation claims only for checks
 actually run.
 
+## Source organization
+
+Before adding, moving, or splitting modules, types, package interfaces, or
+dependencies, and before structural review, MUST read and follow
+[source organization](docs/source-organization.md). It owns domain-first
+organization, vertical capability slices, shared ownership, and structural review.
+
 ## TypeScript quality gate
 
 Before selecting or changing checks, or running a full gate, MUST read and
