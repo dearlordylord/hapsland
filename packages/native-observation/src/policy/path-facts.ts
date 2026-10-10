@@ -59,6 +59,7 @@ export const pathFacts = (path: string) => {
     sensitiveName: sensitiveNames.test(normalized),
     generatedOrVendor:
       generatedNames.test(normalized) || normalized.split("/").some((segment) => generatedSegments.has(segment)),
-    allowedExtension: reviewableExtensions.has(extname(normalized).toLowerCase())
+    allowedExtension:
+      normalized.split("/").at(-1) === "go.mod" || reviewableExtensions.has(extname(normalized).toLowerCase())
   }
 }

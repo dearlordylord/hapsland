@@ -31,6 +31,8 @@ export type AnalyzerMaterializationPreflight = {
 export type GraphReference = {
   readonly kind: "named" | "unsupported"
   readonly name: string
+  /** Adapter-owned local lookup key; the source reference name remains the wire site. */
+  readonly bindingName?: string
   readonly expectedKind?: "type" | "function"
   /** Explicit identity for language-owned supporting evidence, never a project lookup. */
   readonly targetId?: string

@@ -621,23 +621,62 @@ by the existing capture and graph ceilings.
 
 The subset follows the official [Go build constraints](https://pkg.go.dev/cmd/go#hdr-Build_constraints).
 
-The Go slice uses the production-package directory as its local authority unit.
-It inspects at most 128 direct directory entries and at most the configured graph
-file ceiling (8 by default), including inactive files whose headers establish
-alternative identities. It never searches parent directories, module caches,
-imports or generated/vendor directories. A larger inventory is missing evidence,
-not permission to increase limits. All captured bytes count toward the existing
-source/read ceilings and all expanded declarations/groups count toward work,
-depth, outgoing-reference and encoded-tree ceilings. Constant discovery, including propagation through constant aliases, spends the same work budget before graph expansion; exhaustion omits evidence. Source-only membership
-metadata is fingerprinted locally; only reachable declarations and exact relevant
-constant groups go to the provider. New, removed or renamed directory entries,
-header/source changes and configuration facts change binding identity on fresh
-preparation. Revalidation repeats the bounded discovery rather than trusting the
-old dependency list.
+The Go profile under #271 and #272 uses one eligible production-package directory
+at a time within one captured local module. Each directory inventory observes at
+most 128 direct entries. The configured graph file ceiling (8 by default) is
+shared by the edited file, captured `go.mod` and active/possibly active package
+files. Known filename-inactive files are not read. Source headers establishing
+membership, captured metadata and supporting files spend the same source/read
+ceilings; declaration and constant discovery, metadata alternatives and package
+links spend the existing work ceiling. Expanded evidence retains the depth,
+outgoing-reference and encoded-tree ceilings. Exhaustion establishes missing
+evidence, never permission for a whole-file fallback or larger limits.
+
+Module identity comes from the nearest `go.mod` inside the captured physical
+root, found within the configured depth bound. Exactly one ordinary unquoted
+`module` declaration establishes the module path. Block-comment metadata and
+replacement directives are unsupported. Applicable `go.work` presence inside
+the physical root prevents module import authority. Module discovery must reach
+the physical root within its bound to establish workspace absence. Analysis
+never invokes Go, application code, generators or dependency downloads.
+
+Only exact `go.mod` basenames are added to the protected extension allowlist for
+metadata capture; arbitrary `.mod` files remain unsupported. Metadata uses the
+same context include/exclusion patterns, sensitive/generated/vendor protection,
+Git-ignore and physical regular-file/symlink gates as supporting source. An
+excluded or unavailable nearest manifest cannot authorize a search for a more
+convenient ancestor. Presence/absence and unsafe/unavailable alternatives are
+bounded local identity observations; they are not transmitted source.
+
+Imports whose paths match that module map to directories within its boundary.
+Every intervening `go.mod` presence blocks crossing a nested module. No workspace,
+replace, outside-root, module-cache, vendor or system declaration traversal is
+introduced. A default import binds the uniquely established active package's
+**declared name**, including when that name differs from the path suffix. Explicit
+aliases bind that same package identity; duplicate/ambiguous bindings remain
+omissions. Blank imports bind no types. Dot imports remain unsupported for
+affected references. Cross-package entry references must be exported (Unicode
+uppercase), and `internal` imports must originate within the directory tree
+permitted by the internal segment. Supporting private declarations reachable
+inside an admitted package remain eligible. A `main` package is not importable.
+
+Only reachable actual declaration identities and exact relevant constant groups
+go to the provider. Lookup keys remain internal; evidence reference sites retain
+the source qualifier and supporting artifacts keep their actual names, paths and
+source. No supporting declaration becomes an edited root. Unresolved external
+references stay explicit per-rule omissions: a root-only rule may proceed with
+marked missing closure; all three shipped rules retain their actual closure
+requirements. An unrelated eligible root can proceed independently.
+
+Fresh preparation fingerprints module/build source and configuration authority,
+package inventories, captured alternatives and positive/absent metadata/package
+resolution observations. Changes, creation, deletion, rename and restored source
+are checked by repeating bounded discovery, rather than trusting an old dependency
+list. Discovery metadata and unrelated package bodies are not provider input.
 
 | Go model family | Shipped rule inputs intended for this slice | Evidence boundary |
 | --- | --- | --- |
-| Structs, embedded fields, pointers, maps and slices | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Exact declaration plus resolved package type closure; unknown external fields omit closure-dependent rules |
+| Structs, embedded fields, pointers, maps and slices | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Exact declaration plus resolved local-module type closure; unknown external fields omit closure-dependent rules |
 | Defined scalar/container types and aliases | The same rules where their domain question applies | Nominal defined types remain distinct from aliases; constants are declared examples, never exhaustive runtime values |
 | Interfaces and generic constraints | The same rules only about declared structure | Interface method signatures and type sets are source structure, not a closed set of implementing runtime types |
 | Typed constant/iota groups | Supporting evidence for edited/referenced named types | Original complete group including ordinal predecessors and implicit expressions; no synthesized enumerator values |
@@ -651,4 +690,4 @@ The pinned `tree-sitter-go` 0.25.0 grammar and existing `tree-sitter` 0.25.0 run
 
 Named local array bounds retain their defining constant group. Other computed array-bound expressions remain unsupported evidence; the adapter does not evaluate them.
 
-Constant discovery infers types per binding for explicit named types, direct conversions, aliases, parentheses, unary and arithmetic/bitwise/boolean expressions, shifts from their left operand, and builtin min/max. Comparisons yield an untyped boolean and do not bring their groups into scalar evidence. Named alias identity follows only established package bindings. Expression inference and alias steps spend the same work ceiling; no constant values are computed. File-local imported qualifiers and dot-import uncertainty remain explicit omissions in relevant groups.
+Constant discovery infers types per binding for explicit named types, direct conversions, aliases, parentheses, unary and arithmetic/bitwise/boolean expressions, shifts from their left operand, and builtin min/max. Comparisons yield an untyped boolean and do not bring their groups into scalar evidence. Named alias identity follows only established package bindings. Expression inference and alias steps spend the same work ceiling; no constant values are computed. Local imported type/alias/conversion/constant bindings can establish typed constant demands across captured packages; their original groups remain intact. Comparisons remain untyped and do not add reverse demands. External qualifiers and dot-import uncertainty remain explicit omissions in relevant groups.
