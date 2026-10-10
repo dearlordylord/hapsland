@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import * as Effect from "effect/Effect"
+import { createPythonGraphPreparation } from "./python-module-context.ts"
 import { LANGUAGE_EXTENSIONS } from "@hapsland/native-observation/direct-event/languages/path-language"
 import { Parser, Python, type SyntaxNode, descendants } from "./native-parser.ts"
 import {
@@ -41,7 +41,7 @@ const rootFor = (source: string): SyntaxNode => {
   parser.setLanguage(Python)
   return (parser.parse(source) as unknown as { rootNode: SyntaxNode }).rootNode
 }
-const standard = new Set(["dataclasses", "typing", "typing_extensions", "pydantic"])
+const standard = new Set(["dataclasses", "typing", "typing_extensions", "pydantic", "__future__"])
 /** Visit bindings evaluated in this lexical scope, excluding nested bodies. */
 const scopedNodes = (node: SyntaxNode): SyntaxNode[] => {
   if (node.type === "lambda") return node.childForFieldName("parameters")?.namedChildren.flatMap(scopedNodes) ?? []
@@ -57,7 +57,7 @@ const targetNames = (node: SyntaxNode): string[] =>
         : []
       : node.namedChildren.flatMap(targetNames)
 type Binding = { readonly name: string; readonly identity?: string }
-const scopeBindings = (node: SyntaxNode): Binding[] =>
+const scopeBindings = (node: SyntaxNode, staticImport = false): Binding[] =>
   scopedNodes(node).flatMap((child): Binding[] => {
     if (["import_statement", "import_from_statement"].includes(child.type)) {
       const module = child.childForFieldName("module_name")?.text
@@ -67,7 +67,7 @@ const scopeBindings = (node: SyntaxNode): Binding[] =>
         const name = part.type === "aliased_import" ? part.childForFieldName("alias")?.text : target?.split(".")[0]
         if (!target || !name) return []
         const identity = module === undefined ? target : `${module}.${target}`
-        return [{ name, ...(standard.has(module ?? target) && child.parent?.type === "module" ? { identity } : {}) }]
+        return [{ name, ...(staticImport || child.parent?.type === "module" ? { identity } : {}) }]
       })
     }
     if (["class_definition", "function_definition", "type_alias_statement"].includes(child.type)) {
@@ -246,15 +246,138 @@ const fieldsFor = (cls: SyntaxNode): SyntaxNode[] =>
     const value = assignment(node)
     return value?.childForFieldName("type") && value.childForFieldName("left")?.type === "identifier" ? [value] : []
   })
+/** Only a positive, unshadowed typing.TYPE_CHECKING guard with imports is static authority. */
+const staticTypeBlock = (node: SyntaxNode, bindings: ReadonlyMap<string, string>): boolean => {
+  if (node.type !== "if_statement") return false
+  const condition = node.childForFieldName("condition")
+  const consequence = node.childForFieldName("consequence")
+  return (
+    condition !== null &&
+    typingMarker(identityFor(condition.text, bindings), "TYPE_CHECKING") &&
+    consequence !== null &&
+    node.namedChildren.every((child) => child.startIndex === condition.startIndex || child.type === "block") &&
+    node.namedChildren.filter((child) => child.type === "block").length === 1 &&
+    consequence.namedChildren.every((child) =>
+      ["import_statement", "import_from_statement", "comment", "pass_statement"].includes(child.type)
+    )
+  )
+}
+const moduleScope = (root: SyntaxNode) => {
+  const direct = identities(
+    root.namedChildren.filter((node) => node.type !== "if_statement").flatMap((node) => scopeBindings(node))
+  )
+  const staticBlocks = new Set(
+    root.namedChildren.filter((node) => staticTypeBlock(node, direct)).map((node) => node.startIndex)
+  )
+  const facts = root.namedChildren.flatMap((node) => scopeBindings(node, staticBlocks.has(node.startIndex)))
+  return { facts, bindings: identities(facts), staticBlocks }
+}
+export type PythonImport = {
+  readonly path: string
+  readonly name: string
+  readonly module: boolean
+  readonly prefix: string
+}
+export const pythonImports = (source: string): ReadonlyMap<string, PythonImport> | undefined => {
+  const root = rootFor(source)
+  if (root.hasError) return undefined
+  const { facts, bindings, staticBlocks } = moduleScope(root)
+  if (descendants(root).some((node) => node.type === "wildcard_import")) return undefined
+  if (facts.some((fact) => ["__path__", "__getattr__"].includes(fact.name))) return undefined
+  const statements = root.namedChildren.flatMap((node) =>
+    staticBlocks.has(node.startIndex) ? (node.childForFieldName("consequence")?.namedChildren ?? []) : [node]
+  )
+  const result = new Map<string, PythonImport>()
+  for (const node of statements) {
+    if (!["import_statement", "import_from_statement"].includes(node.type)) continue
+    const module = node.childForFieldName("module_name")?.text
+    for (const part of node.namedChildren) {
+      if (part.text === module || part.type === "wildcard_import") continue
+      const target = part.type === "aliased_import" ? part.childForFieldName("name")?.text : part.text
+      const alias = part.type === "aliased_import" ? part.childForFieldName("alias")?.text : undefined
+      const name = alias ?? target?.split(".")[0]
+      if (!target || !name || !bindings.has(name)) continue
+      if (standard.has((module ?? target).split(".")[0]!)) continue
+      result.set(name, {
+        path: module ?? target,
+        name: module === undefined ? "" : target,
+        module: module === undefined,
+        prefix: module === undefined && alias === undefined ? target : name
+      })
+    }
+  }
+  return result
+}
+/** Initializer authority cannot assume the effects of executable loader/path setup. */
+const staticPackageAuthority = (source: string): boolean => {
+  const root = rootFor(source)
+  if (root.hasError || pythonImports(source) === undefined) return false
+  const { bindings, staticBlocks } = moduleScope(root)
+  const statements = root.namedChildren.flatMap((node) =>
+    staticBlocks.has(node.startIndex) ? (node.childForFieldName("consequence")?.namedChildren ?? []) : [node]
+  )
+  const runtimeNodes = (node: SyntaxNode): SyntaxNode[] => [
+    node,
+    ...node.namedChildren
+      .filter((child) => !(node.type === "function_definition" && child.type === "block"))
+      .flatMap(runtimeNodes)
+  ]
+  for (const node of statements) {
+    if (
+      [
+        "if_statement",
+        "for_statement",
+        "while_statement",
+        "try_statement",
+        "with_statement",
+        "delete_statement"
+      ].includes(node.type)
+    )
+      return false
+    for (const evaluated of runtimeNodes(node)) {
+      if (
+        ["assignment", "augmented_assignment", "named_expression"].includes(evaluated.type) &&
+        evaluated.childForFieldName("left")?.type !== "identifier"
+      )
+        return false
+      if (evaluated.type !== "call") continue
+      const identity = identityFor(evaluated.childForFieldName("function")?.text ?? "", bindings)
+      if (
+        ![
+          "dataclasses.dataclass",
+          "dataclasses.field",
+          "pydantic.Field",
+          "pydantic.ConfigDict",
+          "typing.NewType",
+          "typing_extensions.NewType"
+        ].includes(identity ?? "")
+      )
+        return false
+    }
+  }
+  return true
+}
+
+const importedReference = (name: string, imports: ReadonlyMap<string, PythonImport>) => {
+  const [head, ...tail] = name.split(".")
+  const imported = imports.get(head ?? "")
+  if (imported === undefined) return undefined
+  if (imported.module) {
+    if (!name.startsWith(`${imported.prefix}.`)) return undefined
+    const rest = name.slice(imported.prefix.length + 1).split(".")
+    return { path: imported.path + (rest.length > 1 ? "." + rest.slice(0, -1).join(".") : ""), name: rest.at(-1)! }
+  }
+  return { path: imported.path, name: [imported.name, ...tail].join(".") }
+}
 const parsePython = (path: string, source: string): TypeExtractionFailure | readonly GraphDeclaration[] => {
   const root = rootFor(source)
   if (root.hasError) return { status: "unsupported", reason: "parse", units: [] }
-  const bindingFacts = root.namedChildren.flatMap(scopeBindings)
-  const bindings = identities(bindingFacts)
+  const { facts: bindingFacts, bindings, staticBlocks } = moduleScope(root)
   const locals = new Set(bindingFacts.map((fact) => fact.name))
   const uncertainBindings = root.namedChildren.some(
     (node) =>
-      ["if_statement", "for_statement", "while_statement", "try_statement", "with_statement"].includes(node.type) ||
+      (["if_statement", "for_statement", "while_statement", "try_statement", "with_statement"].includes(node.type) &&
+        !staticBlocks.has(node.startIndex)) ||
       (assignment(node) !== undefined && assignment(node)?.childForFieldName("left")?.type !== "identifier")
   )
   const counts = new Map<string, number>()
@@ -266,6 +389,7 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
     return cls?.type === "class_definition" ? [{ node, cls, name: cls.childForFieldName("name")?.text ?? "" }] : []
   })
   if (classes.length > MAX_TYPE_DECLARATIONS) return { status: "unsupported", reason: "declaration-limit", units: [] }
+  const imports = pythonImports(source) ?? new Map<string, PythonImport>()
   const admitted = new Set<string>()
   for (let pass = 0; pass <= classes.length; pass++) {
     let changed = false
@@ -291,6 +415,10 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
               admitted.has(
                 ["generic_type", "subscript"].includes(base.type) ? (base.namedChildren[0]?.text ?? "") : base.text
               ) ||
+              importedReference(
+                ["generic_type", "subscript"].includes(base.type) ? (base.namedChildren[0]?.text ?? "") : base.text,
+                imports
+              ) !== undefined ||
               ["pydantic.BaseModel", "typing.TypedDict", "typing_extensions.TypedDict"].includes(
                 identityFor(base.text, bindings) ?? ""
               )
@@ -490,14 +618,25 @@ const parseTypes: LanguageAdapter["parseTypes"] = (path, source) => {
     return { status: "unsupported", reason: "parse", units: [] }
   }
 }
-const inspect: LanguageAdapter["inspect"] = (path, source) => {
+export const inspectPython: LanguageAdapter["inspect"] = (path, source) => {
   const parsed = parseTypes(path, source)
-  return "status" in parsed
-    ? undefined
-    : {
-        declarations: new Map(parsed.map((declaration) => [declaration.artifact.name, declaration])),
-        imports: new Map()
-      }
+  const imports = pythonImports(source)
+  if (imports === undefined || ("status" in parsed && parsed.reason !== "no-declarations")) return undefined
+  const declarations = "status" in parsed ? [] : parsed
+  if (declarations.length === 0 && imports.size === 0) return undefined
+  const graphImports = new Map<string, { readonly path: string; readonly name: string }>()
+  for (const [name, imported] of imports) {
+    if (!imported.module) graphImports.set(name, { path: imported.path, name: imported.name })
+  }
+  for (const declaration of declarations)
+    for (const reference of declaration.references) {
+      const imported = importedReference(reference.name, imports)
+      if (imported !== undefined) graphImports.set(reference.name, imported)
+    }
+  return {
+    declarations: new Map(declarations.map((declaration) => [declaration.artifact.name, declaration])),
+    imports: graphImports
+  }
 }
 export const pythonAdapter: LanguageAdapter = {
   id: "python",
@@ -505,18 +644,10 @@ export const pythonAdapter: LanguageAdapter = {
   displayName: "Python",
   probe: { path: "doctor.py", source: "class DoctorProbe:\n    ready: bool" },
   parseTypes,
-  inspect,
-  hasImports: () => false,
+  inspect: inspectPython,
+  hasImports: (source) => (pythonImports(source)?.size ?? 0) > 0,
   combinedPreflight: (_path, _source, bound) => bound,
-  prepareGraph: Effect.fn("Python.prepareGraph")(function* (_path, _capture, _host, limits, expired) {
-    if (expired() || limits.files < 1 || limits.work < 1) return undefined
-    return {
-      dependencies: [],
-      limits,
-      session: {
-        inspect: (path, source, branch) => (branch === "type" ? inspect(path, source) : undefined),
-        importCandidates: () => []
-      }
-    }
-  })
+  prepareGraph: createPythonGraphPreparation(inspectPython, staticPackageAuthority, (source, name) =>
+    moduleScope(rootFor(source)).facts.some((fact) => fact.name === name)
+  )
 }

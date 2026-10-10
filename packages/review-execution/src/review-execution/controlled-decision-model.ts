@@ -134,15 +134,24 @@ const controlledRequestSummary = (
     : Effect.tryPromise({
         try: () => {
           const state = request.state as
-            | { artifact?: { kind?: unknown }; evidence?: { nodes?: unknown[]; edges?: { kind?: unknown }[] } }
+            | {
+                artifact?: { kind?: unknown; domain?: unknown }
+                evidence?: { nodes?: { domain?: unknown }[]; edges?: { kind?: unknown }[] }
+              }
             | undefined
           const edges = state?.evidence?.edges ?? []
           return appendFile(
             options.requestSummaryPath!,
             `${JSON.stringify({
               rootKind: state?.artifact?.kind ?? "unknown",
+              inputBytes: Buffer.byteLength(JSON.stringify(request.state) ?? "null", "utf8"),
+              evidenceBytes: Buffer.byteLength(JSON.stringify(state?.evidence) ?? "null", "utf8"),
               conditionalFindingSourceMatched: sourceFinding,
               evidenceNodes: state?.evidence?.nodes?.length ?? 0,
+              crossFileEvidenceNodes:
+                state?.evidence?.nodes?.filter(
+                  (node) => typeof node.domain === "string" && node.domain !== state?.artifact?.domain
+                ).length ?? 0,
               expandedEdges: edges.filter((edge) => edge.kind === "expanded").length,
               includedEdges: edges.filter((edge) => edge.kind === "included").length,
               omittedEdges: edges.filter((edge) => edge.kind === "omitted").length

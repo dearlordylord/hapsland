@@ -70,6 +70,19 @@ export type LanguageGraphHost = {
 export type GraphSession = {
   inspect(path: string, source: string, branch: "type" | "function"): GraphFacts | undefined
   importCandidates(from: string, importPath: string): readonly string[]
+  /** Language-owned binding authority, charged together with the canonical graph. */
+  resolveImport?(
+    from: string,
+    importPath: string,
+    name: string,
+    remaining: { readonly files: number; readonly readBytes: number; readonly work: number }
+  ): Effect.Effect<{ readonly path: string; readonly name: string } | undefined>
+  authorityUsage?(): { readonly files: number; readonly readBytes: number; readonly work: number }
+  validateAuthority?(remaining: {
+    readonly files: number
+    readonly readBytes: number
+    readonly work: number
+  }): Effect.Effect<boolean>
 }
 export type PreparedGraph = {
   readonly session: GraphSession

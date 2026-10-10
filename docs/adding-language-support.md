@@ -9,7 +9,7 @@
 
 ## Current implementation
 
-TypeScript, Rust, Bend, and the bounded same-file Python profile use the shared review pipeline. The
+TypeScript, Rust, Bend, and the bounded Python model profile use the shared review pipeline. The
 [README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,
@@ -184,7 +184,7 @@ an earlier failed measurement. Keep the current summary in the index, with
 historical details in the records.
 
 Python same-file selection, marker forms, expression limits and shipped rule matrix
-are owned by the [Python amendment](type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). Python performs no cross-file or system traversal.
+are owned by the [Python amendment](type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). The [local module amendment](type-function-review-proposal.md#python-local-module-authority-amendment-270) owns local imports, initializer reexports, source/stub precedence and inheritance. System dependencies remain opaque.
 
 ### Python qualification for parent #267
 
