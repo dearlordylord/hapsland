@@ -39,9 +39,14 @@ export const checkBuildBoundary = (root, analysis, name, graph = readPackageGrap
     ["administration", "credential-mutation", "provider-execution", "review-orchestration", "source-analysis"].some(
       (capability) => !policy.forbiddenCapabilities.includes(capability)
     ) ||
-    ["@effect/ai-typesafe", "@effect/ai", "tree-sitter", "tree-sitter-typescript", "tree-sitter-rust"].some(
-      (dependency) => !policy.forbiddenExternalPackages.includes(dependency)
-    )
+    [
+      "@effect/ai-typesafe",
+      "@effect/ai",
+      "tree-sitter",
+      "tree-sitter-typescript",
+      "tree-sitter-rust",
+      "tree-sitter-python"
+    ].some((dependency) => !policy.forbiddenExternalPackages.includes(dependency))
   )
     throw new Error(`Build boundary policy omits protected capabilities: ${name}`)
   const entry = resolveWorkspaceSource(graph, policy.entry)

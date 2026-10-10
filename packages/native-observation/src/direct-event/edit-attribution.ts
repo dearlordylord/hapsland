@@ -11,10 +11,11 @@ export type PostEditPosition = { readonly line: number; readonly column: number 
 export type PostEditLocation = { readonly start: PostEditPosition; readonly end: PostEditPosition }
 export type SupportedRootDeclaration = {
   readonly path: string
-  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype" | "function"
+  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype" | "class" | "function"
   readonly name: string
   /** Half-open range of the complete root, including signature/header. */
   readonly location: PostEditLocation
+  readonly selectionLocations?: ReadonlyArray<PostEditLocation>
 }
 export type VerifiedPatchHunk = {
   readonly path: string
@@ -154,8 +155,14 @@ export const selectEditedRoots = (
     for (const hunk of patchHunks) {
       const bounds = hunkBounds(snapshot, starts, hunk)
       const declaration = uniqueEnclosedDeclaration(snapshot, roots, identities, bounds)
-      if (declaration !== undefined) select(declaration)
-      else ambiguous.push(ambiguousSpan(snapshot.path, hunk.location))
+      if (declaration !== undefined) {
+        const defining = declaration.selectionLocations?.map((location) => range(location, starts, snapshot.source))
+        if (
+          defining === undefined ||
+          defining.some((span) => span !== undefined && span[0] < bounds[1] && bounds[0] < span[1])
+        )
+          select(declaration)
+      } else ambiguous.push(ambiguousSpan(snapshot.path, hunk.location))
     }
   }
   return Object.freeze({ selected: Object.freeze([...selected.values()]), ambiguous: Object.freeze(ambiguous) })

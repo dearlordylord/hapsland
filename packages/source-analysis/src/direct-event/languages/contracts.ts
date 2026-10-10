@@ -32,6 +32,10 @@ export type GraphDeclaration = {
   readonly artifact: TypeDeclaration
   readonly references: readonly GraphReference[]
   readonly exported: boolean
+  /** Update spans must touch model-defining ranges when present. */
+  readonly selectionLocations?: ReadonlyArray<
+    import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation
+  >
   readonly location: {
     readonly start: { readonly line: number; readonly column: number }
     readonly end: { readonly line: number; readonly column: number }

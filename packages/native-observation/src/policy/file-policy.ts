@@ -62,7 +62,7 @@ const matchingPath = (patterns: ReadonlyArray<PatternOrigin>, path: string | und
   path === undefined ? [] : matching(patterns, path)
 const pathIncluded = (policy: ResolvedPolicy, path: string, context: boolean, includes: ReadonlyArray<PatternOrigin>) =>
   includes.length > 0 &&
-  (context || policy.languages.value.includes(rootLanguageForPath(path) as "typescript" | "rust" | "bend"))
+  (context || policy.languages.value.includes(rootLanguageForPath(path) as "typescript" | "rust" | "bend" | "python"))
 
 const selectPolicyPath = (policy: ResolvedPolicy, path: string, context: boolean): SelectionDecision => {
   const { includes, excludes } = selectionPatterns(policy, context)
