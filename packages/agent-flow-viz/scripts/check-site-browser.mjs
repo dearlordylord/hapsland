@@ -48,7 +48,7 @@ try {
   }
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000))
   assert.match(await activeComment.textContent(), commentPattern(0))
-  assert.equal(await page.locator('.comment-card[aria-hidden="true"]').count(), 5)
+  assert.equal(await page.locator('.comment-card[aria-hidden="true"]').count(), COMMENTS.length - 1)
   assert.equal(await page.locator(".comment-deck a").count(), 0, "cards no longer contain rule links")
   assert.deepEqual(
     await page.locator(".comment-code code").allTextContents(),
@@ -56,7 +56,7 @@ try {
     "syntax highlighting preserves every sample character"
   )
   const cardTitles = await page.locator(".comment-card blockquote").allTextContents()
-  assert.equal(await page.locator(".comment-repair").count(), 6, "every issue has a design direction")
+  assert.equal(await page.locator(".comment-repair").count(), COMMENTS.length, "every issue has a design direction")
   assert.equal(await page.locator(".comment-card-number").count(), 0, "decorative counters are removed")
   assert.deepEqual(
     await page.locator(".comment-card-heading .micro").allTextContents(),
@@ -96,7 +96,7 @@ try {
     0,
     "the deck has no visible controls"
   )
-  assert.doesNotMatch(await page.locator(".comment-deck").innerText(), /Swipe to explore|Manual cards|[1-6] \/ 6/)
+  assert.doesNotMatch(await page.locator(".comment-deck").innerText(), /Swipe to explore|Manual cards|\d+ \/ \d+/)
   assert.equal(await page.locator(".comment-stack").evaluate((el) => getComputedStyle(el).touchAction), "pan-y")
   // A pointer click can focus the stack, but must not turn into a permanent keyboard pause.
   await page.locator(".comment-stack").click()
@@ -172,17 +172,25 @@ try {
   await swipeComment(-120)
   await waitForComment(cardTitles[0])
   await swipeComment(120)
-  await waitForComment(commentPattern(5))
+  await waitForComment(commentPattern(COMMENTS.length - 1))
   await swipeComment(-15, 5)
-  assert.match(await activeComment.textContent(), commentPattern(5), "small movements are taps")
+  assert.match(await activeComment.textContent(), commentPattern(COMMENTS.length - 1), "small movements are taps")
   await swipeComment(-80, 140)
-  assert.match(await activeComment.textContent(), commentPattern(5), "vertical scrolling must not change the card")
+  assert.match(
+    await activeComment.textContent(),
+    commentPattern(COMMENTS.length - 1),
+    "vertical scrolling must not change the card"
+  )
   await swipeComment(-120, 0, true)
-  assert.match(await activeComment.textContent(), commentPattern(5), "cancelled gestures must not change the card")
+  assert.match(
+    await activeComment.textContent(),
+    commentPattern(COMMENTS.length - 1),
+    "cancelled gestures must not change the card"
+  )
   await page.keyboard.press("ArrowRight")
   await waitForComment(commentPattern(0))
   await page.keyboard.press("ArrowLeft")
-  await waitForComment(commentPattern(5))
+  await waitForComment(commentPattern(COMMENTS.length - 1))
   assert.equal(await progress(), 0, "keyboard navigation resets progress")
   await page.locator(".hero h1").click()
   await page.mouse.move(0, 0)
@@ -377,7 +385,7 @@ try {
       await page.locator(".comment-stack").focus()
       await page.keyboard.press("ArrowRight")
     }
-    assert.ok(Math.max(...barPositions) - Math.min(...barPositions) < 0.5, `all six progress bars align at ${width}px`)
+    assert.ok(Math.max(...barPositions) - Math.min(...barPositions) < 0.5, `all progress bars align at ${width}px`)
   }
   await selectStage(1)
   await stages.nth(2).focus()

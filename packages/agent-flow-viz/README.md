@@ -80,7 +80,7 @@ The animation starts immediately and repeats all six stages. Clicking a stage
 selects it and restarts its four-second interval without pausing playback.
 The stage buttons are the only playback navigation. Reduced-motion users get
 static frames selected through those same buttons; changing that preference
-stops motion. The hero's six review cards support timed progress, swiping,
+stops motion. The hero's four review cards support timed progress, swiping,
 mouse dragging and arrow-key navigation. No page calls Jev or reads repository source.
 
 `src/import-graph-replay.ts` owns shared scenario replay through the compiled
