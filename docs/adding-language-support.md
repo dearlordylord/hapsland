@@ -260,3 +260,43 @@ classifier accuracy. Known grammar gaps remain explicit unsupported outcomes.
 No coverage study (#268) was performed. Integration with the parallel Go slice
 must retain both grammar pins/registrations/assets and additive loader/build
 policies, then rerun the affected shared and installed checks on the merged base.
+
+### Rebased Python qualification, 2026-10-10
+
+The complete retained Python commit sequence was applied to base
+`47fdf0f0afffc6eca9f613813eee7e533808e082`, preserving its Astro website changes.
+The acceptance candidate tested here was
+`256115f854cfdce0d3f3c78edb51f75be663abd1`; the only rebase conflict was resolved
+by retaining both Astro and Python grammar catalog entries. Product code matches
+the retained candidate above. A fresh medium-reasoning review of the base-to-head
+diff against #269, #267 and repository instructions found no reasonable blockers.
+
+Fresh local checks passed on Linux arm64 with Node 24.20.0 and Bun 1.3.14:
+
+- `npm run typecheck`, `npm run check:fast`, and explicit base-to-head lint/format
+  checks passed. Build commands removed inherited `NODE_PATH`, as required by the
+  Bend producer's environment contract.
+- The focused runner passed 286 tests in 13 files, including 21 Python pipeline
+  and five language-boundary tests, plus existing TS/Rust/Bend, attribution,
+  renderer and rule consumers. Run: `20261010032740501-4151494-6bfb56`.
+- Selected native task, input/receipt, binding, loader, build-boundary, assembly,
+  distribution and native installation tooling checks passed. Early probes lacked
+  the current native bundle or overlapped workspace output preparation; rebuilding
+  current inputs and running affected probes after preparation resolved them.
+  Offline documentation links and heading anchors passed with Lychee 0.24.2.
+- `HAPSLAND_BUILD_PROFILE=linux-arm64 node scripts/prepare-package.mjs --timeout-ms=300000`
+  passed fresh build, six-native-asset validation, packing and integrity checks
+  in run `20261010032928563-4161301-bc6cec`. Archive SHA-256:
+  `62e3eb42a0ff02da4775c0c14a4f995f67a97e1294f93d2fa712c21d520ee308`.
+- `npm run conformance:package -- --archive=PATH` passed against that archive.
+  The existing installed Codex Python adoption command from the
+  [testing matrix](testing-matrix.md) passed all eleven assertions using the same
+  archive, Codex CLI 0.155.1 and OpenAI `gpt-6-luna`, with zero Jev requests.
+  Source-free native record:
+  `codex-python-adoption-controlled-offline-1791603151742.json`.
+
+This fresh evidence supersedes reliance on the predecessor archive for this base.
+Darwin execution, a full two-target archive, other native hosts, ordinary native
+trust onboarding and classifier accuracy remain unqualified. The grammar pins,
+same-file support boundaries and #270/#268 continuation scope remain unchanged.
+No full coverage gate or remote CI result is claimed.
