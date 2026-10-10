@@ -1,0 +1,184 @@
+import Base
+import ./Own.bend as Own
+import ./core.bend as Core
+import ./RANK.bend as Rank
+import ./RANK_INVENTORY_LAWS.bend as Bounded
+import ./INVENTORY_PROOF.bend as BoundedProof
+import ./NUMERIC_SPEC.bend as Spec
+import ./NUMERIC_SPEC_RANK.bend as Measure
+import ./TREE_MACHINE_RELATION.bend as Relation
+import ./NUMERIC_SPEC_ROOT_RANK_LAWS.bend as Root
+import ./NUMERIC_SPEC_ROOT_PARTITION_LAWS.bend as Partition
+import ./NUMERIC_SPEC_ROOT_LOOKUP_LAWS.bend as Lookup
+import ./NUMERIC_SPEC_ROOT_RANK.bend as Projection
+import ./NUMERIC_SPEC_COUNT_LAWS.bend as Count
+import ../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+# Exact approved root partition and raw-catalog bound; completion is separate.
+def Partition.seen_weight_partition(seen, references):
+  match seen:
+    case True{}: NatFacts.zero_add(List.length(&2, Core.Reference, references))
+    case False{}: NatFacts.add_zero(List.length(&2, Core.Reference, references))
+
+def Root.declaration_inventory_partition(visited, declaration):
+  match declaration:
+    case None{}: {==}
+    case Some{Core.Declaration{_, +identity, _, _, +references}}:
+      Partition.seen_weight_partition(Own.contains(Bool, visited, identity), references)
+
+def Root.lookup_inventory_step(visited, head, rest, key, found, suffix):
+  match found:
+    case True{}:
+      +amount = Rank.unseen_declaration(visited, head)
+      +tail = Rank.unseen_catalog(visited, rest)
+      +reentry = Measure.reentry(visited, head)
+      +count = Core.declaration_reference_count(head)
+      +total = Core.trie_reference_count(rest)
+      %NatFacts.add_right_comm_sym(amount, tail, reentry):
+        {Nat.is_le(_, (count + total : Nat)) == True{} : Bool}
+        %Equal.sym(
+          Nat,
+          (amount + reentry : Nat),
+          count,
+          Root.declaration_inventory_partition(visited, head)
+        ):
+          {Nat.is_le((_ + tail : Nat), (count + total : Nat)) == True{} : Bool}
+          NatFacts.add_le_add_left(
+            tail,
+            total,
+            count,
+            Bounded.unseen_catalog_bounded(visited, rest)
+          )
+    case False{}:
+      +amount = Rank.unseen_declaration(visited, head)
+      +tail = Rank.unseen_catalog(visited, rest)
+      +reentry = Measure.reentry(
+        visited,
+        Own.lookup(Maybe<&2, Core.Declaration>, None{}, rest, key)
+      )
+      +count = Core.declaration_reference_count(head)
+      +total = Core.trie_reference_count(rest)
+      %NatFacts.add_assoc_sym(amount, tail, reentry):
+        {Nat.is_le(_, (count + total : Nat)) == True{} : Bool}
+        NatFacts.add_le_add(amount, (tail + reentry : Nat), count, total,
+          Bounded.unseen_declaration_bounded(visited, head), suffix)
+
+def Lookup.cons_lookup_projection_from_test(found, head, rest, name, count, key, tested):
+  match found:
+    case True{}:
+      continue = {next => Own.lookup(Maybe<&2, Core.Declaration>, None{}, rest, key): Unit -> Maybe<&2, Core.Declaration>}
+      %Equal.sym(Bool, Nat.is_eq(name, key), True{}, tested):
+        {
+          Own.choose(Maybe<&2, Core.Declaration>, _, head, continue)
+          == head
+          : Maybe<&2, Core.Declaration>
+        }
+        {==}
+    case False{}:
+      continue = {next => Own.lookup(Maybe<&2, Core.Declaration>, None{}, rest, key): Unit -> Maybe<&2, Core.Declaration>}
+      %Equal.sym(Bool, Nat.is_eq(name, key), False{}, tested):
+        {
+          Own.choose(Maybe<&2, Core.Declaration>, _, head, continue)
+          == Own.lookup(Maybe<&2, Core.Declaration>, None{}, rest, key)
+          : Maybe<&2, Core.Declaration>
+        }
+        {==}
+
+def Lookup.cons_lookup_projection_exact(head, rest, name, count, key):
+  Lookup.cons_lookup_projection_from_test(Nat.is_eq(name, key), head, rest, name, count, key, {==})
+
+def Root.lookup_inventory_bound(catalog, visited, key):
+  match catalog:
+    case Own.DNil{}: {==}
+    case Own.DCon{+name, +head, +rest, +count}:
+      %Equal.sym(
+        Maybe<&2, Core.Declaration>,
+        Own.lookup(Maybe<&2, Core.Declaration>, None{}, Own.DCon{name, head, rest, count}, key),
+        Projection.lookup_step(Nat.is_eq(name, key), head, rest, key),
+        Lookup.cons_lookup_projection_exact(head, rest, name, count, key)
+      ):
+        {
+          Nat.is_le(
+            (Rank.unseen_catalog(
+              visited,
+              Own.DCon{name, head, rest, count}
+            ) + Measure.reentry(visited, _) : Nat),
+            Core.trie_reference_count(Own.DCon{name, head, rest, count})
+          )
+          == True{}
+          : Bool
+        }
+        Root.lookup_inventory_step(visited, head, rest, key, Nat.is_eq(name, key),
+        Root.lookup_inventory_bound(rest, visited, key))
+
+def Count.declaration_count_exact(declaration):
+  match declaration:
+    case None{}: {==}
+    case Some{Core.Declaration{_, _, _, _, references}}: {==}
+
+def Count.raw_catalog_count_exact(catalog):
+  match catalog:
+    case Own.DNil{}: {==}
+    case Own.DCon{_, +head, +rest, _}:
+      %Equal.sym(
+        Nat,
+        Relation.count_declaration(head),
+        Core.declaration_reference_count(head),
+        Count.declaration_count_exact(head)
+      ):
+        {
+          ( _ + Relation.count_catalog(Own.values(Maybe<&2, Core.Declaration>, rest)) : Nat)
+          == (Core.declaration_reference_count(head) + Core.trie_reference_count(rest) : Nat)
+          : Nat
+        }
+        %Equal.sym(
+          Nat,
+          Relation.count_catalog(Own.values(Maybe<&2, Core.Declaration>, rest)),
+          Core.trie_reference_count(rest),
+          Count.raw_catalog_count_exact(rest)
+        ):
+          {
+            (Core.declaration_reference_count(head) + _ : Nat)
+            == (Core.declaration_reference_count(head) + Core.trie_reference_count(rest) : Nat)
+            : Nat
+          }
+          {==}
+
+law initial_rank_within_original_bound:
+  for +facts: Core.Facts
+  for name: Core.Label
+  for expected: Core.ExpectedKind
+  for visited: Own.Dictionary<Bool>
+  {
+    Nat.is_le(Measure.root_rank(facts, name, expected, visited), Relation.spec_bound(facts))
+    == True{} : Bool
+  }
+
+def initial_rank_within_original_bound(facts, name, expected, visited):
+  match facts:
+    case Core.Facts{+aware, +declarations, imports, supporting}:
+      +visited = visited
+      +key = Spec.key(aware, expected, name)
+      +amount = (Rank.unseen_catalog(visited, declarations) + Measure.reentry(
+        visited,
+        Own.lookup(Maybe<&2, Core.Declaration>, None{}, declarations, key)
+      ) : Nat)
+      +total = Core.trie_reference_count(declarations)
+      %Equal.sym(
+        Nat,
+        Relation.count_catalog(Own.values(Maybe<&2, Core.Declaration>, declarations)),
+        total,
+        Count.raw_catalog_count_exact(declarations)
+      ):
+        {Nat.is_le((3n * amount + 3n : Nat), (3n * _ + 3n : Nat)) == True{} : Bool}
+        NatFacts.add_le_add_right(
+          (3n * amount : Nat),
+          (3n * total : Nat),
+          3n,
+          NatFacts.mul_le_mul_left(
+            amount,
+            total,
+            3n,
+            Root.lookup_inventory_bound(declarations, visited, key)
+          )
+        )

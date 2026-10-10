@@ -1,0 +1,92 @@
+import Base
+import ./ActualAttachmentPhaseProjection.bend as ActualPhase
+import ./ReferenceAttachmentPhaseProjection.bend as ReferencePhase
+import ./AttachmentStagedReferenceProjection.bend as Staged
+import ./AttachmentMapping.bend as Mapping
+import ./AttachmentHistory.bend as History
+import ./AttachmentFrameView.bend as V
+import ./AttachmentBoundaryView.bend as B
+import ./ActualAttachmentBoundaryProjection.bend as ActualBoundary
+import ./ReferenceAttachmentBoundaryProjection.bend as ReferenceBoundaryView
+import ./AttachmentReferenceBoundary.bend as ReferenceBoundary
+import ../whole-resolver/Types.bend as T
+import ../whole-resolver/State.bend as S
+import ../whole-resolver/Loop.bend as Loop
+import ../whole-resolver/Machine.bend as Machine
+import ../whole-resolver/Attach.bend as Attach
+import ../whole-resolver/Environment.bend as E
+import ../whole-resolver/ExpansionSpecification.bend as X
+import ../whole-resolver/ExpansionDriverSpecification.bend as D
+import ../local-graph-draft/core.bend as Local
+
+# Executable finite transaction fixture; no law/correctness premise is encoded.
+def actor_parts(step: Loop.Continuation, frame: T.ResolverFrame,
+    +child: T.TentativeChild, +edge: Local.Pending, clock: T.ClockToken,
+    language: T.Language, next: Nat, iterations: Nat) -> Maybe<&2, T.ResolverState>:
+  match step child:
+    case Loop.ServiceStep{T.AwaitService{+state, _}}
+      T.TentativeChild{target, _, _, _, _, _, _, _, _, _, _, _}:
+      Some{
+        S.with_state_stage(
+          S.with_state_frame(
+            S.with_state_clock(
+              S.with_state_language(
+                S.with_state_iteration_fuel(
+                  S.with_state_next_request(
+                    S.with_state_scratch(
+                      state,
+                      S.with_scratch_active_target(
+                        S.with_scratch_pending_edge(
+                          S.with_scratch_tentative(S.state_scratch(state), Some{child}),
+                          Some{edge}
+                        ),
+                        Some{target}
+                      )
+                    ),
+                    next
+                  ),
+                  iterations
+                ),
+                Some{language}
+              ),
+              Some{clock}
+            ),
+            Some{frame}
+          ),
+          T.MeasuringPreviousTree{}
+        )
+      }
+    case _ _: None{}
+
+def actor(input: T.ResolverInput, frame: T.ResolverFrame, child: T.TentativeChild,
+    edge: Local.Pending, clock: T.ClockToken, language: T.Language,
+    next: Nat, iterations: Nat) -> Maybe<&2, T.ResolverState>:
+  actor_parts(Machine.initial(input), frame, child, edge, clock, language, next, iterations)
+
+def actual_enter(previous: Nat, state: T.ResolverState) -> Loop.Continuation:
+  Attach.previous(previous, state)
+
+def actual_deliver(step: Loop.Continuation, reply: T.Reply) -> Loop.Continuation:
+  Machine.resume(step, T.ServiceReply{reply})
+
+def reference_enter(state: D.State, child: X.Child, previous: Nat) -> D.Selection:
+  ReferenceBoundary.enter(state, child, previous)
+
+def reference_deliver(selection: D.Selection, reply: T.Reply) -> D.Progress<Unit>:
+  ReferenceBoundary.deliver_next(Unit, selection, reply, E.WorldState{Unit{}, []})
+
+def actual_boundary(step: Loop.Continuation, history: V.History) -> Maybe<&2, B.Boundary>:
+  ActualBoundary.project(step, history)
+
+def reference_boundary(
+  progress: D.Progress<Unit>,
+  child: X.Child,
+  history: V.History
+) -> Maybe<&2, B.Boundary>:
+  ReferenceBoundaryView.project(Unit, progress, child, history)
+
+def pending_hole(frame: T.ResolverFrame, value: Local.Pending) -> T.ResolverFrame:
+  S.with_frame_pending(frame, MNode{Map.diff("0", "1"), MLeaf{"0", Some{value}}, MTip{}})
+
+def main() -> Unit:
+  Unit{}

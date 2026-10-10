@@ -1,0 +1,53 @@
+import Base
+import ./ENTRY_CONSTRUCTION_LAWS.bend as Laws
+import ./ConstructionAddressRelation.bend as Relation
+import ./ConstructionAddressProof.bend as Address
+import ./ConstructionForestProof.bend as Forest
+import ../whole-resolver/ForestSpecification.bend as F
+import ../whole-resolver/WholeObservation.bend as O
+import ../local-graph-draft/INTERPRETER_BOOL_FACTS.bend as B
+import ../local-graph-draft/SPEC.bend as Recursive
+import ./ForestRelation.bend as Retained
+
+# Assemble the approved actual-construction case without adding input premises.
+def Laws.successful_construction_preserves_occurrences_and_address_order(
+    fuel, tree, episode, route, artifacts, created, nodes, slots, constructed, flattened):
+  match created:
+    case F.Created{+root, +occurrences, _}:
+      +scope : {Forest.tree_scope(F.Constructed{created}, episode, route) == True{} : Bool} =
+        %constructed : {Forest.tree_scope(_, episode, route) == True{} : Bool}
+        Forest.tree_projection(tree, episode, route, artifacts,
+          F.construct_interpret(fuel, F.TreeRequest{tree, episode, route, artifacts}),
+          Forest.construct_scope(fuel, F.TreeRequest{tree, episode, route, artifacts}))
+      B.and_eq_true(
+        F.same_address(root, O.NodeAddress{episode, route}),
+        Bool.and(
+          Relation.actual_layout(Recursive.Flat{nodes, slots}, created),
+          Retained.frame_forest(Relation.created_forest(created), (episode + 1n : Nat))
+        ),
+        B.eq_true_of_and_left(
+          F.same_address(root, O.NodeAddress{episode, route}),
+          Forest.nodes_within(occurrences, episode, route),
+          scope
+        ),
+        B.and_eq_true(
+          Relation.actual_layout(Recursive.Flat{nodes, slots}, created),
+          Retained.frame_forest(Relation.created_forest(created), (episode + 1n : Nat)),
+          Address.construction_order(
+            fuel,
+            tree,
+            episode,
+            route,
+            artifacts,
+            created,
+            nodes,
+            slots,
+            constructed,
+            flattened
+          ),
+          Forest.construction_forest(fuel, tree, episode, route, artifacts, created, constructed)
+        )
+      )
+
+def main() -> Unit:
+  Unit{}

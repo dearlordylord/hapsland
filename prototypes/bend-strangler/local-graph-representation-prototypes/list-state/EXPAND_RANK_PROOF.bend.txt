@@ -1,0 +1,139 @@
+import Base
+import ./Own.bend as Own
+import ./core.bend as Core
+import ./RANK.bend as Rank
+import ./CHILD_INVENTORY_PROOF.bend as Child
+import ../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+law selected_expand_rank_bound:
+  for +machine: Core.Machine
+  for +declaration: Core.Declaration
+  for +key: Nat
+  for owner: Nat
+  for index: Nat
+  for name: Core.Label
+  for depth: Nat
+  for selected: {
+    Own.lookup(
+      Maybe<&2, Core.Declaration>,
+      None{},
+      Rank.declaration_catalog(Core.machine_facts(machine)),
+      key
+    )
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  }
+  for absent: {
+    Core.has_identity(Core.machine_visited(machine), Core.declaration_identity(declaration))
+    == False{}
+    : Bool
+  }
+  {
+    Nat.is_le(
+      Rank.rank(Core.expand_node(machine, declaration, owner, index, name, depth)),
+      (Rank.rank(machine) + 1n : Nat)
+    )
+    == True{}
+    : Bool
+  }
+
+# Exact selected expansion bound; whole visit dispatch is a separate theorem.
+
+def selected_expand_rank_bound(
+  machine,
+  declaration,
+  key,
+  owner,
+  index,
+  name,
+  depth,
+  selected,
+  absent
+):
+  match machine declaration:
+    case Core.Machine{+facts, _, +frames, +visited, _, _, _, _, _} Core.Declaration{
+      handle,
+      +identity,
+      function,
+      bundled,
+      +references
+    }:
+      +entry = {Core.Declaration{handle, identity, function, bundled, references} : Core.Declaration}
+      +catalog = Rank.declaration_catalog(facts)
+      +after = Rank.unseen_catalog(Own.set(Bool, visited, identity, True{}), catalog)
+      +before = Rank.unseen_catalog(visited, catalog)
+      +amount = List.length(&2, Core.Reference, references)
+      +pending = Rank.pending_references(frames)
+      +frame_count = List.length(&2, Core.Frame, frames)
+      bound = Child.selected_child_inventory_decrease(
+        catalog,
+        visited,
+        key,
+        entry,
+        selected,
+        absent
+      )
+      %NatFacts.mul_add_sym(2n, amount, pending):
+        {
+          Nat.is_le(
+            Nat.add(Nat.add(Nat.mul(2n, after), _), Nat.add(1n, frame_count)),
+            Nat.add(Nat.add(Nat.add(Nat.mul(2n, before), Nat.mul(2n, pending)), frame_count), 1n)
+          )
+          == True{}
+          : Bool
+        }
+      %NatFacts.add_assoc(Nat.mul(2n, after), Nat.mul(2n, amount), Nat.mul(2n, pending)):
+        {
+          Nat.is_le(
+            Nat.add(_, Nat.add(1n, frame_count)),
+            Nat.add(Nat.add(Nat.add(Nat.mul(2n, before), Nat.mul(2n, pending)), frame_count), 1n)
+          )
+          == True{}
+          : Bool
+        }
+      %NatFacts.mul_add(2n, after, amount):
+        {
+          Nat.is_le(
+            Nat.add(Nat.add(_, Nat.mul(2n, pending)), Nat.add(1n, frame_count)),
+            Nat.add(Nat.add(Nat.add(Nat.mul(2n, before), Nat.mul(2n, pending)), frame_count), 1n)
+          )
+          == True{}
+          : Bool
+        }
+      %NatFacts.add_assoc_sym(Nat.add(Nat.mul(2n, before), Nat.mul(2n, pending)), frame_count, 1n):
+        {
+          Nat.is_le(
+            Nat.add(
+              Nat.add(Nat.mul(2n, Nat.add(after, amount)), Nat.mul(2n, pending)),
+              Nat.add(1n, frame_count)
+            ),
+            _
+          )
+          == True{}
+          : Bool
+        }
+      %NatFacts.add_comm(1n, frame_count):
+        {
+          Nat.is_le(
+            Nat.add(
+              Nat.add(Nat.mul(2n, Nat.add(after, amount)), Nat.mul(2n, pending)),
+              Nat.add(1n, frame_count)
+            ),
+            Nat.add(Nat.add(Nat.mul(2n, before), Nat.mul(2n, pending)), _)
+          )
+          == True{}
+          : Bool
+        }
+      doubled = NatFacts.mul_le_mul_left(Nat.add(after, amount), before, 2n, bound)
+      with_pending = NatFacts.add_le_add_right(
+        Nat.mul(2n, Nat.add(after, amount)),
+        Nat.mul(2n, before),
+        Nat.mul(2n, pending),
+        doubled
+      )
+      NatFacts.add_le_add_right(
+        Nat.add(Nat.mul(2n, Nat.add(after, amount)), Nat.mul(2n, pending)),
+        Nat.add(Nat.mul(2n, before), Nat.mul(2n, pending)),
+        Nat.add(1n, frame_count),
+        with_pending
+      )

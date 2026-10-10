@@ -1,0 +1,89 @@
+import Base
+import ./Own.bend as Own
+import ./INVARIANT.bend as Invariant
+import ../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+def successor(number: Nat) -> Nat:
+  (1n + number : Nat)
+
+def insert_head(
+  -V: Data,
+  found: Bool,
+  name: Nat,
+  previous: V,
+  +rest: Own.Dictionary<V>,
+  +key: Nat,
+  +value: V
+) -> Own.Dictionary<V>:
+  Own.replace(V, found, name, previous, rest, value, next => Own.set(V, rest, key, value))
+
+def inserted_records(-V: Data, +catalog: Own.Dictionary<V>, key: Nat) -> Nat:
+  +count = Invariant.records(V, catalog)
+  present = Own.contains(V, catalog, key)
+  Own.choose(Nat, present, count, next => successor(count))
+
+# Reflexivity as a named proof term, avoiding inline proof literals in argument lists.
+law bool_reflexive:
+  for +flag: Bool
+  {flag == flag : Bool}
+
+# An equal head key is distinct from every key distinct from the inserted key.
+
+law head_distinct:
+  for +name: Nat
+  for +key: Nat
+  for +other: Nat
+  for same: {Nat.is_eq(name, key) == True{} : Bool}
+  for distinct: {Nat.is_eq(key, other) == False{} : Bool}
+  {Nat.is_eq(name, other) == False{} : Bool}
+
+# Reassemble one head after the strictly smaller suffix lookup theorem.
+
+law choice_membership:
+  for +found: Bool
+  for +suffix: Bool
+  {Own.choose(Bool, found, True{}, next => suffix) == Bool.or(found, suffix) : Bool}
+
+# Reasserting the existing head membership does not change its truth value.
+
+law membership_head_repeat:
+  for +found: Bool
+  for +suffix: Bool
+  {Own.choose(Bool, found, True{}, next => suffix)
+    == Bool.or(found, Own.choose(Bool, found, True{}, next => suffix)) : Bool}
+
+# Reassemble exact membership using only the strictly smaller suffix claim.
+
+law successor_choose:
+  for +found: Bool
+  for +yes: Nat
+  for +no: Nat
+  {(1n + Own.choose(Nat, found, yes, next => no) : Nat)
+    == Own.choose(Nat, found, successor(yes), next => successor(no)) : Nat}
+
+# Reassemble structural length using only the smaller suffix length theorem.
+
+def bool_reflexive(flag):
+  {==}
+
+def head_distinct(name, key, other, same, distinct):
+  %distinct:
+    {Nat.is_eq(name, other) == _ : Bool}
+  %NatFacts.eq_of_is_eq(name, key, same):
+    {Nat.is_eq(name, other) == Nat.is_eq(_, other) : Bool}
+  {==}
+
+def choice_membership(found, suffix):
+  match found:
+    case True{}: {==}
+    case False{}: {==}
+
+def membership_head_repeat(found, suffix):
+  match found:
+    case True{}: {==}
+    case False{}: {==}
+
+def successor_choose(found, yes, no):
+  match found:
+    case True{}: {==}
+    case False{}: {==}

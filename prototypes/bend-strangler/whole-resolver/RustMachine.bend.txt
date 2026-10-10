@@ -1,0 +1,485 @@
+import Base
+import ./Types.bend as T
+import ./State.bend as S
+import ./Loop.bend as Loop
+import ./Resolve.bend as Resolve
+import ./Failure.bend as ResolveOwner
+import ./Cargo.bend as Cargo
+import ./AttachPlanning.bend as AttachOwner
+import ./Clock.bend as Clock
+import ./Core.bend as Materialize
+import ../local-graph-draft/core.bend as Local
+import ../../../packages/agent-flow-bend/ImportGraph.bend as Graph
+
+def current(value: Maybe<&2, T.RustPreparation>, limits: Graph.Limits) -> T.RustPreparation:
+  match value:
+    case Some{machine}: machine
+    case None{}: T.RustPreparation{
+      Graph.initial(limits),
+      Graph.NoCommand{},
+      MTip{},
+      MTip{},
+      1n,
+      2n,
+      None{},
+      False{},
+      [],
+      []
+    }
+
+def get(+state: T.ResolverState) -> T.RustPreparation:
+  current(S.state_rust(state), S.input_limits(S.state_input(state)))
+
+def set(state: T.ResolverState, machine: T.RustPreparation) -> T.ResolverState:
+  S.with_state_rust(state, Some{machine})
+
+def step(machine: T.RustPreparation, transition: Graph.Step) -> T.RustPreparation:
+  match transition:
+    case Graph.Step{graph, command}: S.with_rust_command(S.with_rust_graph(machine, graph), command)
+
+def remaining(limits: Graph.Limits, graph: Graph.Graph, root_bytes: Nat) -> Graph.Limits:
+  match limits graph:
+    case Graph.Limits{version, source, tree, files, reads, edges, depth, work} Graph.Graph{
+      _,
+      _,
+      _,
+      spent_files,
+      spent_reads,
+      _,
+      spent_work,
+      _,
+      _,
+      _,
+      _
+    }:
+      Graph.Limits{version, source, tree, Nat.sub(files, Nat.sub(spent_files, 1n)),
+        Nat.sub(reads, Nat.sub(spent_reads, root_bytes)), edges, depth, Nat.sub(work, spent_work)}
+
+# JavaScript Array.sort compares UTF-16 code units, including surrogate pairs.
+# This transport ordering is observable in the complete dependency result.
+def utf16_char(+code: U32) -> List<&2, U32>:
+  +offset = U32.sub(code, 65536)
+  bmp : Unit -> List<&2, U32> = _ => [code]
+  pair : Unit -> List<&2, U32> = _ => [
+    U32.add(55296, U32.div(offset, 1024)),
+    U32.add(56320, U32.mod(offset, 1024))
+  ]
+  Materialize.decide(List<&2, U32>, U32.is_lt(code, 65536), bmp, pair)
+
+def utf16_units(text: String) -> List<&2, U32>:
+  match text:
+    case SNil{}: []
+    case SCon{head, tail}: List.append(&2, U32, utf16_char(Char.to_u32(head)), utf16_units(tail))
+
+def units_le(left: List<&2, U32>, right: List<&2, U32>) -> Bool:
+  match left right:
+    case Nil{} _: True{}
+    case _ Nil{}: False{}
+    case Con{+a, tail_a} Con{+b, tail_b}:
+      equal : Unit -> Bool = _ => units_le(tail_a, tail_b)
+      different : Unit -> Bool = _ => U32.is_lt(a, b)
+      Materialize.decide(Bool, U32.is_eq(a, b), equal, different)
+
+def utf16_le(left: String, right: String) -> Bool:
+  units_le(utf16_units(left), utf16_units(right))
+
+def insert_sorted(items: List<&2, String>, +value: String) -> List<&2, String>:
+  match items:
+    case []: [value]
+    case +head <> +tail:
+      yes : Unit -> List<&2, String> = _ => value <> head <> tail
+      no : Unit -> List<&2, String> = _ => head <> insert_sorted(tail, value)
+      Materialize.decide(List<&2, String>, utf16_le(value, head), yes, no)
+
+def sorted(items: List<&2, String>) -> List<&2, String>:
+  match items:
+    case []: []
+    case head <> tail: insert_sorted(sorted(tail), head)
+
+def complete(command: Graph.Command) -> Bool:
+  match command:
+    case Graph.UnitComplete{}: True{}
+    case _: False{}
+
+def role(allowed: Bool, roles: List<&2, T.RustContext>) -> T.RustContext:
+  match allowed roles:
+    case True{} value <> []: value
+    case _ _: T.RustContext{None{}, None{}, None{}}
+
+def prepared(+state: T.ResolverState) -> Loop.Continuation:
+  +machine = get(state)
+  Loop.PreparedRust{
+    state,
+    S.state_prepared(state),
+    role(
+      Bool.and(Bool.not(S.rust_invalid(machine)), complete(S.rust_command(machine))),
+      S.rust_roles(machine)
+    )
+  }
+
+def final_deadline(expired: Bool, state: T.ResolverState) -> Loop.Continuation:
+  match expired:
+    case True{}: Resolve.invalid(state)
+    case False{}: prepared(state)
+
+def finish_clock(clock: Maybe<&2, T.ClockToken>, state: T.ResolverState) -> Loop.Continuation:
+  match clock:
+    case None{}: ResolveOwner.malformed()
+    case Some{clock}: Loop.ServiceStep{
+      S.request(state, T.RustFinishedDeadline{}, T.ReadClock{clock})
+    }
+
+def finish_available(available: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  match available:
+    case False{}: Resolve.invalid(state)
+    case True{}: finish_clock(S.state_clock(state), state)
+
+def finish(+state: T.ResolverState) -> Loop.Continuation:
+  +limits = remaining(
+    S.input_limits(S.state_input(state)),
+    S.rust_graph(get(state)),
+    S.input_root_bytes(S.state_input(state))
+  )
+  finish_available(
+    Bool.and(
+      Nat.is_ge(Graph.file_cap(limits), 1n),
+      Bool.and(
+        Nat.is_ge(Graph.work_cap(limits), 1n),
+        Nat.is_ge(Graph.read_cap(limits), Graph.source_cap(limits))
+      )
+    ),
+    S.with_state_prepared(
+      state,
+      T.PreparedLanguage{limits, sorted(S.rust_dependencies(get(state)))}
+    )
+  )
+
+def invalid(+state: T.ResolverState) -> Loop.Continuation:
+  finish(set(state, S.with_rust_invalid(get(state), True{})))
+
+def clock(clock: Maybe<&2, T.ClockToken>, state: T.ResolverState) -> Loop.Continuation:
+  match clock:
+    case None{}: ResolveOwner.malformed()
+    case Some{clock}: Loop.ServiceStep{
+      S.request(state, T.RustIterationDeadline{}, T.ReadClock{clock})
+    }
+
+def next_fuel(fuel: Nat, +state: T.ResolverState) -> Loop.Continuation:
+  match fuel:
+    case 0n: finish(state)
+    case 1n++rest: clock(
+      S.state_clock(state),
+      S.with_state_rust_work(state, S.with_work_fuel(S.state_rust_work(state), rest))
+    )
+
+def next(+state: T.ResolverState) -> Loop.Continuation:
+  next_fuel(S.work_fuel(S.state_rust_work(state)), state)
+
+def advance(+state: T.ResolverState, event: Graph.GraphEvent) -> Loop.Continuation:
+  +machine = get(state)
+  next(set(state, step(machine, Graph.step(S.rust_graph(machine), event))))
+
+type Registered is Data:
+  Registered{machine: T.RustPreparation, ids: List<&2, Nat>}
+
+def prefix(result: Registered, id: Nat) -> Registered:
+  match result:
+    case Registered{machine, ids}: Registered{machine, id <> ids}
+
+def register(tasks: List<&2, T.RustTask>, +machine: T.RustPreparation) -> Registered:
+  match tasks:
+    case []: Registered{machine, []}
+    case task <> tail:
+      +id = S.rust_next_edge(machine)
+      prefix(
+        register(
+          tail,
+          S.with_rust_next_edge(
+            S.with_rust_tasks(
+              machine,
+              Map.set(&2, Maybe<&2, T.RustTask>, S.rust_tasks(machine), Nat.show(id), Some{task})
+            ),
+            (id + 1n : Nat)
+          )
+        ),
+        id
+      )
+
+def registered_capture(result: Registered, +state: T.ResolverState) -> Loop.Continuation:
+  match result:
+    case Registered{machine, ids}: advance(
+      set(state, machine),
+      Graph.Captured{S.scratch_source_bytes(S.state_scratch(state)), 0n, 0n, ids}
+    )
+
+def tasks(+state: T.ResolverState, tasks: List<&2, T.RustTask>) -> Loop.Continuation:
+  registered_capture(register(tasks, get(state)), state)
+
+def registered_root(result: Registered, +state: T.ResolverState) -> Loop.Continuation:
+  match result:
+    case Registered{machine, ids}: advance(
+      set(state, machine),
+      Graph.Root{1n, S.input_root_bytes(S.state_input(state)), 0n, 0n, ids}
+    )
+
+def root(cargo: Maybe<&2, String>, +state: T.ResolverState) -> Loop.Continuation:
+  match cargo:
+    case None{}: registered_root(register([], get(state)), state)
+    case Some{path}: registered_root(register([T.RustTask{path, None{}}], get(state)), state)
+
+def search_directory(+directory: String, +state: T.ResolverState) -> Loop.Continuation:
+  Loop.ServiceStep{
+    S.request(
+      S.with_state_scratch(state, S.with_scratch_directory(S.state_scratch(state), directory)),
+      T.RustCargoJoin{},
+      T.PathJoin{[directory, "Cargo.toml"]}
+    )
+  }
+
+def cargo_parent(done: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  match done:
+    case True{}: root(None{}, state)
+    case False{}: Loop.ServiceStep{
+      S.request(
+        S.with_state_scratch(
+          state,
+          S.with_scratch_ancestor_depth(
+            S.state_scratch(state),
+            (S.scratch_ancestor_depth(S.state_scratch(state)) + 1n : Nat)
+          )
+        ),
+        T.RustCargoParent{},
+        T.PathDirname{S.scratch_directory(S.state_scratch(state))}
+      )
+    }
+
+def cargo_status(status: T.FileStatus, +state: T.ResolverState) -> Loop.Continuation:
+  match status:
+    case T.FileAbsent{}: cargo_parent(
+      Bool.or(
+        String.eq(S.scratch_directory(S.state_scratch(state)), "."),
+        Nat.is_ge(S.scratch_ancestor_depth(S.state_scratch(state)), 15n)
+      ),
+      state
+    )
+    case _: root(Some{S.scratch_resolved_path(S.state_scratch(state))}, state)
+
+def start_search(+state: T.ResolverState) -> Loop.Continuation:
+  +input = S.state_input(state)
+  +limits = S.input_limits(input)
+  initialized = set(
+    state,
+    T.RustPreparation{
+      Graph.initial(limits),
+      Graph.NoCommand{},
+      MTip{},
+      Map.set(&2, Maybe<&2, Nat>, MTip{}, S.input_root_path(input), Some{1n}),
+      1n,
+      2n,
+      None{},
+      False{},
+      [],
+      []
+    }
+  )
+  Loop.ServiceStep{
+    S.request(
+      S.with_state_rust_work(
+        initialized,
+        S.with_work_fuel(S.state_rust_work(state), (Graph.work_cap(limits) * 8n + 16n : Nat))
+      ),
+      T.RustCargoDir{},
+      T.PathDirname{S.input_root_path(input)}
+    )
+  }
+
+def insert_root(cache: Maybe<&2, T.CacheToken>, +state: T.ResolverState) -> Loop.Continuation:
+  match cache:
+    case None{}: ResolveOwner.malformed()
+    case Some{+cache}: Loop.ServiceStep{
+      S.request(
+        S.with_state_scratch(
+          state,
+          S.with_scratch_preparation_cache(S.state_scratch(state), Some{cache})
+        ),
+        T.RustRootCacheInserted{},
+        T.InsertRootCaptureCache{
+          cache,
+          S.input_root_path(S.state_input(state)),
+          S.input_root_capture(S.state_input(state))
+        }
+      )
+    }
+
+def cache(cache: Maybe<&2, T.CacheToken>, state: T.ResolverState) -> Loop.Continuation:
+  match cache:
+    case None{}: Loop.ServiceStep{
+      S.request(state, T.RustCreatingCache{}, T.CreateInvocationCache{})
+    }
+    case Some{cache}: insert_root(Some{cache}, state)
+
+def no_binding_clock(clock: Maybe<&2, T.ClockToken>, state: T.ResolverState) -> Loop.Continuation:
+  match clock:
+    case None{}: ResolveOwner.malformed()
+    case Some{clock}: Loop.ServiceStep{
+      S.request(state, T.RustNoBindingDeadline{}, T.ReadClock{clock})
+    }
+
+def no_binding_available(available: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  match available:
+    case False{}: Resolve.invalid(state)
+    case True{}: no_binding_clock(S.state_clock(state), state)
+
+def begin_binding(binding: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  match binding:
+    case False{}: no_binding_available(
+      Bool.and(
+        Nat.is_ge(Graph.file_cap(S.input_limits(S.state_input(state))), 1n),
+        Nat.is_ge(Graph.work_cap(S.input_limits(S.state_input(state))), 1n)
+      ),
+      state
+    )
+    case True{}: cache(S.input_caller_cache(S.state_input(state)), S.with_state_rust_work(state,
+      S.with_work_needs_binding(S.state_rust_work(state), True{})))
+
+def begin(+state: T.ResolverState) -> Loop.Continuation:
+  begin_binding(Cargo.needs_binding(S.input_root_source(S.state_input(state))), state)
+
+def active_path(task: Maybe<&2, T.RustTask>) -> Maybe<&2, String>:
+  match task:
+    case None{}: None{}
+    case Some{T.RustTask{path, _}}: Some{path}
+
+def resolve_task(path: Maybe<&2, String>, +state: T.ResolverState) -> Loop.Continuation:
+  match path:
+    case None{}: invalid(state)
+    case Some{path}: Loop.ServiceStep{
+      S.request(state, T.RustTaskAbsolute{}, T.PathIsAbsolute{path})
+    }
+
+def resolving(edge: Nat, +state: T.ResolverState) -> Loop.Continuation:
+  +machine = get(state)
+  +active = Local.map_result(
+    Maybe<&2, T.RustTask>,
+    Map.get(Maybe<&2, T.RustTask>, None{}, S.rust_tasks(machine), Nat.show(edge))
+  )
+  resolve_task(active_path(active), set(state, S.with_rust_active(machine, active)))
+
+def access(
+  task: Maybe<&2, T.RustTask>,
+  stage: T.ResolverStage,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match task:
+    case None{}: invalid(state)
+    case Some{T.RustTask{path, _}}: Loop.ServiceStep{S.request(state, stage, T.AccessPath{path})}
+
+def command(command: Graph.Command, +state: T.ResolverState) -> Loop.Continuation:
+  match command:
+    case Graph.UnitComplete{}: finish(state)
+    case Graph.NoCommand{}: advance(state, Graph.Next{})
+    case Graph.ResolveEdge{edge}: resolving(edge, state)
+    case Graph.CheckPath{_}: access(S.rust_active(get(state)), T.RustAccess{}, state)
+    case Graph.ReadSource{_}: access(S.rust_active(get(state)), T.RustReaccess{}, state)
+    case _: invalid(state)
+
+def elapsed(expired: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  match expired:
+    case True{}: invalid(state)
+    case False{}: command(S.rust_command(get(state)), state)
+
+def member(items: List<&2, String>, +path: String) -> Bool:
+  match items:
+    case []: False{}
+    case head <> tail: Bool.or(String.eq(head, path), member(tail, path))
+
+def rust_target(existing: Maybe<&2, Nat>, next: Nat) -> Nat:
+  match existing:
+    case None{}: next
+    case Some{id}: id
+
+def resolved(
+  +existing: Maybe<&2, Nat>,
+  +path: String,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  +machine = get(state)
+  # Rust and expansion keep independent counters. Existing IDs are reused.
+  +target = rust_target(existing, S.rust_next_target(machine))
+  updated = S.with_rust_targets(
+    S.with_rust_next_target(
+      machine,
+      Bool.pick(
+        Nat,
+        Maybe.is_some(&2, Nat, existing),
+        S.rust_next_target(machine),
+        (S.rust_next_target(machine) + 1n : Nat)
+      )
+    ),
+    Map.set(&2, Maybe<&2, Nat>, S.rust_targets(machine), path, Some{target})
+  )
+  advance(set(state, updated), Graph.Resolved{target, Graph.Found{}})
+
+def within_task(
+  allowed: Bool,
+  path: Maybe<&2, String>,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match allowed path:
+    case True{} Some{+path}:
+      +machine = get(state)
+      yes : Unit -> Loop.Continuation = _ => resolved(Local.map_result(Maybe<&2, Nat>,
+        Map.get(Maybe<&2, Nat>, None{}, S.rust_targets(machine), path)), path, state)
+      no : Unit -> Loop.Continuation = _ => invalid(state)
+      Materialize.decide(
+        Loop.Continuation,
+        Bool.and(
+          Bool.not(Resolve.outside(path, S.state_separator(state))),
+          Bool.not(member(S.rust_dependencies(machine), path))
+        ),
+        yes,
+        no
+      )
+    case _ _: invalid(state)
+
+def path_checked(outcome: T.AccessOutcome, state: T.ResolverState) -> Loop.Continuation:
+  match outcome:
+    case T.AccessDenied{}: advance(state, Graph.PathChecked{False{}})
+    case T.AccessAllowed{_, _}: advance(state, Graph.PathChecked{True{}})
+
+def reply(
+  stage: T.ResolverStage,
+  outcome: T.ServiceOutcome,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match stage outcome:
+    case T.RustNoBindingDeadline{} T.ClockRead{bits}: final_deadline(Clock.expired(bits), state)
+    case T.RustCreatingCache{} T.InvocationCacheCreated{cache}: insert_root(Some{cache}, state)
+    case T.RustRootCacheInserted{} T.RootCacheInserted{}: Loop.ServiceStep{
+      S.request(state, T.RustSeparator{}, T.ReadPathSeparator{})
+    }
+    case T.RustSeparator{} T.PathSeparatorResult{separator}: start_search(
+      S.with_state_separator(state, separator)
+    )
+    case T.RustCargoDir{} T.DirnameResult{path}: search_directory(path, state)
+    case T.RustCargoParent{} T.DirnameResult{path}: search_directory(path, state)
+    case T.RustCargoJoin{} T.JoinedResult{+path}: Loop.ServiceStep{
+      S.request(
+        S.with_state_scratch(state, S.with_scratch_resolved_path(S.state_scratch(state), path)),
+        T.RustCargoStat{},
+        T.ReadFileStatus{path}
+      )
+    }
+    case T.RustCargoStat{} T.StatusResult{status}: cargo_status(status, state)
+    case T.RustIterationDeadline{} T.ClockRead{bits}: elapsed(Clock.expired(bits), state)
+    case T.RustTaskAbsolute{} T.AbsoluteResult{absolute}: within_task(
+      Bool.not(absolute),
+      active_path(S.rust_active(get(state))),
+      state
+    )
+    case T.RustAccess{} T.AccessResult{outcome}: path_checked(outcome, state)
+    case T.RustFinishedDeadline{} T.ClockRead{bits}: final_deadline(Clock.expired(bits), state)
+    case _ _: AttachOwner.reply(stage, outcome, state)
+
+def main() -> Unit:
+  Unit{}

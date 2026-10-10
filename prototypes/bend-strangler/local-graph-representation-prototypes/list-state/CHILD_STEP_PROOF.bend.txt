@@ -1,0 +1,131 @@
+import Base
+import ./Own.bend as Own
+import ./core.bend as Core
+import ./RANK.bend as Rank
+import ./ROOT_STEP_PROOF.bend as Step
+import ./RANK_SUPPORT_LAWS.bend as Support
+import ./RANK_INVENTORY_LAWS.bend as Inventory
+import ./INVENTORY_PROOF.bend as InventoryProof
+import ./UNSEEN_PROOF.bend as Unseen
+import ./RANK_ABSENCE_LAWS.bend as Absence
+import ./ABSENCE_PROOF.bend as AbsenceProof
+import ../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+law selected_child_step:
+  for +found: Bool
+  for +head: Maybe<&2, Core.Declaration>
+  for +rest: Own.Dictionary<Maybe<&2, Core.Declaration>>
+  for +key: Nat
+  for +visited: Own.Dictionary<Bool>
+  for +declaration: Core.Declaration
+  for +name: Nat
+  for +count: Nat
+  for +selected: {
+    Step.selected_value(found, head, rest, key)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  }
+  for +absent: {
+    Core.has_identity(visited, Core.declaration_identity(declaration))
+    == False{}
+    : Bool
+  }
+  for suffix: {
+    Own.lookup(Maybe<&2, Core.Declaration>, None{}, rest, key)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  } -> {Step.child_claim(visited, declaration, rest) == True{} : Bool}
+  {Step.child_claim(visited, declaration, Own.DCon{name, head, rest, count}) == True{} : Bool}
+
+def selected_child_step(
+  found,
+  head,
+  rest,
+  key,
+  visited,
+  declaration,
+  name,
+  count,
+  selected,
+  absent,
+  suffix
+):
+  match found:
+    case True{}:
+      +identity = Core.declaration_identity(declaration)
+      +added = Own.set(Bool, visited, identity, True{})
+      +remaining = Rank.unseen_catalog(added, rest)
+      +before = Rank.unseen_catalog(visited, rest)
+      +amount = Core.declaration_reference_count(Some{declaration})
+      %Equal.sym(Maybe<&2, Core.Declaration>, head, Some{declaration}, selected):
+        {
+          Nat.is_le(
+            Nat.add(Nat.add(Rank.unseen_declaration(added, _), remaining), amount),
+            Nat.add(Rank.unseen_declaration(visited, head), before)
+          )
+          == True{}
+          : Bool
+        }
+      %Equal.sym(Maybe<&2, Core.Declaration>, head, Some{declaration}, selected):
+        {
+          Nat.is_le(
+            Nat.add(Nat.add(Rank.unseen_declaration(added, Some{declaration}), remaining), amount),
+            Nat.add(Rank.unseen_declaration(visited, _), before)
+          )
+          == True{}
+          : Bool
+        }
+      %Equal.sym(
+        Nat,
+        Rank.unseen_declaration(added, Some{declaration}),
+        0n,
+        Inventory.unseen_insert_selected_zero(visited, declaration)
+      ):
+        {
+          Nat.is_le(
+            Nat.add(Nat.add(_, remaining), amount),
+            Nat.add(Rank.unseen_declaration(visited, Some{declaration}), before)
+          )
+          == True{}
+          : Bool
+        }
+      %Equal.sym(
+        Nat,
+        Rank.unseen_declaration(visited, Some{declaration}),
+        amount,
+        Absence.unseen_absent_exact(visited, declaration, absent)
+      ):
+        {Nat.is_le(Nat.add(remaining, amount), Nat.add(_, before)) == True{} : Bool}
+      %NatFacts.add_comm(amount, remaining):
+        {Nat.is_le(_, Nat.add(amount, before)) == True{} : Bool}
+      NatFacts.add_le_add_left(
+        remaining,
+        before,
+        amount,
+        Unseen.unseen_insertion_nonincreasing(rest, visited, identity)
+      )
+    case False{}:
+      +identity = Core.declaration_identity(declaration)
+      +added = Own.set(Bool, visited, identity, True{})
+      +head_after = Rank.unseen_declaration(added, head)
+      +rest_after = Rank.unseen_catalog(added, rest)
+      +amount = Core.declaration_reference_count(Some{declaration})
+      head_bound = Support.unseen_declaration_nonincreasing(visited, identity, head)
+      tail_bound = suffix(selected)
+      %NatFacts.add_assoc_sym(head_after, rest_after, amount):
+        {
+          Nat.is_le(
+            _,
+            Nat.add(Rank.unseen_declaration(visited, head), Rank.unseen_catalog(visited, rest))
+          )
+          == True{}
+          : Bool
+        }
+      NatFacts.add_le_add(
+        head_after,
+        Nat.add(rest_after, amount),
+        Rank.unseen_declaration(visited, head),
+        Rank.unseen_catalog(visited, rest),
+        head_bound,
+        tail_bound
+      )

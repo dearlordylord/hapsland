@@ -1,0 +1,68 @@
+import Base
+import ./RetainedForestProjection.bend as P
+import ./AttachmentReplacementStructureProof.bend as Structure
+import ./AttachmentNaturalArithmeticFacts.bend as N
+import ../whole-resolver/Composition.bend as Compose
+import ../whole-resolver/ForestSpecification.bend as F
+import ../whole-resolver/Types.bend as T
+import ../local-graph-draft/core.bend as Local
+
+# Astra-approved private zipper dependency. Complete Maybe equality, including None.
+# Parent aligned uniqueness derives the absent suffix; the parent law is unchanged.
+def zero_parts(+flag: Bool, +tail: Nat,
+    zero: {(Bool.pick(Nat, flag, 1n, 0n) + tail : Nat) == 0n : Nat}) ->
+    {flag == False{} : Bool} & {tail == 0n : Nat}:
+  match flag:
+    case False{}: Tuple{{==}, zero}
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool} & {tail == 0n : Nat}, N.succ_ne_zero(tail)(zero))
+
+def unaffected_step(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +owner: Nat, +index: Nat, +new_actual: Local.PlannedReference,
+    parts: {Nat.is_eq(owner, id) == False{} : Bool} & {P.node_count(tail, owner) == 0n : Nat},
+    ih: {P.node_count(tail, owner) == 0n : Nat} ->
+      {P.nodes(tail, Structure.slots(Compose.replace_slot(slots, owner, index, new_actual)), catalog, addresses) ==
+        P.nodes(tail, slots, catalog, addresses) : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.nodes(Local.PlannedNode{id, handle} <> tail, Structure.slots(Compose.replace_slot(slots, owner, index, new_actual)), catalog, addresses) ==
+      P.nodes(Local.PlannedNode{id, handle} <> tail, slots, catalog, addresses) : Maybe<&2, List<&2, F.Node>>}:
+  match parts:
+    case (different, absent):
+      %Equal.sym(Maybe<&2, List<&2, F.Node>>,
+        P.nodes(tail, Structure.slots(Compose.replace_slot(slots, owner, index, new_actual)), catalog, addresses),
+        P.nodes(tail, slots, catalog, addresses), ih(absent)):
+        {P.node_prefix(P.projected_node(F.address_at(addresses, id), F.artifact_at(catalog, handle),
+          P.references(P.owner_slots(Structure.slots(Compose.replace_slot(slots, owner, index, new_actual)), id), addresses)), _) ==
+          P.nodes(Local.PlannedNode{id, handle} <> tail, slots, catalog, addresses) : Maybe<&2, List<&2, F.Node>>}
+      %Equal.sym(List<&2, Local.ReferenceSlot>,
+        P.owner_slots(Structure.slots(Compose.replace_slot(slots, owner, index, new_actual)), id), P.owner_slots(slots, id),
+        Structure.filter_other_owner(slots, owner, index, new_actual, id,
+          %N.is_eq_comm(owner, id): {_ == False{} : Bool}
+          different)):
+        {P.node_prefix(P.projected_node(F.address_at(addresses, id), F.artifact_at(catalog, handle), P.references(_, addresses)),
+          P.nodes(tail, slots, catalog, addresses)) ==
+          P.nodes(Local.PlannedNode{id, handle} <> tail, slots, catalog, addresses) : Maybe<&2, List<&2, F.Node>>}
+      {==}
+
+law nodes_without_owner_unchanged:
+  for +nodes: List<&2, Local.PlannedNode>
+  for +slots: List<&2, Local.ReferenceSlot>
+  for +catalog: List<&2, T.ArtifactEntry>
+  for +addresses: List<&2, F.AddressEntry>
+  for +owner: Nat
+  for +index: Nat
+  for +new_actual: Local.PlannedReference
+  for absent: {P.node_count(nodes, owner) == 0n : Nat}
+  {P.nodes(nodes, Structure.slots(Compose.replace_slot(slots, owner, index, new_actual)), catalog, addresses) ==
+    P.nodes(nodes, slots, catalog, addresses) : Maybe<&2, List<&2, F.Node>>}
+
+def nodes_without_owner_unchanged(nodes, slots, catalog, addresses, owner, index, new_actual, absent):
+  match nodes:
+    case []: {==}
+    case Local.PlannedNode{+id, +handle} <> +tail:
+      unaffected_step(id, handle, tail, slots, catalog, addresses, owner, index, new_actual,
+        zero_parts(Nat.is_eq(owner, id), P.node_count(tail, owner), absent),
+        missing => nodes_without_owner_unchanged(tail, slots, catalog, addresses, owner, index, new_actual, missing))
+
+def main() -> Unit:
+  Unit{}

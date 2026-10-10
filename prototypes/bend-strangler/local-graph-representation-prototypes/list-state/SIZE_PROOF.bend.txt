@@ -1,0 +1,61 @@
+import Base
+import ./Own.bend as Own
+import ./INVARIANT.bend as Invariant
+import ./CACHE_PROOF.bend as Cache
+import ./INVARIANT_PROOF.bend as Valid
+import ./RECORDS_PROOF.bend as Records
+import ../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+def pick_count(present: Bool, yes: Nat, no: Nat) -> Nat:
+  Own.choose(Nat, present, yes, next => no)
+
+law insertion_size_exact:
+  for -V: Data
+  for +catalog: Own.Dictionary<V>
+  for +key: Nat
+  for value: V
+  for valid: {Invariant.valid(V, catalog) == True{} : Bool}
+  {Own.size(V, Own.set(V, catalog, key, value))
+    == Own.choose(Nat, Own.contains(V, catalog, key), Own.size(V, catalog),
+      next => (Own.size(V, catalog) + 1n : Nat)) : Nat}
+
+def insertion_size_exact(V, catalog, key, value, valid):
+  +saved_value = value
+  +saved_valid = valid
+  +original_count = Cache.cached_size_exact(V, catalog, saved_valid)
+  updated_valid = Valid.insertion_preserves_invariant(V, catalog, key, saved_value, saved_valid)
+  updated_count = Cache.cached_size_exact(V, Own.set(V, catalog, key, saved_value), updated_valid)
+  %Equal.sym(Nat, Own.size(V, catalog), Invariant.records(V, catalog), original_count):
+    {
+      Own.size(V, Own.set(V, catalog, key, saved_value))
+      == pick_count(Own.contains(V, catalog, key), _, (Own.size(V, catalog) + 1n : Nat))
+      : Nat
+    }
+  %Equal.sym(Nat, Own.size(V, catalog), Invariant.records(V, catalog), original_count):
+    {
+      Own.size(V, Own.set(V, catalog, key, saved_value))
+      == pick_count(Own.contains(V, catalog, key), Invariant.records(V, catalog), (_ + 1n : Nat))
+      : Nat
+    }
+  %Equal.sym(
+    Nat,
+    Own.size(V, Own.set(V, catalog, key, saved_value)),
+    Invariant.records(V, Own.set(V, catalog, key, saved_value)),
+    updated_count
+  ):
+    {
+      _
+      == pick_count(
+        Own.contains(V, catalog, key),
+        Invariant.records(V, catalog),
+        (Invariant.records(V, catalog) + 1n : Nat)
+      )
+      : Nat
+    }
+  %NatFacts.add_comm(1n, Invariant.records(V, catalog)):
+    {
+      Invariant.records(V, Own.set(V, catalog, key, saved_value))
+      == pick_count(Own.contains(V, catalog, key), Invariant.records(V, catalog), _)
+      : Nat
+    }
+  Records.records_insert_exact(V, catalog, key, saved_value)

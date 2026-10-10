@@ -1,0 +1,30 @@
+import Base
+import ./RetainedForestProjection.bend as P
+import ../local-graph-draft/core.bend as Local
+import ../whole-resolver/ForestSpecification.bend as F
+import ../whole-resolver/WholeObservation.bend as O
+import ../whole-resolver/SourceValidationSpecification.bend as V
+import ../whole-resolver/Types.bend as T
+
+# Proof-only ordered rows. Every field is derived from the original projection.
+def row(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +full: List<&2, F.Node>) -> Type:
+  Exists(O.NodeAddress, birth => Exists(T.Artifact, value => Exists(List<&2, F.Reference>, refs =>
+    {F.address_at(addresses, id) == Some{birth} : Maybe<&2, O.NodeAddress>} &
+    {F.artifact_at(artifacts, handle) == Some{value} : Maybe<&2, T.Artifact>} &
+    {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>} &
+    {F.node_at(full, birth) == Some{F.Node{birth, value, refs}} : Maybe<&2, F.Node>} &
+    {V.artifact(value) == True{} : Bool} &
+    {P.node_count(tail, id) == 0n : Nat} &
+    {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool})))
+
+def rows(nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +artifacts: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>, +full: List<&2, F.Node>) -> Type:
+  match nodes:
+    case []: Unit
+    case Local.PlannedNode{id, handle} <> +tail:
+      row(id, handle, tail, slots, artifacts, addresses, full) & rows(tail, slots, artifacts, addresses, full)
+
+def main() -> Unit:
+  Unit{}

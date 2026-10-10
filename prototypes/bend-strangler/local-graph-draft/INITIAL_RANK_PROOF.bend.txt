@@ -1,0 +1,73 @@
+import Base
+import ./core.bend as Core
+import ./Traversal.bend as CoreTraversal
+import ./RANK.bend as Rank
+import ./RANK_INVENTORY_LAWS.bend as Inventory
+import ./RANK_INVENTORY_PROOF.bend as InventoryProof
+import ./MAP_WEIGHT_LAWS.bend as Weight
+import ./MAP_WEIGHT_PROOF.bend as WeightProof
+import ../local-graph-representation-prototypes/list-state/PATRICIA_RELATION.bend as Patricia
+import ../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+law initial_rank_bound:
+  for +facts: Core.Facts
+  for +path: String
+  for +visited: Map<&2, Bool>
+  for +budget: Core.Budget
+  for +key: String
+  for +declaration: Core.Declaration
+  for +depth: Nat
+  for valid: {Patricia.canonical(Bool, visited) == True{} : Bool}
+  for selected: {
+    Core.map_result(Maybe<&2, Core.Declaration>,
+      Map.get(Maybe<&2, Core.Declaration>, None{}, Rank.declaration_catalog(facts), key))
+    == Some{declaration} : Maybe<&2, Core.Declaration>
+  }
+  {
+    Nat.is_le(
+      (Rank.rank(
+        CoreTraversal.enter_node(Rank.initial(facts, path, visited, budget), declaration, depth)
+      ) + 1n : Nat),
+      CoreTraversal.traversal_bound(facts)
+    )
+    == True{}
+    : Bool
+  }
+
+def initial_rank_bound(facts, path, visited, budget, key, declaration, depth, valid, selected):
+  match facts declaration:
+    case Core.Facts{_, +catalog, _, _} Core.Declaration{
+      handle,
+      +identity,
+      function,
+      bundled,
+      +references
+    }:
+      +entry = {Core.Declaration{handle, identity, function, bundled, references} : Core.Declaration}
+      +unseen = Rank.unseen_catalog(Map.set(&2, Bool, visited, identity, True{}), catalog)
+      +amount = List.length(&2, Core.Reference, references)
+      +total = Weight.inventory(catalog)
+      bound = Inventory.selected_root_inventory_bound(catalog, visited, key, entry, valid, selected)
+      %Equal.sym(Nat,
+        CoreTraversal.catalog_reference_count(Map.values(&2, Maybe<&2, Core.Declaration>, catalog)),
+        Weight.inventory(catalog), Weight.catalog_inventory_exact(catalog)):
+        {Nat.is_le(((2n * unseen : Nat) + (2n * (amount + 0n : Nat) : Nat) + 1n + 1n : Nat),
+          (2n * _ + 2n : Nat)) == True{} : Bool}
+      %NatFacts.add_zero_sym(amount):
+        {
+          Nat.is_le(
+            Nat.add(Nat.add(Nat.add(Nat.mul(2n, unseen), Nat.mul(2n, _)), 1n), 1n),
+            Nat.add(Nat.mul(2n, total), 2n)
+          )
+          == True{}
+          : Bool
+        }
+      %NatFacts.add_assoc_sym(Nat.add(Nat.mul(2n, unseen), Nat.mul(2n, amount)), 1n, 1n):
+        {Nat.is_le(_, Nat.add(Nat.mul(2n, total), 2n)) == True{} : Bool}
+      %NatFacts.mul_add(2n, unseen, amount):
+        {Nat.is_le(Nat.add(_, 2n), Nat.add(Nat.mul(2n, total), 2n)) == True{} : Bool}
+      NatFacts.add_le_add_right(Nat.mul(2n, Nat.add(unseen, amount)), Nat.mul(2n, total), 2n,
+        NatFacts.mul_le_mul_left(Nat.add(unseen, amount), total, 2n, bound))
+
+def main() -> Unit:
+  Unit{}

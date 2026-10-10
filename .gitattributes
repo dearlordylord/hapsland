@@ -4,3 +4,7 @@ prototypes/canonical-defense/lab/game.generated.mjs linguist-generated=true
 packages/monkey-business-bend/run.mjs linguist-generated=true
 packages/monkey-business-bend/engine.mjs linguist-generated=true
 packages/agent-flow-bend/lifecycle.generated.js linguist-generated=true
+
+# Preserve exact captured source bytes; whitespace is part of source custody.
+prototypes/bend-strangler/**/*.bend.txt whitespace=-blank-at-eol,-blank-at-eof
+prototypes/bend-strangler/**/*.ts.txt whitespace=-blank-at-eol,-blank-at-eof

@@ -1,0 +1,32 @@
+import Base
+import ./RetainedForestProjection.bend as P
+import ../whole-resolver/Composition.bend as Compose
+import ../whole-resolver/ForestSpecification.bend as F
+import ../whole-resolver/WholeObservation.bend as O
+import ../whole-resolver/Types.bend as T
+import ../local-graph-draft/core.bend as Local
+
+def slots(value: Compose.ReplacedSlots) -> List<&2, Local.ReferenceSlot>:
+  match value:
+    case Compose.ReplacedSlots{_, items}: items
+
+# Direct instances of the approved unaffected-node law; no universal theorem import.
+
+def retained_order_and_symbols() -> {P.node_count([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], 0n) == 0n : Nat} &
+    {P.nodes([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], slots(Compose.replace_slot([Local.ReferenceSlot{0n, 0n, "Selected", Local.Included{"old"}}, Local.ReferenceSlot{7n, 0n, "Shared", Local.Included{"keep"}}, Local.ReferenceSlot{9n, 0n, "", Local.Included{"empty"}}], 0n, 0n, Local.Included{"new"})), [T.ArtifactEntry{1n, T.Artifact{None{}, Some{"A.ts"}, "A", T.InterfaceArtifact{}, "A", "interface A {}", "h", []}}], [F.AddressEntry{7n, O.NodeAddress{1n, []}}, F.AddressEntry{9n, O.NodeAddress{2n, []}}]) == P.nodes([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], [Local.ReferenceSlot{0n, 0n, "Selected", Local.Included{"old"}}, Local.ReferenceSlot{7n, 0n, "Shared", Local.Included{"keep"}}, Local.ReferenceSlot{9n, 0n, "", Local.Included{"empty"}}], [T.ArtifactEntry{1n, T.Artifact{None{}, Some{"A.ts"}, "A", T.InterfaceArtifact{}, "A", "interface A {}", "h", []}}], [F.AddressEntry{7n, O.NodeAddress{1n, []}}, F.AddressEntry{9n, O.NodeAddress{2n, []}}]) : Maybe<&2, List<&2, F.Node>>}:
+  Tuple{{==}, {==}}
+
+def missing_artifact() -> {P.node_count([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], 0n) == 0n : Nat} &
+    {P.nodes([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], slots(Compose.replace_slot([Local.ReferenceSlot{0n, 0n, "Selected", Local.Included{"old"}}, Local.ReferenceSlot{7n, 0n, "Shared", Local.Included{"keep"}}, Local.ReferenceSlot{9n, 0n, "", Local.Included{"empty"}}], 0n, 0n, Local.Included{"new"})), [], [F.AddressEntry{7n, O.NodeAddress{1n, []}}, F.AddressEntry{9n, O.NodeAddress{2n, []}}]) == P.nodes([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], [Local.ReferenceSlot{0n, 0n, "Selected", Local.Included{"old"}}, Local.ReferenceSlot{7n, 0n, "Shared", Local.Included{"keep"}}, Local.ReferenceSlot{9n, 0n, "", Local.Included{"empty"}}], [], [F.AddressEntry{7n, O.NodeAddress{1n, []}}, F.AddressEntry{9n, O.NodeAddress{2n, []}}]) : Maybe<&2, List<&2, F.Node>>}:
+  Tuple{{==}, {==}}
+
+def missing_address() -> {P.node_count([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], 0n) == 0n : Nat} &
+    {P.nodes([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], slots(Compose.replace_slot([Local.ReferenceSlot{0n, 0n, "Selected", Local.Included{"old"}}, Local.ReferenceSlot{7n, 0n, "Shared", Local.Included{"keep"}}, Local.ReferenceSlot{9n, 0n, "", Local.Included{"empty"}}], 0n, 0n, Local.Included{"new"})), [T.ArtifactEntry{1n, T.Artifact{None{}, Some{"A.ts"}, "A", T.InterfaceArtifact{}, "A", "interface A {}", "h", []}}], []) == P.nodes([Local.PlannedNode{7n, 1n}, Local.PlannedNode{9n, 1n}], [Local.ReferenceSlot{0n, 0n, "Selected", Local.Included{"old"}}, Local.ReferenceSlot{7n, 0n, "Shared", Local.Included{"keep"}}, Local.ReferenceSlot{9n, 0n, "", Local.Included{"empty"}}], [T.ArtifactEntry{1n, T.Artifact{None{}, Some{"A.ts"}, "A", T.InterfaceArtifact{}, "A", "interface A {}", "h", []}}], []) : Maybe<&2, List<&2, F.Node>>}:
+  Tuple{{==}, {==}}
+
+def empty_nodes() -> {P.node_count([], 0n) == 0n : Nat} &
+    {P.nodes([], slots(Compose.replace_slot([Local.ReferenceSlot{0n, 0n, "Selected", Local.Included{"old"}}, Local.ReferenceSlot{7n, 0n, "Shared", Local.Included{"keep"}}, Local.ReferenceSlot{9n, 0n, "", Local.Included{"empty"}}], 0n, 0n, Local.Included{"new"})), [], []) == P.nodes([], [Local.ReferenceSlot{0n, 0n, "Selected", Local.Included{"old"}}, Local.ReferenceSlot{7n, 0n, "Shared", Local.Included{"keep"}}, Local.ReferenceSlot{9n, 0n, "", Local.Included{"empty"}}], [], []) : Maybe<&2, List<&2, F.Node>>}:
+  Tuple{{==}, {==}}
+
+def main() -> Unit:
+  Unit{}

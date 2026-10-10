@@ -1,0 +1,989 @@
+import Base
+import ./core.bend as Core
+import ./Traversal.bend as CoreTraversal
+import ./DENSE.bend as Dense
+import ./INTERPRETER_BOOL_FACTS.bend as B
+import ./INTERPRETER_NAT_FACTS.bend as N
+import ../whole-resolver/RuntimeNatProof.bend as NatEquality
+
+# Internal proof invariant for the actual reverse allocation accumulator.
+# Neither map validity nor successful termination is assumed.
+def backward(nodes: List<&2, Core.PlannedNode>, next: Nat) -> Bool:
+  match nodes next:
+    case [] 0n: True{}
+    case Core.PlannedNode{node, _} <> rest 1n++previous:
+      Bool.and(Nat.is_eq(node, previous), backward(rest, previous))
+    case _ _: False{}
+
+def allocation_valid(machine: Core.Machine) -> Bool:
+  match machine:
+    case Core.Machine{_, _, _, _, _, next, +nodes, _, _}:
+      Bool.and(backward(nodes, next), Dense.nonempty(nodes))
+
+def successor(+n: Nat) -> {(n + 1n : Nat) == 1n+n : Nat}:
+  N.add_comm(n, 1n)
+
+def enter_node_valid(+machine: Core.Machine, +declaration: Core.Declaration, +depth: Nat,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.enter_node(machine, declaration, depth)) == True{} : Bool
+}:
+  match machine declaration:
+    case Core.Machine{facts, path, frames, visited, budget, +next, +nodes, refs, pending}
+        Core.Declaration{+artifact, identity, function, bundled, children}:
+      %Equal.sym(Nat, (next + 1n : Nat), 1n+next, successor(next)):
+        {Bool.and(backward(Core.PlannedNode{next, artifact} <> nodes, _), True{}) == True{} : Bool}
+      B.and_eq_true(
+        Bool.and(Nat.is_eq(next, next), backward(nodes, next)), True{},
+        B.and_eq_true(Nat.is_eq(next, next), backward(nodes, next), NatEquality.is_eq_refl(next),
+          B.eq_true_of_and_left(backward(nodes, next), Dense.nonempty(nodes), valid)), {==})
+
+def add_reference_valid(+machine: Core.Machine, +slot: Core.ReferenceSlot,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.add_reference(machine, slot)) == True{} : Bool
+}:
+  match machine:
+    case Core.Machine{
+      +facts,
+      +path,
+      +frames,
+      +visited,
+      +budget,
+      +next,
+      +nodes,
+      +references,
+      +pending
+    }: valid
+
+def add_pending_valid(+machine: Core.Machine, +item: Core.Pending,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.add_pending(machine, item)) == True{} : Bool
+}:
+  match machine:
+    case Core.Machine{
+      +facts,
+      +path,
+      +frames,
+      +visited,
+      +budget,
+      +next,
+      +nodes,
+      +references,
+      +pending
+    }: valid
+
+def replace_budget_valid(+machine: Core.Machine, +budget: Core.Budget,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.replace_budget(machine, budget)) == True{} : Bool
+}:
+  match machine:
+    case Core.Machine{+facts, +path, +frames, +visited, _, +next, +nodes, +references, +pending}: valid
+
+def observe_machine_depth_valid(+machine: Core.Machine, +depth: Nat,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.observe_machine_depth(machine, depth)) == True{} : Bool
+}:
+  replace_budget_valid(machine, CoreTraversal.observe_depth(CoreTraversal.machine_budget(machine), depth), valid)
+
+def charge_machine_work_valid(+machine: Core.Machine,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.charge_machine_work(machine)) == True{} : Bool
+}:
+  replace_budget_valid(machine, CoreTraversal.charge_work(CoreTraversal.machine_budget(machine)), valid)
+
+def charge_machine_target_valid(+machine: Core.Machine, +key: String,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.charge_machine_target(machine, key)) == True{} : Bool
+}:
+  replace_budget_valid(
+    machine,
+    CoreTraversal.charge_target(CoreTraversal.machine_budget(machine), CoreTraversal.machine_path(machine), key),
+    valid
+  )
+
+def omit_valid(
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +name: String,
+  +reason: Core.Omission,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+  allocation_valid(CoreTraversal.omit(machine, owner, index, name, reason)) == True{} : Bool
+}:
+  add_reference_valid(
+    machine,
+    Core.ReferenceSlot{owner, index, name, Core.Omitted{reason, name}},
+    valid
+  )
+
+def include_valid(
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +name: String,
+  +identity: String,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+  allocation_valid(CoreTraversal.include(machine, owner, index, name, identity)) == True{} : Bool
+}:
+  add_reference_valid(
+    machine,
+    Core.ReferenceSlot{owner, index, name, Core.Included{identity}},
+    valid
+  )
+
+def expand_node_valid(
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +name: String,
+  +depth: Nat,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(CoreTraversal.expand_node(machine, declaration, owner, index, name, depth))
+      == True{}
+      : Bool
+    }:
+  enter_node_valid(
+    CoreTraversal.add_reference(
+      machine,
+      Core.ReferenceSlot{owner, index, name, Core.Expanded{CoreTraversal.next_node(machine)}}
+    ),
+    declaration,
+    depth,
+    add_reference_valid(
+      machine,
+      Core.ReferenceSlot{owner, index, name, Core.Expanded{CoreTraversal.next_node(machine)}},
+      valid
+    )
+  )
+
+def local_expand_if_valid(
+  +visited: Bool,
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +name: String,
+  +depth: Nat,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.local_expand_if(visited, machine, declaration, owner, index, name, depth)
+      )
+      == True{}
+      : Bool
+    }:
+  match visited:
+    case True{}: include_valid(
+      machine,
+      owner,
+      index,
+      name,
+      CoreTraversal.declaration_identity(declaration),
+      valid
+    )
+    case False{}: expand_node_valid(machine, declaration, owner, index, name, depth, valid)
+
+def local_expand_valid(
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +name: String,
+  +depth: Nat,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(CoreTraversal.local_expand(machine, declaration, owner, index, name, depth))
+      == True{}
+      : Bool
+    }:
+  local_expand_if_valid(
+    CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration)),
+    machine,
+    declaration,
+    owner,
+    index,
+    name,
+    depth,
+    valid
+  )
+
+def queue_import_valid(
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +imported: Core.ImportBinding,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(CoreTraversal.queue_import(machine, owner, index, symbol, depth, expected, imported))
+      == True{}
+      : Bool
+    }:
+  match imported:
+    case Core.ImportBinding{+path, +name, _}: add_pending_valid(
+      CoreTraversal.omit(machine, owner, index, symbol, Core.Unavailable{}),
+      Core.Pending{
+        owner,
+        index,
+        CoreTraversal.machine_path(machine),
+        symbol,
+        name,
+        depth,
+        expected,
+        Core.Imported{path, name}
+      },
+      omit_valid(machine, owner, index, symbol, Core.Unavailable{}, valid)
+    )
+
+def import_by_kind_valid(
+  +expected: Core.ExpectedKind,
+  +type_only: Bool,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +imported: Core.ImportBinding,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.import_by_kind(expected, type_only, machine, owner, index, symbol, depth, imported)
+      )
+      == True{}
+      : Bool
+    }:
+  match expected type_only:
+    case Core.FunctionKind{} True{}: omit_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      Core.UnsupportedTarget{},
+      valid
+    )
+    case Core.FunctionKind{} False{}: queue_import_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      Core.FunctionKind{},
+      imported,
+      valid
+    )
+    case Core.AnyKind{} True{}: queue_import_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      Core.AnyKind{},
+      imported,
+      valid
+    )
+    case Core.AnyKind{} False{}: queue_import_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      Core.AnyKind{},
+      imported,
+      valid
+    )
+    case Core.TypeKind{} True{}: queue_import_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      Core.TypeKind{},
+      imported,
+      valid
+    )
+    case Core.TypeKind{} False{}: queue_import_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      Core.TypeKind{},
+      imported,
+      valid
+    )
+
+def import_present_valid(
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.import_present(machine, owner, index, symbol, depth, expected, imported)
+      )
+      == True{}
+      : Bool
+    }:
+  match imported:
+    case None{}: omit_valid(machine, owner, index, symbol, Core.Unresolved{}, valid)
+    case Some{Core.ImportBinding{+path, +name, +type_only}}: import_by_kind_valid(
+      expected,
+      type_only,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      Core.ImportBinding{path, name, type_only},
+      valid
+    )
+
+def materialize_allowed_valid(
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.materialize_allowed(local, imported, machine, owner, index, symbol, depth, expected)
+      )
+      == True{}
+      : Bool
+    }:
+  match local:
+    case None{}: import_present_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      imported,
+      valid
+    )
+    case Some{+declaration}: local_expand_valid(
+      machine,
+      declaration,
+      owner,
+      index,
+      symbol,
+      (depth + 1n : Nat),
+      valid
+    )
+
+def ordinary_budget_valid(
+  +allowed: Bool,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.ordinary_budget(
+          allowed,
+          local,
+          imported,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
+      )
+      == True{}
+      : Bool
+    }:
+  match allowed:
+    case False{}: omit_valid(machine, owner, index, symbol, Core.ReferenceLimit{}, valid)
+    case True{}: materialize_allowed_valid(
+      local,
+      imported,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid
+    )
+
+def charge_if_local_valid(+local: Maybe<&2, Core.Declaration>, +machine: Core.Machine,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.charge_if_local(local, machine)) == True{} : Bool
+}:
+  match local:
+    case None{}: valid
+    case Some{_}: charge_machine_work_valid(machine, valid)
+
+def ordinary_charged_valid(
+  +machine: Core.Machine,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.ordinary_charged(machine, local, imported, owner, index, symbol, depth, expected)
+      )
+      == True{}
+      : Bool
+    }:
+  ordinary_budget_valid(
+    CoreTraversal.machine_allows(machine),
+    local,
+    imported,
+    machine,
+    owner,
+    index,
+    symbol,
+    depth,
+    expected,
+    valid
+  )
+
+def ordinary_ambiguity_valid(
+  +conflict: Bool,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.ordinary_ambiguity(
+          conflict,
+          local,
+          imported,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
+      )
+      == True{}
+      : Bool
+    }:
+  match conflict:
+    case True{}: omit_valid(machine, owner, index, symbol, Core.UnsupportedTarget{}, valid)
+    case False{}: ordinary_charged_valid(
+      CoreTraversal.charge_if_local(local, machine),
+      local,
+      imported,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      charge_if_local_valid(local, machine, valid)
+    )
+
+def ordinary_targets_valid(
+  +machine: Core.Machine,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.ordinary_targets(machine, local, imported, owner, index, symbol, depth, expected)
+      )
+      == True{}
+      : Bool
+    }:
+  ordinary_ambiguity_valid(
+    CoreTraversal.ambiguous(local, imported, expected),
+    local,
+    imported,
+    CoreTraversal.charge_machine_target(
+      machine,
+      CoreTraversal.reference_target_key(CoreTraversal.machine_path(machine), symbol, local, imported)
+    ),
+    owner,
+    index,
+    symbol,
+    depth,
+    expected,
+    charge_machine_target_valid(
+      machine,
+      CoreTraversal.reference_target_key(CoreTraversal.machine_path(machine), symbol, local, imported),
+      valid
+    )
+  )
+
+def ordinary_reference_valid(
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(CoreTraversal.ordinary_reference(machine, owner, index, symbol, depth, expected))
+      == True{}
+      : Bool
+    }:
+  ordinary_targets_valid(
+    machine,
+    CoreTraversal.declaration_lookup(CoreTraversal.machine_facts(machine), symbol, expected),
+    CoreTraversal.import_lookup(CoreTraversal.machine_facts(machine), symbol),
+    owner,
+    index,
+    symbol,
+    depth,
+    expected,
+    valid
+  )
+
+def bundled_queue_valid(
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +declaration: Core.Declaration,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bundled_queue(machine, owner, index, symbol, depth, expected, declaration)
+      )
+      == True{}
+      : Bool
+    }:
+  match declaration:
+    case Core.Declaration{+handle, _, _, _, _}: add_pending_valid(
+      CoreTraversal.omit(machine, owner, index, symbol, Core.Unavailable{}),
+      Core.Pending{
+        owner,
+        index,
+        CoreTraversal.machine_path(machine),
+        symbol,
+        symbol,
+        depth,
+        expected,
+        Core.BundledTarget{handle}
+      },
+      omit_valid(machine, owner, index, symbol, Core.Unavailable{}, valid)
+    )
+
+def bundled_materialize_valid(
+  +visited: Bool,
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bundled_materialize(
+          visited,
+          machine,
+          declaration,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
+      )
+      == True{}
+      : Bool
+    }:
+  match visited:
+    case True{}: include_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      CoreTraversal.declaration_identity(declaration),
+      valid
+    )
+    case False{}: bundled_queue_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      declaration,
+      valid
+    )
+
+def bundled_budget_valid(
+  +allowed: Bool,
+  +visited: Bool,
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bundled_budget(
+          allowed,
+          visited,
+          machine,
+          declaration,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
+      )
+      == True{}
+      : Bool
+    }:
+  match allowed:
+    case False{}: omit_valid(machine, owner, index, symbol, Core.ReferenceLimit{}, valid)
+    case True{}: bundled_materialize_valid(
+      visited,
+      machine,
+      declaration,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid
+    )
+
+def charge_if_visited_valid(+visited: Bool, +machine: Core.Machine,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.charge_if_visited(visited, machine)) == True{} : Bool
+}:
+  match visited:
+    case True{}: charge_machine_work_valid(machine, valid)
+    case False{}: valid
+
+def bundled_charged_valid(
+  +machine: Core.Machine,
+  +visited: Bool,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bundled_charged(machine, visited, declaration, owner, index, symbol, depth, expected)
+      )
+      == True{}
+      : Bool
+    }:
+  bundled_budget_valid(
+    CoreTraversal.machine_allows(machine),
+    visited,
+    machine,
+    declaration,
+    owner,
+    index,
+    symbol,
+    depth,
+    expected,
+    valid
+  )
+
+def bundled_seen_valid(
+  +visited: Bool,
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bundled_seen(visited, machine, declaration, owner, index, symbol, depth, expected)
+      )
+      == True{}
+      : Bool
+    }:
+  bundled_charged_valid(
+    CoreTraversal.charge_if_visited(visited, machine),
+    visited,
+    declaration,
+    owner,
+    index,
+    symbol,
+    depth,
+    expected,
+    charge_if_visited_valid(visited, machine, valid)
+  )
+
+def bundled_target_valid(
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bundled_target(machine, declaration, owner, index, symbol, depth, expected)
+      )
+      == True{}
+      : Bool
+    }:
+  bundled_seen_valid(
+    CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration)),
+    CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)),
+    declaration,
+    owner,
+    index,
+    symbol,
+    depth,
+    expected,
+    charge_machine_target_valid(machine, CoreTraversal.declaration_identity(declaration), valid)
+  )
+
+def bundled_admit_valid(
+  +test: Bool,
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bundled_admit(test, machine, declaration, owner, index, symbol, depth, expected)
+      )
+      == True{}
+      : Bool
+    }:
+  match test:
+    case False{}: omit_valid(machine, owner, index, symbol, Core.UnsupportedTarget{}, valid)
+    case True{}: bundled_target_valid(
+      machine,
+      declaration,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid
+    )
+
+def bundled_lookup_valid(
+  +found: Maybe<&2, Core.Declaration>,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +target: String,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bundled_lookup(found, machine, owner, index, symbol, depth, expected, target)
+      )
+      == True{}
+      : Bool
+    }:
+  match found:
+    case None{}: omit_valid(machine, owner, index, symbol, Core.UnsupportedTarget{}, valid)
+    case Some{+declaration}: bundled_admit_valid(
+      CoreTraversal.bundled_valid(declaration, target, expected),
+      machine,
+      declaration,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid
+    )
+
+def named_reference_valid(
+  +target: Maybe<&2, String>,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(CoreTraversal.named_reference(target, machine, owner, index, symbol, depth, expected))
+      == True{}
+      : Bool
+    }:
+  match target:
+    case None{}: ordinary_reference_valid(machine, owner, index, symbol, depth, expected, valid)
+    case Some{+identity}: bundled_lookup_valid(
+      CoreTraversal.supporting_lookup(CoreTraversal.machine_facts(machine), identity),
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      identity,
+      valid
+    )
+
+def reference_kind_valid(
+  +kind: Core.ReferenceKind,
+  +target: Maybe<&2, String>,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.reference_kind(kind, target, machine, owner, index, symbol, depth, expected)
+      )
+      == True{}
+      : Bool
+    }:
+  match kind:
+    case Core.Unsupported{}: omit_valid(
+      machine,
+      owner,
+      index,
+      symbol,
+      Core.UnsupportedTarget{},
+      valid
+    )
+    case Core.Named{}: named_reference_valid(
+      target,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid
+    )
+
+def visit_reference_valid(
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +reference: Core.Reference,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+  allocation_valid(CoreTraversal.visit_reference(machine, owner, index, depth, reference)) == True{} : Bool
+}:
+  match reference:
+    case Core.Reference{+kind, +name, +expected, +target}: reference_kind_valid(
+      kind,
+      target,
+      CoreTraversal.observe_machine_depth(machine, (depth + 1n : Nat)),
+      owner,
+      index,
+      name,
+      depth,
+      expected,
+      observe_machine_depth_valid(machine, (depth + 1n : Nat), valid)
+    )
+
+def push_frame_valid(+machine: Core.Machine, +frame: Core.Frame,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.push_frame(machine, frame)) == True{} : Bool
+}:
+  match machine:
+    case Core.Machine{
+      +facts,
+      +path,
+      +frames,
+      +visited,
+      +budget,
+      +next,
+      +nodes,
+      +references,
+      +pending
+    }: valid
+
+def process_frame_valid(+machine: Core.Machine, +frame: Core.Frame,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.process_frame(machine, frame)) == True{} : Bool
+}:
+  match frame:
+    case Core.Frame{_, _, _, []}: valid
+    case Core.Frame{+owner, +depth, +index, +reference <> +rest}: visit_reference_valid(
+      CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest}),
+      owner,
+      index,
+      depth,
+      reference,
+      push_frame_valid(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest}, valid)
+    )
+
+def step_valid(+machine: Core.Machine,
+    valid: {allocation_valid(machine) == True{} : Bool}) -> {
+  allocation_valid(CoreTraversal.step(machine)) == True{} : Bool
+}:
+  match machine:
+    case Core.Machine{+facts, +path, [], +visited, +budget, +next, +nodes, +references, +pending}: valid
+    case Core.Machine{
+      +facts,
+      +path,
+      +frame <> +tail,
+      +visited,
+      +budget,
+      +next,
+      +nodes,
+      +references,
+      +pending
+    }: process_frame_valid(
+      Core.Machine{facts, path, tail, visited, budget, next, nodes, references, pending},
+      frame,
+      valid
+    )
+

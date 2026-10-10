@@ -1,0 +1,16 @@
+import Base
+import ./FOREST_RELATION_LAWS.bend as Laws
+import ./ForestRollbackProof.bend as Rollback
+import ../whole-resolver/ForestSpecification.bend as F
+
+def Laws.omitted_replacement_preserves_frame_forest(
+  forest, next, owner, index, symbol, target, reason, result, before, actual
+):
+  %Equal.sym(F.Replacement, F.Replaced{result},
+    F.replace(forest, owner, index, F.Omitted{symbol, target, reason}), actual) : {
+    True{} == Rollback.replacement_valid(_, next) : Bool
+  }
+  Rollback.omitted_replacement_valid(forest, next, owner, index, symbol, target, reason, before)
+
+def main() -> Unit:
+  Unit{}

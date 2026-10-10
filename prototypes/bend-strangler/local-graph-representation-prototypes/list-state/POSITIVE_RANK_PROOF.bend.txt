@@ -1,0 +1,32 @@
+import Base
+import ./Own.bend as Own
+import ./core.bend as Core
+import ./RANK.bend as Rank
+import ../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+import ../../../../vendor/bendlib/packages/bend-mathlib/bool.bend as BoolFacts
+
+def positive_type(machine: Core.Machine) -> Data:
+  {Nat.is_lt(0n, Rank.rank(machine)) == True{} : Bool}
+
+law nonterminal_rank_positive:
+  for +machine: Core.Machine
+  for active: {Core.done(machine) == False{} : Bool}
+  {Nat.is_lt(0n, Rank.rank(machine)) == True{} : Bool}
+
+def nonterminal_rank_positive(machine, active):
+  match machine:
+    case Core.Machine{facts, path, [], visited, budget, next, nodes, references, pending}:
+      impossible = BoolFacts.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, active))
+      Empty.absurd(
+        positive_type(
+          Core.Machine{facts, path, [], visited, budget, next, nodes, references, pending}
+        ),
+        impossible
+      )
+    case Core.Machine{facts, _, +frame <> +tail, visited, _, _, _, _, _}:
+      base = (2n * Rank.unseen_catalog(visited, Rank.declaration_catalog(facts)) + 2n * Rank.pending_references(
+        frame <> tail
+      ) : Nat)
+      %NatFacts.add_comm((1n + List.length(&2, Core.Frame, tail) : Nat), base):
+        {Nat.is_lt(0n, _) == True{} : Bool}
+      {==}

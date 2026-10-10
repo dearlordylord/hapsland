@@ -1,0 +1,91 @@
+import assert from 'node:assert/strict'
+import {readFileSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs'
+import {join,dirname,resolve} from 'node:path'
+import {tmpdir} from 'node:os'
+import {pathToFileURL} from 'node:url'
+import {createRequire} from 'node:module'
+import {performance} from 'node:perf_hooks'
+const [root,lane,mode,goldenPath,corePath]=process.argv.slice(2)
+const temporary=mkdtempSync(join(tmpdir(),'hapsland-real-graph-worker-'))
+const invocationPath='src/example.ts'
+const sources=JSON.parse(readFileSync(new URL('./reference-analyzer-node-execution.json',import.meta.url),'utf8')).sources
+const requireRoot=createRequire(root+'/package.json')
+async function expose(relative,suffix){
+ const original=join(root,relative),target=join(temporary,relative.split('/').at(-1)+'.mjs')
+ const code=readFileSync(original,'utf8').replace(/from "([^"\n]+)"/g,(_,specifier)=>'from '+JSON.stringify(specifier.startsWith('.')?resolve(dirname(original),specifier):requireRoot.resolve(specifier)))
+ writeFileSync(target,code+'\n'+suffix+'\n')
+ return await import(pathToFileURL(target))
+}
+try{
+ const producer=await expose('packages/source-analysis/dist/direct-event/languages/typescript.js','export {functionFacts}')
+ const native=await expose('packages/source-analysis/dist/direct-event/graph-resolver.js','export {buildLocal}')
+ const models={direct:(await import(pathToFileURL(corePath))).default}
+const empty=()=>({$:'MTip'}),list=xs=>xs.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
+const unlist=xs=>{const result=[];while(xs.$==='Con'){result.push(xs.head);xs=xs.tail}return result}
+const entries=m=>m.$==='Own.DNil'?[]:m.$==='Own.DLeaf'?[[m.key,m.value]]:m.$==='Own.DBranch'?[...entries(m.zero),...entries(m.one)]:m.$==='MTip'?[]:m.$==='MLeaf'?[[m.key,m.val]]:[...entries(m.lo),...entries(m.hi)]
+const expectation=value=>({$:value===undefined?'AnyKind':value==='type'?'TypeKind':'FunctionKind'})
+const stateSummary=(visited,budget)=>({visited:[...visited].sort(),targets:[...budget.targetsByPath].map(([p,s])=>[p,[...s].sort()]).sort(),work:budget.work,maxDepth:budget.maxDepth,maxTargets:budget.maxTargetsInFile,graphWork:budget.graphWork})
+const normalize=(built,visited,budget)=>{
+ if(built===undefined)return {missing:true,state:stateSummary(visited,budget)}
+ const addresses=new Map();let next=0
+ const visit=node=>{addresses.set(node,next++);for(const r of node.references)if(r.kind==='expanded')visit(r.node)};visit(built.node)
+ return {node:built.node,pending:built.pending.map(p=>({owner:addresses.get(p.owner),index:p.index,from:p.from,symbol:p.symbol,name:p.name,depth:p.depth,...(p.expectedKind===undefined?{}:{expectedKind:p.expectedKind}),...(p.bundled?{bundled:p.bundled.declaration.artifact.id}:{importPath:p.importPath})})),state:stateSummary(visited,budget)}
+}
+ function directCandidate(file,name,expected,visited,budget,depth){
+  const ids=new Map(),strings=[],labels=new Map()
+  const intern=s=>{if(typeof s!=='string')throw new TypeError('registry key must be String');const old=ids.get(s);if(old!==undefined)return old;const id=ids.size+1;if(!Number.isSafeInteger(id)||id>0xffffffff)throw new RangeError('registry ID outside uint32');ids.set(s,id);strings[id]=s;return id}
+  const label=s=>{const old=labels.get(s);if(old!==undefined)return old;const value={$:'Label',key:intern(s),type_key:intern('type:'+s),function_key:intern('function:'+s)};labels.set(s,value);return value}
+  const decodedEntries=m=>entries(m).map(([key,value])=>[strings[Number(key)],value])
+  const text=v=>{const s=strings[Number(v)];if(typeof s!=='string')throw new TypeError('missing decoded String');return s}
+  const artifacts=new Map();let next=1
+  const encodeDeclaration=d=>{const handle=next++;artifacts.set(handle,d.artifact);return {$:'Declaration',handle,identity:intern(d.artifact.id),function:d.artifact.kind==='function',bundled:d.artifact.origin?.kind==='bundled',references:list(d.references.map(r=>({$:'Reference',kind:{$:r.kind==='unsupported'?'Unsupported':'Named'},name:label(r.name),expected:expectation(r.expectedKind),target:r.targetId===undefined?{$:'None'}:{$:'Some',value:intern(r.targetId)}})))}}
+  const dictionary=xs=>{
+   const build=records=>{
+    if(records.length===0)return {$:'Own.DNil'}
+    if(records.length===1)return {$:'Own.DLeaf',key:records[0][0],value:records[0][1]}
+    let difference=0;for(const [key]of records)difference|=records[0][0]^key
+    const divisor=(difference&-difference)>>>0;assert.ok(divisor>0)
+    const zero=[],one=[];for(const record of records)(Math.floor(record[0]/divisor)%2===0?zero:one).push(record)
+    return {$:'Own.DBranch',divisor,zero:build(zero),one:build(one),count:records.length}
+   }
+   return build(xs.map(([name,value])=>[intern(name),value]))
+  }
+  const declarations=dictionary([...file.declarations].map(([key,d])=>[key,{$:'Some',value:encodeDeclaration(d)}]))
+  const supporting=dictionary([...file.supportingDeclarations??[]].map(([key,d])=>[key,{$:'Some',value:encodeDeclaration(d)}]))
+  const imports=dictionary([...file.imports].map(([key,b])=>[key,{$:'Some',value:{$:'ImportBinding',path:intern(b.path),name:intern(b.name),type_only:b.typeOnly===true,composite:intern(invocationPath+'\0'+b.path+'\0'+b.name)}}]))
+  const seen=dictionary([...visited].map(key=>[key,true]))
+  const targets=dictionary([...budget.targetsByPath].map(([key,t])=>[key,dictionary([...t].map(id=>[id,true]))]))
+  const rawBudget={$:'Budget',limits:{$:'LocalLimits',work:budget.limits.work,depth:budget.limits.depth,targets:budget.limits.outgoingEdges},targets_by_path:targets,max_targets:budget.maxTargetsInFile,work:budget.work,graph_work:budget.graphWork,max_depth:budget.maxDepth}
+  const result=models.direct.plan({$:'Facts',kind_aware:!!file.kindAware,declarations,imports,supporting},intern(invocationPath),label(name),expectation(expected),seen,rawBudget,depth)
+  assert.notEqual(result.$,'InvariantFailure')
+  const raw=result.$==='MissingRoot'?result:result.plan
+  const updatedVisited=new Set(decodedEntries(raw.visited).map(([key])=>key)),updatedBudget={...budget,targetsByPath:new Map(decodedEntries(raw.budget.targets_by_path).map(([path,t])=>[path,new Set(decodedEntries(t).map(([key])=>key))])),work:Number(raw.budget.work),maxDepth:Number(raw.budget.max_depth),maxTargetsInFile:Number(raw.budget.max_targets),graphWork:Number(raw.budget.graph_work)}
+  if(result.$==='MissingRoot')return normalize(undefined,updatedVisited,updatedBudget)
+  const nodes=new Map(unlist(raw.nodes).map(n=>[Number(n.node),{artifact:artifacts.get(Number(n.artifact)),references:[]}]))
+  const reasons={Unresolved:'unresolved',UnsupportedTarget:'unsupported',ReferenceLimit:'reference-limit',Unavailable:'unavailable'}
+  for(const slot of unlist(raw.references)){
+   const r=slot.reference,site={symbol:text(slot.symbol)}
+   nodes.get(Number(slot.owner)).references[Number(slot.index)]=r.$==='Included'?{kind:'included',site,target:text(r.identity)}:r.$==='Expanded'?{kind:'expanded',site,node:nodes.get(Number(r.node))}:{kind:'omitted',site,target:{kind:'unresolved',symbol:text(r.target_name)},reason:reasons[r.reason.$]}
+  }
+  const pending=unlist(raw.pending).map(p=>({owner:nodes.get(Number(p.owner)),index:Number(p.index),from:text(p.from),symbol:text(p.symbol),name:text(p.name),depth:Number(p.depth),...(p.expected.$==='AnyKind'?{}:{expectedKind:p.expected.$==='TypeKind'?'type':'function'}),...(p.target.$==='Imported'?{importPath:text(p.target.path)}:{bundled:{declaration:{artifact:artifacts.get(Number(p.target.declaration))}}})}))
+  return normalize({node:nodes.get(Number(raw.root)),pending},updatedVisited,updatedBudget)
+ }
+ const inspect=index=>producer.functionFacts(invocationPath,sources[index])
+ const {GRAPH_LIMIT_CEILINGS}=await import(pathToFileURL(root+'/packages/canonical-policy/dist/canonical/graph-limits.js'))
+ const budget=()=>({limits:GRAPH_LIMIT_CEILINGS,targetsByPath:new Map(),maxTargetsInFile:0,work:0,graphWork:0,maxDepth:0})
+ const run=index=>{
+  const facts=inspect(index);assert.notEqual(facts,undefined)
+  const declaration=[...facts.declarations.values()].reverse().find(d=>d.artifact.kind==='function');const rootName=declaration?.artifact.name??'f'
+  const visited=new Set(),b=budget()
+  return lane==='bend'?directCandidate(facts,rootName,undefined,visited,b,0):normalize(native.buildLocal(facts,invocationPath,rootName,visited,b,0),visited,b)
+ }
+ const actual=sources.map((_,i)=>run(i));assert.ok(actual.some(v=>v.missing!==true))
+ if(mode==='prepare'){writeFileSync(goldenPath,JSON.stringify(actual));process.exitCode=0}
+ else{
+  const expected=JSON.parse(readFileSync(goldenPath,'utf8'));assert.deepEqual(actual,expected)
+  const batch=()=>{let checksum=0;for(let round=0;round<20;round++)for(let i=0;i<sources.length;i++){const value=run(i);assert.deepEqual(value,expected[i]);checksum+=JSON.stringify(value).length}return checksum}
+  let checksum;for(let warm=0;warm<5;warm++){const value=batch();checksum??=value;assert.equal(value,checksum)}
+  const start=performance.now();assert.equal(batch(),checksum);const seconds=(performance.now()-start)/1000
+  console.log(JSON.stringify({seconds,checksum,fixtures:sources.length,rounds:20,warmups:5,fullEqual:true,missingRoots:actual.filter(v=>v.missing===true).length,lane}))
+ }
+}finally{rmSync(temporary,{recursive:true,force:true})}

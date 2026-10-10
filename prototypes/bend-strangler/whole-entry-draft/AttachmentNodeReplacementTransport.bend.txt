@@ -1,0 +1,45 @@
+import Base
+import ./RetainedForestProjection.bend as P
+import ./ActualAttachmentPhaseProjection.bend as Ready
+import ./AttachmentInterleavedReplacementProof.bend as Interleaved
+import ./AttachmentUnaffectedNodesProof.bend as Unaffected
+import ./AttachmentProjectionContentsProof.bend as Contents
+import ../whole-resolver/Composition.bend as Compose
+import ../whole-resolver/ForestSpecification.bend as F
+import ../whole-resolver/WholeObservation.bend as O
+import ../whole-resolver/Types.bend as T
+import ../local-graph-draft/core.bend as Local
+
+# Astra-approved complete node zipper cut for parent_attachment_exact.
+# Original successful projection is the only projection premise.
+# No validity or replacement-success premise; no new runtime representation.
+# This cut intentionally makes no forward/birth validity claim for arbitrary new_actual.
+law node_replacement_exact:
+  for +root: Nat
+  for +nodes: List<&2, Local.PlannedNode>
+  for +slots: List<&2, Local.ReferenceSlot>
+  for +catalog: List<&2, T.ArtifactEntry>
+  for +addresses: List<&2, F.AddressEntry>
+  for +root_birth: O.NodeAddress
+  for +retained: List<&2, F.Node>
+  for +owner: Nat
+  for +index: Nat
+  for +symbol: String
+  for +owner_address: O.NodeAddress
+  for +new_actual: Local.PlannedReference
+  for +new_semantic: F.Reference
+  for projected: {P.project(root, nodes, slots, catalog, addresses) ==
+    Some{F.Forest{Some{root_birth}, retained}} : Maybe<&2, F.Forest>}
+  for selected: {Ready.slot_count(slots, owner, index, symbol) == 1n : Nat}
+  for owner_present: {F.address_at(addresses, owner) == Some{owner_address} : Maybe<&2, O.NodeAddress>}
+  for new_reference: {P.reference(Local.ReferenceSlot{owner, index, symbol, new_actual}, addresses) ==
+    Some{new_semantic} : Maybe<&2, F.Reference>}
+  Exists(List<&2, Local.ReferenceSlot>, changed_slots => Exists(List<&2, F.Node>, changed_nodes =>
+    {Compose.replacement(Compose.replace_slot(slots, owner, index, new_actual)) ==
+      Some{changed_slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {P.nodes(nodes, changed_slots, catalog, addresses) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} &
+    {F.replace_nodes(retained, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes}
+  ))
+
+def main() -> Unit:
+  Unit{}

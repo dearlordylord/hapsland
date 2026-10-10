@@ -1,0 +1,28 @@
+import Base
+import ./AttachmentFrameView.bend as V
+import ../whole-resolver/Types.bend as T
+import ../whole-resolver/SPEC.bend as Root
+import ../whole-resolver/ForestSpecification.bend as F
+import ../whole-resolver/ExpansionSpecification.bend as X
+
+# Erased child creation/capture provenance for the full attachment phase law.
+# Successful actual and independent reference projections must name the same
+# whole Phase; two failed projections never establish readiness.
+type ChildHistory is Data:
+  ChildHistory{created: F.Created, source: T.SourceFacts, catalog: Root.Source,
+    capture: T.CaptureToken, visited: List<&2, String>}
+type Child is Data:
+  Child{target: Nat, path: String, kind: X.ChildKind, capture: T.CaptureToken,
+    bytes: Nat, file: T.CapturedFacts, artifact: Nat, identity: String,
+    local_work_before: Nat, forest: F.Forest, addresses: List<&2, F.AddressEntry>,
+    pending: List<&2, V.PendingPayload>, visited: List<&2, String>, budget: V.Budget,
+    source: T.SourceFacts, catalog: Root.Source}
+type Capsule is Data:
+  Capsule{invocation: Nat, root_path: String, language: T.Language,
+    context: T.FrontendContext, clock: T.ClockToken, caller_cache: Maybe<&2, T.CacheToken>,
+    next_request: Nat, iterations: Nat, active_target: Nat, edge: V.PendingPayload}
+type Phase is Data:
+  Phase{frame: V.Frame, child: Child, capsule: Capsule}
+
+def main() -> Unit:
+  Unit{}
