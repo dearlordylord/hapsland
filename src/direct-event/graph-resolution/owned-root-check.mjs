@@ -8,9 +8,8 @@ import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
-import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
 const temp = await mkdtemp("/tmp/hapsland-owned-root-")
 try {
@@ -335,16 +334,17 @@ try {
             !triggered &&
             request.operation.$ === "Types.CaptureSource"
           ) {
-            const pending = registry
-              .get(Number(request.invocation))
-              .perform(request, mode === "cancel-inflight-success" ? { ...options, signal: undefined } : options)
+            const pending = registry.perform(
+              request,
+              mode === "cancel-inflight-success" ? { ...options, signal: undefined } : options
+            )
             triggered = true
             beforeCancelResumes = driver.stats.resumes
             driver.cancel(request.invocation)
-            return pureReply(await pending)
+            return await pending
           }
           if (mode === "late-rejection") throw new Error("injected late provider rejection")
-          return pureReply(await registry.get(Number(request.invocation)).perform(request, options))
+          return await registry.perform(request, options)
         }
       })
       const resolver = createBendResolver({
@@ -474,8 +474,7 @@ try {
       scope,
       artifacts,
       registry,
-      foreign: async ([request], options) =>
-        pureReply(await registry.get(Number(request.invocation)).perform(request, options))
+      foreign: async ([request], options) => await registry.perform(request, options)
     })
     const resolver = createBendResolver({
       registry,

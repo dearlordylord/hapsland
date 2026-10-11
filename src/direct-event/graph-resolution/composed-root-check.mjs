@@ -9,8 +9,7 @@ import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createVerificationResolver as createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
 import { createArtifactMachine } from "../../../packages/resident-runtime/src/resident/review-work/composition/artifact-dispatcher.mjs"
 const temp = await mkdtemp("/tmp/hapsland-composed-root-")
@@ -278,7 +277,7 @@ try {
     registry,
     foreign: async ([request], options) => {
       operations.push(request.operation.$)
-      const reply = pureReply(await registry.get(Number(request.invocation)).perform(request, options))
+      const reply = await registry.perform(request, options)
       const cancelled = machine.resume(activeState, t("CancelInvocation", { invocation: request.invocation }))
       assert.equal(machine.view(cancelled).failure.$, "Types.InvocationCancelled")
       assert.equal(

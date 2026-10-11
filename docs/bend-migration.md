@@ -583,3 +583,15 @@ Astra's exact ordered appended_nodes assembly is checked under hard five seconds
 (exit 0, 3.257 seconds); original parent_attachment_exact premises and conclusion
 are unchanged and its body remains unfinished. This prefix is saved with the
 whole service-capability WIP, not counted as whole-law or production acceptance.
+
+The two remaining root resolver verification consumers now use the same public
+Graph service registry and its encoded perform operation, including the in-flight
+cancellation branch. Ordinary lint selects both changed files and passes; the
+real development-import gate reports 13 remaining violations (previously 17).
+No import exclusion or helper export was added. The actual owned-root run stops
+before fixtures because unchanged ArtifactComposition emission exceeds hard five
+seconds; its independent emission canary also exits 124. Consumer qualification
+remains open and the deadline is unchanged. Astra's three retained freshness-count
+proof additions remain WIP: both their prefix and the formerly passing baseline
+time out at five seconds, with baseline CPU usage only 2.435 seconds. Original
+parent law/premises remain unchanged; no whole-law acceptance is claimed.

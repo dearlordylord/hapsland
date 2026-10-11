@@ -710,6 +710,45 @@ def appended_nodes(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local
     parent_common_nodes(parents, slots, child_slots, catalog, addresses, child_addresses, parent_values, dense, parent_present),
     child_common_nodes(parents, slots, children, child_slots, catalog, addresses, child_addresses, child_values, dense, aligned, owned, child_present))
 
+# Fresh constructions and the retained parent occupy disjoint episodes. The
+# routes remain arbitrary; no path equality or tree-shape premise is added.
+def later_address_distinct(+prior: Nat, +later: Nat, +prior_route: List<&2, Nat>, +later_route: List<&2, Nat>,
+    below: {Nat.is_lt(prior, later) == True{} : Bool}) ->
+    {F.same_address(O.NodeAddress{later, later_route}, O.NodeAddress{prior, prior_route}) == False{} : Bool}:
+  %Equal.sym(Bool, Nat.is_eq(later, prior), False{},
+    Equal.trans(Bool, Nat.is_eq(later, prior), Nat.is_eq(prior, later), False{}, Structure.is_eq_comm(later, prior), Structure.unequal_below(prior, later, below))):
+    {Bool.and(_, F.same_route(later_route, prior_route)) == False{} : Bool}
+  {==}
+
+def prior_nodes_exclude_fresh(items: List<&2, F.Node>, +episode: Nat, +route: List<&2, Nat>,
+    +before: {Relation.episodes_before(items, episode) == True{} : Bool}) ->
+    {F.count_address(items, O.NodeAddress{episode, route}) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case F.Node{O.NodeAddress{+prior, +prior_route}, _, _} <> +tail:
+      %Equal.sym(Bool, F.same_address(O.NodeAddress{episode, route}, O.NodeAddress{prior, prior_route}), False{},
+        later_address_distinct(prior, episode, prior_route, route,
+          B.eq_true_of_and_left(Nat.is_lt(prior, episode), Relation.episodes_before(tail, episode), before))):
+        {(Bool.pick(Nat, _, 1n, 0n) + F.count_address(tail, O.NodeAddress{episode, route}) : Nat) == 0n : Nat}
+      prior_nodes_exclude_fresh(tail, episode, route,
+        B.eq_true_of_and_right(Nat.is_lt(prior, episode), Relation.episodes_before(tail, episode), before))
+
+def fresh_nodes_exclude_prior(items: List<&2, F.Node>, +episode: Nat, +prior: Nat, +route: List<&2, Nat>,
+    +fresh: {Ready.episode_nodes(items, episode) == True{} : Bool},
+    +below: {Nat.is_lt(prior, episode) == True{} : Bool}) ->
+    {F.count_address(items, O.NodeAddress{prior, route}) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case F.Node{O.NodeAddress{+actual, +actual_route}, _, _} <> +tail:
+      %Equal.sym(Bool, Nat.is_eq(prior, actual), False{},
+        %Equal.sym(Nat, actual, episode,
+          N.eq_of_is_eq(actual, episode, B.eq_true_of_and_left(Nat.is_eq(actual, episode), Ready.episode_nodes(tail, episode), fresh))):
+          {Nat.is_eq(prior, _) == False{} : Bool}
+        Structure.unequal_below(prior, episode, below)):
+        {(Bool.pick(Nat, Bool.and(_, F.same_route(route, actual_route)), 1n, 0n) + F.count_address(tail, O.NodeAddress{prior, route}) : Nat) == 0n : Nat}
+      fresh_nodes_exclude_prior(tail, episode, prior, route,
+        B.eq_true_of_and_right(Nat.is_eq(actual, episode), Ready.episode_nodes(tail, episode), fresh), below)
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>
