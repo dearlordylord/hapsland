@@ -361,7 +361,18 @@ export function createPreparationForeign({
   const capability = createPreparationCapability({
     canonicalGate,
     performEffect,
-    context: { ...context, settings },
+    context: {
+      get settings() {
+        return settings
+      },
+      get rules() {
+        return context.rules
+      },
+      get observePreparationOmission() {
+        const observer = context.observePreparationOmission
+        return observer === undefined ? undefined : (...args) => observer.apply(context, args)
+      }
+    },
     root,
     graphLimits,
     capturedSources: cache
