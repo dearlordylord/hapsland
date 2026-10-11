@@ -1,0 +1,390 @@
+import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
+export function createGraphFixtures() {
+  const c = GRAPH_LIMIT_CEILINGS
+  const localSource =
+    "interface Shared { value: string }\n" +
+    Array.from(
+      { length: 12 },
+      (_, i) =>
+        `interface C${i} { ${i < 6 ? Array.from({ length: 6 }, (_, j) => `b${j}: C${j + 6}`).join("; ") : "shared: Shared"} }`
+    ).join("\n") +
+    "\nexport interface Root { " +
+    Array.from({ length: 60 }, (_, i) => `p${i}: C${i % 12}`).join("; ") +
+    " }"
+  const diamondSource =
+    Array.from({ length: 6 }, (_, i) => `import type { A${i} } from './a${i}';`).join("\n") +
+    "\nexport interface Root { " +
+    Array.from({ length: 6 }, (_, i) => `a${i}: A${i}`).join("; ") +
+    " }"
+  const diamondFiles = Object.fromEntries(
+    Array.from({ length: 6 }, (_, i) => [
+      `a${i}.ts`,
+      `import type { Shared } from './shared'; interface Leaf${i} { value: string }; export interface A${i} { leaf: Leaf${i}; shared: Shared }`
+    ])
+  )
+  diamondFiles["shared.ts"] = "import type { Root } from './root'; export interface Shared { root: Root }"
+  return [
+    {
+      name: "go-root-type",
+      path: "root.go",
+      source: "package fixture\ntype Root struct { Value string }\n",
+      files: { "go.mod": "module example.test/fixture\ngo 1.27\n" },
+      requireUnit: true
+    },
+    {
+      name: "go-local-type-cycle",
+      path: "root.go",
+      source: "package fixture\ntype Child struct { Parent *Root }\ntype Root struct { Child Child }\n",
+      files: { "go.mod": "module example.test/fixture\ngo 1.27\n" },
+      requiredExpanded: ["Child"]
+    },
+    {
+      name: "go-import-local-module",
+      path: "root.go",
+      source: 'package fixture\nimport "example.test/fixture/domain"\ntype Root struct { Child domain.Child }\n',
+      files: {
+        "go.mod": "module example.test/fixture\ngo 1.27\n",
+        "domain/child.go": "package domain\ntype Child struct { Value string }\n"
+      },
+      requiredExpanded: ["Child"]
+    },
+    {
+      name: "python-empty-file-budget",
+      path: "root.py",
+      source: "class Root:\n    value: str",
+      files: {},
+      limits: { files: 0 }
+    },
+    {
+      name: "python-preparation-deadline",
+      path: "root.py",
+      source: "class Root:\n    value: str",
+      files: {},
+      expireAt: 1
+    },
+    {
+      name: "python-class-local-cycle",
+      path: "root.py",
+      source: "class Child:\n    root: Root\nclass Root:\n    child: Child",
+      files: {},
+      requiredExpanded: ["Child"]
+    },
+    {
+      name: "python-class-diamond",
+      path: "root.py",
+      source:
+        "class Leaf:\n    value: str\nclass Left:\n    leaf: Leaf\nclass Right:\n    leaf: Leaf\nclass Root:\n    left: Left\n    right: Right",
+      files: {},
+      requiredExpanded: ["Left", "Right", "Leaf"]
+    },
+    {
+      name: "python-type-alias",
+      path: "root.py",
+      source: "from typing import TypeAlias\nclass Child:\n    value: str\nRoot: TypeAlias = Child | None",
+      files: {},
+      requiredExpanded: ["Child"]
+    },
+    {
+      name: "python-import-unsupported",
+      path: "root.py",
+      source: "from other import Child\nclass Root:\n    child: Child",
+      files: { "other.py": "class Child:\n    value: str" }
+    },
+    {
+      name: "python-function-unsupported",
+      path: "root.py",
+      branch: "function",
+      source: "def Root(value: str) -> str:\n    return value",
+      files: {}
+    },
+    {
+      name: "python-local-work-refusal",
+      path: "root.py",
+      source: "class Child:\n    value: str\nclass Root:\n    child: Child",
+      files: {},
+      limits: { work: 1 }
+    },
+    {
+      name: "python-tree-refusal",
+      path: "root.py",
+      source: "class Child:\n    value: str\nclass Root:\n    child: Child",
+      files: {},
+      limits: { treeBytes: 1 }
+    },
+    {
+      name: "python-deadline-before-complete",
+      path: "root.py",
+      source: "class Root:\n    value: str",
+      files: {},
+      expireAt: 2
+    },
+    {
+      name: "bend-unsupported-relative-import",
+      path: "parent.bend/child/root.bend",
+      source: "import ../ as A\ntype Root is Data:\n  Root{a: A.A}",
+      files: {}
+    },
+    { name: "absolute-import-spelling", importPath: "/absolute/a", files: {} },
+    {
+      name: "typescript-js-replacement",
+      importPath: "./a.js",
+      files: { "a.ts": "export interface A {}" },
+      requiredExpanded: ["A"]
+    },
+    {
+      name: "typescript-uppercase-js-replacement",
+      importPath: "./a.JS",
+      files: { "a.ts": "export interface A {}" },
+      requiredExpanded: ["A"]
+    },
+    {
+      name: "typescript-mjs-replacement",
+      importPath: "./a.mjs",
+      files: { "a.mts": "export interface A {}" },
+      requiredExpanded: ["A"]
+    },
+    {
+      name: "typescript-cjs-replacement",
+      importPath: "./a.cjs",
+      files: { "a.cts": "export interface A {}" },
+      requiredExpanded: ["A"]
+    },
+    {
+      name: "rust-context-read-policy",
+      path: "src/lib.rs",
+      source: "mod a; use crate::a::A; pub struct Root { a: A }",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"', "src/a.rs": "pub struct A {}" },
+      cache: new Map(),
+      policy: { includes: ["src/**"], excludes: [], languages: ["rust"], contextIncludes: ["**"], contextExcludes: [] },
+      requiredExpanded: ["A"]
+    },
+    {
+      name: "bend-qualified-import",
+      path: "root.bend",
+      source: "import ./a.bend as A\ntype Root is Data:\n  Root{a: A.A}",
+      files: { "a.bend": "type A is Data:\n  A{}" },
+      requiredExpanded: ["A"]
+    },
+    {
+      name: "bend-bundled-list",
+      path: "root.bend",
+      source: "import Base\ntype Root is Data:\n  Root{values: List<&2,U32>}",
+      files: {},
+      requiredExpanded: ["List"]
+    },
+    { name: "large-local-reuse", source: localSource, files: {}, requireUnit: true },
+    {
+      name: "large-import-diamond-cycle",
+      source: diamondSource,
+      files: diamondFiles,
+      cache: new Map(),
+      requireUnit: true
+    },
+    {
+      name: "rust-unicode-multiple-roles",
+      path: "src/a.rs",
+      source: "// use\npub struct Root {}",
+      files: {
+        "Cargo.toml":
+          '[package]\nname="fixture"\nedition="2024"\n[lib]\npath="src/\ue000.rs"\n[[bin]]\nname="other"\npath="src/\u{10000}.rs"',
+        "src/\ue000.rs": "mod a;",
+        "src/\u{10000}.rs": "mod a;"
+      },
+      cache: new Map()
+    },
+    {
+      name: "rust-nonfile-manifest",
+      path: "src/lib.rs",
+      source: "// use\npub struct Root {}",
+      files: {},
+      directories: ["src/Cargo.toml"],
+      cache: new Map()
+    },
+    {
+      name: "rust-preparation-work-refusal",
+      path: "src/lib.rs",
+      source: "mod a; pub struct Root {}",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"', "src/a.rs": "pub struct A {}" },
+      cache: new Map(),
+      limits: { work: 1 }
+    },
+    {
+      name: "rust-deadline-before-complete",
+      path: "src/lib.rs",
+      source: "mod a; pub struct Root {}",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"', "src/a.rs": "pub struct A {}" },
+      cache: new Map(),
+      expireAt: 3
+    },
+    {
+      name: "rust-custom-library",
+      path: "library/root.rs",
+      source: "mod a; use crate::a::A; pub struct Root { a: A }",
+      files: {
+        "Cargo.toml": '[package]\nname="fixture"\nedition="2024"\n[lib]\npath="library/root.rs"',
+        "library/a.rs": "pub struct A {}"
+      },
+      cache: new Map()
+    },
+    {
+      name: "rust-automatic-bin",
+      path: "src/bin/tool.rs",
+      source: "mod a; use crate::a::A; pub struct Root { a: A }",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"', "src/bin/a.rs": "pub struct A {}" },
+      cache: new Map()
+    },
+    {
+      name: "rust-explicit-bin",
+      path: "apps/foo.rs",
+      source: "mod a; use crate::a::A; pub struct Root { a: A }",
+      files: {
+        "Cargo.toml":
+          '[package]\nname="fixture"\nedition="2024"\nautolib=false\n[[bin]]\nname="foo"\npath="apps/foo.rs"',
+        "apps/a.rs": "pub struct A {}"
+      },
+      cache: new Map()
+    },
+    {
+      name: "rust-date-library",
+      path: "src/lib.rs",
+      source: "mod a; use crate::a::A; pub struct Root { a: A }",
+      files: {
+        "Cargo.toml": 'lib=1979-05-27\n[package]\nname="fixture"\nedition="2021"',
+        "src/a.rs": "pub struct A {}"
+      },
+      cache: new Map()
+    },
+    {
+      name: "rust-cargo-depth",
+      path: "src/a/sub.rs",
+      source: "use crate::b::B; pub struct Root { b: B }",
+      files: {
+        "Cargo.toml": '[package]\nname="fixture"\nedition="2018"',
+        "src/lib.rs": "mod a; mod b;",
+        "src/a/mod.rs": "mod sub;",
+        "src/b.rs": "pub struct B {}"
+      },
+      cache: new Map(),
+      limits: { depth: 1 }
+    },
+    { name: "rust-local", path: "root.rs", source: "pub struct Root { ready: bool }", files: {} },
+    {
+      name: "rust-cargo-root",
+      path: "src/lib.rs",
+      source: "mod a; use crate::a::A; pub struct Root { a: A }",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"', "src/a.rs": "pub struct A { ready: bool }" },
+      cache: new Map()
+    },
+    {
+      name: "rust-cargo-child",
+      path: "src/a.rs",
+      source: "use crate::b::B; pub struct Root { b: B }",
+      files: {
+        "Cargo.toml": '[package]\nname="fixture"\nedition="2021"',
+        "src/lib.rs": "mod a; mod b;",
+        "src/b.rs": "pub struct B { ready: bool }"
+      },
+      cache: new Map()
+    },
+    {
+      name: "rust-cargo-nested",
+      path: "src/a/sub.rs",
+      source: "use crate::b::B; pub struct Root { b: B }",
+      files: {
+        "Cargo.toml": '[package]\nname="fixture"\nedition="2018"',
+        "src/lib.rs": "mod a; mod b;",
+        "src/a/mod.rs": "mod sub;",
+        "src/b.rs": "pub struct B {}"
+      },
+      cache: new Map()
+    },
+    {
+      name: "rust-cargo-ambiguous-module",
+      path: "src/a/sub.rs",
+      source: "use crate::b::B; pub struct Root { b: B }",
+      files: {
+        "Cargo.toml": '[package]\nname="fixture"\nedition="2021"',
+        "src/lib.rs": "mod a; mod b;",
+        "src/a.rs": "mod sub;",
+        "src/a/mod.rs": "mod sub;",
+        "src/b.rs": "pub struct B {}"
+      },
+      cache: new Map()
+    },
+    {
+      name: "rust-cargo-build",
+      path: "src/lib.rs",
+      source: "mod a; pub struct Root {}",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2021"\nbuild=true', "src/a.rs": "pub struct A {}" },
+      cache: new Map()
+    },
+    { name: "rust-no-manifest", path: "root.rs", source: "// use\npub struct Root {}", files: {}, cache: new Map() },
+    {
+      name: "rust-cargo-cache-refusal",
+      path: "src/lib.rs",
+      source: "mod a; pub struct Root {}",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2021"', "src/a.rs": "pub struct A {}" },
+      cache: new Map(Array.from({ length: 64 }, (_, i) => ["cached" + i, { text: "", byteLength: 0 }]))
+    },
+    { name: "bundled", path: "root.bend", source: "import Base\ntype Root is Data:\n  Root{flag: Bool}", files: {} },
+    {
+      name: "negative-graph-work",
+      source: "import type { A } from './a'; import type { B } from './b'; export interface Root { a: A; b: B }",
+      files: {
+        "a.ts": "interface X {} interface Y {} interface Z {} export interface A { x: X; y: Y; z: Z }",
+        "b.ts": "interface W {} export interface B { w: W }"
+      },
+      limits: { work: 5, outgoingEdges: 2 },
+      cache: new Map(),
+      technicalFailure: true
+    },
+    { name: "single-child", files: { "a.ts": "interface Local {} export interface A { value: Local }" } },
+    {
+      name: "bend-import",
+      path: "root.bend",
+      source: "import ./a.bend\ntype Root is Data:\n  Root{a: A}",
+      files: { "a.bend": "type A is Data:\n  A{}" }
+    },
+    {
+      name: "function-import",
+      branch: "function",
+      source: "import { A } from './a'; export function Root(value: string): string { return A(value) }",
+      files: { "a.ts": "export function A(value: string): string { return value }" }
+    },
+    {
+      name: "nested-child",
+      files: { "a.ts": "import type { B } from './b'; export interface A { b: B }", "b.ts": "export interface B {}" }
+    },
+    {
+      name: "tree-refusal",
+      files: { "a.ts": "export interface A { long: string; name: number }" },
+      limits: { treeBytes: 400 }
+    },
+    { name: "missing", files: {} },
+    { name: "ambiguous", files: { "a.ts": "export interface A {}", "a.tsx": "export interface A {}" } },
+    { name: "outside", importPath: "../a", files: {} },
+    { name: "unsupported-extension", importPath: "./a.json", files: { "a.json": "{}" } },
+    {
+      name: "root-cycle",
+      source: "import type { Root as A } from './root'; export interface Root { a: A }",
+      files: {}
+    },
+    { name: "unsupported-frontend", files: { "a.ts": "export const value = 1" } },
+    {
+      name: "source-oversize",
+      files: { "a.ts": "export interface A {}" },
+      cache: new Map([["a.ts", { text: "export interface A {}", byteLength: c.sourceBytes + 1 }]])
+    },
+    {
+      name: "cache-files",
+      files: { "a.ts": "export interface A {}" },
+      cache: new Map(Array.from({ length: 64 }, (_, i) => ["cached" + i, { text: "", byteLength: 0 }]))
+    },
+    {
+      name: "cache-bytes",
+      files: { "a.ts": "export interface A {}" },
+      cache: new Map([["cached", { text: "", byteLength: 16777216 }]])
+    },
+    { name: "capture-unavailable", files: { "a.ts": "export interface A {}" }, unavailable: true }
+  ]
+}

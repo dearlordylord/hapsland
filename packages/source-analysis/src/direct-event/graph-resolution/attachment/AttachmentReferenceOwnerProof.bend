@@ -5,7 +5,7 @@ import ./AttachmentNaturalArithmeticFacts.bend as N
 import ./RetainedForestProjection.bend as P
 import ../Core.bend as Core
 import ../traversal/core.bend as Local
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ../traversal/GRAPH_LIST_FACTS.bend as Lists
 import ../traversal/GRAPH_REVERSE_FACTS.bend as Reversal
 

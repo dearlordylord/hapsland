@@ -10,7 +10,7 @@ import ../ForestSpecification.bend as F
 import ../WholeObservation.bend as O
 import ../Types.bend as T
 import ../traversal/core.bend as Local
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def other_lookup(+wanted: Nat, +written: Nat, +value: T.ProductValue, +built: Map<&2, Maybe<&2, T.ProductValue>>,
     different: {Nat.is_eq(written, wanted) == False{} : Bool},

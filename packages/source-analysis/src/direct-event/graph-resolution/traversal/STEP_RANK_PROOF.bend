@@ -3,8 +3,8 @@ import ./core.bend as Core
 import ./Traversal.bend as CoreTraversal
 import ./RANK.bend as Rank
 import ./CHILD_INVENTORY_PROOF.bend as Inventory
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 import ../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
 import ../../../../../../vendor/bendlib/packages/bend-mathlib/bool.bend as BoolFacts
 

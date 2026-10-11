@@ -1,14 +1,14 @@
 import Base
 import ../Core.bend as Core
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # One private exact payload transport for the whole resolver's existing Maps:
 # built products, artifact index, and ordered reference groups. No new state
 # representation, key-freshness premise, or restriction on payload contents.
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
+import ../traversal/patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 import ../traversal/INTERPRETER_STRING_FACTS.bend as StringFacts
 import ../traversal/core.bend as Local
-import ../representations/list-state/PATRICIA_BIT_PROOF.bend as BitProof
+import ../traversal/patricia-proof/PATRICIA_BIT_PROOF.bend as BitProof
 
 # Proof-only recursive observation of actual Map.get routing and leaf result.
 # This operates directly on the existing Map; it is not a runtime state model.

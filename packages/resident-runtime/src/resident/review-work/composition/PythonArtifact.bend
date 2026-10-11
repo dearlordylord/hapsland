@@ -2,7 +2,7 @@ import Base
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ./ArtifactProtocol.bend as A
 import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/Session.bend as Python
-import ../../../../../review-execution/src/direct-event/preparation/PreparationMachine.bend as Preparation
+import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/PreparationMachine.bend as Preparation
 import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/InspectMachine.bend as Inspect
 import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ResolveImportMachine.bend as Import
 import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/RevalidationMachine.bend as Revalidation

@@ -14,8 +14,8 @@ import ./CONTINUATION_BOUND_PROOF.bend as Bound
 import ./CONTINUATION_ADEQUATE_PROOF.bend as Adequate
 import ./CONTINUATION_STATE_PROOF.bend as State
 import ./INTERPRETER_ORDER_PROOF.bend as Order
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 
 def entered_valid(+facts: Core.Facts, +path: String, +visited: Map<&2, Bool>, +budget: Core.Budget,
     +declaration: Core.Declaration, +depth: Nat,

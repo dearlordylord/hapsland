@@ -12,7 +12,7 @@ import ./CONTINUATION_CHILD_PROOF.bend as Child
 import ./CONTINUATION_STATE_PROOF.bend as State
 import ./CONTINUATION_PREFIX_PROOF.bend as Prefix
 import ./INTERPRETER_COMPLETION_RELATION.bend as C
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Actual first nonempty frame, with the parent's fuel already normalized.
 def head_exact(

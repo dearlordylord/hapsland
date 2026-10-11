@@ -3,7 +3,7 @@ import ./core.bend as Core
 import ./Traversal.bend as CoreTraversal
 import ./RANK.bend as Rank
 import ./STEP_RANK_PROOF.bend as Step
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
 import ../../../../../../vendor/bendlib/packages/bend-mathlib/bool.bend as BoolFacts
 

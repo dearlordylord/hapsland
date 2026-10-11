@@ -13,7 +13,7 @@ import ./ComposedBudget.bend as Budget
 import ./python-module/ResolveImportMachine.bend as Import
 import ./traversal/core.bend as Local
 import ./python-module/Session.bend as Python
-import ../../../../review-execution/src/direct-event/preparation/PreparationMachine.bend as Preparation
+import ./python-module/PreparationMachine.bend as Preparation
 import ./python-module/InspectMachine.bend as Inspect
 import ../../../../agent-flow-bend/ImportGraph.bend as Graph
 

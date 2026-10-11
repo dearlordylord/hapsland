@@ -10,7 +10,7 @@ import ./CONTINUATION_RUN_PROOF.bend as Run
 import ./CONTINUATION_INITIAL_PROOF.bend as Recursive
 import ./CONTINUATION_STATE_PROOF.bend as State
 import ./PRODUCTION_COMPLETION_PROOF.bend as Production
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
 
 def found_exact(+found: Maybe<&2, Core.Declaration>, +facts: Core.Facts,

@@ -1,6 +1,6 @@
 import Base
 import ./AttachmentMapPayloadMutantCore.bend as Core
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # One private exact payload transport for the whole resolver's existing Maps:
 # built products, artifact index, and ordered reference groups. No new state

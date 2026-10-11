@@ -7,8 +7,8 @@ import ./RANK.bend as Rank
 import ./INITIAL_RANK_PROOF.bend as Initial
 import ./RUN_RANK_PROOF.bend as Run
 import ./VISITED_PROOF.bend as Visited
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 import ../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
 
 # The observation discriminator transports actual completion, not equality of failures.

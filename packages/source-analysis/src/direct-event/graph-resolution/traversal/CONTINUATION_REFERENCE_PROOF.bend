@@ -11,7 +11,7 @@ import ./CONTINUATION_CHILD_PROOF.bend as Child
 import ./CONTINUATION_EXPANSION_PROOF.bend as Expansion
 import ./INTERPRETER_ORDER_PROOF.bend as Order
 import ./INTERPRETER_COMPLETION_NAT_FACTS.bend as NatFacts
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Proof-only observation of the actual independent single-reference result.
 # Its recursive child remains Spec.interpret; this adds no classifier or transition.

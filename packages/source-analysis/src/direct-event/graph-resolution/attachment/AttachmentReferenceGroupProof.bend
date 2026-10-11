@@ -1,11 +1,11 @@
 import Base
 import ../traversal/GRAPH_LIST_FACTS.bend as Lists
 import ../traversal/INTERPRETER_STRING_FACTS.bend as Strings
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
+import ../traversal/patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 import ./AttachmentMapPayloadTransport.bend as MapPayload
 import ../Core.bend as Core
 import ../traversal/core.bend as Local
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Filter in source order by actual existing Map key; arbitrary query also covers
 # absent keys. Numeric owner projection follows the proved natural-key bridge.

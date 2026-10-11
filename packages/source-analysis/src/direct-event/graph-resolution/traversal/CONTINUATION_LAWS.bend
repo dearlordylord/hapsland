@@ -1,7 +1,7 @@
 import Base
 import ./core.bend as Core
 import ./Traversal.bend as CoreTraversal
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ./RANK.bend as Rank
 import ./RELATION.bend as Relation
 import ./CONTINUATION.bend as Continuation

@@ -4,7 +4,7 @@ import ./AttachmentMapPayloadTransport.bend as Payload
 import ./RetainedForestProjection.bend as P
 import ../Core.bend as Core
 import ../Types.bend as T
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def build_rows(entries: List<&2, T.ArtifactEntry>, +written: Nat, +artifact: T.Artifact,
     +index: Map<&2, Maybe<&2, T.Artifact>>,

@@ -2,8 +2,8 @@ import Base
 import ./core.bend as Core
 import ./Traversal.bend as CoreTraversal
 import ./RANK.bend as Rank
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 import ./INTERPRETER_NAT_FACTS.bend as NatFacts
 
 # Exact tuple projection, independent of the boundary-history qualification closure.

@@ -13,7 +13,7 @@ import ./INTERPRETER_ORDER_PROOF.bend as Order
 import ./FUEL_COHERENCE.bend as Coherence
 import ./FUEL_COHERENCE_LAWS.bend as Fuel
 import ./FUEL_COHERENCE_PROOF.bend as FuelProof
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Bound changes are normalized only after actual complete results are available.
 def suffix_contract(+facts: Core.Facts, +frames: List<&2, Core.Frame>, +path: String,

@@ -1,5 +1,5 @@
 import Base
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ./AttachmentPhaseView.bend as Phase
 import ./AttachmentFrameView.bend as V
 import ./ActualAttachmentFrameProjection.bend as Frame

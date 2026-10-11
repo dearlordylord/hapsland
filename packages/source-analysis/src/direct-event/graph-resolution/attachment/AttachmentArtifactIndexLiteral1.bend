@@ -3,7 +3,7 @@ import ../Core.bend as Core
 import ../ForestSpecification.bend as F
 import ../Types.bend as T
 import ./RetainedForestProjection.bend as P
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def entries_2(+one: T.Artifact, +two: T.Artifact, +three: T.Artifact) -> List<&2, T.ArtifactEntry>:
   [T.ArtifactEntry{10n, one}]

@@ -5,7 +5,7 @@ import ./SPEC.bend as Spec
 import ./RANK.bend as Rank
 import ./INTERPRETER_MEASURE.bend as Measure
 import ./CHILD_INVENTORY_PROOF.bend as Child
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ./INTERPRETER_COMPLETION_NAT_FACTS.bend as NatFacts
 
 # Internal transports for the approved coupled interpreter/flatten theorem.

@@ -2,7 +2,7 @@ import Base
 import ../ReferenceGroupMutantCore.bend as Core
 import ../traversal/core.bend as Local
 import ./RetainedForestProjection.bend as P
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def slots_0() -> List<&2, Local.ReferenceSlot>:
   []

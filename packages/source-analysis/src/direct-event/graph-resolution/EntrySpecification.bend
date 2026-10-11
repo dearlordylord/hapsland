@@ -3,7 +3,7 @@ import ./BoundaryValidationSpecification.bend as Boundary
 import ./Types.bend as T
 import ./Environment.bend as E
 import ./WholeObservation.bend as O
-import ../../../../review-execution/src/direct-event/preparation/PreparationSpecification.bend as P
+import ./PreparationSpecification.bend as P
 import ./RustSpecification.bend as Rust
 import ./SPEC.bend as Root
 import ./ForestSpecification.bend as F

@@ -11,7 +11,7 @@ import ./INTERPRETER_LAWS.bend as Interpreter
 import ./INTERPRETER_PROOF.bend as InterpreterProof
 import ./INTERPRETER_FLATTEN_PROOF.bend as Flatten
 import ./INTERPRETER_ORDER_PROOF.bend as Order
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # This continuation contract is instantiated only by smaller actual frame tails.
 def suffix_contract(

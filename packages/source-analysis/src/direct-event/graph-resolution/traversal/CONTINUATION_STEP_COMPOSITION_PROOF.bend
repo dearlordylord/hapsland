@@ -10,7 +10,7 @@ import ./CONTINUATION_PARENT_FUEL_PROOF.bend as Parent
 import ./CONTINUATION_BOUND_PROOF.bend as Bound
 import ./CONTINUATION_STATE_PROOF.bend as State
 import ./CONTINUATION_PREFIX_PROOF.bend as Prefix
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Whole nonempty-frame step. The different recursive request depths are exact;
 # only the already-completed parents' adequate fuel is transported.

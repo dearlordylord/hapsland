@@ -4,7 +4,7 @@ import ./Traversal.bend as CoreTraversal
 import ./SPEC.bend as Spec
 import ./RANK.bend as Rank
 import ./INTERPRETER_MEASURE.bend as Measure
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Internal success predicates retain the exact actual recursive results. They
 # are only abbreviations used to prove the already approved coupled theorem.

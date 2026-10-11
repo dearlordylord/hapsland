@@ -11,7 +11,7 @@ import ./CONTINUATION_BOUND_PROOF.bend as Bound
 import ./CONTINUATION_STATE_PROOF.bend as State
 import ./STEP_RANK_PROOF.bend as StepRank
 import ./INTERPRETER_ORDER_PROOF.bend as Order
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def after_valid(+machine: Core.Machine,
     valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},

@@ -9,7 +9,7 @@ import ../ForestSpecification.bend as F
 import ../WholeObservation.bend as O
 import ../Types.bend as T
 import ../traversal/core.bend as Local
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def copies(count: Nat, -Claim: Type) -> Type:
   Copies.copies(count, Claim)

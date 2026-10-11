@@ -6,7 +6,7 @@ import ./RANK_INVENTORY_LAWS.bend as Inventory
 import ./RANK_INVENTORY_PROOF.bend as InventoryProof
 import ./MAP_WEIGHT_LAWS.bend as Weight
 import ./MAP_WEIGHT_PROOF.bend as WeightProof
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
 
 law initial_rank_bound:

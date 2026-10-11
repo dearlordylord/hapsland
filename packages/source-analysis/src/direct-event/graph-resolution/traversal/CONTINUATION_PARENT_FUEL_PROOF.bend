@@ -10,7 +10,7 @@ import ./INTERPRETER_MEASURE.bend as Measure
 import ./INTERPRETER_LAWS.bend as Interpreter
 import ./INTERPRETER_PROOF.bend as InterpreterProof
 import ./INTERPRETER_ORDER_PROOF.bend as Order
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Change only the parent continuation fuel; the actual first-frame interpreter
 # and its flatten fuel stay fixed. This is an internal full-step transport.

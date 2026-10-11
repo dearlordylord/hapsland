@@ -10,7 +10,7 @@ import ./CONTINUATION_PREFIX_PROOF.bend as Prefix
 import ./CONTINUATION_STATE_PROOF.bend as State
 import ./CONTINUATION_CHILD_PROOF.bend as Child
 import ./INTERPRETER_ORDER_PROOF.bend as Order
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # A proof-only explicit-fuel view of the SAME independent remaining-stack evaluator.
 def evaluate(fuel: Nat, machine: Core.Machine) -> Relation.Observation:

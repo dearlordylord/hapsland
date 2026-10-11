@@ -5,7 +5,7 @@ import ./AttachmentCatalogDistinctProof.bend as D
 import ./RetainedForestProjection.bend as P
 import ../Core.bend as Core
 import ../Types.bend as T
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Internal induction invariant for the one full existing index fold.
 def distinct(entries: List<&2, T.ArtifactEntry>) -> Bool:

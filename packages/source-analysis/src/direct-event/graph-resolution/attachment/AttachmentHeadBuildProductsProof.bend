@@ -12,8 +12,8 @@ import ../Core.bend as Core
 import ../ForestSpecification.bend as F
 import ../WholeObservation.bend as O
 import ../Types.bend as T
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 
 def needed(+id: Nat, slots: List<&2, Local.ReferenceSlot>, demand: Nat) -> Nat:
   +expanded = References.expanded_count(P.owner_slots(slots, id))

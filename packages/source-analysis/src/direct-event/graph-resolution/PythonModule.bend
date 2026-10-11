@@ -15,7 +15,7 @@ import ./python-module/Authority.bend as Authority
 import ./python-module/PackageParentsMachine.bend as Parents
 import ./python-module/ModuleTargetMachine.bend as Target
 import ./python-module/ResolveImportMachine.bend as Import
-import ../../../../review-execution/src/direct-event/preparation/PreparationMachine.bend as Preparation
+import ./python-module/PreparationMachine.bend as Preparation
 import ./python-module/InspectMachine.bend as Inspect
 
 # Entry for the in-progress Python child. Resolver and Canonical composition

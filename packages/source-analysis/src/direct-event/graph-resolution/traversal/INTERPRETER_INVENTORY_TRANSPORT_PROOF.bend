@@ -4,7 +4,7 @@ import ./core.bend as Core
 import ./SPEC.bend as Spec
 import ./RANK.bend as Rank
 import ./INTERPRETER_MEASURE.bend as Measure
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ./INTERPRETER_INVENTORY_RELATION.bend as R
 import ./INTERPRETER_PROJECTIONS_PROOF.bend as Prim
 

@@ -13,7 +13,7 @@ import ../Core.bend as Core
 import ../ForestSpecification.bend as F
 import ../WholeObservation.bend as O
 import ../Types.bend as T
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def updated(built: Map<&2, Maybe<&2, T.ProductValue>>, id: Nat, value: T.ProductValue) -> Map<&2, Maybe<&2, T.ProductValue>>:
   Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(id), Some{value})

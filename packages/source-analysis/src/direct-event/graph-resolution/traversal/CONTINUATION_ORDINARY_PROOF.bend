@@ -7,7 +7,7 @@ import ./CONTINUATION_MACHINE_PROOF.bend as Machine
 import ./CONTINUATION_REFERENCE_PROOF.bend as Reference
 import ./CONTINUATION_STATE_PROOF.bend as State
 import ./INTERPRETER_COMPLETION_RELATION.bend as C
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Full actual local branch, with the selected lookup supplied by ordinary lookup.
 # The recursive observation equation is the already checked concrete expansion.

@@ -14,7 +14,7 @@ import ../ForestSpecification.bend as F
 import ../Types.bend as T
 import ../traversal/core.bend as Local
 import ../traversal/GRAPH_LIST_FACTS.bend as Lists
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def groups(slots: List<&2, Local.ReferenceSlot>) -> Map<&2, List<&2, Local.ReferenceSlot>>:
   Core.group_references(List.reverse(&2, Local.ReferenceSlot, slots), MTip{})

@@ -2,7 +2,7 @@ import Base
 import ./core.bend as Core
 import ./Traversal.bend as CoreTraversal
 import ./RANK.bend as Rank
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # The actual selected root fits unchanged production fuel, even when already seen.
 law initial_rank_bound:

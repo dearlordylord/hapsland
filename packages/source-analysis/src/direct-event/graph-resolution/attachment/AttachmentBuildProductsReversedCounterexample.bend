@@ -8,7 +8,7 @@ import ../ForestSpecification.bend as F
 import ../WholeObservation.bend as O
 import ../Types.bend as T
 import ../traversal/core.bend as Local
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def artifact() -> T.Artifact:
   T.Artifact{None{}, None{}, "", T.FunctionArtifact{}, "", "", "", [T.ArtifactIdKey{}, T.ArtifactKindKey{}, T.ArtifactNameKey{}, T.ArtifactSourceKey{}, T.ArtifactHashKey{}]}

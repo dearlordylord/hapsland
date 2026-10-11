@@ -9,7 +9,7 @@ import ./CONTINUATION_TERMINAL_PROOF.bend as Terminal
 import ./STEP_RANK_PROOF.bend as StepRank
 import ./RUN_RANK_PROOF.bend as RunRank
 import ./INTERPRETER_ORDER_PROOF.bend as Order
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
 
 # Adequate production fuel is used only to rule out an incomplete terminal run.

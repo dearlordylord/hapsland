@@ -3,7 +3,7 @@ import ./core.bend as Core
 import ./SPEC.bend as Spec
 import ./RANK.bend as Rank
 import ./INTERPRETER_MEASURE.bend as Measure
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Entire actual independent interpreter, including partial failures. The catalog
 # being measured is arbitrary; no catalog routing or uniqueness premise is used.

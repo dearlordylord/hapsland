@@ -8,7 +8,7 @@ import ./INTERPRETER_LAWS.bend as Interpreter
 import ./INTERPRETER_PROOF.bend as InterpreterProof
 import ./INTERPRETER_INITIAL_PROOF.bend as Initial
 import ./VISITED_PROOF.bend as Visited
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Actual observation discriminators; no tree shape or address premise is added.
 def observed_flat_success(+flat: Spec.Flat, +state: Spec.State) -> {

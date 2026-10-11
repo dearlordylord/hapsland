@@ -13,7 +13,7 @@ import ../Core.bend as Core
 import ../ForestSpecification.bend as F
 import ../Types.bend as T
 import ../traversal/core.bend as Local
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Finite affine proof resources, never production state or an extra entry premise.
 def copies(count: Nat, -Claim: Type) -> Type:

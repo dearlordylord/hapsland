@@ -3,10 +3,10 @@ import ./core.bend as Core
 import ./SPEC.bend as Spec
 import ./RANK.bend as Rank
 import ./INTERPRETER_MEASURE.bend as Measure
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ./INTERPRETER_INVENTORY_RELATION.bend as R
 import ./INTERPRETER_INSERT_INVENTORY_PROOF.bend as Inventory
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
+import ./patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 
 def enter_progress(
   +state: Spec.State,

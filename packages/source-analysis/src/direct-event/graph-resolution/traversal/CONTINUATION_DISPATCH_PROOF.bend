@@ -9,7 +9,7 @@ import ./CONTINUATION_ORDINARY_PROOF.bend as Ordinary
 import ./CONTINUATION_BUNDLED_PROOF.bend as Bundled
 import ./CONTINUATION_STATE_PROOF.bend as State
 import ./INTERPRETER_COMPLETION_RELATION.bend as C
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 def named_exact(
   +target: Maybe<&2, String>,

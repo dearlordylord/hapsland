@@ -7,8 +7,8 @@ import ./AttachmentArtifactIndexConcreteRead.bend as Absence
 import ./AttachmentArtifactIndexInduction.bend as I
 import ./AttachmentCatalogDistinctProof.bend as D
 import ../traversal/INTERPRETER_BOOL_FACTS.bend as B
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as Insert
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ../Core.bend as Core
 import ../Types.bend as T
 import ./RetainedForestProjection.bend as P

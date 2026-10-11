@@ -4,8 +4,8 @@ import ./BOUNDARY.bend as Boundary
 import ./core.bend as Core
 import ./Traversal.bend as CoreTraversal
 import ./VISITED_HISTORY_PROOF.bend as HistoryProof
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
-import ../representations/list-state/PATRICIA_INSERT_PROOF.bend as InsertProof
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_INSERT_PROOF.bend as InsertProof
 
 # The existing HistoryProof supplies append closure without a second copy.
 # This fold establishes the canonical-map premise required by actual set/has.

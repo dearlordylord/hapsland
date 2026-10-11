@@ -14,7 +14,7 @@ import ./INTERPRETER_PROJECTIONS_PROOF.bend as Prim
 import ./INTERPRETER_ORDER_PROOF.bend as Order
 import ./INTERPRETER_COMPLETION_NAT_FACTS.bend as NatFacts
 import ./INTERPRETER_ENTER_PROOF.bend as Enter
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Whole sibling sequencing uses actual child-returned state. Its monotonicity
 # comes from the proved full interpreter, including failed partial execution.

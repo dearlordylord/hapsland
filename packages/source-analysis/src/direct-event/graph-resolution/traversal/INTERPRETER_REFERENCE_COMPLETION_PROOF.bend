@@ -8,7 +8,7 @@ import ./INTERPRETER_COMPLETION_RELATION.bend as C
 import ./INTERPRETER_REFERENCE_LEAF_PROOF.bend as Leaf
 import ./INTERPRETER_PROJECTIONS_PROOF.bend as Prim
 import ./INTERPRETER_ORDER_PROOF.bend as Order
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Actual child interpreter, fixed independently of the induction proof argument.
 def selected_value_exact(-V: Data, pair: Map<&2, V> & V) -> {

@@ -19,7 +19,7 @@ import ../ForestSpecification.bend as F
 import ../ForestAllowance.bend as Allowance
 import ../Types.bend as T
 import ../traversal/core.bend as Local
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Private dependency of the approved whole attachment law. Astra agreed the
 # statement before proof. This is not another migration acceptance frontier.

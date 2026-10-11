@@ -3,7 +3,7 @@ import ./core.bend as Core
 import ./Traversal.bend as CoreTraversal
 import ./RANK.bend as Rank
 import ./MAP_WEIGHT_LAWS.bend as Weight
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Actual selected-child expansion removes at least its reference inventory.
 # Only visited routing is required; the catalog may be any raw finite Map.

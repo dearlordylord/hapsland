@@ -3,7 +3,7 @@ import ./core.bend as Core
 import ./SPEC.bend as Spec
 import ./RANK.bend as Rank
 import ./INTERPRETER_MEASURE.bend as Measure
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ./INTERPRETER_ORDER_PROOF.bend as Facts
 
 # Generic scalar proof bodies keep actual inventory expressions opaque until use.

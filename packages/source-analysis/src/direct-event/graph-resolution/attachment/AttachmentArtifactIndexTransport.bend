@@ -6,7 +6,7 @@ import ./RetainedForestProjection.bend as P
 import ../Core.bend as Core
 import ../ForestSpecification.bend as F
 import ../Types.bend as T
-import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Exact full indexing fold at the existing review_unit entry: empty accumulator.
 # Distinct numeric handles are already required by the retained forest projection.
