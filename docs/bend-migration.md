@@ -127,6 +127,24 @@ are not source owners.
 
 One current obstacle list, in execution order:
 
+The whole-finalization replacement now has an internal `UnitEvidence.bend`
+stage at review-execution/preparation. Its compiled consumer agrees with native
+finalization on 59 evidence and metadata cases, including missing captures and
+first-declaration location lookup. Astra reviewed that lookup and fingerprint
+semantics. Integration must check root location before traversal and bind captures
+from the unique-path Map; metadata qualification alone does not replace RenderUnits.
+The stage passes its five-second Bend source check. The pinned formatter currently
+rejects its syntax with `Unsupported block expression in list`; formatting remains
+an open gate. Ordered rule freezing, provider selection, complete input/identity,
+whole laws and production Canonical integration remain required. No replacement
+production TypeScript has been deleted for this stage.
+
+At checkpoint `c2a75176`, the 2026-10-11 04:59 UTC build measurement reported
+ratio 1.2914 and failed parity; its first candidate sample had 15/46 cached tasks
+instead of 23/46, so a fully warm repeat is required. The 05:03 UTC execution
+measurement passed at 0.6336. Both measurements cover existing production,
+not the unconnected whole-finalization stage.
+
 1. Finish relocation dependency and nominal ABI qualification; remove obsolete
    representations and historical runners after identifying the retained closure.
    Actual sources are secured on the remote working branch at `8b67a18a`;

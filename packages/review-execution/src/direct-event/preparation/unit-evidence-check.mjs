@@ -11,6 +11,7 @@ import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph
 import { nativePrepareReadyUnits } from "./native-preparation-children.mjs"
 import {
   productValue,
+  fromProductValue,
   list,
   unlist
 } from "../../../../source-analysis/src/direct-event/graph-resolution/service-session.mjs"
@@ -26,6 +27,19 @@ const wire = (value) => {
         key === "$" && typeof item === "string" && item.startsWith("Types.")
           ? "../../../../source-analysis/src/direct-event/graph-resolution/Types." + item.slice(6)
           : wire(item)
+      ])
+    )
+  return value
+}
+const unwire = (value) => {
+  if (Array.isArray(value)) return value.map(unwire)
+  if (value !== null && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        key === "$" && typeof item === "string" && item.includes("/Types.")
+          ? "Types." + item.split("/Types.").at(-1)
+          : unwire(item)
       ])
     )
   return value
@@ -110,11 +124,23 @@ try {
   const stage = (await import(pathToFileURL(output))).default
   const bundled = wire(list(catalog.map(productValue)))
   let nodeSteps = 0
-  for (const unit of units) {
-    const expected = nativePrepareReadyUnits([unit], [{ artifact: unit.root.artifact, location }], "root.ts", {
+  const cases = units.map((unit) => ({ unit, declarations: [{ artifact: unit.root.artifact, location }], captures }))
+  cases.push(
+    { unit: units[0], declarations: [], captures },
+    { unit: units[0], declarations: [{ artifact: root }, { artifact: root, location }], captures },
+    { unit: units[0], declarations: [{ artifact: root, location }], captures: new Map() },
+    {
+      unit: units[2],
+      declarations: [{ artifact: { ...root, id: "other-id" }, location }],
+      captures: new Map([...captures].filter(([path]) => path !== "extra.ts"))
+    },
+    { unit: units[0], declarations: [{ artifact: { ...root, id: "other-id" }, location }], captures }
+  )
+  for (const { unit, declarations, captures: currentCaptures } of cases) {
+    const expected = nativePrepareReadyUnits([unit], declarations, "root.ts", {
       contract: TYPE_INPUT_CONTRACT,
       graphLimits: GRAPH_LIMIT_CEILINGS,
-      supportingCaptures: captures,
+      supportingCaptures: currentCaptures,
       observation: { root: "/workspace" },
       context: { settings: { rules: [rule] } }
     })
@@ -124,7 +150,14 @@ try {
       nodeSteps++
       step = stage.advance(step.state, bundled)
     }
-    if (expected.length === 0) assert.equal(label(step), "MissingEvidence")
+    const metadata = stage.metadata(
+      step,
+      TYPE_INPUT_CONTRACT,
+      wire(list(declarations.map(productValue))),
+      wire(list([...currentCaptures].map(([path, capture]) => productValue({ path, ...capture })))),
+      wire(productValue(unit))
+    )
+    if (expected.length === 0) assert.equal(label(metadata), "EvidenceMissing")
     else {
       assert.equal(label(step), "Inspected")
       assert.deepEqual(
@@ -132,15 +165,20 @@ try {
         expected[0].prepared.input.sourceFingerprints.map(({ path }) => path)
       )
       assert.equal(step.partial, expected[0].prepared.input.completeness === "incomplete-irrelevant")
+      assert.equal(label(metadata), "EvidenceReady")
+      assert.equal(metadata.partial, step.partial)
+      assert.equal(metadata.root_location.$, "Some")
+      assert.deepEqual(fromProductValue(unwire(metadata.root_location.value)), expected[0].prepared.input.rootLocation)
+      assert.deepEqual(fromProductValue(unwire(metadata.fingerprints)), expected[0].prepared.input.sourceFingerprints)
     }
   }
   console.log(
     JSON.stringify({
       passed: true,
-      cases: units.length,
+      cases: cases.length,
       nodeSteps,
       scope:
-        "Compiled whole-unit evidence traversal versus existing native finalization; not full finalization or production acceptance"
+        "Compiled whole-unit evidence traversal and metadata versus existing native finalization; not full finalization or production acceptance"
     })
   )
 } finally {

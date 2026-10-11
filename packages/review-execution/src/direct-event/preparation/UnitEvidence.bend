@@ -183,7 +183,7 @@ def declaration_location(+artifact: T.ProductValue, declarations: List<&2, T.Pro
     case +candidate <> tail:
       location_selected(declaration_match(artifact, candidate_artifact(candidate)), field("location", candidate), declaration_location(artifact, tail))
 
-def root_location(contract: String, artifact: T.ProductValue, declarations: List<&2, T.ProductValue>) -> Maybe<&2, T.ProductValue>:
+def root_location(+contract: String, artifact: T.ProductValue, declarations: List<&2, T.ProductValue>) -> Maybe<&2, T.ProductValue>:
   Bool.pick(Maybe<&2, T.ProductValue>,
     Bool.or(String.eq(contract, "direct-event/type-shape/v1"), String.eq(contract, "direct-event/function/v1")),
     declaration_location(artifact, declarations), None{})
@@ -191,8 +191,7 @@ def root_location(contract: String, artifact: T.ProductValue, declarations: List
 def capture_fields(path: String, hash: Maybe<&2, T.ProductValue>, bytes: Maybe<&2, T.ProductValue>) -> Maybe<&2, T.ProductValue>:
   match hash bytes:
     case Some{T.ProductText{hash}} Some{T.ProductNumber{bits}}:
-      Some{T.ProductObject{[T.OrderedField{"path", T.ProductText{path}},
-        T.OrderedField{"contentHash", T.ProductText{hash}}, T.OrderedField{"byteLength", T.ProductNumber{bits}}]}}
+      Some{T.ProductObject{[T.OrderedField{"path", T.ProductText{path}}, T.OrderedField{"contentHash", T.ProductText{hash}}, T.OrderedField{"byteLength", T.ProductNumber{bits}}]}}
     case _ _: None{}
 
 def capture_selected(matched: Bool, value: Maybe<&2, T.ProductValue>, rest: Maybe<&2, T.ProductValue>) -> Maybe<&2, T.ProductValue>:
