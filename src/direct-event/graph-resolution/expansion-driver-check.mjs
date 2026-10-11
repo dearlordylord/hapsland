@@ -32,7 +32,8 @@ const folder = import.meta.dirname,
   root = path.resolve(folder, "../../..")
 mkdirSync(path.join(root, "node_modules/.cache"), { recursive: true })
 const temporary = mkdtempSync(path.join(root, "node_modules/.cache/expansion-driver-"))
-const wrapperPath = path.join(folder, ".expansion-driver-" + path.basename(temporary) + ".bend")
+const sourceOwner = path.join(root, "packages/source-analysis/src/direct-event/graph-resolution")
+const wrapperPath = path.join(sourceOwner, ".expansion-driver-" + path.basename(temporary) + ".bend")
 const tag = (name, fields = {}) => ({ $: name, ...fields }),
   label = (v) => v.$.split(".").at(-1)
 const t = (name, fields = {}) => tag(artifactValueTag(name) ?? "Types." + name, fields),
@@ -115,7 +116,7 @@ function pathTables() {
 }
 function wrapper(tables) {
   let text =
-    "import Base\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\n"
+    "import Base\nimport ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\n"
   text +=
     'def path_read(result: Map<&2, String> & String) -> String:\n  match result:\n    case Tuple{_, value}: value\ndef path_get(table: Map<&2, String>, key: String) -> String:\n  path_read(Map.get(String, "__MISSING_PATH_FACT__", table, key))\ndef join_key(parts: List<&2, String>) -> String:\n  match parts:\n    case []: ""\n    case head <> tail: head ++ "|" ++ join_key(tail)\n'
   for (const [kind, table] of Object.entries(tables)) {
@@ -140,7 +141,7 @@ function wrapper(tables) {
   }
   return (
     text +
-    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: T.Binary64) -> Bool:\n  match bits:\n    case T.Binary64{high, _}: U32.is_gt(high, 0)\ndef selection(state: D.State) -> D.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef initial(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>) -> D.Progress<Nat>:\n  D.DriverReady{D.begin(config, frame, [], ids, 2n, 37n), E.WorldState{0n, []}}\ndef advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.advance(~selection, ~reply, Nat, suspend, progress)\ndef complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:\n  D.complete(~reply, Nat, progress, completion)\ndef cancel(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.cancel(Nat, progress)\ndef main() -> Unit:\n  Unit{}\n`
+    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: ArtifactValue.Binary64) -> Bool:\n  match bits:\n    case ArtifactValue.Binary64{high, _}: U32.is_gt(high, 0)\ndef selection(state: D.State) -> D.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef initial(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>) -> D.Progress<Nat>:\n  D.DriverReady{D.begin(config, frame, [], ids, 2n, 37n), E.WorldState{0n, []}}\ndef advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.advance(~selection, ~reply, Nat, suspend, progress)\ndef complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:\n  D.complete(~reply, Nat, progress, completion)\ndef cancel(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.cancel(Nat, progress)\ndef main() -> Unit:\n  Unit{}\n`
   )
 }
 function event(e) {
@@ -225,7 +226,7 @@ try {
     )
   const sources = hashes(),
     cases = []
-  async function compile(name, file = path.join(folder, name + ".bend")) {
+  async function compile(name, file = path.join(sourceOwner, name + ".bend")) {
     const output = path.join(temporary, name + ".mjs")
     execFileSync("bend", [file, "-o", output], { timeout: 5000, maxBuffer: 2 ** 20 })
     if (name === "DriverCheck") {
@@ -391,7 +392,8 @@ try {
       next_episode: 2n,
       next_artifact: built.source.next_artifact,
       dependencies: list(native.dependencies),
-      fingerprint: native.bindingFingerprint === undefined ? { $: "None" } : { $: "Some", value: native.bindingFingerprint }
+      fingerprint:
+        native.bindingFingerprint === undefined ? { $: "None" } : { $: "Some", value: native.bindingFingerprint }
     })
     const callerCache = cache === undefined ? undefined : new Map(cache)
     let clockReads = 0

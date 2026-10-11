@@ -59,7 +59,11 @@ try {
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
   async function compile(name) {
     const path = join(temporary, name + ".mjs")
-    execFileSync("bend", [join(folder, name + ".bend"), "-o", path], { timeout: 5000 })
+    execFileSync(
+      "bend",
+      [join(root, "packages/source-analysis/src/direct-event/graph-resolution", name + ".bend"), "-o", path],
+      { timeout: 5000 }
+    )
     return (await import(pathToFileURL(path))).default
   }
   const observations = await compile("ExpansionSpecificationCheck"),
@@ -142,7 +146,7 @@ try {
     assert.ok(facts, fixture.name)
     const encoded = sourceFacts(facts),
       prepared = spec.source(encoded, 0n)
-    const limits = tag("../../../packages/agent-flow-bend/ImportGraph", "Limits", {
+    const limits = tag("../../../../agent-flow-bend/ImportGraph", "Limits", {
       version: 1n,
       ...Object.fromEntries(
         Object.entries(binding.limits).map(([key, value]) => [
@@ -191,14 +195,20 @@ try {
       }
     }
     const actual = {
+      ...(binding.bindingFingerprint === undefined ? {} : { bindingFingerprint: binding.bindingFingerprint }),
       root: tree(result.tree),
-      ...(binding.dependencies.length ? { sourceDependencies: binding.dependencies } : {})
+      sourceDependencies: binding.dependencies
     }
     assert.equal(JSON.stringify(actual), JSON.stringify(frame.unit), fixture.name + " exact root value/order")
     const created = forest.construct(10000n, result.tree, 1n, list([]), result.source.artifacts)
     assert.equal(label(created), "Constructed", fixture.name + " semantic construction")
     const semantic = { $: "Forest", root: maybe(created.created.root), nodes: created.created.nodes }
-    const product = forest.unit(10000n, semantic, list(binding.dependencies))
+    const product = forest.prepared_unit(
+      10000n,
+      semantic,
+      list(binding.dependencies),
+      maybe(binding.bindingFingerprint)
+    )
     assert.equal(label(product), "Materialized")
     assert.equal(
       JSON.stringify(fromProductValue(product.product)),
@@ -314,11 +324,13 @@ try {
       source: encoded,
       catalog: { ...result.source, $: "SPEC.Source" }
     }))
-    const chosen = edges.find(
-      (item) => Number(item.id) === [...frame.pending.entries()].find(([, edge]) => edge === target.edge)[0]
+    const selectedEdges = [...frame.pending.entries()].filter(
+      ([, edge]) => edge.owner === target.edge.owner && edge.index === target.edge.index
     )
+    assert.equal(selectedEdges.length, 1, fixture.name + " exact selected owner slot")
+    const chosen = edges.find((item) => Number(item.id) === selectedEdges[0][0])
     assert.ok(chosen)
-    const gtag = (name, fields = {}) => tag("../../../packages/agent-flow-bend/ImportGraph", name, fields)
+    const gtag = (name, fields = {}) => tag("../../../../agent-flow-bend/ImportGraph", name, fields)
     function encodeEvent(e) {
       switch (e.kind) {
         case "root":
@@ -377,7 +389,8 @@ try {
       next_episode: 2n,
       next_artifact: result.source.next_artifact,
       dependencies: list(binding.dependencies),
-      fingerprint: binding.bindingFingerprint === undefined ? { $: "None" } : { $: "Some", value: binding.bindingFingerprint }
+      fingerprint:
+        binding.bindingFingerprint === undefined ? { $: "None" } : { $: "Some", value: binding.bindingFingerprint }
     }
     const attempt = {
       $: "Attempt",
@@ -432,7 +445,12 @@ try {
         ])
       )
     }
-    const finalProduct = forest.unit(10000n, unqual(unqualified), list(binding.dependencies))
+    const finalProduct = forest.prepared_unit(
+      10000n,
+      unqual(unqualified),
+      list(binding.dependencies),
+      maybe(binding.bindingFingerprint)
+    )
     assert.equal(label(finalProduct), "Materialized")
     assert.equal(
       JSON.stringify(fromProductValue(finalProduct.product)),

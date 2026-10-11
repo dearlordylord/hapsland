@@ -54,6 +54,12 @@ let cases = 0,
   completionCases = 0
 for (let seed = 0; seed < 8; seed++)
   for (const episode of [0n, 3n]) {
+    const fingerprint = seed % 2 === 0 ? { $: "None" } : { $: "Some", value: seed === 1 ? "" : "go-binding-λ-" + seed }
+    const actor = (...args) => {
+      const result = tx.actor(...args)
+      if (result.$ === "Some") result.value.prepared = { ...result.value.prepared, binding_fingerprint: fingerprint }
+      return result
+    }
     let next = 0n
     const tree = (s, d) => ({
       $: sp + "Tree",
@@ -210,7 +216,7 @@ for (let seed = 0; seed < 8; seed++)
       next_episode: episode + 1n,
       next_artifact: 1n,
       dependencies: list([]),
-      fingerprint: { $: "None" }
+      fingerprint
     }
     const refState = {
       $: dp + "State",
@@ -450,7 +456,7 @@ for (let seed = 0; seed < 8; seed++)
               caller_cache: { $: "None" },
               limits
             }
-            const actualState = tx.actor(
+            const actualState = actor(
               input,
               phaseFrame,
               child,
@@ -527,7 +533,7 @@ for (let seed = 0; seed < 8; seed++)
             ready++
             const extraVisited = fixture.visited({ ...phaseFrame, visited: plan.visited }, "unlisted").visited
             const hiddenChild = { ...child, plan: { ...plan, visited: extraVisited } }
-            const hiddenState = tx.actor(
+            const hiddenState = actor(
               input,
               phaseFrame,
               hiddenChild,
@@ -542,7 +548,7 @@ for (let seed = 0; seed < 8; seed++)
               "None"
             )
             visitedCoverageRejected++
-            const collision = tx.actor(
+            const collision = actor(
               input,
               { ...phaseFrame, next_edge: 0n },
               child,

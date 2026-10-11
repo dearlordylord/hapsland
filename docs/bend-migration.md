@@ -212,7 +212,19 @@ One current obstacle list, in execution order:
    JSON order and unchanged Invalid/Exhausted. Seven actual/reference projection
    and forest roots check within five seconds; three reference cores checked
    before formatting. No terminal frame evidence is invented. Changed finite
-   consumers and full materialization/transaction guarantees remain open. The
+   consumers remain partially open: real expansion-specification consumer passes
+   61 cases and 28 attachment comparisons, including actual Go Some full JSON
+   and independent prepared materialization. Completion's prior neutral corpus
+   passes 13824 boundary cases and 288 completion cases with both None and
+   Some fingerprints (including empty/Unicode text). The exact driver consumer
+   remains red: GoImportLocalModule loses the declaration artifact's source path
+   on local recursion. Native buildLocal uses local.artifact.path before the
+   current frame path; local Declaration currently erases it in both runtime
+   Traversal and independent SPEC. Empty targetsByPath membership differs and
+   outgoingEdges charging can differ across files. Preserve this source path on
+   both sides and rerun the original traversal guarantees and whole consumers;
+   do not filter empty entries. Full materialization/transaction guarantees
+   remain open. The
    reference entry still lacks the complete Go preparation bridge; its metadata
    installer does not qualify that missing path. Missing Go cases in actual context/reference
    branch projections are added and formatted. Both projection roots check
