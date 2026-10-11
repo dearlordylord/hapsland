@@ -381,8 +381,11 @@ One current obstacle list, in execution order:
    14:55:48 pair. Latest a05b91a3 execution at 15:19:10.733211 UTC passed at
    0.7333435932681925; matched warm build at 15:19:47.352608 UTC
    failed at 1.0644553189680463, with all 17 pairs at 23/46 cached.
-   Both qualified with unchanged inputs. Next start deadlines are
-   15:49:10 / 15:49:47 UTC.
+   Both qualified with unchanged inputs. At e2b7e4cd execution started 15:47:18.957612 UTC, qualified and
+   passed at 0.6689832928130847. Matched warm build started
+   15:47:56.422456 UTC, qualified with all 17 pairs at 23/46 cached,
+   and failed parity at 1.1109345084723954. Next start deadlines are
+   16:17:18 / 16:17:56 UTC.
    Records remain ignored under .test-runs/bend-migration/performance. These
    measure existing production, not unadopted whole preparation. Warm the
    actual changed candidate before each pair; an earlier source revision's warm
@@ -443,3 +446,14 @@ Python expansion checks do not qualify this new entry path. Node replacement
 now has address lookup inversion and unique semantic-address lemmas checked,
 but its original universal theorem still has no proof body. These retained
 changes remain WIP, with production adoption and TS removal unchanged at 0/0.
+
+The e2b7e4cd checkpoint formatted EntrySpecification and checked its complete
+definitions in 4.017 seconds under the unchanged five-second deadline. After
+the common Go/Python exchange change, the actual full Go consumer rerun passed
+all 58 entry cases (2017 requests, 6304 transitions), 55 artifact cases
+(1713 requests, 3528 transitions) and 58 Canonical-owned cases (2075 requests).
+The 25.997-second run retained identical hashes of all authored tracked and
+untracked inputs. Astra's Python bridge structural review found no concrete
+custody defect in prepare/inspect, but the complete Python consumer remains
+required, especially private cache, clock failures, root refusals and final
+authority revalidation. Finite Go regression coverage does not establish it.
