@@ -5,6 +5,8 @@ import {createAdviceTailProvider} from './advice-tail-provider.mjs'
 import {residentSettingsEnvironmentOnly} from '../../../packages/resident-runtime/src/resident/authorization/credentials.ts'
 import {captureInspectionFate} from '@hapsland/review-execution/inspection/capture'
 import * as Effect from 'effect/Effect'
+import * as Cause from 'effect/Cause'
+import * as Exit from 'effect/Exit'
 import {recordActivity} from '@hapsland/activity-observation/activity/status'
 import {ResidentProviderPermit,ResidentResourceReceipt} from './resident-provider-permit.mjs'
 import {MAX_IPC_FRAME_BYTES} from '@hapsland/resident-transport/resident/protocol'
@@ -18,9 +20,15 @@ import {residentUnitWorstOutcomeBytes,residentUnitReservationBytes} from '../../
 const list=values=>values.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
 const array=value=>{const result=[];while(value.$==='Con'){result.push(value.head);value=value.tail}if(value.$!=='Nil')throw new Error('Invalid postflow list');return result}
 const some=value=>({$:'Some',value}),none={$:'None'}
-export function createPostPreparationProvider(invocation,context,prepared,preparation,pathObservation,analyticsEnabled) {
-  const ledger=context.deps.residentLedger,plans=new Map(),reservations=new Map(),revisions=new Map(),units=new Map(),errors=new Map(),pendingOwners=new Map(),adviceOwners=new Map(),publications=new Map(),tails=new Map()
-  let revoked=false,closed=false,finished=false,primaryFailure
+export function createPostPreparationProvider(invocation,context,prepared,preparation,pathObservation,analyticsEnabled,sourceWorkspace) {
+  const ledger=context.deps.residentLedger,plans=new Map(),reservations=new Map(),revisions=new Map(),units=new Map(),errors=new Map(),errorCauses=new Map(),pendingOwners=new Map(),adviceOwners=new Map(),publications=new Map(),tails=new Map()
+  let revoked=false,closed=false,finished=false,primaryFailure,sourceDefect=false
+  if(sourceWorkspace){
+   const {owner,driver,sourceInvocation,operation,capability,handoff,parent}=sourceWorkspace
+   driver.handoffResult(handoff)
+   const child=owner.find(invocation,driver.state.children),origin=owner.find(handoff.scope.origin,driver.state.children),source=owner.find(sourceInvocation,driver.state.children)
+   if(handoff.handoff!==invocation||child.$!=='Some'||child.value.scope.$!=='RetainingScope'||child.value.scope.origin!==handoff.scope.origin||origin.$!=='Some'||origin.value.scope.$!=='PreparationScope'||origin.value.scope.preparation!==operation||source.$!=='Some'||source.value.scope.$!=='SourceScope'||child.value.parent.$!=='Some'||child.value.parent.value.invocation!==sourceInvocation||child.value.parent.value.generation!==parent.generation||child.value.parent.value.request!==parent.request||source.value.generation!==parent.generation||source.value.request.$!=='Some'||source.value.request.value!==parent.request||capability!==preparation.reservation||!context.activeWorkspaces.has(capability))throw new Error('Source workspace lifetime lacks its Canonical handoff')
+  }
   const transferred=new Set(),ownedClaims=new Set(),acquiredRevisions=new Map(),revisionReservations=new Map()
   const transferredReservation=handle=>[...transferred].some(value=>BigInt(value.reservation.id)===handle)
   const transferredAcquisition=handle=>revisionReservations.has(handle)&&transferredReservation(revisionReservations.get(handle))
@@ -40,7 +48,7 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
   }
   return {
    input:{invocation,postPreparation:{roundBound:context.job.round!==undefined,incomplete:prepared.observation.status==='incomplete',outcomes:list(facts)}},
-   error:token=>errors.get(token),
+   error:token=>errors.get(token),cause:token=>errorCauses.get(token),
    invocation:Number(invocation),
    revoke(){revoked=true},
    close(){closed=true},
@@ -55,7 +63,7 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
     for(const [handle,value] of reservations)if(!transferredReservations.has(handle))await attempt(ledger.release(value))
     for(const [handle,value] of acquiredRevisions)if(!transferredAcquisition(handle))await attempt(context.deps.residentReleaseCurrentWork(value),()=>acquiredRevisions.delete(handle))
     for(const key of ownedClaims)if(!transferredKeys.has(key)){await attempt(context.deps.residentReleaseReuseClaim(key));context.unassignedClaims.delete(key)}
-    if(context.activeWorkspaces.has(preparation.reservation)){await attempt(ledger.release(preparation.reservation));context.activeWorkspaces.delete(preparation.reservation)}
+    if(!(sourceWorkspace&&sourceDefect)&&context.activeWorkspaces.has(preparation.reservation)){await attempt(ledger.release(preparation.reservation));context.activeWorkspaces.delete(preparation.reservation)}
     if(failures.length)throw new AggregateError(primaryFailure===undefined?failures:[primaryFailure,...failures],'Post-preparation resource finalization failed',{cause:primaryFailure??failures[0]})
     finished=true
    },
@@ -74,13 +82,17 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
      if(['RegisterRevision','RegisterClear'].includes(command.$)&&publication.value?.revision){const value=publication.value.revision;revisions.set(acquisitionHandle,value);acquiredRevisions.set(acquisitionHandle,value);if(command.slot)revisionReservations.set(acquisitionHandle,command.slot.reservation)}
      options.afterCommit?.(command,publication)
     }
-    const run=(effect,releasedAcquisition,releasedClaim)=>{
+    let failureKind='Failed',failureCause
+    const run=async(effect,releasedAcquisition,releasedClaim)=>{
      const receipt=publication=>{if(releasedAcquisition!==undefined)acquiredRevisions.delete(releasedAcquisition);if(releasedClaim!==undefined){ownedClaims.delete(releasedClaim);context.unassignedClaims.delete(releasedClaim)}committed({...publication,releasedAcquisition})}
-     return rawRun(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt,receipt),Effect.provideService(ResidentProviderPermit,cleanup||!options.ownerLease?undefined:{credential:options.ownerLease,committed:receipt})))
+     const exit=await Effect.runPromiseExit(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt,receipt),Effect.provideService(ResidentProviderPermit,cleanup||!options.ownerLease?undefined:{credential:options.ownerLease,committed:receipt})))
+     if(Exit.isFailure(exit)){failureCause=exit.cause;failureKind=Cause.hasDies(exit.cause)?'Defect':Cause.hasInterrupts(exit.cause)?'Cancelled':'Failed';return rawRun(Effect.failCause(exit.cause))}
+     return exit.value
     }
     const releaseAcquisition=async handle=>{if(!acquiredRevisions.has(handle)||transferredAcquisition(handle))return;await run(context.deps.residentReleaseCurrentWork(revision(handle)),handle);acquiredRevisions.delete(handle)}
    try {
     options.beforeCommand?.(command)
+    failureKind='Defect'
     switch(command.$) {
      case 'CheckActive':response={$:'Active',value:await run(context.deps.residentJobActive(context.job))};break
      case 'Offer':response={$:'Offered',accepted:(await run(ledger.preparedOffer(command.outcome.ready,!command.deliverability||command.outcome.fits)))==='preparedAdmitted'};break
@@ -221,23 +233,24 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
      }
      default:throw new Error('Unknown postflow command '+command.$)
     }
-   } catch(error){if(command.$==='ObserveRetainedAdvice'&&tails.has(command.tail))tails.get(command.tail).failure=error;primaryFailure??=error;const token=BigInt(errors.size+1);errors.set(token,error);response={$:'Failed',token}}
+   } catch(error){if(command.$==='ObserveRetainedAdvice'&&tails.has(command.tail))tails.get(command.tail).failure=error;if(primaryFailure===undefined)sourceDefect=failureKind==='Defect';primaryFailure??=error;const token=BigInt(errors.size+1);errors.set(token,error);errorCauses.set(token,failureCause??(failureKind==='Defect'?Cause.die(error):Cause.fail(error)));response={$:failureKind,token}}
     return {$:'Reply',invocation:request.invocation,id:request.id,response}
    }
   }
 }
 // Intermediate direct runner retained until the owned physical handoff qualifies.
 export function bendPostPreparation(core,context,prepared,preparation,pathObservation,analyticsEnabled) {
+ const provider=createPostPreparationProvider(1n,context,prepared,preparation,pathObservation,analyticsEnabled)
+ let terminalCause
  return Effect.tryPromise({try:async()=>{
-  const provider=createPostPreparationProvider(1n,context,prepared,preparation,pathObservation,analyticsEnabled)
   let step=core.initial(provider.input.invocation,provider.input.postPreparation.roundBound,provider.input.postPreparation.outcomes,provider.input.postPreparation.incomplete)
   for(let fuel=0;fuel<10000;fuel++) {
    if(step.$==='Internal'){step=core.advance(step.state);continue}
    if(step.$==='Finished')return true
-   if(step.$==='Stopped'){if(step.reason.$==='TechnicalFailure')throw provider.error(step.reason.token)??new Error('Postflow refused native attachment');return false}
+   if(step.$==='Stopped'){if(['TechnicalFailure','DefectFailure'].includes(step.reason.$)){terminalCause=provider.cause(step.reason.token);throw provider.error(step.reason.token)??new Error('Postflow refused native attachment')}return false}
    if(step.$!=='Await')throw new Error('Postflow rejected response')
    step=core.resume(step,await provider.perform(step.request))
   }
   throw new Error('Postflow did not settle')
- },catch:error=>error})
+ },catch:error=>error}).pipe(Effect.catch(error=>terminalCause===undefined?Effect.fail(error):Effect.failCause(terminalCause)))
 }

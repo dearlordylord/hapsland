@@ -26,6 +26,7 @@ try{
   const reply=response=>{const request=step.request;step=core.resume(step,{$:'Reply',invocation:request.invocation,id:request.id,response})}
   while(step.$==='Await'){
    const {request}=step
+   assert.deepEqual(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'Defect',token:94n,interrupted:true,recoverable:false}}),{$:'Stopped',completed:request.command.$==='AfterPrepare',reason:{$:'DefectFailure',token:94n}})
    assert.equal(core.resume(step,{$:'Reply',invocation:8n,id:request.id,response:{$:'Ack'}}).$,'Rejected')
    assert.equal(core.resume(step,{$:'Reply',invocation:7n,id:request.id+1n,response:{$:'Ack'}}).$,'Rejected')
    commands.push(request.command)
@@ -42,6 +43,7 @@ try{
    }else if(['CompletePolicySource','CompleteObservation'].includes(request.command.$)){
     const refusal=core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'CompletionAccepted',value:false}})
     assert.equal(recover(refusal).completed,false)
+    if(request.command.$==='CompleteObservation')assert.deepEqual(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'ObservationCommittedDefect',token:95n,recoverable:false}}),{$:'Stopped',completed:true,reason:{$:'DefectFailure',token:95n}})
     if(request.command.$==='CompleteObservation')assert.deepEqual(recover(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'ObservationCommittedFailure',token:93n}})),{$:'Stopped',completed:true,reason:{$:'TechnicalFailure',token:93n}})
     reply({$:'CompletionAccepted',value:true})
    }else{

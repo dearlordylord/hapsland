@@ -45,6 +45,7 @@ try {
     case 'Cleanup':cleanup.push(command);break
    }
    if(options.failAt===ordinal&&command.$!=='Cleanup')response={$:'Failed',token:77n}
+   if(options.defectAt===ordinal&&command.$!=='Cleanup')response={$:'Defect',token:89n}
    if(options.cancelAt===ordinal&&command.$!=='Cleanup')response={$:'Cancelled',token:88n}
    if(options.cleanupFailOnce&&command.$==='Cleanup'&&cleanup.length===1)response={$:'Failed',token:99n}
    if(command.$==='Enqueue'&&response.$==='Queued'&&response.accepted)enqueued.push(command.slot.item.key)
@@ -62,8 +63,8 @@ try {
   [{enqueueRefused:true},result=>assert.equal(result.commands.filter(command=>command.$==='ReleaseAttached').length,1)],
   [{attachRefused:true},result=>{assert.equal(result.step.$,'Stopped');assert.equal(result.step.reason.$,'TechnicalFailure');assert.equal(result.cleanup.length,1);assert.ok(array(result.cleanup[0].remaining).some(slot=>slot.item.key===1n))}]
  ]){const result=run(options);check(result);cases++}
- for(let ordinal=1;ordinal<=success.commands.length;ordinal++)for(const kind of ['failAt','cancelAt']) {
-  const result=run({[kind]:ordinal,cleanupFailOnce:true});assert.equal(result.step.$,'Stopped');assert.equal(result.step.reason.$,kind==='failAt'?'TechnicalFailure':'CancelledReason');assert.equal(result.step.reason.token,kind==='failAt'?77n:88n);assert.equal(result.cleanup.length,2);assert.deepEqual(result.cleanup[0],result.cleanup[1])
+ for(let ordinal=1;ordinal<=success.commands.length;ordinal++)for(const kind of ['failAt','cancelAt','defectAt']) {
+  const result=run({[kind]:ordinal,cleanupFailOnce:true});assert.equal(result.step.$,'Stopped');assert.equal(result.step.reason.$,kind==='failAt'?'TechnicalFailure':kind==='defectAt'?'DefectFailure':'CancelledReason');assert.equal(result.step.reason.token,kind==='failAt'?77n:kind==='defectAt'?89n:88n);assert.equal(result.cleanup.length,2);assert.deepEqual(result.cleanup[0],result.cleanup[1])
   for(const command of result.cleanup)for(const slot of array(command.remaining))assert.ok(!result.enqueued.includes(slot.item.key),'cleanup touched transferred dispatcher owner')
   cases++
  }
@@ -77,6 +78,7 @@ try {
    assert.equal(core.advice_resume(step,{$:'Reply',invocation:77n,id:request.id+1n,response:{$:'Ack'}}).$,'AdviceRejected')
    let response=command.$==='AdviceCheckExpired'?{$:'Expired',value:!!options.expired}:command.$==='AdviceCheckActive'?{$:'Active',value:!options.inactive}:command.$==='AdvicePublish'?{$:'Published',publication:44n}:{$:'Ack'}
    if(ordinal===options.failAt)response={$:'Failed',token:71n}
+   if(ordinal===options.defectAt)response={$:'Defect',token:74n}
    if(ordinal===options.cancelAt)response={$:'Cancelled',token:72n}
    if(command.$==='AdviceRemove'&&options.cleanupFailure&&(options.cleanupAlways||commands.filter(value=>value.$==='AdviceRemove').length===1))response={$:'Failed',token:73n}
    step=core.advice_resume(step,{$:'Reply',invocation:77n,id:request.id,response})
@@ -88,8 +90,8 @@ try {
  const currentTail=runTail({failAt:1});assert.equal(currentTail.commands.find(value=>value.$==='AdviceRemove').retirement.$,'RetentionFailureRetirement');cases++
  const liveTail=runTail({});assert.equal(liveTail.step.$,'AdviceFinished');assert.deepEqual(liveTail.commands.map(value=>value.$),['AdvicePendingBarrier','AdviceCheckActive','AdvicePublish','AdviceRecordPublished']);cases++
  const cutoffTail=runTail({inactive:true});assert.equal(cutoffTail.step.$,'AdviceFinished');assert.deepEqual(cutoffTail.commands.map(value=>value.$),['AdvicePendingBarrier','AdviceCheckActive']);cases++
- for(let ordinal=1;ordinal<=liveTail.commands.length;ordinal++)for(const kind of ['failAt','cancelAt']){
-  const result=runTail({[kind]:ordinal,cleanupFailure:true});assert.equal(result.step.$,'AdviceStopped');assert.equal(result.step.reason.$,kind==='failAt'?'TechnicalFailure':'CancelledReason');assert.equal(result.step.reason.token,kind==='failAt'?71n:72n);assert.equal(result.commands.filter(value=>value.$==='AdviceRemove').length,2);cases++
+ for(let ordinal=1;ordinal<=liveTail.commands.length;ordinal++)for(const kind of ['failAt','cancelAt','defectAt']){
+  const result=runTail({[kind]:ordinal,cleanupFailure:true});assert.equal(result.step.$,'AdviceStopped');assert.equal(result.step.reason.$,kind==='failAt'?'TechnicalFailure':kind==='defectAt'?'DefectFailure':'CancelledReason');assert.equal(result.step.reason.token,kind==='failAt'?71n:kind==='defectAt'?74n:72n);assert.equal(result.commands.filter(value=>value.$==='AdviceRemove').length,2);cases++
  }
  console.log(JSON.stringify({passed:true,cases,requests,scope:'finite source-free whole postflow draft, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not physical integration or universal correspondence'}))
 } finally {await rm(temporary,{recursive:true,force:true})}

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import * as Effect from 'effect/Effect'
+import * as Cause from 'effect/Cause'
 import * as Scope from 'effect/Scope'
 import * as Exit from 'effect/Exit'
 import {completeSourcePreparation} from '../../../packages/resident-runtime/src/resident/review-work/preparation/retention.ts'
@@ -66,7 +67,7 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
    const flow=async()=>{
     if(!useOwned)return Effect.runPromise(postFlow(context,prepared,connection.preparation,observation,false))
     const accepted=await connection.owned.driver.driveHandoff(connection.owned.receipt,postSession,projection=>{assert.equal(projection.preparation,result);return postSession.input})
-    if(accepted.reason?.$==='TechnicalFailure')throw postSession.error(accepted.reason.token)??new Error('Postflow technical failure')
+    if(['TechnicalFailure','DefectFailure'].includes(accepted.reason?.$)){const cause=postSession.cause(accepted.reason.token);if(accepted.reason.$==='DefectFailure')assert.equal(Cause.hasDies(cause),true);if(cause)await Effect.runPromise(Effect.failCause(cause));throw postSession.error(accepted.reason.token)??new Error('Postflow failure')}
     return accepted.continued===true
    }
    if(useOwned&&mode==='retention-before-flow')await assert.rejects(flow,/Unknown or consumed/ )
@@ -97,8 +98,8 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
      const secondSession=createPostPreparationProvider(connection.owned.receipt.handoff,context,secondPrepared,secondPreparation,observation,false)
      connection.owned.postSessions.set(secondSession.invocation,secondSession)
      const accepted=await connection.owned.driver.driveHandoff(connection.owned.receipt,secondSession,projection=>{assert.equal(projection.preparation,sourceResult);return secondSession.input})
-     if(faultJoinRestore){assert.equal(accepted.reason?.$,'TechnicalFailure');assert.match(String(secondSession.error(accepted.reason.token)),/injected pending restore acknowledgement loss/);continued=undefined}
-     else {if(accepted.reason?.$==='TechnicalFailure')throw secondSession.error(accepted.reason.token)??new Error('Joined postflow failed');continued=accepted.continued===true}
+     if(faultJoinRestore){assert.equal(accepted.reason?.$,'DefectFailure');assert.equal(Cause.hasDies(secondSession.cause(accepted.reason.token)),true);assert.match(String(secondSession.error(accepted.reason.token)),/injected pending restore acknowledgement loss/);continued=undefined}
+     else {if(['TechnicalFailure','DefectFailure'].includes(accepted.reason?.$)){const cause=secondSession.cause(accepted.reason.token);if(cause)await Effect.runPromise(Effect.failCause(cause));throw secondSession.error(accepted.reason.token)??new Error('Joined postflow failed')};continued=accepted.continued===true}
     }else continued=await Effect.runPromise(postFlow(context,prepared,secondPreparation,observation,false))
     if(!faultJoinRestore){assert.equal(continued,true);await Effect.runPromise(completeSourcePreparation(context))}
     const snapshot=run(transaction.read)

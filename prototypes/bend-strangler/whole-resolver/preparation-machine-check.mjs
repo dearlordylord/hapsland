@@ -34,7 +34,8 @@ try {
      response={$:'SourceCaptured',capture};break
     }
     case 'Preflight': response={$:'PreflightDone',value:text('preflight')};break
-    case 'AdmitMaterialization': response={$:'MaterializationDone',requested:1024n,result:options.refuseMaterialization?{$:'CapacityRefused',constraint:'resident-ledger'}:{$:'Resized'}};break
+    case 'AdmitMaterialization': response={$:'MaterializationDone',requested:1024n,result:options.materializationResult??(options.refuseMaterialization?{$:'CapacityRefused',constraint:'resident-ledger'}:{$:'Resized'})};break
+    case 'RejectMaterializationCapacity':case 'RecordMaterializationCapacity':response={$:'Ack'};break
     case 'ExtractSource': {
      const declarations=roots(command.capture.path,options.rootCount??2)
      response={$:'SourceExtracted',extraction:{$:'Extraction',graph:some(list(declarations)),functions:some({$:'FunctionFile',failure:none,functions:list(declarations.map(root=>({...root,id:root.id+':fn',declaration:{...root.declaration,kind:'function',name:root.declaration.name.replace('Root','Fn')}}))),exclusions:list([])}),type_file:{$:'TypeAnalyzed',analyses:list([])}}};break
@@ -64,6 +65,11 @@ try {
  check=run(input([candidate('a.py')],{contracts:list([contract,functionContract])}),{refuseMaterialization:true});result=finished(check)
  assert.equal(result.complete,false);for(const tag of ['CaptureSource','Preflight','AdmitMaterialization'])assert.equal(count(check,tag),1)
  assert.equal(count(check,'ExtractSource'),0);assert.equal(array(result.paths)[0].diagnostic.value.$,'MaterializationRefused')
+ for(const status of ['InvalidReservation','InvalidMeasurement']){
+  check=run(input([candidate('a.py')]),{materializationResult:{$:status}});result=finished(check)
+  assert.equal(result.complete,false);assert.equal(array(result.paths)[0].diagnostic.value.$,'PreparationPanic')
+  for(const tag of ['RejectMaterializationCapacity','RecordMaterializationCapacity','ExtractSource'])assert.equal(count(check,tag),0)
+ }
  check=run(input([candidate('a.py')],{contracts:list([contract,functionContract])}),{rootCount:40,refuseFirst:true});result=finished(check)
  assert.equal(result.selected,64n);assert.equal(count(check,'ResolveRoot'),64);assert.equal(array(result.units).length,63)
  assert.equal(result.complete,false);assert.equal(array(result.paths)[0].failures.head.reason,'missing-evidence')

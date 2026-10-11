@@ -1,3 +1,5 @@
+import {verifyCodexPostEditHunks} from '@hapsland/native-observation/direct-event/codex-patch-hunks'
+import {languageForPath} from '@hapsland/source-analysis/direct-event/languages/registry'
 import {residentRuntime} from '../../../packages/resident-runtime/src/resident/state/resident/runtime.ts'
 import {providerTransaction,ResidentProviderPermit} from './resident-provider-permit.mjs'
 import assert from 'node:assert/strict'
@@ -40,15 +42,25 @@ export function createPreparationForeign({connection,owner,driver,registry,root,
      const bytes=mode==='resize-refused'?200000000:analysisWorkspaceBytes(command.capture.path,Number(command.capture.bytes),fromProductValue(command.preflight)??undefined,settings.rules)
      const result=Effect.runSync(connection.bridge.nativeScoped(options.ownerLease,(draft,records)=>[resize(draft,connection.preparation.reservation,bytes),records])).value
      onMaterialization?.({kind:'resize',bytes,status:result.status})
-     response={$:'MaterializationDone',requested:BigInt(bytes),result:result.status==='resized'?{$:'Resized'}:{$:'CapacityRefused',constraint:result.constraint}};break
+     let admission
+     switch(result.status){
+      case 'resized':admission={$:'Resized'};break
+      case 'capacity-refused':admission={$:'CapacityRefused',constraint:result.constraint};break
+      case 'invalid-reservation':admission={$:'InvalidReservation'};break
+      case 'invalid-measurement':admission={$:'InvalidMeasurement'};break
+      default:throw new Error('Unknown materialization resize status '+result.status)
+     }
+     response={$:'MaterializationDone',requested:BigInt(bytes),result:admission};break
     }
     case 'RejectMaterializationCapacity':await Effect.runPromise(residentRuntime(providerTransaction(connection.transaction,connection.bridge)).rejectCapacity().pipe(Effect.provideService(ResidentProviderPermit,{credential:options.ownerLease})));response={$:'Ack'};break
     case 'RecordMaterializationCapacity':await Effect.runPromise(residentContext?residentContext.deps.residentRecordAnalytics(residentContext.job,'capacity-rejected'):Effect.void);response={$:'Ack'};break
+    case 'VerifyNativePatch':{const hunks=verifyCodexPostEditHunks(command.command,command.capture.path,command.capture.text);response={$:'NativePatchVerified',hunks:hunks===undefined?none:some(list(hunks.map(hunk=>({$:'RootAttribution.Hunk',path:hunk.path,verified:true,location:location(hunk.location)}))))};break}
+    case 'ClassifyAmbiguity':{const spans=unlist(command.spans).map(span=>({start:{line:Number(span.start.line),column:Number(span.start.column)},end:{line:Number(span.end.line),column:Number(span.end.column)}}));const reason=languageForPath(command.capture.path)?.unselectedTypeEditReason?.(command.capture.text,spans);response={$:'AmbiguityClassified',reason:reason===undefined?none:some(reason)};break}
     case 'ExtractSource': {
-     const facts=inspectGraphFile(command.capture.path,command.capture.text);assert.ok(facts)
+     const facts=inspectGraphFile(command.capture.path,command.capture.text)
      const functions=analyzeFunctionFile(command.capture.path,command.capture.text),typeFile=analyzeTypeFile(command.capture.path,command.capture.text,true)
      const rootFact=({artifact,location:span})=>({$:'PreparationSelection.Root',id:artifact.id,declaration:{$:'RootAttribution.Declaration',path:command.capture.path,kind:artifact.kind,name:artifact.name,location:location(span),selection_locations:none}})
-     response={$:'SourceExtracted',extraction:{$:'Extraction',graph:some(list([...facts.declarations.values()].map(rootFact))),functions:functions===undefined?none:some({$:'FunctionFile',failure:functions.failure===undefined?none:some(functions.failure),functions:list([...functions.functions.values()].map(rootFact)),exclusions:list([...functions.excludedFunctions].map(([name,value])=>({$:'Exclusion',name,reason:value.reason,location:location(value.location)})))}),type_file:typeFile.status==='unsupported'?{$:'TypeUnavailable',reason:typeFile.reason}:{$:'TypeAnalyzed',analyses:list(typeFile.units.map(unit=>unit.status==='ready'?{$:'NativeReady',name:unit.unit.root.artifact.name}:{$:'NativeUnsupported',name:unit.root.name,reason:unit.reason}))}}};break
+     response={$:'SourceExtracted',extraction:{$:'Extraction',graph:facts===undefined?none:some(list([...facts.declarations.values()].map(rootFact))),functions:functions===undefined?none:some({$:'FunctionFile',failure:functions.failure===undefined?none:some(functions.failure),functions:list([...functions.functions.values()].map(rootFact)),exclusions:list([...functions.excludedFunctions].map(([name,value])=>({$:'Exclusion',name,reason:value.reason,location:location(value.location)})))}),type_file:typeFile.status==='unsupported'?{$:'TypeUnavailable',reason:typeFile.reason}:{$:'TypeAnalyzed',analyses:list(typeFile.units.map(unit=>unit.status==='ready'?{$:'NativeReady',name:unit.unit.root.artifact.name}:{$:'NativeUnsupported',name:unit.root.name,reason:unit.reason}))}}};break
     }
     case 'ResolveRoot': {
      roots++;onRoot?.()

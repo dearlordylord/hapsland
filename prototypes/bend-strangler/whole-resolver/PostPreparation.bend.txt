@@ -129,6 +129,7 @@ type Response is Data:
   AdviceInserted{tail: Nat}
   Cancelled{token: Nat}
   Failed{token: Nat}
+  Defect{token: Nat}
 type Phase is Data:
   PreparedObserved{outcomes: List<&2, Outcome>}
   Begin{outcomes: List<&2, Outcome>}
@@ -169,6 +170,7 @@ type Termination is Data:
   Inactive{}
   CancelledReason{token: Nat}
   TechnicalFailure{token: Nat}
+  DefectFailure{token: Nat}
 type State is Data:
   State{invocation: Nat, next: Nat, round_bound: Bool, incomplete: Bool, phase: Phase}
 type Request is Data:
@@ -234,6 +236,7 @@ def advice_response(+state: AdviceTailState, response: Response) -> AdviceTailSt
     case AdviceTailState{_, +advice, _, AdviceRemoving{+reason, +retirement}} _: advice_await(state, AdviceRemovalRetry{reason, retirement}, AdviceRemove{advice, retirement})
     case AdviceTailState{_, _, _, AdviceRemovalRetry{reason, _}} Ack{}: AdviceStopped{reason}
     case AdviceTailState{_, advice, _, AdviceRemovalRetry{reason, _}} _: AdviceCleanupPending{advice, reason}
+    case _ Defect{token}: advice_remove(state, DefectFailure{token})
     case _ Failed{token}: advice_remove(state, TechnicalFailure{token})
     case _ Cancelled{token}: advice_remove(state, CancelledReason{token})
     case _ _: AdviceRejected{}
@@ -586,6 +589,7 @@ def resume_cached(+state: State, +slot: Slot, +revision: Nat, +work: Maybe<&2, N
     case CachedTailAwaited{} Ack{}: cached_next(state, slot, revision, work, continuation, CachedFinalized{}, FinalizeCachedUnit{slot, revision, work})
     case CachedFinalized{} Ack{}: inside(state, detached(continuation, slot))
     case _ Cancelled{token}: cleanup(state, CachedSettled{slot, revision, work, stage, continuation}, CancelledReason{token})
+    case _ Defect{token}: cleanup(state, CachedSettled{slot, revision, work, stage, continuation}, DefectFailure{token})
     case _ Failed{token}: cleanup(state, CachedSettled{slot, revision, work, stage, continuation}, TechnicalFailure{token})
     case _ ReviewAccepted{False{}}: cleanup(state, CachedSettled{slot, revision, work, stage, continuation}, TechnicalFailure{0n})
     case _ _: Rejected{}
@@ -612,6 +616,7 @@ def resume_phase(+state: State, +phase: Phase, response: Response) -> Step:
     case LiveChecked{_} Active{False{}}: cleanup(state, phase, Inactive{})
     case ReservedUnits{planned, +retained} Reserved{allocations}:
       reserved_reply(state, planned, retained, assign_slots(retained, allocations))
+    case ReuseAwait{_, _, _} Defect{token}: cleanup(state, phase, DefectFailure{token})
     case ReuseAwait{_, _, _} Failed{token}: cleanup(state, phase, TechnicalFailure{token})
     case ReuseAwait{_, _, _} Cancelled{token}: cleanup(state, phase, CancelledReason{token})
     case ReuseAwait{item, stage, continuation} +response: resume_reuse(state, item, stage, continuation, response)
@@ -635,6 +640,7 @@ def resume_phase(+state: State, +phase: Phase, response: Response) -> Step:
     case Cleaned{_, _, _, reason} Ack{}: Stopped{reason}
     case Cleaned{slots, planned, revision, reason} _: cleanup_values(state, slots, planned, revision, reason)
     case _ Cancelled{token}: cleanup(state, phase, CancelledReason{token})
+    case _ Defect{token}: cleanup(state, phase, DefectFailure{token})
     case _ Failed{token}: cleanup(state, phase, TechnicalFailure{token})
     case _ _: Rejected{}
 

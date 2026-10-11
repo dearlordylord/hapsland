@@ -4,6 +4,7 @@ import {mkdtemp,mkdir,writeFile,lstat,rm,readdir,readlink} from 'node:fs/promise
 import {join} from 'node:path'
 import {pathToFileURL} from 'node:url'
 import * as Effect from 'effect/Effect'
+import * as Cause from 'effect/Cause'
 import * as Ref from 'effect/Ref'
 import * as Scope from 'effect/Scope'
 import * as Exit from 'effect/Exit'
@@ -17,7 +18,7 @@ import {prepareObservation} from '@hapsland/review-execution/direct-event/pipeli
 import {TYPE_INPUT_CONTRACT} from '@hapsland/review-definition/rules/targets'
 import {effectiveGraphLimits} from '@hapsland/runtime-inputs/configuration/resolve'
 import {loadReviewSettings} from '@hapsland/review-definition/runtime/review-config'
-import {nativeSourceReference,snapshotSourceOwnership} from './native-source-reference.mjs'
+import {nativeSourceReference,snapshotSourceOwnership,captureActivityPublications,snapshotReservationCustody} from './native-source-reference.mjs'
 import {configuredRules} from '@hapsland/build-tooling/test-support/default-rules'
 import {createServiceRegistry,list,unlist} from './service-session.mjs'
 import {pureReply} from './consumer.mjs'
@@ -41,8 +42,9 @@ try{
  const root=join(temp,'fixture');await mkdir(root);execFileSync('git',['init','-q',root],{timeout:5000})
  await writeFile(join(root,'first.py'),'from leaf import Foo\nclass First:\n field: Foo\n');await writeFile(join(root,'second.py'),'from leaf import Foo\nclass Second:\n field: Foo\n');await writeFile(join(root,'empty.py'),'value = 1\n');await writeFile(join(root,'leaf.py'),'class Foo:\n value: str\n')
  const a=await lstat(root),b=await lstat(join(root,'.git')),rootIdentity={rootDevice:String(a.dev),rootInode:String(a.ino),gitDirectory:join(root,'.git'),gitDevice:String(b.dev),gitInode:String(b.ino)}
+ await writeFile(join(root,'comment.ts'),'// updated outside declarations\nexport class Example { value: string = "x" }\nexport function identity(value: string): string { return value }\n')
  let cases=0,totalRequests=0,nativeWholeCases=0
- const modes=['two-candidates','repeat-candidate','refused-second','admission-ack-loss','completion-ack-loss','after-prepare-failure','after-prepare-analytics-failure','after-prepare-release-ack-loss','after-prepare-runtime-inactive','cancel-between-candidates','first-preparation-failure','second-preparation-failure','source-cleanup-pending','full-workflow','full-repeat','full-refused-second','full-owner-barrier-failure','full-no-ready','gates-controlled','gates-shape','gates-root','gates-generation','gates-backend-failure','gates-runtime-first','gates-runtime-second','gates-job-inactive','gates-start-policy','gates-start-observation','gates-start-ack']
+ const modes=['two-candidates','repeat-candidate','refused-second','admission-ack-loss','completion-ack-loss','after-prepare-failure','after-prepare-analytics-failure','after-prepare-release-ack-loss','after-prepare-runtime-inactive','cancel-between-candidates','first-preparation-failure','second-preparation-failure','source-cleanup-pending','full-workflow','full-repeat','full-refused-second','full-owner-barrier-failure','full-no-ready','full-comment-update','full-capture-failure','full-inspection-failure','full-inspection-diagnostic-failure','full-activity-refused','full-mixed-cause','gates-controlled','gates-shape','gates-root','gates-generation','gates-backend-failure','gates-runtime-first','gates-runtime-second','gates-job-inactive','gates-start-policy','gates-start-observation','gates-start-ack']
  for(const mode of modes.filter(mode=>!process.env.HAPSLAND_SOURCE_CASE||mode===process.env.HAPSLAND_SOURCE_CASE)){
   const fullEntry=mode.startsWith('full-')||mode.startsWith('gates-'),gateRefusal=mode.startsWith('gates-')
   const limits={globalItems:100,globalBytes:100000000,partitionItems:16,partitionBytes:100000000}
@@ -50,7 +52,8 @@ try{
   const transaction=residentTransaction(run(Ref.make(initial)),'physical'),capacity=residentCapacity(transaction)
   const partition=run(capacity.partitionId('agent')),round=run(capacity.roundId('agent')),observationId=run(capacity.admitObservation('agent',round));if(!fullEntry)assert.equal(run(capacity.observation('agent',observationId,'startObservation',round)),true)
   let driver
-  const injectedPreparationError=new Error('injected original preparation failure'),injectedAdmissionError=new Error('injected source admission acknowledgement loss')
+  const injectedPreparationError=new Error('injected original preparation failure'),injectedAdmissionError=new Error('injected source admission acknowledgement loss'),injectedDiagnosticError=new Error('injected panic diagnostic failure')
+  const analyticsCause=mode==='full-mixed-cause'?Cause.combine(Cause.fail(injectedPreparationError),Cause.die(injectedDiagnosticError)):undefined
   const outputs=[],commands=[],caches=[],preparationIds=[],sourceEffects=[]
   const bridge=createResidentOwnerTransaction({owner,transaction,validateAdviceInput:(origin,handle)=>driver?.validateAdviceInput(origin,handle)===true,onActions:actions=>Effect.sync(()=>driver.acceptActions(actions))})
   const connection={transaction,bridge,control:bridge.control,partition,round,postCore:modules.PostPreparation}
@@ -67,9 +70,12 @@ try{
    return session.perform(request,options)
   }})
   connection.owned={driver}
-  const candidates=[{operation:'add',path:mode==='full-no-ready'?'empty.py':'first.py'},{operation:'add',path:mode==='full-no-ready'?'empty.py':['repeat-candidate','full-repeat'].includes(mode)?'first.py':'second.py'}]
-  const shared=await createResidentRetentionContext(connection,root,rootIdentity,{useOwned:true,observation:{root,rootIdentity,advicee:undefined,candidates}})
+  const candidates=mode==='full-comment-update'?[{operation:'update',path:'comment.ts',addedLines:['// updated outside declarations']},{operation:'update',path:'comment.ts',addedLines:['// updated outside declarations']}]:[{operation:'add',path:['full-no-ready','full-mixed-cause'].includes(mode)?'empty.py':'first.py'},{operation:'add',path:['full-no-ready','full-mixed-cause'].includes(mode)?'empty.py':['repeat-candidate','full-repeat'].includes(mode)?'first.py':'second.py'}]
+  const nativePatchCommand=mode==='full-comment-update'?'*** Begin Patch\n*** Update File: comment.ts\n@@\n-// old comment\n+// updated outside declarations\n export class Example { value: string = "x" }\n*** End Patch':undefined
+  const shared=await createResidentRetentionContext(connection,root,rootIdentity,{useOwned:true,observation:{root,rootIdentity,advicee:undefined,candidates,...(nativePatchCommand===undefined?{}:{nativePatchCommand})}})
   shared.observation.advicee=shared.identity
+  if(mode.startsWith('full-'))shared.context.job.dispatch.activityPath=join(root,mode==='full-activity-refused'?'.bend-activity-refused':'.bend-activity')
+  if(mode==='full-activity-refused')await writeFile(shared.context.job.dispatch.activityPath,'blocked directory')
   if(fullEntry){
    const credentials=await import('../../../packages/resident-runtime/src/resident/authorization/credentials.ts')
    shared.context.job.dispatch.controlled={}
@@ -107,8 +113,8 @@ try{
   if(mode.startsWith('full-')){
    const begin=context.deps.residentLedger.beginObservedPreparation
    context.deps.residentLedger.beginObservedPreparation=(partition,observation,bytes,round)=>begin(partition,observation,bytes,round).pipe(Effect.tap(value=>Effect.sync(()=>sourceEffects.push({kind:'admission',bytes,status:value.status}))))
-   context.deps.residentRecordAnalytics=(_job,event,findings)=>Effect.sync(()=>sourceEffects.push({kind:'analytics',event,...(findings===undefined?{}:{findings})}))
-   context.deps.residentInspection={...context.deps.residentInspection,observePreparation:(_job,value)=>sourceEffects.push({kind:'prepared',value}),observeDiagnostic:(_receipt,path,_candidate,value)=>sourceEffects.push({kind:'diagnostic',path,value})}
+   context.deps.residentRecordAnalytics=(_job,event,findings)=>Effect.sync(()=>sourceEffects.push({kind:'analytics',event,...(findings===undefined?{}:{findings})})).pipe(Effect.andThen(analyticsCause&&event==='incomplete-candidate'?Effect.failCause(analyticsCause):Effect.void))
+   context.deps.residentInspection={...context.deps.residentInspection,observePreparation:(_job,value)=>{sourceEffects.push({kind:'prepared',value});if(mode.startsWith('full-inspection-'))throw injectedPreparationError},observeDiagnostic:(_receipt,path,_candidate,value)=>{sourceEffects.push({kind:'diagnostic',path,value,custody:snapshotReservationCustody(run(transaction.read))});if(mode==='full-inspection-diagnostic-failure')throw injectedDiagnosticError}}
   }
   const sourceGraphLimits=mode.startsWith('full-')?effectiveGraphLimits(context.job.settings.configuration.policy):GRAPH_LIMIT_CEILINGS
   const bendLimits={$:'../../../packages/agent-flow-bend/ImportGraph.Limits',version:1n,...Object.fromEntries(Object.entries(sourceGraphLimits).map(([key,value])=>[({sourceBytes:'source_bytes',treeBytes:'tree_bytes',readBytes:'read_bytes',outgoingEdges:'outgoing_edges'})[key]??key,BigInt(value)]))}
@@ -116,12 +122,13 @@ try{
   const source=createSourcePreparationProvider(BigInt(invocation),context,{owner,bridge,driver,candidates,entry:fullEntry?'full':'after-gates',buildPreparationSession:async(invocation,candidate,preparation)=>{
    preparationIds.push(preparation.operation)
    const cache=new Map();caches.push(cache)
-   const preparationContext={root,rootIdentity,policy:DEFAULT_DIRECT_FILE_POLICY,branch:'type',limits:sourceGraphLimits,now:()=>0,captureCache:cache,captureSource:mode.startsWith('full-')?(root,selected,...args)=>captureStable(root,selected,...args).pipe(Effect.tap(value=>Effect.sync(()=>sourceEffects.push({kind:'capture',path:selected.relativePath,status:value.status,...(value.status==='captured'?{contentHash:value.capture.contentHash,bytes:value.capture.byteLength}:{diagnostic:value.diagnostic})})))):captureStable}
+   const preparationContext={root,rootIdentity,policy:DEFAULT_DIRECT_FILE_POLICY,branch:'type',limits:sourceGraphLimits,now:()=>0,captureCache:cache,captureSource:mode.startsWith('full-')?(root,selected,...args)=>(mode==='full-capture-failure'?Effect.sync(()=>sourceEffects.push({kind:'capture-failure',path:selected.relativePath})).pipe(Effect.andThen(Effect.fail(injectedPreparationError))):captureStable(root,selected,...args)).pipe(Effect.tap(value=>Effect.sync(()=>sourceEffects.push({kind:'capture',path:selected.relativePath,status:value.status,...(value.status==='captured'?{contentHash:value.capture.contentHash,bytes:value.capture.byteLength}:{diagnostic:value.diagnostic})})))):captureStable}
    const foreign=createPreparationForeign({connection:{...connection,preparation},owner,driver,registry,root,rootIdentity,context:preparationContext,cache,...(mode.startsWith('full-')?{settings:context.job.settings,graphLimits:sourceGraphLimits,residentContext:context,compareRoots:false,onMaterialization:event=>sourceEffects.push(event)}:{})})
-   return {invocation,revoke(){},close(){},perform:foreign,input:{invocation:BigInt(invocation),preparation:{$:'Input',candidates:list([{$:'Candidate',path:candidate.path,operation:{$:'CandidateAdd'},added_lines:list([])}]),contracts:list([{$:'PreparationSelection.TypeContract'},...(mode.startsWith('full-')?[{$:'PreparationSelection.FunctionContract'}]:[])]),limits:bendLimits,frozen:{$:'None'},line:{$:'None'},verified:{$:'None'},native_patch:{$:'None'},advicee_host:'codex',before_analyze:true}}}
+   return {invocation,revoke(){},close(){},perform:foreign,input:{invocation:BigInt(invocation),preparation:{$:'Input',candidates:list([{$:'Candidate',path:candidate.path,operation:{$:candidate.operation==='update'?'CandidateUpdate':'CandidateAdd'},added_lines:list(candidate.addedLines??[])}]),contracts:list([{$:'PreparationSelection.TypeContract'},...(mode.startsWith('full-')?[{$:'PreparationSelection.FunctionContract'}]:[])]),limits:bendLimits,frozen:{$:'None'},line:{$:'None'},verified:{$:'None'},native_patch:nativePatchCommand===undefined?{$:'None'}:{$:'Some',value:nativePatchCommand},advicee_host:'codex',before_analyze:true}}}
   }})
   try{
    let result
+   const activity=mode.startsWith('full-')?captureActivityPublications(context.job.dispatch.activityPath,sourceEffects):undefined
    try{result=await driver.drive(source,source.input,{signal:context.preparationSignal})}
    catch(error){
     if(mode!=='source-cleanup-pending')throw error
@@ -131,7 +138,7 @@ try{
     await assert.rejects(registry.retryCleanup(),/cleanup obligations remain pending/);assert.equal(registry.pendingCleanup,1)
     cleanupFails=false;await registry.retryCleanup();assert.equal(registry.pendingCleanup,0);assert.equal(context.activeWorkspaces.size,0)
     result={completed:false,reason:{$:'TechnicalFailure',token:1n}}
-   }
+   }finally{activity?.close()}
    if(['completion-ack-loss','after-prepare-failure'].includes(mode))assert.deepEqual(commands.filter(item=>item.invocation===BigInt(invocation)).slice(-4).map(item=>item.command),['RecordPreparationFailureAnalytics','ReleaseJobReservation','ReadRuntimeActive','RecordUnavailableActivity'])
    const recovery=commands.filter(item=>item.invocation===BigInt(invocation)).map(item=>item.command);const recoveryStart=recovery.indexOf('RecordPreparationFailureAnalytics')
    if(mode==='after-prepare-analytics-failure')assert.deepEqual(recovery.slice(recoveryStart),['RecordPreparationFailureAnalytics'])
@@ -140,7 +147,7 @@ try{
    const snapshot=run(transaction.read),units=[...snapshot.records.dispatch.entries.values()].map(entry=>entry.value)
    const interrupted=outputs.filter(output=>output.$==='../../../packages/agent-flow-bend/Canonical.EventEstablished'&&output.event.$==='../../../packages/agent-flow-bend/Canonical.ObservationInterrupted')
    const completed=outputs.filter(output=>output.$==='Canonical.EventEstablished'&&output.event.$==='Canonical.ObservationCompleted')
-   const expectedCount=gateRefusal||mode==='first-preparation-failure'||mode==='full-owner-barrier-failure'||mode==='full-no-ready'?0:['refused-second','full-refused-second','admission-ack-loss','cancel-between-candidates','repeat-candidate','full-repeat','second-preparation-failure','source-cleanup-pending'].includes(mode)?1:2
+   const expectedCount=gateRefusal||mode==='first-preparation-failure'||mode==='full-owner-barrier-failure'||mode==='full-capture-failure'||mode.startsWith('full-inspection-')||mode==='full-mixed-cause'||['full-no-ready','full-comment-update'].includes(mode)?0:['refused-second','full-refused-second','admission-ack-loss','cancel-between-candidates','repeat-candidate','full-repeat','second-preparation-failure','source-cleanup-pending'].includes(mode)?1:2
    assert.equal(units.length,expectedCount,mode+' retains transferred units')
    assert.equal(snapshot.records.revision.current.size,expectedCount)
    assert.equal(snapshot.records.reuse.pending.size,expectedCount)
@@ -149,7 +156,8 @@ try{
    assert.equal(context.unassignedClaims.size,0)
    assert.equal(driver.stats.providerStarts,driver.stats.providerCleanups)
    assert.deepEqual(driver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0});assert.equal(registry.size,0);assert.equal(registry.pendingCleanup,0)
-   assert.equal(caches.length,gateRefusal?0:['refused-second','full-refused-second'].includes(mode)||mode==='admission-ack-loss'||mode==='source-cleanup-pending'||mode==='cancel-between-candidates'||mode==='first-preparation-failure'||mode==='full-owner-barrier-failure'?1:2)
+   if(mode==='full-comment-update'&&result.reason?.$==='TechnicalFailure')throw source.error(result.reason.token)
+   assert.equal(caches.length,gateRefusal?0:['refused-second','full-refused-second'].includes(mode)||mode==='admission-ack-loss'||mode==='source-cleanup-pending'||mode==='cancel-between-candidates'||mode==='first-preparation-failure'||mode==='full-owner-barrier-failure'||mode==='full-capture-failure'||mode.startsWith('full-inspection-')||mode==='full-mixed-cause'?1:2)
    if(caches.length===2){assert.notStrictEqual(caches[0],caches[1]);assert.notEqual(preparationIds[0],preparationIds[1])}
    if(gateRefusal){
     assert.equal(result.completed,false);assert.equal(result.continued,false);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
@@ -164,9 +172,14 @@ try{
     else if(mode==='gates-runtime-first')assert.deepEqual(gates,[...prefix,'ReadRuntimeActive','ReleaseJobReservation'])
     else if(mode==='gates-runtime-second'||mode==='gates-job-inactive')assert.deepEqual(gates,[...prefix,...common,'ReadCredentialRequired','CheckCredentialShape','VerifyObservationRoot','CheckCredentialGeneration','ReleaseJobReservation','ReadRuntimeActive',...(mode==='gates-job-inactive'?['CheckJobActive']:[]),'RecordPreparationFailureAnalytics','RecordUnavailableActivity'])
     else assert.deepEqual(gates,mode==='gates-backend-failure'?[...prefix,'RecordPreparationFailureAnalytics','ReleaseJobReservation','ReadRuntimeActive','RecordUnavailableActivity']:[...prefix,...common,...checks[mode],'ReleaseJobReservation','RecordPreparationFailureAnalytics','RecordUnavailableActivity'])
+   }else if(mode==='full-mixed-cause'){
+    assert.equal(result.completed,false);assert.equal(result.reason.$,'TechnicalFailure');assert.equal(Cause.hasDies(source.cause(result.reason.token)),true);assert.equal(Cause.hasFails(source.cause(result.reason.token)),true);assert.equal(interrupted.length,1);assert.equal(completed.length,0);assert.ok(recoveryStart>=0)
    }else if(mode==='full-owner-barrier-failure'){
     assert.equal(result.completed,false);assert.equal(result.reason.$,'TechnicalFailure');assert.equal(source.error(result.reason.token).operation,'owner claim barrier');assert.equal(interrupted.length,1);assert.equal(completed.length,0)
-   }else if(mode.endsWith('preparation-failure')){
+   }else if(mode.startsWith('full-inspection-')){
+    if(result.reason.$==='TechnicalFailure')throw source.error(result.reason.token)
+    assert.equal(result.completed,false);assert.equal(result.reason.$,'DefectFailure');if(mode==='full-inspection-failure')assert.strictEqual(source.error(result.reason.token),injectedPreparationError);assert.equal(Cause.hasDies(source.cause(result.reason.token)),true);assert.equal(interrupted.length,1);assert.equal(completed.length,0);assert.equal(recoveryStart,-1)
+   }else if(mode.endsWith('preparation-failure')||mode==='full-capture-failure'){
     assert.equal(result.completed,false);assert.equal(result.reason.$,'TechnicalFailure');assert.strictEqual(source.error(result.reason.token),injectedPreparationError);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
    }else if(mode==='admission-ack-loss'||mode==='source-cleanup-pending'){
     assert.equal(result.completed,false);assert.equal(result.reason.$,'TechnicalFailure');assert.match(String(source.error(result.reason.token)),/admission acknowledgement loss/);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
@@ -179,10 +192,15 @@ try{
     if(mode.startsWith('after-prepare-'))assert.equal(source.error(result.reason.token).operation,'preparation barrier')
    }
    if(mode.startsWith('full-')){
-    const native=await nativeSourceReference({owner,root,rootIdentity,candidates,settings:context.job.settings,limits,refuseSecond:mode==='full-refused-second',ownerBarrierFailure:mode==='full-owner-barrier-failure'})
+    const native=await nativeSourceReference({owner,root,rootIdentity,candidates,nativePatchCommand,settings:context.job.settings,limits,refuseSecond:mode==='full-refused-second',ownerBarrierFailure:mode==='full-owner-barrier-failure',captureFailure:mode==='full-capture-failure'?injectedPreparationError:undefined,inspectionFailure:mode.startsWith('full-inspection-')?injectedPreparationError:undefined,diagnosticFailure:mode==='full-inspection-diagnostic-failure'?injectedDiagnosticError:undefined,analyticsCause,activityRefused:mode==='full-activity-refused'})
     assert.equal(native.completed,result.completed)
+    if(mode.startsWith('full-inspection-')){assert.ok(native.exitCause);assert.equal(Cause.hasDies(native.exitCause),true);if(mode==='full-inspection-failure')assert.strictEqual(Cause.squash(native.exitCause),injectedPreparationError);assert.deepEqual(native.exitCause.reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error})),source.cause(result.reason.token).reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error})));assert.equal(native.exitCause.reasons.length,mode==='full-inspection-diagnostic-failure'?2:1)}else assert.equal(native.exitCause,undefined)
     assert.deepEqual(native.canonical,projectCanonical(snapshot.canonical))
     assert.deepEqual(native.trace,sourceEffects)
+    const publications=sourceEffects.filter(event=>event.kind==='activity')
+    if(mode==='full-activity-refused'||mode.startsWith('full-inspection-'))assert.equal(publications.length,0)
+    else{assert.ok(publications.length>0,'whole activity observer must be nonvacuous');assert.ok(publications.every(event=>event.marker.observedAt===1000))}
+    if(mode==='full-comment-update'){assert.ok(sourceEffects.some(event=>event.kind==='analytics'&&event.event==='incomplete-candidate'));assert.equal(sourceEffects.find(event=>event.kind==='prepared').value.observation.status,'incomplete')}
     assert.deepEqual(native.units,units.map(unit=>({prepared:unit.prepared,evaluationKey:unit.evaluationKey,sourceHash:unit.sourceHash,path:unit.observation.candidates[0].path})))
     assert.deepEqual(native.ownership,snapshotSourceOwnership(snapshot))
     nativeWholeCases++
@@ -200,5 +218,5 @@ try{
   }
   const rootFds=await Promise.all((await readdir('/proc/self/fd')).map(fd=>readlink('/proc/self/fd/'+fd).catch(()=>'')));assert.equal(rootFds.filter(path=>path===root||path.startsWith(root+'/')).length,0)
  }
- console.log(JSON.stringify({passed:true,cases,requests:totalRequests,nativeWholeCases,nativeWholeScope:'actual makeResidentPreparation in an independent resident context: ordered admission/capture/resize/diagnostic/analytics effects, complete prepared inputs, evaluation/source identities, Canonical projection and pre-teardown transferred ownership; activity traces, full error/cancellation differential and universal correspondence remain open',scope:'whole source workflow including pre-loop gates and post-gates cursor over actual physical candidates, fresh Preparation/cache and shared resident context, Canonical Source -> Preparation -> split resolvers -> Retaining -> dispatcher, atomic source completion/interruption and workspace receipt cleanup; finite consumer, universal proofs and production adoption remain open'}))
+ console.log(JSON.stringify({passed:true,cases,requests:totalRequests,nativeWholeCases,nativeWholeScope:'actual makeResidentPreparation in an independent resident context: ordered admission/capture/resize/diagnostic/analytics effects and full physical activity marker publications with an explicit wall-clock sample, complete prepared inputs, evaluation/source identities, Canonical projection and pre-teardown transferred ownership; full error/cancellation differential and universal correspondence remain open',scope:'whole source workflow including pre-loop gates and post-gates cursor over actual physical candidates, fresh Preparation/cache and shared resident context, Canonical Source -> Preparation -> split resolvers -> Retaining -> dispatcher, atomic source completion/interruption and workspace receipt cleanup; finite consumer, universal proofs and production adoption remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}
