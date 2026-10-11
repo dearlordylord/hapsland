@@ -281,6 +281,11 @@ One current obstacle list, in execution order:
    entry consumer (78 cases/55 native comparisons) pass on these inputs
    (/tmp/hapsland-frontend-literal-{fast,entry}.log). Remaining composition ABI
    declarations and normal build recipes are still required before packaging.
+   Cargo/TOML's existing recursive ABI is now closed over all seven actual
+   Types.bend constructors (including nested arrays/ordered records), rather
+   than arbitrary string tags. Encoder behavior is unchanged. Full independent
+   entry again passes 78/55; explicit lint, root types and check:fast pass
+   (/tmp/hapsland-closed-toml-{entry,types,fast}.log).
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
    consumer now passes 56 cases/6348 commands and 31 native comparisons across

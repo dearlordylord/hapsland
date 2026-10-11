@@ -8,13 +8,14 @@ import {
   type Binary64,
   type OrderedField
 } from "@hapsland/source-artifacts/direct-event/value/codec"
-type TomlValue =
-  | { readonly $: string; readonly value: string | boolean }
-  | { readonly $: string; readonly decimal: string }
-  | { readonly $: string; readonly bits: Binary64 }
-  | { readonly $: string; readonly representation: string }
-  | { readonly $: string; readonly items: List<TomlValue> }
-  | { readonly $: string; readonly fields: List<OrderedField<TomlValue>> }
+export type TomlValue =
+  | { readonly $: "Types.TomlString"; readonly value: string }
+  | { readonly $: "Types.TomlBool"; readonly value: boolean }
+  | { readonly $: "Types.TomlInteger"; readonly decimal: string }
+  | { readonly $: "Types.TomlNumber"; readonly bits: Binary64 }
+  | { readonly $: "Types.TomlDate"; readonly representation: string }
+  | { readonly $: "Types.TomlArray"; readonly items: List<TomlValue> }
+  | { readonly $: "Types.TomlRecord"; readonly fields: List<OrderedField<TomlValue>> }
 type ValueConstructor =
   | "Binary64"
   | "OrderedField"
@@ -24,9 +25,11 @@ type ValueConstructor =
   | "ProductText"
   | "ProductArray"
   | "ProductObject"
-type ConstructorTag<Name extends string> = Name extends ValueConstructor
-  ? `../../../../source-artifacts/src/direct-event/value/Value.${Name}`
-  : `Types.${Name}`
+type ConstructorTag<Name extends string> = string extends Name
+  ? string
+  : Name extends ValueConstructor
+    ? `../../../../source-artifacts/src/direct-event/value/Value.${Name}`
+    : `Types.${Name}`
 function tagged<Name extends string>(name: Name): { readonly $: ConstructorTag<Name> }
 function tagged<Name extends string, Fields extends object>(
   name: Name,
