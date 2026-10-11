@@ -48,7 +48,7 @@ import { nativePrepareReadyUnits as __nativePrepareReadyUnits } from "../../../p
 import { nativePostPreparationSource } from "./native-post-preparation-child.mjs"
 import { consumeRetainedPreparation } from "./retention-consumer.mjs"
 import { createPreparationForeign } from "../../../packages/resident-runtime/src/resident/review-work/composition/preparation-foreign.mjs"
-import { decodePreparationResult } from "../../../packages/review-execution/src/direct-event/preparation/preparation-result-codec.mjs"
+import { decodePreparationResult } from "../../../packages/review-execution/dist/direct-event/preparation/preparation-result-codec.js"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import {

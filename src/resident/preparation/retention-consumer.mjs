@@ -8,7 +8,7 @@ import { advicee as __advicee } from "@hapsland/build-tooling/test-support/test-
 import { sourcePartition } from "../../../packages/resident-runtime/src/resident/recipient/identity.ts"
 import { evaluationSourcePartition } from "../../../packages/resident-runtime/src/resident/work-ownership/identity.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { decodePreparationResult } from "../../../packages/review-execution/src/direct-event/preparation/preparation-result-codec.mjs"
+import { decodePreparationResult } from "../../../packages/review-execution/dist/direct-event/preparation/preparation-result-codec.js"
 import {
   bendPostPreparation,
   createPostPreparationProvider

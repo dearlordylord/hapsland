@@ -216,6 +216,20 @@ One current obstacle list, in execution order:
    with no remaining supported format changes. Value itself conforms. Unsupported expression/header diagnostics remain gates,
    not exemptions. This closes shared declaration ownership, not compiled whole
    Preparation, universal correspondence or production acceptance.
+   The first compiled preparation boundary now has one contract.ts owner for
+   context/source/terminal types, with the existing pipeline type API retained.
+   The complete terminal codec is ordinary typed TS; its source MJS copy is
+   deleted. Source provider and both retained/resident verification consumers
+   import its emitted dist JS. Producer-valid wire types preserve existing raw
+   decoder behavior; they are not validation of arbitrary raw product schemas.
+   Package typing, recorded compiler inputs/outputs and workspace build 46/46
+   passed; actual Source 50 and resident 64 scenarios passed the compiled codec.
+   Ordinary lint selects all six changed host files. Fast passed 109 tests,
+   assets, source typing and package graph, then failed the same 5 unresolved,
+   47 undeclared and 213 private development imports. The dispatcher/finalization
+   bindings, private generated artifacts, single package capability entry and
+   resident imports remain the coherent next compiled unit; neither type
+   extraction nor terminal-codec emission closes that unit or adopts production.
 
 2. Finish all retained source/proof and ordinary quality gates. The source gate
    uses current import closures, nonempty checking roots and a five-second limit;
@@ -322,20 +336,22 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest pair at `0bdb7763` began
-   2026-10-11 07:23:32/07:27:30 UTC: build qualified but failed **1.0581**;
-   execution qualified and passed **0.8678**. All 17 build pairs used 23/46 cached
-   tasks; HEAD, sources and artifact trees stayed unchanged; execution matched
-   both callers on seven fixtures. Qualification records are in ignored
-   `.test-runs/bend-migration/performance/2026-10-11T07-23-32.872264+00-00/`
-   and `2026-10-11T07-27-30.280391+00-00/`. These cover existing production,
-   not unadopted whole preparation. Both starts met the 30-minute cadence after
-   workspace warm preparation passed 46/46 tasks in 62.356s. The preceding pair
-   failed build 1.0596 and passed execution 0.6626; a repeated similar build ratio
-   does not identify its cause. Diagnose the production build difference before
-   claiming parity; a successful execution cannot qualify the failed build.
-   Earlier cadence breaches remain observed. Keep new measurements within
-   30 minutes and freeze their inputs.
+   parity on the connected candidate. Latest pair at `0044289c` began
+   2026-10-11 07:57:07/08:05:23 UTC: build qualified but failed **1.5609**;
+   execution qualified and passed **0.9944**. Qualification records are in ignored
+   `.test-runs/bend-migration/performance/2026-10-11T07-57-07.066503+00-00/`
+   and `2026-10-11T08-05-23.840963+00-00/`. These cover existing production,
+   not unadopted whole preparation. The starts missed the preceding 30-minute
+   deadlines by 3m34s and 7m53s respectively. Previous build/execution ratios were
+   1.0581/0.8678. Diagnose the production build difference before claiming parity;
+   a successful execution cannot qualify the failed build. Keep new measurements
+   within 30 minutes and freeze their inputs. This pair's baseline used 23/46
+   cached tasks throughout; the candidate's first sample used 13/46 and took
+   72.49s, while its other 16 samples used 23/46. The ten cache misses began at
+   source-artifacts and propagated through its consumers. The final Value.bend
+   EOF correction followed warm preparation, so the next warm preparation must
+   follow every source edit, including formatting, before freezing the pair.
+   This explains the unmatched warm condition; it does not establish parity.
 
 Keep this obstacle list current by removing closed work and naming specific
 remaining failures. Source backup, relocation and finite candidate qualification

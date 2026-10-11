@@ -13,7 +13,7 @@ import {
   ResidentResourceReceipt
 } from "../../state/resolver-custody/resident-provider-permit.mjs"
 import { createPostPreparationProvider } from "./post-preparation-host.mjs"
-import { decodePreparationResult } from "../../../../../review-execution/src/direct-event/preparation/preparation-result-codec.mjs"
+import { decodePreparationResult } from "../../../../../review-execution/dist/direct-event/preparation/preparation-result-codec.js"
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 // Foreign effects and opaque receipts for one whole source. The cursor chooses

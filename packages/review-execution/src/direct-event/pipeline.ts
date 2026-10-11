@@ -1,3 +1,10 @@
+import type {
+  DirectReviewContext,
+  PreparedSource,
+  SourcePreparationContext,
+  PrepareOutcome,
+  PreparedObservation
+} from "./preparation/contract.ts"
 import { DEFAULT_REVIEW_BACKEND } from "@hapsland/runtime-environment/runtime/backend"
 import { isBundledArtifact, languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
@@ -21,7 +28,6 @@ import { probabilityRequest, requestLimitViolation } from "../review-providers/r
 import { effectiveReviewBackend, effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/resolve"
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { initialImportGraph, stepImportGraph } from "@hapsland/canonical-policy/canonical/graph-adapter"
-import type { ReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import { adaptCodexDirectEvent, verifyObservationRoot } from "@hapsland/native-observation/direct-event/adapter"
 import { selectEditedRoots } from "@hapsland/native-observation/direct-event/edit-attribution"
 import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-event/codex-patch-hunks"
@@ -36,7 +42,6 @@ import {
 import {
   analyzeTypeFile,
   combinedAnalyzerMaterializationPreflight,
-  type AnalyzerMaterializationPreflight,
   type TypeFileAnalysis,
   type UnitAnalysis,
   inspectGraphFile
@@ -48,7 +53,6 @@ import {
 } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import {
   captureStable,
-  type CaptureHooks,
   type CaptureResult,
   type CaptureDiagnostic
 } from "@hapsland/native-observation/direct-event/capture"
@@ -75,48 +79,20 @@ import {
   type DirectFilePolicy
 } from "@hapsland/native-observation/direct-event/selection"
 
+export type {
+  DirectReviewContext,
+  PreparedSource,
+  SourcePreparationContext,
+  PrepareOutcome,
+  PreparedObservation
+} from "./preparation/contract.ts"
+
 export { checkHandoffSources, type HandoffSourceMember } from "./handoff-sources.ts"
 
 assertReviewEngineBoundary("pipeline")
 
 export const DIRECT_EVENT_DEADLINE_MS = 15_000 as const
 
-export type DirectReviewContext = {
-  /** Explicit operator/fixture authority. Never inferred from matching reads. */
-  readonly controlledWriter: boolean
-  /** The only advicee for whom this invocation may produce advice. */
-  readonly advicee: DirectAdvicee
-  readonly settings: Pick<ReviewSettings, "backend" | "destination"> &
-    Partial<Pick<ReviewSettings, "configuration" | "rules" | "providerIdentity">>
-  readonly policy?: DirectFilePolicy | (() => DirectFilePolicy)
-  readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>)
-  readonly inputContract?: string | (() => string)
-  readonly captureHooks?: CaptureHooks
-  /** Optional observation of the actual preparation refusal; never participates in review authority. */
-  readonly observePreparationOmission?: (
-    path: string,
-    declaration: string,
-    reason: "missing-evidence" | "no-applicable-rule"
-  ) => void
-  /** Supporting capture evidence; observing it never changes partial-graph authority. */
-  readonly observeCaptureDiagnostic?: (candidatePath: string, sourcePath: string, diagnostic: CaptureDiagnostic) => void
-  /** Fixture-only source effect; production uses the stable native capture. */
-  readonly captureSource?: typeof captureStable
-  /** Fixture-only graph clock for deterministic deadline checks. */
-  readonly graphNow?: () => number
-  readonly beforePrepare?: Effect.Effect<void>
-  /** Reserve bounded analyzer/input materialization after capture, before parsing. */
-  readonly beforeAnalyze?: (
-    path: string,
-    sourceBytes: number,
-    preflight: AnalyzerMaterializationPreflight | undefined
-  ) => Effect.Effect<MaterializationAdmission>
-  readonly beforeDispatch?: Effect.Effect<void>
-  readonly beforeHandoff?: Effect.Effect<void>
-}
-
-/** Source preparation has no authority to publish advice to an agent. */
-export type PreparedSource = Omit<PreparedUnit, "advicee">
 type SourcePrepareOutcome =
   | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedSource }
   | { readonly status: "skipped"; readonly path: string }
@@ -131,16 +107,6 @@ export type SourceLineRequest = Pick<DirectObservation, "root" | "rootIdentity">
 type PreparationObservation = Omit<DirectObservation, "advicee"> & {
   readonly advicee?: DirectAdvicee
   readonly lineSelection?: { readonly line: number; readonly roots: Set<string> }
-}
-export type SourcePreparationContext = Omit<DirectReviewContext, "controlledWriter" | "advicee">
-
-export type PrepareOutcome =
-  | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedUnit }
-  | { readonly status: "skipped"; readonly path: string }
-
-export type PreparedObservation = {
-  readonly observation: ObservationResult
-  readonly outcomes: ReadonlyArray<PrepareOutcome>
 }
 
 /** Complete evaluated inputs retained until handoff; digests alone are not freshness. */
