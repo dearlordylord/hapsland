@@ -175,6 +175,16 @@ expression in list`; this is an open gate, not an exemption.
 One current obstacle list, in execution order:
 
 1. Qualify ordinary compiled capability boundaries and the unique shared ABI:
+   The owner recipe now emits Preparation and PreparationFinalization as private
+   library artifacts during ordinary review-execution compilation. Exact transitive
+   inputs, authored closed declarations and pinned Bend identity enter compiler
+   receipts. Hybrid Turbo tasks retain the declared producer environment; staging
+   uses library emission before publishing package JS. Workspace build passed
+   46/46 and 23 compiler receipts passed in the matching pinned environment.
+   The Source consumer passed 50 physical cases using these dist cores. Resident
+   qualification and the typed whole capability entry remain open. The 08:45 UTC
+   paired-build deadline was missed while fixing environment and library-mode
+   build failures; this evidence does not establish parity.
    source-analysis resolver/session, review-execution preparation, and
    resident-runtime Canonical workflow. Keep private stages hidden. Relocated
    sources must enter compiler/declaration receipts; authored MJS is currently

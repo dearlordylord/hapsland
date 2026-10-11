@@ -1965,7 +1965,8 @@
       ],
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
-        "HAPSLAND_BUILD_PROCESS_GROUP"
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
       ]
     },
     "@hapsland/runtime-environment#clean:compiler": {

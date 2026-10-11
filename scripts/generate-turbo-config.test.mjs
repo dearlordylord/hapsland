@@ -134,3 +134,11 @@ test("uncached compiler cleanup has static inputs and remains a build prerequisi
   delete missing.packages.get("@probe/hook").manifest.scripts["clean:compiler"]
   assert.throws(() => deriveTurboTaskConfiguration(missing, "/fixture"), /Missing compiler cleanup/)
 })
+
+test("hybrid TypeScript build preserves the declared Bend producer environment", () => {
+  const fixture = graph()
+  fixture.packages.get("@probe/admin").manifest.hapsland.bendPrecompile = "src/preparation/build-recipe.json"
+  const tasks = deriveTurboTaskConfiguration(fixture, "/fixture").tasks
+  assert.ok(tasks["@probe/admin#build"].passThroughEnv.includes("HAPSLAND_BEND_PRODUCER_ENV"))
+  assert.ok(!tasks["@probe/input#build"].passThroughEnv.includes("HAPSLAND_BEND_PRODUCER_ENV"))
+})

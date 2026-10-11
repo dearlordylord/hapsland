@@ -1,3 +1,4 @@
+import { hasBendPrecompile } from "./bend-precompile-inputs.mjs"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -95,7 +96,10 @@ export const deriveTurboTaskConfiguration = (graph, root = resolve(import.meta.d
       ],
       outputs: ["dist/**"],
       env: ["NODE_OPTIONS", "BUN_OPTIONS"],
-      passThroughEnv: [...leases, ...(owner.compiler === "bend" ? ["HAPSLAND_BEND_PRODUCER_ENV"] : [])]
+      passThroughEnv: [
+        ...leases,
+        ...(owner.compiler === "bend" || hasBendPrecompile(owner) ? ["HAPSLAND_BEND_PRODUCER_ENV"] : [])
+      ]
     }
     for (const profile of nativeProfiles(owner)) {
       const task = `native:${profile}`

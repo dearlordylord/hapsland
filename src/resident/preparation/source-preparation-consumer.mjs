@@ -68,8 +68,6 @@ try {
         "bend",
         new URL(
           {
-            PreparationFinalization:
-              "../../../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend",
             ArtifactComposition:
               "../../../packages/resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend",
             ArtifactIndexSkipMutantCore:
@@ -129,7 +127,6 @@ try {
               "../../../packages/source-analysis/src/direct-event/graph-resolution/ModuleSpecification.bend",
             PostPreparation:
               "../../../packages/resident-runtime/src/resident/review-work/preparation/PostPreparation.bend",
-            Preparation: "../../../packages/review-execution/src/direct-event/preparation/Preparation.bend",
             PreparationSelection:
               "../../../packages/review-execution/src/direct-event/preparation/PreparationSelection.bend",
             PreparationSpecification:

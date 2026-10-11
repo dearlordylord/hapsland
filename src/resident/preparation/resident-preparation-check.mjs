@@ -176,8 +176,6 @@ try {
         "bend",
         new URL(
           {
-            PreparationFinalization:
-              "../../../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend",
             ArtifactComposition:
               "../../../packages/resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend",
             ArtifactIndexSkipMutantCore:
@@ -237,7 +235,6 @@ try {
               "../../../packages/source-analysis/src/direct-event/graph-resolution/ModuleSpecification.bend",
             PostPreparation:
               "../../../packages/resident-runtime/src/resident/review-work/preparation/PostPreparation.bend",
-            Preparation: "../../../packages/review-execution/src/direct-event/preparation/Preparation.bend",
             PreparationSelection:
               "../../../packages/review-execution/src/direct-event/preparation/PreparationSelection.bend",
             PreparationSpecification:
@@ -396,21 +393,7 @@ try {
       }
     }
   }
-  const preparationEmission = join(temp, "Preparation.mjs")
-  execFileSync(
-    "taskset",
-    [
-      "-c",
-      "10",
-      "bend",
-      join(import.meta.dirname, "../../../packages/review-execution/src/direct-event/preparation/Preparation.bend"),
-      "-o",
-      preparationEmission
-    ],
-    { timeout: 5000 }
-  )
-  const core = (await import(pathToFileURL(preparationEmission))).default,
-    preparationMachine = createPreparationMachine(core)
+  const preparationMachine = createPreparationMachine(preparationCore)
   const none = { $: "None" },
     _some = (value) => ({ $: "Some", value })
   const _location = (value) => ({
