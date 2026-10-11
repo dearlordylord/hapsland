@@ -144,12 +144,25 @@ One current obstacle list, in execution order:
    consumers respectively); consumer summaries must report nonzero cases.
    Source checking remains blocked: retained scheduler closure was repaired and
    its two roots plus four original-law mutant rejections passed, but all remaining
-   checking roots need qualification. The current source gate checks 370 Bend
-   files through 115 roots and selects 163 authored files. Runtime foreign IO
+   checking roots need qualification. Before the current cleanup, the source gate
+   selected a 370-file Bend closure through 115 roots and 163 authored files. Runtime foreign IO
    shells are compiled to temporary JS under the same five-second deadline;
    pure roots retain `--verdict`. The repaired gate passed 38 selected files
    before rejecting the unproved `ATTACHMENT_TRANSACTION_LAWS.bend`; this draft
-   remains a real proof blocker and is not excluded. Standard development imports still report
+   remains a real proof blocker and is not excluded. Astra approved consolidation
+   of its existing predicates into `AttachmentTransactionContract.bend`: one
+   complete `AttachmentTransactionLiteralCuts` remains, and 18 duplicate literal,
+   control and copied-Attach files are deleted. Its current-source mutation runner
+   uses an isolated temporary import closure and never edits repository sources.
+   Full Cuts, Contract and construction qualification currently hit the five-second
+   limit; the runner correctly refuses to qualify a mutant without a passing
+   control. No old literal qualification transfers. The native resolver and actual
+   core always include empty `sourceDependencies`; the independent Forest spec
+   and sole literal witness were corrected to preserve that field. Forest checking
+   and the universal `AttachmentUnitProductProof` passed. The formatter accepted
+   Forest, Law and Contract, but cannot parse the dependent declaration headers in
+   Cuts/UnitProductProof; formatting qualification remains incomplete. Root graph
+   verification sources now also enter the named source syntax/closure selection. Standard development imports still report
    5 unresolved paths, 47 undeclared dependencies and 223 private cross-owner
    imports from the relocation. Use declared capability/testing entrypoints;
    do not expose every internal helper or bypass the development import gate.
@@ -195,12 +208,13 @@ One current obstacle list, in execution order:
 6. Pass required local gates and paired build/execution parity on that connected
    candidate. Previous measurements qualify only their original source paths and
    inputs; source moves do not inherit their qualification. Current relocated
-   production cadence at `8b67a18a`: build qualified but failed parity
-   (`1.0552003656893472`); execution qualified but failed parity
-   (`1.062814778554533`). Inputs, HEAD and artifact trees remained unchanged;
+   production cadence at `78f90e82`: build qualified but failed parity
+   (`1.0615929024291164`); execution qualified and passed parity
+   (`0.7115734281937276`). Inputs, HEAD and artifact trees remained unchanged;
    all build samples used 23/46 cached tasks and all execution outputs matched.
-   Build began at 04:07:53 UTC on 2026-10-11, exceeding the required 30-minute
-   interval from 03:36:19; cadence compliance remains unmet. These measurements
+   Current build/execution began at 04:29:25/04:34:39 UTC on 2026-10-11,
+   both within 30 minutes of their preceding starts. The earlier build at
+   04:07:53 exceeded the interval from 03:36:19; that breach remains recorded. These measurements
    cover the existing production analyzer, not adoption of the preparation candidate.
 
 Relocation and source backup do not increase the amount of connected production

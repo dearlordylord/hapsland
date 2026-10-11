@@ -18,7 +18,8 @@ const sourceOwners = [
   "packages/resident-runtime/src/resident/review-work/evaluation",
   "packages/resident-runtime/src/resident/state/resolver-custody",
   "packages/agent-flow-bend/preparation-lifecycle",
-  "src/resident/preparation"
+  "src/resident/preparation",
+  "src/direct-event/graph-resolution"
 ]
 const authoredSources = (directory) =>
   readdirSync(resolve(root, directory), { withFileTypes: true }).flatMap((entry) =>

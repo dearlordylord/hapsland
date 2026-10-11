@@ -4,7 +4,7 @@ import ../ForestSpecification.bend as F
 import ../Types.bend as T
 
 # Direct dependency of projected_unit_total: ordered dependencies, including
-# duplicates and the absent field for the empty list, use the actual builders.
+# duplicates and the present empty-array field, use the actual builders.
 def dependencies(items: List<&2, String>) ->
     {Core.dependency_products(items) == F.texts(items) : List<&2, T.ProductValue>}:
   match items:

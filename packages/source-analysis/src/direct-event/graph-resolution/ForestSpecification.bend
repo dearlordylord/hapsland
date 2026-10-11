@@ -538,7 +538,6 @@ def texts(items: List<&2, String>) -> List<&2, T.ProductValue>:
 
 def unit_product(root: Materialization, dependencies: List<&2, String>) -> Materialization:
   match root dependencies:
-    case Materialized{value} Nil{}: Materialized{object([field("root", value)])}
     case Materialized{value} dependencies:
       Materialized{object([field("root", value), field("sourceDependencies",
         T.ProductArray{texts(dependencies)})])}
