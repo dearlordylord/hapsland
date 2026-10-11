@@ -17,4 +17,3 @@ type ProductValue is Data:
   ProductText{value: String}
   ProductArray{items: List<&2, ProductValue>}
   ProductObject{fields: List<&2, OrderedField<ProductValue>>}
-
