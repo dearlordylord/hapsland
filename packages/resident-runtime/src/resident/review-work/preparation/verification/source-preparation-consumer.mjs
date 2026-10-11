@@ -32,7 +32,7 @@ import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driv
 import { createSourcePreparationMachine } from "../source-preparation-dispatcher.mjs"
 import { createPostPreparationMachine, createAdviceTailMachine } from "../post-preparation-dispatcher.mjs"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
-import { createPreparationForeign } from "../../composition/preparation-foreign.mjs"
+import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
 import { createSourcePreparationProvider } from "../source-preparation-provider.mjs"
 const run = Effect.runSync,
   temp = await mkdtemp("/tmp/hapsland-source-composition-")

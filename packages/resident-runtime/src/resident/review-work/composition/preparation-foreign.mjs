@@ -5,7 +5,6 @@ import { providerTransaction, ResidentProviderPermit } from "../../state/resolve
 import assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../../canonical-policy/dist/canonical/graph-limits.js"
-import { resolveGraphUnit } from "../../../../../source-analysis/dist/direct-event/graph-resolver.js"
 import {
   eligibleNamedPath,
   DEFAULT_DIRECT_FILE_POLICY
@@ -38,7 +37,6 @@ export function createPreparationForeign({
   onRoot,
   settings,
   graphLimits = GRAPH_LIMIT_CEILINGS,
-  compareRoots = true,
   onMaterialization,
   residentContext
 }) {
@@ -274,7 +272,16 @@ export function createPreparationForeign({
       }
       case "ResolveRoot": {
         roots++
-        onRoot?.()
+        const rootFacts = {
+          path: command.capture.path,
+          capture: rootCaptures.get(command.capture.handle),
+          name: command.root.name,
+          context: {
+            ...graphContext,
+            branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type"
+          }
+        }
+        onRoot?.(rootFacts)
         if (mode === "first-refused" && roots === 1) {
           response = { $: "RootResolved", unit: none, references: list([]), captures: snapshotCaptures() }
           break
@@ -296,26 +303,7 @@ export function createPreparationForeign({
             return terminal
           }
         })
-        const unit = await resolver(
-          command.capture.path,
-          rootCaptures.get(command.capture.handle),
-          command.root.name,
-          {
-            ...graphContext,
-            branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type"
-          },
-          options
-        )
-        if (compareRoots) {
-          const expected = await Effect.runPromise(
-            resolveGraphUnit(command.capture.path, rootCaptures.get(command.capture.handle), command.root.name, {
-              ...graphContext,
-              branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type",
-              captureCache: new Map()
-            })
-          )
-          assert.deepEqual(unit, expected)
-        }
+        const unit = await resolver(rootFacts.path, rootFacts.capture, rootFacts.name, rootFacts.context, options)
         response = {
           $: "RootResolved",
           unit: unit === undefined ? none : some(productValue(unit)),

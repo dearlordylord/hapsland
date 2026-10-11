@@ -625,3 +625,16 @@ original cancellation/late reply/cleanup cases. The earlier timeout is retained
 as preparation failure, not consumer rejection; hard five seconds is unchanged.
 The next whole-binding step remains oracle/fault-mode extraction and the full
 path/capture refusal contract; production adoption and replaced TS stay 0/0.
+
+Native graph correspondence now belongs solely to preparation/verification's
+preparation-foreign-reference wrapper. Product preparation-foreign no longer
+imports or invokes native resolveGraphUnit for comparison or selects compareRoots.
+The existing pre-launch onRoot observation receives exact call facts; zero-argument
+observers retain their previous timing. Verification performs the unchanged native
+comparison after the real capability reply and preserves the original first-refused
+exception to that comparison. Ordinary lint selects four changed files and passes.
+Full Source repeats 56 cases/6338 requests/31 native comparisons; resident preparation
+repeats 64/14395/807 including cancellation, late responses and cleanup. Fixture fault
+modes still require extraction; full path/capture refusals, universal attachment and
+public production adoption remain open. Freshness-count proof prefix now passes
+hard five seconds (3.532 wall, 3.094 user); original parent theorem is unfinished.

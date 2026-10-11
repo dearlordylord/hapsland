@@ -40,7 +40,7 @@ import { configuredRules } from "@hapsland/build-tooling/test-support/default-ru
 import { nativePrepareReadyUnits as __nativePrepareReadyUnits } from "../../../../../../review-execution/src/direct-event/preparation/native-preparation-reference.mjs"
 import { nativePostPreparationSource } from "./native-post-preparation-child.mjs"
 import { consumeRetainedPreparation } from "./retention-consumer.mjs"
-import { createPreparationForeign } from "../../composition/preparation-foreign.mjs"
+import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import {
