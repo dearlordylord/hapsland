@@ -716,3 +716,24 @@ independent canary then passed 2.608 wall/2.205 CPU and the unchanged complete
 repeat passed. The compiler deadline remains five seconds. Dynamic policy and
 configuration/digest timing, original universal proofs and public Canonical
 adoption/removal remain open; these finite full consumers do not close them.
+
+Current port timing closure: ResolveRoot builds named graph options at command
+time rather than eagerly spreading the context. Full Source passes 56/6338/31
+on that change. Finalization now exposes lazy settings/rules/omission fields;
+Astra confirms actual rules read timing and observer receiver/throw boundary.
+Focused physical resident cases pass: unused throwing rules getter before resize
+refusal (6 requests), and rules replaced after capture with complete native
+comparison (232 requests). Actual changed-source lint passes. Full Source on
+the lazy adapter stops before fixtures at GenericArtifact emission hard5; it
+is unqualified and the deadline remains unchanged. Full regression, dynamic
+policy, original universal proofs and production connection/deletion remain
+open; whole preparation adoption/removal are still 0/0.
+
+Frozen 5bb2a4e cadence: initial build measurement is unqualified because baseline
+clean hits the owned-lock deadline. Baseline rewarm passes 46/46 (23 cached).
+Unchanged repeated build starts 19:00:44.168485 UTC and qualifies 17 matched
+pairs with unchanged inputs, but fails parity at 1.165256325159491. Execution
+starts 19:06:40.029272 UTC, qualifies and passes parity at 0.6479680834468113;
+its start misses the preceding deadline by 22.051550 seconds. Next deadlines
+are build 19:30:44.168485 and execution 19:36:40.029272 UTC. These measurements
+cover existing production, not unadopted whole preparation.

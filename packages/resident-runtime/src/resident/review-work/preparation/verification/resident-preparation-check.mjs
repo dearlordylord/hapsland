@@ -86,6 +86,8 @@ const scenarios = [
     { compareNative: true }
   ),
   scenario("two-roots", twoDeclarations, { compareNative: true }),
+  scenario("rules-replaced-after-capture", twoDeclarations, { compareNative: true }),
+  scenario("unused-rules-getter", twoDeclarations, { expected: { selected: 0n, units: 0 } }),
   scenario("first-refused", twoDeclarations, { expected: { selected: 2n, units: 1 } }),
   scenario("parent-cancel-between-reads", twoDeclarations),
   scenario("parent-cancel-late-success", twoDeclarations),
@@ -464,6 +466,8 @@ try {
           Effect.tap((result) =>
             Effect.sync(() => {
               if (cancelled && result.status === "captured") physicalLateSuccess++
+              if (mode === "rules-replaced-after-capture" && result.status === "captured")
+                context.rules = configuredRules
             })
           ),
           Effect.flatMap((result) =>
@@ -473,6 +477,13 @@ try {
           )
         )
     }
+    if (mode === "rules-replaced-after-capture") context.rules = []
+    if (mode === "unused-rules-getter")
+      Object.defineProperty(context, "rules", {
+        get() {
+          throw new Error("Unused rules must not be read before finalization")
+        }
+      })
     const _snapshotCaptures = () =>
       list(
         [...cache].map(([path, capture], index) => ({
@@ -639,7 +650,7 @@ try {
       context,
       cache,
       settings: { rules: configuredRules },
-      mode,
+      mode: mode === "unused-rules-getter" ? "resize-refused" : mode,
       onRoot: () => {
         roots++
       }
