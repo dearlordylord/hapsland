@@ -18,8 +18,12 @@ def compatible(operation: T.Operation, outcome: T.ServiceOutcome) -> Bool:
     case T.PathIsAbsolute{_} T.AbsoluteResult{_}: True{}
     case T.JoinedPathFacts{_, _} T.JoinedPathFactsResult{_, _, _, _, _}: True{}
     case T.ReadFileStatus{_} T.StatusResult{_}: True{}
+    case T.ReadPathMembership{_} T.MembershipResult{_}: True{}
     case T.ReadDirectoryEntries{_, _} T.DirectoryEntriesObserved{_, _}: True{}
     case T.ReadDirectoryEntries{_, _} T.DirectoryEntriesUnavailable{}: True{}
+    case T.SelectContextPath{_} T.ContextSelectionResult{_}: True{}
+    case T.ParsePythonSyntax{_} T.PythonSyntaxResult{_}: True{}
+    case T.ReadIdentifierCharacters{_} T.IdentifierCharactersResult{_}: True{}
     case T.AccessPath{_} T.AccessResult{_}: True{}
     case T.CreateInvocationCache{} T.InvocationCacheCreated{_}: True{}
     case T.LookupCaptureCache{_, _} T.CacheResult{_}: True{}
@@ -30,6 +34,10 @@ def compatible(operation: T.Operation, outcome: T.ServiceOutcome) -> Bool:
     case T.InspectSource{_, _, _} T.FrontendResult{_}: True{}
     case T.ParseCargo{_} T.CargoResult{_}: True{}
     case T.InspectGoFile{_, _} T.GoFileResult{_}: True{}
+    case T.ReadCapturedText{_} T.CapturedText{_, _}: True{}
+    case T.ReadGoCharacters{_} T.GoCharactersResult{_}: True{}
+    case T.ReadGoBuildText{_} T.GoBuildTextResult{_}: True{}
+    case T.HashJsonProduct{_} T.JsonProductHashed{_}: True{}
     case T.InspectRustModules{_} T.RustModulesResult{_}: True{}
     case T.ObserveDiagnostic{_, _} T.DiagnosticObserved{}: True{}
     case T.EncodeProduct{_} T.ProductEncoded{_}: True{}

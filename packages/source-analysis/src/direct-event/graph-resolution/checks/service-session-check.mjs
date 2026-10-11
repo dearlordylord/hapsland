@@ -36,6 +36,9 @@ try {
   const protocolPath = join(temporary, "protocol.mjs")
   execFileSync("bend", [join(folder, "Protocol.bend"), "-o", protocolPath], { timeout: 5000 })
   const protocol = (await import(pathToFileURL(protocolPath))).default
+  const boundaryPath = join(temporary, "boundary-specification.mjs")
+  execFileSync("bend", [join(folder, "BoundaryValidationSpecification.bend"), "-o", boundaryPath], { timeout: 5000 })
+  const boundary = (await import(pathToFileURL(boundaryPath))).default
   const goProbePath = join(temporary, "go-probe.mjs")
   execFileSync("bend", [join(folder, "go-module/ABIProbe.bend"), "-o", goProbePath], { timeout: 5000 })
   const goProbe = (await import(pathToFileURL(goProbePath))).default
@@ -213,7 +216,28 @@ try {
   const checkMechanicalReply = (operation, outcome) => {
     const request = tagged("Request", { invocation: goApi.session.invocation, id: 2n, operation })
     const reply = tagged("Reply", { invocation: goApi.session.invocation, id: 2n, outcome })
-    assert.deepEqual(protocol.check(request, reply), { $: "CheckedOutcome", outcome })
+    // Runtime JSON projects Nat to number; direct emitted Protocol projects Nat to bigint.
+    // Keep exact payload equality on both boundaries, converting only declared Nat fields.
+    const checkedOutcome =
+      operation.$ === "Types.ReadGoBuildText"
+        ? {
+            ...outcome,
+            source: {
+              ...outcome.source,
+              characters: list(
+                unlist(outcome.source.characters).map((character) => ({ ...character, code: BigInt(character.code) }))
+              )
+            }
+          }
+        : outcome
+    assert.deepEqual(protocol.check(request, reply), { $: "CheckedOutcome", outcome: checkedOutcome })
+    assert.deepEqual(boundary.check(request, reply), { $: "None" })
+    assert.equal(boundary.check(request, { ...reply, id: 3n }).value.$, "Types.WrongCorrelation")
+    assert.equal(boundary.check(request, { ...reply, invocation: 900n }).value.$, "Types.WrongInvocation")
+    assert.equal(
+      boundary.check(request, { ...reply, outcome: tagged("ProductEncoded", { bytes: 1n }) }).value.$,
+      "Types.WrongReplyKind"
+    )
     assert.equal(protocol.check(request, { ...reply, id: 3n }).failure.$, "Types.WrongCorrelation")
     assert.equal(protocol.check(request, { ...reply, invocation: 900n }).failure.$, "Types.WrongInvocation")
     assert.equal(

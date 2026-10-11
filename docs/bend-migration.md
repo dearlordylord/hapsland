@@ -494,8 +494,24 @@ production preparation adoption and native TypeScript removal remain zero.
 The disk-loss checkpoint includes the ordinary tracked Go RawText and full
 BuildContext candidate, its consumer, and the mechanical captured-text, Unicode
 observation and JSON hash service operations. This checkpoint is not acceptance.
-The current service consumer fails strict equality because emitted RawText Nat
-fields return bigint while the expected host projection uses number; resolve
-the ABI projection and rerun the actual consumers before claiming qualification.
+The service boundary now passes 193 requests with exact Runtime JSON number
+and direct emitted Protocol bigint projections for declared RawText Nat fields.
+The independent envelope specification covers these operations and existing
+Python/membership operations; its literal check passes. The full Go package
+consumer still passes 163 comparisons after the shared ABI changes.
 Keep all implementation checkpoints pushed to the working remote branch; local
 files or commits alone do not satisfy source preservation.
+
+
+The full BuildContext consumer passes 4933 native comparisons (61 configuration,
+2079 expression, 329 filename, 2464 file/header). Unicode and original byte,
+token and depth boundaries are included. UTF8 encoding canaries use TextEncoder;
+Bun 1.3.14 Buffer.byteLength reports two bytes for a lone surrogate whereas
+TextEncoder and Node report three. Surrogate expressions remain unknown under
+the actual native semantic oracle. After ordinary formatting the BuildContext
+and service consumers passed again. No universal correspondence is claimed.
+The next tracked PreparationModel, ModulePolicy and PreparationMachine files
+are WIP: model/phase ABI and static module grammar are saved, transitions and
+whole physical consumer remain open. They are not an adopted prepareGoGraph.
+Current check:fast passed 109 tests, source TypeScript and package graph, then
+failed the same 97 private cross-owner imports; full gate remains blocked.

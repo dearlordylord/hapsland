@@ -25,13 +25,29 @@ def space( +value: Character) -> Bool:
 def utf16( +items: List<&2, Character>) -> Nat:
   match items:
     case []: 0n
-    case Character{ +code, _} <> tail: Nat.add(Bool.pick(Nat, Nat.is_gt(code, 65535n), 2n, 1n), utf16(tail))
+    case Character{ +code, _} <> tail: Nat.add(
+      Bool.pick(Nat, Nat.is_gt(code, 65535n), 2n, 1n),
+      utf16(tail)
+    )
 
 def bytes( +items: List<&2, Character>) -> Nat:
   match items:
     case []: 0n
     case Character{+code, _} <> tail:
-      Nat.add(Bool.pick(Nat, Nat.is_le(code, 127n), 1n, Bool.pick(Nat, Nat.is_le(code, 2047n), 2n, Bool.pick(Nat, Nat.is_le(code, 65535n), 3n, 4n))), bytes(tail))
+      Nat.add(
+        Bool.pick(
+          Nat,
+          Nat.is_le(code, 127n),
+          1n,
+          Bool.pick(
+            Nat,
+            Nat.is_le(code, 2047n),
+            2n,
+            Bool.pick(Nat, Nat.is_le(code, 65535n), 3n, 4n)
+          )
+        ),
+        bytes(tail)
+      )
 
 def ascii( +code: Nat) -> String:
   SCon{Chr{U32.from_nat(code)}, SNil{}}
