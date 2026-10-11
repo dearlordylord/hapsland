@@ -16,14 +16,21 @@ import ../Clock.bend as Clock
 # product measurement. This is not an extended attachment macrostep or law.
 def consume_reusable(+state: DriverState.State, outcome: T.ServiceOutcome) -> DriverState.Selection:
   match state outcome:
-    case _ T.ProviderRejected{exception}: DriverState.Rejected{state, T.ForeignProviderFailure{exception}}
+    case _ T.ProviderRejected{exception}: DriverState.Rejected{
+      state,
+      T.ForeignProviderFailure{exception}
+    }
     case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitDeadline{}, _} T.ClockRead{
       ArtifactValue.Binary64{0, 0}
     }:
       D.deadline(state, False{})
-    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitCompletion{product}, _} T.ProductEncoded{bytes}:
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitCompletion{product}, _} T.ProductEncoded{
+      bytes
+    }:
       D.completed(state, product, Nat.is_le(bytes, D.tree_cap(D.limits(DriverState.frame(state)))))
-    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitFinalDeadline{product}, _} T.ClockRead{bits}:
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitFinalDeadline{product}, _} T.ClockRead{
+      bits
+    }:
       D.final_deadline(state, product, Clock.expired(bits))
     case _ _: DriverState.Rejected{state, T.WrongReplyKind{}}
 
@@ -51,7 +58,11 @@ def normalize(fuel: Nat, +selection: DriverState.Selection) -> DriverState.Selec
 
 def normalized(progress: DriverState.Progress<Unit>) -> DriverState.Progress<Unit>:
   match progress:
-    case DriverState.DriverReady{state, world}: DriverState.consumed(Unit, normalize(6n, DriverState.Internal{state}), world)
+    case DriverState.DriverReady{state, world}: DriverState.consumed(
+      Unit,
+      normalize(6n, DriverState.Internal{state}),
+      world
+    )
     case _: progress
 
 def delivered(progress: DriverState.Progress<Unit>, reply: T.Reply) -> DriverState.Progress<Unit>:
@@ -66,7 +77,17 @@ def delivered(progress: DriverState.Progress<Unit>, reply: T.Reply) -> DriverSta
           consume,
           Unit,
           T.Request{DriverState.invocation(config), next, operation},
-          DriverState.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python},
+          DriverState.State{
+            config,
+            frame,
+            targets,
+            ids,
+            target,
+            (next + 1n : Nat),
+            iterations,
+            stage,
+            python
+          },
           reply,
           world
         )

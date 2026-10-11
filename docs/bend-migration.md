@@ -282,7 +282,11 @@ One current obstacle list, in execution order:
    Full physical cancellation/late cleanup and universal correspondence remain
    distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
    its accepted supported-input boundary before claiming complete replacement.
-3. Complete remaining ordinary Bend/source gates. Development imports now pass
+3. Complete remaining ordinary Bend/source gates. The six current driver and
+   completion boundary/probe files pass the pinned formatter after whitespace-only
+   formatting of ExpansionDriverSpecification and AttachmentCompletionProbe;
+   non-whitespace bytes match their pre-format versions. This closes their local
+   format drift, not the unsupported formatter roots or original proof gate. Development imports now pass
    with zero violations after owner moves, existing public capability wiring and
    tooling-owned fixture assembly. check:fast passes 109 tests, assets, source
    typing and package/import graph. Its post-commit lint selects zero files;
