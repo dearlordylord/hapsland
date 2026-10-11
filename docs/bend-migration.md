@@ -706,3 +706,13 @@ launch or accepted result. Existing terminal resource/FD cleanup assertions pass
 The two-request focused case and actual runner lint pass; full Source and the
 expanded complete resident corpus still require repetition on the final candidate.
 This closes the observed signal-forwarding failure vector, not whole adoption.
+
+Current acbada4b full consumers qualify the path/capture regression set after
+signal changes: Source passes 56 cases/6338 requests/31 native whole comparisons;
+resident passes all 68 cases/15338 requests/807 post requests, including physical
+betweenReads interruption and multi-candidate normalization/refusal/reuse. First
+preparation attempt stopped at unchanged ArtifactComposition emission hard5; its
+independent canary then passed 2.608 wall/2.205 CPU and the unchanged complete
+repeat passed. The compiler deadline remains five seconds. Dynamic policy and
+configuration/digest timing, original universal proofs and public Canonical
+adoption/removal remain open; these finite full consumers do not close them.
