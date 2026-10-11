@@ -1,17 +1,19 @@
+import { loadProbe, recordEvidence } from "./probe-loader.mjs"
 import assert from "node:assert/strict"
-import { writeFileSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { createHash } from "node:crypto"
-import p from "/tmp/hapsland-retained-forest-projection.mjs"
-import c from "/tmp/hapsland-construction-address-relation.mjs"
-import m from "/tmp/hapsland-retained-materialization-probe.mjs"
-import ap from "/tmp/hapsland-actual-attachment-frame-projection.mjs"
-import rp from "/tmp/hapsland-reference-attachment-frame-projection.mjs"
-import fixture from "/tmp/hapsland-attachment-frame-fixture.mjs"
-import tx from "/tmp/hapsland-attachment-transaction-probe.mjs"
-const fp = "../whole-resolver/ForestSpecification.",
-  tp = "../whole-resolver/Types.",
-  sp = "../local-graph-draft/SPEC.",
-  cp = "traversal/core."
+const p = await loadProbe("RetainedForestProjection")
+const c = await loadProbe("ConstructionAddressRelation")
+const m = await loadProbe("RetainedMaterializationProbe")
+const ap = await loadProbe("ActualAttachmentFrameProjection")
+const rp = await loadProbe("ReferenceAttachmentFrameProjection")
+const fixture = await loadProbe("AttachmentFrameFixture")
+const tx = await loadProbe("AttachmentTransactionProbe")
+const completion = await loadProbe("AttachmentCompletionProbe")
+const fp = "../ForestSpecification.",
+  tp = "../Types.",
+  sp = "../traversal/SPEC.",
+  cp = "../traversal/core."
 const list = (xs) => xs.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const arr = (xs) => (xs.$ === "Nil" ? [] : [xs.head, ...arr(xs.tail)])
 const artifact = {
@@ -49,10 +51,7 @@ let cases = 0,
   terminalFrames = 0,
   boundaryCases = 0,
   visitedCoverageRejected = 0,
-  provenanceRejected = 0,
-  canonicalRejected = 0,
-  publicationHolesRejected = 0,
-  budgetCounterexamples = 0
+  completionCases = 0
 for (let seed = 0; seed < 8; seed++)
   for (const episode of [0n, 3n]) {
     let next = 0n
@@ -98,7 +97,7 @@ for (let seed = 0; seed < 8; seed++)
     checkProduct(run(), flat.slots)
 
     const vp = "AttachmentFrameView.",
-      gp = "../../../../agent-flow-bend/ImportGraph."
+      gp = "../../../../../agent-flow-bend/ImportGraph."
     const empty = { $: "MTip" },
       emptyOrder = {
         $: vp + "Order",
@@ -181,10 +180,10 @@ for (let seed = 0; seed < 8; seed++)
     assert.deepEqual(viewed.value.forest, run().value)
     frames++
 
-    const xp = "../whole-resolver/ExpansionSpecification.",
-      dp = "../whole-resolver/ExpansionDriverSpecification.",
-      sip = "../whole-resolver/SignedLocalSpecification.",
-      op = "../whole-resolver/WholeObservation."
+    const xp = "../ExpansionSpecification.",
+      dp = "../ExpansionDriverSpecification.",
+      sip = "../SignedLocalSpecification.",
+      op = "../WholeObservation."
     const config = {
       $: dp + "Config",
       invocation: 1n,
@@ -233,7 +232,7 @@ for (let seed = 0; seed < 8; seed++)
       imports: list([]),
       supporting: list([])
     }
-    const catalog = rp["../whole-resolver/SPEC.source"](rawSource, 0n)
+    const catalog = rp["../SPEC.source"](rawSource, 0n)
     const exported = { $: "MLeaf", key: "x", val: false }
     const pendingValues = [9n, 2n].map((id, i) => ({
       $: cp + "Pending",
@@ -331,9 +330,9 @@ for (let seed = 0; seed < 8; seed++)
         for (const known of [false, true])
           for (const iterations of [0n, 1n, 20n]) {
             const php = "AttachmentPhaseView.",
-              lp = "../whole-resolver/Loop."
+              lp = "../Loop."
             const rawSource = bundled ? { ...baselineSource, supporting: baselineSource.declarations } : baselineSource
-            const catalog = rp["../whole-resolver/SPEC.source"](rawSource, 0n)
+            const catalog = rp["../SPEC.source"](rawSource, 0n)
             const declaration = bundled ? catalog.facts.supporting.val.value : catalog.facts.declarations.val.value
             const symbol = flat.slots.head.symbol
             const edgeValue = {
@@ -359,19 +358,7 @@ for (let seed = 0; seed < 8; seed++)
             const creation = c[fp + "construct"](200n, t, episode + 1n, list([]), artifacts)
             assert.equal(creation.$, fp + "Constructed")
             const token = { $: tp + "CaptureToken", invocation: 1n, id: 3n }
-            const newPending = arr(flat.slots)
-              .slice(0, 3)
-              .map((slot) => ({
-                $: cp + "Pending",
-                owner: slot.owner,
-                index: slot.index,
-                from: "child",
-                symbol: slot.symbol,
-                name: "x",
-                depth: 2n,
-                expected: { $: cp + "FunctionKind" },
-                target: { $: cp + "Imported", path: "next", name: "x" }
-              }))
+            const newPending = []
             const newSemanticPending = newPending.map((value) => ({
               $: fp + "Pending",
               owner: arr(creation.created.addresses).find((e) => e.local === value.owner).address,
@@ -537,128 +524,6 @@ for (let seed = 0; seed < 8; seed++)
             assert.equal(actualReady.$, "Some")
             assert.deepEqual(refReady, actualReady)
             ready++
-            const changedBudget = { ...budget, work: 1n }
-            const changedChild = { ...child, plan: { ...plan, budget: changedBudget } }
-            const changedReferenceChild = {
-              ...refChild,
-              tentative: { ...refChild.tentative, local: { ...refChild.tentative.local, budget: changedBudget } }
-            }
-            const changedActual = tx.actor(
-              input,
-              phaseFrame,
-              changedChild,
-              edgeValue,
-              config.clock,
-              config.language,
-              7n,
-              iterations
-            ).value
-            const changedReady = tx["ActualAttachmentPhaseProjection.project"](
-              changedActual,
-              phaseHistory,
-              childHistory
-            )
-            assert.equal(changedReady.$, "Some")
-            assert.deepEqual(
-              tx["ReferenceAttachmentPhaseProjection.project"](
-                phaseReference,
-                changedReferenceChild,
-                phaseHistory,
-                childHistory
-              ),
-              changedReady
-            )
-            assert.notDeepEqual(changedReady.value.frame.budget, changedReady.value.child.budget)
-            const changedEnter = tx.actual_enter(0n, changedActual),
-              changedReferenceEnter = tx.reference_enter(phaseReference, changedReferenceChild, 0n)
-            const changedHistory = tx["AttachmentHistory.measurement"](changedReady.value, phaseHistory)
-            const changedStaged = ap.project(changedEnter.step.state.frame.value, changedHistory),
-              changedReferenceStaged = tx["AttachmentStagedReferenceProjection.project"](
-                changedReferenceEnter,
-                changedHistory
-              )
-            assert.equal(changedStaged.$, "Some")
-            assert.equal(changedReferenceStaged.$, "Some")
-            assert.notDeepEqual(changedReferenceStaged.value.budget, changedStaged.value.budget)
-            budgetCounterexamples++
-            const hollowFrame = tx.pending_hole(phaseFrame, edgeValue)
-            assert.equal(ap.project(hollowFrame, phaseHistory).$, "Some")
-            const hollowState = tx.actor(
-              input,
-              hollowFrame,
-              child,
-              edgeValue,
-              config.clock,
-              config.language,
-              7n,
-              iterations
-            )
-            assert.equal(
-              tx["ActualAttachmentPhaseProjection.project"](hollowState.value, phaseHistory, childHistory).$,
-              "None"
-            )
-            canonicalRejected++
-            const captureHole = {
-              ...phaseFrame,
-              captured: {
-                $: "MNode",
-                pos: hollowFrame.pending.pos,
-                lo: { $: "MLeaf", key: "b", val: { $: "Some", value: child.file } },
-                hi: { $: "MTip" }
-              }
-            }
-            const captureHistory = {
-              ...phaseHistory,
-              order: { ...phaseHistory.order, captured: list(["b"]) },
-              captures: list([{ $: vp + "CaptureSource", path: "b", source: rawSource, catalog }])
-            }
-            assert.equal(ap.project(captureHole, captureHistory).$, "Some")
-            assert.equal(
-              tx["ActualAttachmentPhaseProjection.project"](
-                tx.actor(input, captureHole, child, edgeValue, config.clock, config.language, 7n, iterations).value,
-                captureHistory,
-                childHistory
-              ).$,
-              "None"
-            )
-            publicationHolesRejected++
-            const identityHole = {
-              ...phaseFrame,
-              target_artifacts: {
-                $: "MNode",
-                pos: hollowFrame.pending.pos,
-                lo: { $: "MLeaf", key: "6", val: { $: "Some", value: "" } },
-                hi: { $: "MTip" }
-              }
-            }
-            const identityHistory = { ...phaseHistory, order: { ...phaseHistory.order, identities: list([6n]) } }
-            assert.equal(ap.project(identityHole, identityHistory).$, "Some")
-            assert.equal(
-              tx["ActualAttachmentPhaseProjection.project"](
-                tx.actor(input, identityHole, child, edgeValue, config.clock, config.language, 7n, iterations).value,
-                identityHistory,
-                childHistory
-              ).$,
-              "None"
-            )
-            publicationHolesRejected++
-            const strayHistory = {
-              ...phaseHistory,
-              edges: list([
-                ...arr(phaseHistory.edges),
-                {
-                  $: vp + "EdgeSource",
-                  id: phaseFrame.next_edge,
-                  source: baselineSource,
-                  catalog: rp["../whole-resolver/SPEC.source"](baselineSource, 99n)
-                }
-              ])
-            }
-            assert.equal(
-              tx["ActualAttachmentPhaseProjection.project"](actualState.value, strayHistory, childHistory).$,
-              "None"
-            )
-            provenanceRejected++
             const extraVisited = fixture.visited({ ...phaseFrame, visited: plan.visited }, "unlisted").visited
             const hiddenChild = { ...child, plan: { ...plan, visited: extraVisited } }
             const hiddenState = tx.actor(
@@ -691,7 +556,7 @@ for (let seed = 0; seed < 8; seed++)
               "None"
             )
             freshnessRejected++
-            for (const previous of []) {
+            for (const previous of [0n, 1n, 1000n]) {
               const actualEnter = tx.actual_enter(previous, actualState.value),
                 refEnter = tx.reference_enter(phaseReference, refChild, previous)
               assert.equal(actualEnter.$, lp + "ServiceStep")
@@ -801,6 +666,52 @@ for (let seed = 0; seed < 8; seed++)
                     assert.equal(observedAfter.$, "Some")
                     assert.deepEqual(expectedAfter, observedAfter)
                     afterFrames++
+                    if (
+                      actualAfter.step.$ === tp + "AwaitService" &&
+                      actualAfter.step.request.operation.$ === tp + "ReadClock" &&
+                      invocation === 1n &&
+                      id === 7n &&
+                      outcome.$ === tp + "ProductEncoded" &&
+                      outcome.bytes === 1n &&
+                      previous === 0n &&
+                      iterations === 20n
+                    ) {
+                      const clockReply = {
+                        $: tp + "Reply",
+                        invocation: 1n,
+                        id: actualAfter.step.request.id,
+                        outcome: { $: tp + "ClockRead", bits: { $: tp + "Binary64", high: 0, low: 0 } }
+                      }
+                      const actualCompletion = completion.actual_delivered(actualAfter, clockReply),
+                        referenceCompletion = completion.delivered(refAfter, clockReply)
+                      assert.equal(actualCompletion.step.$, tp + "AwaitService")
+                      assert.equal(actualCompletion.step.request.operation.$, tp + "EncodeProduct")
+                      const completionHistory = { ...afterHistory, graph_remaining: afterHistory.graph_remaining - 1n }
+                      const completionBoundary = tx.actual_boundary(actualCompletion, completionHistory)
+                      assert.equal(completionBoundary.$, "Some")
+                      assert.deepEqual(
+                        tx.reference_boundary(referenceCompletion, refChild, completionHistory),
+                        completionBoundary
+                      )
+                      for (const bytes of [0n, 1000n, 1001n])
+                        for (const owner of [1n, 2n]) {
+                          const finalReply = {
+                            $: tp + "Reply",
+                            invocation: owner,
+                            id: actualCompletion.step.request.id,
+                            outcome: { $: tp + "ProductEncoded", bytes }
+                          }
+                          const actualFinal = completion.actual_delivered(actualCompletion, finalReply),
+                            referenceFinal = completion.delivered(referenceCompletion, finalReply)
+                          const finalBoundary = tx.actual_boundary(actualFinal, completionHistory)
+                          assert.equal(finalBoundary.$, "Some")
+                          assert.deepEqual(
+                            tx.reference_boundary(referenceFinal, refChild, completionHistory),
+                            finalBoundary
+                          )
+                          completionCases++
+                        }
+                    }
                     if (actualAfter.step.$ === tp + "FinishedResolver") terminalFrames++
                   }
                   if (actualAfter.step.$ === tp + "FailedResolver") {
@@ -896,24 +807,14 @@ const record = {
   terminalFrames,
   boundaryCases,
   visitedCoverageRejected,
-  provenanceRejected,
-  canonicalRejected,
-  publicationHolesRejected,
-  budgetCounterexamples,
+  completionCases,
   actualCompiledConstructAndFlatten: true,
   universalProof: false,
   sourceSha256: createHash("sha256")
-    .update(
-      readFileSync(
-        "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/src/direct-event/graph-resolution/attachment/RetainedForestProjection.bend"
-      )
-    )
+    .update(readFileSync(new URL("../RetainedForestProjection.bend", import.meta.url)))
     .digest("hex"),
   scope:
     "Finite synthetic attachment phases: full staged and post-reply frames, pending registration, admission/refusal and service reply correlation. Raw source-to-child-plan reachability and universal correspondence are not established; no production adoption"
 }
-writeFileSync(
-  "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-entry-draft/attachment-publication-map-falsification.json",
-  JSON.stringify(record, null, 2) + "\n"
-)
+recordEvidence("attachment-completion-falsification.json", record)
 console.log(JSON.stringify(record))

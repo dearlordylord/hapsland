@@ -1,14 +1,15 @@
+import { loadProbe, recordEvidence } from "./probe-loader.mjs"
 import assert from "node:assert/strict"
-import { writeFileSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { createHash } from "node:crypto"
-import p from "/tmp/hapsland-retained-forest-projection.mjs"
-import c from "/tmp/hapsland-construction-address-relation.mjs"
-import m from "/tmp/hapsland-retained-materialization-probe.mjs"
-import a from "/tmp/hapsland-attachment-projection-probe.mjs"
-const fp = "../whole-resolver/ForestSpecification.",
-  tp = "../whole-resolver/Types.",
-  sp = "../local-graph-draft/SPEC.",
-  cp = "traversal/core."
+const p = await loadProbe("RetainedForestProjection")
+const c = await loadProbe("ConstructionAddressRelation")
+const m = await loadProbe("RetainedMaterializationProbe")
+const a = await loadProbe("AttachmentProjectionProbe")
+const fp = "../ForestSpecification.",
+  tp = "../Types.",
+  sp = "../traversal/SPEC.",
+  cp = "../traversal/core."
 const list = (xs) => xs.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const arr = (xs) => (xs.$ === "Nil" ? [] : [xs.head, ...arr(xs.tail)])
 const artifact = {
@@ -77,7 +78,7 @@ for (let seed = 0; seed < 128; seed++)
     }
     checkProduct(run(), flat.slots)
 
-    const op = "../whole-resolver/WholeObservation."
+    const op = "../WholeObservation."
     const parentBirth = { $: op + "NodeAddress", episode: 0n, route: list([]) }
     const parentNodes = list([{ $: cp + "PlannedNode", node: 0n, artifact: 0n }])
     const parentSlots = list([
@@ -140,7 +141,7 @@ for (let seed = 0; seed < 128; seed++)
       const referenceProduct = m.expected(200n, expected.forest, list([]))
       assert.equal(actualProduct.$, "Some")
       assert.deepEqual(actualProduct.value, referenceProduct.product)
-      const refused = a["../whole-resolver/Composition.refuse_attachment"](attached, 0n, 0n, "target")
+      const refused = a["../Composition.refuse_attachment"](attached, 0n, 0n, "target")
       assert.equal(refused.$, "Some")
       assert.equal(refused.value.next_node, attached.next_node)
       assert.deepEqual(refused.value.pending, attached.pending)
@@ -207,17 +208,10 @@ const record = {
   actualCompiledConstructAndFlatten: true,
   universalProof: false,
   sourceSha256: createHash("sha256")
-    .update(
-      readFileSync(
-        "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/src/direct-event/graph-resolution/attachment/RetainedForestProjection.bend"
-      )
-    )
+    .update(readFileSync(new URL("../RetainedForestProjection.bend", import.meta.url)))
     .digest("hex"),
   scope:
     "Finite actual tentative attachment, Include/Expanded and retained rollback forest/products; three staged pending records and exact IDs per attachment; no reply/admission transaction proof or production adoption"
 }
-writeFileSync(
-  "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-entry-draft/attachment-projection-falsification.json",
-  JSON.stringify(record, null, 2) + "\n"
-)
+recordEvidence("attachment-projection-falsification.json", record)
 console.log(JSON.stringify(record))

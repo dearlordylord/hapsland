@@ -1,12 +1,14 @@
+import { loadProbe, recordEvidence } from "./probe-loader.mjs"
 import assert from "node:assert/strict"
-import { writeFileSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { createHash } from "node:crypto"
-import p from "/tmp/hapsland-retained-forest-projection.mjs"
-import c from "/tmp/hapsland-construction-address-relation.mjs"
-const fp = "../whole-resolver/ForestSpecification.",
-  tp = "../whole-resolver/Types.",
-  sp = "../local-graph-draft/SPEC.",
-  cp = "traversal/core."
+const p = await loadProbe("RetainedForestProjection")
+const c = await loadProbe("ConstructionAddressRelation")
+const m = await loadProbe("RetainedMaterializationProbe")
+const fp = "../ForestSpecification.",
+  tp = "../Types.",
+  sp = "../traversal/SPEC.",
+  cp = "../traversal/core."
 const list = (xs) => xs.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const arr = (xs) => (xs.$ === "Nil" ? [] : [xs.head, ...arr(xs.tail)])
 const artifact = {
@@ -18,12 +20,17 @@ const artifact = {
   name: "",
   source: "",
   source_hash: "",
-  order: list([])
+  order: list(
+    ["ArtifactIdKey", "ArtifactKindKey", "ArtifactNameKey", "ArtifactSourceKey", "ArtifactHashKey"].map((k) => ({
+      $: tp + k
+    }))
+  )
 }
 const artifacts = list([{ $: tp + "ArtifactEntry", handle: 0n, value: artifact }])
 let cases = 0,
   negative = 0,
-  detached = 0
+  detached = 0,
+  products = 0
 for (let seed = 0; seed < 128; seed++)
   for (const episode of [0n, 3n]) {
     let next = 0n
@@ -56,6 +63,17 @@ for (let seed = 0; seed < 128; seed++)
       value: { $: fp + "Forest", root: { $: "Some", value: made.created.root }, nodes: made.created.nodes }
     })
     cases++
+    const checkProduct = (projected, slots) => {
+      for (const deps of [[], ["", "\0", "\ud800"]]) {
+        const actual = m.actual(0n, flat.nodes, slots, artifacts, list(deps)),
+          expected = m.expected(200n, projected.value, list(deps))
+        assert.equal(actual.$, "Some")
+        assert.equal(expected.$, fp + "Materialized")
+        assert.deepEqual(actual.value, expected.product)
+        products++
+      }
+    }
+    checkProduct(run(), flat.slots)
     for (const result of [
       run(flat.nodes, flat.slots, list([...arr(artifacts), ...arr(artifacts)])),
       run(flat.nodes, flat.slots, artifacts, made.created.addresses.tail),
@@ -92,6 +110,7 @@ for (let seed = 0; seed < 128; seed++)
       assert.equal(projected.$, "Some")
       assert.equal(arr(projected.value.nodes).length, arr(flat.nodes).length)
       detached++
+      checkProduct(projected, list(refs))
       assert.equal(run(list(arr(flat.nodes).reverse())).$, "None")
       negative++
     }
@@ -100,20 +119,14 @@ const record = {
   cases,
   negative,
   detached,
+  products,
   actualCompiledConstructAndFlatten: true,
   universalProof: false,
   sourceSha256: createHash("sha256")
-    .update(
-      readFileSync(
-        "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/src/direct-event/graph-resolution/attachment/RetainedForestProjection.bend"
-      )
-    )
+    .update(readFileSync(new URL("../RetainedForestProjection.bend", import.meta.url)))
     .digest("hex"),
   scope:
     "Finite internal retained projection correspondence; not arbitrary Core rejection equivalence, whole attachment proof or production adoption"
 }
-writeFileSync(
-  "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-entry-draft/retained-forest-projection-falsification.json",
-  JSON.stringify(record, null, 2) + "\n"
-)
+recordEvidence("retained-materialization-falsification.json", record)
 console.log(JSON.stringify(record))

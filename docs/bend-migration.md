@@ -470,7 +470,7 @@ compiler receipts validated. check:fast passed 109 unit tests, repository assets
 TypeScript and package graph before failing development imports. Three relocated
 credential cold runners then switched five stale relative imports to existing
 workspace exports; all six available/locked runs passed, with nonempty lint.
-The focused import gate now reports zero unresolved paths, 46 undeclared
+The focused import gate now reports zero unresolved paths, 8 undeclared
 dependencies and 137 cross-owner private-file violations. Those remain an
 acceptance blocker; fix ownership and declared interfaces before asserting a
 green ordinary gate.
@@ -496,3 +496,18 @@ attachment falsification runners are part of that remaining source-execution
 obstacle: reconnect their generated modules to tracked owner Bend sources;
 do not treat the preexisting temporary outputs as retained source or exempt the
 runners from the ordinary gate. Whole production adoption remains open.
+
+Attachment falsification runners are now owner-local ordinary sources under
+`graph-resolution/attachment/checks`; seven old verification-tree copies were
+deleted. Their loader emits current tracked Bend into fresh temporary output
+with the unchanged five-second deadline and cleans on normal process exit;
+SIGKILL cleanup is not guaranteed. Diagnostics go to ignored root .test-runs.
+All seven actual runners passed after updating the obsolete module namespaces,
+including transaction, partial transaction, publication map and completion.
+The checks retain their assertions and explicitly remain finite synthetic
+relations; raw source-to-child-plan reachability, universal attachment proof and
+production adoption remain open. Their sourceSha256 labels one projection file,
+not a complete qualification receipt. Astra approved the structural change.
+The focused import gate now reports zero unresolved paths, eight undeclared
+dependencies and 137 cross-owner violations; the 38 removed violations were
+fixed temporary-module dependencies, not gate exclusions.

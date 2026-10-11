@@ -1,17 +1,18 @@
+import { loadProbe, recordEvidence } from "./probe-loader.mjs"
 import assert from "node:assert/strict"
-import { writeFileSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { createHash } from "node:crypto"
-import p from "/tmp/hapsland-retained-forest-projection.mjs"
-import c from "/tmp/hapsland-construction-address-relation.mjs"
-import m from "/tmp/hapsland-retained-materialization-probe.mjs"
-import ap from "/tmp/hapsland-actual-attachment-frame-projection.mjs"
-import rp from "/tmp/hapsland-reference-attachment-frame-projection.mjs"
-import fixture from "/tmp/hapsland-attachment-frame-fixture.mjs"
-import tx from "/tmp/hapsland-attachment-transaction-probe.mjs"
-const fp = "../whole-resolver/ForestSpecification.",
-  tp = "../whole-resolver/Types.",
-  sp = "../local-graph-draft/SPEC.",
-  cp = "traversal/core."
+const p = await loadProbe("RetainedForestProjection")
+const c = await loadProbe("ConstructionAddressRelation")
+const m = await loadProbe("RetainedMaterializationProbe")
+const ap = await loadProbe("ActualAttachmentFrameProjection")
+const rp = await loadProbe("ReferenceAttachmentFrameProjection")
+const fixture = await loadProbe("AttachmentFrameFixture")
+const tx = await loadProbe("AttachmentTransactionProbe")
+const fp = "../ForestSpecification.",
+  tp = "../Types.",
+  sp = "../traversal/SPEC.",
+  cp = "../traversal/core."
 const list = (xs) => xs.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const arr = (xs) => (xs.$ === "Nil" ? [] : [xs.head, ...arr(xs.tail)])
 const artifact = {
@@ -96,7 +97,7 @@ for (let seed = 0; seed < 128; seed++)
     checkProduct(run(), flat.slots)
 
     const vp = "AttachmentFrameView.",
-      gp = "../../../../agent-flow-bend/ImportGraph."
+      gp = "../../../../../agent-flow-bend/ImportGraph."
     const empty = { $: "MTip" },
       emptyOrder = {
         $: vp + "Order",
@@ -179,10 +180,10 @@ for (let seed = 0; seed < 128; seed++)
     assert.deepEqual(viewed.value.forest, run().value)
     frames++
 
-    const xp = "../whole-resolver/ExpansionSpecification.",
-      dp = "../whole-resolver/ExpansionDriverSpecification.",
-      sip = "../whole-resolver/SignedLocalSpecification.",
-      op = "../whole-resolver/WholeObservation."
+    const xp = "../ExpansionSpecification.",
+      dp = "../ExpansionDriverSpecification.",
+      sip = "../SignedLocalSpecification.",
+      op = "../WholeObservation."
     const config = {
       $: dp + "Config",
       invocation: 1n,
@@ -231,7 +232,7 @@ for (let seed = 0; seed < 128; seed++)
       imports: list([]),
       supporting: list([])
     }
-    const catalog = rp["../whole-resolver/SPEC.source"](rawSource, 0n)
+    const catalog = rp["../SPEC.source"](rawSource, 0n)
     const exported = { $: "MLeaf", key: "x", val: false }
     const pendingValues = [9n, 2n].map((id, i) => ({
       $: cp + "Pending",
@@ -329,9 +330,9 @@ for (let seed = 0; seed < 128; seed++)
         for (const known of [false, true])
           for (const iterations of [0n, 1n, 20n]) {
             const php = "AttachmentPhaseView.",
-              lp = "../whole-resolver/Loop."
+              lp = "../Loop."
             const rawSource = bundled ? { ...baselineSource, supporting: baselineSource.declarations } : baselineSource
-            const catalog = rp["../whole-resolver/SPEC.source"](rawSource, 0n)
+            const catalog = rp["../SPEC.source"](rawSource, 0n)
             const declaration = bundled ? catalog.facts.supporting.val.value : catalog.facts.declarations.val.value
             const symbol = flat.slots.head.symbol
             const edgeValue = {
@@ -560,7 +561,7 @@ for (let seed = 0; seed < 128; seed++)
                   $: vp + "EdgeSource",
                   id: phaseFrame.next_edge,
                   source: baselineSource,
-                  catalog: rp["../whole-resolver/SPEC.source"](baselineSource, 99n)
+                  catalog: rp["../SPEC.source"](baselineSource, 99n)
                 }
               ])
             }
@@ -811,17 +812,10 @@ const record = {
   actualCompiledConstructAndFlatten: true,
   universalProof: false,
   sourceSha256: createHash("sha256")
-    .update(
-      readFileSync(
-        "/workspace/typescript/hapsland-bend-selection-ui/packages/source-analysis/src/direct-event/graph-resolution/attachment/RetainedForestProjection.bend"
-      )
-    )
+    .update(readFileSync(new URL("../RetainedForestProjection.bend", import.meta.url)))
     .digest("hex"),
   scope:
     "Finite synthetic attachment phases: full staged and post-reply frames, pending registration, admission/refusal and service reply correlation. Raw source-to-child-plan reachability and universal correspondence are not established; no production adoption"
 }
-writeFileSync(
-  "/workspace/typescript/hapsland-bend-selection-ui/evidence/bend-strangler/whole-entry-draft/attachment-transaction-falsification.json",
-  JSON.stringify(record, null, 2) + "\n"
-)
+recordEvidence("attachment-transaction-falsification.json", record)
 console.log(JSON.stringify(record))
