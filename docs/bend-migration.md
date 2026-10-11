@@ -737,3 +737,15 @@ starts 19:06:40.029272 UTC, qualifies and passes parity at 0.6479680834468113;
 its start misses the preceding deadline by 22.051550 seconds. Next deadlines
 are build 19:30:44.168485 and execution 19:36:40.029272 UTC. These measurements
 cover existing production, not unadopted whole preparation.
+
+Organization gate now reports nine actual development-import violations, down
+from fourteen: resident-runtime declares its real production source-artifacts
+dependency, lockfile and generated project references match, and the unused
+private native-finalization oracle import is deleted. Frozen offline Bun install
+and package graph check pass. Production-to-tooling devDependencies are forbidden
+by the existing graph; that attempted declaration was removed. Remaining fixture
+imports need a permitted verification owner, not a graph exemption. Remaining
+private root/retention edges and actual affected consumers remain required.
+Astra's unchanged-law appended forest prefix checks combined slots ownership
+(3.928 seconds) and exact forward/indexed preservation (3.839 seconds), both
+under hard5. Full parent attachment law and whole adoption remain open.

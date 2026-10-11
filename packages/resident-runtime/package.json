@@ -72,6 +72,7 @@
   "dependencies": {
     "@hapsland/activity-observation": "workspace:*",
     "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/credential-storage": "workspace:*",
     "@hapsland/delivery-output": "workspace:*",
     "@hapsland/inspection-records": "workspace:*",
     "@hapsland/native-observation": "workspace:*",
@@ -81,8 +82,8 @@
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
     "@hapsland/source-analysis": "workspace:*",
-    "effect": "catalog:",
-    "@hapsland/credential-storage": "workspace:*"
+    "@hapsland/source-artifacts": "workspace:*",
+    "effect": "catalog:"
   },
   "scripts": {
     "build": "node ../../scripts/compile-package.mjs",

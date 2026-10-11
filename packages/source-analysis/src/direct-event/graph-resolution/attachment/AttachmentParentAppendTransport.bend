@@ -805,6 +805,127 @@ def parent_owned_appended(items: List<&2, Local.ReferenceSlot>, +parents: List<&
         parent_owned_appended(tail, parents, children, dense,
           B.eq_true_of_and_right(Nat.is_eq(P.node_count(parents, id), 1n), P.slots_owned(tail, parents), owned)))
 
+def child_owned_appended(items: List<&2, Local.ReferenceSlot>, +parents: List<&2, Local.PlannedNode>,
+    +children: List<&2, Local.PlannedNode>, +dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    +owned: {P.slots_owned(items, children) == True{} : Bool}) ->
+    {P.slots_owned(Compose.shift_slots(items, List.length(&2, Local.PlannedNode, parents)),
+      List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents)))) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+id, _, _, _} <> +tail:
+      +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+      +shifted: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
+      +query: Nat = (id + offset : Nat)
+      +one: {P.node_count(children, id) == 1n : Nat} = N.eq_of_is_eq(P.node_count(children, id), 1n,
+        B.eq_true_of_and_left(Nat.is_eq(P.node_count(children, id), 1n), P.slots_owned(tail, children), owned))
+      B.and_eq_true(Nat.is_eq(P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), query), 1n),
+        P.slots_owned(Compose.shift_slots(tail, offset), List.append(&2, Local.PlannedNode, parents, shifted)),
+        %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), query),
+          (P.node_count(parents, query) + P.node_count(shifted, query) : Nat), node_count_append(parents, shifted, query)):
+          {Nat.is_eq(_, 1n) == True{} : Bool}
+        %Equal.sym(Nat, P.node_count(parents, query), 0n,
+          dense_count_upper(parents, 0n, query, dense, N.add_le_add_right(0n, id, offset, N.zero_le(id)))):
+          {Nat.is_eq((_ + P.node_count(shifted, query) : Nat), 1n) == True{} : Bool}
+        %Remap.node_count(children, id, offset): {Nat.is_eq(_, 1n) == True{} : Bool}
+        %Equal.sym(Nat, P.node_count(children, id), 1n, one): {Nat.is_eq(_, 1n) == True{} : Bool}
+        {==},
+        child_owned_appended(tail, parents, children, dense,
+          B.eq_true_of_and_right(Nat.is_eq(P.node_count(children, id), 1n), P.slots_owned(tail, children), owned)))
+
+def slots_owned_append(items: List<&2, Local.ReferenceSlot>, +suffix: List<&2, Local.ReferenceSlot>,
+    +nodes: List<&2, Local.PlannedNode>, +first: {P.slots_owned(items, nodes) == True{} : Bool},
+    +last: {P.slots_owned(suffix, nodes) == True{} : Bool}) ->
+    {P.slots_owned(List.append(&2, Local.ReferenceSlot, items, suffix), nodes) == True{} : Bool}:
+  match items:
+    case []: last
+    case Local.ReferenceSlot{+id, _, _, _} <> +tail:
+      B.and_eq_true(Nat.is_eq(P.node_count(nodes, id), 1n),
+        P.slots_owned(List.append(&2, Local.ReferenceSlot, tail, suffix), nodes),
+        B.eq_true_of_and_left(Nat.is_eq(P.node_count(nodes, id), 1n), P.slots_owned(tail, nodes), first),
+        slots_owned_append(tail, suffix, nodes,
+          B.eq_true_of_and_right(Nat.is_eq(P.node_count(nodes, id), 1n), P.slots_owned(tail, nodes), first), last))
+
+def appended_slots_owned(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +children: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    parent_owned: {P.slots_owned(slots, parents) == True{} : Bool},
+    child_owned: {P.slots_owned(child_slots, children) == True{} : Bool}) ->
+    {P.slots_owned(List.append(&2, Local.ReferenceSlot, slots,
+        Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))),
+      List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents)))) == True{} : Bool}:
+  slots_owned_append(slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents)),
+    List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))),
+    parent_owned_appended(slots, parents, children, dense, parent_owned),
+    child_owned_appended(child_slots, parents, children, dense, child_owned))
+
+def dense_owner_room_branch(+items: List<&2, Local.PlannedNode>, +start: Nat, +owner: Nat, +limit: Nat,
+    dense: {Frame.dense(items, start) == True{} : Bool},
+    room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, items) : Nat), limit) == True{} : Bool},
+    present: {P.node_count(items, owner) == 1n : Nat},
+    flag: Bool, branch: {Nat.is_lt(owner, limit) == flag : Bool}) ->
+    {Nat.is_lt(owner, limit) == True{} : Bool}:
+  match flag:
+    case True{}: branch
+    case False{}:
+      Empty.absurd({Nat.is_lt(owner, limit) == True{} : Bool},
+        Structure.zero_ne_one(Equal.trans(Nat, 0n, P.node_count(items, owner), 1n,
+          Equal.sym(Nat, P.node_count(items, owner), 0n,
+            dense_count_upper(items, start, owner, dense,
+              N.le_trans((start + List.length(&2, Local.PlannedNode, items) : Nat), limit, owner,
+                room, N.le_of_not_lt(owner, limit, branch)))), present)))
+
+def dense_owner_room(+items: List<&2, Local.PlannedNode>, +start: Nat, +owner: Nat, +limit: Nat,
+    dense: {Frame.dense(items, start) == True{} : Bool},
+    room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, items) : Nat), limit) == True{} : Bool},
+    present: {P.node_count(items, owner) == 1n : Nat}) ->
+    {Nat.is_lt(owner, limit) == True{} : Bool}:
+  dense_owner_room_branch(items, start, owner, limit, dense, room, present, Nat.is_lt(owner, limit), {==})
+
+def forward_reference_appended(reference: Local.PlannedReference, +later: List<&2, Local.PlannedNode>,
+    +children: List<&2, Local.PlannedNode>, +start: Nat, +offset: Nat,
+    dense: {Frame.dense(later, start) == True{} : Bool},
+    room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, later) : Nat), offset) == True{} : Bool},
+    forward: {P.forward_reference(reference, later) == True{} : Bool}) ->
+    {P.forward_reference(reference, List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset))) == True{} : Bool}:
+  match reference:
+    case Local.Expanded{+id}:
+      +one: {P.node_count(later, id) == 1n : Nat} = N.eq_of_is_eq(P.node_count(later, id), 1n, forward)
+      %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset)), id),
+        (P.node_count(later, id) + P.node_count(Compose.shift_nodes(children, offset), id) : Nat),
+        node_count_append(later, Compose.shift_nodes(children, offset), id)):
+        {Nat.is_eq(_, 1n) == True{} : Bool}
+      %Equal.sym(Nat, P.node_count(Compose.shift_nodes(children, offset), id), 0n,
+        shifted_nodes_exclude_parent(children, offset, id, dense_owner_room(later, start, id, offset, dense, room, one))):
+        {Nat.is_eq((P.node_count(later, id) + _ : Nat), 1n) == True{} : Bool}
+      %Equal.sym(Nat, P.node_count(later, id), 1n, one): {Nat.is_eq((_ + 0n : Nat), 1n) == True{} : Bool}
+      {==}
+    case Local.Included{_}: {==}
+    case Local.Omitted{_, _}: {==}
+
+def indexed_appended(items: List<&2, Local.ReferenceSlot>, +next: Nat, +later: List<&2, Local.PlannedNode>,
+    +children: List<&2, Local.PlannedNode>, +start: Nat, +offset: Nat,
+    +dense: {Frame.dense(later, start) == True{} : Bool},
+    +room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, later) : Nat), offset) == True{} : Bool},
+    +indexed: {P.indexed(items, next, later) == True{} : Bool}) ->
+    {P.indexed(items, next, List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset))) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{_, +index, _, +reference} <> +tail:
+      +rest: {Bool.and(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later)) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(index, next),
+          Bool.and(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later)), indexed)
+      B.and_eq_true(Nat.is_eq(index, next),
+        Bool.and(P.forward_reference(reference, List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset))),
+          P.indexed(tail, (next + 1n : Nat), List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset)))),
+        B.eq_true_of_and_left(Nat.is_eq(index, next),
+          Bool.and(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later)), indexed),
+        B.and_eq_true(P.forward_reference(reference, List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset))),
+          P.indexed(tail, (next + 1n : Nat), List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset))),
+          forward_reference_appended(reference, later, children, start, offset, dense, room,
+            B.eq_true_of_and_left(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later), rest)),
+          indexed_appended(tail, (next + 1n : Nat), later, children, start, offset, dense, room,
+            B.eq_true_of_and_right(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later), rest))))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

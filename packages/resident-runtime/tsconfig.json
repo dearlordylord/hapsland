@@ -48,6 +48,9 @@
     },
     {
       "path": "../source-analysis/tsconfig.json"
+    },
+    {
+      "path": "../source-artifacts/tsconfig.json"
     }
   ]
 }

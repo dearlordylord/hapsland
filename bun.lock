@@ -253,6 +253,7 @@
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
         "@hapsland/source-analysis": "workspace:*",
+        "@hapsland/source-artifacts": "workspace:*",
         "effect": "catalog:",
       },
     },
