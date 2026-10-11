@@ -10,6 +10,7 @@ import ./AttachmentProjectionContentsProof.bend as Contents
 import ./AttachmentReplacementStructureProof.bend as Structure
 import ../traversal/INTERPRETER_NAT_FACTS.bend as N
 import ../traversal/INTERPRETER_BOOL_FACTS.bend as B
+import ../traversal/GRAPH_LIST_FACTS.bend as Lists
 import ./AttachmentParentAllocationProof.bend as Allocation
 import ./ActualAttachmentFrameProjection.bend as Frame
 import ./ActualAttachmentPhaseProjection.bend as Ready
@@ -1125,6 +1126,99 @@ def cursor_count_row(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>,
           P.address_count(entries, target), F.count_address(rest, target), recursive(rest)(tail_present)),
         Equal.cong(List<&2, F.Node>, Nat, nodes => F.count_address(nodes, target),
           F.Node{actual, artifact, refs} <> rest, retained, same))
+
+# The paired cursor retains its original complete address table. Advancing
+# proves prefix extension and transports counts; it does not rebuild a model.
+def projected_address_count_cursor(nodes: List<&2, Local.PlannedNode>, entries: List<&2, F.AddressEntry>,
+    +prefix_nodes: List<&2, Local.PlannedNode>, +prefix_entries: List<&2, F.AddressEntry>,
+    +all_nodes: List<&2, Local.PlannedNode>, +all_entries: List<&2, F.AddressEntry>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +retained: List<&2, F.Node>, +target: O.NodeAddress,
+    +prefix_aligned: {P.aligned(prefix_nodes, prefix_entries, all_nodes, all_entries) == True{} : Bool},
+    +aligned: {P.aligned(nodes, entries, all_nodes, all_entries) == True{} : Bool},
+    +prefix_dense: {Frame.dense(prefix_nodes, 0n) == True{} : Bool},
+    +dense: {Frame.dense(nodes, List.length(&2, Local.PlannedNode, prefix_nodes)) == True{} : Bool},
+    +current: {all_entries == List.append(&2, F.AddressEntry, prefix_entries, entries) : List<&2, F.AddressEntry>},
+    projected: {P.nodes(nodes, slots, catalog, all_entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.address_count(entries, target) == F.count_address(retained, target) : Nat}:
+  match nodes entries:
+    case Nil{} Nil{}:
+      %Count.some_equal(List<&2, F.Node>, [], retained, projected):
+        {0n == F.count_address(_, target) : Nat}
+      {==}
+    case Con{Local.PlannedNode{+id, +handle}, +tail} Con{F.AddressEntry{+other, +birth}, +rest}:
+      +start: Nat = List.length(&2, Local.PlannedNode, prefix_nodes)
+      +next_nodes: List<&2, Local.PlannedNode> = List.append(&2, Local.PlannedNode, prefix_nodes, [Local.PlannedNode{id, handle}])
+      +next_entries: List<&2, F.AddressEntry> = List.append(&2, F.AddressEntry, prefix_entries, [F.AddressEntry{other, birth}])
+      +after_id: {Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+        Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(id, other),
+          Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), aligned)
+      +after_count: {Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+          Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)), after_id)
+      +id_other: {id == other : Nat} = N.eq_of_is_eq(id, other,
+        B.eq_true_of_and_left(Nat.is_eq(id, other),
+          Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), aligned))
+      +id_start: {id == start : Nat} = N.eq_of_is_eq(id, start,
+        B.eq_true_of_and_left(Nat.is_eq(id, start), Frame.dense(tail, (start + 1n : Nat)), dense))
+      +located: {F.address_at(all_entries, id) == Some{birth} : Maybe<&2, O.NodeAddress>} =
+        %Equal.sym(Nat, id, other, id_other): {F.address_at(all_entries, _) == Some{birth} : Maybe<&2, O.NodeAddress>}
+        cursor_address_lookup(prefix_nodes, prefix_entries, all_nodes, all_entries, other, birth, rest,
+          prefix_aligned, prefix_dense,
+          %Equal.trans(Nat, start, id, other, Equal.sym(Nat, id, start, id_start), id_other):
+            {Nat.is_le(start, _) == True{} : Bool}
+          N.le_refl(start), current)
+      +next_aligned: {P.aligned(next_nodes, next_entries, all_nodes, all_entries) == True{} : Bool} =
+        aligned_append_fixed(prefix_nodes, prefix_entries, [Local.PlannedNode{id, handle}], [F.AddressEntry{other, birth}],
+          all_nodes, all_entries, prefix_aligned,
+          B.and_eq_true(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), True{})),
+            B.eq_true_of_and_left(Nat.is_eq(id, other),
+              Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+                Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), aligned),
+            B.and_eq_true(Nat.is_eq(P.node_count(all_nodes, id), 1n), Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), True{}),
+              B.eq_true_of_and_left(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+                Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)), after_id),
+              B.and_eq_true(Nat.is_eq(P.address_count(all_entries, birth), 1n), True{},
+                B.eq_true_of_and_left(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries), after_count), {==}))))
+      +next_dense: {Frame.dense(next_nodes, 0n) == True{} : Bool} =
+        Allocation.dense_append(prefix_nodes, [Local.PlannedNode{id, handle}], 0n, prefix_dense,
+          B.and_eq_true(Nat.is_eq(id, start), True{},
+            B.eq_true_of_and_left(Nat.is_eq(id, start), Frame.dense(tail, (start + 1n : Nat)), dense), {==}))
+      +tail_dense: {Frame.dense(tail, List.length(&2, Local.PlannedNode, next_nodes)) == True{} : Bool} =
+        %Equal.sym(Nat, List.length(&2, Local.PlannedNode, next_nodes), (start + 1n : Nat),
+          Allocation.length_append(prefix_nodes, [Local.PlannedNode{id, handle}])):
+          {Frame.dense(tail, _) == True{} : Bool}
+        B.eq_true_of_and_right(Nat.is_eq(id, start), Frame.dense(tail, (start + 1n : Nat)), dense)
+      +next_current: {all_entries == List.append(&2, F.AddressEntry, next_entries, rest) : List<&2, F.AddressEntry>} =
+        Equal.trans(List<&2, F.AddressEntry>, all_entries,
+          List.append(&2, F.AddressEntry, prefix_entries, F.AddressEntry{other, birth} <> rest),
+          List.append(&2, F.AddressEntry, next_entries, rest), current,
+          Equal.sym(List<&2, F.AddressEntry>, List.append(&2, F.AddressEntry, next_entries, rest),
+            List.append(&2, F.AddressEntry, prefix_entries, F.AddressEntry{other, birth} <> rest),
+            Lists.append_assoc(&2, F.AddressEntry, prefix_entries, [F.AddressEntry{other, birth}], rest)))
+      cursor_count_row(id, handle, tail, slots, catalog, all_entries, birth, rest, retained, target, located,
+        values => present => projected_address_count_cursor(tail, rest, next_nodes, next_entries, all_nodes, all_entries,
+          slots, catalog, values, target, next_aligned,
+          B.eq_true_of_and_right(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries), after_count),
+          next_dense, tail_dense, next_current, present),
+        Replacement.split_nodes(id, handle, tail, slots, catalog, all_entries, retained, projected))
+    case Nil{} Con{_, _}:
+      Empty.absurd({P.address_count(entries, target) == F.count_address(retained, target) : Nat}, B.internal_false_ne_true(aligned))
+    case Con{_, _} Nil{}:
+      Empty.absurd({P.address_count(entries, target) == F.count_address(retained, target) : Nat}, B.internal_false_ne_true(aligned))
+
+def projected_address_count(+nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>, +target: O.NodeAddress,
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool},
+    dense: {Frame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.address_count(entries, target) == F.count_address(retained, target) : Nat}:
+  projected_address_count_cursor(nodes, entries, [], [], nodes, entries, slots, catalog, retained, target,
+    {==}, aligned, {==}, dense, {==}, projected)
 
 law parent_attachment_exact:
   for +parent_root: Nat
