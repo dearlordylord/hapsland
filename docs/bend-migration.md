@@ -220,10 +220,17 @@ One current obstacle list, in execution order:
    its discovery/language interpreter consumes the same lower owner. The original
    transaction law/body changes only its D import. Lower-owner and full-driver
    verdicts pass in 1.847 and 2.269 seconds under hard five seconds. Combined
-   transaction closure must still be rechecked after this cut; no faster complete
-   proof is claimed yet. Physical probes also require updating constructor
+   transaction prefix after this cut still times out: exit 124, 5.026 seconds
+   wall / 4.612 user / .402 system (/tmp/astra-transaction-lower-joined.log).
+   No faster complete proof is claimed. Physical probes also require updating constructor
    namespaces and the four reference fixtures' existing mandatory python=None
    field; the first incomplete-fixture failure is retained.
+   The same full transaction falsifier now passes 221184 reply/boundary cases,
+   6912 staged transitions and 34560 post-reply frames through the actual Node
+   capability runner (/tmp/hapsland-driver-state-transaction-consumer-v2.log).
+   This is finite synthetic phase evidence, not universal correspondence or
+   source-to-child-plan reachability. Other changed probe and whole entry
+   consumers still require current qualification.
    Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.
