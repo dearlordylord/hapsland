@@ -175,6 +175,98 @@ def reference_append(slot: Local.ReferenceSlot, +addresses: List<&2, F.AddressEn
     case Local.ReferenceSlot{owner, index, symbol, Local.Expanded{+child}}:
       expanded_append(addresses, suffix, owner, index, symbol, child, reference, F.address_at(addresses, child), {==}, present)
 
+def references_append_row(+slot: Local.ReferenceSlot, +tail: List<&2, Local.ReferenceSlot>,
+    +addresses: List<&2, F.AddressEntry>, +suffix: List<&2, F.AddressEntry>, +refs: List<&2, F.Reference>,
+    recursive: @+rest: List<&2, F.Reference> ->
+      {P.references(tail, addresses) == Some{rest} : Maybe<&2, List<&2, F.Reference>>} ->
+      {P.references(tail, List.append(&2, F.AddressEntry, addresses, suffix)) == Some{rest} : Maybe<&2, List<&2, F.Reference>>},
+    parts: Exists(F.Reference, head => Exists(List<&2, F.Reference>, rest =>
+      {P.reference(slot, addresses) == Some{head} : Maybe<&2, F.Reference>} &
+      {P.references(tail, addresses) == Some{rest} : Maybe<&2, List<&2, F.Reference>>} &
+      {Some{head <> rest} == Some{refs} : Maybe<&2, List<&2, F.Reference>>}))) ->
+    {P.references(slot <> tail, List.append(&2, F.AddressEntry, addresses, suffix)) == Some{refs} : Maybe<&2, List<&2, F.Reference>>}:
+  match parts:
+    case (+head, (+rest, (head_done, (tail_done, same)))):
+      %Count.some_equal(List<&2, F.Reference>, head <> rest, refs, same):
+        {P.references(slot <> tail, List.append(&2, F.AddressEntry, addresses, suffix)) == Some{_} : Maybe<&2, List<&2, F.Reference>>}
+      %Equal.sym(Maybe<&2, F.Reference>, P.reference(slot, List.append(&2, F.AddressEntry, addresses, suffix)), Some{head},
+        reference_append(slot, addresses, suffix, head, head_done)):
+        {P.reference_prefix(_, P.references(tail, List.append(&2, F.AddressEntry, addresses, suffix))) == Some{head <> rest} : Maybe<&2, List<&2, F.Reference>>}
+      %Equal.sym(Maybe<&2, List<&2, F.Reference>>, P.references(tail, List.append(&2, F.AddressEntry, addresses, suffix)), Some{rest}, recursive(rest)(tail_done)):
+        {P.reference_prefix(Some{head}, _) == Some{head <> rest} : Maybe<&2, List<&2, F.Reference>>}
+      {==}
+
+def references_append(items: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>,
+    +suffix: List<&2, F.AddressEntry>, +refs: List<&2, F.Reference>,
+    present: {P.references(items, addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>}) ->
+    {P.references(items, List.append(&2, F.AddressEntry, addresses, suffix)) == Some{refs} : Maybe<&2, List<&2, F.Reference>>}:
+  match items:
+    case []: present
+    case +slot <> +tail:
+      references_append_row(slot, tail, addresses, suffix, refs,
+        rest => done => references_append(tail, addresses, suffix, rest, done),
+        Count.reference_prefix_contents(P.reference(slot, addresses), P.references(tail, addresses), refs, present))
+
+def nodes_addresses_row(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +suffix: List<&2, F.AddressEntry>, +retained: List<&2, F.Node>,
+    parts: Replacement.row_contents(id, handle, tail, slots, catalog, addresses, retained),
+    recursive: @+rest: List<&2, F.Node> ->
+      {P.nodes(tail, slots, catalog, addresses) == Some{rest} : Maybe<&2, List<&2, F.Node>>} ->
+      {P.nodes(tail, slots, catalog, List.append(&2, F.AddressEntry, addresses, suffix)) == Some{rest} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.nodes(Local.PlannedNode{id, handle} <> tail, slots, catalog, List.append(&2, F.AddressEntry, addresses, suffix))
+      == Some{retained} : Maybe<&2, List<&2, F.Node>>}:
+  match parts:
+    case (+birth, (+artifact, (+refs, (+rest, (located, (selected, (references, (tail_done, same)))))))):
+      %same:
+        {P.nodes(Local.PlannedNode{id, handle} <> tail, slots, catalog, List.append(&2, F.AddressEntry, addresses, suffix))
+          == Some{_} : Maybe<&2, List<&2, F.Node>>}
+      Replacement.projected_cons(id, handle, tail, slots, catalog, List.append(&2, F.AddressEntry, addresses, suffix),
+        birth, artifact, refs, rest, address_append_present(addresses, suffix, id, birth, located), selected,
+        references_append(P.owner_slots(slots, id), addresses, suffix, refs, references), recursive(rest)(tail_done))
+
+def nodes_addresses(items: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>,
+    +suffix: List<&2, F.AddressEntry>, +retained: List<&2, F.Node>,
+    present: {P.nodes(items, slots, catalog, addresses) == Some{retained} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.nodes(items, slots, catalog, List.append(&2, F.AddressEntry, addresses, suffix)) == Some{retained} : Maybe<&2, List<&2, F.Node>>}:
+  match items:
+    case []: present
+    case Local.PlannedNode{+id, +handle} <> +tail:
+      nodes_addresses_row(id, handle, tail, slots, catalog, addresses, suffix, retained,
+        Replacement.split_nodes(id, handle, tail, slots, catalog, addresses, retained, present),
+        rest => done => nodes_addresses(tail, slots, catalog, addresses, suffix, rest, done))
+
+def owner_slot_append(flag: Bool, +id: Nat, +index: Nat, +symbol: String,
+    +reference: Local.PlannedReference, +left: List<&2, Local.ReferenceSlot>, +right: List<&2, Local.ReferenceSlot>) ->
+    {Bool.pick(List<&2, Local.ReferenceSlot>, flag,
+      Local.ReferenceSlot{id, index, symbol, reference} <> List.append(&2, Local.ReferenceSlot, left, right),
+      List.append(&2, Local.ReferenceSlot, left, right))
+      == List.append(&2, Local.ReferenceSlot,
+        Bool.pick(List<&2, Local.ReferenceSlot>, flag, Local.ReferenceSlot{id, index, symbol, reference} <> left, left), right)
+      : List<&2, Local.ReferenceSlot>}:
+  match flag:
+    case True{}: {==}
+    case False{}: {==}
+
+# Slot filtering is stable in the actual concatenation order; no regrouping or
+# assumed adjacency of references is introduced by attachment.
+def owner_slots_append(left: List<&2, Local.ReferenceSlot>, +right: List<&2, Local.ReferenceSlot>, +owner: Nat) ->
+    {P.owner_slots(List.append(&2, Local.ReferenceSlot, left, right), owner)
+      == List.append(&2, Local.ReferenceSlot, P.owner_slots(left, owner), P.owner_slots(right, owner)) : List<&2, Local.ReferenceSlot>}:
+  match left:
+    case []: {==}
+    case Local.ReferenceSlot{+id, +index, +symbol, +reference} <> +tail:
+      %Equal.sym(List<&2, Local.ReferenceSlot>,
+        P.owner_slots(List.append(&2, Local.ReferenceSlot, tail, right), owner),
+        List.append(&2, Local.ReferenceSlot, P.owner_slots(tail, owner), P.owner_slots(right, owner)),
+        owner_slots_append(tail, right, owner)):
+        {P.owner_slot(Local.ReferenceSlot{id, index, symbol, reference}, owner, _)
+          == List.append(&2, Local.ReferenceSlot,
+            P.owner_slot(Local.ReferenceSlot{id, index, symbol, reference}, owner, P.owner_slots(tail, owner)), P.owner_slots(right, owner))
+          : List<&2, Local.ReferenceSlot>}
+      owner_slot_append(Nat.is_eq(id, owner), id, index, symbol, reference, P.owner_slots(tail, owner), P.owner_slots(right, owner))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

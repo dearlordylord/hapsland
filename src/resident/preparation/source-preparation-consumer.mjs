@@ -243,6 +243,11 @@ try {
   )
   const languageSources = {
     typescript: {
+      "first.ts": 'import type { Foo } from "./leaf"; export interface First { field: Foo }',
+      "second.ts": 'import type { Foo } from "./leaf"; export interface Second { field: Foo }',
+      "leaf.ts": "export interface Foo { value: string }"
+    },
+    "typescript-value-import": {
       "first.ts": 'import { Foo } from "./leaf"; export interface First { field: Foo }',
       "second.ts": 'import { Foo } from "./leaf"; export interface Second { field: Foo }',
       "leaf.ts": "export interface Foo { value: string }"
@@ -254,6 +259,11 @@ try {
       "leaf.go": "package sourcefixture\ntype Foo struct { Value string }\n"
     },
     bend: {
+      "first.bend": "import ./leaf.bend as Leaf\ntype First is Data:\n  First{field: Leaf.Foo}\n",
+      "second.bend": "import ./leaf.bend as Leaf\ntype Second is Data:\n  Second{field: Leaf.Foo}\n",
+      "leaf.bend": "import Base\ntype Foo is Data:\n  Foo{value: String}\n"
+    },
+    "bend-unbound-base": {
       "first.bend": "import ./leaf.bend as Leaf\ntype First is Data:\n  First{field: Leaf.Foo}\n",
       "second.bend": "import ./leaf.bend as Leaf\ntype Second is Data:\n  Second{field: Leaf.Foo}\n",
       "leaf.bend": "type Foo is Data:\n  Foo{value: String}\n"
@@ -271,8 +281,10 @@ try {
     }
   const languageCandidates = {
     typescript: ["typescript/first.ts", "typescript/second.ts"],
+    "typescript-value-import": ["typescript-value-import/first.ts", "typescript-value-import/second.ts"],
     go: ["go/first.go", "go/second.go"],
     bend: ["bend/first.bend", "bend/second.bend"],
+    "bend-unbound-base": ["bend-unbound-base/first.bend", "bend-unbound-base/second.bend"],
     rust: ["rust/src/lib.rs", "rust/src/other.rs"]
   }
   let cases = 0,
@@ -973,7 +985,12 @@ try {
         mode.startsWith("full-inspection-") ||
         mode === "full-mixed-cause" ||
         registerWorkFailure ||
-        ["full-no-ready", "full-comment-update"].includes(mode)
+        [
+          "full-no-ready",
+          "full-comment-update",
+          "full-language-typescript-value-import",
+          "full-language-bend-unbound-base"
+        ].includes(mode)
           ? 0
           : [
                 "refused-second",
@@ -987,6 +1004,18 @@ try {
               ].includes(mode)
             ? 1
             : 2
+      if (mode.startsWith("full-language-") && units.length !== expectedCount)
+        console.log(
+          JSON.stringify({
+            diagnostic: "whole source language",
+            mode,
+            completed: result.completed,
+            reason: result.reason?.$,
+            error: result.reason?.token === undefined ? undefined : String(source.error(result.reason.token)),
+            observations: sourceEffects.filter((event) => ["diagnostic", "analytics", "prepared"].includes(event.kind)),
+            commands: commands.map((event) => event.command)
+          })
+        )
       assert.equal(units.length, expectedCount, mode + " retains transferred units")
       assert.equal(snapshot.records.revision.current.size, expectedCount)
       assert.equal(snapshot.records.reuse.pending.size, expectedCount)

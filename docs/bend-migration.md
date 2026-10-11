@@ -183,185 +183,45 @@ expression in list`; this is an open gate, not an exemption.
 
 One current obstacle list, in execution order:
 
-1. Finish full Go preparation/resolver qualification through the actual Canonical
-   artifact owner. The full PreparationMachine and GoArtifact are implemented;
-   the typed resolver carries one shared raw Configuration declaration, and the
-   composition installs returned limits/dependencies/fingerprint before root
-   admission. Fingerprint is first in every root, previous/candidate attachment
-   and final unit size calculation. The actual owned driver passes 46 cases and
-   2049 requests across Python, default/configured Go, two roots, exact treeBytes
-   boundaries, cancellation, retirement, late replies and injected faults, with
-   zero retained invocation resources/descriptors. The complete physical Go
-   corpus now passes through this driver: 58 cases and 2075 owned requests,
-   comparing full JSON/order, observation chronology, cache, publication deadline,
-   depth-zero RangeError and original capture exceptions. The separate native
-   preparation comparison passes 55 fixtures, 1659 requests and 3474 transitions. Go configuration and final configuration identity are now lazy foreign
-   observations selected by Bend; eager general-input projection is removed.
-   Function/non-Go throwing-getter vectors pass the affected 46-case consumer.
-   The full owned corpus detected a missing final publication clock, now routed
-   through existing final-await; the deadline-at-publication vector passes.
-   It also detected depth-zero profile validation missing at graph initialization.
-   The candidate now requests the exact native RangeError at that phase using
-   canonical GraphLimits policy; source check and ordinary format pass.
-   The 58-case full owned consumer passes on the current source candidate;
-   this finite comparison does not establish universal guarantees or adoption. Negative/fractional raw-profile ABI is not qualified by the Nat policy.
-2. Extend the original complete materialization/attachment guarantees to present
-   fingerprint, plus whole preparation/native correspondence and Cause/custody.
-   Neutral None literals do not qualify changed Some behavior. The original
-   traversal PROOF, CONTINUATION_PROOF and CONTINUATION_FUEL_PROOF pass after
-   extending BoundNamed cases; qualified lookup, display symbol, explicit target
-   priority and inventory/rank/completion guarantees remain distinct. No new
-   representation or auxiliary-law chain is accepted merely for easy proofs.
-   Astra's actual-source review found the metadata-blind attachment relation
-   false for paired Some fingerprint inputs: reference measurement omits a real
-   field. Reference X.Frame, reference entry metadata and the existing phase
-   capsule now carry the same optional fingerprint, preserving it through all
-   frame transitions and request allocation. Independent F.prepared_unit is
-   used for reference root/attachment/completion measurement, with first-field
-   JSON order and unchanged Invalid/Exhausted. Seven actual/reference projection
-   and forest roots check within five seconds; three reference cores checked
-   before formatting. No terminal frame evidence is invented. Changed finite
-   consumers remain partially open: real expansion-specification consumer passes
-   61 cases and 28 attachment comparisons, including actual Go Some full JSON
-   and independent prepared materialization. Completion's prior neutral corpus
-   passes 13824 boundary cases and 288 completion cases with both None and
-   Some fingerprints (including empty/Unicode text). The exact driver consumer
-   remains red: GoImportLocalModule loses the declaration artifact's source path
-   on local recursion. Native buildLocal uses local.artifact.path before the
-   current frame path; local Declaration currently erases it in both runtime
-   Traversal and independent SPEC. Empty targetsByPath membership differs and
-   outgoingEdges charging can differ across files. Preserve this source path on
-   both sides and rerun the original traversal guarantees and whole consumers;
-   do not filter empty entries. The runtime now carries Declaration.source_path
-   and Frame.path, charges the parent path before successful child entry, uses
-   Some empty paths without fallback and restores parent siblings through the
-   saved frame. Independent recursive SPEC changes only successful child
-   requests; root path remains supplied. Machine closure and recursive SPEC
-   source checks pass. The original PROOF, CONTINUATION_PROOF and CONTINUATION_FUEL_PROOF
-   roots now pass under the unchanged five-second limit, including arbitrary
-   declaration/frame paths. The local differential now uses the actual compiled
-   native buildLocal instead of a frozen source copy: 657 cases pass, including
-   five explicit source-path/budget/sibling/cycle cases. Fixtures use the full
-   accepted version-one graph profile and its depth ceiling; the frozen copy
-   previously accepted an invalid depth of 32. Native full tree, visited, pending
-   and budget observations are compared without filtering empty path entries.
-   The unchanged full expansion driver now passes the prior Go source-path
-   comparison, then fails at Python imported Child: native expands other.py,
-   while the candidate/reference returns omitted unavailable. Repair that Python
-   import-session behavior without dropping the case or weakening observations.
-   Existing DriverSpecification candidates explicitly return no Python paths,
-   and its configuration omits the prepared Python.Session. The actual Canonical
-   composition already uses ResolveImportMachine. Agreed path with Astra: carry
-   that prepared session and census/effective-cache custody in the independent
-   driver, with a typed child continuation over the existing Request/Reply and
-   Resolution protocol. Preserve packages/reexports, root policy, budgets,
-   revalidation, dependencies and combined usage. Seed the session from
-   preparation; do not substitute a host-resolved target callback or a .py-only
-   candidate shortcut. This representation closes whole-consumer correspondence
-   directly; original transport obligations and guarantees remain required.
-   The driver may share the existing specialized Python child while defining
-   orchestration/accounting independently; this does not establish a second
-   independent Python-policy implementation. No named original law requires
-   duplicating that policy as a new acceptance prerequisite. Both the direct
-   child import canary (2.696 seconds) and the raw-root PythonModule emission
-   pass within the unchanged five-second limit. Runner raw capture now drives
-   prepare/inspect and compares root facts exactly. The full driver now passes
-   its unchanged included corpus: 43 cases, 37 exact native comparisons,
-   including Python imports and no retained child continuation at completion.
-   Source-bearing Python command/result/view and Resolution now have one
-   declaration owner at source-analysis/python-module/ArtifactProtocol.bend;
-   resident lifecycle StateHandle/ProviderLease stay with the resident owner.
-   Driver mechanically relays a separately emitted PythonArtifact using the
-   exact saved request identity/payload; all continuation/accounting decisions
-   stay in Bend. Architectural review by Astra confirms dependency direction
-   and lifecycle separation. This split follows two measured five-second full
-   wrapper timeouts; direct machine import fitted alone, but not the specialized
-   consumer/proof closure. The attempted fixed String table lookup did not fix
-   it and was reverted. With the split, Driver definitions pass in 2.016 seconds,
-   attachment boundary in 1.915, and contract definitions in 3.257. These are
-   definition checks, not the still-open universal attachment proof. The actual
-   Canonical-owned consumer initially returned pass for 46 cases/2049 requests
-   after the protocol move while two source format edits overlapped that run;
-   that result remains diagnostic only. The unchanged rerun now passes the same
-   46 cases/2049 requests on stable inputs: complete authored-source SHA-256 is
-   identical before/after. It exercises actual Canonical admission/Prepare,
-   physical services, two roots, cancellation, retirement, late-result rejection,
-   provisional refusal and throw cleanup. Whole resident progression and
-   universal guarantees remain open. Original projected_unit_total for arbitrary
-   optional fingerprint and node_replacement_exact are now proved under hard
-   five seconds with unchanged premises. Next agreed proof work is the existing
-   parent_attachment_exact and original attachment transaction obligation.
-   This finite traversal pass does not qualify the full expansion driver, all
-   fixture ABI consumers or the remaining universal guarantees. No new law or weakened
-   premise is claimed. Full materialization/transaction guarantees
-   remain open. The
-   reference entry's Go preparation bridge is now drafted, but the full consumer
-   is not connected or qualified. EntrySpecification now recognizes .go, starts
-   the existing Go child, validates request owner/id/next continuity, installs
-   returned limits/dependencies/fingerprint before root construction, projects
-   cancellation and performs the publication clock. Definitions check after
-   formatting in 4.775 seconds under the unchanged five-second limit; this is
-   not a universal whole-flow proof. Initial full check timed out after concrete
-   parse/quantity errors were fixed; baseline Entry at 30982d50 with identical
-   dependencies passed in 4.278 seconds. Replacing large Bool.pick Progress
-   terms with explicit Bool transitions brought the new source within budget.
-   The existing full entry runner still needs mechanical Go begin/advance/resume
-   and exact native whole-product/effect/cache/clock correspondence; source
-   checking alone does not qualify this bridge. Astra agreed the full entry
-   path: independent entry owns lazy type-only configuration ordering, root
-   admission, returned limits/dependencies/fingerprint installation and final
-   publication clock; existing specialized Go policy is shared through commands
-   and results. Its exact three command/result/view declarations now have one
-   source-analysis/go-module/ArtifactProtocol owner, consumed by the resident
-   artifacts; resident handles/leases remain unchanged. Structural review found
-   no reversed dependency or host policy. Actual affected consumers pass after
-   formatting and codec changes: Go artifact 55 physical fixtures/1713 requests/
-   3528 transitions, whole Canonical-owned Go 58 cases/2075 requests, and general
-   Canonical-owned resolver 46 cases/2049 requests. These close protocol move
-   qualification, not the missing Go Entry or public adoption. Original optional
-   fingerprint materialization theorem is extended without changed premises:
-   existing unit-product witness equations check in 1.283 seconds. Metadata now
-   lifts the final existential witness once; intermediate completion proofs keep
-   their raw witness. The unused prepared_completed experiment was removed.
-   This earlier timeout is closed: full original materialization checks in
-   4.299 seconds, and full original node replacement checks in 2.154 seconds,
-   under the unchanged hard-five limit. Parent append and the original complete
-   transaction remain open. Exact formatter rejects this proof owner
-   with Incomplete declaration header; no formatting pass or exclusion is
-   claimed. Neither deadline nor original premise was changed. Missing Go cases in actual context/reference
-   branch projections are added and formatted. Both projection roots check
-   within five seconds after the explicit reference Go candidates row returns
-   [] as native does; no filesystem scan is introduced. No new proof or
-   universal correspondence is claimed.
-   Obtain review of the complete amended declarations before proof work.
-3. Resolve the remaining ordinary source and consumer boundaries: zero unresolved
-   imports, zero undeclared dependencies, 97 cross-owner private-file imports.
-   Do not expose test helpers or exclude candidate sources. check:fast currently
-   passes 109 tests, source TypeScript and package graph, then fails these imports;
-   a full gate is blocked. Ordinary lint selected all five changed TS/MJS files. The fast gate and
-   affected service/owned consumers pass after the lazy-observation changes:
-   service boundary 195 requests, owned resolver 46 cases/2049 requests, full
-   owned Go 58 cases/2075 requests. The current fast rerun passes 109 tests and
-   source typing, then fails the same 97 private imports before lint.
-   The formatter still cannot process AttachmentTransactionLiteralCuts, and
-   previously unsupported traversal/UnitEvidence/Glob roots remain open tooling
-   failures. Actual supported changed sources are formatted. Relocated runners
-   execute tracked owner sources; snapshots/inventory restoration are removed.
-4. Complete the compiled preparation → Source → Post resident connection and
-   preserve full supported language/session, extraction and rendering scope.
-   Actual native finalization, source and resident consumers currently qualify
-   66, 50 and 64 finite cases respectively; these do not establish complete
-   correspondence or public adoption. Retain parent/child revision and identity
-   fencing, original exception identity, ordered cleanup obligations and accepted
-   result publication throughout the actual resident lifecycle.
-5. Connect the qualified whole section to public production Canonical progression
-   and delete replaced TS algorithms/orchestration, including native Go package,
-   preparation and membership policy when their complete replacement is accepted.
-   Public pipeline still uses TS preparation. Whole preparation production Bend
-   connected: **0**; replaced production TypeScript removed: **0**. A connected
-   candidate resolver, source relocation or backup does not change those counts.
-6. Pass selected local acceptance checks and strict paired build/execution parity
-   on the connected candidate. Latest matched warm build at 12a2a197 started
+1. Close the original universal attachment and whole correspondence obligations:
+   parent_attachment_exact, original attachment transaction, arbitrary retained
+   Worlds/replies, completion and Cause/custody. Original materialization for
+   arbitrary optional fingerprint and node_replacement_exact are closed under
+   hard five seconds with unchanged premises. Parent registration, ordered
+   append and full address-context extension are checked; the latest slot-filter
+   definitions remain WIP. No new or weakened acceptance premise is authorized.
+2. Qualify the remaining complete consumer boundaries and supported input scope.
+   Full independent entry passes 78 cases/55 native comparisons; full Go passes
+   58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
+   consumer now passes 56 cases/6338 commands and 31 native comparisons across
+   all five languages, including configuration fingerprint/semantic identity.
+   Full physical cancellation/late cleanup and universal correspondence remain
+   distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
+   its accepted supported-input boundary before claiming complete replacement.
+3. Resolve ordinary source gates: 97 cross-owner private development imports,
+   without exposing verification helpers or excluding sources. check:fast's last
+   executed result passes 109 tests and source typing, then fails these imports.
+   Unsupported formatter roots remain failures (including attachment declaration
+   headers and UnitEvidence/Glob/list block handling). A full gate remains blocked.
+4. Complete and qualify compiled preparation → Source → Post in the actual public
+   resident lifecycle, preserving source/parent/child revision and identity
+   fencing, original exception/Cause identity, resource custody, accepted result
+   publication and independent dispatcher/advice scopes. The new multilingual
+   physical consumer closes its former language fixture gap; it is not public
+   adoption or proof of every lifecycle case.
+5. Connect the whole section through production Canonical launch, lifecycle,
+   cancellation, acceptance and progression. Delete replaced TS preparation,
+   graph/language package policy and orchestration only with their qualified
+   complete Bend replacement. Public preparation still uses TS: connected whole
+   preparation Bend **0**, removed replaced production TS **0**.
+6. Pass all selected local acceptance gates and strict paired performance on the
+   connected candidate. Latest existing-production build/execution at 3bb097ce
+   pass 0.9810143780417804 / 0.7674854651331289 on frozen inputs; this does not
+   measure unadopted whole preparation. Recorded cadence misses remain failures.
+   Start the next warm-up early enough for the measured five-minute build pair;
+   next build deadline 17:18:04.222878 UTC, execution 17:23:34.691205 UTC.
+
+Historical performance evidence (existing production, not whole preparation): Latest matched warm build at 12a2a197 started
    2026-10-11T14:55:48.475707Z: 17 pairs, all 23/46 cached, qualified with
    unchanged sources/artifacts, and build parity failed at
    **1.1400346823725842** (baseline mean 8.3214 seconds, candidate 9.4867).
@@ -397,6 +257,7 @@ One current obstacle list, in execution order:
    run does not establish current cache comparability. No production emitter
    deadline was raised or affinity added. Diagnose build costs before changing
    performance code.
+
 
 Keep this list current by removing closed work and naming specific remaining
 failures. Every implementation checkpoint must include all retained sources,
@@ -580,3 +441,16 @@ selected and passed both changed MJS files. Existing parent append projection,
 address append lookup and reference append definitions check in 2.235 seconds;
 the original parent law and transaction remain open. These retained WIP sources
 are backed up regardless of qualification; public adoption/TS removal remain 0/0.
+
+The complete expanded Source consumer now passes 56 cases/6338 commands and
+31 actual native makeResidentPreparation comparisons on the unchanged full set.
+Go's configuration transport fix passes its physical 218-command case, including
+fingerprint, semantic identity and owner snapshots. Supported TypeScript type
+imports pass 132 commands. The originally added ordinary value import remains
+as a native refusal case; the supported-profile scenario uses import type.
+Likewise Bend's unresolved String without import Base remains a native refusal
+case, while the successful supporting-file fixture imports Base explicitly.
+Rust and Bend successful modes, all previous full error/Cause/cleanup modes,
+full prepared inputs/effects and pre-teardown transferred ownership compare.
+These fixture corrections preserve the refusal inputs and do not change product
+support policy. Last two parent slot-filter definitions remain retained WIP.
