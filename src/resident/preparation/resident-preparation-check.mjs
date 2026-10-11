@@ -44,7 +44,7 @@ import { resize as __resize } from "../../../packages/resident-runtime/src/resid
 import { analyzeFunctionFile as __analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
 import { analysisWorkspaceBytes as __analysisWorkspaceBytes } from "../../../packages/resident-runtime/src/resident/work-ownership/workspace.ts"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
-import { nativePrepareReadyUnits as __nativePrepareReadyUnits } from "../../../packages/review-execution/src/direct-event/preparation/native-preparation-children.mjs"
+import { nativePrepareReadyUnits as __nativePrepareReadyUnits } from "../../../packages/review-execution/src/direct-event/preparation/native-preparation-reference.mjs"
 import { nativePostPreparationSource } from "./native-post-preparation-child.mjs"
 import { consumeRetainedPreparation } from "./retention-consumer.mjs"
 import { createPreparationForeign } from "../../../packages/resident-runtime/src/resident/review-work/composition/preparation-foreign.mjs"
@@ -85,6 +85,7 @@ const scenarios = [
   scenario("first-refused", twoDeclarations, { expected: { selected: 2n, units: 1 } }),
   scenario("parent-cancel-late-success", twoDeclarations),
   scenario("parent-cancel-late-rejection", twoDeclarations),
+  scenario("parent-cancel-finalization-gate", twoDeclarations),
   scenario("resize-refused", twoDeclarations, { expected: { selected: 0n, units: 0 } }),
   scenario("mixed-contracts", mixedContracts, { compareNative: true }),
   scenario("retention-success", twoDeclarations),
@@ -154,6 +155,7 @@ try {
   const artifacts = {}
   let owner
   for (const [key, name] of [
+    ["finalization", "PreparationFinalization"],
     ["composition", "ArtifactComposition"],
     ["parent", "GenericArtifact"],
     ["python", "PythonArtifact"],
@@ -168,6 +170,8 @@ try {
         "bend",
         new URL(
           {
+            PreparationFinalization:
+              "../../../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend",
             ArtifactComposition:
               "../../../packages/resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend",
             ArtifactIndexSkipMutantCore:
@@ -458,7 +462,8 @@ try {
       _selections = new Map()
     let cancelled = false,
       roots = 0,
-      physicalLateSuccess = 0
+      physicalLateSuccess = 0,
+      acceptedAtFinalizationCancel
     const context = {
       root,
       rootIdentity,
@@ -600,7 +605,12 @@ try {
         }
         if (request.operation) {
           const session = registry.get(Number(request.invocation))
-          if (mode.startsWith("parent-cancel") && !cancelled && request.operation.$ === "Types.CaptureSource") {
+          if (
+            mode.startsWith("parent-cancel") &&
+            mode !== "parent-cancel-finalization-gate" &&
+            !cancelled &&
+            request.operation.$ === "Types.CaptureSource"
+          ) {
             const pending = session.perform(request, { ...options, signal: undefined })
             cancelled = true
             driver.cancel(parentInvocation)
@@ -615,7 +625,28 @@ try {
     })
     // One action sink and one resource dispatcher for both parent and resolver.
     const preparationForeign = createPreparationForeign({
-      connection,
+      finalization: artifacts.finalization,
+      connection:
+        mode === "parent-cancel-finalization-gate"
+          ? {
+              ...connection,
+              bridge: {
+                ...connection.bridge,
+                canonical: (event) =>
+                  connection.bridge.canonical(event).pipe(
+                    Effect.tap(() =>
+                      Effect.sync(() => {
+                        if (!cancelled) {
+                          acceptedAtFinalizationCancel = driver.stats.accepted
+                          driver.cancel(parentInvocation)
+                          cancelled = true
+                        }
+                      })
+                    )
+                  )
+              }
+            }
+          : connection,
       owner,
       driver,
       registry,
@@ -687,9 +718,16 @@ try {
     }
     if (mode.startsWith("parent-cancel")) {
       assert.ok(outcome.failure)
-      assert.equal(roots, 1)
-      assert.equal(physicalLateSuccess, 1)
-      assert.equal(driver.stats.accepted, 0)
+      if (mode === "parent-cancel-finalization-gate") {
+        assert.equal(cancelled, true)
+        assert.equal(roots, 2)
+        assert.equal(physicalLateSuccess, 0)
+        assert.equal(driver.stats.accepted, acceptedAtFinalizationCancel)
+      } else {
+        assert.equal(roots, 1)
+        assert.equal(physicalLateSuccess, 1)
+        assert.equal(driver.stats.accepted, 0)
+      }
     } else {
       assert.ok(outcome.preparation)
       assert.equal(outcome.preparation.selected, expected.selected, mode + " selected declarations")
@@ -763,7 +801,7 @@ try {
       postRequests,
       nativePostPreparationSource,
       scope:
-        "actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Python/TypeScript IO and full native preparation differential for successful branches; parent cancellation/late success/rejection and first semantic refusal; actual native preflight/workspace sizing/prepared input policy children; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers plus owner-claim and pre-spawn exceptions with guaranteed cleanup; native policy deletion, source-free Canonical progression and production adoption remain open"
+        "actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Python/TypeScript IO and full native preparation differential for successful branches; parent cancellation/late success/rejection and first semantic refusal; actual native preflight/workspace sizing bindings and whole Bend finalization through the same resident Canonical gate; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers plus owner-claim and pre-spawn exceptions with guaranteed cleanup; native policy deletion, source-free Canonical progression and production adoption remain open"
     })
   )
 } finally {

@@ -116,199 +116,118 @@ that a subsystem has migrated.
 
 ## Current whole preparation acceptance path
 
-The working candidate is not accepted production. Astra reviewed the ownership
-route on 2026-10-10: graph resolution and parser facts belong to source-analysis;
-preparation progression to review-execution; resident source/post preparation,
-advice tail and resource bindings to resident-runtime; the source-free child
-lifecycle to agent-flow-bend. Actual source files, including unfinished proofs
-and verification runners, must be tracked directly at these owners and pushed.
-Evidence directories retain results only. Captures and restoration inventories
-are not source owners.
+The working candidate is not accepted production. Astra agreed the shortest
+whole-unit route: graph resolution/parser facts belong to source-analysis;
+preparation progression to review-execution; source/post preparation, advice tail
+and resource bindings to resident-runtime; child lifecycle to agent-flow-bend.
+Backend facts belong to runtime-environment, configuration selection to
+runtime-inputs, and provider/rule semantics to review-definition. All retained
+sources, tests, specifications, proofs and runners are ordinary tracked files at
+these owners. Evidence contains results only. Commit and push source checkpoints
+to `migration/bend-direct-login-resumed`, verifying the remote SHA, throughout work.
+
+`PreparationFinalization.bend` now replaces the candidate's complete RenderUnits
+native child. Bend controls ordered units, required root-location short-circuit
+before traversal, fingerprints/partial capabilities, language selection, per-unit
+current rules reads, Canonical admission, frozen input and semantic identity.
+The real composition bridge executes closed requests under the existing
+RenderUnits owner lease. Rule gates use the same resident Canonical transaction;
+`Invocation{owner, command}` carries its actual issued request identity, with one
+monotonic engine request namespace across units/stages. Provider facts are read
+after nonempty rule selection, rather than before the unit loop. Host bindings execute
+ECMAScript extname/lowercase, no-flags RegExp, URI/JSON primitives, SHA-256,
+mechanical deep freezing and optional observation effects. They do not choose
+next units/stages or select rules/provider/input. Full OtherContract values remain
+intact. URI engine exceptions retain their original object; other host failures
+propagate, while synchronous omission observer throws alone are swallowed.
+
+The production-binding `native-preparation-children.mjs` is removed. The renamed
+`native-preparation-reference.mjs` reads the current TS owner only for verification;
+it is never a product engine. Delete it with the replaced TS implementation on
+whole acceptance, preserving the independent correspondence contract at its owner.
+Public production `pipeline.ts` still runs TS preparation. New production Bend
+connected for this whole candidate: **0**; replaced production TS removed: **0**.
+
+Current finite evidence, with commands at the testing matrix:
+
+| Boundary | Observed coverage | Limit |
+| --- | --- | --- |
+| Whole finalization machine | 66 ordered scenarios and five actual binding vectors, 9947 requests, 194 real Canonical gates, 93 omissions, 127 current-rule reads, 75190 wrong replies | Actual native ready consumer, full JSON outcomes and chronology; universal proof remains open. |
+| Real Source composition | 50 cases, 5554 requests, 25 independent whole native comparisons | Ordered physical effects, inputs/identities, activity publication and pre-teardown custody; full error/cancellation correspondence remains open. |
+| Real Preparation → Post composition | 64 cases, 14395 requests, 807 Post requests | Native result differential, parent cancellation/late replies, retained advice, post-admission barriers and cleanup; whole proof and public adoption remain open. |
+| Frozen input/identity | 60 cases, 5960 engine requests, 17880 wrong replies | All five languages, partial units, three providers; full field order and ordinary JSON checked. |
+| Configuration/provider | 91 cases, including 44 through actual settings decoder; 62 URI requests, 2385 wrong replies | Other 47 cases are explicitly raw-shape extensions, not validated producer claims. |
+| Ordered rule block | 1200 contexts, 60960 regex and 38400 real Canonical requests | Exact original rule order/freezing; arbitrary engine responses are fenced but are not correctness premises. |
+| Glob owner | 12771 native validation/single/any comparisons | Full UTF-16 dialect, brace/class interactions and ordered validation; finite, not universal. |
+| Rule snapshot owner | 360 contexts, 8640 snapshot rules | Real authored compiler; duplicate-input extension is outside its decoder domain. |
+| Unit evidence/metadata | 59 cases, 365 node steps | Provenance, first declaration location, sorted capture fingerprints; immutable unique-key/path producer premises required. |
+| Canonical JSON owner | 96 cases, 596 primitive requests | UTF-16 keys, binary64 specials, lone surrogates and nesting; exact mechanical JSON reply premise required. |
+
+The current-source stages and real consumers above are not whole acceptance.
+New provider/input/whole machine files pass source, runner lint and pinned format.
+The pinned formatter still rejects UnitEvidence and Glob with `Unsupported block
+expression in list`; this is an open gate, not an exemption.
 
 One current obstacle list, in execution order:
 
-The whole-finalization replacement now has an internal `UnitEvidence.bend`
-stage at review-execution/preparation. Its compiled consumer agrees with native
-finalization on 59 evidence and metadata cases, including missing captures and
-first-declaration location lookup. Astra reviewed that lookup and fingerprint
-semantics. Integration must check root location before traversal and bind captures
-from the unique-path Map; metadata qualification alone does not replace RenderUnits.
-The stage passes its five-second Bend source check. The pinned formatter currently
-rejects its syntax with `Unsupported block expression in list`; formatting remains
-an open gate. Whole-stage sequencing, whole laws and production Canonical integration remain required. No replacement
-production TypeScript has been deleted for this stage.
+1. Qualify ordinary compiled capability boundaries and the unique shared ABI:
+   source-analysis resolver/session, review-execution preparation, and
+   resident-runtime Canonical workflow. Keep private stages hidden. Relocated
+   sources must enter compiler/declaration receipts; authored MJS is currently
+   outside ordinary TS emission. The graph-resolution Types dependency still
+   needs a narrow single owner; never duplicate ProductValue. Last standard
+   development-import census reported 5 unresolved paths, 47 undeclared
+   dependencies and 223 private cross-owner imports; current qualification is
+   still required. Do not expose every helper or bypass that gate.
+2. Finish all retained source/proof and ordinary quality gates. The source gate
+   uses current import closures, nonempty checking roots and a five-second limit;
+   foreign Runtime IO roots compile to temporary JS, pure roots use `--verdict`.
+   Its last full run passed 38 selected files before the unproved
+   `ATTACHMENT_TRANSACTION_LAWS.bend`. That law remains selected. One shared
+   AttachmentTransactionContract and one complete LiteralCuts replace 18 duplicate
+   literal/control/copied-Attach files. Full Cuts/Contract/construction checks hit
+   five seconds; the mutation runner refuses a result without a passing pristine
+   control. Native/core empty `sourceDependencies` is preserved in the corrected
+   Forest spec; Forest and universal AttachmentUnitProductProof passed. Formatting
+   of Cuts/UnitProductProof dependent headers remains incomplete. Scheduler's two
+   original proof roots and four original-law mutant rejections passed, with 2212
+   runtime comparisons and 1806 cancellation suffix comparisons; these do not
+   qualify the remaining roots. Address UnitEvidence/Glob formatter diagnostics.
+3. Agree and prove exact whole finalization joined to Preparation trace/custody:
+   ordered outcomes and omission arguments, short-circuit/error chronology,
+   producer-derived facts and mechanical-engine correspondence, identity bytes,
+   optional fields/order/freezing, scoped replay rejection and structural
+   termination. Preserve partial-unit `complete:true` with restricted capabilities;
+   UTF-16/JSON behavior; exclusion of rootLocation/sourceFingerprints from identity;
+   per-unit currentRules reads; synchronous observer throws only. Existing
+   constructor+cleanup Cause evidence preserves both errors and registered retry
+   before acceptance/release. Precommit, round-bound retained inspection and whole
+   universal custody/Cause remain open. Connected runtime bindings now preserve original rules/gate/URI exceptions,
+   skip unused fallback and read provider after a rules callback update. Cancellation
+   during the actual resident Canonical gate rejects terminal publication and
+   discharges all resources. Whole failure/cancellation correspondence is still
+   required; transport failures must not become omissions or InvalidReply.
+4. Complete supported Go/session, extraction, classification and rendering scope
+   and discharge the agreed whole-unit laws/proofs. The finalization language
+   registration includes Go and explicitly guards all five supported IDs; this
+   does not complete the resolver/session language scope.
+5. Connect launch, lifecycle, cancellation, result acceptance and progression
+   through the single production Canonical authority. Replace public TS preparation
+   algorithms/orchestration and delete superseded maintained paths. Qualify actual
+   native prepareObservation against the ordinary compiled API, including ordered
+   inputs, identities, omissions, failures and ownership. Candidate RenderUnits
+   replacement alone does not qualify public production adoption.
+6. Pass all selected local acceptance checks and strict paired build/execution
+   parity on the connected candidate. Latest cadence at `c6ff0a9d` began
+   2026-10-11 05:56:48/06:01:24 UTC: build qualified but failed parity **1.1603**;
+   execution qualified and passed **0.8325**. All 17 build pairs used 23/46 cached
+   tasks; HEAD, sources and artifact trees stayed unchanged; execution matched
+   both callers on seven fixtures. These cover existing production, not unadopted
+   whole preparation. A prior owned-lock failure was recovered by ordinary fresh
+   build custody without manually deleting records; no failed build is qualified
+   by a later execution run. The earlier 03:36→04:07 cadence breach remains
+   recorded. Keep new measurements within 30 minutes and freeze their inputs.
 
-The connected provider/configuration stage now lives at its domain owners:
-raw backend/catalog ABI in runtime-environment, first-user-layer selection in
-runtime-inputs, destination/identity policy in review-definition, and settings
-precedence in review-execution/preparation. Astra reviewed its validated producer
-semantics. Its compiled consumer passes 91 cases (44 through the actual settings
-decoder; 47 explicitly separate raw-shape extensions), 62 URI requests and 2385
-wrong-reply rejections. `FrozenInput.bend` joins this stage to complete ReviewInput
-construction, canonical JSON and UTF-8 SHA-256 requests under one request namespace.
-The physical consumer compares evidence, ordered rules with the real Canonical gate,
-provider, input and identity against native ready preparation on 60 cases across
-five languages, complete/partial units and three providers; 5960 engine requests
-and 17880 wrong replies are checked. Source, runner lint and pinned formatting
-pass for these new files. These are finite stage-composition results: the harness
-still sequences evidence/rules/input. The next obstacle is whole-unit Bend
-progression with root-location short-circuit before traversal, then replacement of
-the RenderUnits native child. Whole laws, production lifecycle, TypeScript deletion
-and parity remain open; no production TS was removed by this checkpoint.
-
-At checkpoint `c2a75176`, the 2026-10-11 04:59 UTC build measurement reported
-ratio 1.2914 and failed parity; its first candidate sample had 15/46 cached tasks
-instead of 23/46, so a fully warm repeat is required. The 05:03 UTC execution
-measurement passed at 0.6336. Both measurements cover existing production,
-not the unconnected whole-finalization stage.
-
-The fully warm repeat at checkpoint `298e83ec` also failed build parity: 1.2265
-at 05:06 UTC with 23/46 cached tasks. Its paired execution passed at 0.8656
-at 05:13 UTC. A cold sample alone therefore does not explain the build regression.
-The next internal finalization block, `RuleSnapshot.bend` at review-definition/rules/finalization, computes input and
-capability facts and freezes complete ordered rules from the same snapshot;
-admission remains with the existing Canonical rule gate. Its emitted consumer
-compares 360 contexts and 8,640 snapshot rules with the native selectors/freezers.
-Authored rules are compiled by the real compiler; the additional duplicate-input
-raw-shape fixture is explicitly outside the authored decoder domain. Source,
-runner lint and pinned formatting checks pass for this block. Path/glob facts,
-correlated Canonical requests, provider/input/identity assembly and whole
-finalization proofs/production connection remain open; this is no separate
-selector acceptance.
-
-Astra approved moving rule snapshot semantics and its physical runner to
-review-definition/rules/finalization; preparation consumes that owner. The old
-execution copies are removed. Private structural ProductValue projections avoid
-an execution-to-definition dependency cycle. The existing graph-resolution Types
-import still needs a narrow shared ABI owner before production interfaces qualify;
-there is no duplicated ProductValue declaration. Named source checks include the
-actual rule owner after the move.
-
-The full glob dialect is now authored at runtime-inputs/matcher/glob, together
-with its emitted consumer. Bend owns normalization, UTF-16 limits/class ranges,
-native brace expansion (including class intersections), regex construction,
-greedy dot-pointer behavior, validation-before-matching and ordered any-pattern
-short-circuit. The host only converts code units to JS strings and invokes the
-no-flags RegExp engine, distinguishing invalid syntax from valid false. Passing
-12,771 comparisons with native validate/matches/matchesAny covers finite dialect
-and protocol cases, not universal proof or production adoption. Astra reviewed
-ownership and the full dialect; finalization must still provide invocation/request
-correlation. The actual owner enters named source selection. Source checking and
-runner lint pass; the pinned formatter reports `Unsupported block expression in
-list`, so formatting remains open. Next connect this owner to RuleSnapshot and
-the existing Canonical gate in the ordered whole-finalization machine.
-
-That ordered rule block is now authored as preparation/RuleFinalization.bend:
-it consumes RuleSnapshot and Glob, emits the exact existing Canonical gate facts,
-checks invocation/request plus reply phase, and freezes admitted original rules
-in order. Its emitted consumer agrees with native selection/freeze on 1,200
-contexts with 60,960 regex and 38,400 actual Canonical requests; the Canonical
-state stays unchanged by this policy gate. Astra reviewed the connected block.
-Each unit integration must use a fresh child invocation or the outer monotonic
-request namespace; restarting local request zero with a reused identity is not
-authorized. Exact engine correspondence and arbitrary-reply rejection are distinct
-obligations in the whole law. Whole evidence/provider/input/identity assembly,
-universal proofs, ordinary compiled API and production Canonical adoption remain
-open; no replaced production TypeScript has been removed for this block.
-
-The 05:32 UTC build cadence at `e1d29060` stopped on an inherited compiler-cleanup
-owned-lock deadline; no complete measurement or build parity qualified. The failed
-cleanup changed output artifacts. Reconciliation refused missing owner records;
-no custody records were deleted manually. An ordinary fresh-custody workspace
-build then passed 46/46 with 23/46 cached tasks and restored the artifacts. The
-05:35 UTC execution cadence passed at 0.8699 on the restored outputs; it does not
-qualify the failed build comparison.
-
-1. Finish relocation dependency and nominal ABI qualification; remove obsolete
-   representations and historical runners after identifying the retained closure.
-   Actual sources are secured on the remote working branch at `8b67a18a`;
-   subsequent source changes require another pushed checkpoint. Three obsolete
-   scheduler compiler-control roots and their dead runner map entries were
-   removed after Astra review; canonical scheduler proof roots remain required.
-   The relocated compiled scheduler runner now imports the current source owner
-   and stores diagnostic results in `.test-runs/bend-migration`; its actual run
-   passed 2,212 scheduler comparisons and 1,806 cancellation suffix comparisons.
-2. Qualify new named `check:bend-preparation:sources`, `:protocol` and
-   `:consumer` gates against current paths. Ordinary lint and root TypeScript
-   coverage remain required; root typechecking includes the relocated TS reference
-   sources. Source closure checks do not imply JS typing or production emission.
-   Named protocol and physical consumer suites passed (four and three real
-   consumers respectively); consumer summaries must report nonzero cases.
-   Source checking remains blocked: retained scheduler closure was repaired and
-   its two roots plus four original-law mutant rejections passed, but all remaining
-   checking roots need qualification. Before the current cleanup, the source gate
-   selected a 370-file Bend closure through 115 roots and 163 authored files. Runtime foreign IO
-   shells are compiled to temporary JS under the same five-second deadline;
-   pure roots retain `--verdict`. The repaired gate passed 38 selected files
-   before rejecting the unproved `ATTACHMENT_TRANSACTION_LAWS.bend`; this draft
-   remains a real proof blocker and is not excluded. Astra approved consolidation
-   of its existing predicates into `AttachmentTransactionContract.bend`: one
-   complete `AttachmentTransactionLiteralCuts` remains, and 18 duplicate literal,
-   control and copied-Attach files are deleted. Its current-source mutation runner
-   uses an isolated temporary import closure and never edits repository sources.
-   Full Cuts, Contract and construction qualification currently hit the five-second
-   limit; the runner correctly refuses to qualify a mutant without a passing
-   control. No old literal qualification transfers. The native resolver and actual
-   core always include empty `sourceDependencies`; the independent Forest spec
-   and sole literal witness were corrected to preserve that field. Forest checking
-   and the universal `AttachmentUnitProductProof` passed. The formatter accepted
-   Forest, Law and Contract, but cannot parse the dependent declaration headers in
-   Cuts/UnitProductProof; formatting qualification remains incomplete. Root graph
-   verification sources now also enter the named source syntax/closure selection. Standard development imports still report
-   5 unresolved paths, 47 undeclared dependencies and 223 private cross-owner
-   imports from the relocation. Use declared capability/testing entrypoints;
-   do not expose every internal helper or bypass the development import gate.
-3. Close whole error/custody correspondence: precommit failures, constructor
-   failures, round-bound retained inspection and multi-unit finalization. Constructor
-   plus cleanup failure is covered by an actual Canonical AdviceTail fixture:
-   both errors survive, acceptance/release waits for its registered retry, and
-   retry discharges every retained resource. The relocated full Source consumer
-   passed 50 cases (5,554 requests), including 25 native whole comparisons.
-   Whole universal custody/Cause proofs and other finalization cases remain open.
-4. Complete supported Go/session, extraction, classification and rendering scope;
-   discharge the agreed whole-unit laws and proofs.
-5. Connect launch, lifecycle, cancellation, acceptance and progression through
-   the single production Canonical authority; remove replaced TypeScript
-   algorithms and orchestration, then qualify the full composed consumer.
-   Astra's shortest compiled boundary: source-analysis resolver/session API,
-   review-execution preparation API and resident-runtime Canonical workflow API;
-   private stages remain hidden. The current `native-preparation-children.mjs`
-   reads TypeScript and extracts `prepareReadyUnits` through `new Function`.
-   Replace that whole application finalization child rather than exporting the
-   extracted native implementation; compiled consumers must use emitted exports.
-   Retained host bindings must enter normal compiler/declaration receipts.
-   Astra reviewed the whole finalization replacement on 2026-10-11: reuse
-   `ProductValue`, captures and ordered units/declarations; Bend selects root
-   evidence, validates/sorts dependency fingerprints, computes omissions and
-   capabilities, selects ordered rules and their first matching frozen target,
-   and constructs the complete input and identity bytes. Host may perform
-   SHA-256 and mechanical freezing, but not Hapsland glob policy or input/identity
-   selection. Preserve partial-unit `complete:true` rule selection, restricted
-   capabilities, UTF-16/JSON canonical semantics, identity exclusion of locations
-   and fingerprints, and best-effort omission diagnostics. The acceptance
-   comparison must exercise native `prepareObservation` against the compiled
-   preparation API, including ordered inputs, identities, omissions and failures;
-   finalization correspondence joins the whole Preparation trace/custody law.
-   The internal `CanonicalJson.bend` stage now traverses complete ProductValue
-   objects/arrays and sorts keys by UTF-16, with primitive-only JSON engine
-   requests retaining binary64 bits. Its actual compiled consumer matches native
-   `canonicalValue` for 96 cases and 596 primitive requests, including nonfinite
-   numbers, negative zero, supplementary/lone-surrogate keys and nested values.
-   This stage has no whole correspondence proof or production connection yet;
-   input validity, identity field projection and reply protocol fencing remain
-   obligations of the whole finalization machine.
-6. Pass required local gates and paired build/execution parity on that connected
-   candidate. Previous measurements qualify only their original source paths and
-   inputs; source moves do not inherit their qualification. Current relocated
-   production cadence at `78f90e82`: build qualified but failed parity
-   (`1.0615929024291164`); execution qualified and passed parity
-   (`0.7115734281937276`). Inputs, HEAD and artifact trees remained unchanged;
-   all build samples used 23/46 cached tasks and all execution outputs matched.
-   Current build/execution began at 04:29:25/04:34:39 UTC on 2026-10-11,
-   both within 30 minutes of their preceding starts. The earlier build at
-   04:07:53 exceeded the interval from 03:36:19; that breach remains recorded. These measurements
-   cover the existing production analyzer, not adoption of the preparation candidate.
-
-Relocation and source backup do not increase the amount of connected production
-Bend or deleted production TypeScript. Keep this list current by removing closed
-obstacles and recording specific remaining failures here.
+Keep this obstacle list current by removing closed work and naming specific
+remaining failures. Source backup, relocation and finite candidate qualification
+do not count as connected production Bend or removed replacement TypeScript.

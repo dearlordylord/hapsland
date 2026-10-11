@@ -8,9 +8,9 @@ import { providerIdentity } from "@hapsland/review-definition/review-providers/c
 import { effectiveReviewBackend } from "@hapsland/runtime-inputs/configuration/resolve"
 import { DEFAULT_REVIEW_BACKEND } from "@hapsland/runtime-environment/runtime/backend"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
-// Explicit temporary Hapsland policy child, not independently maintained parser
-// facts. Extract the current private source owner; do not copy its algorithm or
-// add a production export solely to make this prototype callable.
+// Verification-only oracle over the current private TS source owner. Delete
+// with the replaced TS implementation after whole migration acceptance; it is
+// never an engine binding or a product preparation child.
 const source = await readFile(new URL("../pipeline.ts", import.meta.url), "utf8")
 const section = (start, end) => {
   const first = source.indexOf("const " + start + " ="),

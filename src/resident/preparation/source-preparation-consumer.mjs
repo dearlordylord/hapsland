@@ -52,6 +52,7 @@ try {
     "PythonArtifact",
     "CanonicalResolverOwner",
     "Preparation",
+    "PreparationFinalization",
     "PostPreparation",
     "SourcePreparation"
   ]) {
@@ -64,6 +65,8 @@ try {
         "bend",
         new URL(
           {
+            PreparationFinalization:
+              "../../../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend",
             ArtifactComposition:
               "../../../packages/resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend",
             ArtifactIndexSkipMutantCore:
@@ -802,6 +805,7 @@ try {
             : captureStable
         }
         const foreign = createPreparationForeign({
+          finalization: modules.PreparationFinalization,
           connection: { ...connection, preparation },
           owner,
           driver,
