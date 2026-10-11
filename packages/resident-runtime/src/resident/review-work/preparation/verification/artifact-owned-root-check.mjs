@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { deserialize } from "node:v8"
 import * as Effect from "effect/Effect"
