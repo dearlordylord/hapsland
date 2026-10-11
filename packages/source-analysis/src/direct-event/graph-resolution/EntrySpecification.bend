@@ -2,6 +2,8 @@ import ../../../../source-artifacts/src/direct-event/value/Value.bend as Artifac
 import Base
 import ./BoundaryValidationSpecification.bend as Boundary
 import ./Types.bend as T
+import ./python-module/ArtifactProtocol.bend as PythonProtocol
+import ./ComposedBudget.bend as Budget
 import ./go-module/ArtifactProtocol.bend as GoProtocol
 import ./go-module/PreparationModel.bend as Go
 import ./Environment.bend as E
@@ -30,6 +32,8 @@ type Stage is Data:
   AwaitClock{}
   LanguageAdmission{}
   PythonAdmission{}
+  PythonPreparing{}
+  PythonInspecting{}
   GoAdmission{}
   GoPreparing{}
   GoInspecting{}
@@ -58,12 +62,13 @@ type State is Data:
     preparation_cache: Maybe<&2, T.CacheToken>,
     root_local: Maybe<&2, Recursive.State>,
     selected_root_identity: Maybe<&2, String>
-  , fingerprint: Maybe<&2, String>}
+  , fingerprint: Maybe<&2, String>, python: Maybe<&2, D.PythonContext>}
 type Selection is Data:
   Internal{state: State}
   Selected{state: State, operation: T.Operation}
   Prepare{state: State, clock: T.ClockToken}
   Launch{state: State, expansion: D.State}
+  PythonChild{state: State, command: PythonProtocol.PythonCommand}
   GoChild{state: State, command: GoProtocol.GoCommand}
   GoCompleted{state: State, driver: D.State, product: Maybe<&2, ArtifactValue.ProductValue>}
   NoUnit{state: State, retained: Maybe<&2, Root.RejectedRoot>}
@@ -76,6 +81,18 @@ type Progress<-World: Data> is Data:
   EntryWaiting{state: State, exchange: E.Exchange<World>}
   EntryPreparing{state: State, progress: P.Progress<World>}
   EntryExpanding{state: State, progress: D.Progress<World>}
+  EntryPythonChildBegin{
+    state: State,
+    command: PythonProtocol.PythonCommand,
+    world: E.WorldState<World>
+  }
+  EntryPythonChildResume{
+    state: State,
+    request: T.Request,
+    reply: T.Reply,
+    world: E.WorldState<World>
+  }
+  EntryPythonChildWaiting{state: State, exchange: E.Exchange<World>}
   EntryGoChildBegin{state: State, command: GoProtocol.GoCommand, world: E.WorldState<World>}
   EntryGoChildAdvance{state: State, world: E.WorldState<World>}
   EntryGoChildResume{state: State, request: T.Request, reply: T.Reply, world: E.WorldState<World>}
@@ -87,7 +104,7 @@ type Progress<-World: Data> is Data:
 
 def fingerprint(state: State) -> Maybe<&2, String>:
   match state:
-    case State{_, _, _, _, _, _, _, _, _, _, _, _, fingerprint}: fingerprint
+    case State{_, _, _, _, _, _, _, _, _, _, _, _, fingerprint, _}: fingerprint
 
 def with_fingerprint(state: State, fingerprint: Maybe<&2, String>) -> State:
   match state:
@@ -105,7 +122,7 @@ def with_fingerprint(state: State, fingerprint: Maybe<&2, String>) -> State:
       local,
       identity,
       _
-    }:
+    , +python}:
       State{
         input,
         clock,
@@ -120,11 +137,22 @@ def with_fingerprint(state: State, fingerprint: Maybe<&2, String>) -> State:
         local,
         identity,
         fingerprint
-      }
+      , python}
+
+def python_context(state: State) -> Maybe<&2, D.PythonContext>:
+  match state:
+    case State{_, _, _, _, _, _, _, _, _, _, _, _, _, python}: python
+
+def with_python_context(state: State, python: Maybe<&2, D.PythonContext>) -> State:
+  match state:
+    case State{input, clock, language, frontend, limits, dependencies, next, stage,
+        preparation, cache, local, identity, fingerprint, _}:
+      State{input, clock, language, frontend, limits, dependencies, next, stage,
+        preparation, cache, local, identity, fingerprint, python}
 
 def input(state: State) -> T.ResolverInput:
   match state:
-    case State{input, _, _, _, _, _, _, _, _, _, _, _, _}: input
+    case State{input, _, _, _, _, _, _, _, _, _, _, _, _, _}: input
 
 def with_input(state: State, input: T.ResolverInput) -> State:
   match state:
@@ -141,7 +169,7 @@ def with_input(state: State, input: T.ResolverInput) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -154,11 +182,11 @@ def with_input(state: State, input: T.ResolverInput) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def clock(state: State) -> Maybe<&2, T.ClockToken>:
   match state:
-    case State{_, clock, _, _, _, _, _, _, _, _, _, _, _}: clock
+    case State{_, clock, _, _, _, _, _, _, _, _, _, _, _, _}: clock
 
 def with_clock(state: State, clock: Maybe<&2, T.ClockToken>) -> State:
   match state:
@@ -175,7 +203,7 @@ def with_clock(state: State, clock: Maybe<&2, T.ClockToken>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -188,11 +216,11 @@ def with_clock(state: State, clock: Maybe<&2, T.ClockToken>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def language(state: State) -> Maybe<&2, T.Language>:
   match state:
-    case State{_, _, language, _, _, _, _, _, _, _, _, _, _}: language
+    case State{_, _, language, _, _, _, _, _, _, _, _, _, _, _}: language
 
 def with_language(state: State, language: Maybe<&2, T.Language>) -> State:
   match state:
@@ -209,7 +237,7 @@ def with_language(state: State, language: Maybe<&2, T.Language>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -222,11 +250,11 @@ def with_language(state: State, language: Maybe<&2, T.Language>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def frontend(state: State) -> Maybe<&2, T.FrontendContext>:
   match state:
-    case State{_, _, _, frontend, _, _, _, _, _, _, _, _, _}: frontend
+    case State{_, _, _, frontend, _, _, _, _, _, _, _, _, _, _}: frontend
 
 def with_frontend(state: State, frontend: Maybe<&2, T.FrontendContext>) -> State:
   match state:
@@ -243,7 +271,7 @@ def with_frontend(state: State, frontend: Maybe<&2, T.FrontendContext>) -> State
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -256,11 +284,11 @@ def with_frontend(state: State, frontend: Maybe<&2, T.FrontendContext>) -> State
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def limits(state: State) -> G.Limits:
   match state:
-    case State{_, _, _, _, limits, _, _, _, _, _, _, _, _}: limits
+    case State{_, _, _, _, limits, _, _, _, _, _, _, _, _, _}: limits
 
 def with_limits(state: State, limits: G.Limits) -> State:
   match state:
@@ -277,7 +305,7 @@ def with_limits(state: State, limits: G.Limits) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -290,11 +318,11 @@ def with_limits(state: State, limits: G.Limits) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def dependencies(state: State) -> List<&2, String>:
   match state:
-    case State{_, _, _, _, _, dependencies, _, _, _, _, _, _, _}: dependencies
+    case State{_, _, _, _, _, dependencies, _, _, _, _, _, _, _, _}: dependencies
 
 def with_dependencies(state: State, dependencies: List<&2, String>) -> State:
   match state:
@@ -311,7 +339,7 @@ def with_dependencies(state: State, dependencies: List<&2, String>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -324,7 +352,7 @@ def with_dependencies(state: State, dependencies: List<&2, String>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def with_prepared_language(state: State, prepared: T.PreparedLanguage) -> State:
   match prepared:
@@ -333,7 +361,7 @@ def with_prepared_language(state: State, prepared: T.PreparedLanguage) -> State:
 
 def next_request(state: State) -> Nat:
   match state:
-    case State{_, _, _, _, _, _, next_request, _, _, _, _, _, _}: next_request
+    case State{_, _, _, _, _, _, next_request, _, _, _, _, _, _, _}: next_request
 
 def with_next_request(state: State, next_request: Nat) -> State:
   match state:
@@ -350,7 +378,7 @@ def with_next_request(state: State, next_request: Nat) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -363,11 +391,11 @@ def with_next_request(state: State, next_request: Nat) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def stage(state: State) -> Stage:
   match state:
-    case State{_, _, _, _, _, _, _, stage, _, _, _, _, _}: stage
+    case State{_, _, _, _, _, _, _, stage, _, _, _, _, _, _}: stage
 
 def with_stage(state: State, stage: Stage) -> State:
   match state:
@@ -384,7 +412,7 @@ def with_stage(state: State, stage: Stage) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -397,11 +425,11 @@ def with_stage(state: State, stage: Stage) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def preparation(state: State) -> Maybe<&2, Rust.Preparation>:
   match state:
-    case State{_, _, _, _, _, _, _, _, preparation, _, _, _, _}: preparation
+    case State{_, _, _, _, _, _, _, _, preparation, _, _, _, _, _}: preparation
 
 def with_preparation(state: State, preparation: Maybe<&2, Rust.Preparation>) -> State:
   match state:
@@ -418,7 +446,7 @@ def with_preparation(state: State, preparation: Maybe<&2, Rust.Preparation>) -> 
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -431,11 +459,11 @@ def with_preparation(state: State, preparation: Maybe<&2, Rust.Preparation>) -> 
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def preparation_cache(state: State) -> Maybe<&2, T.CacheToken>:
   match state:
-    case State{_, _, _, _, _, _, _, _, _, preparation_cache, _, _, _}: preparation_cache
+    case State{_, _, _, _, _, _, _, _, _, preparation_cache, _, _, _, _}: preparation_cache
 
 def with_preparation_cache(state: State, preparation_cache: Maybe<&2, T.CacheToken>) -> State:
   match state:
@@ -452,7 +480,7 @@ def with_preparation_cache(state: State, preparation_cache: Maybe<&2, T.CacheTok
       _,
       root_local,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -465,11 +493,11 @@ def with_preparation_cache(state: State, preparation_cache: Maybe<&2, T.CacheTok
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def root_local(state: State) -> Maybe<&2, Recursive.State>:
   match state:
-    case State{_, _, _, _, _, _, _, _, _, _, root_local, _, _}: root_local
+    case State{_, _, _, _, _, _, _, _, _, _, root_local, _, _, _}: root_local
 
 def with_root_local(state: State, root_local: Maybe<&2, Recursive.State>) -> State:
   match state:
@@ -486,7 +514,7 @@ def with_root_local(state: State, root_local: Maybe<&2, Recursive.State>) -> Sta
       preparation_cache,
       _,
       selected_root_identity
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -499,11 +527,11 @@ def with_root_local(state: State, root_local: Maybe<&2, Recursive.State>) -> Sta
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def selected_root_identity(state: State) -> Maybe<&2, String>:
   match state:
-    case State{_, _, _, _, _, _, _, _, _, _, _, selected_root_identity, _}: selected_root_identity
+    case State{_, _, _, _, _, _, _, _, _, _, _, selected_root_identity, _, _}: selected_root_identity
 
 def with_selected_root_identity(state: State, selected_root_identity: Maybe<&2, String>) -> State:
   match state:
@@ -520,7 +548,7 @@ def with_selected_root_identity(state: State, selected_root_identity: Maybe<&2, 
       preparation_cache,
       root_local,
       _
-    , fingerprint}: State{
+    , fingerprint, +python}: State{
       input,
       clock,
       language,
@@ -533,7 +561,7 @@ def with_selected_root_identity(state: State, selected_root_identity: Maybe<&2, 
       preparation_cache,
       root_local,
       selected_root_identity
-    , fingerprint}
+    , fingerprint, python}
 
 def input_invocation(input: T.ResolverInput) -> Nat:
   match input:
@@ -587,7 +615,7 @@ def begin(-World: Data, +input: T.ResolverInput, next: Nat,
       None{},
       None{},
       None{}
-    , None{}},
+    , None{}, None{}},
     world
   }
 
@@ -700,6 +728,22 @@ def rust_clock(+state: State, binding: Bool, clock: Maybe<&2, T.ClockToken>) -> 
 def rust_admission(+state: State, binding: Bool) -> Selection:
   rust_clock(state, binding, clock(state))
 
+def python_admission(+state: State, clock: Maybe<&2, T.ClockToken>) -> Selection:
+  match clock:
+    case None{}: InvariantFailed{state}
+    case Some{clock}: PythonChild{with_stage(state, PythonPreparing{}), PythonProtocol.Prepare{
+      input_path(input(state)), input_capture(input(state)), input_bytes(input(state)),
+      G.file_cap(limits(state)), G.read_cap(limits(state)), G.work_cap(limits(state)),
+      G.source_cap(limits(state)), G.depth_cap(limits(state)), clock,
+      input_invocation(input(state)), input_cache(input(state)), next_request(state)}}
+
+def python_root_deadline(+state: State, expired: Bool) -> Selection:
+  match expired:
+    case True{}: NoUnit{state, None{}}
+    case False{}: PythonChild{with_stage(state, PythonInspecting{}), PythonProtocol.Inspect{
+      input_branch(input(state)), input_path(input(state)), input_path(input(state)),
+      input_capture(input(state)), input_invocation(input(state)), next_request(state)}}
+
 # Entry owns admission and chronology; the existing Go child owns package policy.
 def go_admission(+state: State, clock: Maybe<&2, T.ClockToken>) -> Selection:
   match clock:
@@ -726,7 +770,7 @@ def choose_stage(~extension: String -> String, +state: State, stage: Stage) -> S
     case Starting{}: selected(state, AwaitClock{}, T.StartClock{})
     case LanguageAdmission{}: selected_language(state,
       language_for(String.to_lower(extension(input_path(input(state))))))
-    case PythonAdmission{}: request_deadline(state, AwaitPythonDeadline{}, True{})
+    case PythonAdmission{}: python_admission(state, clock(state))
     case GoAdmission{}: go_admission(state, clock(state))
     case RootAdmission{}: request_deadline(state, AwaitRootDeadline{},
       root_available(limits(state), input_bytes(input(state))))
@@ -945,7 +989,7 @@ def function_branch(branch: T.Branch) -> Bool:
     case T.FunctionBranch{}: True{}
     case _: False{}
 
-def launch(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
+def launch_base(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
   match state:
     case State{
       +input,
@@ -961,7 +1005,7 @@ def launch(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
       _,
       _,
       fingerprint
-    }:
+    , +python}:
       Launch{
         state,
         D.begin(
@@ -994,6 +1038,15 @@ def launch(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
       }
     case _: InvariantFailed{state}
 
+def python_launch(selection: Selection, python: Maybe<&2, D.PythonContext>) -> Selection:
+  match selection python:
+    case Launch{state, expansion} Some{D.PythonContext{session, cache, census}}:
+      Launch{state, D.with_python(expansion, session, cache, census)}
+    case selection _: selection
+
+def launch(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
+  python_launch(launch_base(state, frame, bytes), python_context(state))
+
 def root_context(+state: State, expired: Bool, frontend: Maybe<&2, T.FrontendContext>) -> Selection:
   match expired frontend:
     case True{} _: NoUnit{state, None{}}
@@ -1014,9 +1067,7 @@ def consume_stage(
     case AwaitClock{} T.ClockStarted{clock}: Internal{
       with_stage(with_clock(state, Some{clock}), LanguageAdmission{})
     }
-    case AwaitPythonDeadline{} T.ClockRead{bits}:
-      Bool.pick(Selection, expired(bits), NoUnit{state, None{}},
-        Internal{with_stage(state, RootAdmission{})})
+    case AwaitPythonDeadline{} T.ClockRead{bits}: python_root_deadline(state, expired(bits))
     case AwaitRustDeadline{} T.ClockRead{bits}:
       Bool.pick(
         Selection,
@@ -1073,6 +1124,7 @@ def consumed(-World: Data, selection: Selection, world: E.WorldState<World>) -> 
     case Prepare{+state, clock}: EntryPreparing{state,
       P.begin(World, input(state), clock, next_request(state), world)}
     case Launch{state, expansion}: EntryExpanding{state, D.DriverReady{expansion, world}}
+    case PythonChild{state, command}: EntryPythonChildBegin{state, command, world}
     case GoChild{state, command}: EntryGoChildBegin{state, command, world}
     case GoCompleted{state, driver, product}: EntryExpanding{
       state,
@@ -1107,11 +1159,30 @@ def go_returned(+state: State, stage: Stage, result: GoProtocol.GoResult) -> Sel
     case GoInspecting{} GoProtocol.GoInspected{None{}}: NoUnit{state, None{}}
     case _ _: Rejected{state, T.MalformedReply{}}
 
-def go_exchanged(-World: Data, state: State, request: T.Request,
+def child_delivered(-World: Data, state: State, request: T.Request, reply: T.Reply,
+    world: E.WorldState<World>, language: Maybe<&2, T.Language>) -> Progress<World>:
+  match language:
+    case Some{T.PythonLanguage{}}: EntryPythonChildResume{state, request, reply, world}
+    case _: EntryGoChildResume{state, request, reply, world}
+
+def child_waiting(-World: Data, state: State, exchange: E.Exchange<World>,
+    language: Maybe<&2, T.Language>) -> Progress<World>:
+  match language:
+    case Some{T.PythonLanguage{}}: EntryPythonChildWaiting{state, exchange}
+    case _: EntryGoChildWaiting{state, exchange}
+
+def go_exchanged(-World: Data, +state: State, request: T.Request,
     exchange: E.Exchange<World>) -> Progress<World>:
   match exchange:
-    case E.Delivered{world, reply}: EntryGoChildResume{state, request, reply, world}
-    case exchange: EntryGoChildWaiting{state, exchange}
+    case E.Delivered{world, reply}: child_delivered(
+      World,
+      state,
+      request,
+      reply,
+      world,
+      language(state)
+    )
+    case exchange: child_waiting(World, state, exchange, language(state))
 
 def go_await_checked(
   -World: Data,
@@ -1174,6 +1245,51 @@ def go_child_completed(-World: Data, respond: T.Operation -> World -> E.Response
     case EntryGoChildBegin{state, _, world}: go_view(World, state, view, respond, world)
     case EntryGoChildAdvance{state, world}: go_view(World, state, view, respond, world)
     case EntryGoChildResume{state, _, _, world}: go_view(World, state, view, respond, world)
+    case other: other
+
+def python_returned(+state: State, stage: Stage, result: PythonProtocol.PythonResult) -> Selection:
+  match stage result:
+    case PythonPreparing{} PythonProtocol.PreparationUnavailable{}: NoUnit{state, None{}}
+    case PythonPreparing{} PythonProtocol.Prepared{session, cache}:
+      request_deadline(with_python_context(state, Some{D.PythonContext{session, cache,
+        Budget.initial(input_path(input(state)), input_bytes(input(state)))}}),
+        AwaitPythonDeadline{}, root_available(limits(state), input_bytes(input(state))))
+    case PythonInspecting{} PythonProtocol.Inspected{Some{facts}}: root_facts(
+      state,
+      T.SourceInspected{facts}
+    )
+    case PythonInspecting{} PythonProtocol.Inspected{None{}}: NoUnit{state, None{}}
+    case _ _: Rejected{state, T.MalformedReply{}}
+
+def python_view(
+  -World: Data,
+  +state: State,
+  view: PythonProtocol.PythonView,
+  respond: T.Operation -> World -> E.Response<World>,
+  +world: E.WorldState<World>
+) -> Progress<World>:
+  match view:
+    case PythonProtocol.Await{request, _, next}: go_await(
+      World,
+      state,
+      request,
+      next,
+      respond,
+      world
+    )
+    case PythonProtocol.Returned{result, next}:
+      go_terminal_checked(World, state, python_returned(state, stage(state), result), world,
+        Nat.is_eq(next, next_request(state)))
+    case PythonProtocol.Failed{failure, _, None{}}: EntryFailed{state, failure, world}
+    case PythonProtocol.Failed{failure, _, Some{next}}:
+      go_terminal_checked(World, state, Rejected{state, failure}, world,
+        Nat.is_eq(next, next_request(state)))
+
+def python_child_completed(-World: Data, respond: T.Operation -> World -> E.Response<World>,
+    progress: Progress<World>, view: PythonProtocol.PythonView) -> Progress<World>:
+  match progress:
+    case EntryPythonChildBegin{state, _, world}: python_view(World, state, view, respond, world)
+    case EntryPythonChildResume{state, _, _, world}: python_view(World, state, view, respond, world)
     case other: other
 
 def preparation_progress(
@@ -1335,6 +1451,8 @@ def complete(
       P.complete(prepare_reply, World, progress, completion))
     case EntryExpanding{state, progress}: expansion_progress(World, state,
       D.complete(expand_reply, World, progress, completion))
+    case EntryPythonChildWaiting{state, +exchange}:
+      go_completed_exchange(World, state, exchange, completion)
     case EntryGoChildWaiting{state, +exchange}:
       go_completed_exchange(World, state, exchange, completion)
     case other: other
@@ -1358,6 +1476,9 @@ def cancelled(-World: Data, +state: State, world: E.WorldState<World>) -> Progre
 def cancel(-World: Data, progress: Progress<World>) -> Progress<World>:
   match progress:
     case EntryReady{state, world}: cancelled(World, state, world)
+    case EntryPythonChildBegin{state, _, world}: cancelled(World, state, world)
+    case EntryPythonChildResume{state, _, _, world}: cancelled(World, state, world)
+    case EntryPythonChildWaiting{state, E.Waiting{world, _, _}}: cancelled(World, state, world)
     case EntryGoChildBegin{state, _, world}: cancelled(World, state, world)
     case EntryGoChildAdvance{state, world}: cancelled(World, state, world)
     case EntryGoChildResume{state, _, _, world}: cancelled(World, state, world)

@@ -432,3 +432,14 @@ node replacement and transaction proofs remain open. Its formatter still rejects
 the declaration header, so this checkpoint does not claim full formatting or
 acceptance gates. All retained implementation, proof and runner changes belong
 to the remote working branch; backup preserves WIP as well as validated code.
+
+Next retained WIP closes the missing Python entry preparation/inspection bridge:
+entry preserves existing D.PythonContext (session, private cache and census)
+through root construction into expansion, with existing PythonProtocol commands
+and validated continuous request/world exchange. Definitions and Go entry
+emission checked within five seconds after factoring duplicate exchange logic.
+Complete Python entry consumer qualification remains open; the existing finite
+Python expansion checks do not qualify this new entry path. Node replacement
+now has address lookup inversion and unique semantic-address lemmas checked,
+but its original universal theorem still has no proof body. These retained
+changes remain WIP, with production adoption and TS removal unchanged at 0/0.
