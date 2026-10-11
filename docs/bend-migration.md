@@ -201,7 +201,7 @@ One current obstacle list, in execution order:
    Full physical cancellation/late cleanup and universal correspondence remain
    distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
    its accepted supported-input boundary before claiming complete replacement.
-3. Resolve ordinary source gates: 17 remaining cross-owner private development imports,
+3. Resolve ordinary source gates: 13 remaining cross-owner private development imports,
    without exposing verification helpers or excluding sources. check:fast's last
    executed result passes 109 tests and source typing, then fails these imports.
    Source-owned graph verification and its sole fixture set now live together
@@ -595,3 +595,24 @@ remains open and the deadline is unchanged. Astra's three retained freshness-cou
 proof additions remain WIP: both their prefix and the formerly passing baseline
 time out at five seconds, with baseline CPU usage only 2.435 seconds. Original
 parent law/premises remain unchanged; no whole-law acceptance is claimed.
+
+At frozen 7a50681d, warm workspace build passes 46/46 (15 cached, 105.373
+seconds). The matched build starts 18:07:56.401492 UTC, qualifies all 17 pairs
+with 23/46 cached and unchanged inputs, but fails parity at 1.026582818174469.
+Execution starts 18:16:30.103103 UTC and qualifies at 0.7518420930663802. Both
+starts are timely; next start deadlines are 18:37:56.401492 and 18:46:30.103103
+UTC. These measure existing production, not unadopted whole preparation.
+
+The preparation foreign binding no longer imports fixture configuredRules or
+supplies fixture settings by default. Both current verification callers pass
+their previous exact settings explicitly; full Source modes retain actual job
+settings. Configuration read timing is unchanged. This source change is pending
+consumer qualification. The remaining native oracle/fault modes and path/capture
+assertions must still leave the product binding or implement the original full
+provider contract before production connection; this cleanup does not adopt it.
+
+Explicit-settings qualification remains open: ordinary lint selected and passed
+all three changed MJS files. The first selected Source protocol check passed its
+21 cases but did not exercise the binding, so it is not qualification. The correct
+full Source consumer stopped before fixtures when GenericArtifact emission exceeded
+hard five seconds. No consumer result or timeout exemption is claimed.

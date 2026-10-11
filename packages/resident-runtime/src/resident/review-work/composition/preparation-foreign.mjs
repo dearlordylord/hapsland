@@ -21,7 +21,6 @@ import {
 import { resize } from "../../state/capacity/reservations.ts"
 import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
 import { analysisWorkspaceBytes } from "../../work-ownership/workspace.ts"
-import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { createPreparationCapability } from "@hapsland/review-execution/direct-event/preparation"
 
 // Physical engine/effect bindings for one fresh prepareObservation session.
@@ -37,7 +36,7 @@ export function createPreparationForeign({
   cache,
   mode = "two-roots",
   onRoot,
-  settings = { rules: configuredRules },
+  settings,
   graphLimits = GRAPH_LIMIT_CEILINGS,
   compareRoots = true,
   onMaterialization,

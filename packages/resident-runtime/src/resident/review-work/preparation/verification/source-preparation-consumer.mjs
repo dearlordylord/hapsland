@@ -844,9 +844,9 @@ try {
           rootIdentity,
           context: preparationContext,
           cache,
+          settings: mode.startsWith("full-") ? context.job.settings : { rules: configuredRules },
           ...(mode.startsWith("full-")
             ? {
-                settings: context.job.settings,
                 graphLimits: sourceGraphLimits,
                 residentContext: context,
                 compareRoots: false,

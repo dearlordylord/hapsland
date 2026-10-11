@@ -608,6 +608,7 @@ try {
       rootIdentity,
       context,
       cache,
+      settings: { rules: configuredRules },
       mode,
       onRoot: () => {
         roots++
