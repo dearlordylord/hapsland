@@ -207,7 +207,14 @@ One current obstacle list, in execution order:
    ordinary TypeScript; superseded MJS files are removed and callers use the new
    paths. Current focused qualification: source-analysis typecheck, nonempty lint
    of three TS files, 158 real service requests and workspace build 46/46
-   (4 cached, 42.604 seconds). This does not qualify whole production adoption.
+   (4 cached, 42.604 seconds), 23 receipts with the producer environment and
+   protocol suite 6/6. check:fast passed 109 tests/source typecheck/package graph
+   but failed development-import checks; explicit nonempty lint covers the new TS
+   files. This does not qualify whole production adoption.
+   Astra identified that terminal provider exceptions must be projected inside
+   the owning drive before session.close clears ExceptionToken resources; the
+   current generic resolver Error loses original identity. Go remains absent from
+   the compiled frontend. Both block public whole-resolver replacement.
    Remaining work here: opaque compiled resolver/session API, fixture/default/native
    comparisons outside resident's production binding, ordinary typed binding and
    public native PreparationInput encoding. Preserve full ordered effects, original
@@ -319,15 +326,17 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest frozen pair at `e279367e` began
-   2026-10-11 09:49:34/09:52:53 UTC: build qualified but failed **1.1873518768**;
-   execution qualified and passed **0.7422422825**. All 34 build runs used 23/46
+   parity on the connected candidate. Latest frozen pair at `28f55dbf` began
+   2026-10-11 10:19:44/10:23:09 UTC: build qualified but failed **1.1047183573**;
+   execution qualified and passed **0.6649378095**. All 34 build runs used 23/46
    cached tasks; HEAD, sources and artifact trees stayed unchanged. Qualification
    records are in ignored
-   `.test-runs/bend-migration/performance/2026-10-11T09-49-34.510479+00-00/`
-   and `2026-10-11T09-52-53.245574+00-00/`. These measure existing production,
-   not unadopted whole preparation. This pair started within 30 minutes of the
-   previous pair in both lanes; its failure still blocks strict overall parity.
+   `.test-runs/bend-migration/performance/2026-10-11T10-19-44.676326+00-00/`
+   and `2026-10-11T10-23-09.055002+00-00/`. These measure existing production,
+   not unadopted whole preparation. The build/execution starts missed the
+   10:19:34/10:22:53 cadence deadlines during compilation qualification and
+   sequential frozen measurement. This breach remains observed; build failure
+   still blocks strict overall parity.
    The previous pair at 1a61bacc measured 1.0181202463/0.7812988998. Its
    09:20:57 build and 09:26:41 execution
    cadence deadlines were missed during physical qualification and diagnostic
