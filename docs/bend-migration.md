@@ -287,10 +287,10 @@ One current obstacle list, in execution order:
    identical before/after. It exercises actual Canonical admission/Prepare,
    physical services, two roots, cancellation, retirement, late-result rejection,
    provisional refusal and throw cleanup. Whole resident progression and
-   universal guarantees remain open. Next agreed proof work extends existing
-   projected_unit_total to arbitrary optional fingerprint without changing its
-   premises, then fills existing node_replacement_exact for the original whole
-   attachment transaction obligation.
+   universal guarantees remain open. Original projected_unit_total for arbitrary
+   optional fingerprint and node_replacement_exact are now proved under hard
+   five seconds with unchanged premises. Next agreed proof work is the existing
+   parent_attachment_exact and original attachment transaction obligation.
    This finite traversal pass does not qualify the full expansion driver, all
    fixture ABI consumers or the remaining universal guarantees. No new law or weakened
    premise is claimed. Full materialization/transaction guarantees
@@ -323,11 +323,10 @@ One current obstacle list, in execution order:
    existing unit-product witness equations check in 1.283 seconds. Metadata now
    lifts the final existential witness once; intermediate completion proofs keep
    their raw witness. The unused prepared_completed experiment was removed.
-   Full theorem remains unqualified at five seconds. The original pre-extension
-   Materialization also times out on current dependencies; imports alone pass
-   in 4.01 seconds. A prefix printing ALL PROOFS CHECK but exiting 124 is not
-   qualified. Reduce the first complete_ready/closure normalization cost before
-   proceeding to node replacement. Exact formatter rejects this proof owner
+   This earlier timeout is closed: full original materialization checks in
+   4.299 seconds, and full original node replacement checks in 2.154 seconds,
+   under the unchanged hard-five limit. Parent append and the original complete
+   transaction remain open. Exact formatter rejects this proof owner
    with Incomplete declaration header; no formatting pass or exclusion is
    claimed. Neither deadline nor original premise was changed. Missing Go cases in actual context/reference
    branch projections are added and formatted. Both projection roots check
@@ -536,3 +535,27 @@ an edge. The rename observation remains unverified until the next full run.
 ParentAppendTransport registered-fields/tentative-success definitions check;
 its new append transport still has a syntax failure and the original parent
 law remains open. None of these intermediate results establishes public adoption.
+
+Latest qualified current consumers at 3bb097ce: the complete existing entry
+fixture set passes 78 cases and 55 native comparisons in 29.177 seconds,
+including Go/Python full resolveGraphUnit finalization. Its authored-source
+hash assertion passes. The actual Go consumer also passes in 41.252 seconds:
+58 reference entry cases/2017 requests/6304 transitions, 55 artifact cases/
+1713 requests/3528 transitions and 58 Canonical-owned cases/2075 requests.
+The observed renamed-edge registration fixes retained target identity without
+relaxing full pending/target/forest comparisons. These finite comparisons close
+the current entry fixture blockers; physical cancellation, universal guarantees,
+ordinary source gates and whole public adoption remain acceptance obstacles.
+
+At 3bb097ce the next matched build pair started 16:48:04.222878 UTC and passed
+at 0.9810143780417804 with 17 complete pairs, all 23/46 cached. Execution started
+16:53:34.691205 UTC and passed at 0.7674854651331289. Both qualify with unchanged
+heads, authored sources and artifact trees. Build start missed its deadline by
+6.395313 seconds; execution missed by 65.775405 seconds. These cadence failures
+remain distinct from the passing performance thresholds. The actual current
+warm build passed 46/46 tasks in 72.342 seconds before the pair. Start warm-up
+well before the next deadlines, allowing for input hashing and the measured
+five-minute build pair. Next build deadline: 17:18:04.222878 UTC; next execution
+deadline: 17:23:34.691205 UTC. These measure existing production, not unadopted
+whole preparation. Production preparation adoption and replaced TS removal
+remain 0/0.
