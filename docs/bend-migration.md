@@ -181,6 +181,27 @@ runner lint pass; the pinned formatter reports `Unsupported block expression in
 list`, so formatting remains open. Next connect this owner to RuleSnapshot and
 the existing Canonical gate in the ordered whole-finalization machine.
 
+That ordered rule block is now authored as preparation/RuleFinalization.bend:
+it consumes RuleSnapshot and Glob, emits the exact existing Canonical gate facts,
+checks invocation/request plus reply phase, and freezes admitted original rules
+in order. Its emitted consumer agrees with native selection/freeze on 1,200
+contexts with 60,960 regex and 38,400 actual Canonical requests; the Canonical
+state stays unchanged by this policy gate. Astra reviewed the connected block.
+Each unit integration must use a fresh child invocation or the outer monotonic
+request namespace; restarting local request zero with a reused identity is not
+authorized. Exact engine correspondence and arbitrary-reply rejection are distinct
+obligations in the whole law. Whole evidence/provider/input/identity assembly,
+universal proofs, ordinary compiled API and production Canonical adoption remain
+open; no replaced production TypeScript has been removed for this block.
+
+The 05:32 UTC build cadence at `e1d29060` stopped on an inherited compiler-cleanup
+owned-lock deadline; no complete measurement or build parity qualified. The failed
+cleanup changed output artifacts. Reconciliation refused missing owner records;
+no custody records were deleted manually. An ordinary fresh-custody workspace
+build then passed 46/46 with 23/46 cached tasks and restored the artifacts. The
+05:35 UTC execution cadence passed at 0.8699 on the restored outputs; it does not
+qualify the failed build comparison.
+
 1. Finish relocation dependency and nominal ABI qualification; remove obsolete
    representations and historical runners after identifying the retained closure.
    Actual sources are secured on the remote working branch at `8b67a18a`;
