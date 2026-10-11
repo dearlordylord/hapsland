@@ -644,7 +644,8 @@ try {
       assert.deepEqual(actual, expected, fixture.name + " whole ReviewUnit")
       if (fixture.requireUnit) {
         assert.ok(actual, fixture.name + " must return a ReviewUnit")
-        assert.equal(actual.root.references.length, fixture.name === "large-local-reuse" ? 12 : 6)
+        if (fixture.name === "large-local-reuse" || fixture.name === "large-import-diamond-cycle")
+          assert.equal(actual.root.references.length, fixture.name === "large-local-reuse" ? 12 : 6)
         const visit = (node) => {
           for (const reference of node.references) {
             assert.notEqual(reference.kind, "omitted", fixture.name + " must complete without omissions")

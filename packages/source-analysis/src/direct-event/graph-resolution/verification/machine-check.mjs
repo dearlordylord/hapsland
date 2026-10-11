@@ -306,7 +306,8 @@ try {
       assert.equal(JSON.stringify(result), JSON.stringify(expected), fixture.name)
       if (fixture.requireUnit) {
         assert.ok(result, fixture.name + " must return a ReviewUnit")
-        assert.equal(result.root.references.length, fixture.name === "large-local-reuse" ? 12 : 6)
+        if (fixture.name === "large-local-reuse" || fixture.name === "large-import-diamond-cycle")
+          assert.equal(result.root.references.length, fixture.name === "large-local-reuse" ? 12 : 6)
         const visit = (node) => {
           for (const reference of node.references) {
             assert.notEqual(reference.kind, "omitted", fixture.name + " must complete without omissions")

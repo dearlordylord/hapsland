@@ -201,7 +201,10 @@ One current obstacle list, in execution order:
    retained as a failed run, not a verdict. Symmetric cross-count, appended
    address count and exact alignment-row transport pass at 4.052 seconds;
    all four combined-domain count equations pass with the whole prefix at
-   3.096 seconds. Remaining path: appended alignment,
+   3.096 seconds. Both full paired-list recursions now pass the whole prefix
+   at 3.944 seconds with unchanged premises. The appended_aligned wrapper is
+   authored but unqualified after a hard-five-second timeout. Remaining path:
+   checked appended alignment,
    full projection, owner-only replacement commutation, semantic validity,
    original eight conjuncts and the existing transaction theorem. No separate
    helper frontier qualifies adoption; the original parent theorem remains WIP.
@@ -247,8 +250,14 @@ One current obstacle list, in execution order:
    its hard five-second limit: two reversed output-storage pairs passed at
    3.260/3.888 seconds in /dev/shm versus 4.388/4.668 in /tmp. Only compiled
    temporary artifacts moved; physical fixtures remain in /tmp. This is not
-   production parity evidence. Original generic IO/trace assertions, whole
-   resident progression and universal correspondence remain open.
+   production parity evidence. The original no-omission/reference-count, Unicode dependency order and
+   tree-refusal encoding-count assertions are now retained in this consumer;
+   their current qualification is pending. The first run stopped before cases
+   at PythonArtifact emission. Isolated emission also timed out (5.110 wall /
+   4.349 CPU); removing its unused common ArtifactProtocol import reduced the
+   same emission to 2.870 seconds under the unchanged limit. Original flattened
+   generic IO/trace assertions, whole resident progression and universal
+   correspondence remain open.
    Unsupported formatter roots remain failures, including
    attachment declaration headers and UnitEvidence/Glob/list blocks.
    Astra's structural review found no blocking ownership/dependency issue in
