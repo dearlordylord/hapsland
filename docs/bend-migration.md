@@ -183,59 +183,24 @@ expression in list`; this is an open gate, not an exemption.
 
 One current obstacle list, in execution order:
 
-1. Close the original universal attachment and whole correspondence obligations:
-   parent_attachment_exact, original attachment transaction, arbitrary retained
-   Worlds/replies, completion and Cause/custody. Original materialization for
-   arbitrary optional fingerprint and node_replacement_exact are closed under
-   hard five seconds with unchanged premises. Parent registration, ordered
-   append, slot-filter disjointness and child address-prefix elimination are
-   checked under hard five seconds, including full child node/reference context
-   transport and exact ordered appended-node projection (latest coherent prefix
-   3.257 seconds). Full append slot ownership/forward/indexed guards, paired-prefix no-shadow,
-   exact cursor lookup and projected row count transport are checked. Full
-   recursive address-count transport is checked at 3.403 seconds under hard
-   five seconds, with original alignment/density/projection premises. The next
-   cross-episode count exclusion is now checked: the unchanged full prefix
-   passed an isolated hard-five-second run at 1.992 seconds; episode inversion
-   passed at 2.330 seconds. Its first full-prefix timeout at 5.074 seconds is
-   retained as a failed run, not a verdict. Symmetric cross-count, appended
-   address count and exact alignment-row transport pass at 4.052 seconds;
-   all four combined-domain count equations pass with the whole prefix at
-   3.096 seconds. Both full paired-list recursions now pass the whole prefix
-   at 3.944 seconds with unchanged premises. The appended_aligned wrapper is
-   now qualified at 3.517 seconds after moving four generic facts (sole
-   declarations) to existing AttachmentProjectionContentsProof, whose gate
-   passes at 2.911 seconds. Failed factoring attempts remain diagnostic evidence.
-   Full appended_projection now passes the entire parent prefix at 3.913
-   seconds; its projection assembly owner passes at 1.781 seconds. Replacement
-   of the selected parent slot through an untouched child suffix now checks in
-   its existing Structure owner at 2.103 seconds. The full parent prefix through
-   forest_replacement_completed checks at 2.511 seconds under hard five seconds
-   on CPU10 (/tmp/astra-parent-replacement-semantic.log). It includes selected
-   count preservation, unchanged shifted suffix, parent payload recovery, exact
-   child lookup/new reference, semantic counts and birth order. All use existing
-   datatypes and original projection/freshness premises; no success assumption
-   was added. Remaining path: semantic root/incoming validity, all eight
-   original conjuncts and the existing transaction theorem. Post-replacement ownership/index/forward guards in
-   Structure pass at 1.990 seconds; selected-owner indexed preservation now
-   passes at 1.502 seconds. The entire parent prefix including changed-reference
-   forward cursors over all parent rows and unaffected child suffix passes at
-   2.170 seconds under hard five seconds (/tmp/astra-parent-replaced-forward.log).
-   Full post-replacement projection now passes with the entire prefix at
-   2.580 seconds under hard five seconds (/tmp/astra-parent-updated-project.log),
-   using exact witness slots/nodes and all original P.project guards.
-   Semantic incoming bounds pass at 3.044 seconds and appended-root validity at
-   2.692 seconds. Union references and nodes validity pass with the full parent
-   prefix at 3.130 and 2.792 seconds; general replacement-node conditions pass
-   at 1.303 seconds. These retain the original premises. Changed-node recursion now passes at 2.808 seconds and the full semantic
-   changed frame (root, nodes and episodes) at 2.380 seconds, retaining the
-   original conditions. Exact witnesses and all eight conjuncts remain open.
-   No separate helper frontier qualifies adoption; the
-   original parent theorem now has its complete eight-conjunct body authored,
-   but remains unqualified WIP: the first checker diagnostic rejects duplication
-   of a linear proof pair. Witness elimination must be made linear without
-   changing the original statement or conditions.
+1. Close the original attachment transaction and whole correspondence obligations:
+   arbitrary retained Worlds/replies, completion and Cause/custody. Original
+   materialization for arbitrary optional fingerprint and node_replacement_exact
+   are closed under hard five seconds with unchanged premises.
+   The original parent_attachment_exact now checks in full: all eight original
+   conjuncts, unchanged statement and premises, actual owner root verdict
+   ALL PROOFS CHECK, exit 0, 2.236 seconds wall / 2.033 user on CPU10 under the
+   hard five-second deadline (/tmp/astra-parent-linear.log). Exact appended and
+   replaced projection, semantic frame validity, registration, next-node count
+   and density witnesses are assembled through linear proof elimination; no
+   success or validity premise was added. Earlier failed/time-limited attempts
+   remain failures, not qualification. Next original root is
+   ATTACHMENT_TRANSACTION_LAWS.attachment_transaction_exact: nine equalities
+   for one witness, actual/reference EncodeProduct, staged frame, arbitrary
+   Reply boundary and unchanged World. Parent-law closure does not close this
+   transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.
+
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
