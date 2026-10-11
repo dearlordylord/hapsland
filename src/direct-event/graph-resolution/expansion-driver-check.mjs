@@ -1,3 +1,10 @@
+import {
+  artifactValueTag,
+  list,
+  unlist,
+  fromProductValue,
+  binary64 as __binary64
+} from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -18,12 +25,6 @@ import {
   artifact
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import {
-  list,
-  unlist,
-  fromProductValue,
-  binary64 as __binary64
-} from "@hapsland/source-artifacts/direct-event/value/codec"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
 // services. Preparation and the universal whole-observer relation remain gates.
@@ -34,7 +35,7 @@ const temporary = mkdtempSync(path.join(root, "node_modules/.cache/expansion-dri
 const wrapperPath = path.join(folder, ".expansion-driver-" + path.basename(temporary) + ".bend")
 const tag = (name, fields = {}) => ({ $: name, ...fields }),
   label = (v) => v.$.split(".").at(-1)
-const t = (name, fields = {}) => tag("Types." + name, fields),
+const t = (name, fields = {}) => tag(artifactValueTag(name) ?? "Types." + name, fields),
   d = (name, fields = {}) => tag("ExpansionDriverSpecification." + name, fields)
 const g = (name, fields = {}) => tag("../../../../agent-flow-bend/ImportGraph." + name, fields)
 const maybe = (v) => (v === undefined ? tag("None") : tag("Some", { value: v }))

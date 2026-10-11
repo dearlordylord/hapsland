@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./Root.bend as Root
@@ -2506,7 +2507,7 @@ def with_scratch_diagnostic(
         bundled_previous
       }
 
-def scratch_measured_product(value: T.ResolverScratch) -> Maybe<&2, T.ProductValue>:
+def scratch_measured_product(value: T.ResolverScratch) -> Maybe<&2, ArtifactValue.ProductValue>:
   match value:
     case T.ResolverScratch{
       _,
@@ -2533,7 +2534,7 @@ def scratch_measured_product(value: T.ResolverScratch) -> Maybe<&2, T.ProductVal
 
 def with_scratch_measured_product(
   value: T.ResolverScratch,
-  replacement: Maybe<&2, T.ProductValue>
+  replacement: Maybe<&2, ArtifactValue.ProductValue>
 ) -> T.ResolverScratch:
   match value:
     case T.ResolverScratch{
@@ -3277,13 +3278,13 @@ def with_work_relative_selected(value: T.RustWork, replacement: String) -> T.Rus
         follow_return
       }
 
-def work_remaining_map(value: T.RustWork) -> List<&2, T.OrderedField<String>>:
+def work_remaining_map(value: T.RustWork) -> List<&2, ArtifactValue.OrderedField<String>>:
   match value:
     case T.RustWork{_, _, _, _, _, _, _, remaining_map, _, _, _, _}: remaining_map
 
 def with_work_remaining_map(
   value: T.RustWork,
-  replacement: List<&2, T.OrderedField<String>>
+  replacement: List<&2, ArtifactValue.OrderedField<String>>
 ) -> T.RustWork:
   match value:
     case T.RustWork{
@@ -3315,13 +3316,13 @@ def with_work_remaining_map(
         follow_return
       }
 
-def work_rebased_rev(value: T.RustWork) -> List<&2, T.OrderedField<String>>:
+def work_rebased_rev(value: T.RustWork) -> List<&2, ArtifactValue.OrderedField<String>>:
   match value:
     case T.RustWork{_, _, _, _, _, _, _, _, rebased_rev, _, _, _}: rebased_rev
 
 def with_work_rebased_rev(
   value: T.RustWork,
-  replacement: List<&2, T.OrderedField<String>>
+  replacement: List<&2, ArtifactValue.OrderedField<String>>
 ) -> T.RustWork:
   match value:
     case T.RustWork{
@@ -3476,13 +3477,13 @@ def with_route_crate_path(value: T.RustRoute, replacement: String) -> T.RustRout
     case T.RustRoute{path, _, modules, depth}:
       T.RustRoute{path, replacement, modules, depth}
 
-def route_modules(value: T.RustRoute) -> Maybe<&2, List<&2, T.OrderedField<String>>>:
+def route_modules(value: T.RustRoute) -> Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>:
   match value:
     case T.RustRoute{_, _, modules, _}: modules
 
 def with_route_modules(
   value: T.RustRoute,
-  replacement: Maybe<&2, List<&2, T.OrderedField<String>>>
+  replacement: Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>
 ) -> T.RustRoute:
   match value:
     case T.RustRoute{path, crate_path, _, depth}:

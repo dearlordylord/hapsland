@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./BoundaryValidationSpecification.bend as B
 import ./Types.bend as T
@@ -53,19 +54,28 @@ def token_5() -> {
 }:
   {==}
 def priority_0() -> {
-  B.check(T.Request{1n, 1n, T.StartClock{}}, T.Reply{2n, 2n, T.ClockRead{T.Binary64{0, 0}}})
+  B.check(
+    T.Request{1n, 1n, T.StartClock{}},
+    T.Reply{2n, 2n, T.ClockRead{ArtifactValue.Binary64{0, 0}}}
+  )
   == Some{T.WrongInvocation{1n, 2n}}
   : Maybe<&2, T.TechnicalFailure>
 }:
   {==}
 def priority_1() -> {
-  B.check(T.Request{1n, 1n, T.StartClock{}}, T.Reply{1n, 2n, T.ClockRead{T.Binary64{0, 0}}})
+  B.check(
+    T.Request{1n, 1n, T.StartClock{}},
+    T.Reply{1n, 2n, T.ClockRead{ArtifactValue.Binary64{0, 0}}}
+  )
   == Some{T.WrongCorrelation{1n, 2n}}
   : Maybe<&2, T.TechnicalFailure>
 }:
   {==}
 def priority_2() -> {
-  B.check(T.Request{1n, 1n, T.StartClock{}}, T.Reply{1n, 1n, T.ClockRead{T.Binary64{0, 0}}})
+  B.check(
+    T.Request{1n, 1n, T.StartClock{}},
+    T.Reply{1n, 1n, T.ClockRead{ArtifactValue.Binary64{0, 0}}}
+  )
   == Some{T.WrongReplyKind{}}
   : Maybe<&2, T.TechnicalFailure>
 }:

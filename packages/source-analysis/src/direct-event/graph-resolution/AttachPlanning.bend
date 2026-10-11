@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./State.bend as S
@@ -70,7 +71,7 @@ def child_capture(+state: T.ResolverState) -> T.CaptureToken:
   optional_capture(S.scratch_capture(S.state_scratch(state)), state)
 
 def request_previous(
-  product: Maybe<&2, T.ProductValue>,
+  product: Maybe<&2, ArtifactValue.ProductValue>,
   state: T.ResolverState
 ) -> Loop.Continuation:
   match product:
@@ -114,12 +115,20 @@ def built_allowed(
             local_work(S.frame_budget(frame)),
             plan,
             0n,
-            T.ProductNull{},
+            ArtifactValue.ProductNull{},
             []
           }
-          measure_child(Measurement.bundled_state(state), S.with_state_frame(S.with_state_scratch(state,
-            S.with_scratch_tentative(S.state_scratch(state), Some{child})),
-            Some{S.with_frame_budget(frame, plan_budget(plan))}), frame)
+          measure_child(
+            Measurement.bundled_state(state),
+            S.with_state_frame(
+              S.with_state_scratch(
+                state,
+                S.with_scratch_tentative(S.state_scratch(state), Some{child})
+              ),
+              Some{S.with_frame_budget(frame, plan_budget(plan))}
+            ),
+            frame
+          )
 
 def global_allowed(
   allowed: Bool,
@@ -479,7 +488,7 @@ def bundle_ready(
     case _ _: ResolveOwner.malformed()
 
 def bundle_previous_product(
-  product: Maybe<&2, T.ProductValue>,
+  product: Maybe<&2, ArtifactValue.ProductValue>,
   state: T.ResolverState
 ) -> Loop.Continuation:
   match product:

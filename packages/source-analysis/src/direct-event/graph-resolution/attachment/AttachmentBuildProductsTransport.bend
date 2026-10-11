@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentReverseBuildProductsProof.bend as ReverseBuild
 import ./AttachmentProjectedNodeRowsProof.bend as Rows
@@ -21,25 +22,25 @@ def copies(count: Nat, -Claim: Type) -> Type:
 
 # The exact existing review_unit construction before selecting its root.
 def products(+nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>, artifacts: List<&2, T.ArtifactEntry>) ->
-    Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>:
-  Core.bind(Map<&2, Maybe<&2, T.Artifact>>, Map<&2, Maybe<&2, T.ProductValue>>, Core.index_artifacts(artifacts, MTip{}),
+    Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>:
+  Core.bind(Map<&2, Maybe<&2, T.Artifact>>, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, Core.index_artifacts(artifacts, MTip{}),
     indexed => Core.build_products(List.reverse(&2, Local.PlannedNode, nodes), Core.group_references(List.reverse(&2, Local.ReferenceSlot, slots), MTip{}), indexed, MTip{}))
 
 def finish_built(+nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
     +artifacts: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
     +index: Map<&2, Maybe<&2, T.Artifact>>, +demand: Nat,
     indexed: {Core.index_artifacts(artifacts, MTip{}) == Some{index} : Maybe<&2, Map<&2, Maybe<&2, T.Artifact>>>},
-    built_result: Exists(Map<&2, Maybe<&2, T.ProductValue>>, built => ReverseBuild.completed(nodes, slots, addresses, forest, index, demand, built))) ->
-    Exists(Map<&2, Maybe<&2, T.ProductValue>>, built =>
-      {products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>} &
-      {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool} &
+    built_result: Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, built => ReverseBuild.completed(nodes, slots, addresses, forest, index, demand, built))) ->
+    Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, built =>
+      {products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
+      {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
       copies(demand, Suffix.rendered_suffix(nodes, slots, addresses, forest, built))):
   match built_result:
     case (+built, (done, (canonical, resources))):
       Tuple{built, Tuple{
         %Equal.sym(Maybe<&2, Map<&2, Maybe<&2, T.Artifact>>>, Core.index_artifacts(artifacts, MTip{}), Some{index}, indexed):
-          {Core.bind(Map<&2, Maybe<&2, T.Artifact>>, Map<&2, Maybe<&2, T.ProductValue>>, _,
-            selected => Core.build_products(List.reverse(&2, Local.PlannedNode, nodes), ReverseBuild.groups(slots), selected, MTip{})) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>}
+          {Core.bind(Map<&2, Maybe<&2, T.Artifact>>, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, _,
+            selected => Core.build_products(List.reverse(&2, Local.PlannedNode, nodes), ReverseBuild.groups(slots), selected, MTip{})) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>}
         done, Tuple{canonical, resources}}}
 
 def finish_index(+nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
@@ -47,9 +48,9 @@ def finish_index(+nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.Ref
     static: Rows.rows(nodes, slots, artifacts, addresses, Rows.forest_nodes(forest)),
     unique: {P.catalog_unique(artifacts, artifacts) == True{} : Bool},
     indexed_result: Exists(Map<&2, Maybe<&2, T.Artifact>>, index => Index.exact_index(artifacts, index))) ->
-    Exists(Map<&2, Maybe<&2, T.ProductValue>>, built =>
-      {products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>} &
-      {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool} &
+    Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, built =>
+      {products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
+      {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
       copies(demand, Suffix.rendered_suffix(nodes, slots, addresses, forest, built))):
   match indexed_result:
     case (+index, (+done, (_, _))):
@@ -62,9 +63,9 @@ def finish_projection(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +slots: L
     contents: {Bool.and(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(artifacts, artifacts),
       Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)))) == True{} : Bool} &
       {P.forest(F.address_at(addresses, root), P.nodes(nodes, slots, artifacts, addresses)) == Some{forest} : Maybe<&2, F.Forest>}) ->
-    Exists(Map<&2, Maybe<&2, T.ProductValue>>, built =>
-      {products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>} &
-      {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool} &
+    Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, built =>
+      {products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
+      {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
       copies(demand, Suffix.rendered_suffix(nodes, slots, addresses, forest, built))):
   match contents:
     case (+guards, _):
@@ -84,9 +85,9 @@ law rendered_products:
   for projected: {P.project(root, nodes, slots, artifacts, addresses) == Some{forest} : Maybe<&2, F.Forest>}
   for artifacts_valid: {ActualFrame.catalog_valid(artifacts) == True{} : Bool}
   for forest_valid: {Relation.frame_forest(forest, next_episode) == True{} : Bool}
-  Exists(Map<&2, Maybe<&2, T.ProductValue>>, built =>
-    {products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>} &
-    {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool} &
+  Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, built =>
+    {products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
+    {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
     copies(demand, Suffix.rendered_suffix(nodes, slots, addresses, forest, built)))
 
 def rendered_products(root, nodes, slots, artifacts, addresses, forest, next_episode, demand, projected, artifacts_valid, forest_valid):

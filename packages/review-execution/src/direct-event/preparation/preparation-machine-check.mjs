@@ -22,7 +22,7 @@ try {
   }
   const none = { $: "None" },
     some = (value) => ({ $: "Some", value }),
-    text = (value) => ({ $: "Types.ProductText", value })
+    text = (value) => ({ $: "../../../../source-artifacts/src/direct-event/value/Value.ProductText", value })
   const contract = { $: "PreparationSelection.TypeContract" },
     functionContract = { $: "PreparationSelection.FunctionContract" }
   const limits = {
@@ -83,9 +83,9 @@ try {
   let cases = 0,
     totalRequests = 0
   function run(configuration, options = {}) {
-    const step = machine.initial(1n, configuration),
-      last = -1n,
-      captures = []
+    let step = machine.initial(1n, configuration),
+      last = -1n
+    const captures = []
     const requests = []
     for (let fuel = 0; fuel < 10000; fuel++) {
       if (step.$ === "Internal") {

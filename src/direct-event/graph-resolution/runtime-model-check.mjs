@@ -1,3 +1,4 @@
+import { artifactValueTag } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -21,7 +22,7 @@ const unlist = (value) => {
   assert.equal(value.$, "Nil")
   return out
 }
-const t = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 const e = (name, fields = {}) => ({ $: "Environment." + name, ...fields })
 const o = (name, fields = {}) => ({ $: "WholeObservation." + name, ...fields })
 try {

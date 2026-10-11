@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentHeadBuildProductsProof.bend as Head
 import ./AttachmentHeadSuffixConstructionProof.bend as Written
@@ -22,9 +23,9 @@ def groups(slots: List<&2, Local.ReferenceSlot>) -> Map<&2, List<&2, Local.Refer
 def completed(+nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
     +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
     +index: Map<&2, Maybe<&2, T.Artifact>>, +demand: Nat,
-    +built: Map<&2, Maybe<&2, T.ProductValue>>) -> Type:
-  {Core.build_products(List.reverse(&2, Local.PlannedNode, nodes), groups(slots), index, MTip{}) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>} &
-  {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool} &
+    +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>) -> Type:
+  {Core.build_products(List.reverse(&2, Local.PlannedNode, nodes), groups(slots), index, MTip{}) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
+  {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
   Copies.copies(demand, Suffix.rendered_suffix(nodes, slots, addresses, forest, built))
 
 def empty_copies(demand: Nat, +slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest) ->
@@ -35,18 +36,18 @@ def empty_copies(demand: Nat, +slots: List<&2, Local.ReferenceSlot>, +addresses:
 
 def finish_head(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
     +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
-    +index: Map<&2, Maybe<&2, T.Artifact>>, +built: Map<&2, Maybe<&2, T.ProductValue>>, +demand: Nat,
-    tail_done: {Core.build_products(List.reverse(&2, Local.PlannedNode, tail), groups(slots), index, MTip{}) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>},
-    head_done: Exists(T.ProductValue, value => Head.constructed(id, handle, tail, slots, addresses, forest, groups(slots), index, built, demand, value))) ->
-    Exists(Map<&2, Maybe<&2, T.ProductValue>>, final => completed(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, index, demand, final)):
+    +index: Map<&2, Maybe<&2, T.Artifact>>, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +demand: Nat,
+    tail_done: {Core.build_products(List.reverse(&2, Local.PlannedNode, tail), groups(slots), index, MTip{}) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>},
+    head_done: Exists(ArtifactValue.ProductValue, value => Head.constructed(id, handle, tail, slots, addresses, forest, groups(slots), index, built, demand, value))) ->
+    Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, final => completed(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, index, demand, final)):
   match head_done:
     case (+value, (done, (canonical, resources))):
       Tuple{Written.updated(built, id, value), Tuple{
         %Equal.sym(List<&2, Local.PlannedNode>, List.reverse.go(&2, Local.PlannedNode, tail, [Local.PlannedNode{id, handle}]),
           List.append(&2, Local.PlannedNode, List.reverse(&2, Local.PlannedNode, tail), [Local.PlannedNode{id, handle}]),
           Lists.reverse_go_spec(&2, Local.PlannedNode, tail, [Local.PlannedNode{id, handle}])):
-          {Core.build_products(_, groups(slots), index, MTip{}) == Some{Written.updated(built, id, value)} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>}
-        Equal.trans(Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>,
+          {Core.build_products(_, groups(slots), index, MTip{}) == Some{Written.updated(built, id, value)} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>}
+        Equal.trans(Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>,
           Core.build_products(List.append(&2, Local.PlannedNode, List.reverse(&2, Local.PlannedNode, tail), [Local.PlannedNode{id, handle}]), groups(slots), index, MTip{}),
           Core.build_products([Local.PlannedNode{id, handle}], groups(slots), index, built), Some{Written.updated(built, id, value)},
           Append.append_success(List.reverse(&2, Local.PlannedNode, tail), [Local.PlannedNode{id, handle}], groups(slots), index, MTip{}, built, tail_done), done),
@@ -58,8 +59,8 @@ def finish_tail(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slo
     static: Rows.row(id, handle, tail, slots, artifacts, addresses, Node.nodes_of(forest)),
     unique: {P.catalog_unique(artifacts, artifacts) == True{} : Bool},
     indexed: {Core.index_artifacts(artifacts, MTip{}) == Some{index} : Maybe<&2, Map<&2, Maybe<&2, T.Artifact>>>},
-    tail_done: Exists(Map<&2, Maybe<&2, T.ProductValue>>, built => completed(tail, slots, addresses, forest, index, Head.needed(id, slots, demand), built))) ->
-    Exists(Map<&2, Maybe<&2, T.ProductValue>>, final => completed(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, index, demand, final)):
+    tail_done: Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, built => completed(tail, slots, addresses, forest, index, Head.needed(id, slots, demand), built))) ->
+    Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, final => completed(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, index, demand, final)):
   match tail_done:
     case (+built, (done, (canonical, resources))):
       finish_head(id, handle, tail, slots, addresses, forest, index, built, demand, done,
@@ -72,7 +73,7 @@ def build(nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSl
     static: Rows.rows(nodes, slots, artifacts, addresses, Node.nodes_of(forest)),
     +unique: {P.catalog_unique(artifacts, artifacts) == True{} : Bool},
     +indexed: {Core.index_artifacts(artifacts, MTip{}) == Some{index} : Maybe<&2, Map<&2, Maybe<&2, T.Artifact>>>}) ->
-    Exists(Map<&2, Maybe<&2, T.ProductValue>>, built => completed(nodes, slots, addresses, forest, index, demand, built)):
+    Exists(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, built => completed(nodes, slots, addresses, forest, index, demand, built)):
   match nodes static:
     case [] Unit{}: Tuple{MTip{}, Tuple{{==}, Tuple{{==}, empty_copies(demand, slots, addresses, forest)}}}
     case Local.PlannedNode{+id, +handle} <> +tail Tuple{head, rest}:

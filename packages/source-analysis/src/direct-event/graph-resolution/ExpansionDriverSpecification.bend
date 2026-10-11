@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./BoundaryValidationSpecification.bend as Boundary
 import ./SourceValidationSpecification.bend as SourceValidation
@@ -51,7 +52,7 @@ type Stage is Data:
   AwaitBundleBytes{id: Nat, target: Target}
   Transaction{transaction: X.Transaction}
   Completion{partial: Maybe<&2, G.Reason>}
-  AwaitCompletion{product: T.ProductValue}
+  AwaitCompletion{product: ArtifactValue.ProductValue}
 type State is Data:
   State{config: Config, frame: X.Frame, targets: List<&2, TargetEntry>,
     ids: List<&2, TargetId>, next_target: Nat, next_request: Nat,
@@ -59,7 +60,7 @@ type State is Data:
 type Selection is Data:
   Internal{state: State}
   Selected{state: State, operation: T.Operation}
-  Success{state: State, product: Maybe<&2, T.ProductValue>}
+  Success{state: State, product: Maybe<&2, ArtifactValue.ProductValue>}
   EvaluationExhausted{state: State}
   InvariantFailed{state: State}
   Rejected{state: State, failure: T.TechnicalFailure}
@@ -67,7 +68,11 @@ type Progress<-World: Data> is Data:
   DriverReady{state: State, world: E.WorldState<World>}
   DriverSelected{state: State, operation: T.Operation, world: E.WorldState<World>}
   DriverWaiting{state: State, exchange: E.Exchange<World>}
-  DriverFinished{state: State, product: Maybe<&2, T.ProductValue>, world: E.WorldState<World>}
+  DriverFinished{
+    state: State,
+    product: Maybe<&2, ArtifactValue.ProductValue>,
+    world: E.WorldState<World>
+  }
   DriverExhausted{state: State, world: E.WorldState<World>}
   DriverInvalid{state: State, world: E.WorldState<World>}
   DriverFailed{state: State, failure: T.TechnicalFailure, world: E.WorldState<World>}
@@ -782,25 +787,28 @@ def rebased_modules(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  +items: List<&2, T.OrderedField<String>>,
+  +items: List<&2, ArtifactValue.OrderedField<String>>,
   +root: String,
   +path: String
-) -> List<&2, T.OrderedField<String>>:
+) -> List<&2, ArtifactValue.OrderedField<String>>:
   match items:
     case []: []
-    case T.OrderedField{+key, +target} <> +tail:
+    case ArtifactValue.OrderedField{+key, +target} <> +tail:
       +relative_path : String = relative(dirname(path), join([dirname(root), target]))
-      T.OrderedField{key, Bool.pick(String, String.is_empty(relative_path), ".", relative_path)} <>
+      ArtifactValue.OrderedField{
+        key,
+        Bool.pick(String, String.is_empty(relative_path), ".", relative_path)
+      } <>
         rebased_modules(dirname, join, relative, tail, root, path)
 
 def imported_modules(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  +modules: Maybe<&2, List<&2, T.OrderedField<String>>>,
+  +modules: Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>,
   +root: String,
   +path: String
-) -> Maybe<&2, List<&2, T.OrderedField<String>>>:
+) -> Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>:
   match modules:
     case None{}: None{}
     case Some{+items}: Some{rebased_modules(dirname, join, relative, items, root, path)}
@@ -1151,7 +1159,11 @@ def forest_omissions(+fuel: Nat, +forest: F.Forest) -> OmissionResult:
     case F.Forest{None{}, _}: OmissionInvalid{}
     case F.Forest{Some{+root}, +nodes}: omissions(fuel, [OmissionAddress{root}], nodes)
 
-def completion_selected(+state: State, +product: T.ProductValue, +allowed: Bool) -> Selection:
+def completion_selected(
+  +state: State,
+  +product: ArtifactValue.ProductValue,
+  +allowed: Bool
+) -> Selection:
   match allowed:
     case False{}: no_unit(state)
     case True{}: request(state, AwaitCompletion{product}, T.EncodeProduct{product})
@@ -1208,7 +1220,7 @@ def completion_observed(
 def completion(+fuel: Nat, +state: State, +partial: Maybe<&2, G.Reason>) -> Selection:
   completion_observed(frame(state), fuel, state, partial)
 
-def completed(+state: State, +product: T.ProductValue, +allowed: Bool) -> Selection:
+def completed(+state: State, +product: ArtifactValue.ProductValue, +allowed: Bool) -> Selection:
   match allowed:
     case False{}: no_unit(state)
     case True{}: Success{state, Some{product}}
@@ -1261,7 +1273,7 @@ def consume(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  ~expired: T.Binary64 -> Bool,
+  ~expired: ArtifactValue.Binary64 -> Bool,
   +state: State,
   +outcome: T.ServiceOutcome
 ) -> Selection:

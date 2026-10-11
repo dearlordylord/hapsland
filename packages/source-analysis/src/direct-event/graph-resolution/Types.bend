@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./traversal/core.bend as Local
 import ../../../../agent-flow-bend/ImportGraph.bend as Graph
@@ -16,30 +17,14 @@ type ExceptionToken is Data:
 type CacheToken is Data:
   CacheToken{invocation: Nat, id: Nat}
 
-type Binary64 is Data:
-  Binary64{high: U32, low: U32}
-
-# Ordered product data, not a host graph-building command.
-# This generic transport tree requires product-shape validation; it is not a ReviewUnit by type alone.
-type OrderedField<-Value: Data> is Data:
-  OrderedField{key: String, value: Value}
-
-type ProductValue is Data:
-  ProductNull{}
-  ProductBool{value: Bool}
-  ProductNumber{bits: Binary64}
-  ProductText{value: String}
-  ProductArray{items: List<&2, ProductValue>}
-  ProductObject{fields: List<&2, OrderedField<ProductValue>>}
-
 type TomlValue is Data:
   TomlString{value: String}
   TomlBool{value: Bool}
   TomlInteger{decimal: String}
-  TomlNumber{bits: Binary64}
+  TomlNumber{bits: ArtifactValue.Binary64}
   TomlDate{representation: String}
   TomlArray{items: List<&2, TomlValue>}
-  TomlRecord{fields: List<&2, OrderedField<TomlValue>>}
+  TomlRecord{fields: List<&2, ArtifactValue.OrderedField<TomlValue>>}
 
 type Language is Data:
   TypeScriptLanguage{}
@@ -53,7 +38,7 @@ type RustContext is Data:
   RustContext{
     crate_root: Maybe<&2, Bool>,
     external_module: Maybe<&2, Bool>,
-    modules: Maybe<&2, List<&2, OrderedField<String>>>
+    modules: Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>
   }
 type FrontendContext is Data:
   TypeScriptContext{branch: Branch}
@@ -126,7 +111,7 @@ type SourceFacts is Data:
 type CaptureBytes is Data:
   CaptureBytes{path: String, bytes: Nat}
 type CaptureDiagnostic is Data:
-  CaptureDiagnostic{value: ProductValue}
+  CaptureDiagnostic{value: ArtifactValue.ProductValue}
   CaptureBudgetDiagnostic{resource: String, used: Nat, requested: Nat, limit: Nat}
 type FileStatus is Data:
   FileAbsent{}
@@ -197,12 +182,12 @@ type Operation is Data:
   ParseCargo{capture: CaptureToken}
   InspectRustModules{capture: CaptureToken}
   ObserveDiagnostic{path: String, diagnostic: CaptureDiagnostic}
-  EncodeProduct{value: ProductValue}
+  EncodeProduct{value: ArtifactValue.ProductValue}
   EncodeSourceText{text: String}
 
 type ServiceOutcome is Data:
   ClockStarted{clock: ClockToken}
-  ClockRead{bits: Binary64}
+  ClockRead{bits: ArtifactValue.Binary64}
   DirnameResult{path: String}
   BasenameResult{name: String}
   PathSeparatorResult{separator: String}
@@ -255,7 +240,7 @@ type TechnicalFailure is Data:
   ReplyAfterTerminal{}
 type ProductResult is Data:
   NoReviewUnit{}
-  ReviewUnitResult{value: ProductValue}
+  ReviewUnitResult{value: ArtifactValue.ProductValue}
 
 # Graph owner, not host GraphFrame. Local observations remain exact obligations.
 type Target is Data:
@@ -293,7 +278,7 @@ type RustRoute is Data:
   RustRoute{
     path: String,
     crate_path: String,
-    modules: Maybe<&2, List<&2, OrderedField<String>>>,
+    modules: Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>,
     depth: Nat
   }
 type RustTask is Data:
@@ -311,11 +296,20 @@ type RustFollowReturn is Data:
   CapturedTaskReturn{}
 
 type RustWork is Data:
-  RustWork{needs_binding: Bool, fuel: Nat, cargo_plan: Maybe<&2, CargoPlan>,
-    tasks_out: List<&2, RustTask>, remaining_paths: List<&2, String>,
-    candidates_rev: List<&2, String>, relative_selected: String,
-    remaining_map: List<&2, OrderedField<String>>, rebased_rev: List<&2, OrderedField<String>>,
-    map_base: String, role_root: Bool, follow_return: RustFollowReturn}
+  RustWork{
+    needs_binding: Bool,
+    fuel: Nat,
+    cargo_plan: Maybe<&2, CargoPlan>,
+    tasks_out: List<&2, RustTask>,
+    remaining_paths: List<&2, String>,
+    candidates_rev: List<&2, String>,
+    relative_selected: String,
+    remaining_map: List<&2, ArtifactValue.OrderedField<String>>,
+    rebased_rev: List<&2, ArtifactValue.OrderedField<String>>,
+    map_base: String,
+    role_root: Bool,
+    follow_return: RustFollowReturn
+  }
 
 # The full continuation variants will be fixed with transitions, not opaque JS closures.
 type ResolverInput is Data:
@@ -332,9 +326,20 @@ type ResolverInput is Data:
   }
 
 type TentativeChild is Data:
-  TentativeChild{target: Nat, path: String, capture: CaptureToken, source_bytes: Nat,
-    file: CapturedFacts, artifact: Nat, identity: String, local_work_before: Nat,
-    plan: Local.Plan, previous_tree_bytes: Nat, candidate: ProductValue, pending_ids: List<&2, Nat>}
+  TentativeChild{
+    target: Nat,
+    path: String,
+    capture: CaptureToken,
+    source_bytes: Nat,
+    file: CapturedFacts,
+    artifact: Nat,
+    identity: String,
+    local_work_before: Nat,
+    plan: Local.Plan,
+    previous_tree_bytes: Nat,
+    candidate: ArtifactValue.ProductValue,
+    pending_ids: List<&2, Nat>
+  }
 
 type ResolverStage is Data:
   Starting{}
@@ -449,7 +454,7 @@ type ResolverScratch is Data:
     cargo_syntax: Maybe<&2, TomlValue>,
     module_names: List<&2, String>,
     diagnostic: Maybe<&2, CaptureDiagnostic>,
-    measured_product: Maybe<&2, ProductValue>,
+    measured_product: Maybe<&2, ArtifactValue.ProductValue>,
     pending_edge: Maybe<&2, Local.Pending>,
     bundled_previous: Nat
   }

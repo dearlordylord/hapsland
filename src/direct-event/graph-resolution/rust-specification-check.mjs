@@ -1,3 +1,4 @@
+import { artifactValueTag, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -13,7 +14,6 @@ import {
   contextDirectFilePolicy
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { observationCaptureBudgetRefusal } from "../../../packages/source-analysis/dist/direct-event/capture-budget.js"
-import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 const folder = import.meta.dirname,
   root = join(folder, "../../.."),
   cache = join(root, "node_modules/.cache")
@@ -30,7 +30,7 @@ const inputs = [
 ]
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
 const sources = Object.fromEntries(inputs.map((path) => [path, hash(isAbsolute(path) ? path : join(folder, path))]))
-const tag = (name, fields = {}) => ({ $: "Types." + name, ...fields }),
+const tag = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   label = (value) => value.$.split(".").at(-1),
   maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
 const normalize = (value) =>

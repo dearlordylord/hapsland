@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./traversal/core.bend as Local
@@ -16,7 +17,7 @@ type Field is Data:
 type Value is Data:
   Null{}
   Boolean{value: Bool}
-  Number{bits: T.Binary64}
+  Number{bits: ArtifactValue.Binary64}
   StringValue{text: Text}
   ArrayValue{items: List<&2, Value>}
   ObjectValue{fields: List<&2, Field>}

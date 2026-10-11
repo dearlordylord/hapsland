@@ -174,10 +174,10 @@ One current obstacle list, in execution order:
    source-analysis resolver/session, review-execution preparation, and
    resident-runtime Canonical workflow. Keep private stages hidden. Relocated
    sources must enter compiler/declaration receipts; authored MJS is currently
-   outside ordinary TS emission. The graph-resolution Types dependency still
-   needs a narrow single owner; never duplicate ProductValue. Last standard
-   development-import census reported 5 unresolved paths, 47 undeclared
-   dependencies and 223 private cross-owner imports; current qualification is
+   outside ordinary TS emission. Artifact values now have their single lower
+   owner; graph state/session contracts still need narrow compiled boundaries.
+   Current development-import gate reported 5 unresolved paths, 47 undeclared
+   dependencies and 213 private cross-owner imports; current qualification is
    still required. Do not expose every helper or bypass that gate.
    Astra's agreed first compiled change is one typed whole-preparation factory,
    using the production-reachable dispatcher, finalization binding and result
@@ -186,11 +186,11 @@ One current obstacle list, in execution order:
    The eventual public entry stays pipeline.prepareObservation, with no parallel
    public backend. An owner-scoped verification entry must exercise the same dist
    implementation before switching production. Source-analysis exposes an opaque
-   resolver/session factory, not private Python helpers. Move the unique Binary64,
-   OrderedField and ProductValue declarations plus mechanical codecs to a lower
-   owner, preferably source-artifacts after confirming its generic-value scope;
-   leave resolver state/session policy with source-analysis. Re-emit all affected
-   nominal paths and update codecs; do not retain an ABI shim. Compare the compiled
+   resolver/session factory, not private Python helpers. Binary64, OrderedField
+   and ProductValue declarations now live only in source-artifacts value/Value;
+   the mechanical codec uses that same owner. Resolver state/session policy stays
+   with source-analysis. Keep exact emitted-prefix conversion at artifact boundaries
+   and never reintroduce resolver forwarding declarations. Compare the compiled
    package API with actual native prepareObservation for full ordered effects,
    identities, failures, cancellation and custody. This entry enables connection;
    it does not bypass whole proofs or the supported Go/session obligations.
@@ -202,17 +202,21 @@ One current obstacle list, in execution order:
    transaction; move test defaults/native comparisons to its verification adapter.
    Generated artifacts stay private and participate in receipts. Actual resident
    verification must import dist, not bypass emission with source MJS.
-   The mechanical product codec now has a typed source-artifacts package entry;
-   its resolver implementation and reexports are removed and 43 consumers import
-   the declared entry directly. Ordinary workspace build passed 46/46, and the
-   actual Source consumer passed 50 scenarios using this dist codec. Fifteen
-   boundary cases retain malformed-spine precedence, callable constructors,
-   binary64 identity and ordered fields. Lint checks 49 actual changed files.
-   Fast gate passed 109 unit tests, assets, source typing and package graph before
-   failing the remaining development imports. Bend declarations still live in
-   resolver Types and codec tags reflect that actual owner; move declarations and
-   exact emitted prefixes atomically next. Host relocation is not completed ABI
-   ownership or whole Preparation acceptance.
+   Artifact value ownership is now relocated: one Value.bend declaration owner,
+   83 direct Bend consumer imports, one typed compiled codec, no resolver
+   reexports or copied declarations. Eighteen unused resolver Types imports were
+   removed, including whole finalization and its stages. Codec uses the exact
+   four-depth emitted owner prefix; resident composition rebases it to the exact
+   five-depth prefix. Fifteen compiled codec cases, 66 whole-finalization plus ten
+   runtime cases, and the actual Source 50/resident 64 consumers passed. Those
+   consumers passed again after supported formatting and import removal. Ordinary
+   workspace build passed 46/46; host lint selects 34 changed files. Fast gate
+   passed 109 unit tests, assets, source typing and package graph before failing
+   the remaining development imports. Pinned Bend formatter now reports 66 conforming and 22 unavailable files,
+   with no remaining supported format changes. Value itself conforms. Unsupported expression/header diagnostics remain gates,
+   not exemptions. This closes shared declaration ownership, not compiled whole
+   Preparation, universal correspondence or production acceptance.
+
 2. Finish all retained source/proof and ordinary quality gates. The source gate
    uses current import closures, nonempty checking roots and a five-second limit;
    foreign Runtime IO roots compile to temporary JS, pure roots use `--verdict`.

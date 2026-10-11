@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../../../../../agent-flow-bend/ImportGraph.bend as G
 import ./AttachmentTransactionProbe.bend as Transaction
@@ -14,7 +15,7 @@ import ../Loop.bend as Loop
 def consume_reusable(+state: D.State, outcome: T.ServiceOutcome) -> D.Selection:
   match state outcome:
     case _ T.ProviderRejected{exception}: D.Rejected{state, T.ForeignProviderFailure{exception}}
-    case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}} T.ClockRead{T.Binary64{0, 0}}:
+    case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}} T.ClockRead{ArtifactValue.Binary64{0, 0}}:
       D.deadline(state, False{})
     case D.State{_, _, _, _, _, _, _, D.AwaitCompletion{product}} T.ProductEncoded{bytes}:
       D.completed(state, product, Nat.is_le(bytes, D.tree_cap(D.limits(D.frame(state)))))

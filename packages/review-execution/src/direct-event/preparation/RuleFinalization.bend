@@ -1,5 +1,5 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
-import ../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../review-definition/src/rules/finalization/RuleSnapshot.bend as Rules
 import ../../../../runtime-inputs/src/matcher/glob/Glob.bend as Glob
 import ../../../../agent-flow-bend/RulePolicy.bend as Policy
@@ -14,18 +14,18 @@ type Context is Data:
     kind: String,
     contract: String,
     complete: Bool,
-    available: List<&2, T.ProductValue>
+    available: List<&2, ArtifactValue.ProductValue>
   }
 type State is Data:
   State{
     invocation: Nat,
     request: Nat,
     context: Context,
-    pending: List<&2, T.ProductValue>,
-    reversed: List<&2, T.ProductValue>
+    pending: List<&2, ArtifactValue.ProductValue>,
+    reversed: List<&2, ArtifactValue.ProductValue>
   }
 type Work is Data:
-  Work{state: State, rule: T.ProductValue, included: Bool}
+  Work{state: State, rule: ArtifactValue.ProductValue, included: Bool}
 type EngineReply is Data:
   Compiled{valid: Bool}
   Tested{valid: Bool, matched: Bool}
@@ -52,24 +52,27 @@ type Step is Data:
     source_rung: Nat,
     minimum_rung: Nat
   }
-  Completed{frozen: List<&2, T.ProductValue>}
+  Completed{frozen: List<&2, ArtifactValue.ProductValue>}
   InvalidReply{}
 
-def strings(values: List<&2, T.ProductValue>) -> List<&2, String>:
+def strings(values: List<&2, ArtifactValue.ProductValue>) -> List<&2, String>:
   match values:
     case []: []
-    case T.ProductText{value} <> tail: value <> strings(tail)
+    case ArtifactValue.ProductText{value} <> tail: value <> strings(tail)
     case _ <> tail: strings(tail)
 
-def applicability_field(key: String, rule: T.ProductValue) -> Maybe<&2, T.ProductValue>:
+def applicability_field(
+  key: String,
+  rule: ArtifactValue.ProductValue
+) -> Maybe<&2, ArtifactValue.ProductValue>:
   Rules.field(key, Rules.artifact_value(Rules.field("applicability", rule)))
 
-def enabled(value: Maybe<&2, T.ProductValue>) -> Bool:
+def enabled(value: Maybe<&2, ArtifactValue.ProductValue>) -> Bool:
   match value:
-    case Some{T.ProductBool{value}}: value
+    case Some{ArtifactValue.ProductBool{value}}: value
     case _: False{}
 
-def work_rule(work: Work) -> T.ProductValue:
+def work_rule(work: Work) -> ArtifactValue.ProductValue:
   match work:
     case Work{_, rule, _}: rule
 
@@ -154,15 +157,19 @@ def glob_step(query: Glob.AnyProtocol, work: Work, excluding: Bool) -> Step:
 def glob_advance(work: Work, excluding: Bool, patterns: List<&2, String>, path: String) -> Step:
   glob_step(Glob.any_advance(patterns, path), work, excluding)
 
-def no_path_included(+rule: T.ProductValue) -> Bool:
+def no_path_included(+rule: ArtifactValue.ProductValue) -> Bool:
   Bool.and(
     Rules.absent(applicability_field("includes", rule)),
-    List.is_empty(&2, T.ProductValue, Rules.items(applicability_field("excludes", rule)))
+    List.is_empty(
+      &2,
+      ArtifactValue.ProductValue,
+      Rules.items(applicability_field("excludes", rule))
+    )
   )
 
 def includes_path(
   path: Maybe<&2, String>,
-  includes: Maybe<&2, T.ProductValue>,
+  includes: Maybe<&2, ArtifactValue.ProductValue>,
   +work: Work
 ) -> Step:
   match path includes:
@@ -182,10 +189,15 @@ def begin_rule(+work: Work) -> Step:
     work
   )
 
-def completed_context(context: Context, rules: List<&2, T.ProductValue>) -> Step:
+def completed_context(context: Context, rules: List<&2, ArtifactValue.ProductValue>) -> Step:
   match context:
     case Context{_, language, kind, contract, _, _}: Completed{
-      Rules.freeze_rules(List.reverse(&2, T.ProductValue, rules), language, kind, contract)
+      Rules.freeze_rules(
+        List.reverse(&2, ArtifactValue.ProductValue, rules),
+        language,
+        kind,
+        contract
+      )
     }
 
 def advance(state: State) -> Step:
@@ -194,7 +206,7 @@ def advance(state: State) -> Step:
     case State{invocation, request, context, head <> tail, reversed}:
       begin_rule(Work{State{invocation, request, context, tail, reversed}, head, False{}})
 
-def initial(invocation: Nat, rules: List<&2, T.ProductValue>, context: Context) -> Step:
+def initial(invocation: Nat, rules: List<&2, ArtifactValue.ProductValue>, context: Context) -> Step:
   Continue{State{invocation, 0n, context, rules, []}}
 
 def correlation(invocation: Nat, request: Nat, work: Work) -> Bool:
@@ -213,7 +225,7 @@ def gate_accepted(admit: Bool, work: Work) -> Step:
           request,
           context,
           pending,
-          Bool.pick(List<&2, T.ProductValue>, admit, rule <> reversed, reversed)
+          Bool.pick(List<&2, ArtifactValue.ProductValue>, admit, rule <> reversed, reversed)
         }
       }
 

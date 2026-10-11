@@ -1,5 +1,5 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
-import ./Types.bend as T
 
 # Independent binary64 comparison against the accepted 5000ms deadline.
 # Nonnegative finite encodings are ordered lexicographically by high/low words.
@@ -18,9 +18,9 @@ def signed(negative: Bool, high: U32, low: U32) -> Bool:
     case True{}: False{}
     case False{}: positive(high, low)
 
-def expired(bits: T.Binary64) -> Bool:
+def expired(bits: ArtifactValue.Binary64) -> Bool:
   match bits:
-    case T.Binary64{+high, low}:
+    case ArtifactValue.Binary64{+high, low}:
       signed(U32.is_ge(high, 2147483648), high, low)
 
 def main() -> Unit:

@@ -1,29 +1,29 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../Core.bend as Core
 import ../ForestSpecification.bend as F
-import ../Types.bend as T
 
 # Direct dependency of projected_unit_total: ordered dependencies, including
 # duplicates and the present empty-array field, use the actual builders.
 def dependencies(items: List<&2, String>) ->
-    {Core.dependency_products(items) == F.texts(items) : List<&2, T.ProductValue>}:
+    {Core.dependency_products(items) == F.texts(items) : List<&2, ArtifactValue.ProductValue>}:
   match items:
     case []: {==}
     case +head <> +tail:
       %dependencies(tail):
-        {Core.text(head) <> Core.dependency_products(tail) == F.text(head) <> _ : List<&2, T.ProductValue>}
+        {Core.text(head) <> Core.dependency_products(tail) == F.text(head) <> _ : List<&2, ArtifactValue.ProductValue>}
       {==}
 
-def product(+root: T.ProductValue, items: List<&2, String>) ->
+def product(+root: ArtifactValue.ProductValue, items: List<&2, String>) ->
     {F.unit_product(F.Materialized{root}, items)
       == F.Materialized{Core.unit_product(root, items)} : F.Materialization}:
   match items:
     case []: {==}
     case +head <> +tail:
-      %Equal.sym(List<&2, T.ProductValue>, Core.dependency_products(head <> tail), F.texts(head <> tail), dependencies(head <> tail)):
+      %Equal.sym(List<&2, ArtifactValue.ProductValue>, Core.dependency_products(head <> tail), F.texts(head <> tail), dependencies(head <> tail)):
         {F.unit_product(F.Materialized{root}, head <> tail)
           == F.Materialized{Core.object([Core.field("root", root),
-            Core.field("sourceDependencies", T.ProductArray{_})])} : F.Materialization}
+            Core.field("sourceDependencies", ArtifactValue.ProductArray{_})])} : F.Materialization}
       {==}
 
 def main() -> Unit:

@@ -1,5 +1,5 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
-import ../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 
 # Finalization's canonical JSON stage. The host receives primitives only.
 # Input domain: unique object keys from the native-object producer ABI.
@@ -8,10 +8,10 @@ import ../../../../source-analysis/src/direct-event/graph-resolution/Types.bend 
 type Primitive is Data:
   NullPrimitive{}
   BoolPrimitive{value: Bool}
-  NumberPrimitive{bits: T.Binary64}
+  NumberPrimitive{bits: ArtifactValue.Binary64}
   StringPrimitive{value: String}
 type Work is Data:
-  Visit{value: T.ProductValue}
+  Visit{value: ArtifactValue.ProductValue}
   Literal{value: String}
 type State is Data:
   State{pending: List<&2, Work>, reversed_parts: List<&2, String>}
@@ -41,39 +41,64 @@ def units_le(left: List<&2, U32>, right: List<&2, U32>) -> Bool:
     case Con{+a, tail_a} Con{+b, tail_b}:
       Bool.or(U32.is_lt(a, b), Bool.and(U32.is_eq(a, b), units_le(tail_a, tail_b)))
 
-def fields_le(left: T.OrderedField<T.ProductValue>, right: T.OrderedField<T.ProductValue>) -> Bool:
+def fields_le(
+  left: ArtifactValue.OrderedField<ArtifactValue.ProductValue>,
+  right: ArtifactValue.OrderedField<ArtifactValue.ProductValue>
+) -> Bool:
   match left right:
-    case T.OrderedField{a, _} T.OrderedField{b, _}: units_le(utf16(a), utf16(b))
+    case ArtifactValue.OrderedField{a, _} ArtifactValue.OrderedField{b, _}: units_le(
+      utf16(a),
+      utf16(b)
+    )
 
-def array_work(items: List<&2, T.ProductValue>) -> List<&2, Work>:
+def array_work(items: List<&2, ArtifactValue.ProductValue>) -> List<&2, Work>:
   match items:
     case []: [Literal{"]"}]
     case value <> []: [Visit{value}, Literal{"]"}]
     case value <> tail: Visit{value} <> Literal{","} <> array_work(tail)
 
-def object_work(fields: List<&2, T.OrderedField<T.ProductValue>>) -> List<&2, Work>:
+def object_work(
+  fields: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
+) -> List<&2, Work>:
   match fields:
     case []: [Literal{"}"}]
-    case T.OrderedField{key, value} <> []:
-      [Visit{T.ProductText{key}}, Literal{":"}, Visit{value}, Literal{"}"}]
-    case T.OrderedField{key, value} <> tail:
-      Visit{T.ProductText{key}} <> Literal{":"} <> Visit{value} <> Literal{","} <> object_work(tail)
+    case ArtifactValue.OrderedField{key, value} <> []:
+      [Visit{ArtifactValue.ProductText{key}}, Literal{":"}, Visit{value}, Literal{"}"}]
+    case ArtifactValue.OrderedField{key, value} <> tail:
+      Visit{ArtifactValue.ProductText{key}} <> Literal{":"} <> Visit{value} <> Literal{","} <> object_work(
+        tail
+      )
 
-def visit(value: T.ProductValue, pending: List<&2, Work>, parts: List<&2, String>) -> Step:
+def visit(
+  value: ArtifactValue.ProductValue,
+  pending: List<&2, Work>,
+  parts: List<&2, String>
+) -> Step:
   match value:
-    case T.ProductNull{}: JsonPrimitive{State{pending, parts}, NullPrimitive{}}
-    case T.ProductBool{value}: JsonPrimitive{State{pending, parts}, BoolPrimitive{value}}
-    case T.ProductNumber{bits}: JsonPrimitive{State{pending, parts}, NumberPrimitive{bits}}
-    case T.ProductText{value}: JsonPrimitive{State{pending, parts}, StringPrimitive{value}}
-    case T.ProductArray{items}:
+    case ArtifactValue.ProductNull{}: JsonPrimitive{State{pending, parts}, NullPrimitive{}}
+    case ArtifactValue.ProductBool{value}: JsonPrimitive{
+      State{pending, parts},
+      BoolPrimitive{value}
+    }
+    case ArtifactValue.ProductNumber{bits}: JsonPrimitive{
+      State{pending, parts},
+      NumberPrimitive{bits}
+    }
+    case ArtifactValue.ProductText{value}: JsonPrimitive{
+      State{pending, parts},
+      StringPrimitive{value}
+    }
+    case ArtifactValue.ProductArray{items}:
       Continue{State{List.append(&2, Work, array_work(items), pending), "[" <> parts}}
-    case T.ProductObject{fields}:
+    case ArtifactValue.ProductObject{fields}:
       Continue{
         State{
           List.append(
             &2,
             Work,
-            object_work(List.sort(~T.OrderedField<T.ProductValue>, ~fields_le, fields)),
+            object_work(
+              List.sort(~ArtifactValue.OrderedField<ArtifactValue.ProductValue>, ~fields_le, fields)
+            ),
             pending
           ),
           "{" <> parts
@@ -90,7 +115,7 @@ def primitive_returned(state: State, token: String) -> State:
   match state:
     case State{pending, parts}: State{pending, token <> parts}
 
-def initial(value: T.ProductValue) -> State:
+def initial(value: ArtifactValue.ProductValue) -> State:
   State{[Visit{value}], []}
 
 def main() -> Unit:

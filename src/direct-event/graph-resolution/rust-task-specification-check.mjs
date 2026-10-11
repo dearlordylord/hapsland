@@ -1,3 +1,11 @@
+import {
+  artifactValueTag,
+  list,
+  unlist,
+  productValue,
+  fromProductValue,
+  binary64
+} from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -16,13 +24,6 @@ import { inspectRustModules } from "../../../packages/source-analysis/dist/direc
 import { createGraphFixtures } from "./fixtures.mjs"
 import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import {
-  list,
-  unlist,
-  productValue,
-  fromProductValue,
-  binary64
-} from "@hapsland/source-artifacts/direct-event/value/codec"
 const folder = import.meta.dirname,
   root = path.join(folder, "../../.."),
   cache = path.join(root, "node_modules/.cache")
@@ -54,7 +55,7 @@ const hash = (value) => createHash("sha256").update(value).digest("hex"),
   sources = Object.fromEntries(
     inputs.map((name) => [name, hash(readFileSync(path.isAbsolute(name) ? name : path.join(folder, name)))])
   )
-const tag = (name, fields = {}) => ({ $: "Types." + name, ...fields }),
+const tag = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   label = (value) => value.$.split(".").at(-1),
   _maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
 const normalize = (value) =>

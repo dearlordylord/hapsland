@@ -1,7 +1,5 @@
-import * as path from "node:path"
-import { lstat } from "node:fs/promises"
-
 import {
+  artifactValueTag,
   hostNatural,
   list,
   unlist,
@@ -9,7 +7,10 @@ import {
   productValue,
   fromProductValue
 } from "@hapsland/source-artifacts/direct-event/value/codec"
-const tag = (name) => "Types." + name
+import * as path from "node:path"
+import { lstat } from "node:fs/promises"
+
+const tag = (name) => artifactValueTag(name) ?? "Types." + name
 const tagged = (name, fields = {}) => ({ $: tag(name), ...fields })
 
 // Independent service/session state only: native resources and caller-owned IO.

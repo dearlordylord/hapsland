@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 
@@ -5,7 +6,7 @@ import ./Types.bend as T
 # The TOML engine supplies syntax only. Pure path algebra is a mechanical
 # parameter; no production Cargo/Core/Rust policy enters this import closure.
 type Record is Data:
-  Record{fields: List<&2, T.OrderedField<T.TomlValue>>}
+  Record{fields: List<&2, ArtifactValue.OrderedField<T.TomlValue>>}
 
 type Binary is Data:
   Binary{path: String, name: String}
@@ -22,10 +23,13 @@ def choose_field(found: Bool, value: T.TomlValue,
     case True{}: Some{value}
     case False{}: rest
 
-def lookup(fields: List<&2, T.OrderedField<T.TomlValue>>, +key: String) -> Maybe<&2, T.TomlValue>:
+def lookup(
+  fields: List<&2, ArtifactValue.OrderedField<T.TomlValue>>,
+  +key: String
+) -> Maybe<&2, T.TomlValue>:
   match fields:
     case []: None{}
-    case T.OrderedField{name, value} <> tail:
+    case ArtifactValue.OrderedField{name, value} <> tail:
       choose_field(String.eq(name, key), value, lookup(tail, key))
 
 def get(record: Record, key: String) -> Maybe<&2, T.TomlValue>:

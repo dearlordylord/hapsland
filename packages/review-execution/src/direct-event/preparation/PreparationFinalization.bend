@@ -1,5 +1,5 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
-import ../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../native-observation/src/direct-event/languages/path-language/PathLanguage.bend as Language
 import ../../../../runtime-environment/src/runtime/backend/Backend.bend as Backend
 import ../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend.bend as Configuration
@@ -18,10 +18,10 @@ type Context is Data:
     contract: String,
     path: String,
     root: String,
-    graph_limits: T.ProductValue,
-    declarations: List<&2, T.ProductValue>,
-    captures: List<&2, T.ProductValue>,
-    bundled: List<&2, T.ProductValue>,
+    graph_limits: ArtifactValue.ProductValue,
+    declarations: List<&2, ArtifactValue.ProductValue>,
+    captures: List<&2, ArtifactValue.ProductValue>,
+    bundled: List<&2, ArtifactValue.ProductValue>,
     languages: List<&2, Language.Registration>
   }
 type State is Data:
@@ -29,16 +29,16 @@ type State is Data:
     invocation: Invocation,
     request: Nat,
     context: Context,
-    pending: List<&2, T.ProductValue>,
-    reversed: List<&2, T.ProductValue>
+    pending: List<&2, ArtifactValue.ProductValue>,
+    reversed: List<&2, ArtifactValue.ProductValue>
   }
 type UnitState is Data:
   UnitState{
     state: State,
-    unit: T.ProductValue,
-    location: Maybe<&2, T.ProductValue>,
+    unit: ArtifactValue.ProductValue,
+    location: Maybe<&2, ArtifactValue.ProductValue>,
     partial: Bool,
-    fingerprints: T.ProductValue
+    fingerprints: ArtifactValue.ProductValue
   }
 type Phase is Data:
   NextUnit{state: State}
@@ -50,10 +50,10 @@ type Step is Data:
   ObserveOmission{state: State, path: String, name: String, reason: String}
   PathExtension{unit: UnitState, path: String}
   ReadCurrentRules{unit: UnitState, language: String}
-  ReadProviderFacts{unit: UnitState, rules: List<&2, T.ProductValue>}
+  ReadProviderFacts{unit: UnitState, rules: List<&2, ArtifactValue.ProductValue>}
   RulesRequest{unit: UnitState, step: Rules.Step}
   InputRequest{unit: UnitState, step: Input.Step}
-  Completed{outcomes: List<&2, T.ProductValue>}
+  Completed{outcomes: List<&2, ArtifactValue.ProductValue>}
   TypeError{message: String}
   URIError{}
   InvalidInput{}
@@ -63,8 +63,8 @@ type Response is Data:
   ObserverSynchronouslyThrew{}
   Extension{value: String}
   CurrentRules{
-    rules: Maybe<&2, List<&2, T.ProductValue>>,
-    fallback: Maybe<&2, List<&2, T.ProductValue>>
+    rules: Maybe<&2, List<&2, ArtifactValue.ProductValue>>,
+    fallback: Maybe<&2, List<&2, ArtifactValue.ProductValue>>
   }
   ProviderFacts{
     configuration: Maybe<&2, List<&2, Configuration.Layer>>,
@@ -128,7 +128,7 @@ def context_root(context: Context) -> String:
   match context:
     case Context{_, _, root, _, _, _, _, _}: root
 
-def ready(+unit: UnitState, input: T.ProductValue, identity: String) -> Step:
+def ready(+unit: UnitState, input: ArtifactValue.ProductValue, identity: String) -> Step:
   match unit:
     case UnitState{State{invocation, request, +context, pending, reversed}, _, _, _, _}:
       Continue{
@@ -138,17 +138,20 @@ def ready(+unit: UnitState, input: T.ProductValue, identity: String) -> Step:
             request,
             context,
             pending,
-            T.ProductObject{
+            ArtifactValue.ProductObject{
               [
-                T.OrderedField{"status", T.ProductText{"ready"}},
-                T.OrderedField{"path", T.ProductText{unit_path(unit)}},
-                T.OrderedField{
+                ArtifactValue.OrderedField{"status", ArtifactValue.ProductText{"ready"}},
+                ArtifactValue.OrderedField{"path", ArtifactValue.ProductText{unit_path(unit)}},
+                ArtifactValue.OrderedField{
                   "prepared",
-                  T.ProductObject{
+                  ArtifactValue.ProductObject{
                     [
-                      T.OrderedField{"root", T.ProductText{context_root(context)}},
-                      T.OrderedField{"input", input},
-                      T.OrderedField{"identity", T.ProductText{identity}}
+                      ArtifactValue.OrderedField{
+                        "root",
+                        ArtifactValue.ProductText{context_root(context)}
+                      },
+                      ArtifactValue.OrderedField{"input", input},
+                      ArtifactValue.OrderedField{"identity", ArtifactValue.ProductText{identity}}
                     ]
                   }
                 }
@@ -173,7 +176,7 @@ def invocation_owner(invocation: Invocation) -> Nat:
 
 def frozen(
   +unit: UnitState,
-  rules: List<&2, T.ProductValue>,
+  rules: List<&2, ArtifactValue.ProductValue>,
   configuration: Maybe<&2, List<&2, Configuration.Layer>>,
   identity: Maybe<&2, Backend.Identity>,
   backends: List<&2, Backend.Declaration>
@@ -203,7 +206,11 @@ def frozen(
         )
       )
 
-def rules_completed(empty: Bool, unit: UnitState, rules: List<&2, T.ProductValue>) -> Step:
+def rules_completed(
+  empty: Bool,
+  unit: UnitState,
+  rules: List<&2, ArtifactValue.ProductValue>
+) -> Step:
   match empty:
     case True{}: omission(unit, "no-applicable-rule")
     case False{}: ReadProviderFacts{increment_unit(unit), rules}
@@ -211,7 +218,7 @@ def rules_completed(empty: Bool, unit: UnitState, rules: List<&2, T.ProductValue
 def rules_expose(unit: UnitState, step: Rules.Step) -> Step:
   match step:
     case Rules.Completed{+frozen}: rules_completed(
-      List.is_empty(&2, T.ProductValue, frozen),
+      List.is_empty(&2, ArtifactValue.ProductValue, frozen),
       unit,
       frozen
     )
@@ -222,7 +229,7 @@ def rules_expose(unit: UnitState, step: Rules.Step) -> Step:
     case Rules.InvalidReply{}: InvalidReply{}
     case _: RulesRequest{increment_unit(unit), step}
 
-def kind(artifact: T.ProductValue) -> String:
+def kind(artifact: ArtifactValue.ProductValue) -> String:
   Bool.pick(
     String,
     String.eq(name(Evidence.text(Evidence.field("kind", artifact))), "function"),
@@ -230,7 +237,11 @@ def kind(artifact: T.ProductValue) -> String:
     "type"
   )
 
-def rules_initial(+unit: UnitState, language: String, rules: List<&2, T.ProductValue>) -> Step:
+def rules_initial(
+  +unit: UnitState,
+  language: String,
+  rules: List<&2, ArtifactValue.ProductValue>
+) -> Step:
   match unit:
     case UnitState{
       State{invocation, _, Context{+contract, path, _, _, _, _, _, _}, _, _},
@@ -304,7 +315,7 @@ def evidence_expose(+unit: UnitState, step: Evidence.Step) -> Step:
     } _:
       metadata_expose(unit, Evidence.metadata(step, contract, declarations, captures, value))
 
-def unit_value(unit: UnitState) -> T.ProductValue:
+def unit_value(unit: UnitState) -> ArtifactValue.ProductValue:
   match unit:
     case UnitState{_, value, _, _, _}: value
 
@@ -313,7 +324,7 @@ def start_location(missing: Bool, +unit: UnitState) -> Step:
     case True{}: omission(unit, "missing-evidence")
     case False{}: evidence_expose(unit, Evidence.initial(unit_value(unit)))
 
-def start_unit(+state: State, +value: T.ProductValue) -> Step:
+def start_unit(+state: State, +value: ArtifactValue.ProductValue) -> Step:
   match state:
     case State{_, _, Context{+contract, _, _, _, declarations, _, _, _}, _, _}:
       +location = Evidence.root_location(contract, Evidence.unit_artifact(value), declarations)
@@ -325,18 +336,24 @@ def start_unit(+state: State, +value: T.ProductValue) -> Step:
           ),
           Evidence.absent(location)
         ),
-        UnitState{state, value, location, False{}, T.ProductNull{}}
+        UnitState{state, value, location, False{}, ArtifactValue.ProductNull{}}
       )
 
 def next_unit(state: State) -> Step:
   match state:
-    case State{_, _, _, Nil{}, reversed}: Completed{List.reverse(&2, T.ProductValue, reversed)}
+    case State{_, _, _, Nil{}, reversed}: Completed{
+      List.reverse(&2, ArtifactValue.ProductValue, reversed)
+    }
     case State{invocation, request, context, Con{value, pending}, reversed}: start_unit(
       State{invocation, request, context, pending, reversed},
       value
     )
 
-def initial(invocation: Invocation, context: Context, units: List<&2, T.ProductValue>) -> Step:
+def initial(
+  invocation: Invocation,
+  context: Context,
+  units: List<&2, ArtifactValue.ProductValue>
+) -> Step:
   Continue{NextUnit{State{invocation, 0n, context, units, []}}}
 
 def evidence_advance(+unit: UnitState, state: Evidence.State) -> Step:
@@ -421,15 +438,17 @@ def input_response(+step: Input.Step, response: Response) -> Input.Step:
     case Input.Digest{state, _}: input_with_state(state, step, response)
     case _: Input.InvalidReply{}
 
-def rules_or_empty(value: Maybe<&2, List<&2, T.ProductValue>>) -> List<&2, T.ProductValue>:
+def rules_or_empty(
+  value: Maybe<&2, List<&2, ArtifactValue.ProductValue>>
+) -> List<&2, ArtifactValue.ProductValue>:
   match value:
     case Some{rules}: rules
     case None{}: []
 
 def rules_snapshot(
-  value: Maybe<&2, List<&2, T.ProductValue>>,
-  fallback: Maybe<&2, List<&2, T.ProductValue>>
-) -> List<&2, T.ProductValue>:
+  value: Maybe<&2, List<&2, ArtifactValue.ProductValue>>,
+  fallback: Maybe<&2, List<&2, ArtifactValue.ProductValue>>
+) -> List<&2, ArtifactValue.ProductValue>:
   match value:
     case Some{rules}: rules
     case None{}: rules_or_empty(fallback)

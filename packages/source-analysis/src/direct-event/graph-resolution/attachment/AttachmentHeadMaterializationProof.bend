@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentReferenceMaterializationProof.bend as References
 import ./AttachmentBuildCopiesProof.bend as Copies
@@ -16,21 +17,21 @@ def some_equal(-A: Data, +left: A, +right: A, same: {Some{left} == Some{right} :
   Equal.cong(Maybe<&2, A>, A, value => Artifact.value_of(A, left, value), Some{left}, Some{right}, same)
 
 def reference_agreement(+slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>,
-    +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>, +fuel: Nat,
-    +static_refs: List<&2, F.Reference>, +static_values: List<&2, T.ProductValue>,
-    common: Exists(List<&2, F.Reference>, refs => Exists(List<&2, T.ProductValue>, values =>
+    +forest: F.Forest, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +fuel: Nat,
+    +static_refs: List<&2, F.Reference>, +static_values: List<&2, ArtifactValue.ProductValue>,
+    common: Exists(List<&2, F.Reference>, refs => Exists(List<&2, ArtifactValue.ProductValue>, values =>
       References.list_common(slots, addresses, forest, built, fuel, refs, values))),
     projected: {P.references(slots, addresses) == Some{static_refs} : Maybe<&2, List<&2, F.Reference>>},
-    actual: {Core.reference_products(slots, built) == Some{static_values} : Maybe<&2, List<&2, T.ProductValue>>}) ->
+    actual: {Core.reference_products(slots, built) == Some{static_values} : Maybe<&2, List<&2, ArtifactValue.ProductValue>>}) ->
     {F.as_products(F.product_interpret(fuel, F.ReferencesProductRequest{forest, static_refs})) == F.ProductReferences{static_values} : F.ProductReferences}:
   match common:
     case (+refs, (+values, (fresh_projected, (fresh_actual, materialized)))):
       same_refs: {refs == static_refs : List<&2, F.Reference>} = some_equal(List<&2, F.Reference>, refs, static_refs,
         Equal.trans(Maybe<&2, List<&2, F.Reference>>, Some{refs}, P.references(slots, addresses), Some{static_refs},
           Equal.sym(Maybe<&2, List<&2, F.Reference>>, P.references(slots, addresses), Some{refs}, fresh_projected), projected))
-      same_values: {values == static_values : List<&2, T.ProductValue>} = some_equal(List<&2, T.ProductValue>, values, static_values,
-        Equal.trans(Maybe<&2, List<&2, T.ProductValue>>, Some{values}, Core.reference_products(slots, built), Some{static_values},
-          Equal.sym(Maybe<&2, List<&2, T.ProductValue>>, Core.reference_products(slots, built), Some{values}, fresh_actual), actual))
+      same_values: {values == static_values : List<&2, ArtifactValue.ProductValue>} = some_equal(List<&2, ArtifactValue.ProductValue>, values, static_values,
+        Equal.trans(Maybe<&2, List<&2, ArtifactValue.ProductValue>>, Some{values}, Core.reference_products(slots, built), Some{static_values},
+          Equal.sym(Maybe<&2, List<&2, ArtifactValue.ProductValue>>, Core.reference_products(slots, built), Some{values}, fresh_actual), actual))
       %same_refs: {F.as_products(F.product_interpret(fuel, F.ReferencesProductRequest{forest, _})) == F.ProductReferences{static_values} : F.ProductReferences}
       %same_values: {F.as_products(F.product_interpret(fuel, F.ReferencesProductRequest{forest, refs})) == F.ProductReferences{_} : F.ProductReferences}
       materialized
@@ -61,13 +62,13 @@ def head_fuel(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots
   fuel_arithmetic(List.length(&2, Local.ReferenceSlot, P.owner_slots(slots, id)), Suffix.suffix_allowance(tail, slots), extra)
 
 def materialized_head(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
-    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
-    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: T.ProductValue,
-    +values: List<&2, T.ProductValue>, +extra: Nat,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
+    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: ArtifactValue.ProductValue,
+    +values: List<&2, ArtifactValue.ProductValue>, +extra: Nat,
     node_present: {F.node_at(Node.nodes_of(forest), address) == Some{F.Node{address, artifact, refs}} : Maybe<&2, F.Node>},
-    artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
+    artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
     projected: {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
-    actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>},
+    actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, ArtifactValue.ProductValue>>},
     indexed: {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool},
     proof: Copies.copies(References.expanded_count(P.owner_slots(slots, id)), Suffix.rendered_suffix(tail, slots, addresses, forest, built))) ->
     {F.materialize(Nat.add(Suffix.suffix_allowance(Local.PlannedNode{id, handle} <> tail, slots), extra), forest, address)

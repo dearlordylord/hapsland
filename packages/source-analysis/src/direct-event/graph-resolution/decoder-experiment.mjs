@@ -1,13 +1,18 @@
+import {
+  artifactValueTag,
+  productValue,
+  list,
+  fromProductValue as after
+} from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { readFileSync, writeFileSync } from "node:fs"
 import { createHash } from "node:crypto"
-import { productValue, list, fromProductValue as after } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { fromProductValue as before } from "./decoder-baseline.mjs"
 const file = process.argv[2] ?? new URL("decoder-consumer-products.json", import.meta.url),
   raw = readFileSync(file),
   products = JSON.parse(raw)
 assert.ok(products.length >= 1)
-const tag = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+const tag = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 const descriptorCheck = (a, b) => {
   assert.deepEqual(a, b)
   if (a && typeof a === "object") {

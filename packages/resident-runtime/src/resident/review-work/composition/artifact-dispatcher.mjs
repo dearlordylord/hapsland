@@ -1,7 +1,11 @@
 // Constructor names are an artifact ABI detail of Bend 2.0.36, not policy.
-// Resolver payloads retain one declaration owner; separately emitted resident
-// artifacts refer to that same owner through a different import path.
+// Graph and artifact-value payloads retain their separate declaration owners.
+// Resident artifacts refer to those exact owners through different import paths.
 const artifactNamespaces = [
+  [
+    "../../../../source-artifacts/src/direct-event/value/Value.",
+    "../../../../../source-artifacts/src/direct-event/value/Value."
+  ],
   ...["Types", "State", "Protocol", "Loop", "ComposedBudget", "Clock"].map((name) => [
     name + ".",
     "../../../../../source-analysis/src/direct-event/graph-resolution/" + name + "."

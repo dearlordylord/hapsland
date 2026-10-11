@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./CargoSpecification.bend as Paths
@@ -9,7 +10,7 @@ type FollowPlan is Data:
   MissingChild{}
   RootRole{role: T.RustContext}
   FindChild{choices: List<&2, String>, crate_path: String,
-    modules: List<&2, T.OrderedField<String>>, depth: Nat}
+    modules: List<&2, ArtifactValue.OrderedField<String>>, depth: Nat}
 type Chosen is Data:
   AmbiguousChild{}
   ReinspectRoot{route: T.RustRoute}
@@ -20,27 +21,39 @@ def name_present(items: List<&2, String>, +name: String) -> Bool:
     case []: False{}
     case head <> tail: Bool.or(String.eq(head, name), name_present(tail, name))
 
-def map_present(items: List<&2, T.OrderedField<String>>, +name: String) -> Bool:
+def map_present(items: List<&2, ArtifactValue.OrderedField<String>>, +name: String) -> Bool:
   match items:
     case []: False{}
-    case T.OrderedField{key, _} <> tail: Bool.or(String.eq(key, name), map_present(tail, name))
+    case ArtifactValue.OrderedField{key, _} <> tail: Bool.or(
+      String.eq(key, name),
+      map_present(tail, name)
+    )
 
-def add_module(present: Bool, items: List<&2, T.OrderedField<String>>,
-    name: String, path: String) -> List<&2, T.OrderedField<String>>:
+def add_module(present: Bool, items: List<&2, ArtifactValue.OrderedField<String>>,
+    name: String, path: String) -> List<&2, ArtifactValue.OrderedField<String>>:
   match present:
     case True{}: items
-    case False{}: List.append(&2, T.OrderedField<String>, items, [T.OrderedField{name, path}])
+    case False{}: List.append(
+      &2,
+      ArtifactValue.OrderedField<String>,
+      items,
+      [ArtifactValue.OrderedField{name, path}]
+    )
 
-def module_map(~join: List<&2, String> -> String, names: List<&2, String>,
-    +base: String, +items: List<&2, T.OrderedField<String>>) -> List<&2, T.OrderedField<String>>:
+def module_map(
+  ~join: List<&2, String> -> String,
+  names: List<&2, String>,
+  +base: String,
+  +items: List<&2, ArtifactValue.OrderedField<String>>
+) -> List<&2, ArtifactValue.OrderedField<String>>:
   match names:
     case []: items
     case +name <> tail: module_map(~join, tail, base,
       add_module(map_present(items, name), items, name, join([base, name])))
 
 def crate_map(~dirname: String -> String, ~join: List<&2, String> -> String,
-    existing: Maybe<&2, List<&2, T.OrderedField<String>>>, crate_path: String,
-    names: List<&2, String>) -> List<&2, T.OrderedField<String>>:
+    existing: Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>, crate_path: String,
+    names: List<&2, String>) -> List<&2, ArtifactValue.OrderedField<String>>:
   match existing:
     case Some{items}: items
     case None{}: module_map(~join, names, dirname(crate_path), [])
@@ -48,15 +61,27 @@ def crate_map(~dirname: String -> String, ~join: List<&2, String> -> String,
 def nonempty_relative(+path: String) -> String:
   Bool.pick(String, String.is_empty(path), ".", path)
 
-def rebase(~relative: String -> String -> String, items: List<&2, T.OrderedField<String>>,
-    +base: String) -> List<&2, T.OrderedField<String>>:
+def rebase(
+  ~relative: String -> String -> String,
+  items: List<&2, ArtifactValue.OrderedField<String>>,
+  +base: String
+) -> List<&2, ArtifactValue.OrderedField<String>>:
   match items:
     case []: []
-    case T.OrderedField{key, path} <> tail:
-      T.OrderedField{key, nonempty_relative(relative(base, path))} <> rebase(~relative, tail, base)
+    case ArtifactValue.OrderedField{key, path} <> tail:
+      ArtifactValue.OrderedField{key, nonempty_relative(relative(base, path))} <> rebase(
+        ~relative,
+        tail,
+        base
+      )
 
-def role(~dirname: String -> String, ~relative: String -> String -> String,
-    +path: String, crate_path: String, modules: List<&2, T.OrderedField<String>>) -> T.RustContext:
+def role(
+  ~dirname: String -> String,
+  ~relative: String -> String -> String,
+  +path: String,
+  crate_path: String,
+  modules: List<&2, ArtifactValue.OrderedField<String>>
+) -> T.RustContext:
   +root = String.eq(path, crate_path)
   T.RustContext{Bool.pick(Maybe<&2, Bool>, root, Some{True{}}, None{}),
     Bool.pick(Maybe<&2, Bool>, root, None{}, Some{True{}}),
@@ -83,7 +108,7 @@ def child_plan(
   names: List<&2, String>,
   +base: String,
   crate_path: String,
-  modules: List<&2, T.OrderedField<String>>,
+  modules: List<&2, ArtifactValue.OrderedField<String>>,
   depth: Nat
 ) -> FollowPlan:
   match name:
@@ -109,7 +134,7 @@ def inspected_route(
   route: T.RustRoute,
   +selected: String,
   names: List<&2, String>,
-  +modules: List<&2, T.OrderedField<String>>,
+  +modules: List<&2, ArtifactValue.OrderedField<String>>,
   separator: String
 ) -> FollowPlan:
   match route:
@@ -150,7 +175,7 @@ def chosen_root(root: Bool, +route: T.RustRoute) -> Chosen:
     case False{}: PendingChild{T.RustTask{route_path(route), Some{route}}}
 
 def choose(choices: List<&2, String>, selected: String, crate_path: String,
-    modules: List<&2, T.OrderedField<String>>, depth: Nat) -> Chosen:
+    modules: List<&2, ArtifactValue.OrderedField<String>>, depth: Nat) -> Chosen:
   match choices:
     case +path <> []: chosen_root(
       String.eq(path, selected),

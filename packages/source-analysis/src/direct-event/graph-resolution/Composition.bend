@@ -1,5 +1,4 @@
 import Base
-import ./Types.bend as T
 import ./Core.bend as Materialize
 import ./traversal/core.bend as Local
 

@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentFrameView.bend as V
 import ./AttachmentPhaseView.bend as Phase
@@ -20,7 +21,7 @@ import ../ExpansionDriverSpecification.bend as D
 # Shared contract for the whole attachment transaction and its literal instance.
 # This consolidates the existing predicates; it adds no law or premise.
 type Witness is Data:
-  Witness{state: T.ResolverState, request: T.Request, product: T.ProductValue,
+  Witness{state: T.ResolverState, request: T.Request, product: ArtifactValue.ProductValue,
     staged: V.Frame, boundary: B.Boundary}
 
 def witness_state(value: Witness) -> T.ResolverState:
@@ -31,7 +32,7 @@ def witness_request(value: Witness) -> T.Request:
   match value:
     case Witness{_, request, _, _, _}: request
 
-def witness_product(value: Witness) -> T.ProductValue:
+def witness_product(value: Witness) -> ArtifactValue.ProductValue:
   match value:
     case Witness{_, _, product, _, _}: product
 

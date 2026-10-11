@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentBoundaryView.bend as B
 import ./AttachmentFrameView.bend as V
@@ -44,7 +45,7 @@ def selected_stage(+state: D.State, +operation: T.Operation,
     case _ _: None{}
 
 def finished(
-  product: Maybe<&2, T.ProductValue>,
+  product: Maybe<&2, ArtifactValue.ProductValue>,
   frame: Maybe<&2, V.Frame>
 ) -> Maybe<&2, B.Boundary>:
   match frame:

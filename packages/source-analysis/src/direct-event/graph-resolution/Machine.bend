@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./State.bend as S
@@ -116,7 +117,10 @@ def selected_language(
         case T.PythonLanguage{}: Loop.PreparePython{S.with_state_language(state, Some{selected})}
         case _: root_budget(S.with_state_language(state, Some{selected}))
 
-def root_product(product: Maybe<&2, T.ProductValue>, state: T.ResolverState) -> Loop.Continuation:
+def root_product(
+  product: Maybe<&2, ArtifactValue.ProductValue>,
+  state: T.ResolverState
+) -> Loop.Continuation:
   match product:
     case None{}: malformed()
     case Some{value}: Loop.ServiceStep{S.request(state, T.MeasuringRoot{}, T.EncodeProduct{value})}
@@ -244,7 +248,11 @@ def component_reply(+stage: T.ResolverStage, outcome: T.ServiceOutcome,
     case T.CheckingImportCandidates{}: Resolve.reply(stage, outcome, state)
     case _: malformed()
 
-def successful_terminal(language: Maybe<&2, T.Language>, result: T.ResolverStep, state: T.ResolverState) -> Loop.Continuation:
+def successful_terminal(
+  language: Maybe<&2, T.Language>,
+  result: T.ResolverStep,
+  state: T.ResolverState
+) -> Loop.Continuation:
   match language result:
     case Some{T.PythonLanguage{}} T.FinishedResolver{T.ReviewUnitResult{value}, frame}:
       Loop.PythonTerminal{state, T.FinishedResolver{T.ReviewUnitResult{value}, frame}}
@@ -276,7 +284,11 @@ def stage_reply(
       state
     )
     case T.CheckingIterationDeadline{} T.ClockRead{bits}: LoopPolicy.elapsed(bits, state)
-    case T.MeasuringCompletion{} T.ProductEncoded{bytes}: successful_terminal(S.state_language(state), LoopPolicy.measured(bytes, state), state)
+    case T.MeasuringCompletion{} T.ProductEncoded{bytes}: successful_terminal(
+      S.state_language(state),
+      LoopPolicy.measured(bytes, state),
+      state
+    )
     case _ T.ProviderRejected{exception}: Loop.ServiceStep{
       T.FailedResolver{T.ForeignProviderFailure{exception}}
     }

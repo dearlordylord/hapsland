@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../Types.bend as T
 import ../Protocol.bend as Protocol
@@ -65,7 +66,11 @@ def clock_available(available: Bool, +state: State, clock: T.ClockToken) -> Step
 def start_clock(state: State) -> Step:
   match state:
     case State{+session, path, +clock, separator, invocation, next, stage}:
-      clock_available(S.available(session), State{session, path, clock, separator, invocation, next, stage}, clock)
+      clock_available(
+        S.available(session),
+        State{session, path, clock, separator, invocation, next, stage},
+        clock
+      )
 
 def within(admitted: Bool, +state: State) -> Step:
   match admitted:
@@ -88,10 +93,16 @@ def probe(plan: S.ObservationPlan, clock: T.ClockToken, separator: String,
       request(State{session, path, clock, separator, invocation, next, ReadingMembership{}},
         ReadingMembership{}, T.ReadPathMembership{path})
 
-def clock_reply(bits: T.Binary64, state: State) -> Step:
+def clock_reply(bits: ArtifactValue.Binary64, state: State) -> Step:
   match state:
     case State{session, path, clock, separator, invocation, next, _}:
-      probe(S.fresh_observation(session, path, True{}, Clock.expired(bits)), clock, separator, invocation, next)
+      probe(
+        S.fresh_observation(session, path, True{}, Clock.expired(bits)),
+        clock,
+        separator,
+        invocation,
+        next
+      )
 
 def membership_reply(+observation: T.PathMembership, state: State) -> Step:
   match state:
@@ -118,13 +129,20 @@ def resume(step: Step, reply: T.Reply) -> Step:
 
 def known(cached: Maybe<&2, T.PathMembership>, +state: State) -> Step:
   match cached:
-    case Some{observation}: Returned{state_session(state), Some{observation}, state_next_request(state)}
+    case Some{observation}: Returned{
+      state_session(state),
+      Some{observation},
+      state_next_request(state)
+    }
     case None{}: request(state, CheckingPath{}, T.PathIsAbsolute{state_path(state)})
 
 def begin(+session: S.Session, +path: String, refresh: Bool, clock: T.ClockToken, separator: String,
     invocation: Nat, next_request: Nat) -> Step:
   match refresh:
-    case True{}: known(None{}, State{session, path, clock, separator, invocation, next_request, CheckingPath{}})
+    case True{}: known(
+      None{},
+      State{session, path, clock, separator, invocation, next_request, CheckingPath{}}
+    )
     case False{}: known(S.find_membership(S.membership(session), path),
       State{session, path, clock, separator, invocation, next_request, CheckingPath{}})
 

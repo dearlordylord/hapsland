@@ -9,8 +9,8 @@ import {
 
 const sentinel = new Error("head accessed before validation")
 for (const [tag, property] of [
-  ["Types.ProductArray", "items"],
-  ["Types.ProductObject", "fields"]
+  ["../../../../source-artifacts/src/direct-event/value/Value.ProductArray", "items"],
+  ["../../../../source-artifacts/src/direct-event/value/Value.ProductObject", "fields"]
 ]) {
   const spine = {
     $: "Con",
@@ -28,15 +28,27 @@ for (const [tag, property] of [
 }
 for (const value of [-0, 0, NaN, Infinity, -Infinity, Number.MIN_VALUE, Number.MAX_VALUE])
   assert.ok(Object.is(fromBinary64(binary64(value)), value))
-const callable = Object.assign(() => {}, { $: "Types.ProductText", value: "callable constructor" })
+const callable = Object.assign(() => {}, {
+  $: "../../../../source-artifacts/src/direct-event/value/Value.ProductText",
+  value: "callable constructor"
+})
 assert.equal(fromProductValue(callable), "callable constructor")
 const input = JSON.parse('{"__proto__":{"nested":[true,null,"value"]},"z":1,"a":2}')
 assert.deepEqual(fromProductValue(productValue(input)), input)
 assert.deepEqual(Object.keys(fromProductValue(productValue(input))), ["__proto__", "z", "a"])
-const duplicate = { $: "Types.OrderedField", key: "same", value: productValue(1) }
-assert.throws(() => fromProductValue({ $: "Types.ProductObject", fields: list([duplicate, duplicate]) }), {
-  message: "invalid product fields"
-})
+const duplicate = {
+  $: "../../../../source-artifacts/src/direct-event/value/Value.OrderedField",
+  key: "same",
+  value: productValue(1)
+}
+assert.throws(
+  () =>
+    fromProductValue({
+      $: "../../../../source-artifacts/src/direct-event/value/Value.ProductObject",
+      fields: list([duplicate, duplicate])
+    }),
+  { message: "invalid product fields" }
+)
 console.log(
   JSON.stringify({
     passed: true,

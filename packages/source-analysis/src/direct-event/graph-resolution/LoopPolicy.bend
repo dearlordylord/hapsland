@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./State.bend as S
@@ -50,7 +51,10 @@ def partial_allowed(+frame: T.ResolverFrame, reason: Graph.Reason) -> Bool:
     Bool.and(Nat.is_gt(files(S.frame_graph(frame)), 0n), frame_has_omission(frame))
   )
 
-def completion_product(product: Maybe<&2, T.ProductValue>, +state: T.ResolverState) -> Loop.Continuation:
+def completion_product(
+  product: Maybe<&2, ArtifactValue.ProductValue>,
+  +state: T.ResolverState
+) -> Loop.Continuation:
   match product:
     case None{}: Loop.ServiceStep{T.FailedResolver{T.MalformedReply{}}}
     case Some{+value}: Loop.ServiceStep{
@@ -152,7 +156,10 @@ def deadline(frame: Maybe<&2, T.ResolverFrame>) -> Loop.Continuation:
     case Some{frame}: Loop.ServiceStep{T.FinishedResolver{
       T.NoReviewUnit{}, Some{S.advance(frame, Graph.DeadlineReached{})}}}
 
-def iteration_language(language: Maybe<&2, T.Language>, +state: T.ResolverState) -> Loop.Continuation:
+def iteration_language(
+  language: Maybe<&2, T.Language>,
+  +state: T.ResolverState
+) -> Loop.Continuation:
   match language:
     case Some{T.PythonLanguage{}}: Loop.PythonIteration{state}
     case _: iteration_frame(S.state_frame(state), state)
@@ -163,22 +170,25 @@ def iteration(expired: Bool, +state: T.ResolverState) -> Loop.Continuation:
     case False{}:
       iteration_language(S.state_language(state), state)
 
-def elapsed(bits: T.Binary64, state: T.ResolverState) -> Loop.Continuation:
+def elapsed(bits: ArtifactValue.Binary64, state: T.ResolverState) -> Loop.Continuation:
   iteration(Clock.expired(bits), state)
 
-def finished_product(product: Maybe<&2, T.ProductValue>, frame: T.ResolverFrame) -> T.ResolverStep:
+def finished_product(
+  product: Maybe<&2, ArtifactValue.ProductValue>,
+  frame: T.ResolverFrame
+) -> T.ResolverStep:
   match product:
     case None{}: T.FailedResolver{T.MalformedReply{}}
     case Some{value}: T.FinishedResolver{T.ReviewUnitResult{value}, Some{frame}}
 
 def completion_bytes(allowed: Bool, frame: T.ResolverFrame,
-    product: Maybe<&2, T.ProductValue>) -> T.ResolverStep:
+    product: Maybe<&2, ArtifactValue.ProductValue>) -> T.ResolverStep:
   match allowed:
     case False{}: T.FinishedResolver{T.NoReviewUnit{}, Some{frame}}
     case True{}: finished_product(product, frame)
 
 def measured_frame(frame: Maybe<&2, T.ResolverFrame>, bytes: Nat,
-    product: Maybe<&2, T.ProductValue>) -> T.ResolverStep:
+    product: Maybe<&2, ArtifactValue.ProductValue>) -> T.ResolverStep:
   match frame:
     case None{}: T.FailedResolver{T.MalformedReply{}}
     case Some{+frame}: completion_bytes(

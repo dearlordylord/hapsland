@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../Types.bend as T
 import ../Protocol.bend as Protocol
@@ -5,7 +6,10 @@ import ../Protocol.bend as Protocol
 # Exact staticRoot policy over raw TOML-engine values; the host only normalizes
 # and observes path primitives. Date records match native record(Date) == {}.
 type Directive is Data:
-  Directive{discovered_text: Maybe<&2, String>, mapping: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>}
+  Directive{
+    discovered_text: Maybe<&2, String>,
+    mapping: Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>
+  }
 type View is Data:
   Unsupported{}
   Supported{directive: Directive}
@@ -16,7 +20,7 @@ type Stage is Data:
   CheckingMapping{}
 type State is Data:
   State{
-    mapping: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>,
+    mapping: Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>,
     discovered: Maybe<&2, String>,
     path: String,
     separator: String,
@@ -29,11 +33,14 @@ type Step is Data:
   Returned{root: Maybe<&2, String>, next_request: Nat}
   Failed{failure: T.TechnicalFailure}
 
-def state_mapping(state: State) -> Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>:
+def state_mapping(state: State) -> Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>:
   match state:
     case State{mapping, _, _, _, _, _, _}: mapping
 
-def with_mapping(state: State, replacement: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>) -> State:
+def with_mapping(
+  state: State,
+  replacement: Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>
+) -> State:
   match state:
     case State{_, discovered, path, separator, invocation, next_request, stage}:
       State{replacement, discovered, path, separator, invocation, next_request, stage}
@@ -92,19 +99,27 @@ def with_stage(state: State, replacement: Stage) -> State:
     case State{mapping, discovered, path, separator, invocation, next_request, _}:
       State{mapping, discovered, path, separator, invocation, next_request, replacement}
 
-def record(value: Maybe<&2, T.TomlValue>) -> Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>:
+def record(
+  value: Maybe<&2, T.TomlValue>
+) -> Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>:
   match value:
     case Some{T.TomlRecord{fields}}: Some{fields}
     case Some{T.TomlDate{_}}: Some{[]}
     case _: None{}
 
-def field(fields: List<&2, T.OrderedField<T.TomlValue>>, +key: String) -> Maybe<&2, T.TomlValue>:
+def field(
+  fields: List<&2, ArtifactValue.OrderedField<T.TomlValue>>,
+  +key: String
+) -> Maybe<&2, T.TomlValue>:
   match fields:
     case []: None{}
-    case T.OrderedField{name, value} <> tail:
+    case ArtifactValue.OrderedField{name, value} <> tail:
       Bool.pick(Maybe<&2, T.TomlValue>, String.eq(name, key), Some{value}, field(tail, key))
 
-def record_field(record: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>, key: String) -> Maybe<&2, T.TomlValue>:
+def record_field(
+  record: Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>,
+  key: String
+) -> Maybe<&2, T.TomlValue>:
   match record:
     case None{}: None{}
     case Some{fields}: field(fields, key)
@@ -117,7 +132,10 @@ def present(value: Maybe<&2, T.TomlValue>) -> Bool:
     case None{}: False{}
     case Some{_}: True{}
 
-def discovered_value(value: Maybe<&2, T.TomlValue>, mapping: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>) -> View:
+def discovered_value(
+  value: Maybe<&2, T.TomlValue>,
+  mapping: Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>
+) -> View:
   match value:
     case None{}: Supported{Directive{None{}, mapping}}
     case Some{T.TomlArray{T.TomlString{text} <> []}}: Supported{Directive{Some{text}, mapping}}
@@ -128,7 +146,10 @@ def allowed(allowed: Bool, +tool: Maybe<&2, T.TomlValue>) -> View:
     case False{}: Unsupported{}
     case True{}:
       +setuptools = get(tool, "setuptools")
-      discovered_value(get(get(get(setuptools, "packages"), "find"), "where"), record(get(setuptools, "package-dir")))
+      discovered_value(
+        get(get(get(setuptools, "packages"), "find"), "where"),
+        record(get(setuptools, "package-dir"))
+      )
 
 def view(syntax: T.TomlValue) -> View:
   +tool = get(Some{syntax}, "tool")
@@ -147,13 +168,19 @@ def default_root(discovered: Maybe<&2, String>) -> String:
     case None{}: "."
     case Some{root}: root
 
-def mapping_fields(fields: List<&2, T.OrderedField<T.TomlValue>>, +state: State) -> Step:
+def mapping_fields(
+  fields: List<&2, ArtifactValue.OrderedField<T.TomlValue>>,
+  +state: State
+) -> Step:
   match fields:
-    case T.OrderedField{"", T.TomlString{text}} <> []:
+    case ArtifactValue.OrderedField{"", T.TomlString{text}} <> []:
       request(state, NormalizingMapping{}, T.PathNormalize{text})
     case _: returned(state, None{})
 
-def validate_mapping(value: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>, +state: State) -> Step:
+def validate_mapping(
+  value: Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>,
+  +state: State
+) -> Step:
   match value:
     case None{}: returned(state, Some{default_root(state_discovered(state))})
     case Some{fields}: mapping_fields(fields, state)
@@ -162,7 +189,12 @@ def component_count(path: String, +separator: String) -> Nat:
   match path:
     case SNil{}: 1n
     case SCon{head, +tail}:
-      (component_count(tail, separator) + Bool.pick(Nat, String.eq(SCon{head, SNil{}}, separator), 1n, 0n) : Nat)
+      (component_count(tail, separator) + Bool.pick(
+        Nat,
+        String.eq(SCon{head, SNil{}}, separator),
+        1n,
+        0n
+      ) : Nat)
 
 def within(+path: String, +separator: String, absolute: Bool) -> Bool:
   Bool.and(Bool.not(absolute), Bool.and(Bool.not(String.eq(path, "..")),
@@ -177,7 +209,10 @@ def mapping_equal(discovered: Maybe<&2, String>, path: String) -> Bool:
 def discovered_allowed(allowed: Bool, +state: State) -> Step:
   match allowed:
     case False{}: returned(state, None{})
-    case True{}: validate_mapping(state_mapping(state), with_discovered(state, Some{state_path(state)}))
+    case True{}: validate_mapping(
+      state_mapping(state),
+      with_discovered(state, Some{state_path(state)})
+    )
 
 def mapped_allowed(allowed: Bool, +state: State) -> Step:
   match allowed:
@@ -186,10 +221,18 @@ def mapped_allowed(allowed: Bool, +state: State) -> Step:
 
 def apply_outcome(stage: Stage, +state: State, outcome: T.ServiceOutcome) -> Step:
   match stage outcome:
-    case NormalizingDiscovered{} T.NormalizedResult{+path}: request(with_path(state, path), CheckingDiscovered{}, T.PathIsAbsolute{path})
+    case NormalizingDiscovered{} T.NormalizedResult{+path}: request(
+      with_path(state, path),
+      CheckingDiscovered{},
+      T.PathIsAbsolute{path}
+    )
     case CheckingDiscovered{} T.AbsoluteResult{absolute}: discovered_allowed(
       within(state_path(state), state_separator(state), absolute), state)
-    case NormalizingMapping{} T.NormalizedResult{+path}: request(with_path(state, path), CheckingMapping{}, T.PathIsAbsolute{path})
+    case NormalizingMapping{} T.NormalizedResult{+path}: request(
+      with_path(state, path),
+      CheckingMapping{},
+      T.PathIsAbsolute{path}
+    )
     case CheckingMapping{} T.AbsoluteResult{absolute}: mapped_allowed(
       Bool.and(within(state_path(state), state_separator(state), absolute),
         mapping_equal(state_discovered(state), state_path(state))), state)
@@ -210,7 +253,10 @@ def begin_view(view: View, separator: String, invocation: Nat, next_request: Nat
   match view:
     case Unsupported{}: Returned{None{}, next_request}
     case Supported{Directive{None{}, +mapping}}:
-      validate_mapping(mapping, State{mapping, None{}, "", separator, invocation, next_request, NormalizingMapping{}})
+      validate_mapping(
+        mapping,
+        State{mapping, None{}, "", separator, invocation, next_request, NormalizingMapping{}}
+      )
     case Supported{Directive{Some{+text}, mapping}}: request(
       State{mapping, None{}, "", separator, invocation, next_request, NormalizingDiscovered{}},
       NormalizingDiscovered{}, T.PathNormalize{text})

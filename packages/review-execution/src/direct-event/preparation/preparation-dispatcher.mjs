@@ -1,6 +1,7 @@
 // Bend 2.0.36 names imported constructors relative to the emitting owner.
-// The resolver interface has one Types/Local declaration owner; this conversion
-// only rebases those constructor names at the preparation artifact boundary.
+// Resolver Types/Local retain their graph owners; artifact values have one lower
+// Value owner. This boundary rebases graph names; Value names already match
+// the preparation artifact root.
 const importedTags = [
   ["Types.", "../../../../source-analysis/src/direct-event/graph-resolution/Types."],
   ["./traversal/core.", "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."]

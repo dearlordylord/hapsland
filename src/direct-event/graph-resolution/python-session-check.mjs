@@ -1,3 +1,4 @@
+import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, appendFile, readFile as __readFile, lstat, rm } from "node:fs/promises"
@@ -13,14 +14,13 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import {
   inspectSourceFrontend,
   parsePythonSyntax,
   parseCargoSyntax
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
 import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
-const t = (name, fields = {}) => ({ $: "Types." + name, ...fields }),
+const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields }),
   p = (name, fields = {}) => ({ $: "python-module/PreparationMachine." + name, ...fields })
 const temp = await mkdtemp("/tmp/hapsland-python-persistent-session-")

@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./State.bend as S
@@ -49,7 +50,7 @@ def attached_frame(attachment: Compose.Attachment, frame: T.ResolverFrame) -> T.
         budget
       )
 
-def request_candidate(product: Maybe<&2, T.ProductValue>, child: T.TentativeChild,
+def request_candidate(product: Maybe<&2, ArtifactValue.ProductValue>, child: T.TentativeChild,
     ids: List<&2, Nat>, previous: Nat, +state: T.ResolverState) -> Loop.Continuation:
   match product:
     case None{}: ResolveOwner.malformed()

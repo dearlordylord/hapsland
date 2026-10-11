@@ -1,3 +1,4 @@
+import { artifactValueTag } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm } from "node:fs/promises"
@@ -246,7 +247,7 @@ try {
   let activeState,
     fences = 0,
     terminalSuffixes = 0
-  const t = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+  const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
   const guarded = {
     ...machine,
     view(state) {

@@ -4,7 +4,6 @@ import ./ReferenceAttachmentFrameProjection.bend as Frame
 import ../ExpansionSpecification.bend as X
 import ../ExpansionDriverSpecification.bend as D
 import ../SPEC.bend as Root
-import ../Types.bend as T
 
 # View-only staging. The independent interpreter retains child.pending until
 # admission; the actual machine registers it before EncodeProduct. This moves

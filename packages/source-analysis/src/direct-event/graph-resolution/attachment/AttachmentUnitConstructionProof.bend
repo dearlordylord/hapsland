@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentBuildProductsTransport.bend as Products
 import ../Core.bend as Core
@@ -12,45 +13,45 @@ def bind_assoc(-A: Data, -B: Data, -C: Data, value: Maybe<&2, A>,
     case None{}: {==}
     case Some{_}: {==}
 
-def select(+root: Nat, +dependencies: List<&2, String>, built: Map<&2, Maybe<&2, T.ProductValue>>) -> Maybe<&2, T.ProductValue>:
-  Core.bind(T.ProductValue, T.ProductValue,
-    Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(root)),
+def select(+root: Nat, +dependencies: List<&2, String>, built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>) -> Maybe<&2, ArtifactValue.ProductValue>:
+  Core.bind(ArtifactValue.ProductValue, ArtifactValue.ProductValue,
+    Core.map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, built, Nat.show(root)),
     value => Some{Core.unit_product(value, dependencies)})
 
 def factored(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>, +deps: List<&2, String>) ->
     {Core.review_unit(root, nodes, slots, artifacts, deps)
-      == Core.bind(Map<&2, Maybe<&2, T.ProductValue>>, T.ProductValue,
-        Products.products(nodes, slots, artifacts), built => select(root, deps, built)) : Maybe<&2, T.ProductValue>}:
-  Equal.sym(Maybe<&2, T.ProductValue>,
-    Core.bind(Map<&2, Maybe<&2, T.ProductValue>>, T.ProductValue,
+      == Core.bind(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, ArtifactValue.ProductValue,
+        Products.products(nodes, slots, artifacts), built => select(root, deps, built)) : Maybe<&2, ArtifactValue.ProductValue>}:
+  Equal.sym(Maybe<&2, ArtifactValue.ProductValue>,
+    Core.bind(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, ArtifactValue.ProductValue,
       Products.products(nodes, slots, artifacts), built => select(root, deps, built)),
     Core.review_unit(root, nodes, slots, artifacts, deps),
-    bind_assoc(Map<&2, Maybe<&2, T.Artifact>>, Map<&2, Maybe<&2, T.ProductValue>>, T.ProductValue,
+    bind_assoc(Map<&2, Maybe<&2, T.Artifact>>, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, ArtifactValue.ProductValue,
       Core.index_artifacts(artifacts, MTip{}),
       indexed => Core.build_products(List.reverse(&2, Local.PlannedNode, nodes),
         Core.group_references(List.reverse(&2, Local.ReferenceSlot, slots), MTip{}), indexed, MTip{}),
       built => select(root, deps, built)))
 
-def selected(+root: Nat, +deps: List<&2, String>, +built: Map<&2, Maybe<&2, T.ProductValue>>, +value: T.ProductValue,
-    present: {Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(root)) == Some{value} : Maybe<&2, T.ProductValue>}) ->
-    {select(root, deps, built) == Some{Core.unit_product(value, deps)} : Maybe<&2, T.ProductValue>}:
-  %Equal.sym(Maybe<&2, T.ProductValue>, Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(root)), Some{value}, present):
-    {Core.bind(T.ProductValue, T.ProductValue, _, selected => Some{Core.unit_product(selected, deps)})
-      == Some{Core.unit_product(value, deps)} : Maybe<&2, T.ProductValue>}
+def selected(+root: Nat, +deps: List<&2, String>, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +value: ArtifactValue.ProductValue,
+    present: {Core.map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, built, Nat.show(root)) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>}) ->
+    {select(root, deps, built) == Some{Core.unit_product(value, deps)} : Maybe<&2, ArtifactValue.ProductValue>}:
+  %Equal.sym(Maybe<&2, ArtifactValue.ProductValue>, Core.map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, built, Nat.show(root)), Some{value}, present):
+    {Core.bind(ArtifactValue.ProductValue, ArtifactValue.ProductValue, _, selected => Some{Core.unit_product(selected, deps)})
+      == Some{Core.unit_product(value, deps)} : Maybe<&2, ArtifactValue.ProductValue>}
   {==}
 
 def completed(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
-    +artifacts: List<&2, T.ArtifactEntry>, +deps: List<&2, String>, +built: Map<&2, Maybe<&2, T.ProductValue>>, +value: T.ProductValue,
-    done: {Products.products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>},
-    present: {Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(root)) == Some{value} : Maybe<&2, T.ProductValue>}) ->
-    {Core.review_unit(root, nodes, slots, artifacts, deps) == Some{Core.unit_product(value, deps)} : Maybe<&2, T.ProductValue>}:
-  %Equal.sym(Maybe<&2, T.ProductValue>, Core.review_unit(root, nodes, slots, artifacts, deps),
-    Core.bind(Map<&2, Maybe<&2, T.ProductValue>>, T.ProductValue, Products.products(nodes, slots, artifacts), built => select(root, deps, built)),
-    factored(root, nodes, slots, artifacts, deps)): {_ == Some{Core.unit_product(value, deps)} : Maybe<&2, T.ProductValue>}
-  %Equal.sym(Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>, Products.products(nodes, slots, artifacts), Some{built}, done):
-    {Core.bind(Map<&2, Maybe<&2, T.ProductValue>>, T.ProductValue, _, selected => select(root, deps, selected))
-      == Some{Core.unit_product(value, deps)} : Maybe<&2, T.ProductValue>}
+    +artifacts: List<&2, T.ArtifactEntry>, +deps: List<&2, String>, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +value: ArtifactValue.ProductValue,
+    done: {Products.products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>},
+    present: {Core.map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, built, Nat.show(root)) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>}) ->
+    {Core.review_unit(root, nodes, slots, artifacts, deps) == Some{Core.unit_product(value, deps)} : Maybe<&2, ArtifactValue.ProductValue>}:
+  %Equal.sym(Maybe<&2, ArtifactValue.ProductValue>, Core.review_unit(root, nodes, slots, artifacts, deps),
+    Core.bind(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, ArtifactValue.ProductValue, Products.products(nodes, slots, artifacts), built => select(root, deps, built)),
+    factored(root, nodes, slots, artifacts, deps)): {_ == Some{Core.unit_product(value, deps)} : Maybe<&2, ArtifactValue.ProductValue>}
+  %Equal.sym(Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>, Products.products(nodes, slots, artifacts), Some{built}, done):
+    {Core.bind(Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, ArtifactValue.ProductValue, _, selected => select(root, deps, selected))
+      == Some{Core.unit_product(value, deps)} : Maybe<&2, ArtifactValue.ProductValue>}
   selected(root, deps, built, value, present)
 
 def main() -> Unit:

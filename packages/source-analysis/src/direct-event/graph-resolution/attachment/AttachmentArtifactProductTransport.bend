@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../RuntimeNatProof.bend as NatFacts
 import ../traversal/INTERPRETER_ORDER_PROOF.bend as BoolFacts
@@ -26,23 +27,23 @@ def kind_exact(kind: T.ArtifactKind) -> {Core.artifact_kind(kind) == F.kind_name
 
 def optional_origin_exact(+origin: Maybe<&2, T.BundledOrigin>,
     valid: {Validation.valid_origin(origin) == True{} : Bool}) ->
-    {Core.optional_origin(origin) == Maybe.map(&2, T.BundledOrigin, T.OrderedField<T.ProductValue>,
+    {Core.optional_origin(origin) == Maybe.map(&2, T.BundledOrigin, ArtifactValue.OrderedField<ArtifactValue.ProductValue>,
       value => F.field("origin", F.origin_product(value)), origin)
-      : Maybe<&2, T.OrderedField<T.ProductValue>>}:
+      : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}:
   match origin:
     case None{}: {==}
     case Some{+value}:
-      %Equal.sym(Maybe<&2, T.ProductValue>, Core.origin_product(value), Some{F.origin_product(value)}, Origin.origin_product_total(value, valid)):
-        {Core.bind(T.ProductValue, T.OrderedField<T.ProductValue>, _,
+      %Equal.sym(Maybe<&2, ArtifactValue.ProductValue>, Core.origin_product(value), Some{F.origin_product(value)}, Origin.origin_product_total(value, valid)):
+        {Core.bind(ArtifactValue.ProductValue, ArtifactValue.OrderedField<ArtifactValue.ProductValue>, _,
           result => Some{Core.field("origin", result)})
           == Some{F.field("origin", F.origin_product(value))}
-          : Maybe<&2, T.OrderedField<T.ProductValue>>}
+          : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}
       {==}
 
 def origin_field_exact(+artifact: T.Artifact,
     valid: {Validation.valid_origin(origin_of(artifact)) == True{} : Bool}) ->
     {Core.artifact_field(artifact, T.OriginKey{}) == F.artifact_field(T.OriginKey{}, artifact)
-      : Maybe<&2, T.OrderedField<T.ProductValue>>}:
+      : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}:
   match artifact:
     case T.Artifact{+origin, _, _, _, _, _, _, _}:
       match origin:
@@ -51,7 +52,7 @@ def origin_field_exact(+artifact: T.Artifact,
 
 def path_field_exact(+artifact: T.Artifact) ->
     {Core.artifact_field(artifact, T.ArtifactPathKey{}) == F.artifact_field(T.ArtifactPathKey{}, artifact)
-      : Maybe<&2, T.OrderedField<T.ProductValue>>}:
+      : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}:
   match artifact:
     case T.Artifact{_, +path, _, _, _, _, _, _}:
       match path:
@@ -61,7 +62,7 @@ def path_field_exact(+artifact: T.Artifact) ->
 def field_exact(+artifact: T.Artifact, +key: T.ArtifactKey,
     valid: {Validation.valid_origin(origin_of(artifact)) == True{} : Bool}) ->
     {Core.artifact_field(artifact, key) == F.artifact_field(key, artifact)
-      : Maybe<&2, T.OrderedField<T.ProductValue>>}:
+      : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}:
   match artifact:
     case T.Artifact{+origin, +path, _, +kind, _, _, _, _}:
       match key:
@@ -70,7 +71,7 @@ def field_exact(+artifact: T.Artifact, +key: T.ArtifactKey,
         case T.ArtifactPathKey{}:
           path_field_exact(artifact)
         case T.ArtifactKindKey{}:
-          Equal.cong(String, Maybe<&2, T.OrderedField<T.ProductValue>>,
+          Equal.cong(String, Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
             value => Some{F.field("kind", F.text(value))},
             Core.artifact_kind(kind), F.kind_name(kind), kind_exact(kind))
         case T.ArtifactIdKey{}: {==}
@@ -78,13 +79,13 @@ def field_exact(+artifact: T.Artifact, +key: T.ArtifactKey,
         case T.ArtifactSourceKey{}: {==}
         case T.ArtifactHashKey{}: {==}
 
-def optional_fields_exact(+head: Maybe<&2, T.OrderedField<T.ProductValue>>,
-    +tail: Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>) ->
-    {Core.bind(T.OrderedField<T.ProductValue>, List<&2, T.OrderedField<T.ProductValue>>, head,
-      value => Core.bind(List<&2, T.OrderedField<T.ProductValue>>,
-        List<&2, T.OrderedField<T.ProductValue>>, tail,
+def optional_fields_exact(+head: Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
+    +tail: Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>) ->
+    {Core.bind(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, head,
+      value => Core.bind(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
+        List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, tail,
         rest => Some{Con{value, rest}})) == F.optional_field(head, tail)
-      : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}:
+      : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}:
   match head tail:
     case None{} _: {==}
     case Some{_} None{}: {==}
@@ -93,24 +94,24 @@ def optional_fields_exact(+head: Maybe<&2, T.OrderedField<T.ProductValue>>,
 def fields_exact(+artifact: T.Artifact, +order: List<&2, T.ArtifactKey>,
     +valid: {Validation.valid_origin(origin_of(artifact)) == True{} : Bool}) ->
     {Core.artifact_fields(artifact, order) == F.artifact_fields(order, artifact)
-      : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}:
+      : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}:
   match order:
     case Nil{}: {==}
     case Con{+head, +tail}:
       %field_exact(artifact, head, valid):
-        {Core.bind(T.OrderedField<T.ProductValue>, List<&2, T.OrderedField<T.ProductValue>>,
+        {Core.bind(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
           Core.artifact_field(artifact, head), value =>
-            Core.bind(List<&2, T.OrderedField<T.ProductValue>>, List<&2, T.OrderedField<T.ProductValue>>,
+            Core.bind(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
               Core.artifact_fields(artifact, tail), rest => Some{Con{value, rest}}))
           == F.optional_field(_, F.artifact_fields(tail, artifact))
-          : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}
+          : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}
       %fields_exact(artifact, tail, valid):
-        {Core.bind(T.OrderedField<T.ProductValue>, List<&2, T.OrderedField<T.ProductValue>>,
+        {Core.bind(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
           Core.artifact_field(artifact, head), value =>
-            Core.bind(List<&2, T.OrderedField<T.ProductValue>>, List<&2, T.OrderedField<T.ProductValue>>,
+            Core.bind(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
               Core.artifact_fields(artifact, tail), rest => Some{Con{value, rest}}))
           == F.optional_field(Core.artifact_field(artifact, head), _)
-          : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}
+          : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}
       optional_fields_exact(Core.artifact_field(artifact, head), Core.artifact_fields(artifact, tail))
 
 def successor_not_zero(+n: Nat, equality: {1n+n == 0n : Nat}) -> Empty:
@@ -157,35 +158,35 @@ def path_allowed_tail(+path: Maybe<&2, String>, +head: T.ArtifactKey,
 
 def origin_success(+artifact: T.Artifact, +tail: List<&2, T.ArtifactKey>,
     allowed: origin_allowed(origin_of(artifact), Con{T.OriginKey{}, tail})) ->
-    Exists(T.OrderedField<T.ProductValue>, value => {F.artifact_field(T.OriginKey{}, artifact) == Some{value}
-      : Maybe<&2, T.OrderedField<T.ProductValue>>}):
+    Exists(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, value => {F.artifact_field(T.OriginKey{}, artifact) == Some{value}
+      : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}):
   match artifact:
     case T.Artifact{+origin, _, _, _, _, _, _, _}:
       match origin:
         case None{}:
-          Empty.absurd(Exists(T.OrderedField<T.ProductValue>, value => {F.artifact_field(T.OriginKey{}, artifact) == Some{value}
-            : Maybe<&2, T.OrderedField<T.ProductValue>>}),
+          Empty.absurd(Exists(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, value => {F.artifact_field(T.OriginKey{}, artifact) == Some{value}
+            : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}),
             successor_not_zero(Validation.count(Validation.artifact_keys(tail), 0n), allowed))
         case Some{value}: Tuple{F.field("origin", F.origin_product(value)), {==}}
 
 def path_success(+artifact: T.Artifact, +tail: List<&2, T.ArtifactKey>,
     allowed: path_allowed(path_of(artifact), Con{T.ArtifactPathKey{}, tail})) ->
-    Exists(T.OrderedField<T.ProductValue>, value => {F.artifact_field(T.ArtifactPathKey{}, artifact) == Some{value}
-      : Maybe<&2, T.OrderedField<T.ProductValue>>}):
+    Exists(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, value => {F.artifact_field(T.ArtifactPathKey{}, artifact) == Some{value}
+      : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}):
   match artifact:
     case T.Artifact{_, +path, _, _, _, _, _, _}:
       match path:
         case None{}:
-          Empty.absurd(Exists(T.OrderedField<T.ProductValue>, value => {F.artifact_field(T.ArtifactPathKey{}, artifact) == Some{value}
-            : Maybe<&2, T.OrderedField<T.ProductValue>>}),
+          Empty.absurd(Exists(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, value => {F.artifact_field(T.ArtifactPathKey{}, artifact) == Some{value}
+            : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}),
             successor_not_zero(Validation.count(Validation.artifact_keys(tail), 1n), allowed))
         case Some{value}: Tuple{F.field("path", F.text(value)), {==}}
 
 def field_success(+key: T.ArtifactKey, +artifact: T.Artifact, +tail: List<&2, T.ArtifactKey>,
     origin_ok: origin_allowed(origin_of(artifact), Con{key, tail}),
     path_ok: path_allowed(path_of(artifact), Con{key, tail})) ->
-    Exists(T.OrderedField<T.ProductValue>, value => {F.artifact_field(key, artifact) == Some{value}
-      : Maybe<&2, T.OrderedField<T.ProductValue>>}):
+    Exists(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, value => {F.artifact_field(key, artifact) == Some{value}
+      : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}):
   match key:
     case T.OriginKey{}: origin_success(artifact, tail, origin_ok)
     case T.ArtifactPathKey{}: path_success(artifact, tail, path_ok)
@@ -206,28 +207,28 @@ def field_success(+key: T.ArtifactKey, +artifact: T.Artifact, +tail: List<&2, T.
         case T.Artifact{_, _, _, _, _, _, value, _}: Tuple{F.field("sourceHash", F.text(value)), {==}}
 
 def prepend_success(+artifact: T.Artifact, +key: T.ArtifactKey, +tail: List<&2, T.ArtifactKey>,
-    head_result: Exists(T.OrderedField<T.ProductValue>, value => {F.artifact_field(key, artifact) == Some{value}
-      : Maybe<&2, T.OrderedField<T.ProductValue>>}),
-    tail_result: Exists(List<&2, T.OrderedField<T.ProductValue>>, value => {F.artifact_fields(tail, artifact) == Some{value}
-      : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>})) ->
-    Exists(List<&2, T.OrderedField<T.ProductValue>>, value => {F.artifact_fields(Con{key, tail}, artifact) == Some{value}
-      : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}):
+    head_result: Exists(ArtifactValue.OrderedField<ArtifactValue.ProductValue>, value => {F.artifact_field(key, artifact) == Some{value}
+      : Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>}),
+    tail_result: Exists(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, value => {F.artifact_fields(tail, artifact) == Some{value}
+      : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>})) ->
+    Exists(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, value => {F.artifact_fields(Con{key, tail}, artifact) == Some{value}
+      : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}):
   match head_result tail_result:
     case Tuple{+head, head_equal} Tuple{+rest, tail_equal}:
       Tuple{Con{head, rest},
-        %Equal.sym(Maybe<&2, T.OrderedField<T.ProductValue>>, F.artifact_field(key, artifact), Some{head}, head_equal):
+        %Equal.sym(Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, F.artifact_field(key, artifact), Some{head}, head_equal):
           {F.optional_field(_, F.artifact_fields(tail, artifact)) == Some{Con{head, rest}}
-            : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}
-        %Equal.sym(Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>, F.artifact_fields(tail, artifact), Some{rest}, tail_equal):
+            : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}
+        %Equal.sym(Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>, F.artifact_fields(tail, artifact), Some{rest}, tail_equal):
           {F.optional_field(Some{head}, _) == Some{Con{head, rest}}
-            : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}
+            : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}
         {==}}
 
 def fields_success(+order: List<&2, T.ArtifactKey>, +artifact: T.Artifact,
     +origin_ok: origin_allowed(origin_of(artifact), order),
     +path_ok: path_allowed(path_of(artifact), order)) ->
-    Exists(List<&2, T.OrderedField<T.ProductValue>>, value => {F.artifact_fields(order, artifact) == Some{value}
-      : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}):
+    Exists(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, value => {F.artifact_fields(order, artifact) == Some{value}
+      : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}):
   match order:
     case Nil{}: Tuple{Nil{}, {==}}
     case Con{+head, +tail}:
@@ -280,46 +281,46 @@ def order_of(artifact: T.Artifact) -> List<&2, T.ArtifactKey>:
     case T.Artifact{_, _, _, _, _, _, _, order}: order
 
 def finish_values(+artifact: T.Artifact, +valid: {Validation.artifact(artifact) == True{} : Bool},
-    +values: List<&2, T.OrderedField<T.ProductValue>>,
+    +values: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
     +equal: {F.artifact_fields(order_of(artifact), artifact) == Some{values}
-      : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>}) ->
-    Exists(T.ProductValue, value => {Core.artifact_product(artifact) == Some{value} : Maybe<&2, T.ProductValue>} &
-      {F.artifact(artifact) == Some{value} : Maybe<&2, T.ProductValue>}):
+      : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>}) ->
+    Exists(ArtifactValue.ProductValue, value => {Core.artifact_product(artifact) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
+      {F.artifact(artifact) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>}):
   match artifact:
     case T.Artifact{+origin, +path, +id, +kind, +name, +source, +hash, +order}:
       Tuple{F.object(values), (
         %Equal.sym(Bool, Validation.artifact(artifact), True{}, valid):
-          {Core.decide(Maybe<&2, T.ProductValue>, _,
-            _ => Core.bind(List<&2, T.OrderedField<T.ProductValue>>, T.ProductValue,
+          {Core.decide(Maybe<&2, ArtifactValue.ProductValue>, _,
+            _ => Core.bind(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, ArtifactValue.ProductValue,
               Core.artifact_fields(artifact, order), fields => Some{Core.object(fields)}),
-            _ => None{}) == Some{F.object(values)} : Maybe<&2, T.ProductValue>}
-        %Equal.sym(Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>, Core.artifact_fields(artifact, order), F.artifact_fields(order, artifact),
+            _ => None{}) == Some{F.object(values)} : Maybe<&2, ArtifactValue.ProductValue>}
+        %Equal.sym(Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>, Core.artifact_fields(artifact, order), F.artifact_fields(order, artifact),
           fields_exact(artifact, order, domain_origin_valid(Validation.artifact_keys(order), origin, path, valid))):
-          {Core.bind(List<&2, T.OrderedField<T.ProductValue>>, T.ProductValue, _, fields => Some{Core.object(fields)})
-            == Some{F.object(values)} : Maybe<&2, T.ProductValue>}
-        %Equal.sym(Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>, F.artifact_fields(order, artifact), Some{values}, equal):
-          {Core.bind(List<&2, T.OrderedField<T.ProductValue>>, T.ProductValue, _, fields => Some{Core.object(fields)})
-            == Some{F.object(values)} : Maybe<&2, T.ProductValue>}
+          {Core.bind(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, ArtifactValue.ProductValue, _, fields => Some{Core.object(fields)})
+            == Some{F.object(values)} : Maybe<&2, ArtifactValue.ProductValue>}
+        %Equal.sym(Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>, F.artifact_fields(order, artifact), Some{values}, equal):
+          {Core.bind(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, ArtifactValue.ProductValue, _, fields => Some{Core.object(fields)})
+            == Some{F.object(values)} : Maybe<&2, ArtifactValue.ProductValue>}
         {==},
-        %Equal.sym(Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>, F.artifact_fields(order, artifact), Some{values}, equal):
-          {Maybe.map(&2, List<&2, T.OrderedField<T.ProductValue>>, T.ProductValue, F.object, _) == Some{F.object(values)}
-            : Maybe<&2, T.ProductValue>}
+        %Equal.sym(Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>, F.artifact_fields(order, artifact), Some{values}, equal):
+          {Maybe.map(&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, ArtifactValue.ProductValue, F.object, _) == Some{F.object(values)}
+            : Maybe<&2, ArtifactValue.ProductValue>}
         {==})}
 
 def finish_product(+artifact: T.Artifact, valid: {Validation.artifact(artifact) == True{} : Bool},
-    result: Exists(List<&2, T.OrderedField<T.ProductValue>>, value => {F.artifact_fields(order_of(artifact), artifact) == Some{value}
-      : Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>})) ->
-    Exists(T.ProductValue, value => {Core.artifact_product(artifact) == Some{value} : Maybe<&2, T.ProductValue>} &
-      {F.artifact(artifact) == Some{value} : Maybe<&2, T.ProductValue>}):
+    result: Exists(List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>, value => {F.artifact_fields(order_of(artifact), artifact) == Some{value}
+      : Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>})) ->
+    Exists(ArtifactValue.ProductValue, value => {Core.artifact_product(artifact) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
+      {F.artifact(artifact) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>}):
   match result:
     case Tuple{values, equal}: finish_values(artifact, valid, values, equal)
 
 law artifact_product_total:
   for +artifact: T.Artifact
   for valid: {Validation.artifact(artifact) == True{} : Bool}
-  Exists(T.ProductValue, value =>
-    {Core.artifact_product(artifact) == Some{value} : Maybe<&2, T.ProductValue>} &
-    {F.artifact(artifact) == Some{value} : Maybe<&2, T.ProductValue>})
+  Exists(ArtifactValue.ProductValue, value =>
+    {Core.artifact_product(artifact) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
+    {F.artifact(artifact) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>})
 
 def artifact_product_total(artifact, valid):
   match artifact:

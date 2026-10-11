@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./Core.bend as Materialize
@@ -81,7 +82,7 @@ def valid_declaration(+catalog: Catalog, +item: T.FactDeclaration, +bundled: Boo
   match item:
     case T.FactDeclaration{key, artifact, _, _}:
       Bool.and(Bool.not(declaration_present(catalog, key, bundled)),
-        Maybe.is_some(&2, T.ProductValue, Materialize.artifact_product(artifact)))
+        Maybe.is_some(&2, ArtifactValue.ProductValue, Materialize.artifact_product(artifact)))
 
 def catalog_declarations(items: List<&2, T.FactDeclaration>, +catalog: Catalog,
     +bundled: Bool) -> Maybe<&2, Catalog>:

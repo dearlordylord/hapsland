@@ -1,9 +1,9 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./RetainedForestProjection.bend as P
 import ../Core.bend as Core
 import ../ForestSpecification.bend as F
 import ../WholeObservation.bend as O
-import ../Types.bend as T
 import ../traversal/core.bend as Local
 
 # Proof-only invariant for the one materialization transport. Uses the real
@@ -22,19 +22,19 @@ def suffix_allowance(nodes: List<&2, Local.PlannedNode>,
 
 def rendered_node(+id: Nat, +suffix: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>,
-    +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>) -> Type:
+    +forest: F.Forest, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>) -> Type:
   Exists(O.NodeAddress, address =>
-    Exists(T.ProductValue, value =>
+    Exists(ArtifactValue.ProductValue, value =>
       {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>} &
-      {Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(id))
-        == Some{value} : Maybe<&2, T.ProductValue>} &
+      {Core.map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, built, Nat.show(id))
+        == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
       @+extra: Nat ->
         {F.materialize((suffix_allowance(suffix, slots) + extra : Nat), forest, address)
           == F.Materialized{value} : F.Materialization}))
 
 def rendered_suffix(nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>,
-    +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>) -> Type:
+    +forest: F.Forest, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>) -> Type:
   match nodes:
     case Nil{}: Unit
     case Con{Local.PlannedNode{+id, +handle}, +tail}:

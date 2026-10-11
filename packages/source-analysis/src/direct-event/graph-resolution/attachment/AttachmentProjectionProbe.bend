@@ -3,7 +3,6 @@ import ./AttachmentMapping.bend as Mapping
 import ./RetainedForestProjection.bend as Projection
 import ../Composition.bend as Actual
 import ../ForestSpecification.bend as F
-import ../Types.bend as T
 import ../traversal/core.bend as Local
 
 def budget() -> Local.Budget:

@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./State.bend as S
@@ -46,7 +47,7 @@ def invalid(+state: T.ResolverState) -> Loop.Continuation:
 def begin(state: T.ResolverState, route: T.RustRoute, capture: T.CaptureToken) -> Loop.Continuation:
   Storage.inspect_route(route, capture, state)
 
-def role_modules(role: Bool, fields: List<&2, T.OrderedField<String>>) -> T.RustContext:
+def role_modules(role: Bool, fields: List<&2, ArtifactValue.OrderedField<String>>) -> T.RustContext:
   match role:
     case True{}: T.RustContext{Some{True{}}, None{}, Some{fields}}
     case False{}: T.RustContext{None{}, Some{True{}}, Some{fields}}
@@ -55,7 +56,11 @@ def role_done(+state: T.ResolverState) -> Loop.Continuation:
   +machine = Rust.get(state)
   context = role_modules(
     S.work_role_root(S.state_rust_work(state)),
-    List.reverse(&2, T.OrderedField<String>, S.work_rebased_rev(S.state_rust_work(state)))
+    List.reverse(
+      &2,
+      ArtifactValue.OrderedField<String>,
+      S.work_rebased_rev(S.state_rust_work(state))
+    )
   )
   done(
     Rust.set(
@@ -66,12 +71,12 @@ def role_done(+state: T.ResolverState) -> Loop.Continuation:
   )
 
 def rebase_next(
-  fields: List<&2, T.OrderedField<String>>,
+  fields: List<&2, ArtifactValue.OrderedField<String>>,
   +state: T.ResolverState
 ) -> Loop.Continuation:
   match fields:
     case []: role_done(state)
-    case T.OrderedField{+name, path} <> tail: Loop.ServiceStep{
+    case ArtifactValue.OrderedField{+name, path} <> tail: Loop.ServiceStep{
       S.request(
         S.with_state_rust_work(
           S.with_state_scratch(state, S.with_scratch_resolved_path(S.state_scratch(state), name)),
@@ -83,8 +88,8 @@ def rebase_next(
     }
 
 def route_map(
-  value: Maybe<&2, List<&2, T.OrderedField<String>>>
-) -> List<&2, T.OrderedField<String>>:
+  value: Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>
+) -> List<&2, ArtifactValue.OrderedField<String>>:
   match value:
     case None{}: []
     case Some{fields}: fields
@@ -100,7 +105,7 @@ def role_relative(+path: String, +state: T.ResolverState) -> Loop.Continuation:
       state,
       S.with_work_rebased_rev(
         S.state_rust_work(state),
-        T.OrderedField{
+        ArtifactValue.OrderedField{
           S.scratch_resolved_path(S.state_scratch(state)),
           Bool.pick(String, String.is_empty(path), ".", path)
         } <> S.work_rebased_rev(S.state_rust_work(state))
@@ -178,7 +183,11 @@ def map_names(names: List<&2, String>, +state: T.ResolverState) -> Loop.Continua
         S.with_route_modules(
           get(state),
           Some{
-            List.reverse(&2, T.OrderedField<String>, S.work_rebased_rev(S.state_rust_work(state)))
+            List.reverse(
+              &2,
+              ArtifactValue.OrderedField<String>,
+              S.work_rebased_rev(S.state_rust_work(state))
+            )
           }
         )
       )
@@ -204,7 +213,7 @@ def crate_directory(+path: String, +state: T.ResolverState) -> Loop.Continuation
   )
 
 def modules_map(
-  value: Maybe<&2, List<&2, T.OrderedField<String>>>,
+  value: Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>,
   +state: T.ResolverState
 ) -> Loop.Continuation:
   match value:
@@ -350,7 +359,7 @@ def reply(
         state,
         S.with_work_rebased_rev(
           S.state_rust_work(state),
-          T.OrderedField{
+          ArtifactValue.OrderedField{
             S.scratch_resolved_path(S.state_scratch(state)),
             path
           } <> S.work_rebased_rev(S.state_rust_work(state))

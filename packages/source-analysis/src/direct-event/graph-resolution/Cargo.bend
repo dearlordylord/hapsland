@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./Core.bend as Materialize
@@ -7,20 +8,25 @@ type BinaryResult is Data:
 
 # Cargo policy is pure. Path absoluteness, joins, relative spelling and file
 # status are subsequently requested by Bend, never selected in the TOML binding.
-def fields(value: Maybe<&2, T.TomlValue>) -> Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>:
+def fields(
+  value: Maybe<&2, T.TomlValue>
+) -> Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>:
   match value:
     case Some{T.TomlRecord{items}}: Some{items}
     case _: None{}
 
-def field(items: List<&2, T.OrderedField<T.TomlValue>>, +key: String) -> Maybe<&2, T.TomlValue>:
+def field(
+  items: List<&2, ArtifactValue.OrderedField<T.TomlValue>>,
+  +key: String
+) -> Maybe<&2, T.TomlValue>:
   match items:
     case []: None{}
-    case T.OrderedField{name, +value} <> tail:
+    case ArtifactValue.OrderedField{name, +value} <> tail:
       yes : Unit -> Maybe<&2, T.TomlValue> = _ => Some{value}
       no : Unit -> Maybe<&2, T.TomlValue> = _ => field(tail, key)
       Materialize.decide(Maybe<&2, T.TomlValue>, String.eq(name, key), yes, no)
 
-def has(items: List<&2, T.OrderedField<T.TomlValue>>, key: String) -> Bool:
+def has(items: List<&2, ArtifactValue.OrderedField<T.TomlValue>>, key: String) -> Bool:
   Maybe.is_some(&2, T.TomlValue, field(items, key))
 
 def nonempty_text(value: Maybe<&2, T.TomlValue>) -> Bool:
@@ -57,7 +63,7 @@ def build_allowed(value: Maybe<&2, T.TomlValue>) -> Bool:
     case Some{T.TomlBool{False{}}}: True{}
     case _: False{}
 
-def package_supported(+pkg: List<&2, T.OrderedField<T.TomlValue>>) -> Bool:
+def package_supported(+pkg: List<&2, ArtifactValue.OrderedField<T.TomlValue>>) -> Bool:
   Bool.and(
     nonempty_text(field(pkg, "name")),
     Bool.and(
@@ -91,7 +97,7 @@ def excluded_selection(+selected: String, +separator: String) -> Bool:
   )
 
 def manifest_supported(
-  +manifest: List<&2, T.OrderedField<T.TomlValue>>,
+  +manifest: List<&2, ArtifactValue.OrderedField<T.TomlValue>>,
   selected: String,
   separator: String
 ) -> Bool:
@@ -108,8 +114,8 @@ def optional_path(value: Maybe<&2, T.TomlValue>) -> Bool:
     case None{}: True{}
     case _: nonempty_text(value)
 
-def library_fields(value: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>,
-    +pkg: List<&2, T.OrderedField<T.TomlValue>>) -> Maybe<&2, List<&2, String>>:
+def library_fields(value: Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>,
+    +pkg: List<&2, ArtifactValue.OrderedField<T.TomlValue>>) -> Maybe<&2, List<&2, String>>:
   match value:
     case None{}: Bool.pick(
       Maybe<&2, List<&2, String>>,
@@ -123,7 +129,7 @@ def library_fields(value: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>,
 
 def library(
   value: Maybe<&2, T.TomlValue>,
-  pkg: List<&2, T.OrderedField<T.TomlValue>>
+  pkg: List<&2, ArtifactValue.OrderedField<T.TomlValue>>
 ) -> Maybe<&2, List<&2, String>>:
   match value:
     case None{}: library_fields(None{}, pkg)
@@ -201,9 +207,13 @@ def combined(library: Maybe<&2, List<&2, String>>, binaries: Maybe<&2, List<&2, 
     }
     case _ _: None{}
 
-def selected_pkg(pkg: Maybe<&2, List<&2, T.OrderedField<T.TomlValue>>>,
-    +manifest: List<&2, T.OrderedField<T.TomlValue>>, selected: String, separator: String,
-    limit: Nat) -> Maybe<&2, T.CargoPlan>:
+def selected_pkg(
+  pkg: Maybe<&2, List<&2, ArtifactValue.OrderedField<T.TomlValue>>>,
+  +manifest: List<&2, ArtifactValue.OrderedField<T.TomlValue>>,
+  selected: String,
+  separator: String,
+  limit: Nat
+) -> Maybe<&2, T.CargoPlan>:
   match pkg:
     case None{}: None{}
     case Some{+pkg}:

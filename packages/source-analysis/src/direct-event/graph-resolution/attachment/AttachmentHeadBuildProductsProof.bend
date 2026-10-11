@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentHeadSuffixConstructionProof.bend as SuffixBuild
 import ./AttachmentProjectedNodeModel.bend as Rows
@@ -22,59 +23,59 @@ def needed(+id: Nat, slots: List<&2, Local.ReferenceSlot>, demand: Nat) -> Nat:
 def constructed(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
     +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
     +groups: Map<&2, List<&2, Local.ReferenceSlot>>, +index: Map<&2, Maybe<&2, T.Artifact>>,
-    +built: Map<&2, Maybe<&2, T.ProductValue>>, +demand: Nat, +value: T.ProductValue) -> Type:
-  {Core.build_products([Local.PlannedNode{id, handle}], groups, index, built) == Some{SuffixBuild.updated(built, id, value)} : Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>} &
-  {Patricia.canonical(Maybe<&2, T.ProductValue>, SuffixBuild.updated(built, id, value)) == True{} : Bool} &
+    +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +demand: Nat, +value: ArtifactValue.ProductValue) -> Type:
+  {Core.build_products([Local.PlannedNode{id, handle}], groups, index, built) == Some{SuffixBuild.updated(built, id, value)} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
+  {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, SuffixBuild.updated(built, id, value)) == True{} : Bool} &
   Copies.copies(demand, Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, SuffixBuild.updated(built, id, value)))
 
 def assemble(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
     +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
     +groups: Map<&2, List<&2, Local.ReferenceSlot>>, +index: Map<&2, Maybe<&2, T.Artifact>>,
-    +built: Map<&2, Maybe<&2, T.ProductValue>>, +demand: Nat,
+    +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +demand: Nat,
     +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>,
-    +artifact_value: T.ProductValue, +values: List<&2, T.ProductValue>,
+    +artifact_value: ArtifactValue.ProductValue, +values: List<&2, ArtifactValue.ProductValue>,
     address_present: {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>},
     node_present: {F.node_at(Node.nodes_of(forest), address) == Some{F.Node{address, artifact, refs}} : Maybe<&2, F.Node>},
     projected: {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
     indexed: {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool},
     absent: {P.node_count(tail, id) == 0n : Nat},
-    +canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    +canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool},
     artifact_indexed: {Core.map_read(Maybe<&2, T.Artifact>, None{}, index, Nat.show(handle)) == Some{artifact} : Maybe<&2, T.Artifact>},
     grouped: {Core.map_read(List<&2, Local.ReferenceSlot>, [], groups, Nat.show(id)) == P.owner_slots(slots, id) : List<&2, Local.ReferenceSlot>},
-    artifact_actual: {Core.artifact_product(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
-    artifact_materialized: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
-    +actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>},
+    artifact_actual: {Core.artifact_product(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
+    artifact_materialized: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
+    +actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, ArtifactValue.ProductValue>>},
     resources: Copies.copies(Nat.mul(demand, Nat.add(References.expanded_count(P.owner_slots(slots, id)), 1n)), Suffix.rendered_suffix(tail, slots, addresses, forest, built))) ->
-    Exists(T.ProductValue, value => constructed(id, handle, tail, slots, addresses, forest, groups, index, built, demand, value)):
+    Exists(ArtifactValue.ProductValue, value => constructed(id, handle, tail, slots, addresses, forest, groups, index, built, demand, value)):
   Tuple{Node.node_value(artifact_value, values), Tuple{
     Node.build_head(id, handle, [], groups, index, built, artifact, artifact_value, values, artifact_indexed, artifact_actual,
       %Equal.sym(List<&2, Local.ReferenceSlot>, Core.map_read(List<&2, Local.ReferenceSlot>, [], groups, Nat.show(id)), P.owner_slots(slots, id), grouped):
-        {Core.reference_products(_, built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>}
+        {Core.reference_products(_, built) == Some{values} : Maybe<&2, List<&2, ArtifactValue.ProductValue>>}
       actual),
-    Tuple{Insert.set_preserves_canonical(Maybe<&2, T.ProductValue>, built, Nat.show(id), Some{Node.node_value(artifact_value, values)}, canonical),
+    Tuple{Insert.set_preserves_canonical(Maybe<&2, ArtifactValue.ProductValue>, built, Nat.show(id), Some{Node.node_value(artifact_value, values)}, canonical),
       SuffixBuild.many_suffixes(demand, id, handle, tail, slots, addresses, forest, built, address, artifact, refs, artifact_value, values,
         address_present, node_present, artifact_materialized, projected, actual, indexed, absent, canonical, resources)}}}
 
 def finish_references(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
     +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
     +groups: Map<&2, List<&2, Local.ReferenceSlot>>, +index: Map<&2, Maybe<&2, T.Artifact>>,
-    +built: Map<&2, Maybe<&2, T.ProductValue>>, +demand: Nat,
-    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: T.ProductValue,
+    +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +demand: Nat,
+    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: ArtifactValue.ProductValue,
     address_present: {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>},
     node_present: {F.node_at(Node.nodes_of(forest), address) == Some{F.Node{address, artifact, refs}} : Maybe<&2, F.Node>},
     projected: {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
     indexed: {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool},
     absent: {P.node_count(tail, id) == 0n : Nat},
-    canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool},
     artifact_indexed: {Core.map_read(Maybe<&2, T.Artifact>, None{}, index, Nat.show(handle)) == Some{artifact} : Maybe<&2, T.Artifact>},
     grouped: {Core.map_read(List<&2, Local.ReferenceSlot>, [], groups, Nat.show(id)) == P.owner_slots(slots, id) : List<&2, Local.ReferenceSlot>},
-    artifact_actual: {Core.artifact_product(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
-    artifact_materialized: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
-    common: Exists(List<&2, F.Reference>, fresh_refs => Exists(List<&2, T.ProductValue>, values =>
+    artifact_actual: {Core.artifact_product(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
+    artifact_materialized: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
+    common: Exists(List<&2, F.Reference>, fresh_refs => Exists(List<&2, ArtifactValue.ProductValue>, values =>
       References.list_common(P.owner_slots(slots, id), addresses, forest, built,
         Nat.add(1n+List.length(&2, Local.ReferenceSlot, P.owner_slots(slots, id)), Nat.add(Suffix.suffix_allowance(tail, slots), 1n)), fresh_refs, values))),
     resources: Copies.copies(Nat.mul(demand, Nat.add(References.expanded_count(P.owner_slots(slots, id)), 1n)), Suffix.rendered_suffix(tail, slots, addresses, forest, built))) ->
-    Exists(T.ProductValue, value => constructed(id, handle, tail, slots, addresses, forest, groups, index, built, demand, value)):
+    Exists(ArtifactValue.ProductValue, value => constructed(id, handle, tail, slots, addresses, forest, groups, index, built, demand, value)):
   match common:
     case (_, (values, (_, (actual, _)))):
       assemble(id, handle, tail, slots, addresses, forest, groups, index, built, demand, address, artifact, refs, artifact_value, values,
@@ -83,21 +84,21 @@ def finish_references(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>
 def finish_artifact(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
     +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
     +groups: Map<&2, List<&2, Local.ReferenceSlot>>, +index: Map<&2, Maybe<&2, T.Artifact>>,
-    +built: Map<&2, Maybe<&2, T.ProductValue>>, +demand: Nat,
+    +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +demand: Nat,
     +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>,
     address_present: {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>},
     node_present: {F.node_at(Node.nodes_of(forest), address) == Some{F.Node{address, artifact, refs}} : Maybe<&2, F.Node>},
     projected: {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
     +indexed: {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool},
     absent: {P.node_count(tail, id) == 0n : Nat},
-    canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool},
     artifact_indexed: {Core.map_read(Maybe<&2, T.Artifact>, None{}, index, Nat.show(handle)) == Some{artifact} : Maybe<&2, T.Artifact>},
     grouped: {Core.map_read(List<&2, Local.ReferenceSlot>, [], groups, Nat.show(id)) == P.owner_slots(slots, id) : List<&2, Local.ReferenceSlot>},
-    common: Exists(T.ProductValue, value =>
-      {Core.artifact_product(artifact) == Some{value} : Maybe<&2, T.ProductValue>} & {F.artifact(artifact) == Some{value} : Maybe<&2, T.ProductValue>}),
+    common: Exists(ArtifactValue.ProductValue, value =>
+      {Core.artifact_product(artifact) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} & {F.artifact(artifact) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>}),
     resources: Copies.copies(References.expanded_count(P.owner_slots(slots, id)), Suffix.rendered_suffix(tail, slots, addresses, forest, built)) &
       Copies.copies(Nat.mul(demand, Nat.add(References.expanded_count(P.owner_slots(slots, id)), 1n)), Suffix.rendered_suffix(tail, slots, addresses, forest, built))) ->
-    Exists(T.ProductValue, value => constructed(id, handle, tail, slots, addresses, forest, groups, index, built, demand, value)):
+    Exists(ArtifactValue.ProductValue, value => constructed(id, handle, tail, slots, addresses, forest, groups, index, built, demand, value)):
   match common resources:
     case Tuple{artifact_value, Tuple{artifact_actual, artifact_materialized}} Tuple{initial, remaining}:
       finish_references(id, handle, tail, slots, addresses, forest, groups, index, built, demand, address, artifact, refs, artifact_value,
@@ -107,13 +108,13 @@ def finish_artifact(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, 
 def construct_head(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
     +artifacts: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
     +groups: Map<&2, List<&2, Local.ReferenceSlot>>, +index: Map<&2, Maybe<&2, T.Artifact>>,
-    +built: Map<&2, Maybe<&2, T.ProductValue>>, +demand: Nat,
+    +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +demand: Nat,
     static: Rows.row(id, handle, tail, slots, artifacts, addresses, Node.nodes_of(forest)),
-    canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool},
     artifact_indexed: {Core.map_read(Maybe<&2, T.Artifact>, None{}, index, Nat.show(handle)) == F.artifact_at(artifacts, handle) : Maybe<&2, T.Artifact>},
     grouped: {Core.map_read(List<&2, Local.ReferenceSlot>, [], groups, Nat.show(id)) == P.owner_slots(slots, id) : List<&2, Local.ReferenceSlot>},
     resources: Copies.copies(needed(id, slots, demand), Suffix.rendered_suffix(tail, slots, addresses, forest, built))) ->
-    Exists(T.ProductValue, value => constructed(id, handle, tail, slots, addresses, forest, groups, index, built, demand, value)):
+    Exists(ArtifactValue.ProductValue, value => constructed(id, handle, tail, slots, addresses, forest, groups, index, built, demand, value)):
   match static:
     case (+address, (+artifact, (+refs, (address_present, (artifact_present, (projected, (node_present, (valid, (absent, indexed))))))))):
       finish_artifact(id, handle, tail, slots, addresses, forest, groups, index, built, demand, address, artifact, refs,

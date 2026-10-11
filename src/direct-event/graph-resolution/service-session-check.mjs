@@ -1,3 +1,12 @@
+import {
+  artifactValueTag,
+  binary64 as __binary64,
+  fromBinary64,
+  productValue,
+  fromProductValue,
+  list,
+  unlist
+} from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
@@ -8,14 +17,6 @@ import {
   createServiceSession,
   createServiceRegistry
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import {
-  binary64 as __binary64,
-  fromBinary64,
-  productValue,
-  fromProductValue,
-  list,
-  unlist
-} from "@hapsland/source-artifacts/direct-event/value/codec"
 import {
   sourceFacts,
   tomlValue
@@ -34,7 +35,7 @@ import { bendAdapter } from "../../../packages/source-analysis/dist/direct-event
 import { parse } from "smol-toml"
 const folder = import.meta.dirname,
   temporary = mkdtempSync("/tmp/hapsland-whole-resolver-services-")
-const tagged = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 try {
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
   const program = join(temporary, "../../../packages/source-analysis/src/direct-event/graph-resolution/services.js")

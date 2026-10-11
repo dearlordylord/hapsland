@@ -1,3 +1,4 @@
+import { artifactValueTag, binary64, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs"
@@ -11,7 +12,6 @@ import {
   createServiceSession,
   createServiceRegistry
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import { binary64, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import {
   inspectSourceFrontend,
   parseCargoSyntax,
@@ -33,7 +33,7 @@ import {
 import { createGraphFixtures } from "./fixtures.mjs"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),
-  tagged = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+  tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 try {
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
   const machinePath = join(temp, "machine.mjs")

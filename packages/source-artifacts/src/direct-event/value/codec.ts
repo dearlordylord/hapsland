@@ -1,17 +1,46 @@
+export const ARTIFACT_VALUE_PREFIX = "../../../../source-artifacts/src/direct-event/value/Value."
+const constructors = new Set([
+  "Binary64",
+  "OrderedField",
+  "ProductNull",
+  "ProductBool",
+  "ProductNumber",
+  "ProductText",
+  "ProductArray",
+  "ProductObject"
+])
+export const artifactValueTag = (name: string): string | undefined =>
+  constructors.has(name) ? ARTIFACT_VALUE_PREFIX + name : undefined
+
 // Mechanical representation of product payloads at the Bend boundary.
-// Constructor names follow the current emitted declaration owner.
-export type Binary64 = { readonly $: "Types.Binary64"; readonly high: number; readonly low: number }
+// Canonical names are those emitted from the graph/preparation artifact roots.
+// Deeper composition roots rebase this exact owner prefix at their boundary.
+export type Binary64 = {
+  readonly $: "../../../../source-artifacts/src/direct-event/value/Value.Binary64"
+  readonly high: number
+  readonly low: number
+}
 export type List<Value> =
   | { readonly $: "Nil" }
   | { readonly $: "Con"; readonly head: Value; readonly tail: List<Value> }
-export type OrderedField<Value> = { readonly $: "Types.OrderedField"; readonly key: string; readonly value: Value }
+export type OrderedField<Value> = {
+  readonly $: "../../../../source-artifacts/src/direct-event/value/Value.OrderedField"
+  readonly key: string
+  readonly value: Value
+}
 export type ProductValue =
-  | { readonly $: "Types.ProductNull" }
-  | { readonly $: "Types.ProductBool"; readonly value: boolean }
-  | { readonly $: "Types.ProductNumber"; readonly bits: Binary64 }
-  | { readonly $: "Types.ProductText"; readonly value: string }
-  | { readonly $: "Types.ProductArray"; readonly items: List<ProductValue> }
-  | { readonly $: "Types.ProductObject"; readonly fields: List<OrderedField<ProductValue>> }
+  | { readonly $: "../../../../source-artifacts/src/direct-event/value/Value.ProductNull" }
+  | { readonly $: "../../../../source-artifacts/src/direct-event/value/Value.ProductBool"; readonly value: boolean }
+  | { readonly $: "../../../../source-artifacts/src/direct-event/value/Value.ProductNumber"; readonly bits: Binary64 }
+  | { readonly $: "../../../../source-artifacts/src/direct-event/value/Value.ProductText"; readonly value: string }
+  | {
+      readonly $: "../../../../source-artifacts/src/direct-event/value/Value.ProductArray"
+      readonly items: List<ProductValue>
+    }
+  | {
+      readonly $: "../../../../source-artifacts/src/direct-event/value/Value.ProductObject"
+      readonly fields: List<OrderedField<ProductValue>>
+    }
 
 export function hostNatural(value: number | bigint): number {
   if (typeof value === "bigint") {
@@ -41,12 +70,16 @@ export function unlist(value: unknown): unknown[] {
 export function binary64(value: number): Binary64 {
   const bytes = new DataView(new ArrayBuffer(8))
   bytes.setFloat64(0, value, false)
-  return { $: "Types.Binary64", high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) }
+  return {
+    $: "../../../../source-artifacts/src/direct-event/value/Value.Binary64",
+    high: bytes.getUint32(0, false),
+    low: bytes.getUint32(4, false)
+  }
 }
 export function fromBinary64(value: unknown): number {
   const bits = record(value)
   if (
-    bits.$ !== "Types.Binary64" ||
+    bits.$ !== "../../../../source-artifacts/src/direct-event/value/Value.Binary64" ||
     ![bits.high, bits.low].every((x) => typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= 0xffffffff)
   )
     throw new Error("invalid binary64")
@@ -56,16 +89,27 @@ export function fromBinary64(value: unknown): number {
   return bytes.getFloat64(0, false)
 }
 export function productValue(value: unknown): ProductValue {
-  if (value === null) return { $: "Types.ProductNull" }
-  if (typeof value === "boolean") return { $: "Types.ProductBool", value }
-  if (typeof value === "number") return { $: "Types.ProductNumber", bits: binary64(value) }
-  if (typeof value === "string") return { $: "Types.ProductText", value }
-  if (Array.isArray(value)) return { $: "Types.ProductArray", items: list(value.map(productValue)) }
+  if (value === null) return { $: "../../../../source-artifacts/src/direct-event/value/Value.ProductNull" }
+  if (typeof value === "boolean")
+    return { $: "../../../../source-artifacts/src/direct-event/value/Value.ProductBool", value }
+  if (typeof value === "number")
+    return { $: "../../../../source-artifacts/src/direct-event/value/Value.ProductNumber", bits: binary64(value) }
+  if (typeof value === "string")
+    return { $: "../../../../source-artifacts/src/direct-event/value/Value.ProductText", value }
+  if (Array.isArray(value))
+    return {
+      $: "../../../../source-artifacts/src/direct-event/value/Value.ProductArray",
+      items: list(value.map(productValue))
+    }
   if (typeof value === "object")
     return {
-      $: "Types.ProductObject",
+      $: "../../../../source-artifacts/src/direct-event/value/Value.ProductObject",
       fields: list(
-        Object.entries(value).map(([key, item]) => ({ $: "Types.OrderedField", key, value: productValue(item) }))
+        Object.entries(value).map(([key, item]) => ({
+          $: "../../../../source-artifacts/src/direct-event/value/Value.OrderedField",
+          key,
+          value: productValue(item)
+        }))
       )
     }
   throw new Error("unsupported product encoding")
@@ -78,29 +122,33 @@ function validateList(value: unknown): void {
 export function fromProductValue(value: unknown): unknown {
   const item = record(value)
   switch (item.$) {
-    case "Types.ProductNull":
+    case "../../../../source-artifacts/src/direct-event/value/Value.ProductNull":
       return null
-    case "Types.ProductBool":
+    case "../../../../source-artifacts/src/direct-event/value/Value.ProductBool":
       if (typeof item.value !== "boolean") throw new Error("invalid bool")
       return item.value
-    case "Types.ProductNumber":
+    case "../../../../source-artifacts/src/direct-event/value/Value.ProductNumber":
       return fromBinary64(item.bits)
-    case "Types.ProductText":
+    case "../../../../source-artifacts/src/direct-event/value/Value.ProductText":
       if (typeof item.value !== "string") throw new Error("invalid text")
       return item.value
-    case "Types.ProductArray": {
+    case "../../../../source-artifacts/src/direct-event/value/Value.ProductArray": {
       validateList(item.items)
       const result = []
       for (let entry = record(item.items); entry.$ === "Con"; entry = record(entry.tail))
         result.push(fromProductValue(entry.head))
       return result
     }
-    case "Types.ProductObject": {
+    case "../../../../source-artifacts/src/direct-event/value/Value.ProductObject": {
       validateList(item.fields)
       const result: Record<string, unknown> = {}
       for (let entry = record(item.fields); entry.$ === "Con"; entry = record(entry.tail)) {
         const field = record(entry.head)
-        if (field.$ !== "Types.OrderedField" || typeof field.key !== "string" || Object.hasOwn(result, field.key))
+        if (
+          field.$ !== "../../../../source-artifacts/src/direct-event/value/Value.OrderedField" ||
+          typeof field.key !== "string" ||
+          Object.hasOwn(result, field.key)
+        )
           throw new Error("invalid product fields")
         Object.defineProperty(result, field.key, {
           value: fromProductValue(field.value),

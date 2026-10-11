@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../Types.bend as T
 import ../traversal/core.bend as Local
@@ -16,14 +17,19 @@ def bind(
 ) -> Maybe<&2, Output>:
   Maybe.bind(&2, Value, Output, value, next)
 
-def field(key: String, value: T.ProductValue) -> T.OrderedField<T.ProductValue>:
-  T.OrderedField{key, value}
+def field(
+  key: String,
+  value: ArtifactValue.ProductValue
+) -> ArtifactValue.OrderedField<ArtifactValue.ProductValue>:
+  ArtifactValue.OrderedField{key, value}
 
-def object(fields: List<&2, T.OrderedField<T.ProductValue>>) -> T.ProductValue:
-  T.ProductObject{fields}
+def object(
+  fields: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
+) -> ArtifactValue.ProductValue:
+  ArtifactValue.ProductObject{fields}
 
-def text(value: String) -> T.ProductValue:
-  T.ProductText{value}
+def text(value: String) -> ArtifactValue.ProductValue:
+  ArtifactValue.ProductText{value}
 
 def artifact_kind(kind: T.ArtifactKind) -> String:
   match kind:
@@ -78,7 +84,10 @@ def unique_artifact_keys(keys: List<&2, T.ArtifactKey>, +seen: List<&2, Nat>) ->
       +id = artifact_key(key)
       Bool.and(Bool.not(seen_key(id, seen)), unique_artifact_keys(tail, id <> seen))
 
-def origin_field(origin: T.BundledOrigin, key: T.OriginKey) -> T.OrderedField<T.ProductValue>:
+def origin_field(
+  origin: T.BundledOrigin,
+  key: T.OriginKey
+) -> ArtifactValue.OrderedField<ArtifactValue.ProductValue>:
   match origin:
     case T.BundledOrigin{version, source, module_hash, declaration_hash, _}:
       match key:
@@ -92,18 +101,20 @@ def origin_field(origin: T.BundledOrigin, key: T.OriginKey) -> T.OrderedField<T.
 def origin_fields(
   +origin: T.BundledOrigin,
   order: List<&2, T.OriginKey>
-) -> List<&2, T.OrderedField<T.ProductValue>>:
+) -> List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match order:
     case []: []
     case key <> tail: origin_field(origin, key) <> origin_fields(origin, tail)
 
-def origin_product(+origin: T.BundledOrigin) -> Maybe<&2, T.ProductValue>:
+def origin_product(+origin: T.BundledOrigin) -> Maybe<&2, ArtifactValue.ProductValue>:
   match origin:
     case T.BundledOrigin{_, _, _, _, +order}:
-      yes : Unit -> Maybe<&2, T.ProductValue> = _ => Some{object(origin_fields(origin, order))}
-      no : Unit -> Maybe<&2, T.ProductValue> = _ => None{}
+      yes : Unit -> Maybe<&2, ArtifactValue.ProductValue> = _ => Some{
+        object(origin_fields(origin, order))
+      }
+      no : Unit -> Maybe<&2, ArtifactValue.ProductValue> = _ => None{}
       decide(
-        Maybe<&2, T.ProductValue>,
+        Maybe<&2, ArtifactValue.ProductValue>,
         Bool.and(Nat.is_eq(List.length(&2, T.OriginKey, order), 6n), unique_origin_keys(order, [])),
         yes,
         no
@@ -112,24 +123,31 @@ def origin_product(+origin: T.BundledOrigin) -> Maybe<&2, T.ProductValue>:
 def optional_text(
   value: Maybe<&2, String>,
   key: String
-) -> Maybe<&2, T.OrderedField<T.ProductValue>>:
+) -> Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match value:
     case None{}: None{}
     case Some{value}: Some{field(key, text(value))}
 
-def optional_origin(value: Maybe<&2, T.BundledOrigin>) -> Maybe<&2, T.OrderedField<T.ProductValue>>:
+def optional_origin(
+  value: Maybe<&2, T.BundledOrigin>
+) -> Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match value:
     case None{}: None{}
     case Some{origin}:
-      next : T.ProductValue -> Maybe<&2, T.OrderedField<T.ProductValue>> = value => Some{
+      next : ArtifactValue.ProductValue -> Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>> = value => Some{
         field("origin", value)
       }
-      bind(T.ProductValue, T.OrderedField<T.ProductValue>, origin_product(origin), next)
+      bind(
+        ArtifactValue.ProductValue,
+        ArtifactValue.OrderedField<ArtifactValue.ProductValue>,
+        origin_product(origin),
+        next
+      )
 
 def artifact_field(
   artifact: T.Artifact,
   key: T.ArtifactKey
-) -> Maybe<&2, T.OrderedField<T.ProductValue>>:
+) -> Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match artifact:
     case T.Artifact{origin, path, id, kind, name, source, hash, _}:
       match key:
@@ -144,23 +162,23 @@ def artifact_field(
 def artifact_fields(
   +artifact: T.Artifact,
   order: List<&2, T.ArtifactKey>
-) -> Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>:
+) -> Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>:
   match order:
     case []: Some{[]}
     case key <> tail:
-      next : T.OrderedField<T.ProductValue> -> Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>> = value =>
-        remaining : List<&2, T.OrderedField<T.ProductValue>> -> Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>> = values => Some{
+      next : ArtifactValue.OrderedField<ArtifactValue.ProductValue> -> Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>> = value =>
+        remaining : List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>> -> Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>> = values => Some{
           value <> values
         }
         bind(
-          List<&2, T.OrderedField<T.ProductValue>>,
-          List<&2, T.OrderedField<T.ProductValue>>,
+          List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
+          List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
           artifact_fields(artifact, tail),
           remaining
         )
       bind(
-        T.OrderedField<T.ProductValue>,
-        List<&2, T.OrderedField<T.ProductValue>>,
+        ArtifactValue.OrderedField<ArtifactValue.ProductValue>,
+        List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
         artifact_field(artifact, key),
         next
       )
@@ -170,23 +188,23 @@ def optional_count(-Value: Data, value: Maybe<&2, Value>) -> Nat:
     case None{}: 0n
     case Some{_}: 1n
 
-def artifact_product(+artifact: T.Artifact) -> Maybe<&2, T.ProductValue>:
+def artifact_product(+artifact: T.Artifact) -> Maybe<&2, ArtifactValue.ProductValue>:
   match artifact:
     case T.Artifact{origin, path, _, _, _, _, _, +order}:
       expected = (5n + optional_count(T.BundledOrigin, origin) + optional_count(String, path) : Nat)
-      yes : Unit -> Maybe<&2, T.ProductValue> = _ =>
-        next : List<&2, T.OrderedField<T.ProductValue>> -> Maybe<&2, T.ProductValue> = fields => Some{
+      yes : Unit -> Maybe<&2, ArtifactValue.ProductValue> = _ =>
+        next : List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>> -> Maybe<&2, ArtifactValue.ProductValue> = fields => Some{
           object(fields)
         }
         bind(
-          List<&2, T.OrderedField<T.ProductValue>>,
-          T.ProductValue,
+          List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
+          ArtifactValue.ProductValue,
           artifact_fields(artifact, order),
           next
         )
-      no : Unit -> Maybe<&2, T.ProductValue> = _ => None{}
+      no : Unit -> Maybe<&2, ArtifactValue.ProductValue> = _ => None{}
       decide(
-        Maybe<&2, T.ProductValue>,
+        Maybe<&2, ArtifactValue.ProductValue>,
         Bool.and(
           Nat.is_eq(List.length(&2, T.ArtifactKey, order), expected),
           unique_artifact_keys(order, [])
@@ -202,7 +220,7 @@ def omission_name(reason: Local.Omission) -> String:
     case Local.ReferenceLimit{}: "reference-limit"
     case Local.Unavailable{}: "unavailable"
 
-def site(symbol: String) -> T.ProductValue:
+def site(symbol: String) -> ArtifactValue.ProductValue:
   object([field("symbol", text(symbol))])
 
 def map_read(-Value: Data, default_value: Value, map: Map<&2, Value>, key: String) -> Value:
@@ -245,7 +263,7 @@ def group_references(
           )
 
 def reference_product(symbol: String, reference: Local.PlannedReference,
-    built: Map<&2, Maybe<&2, T.ProductValue>>) -> Maybe<&2, T.ProductValue>:
+    built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>) -> Maybe<&2, ArtifactValue.ProductValue>:
   match reference:
     case Local.Included{identity}: Some{
       object(
@@ -270,36 +288,36 @@ def reference_product(symbol: String, reference: Local.PlannedReference,
       )
     }
     case Local.Expanded{node}:
-      next : T.ProductValue -> Maybe<&2, T.ProductValue> = value => Some{
+      next : ArtifactValue.ProductValue -> Maybe<&2, ArtifactValue.ProductValue> = value => Some{
         object([field("kind", text("expanded")), field("site", site(symbol)), field("node", value)])
       }
       bind(
-        T.ProductValue,
-        T.ProductValue,
-        map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(node)),
+        ArtifactValue.ProductValue,
+        ArtifactValue.ProductValue,
+        map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, built, Nat.show(node)),
         next
       )
 
 def reference_products(
   slots: List<&2, Local.ReferenceSlot>,
-  +built: Map<&2, Maybe<&2, T.ProductValue>>
-) -> Maybe<&2, List<&2, T.ProductValue>>:
+  +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>
+) -> Maybe<&2, List<&2, ArtifactValue.ProductValue>>:
   match slots:
     case []: Some{[]}
     case Local.ReferenceSlot{_, _, symbol, reference} <> tail:
-      next : T.ProductValue -> Maybe<&2, List<&2, T.ProductValue>> = value =>
-        remaining : List<&2, T.ProductValue> -> Maybe<&2, List<&2, T.ProductValue>> = values => Some{
+      next : ArtifactValue.ProductValue -> Maybe<&2, List<&2, ArtifactValue.ProductValue>> = value =>
+        remaining : List<&2, ArtifactValue.ProductValue> -> Maybe<&2, List<&2, ArtifactValue.ProductValue>> = values => Some{
           value <> values
         }
         bind(
-          List<&2, T.ProductValue>,
-          List<&2, T.ProductValue>,
+          List<&2, ArtifactValue.ProductValue>,
+          List<&2, ArtifactValue.ProductValue>,
           reference_products(tail, built),
           remaining
         )
       bind(
-        T.ProductValue,
-        List<&2, T.ProductValue>,
+        ArtifactValue.ProductValue,
+        List<&2, ArtifactValue.ProductValue>,
         reference_product(symbol, reference, built),
         next
       )
@@ -311,33 +329,36 @@ def build_products(
   nodes: List<&2, Local.PlannedNode>,
   +groups: Map<&2, List<&2, Local.ReferenceSlot>>,
   +artifacts: Map<&2, Maybe<&2, T.Artifact>>,
-  +built: Map<&2, Maybe<&2, T.ProductValue>>
-) -> Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>>:
+  +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>
+) -> Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>:
   match nodes:
     case []: Some{built}
     case Local.PlannedNode{+id, handle} <> tail:
-      next : T.Artifact -> Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>> = artifact =>
-        product : T.ProductValue -> Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>> = value =>
-          refs : List<&2, T.ProductValue> -> Maybe<&2, Map<&2, Maybe<&2, T.ProductValue>>> = references =>
+      next : T.Artifact -> Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>> = artifact =>
+        product : ArtifactValue.ProductValue -> Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>> = value =>
+          refs : List<&2, ArtifactValue.ProductValue> -> Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>> = references =>
             build_products(
               tail,
               groups,
               artifacts,
               Map.set(
                 &2,
-                Maybe<&2, T.ProductValue>,
+                Maybe<&2, ArtifactValue.ProductValue>,
                 built,
                 Nat.show(id),
                 Some{
                   object(
-                    [field("artifact", value), field("references", T.ProductArray{references})]
+                    [
+                      field("artifact", value),
+                      field("references", ArtifactValue.ProductArray{references})
+                    ]
                   )
                 }
               )
             )
           bind(
-            List<&2, T.ProductValue>,
-            Map<&2, Maybe<&2, T.ProductValue>>,
+            List<&2, ArtifactValue.ProductValue>,
+            Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
             reference_products(
               map_read(List<&2, Local.ReferenceSlot>, [], groups, Nat.show(id)),
               built
@@ -345,30 +366,33 @@ def build_products(
             refs
           )
         bind(
-          T.ProductValue,
-          Map<&2, Maybe<&2, T.ProductValue>>,
+          ArtifactValue.ProductValue,
+          Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
           artifact_product(artifact),
           product
         )
       bind(
         T.Artifact,
-        Map<&2, Maybe<&2, T.ProductValue>>,
+        Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
         map_read(Maybe<&2, T.Artifact>, None{}, artifacts, Nat.show(handle)),
         next
       )
 
-def dependency_products(paths: List<&2, String>) -> List<&2, T.ProductValue>:
+def dependency_products(paths: List<&2, String>) -> List<&2, ArtifactValue.ProductValue>:
   match paths:
     case []: []
     case head <> tail: text(head) <> dependency_products(tail)
 
-def unit_product(root: T.ProductValue, dependencies: List<&2, String>) -> T.ProductValue:
+def unit_product(
+  root: ArtifactValue.ProductValue,
+  dependencies: List<&2, String>
+) -> ArtifactValue.ProductValue:
   match dependencies:
     case []: object([field("root", root)])
     case head <> tail: object(
       [
         field("root", root),
-        field("sourceDependencies", T.ProductArray{[]})
+        field("sourceDependencies", ArtifactValue.ProductArray{[]})
       ]
     )
 
@@ -378,21 +402,21 @@ def review_unit(
   references: List<&2, Local.ReferenceSlot>,
   artifacts: List<&2, T.ArtifactEntry>,
   dependencies: List<&2, String>
-) -> Maybe<&2, T.ProductValue>:
-  next : Map<&2, Maybe<&2, T.Artifact>> -> Maybe<&2, T.ProductValue> = indexed =>
-    products : Map<&2, Maybe<&2, T.ProductValue>> -> Maybe<&2, T.ProductValue> = built =>
-      result : T.ProductValue -> Maybe<&2, T.ProductValue> = value => Some{
+) -> Maybe<&2, ArtifactValue.ProductValue>:
+  next : Map<&2, Maybe<&2, T.Artifact>> -> Maybe<&2, ArtifactValue.ProductValue> = indexed =>
+    products : Map<&2, Maybe<&2, ArtifactValue.ProductValue>> -> Maybe<&2, ArtifactValue.ProductValue> = built =>
+      result : ArtifactValue.ProductValue -> Maybe<&2, ArtifactValue.ProductValue> = value => Some{
         unit_product(value, dependencies)
       }
       bind(
-        T.ProductValue,
-        T.ProductValue,
-        map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(root)),
+        ArtifactValue.ProductValue,
+        ArtifactValue.ProductValue,
+        map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, built, Nat.show(root)),
         result
       )
     bind(
-      Map<&2, Maybe<&2, T.ProductValue>>,
-      T.ProductValue,
+      Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
+      ArtifactValue.ProductValue,
       build_products(
         List.reverse(&2, Local.PlannedNode, nodes),
         group_references(List.reverse(&2, Local.ReferenceSlot, references), MTip{}),
@@ -401,7 +425,12 @@ def review_unit(
       ),
       products
     )
-  bind(Map<&2, Maybe<&2, T.Artifact>>, T.ProductValue, index_artifacts(artifacts, MTip{}), next)
+  bind(
+    Map<&2, Maybe<&2, T.Artifact>>,
+    ArtifactValue.ProductValue,
+    index_artifacts(artifacts, MTip{}),
+    next
+  )
 
 def main() -> Unit:
   Unit{}

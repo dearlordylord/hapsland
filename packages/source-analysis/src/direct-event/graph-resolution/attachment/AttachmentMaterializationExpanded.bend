@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../Core.bend as Render
 import ../WholeObservation.bend as O
@@ -15,9 +16,9 @@ import ../traversal/core.bend as Local
 # Both successful rendering and exact ordered product equality are conclusions.
 def common_product(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
-    +forest: F.Forest, +deps: List<&2, String>, +value: T.ProductValue) -> Type:
+    +forest: F.Forest, +deps: List<&2, String>, +value: ArtifactValue.ProductValue) -> Type:
   {Core.review_unit(root, nodes, slots, artifacts, deps) == Some{value}
-    : Maybe<&2, T.ProductValue>} &
+    : Maybe<&2, ArtifactValue.ProductValue>} &
   {F.unit(Allowance.materialization(forest), forest, deps) == F.Materialized{value}
     : F.Materialization}
 
@@ -42,15 +43,15 @@ def fixture_forest() -> F.Forest:
 
 def fixture_deps() -> List<&2, String>:
   ["dep", "dep", ""]
-def fixture_product() -> T.ProductValue:
-  Render.unit_product(T.ProductObject{Con{T.OrderedField{"artifact", T.ProductObject{Con{T.OrderedField{"id", T.ProductText{""}}, Con{T.OrderedField{"kind", T.ProductText{"function"}}, Con{T.OrderedField{"name", T.ProductText{""}}, Con{T.OrderedField{"source", T.ProductText{""}}, Con{T.OrderedField{"sourceHash", T.ProductText{""}}, Nil{}}}}}}}}, Con{T.OrderedField{"references", T.ProductArray{Con{T.ProductObject{Con{T.OrderedField{"kind", T.ProductText{"expanded"}}, Con{T.OrderedField{"site", T.ProductObject{Con{T.OrderedField{"symbol", T.ProductText{""}}, Nil{}}}}, Con{T.OrderedField{"node", T.ProductObject{Con{T.OrderedField{"artifact", T.ProductObject{Con{T.OrderedField{"id", T.ProductText{""}}, Con{T.OrderedField{"kind", T.ProductText{"function"}}, Con{T.OrderedField{"name", T.ProductText{""}}, Con{T.OrderedField{"source", T.ProductText{""}}, Con{T.OrderedField{"sourceHash", T.ProductText{""}}, Nil{}}}}}}}}, Con{T.OrderedField{"references", T.ProductArray{Con{T.ProductObject{Con{T.OrderedField{"kind", T.ProductText{"omitted"}}, Con{T.OrderedField{"site", T.ProductObject{Con{T.OrderedField{"symbol", T.ProductText{""}}, Nil{}}}}, Con{T.OrderedField{"target", T.ProductObject{Con{T.OrderedField{"kind", T.ProductText{"unresolved"}}, Con{T.OrderedField{"symbol", T.ProductText{""}}, Nil{}}}}}, Con{T.OrderedField{"reason", T.ProductText{"unresolved"}}, Nil{}}}}}}, Nil{}}}}, Nil{}}}}}, Nil{}}}}}, Nil{}}}}, Nil{}}}}, fixture_deps())
+def fixture_product() -> ArtifactValue.ProductValue:
+  Render.unit_product(ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"artifact", ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"id", ArtifactValue.ProductText{""}}, Con{ArtifactValue.OrderedField{"kind", ArtifactValue.ProductText{"function"}}, Con{ArtifactValue.OrderedField{"name", ArtifactValue.ProductText{""}}, Con{ArtifactValue.OrderedField{"source", ArtifactValue.ProductText{""}}, Con{ArtifactValue.OrderedField{"sourceHash", ArtifactValue.ProductText{""}}, Nil{}}}}}}}}, Con{ArtifactValue.OrderedField{"references", ArtifactValue.ProductArray{Con{ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"kind", ArtifactValue.ProductText{"expanded"}}, Con{ArtifactValue.OrderedField{"site", ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"symbol", ArtifactValue.ProductText{""}}, Nil{}}}}, Con{ArtifactValue.OrderedField{"node", ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"artifact", ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"id", ArtifactValue.ProductText{""}}, Con{ArtifactValue.OrderedField{"kind", ArtifactValue.ProductText{"function"}}, Con{ArtifactValue.OrderedField{"name", ArtifactValue.ProductText{""}}, Con{ArtifactValue.OrderedField{"source", ArtifactValue.ProductText{""}}, Con{ArtifactValue.OrderedField{"sourceHash", ArtifactValue.ProductText{""}}, Nil{}}}}}}}}, Con{ArtifactValue.OrderedField{"references", ArtifactValue.ProductArray{Con{ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"kind", ArtifactValue.ProductText{"omitted"}}, Con{ArtifactValue.OrderedField{"site", ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"symbol", ArtifactValue.ProductText{""}}, Nil{}}}}, Con{ArtifactValue.OrderedField{"target", ArtifactValue.ProductObject{Con{ArtifactValue.OrderedField{"kind", ArtifactValue.ProductText{"unresolved"}}, Con{ArtifactValue.OrderedField{"symbol", ArtifactValue.ProductText{""}}, Nil{}}}}}, Con{ArtifactValue.OrderedField{"reason", ArtifactValue.ProductText{"unresolved"}}, Nil{}}}}}}, Nil{}}}}, Nil{}}}}}, Nil{}}}}}, Nil{}}}}, Nil{}}}}, fixture_deps())
 def projected_premise() -> {P.project(fixture_root(), fixture_nodes(), fixture_slots(), fixture_artifacts(), fixture_addresses()) == Some{fixture_forest()} : Maybe<&2, F.Forest>}:
   {==}
 def catalog_premise() -> {ActualFrame.catalog_valid(fixture_artifacts()) == True{} : Bool}:
   {==}
 def forest_premise() -> {Relation.frame_forest(fixture_forest(), 2n) == True{} : Bool}:
   {==}
-def exact_claim() -> Exists(T.ProductValue, value => common_product(fixture_root(), fixture_nodes(), fixture_slots(), fixture_artifacts(), fixture_forest(), fixture_deps(), value)):
+def exact_claim() -> Exists(ArtifactValue.ProductValue, value => common_product(fixture_root(), fixture_nodes(), fixture_slots(), fixture_artifacts(), fixture_forest(), fixture_deps(), value)):
   Tuple{fixture_product(), ({==}, {==})}
 def main() -> Unit:
   Unit{}

@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./WholeObservation.bend as O
@@ -46,11 +47,11 @@ type Replacement is Data:
   Replaced{forest: Forest}
   ReplacementInvalid{}
 type Materialization is Data:
-  Materialized{product: T.ProductValue}
+  Materialized{product: ArtifactValue.ProductValue}
   MaterializationExhausted{}
   MaterializationInvalid{}
 type ProductReferences is Data:
-  ProductReferences{items: List<&2, T.ProductValue>}
+  ProductReferences{items: List<&2, ArtifactValue.ProductValue>}
   ProductReferencesExhausted{}
   ProductReferencesInvalid{}
 
@@ -316,16 +317,24 @@ def replace(+forest: Forest, +owner: O.NodeAddress, index: Nat,
 # Rendering replays typed artifact and origin field order directly. Parser
 # facts must satisfy the declared artifact-domain boundary; this module does
 # not invoke production Core/materializer helpers.
-def text(value: String) -> T.ProductValue:
-  T.ProductText{value}
+def text(value: String) -> ArtifactValue.ProductValue:
+  ArtifactValue.ProductText{value}
 
-def field(key: String, value: T.ProductValue) -> T.OrderedField<T.ProductValue>:
-  T.OrderedField{key, value}
+def field(
+  key: String,
+  value: ArtifactValue.ProductValue
+) -> ArtifactValue.OrderedField<ArtifactValue.ProductValue>:
+  ArtifactValue.OrderedField{key, value}
 
-def object(fields: List<&2, T.OrderedField<T.ProductValue>>) -> T.ProductValue:
-  T.ProductObject{fields}
+def object(
+  fields: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
+) -> ArtifactValue.ProductValue:
+  ArtifactValue.ProductObject{fields}
 
-def origin_field(key: T.OriginKey, origin: T.BundledOrigin) -> T.OrderedField<T.ProductValue>:
+def origin_field(
+  key: T.OriginKey,
+  origin: T.BundledOrigin
+) -> ArtifactValue.OrderedField<ArtifactValue.ProductValue>:
   match key origin:
     case T.OriginKindKey{} _: field("kind", text("bundled"))
     case T.LibraryKey{} _: field("library", text("bend/Base"))
@@ -346,12 +355,12 @@ def origin_field(key: T.OriginKey, origin: T.BundledOrigin) -> T.OrderedField<T.
 def origin_fields(
   items: List<&2, T.OriginKey>,
   +origin: T.BundledOrigin
-) -> List<&2, T.OrderedField<T.ProductValue>>:
+) -> List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match items:
     case []: []
     case head <> tail: origin_field(head, origin) <> origin_fields(tail, origin)
 
-def origin_product(origin: T.BundledOrigin) -> T.ProductValue:
+def origin_product(origin: T.BundledOrigin) -> ArtifactValue.ProductValue:
   match origin:
     case T.BundledOrigin{_, _, _, _, +order}: object(origin_fields(order, origin))
 
@@ -368,7 +377,7 @@ def kind_name(kind: T.ArtifactKind) -> String:
 def artifact_field(
   key: T.ArtifactKey,
   artifact: T.Artifact
-) -> Maybe<&2, T.OrderedField<T.ProductValue>>:
+) -> Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match key artifact:
     case T.OriginKey{} T.Artifact{Some{origin}, _, _, _, _, _, _, _}: Some{
       field("origin", origin_product(origin))
@@ -390,9 +399,9 @@ def artifact_field(
     case _ _: None{}
 
 def optional_field(
-  head: Maybe<&2, T.OrderedField<T.ProductValue>>,
-  tail: Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>
-) -> Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>:
+  head: Maybe<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
+  tail: Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>
+) -> Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>:
   match head tail:
     case Some{head} Some{tail}: Some{head <> tail}
     case _ _: None{}
@@ -400,7 +409,7 @@ def optional_field(
 def artifact_fields(
   order: List<&2, T.ArtifactKey>,
   +artifact: T.Artifact
-) -> Maybe<&2, List<&2, T.OrderedField<T.ProductValue>>>:
+) -> Maybe<&2, List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>>:
   match order:
     case []: Some{[]}
     case head <> tail: optional_field(
@@ -408,11 +417,16 @@ def artifact_fields(
       artifact_fields(tail, artifact)
     )
 
-def artifact(artifact: T.Artifact) -> Maybe<&2, T.ProductValue>:
+def artifact(artifact: T.Artifact) -> Maybe<&2, ArtifactValue.ProductValue>:
   match artifact:
     case T.Artifact{_, _, _, _, _, _, _, +order}:
-      Maybe.map(&2, List<&2, T.OrderedField<T.ProductValue>>, T.ProductValue,
-        object, artifact_fields(order, artifact))
+      Maybe.map(
+        &2,
+        List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
+        ArtifactValue.ProductValue,
+        object,
+        artifact_fields(order, artifact)
+      )
 
 def omission(reason: Local.Omission) -> String:
   match reason:
@@ -429,7 +443,7 @@ def identity_text(identity: ArtifactIdentity) -> String:
   match identity:
     case ArtifactIdentity{text}: text
 
-def site(symbol: ReferenceSymbol) -> T.ProductValue:
+def site(symbol: ReferenceSymbol) -> ArtifactValue.ProductValue:
   object([field("symbol", text(symbol_text(symbol)))])
 
 def expanded_product(child: Materialization, symbol: ReferenceSymbol) -> Materialization:
@@ -448,7 +462,10 @@ def reference_product(reference: Reference,
         field("symbol", text(symbol_text(target)))])), field("reason", text(omission(reason)))])}
     case Expanded{symbol, address}: expanded_product(child(address), symbol)
 
-def product_cons(remaining: ProductReferences, value: T.ProductValue) -> ProductReferences:
+def product_cons(
+  remaining: ProductReferences,
+  value: ArtifactValue.ProductValue
+) -> ProductReferences:
   match remaining:
     case ProductReferences{rest}: ProductReferences{value <> rest}
     case other: other
@@ -471,13 +488,15 @@ def reference_products(
       product_prefix(reference_product(head, child), _ => sibling(tail))
 
 def node_product(
-  artifact: Maybe<&2, T.ProductValue>,
+  artifact: Maybe<&2, ArtifactValue.ProductValue>,
   references: ProductReferences
 ) -> Materialization:
   match artifact references:
     case Some{value} ProductReferences{references}:
       Materialized{
-        object([field("artifact", value), field("references", T.ProductArray{references})])
+        object(
+          [field("artifact", value), field("references", ArtifactValue.ProductArray{references})]
+        )
       }
     case _ ProductReferencesExhausted{}: MaterializationExhausted{}
     case _ _: MaterializationInvalid{}
@@ -531,7 +550,7 @@ def product_interpret(fuel: Nat, request: ProductRequest) -> ProductDispatch:
 def materialize(fuel: Nat, forest: Forest, address: O.NodeAddress) -> Materialization:
   as_product(product_interpret(fuel, NodeRequest{forest, address}))
 
-def texts(items: List<&2, String>) -> List<&2, T.ProductValue>:
+def texts(items: List<&2, String>) -> List<&2, ArtifactValue.ProductValue>:
   match items:
     case []: []
     case head <> tail: text(head) <> texts(tail)
@@ -540,7 +559,7 @@ def unit_product(root: Materialization, dependencies: List<&2, String>) -> Mater
   match root dependencies:
     case Materialized{value} dependencies:
       Materialized{object([field("root", value), field("sourceDependencies",
-        T.ProductArray{texts(dependencies)})])}
+        ArtifactValue.ProductArray{texts(dependencies)})])}
     case other _: other
 
 def unit(fuel: Nat, +forest: Forest, dependencies: List<&2, String>) -> Materialization:

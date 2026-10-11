@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../Types.bend as T
 import ../Protocol.bend as Protocol
@@ -26,43 +27,143 @@ def invocation(input: Input) -> Nat:
   match input:
     case Input{_, _, _, _, _, _, _, _, _, invocation, _}: invocation
 
-def request(+input: Input, cache: Maybe<&2, T.CacheToken>, +next: Nat, stage: Stage, operation: T.Operation) -> Step:
-  Await{State{input, cache, Nat.add(next, 1n), stage}, T.Request{invocation(input), next, operation}}
+def request(
+  +input: Input,
+  cache: Maybe<&2, T.CacheToken>,
+  +next: Nat,
+  stage: Stage,
+  operation: T.Operation
+) -> Step:
+  Await{
+    State{input, cache, Nat.add(next, 1n), stage},
+    T.Request{invocation(input), next, operation}
+  }
 
 def insert(+input: Input, +cache: T.CacheToken, next: Nat) -> Step:
   match input:
-    case Input{+root, +capture, root_bytes, files, read_bytes, work, source_cap, depth, clock, invocation, caller_cache}:
-      request(Input{root, capture, root_bytes, files, read_bytes, work, source_cap, depth, clock, invocation, caller_cache},
-        Some{cache}, next, InsertingRoot{}, T.InsertRootCaptureCache{cache, root, capture})
+    case Input{
+      +root,
+      +capture,
+      root_bytes,
+      files,
+      read_bytes,
+      work,
+      source_cap,
+      depth,
+      clock,
+      invocation,
+      caller_cache
+    }:
+      request(
+        Input{
+          root,
+          capture,
+          root_bytes,
+          files,
+          read_bytes,
+          work,
+          source_cap,
+          depth,
+          clock,
+          invocation,
+          caller_cache
+        },
+        Some{cache},
+        next,
+        InsertingRoot{},
+        T.InsertRootCaptureCache{cache, root, capture}
+      )
 
 def cache(cache: Maybe<&2, T.CacheToken>, input: Input, next: Nat) -> Step:
   match cache:
     case None{}: request(input, None{}, next, CreatingCache{}, T.CreateInvocationCache{})
     case Some{cache}: insert(input, cache, next)
 
-def admission(allowed: Bool, input: Input, caller_cache: Maybe<&2, T.CacheToken>, next: Nat) -> Step:
+def admission(
+  allowed: Bool,
+  input: Input,
+  caller_cache: Maybe<&2, T.CacheToken>,
+  next: Nat
+) -> Step:
   match allowed:
     case False{}: Returned{None{}, next}
     case True{}: cache(caller_cache, input, next)
 
-def clock_read(input: Input, bits: T.Binary64, next: Nat) -> Step:
+def clock_read(input: Input, bits: ArtifactValue.Binary64, next: Nat) -> Step:
   match input:
-    case Input{root, capture, root_bytes, +files, read_bytes, +work, source_cap, depth, clock, invocation, +caller_cache}:
-      admission(Bool.and(Bool.not(Clock.expired(bits)), Bool.and(Nat.is_gt(files, 0n), Nat.is_gt(work, 0n))),
-        Input{root, capture, root_bytes, files, read_bytes, work, source_cap, depth, clock, invocation, caller_cache}, caller_cache, next)
+    case Input{
+      root,
+      capture,
+      root_bytes,
+      +files,
+      read_bytes,
+      +work,
+      source_cap,
+      depth,
+      clock,
+      invocation,
+      +caller_cache
+    }:
+      admission(
+        Bool.and(
+          Bool.not(Clock.expired(bits)),
+          Bool.and(Nat.is_gt(files, 0n), Nat.is_gt(work, 0n))
+        ),
+        Input{
+          root,
+          capture,
+          root_bytes,
+          files,
+          read_bytes,
+          work,
+          source_cap,
+          depth,
+          clock,
+          invocation,
+          caller_cache
+        },
+        caller_cache,
+        next
+      )
 
 def prepared(input: Input, cache: Maybe<&2, T.CacheToken>, next: Nat) -> Step:
   match input cache:
-    case Input{root, _, root_bytes, files, read_bytes, work, source_cap, depth, _, _, _} Some{cache}:
-      Returned{Some{Prepared{S.initial(root, source_cap, depth,
-        S.Remaining{S.difference(files, 1n), S.difference(read_bytes, root_bytes), S.Nonnegative{work}}), cache}}, next}
+    case Input{root, _, root_bytes, files, read_bytes, work, source_cap, depth, _, _, _} Some{
+      cache
+    }:
+      Returned{
+        Some{
+          Prepared{
+            S.initial(
+              root,
+              source_cap,
+              depth,
+              S.Remaining{
+                S.difference(files, 1n),
+                S.difference(read_bytes, root_bytes),
+                S.Nonnegative{work}
+              }
+            ),
+            cache
+          }
+        },
+        next
+      }
     case _ None{}: Failed{T.MalformedReply{}}
 
 def outcome(state: State, result: T.ServiceOutcome) -> Step:
   match state result:
     case State{input, _, next, CheckingAdmission{}} T.ClockRead{bits}: clock_read(input, bits, next)
-    case State{input, _, next, CreatingCache{}} T.InvocationCacheCreated{cache}: insert(input, cache, next)
-    case State{input, cache, next, InsertingRoot{}} T.RootCacheInserted{}: prepared(input, cache, next)
+    case State{input, _, next, CreatingCache{}} T.InvocationCacheCreated{cache}: insert(
+      input,
+      cache,
+      next
+    )
+    case State{input, cache, next, InsertingRoot{}} T.RootCacheInserted{}: prepared(
+      input,
+      cache,
+      next
+    )
     case _ T.ProviderRejected{exception}: Failed{T.ForeignProviderFailure{exception}}
     case _ _: Failed{T.MalformedReply{}}
 
@@ -78,9 +179,38 @@ def resume(step: Step, reply: T.Reply) -> Step:
 
 def begin(+input: Input, next: Nat) -> Step:
   match input:
-    case Input{root, capture, root_bytes, files, read_bytes, work, source_cap, depth, +clock, invocation, caller_cache}:
-      request(Input{root, capture, root_bytes, files, read_bytes, work, source_cap, depth, clock, invocation, caller_cache},
-        None{}, next, CheckingAdmission{}, T.ReadClock{clock})
+    case Input{
+      root,
+      capture,
+      root_bytes,
+      files,
+      read_bytes,
+      work,
+      source_cap,
+      depth,
+      +clock,
+      invocation,
+      caller_cache
+    }:
+      request(
+        Input{
+          root,
+          capture,
+          root_bytes,
+          files,
+          read_bytes,
+          work,
+          source_cap,
+          depth,
+          clock,
+          invocation,
+          caller_cache
+        },
+        None{},
+        next,
+        CheckingAdmission{},
+        T.ReadClock{clock}
+      )
 
 def main() -> Unit:
   Unit{}

@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./State.bend as S
@@ -25,7 +26,7 @@ def inspect(capture: Maybe<&2, T.CaptureToken>, context: T.RustContext,
     }
 
 def external(
-  value: Maybe<&2, List<&2, T.OrderedField<String>>>,
+  value: Maybe<&2, List<&2, ArtifactValue.OrderedField<String>>>,
   +state: T.ResolverState
 ) -> Loop.Continuation:
   inspect(
@@ -34,13 +35,22 @@ def external(
     state
   )
 
-def next(fields: List<&2, T.OrderedField<String>>, +state: T.ResolverState) -> Loop.Continuation:
+def next(
+  fields: List<&2, ArtifactValue.OrderedField<String>>,
+  +state: T.ResolverState
+) -> Loop.Continuation:
   match fields:
     case []: external(
-      Some{List.reverse(&2, T.OrderedField<String>, S.work_rebased_rev(S.state_rust_work(state)))},
+      Some{
+        List.reverse(
+          &2,
+          ArtifactValue.OrderedField<String>,
+          S.work_rebased_rev(S.state_rust_work(state))
+        )
+      },
       state
     )
-    case T.OrderedField{name, path} <> tail: Loop.ServiceStep{
+    case ArtifactValue.OrderedField{name, path} <> tail: Loop.ServiceStep{
       S.request(
         S.with_state_rust_work(
           S.with_state_scratch(state, S.with_scratch_resolved_path(S.state_scratch(state), name)),
@@ -92,7 +102,7 @@ def relative(+path: String, +state: T.ResolverState) -> Loop.Continuation:
       state,
       S.with_work_rebased_rev(
         S.state_rust_work(state),
-        T.OrderedField{
+        ArtifactValue.OrderedField{
           S.scratch_resolved_path(S.state_scratch(state)),
           Bool.pick(String, String.is_empty(path), ".", path)
         } <> S.work_rebased_rev(S.state_rust_work(state))

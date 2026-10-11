@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./BoundaryValidationSpecification.bend as Boundary
 import ./Types.bend as T
@@ -32,7 +33,7 @@ type Stage is Data:
   AwaitRustDeadline{}
   AwaitRootDeadline{}
   AwaitRootFacts{}
-  AwaitRootBytes{frame: X.Frame, product: T.ProductValue}
+  AwaitRootBytes{frame: X.Frame, product: ArtifactValue.ProductValue}
 type State is Data:
   State{
     input: T.ResolverInput,
@@ -890,7 +891,7 @@ def root_deadline(+state: State, expired: Bool) -> Selection:
   root_context(state, expired, frontend(state))
 
 def consume_stage(
-  ~expired: T.Binary64 -> Bool,
+  ~expired: ArtifactValue.Binary64 -> Bool,
   +state: State,
   stage: Stage,
   outcome: T.ServiceOutcome
@@ -915,7 +916,11 @@ def consume_stage(
     case _ T.ProviderRejected{exception}: Rejected{state, T.ForeignProviderFailure{exception}}
     case _ _: Rejected{state, T.WrongReplyKind{}}
 
-def consume(~expired: T.Binary64 -> Bool, +state: State, outcome: T.ServiceOutcome) -> Selection:
+def consume(
+  ~expired: ArtifactValue.Binary64 -> Bool,
+  +state: State,
+  outcome: T.ServiceOutcome
+) -> Selection:
   consume_stage(~expired, state, stage(state), outcome)
 
 def optional_role(role: Maybe<&2, T.RustContext>) -> T.RustContext:

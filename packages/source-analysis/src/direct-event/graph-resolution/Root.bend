@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./Core.bend as Materialize
@@ -10,7 +11,7 @@ type RootOutcome is Data:
   RootTraversalFailure{machine: Local.Machine}
   RootMalformedSyntax{}
 
-def unit(frame: T.ResolverFrame) -> Maybe<&2, T.ProductValue>:
+def unit(frame: T.ResolverFrame) -> Maybe<&2, ArtifactValue.ProductValue>:
   match frame:
     case T.ResolverFrame{
       _,

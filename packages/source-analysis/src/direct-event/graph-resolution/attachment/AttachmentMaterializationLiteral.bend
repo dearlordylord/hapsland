@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ../Core.bend as Render
 import ../WholeObservation.bend as O
@@ -15,9 +16,9 @@ import ../traversal/core.bend as Local
 # Both successful rendering and exact ordered product equality are conclusions.
 def common_product(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
-    +forest: F.Forest, +deps: List<&2, String>, +value: T.ProductValue) -> Type:
+    +forest: F.Forest, +deps: List<&2, String>, +value: ArtifactValue.ProductValue) -> Type:
   {Core.review_unit(root, nodes, slots, artifacts, deps) == Some{value}
-    : Maybe<&2, T.ProductValue>} &
+    : Maybe<&2, ArtifactValue.ProductValue>} &
   {F.unit(Allowance.materialization(forest), forest, deps) == F.Materialized{value}
     : F.Materialization}
 
@@ -42,13 +43,13 @@ def fixture_forest() -> F.Forest:
 
 def fixture_deps() -> List<&2, String>:
   ["dep", "dep", ""]
-def fixture_product() -> T.ProductValue:
+def fixture_product() -> ArtifactValue.ProductValue:
   Render.unit_product(Render.object([
     Render.field("artifact", Render.object([
       Render.field("id", Render.text("")), Render.field("kind", Render.text("function")),
       Render.field("name", Render.text("")), Render.field("source", Render.text("")),
       Render.field("sourceHash", Render.text(""))])),
-    Render.field("references", T.ProductArray{[Render.object([
+    Render.field("references", ArtifactValue.ProductArray{[Render.object([
       Render.field("kind", Render.text("omitted")),
       Render.field("site", Render.object([Render.field("symbol", Render.text(""))])),
       Render.field("target", Render.object([Render.field("kind", Render.text("unresolved")), Render.field("symbol", Render.text(""))])),
@@ -59,7 +60,7 @@ def catalog_premise() -> {ActualFrame.catalog_valid(fixture_artifacts()) == True
   {==}
 def forest_premise() -> {Relation.frame_forest(fixture_forest(), 1n) == True{} : Bool}:
   {==}
-def exact_claim() -> Exists(T.ProductValue, value => common_product(fixture_root(), fixture_nodes(), fixture_slots(), fixture_artifacts(), fixture_forest(), fixture_deps(), value)):
+def exact_claim() -> Exists(ArtifactValue.ProductValue, value => common_product(fixture_root(), fixture_nodes(), fixture_slots(), fixture_artifacts(), fixture_forest(), fixture_deps(), value)):
   Tuple{fixture_product(), ({==}, {==})}
 def main() -> Unit:
   Unit{}

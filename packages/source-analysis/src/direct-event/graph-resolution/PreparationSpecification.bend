@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./BoundaryValidationSpecification.bend as Boundary
 import ./Types.bend as T
@@ -136,7 +137,7 @@ def access_allowed(access: T.AccessOutcome) -> Bool:
     case T.AccessDenied{}: False{}
     case T.AccessAllowed{_, _}: True{}
 
-def action_reply(~expired: T.Binary64 -> Bool, state: State,
+def action_reply(~expired: ArtifactValue.Binary64 -> Bool, state: State,
     action: Rust.Action, outcome: T.ServiceOutcome) -> Selection:
   match action outcome:
     case Rust.ReadDeadline{prep} T.ClockRead{bits}:
@@ -151,7 +152,7 @@ def consume(~absolute: String -> Bool, ~dirname: String -> String,
     ~basename: String -> Maybe<&2, String> -> String,
     ~join: List<&2, String> -> String, ~relative: String -> String -> String,
     ~extension: String -> String, ~normalize: String -> String,
-    ~expired: T.Binary64 -> Bool, separator: String,
+    ~expired: ArtifactValue.Binary64 -> Bool, separator: String,
     +state: State, outcome: T.ServiceOutcome) -> Selection:
   match state outcome:
     case _ T.ProviderRejected{exception}: Rejected{state, T.ForeignProviderFailure{exception}}

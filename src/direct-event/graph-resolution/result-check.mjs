@@ -1,3 +1,4 @@
+import { artifactValueTag, list, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
@@ -7,7 +8,6 @@ import {
   artifact,
   sourceFacts
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
-import { list, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import * as Effect from "effect/Effect"
 import { resolveGraphUnit } from "../../../packages/source-analysis/dist/direct-event/graph-resolver.js"
 import { inspectSourceFrontend } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
@@ -27,7 +27,7 @@ try {
   assert.ok(source.includes("./traversal/core.PlannedNode"))
   const { default: core } = await import(pathToFileURL(program)),
     local = (name, fields = {}) => ({ $: "./traversal/core." + name, ...fields }),
-    typed = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+    typed = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
   const root = {
       path: "root.ts",
       id: "root",

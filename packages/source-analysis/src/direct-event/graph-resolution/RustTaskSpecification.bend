@@ -1,3 +1,4 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
 import ./RustSpecification.bend as Preparation
@@ -15,8 +16,14 @@ type Stage is Data:
   ScanningCargo{remaining: List<&2, String>, found_rev: List<&2, String>}
   ProcessingCrates{remaining: List<&2, String>}
   InspectingModules{route: T.RustRoute, return_to: ReturnTo}
-  ScanningChild{remaining: List<&2, String>, found_rev: List<&2, String>,
-    crate_path: String, modules: List<&2, T.OrderedField<String>>, depth: Nat, return_to: ReturnTo}
+  ScanningChild{
+    remaining: List<&2, String>,
+    found_rev: List<&2, String>,
+    crate_path: String,
+    modules: List<&2, ArtifactValue.OrderedField<String>>,
+    depth: Nat,
+    return_to: ReturnTo
+  }
 type State is Data:
   State{
     input: T.ResolverInput,

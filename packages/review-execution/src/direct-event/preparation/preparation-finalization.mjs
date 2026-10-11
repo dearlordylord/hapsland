@@ -59,7 +59,9 @@ const primitive = (value) => {
     case "StringPrimitive":
       return JSON.stringify(value.value)
     case "NumberPrimitive":
-      return JSON.stringify(fromBinary64({ ...value.bits, $: "Types.Binary64" }))
+      return JSON.stringify(
+        fromBinary64({ ...value.bits, $: "../../../../source-artifacts/src/direct-event/value/Value.Binary64" })
+      )
     default:
       throw new TypeError("Unexpected finalization primitive")
   }

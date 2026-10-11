@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentHeadMaterializationProof.bend as Head
 import ./AttachmentBuildCopiesProof.bend as Copies
@@ -15,29 +16,29 @@ import ../WholeObservation.bend as O
 import ../Types.bend as T
 import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 
-def updated(built: Map<&2, Maybe<&2, T.ProductValue>>, id: Nat, value: T.ProductValue) -> Map<&2, Maybe<&2, T.ProductValue>>:
-  Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(id), Some{value})
+def updated(built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, id: Nat, value: ArtifactValue.ProductValue) -> Map<&2, Maybe<&2, ArtifactValue.ProductValue>>:
+  Map.set(&2, Maybe<&2, ArtifactValue.ProductValue>, built, Nat.show(id), Some{value})
 
-def written_read(+built: Map<&2, Maybe<&2, T.ProductValue>>, +id: Nat, +value: T.ProductValue,
-    canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool}) ->
-    {Core.map_read(Maybe<&2, T.ProductValue>, None{}, updated(built, id, value), Nat.show(id)) == Some{value} : Maybe<&2, T.ProductValue>}:
+def written_read(+built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>, +id: Nat, +value: ArtifactValue.ProductValue,
+    canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool}) ->
+    {Core.map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, updated(built, id, value), Nat.show(id)) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>}:
   %Strings.eq_refl(Nat.show(id)):
-    {Core.map_read(Maybe<&2, T.ProductValue>, None{}, updated(built, id, value), Nat.show(id))
-      == Bool.pick(Maybe<&2, T.ProductValue>, _, Some{value}, Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(id))) : Maybe<&2, T.ProductValue>}
-  Payload.lookup_after_set(Maybe<&2, T.ProductValue>, built, Nat.show(id), Nat.show(id), Some{value}, None{}, canonical)
+    {Core.map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, updated(built, id, value), Nat.show(id))
+      == Bool.pick(Maybe<&2, ArtifactValue.ProductValue>, _, Some{value}, Core.map_read(Maybe<&2, ArtifactValue.ProductValue>, None{}, built, Nat.show(id))) : Maybe<&2, ArtifactValue.ProductValue>}
+  Payload.lookup_after_set(Maybe<&2, ArtifactValue.ProductValue>, built, Nat.show(id), Nat.show(id), Some{value}, None{}, canonical)
 
 def finish_single(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
-    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
-    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: T.ProductValue,
-    +values: List<&2, T.ProductValue>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
+    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: ArtifactValue.ProductValue,
+    +values: List<&2, ArtifactValue.ProductValue>,
     address_present: {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>},
     node_present: {F.node_at(Node.nodes_of(forest), address) == Some{F.Node{address, artifact, refs}} : Maybe<&2, F.Node>},
-    artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
+    artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
     projected: {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
-    actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>},
+    actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, ArtifactValue.ProductValue>>},
     indexed: {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool},
     absent: {P.node_count(tail, id) == 0n : Nat},
-    +canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    +canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool},
     resources: Copies.copies(References.expanded_count(P.owner_slots(slots, id)), Suffix.rendered_suffix(tail, slots, addresses, forest, built)) &
       Copies.copies(1n, Suffix.rendered_suffix(tail, slots, addresses, forest, built))) ->
     Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, updated(built, id, Node.node_value(artifact_value, values))):
@@ -50,17 +51,17 @@ def finish_single(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +s
         Preserve.retain(tail, slots, addresses, forest, built, id, Node.node_value(artifact_value, values), absent, canonical, tail_proof)}
 
 def single_suffix(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
-    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
-    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: T.ProductValue,
-    +values: List<&2, T.ProductValue>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
+    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: ArtifactValue.ProductValue,
+    +values: List<&2, ArtifactValue.ProductValue>,
     address_present: {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>},
     node_present: {F.node_at(Node.nodes_of(forest), address) == Some{F.Node{address, artifact, refs}} : Maybe<&2, F.Node>},
-    artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
+    artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
     projected: {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
-    actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>},
+    actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, ArtifactValue.ProductValue>>},
     indexed: {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool},
     absent: {P.node_count(tail, id) == 0n : Nat},
-    canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool},
     resources: Copies.copies(Nat.add(References.expanded_count(P.owner_slots(slots, id)), 1n), Suffix.rendered_suffix(tail, slots, addresses, forest, built))) ->
     Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, updated(built, id, Node.node_value(artifact_value, values))):
   finish_single(id, handle, tail, slots, addresses, forest, built, address, artifact, refs, artifact_value, values,
@@ -68,17 +69,17 @@ def single_suffix(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +s
     Copies.split(References.expanded_count(P.owner_slots(slots, id)), 1n, Suffix.rendered_suffix(tail, slots, addresses, forest, built), resources))
 
 def finish_many(+remaining: Nat, +id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
-    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
-    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: T.ProductValue,
-    +values: List<&2, T.ProductValue>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
+    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: ArtifactValue.ProductValue,
+    +values: List<&2, ArtifactValue.ProductValue>,
     +address_present: {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>},
     +node_present: {F.node_at(Node.nodes_of(forest), address) == Some{F.Node{address, artifact, refs}} : Maybe<&2, F.Node>},
-    +artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
+    +artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
     +projected: {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
-    +actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>},
+    +actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, ArtifactValue.ProductValue>>},
     +indexed: {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool},
     +absent: {P.node_count(tail, id) == 0n : Nat},
-    +canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    +canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool},
     resources: Copies.copies(Nat.add(References.expanded_count(P.owner_slots(slots, id)), 1n), Suffix.rendered_suffix(tail, slots, addresses, forest, built)) & Copies.copies(Nat.mul(remaining, Nat.add(References.expanded_count(P.owner_slots(slots, id)), 1n)), Suffix.rendered_suffix(tail, slots, addresses, forest, built)),
     recursive: Copies.copies(Nat.mul(remaining, Nat.add(References.expanded_count(P.owner_slots(slots, id)), 1n)), Suffix.rendered_suffix(tail, slots, addresses, forest, built)) -> Copies.copies(remaining, Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, updated(built, id, Node.node_value(artifact_value, values))))) ->
     Copies.copies(1n+remaining, Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, updated(built, id, Node.node_value(artifact_value, values)))):
@@ -87,17 +88,17 @@ def finish_many(+remaining: Nat, +id: Nat, +handle: Nat, +tail: List<&2, Local.P
       Tuple{single_suffix(id, handle, tail, slots, addresses, forest, built, address, artifact, refs, artifact_value, values, address_present, node_present, artifact_present, projected, actual, indexed, absent, canonical, front), recursive(rest)}
 
 def many_suffixes(count: Nat, +id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
-    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
-    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: T.ProductValue,
-    +values: List<&2, T.ProductValue>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
+    +address: O.NodeAddress, +artifact: T.Artifact, +refs: List<&2, F.Reference>, +artifact_value: ArtifactValue.ProductValue,
+    +values: List<&2, ArtifactValue.ProductValue>,
     +address_present: {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>},
     +node_present: {F.node_at(Node.nodes_of(forest), address) == Some{F.Node{address, artifact, refs}} : Maybe<&2, F.Node>},
-    +artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, T.ProductValue>},
+    +artifact_present: {F.artifact(artifact) == Some{artifact_value} : Maybe<&2, ArtifactValue.ProductValue>},
     +projected: {P.references(P.owner_slots(slots, id), addresses) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
-    +actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>},
+    +actual: {Core.reference_products(P.owner_slots(slots, id), built) == Some{values} : Maybe<&2, List<&2, ArtifactValue.ProductValue>>},
     +indexed: {P.indexed(P.owner_slots(slots, id), 0n, tail) == True{} : Bool},
     +absent: {P.node_count(tail, id) == 0n : Nat},
-    +canonical: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    +canonical: {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool},
     resources: Copies.copies(Nat.mul(count, Nat.add(References.expanded_count(P.owner_slots(slots, id)), 1n)), Suffix.rendered_suffix(tail, slots, addresses, forest, built))) ->
     Copies.copies(count, Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, updated(built, id, Node.node_value(artifact_value, values)))):
   match count:

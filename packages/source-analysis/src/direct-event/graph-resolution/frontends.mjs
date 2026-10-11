@@ -1,12 +1,12 @@
+import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { inspectTypeScript, inspectTypeScriptFunctions } from "../../../dist/direct-event/languages/typescript.js"
 import { inspectRust, inspectRustModules } from "../../../dist/direct-event/languages/rust.js"
 import { pythonAdapter } from "../../../dist/direct-event/languages/python.js"
 import { bendAdapter } from "../../../dist/direct-event/languages/bend/adapter.js"
 import { parse } from "smol-toml"
 import { sourceFacts, tomlValue } from "./frontend-codec.mjs"
-import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { projectPythonSyntax } from "./python-module/syntax-projection.mjs"
-const tag = (name) => "Types." + name
+const tag = (name) => artifactValueTag(name) ?? "Types." + name
 const optional = (value) => {
   if (value?.$ === "None") return undefined
   if (value?.$ === "Some") return value.value

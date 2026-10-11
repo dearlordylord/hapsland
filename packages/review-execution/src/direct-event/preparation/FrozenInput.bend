@@ -1,5 +1,5 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
-import ../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../runtime-environment/src/runtime/backend/Backend.bend as Backend
 import ../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend.bend as Configuration
 import ./ProviderFinalization.bend as Provider
@@ -13,17 +13,17 @@ type Frame is Data:
   Frame{
     contract: String,
     path: String,
-    graph_limits: T.ProductValue,
-    unit: T.ProductValue,
-    root_location: Maybe<&2, T.ProductValue>,
-    fingerprints: T.ProductValue,
+    graph_limits: ArtifactValue.ProductValue,
+    unit: ArtifactValue.ProductValue,
+    root_location: Maybe<&2, ArtifactValue.ProductValue>,
+    fingerprints: ArtifactValue.ProductValue,
     partial: Bool,
-    rules: List<&2, T.ProductValue>
+    rules: List<&2, ArtifactValue.ProductValue>
   }
 type Work is Data:
   ProviderWork{frame: Frame, step: Provider.Step}
-  JsonWork{input: T.ProductValue, state: Json.State}
-  HashWork{input: T.ProductValue}
+  JsonWork{input: ArtifactValue.ProductValue, state: Json.State}
+  HashWork{input: ArtifactValue.ProductValue}
 type State is Data:
   State{invocation: Nat, request: Nat, work: Work}
 type Step is Data:
@@ -31,7 +31,7 @@ type Step is Data:
   EncodeComponent{state: State, value: String}
   JsonPrimitive{state: State, value: Json.Primitive}
   Digest{state: State, bytes: String}
-  Completed{input: T.ProductValue, identity: String}
+  Completed{input: ArtifactValue.ProductValue, identity: String}
   TypeError{message: String}
   URIError{}
   InvalidReply{}
@@ -41,67 +41,77 @@ type Reply is Data:
   Serialized{invocation: Nat, request: Nat, value: String}
   Hashed{invocation: Nat, request: Nat, value: String}
 
-def identity_value(identity: Backend.Identity) -> T.ProductValue:
+def identity_value(identity: Backend.Identity) -> ArtifactValue.ProductValue:
   match identity:
     case Backend.Identity{provider, model, destination}:
-      T.ProductObject{
+      ArtifactValue.ProductObject{
         [
-          T.OrderedField{"provider", T.ProductText{provider}},
-          T.OrderedField{"model", T.ProductText{model}},
-          T.OrderedField{"destination", T.ProductText{destination}}
+          ArtifactValue.OrderedField{"provider", ArtifactValue.ProductText{provider}},
+          ArtifactValue.OrderedField{"model", ArtifactValue.ProductText{model}},
+          ArtifactValue.OrderedField{"destination", ArtifactValue.ProductText{destination}}
         ]
       }
 
 def core_fields(
   frame: Frame,
   identity: Backend.Identity
-) -> List<&2, T.OrderedField<T.ProductValue>>:
+) -> List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match frame:
     case Frame{contract, path, graph_limits, +unit, _, _, partial, rules}:
       [
-        T.OrderedField{"contract", T.ProductText{contract}},
-        T.OrderedField{"providerIdentity", identity_value(identity)},
-        T.OrderedField{"graphLimits", graph_limits},
-        T.OrderedField{"candidateProjection", T.ProductBool{True{}}},
-        T.OrderedField{
+        ArtifactValue.OrderedField{"contract", ArtifactValue.ProductText{contract}},
+        ArtifactValue.OrderedField{"providerIdentity", identity_value(identity)},
+        ArtifactValue.OrderedField{"graphLimits", graph_limits},
+        ArtifactValue.OrderedField{"candidateProjection", ArtifactValue.ProductBool{True{}}},
+        ArtifactValue.OrderedField{
           "completeness",
-          T.ProductText{Bool.pick(String, partial, "incomplete-irrelevant", "complete")}
+          ArtifactValue.ProductText{Bool.pick(String, partial, "incomplete-irrelevant", "complete")}
         },
-        T.OrderedField{"path", T.ProductText{path}},
-        T.OrderedField{"declaration", Evidence.unit_artifact(unit)},
-        T.OrderedField{"unit", unit},
-        T.OrderedField{"rules", T.ProductArray{rules}},
-        T.OrderedField{
+        ArtifactValue.OrderedField{"path", ArtifactValue.ProductText{path}},
+        ArtifactValue.OrderedField{"declaration", Evidence.unit_artifact(unit)},
+        ArtifactValue.OrderedField{"unit", unit},
+        ArtifactValue.OrderedField{"rules", ArtifactValue.ProductArray{rules}},
+        ArtifactValue.OrderedField{
           "interpretation",
-          T.ProductText{"probability-strictly-greater-than-threshold"}
+          ArtifactValue.ProductText{"probability-strictly-greater-than-threshold"}
         }
       ]
 
 def location_fields(
-  location: Maybe<&2, T.ProductValue>,
-  fingerprints: T.ProductValue
-) -> List<&2, T.OrderedField<T.ProductValue>>:
+  location: Maybe<&2, ArtifactValue.ProductValue>,
+  fingerprints: ArtifactValue.ProductValue
+) -> List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match location:
-    case None{}: [T.OrderedField{"sourceFingerprints", fingerprints}]
+    case None{}: [ArtifactValue.OrderedField{"sourceFingerprints", fingerprints}]
     case Some{location}: [
-      T.OrderedField{"rootLocation", location},
-      T.OrderedField{"sourceFingerprints", fingerprints}
+      ArtifactValue.OrderedField{"rootLocation", location},
+      ArtifactValue.OrderedField{"sourceFingerprints", fingerprints}
     ]
 
 def insert_metadata(
   count: Nat,
-  fields: List<&2, T.OrderedField<T.ProductValue>>,
-  metadata: List<&2, T.OrderedField<T.ProductValue>>
-) -> List<&2, T.OrderedField<T.ProductValue>>:
+  fields: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>,
+  metadata: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
+) -> List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>:
   match count fields:
-    case 0n _: List.append(&2, T.OrderedField<T.ProductValue>, metadata, fields)
+    case 0n _: List.append(
+      &2,
+      ArtifactValue.OrderedField<ArtifactValue.ProductValue>,
+      metadata,
+      fields
+    )
     case _ Nil{}: metadata
     case 1n++k Con{head, tail}: head <> insert_metadata(k, tail, metadata)
 
-def input_value(frame: Frame, fields: List<&2, T.OrderedField<T.ProductValue>>) -> T.ProductValue:
+def input_value(
+  frame: Frame,
+  fields: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
+) -> ArtifactValue.ProductValue:
   match frame:
     case Frame{_, _, _, _, location, fingerprints, _, _}:
-      T.ProductObject{insert_metadata(4n, fields, location_fields(location, fingerprints))}
+      ArtifactValue.ProductObject{
+        insert_metadata(4n, fields, location_fields(location, fingerprints))
+      }
 
 def identity_ready(
   invocation: Nat,
@@ -114,7 +124,7 @@ def identity_ready(
     State{
       invocation,
       request,
-      JsonWork{input_value(frame, fields), Json.initial(T.ProductObject{fields})}
+      JsonWork{input_value(frame, fields), Json.initial(ArtifactValue.ProductObject{fields})}
     }
   }
 
@@ -151,7 +161,12 @@ def initial(
     Provider.initial(invocation, configuration, identity, catalog)
   )
 
-def json_expose(invocation: Nat, request: Nat, input: T.ProductValue, step: Json.Step) -> Step:
+def json_expose(
+  invocation: Nat,
+  request: Nat,
+  input: ArtifactValue.ProductValue,
+  step: Json.Step
+) -> Step:
   match step:
     case Json.Continue{state}: Continue{State{invocation, request, JsonWork{input, state}}}
     case Json.JsonPrimitive{state, value}: JsonPrimitive{

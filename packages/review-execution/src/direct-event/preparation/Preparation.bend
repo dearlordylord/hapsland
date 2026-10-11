@@ -1,5 +1,5 @@
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
-import ../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ./PreparationSelection.bend as Selection
 import ../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.bend as Attribution
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.bend as Local
@@ -25,7 +25,7 @@ type Input is Data:
 type Capture is Data:
   Capture{path: String, handle: Nat, text: String, content_hash: String, bytes: Nat}
 type Diagnostic is Data:
-  ProviderDiagnostic{value: T.ProductValue}
+  ProviderDiagnostic{value: ArtifactValue.ProductValue}
   CaptureBudget{resource: String, used: Nat, requested: Nat, limit: Nat}
   MaterializationRefused{requested: Nat, constraint: String}
   PreparationPanic{}
@@ -40,40 +40,74 @@ type TypeFile is Data:
 type Exclusion is Data:
   Exclusion{name: String, reason: String, location: Attribution.Location}
 type FunctionFile is Data:
-  FunctionFile{failure: Maybe<&2, String>, functions: List<&2, Selection.Root>, exclusions: List<&2, Exclusion>}
+  FunctionFile{
+    failure: Maybe<&2, String>,
+    functions: List<&2, Selection.Root>,
+    exclusions: List<&2, Exclusion>
+  }
 type Extraction is Data:
-  Extraction{graph: Maybe<&2, List<&2, Selection.Root>>, functions: Maybe<&2, FunctionFile>, type_file: TypeFile}
+  Extraction{
+    graph: Maybe<&2, List<&2, Selection.Root>>,
+    functions: Maybe<&2, FunctionFile>,
+    type_file: TypeFile
+  }
 type CapacityResult is Data:
   Resized{}
   CapacityRefused{constraint: String}
   InvalidReservation{}
   InvalidMeasurement{}
 type Outcome is Data:
-  OutcomeReady{path: String, prepared: T.ProductValue}
+  OutcomeReady{path: String, prepared: ArtifactValue.ProductValue}
   OutcomeSkipped{path: String}
 type PathOutcome is Data:
   Observed{path: String, operation: OperationKind, content_hash: String,
-    units: List<&2, T.ProductValue>, failures: List<&2, Failure>}
+    units: List<&2, ArtifactValue.ProductValue>, failures: List<&2, Failure>}
   Incomplete{path: String, reason: Maybe<&2, String>, diagnostic: Maybe<&2, Diagnostic>}
 type Branch is Data:
-  Branch{paths: List<&2, PathOutcome>, outcomes: List<&2, Outcome>, units: List<&2, T.ProductValue>}
+  Branch{
+    paths: List<&2, PathOutcome>,
+    outcomes: List<&2, Outcome>,
+    units: List<&2, ArtifactValue.ProductValue>
+  }
 type RefusedPath is Data:
   RefusedPath{path: String, diagnostic: Diagnostic}
 type Shared is Data:
-  Shared{captures: List<&2, Capture>, materialized: List<&2, String>, refused: List<&2, RefusedPath>, selected: Nat, line_roots: List<&2, String>}
+  Shared{
+    captures: List<&2, Capture>,
+    materialized: List<&2, String>,
+    refused: List<&2, RefusedPath>,
+    selected: Nat,
+    line_roots: List<&2, String>
+  }
 type Queue is Data:
-  Queue{contracts: List<&2, Selection.Contract>, contract: Maybe<&2, Selection.Contract>, candidates: List<&2, Candidate>}
+  Queue{
+    contracts: List<&2, Selection.Contract>,
+    contract: Maybe<&2, Selection.Contract>,
+    candidates: List<&2, Candidate>
+  }
 type Context is Data:
   Context{candidate: Candidate, capture: Capture, frozen: Maybe<&2, List<&2, String>>}
 type AnalysisContext is Data:
-  AnalysisContext{context: Context, extraction: Extraction, selection: Selection.Selection,
-    native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>, units: List<&2, T.ProductValue>,
-    graph_failures: List<&2, Failure>, extraction_failures: List<&2, Failure>, ambiguity_reason: String}
+  AnalysisContext{
+    context: Context,
+    extraction: Extraction,
+    selection: Selection.Selection,
+    native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>,
+    units: List<&2, ArtifactValue.ProductValue>,
+    graph_failures: List<&2, Failure>,
+    extraction_failures: List<&2, Failure>,
+    ambiguity_reason: String
+  }
 type Phase is Data:
   NextContract{}
   NextCandidate{}
   AwaitPath{candidate: Candidate}
-  AwaitCapture{candidate: Candidate, path: String, selection: Nat, frozen: Maybe<&2, List<&2, String>>}
+  AwaitCapture{
+    candidate: Candidate,
+    path: String,
+    selection: Nat,
+    frozen: Maybe<&2, List<&2, String>>
+  }
   HaveCapture{context: Context}
   AwaitPreflight{context: Context}
   AwaitAdmission{context: Context}
@@ -81,10 +115,18 @@ type Phase is Data:
   MaterializationCapacityRecorded{context: Context, requested: Nat, constraint: String}
   AwaitExtraction{context: Context}
   AwaitPatch{context: Context, extraction: Extraction}
-  Selecting{context: Context, extraction: Extraction, native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>}
+  Selecting{
+    context: Context,
+    extraction: Extraction,
+    native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>
+  }
   AwaitAmbiguity{context: AnalysisContext}
   Roots{context: AnalysisContext, roots: List<&2, Selection.Analysis>}
-  AwaitRoot{context: AnalysisContext, root: Selection.Analysis, remaining: List<&2, Selection.Analysis>}
+  AwaitRoot{
+    context: AnalysisContext,
+    root: Selection.Analysis,
+    remaining: List<&2, Selection.Analysis>
+  }
   AwaitRender{context: AnalysisContext}
 type State is Data:
   State{invocation: Nat, next: Nat, input: Input, queue: Queue, shared: Shared,
@@ -95,12 +137,17 @@ type Command is Data:
   Preflight{capture: Capture}
   RejectMaterializationCapacity{}
   RecordMaterializationCapacity{}
-  AdmitMaterialization{capture: Capture, preflight: T.ProductValue}
+  AdmitMaterialization{capture: Capture, preflight: ArtifactValue.ProductValue}
   ExtractSource{capture: Capture, contract: Selection.Contract}
   VerifyNativePatch{command: String, capture: Capture}
   ClassifyAmbiguity{capture: Capture, spans: List<&2, Attribution.Location>}
   ResolveRoot{capture: Capture, root: Selection.Analysis, contract: Selection.Contract}
-  RenderUnits{context: Context, contract: Selection.Contract, declarations: List<&2, Selection.Root>, units: List<&2, T.ProductValue>}
+  RenderUnits{
+    context: Context,
+    contract: Selection.Contract,
+    declarations: List<&2, Selection.Root>,
+    units: List<&2, ArtifactValue.ProductValue>
+  }
 type Request is Data:
   Request{invocation: Nat, id: Nat, command: Command}
 type Response is Data:
@@ -108,21 +155,32 @@ type Response is Data:
   PathAllowed{path: String, selection: Nat}
   PathDenied{reason: String}
   SourceCaptured{capture: Capture}
-  SourceUnavailable{diagnostic: T.ProductValue}
-  PreflightDone{value: T.ProductValue}
+  SourceUnavailable{diagnostic: ArtifactValue.ProductValue}
+  PreflightDone{value: ArtifactValue.ProductValue}
   MaterializationDone{result: CapacityResult, requested: Nat}
   SourceExtracted{extraction: Extraction}
   NativePatchVerified{hunks: Maybe<&2, List<&2, Attribution.Hunk>>}
   AmbiguityClassified{reason: Maybe<&2, String>}
   AmbiguityClassificationFailed{}
-  RootResolved{unit: Maybe<&2, T.ProductValue>, references: List<&2, Local.ReferenceSlot>, captures: List<&2, Capture>}
+  RootResolved{
+    unit: Maybe<&2, ArtifactValue.ProductValue>,
+    references: List<&2, Local.ReferenceSlot>,
+    captures: List<&2, Capture>
+  }
   UnitsRendered{outcomes: List<&2, Outcome>}
   TechnicalFailure{message: String}
   Cancelled{}
 type Reply is Data:
   Reply{invocation: Nat, id: Nat, response: Response}
 type PreparationResult is Data:
-  PreparationResult{complete: Bool, paths: List<&2, PathOutcome>, outcomes: List<&2, Outcome>, units: List<&2, T.ProductValue>, line_roots: List<&2, String>, selected: Nat}
+  PreparationResult{
+    complete: Bool,
+    paths: List<&2, PathOutcome>,
+    outcomes: List<&2, Outcome>,
+    units: List<&2, ArtifactValue.ProductValue>,
+    line_roots: List<&2, String>,
+    selected: Nat
+  }
 type Step is Data:
   Internal{state: State}
   Await{state: State, request: Request}
@@ -217,7 +275,7 @@ def branch_outcomes(value: Branch) -> List<&2, Outcome>:
   match value:
     case Branch{_, outcomes, _}: outcomes
 
-def branch_units(value: Branch) -> List<&2, T.ProductValue>:
+def branch_units(value: Branch) -> List<&2, ArtifactValue.ProductValue>:
   match value:
     case Branch{_, _, units}: units
 
@@ -227,7 +285,13 @@ def shared_captures(value: Shared) -> List<&2, Capture>:
 
 def with_shared_captures(value: Shared, replacement: List<&2, Capture>) -> Shared:
   match value:
-    case Shared{_, materialized, refused, selected, line_roots}: Shared{replacement, materialized, refused, selected, line_roots}
+    case Shared{_, materialized, refused, selected, line_roots}: Shared{
+      replacement,
+      materialized,
+      refused,
+      selected,
+      line_roots
+    }
 
 def shared_materialized(value: Shared) -> List<&2, String>:
   match value:
@@ -235,7 +299,13 @@ def shared_materialized(value: Shared) -> List<&2, String>:
 
 def with_shared_materialized(value: Shared, replacement: List<&2, String>) -> Shared:
   match value:
-    case Shared{captures, _, refused, selected, line_roots}: Shared{captures, replacement, refused, selected, line_roots}
+    case Shared{captures, _, refused, selected, line_roots}: Shared{
+      captures,
+      replacement,
+      refused,
+      selected,
+      line_roots
+    }
 
 def shared_refused(value: Shared) -> List<&2, RefusedPath>:
   match value:
@@ -243,7 +313,13 @@ def shared_refused(value: Shared) -> List<&2, RefusedPath>:
 
 def with_shared_refused(value: Shared, replacement: List<&2, RefusedPath>) -> Shared:
   match value:
-    case Shared{captures, materialized, _, selected, line_roots}: Shared{captures, materialized, replacement, selected, line_roots}
+    case Shared{captures, materialized, _, selected, line_roots}: Shared{
+      captures,
+      materialized,
+      replacement,
+      selected,
+      line_roots
+    }
 
 def shared_selected(value: Shared) -> Nat:
   match value:
@@ -251,7 +327,13 @@ def shared_selected(value: Shared) -> Nat:
 
 def with_shared_selected(value: Shared, replacement: Nat) -> Shared:
   match value:
-    case Shared{captures, materialized, refused, _, line_roots}: Shared{captures, materialized, refused, replacement, line_roots}
+    case Shared{captures, materialized, refused, _, line_roots}: Shared{
+      captures,
+      materialized,
+      refused,
+      replacement,
+      line_roots
+    }
 
 def shared_line_roots(value: Shared) -> List<&2, String>:
   match value:
@@ -259,7 +341,13 @@ def shared_line_roots(value: Shared) -> List<&2, String>:
 
 def with_shared_line_roots(value: Shared, replacement: List<&2, String>) -> Shared:
   match value:
-    case Shared{captures, materialized, refused, selected, _}: Shared{captures, materialized, refused, selected, replacement}
+    case Shared{captures, materialized, refused, selected, _}: Shared{
+      captures,
+      materialized,
+      refused,
+      selected,
+      replacement
+    }
 
 def queue_contracts(value: Queue) -> List<&2, Selection.Contract>:
   match value:
@@ -303,63 +391,228 @@ def analysiscontext_context(value: AnalysisContext) -> Context:
 
 def with_analysiscontext_context(value: AnalysisContext, replacement: Context) -> AnalysisContext:
   match value:
-    case AnalysisContext{_, extraction, selection, native_hunks, units, graph_failures, extraction_failures, ambiguity_reason}: AnalysisContext{replacement, extraction, selection, native_hunks, units, graph_failures, extraction_failures, ambiguity_reason}
+    case AnalysisContext{
+      _,
+      extraction,
+      selection,
+      native_hunks,
+      units,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }: AnalysisContext{
+      replacement,
+      extraction,
+      selection,
+      native_hunks,
+      units,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }
 
 def analysiscontext_extraction(value: AnalysisContext) -> Extraction:
   match value:
     case AnalysisContext{_, extraction, _, _, _, _, _, _}: extraction
 
-def with_analysiscontext_extraction(value: AnalysisContext, replacement: Extraction) -> AnalysisContext:
+def with_analysiscontext_extraction(
+  value: AnalysisContext,
+  replacement: Extraction
+) -> AnalysisContext:
   match value:
-    case AnalysisContext{context, _, selection, native_hunks, units, graph_failures, extraction_failures, ambiguity_reason}: AnalysisContext{context, replacement, selection, native_hunks, units, graph_failures, extraction_failures, ambiguity_reason}
+    case AnalysisContext{
+      context,
+      _,
+      selection,
+      native_hunks,
+      units,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }: AnalysisContext{
+      context,
+      replacement,
+      selection,
+      native_hunks,
+      units,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }
 
 def analysiscontext_selection(value: AnalysisContext) -> Selection.Selection:
   match value:
     case AnalysisContext{_, _, selection, _, _, _, _, _}: selection
 
-def with_analysiscontext_selection(value: AnalysisContext, replacement: Selection.Selection) -> AnalysisContext:
+def with_analysiscontext_selection(
+  value: AnalysisContext,
+  replacement: Selection.Selection
+) -> AnalysisContext:
   match value:
-    case AnalysisContext{context, extraction, _, native_hunks, units, graph_failures, extraction_failures, ambiguity_reason}: AnalysisContext{context, extraction, replacement, native_hunks, units, graph_failures, extraction_failures, ambiguity_reason}
+    case AnalysisContext{
+      context,
+      extraction,
+      _,
+      native_hunks,
+      units,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }: AnalysisContext{
+      context,
+      extraction,
+      replacement,
+      native_hunks,
+      units,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }
 
 def analysiscontext_native_hunks(value: AnalysisContext) -> Maybe<&2, List<&2, Attribution.Hunk>>:
   match value:
     case AnalysisContext{_, _, _, native_hunks, _, _, _, _}: native_hunks
 
-def with_analysiscontext_native_hunks(value: AnalysisContext, replacement: Maybe<&2, List<&2, Attribution.Hunk>>) -> AnalysisContext:
+def with_analysiscontext_native_hunks(
+  value: AnalysisContext,
+  replacement: Maybe<&2, List<&2, Attribution.Hunk>>
+) -> AnalysisContext:
   match value:
-    case AnalysisContext{context, extraction, selection, _, units, graph_failures, extraction_failures, ambiguity_reason}: AnalysisContext{context, extraction, selection, replacement, units, graph_failures, extraction_failures, ambiguity_reason}
+    case AnalysisContext{
+      context,
+      extraction,
+      selection,
+      _,
+      units,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }: AnalysisContext{
+      context,
+      extraction,
+      selection,
+      replacement,
+      units,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }
 
-def analysiscontext_units(value: AnalysisContext) -> List<&2, T.ProductValue>:
+def analysiscontext_units(value: AnalysisContext) -> List<&2, ArtifactValue.ProductValue>:
   match value:
     case AnalysisContext{_, _, _, _, units, _, _, _}: units
 
-def with_analysiscontext_units(value: AnalysisContext, replacement: List<&2, T.ProductValue>) -> AnalysisContext:
+def with_analysiscontext_units(
+  value: AnalysisContext,
+  replacement: List<&2, ArtifactValue.ProductValue>
+) -> AnalysisContext:
   match value:
-    case AnalysisContext{context, extraction, selection, native_hunks, _, graph_failures, extraction_failures, ambiguity_reason}: AnalysisContext{context, extraction, selection, native_hunks, replacement, graph_failures, extraction_failures, ambiguity_reason}
+    case AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      _,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }: AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      replacement,
+      graph_failures,
+      extraction_failures,
+      ambiguity_reason
+    }
 
 def analysiscontext_graph_failures(value: AnalysisContext) -> List<&2, Failure>:
   match value:
     case AnalysisContext{_, _, _, _, _, graph_failures, _, _}: graph_failures
 
-def with_analysiscontext_graph_failures(value: AnalysisContext, replacement: List<&2, Failure>) -> AnalysisContext:
+def with_analysiscontext_graph_failures(
+  value: AnalysisContext,
+  replacement: List<&2, Failure>
+) -> AnalysisContext:
   match value:
-    case AnalysisContext{context, extraction, selection, native_hunks, units, _, extraction_failures, ambiguity_reason}: AnalysisContext{context, extraction, selection, native_hunks, units, replacement, extraction_failures, ambiguity_reason}
+    case AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      units,
+      _,
+      extraction_failures,
+      ambiguity_reason
+    }: AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      units,
+      replacement,
+      extraction_failures,
+      ambiguity_reason
+    }
 
 def analysiscontext_extraction_failures(value: AnalysisContext) -> List<&2, Failure>:
   match value:
     case AnalysisContext{_, _, _, _, _, _, extraction_failures, _}: extraction_failures
 
-def with_analysiscontext_extraction_failures(value: AnalysisContext, replacement: List<&2, Failure>) -> AnalysisContext:
+def with_analysiscontext_extraction_failures(
+  value: AnalysisContext,
+  replacement: List<&2, Failure>
+) -> AnalysisContext:
   match value:
-    case AnalysisContext{context, extraction, selection, native_hunks, units, graph_failures, _, ambiguity_reason}: AnalysisContext{context, extraction, selection, native_hunks, units, graph_failures, replacement, ambiguity_reason}
+    case AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      units,
+      graph_failures,
+      _,
+      ambiguity_reason
+    }: AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      units,
+      graph_failures,
+      replacement,
+      ambiguity_reason
+    }
 
 def analysiscontext_ambiguity_reason(value: AnalysisContext) -> String:
   match value:
     case AnalysisContext{_, _, _, _, _, _, _, ambiguity_reason}: ambiguity_reason
 
-def with_analysiscontext_ambiguity_reason(value: AnalysisContext, replacement: String) -> AnalysisContext:
+def with_analysiscontext_ambiguity_reason(
+  value: AnalysisContext,
+  replacement: String
+) -> AnalysisContext:
   match value:
-    case AnalysisContext{context, extraction, selection, native_hunks, units, graph_failures, extraction_failures, _}: AnalysisContext{context, extraction, selection, native_hunks, units, graph_failures, extraction_failures, replacement}
+    case AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      units,
+      graph_failures,
+      extraction_failures,
+      _
+    }: AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      units,
+      graph_failures,
+      extraction_failures,
+      replacement
+    }
 
 def state_invocation(value: State) -> Nat:
   match value:
@@ -367,7 +620,16 @@ def state_invocation(value: State) -> Nat:
 
 def with_state_invocation(value: State, replacement: Nat) -> State:
   match value:
-    case State{_, next, input, queue, shared, branches, branch, phase}: State{replacement, next, input, queue, shared, branches, branch, phase}
+    case State{_, next, input, queue, shared, branches, branch, phase}: State{
+      replacement,
+      next,
+      input,
+      queue,
+      shared,
+      branches,
+      branch,
+      phase
+    }
 
 def state_next(value: State) -> Nat:
   match value:
@@ -375,7 +637,16 @@ def state_next(value: State) -> Nat:
 
 def with_state_next(value: State, replacement: Nat) -> State:
   match value:
-    case State{invocation, _, input, queue, shared, branches, branch, phase}: State{invocation, replacement, input, queue, shared, branches, branch, phase}
+    case State{invocation, _, input, queue, shared, branches, branch, phase}: State{
+      invocation,
+      replacement,
+      input,
+      queue,
+      shared,
+      branches,
+      branch,
+      phase
+    }
 
 def state_input(value: State) -> Input:
   match value:
@@ -383,7 +654,16 @@ def state_input(value: State) -> Input:
 
 def with_state_input(value: State, replacement: Input) -> State:
   match value:
-    case State{invocation, next, _, queue, shared, branches, branch, phase}: State{invocation, next, replacement, queue, shared, branches, branch, phase}
+    case State{invocation, next, _, queue, shared, branches, branch, phase}: State{
+      invocation,
+      next,
+      replacement,
+      queue,
+      shared,
+      branches,
+      branch,
+      phase
+    }
 
 def state_queue(value: State) -> Queue:
   match value:
@@ -391,7 +671,16 @@ def state_queue(value: State) -> Queue:
 
 def with_state_queue(value: State, replacement: Queue) -> State:
   match value:
-    case State{invocation, next, input, _, shared, branches, branch, phase}: State{invocation, next, input, replacement, shared, branches, branch, phase}
+    case State{invocation, next, input, _, shared, branches, branch, phase}: State{
+      invocation,
+      next,
+      input,
+      replacement,
+      shared,
+      branches,
+      branch,
+      phase
+    }
 
 def state_shared(value: State) -> Shared:
   match value:
@@ -399,7 +688,16 @@ def state_shared(value: State) -> Shared:
 
 def with_state_shared(value: State, replacement: Shared) -> State:
   match value:
-    case State{invocation, next, input, queue, _, branches, branch, phase}: State{invocation, next, input, queue, replacement, branches, branch, phase}
+    case State{invocation, next, input, queue, _, branches, branch, phase}: State{
+      invocation,
+      next,
+      input,
+      queue,
+      replacement,
+      branches,
+      branch,
+      phase
+    }
 
 def state_branches(value: State) -> List<&2, Branch>:
   match value:
@@ -407,7 +705,16 @@ def state_branches(value: State) -> List<&2, Branch>:
 
 def with_state_branches(value: State, replacement: List<&2, Branch>) -> State:
   match value:
-    case State{invocation, next, input, queue, shared, _, branch, phase}: State{invocation, next, input, queue, shared, replacement, branch, phase}
+    case State{invocation, next, input, queue, shared, _, branch, phase}: State{
+      invocation,
+      next,
+      input,
+      queue,
+      shared,
+      replacement,
+      branch,
+      phase
+    }
 
 def state_branch(value: State) -> Branch:
   match value:
@@ -415,7 +722,16 @@ def state_branch(value: State) -> Branch:
 
 def with_state_branch(value: State, replacement: Branch) -> State:
   match value:
-    case State{invocation, next, input, queue, shared, branches, _, phase}: State{invocation, next, input, queue, shared, branches, replacement, phase}
+    case State{invocation, next, input, queue, shared, branches, _, phase}: State{
+      invocation,
+      next,
+      input,
+      queue,
+      shared,
+      branches,
+      replacement,
+      phase
+    }
 
 def state_phase(value: State) -> Phase:
   match value:
@@ -423,7 +739,16 @@ def state_phase(value: State) -> Phase:
 
 def with_state_phase(value: State, replacement: Phase) -> State:
   match value:
-    case State{invocation, next, input, queue, shared, branches, branch, _}: State{invocation, next, input, queue, shared, branches, branch, replacement}
+    case State{invocation, next, input, queue, shared, branches, branch, _}: State{
+      invocation,
+      next,
+      input,
+      queue,
+      shared,
+      branches,
+      branch,
+      replacement
+    }
 
 def empty_branch() -> Branch:
   Branch{Nil{}, Nil{}, Nil{}}
@@ -434,7 +759,12 @@ def current_contract(queue: Queue) -> Selection.Contract:
     case _: Selection.OtherContract{"uninitialized"}
 
 def append_unique(+name: String, +names: List<&2, String>) -> List<&2, String>:
-  Bool.pick(List<&2, String>, Selection.names_contain(name, names), names, List.append(&2, String, names, name <> Nil{}))
+  Bool.pick(
+    List<&2, String>,
+    Selection.names_contain(name, names),
+    names,
+    List.append(&2, String, names, name <> Nil{})
+  )
 
 def union_names(remaining: List<&2, String>, names: List<&2, String>) -> List<&2, String>:
   match remaining:
@@ -444,12 +774,22 @@ def union_names(remaining: List<&2, String>, names: List<&2, String>) -> List<&2
 def frozen_path(+path: String, paths: List<&2, FrozenPath>) -> Maybe<&2, List<&2, String>>:
   match paths:
     case Nil{}: None{}
-    case FrozenPath{actual, names} <> rest: Bool.pick(Maybe<&2, List<&2, String>>, String.eq(path, actual), Some{names}, frozen_path(path, rest))
+    case FrozenPath{actual, names} <> rest: Bool.pick(
+      Maybe<&2, List<&2, String>>,
+      String.eq(path, actual),
+      Some{names},
+      frozen_path(path, rest)
+    )
 
 def find_capture(+path: String, captures: List<&2, Capture>) -> Maybe<&2, Capture>:
   match captures:
     case Nil{}: None{}
-    case +capture <> rest: Bool.pick(Maybe<&2, Capture>, String.eq(path, capture_path(capture)), Some{capture}, find_capture(path, rest))
+    case +capture <> rest: Bool.pick(
+      Maybe<&2, Capture>,
+      String.eq(path, capture_path(capture)),
+      Some{capture},
+      find_capture(path, rest)
+    )
 
 def total_capture_bytes(captures: List<&2, Capture>) -> Nat:
   match captures:
@@ -459,7 +799,12 @@ def total_capture_bytes(captures: List<&2, Capture>) -> Nat:
 def find_refused(+path: String, refused: List<&2, RefusedPath>) -> Maybe<&2, Diagnostic>:
   match refused:
     case Nil{}: None{}
-    case RefusedPath{actual, diagnostic} <> rest: Bool.pick(Maybe<&2, Diagnostic>, String.eq(path, actual), Some{diagnostic}, find_refused(path, rest))
+    case RefusedPath{actual, diagnostic} <> rest: Bool.pick(
+      Maybe<&2, Diagnostic>,
+      String.eq(path, actual),
+      Some{diagnostic},
+      find_refused(path, rest)
+    )
 
 def internal(state: State, phase: Phase) -> Step:
   Internal{with_state_phase(state, phase)}
@@ -468,33 +813,104 @@ def issue(+state: State, phase: Phase, command: Command) -> Step:
   Await{with_state_phase(with_state_next(state, Nat.add(state_next(state), 1n)), phase),
     Request{state_invocation(state), state_next(state), command}}
 
-def record_candidate(state: State, paths: List<&2, PathOutcome>, outcomes: List<&2, Outcome>, units: List<&2, T.ProductValue>) -> Step:
+def record_candidate(
+  state: State,
+  paths: List<&2, PathOutcome>,
+  outcomes: List<&2, Outcome>,
+  units: List<&2, ArtifactValue.ProductValue>
+) -> Step:
   match state:
-    case State{invocation, next, input, queue, shared, branches, Branch{old_paths, old_outcomes, old_units}, _}:
-      Internal{State{invocation, next, input, queue, shared, branches,
-        Branch{List.append(&2, PathOutcome, old_paths, paths), List.append(&2, Outcome, old_outcomes, outcomes),
-          List.append(&2, T.ProductValue, old_units, units)}, NextCandidate{}}}
+    case State{
+      invocation,
+      next,
+      input,
+      queue,
+      shared,
+      branches,
+      Branch{old_paths, old_outcomes, old_units},
+      _
+    }:
+      Internal{
+        State{
+          invocation,
+          next,
+          input,
+          queue,
+          shared,
+          branches,
+          Branch{
+            List.append(&2, PathOutcome, old_paths, paths),
+            List.append(&2, Outcome, old_outcomes, outcomes),
+            List.append(&2, ArtifactValue.ProductValue, old_units, units)
+          },
+          NextCandidate{}
+        }
+      }
 
 def skip_candidate(+state: State, +path: String, reason: Maybe<&2, String>) -> Step:
   match reason:
     case None{}: record_candidate(state, Nil{}, OutcomeSkipped{path} <> Nil{}, Nil{})
-    case Some{reason}: record_candidate(state, Incomplete{path, Some{reason}, None{}} <> Nil{}, OutcomeSkipped{path} <> Nil{}, Nil{})
+    case Some{reason}: record_candidate(
+      state,
+      Incomplete{path, Some{reason}, None{}} <> Nil{},
+      OutcomeSkipped{path} <> Nil{},
+      Nil{}
+    )
 
 def refuse_candidate(state: State, +path: String, diagnostic: Diagnostic) -> Step:
-  record_candidate(state, Incomplete{path, None{}, Some{diagnostic}} <> Nil{}, OutcomeSkipped{path} <> Nil{}, Nil{})
+  record_candidate(
+    state,
+    Incomplete{path, None{}, Some{diagnostic}} <> Nil{},
+    OutcomeSkipped{path} <> Nil{},
+    Nil{}
+  )
 
-def observed_candidate(state: State, context: Context, +units: List<&2, T.ProductValue>, failures: List<&2, Failure>, outcomes: List<&2, Outcome>) -> Step:
+def observed_candidate(
+  state: State,
+  context: Context,
+  +units: List<&2, ArtifactValue.ProductValue>,
+  failures: List<&2, Failure>,
+  outcomes: List<&2, Outcome>
+) -> Step:
   match context:
     case Context{Candidate{_, operation, _}, Capture{path, _, _, hash, _}, _}:
-      record_candidate(state, Observed{path, operation, hash, units, failures} <> Nil{}, outcomes, units)
+      record_candidate(
+        state,
+        Observed{path, operation, hash, units, failures} <> Nil{},
+        outcomes,
+        units
+      )
 
 def trim_white(char: Char) -> Bool:
   match char:
-    case Chr{+value}: Bool.or(Bool.and(U32.is_ge(value, 9), U32.is_le(value, 13)),
-      Bool.or(U32.is_eq(value, 32), Bool.or(U32.is_eq(value, 160), Bool.or(U32.is_eq(value, 5760),
-      Bool.or(Bool.and(U32.is_ge(value, 8192), U32.is_le(value, 8202)),
-      Bool.or(U32.is_eq(value, 8232), Bool.or(U32.is_eq(value, 8233), Bool.or(U32.is_eq(value, 8239),
-      Bool.or(U32.is_eq(value, 8287), Bool.or(U32.is_eq(value, 12288), U32.is_eq(value, 65279)))))))))))
+    case Chr{+value}: Bool.or(
+      Bool.and(U32.is_ge(value, 9), U32.is_le(value, 13)),
+      Bool.or(
+        U32.is_eq(value, 32),
+        Bool.or(
+          U32.is_eq(value, 160),
+          Bool.or(
+            U32.is_eq(value, 5760),
+            Bool.or(
+              Bool.and(U32.is_ge(value, 8192), U32.is_le(value, 8202)),
+              Bool.or(
+                U32.is_eq(value, 8232),
+                Bool.or(
+                  U32.is_eq(value, 8233),
+                  Bool.or(
+                    U32.is_eq(value, 8239),
+                    Bool.or(
+                      U32.is_eq(value, 8287),
+                      Bool.or(U32.is_eq(value, 12288), U32.is_eq(value, 65279))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
 
 def nonwhite(text: String) -> Bool:
   match text:
@@ -525,48 +941,129 @@ def eligible_metadata(skip: Bool, state: State, +candidate: Candidate) -> Step:
 
 def eligible_operation(+state: State, +candidate: Candidate, operation: OperationKind) -> Step:
   match operation:
-    case CandidateDelete{}: skip_candidate(state, candidate_path(candidate), Some{"unsupported-operation"})
-    case CandidateMove{}: skip_candidate(state, candidate_path(candidate), Some{"unsupported-operation"})
+    case CandidateDelete{}: skip_candidate(
+      state,
+      candidate_path(candidate),
+      Some{"unsupported-operation"}
+    )
+    case CandidateMove{}: skip_candidate(
+      state,
+      candidate_path(candidate),
+      Some{"unsupported-operation"}
+    )
     case _: eligible_metadata(metadata_only(state_input(state), candidate), state, candidate)
 
 def source_cap(contract: Selection.Contract, limits: Graph.Limits) -> Maybe<&2, Nat>:
-  Bool.pick(Maybe<&2, Nat>, Selection.graph_contract(contract), Some{Graph.source_cap(limits)}, None{})
+  Bool.pick(
+    Maybe<&2, Nat>,
+    Selection.graph_contract(contract),
+    Some{Graph.source_cap(limits)},
+    None{}
+  )
 
 def capture_admission(+captures: List<&2, Capture>) -> Maybe<&2, Diagnostic>:
-  Bool.pick(Maybe<&2, Diagnostic>, Nat.is_ge(List.length(&2, Capture, captures), 64n),
+  Bool.pick(
+    Maybe<&2, Diagnostic>,
+    Nat.is_ge(List.length(&2, Capture, captures), 64n),
     Some{CaptureBudget{"files", List.length(&2, Capture, captures), 1n, 64n}},
-    Bool.pick(Maybe<&2, Diagnostic>, Nat.is_gt(Nat.add(total_capture_bytes(captures), 2097152n), 16777216n),
-      Some{CaptureBudget{"bytes", total_capture_bytes(captures), 2097152n, 16777216n}}, None{}))
+    Bool.pick(
+      Maybe<&2, Diagnostic>,
+      Nat.is_gt(Nat.add(total_capture_bytes(captures), 2097152n), 16777216n),
+      Some{CaptureBudget{"bytes", total_capture_bytes(captures), 2097152n, 16777216n}},
+      None{}
+    )
+  )
 
-def capture_admitted(refusal: Maybe<&2, Diagnostic>, +state: State, candidate: Candidate, +path: String, +selection: Nat, frozen: Maybe<&2, List<&2, String>>) -> Step:
+def capture_admitted(
+  refusal: Maybe<&2, Diagnostic>,
+  +state: State,
+  candidate: Candidate,
+  +path: String,
+  +selection: Nat,
+  frozen: Maybe<&2, List<&2, String>>
+) -> Step:
   match refusal:
     case Some{diagnostic}: refuse_candidate(state, path, diagnostic)
-    case None{}: issue(state, AwaitCapture{candidate, path, selection, frozen},
-      CaptureSource{path, selection, source_cap(current_contract(state_queue(state)), input_limits(state_input(state)))})
+    case None{}: issue(
+      state,
+      AwaitCapture{candidate, path, selection, frozen},
+      CaptureSource{
+        path,
+        selection,
+        source_cap(current_contract(state_queue(state)), input_limits(state_input(state)))
+      }
+    )
 
-def capture_lookup(found: Maybe<&2, Capture>, +state: State, candidate: Candidate, path: String, selection: Nat, frozen: Maybe<&2, List<&2, String>>) -> Step:
+def capture_lookup(
+  found: Maybe<&2, Capture>,
+  +state: State,
+  candidate: Candidate,
+  path: String,
+  selection: Nat,
+  frozen: Maybe<&2, List<&2, String>>
+) -> Step:
   match found:
     case Some{capture}: internal(state, HaveCapture{Context{candidate, capture, frozen}})
-    case None{}: capture_admitted(capture_admission(shared_captures(state_shared(state))), state, candidate, path, selection, frozen)
+    case None{}: capture_admitted(
+      capture_admission(shared_captures(state_shared(state))),
+      state,
+      candidate,
+      path,
+      selection,
+      frozen
+    )
 
-def frozen_found(names: Maybe<&2, List<&2, String>>, +state: State, candidate: Candidate, +path: String, selection: Nat) -> Step:
+def frozen_found(
+  names: Maybe<&2, List<&2, String>>,
+  +state: State,
+  candidate: Candidate,
+  +path: String,
+  selection: Nat
+) -> Step:
   match names:
     case None{}: skip_candidate(state, path, None{})
-    case Some{names}: capture_lookup(find_capture(path, shared_captures(state_shared(state))), state, candidate, path, selection, Some{names})
+    case Some{names}: capture_lookup(
+      find_capture(path, shared_captures(state_shared(state))),
+      state,
+      candidate,
+      path,
+      selection,
+      Some{names}
+    )
 
-def path_allowed(frozen_paths: Maybe<&2, List<&2, FrozenPath>>, +state: State, candidate: Candidate, +path: String, selection: Nat) -> Step:
+def path_allowed(
+  frozen_paths: Maybe<&2, List<&2, FrozenPath>>,
+  +state: State,
+  candidate: Candidate,
+  +path: String,
+  selection: Nat
+) -> Step:
   match frozen_paths:
-    case None{}: capture_lookup(find_capture(path, shared_captures(state_shared(state))), state, candidate, path, selection, None{})
+    case None{}: capture_lookup(
+      find_capture(path, shared_captures(state_shared(state))),
+      state,
+      candidate,
+      path,
+      selection,
+      None{}
+    )
     case Some{paths}: frozen_found(frozen_path(path, paths), state, candidate, path, selection)
 
 def context_path(context: Context) -> String:
   capture_path(context_capture(context))
 
 def source_allowed(contract: Selection.Contract, +limits: Graph.Limits, +bytes: Nat) -> Bool:
-  Bool.or(Bool.not(Selection.graph_contract(contract)), Bool.and(Nat.is_le(bytes, Graph.source_cap(limits)), Nat.is_le(bytes, Graph.read_cap(limits))))
+  Bool.or(
+    Bool.not(Selection.graph_contract(contract)),
+    Bool.and(Nat.is_le(bytes, Graph.source_cap(limits)), Nat.is_le(bytes, Graph.read_cap(limits)))
+  )
 
 def extract(+state: State, +context: Context) -> Step:
-  issue(state, AwaitExtraction{context}, ExtractSource{context_capture(context), current_contract(state_queue(state))})
+  issue(
+    state,
+    AwaitExtraction{context},
+    ExtractSource{context_capture(context), current_contract(state_queue(state))}
+  )
 
 def materialized(hit: Bool, before_analyze: Bool, +state: State, +context: Context) -> Step:
   match hit before_analyze:
@@ -574,16 +1071,34 @@ def materialized(hit: Bool, before_analyze: Bool, +state: State, +context: Conte
     case _ _: extract(with_state_shared(state, with_shared_materialized(state_shared(state),
       append_unique(context_path(context), shared_materialized(state_shared(state))))), context)
 
-def materialization_lookup(refused: Maybe<&2, Diagnostic>, +state: State, +context: Context) -> Step:
+def materialization_lookup(
+  refused: Maybe<&2, Diagnostic>,
+  +state: State,
+  +context: Context
+) -> Step:
   match refused:
     case Some{diagnostic}: refuse_candidate(state, context_path(context), diagnostic)
-    case None{}: materialized(Selection.names_contain(context_path(context), shared_materialized(state_shared(state))),
-      input_before_analyze(state_input(state)), state, context)
+    case None{}: materialized(
+      Selection.names_contain(context_path(context), shared_materialized(state_shared(state))),
+      input_before_analyze(state_input(state)),
+      state,
+      context
+    )
 
 def have_capture(allowed: Bool, +state: State, +context: Context) -> Step:
   match allowed:
-    case False{}: observed_candidate(state, context, Nil{}, Failure{None{}, "missing-evidence"} <> Nil{}, OutcomeSkipped{context_path(context)} <> Nil{})
-    case True{}: materialization_lookup(find_refused(context_path(context), shared_refused(state_shared(state))), state, context)
+    case False{}: observed_candidate(
+      state,
+      context,
+      Nil{},
+      Failure{None{}, "missing-evidence"} <> Nil{},
+      OutcomeSkipped{context_path(context)} <> Nil{}
+    )
+    case True{}: materialization_lookup(
+      find_refused(context_path(context), shared_refused(state_shared(state))),
+      state,
+      context
+    )
 
 def function_roots(functions: Maybe<&2, FunctionFile>) -> List<&2, Selection.Root>:
   match functions:
@@ -595,18 +1110,30 @@ def graph_roots(graph: Maybe<&2, List<&2, Selection.Root>>) -> List<&2, Selectio
     case None{}: Nil{}
     case Some{roots}: roots
 
-def contract_roots(contract: Selection.Contract, extraction: Extraction) -> List<&2, Selection.Root>:
+def contract_roots(
+  contract: Selection.Contract,
+  extraction: Extraction
+) -> List<&2, Selection.Root>:
   match contract extraction:
     case Selection.FunctionContract{} Extraction{_, functions, _}: function_roots(functions)
     case _ Extraction{graph, _, _}: graph_roots(graph)
 
 def all_roots(extraction: Extraction) -> List<&2, Selection.Root>:
   match extraction:
-    case Extraction{graph, functions, _}: List.append(&2, Selection.Root, graph_roots(graph), function_roots(functions))
+    case Extraction{graph, functions, _}: List.append(
+      &2,
+      Selection.Root,
+      graph_roots(graph),
+      function_roots(functions)
+    )
 
 def root_analysis(root: Selection.Root) -> Selection.Analysis:
   match root:
-    case Selection.Root{id, Attribution.Declaration{_, kind, name, _, _}}: Selection.Analysis{id, kind, name}
+    case Selection.Root{id, Attribution.Declaration{_, kind, name, _, _}}: Selection.Analysis{
+      id,
+      kind,
+      name
+    }
 
 def root_analyses(roots: List<&2, Selection.Root>) -> List<&2, Selection.Analysis>:
   match roots:
@@ -620,32 +1147,57 @@ def addition(operation: OperationKind) -> Bool:
 
 def snapshot(context: Context) -> Attribution.Snapshot:
   match context:
-    case Context{Candidate{_, operation, _}, Capture{path, _, text, _, _}, _}: Attribution.Snapshot{path, addition(operation), text}
+    case Context{Candidate{_, operation, _}, Capture{path, _, text, _, _}, _}: Attribution.Snapshot{
+      path,
+      addition(operation),
+      text
+    }
 
-def selection_input(+state: State, +context: Context, +extraction: Extraction, native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>) -> Selection.Input:
-  Selection.Input{snapshot(context), capture_content_hash(context_capture(context)), current_contract(state_queue(state)),
-    input_line(state_input(state)), context_frozen(context), input_verified(state_input(state)), native_hunks,
-    all_roots(extraction), root_analyses(contract_roots(current_contract(state_queue(state)), extraction))}
+def selection_input(
+  +state: State,
+  +context: Context,
+  +extraction: Extraction,
+  native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>
+) -> Selection.Input:
+  Selection.Input{
+    snapshot(context),
+    capture_content_hash(context_capture(context)),
+    current_contract(state_queue(state)),
+    input_line(state_input(state)),
+    context_frozen(context),
+    input_verified(state_input(state)),
+    native_hunks,
+    all_roots(extraction),
+    root_analyses(contract_roots(current_contract(state_queue(state)), extraction))
+  }
 
 def unsupported_failures(analyses: List<&2, NativeAnalysis>) -> List<&2, Failure>:
   match analyses:
     case Nil{}: Nil{}
     case NativeReady{_} <> rest: unsupported_failures(rest)
-    case NativeUnsupported{name, reason} <> rest: Failure{Some{name}, reason} <> unsupported_failures(rest)
+    case NativeUnsupported{name, reason} <> rest: Failure{Some{name}, reason} <> unsupported_failures(
+      rest
+    )
 
 def type_failures(file: TypeFile) -> List<&2, Failure>:
   match file:
     case TypeUnavailable{reason}: Failure{None{}, reason} <> Nil{}
     case TypeAnalyzed{analyses}: unsupported_failures(analyses)
 
-def maybe_type_failures(graph: Maybe<&2, List<&2, Selection.Root>>, file: TypeFile) -> List<&2, Failure>:
+def maybe_type_failures(
+  graph: Maybe<&2, List<&2, Selection.Root>>,
+  file: TypeFile
+) -> List<&2, Failure>:
   match graph:
     case Some{_}: Nil{}
     case None{}: type_failures(file)
 
 def exclusion_root(path: String, exclusion: Exclusion) -> Selection.Root:
   match exclusion:
-    case Exclusion{+name, _, location}: Selection.Root{name, Attribution.Declaration{path, "function", name, location, None{}}}
+    case Exclusion{+name, _, location}: Selection.Root{
+      name,
+      Attribution.Declaration{path, "function", name, location, None{}}
+    }
 
 def exclusion_roots(+path: String, exclusions: List<&2, Exclusion>) -> List<&2, Selection.Root>:
   match exclusions:
@@ -662,67 +1214,161 @@ def overlapping(location: Attribution.Location, other: Attribution.Location) -> 
 def overlaps_exclusions(+location: Attribution.Location, exclusions: List<&2, Exclusion>) -> Bool:
   match exclusions:
     case Nil{}: False{}
-    case Exclusion{_, _, other} <> rest: Bool.or(overlapping(location, other), overlaps_exclusions(location, rest))
+    case Exclusion{_, _, other} <> rest: Bool.or(
+      overlapping(location, other),
+      overlaps_exclusions(location, rest)
+    )
 
-def ambiguous_exclusions(locations: List<&2, Attribution.Location>, +exclusions: List<&2, Exclusion>) -> Bool:
+def ambiguous_exclusions(
+  locations: List<&2, Attribution.Location>,
+  +exclusions: List<&2, Exclusion>
+) -> Bool:
   match locations:
     case Nil{}: False{}
-    case location <> rest: Bool.or(overlaps_exclusions(location, exclusions), ambiguous_exclusions(rest, exclusions))
+    case location <> rest: Bool.or(
+      overlaps_exclusions(location, exclusions),
+      ambiguous_exclusions(rest, exclusions)
+    )
 
 def declaration_names(roots: List<&2, Attribution.Declaration>) -> List<&2, String>:
   match roots:
     case Nil{}: Nil{}
     case Attribution.Declaration{_, _, name, _, _} <> rest: name <> declaration_names(rest)
 
-def selected_exclusion_failures(exclusions: List<&2, Exclusion>, +names: List<&2, String>) -> List<&2, Failure>:
+def selected_exclusion_failures(
+  exclusions: List<&2, Exclusion>,
+  +names: List<&2, String>
+) -> List<&2, Failure>:
   match exclusions:
     case Nil{}: Nil{}
-    case Exclusion{+name, reason, _} <> +rest: Bool.pick(List<&2, Failure>, Selection.names_contain(name, names),
-      Failure{Some{name}, reason} <> selected_exclusion_failures(rest, names), selected_exclusion_failures(rest, names))
+    case Exclusion{+name, reason, _} <> +rest: Bool.pick(
+      List<&2, Failure>,
+      Selection.names_contain(name, names),
+      Failure{Some{name}, reason} <> selected_exclusion_failures(rest, names),
+      selected_exclusion_failures(rest, names)
+    )
 
 def add_function_empty(failures: List<&2, Failure>, no_functions: Bool) -> List<&2, Failure>:
   match failures no_functions:
     case Nil{} True{}: Failure{None{}, "no-supported-function-root"} <> Nil{}
     case _ _: failures
 
-def add_exclusion_ambiguity(failures: List<&2, Failure>, ambiguous: Bool, no_functions: Bool) -> List<&2, Failure>:
+def add_exclusion_ambiguity(
+  failures: List<&2, Failure>,
+  ambiguous: Bool,
+  no_functions: Bool
+) -> List<&2, Failure>:
   match failures ambiguous:
     case Nil{} True{}: Failure{None{}, "unsupported-callable"} <> Nil{}
     case _ _: add_function_empty(failures, no_functions)
 
-def exclusion_selection(outcome: Attribution.Outcome, +exclusions: List<&2, Exclusion>, no_functions: Bool) -> List<&2, Failure>:
+def exclusion_selection(
+  outcome: Attribution.Outcome,
+  +exclusions: List<&2, Exclusion>,
+  no_functions: Bool
+) -> List<&2, Failure>:
   match outcome:
     case Attribution.InvalidFacts{}: Nil{}
     case Attribution.Selected{Attribution.Selection{selected, ambiguous}}:
-      add_exclusion_ambiguity(selected_exclusion_failures(exclusions, declaration_names(selected)), ambiguous_exclusions(ambiguous, exclusions), no_functions)
+      add_exclusion_ambiguity(
+        selected_exclusion_failures(exclusions, declaration_names(selected)),
+        ambiguous_exclusions(ambiguous, exclusions),
+        no_functions
+      )
 
-def exclusion_hunks(hunks: Maybe<&2, List<&2, Attribution.Hunk>>, +context: Context, +exclusions: List<&2, Exclusion>, no_functions: Bool) -> List<&2, Failure>:
+def exclusion_hunks(
+  hunks: Maybe<&2, List<&2, Attribution.Hunk>>,
+  +context: Context,
+  +exclusions: List<&2, Exclusion>,
+  no_functions: Bool
+) -> List<&2, Failure>:
   match hunks:
     case None{}: add_function_empty(Nil{}, no_functions)
-    case Some{hunks}: exclusion_selection(Attribution.select(snapshot(context), Selection.root_declarations(exclusion_roots(context_path(context), exclusions)), hunks), exclusions, no_functions)
+    case Some{hunks}: exclusion_selection(
+      Attribution.select(
+        snapshot(context),
+        Selection.root_declarations(exclusion_roots(context_path(context), exclusions)),
+        hunks
+      ),
+      exclusions,
+      no_functions
+    )
 
 def line_exclusion_names(roots: List<&2, Selection.Root>) -> List<&2, String>:
   match roots:
     case Nil{}: Nil{}
-    case Selection.Root{_, Attribution.Declaration{_, _, name, _, _}} <> rest: name <> line_exclusion_names(rest)
+    case Selection.Root{_, Attribution.Declaration{_, _, name, _, _}} <> rest: name <> line_exclusion_names(
+      rest
+    )
 
-def function_exclusions(line: Maybe<&2, Nat>, frozen: Maybe<&2, List<&2, String>>, +input: Input, +context: Context, native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>, +exclusions: List<&2, Exclusion>, no_functions: Bool) -> List<&2, Failure>:
+def function_exclusions(
+  line: Maybe<&2, Nat>,
+  frozen: Maybe<&2, List<&2, String>>,
+  +input: Input,
+  +context: Context,
+  native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>,
+  +exclusions: List<&2, Exclusion>,
+  no_functions: Bool
+) -> List<&2, Failure>:
   match line frozen:
-    case _ Some{names}: add_function_empty(selected_exclusion_failures(exclusions, names), no_functions)
-    case Some{line} None{}: add_function_empty(selected_exclusion_failures(exclusions,
-      line_exclusion_names(Selection.matching_roots(exclusion_roots(context_path(context), exclusions), line))), no_functions)
-    case None{} None{}: exclusion_hunks(Selection.patch_hunks(snapshot(context), capture_content_hash(context_capture(context)), input_verified(input), native_hunks), context, exclusions, no_functions)
+    case _ Some{names}: add_function_empty(
+      selected_exclusion_failures(exclusions, names),
+      no_functions
+    )
+    case Some{line} None{}: add_function_empty(
+      selected_exclusion_failures(
+        exclusions,
+        line_exclusion_names(
+          Selection.matching_roots(exclusion_roots(context_path(context), exclusions), line)
+        )
+      ),
+      no_functions
+    )
+    case None{} None{}: exclusion_hunks(
+      Selection.patch_hunks(
+        snapshot(context),
+        capture_content_hash(context_capture(context)),
+        input_verified(input),
+        native_hunks
+      ),
+      context,
+      exclusions,
+      no_functions
+    )
 
-def function_file_failures(file: Maybe<&2, FunctionFile>, +input: Input, +context: Context, native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>) -> List<&2, Failure>:
+def function_file_failures(
+  file: Maybe<&2, FunctionFile>,
+  +input: Input,
+  +context: Context,
+  native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>
+) -> List<&2, Failure>:
   match file:
     case None{}: Failure{None{}, "function-analysis-unavailable"} <> Nil{}
     case Some{FunctionFile{Some{failure}, _, _}}: Failure{None{}, failure} <> Nil{}
-    case Some{FunctionFile{None{}, functions, exclusions}}: function_exclusions(input_line(input), context_frozen(context), input, context, native_hunks, exclusions,
-      List.is_empty(&2, Selection.Root, functions))
+    case Some{FunctionFile{None{}, functions, exclusions}}: function_exclusions(
+      input_line(input),
+      context_frozen(context),
+      input,
+      context,
+      native_hunks,
+      exclusions,
+      List.is_empty(&2, Selection.Root, functions)
+    )
 
-def extraction_failures(contract: Selection.Contract, +input: Input, +context: Context, extraction: Extraction, native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>) -> List<&2, Failure>:
+def extraction_failures(
+  contract: Selection.Contract,
+  +input: Input,
+  +context: Context,
+  extraction: Extraction,
+  native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>
+) -> List<&2, Failure>:
   match contract extraction:
-    case Selection.FunctionContract{} Extraction{_, functions, _}: function_file_failures(functions, input, context, native_hunks)
+    case Selection.FunctionContract{} Extraction{_, functions, _}: function_file_failures(
+      functions,
+      input,
+      context,
+      native_hunks
+    )
     case _ Extraction{graph, _, type_file}: maybe_type_failures(graph, type_file)
 
 def selection_roots(selection: Selection.Selection) -> List<&2, Selection.Analysis>:
@@ -743,40 +1389,127 @@ def selection_line_roots(selection: Selection.Selection) -> List<&2, String>:
 
 def maybe_classify(ambiguous: Bool, +state: State, +context: AnalysisContext) -> Step:
   match ambiguous:
-    case True{}: issue(state, AwaitAmbiguity{context}, ClassifyAmbiguity{context_capture(analysiscontext_context(context)), selection_spans(analysiscontext_selection(context))})
-    case False{}: internal(state, Roots{context, selection_roots(analysiscontext_selection(context))})
+    case True{}: issue(
+      state,
+      AwaitAmbiguity{context},
+      ClassifyAmbiguity{
+        context_capture(analysiscontext_context(context)),
+        selection_spans(analysiscontext_selection(context))
+      }
+    )
+    case False{}: internal(
+      state,
+      Roots{context, selection_roots(analysiscontext_selection(context))}
+    )
 
 def selected_context(+state: State, +context: AnalysisContext) -> Step:
-  maybe_classify(selection_ambiguous(analysiscontext_selection(context)), with_state_shared(state,
-    with_shared_line_roots(state_shared(state), union_names(selection_line_roots(analysiscontext_selection(context)), shared_line_roots(state_shared(state))))), context)
+  maybe_classify(
+    selection_ambiguous(analysiscontext_selection(context)),
+    with_state_shared(
+      state,
+      with_shared_line_roots(
+        state_shared(state),
+        union_names(
+          selection_line_roots(analysiscontext_selection(context)),
+          shared_line_roots(state_shared(state))
+        )
+      )
+    ),
+    context
+  )
 
-def selected(+state: State, +context: Context, +extraction: Extraction, +native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>, selection: Selection.Selection) -> Step:
-  selected_context(state, AnalysisContext{context, extraction, selection, native_hunks, Nil{}, Nil{},
-    extraction_failures(current_contract(state_queue(state)), state_input(state), context, extraction, native_hunks), "ambiguous-update"})
+def selected(
+  +state: State,
+  +context: Context,
+  +extraction: Extraction,
+  +native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>,
+  selection: Selection.Selection
+) -> Step:
+  selected_context(
+    state,
+    AnalysisContext{
+      context,
+      extraction,
+      selection,
+      native_hunks,
+      Nil{},
+      Nil{},
+      extraction_failures(
+        current_contract(state_queue(state)),
+        state_input(state),
+        context,
+        extraction,
+        native_hunks
+      ),
+      "ambiguous-update"
+    }
+  )
 
 def prior_reference_limit(analyses: List<&2, NativeAnalysis>, +name: String) -> Bool:
   match analyses:
     case Nil{}: False{}
-    case NativeReady{actual} <> rest: Bool.pick(Bool, String.eq(name, actual), False{}, prior_reference_limit(rest, name))
-    case NativeUnsupported{actual, reason} <> rest: Bool.pick(Bool, String.eq(name, actual), String.eq(reason, "reference-limit"), prior_reference_limit(rest, name))
+    case NativeReady{actual} <> rest: Bool.pick(
+      Bool,
+      String.eq(name, actual),
+      False{},
+      prior_reference_limit(rest, name)
+    )
+    case NativeUnsupported{actual, reason} <> rest: Bool.pick(
+      Bool,
+      String.eq(name, actual),
+      String.eq(reason, "reference-limit"),
+      prior_reference_limit(rest, name)
+    )
 
 def root_reason(type_file: TypeFile, name: String) -> String:
   match type_file:
     case TypeUnavailable{_}: "missing-evidence"
-    case TypeAnalyzed{analyses}: Bool.pick(String, prior_reference_limit(analyses, name), "reference-limit", "missing-evidence")
+    case TypeAnalyzed{analyses}: Bool.pick(
+      String,
+      prior_reference_limit(analyses, name),
+      "reference-limit",
+      "missing-evidence"
+    )
 
 def root_name(root: Selection.Analysis) -> String:
   match root:
     case Selection.Analysis{_, _, name}: name
 
 def add_graph_failure(+context: AnalysisContext, root: String, reason: String) -> AnalysisContext:
-  with_analysiscontext_graph_failures(context, List.append(&2, Failure, analysiscontext_graph_failures(context), Failure{Some{root}, reason} <> Nil{}))
+  with_analysiscontext_graph_failures(
+    context,
+    List.append(
+      &2,
+      Failure,
+      analysiscontext_graph_failures(context),
+      Failure{Some{root}, reason} <> Nil{}
+    )
+  )
 
-def root_quota(exhausted: Bool, +state: State, +context: AnalysisContext, +root: Selection.Analysis, remaining: List<&2, Selection.Analysis>) -> Step:
+def root_quota(
+  exhausted: Bool,
+  +state: State,
+  +context: AnalysisContext,
+  +root: Selection.Analysis,
+  remaining: List<&2, Selection.Analysis>
+) -> Step:
   match exhausted:
-    case True{}: internal(state, Roots{add_graph_failure(context, root_name(root), "reference-limit"), remaining})
-    case False{}: issue(with_state_shared(state, with_shared_selected(state_shared(state), Nat.add(shared_selected(state_shared(state)), 1n))),
-      AwaitRoot{context, root, remaining}, ResolveRoot{context_capture(analysiscontext_context(context)), root, current_contract(state_queue(state))})
+    case True{}: internal(
+      state,
+      Roots{add_graph_failure(context, root_name(root), "reference-limit"), remaining}
+    )
+    case False{}: issue(
+      with_state_shared(
+        state,
+        with_shared_selected(state_shared(state), Nat.add(shared_selected(state_shared(state)), 1n))
+      ),
+      AwaitRoot{context, root, remaining},
+      ResolveRoot{
+        context_capture(analysiscontext_context(context)),
+        root,
+        current_contract(state_queue(state))
+      }
+    )
 
 def omission(reference: Local.ReferenceSlot) -> Bool:
   match reference:
@@ -788,29 +1521,85 @@ def omissions(references: List<&2, Local.ReferenceSlot>) -> Bool:
     case Nil{}: False{}
     case head <> rest: Bool.or(omission(head), omissions(rest))
 
-def resolved_omissions(has_omissions: Bool, state: State, +context: AnalysisContext, root: Selection.Analysis, remaining: List<&2, Selection.Analysis>) -> Step:
+def resolved_omissions(
+  has_omissions: Bool,
+  state: State,
+  +context: AnalysisContext,
+  root: Selection.Analysis,
+  remaining: List<&2, Selection.Analysis>
+) -> Step:
   match has_omissions:
-    case True{}: internal(state, Roots{add_graph_failure(context, root_name(root), "missing-evidence"), remaining})
+    case True{}: internal(
+      state,
+      Roots{add_graph_failure(context, root_name(root), "missing-evidence"), remaining}
+    )
     case False{}: internal(state, Roots{context, remaining})
 
-def resolved(unit: Maybe<&2, T.ProductValue>, references: List<&2, Local.ReferenceSlot>, state: State, +context: AnalysisContext, +root: Selection.Analysis, remaining: List<&2, Selection.Analysis>) -> Step:
+def resolved(
+  unit: Maybe<&2, ArtifactValue.ProductValue>,
+  references: List<&2, Local.ReferenceSlot>,
+  state: State,
+  +context: AnalysisContext,
+  +root: Selection.Analysis,
+  remaining: List<&2, Selection.Analysis>
+) -> Step:
   match unit:
-    case None{}: internal(state, Roots{add_graph_failure(context, root_name(root), root_reason(extraction_type_file(analysiscontext_extraction(context)), root_name(root))), remaining})
-    case Some{unit}: resolved_omissions(omissions(references), state, with_analysiscontext_units(context,
-      List.append(&2, T.ProductValue, analysiscontext_units(context), unit <> Nil{})), root, remaining)
+    case None{}: internal(
+      state,
+      Roots{
+        add_graph_failure(
+          context,
+          root_name(root),
+          root_reason(extraction_type_file(analysiscontext_extraction(context)), root_name(root))
+        ),
+        remaining
+      }
+    )
+    case Some{unit}: resolved_omissions(
+      omissions(references),
+      state,
+      with_analysiscontext_units(
+        context,
+        List.append(&2, ArtifactValue.ProductValue, analysiscontext_units(context), unit <> Nil{})
+      ),
+      root,
+      remaining
+    )
 
 def candidate_failures(context: AnalysisContext) -> List<&2, Failure>:
   match context:
-    case AnalysisContext{_, _, Selection.Selection{_, ambiguous, _, _}, _, _, graph_failures, extraction_failures, reason}:
+    case AnalysisContext{
+      _,
+      _,
+      Selection.Selection{_, ambiguous, _, _},
+      _,
+      _,
+      graph_failures,
+      extraction_failures,
+      reason
+    }:
       List.append(&2, Failure, extraction_failures, List.append(&2, Failure, graph_failures,
         Bool.pick(List<&2, Failure>, ambiguous, Failure{None{}, reason} <> Nil{}, Nil{})))
 
 def render_needed(empty: Bool, +state: State, +context: AnalysisContext) -> Step:
   match empty:
-    case True{}: observed_candidate(state, analysiscontext_context(context), Nil{}, candidate_failures(context),
-      OutcomeSkipped{context_path(analysiscontext_context(context))} <> Nil{})
-    case False{}: issue(state, AwaitRender{context}, RenderUnits{analysiscontext_context(context), current_contract(state_queue(state)),
-      contract_roots(current_contract(state_queue(state)), analysiscontext_extraction(context)), analysiscontext_units(context)})
+    case True{}: observed_candidate(
+      state,
+      analysiscontext_context(context),
+      Nil{},
+      candidate_failures(context),
+      OutcomeSkipped{context_path(analysiscontext_context(context))} <> Nil{}
+    )
+    case False{}: issue(
+      state,
+      AwaitRender{context},
+      RenderUnits{
+        analysiscontext_context(context),
+        current_contract(state_queue(state)),
+        contract_roots(current_contract(state_queue(state)), analysiscontext_extraction(context)),
+        analysiscontext_units(context)
+      }
+    )
 
 def path_name(path: PathOutcome) -> String:
   match path:
@@ -821,10 +1610,28 @@ def merge_path(prior: PathOutcome, current: PathOutcome) -> PathOutcome:
   match prior current:
     case Incomplete{_, _, _} _: prior
     case _ Incomplete{_, _, _}: current
-    case Observed{path, operation, hash, units, failures} Observed{_, _, _, more_units, more_failures}:
-      Observed{path, operation, hash, List.append(&2, T.ProductValue, units, more_units), List.append(&2, Failure, failures, more_failures)}
+    case Observed{path, operation, hash, units, failures} Observed{
+      _,
+      _,
+      _,
+      more_units,
+      more_failures
+    }:
+      Observed{
+        path,
+        operation,
+        hash,
+        List.append(&2, ArtifactValue.ProductValue, units, more_units),
+        List.append(&2, Failure, failures, more_failures)
+      }
 
-def put_path_pick(hit: Bool, prior: PathOutcome, +current: PathOutcome, rest: List<&2, PathOutcome>, rebuilt: List<&2, PathOutcome>) -> List<&2, PathOutcome>:
+def put_path_pick(
+  hit: Bool,
+  prior: PathOutcome,
+  +current: PathOutcome,
+  rest: List<&2, PathOutcome>,
+  rebuilt: List<&2, PathOutcome>
+) -> List<&2, PathOutcome>:
   match hit:
     case True{}: merge_path(prior, current) <> rest
     case False{}: prior <> rebuilt
@@ -832,9 +1639,18 @@ def put_path_pick(hit: Bool, prior: PathOutcome, +current: PathOutcome, rest: Li
 def put_path(paths: List<&2, PathOutcome>, +current: PathOutcome) -> List<&2, PathOutcome>:
   match paths:
     case Nil{}: current <> Nil{}
-    case +prior <> +rest: put_path_pick(String.eq(path_name(prior), path_name(current)), prior, current, rest, put_path(rest, current))
+    case +prior <> +rest: put_path_pick(
+      String.eq(path_name(prior), path_name(current)),
+      prior,
+      current,
+      rest,
+      put_path(rest, current)
+    )
 
-def merge_paths(incoming: List<&2, PathOutcome>, paths: List<&2, PathOutcome>) -> List<&2, PathOutcome>:
+def merge_paths(
+  incoming: List<&2, PathOutcome>,
+  paths: List<&2, PathOutcome>
+) -> List<&2, PathOutcome>:
   match incoming:
     case Nil{}: paths
     case head <> rest: merge_paths(rest, put_path(paths, head))
@@ -843,7 +1659,14 @@ def merge_branches(branches: List<&2, Branch>, branch: Branch) -> Branch:
   match branches branch:
     case Nil{} _: branch
     case Branch{more_paths, more_outcomes, more_units} <> rest Branch{paths, outcomes, units}:
-      merge_branches(rest, Branch{merge_paths(more_paths, paths), List.append(&2, Outcome, outcomes, more_outcomes), List.append(&2, T.ProductValue, units, more_units)})
+      merge_branches(
+        rest,
+        Branch{
+          merge_paths(more_paths, paths),
+          List.append(&2, Outcome, outcomes, more_outcomes),
+          List.append(&2, ArtifactValue.ProductValue, units, more_units)
+        }
+      )
 
 def ready_outcomes(outcomes: List<&2, Outcome>) -> List<&2, Outcome>:
   match outcomes:
@@ -857,14 +1680,26 @@ def outcome_paths(outcomes: List<&2, Outcome>) -> List<&2, String>:
     case OutcomeReady{path, _} <> rest: path <> outcome_paths(rest)
     case OutcomeSkipped{path} <> rest: path <> outcome_paths(rest)
 
-def skipped_paths(paths: List<&2, PathOutcome>, +ready_paths: List<&2, String>) -> List<&2, Outcome>:
+def skipped_paths(
+  paths: List<&2, PathOutcome>,
+  +ready_paths: List<&2, String>
+) -> List<&2, Outcome>:
   match paths:
     case Nil{}: Nil{}
-    case +path <> +rest: Bool.pick(List<&2, Outcome>, Selection.names_contain(path_name(path), ready_paths), skipped_paths(rest, ready_paths), OutcomeSkipped{path_name(path)} <> skipped_paths(rest, ready_paths))
+    case +path <> +rest: Bool.pick(
+      List<&2, Outcome>,
+      Selection.names_contain(path_name(path), ready_paths),
+      skipped_paths(rest, ready_paths),
+      OutcomeSkipped{path_name(path)} <> skipped_paths(rest, ready_paths)
+    )
 
 def normalize_merged_ready(branch: Branch, +ready: List<&2, Outcome>) -> Branch:
   match branch:
-    case Branch{+paths, _, units}: Branch{paths, List.append(&2, Outcome, ready, skipped_paths(paths, outcome_paths(ready))), units}
+    case Branch{+paths, _, units}: Branch{
+      paths,
+      List.append(&2, Outcome, ready, skipped_paths(paths, outcome_paths(ready))),
+      units
+    }
 
 def normalize_merged(+branch: Branch) -> Branch:
   normalize_merged_ready(branch, ready_outcomes(branch_outcomes(branch)))
@@ -878,59 +1713,131 @@ def paths_complete(paths: List<&2, PathOutcome>) -> Bool:
   match paths:
     case Nil{}: True{}
     case Incomplete{_, _, _} <> _: False{}
-    case Observed{_, _, _, _, failures} <> rest: Bool.and(List.is_empty(&2, Failure, failures), paths_complete(rest))
+    case Observed{_, _, _, _, failures} <> rest: Bool.and(
+      List.is_empty(&2, Failure, failures),
+      paths_complete(rest)
+    )
 
 def finish_branch(branch: Branch, shared: Shared) -> Step:
   match branch shared:
     case Branch{+paths, outcomes, units} Shared{_, _, _, selected, line_roots}:
-      Finished{PreparationResult{paths_complete(paths), paths, outcomes, units, line_roots, selected}}
+      Finished{
+        PreparationResult{paths_complete(paths), paths, outcomes, units, line_roots, selected}
+      }
 
 def finish(state: State) -> Step:
   match state:
-    case State{_, _, _, _, shared, branches, _, _}: finish_branch(normalized_branches(branches), shared)
+    case State{_, _, _, _, shared, branches, _, _}: finish_branch(
+      normalized_branches(branches),
+      shared
+    )
 
 def append_active(active: Maybe<&2, Selection.Contract>, +state: State) -> State:
   match active:
     case None{}: state
-    case Some{_}: with_state_branches(state, List.append(&2, Branch, state_branches(state), state_branch(state) <> Nil{}))
+    case Some{_}: with_state_branches(
+      state,
+      List.append(&2, Branch, state_branches(state), state_branch(state) <> Nil{})
+    )
 
 def next_contract(contracts: List<&2, Selection.Contract>, +state: State) -> Step:
   match contracts:
     case Nil{}: finish(state)
-    case contract <> rest: internal(with_state_branch(with_state_queue(state,
-      Queue{rest, Some{contract}, input_candidates(state_input(state))}), empty_branch()), NextCandidate{})
+    case contract <> rest: internal(
+      with_state_branch(
+        with_state_queue(state, Queue{rest, Some{contract}, input_candidates(state_input(state))}),
+        empty_branch()
+      ),
+      NextCandidate{}
+    )
 
 def next_candidate(candidates: List<&2, Candidate>, +state: State) -> Step:
   match candidates:
     case Nil{}: internal(state, NextContract{})
-    case +candidate <> rest: eligible_operation(with_state_queue(state, with_queue_candidates(state_queue(state), rest)), candidate, candidate_operation(candidate))
+    case +candidate <> rest: eligible_operation(
+      with_state_queue(state, with_queue_candidates(state_queue(state), rest)),
+      candidate,
+      candidate_operation(candidate)
+    )
 
-def next_roots(roots: List<&2, Selection.Analysis>, +state: State, +context: AnalysisContext) -> Step:
+def next_roots(
+  roots: List<&2, Selection.Analysis>,
+  +state: State,
+  +context: AnalysisContext
+) -> Step:
   match roots:
-    case Nil{}: render_needed(List.is_empty(&2, T.ProductValue, analysiscontext_units(context)), state, context)
-    case +root <> rest: root_quota(Nat.is_ge(shared_selected(state_shared(state)), 64n), state, context, root, rest)
+    case Nil{}: render_needed(
+      List.is_empty(&2, ArtifactValue.ProductValue, analysiscontext_units(context)),
+      state,
+      context
+    )
+    case +root <> rest: root_quota(
+      Nat.is_ge(shared_selected(state_shared(state)), 64n),
+      state,
+      context,
+      root,
+      rest
+    )
 
 def verified_matches(verified: Maybe<&2, Selection.VerifiedSpans>, +capture: Capture) -> Bool:
   match verified:
     case None{}: False{}
-    case Some{verified}: Selection.verify_match(verified, capture_path(capture), capture_content_hash(capture))
+    case Some{verified}: Selection.verify_match(
+      verified,
+      capture_path(capture),
+      capture_content_hash(capture)
+    )
 
 def need_native_patch(+input: Input, +context: Context) -> Bool:
-  Bool.and(Bool.not(addition(candidate_operation(context_candidate(context)))),
-    Bool.and(Bool.not(verified_matches(input_verified(input), context_capture(context))),
-      Bool.and(Maybe.is_none(&2, Nat, input_line(input)), Maybe.is_none(&2, List<&2, String>, context_frozen(context)))))
+  Bool.and(
+    Bool.not(addition(candidate_operation(context_candidate(context)))),
+    Bool.and(
+      Bool.not(verified_matches(input_verified(input), context_capture(context))),
+      Bool.and(
+        Maybe.is_none(&2, Nat, input_line(input)),
+        Maybe.is_none(&2, List<&2, String>, context_frozen(context))
+      )
+    )
+  )
 
-def extraction_patch(patch: Maybe<&2, String>, needed: Bool, state: State, +context: Context, extraction: Extraction) -> Step:
+def extraction_patch(
+  patch: Maybe<&2, String>,
+  needed: Bool,
+  state: State,
+  +context: Context,
+  extraction: Extraction
+) -> Step:
   match patch needed:
-    case Some{command} True{}: issue(state, AwaitPatch{context, extraction}, VerifyNativePatch{command, context_capture(context)})
+    case Some{command} True{}: issue(
+      state,
+      AwaitPatch{context, extraction},
+      VerifyNativePatch{command, context_capture(context)}
+    )
     case _ _: internal(state, Selecting{context, extraction, None{}})
 
 def advance_phase(+state: State, phase: Phase) -> Step:
   match phase:
-    case NextContract{}: next_contract(queue_contracts(state_queue(state)), append_active(queue_contract(state_queue(state)), state))
+    case NextContract{}: next_contract(
+      queue_contracts(state_queue(state)),
+      append_active(queue_contract(state_queue(state)), state)
+    )
     case NextCandidate{}: next_candidate(queue_candidates(state_queue(state)), state)
-    case HaveCapture{+context}: have_capture(source_allowed(current_contract(state_queue(state)), input_limits(state_input(state)), capture_bytes(context_capture(context))), state, context)
-    case Selecting{+context, +extraction, +native_hunks}: selected(state, context, extraction, native_hunks, Selection.select(selection_input(state, context, extraction, native_hunks)))
+    case HaveCapture{+context}: have_capture(
+      source_allowed(
+        current_contract(state_queue(state)),
+        input_limits(state_input(state)),
+        capture_bytes(context_capture(context))
+      ),
+      state,
+      context
+    )
+    case Selecting{+context, +extraction, +native_hunks}: selected(
+      state,
+      context,
+      extraction,
+      native_hunks,
+      Selection.select(selection_input(state, context, extraction, native_hunks))
+    )
     case Roots{context, roots}: next_roots(roots, state, context)
     case _: Failed{"advance-while-awaiting"}
 
@@ -938,15 +1845,54 @@ def advance(+state: State) -> Step:
   advance_phase(state, state_phase(state))
 
 def remember_capture(+state: State, capture: Capture) -> State:
-  with_state_shared(state, with_shared_captures(state_shared(state), List.append(&2, Capture, shared_captures(state_shared(state)), capture <> Nil{})))
+  with_state_shared(
+    state,
+    with_shared_captures(
+      state_shared(state),
+      List.append(&2, Capture, shared_captures(state_shared(state)), capture <> Nil{})
+    )
+  )
 
 def admitted(result: CapacityResult, +requested: Nat, +state: State, +context: Context) -> Step:
   match result:
-    case Resized{}: extract(with_state_shared(state, with_shared_materialized(state_shared(state), append_unique(context_path(context), shared_materialized(state_shared(state))))), context)
-    case CapacityRefused{+constraint}: refuse_candidate(with_state_shared(state, with_shared_refused(state_shared(state),
-      RefusedPath{context_path(context), MaterializationRefused{requested, constraint}} <> shared_refused(state_shared(state)))), context_path(context), MaterializationRefused{requested, constraint})
-    case _: refuse_candidate(with_state_shared(state, with_shared_refused(state_shared(state),
-      RefusedPath{context_path(context), PreparationPanic{}} <> shared_refused(state_shared(state)))), context_path(context), PreparationPanic{})
+    case Resized{}: extract(
+      with_state_shared(
+        state,
+        with_shared_materialized(
+          state_shared(state),
+          append_unique(context_path(context), shared_materialized(state_shared(state)))
+        )
+      ),
+      context
+    )
+    case CapacityRefused{+constraint}: refuse_candidate(
+      with_state_shared(
+        state,
+        with_shared_refused(
+          state_shared(state),
+          RefusedPath{
+            context_path(context),
+            MaterializationRefused{requested, constraint}
+          } <> shared_refused(state_shared(state))
+        )
+      ),
+      context_path(context),
+      MaterializationRefused{requested, constraint}
+    )
+    case _: refuse_candidate(
+      with_state_shared(
+        state,
+        with_shared_refused(
+          state_shared(state),
+          RefusedPath{
+            context_path(context),
+            PreparationPanic{}
+          } <> shared_refused(state_shared(state))
+        )
+      ),
+      context_path(context),
+      PreparationPanic{}
+    )
 
 def ambiguity_reason(reason: Maybe<&2, String>) -> String:
   match reason:
@@ -954,33 +1900,113 @@ def ambiguity_reason(reason: Maybe<&2, String>) -> String:
     case None{}: "ambiguous-update"
 
 def classified(state: State, +context: AnalysisContext, reason: Maybe<&2, String>) -> Step:
-  internal(state, Roots{with_analysiscontext_ambiguity_reason(context, ambiguity_reason(reason)), selection_roots(analysiscontext_selection(context))})
+  internal(
+    state,
+    Roots{
+      with_analysiscontext_ambiguity_reason(context, ambiguity_reason(reason)),
+      selection_roots(analysiscontext_selection(context))
+    }
+  )
 
 def classification_failed(state: State, +context: AnalysisContext) -> Step:
-  internal(state, Roots{with_analysiscontext_selection(context, Selection.Selection{Nil{}, True{}, Nil{}, Nil{}}), Nil{}})
+  internal(
+    state,
+    Roots{
+      with_analysiscontext_selection(context, Selection.Selection{Nil{}, True{}, Nil{}, Nil{}}),
+      Nil{}
+    }
+  )
 
-def materialization_result(result: CapacityResult, requested: Nat, state: State, context: Context) -> Step:
+def materialization_result(
+  result: CapacityResult,
+  requested: Nat,
+  state: State,
+  context: Context
+) -> Step:
   match result:
-    case CapacityRefused{constraint}: issue(state, MaterializationCapacityRejected{context, requested, constraint}, RejectMaterializationCapacity{})
+    case CapacityRefused{constraint}: issue(
+      state,
+      MaterializationCapacityRejected{context, requested, constraint},
+      RejectMaterializationCapacity{}
+    )
     case _: admitted(result, requested, state, context)
 
 def receive_phase(+state: State, phase: Phase, response: Response) -> Step:
   match phase response:
-    case AwaitPath{candidate} PathAllowed{+path, selection}: path_allowed(input_frozen(state_input(state)), state, candidate, path, selection)
-    case AwaitPath{candidate} PathDenied{reason}: skip_candidate(state, candidate_path(candidate), Some{reason})
-    case AwaitCapture{candidate, _, _, frozen} SourceCaptured{+capture}: internal(remember_capture(state, capture), HaveCapture{Context{candidate, capture, frozen}})
-    case AwaitCapture{_, path, _, _} SourceUnavailable{diagnostic}: refuse_candidate(state, path, ProviderDiagnostic{diagnostic})
-    case AwaitPreflight{+context} PreflightDone{preflight}: issue(state, AwaitAdmission{context}, AdmitMaterialization{context_capture(context), preflight})
-    case AwaitAdmission{context} MaterializationDone{result, requested}: materialization_result(result, requested, state, context)
-    case MaterializationCapacityRejected{context, requested, constraint} Ack{}: issue(state, MaterializationCapacityRecorded{context, requested, constraint}, RecordMaterializationCapacity{})
-    case MaterializationCapacityRecorded{context, requested, constraint} Ack{}: admitted(CapacityRefused{constraint}, requested, state, context)
-    case AwaitExtraction{+context} SourceExtracted{extraction}: extraction_patch(input_native_patch(state_input(state)), need_native_patch(state_input(state), context), state, context, extraction)
-    case AwaitPatch{context, extraction} NativePatchVerified{hunks}: internal(state, Selecting{context, extraction, hunks})
+    case AwaitPath{candidate} PathAllowed{+path, selection}: path_allowed(
+      input_frozen(state_input(state)),
+      state,
+      candidate,
+      path,
+      selection
+    )
+    case AwaitPath{candidate} PathDenied{reason}: skip_candidate(
+      state,
+      candidate_path(candidate),
+      Some{reason}
+    )
+    case AwaitCapture{candidate, _, _, frozen} SourceCaptured{+capture}: internal(
+      remember_capture(state, capture),
+      HaveCapture{Context{candidate, capture, frozen}}
+    )
+    case AwaitCapture{_, path, _, _} SourceUnavailable{diagnostic}: refuse_candidate(
+      state,
+      path,
+      ProviderDiagnostic{diagnostic}
+    )
+    case AwaitPreflight{+context} PreflightDone{preflight}: issue(
+      state,
+      AwaitAdmission{context},
+      AdmitMaterialization{context_capture(context), preflight}
+    )
+    case AwaitAdmission{context} MaterializationDone{result, requested}: materialization_result(
+      result,
+      requested,
+      state,
+      context
+    )
+    case MaterializationCapacityRejected{context, requested, constraint} Ack{}: issue(
+      state,
+      MaterializationCapacityRecorded{context, requested, constraint},
+      RecordMaterializationCapacity{}
+    )
+    case MaterializationCapacityRecorded{context, requested, constraint} Ack{}: admitted(
+      CapacityRefused{constraint},
+      requested,
+      state,
+      context
+    )
+    case AwaitExtraction{+context} SourceExtracted{extraction}: extraction_patch(
+      input_native_patch(state_input(state)),
+      need_native_patch(state_input(state), context),
+      state,
+      context,
+      extraction
+    )
+    case AwaitPatch{context, extraction} NativePatchVerified{hunks}: internal(
+      state,
+      Selecting{context, extraction, hunks}
+    )
     case AwaitAmbiguity{context} AmbiguityClassified{reason}: classified(state, context, reason)
-    case AwaitAmbiguity{context} AmbiguityClassificationFailed{}: classification_failed(state, context)
-    case AwaitRoot{context, root, remaining} RootResolved{unit, references, captures}: resolved(unit, references,
-      with_state_shared(state, with_shared_captures(state_shared(state), captures)), context, root, remaining)
-    case AwaitRender{+context} UnitsRendered{outcomes}: observed_candidate(state, analysiscontext_context(context), analysiscontext_units(context), candidate_failures(context), outcomes)
+    case AwaitAmbiguity{context} AmbiguityClassificationFailed{}: classification_failed(
+      state,
+      context
+    )
+    case AwaitRoot{context, root, remaining} RootResolved{unit, references, captures}: resolved(
+      unit,
+      references,
+      with_state_shared(state, with_shared_captures(state_shared(state), captures)),
+      context,
+      root,
+      remaining
+    )
+    case AwaitRender{+context} UnitsRendered{outcomes}: observed_candidate(
+      state,
+      analysiscontext_context(context),
+      analysiscontext_units(context),
+      candidate_failures(context),
+      outcomes
+    )
     case _ _: Failed{"wrong-reply-kind"}
 
 def receive(+state: State, response: Response) -> Step:
@@ -997,11 +2023,26 @@ def correlated(valid: Bool, state: State, response: Response) -> Step:
 def resume(step: Step, reply: Reply) -> Step:
   match step reply:
     case Await{state, Request{expected_invocation, expected_id, _}} Reply{invocation, id, response}:
-      correlated(Bool.and(Nat.is_eq(invocation, expected_invocation), Nat.is_eq(id, expected_id)), state, response)
+      correlated(
+        Bool.and(Nat.is_eq(invocation, expected_invocation), Nat.is_eq(id, expected_id)),
+        state,
+        response
+      )
     case _ _: Failed{"reply-after-terminal"}
 
 def initial(invocation: Nat, +input: Input) -> Step:
-  Internal{State{invocation, 0n, input, Queue{input_contracts(input), None{}, Nil{}}, Shared{Nil{}, Nil{}, Nil{}, 0n, Nil{}}, Nil{}, empty_branch(), NextContract{}}}
+  Internal{
+    State{
+      invocation,
+      0n,
+      input,
+      Queue{input_contracts(input), None{}, Nil{}},
+      Shared{Nil{}, Nil{}, Nil{}, 0n, Nil{}},
+      Nil{},
+      empty_branch(),
+      NextContract{}
+    }
+  }
 
 def main() -> Unit:
   Unit{}

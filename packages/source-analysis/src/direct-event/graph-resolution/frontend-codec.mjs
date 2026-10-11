@@ -1,5 +1,5 @@
-import { list, binary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
-const tagged = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+import { artifactValueTag, list, binary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
+const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 const maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
 const tuple = (key, value) => tagged("OrderedField", { key, value })
 const artifactKinds = {

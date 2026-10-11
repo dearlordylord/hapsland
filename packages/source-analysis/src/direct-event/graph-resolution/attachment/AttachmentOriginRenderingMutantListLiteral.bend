@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentOriginRenderingMutantCore.bend as Core
 import ../ForestSpecification.bend as F
@@ -8,7 +9,13 @@ import ../Types.bend as T
 # Origin text and the requested field order are arbitrary typed inputs.
 
 def fixture_origin() -> T.BundledOrigin:
-  T.BundledOrigin{String.append("v", SCon{Chr{55296}, SNil{}}), "s\0", String.append("m", SCon{Chr{55357}, SCon{Chr{56832}, SNil{}}}), "d", Nil{}}
+  T.BundledOrigin{
+    String.append("v", SCon{Chr{55296}, SNil{}}),
+    "s\0",
+    String.append("m", SCon{Chr{55357}, SCon{Chr{56832}, SNil{}}}),
+    "d",
+    Nil{}
+  }
 
 
 
@@ -16,13 +23,51 @@ def fixture_origin() -> T.BundledOrigin:
 
 
 
-def literal_fields_0() -> {Core.origin_fields(fixture_origin(), Nil{}) == F.origin_fields(Nil{}, fixture_origin()) : List<&2, T.OrderedField<T.ProductValue>>}:
+def literal_fields_0() -> {
+  Core.origin_fields(fixture_origin(), Nil{})
+  == F.origin_fields(Nil{}, fixture_origin())
+  : List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
+}:
   {==}
 
-def literal_fields_1() -> {Core.origin_fields(fixture_origin(), [T.CompilerSourceKey{}, T.OriginKindKey{}, T.CompilerSourceKey{}]) == F.origin_fields([T.CompilerSourceKey{}, T.OriginKindKey{}, T.CompilerSourceKey{}], fixture_origin()) : List<&2, T.OrderedField<T.ProductValue>>}:
+def literal_fields_1() -> {
+  Core.origin_fields(
+    fixture_origin(),
+    [T.CompilerSourceKey{}, T.OriginKindKey{}, T.CompilerSourceKey{}]
+  )
+  == F.origin_fields(
+    [T.CompilerSourceKey{}, T.OriginKindKey{}, T.CompilerSourceKey{}],
+    fixture_origin()
+  )
+  : List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
+}:
   {==}
 
-def literal_fields_2() -> {Core.origin_fields(fixture_origin(), [T.DeclarationHashKey{}, T.ModuleHashKey{}, T.CompilerSourceKey{}, T.CompilerVersionKey{}, T.LibraryKey{}, T.OriginKindKey{}]) == F.origin_fields([T.DeclarationHashKey{}, T.ModuleHashKey{}, T.CompilerSourceKey{}, T.CompilerVersionKey{}, T.LibraryKey{}, T.OriginKindKey{}], fixture_origin()) : List<&2, T.OrderedField<T.ProductValue>>}:
+def literal_fields_2() -> {
+  Core.origin_fields(
+    fixture_origin(),
+    [
+      T.DeclarationHashKey{},
+      T.ModuleHashKey{},
+      T.CompilerSourceKey{},
+      T.CompilerVersionKey{},
+      T.LibraryKey{},
+      T.OriginKindKey{}
+    ]
+  )
+  == F.origin_fields(
+    [
+      T.DeclarationHashKey{},
+      T.ModuleHashKey{},
+      T.CompilerSourceKey{},
+      T.CompilerVersionKey{},
+      T.LibraryKey{},
+      T.OriginKindKey{}
+    ],
+    fixture_origin()
+  )
+  : List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
+}:
   {==}
 
 def main() -> Unit:

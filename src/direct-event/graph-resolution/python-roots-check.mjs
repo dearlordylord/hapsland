@@ -1,3 +1,4 @@
+import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, rm, writeFile, mkdir, readFile, symlink } from "node:fs/promises"
@@ -6,9 +7,8 @@ import { pathToFileURL } from "node:url"
 import { parse } from "smol-toml"
 import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 const temp = await mkdtemp("/tmp/hapsland-python-roots-"),
-  t = (name, fields = {}) => ({ $: "Types." + name, ...fields }),
+  t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields })
 try {
   const emitted = join(temp, "child.mjs")

@@ -1,7 +1,7 @@
+import { artifactValueTag, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import * as Effect from "effect/Effect"
 import { TransportFailure } from "./runtime-observation/transport.mjs"
 import { createServiceSession } from "./service-session.mjs"
-import { fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax, parsePythonSyntax } from "./frontends.mjs"
 import {
   eligibleNamedPath,
@@ -13,7 +13,7 @@ import { captureStable } from "../../../../native-observation/dist/direct-event/
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
 import { readNat } from "../../../../canonical-policy/dist/canonical/boundary-schema.js"
 
-const tagged = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 // Only the emitted Nat ABI is converted here; graph decisions remain in Bend.
 export function pureReply(value) {
   if (Array.isArray(value)) return value.map(pureReply)

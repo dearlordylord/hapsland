@@ -1,3 +1,4 @@
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentBoundaryView.bend as B
 import ./AttachmentPhaseView.bend as Phase
@@ -28,7 +29,7 @@ def capsule(+state: T.ResolverState, history: V.History) -> Maybe<&2, Phase.Caps
         ready_edge(S.scratch_pending_edge(S.state_scratch(state)), addresses), state)
 
 def finished(
-  product: Maybe<&2, T.ProductValue>,
+  product: Maybe<&2, ArtifactValue.ProductValue>,
   frame: Maybe<&2, V.Frame>
 ) -> Maybe<&2, B.Boundary>:
   match frame:
@@ -42,7 +43,7 @@ def frame(value: Maybe<&2, T.ResolverFrame>, history: V.History) -> Maybe<&2, V.
 
 def completion(
   capsule: Maybe<&2, Phase.Capsule>,
-  measured: Maybe<&2, T.ProductValue>
+  measured: Maybe<&2, ArtifactValue.ProductValue>
 ) -> Maybe<&2, B.Continuation>:
   match capsule measured:
     case Some{capsule} Some{measured}: Some{B.MeasuringCompletion{capsule, measured}}
@@ -75,7 +76,7 @@ def selected(
     case Some{frame} Some{continuation}: Some{B.Selected{request, frame, continuation}}
     case _ _: None{}
 
-def product(result: T.ProductResult) -> Maybe<&2, T.ProductValue>:
+def product(result: T.ProductResult) -> Maybe<&2, ArtifactValue.ProductValue>:
   match result:
     case T.ReviewUnitResult{value}: Some{value}
     case T.NoReviewUnit{}: None{}
