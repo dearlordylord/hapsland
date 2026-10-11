@@ -97,10 +97,22 @@ export function createBendResolver({ observeProduct, drive: ownedDrive, allocate
           )
         }
       })
-    } catch (error) {
-      session?.close()
-      onConstructionFailure?.(activeInvocation)
-      throw error
+    } catch (original) {
+      const failures = [original]
+      let closePending = false
+      try {
+        session?.close()
+      } catch (error) {
+        closePending = true
+        failures.push(error)
+      }
+      try {
+        await onConstructionFailure(activeInvocation, { session, closePending })
+      } catch (error) {
+        failures.push(error)
+      }
+      if (failures.length === 1) throw original
+      throw new AggregateError(failures, "Resolver construction and cleanup failed", { cause: original })
     }
     const outcome = await drive(session, input, options)
     if (outcome.failure) throw new Error("Bend resolver technical failure: " + outcome.failure.$)

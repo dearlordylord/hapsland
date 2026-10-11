@@ -63,6 +63,7 @@ const suites = {
     return roots
   },
   "preparation-protocol": () => [
+    "src/resident/preparation/construction-cleanup.test.mjs",
     "packages/source-artifacts/src/direct-event/value/codec-check.mjs",
     "src/resident/preparation/source-preparation-check.mjs",
     "src/resident/preparation/post-preparation-check.mjs",
@@ -118,7 +119,9 @@ for (const file of selected) {
       ? ["-c", "import ast,sys; ast.parse(open(sys.argv[1]).read(), filename=sys.argv[1])", path]
       : syntax
         ? ["--check", path]
-        : [path]
+        : path.endsWith(".test.mjs")
+          ? ["--test", "--test-reporter=tap", path]
+          : [path]
   const result = spawnSync(command, options, {
     cwd: root,
     env,
@@ -141,7 +144,12 @@ for (const file of selected) {
       .split("\n")
       .filter((line) => line.startsWith('{"passed":'))
       .map((line) => JSON.parse(line))
-    if (!summaries.some((summary) => summary.passed === true && Number(summary.cases ?? summary.assertions) > 0))
+    const tests = file.endsWith(".test.mjs") ? Number(result.stdout.match(/^# tests (\d+)$/mu)?.[1] ?? 0) : 0
+    const passedTests = Number(result.stdout.match(/^# pass (\d+)$/mu)?.[1] ?? 0)
+    if (
+      !(tests > 0 && passedTests === tests) &&
+      !summaries.some((summary) => summary.passed === true && Number(summary.cases ?? summary.assertions) > 0)
+    )
       throw new Error(`Consumer executed no verified cases: ${file}`)
   }
   passed++

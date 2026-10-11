@@ -681,8 +681,54 @@ export function createOwnedArtifactDriver({
       }
       return outcome
     },
-    constructionFailed(invocation) {
-      apply(invoke("cancel", BigInt(invocation)))
+    constructionFailed(invocation, { session, closePending = false } = {}) {
+      const ownerInvocation = BigInt(invocation)
+      let cancelCommitted = false,
+        pendingOutputs
+      const attempt = () => {
+        const failures = []
+        if (closePending) {
+          try {
+            session.close()
+            closePending = false
+          } catch (error) {
+            failures.push(error)
+          }
+        }
+        try {
+          if (!cancelCommitted) {
+            const step = invoke("cancel", ownerInvocation)
+            const outcome = applyOutcome(step)
+            // A committed cancel may still have unfinished actual resource actions.
+            const child = owner.find(ownerInvocation, current().children)
+            cancelCommitted = step.$ === "Advanced" && (child.$ === "None" || !owner.child_active(child.value))
+            if (outcome.failures.some((receipt) => receipt.phase === "outputs")) pendingOutputs = step.outputs
+            failures.push(...outcome.failures.map((receipt) => receipt.error))
+          } else {
+            const pending = cancellationCleanup.get(ownerInvocation)
+            if (pending) failures.push(...runCancellationCleanup(pending).failures.map((receipt) => receipt.error))
+          }
+        } catch (error) {
+          failures.push(error)
+        }
+        if (cancelCommitted && pendingOutputs && failures.length === 0) {
+          try {
+            hooks.canonicalOutputs?.(list(pendingOutputs))
+            pendingOutputs = undefined
+          } catch (error) {
+            failures.push(error)
+          }
+        }
+        if (failures.length === 1) throw failures[0]
+        if (failures.length) throw new AggregateError(failures, "Construction cleanup failed", { cause: failures[0] })
+        cancellationCleanup.delete(ownerInvocation)
+      }
+      try {
+        attempt()
+      } catch (error) {
+        registry.retainConstructionCleanup(invocation, session, attempt)
+        throw error
+      }
     },
     cancel(invocation) {
       apply(invoke("cancel", BigInt(invocation)))

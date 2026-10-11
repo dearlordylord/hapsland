@@ -174,65 +174,41 @@ expression in list`; this is an open gate, not an exemption.
 
 One current obstacle list, in execution order:
 
-1. Complete the remaining compiled owner/session and public-input boundaries.
-   The preparation capability now has one package export and typed driver-compatible
-   machine/perform/decode. Generated cores, dispatcher, finalization and terminal
-   codec stay private. Its external command union excludes RenderUnits. The supplied
-   driver lease must match invocation/request; only Canonical owns live fencing,
-   launch, lifecycle, cancellation and acceptance. Source decodes after actual handoff
-   acceptance. Source 50, resident 64, whole finalization 66 plus ten runtime cases
-   and the actual transport embedding passed this entry. Workspace build passed
-   46/46 with the original five-second emission limits. These are finite qualification,
-   not public prepareObservation replacement, universal correspondence or acceptance.
-   GraphLimits retains its existing owner. TransportFailure has one typed lower
-   runtime-environment/runtime/effect-transport owner; all consumers directly import
-   it, without exposing analysis transport internals or copying the class. Artifact
-   value declarations/codec and preparation contracts retain their unique owners.
-   Keep exact four/five-depth ABI conversion mechanical at composition boundaries.
+1. Complete the compiled source-analysis resolver/session and public-input
+   boundaries, then the typed resident binding. Preparation already has one
+   ordinary compiled package entry with private machine/dispatcher/finalization
+   cores and terminal codec. Its external commands exclude RenderUnits; the
+   supplied lease matches invocation/request and source decodes only after actual
+   Canonical acceptance. GraphLimits, transport failure, product values and
+   preparation contracts retain their unique lower owners.
    Source-analysis frontend facts, TOML encoding and Python syntax projection now
-   compile as ordinary TypeScript under that owner, importing its source adapters
-   rather than its own dist. Old MJS copies are deleted and maintained consumers
-   use the new paths. Workspace build passed 46/46, compiler receipts 23/23 and
-   nonempty lint covered 24 changed authored files. Actual service (158 requests)
-   and Python physical (20 requests, eight native-identity fixtures) checks passed.
-   The full source consumer passed all 50 cases after these frontend changes;
-   check:fast again passed 109 tests and source typechecking, then failed the same
-   five unresolved, 47 undeclared and 210 private cross-owner imports.
-   After driver extraction, check:fast again reaches development-import enforcement
-   and reports five unresolved, 47 undeclared and 212 private cross-owner imports;
-   the remaining opaque package boundary must replace those private helper edges.
-   The resolver factory now requires its owned drive, invocation allocator and
-   construction-failure callback. Its standalone machine/IO drivers and counter
-   live only in the verification owner; production no longer selects that fallback.
-   Actual Canonical-owned resident 13 and whole source 50 cases passed. The
-   standalone machine check originally rejected local Child expansion because the
-   frontend encoded ./traversal/core.* while the pinned emitted root uses
-   traversal/core.*. Both absolute and relative emissions confirmed that exact ABI.
-   The codec and mechanical preparation/resident rebase now match the emitted
-   names; the native local Child fixture passes. The unfiltered machine check
-   advances to go-root-type, returning no unit where native requires the Go unit.
-   Go/session integration remains a whole-unit acceptance
-   blocker. The corrected ABI passed ordinary workspace build 46/46, 23 receipts,
-   14 preparation cases, whole source 50 and resident 64. Result construction passed
-   four native fixtures, including exact empty sourceDependencies under the current
-   native producer contract. Changed authored-file lint selected 14 files; check:fast
-   passed source typechecking and 109 tests but still failed development imports
-   (five unresolved, 47 undeclared, 212 private cross-owner). Construction cleanup must preserve all falsy failure occurrences and
-   retain pending session/invocation obligations through the existing owner registry;
-   an inactive child alone cannot discharge failed Canonical cancellation actions.
-   Source-analysis still needs an opaque resolver/session capability. Resident's
-   physical binding must move fixture defaults and native comparisons into its
-   verification adapter, and enter ordinary typed compilation. The public native
-   PreparationInput encoder and whole source/advicee entry remain open. Preserve
-   original failure, cancellation, custody and full ordered-effects correspondence.
-   The eventual public entry remains pipeline.prepareObservation; no parallel backend.
-   The current `check:fast` at `1a61bacc` passed 109 tests, source TypeScript
-   checking and the 23-package graph, then failed development-import enforcement.
-   The gate reported five unresolved paths, 47 undeclared dependencies and 210
-   private cross-owner imports; these prevent full-gate acceptance. Requalify each changed candidate
-   without exposing helper stages or bypassing this gate. Supported Go/session,
-   extraction, whole proofs and connected parity remain required. Production whole
-   units connected and replaced native TS algorithms deleted are still zero.
+   compile as ordinary TypeScript with source-local adapters. Old MJS copies are
+   deleted. The pinned traversal constructor prefix is traversal/core.*, confirmed
+   by absolute/relative emission; corrected codec and mechanical composition
+   rebase restore native local Child expansion. The unfiltered machine check now
+   reaches go-root-type and fails because Bend returns no Go unit. Go/session
+   behavior remains mandatory; that fixture is not filtered out.
+   The resolver factory requires the Canonical drive, invocation allocator and
+   construction-failure callback; standalone drivers/counters belong only to its
+   verification owner. Construction now attempts close and cancel independently,
+   preserves original/falsy and distinct cleanup occurrences, and keeps exact
+   session or invocation obligations in the existing registry. Composed cleanup
+   remembers completed operations. Retry finishes actual cancellation actions and
+   pending outputs without another Canonical cancel or acceptance; delivery retry
+   does not assert exactly-once behavior for arbitrary sinks. Astra reviewed this
+   boundary without a new blocking finding.
+   Current qualification: workspace build 46/46, 23 receipts, six construction
+   tests through the protocol suite (6/6 files, including Canonical 393 assertions),
+   actual resident 13 and whole source 50 cases. Nonempty lint selected five changed
+   authored files. check:fast passed 109 tests and source TypeScript/package graph,
+   then failed five unresolved, 47 undeclared and 215 private cross-owner imports.
+   These finite checks qualify this host boundary, not whole production adoption.
+   Remaining work here: opaque compiled resolver/session API, fixture/default/native
+   comparisons outside resident's production binding, ordinary typed binding and
+   public native PreparationInput encoding. Preserve full ordered effects, original
+   errors, cancellation and custody. The public entry remains prepareObservation;
+   connected whole production preparation and removed native TS algorithms remain
+   zero until that entry is replaced and qualified.
 2. Finish all retained source/proof and ordinary quality gates. The source gate
    uses current import closures, nonempty checking roots and a five-second limit;
    foreign Runtime IO roots compile to temporary JS, pure roots use `--verdict`.

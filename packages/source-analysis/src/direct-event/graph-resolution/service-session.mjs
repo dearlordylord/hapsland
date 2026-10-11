@@ -297,6 +297,30 @@ export function createServiceRegistry() {
     if (previous && previous.session !== session) throw new Error("Cleanup obligation owner replaced")
     cleanupObligations.set(session.invocation, { session, retry })
   }
+  // Construction can fail before a session exists. Keep that exact invocation
+  // in this same registry, and compose rather than replace an existing obligation.
+  const retainConstructionCleanup = (invocation, session, retry) => {
+    const previous = cleanupObligations.get(invocation)
+    if (previous && previous.session !== session) throw new Error("Cleanup obligation owner replaced")
+    const completed = new Set()
+    const combined = previous
+      ? async () => {
+          const failures = []
+          for (const [index, cleanup] of [previous.retry, retry].entries()) {
+            if (completed.has(index)) continue
+            try {
+              await cleanup()
+              completed.add(index)
+            } catch (error) {
+              failures.push(error)
+            }
+          }
+          if (failures.length === 1) throw failures[0]
+          if (failures.length) throw new AggregateError(failures, "Construction cleanup remains pending")
+        }
+      : retry
+    cleanupObligations.set(invocation, { session, retry: combined })
+  }
   const retryCleanup = async () => {
     const failures = []
     for (const [id, obligation] of [...cleanupObligations]) {
@@ -358,6 +382,7 @@ export function createServiceRegistry() {
   }
   return Object.freeze({
     retainCleanup,
+    retainConstructionCleanup,
     retryCleanup,
     hasCleanup: (session) => cleanupObligations.get(session.invocation)?.session === session,
     get pendingCleanup() {
