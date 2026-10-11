@@ -339,12 +339,17 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 944af1e0 measurements are
+   connected candidate. Latest existing-production 6aad1787 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.6700735759534598 (start 22:38:41.176540 UTC); build fails at
-   1.121913984209726 (start 22:39:14.199139 UTC). Both starts meet the previous
+   passes at 0.703450060183795 (start 23:07:41.484198 UTC); build fails at
+   1.0140288520605323 (start 23:08:38.001866 UTC). Both starts meet the previous
    cadence deadlines. These do not qualify unadopted whole preparation.
-   Next build start is due 23:09:14.199139 UTC, execution 23:08:41.176540 UTC.
+   Next build start is due 23:38:38.001866 UTC, execution 23:37:41.484198 UTC.
+   Warm-up first failed because PreparationFinalization emission exceeded hard
+   five seconds. A same-CPU11/environment isolated emission passed at 2.846
+   seconds, then the real frozen retry passed 46/46 tasks, 17 cached, 48.689
+   seconds. The failed warm-up remains failure; isolation distinguishes workload
+   conditions but does not establish the timeout cause.
    The preceding f9ea5f3a measurement’s 34 preserved build logs distinguish Turbo's reported time from total
    wrapper time: baseline total/Turbo/outside-Turbo means are 6.042/2.457/3.585
    seconds; candidate means are 6.628/3.145/3.483 seconds. That measurement’s gap is
