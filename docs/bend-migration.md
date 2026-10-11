@@ -509,8 +509,23 @@ is tracked for exactly the original 144 inputs, independently obtained from
 receipt-verified e31 output; all 180 assertions passed and Astra reviewed the
 finite oracle replacement. No external baseline checkout is needed at runtime.
 
-Whole Go Package implementation follows Astra's agreed path to full
-PreparationMachine, GoArtifact and Canonical. Ordered inference/provenance,
-exact discoveryWork, whole native consumer qualification, original proofs and
-native TypeScript removal remain acceptance obligations. Source backup and
-relocation do not count as connected production Bend.
+The full Go package candidate now lives in go-module/Package.bend with
+Input.bend and its owner-local go-package-check.mjs. It implements native
+ordered inference, positional member identity, qualified provenance, sequential
+fixed-point, declaration/location assembly and exact discoveryWork/refusal.
+Host Unicode observations are raw per-character L/N/Lu facts; Bend owns the
+qualified spelling grammar. Missing required observations refuse the candidate.
+The actual inspectGoFile/goGraphFacts consumer passed 163 comparisons across
+28 packages, including below/at/above budgets, alias cycles, inherited/forward
+constants, shadowed builtins, qualified file provenance, Unicode and `_`.
+Nonempty ordinary lint and both Bend formats passed after formatting. These
+finite cases and definition checking do not prove native correspondence for
+all producer inputs. Whole-unit reviewed laws/proofs remain open.
+
+The agreed next production path remains full Go PreparationMachine (module,
+package discovery, membership, budgets, session, fingerprint and foreign
+constant demands), GoArtifact through current Canonical commands/events, full
+physical consumers and original guarantee/parity qualification. Delete native
+goGraphFacts/prepareGoGraph and membership policy only when that complete
+replacement is connected and qualified. Package code is currently a candidate;
+production preparation adoption and native TypeScript removal remain zero.
