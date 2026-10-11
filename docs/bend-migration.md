@@ -194,6 +194,14 @@ One current obstacle list, in execution order:
    package API with actual native prepareObservation for full ordered effects,
    identities, failures, cancellation and custody. This entry enables connection;
    it does not bypass whole proofs or the supported Go/session obligations.
+   Astra confirmed the concrete coherent compiled slice: convert the private
+   preparation-dispatcher, preparation-finalization and preparation-result-codec
+   host bindings to typed TS, with one preparation/capability entry joining the
+   whole machine, closed requests/replies and terminal PreparedObservation.
+   Resident's preparation-foreign consumes the compiled entry through its actual
+   transaction; move test defaults/native comparisons to its verification adapter.
+   Generated artifacts stay private and participate in receipts. Actual resident
+   verification must import dist, not bypass emission with source MJS.
 2. Finish all retained source/proof and ordinary quality gates. The source gate
    uses current import closures, nonempty checking roots and a five-second limit;
    foreign Runtime IO roots compile to temporary JS, pure roots use `--verdict`.
@@ -299,22 +307,20 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest pair at `5817bbad` began
-   2026-10-11 06:58:46/07:02:18 UTC: build qualified but failed **1.0596**;
-   execution qualified and passed **0.6626**. All 17 build pairs used 23/46 cached
+   parity on the connected candidate. Latest pair at `0bdb7763` began
+   2026-10-11 07:23:32/07:27:30 UTC: build qualified but failed **1.0581**;
+   execution qualified and passed **0.8678**. All 17 build pairs used 23/46 cached
    tasks; HEAD, sources and artifact trees stayed unchanged; execution matched
    both callers on seven fixtures. Qualification records are in ignored
-   `.test-runs/bend-migration/performance/2026-10-11T06-58-46.724916+00-00/`
-   and `2026-10-11T07-02-18.958998+00-00/`. These cover existing production,
-   not unadopted whole preparation. The preceding pair passed 0.9944/0.7452;
-   it does not qualify this candidate's failed build ratio or establish an
-   optimization cause. This pair exceeded the 30-minute cadence by 22s for
-   build and 14s for execution, after ordinary workspace warm preparation passed
-   46/46 tasks in 62.131s. Prior cadence breaches remain observed (1m36s/40s and
-   03:36→04:07). A prior owned-lock failure was recovered by ordinary fresh
-   build custody without manually deleting records; no failed build is qualified
-   by a later execution run. Keep new measurements within 30 minutes and freeze
-   their inputs.
+   `.test-runs/bend-migration/performance/2026-10-11T07-23-32.872264+00-00/`
+   and `2026-10-11T07-27-30.280391+00-00/`. These cover existing production,
+   not unadopted whole preparation. Both starts met the 30-minute cadence after
+   workspace warm preparation passed 46/46 tasks in 62.356s. The preceding pair
+   failed build 1.0596 and passed execution 0.6626; a repeated similar build ratio
+   does not identify its cause. Diagnose the production build difference before
+   claiming parity; a successful execution cannot qualify the failed build.
+   Earlier cadence breaches remain observed. Keep new measurements within
+   30 minutes and freeze their inputs.
 
 Keep this obstacle list current by removing closed work and naming specific
 remaining failures. Source backup, relocation and finite candidate qualification
