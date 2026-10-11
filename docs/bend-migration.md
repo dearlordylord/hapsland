@@ -225,12 +225,19 @@ One current obstacle list, in execution order:
    separately. Source-owned graph Entry/expansion/Rust/SPEC consumers and local
    resident Source (56/6338/31), preparation (70/15576/807), owned root
    (46/2049) and composed Canonical root (18/1425/7125 fences/18 accepted)
-   pass. The generic machine checker still cannot drive specialized Go/Python
-   continuations. Its replacement consumer must retain all original fixtures
-   and trace/IO assertions, route specialized commands through the actual
-   resident-owned artifact composition and public service ports, and compare
-   flattened request/reply streams and terminals. Native preparation policy
-   callbacks or filtered language cases do not close this gate.
+   pass. The old full graph loop in the standalone machine checker is replaced by
+   the resident-owned composition consumer, retaining all 58 original fixtures.
+   Complete request/reply streams and full accepted terminal frames now compare
+   the existing split dispatcher's verification await/resume loop with actual
+   Canonical-owned execution, with no field normalization (fresh invocation 1
+   on both sides). All 105 cases pass, including 59 exact IO/terminal comparisons
+   (log: /tmp/hapsland-whole-fixtures-owned-io-v2.log). This qualifies scheduler
+   and transport correspondence; native results/effects remain the independent
+   algorithm oracle. Standalone generic machine/real foreign Bend IO checks
+   pass four roots including physical cross-file capture, bounded pure-chain
+   (maximum 1), exact fuel refusal, terminal frame, cancellation/late reply and
+   original Cause identity (log: /tmp/hapsland-generic-machine-crossfile-chain.log).
+   No language fixtures are filtered; no native language policy fallback is added.
    The resident-owned root consumer now includes all 58 original graph fixture
    facts through a source-owned verification CLI and the existing runner's
    subprocess input boundary (V8 preserves Maps/order). It retains the previous
@@ -264,9 +271,8 @@ One current obstacle list, in execution order:
    complete request payload/order/IDs and accepted full terminal frame. This
    qualifies scheduler/transport correspondence, not an independent algorithm
    oracle; native outcomes/effects and generic pure-chain/Cause checks remain.
-   Original flattened
-   generic IO/trace assertions, whole resident progression and universal
-   correspondence remain open.
+   The replacement IO boundary is qualified as above; whole resident progression
+   and universal correspondence remain open.
    Unsupported formatter roots remain failures, including
    attachment declaration headers and UnitEvidence/Glob/list blocks.
    Astra's structural review found no blocking ownership/dependency issue in
