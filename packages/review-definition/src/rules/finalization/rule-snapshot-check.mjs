@@ -87,7 +87,7 @@ try {
   const output = join(temporary, "rules.mjs")
   execFileSync(
     "timeout",
-    ["5s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "RuleFinalization.bend"), "-o", output],
+    ["5s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "RuleSnapshot.bend"), "-o", output],
     { timeout: 6000 }
   )
   const stage = (await import(pathToFileURL(output))).default

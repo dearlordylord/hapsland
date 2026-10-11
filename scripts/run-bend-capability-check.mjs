@@ -13,6 +13,7 @@ const sourceOwners = [
   "packages/source-analysis/src/direct-event/graph-resolution",
   "packages/native-observation/src/direct-event/edit-attribution",
   "packages/review-execution/src/direct-event/preparation",
+  "packages/review-definition/src/rules/finalization",
   "packages/resident-runtime/src/resident/review-work/preparation",
   "packages/resident-runtime/src/resident/review-work/composition",
   "packages/resident-runtime/src/resident/review-work/evaluation",

@@ -1,10 +1,44 @@
 import Base
 import ../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
-import ./UnitEvidence.bend as Evidence
 
 # Internal stage of whole finalization, consuming the compiled-rule snapshot.
 # Applicability admission stays with Canonical; this stage computes its facts
 # and freezes the admitted original rule, never a host-selected input.
+# Private projections of the shared producer ABI, not evidence policy.
+def field_list(
+  +key: String,
+  fields: List<&2, T.OrderedField<T.ProductValue>>
+) -> Maybe<&2, T.ProductValue>:
+  match fields:
+    case []: None{}
+    case T.OrderedField{+candidate, value} <> tail:
+      Bool.pick(
+        Maybe<&2, T.ProductValue>,
+        String.eq(key, candidate),
+        Some{value},
+        field_list(key, tail)
+      )
+
+def field(key: String, value: T.ProductValue) -> Maybe<&2, T.ProductValue>:
+  match value:
+    case T.ProductObject{fields}: field_list(key, fields)
+    case _: None{}
+
+def same_text(left: Maybe<&2, T.ProductValue>, right: Maybe<&2, T.ProductValue>) -> Bool:
+  match left right:
+    case Some{T.ProductText{a}} Some{T.ProductText{b}}: String.eq(a, b)
+    case _ _: False{}
+
+def absent(value: Maybe<&2, T.ProductValue>) -> Bool:
+  match value:
+    case None{}: True{}
+    case _: False{}
+
+def artifact_value(value: Maybe<&2, T.ProductValue>) -> T.ProductValue:
+  match value:
+    case Some{value}: value
+    case None{}: T.ProductNull{}
+
 def items(value: Maybe<&2, T.ProductValue>) -> List<&2, T.ProductValue>:
   match value:
     case Some{T.ProductArray{values}}: values
@@ -14,11 +48,11 @@ def contains(+value: String, values: List<&2, T.ProductValue>) -> Bool:
   match values:
     case []: False{}
     case head <> tail:
-      Bool.or(Evidence.same_text(Some{T.ProductText{value}}, Some{head}), contains(value, tail))
+      Bool.or(same_text(Some{T.ProductText{value}}, Some{head}), contains(value, tail))
 
 def input_matches(+input: T.ProductValue, language: String, kind: String) -> Bool:
-  Bool.and(Evidence.same_text(Some{T.ProductText{kind}}, Evidence.field("kind", input)),
-    contains(language, items(Evidence.field("languages", input))))
+  Bool.and(same_text(Some{T.ProductText{kind}}, field("kind", input)),
+    contains(language, items(field("languages", input))))
 
 def choose_input(
   matches: Bool,
@@ -65,12 +99,12 @@ def any_capable(
     case []: False{}
     case +head <> tail:
       Bool.or(Bool.and(input_matches(head, language, kind),
-        all_requirements(items(Evidence.field("requires", head)), available)),
+        all_requirements(items(field("requires", head)), available)),
         any_capable(tail, language, kind, available))
 
 def target_declared(+rule: T.ProductValue, +language: String, kind: String) -> Bool:
-  Bool.and(language_allowed(language, Evidence.field("languages", rule)),
-    Bool.not(Evidence.absent(first_input(items(Evidence.field("inputs", rule)), language, kind))))
+  Bool.and(language_allowed(language, field("languages", rule)),
+    Bool.not(absent(first_input(items(field("inputs", rule)), language, kind))))
 
 def capabilities_available(
   +rule: T.ProductValue,
@@ -78,8 +112,8 @@ def capabilities_available(
   kind: String,
   available: List<&2, T.ProductValue>
 ) -> Bool:
-  Bool.and(language_allowed(language, Evidence.field("languages", rule)),
-    any_capable(items(Evidence.field("inputs", rule)), language, kind, available))
+  Bool.and(language_allowed(language, field("languages", rule)),
+    any_capable(items(field("inputs", rule)), language, kind, available))
 
 def type_capabilities() -> List<&2, T.ProductValue>:
   [
@@ -158,7 +192,7 @@ def target_object(
 def input_target(+input: T.ProductValue, +contract: String) -> Maybe<&2, T.ProductValue>:
   Bool.pick(
     Maybe<&2, T.ProductValue>,
-    Evidence.same_text(Evidence.field("kind", input), Some{T.ProductText{"type"}}),
+    same_text(field("kind", input), Some{T.ProductText{"type"}}),
     Bool.pick(
       Maybe<&2, T.ProductValue>,
       String.eq(contract, "direct-event/type-shape/v1"),
@@ -166,7 +200,7 @@ def input_target(+input: T.ProductValue, +contract: String) -> Maybe<&2, T.Produ
         target_object(
           "typeShape",
           contract,
-          selected_capabilities(type_capabilities(), items(Evidence.field("requires", input)))
+          selected_capabilities(type_capabilities(), items(field("requires", input)))
         )
       },
       None{}
@@ -175,13 +209,13 @@ def input_target(+input: T.ProductValue, +contract: String) -> Maybe<&2, T.Produ
       Maybe<&2, T.ProductValue>,
       Bool.and(
         String.eq(contract, "direct-event/function/v1"),
-        Evidence.same_text(Evidence.field("kind", input), Some{T.ProductText{"function"}})
+        same_text(field("kind", input), Some{T.ProductText{"function"}})
       ),
       Some{
         target_object(
           "function",
           contract,
-          selected_capabilities(function_capabilities(), items(Evidence.field("requires", input)))
+          selected_capabilities(function_capabilities(), items(field("requires", input)))
         )
       },
       None{}
@@ -203,7 +237,7 @@ def copied_fields(
   match keys:
     case []: []
     case +key <> tail:
-      T.OrderedField{key, Evidence.artifact_value(Evidence.field(key, rule))} <> copied_fields(
+      T.OrderedField{key, artifact_value(field(key, rule))} <> copied_fields(
         tail,
         rule
       )
@@ -225,7 +259,7 @@ def freeze_rule(
   contract: String
 ) -> T.ProductValue:
   frozen_target(
-    selected_target(first_input(items(Evidence.field("inputs", rule)), language, kind), contract),
+    selected_target(first_input(items(field("inputs", rule)), language, kind), contract),
     copied_fields(
       ["id", "source", "definitionDigest", "threshold", "message", "rank", "decision"],
       rule

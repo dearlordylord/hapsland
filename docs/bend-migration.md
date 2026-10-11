@@ -148,7 +148,7 @@ not the unconnected whole-finalization stage.
 The fully warm repeat at checkpoint `298e83ec` also failed build parity: 1.2265
 at 05:06 UTC with 23/46 cached tasks. Its paired execution passed at 0.8656
 at 05:13 UTC. A cold sample alone therefore does not explain the build regression.
-The next internal finalization block, `RuleFinalization.bend`, computes input and
+The next internal finalization block, `RuleSnapshot.bend` at review-definition/rules/finalization, computes input and
 capability facts and freezes complete ordered rules from the same snapshot;
 admission remains with the existing Canonical rule gate. Its emitted consumer
 compares 360 contexts and 8,640 snapshot rules with the native selectors/freezers.
@@ -158,6 +158,14 @@ runner lint and pinned formatting checks pass for this block. Path/glob facts,
 correlated Canonical requests, provider/input/identity assembly and whole
 finalization proofs/production connection remain open; this is no separate
 selector acceptance.
+
+Astra approved moving rule snapshot semantics and its physical runner to
+review-definition/rules/finalization; preparation consumes that owner. The old
+execution copies are removed. Private structural ProductValue projections avoid
+an execution-to-definition dependency cycle. The existing graph-resolution Types
+import still needs a narrow shared ABI owner before production interfaces qualify;
+there is no duplicated ProductValue declaration. Named source checks include the
+actual rule owner after the move.
 
 1. Finish relocation dependency and nominal ABI qualification; remove obsolete
    representations and historical runners after identifying the retained closure.
