@@ -64,14 +64,32 @@ const mixedContracts = {
   expected: { selected: 2n, units: 2 }
 }
 // Expectations describe each physical input independently of observed output.
-const scenario = (name, fixture, { expected = fixture.expected, compareNative = false } = {}) => ({
+const scenario = (
   name,
   fixture,
-  expected,
-  compareNative
-})
+  { expected = fixture.expected, compareNative = false, retentionMode = name } = {}
+) => ({ name, fixture, expected, compareNative, retentionMode })
 const multiCandidate = { ...twoDeclarations, candidates: ["root.py", "leaf.py"], expected: { selected: 3n, units: 3 } }
+const languageRoots = [
+  [
+    "go",
+    {
+      path: "root.go",
+      source: "package fixture\ntype Root struct { Value string }\n",
+      files: { "go.mod": "module example.test/fixture\ngo 1.27\n" }
+    }
+  ],
+  ["rust", { path: "root.rs", source: "pub struct Root { pub value: String }\n" }],
+  ["bend", { path: "root.bend", source: "type Root is Data:\n  Root{}\n" }]
+].map(([language, fixture]) =>
+  scenario(
+    "retention-owned-" + language + "-success",
+    { ...fixture, contracts: [{ $: "PreparationSelection.TypeContract" }], expected: { selected: 1n, units: 1 } },
+    { compareNative: true, retentionMode: "retention-owned-success" }
+  )
+)
 const scenarios = [
+  ...languageRoots,
   scenario("dependency-then-candidate", multiCandidate, { compareNative: true }),
   scenario(
     "normalized-repeat-candidate",
@@ -163,6 +181,7 @@ try {
     ["composition", "ArtifactComposition"],
     ["parent", "GenericArtifact"],
     ["python", "PythonArtifact"],
+    ["go", "GoArtifact"],
     ["owner", "CanonicalResolverOwner"]
   ]) {
     const emitted = join(temp, name + ".mjs")
@@ -175,6 +194,7 @@ try {
         new URL(
           {
             ArtifactComposition: "../../composition/ArtifactComposition.bend",
+            GoArtifact: "../../composition/GoArtifact.bend",
             ArtifactIndexSkipMutantCore:
               "../../../../../../source-analysis/src/direct-event/graph-resolution/ArtifactIndexSkipMutantCore.bend",
             ArtifactProtocol: "../../composition/ArtifactProtocol.bend",
@@ -316,8 +336,10 @@ try {
   const root = join(temp, "fixture")
   await mkdir(root)
   execFileSync("git", ["init", "-q", root], { timeout: 5000 })
-  for (const fixture of new Set(selectedScenarios.map((item) => item.fixture)))
+  for (const fixture of new Set(selectedScenarios.map((item) => item.fixture))) {
     await writeFile(join(root, fixture.path), fixture.source)
+    for (const [path, source] of Object.entries(fixture.files ?? {})) await writeFile(join(root, path), source)
+  }
   await writeFile(join(root, "leaf.py"), "class Foo:\n value: str\n")
   const a = await lstat(root),
     b = await lstat(join(root, ".git"))
@@ -781,7 +803,7 @@ try {
           outcome.preparation,
           root,
           rootIdentity,
-          mode,
+          testCase.retentionMode,
           preparationForeign.decode
         )
       } else {
@@ -823,7 +845,7 @@ try {
       postRequests,
       nativePostPreparationSource,
       scope:
-        "actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Python/TypeScript IO and full native preparation differential for successful branches; parent cancellation/late success/rejection and first semantic refusal; actual native preflight/workspace sizing bindings and whole Bend finalization through the same resident Canonical gate; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers plus owner-claim and pre-spawn exceptions with guaranteed cleanup; native policy deletion, source-free Canonical progression and production adoption remain open"
+        "actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Go/Rust/Bend/Python/TypeScript IO and full native preparation differential for successful branches; parent cancellation/late success/rejection and first semantic refusal; actual native preflight/workspace sizing bindings and whole Bend finalization through the same resident Canonical gate; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers plus owner-claim and pre-spawn exceptions with guaranteed cleanup; native policy deletion, source-free Canonical progression and production adoption remain open"
     })
   )
 } finally {
