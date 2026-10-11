@@ -781,3 +781,10 @@ P.forward_nodes from parent/child facts and existing slot-owner separation;
 hard5 CPU10 passes 4.329 wall/3.800 CPU. Original parent law remains unchanged
 and open: semantic address alignment and replacement/frame-validity assembly
 are still required.
+
+Retention fixture identity now comes from its already-required supplied
+observation.advicee, removing the tooling fixture dependency without a new
+format or helper interface. Actual changed-source lint and physical
+retention-owned-joined-pending pass (513 preparation/51 post requests),
+including repeated accepted-result decoding and cleanup. The remaining
+development-import gate must be rechecked; whole regression/adoption stay open.

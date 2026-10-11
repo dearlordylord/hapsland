@@ -24,7 +24,6 @@ import { makeResidentWorkLifecycle } from "../../../work-ownership/lifecycle.ts"
 import { residentRetainAdvice } from "../../evaluation/retention.ts"
 import { defaultPreparationControls } from "../../../execution-controls/preparation-controls.ts"
 import { logicalBytes } from "../../../state/encoded-size.ts"
-import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import {
   providerTransaction,
   dispatchExecutionBoundary,
@@ -46,8 +45,9 @@ export async function createResidentRetentionContext(
     observation: providedObservation
   } = {}
 ) {
+  assert.ok(providedObservation, "Retention fixture requires an explicit observation")
   const run = Effect.runSync,
-    identity = advicee(),
+    identity = providedObservation.advicee,
     accepted = []
   run(
     connection.bridge.native((draft, records) => [
@@ -106,7 +106,6 @@ export async function createResidentRetentionContext(
       dispatchExecutionBoundary
     ).pipe(Effect.provideService(Scope.Scope, scope))
   )
-  assert.ok(providedObservation, "Retention fixture requires an explicit observation")
   const observation = providedObservation
   const receipt = { scope: { root }, correlation: { fixture: "postflow" } }
   const job = {
