@@ -18,6 +18,7 @@ import ./RustCargo.bend as RustCargo
 import ./RustFollow.bend as RustFollow
 import ./ImportedRust.bend as ImportedRust
 import ../../../../agent-flow-bend/ImportGraph.bend as Graph
+import ../../../../agent-flow-bend/GraphLimits.bend as Profile
 
 # Entry and root IO sequencing. Graph continuations remain inside Bend and
 # are composed with resolve/capture/Rust preparation before production adoption.
@@ -129,14 +130,29 @@ def root_product(
     case None{}: malformed()
     case Some{value}: Loop.ServiceStep{S.request(state, T.MeasuringRoot{}, T.EncodeProduct{value})}
 
+def profiled_root(
+  violation: Maybe<&2, String>,
+  +frame: T.ResolverFrame,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match violation:
+    case Some{message}: Loop.ServiceStep{
+      S.request(state, T.RejectingGraphProfile{}, T.CreateRangeError{message})
+    }
+    case None{}: root_product(
+      Root.prepared_unit(frame, S.state_prepared(state)),
+      S.with_state_frame(state, Some{frame})
+    )
+
 def prepared_root(outcome: Root.RootOutcome, +state: T.ResolverState) -> Loop.Continuation:
   match outcome:
     case Root.RootUnavailable{}: unavailable()
     case Root.RootMalformedSyntax{}: malformed()
     case Root.RootTraversalFailure{_}: Loop.ServiceStep{T.FailedResolver{T.LocalTraversalFailure{}}}
-    case Root.RootPrepared{+frame}: root_product(
-      Root.prepared_unit(frame, S.state_prepared(state)),
-      S.with_state_frame(state, Some{frame})
+    case Root.RootPrepared{+frame}: profiled_root(
+      Profile.violation(prepared_limits(S.state_prepared(state))),
+      frame,
+      state
     )
 
 def inspected_root(outcome: T.SourceOutcome, +state: T.ResolverState) -> Loop.Continuation:
@@ -260,6 +276,8 @@ def successful_terminal(
   match language result:
     case Some{T.PythonLanguage{}} T.FinishedResolver{T.ReviewUnitResult{value}, frame}:
       Loop.PythonTerminal{state, T.FinishedResolver{T.ReviewUnitResult{value}, frame}}
+    case Some{T.GoLanguage{}} T.FinishedResolver{T.ReviewUnitResult{value}, frame}:
+      Loop.GoTerminal{state, T.FinishedResolver{T.ReviewUnitResult{value}, frame}}
     case _ _: Loop.ServiceStep{result}
 
 def stage_reply(
@@ -326,6 +344,7 @@ def settle_step(fuel: Nat, step: Loop.Continuation,
     case Loop.ServiceStep{_}: step
     case Loop.PythonIteration{_}: step
     case Loop.PythonTerminal{_, _}: step
+    case Loop.GoTerminal{_, _}: step
     case Loop.AdmitPythonCapture{_, _}: step
     case Loop.PythonCaptured{_, _}: step
     case Loop.InspectPythonTarget{_, _}: step
@@ -341,6 +360,7 @@ def settled_boundary(step: Loop.Continuation) -> Loop.Continuation:
     case Loop.ServiceStep{_}: step
     case Loop.PythonIteration{_}: step
     case Loop.PythonTerminal{_, _}: step
+    case Loop.GoTerminal{_, _}: step
     case Loop.AdmitPythonCapture{_, _}: step
     case Loop.PythonCaptured{_, _}: step
     case Loop.InspectPythonTarget{_, _}: step

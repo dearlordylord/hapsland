@@ -184,8 +184,16 @@ One current obstacle list, in execution order:
    boundaries, cancellation, retirement, late replies and injected faults, with
    zero retained invocation resources/descriptors. Extend the complete 55-case
    physical Go corpus through this driver, including unstable capture and cache
-   saturation. Preserve native function/non-Go configuration observation/error
-   priority; eager input projection has not qualified arbitrary invalid shapes.
+   saturation. Go configuration and final configuration identity are now lazy foreign
+   observations selected by Bend; eager general-input projection is removed.
+   Function/non-Go throwing-getter vectors await the affected consumer rerun.
+   The full owned corpus detected a missing final publication clock, now routed
+   through existing final-await; the deadline-at-publication vector awaits rerun.
+   It also detected depth-zero profile validation missing at graph initialization.
+   The candidate now requests the exact native RangeError at that phase using
+   canonical GraphLimits policy; source check and ordinary format pass.
+   The 58-case full owned diagnostic consumer is saved, still unqualified until
+   rerun. Negative/fractional raw-profile ABI is not qualified by the Nat policy.
 2. Extend the original complete materialization/attachment guarantees to present
    fingerprint, plus whole preparation/native correspondence and Cause/custody.
    Neutral None literals do not qualify changed Some behavior. The original
@@ -198,7 +206,8 @@ One current obstacle list, in execution order:
    imports, zero undeclared dependencies, 97 cross-owner private-file imports.
    Do not expose test helpers or exclude candidate sources. check:fast currently
    passes 109 tests, source TypeScript and package graph, then fails these imports;
-   a full gate is blocked. Ordinary lint selected all four changed TS/MJS files.
+   a full gate is blocked. Ordinary lint selected all five changed TS/MJS files. The fast gate and
+   affected service/owned consumers must rerun after the lazy-observation changes.
    The formatter still cannot process AttachmentTransactionLiteralCuts, and
    previously unsupported traversal/UnitEvidence/Glob roots remain open tooling
    failures. Actual supported changed sources are formatted. Relocated runners

@@ -479,39 +479,39 @@ def with_selected_root_identity(state: State, selected_root_identity: Maybe<&2, 
 
 def input_invocation(input: T.ResolverInput) -> Nat:
   match input:
-    case T.ResolverInput{invocation, _, _, _, _, _, _, _, _, _, _}: invocation
+    case T.ResolverInput{invocation, _, _, _, _, _, _, _, _}: invocation
 
 def input_path(input: T.ResolverInput) -> String:
   match input:
-    case T.ResolverInput{_, path, _, _, _, _, _, _, _, _, _}: path
+    case T.ResolverInput{_, path, _, _, _, _, _, _, _}: path
 
 def input_capture(input: T.ResolverInput) -> T.CaptureToken:
   match input:
-    case T.ResolverInput{_, _, capture, _, _, _, _, _, _, _, _}: capture
+    case T.ResolverInput{_, _, capture, _, _, _, _, _, _}: capture
 
 def input_bytes(input: T.ResolverInput) -> Nat:
   match input:
-    case T.ResolverInput{_, _, _, bytes, _, _, _, _, _, _, _}: bytes
+    case T.ResolverInput{_, _, _, bytes, _, _, _, _, _}: bytes
 
 def input_name(input: T.ResolverInput) -> String:
   match input:
-    case T.ResolverInput{_, _, _, _, name, _, _, _, _, _, _}: name
+    case T.ResolverInput{_, _, _, _, name, _, _, _, _}: name
 
 def input_source(input: T.ResolverInput) -> String:
   match input:
-    case T.ResolverInput{_, _, _, _, _, source, _, _, _, _, _}: source
+    case T.ResolverInput{_, _, _, _, _, source, _, _, _}: source
 
 def input_branch(input: T.ResolverInput) -> T.Branch:
   match input:
-    case T.ResolverInput{_, _, _, _, _, _, branch, _, _, _, _}: branch
+    case T.ResolverInput{_, _, _, _, _, _, branch, _, _}: branch
 
 def input_cache(input: T.ResolverInput) -> Maybe<&2, T.CacheToken>:
   match input:
-    case T.ResolverInput{_, _, _, _, _, _, _, cache, _, _, _}: cache
+    case T.ResolverInput{_, _, _, _, _, _, _, cache, _}: cache
 
 def input_limits(input: T.ResolverInput) -> G.Limits:
   match input:
-    case T.ResolverInput{_, _, _, _, _, _, _, _, limits, _, _}: limits
+    case T.ResolverInput{_, _, _, _, _, _, _, _, limits}: limits
 
 def begin(-World: Data, +input: T.ResolverInput, next: Nat,
     world: E.WorldState<World>) -> Progress<World>:

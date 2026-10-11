@@ -38,6 +38,8 @@ def matching(operation: T.Operation, outcome: T.ServiceOutcome) -> Bool:
     case T.ReadCapturedText{_} T.CapturedText{_, _}: True{}
     case T.ReadGoCharacters{_} T.GoCharactersResult{_}: True{}
     case T.ReadGoBuildText{_} T.GoBuildTextResult{_}: True{}
+    case T.ReadGoConfiguration{} T.GoConfigurationRead{_}: True{}
+    case T.ReadAnalysisConfigurationIdentity{} T.AnalysisConfigurationIdentityRead{_}: True{}
     case T.HashJsonProduct{_} T.JsonProductHashed{_}: True{}
     case T.InspectGoFile{_, _} T.GoFileResult{_}: True{}
     case T.InspectRustModules{_} T.RustModulesResult{_}: True{}

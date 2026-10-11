@@ -93,6 +93,7 @@ type Phase is Data:
   NestedJoin{+discovery: M.Discovery, +target: String, +ancestor: String, +depth: Nat}
   NestedParent{+discovery: M.Discovery, +target: String, +depth: Nat}
   FinalDeadline{+declarations: List<&2, M.BoundDeclaration>}
+  FinalIdentity{+declarations: List<&2, M.BoundDeclaration>}
   FinalHash{+declarations: List<&2, M.BoundDeclaration>}
 type State is Data:
   State{+runtime: M.Runtime, +phase: Phase}
@@ -1210,29 +1211,36 @@ def reverse_next(+runtime: M.Runtime, +cursor: R.ReverseCursor) -> Step:
         )
       )
 
-def input_identity(+input: M.Input) -> String:
-  match input:
-    case M.Input{_, _, _, _, _, _, _, _, _, _, +value}: D.optional_text(value, "unconfigured")
+def final_identity(
+  +runtime: M.Runtime,
+  +declarations: List<&2, M.BoundDeclaration>,
+  identity: Maybe<&2, String>
+) -> Step:
+  await_operation(
+    runtime,
+    FinalHash{declarations},
+    T.HashJsonProduct{
+      V.ProductArray{
+        [
+          V.ProductText{D.optional_text(identity, "unconfigured")},
+          V.ProductText{M.snapshot_hash(runtime)},
+          V.ProductArray{M.identities(runtime)}
+        ]
+      }
+    }
+  )
 
 def final_deadline(
-  +expired: Bool,
-  +runtime: M.Runtime,
-  +declarations: List<&2, M.BoundDeclaration>
+  expired: Bool,
+  runtime: M.Runtime,
+  declarations: List<&2, M.BoundDeclaration>
 ) -> Step:
   match expired:
     case True{}: absent(runtime)
     case False{}: await_operation(
       runtime,
-      FinalHash{declarations},
-      T.HashJsonProduct{
-        V.ProductArray{
-          [
-            V.ProductText{input_identity(M.input(runtime))},
-            V.ProductText{M.snapshot_hash(runtime)},
-            V.ProductArray{M.identities(runtime)}
-          ]
-        }
-      }
+      FinalIdentity{declarations},
+      T.ReadAnalysisConfigurationIdentity{}
     )
 
 def remaining_limits(
@@ -1546,6 +1554,11 @@ def outcome(+runtime: M.Runtime, +phase: Phase, +result: T.ServiceOutcome) -> St
       Clock.expired(bits),
       runtime,
       declarations
+    )
+    case FinalIdentity{declarations} T.AnalysisConfigurationIdentityRead{identity}: final_identity(
+      runtime,
+      declarations,
+      identity
     )
     case FinalHash{+declarations} T.JsonProductHashed{+hash}: finished(runtime, declarations, hash)
     case _ _: failed(runtime, T.MalformedReply{})

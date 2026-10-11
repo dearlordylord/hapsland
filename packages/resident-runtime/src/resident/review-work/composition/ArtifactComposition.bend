@@ -308,8 +308,8 @@ def prepare_go(clock: Maybe<&2, T.ClockToken>, +context: Context, +state: T.Reso
       GoCall{context, GoPreparationReturn{state}, BeginGo{A.GoPrepare{Go.Input{
         S.input_invocation(input), S.state_next_request(state), S.input_root_path(input),
         S.input_root_capture(input), S.input_root_bytes(input), S.input_branch(input), clock,
-        S.input_caller_cache(input), S.input_limits(input), S.input_configuration(input),
-        S.input_configuration_identity(input)}}}}
+        S.input_caller_cache(input), S.input_limits(input), None{},
+        None{}}}}}
 
 def inspect_go(prepared: Maybe<&2, Go.Prepared>, context: Context, +state: T.ResolverState) -> Step:
   match prepared:
@@ -496,6 +496,7 @@ def parent_view(+context: Context, handle: A.StateHandle, continuation: Loop.Con
       S.state_clock(state)
     )
     case Loop.PythonIteration{+state}: guard(context, state, S.state_frame(state))
+    case Loop.GoTerminal{+state, result}: final_clock(S.state_clock(state), context, state, result)
     case Loop.PythonTerminal{+state, result}: validate(
       context,
       state,
@@ -555,7 +556,9 @@ def final_result(
   expired: Bool,
   result: T.ResolverStep
 ) -> Step:
-  final_result_with_session(session(context), context, frame, expired, result)
+  match context:
+    case Context{_, None{}, _, _, Some{_}}: final_available(Bool.not(expired), context, result)
+    case _: final_result_with_session(session(context), context, frame, expired, result)
 
 def reply_outcome(reply: T.Reply) -> T.ServiceOutcome:
   match reply:

@@ -66,6 +66,8 @@ export function createServiceSession({
   inspectRustModules,
   selectContextPath,
   parsePythonSyntax,
+  readGoConfiguration,
+  readAnalysisConfigurationIdentity,
   diagnostic
 }: SessionPorts): ServiceSession {
   if (!Number.isSafeInteger(invocation) || invocation < 0) throw new Error("invalid invocation")
@@ -288,6 +290,43 @@ export function createServiceSession({
         case tag("ReadCapturedText"): {
           const captured = lookup("CaptureToken", op.capture)
           outcome = tagged("CapturedText", { text: captured.text, content_hash: captured.contentHash })
+          break
+        }
+        case tag("ReadGoConfiguration"): {
+          const value = readGoConfiguration?.()
+          outcome = tagged("GoConfigurationRead", {
+            configuration:
+              value === undefined
+                ? { $: "None" }
+                : {
+                    $: "Some",
+                    value: {
+                      $: "go-module/Configuration.Configuration",
+                      goos: value.goos,
+                      goarch: value.goarch,
+                      tags: list(
+                        value.tags.map((text) => ({
+                          $: "go-module/RawText.Text" as const,
+                          value: text,
+                          characters: list(
+                            Array.from(text, (character) => ({
+                              $: "go-module/RawText.Character" as const,
+                              code: character.codePointAt(0)!,
+                              whitespace: /^\s$/u.test(character)
+                            }))
+                          )
+                        }))
+                      )
+                    }
+                  }
+          })
+          break
+        }
+        case tag("ReadAnalysisConfigurationIdentity"): {
+          const value = readAnalysisConfigurationIdentity?.()
+          outcome = tagged("AnalysisConfigurationIdentityRead", {
+            identity: value === undefined ? { $: "None" } : { $: "Some", value }
+          })
           break
         }
         case tag("ReadGoBuildText"):

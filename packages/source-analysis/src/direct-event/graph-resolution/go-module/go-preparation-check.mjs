@@ -12,9 +12,14 @@ import {
 } from "@hapsland/native-observation/direct-event/selection"
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { prepareGoGraph } from "../../languages/go-module-context.ts"
-import { createServiceSession } from "../service-session.ts"
-import { factDeclaration } from "../frontend-codec.ts"
+import { createServiceRegistry, createServiceSession } from "../service-session.ts"
+import { factDeclaration, pureReply } from "../frontend-codec.ts"
 
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { resolveGraphUnit } from "../../graph-resolver.ts"
+import { createBendResolver } from "../consumer.ts"
+import { createOwnedArtifactDriver } from "../../../../../resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
+const ownedMode = process.argv.includes("--owned")
 const artifactMode = process.argv.includes("--artifact")
 const temp = await mkdtemp("/tmp/hapsland-go-preparation-")
 const t = (name, fields = {}) => ({ $: `Types.${name}`, ...fields })
@@ -54,6 +59,7 @@ const transport = (value, outgoing = false) => {
                 .replace(/^traversal\/core\./u, "../traversal/core.")
                 .replace(/^go-module\/RawText\./u, "RawText.")
                 .replace(/^go-module\/Input\./u, "Input.")
+                .replace(/^go-module\/Configuration\./u, "Configuration.")
           : transport(v, outgoing)
       ])
     )
@@ -321,6 +327,25 @@ try {
         resume: (step, reply) => project(emittedCore.resume(step.rawStep, artifactTransport(reply)))
       }
     : emittedCore
+  const ownedFailures = []
+  let ownedRequests = 0,
+    ownedCases = 0
+  const ownedArtifacts = {}
+  let owner
+  if (ownedMode)
+    for (const [key, source] of [
+      ["composition", "resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend"],
+      ["parent", "resident-runtime/src/resident/review-work/composition/GenericArtifact.bend"],
+      ["python", "resident-runtime/src/resident/review-work/composition/PythonArtifact.bend"],
+      ["go", "resident-runtime/src/resident/review-work/composition/GoArtifact.bend"],
+      ["owner", "agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"]
+    ]) {
+      const output = join(temp, key + ".mjs")
+      execFileSync("bend", [join(import.meta.dirname, "../../../../../", source), "-o", output], { timeout: 5000 })
+      const artifact = (await import(pathToFileURL(output))).default
+      if (key === "owner") owner = artifact
+      else ownedArtifacts[key] = artifact
+    }
   let requests = 0,
     transitions = 0
   for (const [index, fixture] of fixtures.entries()) {
@@ -397,6 +422,8 @@ try {
       invocation: index + 1,
       root,
       callerCache: fixture.noCache ? undefined : caches.bend,
+      readGoConfiguration: () => fixture.configuration,
+      readAnalysisConfigurationIdentity: () => undefined,
       now: () => {
         if (started) traces.bend.push(["clock"])
         return started && fixture.expired ? 5000 : 0
@@ -558,11 +585,123 @@ try {
     } finally {
       io.close()
     }
+    if (ownedMode)
+      for (const fault of [
+        false,
+        ...(fixture.name === "single" ? ["final-clock"] : []),
+        ...(["sibling", "module-import"].includes(fixture.name) ? [true] : [])
+      ]) {
+        ownedCases++
+        const captureFailure = new Error(fixture.name + " physical capture failure")
+        let state = owner.initial_limits(100n, 100000000n, 100n, 100000000n)
+        for (const [name, fields] of [
+          ["OpenRound", {}],
+          ["AdmitObservation", { round: 1n }],
+          ["StartObservation", { round: 1n, observation: 1n }],
+          ["BeginObservedPreparation", { round: 1n, observation: 1n, bytes: 1000n }]
+        ]) {
+          const result = owner.canonical_event(state, {
+            $: "../Canonical." + name,
+            partition: 1n,
+            lifetime: 1n,
+            ...fields
+          })
+          assert.equal(result.$, "Advanced")
+          state = result.state
+        }
+        const registry = createServiceRegistry()
+        const driver = createOwnedArtifactDriver({
+          owner,
+          initialState: state,
+          scope: { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },
+          artifacts: ownedArtifacts,
+          registry,
+          foreign: async ([request], options) => {
+            ownedRequests++
+            return pureReply(await registry.get(Number(request.invocation)).perform(request, options))
+          }
+        })
+        const resolver = createBendResolver({
+          registry,
+          drive: driver.drive,
+          allocateInvocation: driver.allocateInvocation,
+          onConstructionFailure: driver.constructionFailed
+        })
+        const wholeTraces = { native: [], bend: [] },
+          wholeCaches = { native: new Map(), bend: new Map() }
+        const context = (lane) => {
+          let ticks = 0
+          return {
+            root,
+            rootIdentity,
+            policy,
+            branch,
+            limits: { ...GRAPH_LIMIT_CEILINGS, ...fixture.limits },
+            analysisConfiguration: fixture.configuration ? { go: fixture.configuration } : undefined,
+            captureCache: fixture.noCache ? undefined : wholeCaches[lane],
+            now: () => {
+              wholeTraces[lane].push(["clock"])
+              const tick = ticks++
+              return (fixture.expired && tick > 0) || (fault === "final-clock" && tick >= 9) ? 5000 : 0
+            },
+            captureHooks: { sourceRead: (file) => wholeTraces[lane].push(["read", file]) },
+            captureSource: (...args) =>
+              Effect.gen(function* () {
+                wholeTraces[lane].push(["capture", args[1].relativePath])
+                if (fault === true) return yield* Effect.fail(captureFailure)
+                return yield* captureStable(...args)
+              })
+          }
+        }
+        const outcome = async (task) => {
+          try {
+            return { ok: true, value: await task() }
+          } catch (error) {
+            return { ok: false, error }
+          }
+        }
+        const expected = await outcome(() =>
+          Effect.runPromise(resolveGraphUnit(path, rootCapture, "Root", context("native")))
+        )
+        const actual = await outcome(() => resolver(path, rootCapture, "Root", context("bend")))
+        try {
+        assert.equal(actual.ok, expected.ok, fixture.name + " owned failure: " + String(expected.error))
+        if (expected.ok) {
+          assert.deepEqual(actual.value, expected.value, fixture.name + " owned whole unit")
+          assert.equal(JSON.stringify(actual.value), JSON.stringify(expected.value), fixture.name + " owned JSON order")
+        } else {
+          assert.equal(actual.error.constructor, expected.error.constructor, fixture.name + " owned error type")
+          assert.equal(actual.error.message, expected.error.message, fixture.name + " owned error message")
+          if (fault === true) {
+            assert.equal(actual.error, captureFailure)
+            assert.equal(expected.error, captureFailure)
+          }
+        }
+        assert.deepEqual(wholeTraces.bend, wholeTraces.native, fixture.name + " owned chronology")
+        assert.deepEqual(
+          [...wholeCaches.bend].map(([file, capture]) => [file, capture.contentHash]),
+          [...wholeCaches.native].map(([file, capture]) => [file, capture.contentHash]),
+          fixture.name + " owned cache"
+        )
+        } catch (error) {
+          ownedFailures.push(new Error(fixture.name + " / " + String(fault), { cause: error }))
+        }
+        assert.deepEqual(
+          driver.resources,
+          { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 },
+          fixture.name + " owned resources"
+        )
+        assert.equal(registry.size, 0)
+      }
   }
+  if (ownedFailures.length > 0) throw new AggregateError(ownedFailures, `${ownedFailures.length} of ${ownedCases} owned Go cases failed`)
   console.log(
     JSON.stringify({
       passed: true,
       artifactMode,
+      ownedMode,
+      ownedRequests,
+      ownedCases,
       cases: fixtures.length,
       requests,
       transitions,

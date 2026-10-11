@@ -47,15 +47,15 @@ def stage(state: State, stage: Stage) -> State:
 
 def input_path(input: T.ResolverInput) -> String:
   match input:
-    case T.ResolverInput{_, path, _, _, _, _, _, _, _, _, _}: path
+    case T.ResolverInput{_, path, _, _, _, _, _, _, _}: path
 
 def root_capture(input: T.ResolverInput) -> T.CaptureToken:
   match input:
-    case T.ResolverInput{_, _, capture, _, _, _, _, _, _, _, _}: capture
+    case T.ResolverInput{_, _, capture, _, _, _, _, _, _}: capture
 
 def limits(input: T.ResolverInput) -> G.Limits:
   match input:
-    case T.ResolverInput{_, _, _, _, _, _, _, _, limits, _, _}: limits
+    case T.ResolverInput{_, _, _, _, _, _, _, _, limits}: limits
 
 def file_limit(limits: G.Limits) -> Nat:
   match limits:

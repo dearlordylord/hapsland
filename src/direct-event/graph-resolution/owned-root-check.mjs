@@ -463,6 +463,52 @@ try {
       cases++
     }
   }
+  for (const [fixturePath, fixtureCapture, branch] of [
+    ["root.go", goCaptured.capture, "function"],
+    ["root.py", captured.capture, "type"]
+  ]) {
+    const registry = createServiceRegistry()
+    const driver = createOwnedArtifactDriver({
+      owner,
+      initialState: initial(),
+      scope,
+      artifacts,
+      registry,
+      foreign: async ([request], options) =>
+        pureReply(await registry.get(Number(request.invocation)).perform(request, options))
+    })
+    const resolver = createBendResolver({
+      registry,
+      drive: driver.drive,
+      allocateInvocation: driver.allocateInvocation,
+      onConstructionFailure: driver.constructionFailed
+    })
+    const context = {
+      root,
+      rootIdentity,
+      policy: DEFAULT_DIRECT_FILE_POLICY,
+      branch,
+      limits: GRAPH_LIMIT_CEILINGS,
+      now: () => 0,
+      captureCache: new Map()
+    }
+    for (const name of ["analysisConfiguration", "analysisConfigurationIdentity"])
+      Object.defineProperty(context, name, {
+        get() {
+          throw new Error("unused configuration observed: " + name)
+        }
+      })
+    const expected = await Effect.runPromise(resolveGraphUnit(fixturePath, fixtureCapture, "Root", context))
+    context.captureCache = new Map()
+    assert.deepEqual(
+      await resolver(fixturePath, fixtureCapture, "Root", context),
+      expected,
+      fixturePath + " lazy configuration priority"
+    )
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assert.equal(registry.size, 0)
+    cases++
+  }
   console.log(
     JSON.stringify({
       passed: true,

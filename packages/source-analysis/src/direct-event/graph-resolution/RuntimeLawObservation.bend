@@ -23,7 +23,7 @@ def machine(-World: Data, state: R.State<World>) -> MachineObservation:
 
 def input_invocation(input: T.ResolverInput) -> Nat:
   match input:
-    case T.ResolverInput{invocation, _, _, _, _, _, _, _, _, _, _}: invocation
+    case T.ResolverInput{invocation, _, _, _, _, _, _, _, _}: invocation
 
 def cancelled_prefix(~World: Data,
     ~respond: T.Operation -> World -> R.ProviderResponse<World>,

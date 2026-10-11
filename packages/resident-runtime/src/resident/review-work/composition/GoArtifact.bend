@@ -1,4 +1,6 @@
 import Base
+import ../../../../../source-analysis/src/direct-event/graph-resolution/Protocol.bend as Protocol
+import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/Configuration.bend as Configuration
 import ./ArtifactProtocol.bend as A
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationMachine.bend as Preparation
@@ -9,6 +11,7 @@ import ../../../../../source-analysis/src/direct-event/graph-resolution/go-modul
 # generation, provider leases, interruption and resource disposal remain with
 # the existing Canonical composition owner and its shared mechanical driver.
 type Step is Data:
+  Configuring{input: M.Input, request: T.Request}
   Preparing{child: Preparation.Step}
   Inspected{facts: Maybe<&2, T.SourceFacts>, next: Nat}
 
@@ -62,14 +65,70 @@ def preparation_view(child: Preparation.Step) -> A.GoView:
     case Preparation.Returned{prepared, next}: preparation_returned(prepared, next)
     case Preparation.Failed{failure, next}: A.GoFailed{failure, next}
 
+def configuration_next(request: T.Request) -> Nat:
+  match request:
+    case T.Request{_, id, _}: Nat.add(id, 1n)
+
+def configuration_view(+request: T.Request) -> A.GoView:
+  A.GoAwait{request, configuration_next(request)}
+
+def configured(
+  input: M.Input,
+  next: Nat,
+  configuration: Maybe<&2, Configuration.Configuration>
+) -> Step:
+  match input:
+    case M.Input{owner, _, path, capture, bytes, branch, clock, cache, limits, _, identity}:
+      Preparing{
+        Preparation.initial(
+          M.Input{
+            owner,
+            next,
+            path,
+            capture,
+            bytes,
+            branch,
+            clock,
+            cache,
+            limits,
+            configuration,
+            identity
+          }
+        )
+      }
+
+def configuration_result(outcome: T.ServiceOutcome, input: M.Input, next: Nat) -> Step:
+  match outcome:
+    case T.GoConfigurationRead{configuration}: configured(input, next, configuration)
+    case T.ProviderRejected{exception}: Preparing{
+      Preparation.Failed{T.ForeignProviderFailure{exception}, next}
+    }
+    case _: Preparing{Preparation.Failed{T.MalformedReply{}, next}}
+
+def configuration_reply(checked: Protocol.CheckedReply, input: M.Input, next: Nat) -> Step:
+  match checked:
+    case Protocol.CheckedOutcome{outcome}: configuration_result(outcome, input, next)
+    case Protocol.RejectedReply{failure}: Preparing{Preparation.Failed{failure, next}}
+
+def prepare(+input: M.Input) -> Step:
+  match input:
+    case M.Input{_, _, _, _, _, T.FunctionBranch{}, _, _, _, _, _}: Preparing{
+      Preparation.initial(input)
+    }
+    case M.Input{+owner, +next, _, _, _, T.TypeBranch{}, _, _, _, _, _}: Configuring{
+      input,
+      T.Request{owner, next, T.ReadGoConfiguration{}}
+    }
+
 def view(step: Step) -> A.GoView:
   match step:
+    case Configuring{_, request}: configuration_view(request)
     case Preparing{child}: preparation_view(child)
     case Inspected{facts, next}: A.GoReturned{A.GoInspected{facts}, next}
 
 def begin(command: A.GoCommand) -> Step:
   match command:
-    case A.GoPrepare{input}: Preparing{Preparation.initial(input)}
+    case A.GoPrepare{input}: prepare(input)
     case A.GoInspect{prepared, path, branch, next}: inspect(prepared, path, branch, next)
 
 def advance(step: Step) -> Step:
@@ -79,6 +138,11 @@ def advance(step: Step) -> Step:
 
 def resume(step: Step, reply: T.Reply) -> Step:
   match step:
+    case Configuring{input, +request}: configuration_reply(
+      Protocol.check(request, reply),
+      input,
+      configuration_next(request)
+    )
     case Preparing{child}: Preparing{Preparation.resume(child, reply)}
     case Inspected{_, next}: Preparing{Preparation.Failed{T.ReplyAfterTerminal{}, next}}
 

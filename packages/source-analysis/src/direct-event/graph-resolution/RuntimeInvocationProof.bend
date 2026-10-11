@@ -540,7 +540,7 @@ def initial_inv(~World: Data, +input: T.ResolverInput, world: World) -> {
  I.invocation(World, R.initial(World, input, world)) == Observation.input_invocation(input) : Nat
 }:
   match input:
-    case T.ResolverInput{_, _, _, _, _, _, _, _, _, _, _}: {==}
+    case T.ResolverInput{_, _, _, _, _, _, _, _, _}: {==}
 
 def initialized_inv(~World: Data, ~respond: T.Operation -> World -> R.ProviderResponse<World>,
  ~observe: T.ExceptionToken -> World -> O.Error, +input: T.ResolverInput, +world: World,

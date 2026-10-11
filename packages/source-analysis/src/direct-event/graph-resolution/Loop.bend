@@ -6,6 +6,7 @@ import ../../../../agent-flow-bend/ImportGraph.bend as Graph
 type Continuation is Data:
   PythonIteration{state: T.ResolverState}
   PythonTerminal{state: T.ResolverState, result: T.ResolverStep}
+  GoTerminal{state: T.ResolverState, result: T.ResolverStep}
   AdmitPythonCapture{state: T.ResolverState, cached: T.CacheOutcome}
   PythonCaptured{state: T.ResolverState, outcome: T.CaptureOutcome}
   InspectPythonTarget{state: T.ResolverState, capture: T.CaptureToken}

@@ -1,7 +1,6 @@
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./Types.bend as T
-import ./go-module/Configuration.bend as GoConfiguration
 import ./Root.bend as Root
 import ./traversal/core.bend as Local
 import ../../../../agent-flow-bend/ImportGraph.bend as Graph
@@ -1550,39 +1549,39 @@ def with_state_rust_work(value: T.ResolverState, replacement: T.RustWork) -> T.R
 
 def input_invocation(value: T.ResolverInput) -> Nat:
   match value:
-    case T.ResolverInput{invocation, _, _, _, _, _, _, _, _, _, _}: invocation
+    case T.ResolverInput{invocation, _, _, _, _, _, _, _, _}: invocation
 
 def input_root_path(value: T.ResolverInput) -> String:
   match value:
-    case T.ResolverInput{_, root_path, _, _, _, _, _, _, _, _, _}: root_path
+    case T.ResolverInput{_, root_path, _, _, _, _, _, _, _}: root_path
 
 def input_root_capture(value: T.ResolverInput) -> T.CaptureToken:
   match value:
-    case T.ResolverInput{_, _, root_capture, _, _, _, _, _, _, _, _}: root_capture
+    case T.ResolverInput{_, _, root_capture, _, _, _, _, _, _}: root_capture
 
 def input_root_bytes(value: T.ResolverInput) -> Nat:
   match value:
-    case T.ResolverInput{_, _, _, root_bytes, _, _, _, _, _, _, _}: root_bytes
+    case T.ResolverInput{_, _, _, root_bytes, _, _, _, _, _}: root_bytes
 
 def input_root_name(value: T.ResolverInput) -> String:
   match value:
-    case T.ResolverInput{_, _, _, _, root_name, _, _, _, _, _, _}: root_name
+    case T.ResolverInput{_, _, _, _, root_name, _, _, _, _}: root_name
 
 def input_root_source(value: T.ResolverInput) -> String:
   match value:
-    case T.ResolverInput{_, _, _, _, _, root_source, _, _, _, _, _}: root_source
+    case T.ResolverInput{_, _, _, _, _, root_source, _, _, _}: root_source
 
 def input_branch(value: T.ResolverInput) -> T.Branch:
   match value:
-    case T.ResolverInput{_, _, _, _, _, _, branch, _, _, _, _}: branch
+    case T.ResolverInput{_, _, _, _, _, _, branch, _, _}: branch
 
 def input_caller_cache(value: T.ResolverInput) -> Maybe<&2, T.CacheToken>:
   match value:
-    case T.ResolverInput{_, _, _, _, _, _, _, caller_cache, _, _, _}: caller_cache
+    case T.ResolverInput{_, _, _, _, _, _, _, caller_cache, _}: caller_cache
 
 def input_limits(value: T.ResolverInput) -> Graph.Limits:
   match value:
-    case T.ResolverInput{_, _, _, _, _, _, _, _, limits, _, _}: limits
+    case T.ResolverInput{_, _, _, _, _, _, _, _, limits}: limits
 
 def scratch_paths(value: T.ResolverScratch) -> List<&2, String>:
   match value:
@@ -3516,12 +3515,3 @@ def request(
 
 def main() -> Unit:
   Unit{}
-
-
-def input_configuration(value: T.ResolverInput) -> Maybe<&2, GoConfiguration.Configuration>:
-  match value:
-    case T.ResolverInput{_, _, _, _, _, _, _, _, _, configuration, _}: configuration
-
-def input_configuration_identity(value: T.ResolverInput) -> Maybe<&2, String>:
-  match value:
-    case T.ResolverInput{_, _, _, _, _, _, _, _, _, _, identity}: identity

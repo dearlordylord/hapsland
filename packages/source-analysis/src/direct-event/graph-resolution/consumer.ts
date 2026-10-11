@@ -7,7 +7,7 @@ import type { ReviewUnit } from "@hapsland/source-artifacts/direct-event/artifac
 import type { LanguageGraphHost } from "../languages/contracts.ts"
 import type { ServiceSession, PerformOptions, Token, Maybe, Variant, Natural } from "./service-contract.ts"
 
-import { fromProductValue, list, type ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { fromProductValue, type ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import * as Effect from "effect/Effect"
 import { createServiceSession } from "./service-session.ts"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax, parsePythonSyntax } from "./frontends.ts"
@@ -20,21 +20,6 @@ import {
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 
-const goTags = (tags: readonly string[]) =>
-  list(
-    tags.map((value) => ({
-      $: "go-module/RawText.Text" as const,
-      value,
-      characters: list(
-        [...value].map((character) => ({
-          $: "go-module/RawText.Character" as const,
-          code: BigInt(character.codePointAt(0)!),
-          whitespace: /^\s$/u.test(character)
-        }))
-      )
-    }))
-  )
-
 type ResolverInput = Variant<
   "ResolverInput",
   {
@@ -46,13 +31,6 @@ type ResolverInput = Variant<
     readonly root_source: string
     readonly branch: Variant<"FunctionBranch" | "TypeBranch">
     readonly caller_cache: Maybe<Token<"CacheToken">>
-    readonly configuration: Maybe<{
-      readonly $: "go-module/Configuration.Configuration"
-      readonly goos: string
-      readonly goarch: string
-      readonly tags: ReturnType<typeof goTags>
-    }>
-    readonly configuration_identity: Maybe<string>
     readonly limits: {
       readonly $: "../../../../agent-flow-bend/ImportGraph.Limits"
       readonly version: bigint
@@ -152,6 +130,8 @@ export function createBendResolver({
         frontend: inspectSourceFrontend,
         parseCargo: parseCargoSyntax,
         parsePythonSyntax,
+        readGoConfiguration: () => context.analysisConfiguration?.go,
+        readAnalysisConfigurationIdentity: () => context.analysisConfigurationIdentity,
         selectContextPath: (path) =>
           selectedByDirectFilePolicy(path, contextDirectFilePolicy(context.policy ?? DEFAULT_DIRECT_FILE_POLICY)),
         inspectRustModules: inspectRustModuleSyntax,
@@ -168,23 +148,6 @@ export function createBendResolver({
         root_source: capture.text,
         branch: tagged(context.branch === "function" ? "FunctionBranch" : "TypeBranch", {}),
         caller_cache: pureReply(session.callerCache),
-        configuration: pureReply(
-          context.analysisConfiguration?.go === undefined
-            ? { $: "None" as const }
-            : {
-                $: "Some" as const,
-                value: {
-                  $: "go-module/Configuration.Configuration" as const,
-                  goos: context.analysisConfiguration.go.goos,
-                  goarch: context.analysisConfiguration.go.goarch,
-                  tags: goTags(context.analysisConfiguration.go.tags)
-                }
-              }
-        ),
-        configuration_identity:
-          context.analysisConfigurationIdentity === undefined
-            ? { $: "None" }
-            : { $: "Some", value: context.analysisConfigurationIdentity },
         limits: {
           $: "../../../../agent-flow-bend/ImportGraph.Limits",
           version: BigInt(limits.version),

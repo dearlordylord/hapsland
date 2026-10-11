@@ -223,6 +223,8 @@ type Operation is Data:
   ReadCapturedText{capture: CaptureToken}
   ReadGoCharacters{text: String}
   ReadGoBuildText{text: String}
+  ReadGoConfiguration{}
+  ReadAnalysisConfigurationIdentity{}
   HashJsonProduct{value: ArtifactValue.ProductValue}
   InspectGoFile{path: String, capture: CaptureToken}
   InspectRustModules{capture: CaptureToken}
@@ -231,6 +233,8 @@ type Operation is Data:
   EncodeSourceText{text: String}
 
 type ServiceOutcome is Data:
+  GoConfigurationRead{configuration: Maybe<&2, GoConfiguration.Configuration>}
+  AnalysisConfigurationIdentityRead{identity: Maybe<&2, String>}
   ClockStarted{clock: ClockToken}
   ClockRead{bits: ArtifactValue.Binary64}
   DirnameResult{path: String}
@@ -374,9 +378,7 @@ type ResolverInput is Data:
     root_source: String,
     branch: Branch,
     caller_cache: Maybe<&2, CacheToken>,
-    limits: Graph.Limits,
-    configuration: Maybe<&2, GoConfiguration.Configuration>,
-    configuration_identity: Maybe<&2, String>
+    limits: Graph.Limits
   }
 
 type TentativeChild is Data:
@@ -469,6 +471,7 @@ type ResolverStage is Data:
   CheckingRootDeadline{}
   InspectingRoot{}
   MeasuringRoot{}
+  RejectingGraphProfile{}
   CheckingIterationDeadline{}
   ResolvingPending{}
   ReadingJoinedPathFacts{}

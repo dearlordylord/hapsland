@@ -197,7 +197,7 @@ def capsule(
   match clock language active edge state:
     case Some{clock} Some{+language} Some{active} Some{edge}
       T.ResolverState{
-        T.ResolverInput{invocation, path, _, _, _, _, branch, cache, _, None{}, None{}},
+        T.ResolverInput{invocation, path, _, _, _, _, branch, cache, _},
         _,
         _,
         next,

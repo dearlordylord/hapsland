@@ -33,7 +33,13 @@ export type Operation =
   | Variant<"CreateRangeError", { readonly message: string }>
   | Variant<"InspectGoFile", { readonly path: string; readonly capture: Token<"CaptureToken"> }>
   | Variant<"ReadDirectoryEntries", { readonly path: string; readonly limit: Natural }>
-  | Variant<"StartClock" | "ReadPathSeparator" | "CreateInvocationCache">
+  | Variant<
+      | "StartClock"
+      | "ReadPathSeparator"
+      | "CreateInvocationCache"
+      | "ReadGoConfiguration"
+      | "ReadAnalysisConfigurationIdentity"
+    >
   | Variant<"ReadClock", { readonly clock: Token<"ClockToken"> }>
   | Variant<
       | "PathDirname"
@@ -82,7 +88,15 @@ export type Request = Variant<
 type CacheOutcome =
   | Variant<"CacheAbsent">
   | Variant<"CachePresent", { readonly capture: Token<"CaptureToken">; readonly bytes: Natural }>
+export type GoConfiguration = {
+  readonly $: "go-module/Configuration.Configuration"
+  readonly goos: string
+  readonly goarch: string
+  readonly tags: List<Extract<ServiceOutcome, Variant<"GoBuildTextResult">>["source"]>
+}
 export type ServiceOutcome =
+  | Variant<"GoConfigurationRead", { readonly configuration: Maybe<GoConfiguration> }>
+  | Variant<"AnalysisConfigurationIdentityRead", { readonly identity: Maybe<string> }>
   | Variant<
       "GoBuildTextResult",
       {
@@ -226,6 +240,10 @@ export type Reply = Variant<
 >
 export type PerformOptions = { readonly signal?: AbortSignal | undefined }
 export type SessionPorts = {
+  readonly readGoConfiguration?:
+    | (() => { readonly goos: string; readonly goarch: string; readonly tags: readonly string[] } | undefined)
+    | undefined
+  readonly readAnalysisConfigurationIdentity?: (() => string | undefined) | undefined
   readonly openDirectory?: ((path: string) => Promise<AsyncIterable<{ readonly name: string }>>) | undefined
   readonly invocation: number
   readonly root: string
