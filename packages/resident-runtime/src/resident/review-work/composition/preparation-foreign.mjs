@@ -76,15 +76,6 @@ export function createPreparationForeign({
         ? DEFAULT_DIRECT_FILE_POLICY
         : resolvedDirectFilePolicy(settings.configuration.policy)
       : current(context.policy)
-  const graphContext = {
-    ...context,
-    analysisConfiguration:
-      settings.configuration?.policy.layers.reduce(
-        (current, layer) => ({ ...current, ...layer.document.analysis }),
-        {}
-      ) ?? {},
-    analysisConfigurationIdentity: settings.configuration?.policy.digest ?? "unconfigured"
-  }
   const none = { $: "None" },
     some = (value) => ({ $: "Some", value })
   const location = (value) => ({
@@ -308,9 +299,31 @@ export function createPreparationForeign({
           capture: rootCaptures.get(command.capture.handle),
           name: command.root.name,
           context: {
-            ...graphContext,
+            analysisConfiguration:
+              settings.configuration?.policy.layers.reduce(
+                (current, layer) => ({ ...current, ...layer.document.analysis }),
+                {}
+              ) ?? {},
+            analysisConfigurationIdentity: settings.configuration?.policy.digest ?? "unconfigured",
+            root,
+            rootIdentity,
             policy: currentPolicy(),
-            branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type"
+            limits: graphLimits,
+            branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type",
+            captureCache: cache,
+            ...(context.graphNow === undefined
+              ? context.now === undefined
+                ? {}
+                : { now: context.now }
+              : { now: context.graphNow }),
+            ...(context.captureHooks === undefined ? {} : { captureHooks: context.captureHooks }),
+            ...(context.captureSource === undefined ? {} : { captureSource: context.captureSource }),
+            ...(context.observeCaptureDiagnostic === undefined
+              ? {}
+              : {
+                  observeCaptureDiagnostic: (sourcePath, diagnostic) =>
+                    context.observeCaptureDiagnostic?.(command.capture.path, sourcePath, diagnostic)
+                })
           }
         }
         onRoot?.(rootFacts)
