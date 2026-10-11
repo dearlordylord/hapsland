@@ -187,6 +187,7 @@ type RustModulesOutcome is Data:
 # Each path operation has a distinct matching reply constructor.
 type Operation is Data:
   StartClock{}
+  CreateRangeError{message: String}
   ReadClock{clock: ClockToken}
   PathDirname{path: String}
   PathBasename{path: String, suffix: Maybe<&2, String>}

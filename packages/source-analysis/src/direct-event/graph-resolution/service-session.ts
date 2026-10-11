@@ -106,6 +106,8 @@ export function createServiceSession({
     let outcome: ServiceOutcome
     try {
       switch (op?.$) {
+        case tag("CreateRangeError"):
+          throw new RangeError(op.message)
         case tag("StartClock"):
           outcome = tagged("ClockStarted", { clock: register("ClockToken", now()) })
           break

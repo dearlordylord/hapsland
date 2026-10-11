@@ -109,11 +109,27 @@ def named(target: Maybe<&2, String>, +facts: Local.Facts, path: String,
     case Some{+identity}:
       bundle(Recursive.supporting(facts, identity), identity, expected, state, path, symbol)
 
+def bound_named(target: Maybe<&2, String>, binding: String, +facts: Local.Facts, path: String,
+    +symbol: String, +expected: Local.ExpectedKind, state: State) -> ReferenceResult:
+  match target:
+    case None{}: ordinary_found(Recursive.find_declaration(facts, binding, expected),
+      Recursive.find_import(facts, symbol), state, path, symbol, expected)
+    case Some{identity}: named(Some{identity}, facts, path, symbol, expected, state)
+
 def by_kind(kind: Local.ReferenceKind, target: Maybe<&2, String>, facts: Local.Facts,
     path: String, symbol: String, expected: Local.ExpectedKind, state: State) -> ReferenceResult:
   match kind:
     case Local.Unsupported{}: omitted(state, symbol)
     case Local.Named{}: named(target, facts, path, symbol, expected, state)
+    case Local.BoundNamed{binding}: bound_named(
+      target,
+      binding,
+      facts,
+      path,
+      symbol,
+      expected,
+      state
+    )
 
 def reference(reference: Local.Reference, facts: Local.Facts, path: String,
     depth: Nat, +state: State) -> ReferenceResult:

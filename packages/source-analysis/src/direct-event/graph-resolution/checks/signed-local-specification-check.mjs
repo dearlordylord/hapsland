@@ -80,7 +80,13 @@ const variants = [
   ref("TypeOnly", { expectedKind: "function" }),
   ref("Bundle", { targetId: "bundle" }),
   ref("Invalid", { targetId: "invalid" }),
-  ref("Mismatch", { targetId: "mismatch" })
+  ref("Mismatch", { targetId: "mismatch" }),
+  ref("Visible", { bindingName: "pkg::A" }),
+  ref("Visible", { bindingName: "pkg::Remote" }),
+  ref("A", { bindingName: "absent" }),
+  ref("Conflict", { bindingName: "pkg::A" }),
+  ref("Bundle", { bindingName: "pkg::A", targetId: "bundle" }),
+  ref("Visible", { bindingName: "pkg::B", expectedKind: "type" })
 ]
 const sequences = [
   [],
@@ -102,7 +108,8 @@ try {
   let compared = 0,
     negativeFailures = 0,
     negativeCompletions = 0,
-    missingRoots = 0
+    missingRoots = 0,
+    runtimeComparisons = 0
   for (const references of sequences)
     for (const work of [-7, -1, 0, 3])
       for (const seen of [false, true])
@@ -117,7 +124,10 @@ try {
               ["Root", root],
               ["A", a],
               ["B", b],
-              ["Conflict", conflict]
+              ["Conflict", conflict],
+              ["pkg::A", a],
+              ["pkg::B", b],
+              ["pkg::Remote", declaration("Remote", "interface", [ref("DisplayedChild", { bindingName: "pkg::A" })])]
             ]),
             imports: new Map([
               ["Conflict", { path: "./a", name: "A" }],
@@ -191,13 +201,26 @@ try {
               }
             }
             assert.deepEqual(tree(result.tree), nativeTree(native.node))
+            if (work >= 0) {
+              const runtime = spec.runtime(state, BigInt(work), prepared.facts, "root.ts", "Root", BigInt(depth))
+              assert.equal(label(runtime), "CompletePlan")
+              const flat = spec.flattened(result.tree)
+              assert.equal(label(flat), "Flat")
+              assert.deepEqual(runtime.plan.nodes, flat.nodes)
+              assert.deepEqual(runtime.plan.references, flat.slots)
+              assert.deepEqual(unlist(runtime.plan.pending), unlist(local.pending_rev).reverse())
+              assert.deepEqual(runtime.plan.visited, local.visited)
+              assert.equal(runtime.plan.budget.graph_work, BigInt(work))
+              assert.deepEqual(runtime.plan.budget, local.budget)
+              runtimeComparisons++
+            }
           }
           assert.deepEqual([local.budget.max_targets, local.budget.work, local.budget.max_depth].map(Number), [
             budget.maxTargetsInFile,
             budget.work,
             budget.maxDepth
           ])
-          for (const identity of ["Root", "A", "B", "Conflict", "bundle", "invalid", "different"])
+          for (const identity of ["Root", "A", "B", "Conflict", "Remote", "bundle", "invalid", "different"])
             assert.equal(spec.seen(local, identity), visited.has(identity), identity)
           for (const identity of [
             "A",
@@ -267,6 +290,7 @@ try {
     runtime: typeof Bun === "undefined" ? "node" : "bun",
     sources,
     compared,
+    runtimeComparisons,
     negativeFailures,
     negativeCompletions,
     missingRoots,

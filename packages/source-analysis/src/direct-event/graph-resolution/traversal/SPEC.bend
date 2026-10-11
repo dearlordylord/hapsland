@@ -301,11 +301,26 @@ def named(target_id: Maybe<&2, String>, +facts: Core.Facts, path: String, symbol
     case None{}: ordinary(facts, path, symbol, owner, index, depth, expected, state, recurse)
     case Some{+identity}: bundle_found(supporting(facts, identity), identity, expected, state, path, symbol, owner, index, depth)
 
+# The native child recurses by bindingName but retains reference.name in the tree.
+def bound_child_request(binding: String, request: Request) -> Request:
+  match request:
+    case Request{facts, path, _, expected, depth, state}: Request{facts, path, binding, expected, depth, state}
+    case ReferencesRequest{items, facts, path, owner, index, depth, state}:
+      ReferencesRequest{items, facts, path, owner, index, depth, state}
+
+def bound_named(target_id: Maybe<&2, String>, +binding: String, +facts: Core.Facts, path: String, +symbol: String,
+    owner: Nat, index: Nat, depth: Nat, +expected: Core.ExpectedKind, state: State, recurse: Request -> Build) -> ReferenceResult:
+  match target_id:
+    case None{}: ordinary_found(find_declaration(facts, binding, expected), find_import(facts, symbol), state,
+      facts, path, symbol, owner, index, depth, expected, next => recurse(bound_child_request(binding, next)))
+    case Some{identity}: named(Some{identity}, facts, path, symbol, owner, index, depth, expected, state, recurse)
+
 def by_kind(kind: Core.ReferenceKind, target_id: Maybe<&2, String>, facts: Core.Facts, path: String, symbol: String,
     owner: Nat, index: Nat, depth: Nat, expected: Core.ExpectedKind, state: State, recurse: Request -> Build) -> ReferenceResult:
   match kind:
     case Core.Unsupported{}: omitted(state, symbol, Core.UnsupportedTarget{})
     case Core.Named{}: named(target_id, facts, path, symbol, owner, index, depth, expected, state, recurse)
+    case Core.BoundNamed{binding}: bound_named(target_id, binding, facts, path, symbol, owner, index, depth, expected, state, recurse)
 
 def reference(reference: Core.Reference, facts: Core.Facts, path: String,
     owner: Nat, index: Nat, +depth: Nat, state: State, recurse: Request -> Build) -> ReferenceResult:

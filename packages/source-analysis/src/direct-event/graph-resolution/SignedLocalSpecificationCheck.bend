@@ -4,6 +4,7 @@ import ./SPEC.bend as Whole
 import ./SignedLocalSpecification.bend as Signed
 import ./traversal/SPEC.bend as Recursive
 import ./traversal/core.bend as Local
+import ./traversal/Traversal.bend as Traversal
 import ../../../../agent-flow-bend/ImportGraph.bend as G
 
 def visited(seen_bundle: Bool) -> Map<&2, Bool>:
@@ -23,6 +24,21 @@ def build(fuel: Nat, signed: Signed.State, facts: Local.Facts,
   match signed:
     case Signed.State{state, work}:
       Signed.build(fuel, work, facts, path, name, Local.AnyKind{}, depth, state)
+
+def runtime(state: Recursive.State, graph_work: Nat, facts: Local.Facts,
+    path: String, name: String, depth: Nat) -> Local.RunResult:
+  match state:
+    case Recursive.State{
+      visited,
+      Local.Budget{limits, targets, maximum, work, _, maximum_depth},
+      _,
+      _
+    }:
+      Traversal.plan(facts, path, name, Local.AnyKind{}, visited,
+        Local.Budget{limits, targets, maximum, work, graph_work, maximum_depth}, depth)
+
+def flattened(tree: Recursive.Tree) -> Recursive.Flat:
+  Recursive.flatten(10000n, Recursive.FlattenTree{tree})
 
 def seen(+state: Recursive.State, identity: String) -> Bool:
   Recursive.seen(state, identity)

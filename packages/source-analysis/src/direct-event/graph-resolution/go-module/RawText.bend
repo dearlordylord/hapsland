@@ -91,3 +91,27 @@ def empty( +items: List<&2, Character>) -> Bool:
   match items:
     case []: True{}
     case _ <> _: False{}
+
+def utf16_unit(+code: U32, tail: List<&2, U32>, supplementary: Bool) -> List<&2, U32>:
+  match supplementary:
+    case False{}: code <> tail
+    case True{}:
+      (55296 + ((code - 65536 : U32) / 1024 : U32) : U32) <>
+        (56320 + ((code - 65536 : U32) % 1024 : U32) : U32) <> tail
+
+def string_units(value: String) -> List<&2, U32>:
+  match value:
+    case SNil{}: []
+    case SCon{character, tail}:
+      +code = Char.to_u32(character)
+      utf16_unit(code, string_units(tail), U32.is_gt(code, 65535))
+
+def units_le(left: List<&2, U32>, right: List<&2, U32>) -> Bool:
+  match left right:
+    case Nil{} _: True{}
+    case Con{_, _} Nil{}: False{}
+    case Con{+a, tail_a} Con{+b, tail_b}:
+      Bool.or(U32.is_lt(a, b), Bool.and(U32.is_eq(a, b), units_le(tail_a, tail_b)))
+
+def string_le(left: String, right: String) -> Bool:
+  units_le(string_units(left), string_units(right))

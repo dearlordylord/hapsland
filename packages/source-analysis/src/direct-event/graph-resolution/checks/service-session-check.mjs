@@ -283,6 +283,32 @@ try {
     )
     checkMechanicalReply(tagged("ReadGoBuildText", { text }), raw)
   }
+  for (const message of ["Unsupported Go analysis target", "Unsupported Go analysis user tag"]) {
+    const operation = tagged("CreateRangeError", { message })
+    const outcome = await goApi.request("CreateRangeError", { message })
+    assert.equal(outcome.$, "Types.ProviderRejected")
+    const error = goApi.session.exception(outcome.exception)
+    assert.ok(error instanceof RangeError)
+    assert.equal(error.message, message)
+    assert.strictEqual(goApi.session.exception(outcome.exception), error)
+    const request = tagged("Request", { invocation: BigInt(goApi.session.invocation), id: 2n, operation })
+    const reply = tagged("Reply", { invocation: BigInt(goApi.session.invocation), id: 2n, outcome })
+    assert.deepEqual(protocol.check(request, reply), {
+      $: "CheckedOutcome",
+      outcome: {
+        ...outcome,
+        exception: {
+          ...outcome.exception,
+          invocation: BigInt(outcome.exception.invocation),
+          id: BigInt(outcome.exception.id)
+        }
+      }
+    })
+    assert.deepEqual(boundary.check(request, reply), { $: "None" })
+    const foreign = { ...reply, outcome: { ...outcome, exception: { ...outcome.exception, invocation: 900n } } }
+    assert.equal(protocol.check(request, foreign).failure.$, "Types.WrongInvocation")
+    assert.equal(boundary.check(request, foreign).value.$, "Types.WrongInvocation")
+  }
   const invalidCaptured = await goApi.request("ReadCapturedText", {
     capture: tagged("CaptureToken", { invocation: 900, id: 1 })
   })

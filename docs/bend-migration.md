@@ -515,3 +515,31 @@ are WIP: model/phase ABI and static module grammar are saved, transitions and
 whole physical consumer remain open. They are not an adopted prepareGoGraph.
 Current check:fast passed 109 tests, source TypeScript and package graph, then
 failed the same 97 private cross-owner imports; full gate remains blocked.
+
+
+Checkpoint after c9f3b324: frozen production pairs qualified with unchanged
+HEAD/source/artifact trees. Build started 2026-10-11T12:17:54.923266Z and failed
+parity at 1.133925825822867; execution started 12:21:51.456306Z and passed at
+0.6290521755278518. Build parity remains a blocker; these pairs do not measure
+unadopted Go preparation. Next cadence deadlines are 12:47:54 and 12:51:51 UTC.
+
+The mechanical CreateRangeError operation preserves native configuration
+messages, RangeError type and opaque error identity through existing correlated
+ProviderRejected custody. The actual service consumer passed 195 requests.
+BoundNamed{binding} extends the existing traversal reference kind: display name,
+import lookup, target accounting and targetId remain separate. Root codec and
+Go remap use this existing owner; no second traversal is introduced. The
+independent recursive and signed specifications cover the same lookup. After
+formatting, actual native buildLocal comparisons passed 4368 cases; 2184 of
+those additionally compare production traversal's complete plan, pending,
+visited and budget exactly with the independent specification. The original
+universal CONTINUATION_DISPATCH_PROOF currently fails at the missing BoundNamed
+branch of inventory transport. Extending the original whole laws/proofs is
+required before adoption; no finite comparison replaces it. The formatter
+still cannot process traversal/SPEC.bend (unsupported block expression in list);
+this remains a tooling failure, not an exemption.
+Current check:fast again passed 109 tests, source typing and package graph,
+then failed 97 private cross-owner imports. Full gate remains blocked.
+The saved whole PreparationMachine now includes source/cache/inventory/package
+and metadata/discovery transitions as WIP; resume/advance, complete remap,
+whole native consumer and universal guarantees remain unfinished.

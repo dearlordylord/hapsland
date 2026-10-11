@@ -30,6 +30,7 @@ export type CaptureDiagnostic =
       { readonly resource: string; readonly used: Natural; readonly requested: Natural; readonly limit: Natural }
     >
 export type Operation =
+  | Variant<"CreateRangeError", { readonly message: string }>
   | Variant<"InspectGoFile", { readonly path: string; readonly capture: Token<"CaptureToken"> }>
   | Variant<"ReadDirectoryEntries", { readonly path: string; readonly limit: Natural }>
   | Variant<"StartClock" | "ReadPathSeparator" | "CreateInvocationCache">

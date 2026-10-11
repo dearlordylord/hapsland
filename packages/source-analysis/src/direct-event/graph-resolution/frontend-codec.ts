@@ -106,7 +106,8 @@ export function factDeclaration(
     if (
       !["named", "unsupported"].includes(ref.kind) ||
       typeof ref.name !== "string" ||
-      (ref.targetId !== undefined && typeof ref.targetId !== "string")
+      (ref.targetId !== undefined && typeof ref.targetId !== "string") ||
+      (ref.bindingName !== undefined && typeof ref.bindingName !== "string")
     )
       throw new Error("invalid reference")
   }
@@ -117,7 +118,10 @@ export function factDeclaration(
     references: list(
       value.references.map((ref) =>
         tagged("FactReference", {
-          kind: { $: "traversal/core." + (ref.kind === "named" ? "Named" : "Unsupported") },
+          kind:
+            ref.kind === "named" && ref.bindingName !== undefined
+              ? { $: "traversal/core.BoundNamed", binding: ref.bindingName }
+              : { $: "traversal/core." + (ref.kind === "named" ? "Named" : "Unsupported") },
           name: ref.name,
           expected: expected(ref.expectedKind),
           target: maybe(ref.targetId)
