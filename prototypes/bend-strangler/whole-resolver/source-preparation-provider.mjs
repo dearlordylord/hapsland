@@ -18,6 +18,8 @@ export function createSourcePreparationProvider(invocation,context,{owner,bridge
  const preparations=new Map(),errors=new Map(),expected=new Map()
  let revoked=false,closed=false,finished=false,primaryFailure,controlled,credentialRequired
  const run=Effect.runPromise,ledger=context.deps.residentLedger,job=context.job
+ const originalReservation=job.reservation
+ bridge.bindSourceReservation(invocation,originalReservation)
  const activity=fields=>recordActivity({statePath:job.dispatch.activityPath,root:job.observation.root,advicee:job.observation.advicee,lifetime:context.deps.lifetime,...fields})
  const candidate=handle=>{const value=handles.get(handle);if(!value)throw new Error('Unknown source candidate');return value}
  return {
@@ -34,9 +36,10 @@ export function createSourcePreparationProvider(invocation,context,{owner,bridge
    for(const receipt of preparations.values())if(context.activeWorkspaces.has(receipt.preparation.reservation)){
     await attempt(ledger.release(receipt.preparation.reservation),()=>context.activeWorkspaces.delete(receipt.preparation.reservation))
    }
-   if(job.reservation!==undefined)await attempt(ledger.release(job.reservation))
+   if(originalReservation!==undefined)await attempt(ledger.release(originalReservation))
    for(const key of [...context.unassignedClaims])await attempt(context.deps.residentReleaseReuseClaim(key),()=>context.unassignedClaims.delete(key))
    if(failures.length)throw new AggregateError(primaryFailure===undefined?failures:[primaryFailure,...failures],'Source resource cleanup remains incomplete',{cause:primaryFailure??failures[0]})
+   bridge.forgetSourceReservation(invocation)
    finished=true
   },
   async perform(request,options={}){
@@ -58,7 +61,7 @@ export function createSourcePreparationProvider(invocation,context,{owner,bridge
      case 'CheckCredentialShape':response={$:'GateAccepted',value:context.deps.residentCredentialShapeMatches(job.dispatch,job.settings.credentialEnvVar,credentialRequired)};break
      case 'VerifyObservationRoot':response={$:'GateAccepted',value:await run(withinWork(verifyObservationRoot(job.observation),context.preparationSignal))};break
      case 'CheckCredentialGeneration':response={$:'GateAccepted',value:context.deps.residentCredentialGenerationCurrent(job.dispatch,credentialRequired)};break
-     case 'ReleaseJobReservation':if(job.reservation!==undefined)await scoped(ledger.release(job.reservation));break
+     case 'ReleaseJobReservation':{const child=owner.find(invocation,bridge.control.readState().children).value;if(child.scope.$==='AfterSourceScope')await run(bridge.releaseSourceReservation(options.ownerLease,committed));else if(originalReservation!==undefined)await scoped(ledger.release(originalReservation));break}
      case 'CheckJobActive':response={$:'Active',value:await scoped(context.deps.residentJobActive(job))};break
      case 'RecordPreparationFailureAnalytics':await scoped(context.deps.residentRecordAnalytics(job,'preparation-failed'));break
      case 'RecordUnavailableActivity':activity({stage:'unavailable'});break

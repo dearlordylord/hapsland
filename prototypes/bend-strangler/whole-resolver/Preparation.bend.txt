@@ -77,6 +77,8 @@ type Phase is Data:
   HaveCapture{context: Context}
   AwaitPreflight{context: Context}
   AwaitAdmission{context: Context}
+  MaterializationCapacityRejected{context: Context, requested: Nat, constraint: String}
+  MaterializationCapacityRecorded{context: Context, requested: Nat, constraint: String}
   AwaitExtraction{context: Context}
   AwaitPatch{context: Context, extraction: Extraction}
   Selecting{context: Context, extraction: Extraction, native_hunks: Maybe<&2, List<&2, Attribution.Hunk>>}
@@ -91,6 +93,8 @@ type Command is Data:
   InspectPath{candidate: Candidate}
   CaptureSource{path: String, selection: Nat, source_cap: Maybe<&2, Nat>}
   Preflight{capture: Capture}
+  RejectMaterializationCapacity{}
+  RecordMaterializationCapacity{}
   AdmitMaterialization{capture: Capture, preflight: T.ProductValue}
   ExtractSource{capture: Capture, contract: Selection.Contract}
   VerifyNativePatch{command: String, capture: Capture}
@@ -100,6 +104,7 @@ type Command is Data:
 type Request is Data:
   Request{invocation: Nat, id: Nat, command: Command}
 type Response is Data:
+  Ack{}
   PathAllowed{path: String, selection: Nat}
   PathDenied{reason: String}
   SourceCaptured{capture: Capture}
@@ -954,6 +959,11 @@ def classified(state: State, +context: AnalysisContext, reason: Maybe<&2, String
 def classification_failed(state: State, +context: AnalysisContext) -> Step:
   internal(state, Roots{with_analysiscontext_selection(context, Selection.Selection{Nil{}, True{}, Nil{}, Nil{}}), Nil{}})
 
+def materialization_result(result: CapacityResult, requested: Nat, state: State, context: Context) -> Step:
+  match result:
+    case CapacityRefused{constraint}: issue(state, MaterializationCapacityRejected{context, requested, constraint}, RejectMaterializationCapacity{})
+    case _: admitted(result, requested, state, context)
+
 def receive_phase(+state: State, phase: Phase, response: Response) -> Step:
   match phase response:
     case AwaitPath{candidate} PathAllowed{+path, selection}: path_allowed(input_frozen(state_input(state)), state, candidate, path, selection)
@@ -961,7 +971,9 @@ def receive_phase(+state: State, phase: Phase, response: Response) -> Step:
     case AwaitCapture{candidate, _, _, frozen} SourceCaptured{+capture}: internal(remember_capture(state, capture), HaveCapture{Context{candidate, capture, frozen}})
     case AwaitCapture{_, path, _, _} SourceUnavailable{diagnostic}: refuse_candidate(state, path, ProviderDiagnostic{diagnostic})
     case AwaitPreflight{+context} PreflightDone{preflight}: issue(state, AwaitAdmission{context}, AdmitMaterialization{context_capture(context), preflight})
-    case AwaitAdmission{context} MaterializationDone{result, requested}: admitted(result, requested, state, context)
+    case AwaitAdmission{context} MaterializationDone{result, requested}: materialization_result(result, requested, state, context)
+    case MaterializationCapacityRejected{context, requested, constraint} Ack{}: issue(state, MaterializationCapacityRecorded{context, requested, constraint}, RecordMaterializationCapacity{})
+    case MaterializationCapacityRecorded{context, requested, constraint} Ack{}: admitted(CapacityRefused{constraint}, requested, state, context)
     case AwaitExtraction{+context} SourceExtracted{extraction}: extraction_patch(input_native_patch(state_input(state)), need_native_patch(state_input(state), context), state, context, extraction)
     case AwaitPatch{context, extraction} NativePatchVerified{hunks}: internal(state, Selecting{context, extraction, hunks})
     case AwaitAmbiguity{context} AmbiguityClassified{reason}: classified(state, context, reason)

@@ -1,3 +1,5 @@
+import {withinWork} from '../../../packages/resident-runtime/src/resident/work-ownership/cancellation.ts'
+import {ResidentAdapterError} from '../../../packages/resident-runtime/src/resident/adapter-error.ts'
 import {randomUUID} from 'node:crypto'
 import {createAdviceTailProvider} from './advice-tail-provider.mjs'
 import {residentSettingsEnvironmentOnly} from '../../../packages/resident-runtime/src/resident/authorization/credentials.ts'
@@ -37,7 +39,7 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
    units.set(slot.reservation,value);return value
   }
   return {
-   input:{invocation,postPreparation:{roundBound:context.job.round!==undefined,outcomes:list(facts)}},
+   input:{invocation,postPreparation:{roundBound:context.job.round!==undefined,incomplete:prepared.observation.status==='incomplete',outcomes:list(facts)}},
    error:token=>errors.get(token),
    invocation:Number(invocation),
    revoke(){revoked=true},
@@ -82,6 +84,9 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
     switch(command.$) {
      case 'CheckActive':response={$:'Active',value:await run(context.deps.residentJobActive(context.job))};break
      case 'Offer':response={$:'Offered',accepted:(await run(ledger.preparedOffer(command.outcome.ready,!command.deliverability||command.outcome.fits)))==='preparedAdmitted'};break
+     case 'ObservePreparation':context.deps.residentInspection.observePreparation(context.job,prepared);break
+     case 'ReportEmptyAnalytics':await run(context.deps.residentRecordAnalytics(context.job,command.incomplete?'incomplete-candidate':'skipped-candidate'));break
+     case 'ReportEmptyActivity':recordActivity({statePath:context.job.dispatch.activityPath,root:context.job.observation.root,advicee:context.job.observation.advicee,lifetime:context.deps.lifetime,stage:command.incomplete?'incomplete':'skipped'});break
      case 'ObserveReady':await run(ledger.runtime.observePreparedUnits(array(command.ready).length));break
      case 'LookupReuse': {
       const outcome=outcomes.get(command.outcome.handle)
@@ -116,8 +121,15 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
       owner.revision=restored;break
      }
      case 'ObservePlans':for(const fact of array(command.planned))observePlannedEvaluation(context,item(fact));break
-     case 'OwnerBarrier':await run(context.deps.residentPreparationControls.afterReuseBoundary('ownerClaimed'));break
-     case 'JoinedBarrier':await run(context.deps.residentPreparationControls.afterReuseBoundary('claimJoined'));break
+     case 'OwnerBarrier':await run(withinWork(context.deps.residentPreparationControls.afterReuseBoundary('ownerClaimed').pipe(Effect.mapError(()=>new ResidentAdapterError({operation:'owner claim barrier'}))),context.preparationSignal));break
+     case 'RecordReuseAnalytics': {
+      const planned=item(command.item)
+      if(planned.kind==='cached')await run(context.deps.residentRecordAnalytics(context.job,'cache-hit',planned.cached.evaluation.findings))
+      else if(planned.kind==='joined')await run(context.deps.residentRecordAnalytics(context.job,'joined-review'))
+      else throw new Error('Reuse analytics requires a cached or joined plan')
+      break
+     }
+     case 'JoinedBarrier':await run(withinWork(context.deps.residentPreparationControls.afterReuseBoundary('claimJoined').pipe(Effect.mapError(()=>new ResidentAdapterError({operation:'joined claim barrier'}))),context.preparationSignal));break
      case 'CompletePreparation': {
       const retained=array(command.retained),allocations=await run(ledger.completePreparation(context.job.partition,preparation.operation,preparation.reservation,retained.map(fact=>Number(fact.outcome.reservation_bytes)),context.job.canonicalRound));context.activeWorkspaces.delete(preparation.reservation)
       response={$:'Reserved',allocations:list(allocations.map(allocation=>{if(allocation===undefined)return none;const handle=BigInt(allocation.reservation.id);reservations.set(handle,allocation.reservation);return some({$:'Allocation',operation:BigInt(allocation.operation),reservation:handle})}))};break
@@ -218,7 +230,7 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
 export function bendPostPreparation(core,context,prepared,preparation,pathObservation,analyticsEnabled) {
  return Effect.tryPromise({try:async()=>{
   const provider=createPostPreparationProvider(1n,context,prepared,preparation,pathObservation,analyticsEnabled)
-  let step=core.initial(provider.input.invocation,provider.input.postPreparation.roundBound,provider.input.postPreparation.outcomes)
+  let step=core.initial(provider.input.invocation,provider.input.postPreparation.roundBound,provider.input.postPreparation.outcomes,provider.input.postPreparation.incomplete)
   for(let fuel=0;fuel<10000;fuel++) {
    if(step.$==='Internal'){step=core.advance(step.state);continue}
    if(step.$==='Finished')return true

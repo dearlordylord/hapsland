@@ -9,6 +9,17 @@ try{
  execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'SourcePreparation.bend'),'-o',emitted],{timeout:5000})
  const core=(await import(pathToFileURL(emitted))).default
  const list=items=>items.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
+ const recover=initial=>{
+  let step=initial;const commands=[]
+  while(step.$==='Await'){
+   const request=step.request;commands.push(request.command.$)
+   const response=request.command.$==='ReadRuntimeActive'?{$:'Active',value:true}:{$:'Ack'}
+   assert.equal(core.resume(step,{$:'Reply',invocation:request.invocation,id:request.id+1n,response}).$,'Rejected')
+   step=core.resume(step,{$:'Reply',invocation:request.invocation,id:request.id,response})
+  }
+  assert.deepEqual(commands,['RecordPreparationFailureAnalytics','ReleaseJobReservation','ReadRuntimeActive','RecordUnavailableActivity'])
+  return step
+ }
  let cases=0
  for(const bound of [false,true])for(const candidates of [[],[11n],[11n,22n],[11n,11n]]){
   let step=core.initial_after_gates(7n,bound,list(candidates)),commands=[]
@@ -30,11 +41,11 @@ try{
     reply({$:'CandidateContinued',value:true})
    }else if(['CompletePolicySource','CompleteObservation'].includes(request.command.$)){
     const refusal=core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'CompletionAccepted',value:false}})
-    assert.equal(refusal.$,'Stopped');assert.equal(refusal.completed,false)
-    if(request.command.$==='CompleteObservation')assert.deepEqual(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'ObservationCommittedFailure',token:93n}}),{$:'Stopped',completed:true,reason:{$:'TechnicalFailure',token:93n}})
+    assert.equal(recover(refusal).completed,false)
+    if(request.command.$==='CompleteObservation')assert.deepEqual(recover(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'ObservationCommittedFailure',token:93n}})),{$:'Stopped',completed:true,reason:{$:'TechnicalFailure',token:93n}})
     reply({$:'CompletionAccepted',value:true})
    }else{
-    const failed=core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'Failed',token:91n}})
+    const failed=recover(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'Failed',token:91n}}))
     assert.equal(failed.completed,request.command.$==='AfterPrepare')
     assert.deepEqual(failed.reason,{$:'TechnicalFailure',token:91n})
     const cancelled=core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'Cancelled',token:92n}})
@@ -61,7 +72,7 @@ try{
   const commands=[]
   while(step.$==='Await'&&step.request.command.$!=='CheckCandidateActive'){
    commands.push(step.request.command.$)
-   assert.deepEqual(core.resume(step,{$:'Reply',invocation:7n,id:step.request.id,response:{$:'Failed',token:91n}}),{$:'Stopped',completed:false,reason:{$:'TechnicalFailure',token:91n}})
+   assert.deepEqual(recover(core.resume(step,{$:'Reply',invocation:7n,id:step.request.id,response:{$:'Failed',token:91n}})),{$:'Stopped',completed:false,reason:{$:'TechnicalFailure',token:91n}})
    reply({$:'Ack'})
   }
   assert.deepEqual(commands,['ObserveCandidateDiagnostic',...extra,'RecordCandidateAnalytics','RecordCandidateUnavailable'])

@@ -8,6 +8,11 @@ export function createSourcePreparationMachine(core){
    return resumed.$==='Rejected'?step:resumed
   },
   permission:request=>({$:['SourceNew','SourceCandidate','SourceActivity','SourcePolicy','SourceObservation',undefined,'SourceStartPolicy','SourceStartObservation','SourceGate','SourceEarlyRelease'][Number(core.permission(request.command))]}),
+  afterPermission:request=>{
+   const permission={AfterPrepare:'AfterBarrier',RecordPreparationFailureAnalytics:'AfterRecoveryAnalytics',ReleaseJobReservation:'AfterRecoveryRelease',ReadRuntimeActive:'AfterRecoveryRuntime',RecordUnavailableActivity:'AfterRecoveryActivity'}[request.command.$]
+   if(!permission)throw new Error('Invalid after-source command')
+   return {$:permission}
+  },
   view:step=>{
    if(step.$==='Await')return {$:'Types.AwaitService',request:step.request}
    if(step.$==='Finished')return {$:'SourcePreparationFinished',completed:true}

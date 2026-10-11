@@ -498,6 +498,10 @@ def source_permission_transition(old: SourcePermission, next: SourcePermission) 
     case SourceStartPolicy{} SourceStartPolicy{}: True{}
     case SourceGate{} SourceGate{}: True{}
     case SourceGate{} SourceEarlyRelease{}: True{}
+    case SourceCandidate{} SourceEarlyRelease{}: True{}
+    case SourceActivity{} SourceEarlyRelease{}: True{}
+    case SourcePolicy{} SourceEarlyRelease{}: True{}
+    case SourceObservation{} SourceEarlyRelease{}: True{}
     case SourceGate{} SourceCandidate{}: True{}
     case SourceGate{} SourceActivity{}: True{}
     case SourceNew{} SourceCandidate{}: True{}

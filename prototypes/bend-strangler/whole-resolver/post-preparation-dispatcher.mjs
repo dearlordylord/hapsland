@@ -9,7 +9,7 @@ export function createPostPreparationMachine(core) {
   throw new Error('Post-preparation internal dispatch did not settle')
  }
  return {
-  initial:input=>pump(core.initial(input.invocation,input.postPreparation.roundBound,input.postPreparation.outcomes)),
+  initial:input=>pump(core.initial(input.invocation,input.postPreparation.roundBound,input.postPreparation.outcomes,input.postPreparation.incomplete)),
   resume:(step,event)=>{
    if(event.$!=='Types.ServiceReply')throw new Error('Invalid post-preparation reply envelope')
    return pump(core.resume(step,event.reply))

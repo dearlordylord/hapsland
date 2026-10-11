@@ -15,7 +15,7 @@ try {
  const outcomes=routes.map((route,index)=>({$:'Outcome',handle:BigInt(index+1),ready:true,fits:true,reservation_bytes:100n}))
  let cases=0,requests=0
  function run(options={}) {
-  let step=core.initial(1n,options.bound??true,list(outcomes)),ordinal=0;const commands=[],cleanup=[],enqueued=[],settled=[]
+  let step=core.initial(1n,options.bound??true,list(options.outcomes??outcomes),options.incomplete??false),ordinal=0;const commands=[],cleanup=[],enqueued=[],settled=[]
   for(let fuel=0;fuel<1000;fuel++) {
    if(step.$==='Internal'){step=core.advance(step.state);continue}
    if(step.$!=='Await')return {step,commands,cleanup,enqueued,settled}
@@ -53,6 +53,7 @@ try {
   }
   throw new Error('Postflow did not terminate')
  }
+ for(const incomplete of [false,true]){const empty=run({outcomes:[],incomplete});assert.equal(empty.step.$,'Finished');assert.deepEqual(empty.commands.slice(0,5).map(command=>command.$),['ObservePreparation','CheckActive','ReportEmptyAnalytics','ReportEmptyActivity','ObserveReady']);assert.equal(empty.commands[2].incomplete,incomplete);assert.equal(empty.commands[3].incomplete,incomplete);cases++}
  const success=run();assert.equal(success.step.$,'Finished');assert.deepEqual(success.enqueued,[1n]);assert.deepEqual(success.settled,[3n]);assert.deepEqual(success.commands.filter(command=>command.$==='LookupReuse').map(command=>command.outcome.handle),[1n,2n,3n,4n,5n,6n]);assert.equal(success.commands.filter(command=>command.$==='OwnerBarrier').length,1);assert.equal(success.commands.filter(command=>command.$==='JoinedBarrier').length,1);cases++
  for(const [options,check] of [
   [{capacityRefused:true},result=>assert.equal(result.commands.filter(command=>command.$==='ReportCapacity').length,2)],

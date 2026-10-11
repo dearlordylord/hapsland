@@ -57,6 +57,7 @@ def advice_retirement(expired: Bool) -> AdviceRetirement:
   Bool.pick(AdviceRetirement, expired, ExpiredRetirement{}, RetentionFailureRetirement{})
 
 type Command is Data:
+  ObservePreparation{}
   AdvicePendingBarrier{advice: Nat}
   AdviceCheckActive{advice: Nat}
   AdvicePublish{advice: Nat}
@@ -65,12 +66,15 @@ type Command is Data:
   AdviceRemove{advice: Nat, retirement: AdviceRetirement}
   CheckActive{}
   Offer{outcome: Outcome, deliverability: Bool}
+  ReportEmptyAnalytics{incomplete: Bool}
+  ReportEmptyActivity{incomplete: Bool}
   ObserveReady{ready: List<&2, Outcome>}
   LookupReuse{outcome: Outcome}
   ReadCached{item: Planned}
   ReadPending{item: Planned}
   RestorePending{item: Planned, owner: Nat}
   ObservePlans{planned: List<&2, Planned>}
+  RecordReuseAnalytics{item: Planned}
   OwnerBarrier{}
   CompletePreparation{retained: List<&2, Planned>}
   RegisterClear{item: Planned}
@@ -126,9 +130,12 @@ type Response is Data:
   Cancelled{token: Nat}
   Failed{token: Nat}
 type Phase is Data:
+  PreparedObserved{outcomes: List<&2, Outcome>}
   Begin{outcomes: List<&2, Outcome>}
   Admit{rest: List<&2, Outcome>, ready: List<&2, Outcome>}
   Admitting{outcome: Outcome, rest: List<&2, Outcome>, ready: List<&2, Outcome>}
+  EmptyAnalytics{}
+  EmptyActivity{}
   ReadyObserved{ready: List<&2, Outcome>}
   Deliver{rest: List<&2, Outcome>, accepted: List<&2, Outcome>}
   Delivering{outcome: Outcome, rest: List<&2, Outcome>, accepted: List<&2, Outcome>}
@@ -138,6 +145,7 @@ type Phase is Data:
   PendingRead{item: Planned, rest: List<&2, Outcome>, planned: List<&2, Planned>}
   PendingRestored{item: Planned, rest: List<&2, Outcome>, planned: List<&2, Planned>}
   PlansObserved{planned: List<&2, Planned>}
+  PlansAnalytics{planned: List<&2, Planned>, remaining: List<&2, Planned>}
   OwnerChecked{planned: List<&2, Planned>}
   LiveChecked{planned: List<&2, Planned>}
   ReservedUnits{planned: List<&2, Planned>, retained: List<&2, Planned>}
@@ -162,7 +170,7 @@ type Termination is Data:
   CancelledReason{token: Nat}
   TechnicalFailure{token: Nat}
 type State is Data:
-  State{invocation: Nat, next: Nat, round_bound: Bool, phase: Phase}
+  State{invocation: Nat, next: Nat, round_bound: Bool, incomplete: Bool, phase: Phase}
 type Request is Data:
   Request{invocation: Nat, id: Nat, command: Command}
 type Reply is Data:
@@ -316,6 +324,7 @@ def held_plans(phase: Phase) -> List<&2, Planned>:
     case PendingRead{_, _, planned}: planned
     case PendingRestored{_, _, planned}: planned
     case PlansObserved{planned}: planned
+    case PlansAnalytics{planned, _}: planned
     case OwnerChecked{planned}: planned
     case LiveChecked{planned}: planned
     case ReservedUnits{planned, _}: planned
@@ -378,15 +387,15 @@ def own_plans(items: List<&2, Planned>) -> List<&2, Planned>:
 
 def moved(state: State, phase: Phase) -> State:
   match state:
-    case State{invocation, next, bound, _}: State{invocation, next, bound, phase}
+    case State{invocation, next, bound, incomplete, _}: State{invocation, next, bound, incomplete, phase}
 
 def inside(state: State, phase: Phase) -> Step:
   Internal{moved(state, phase)}
 
 def await_command(state: State, phase: Phase, command: Command) -> Step:
   match state:
-    case State{+invocation, +next, bound, _}:
-      Await{State{invocation, Nat.add(next, 1n), bound, phase}, Request{invocation, next, command}}
+    case State{+invocation, +next, bound, incomplete, _}:
+      Await{State{invocation, Nat.add(next, 1n), bound, incomplete, phase}, Request{invocation, next, command}}
 
 def cleanup_values(state: State, +slots: List<&2, Slot>, +planned: List<&2, Planned>, +revision: Maybe<&2, Nat>, reason: Termination) -> Step:
   await_command(state, Cleaned{slots, planned, revision, reason}, Cleanup{slots, planned, revision})
@@ -394,9 +403,18 @@ def cleanup_values(state: State, +slots: List<&2, Slot>, +planned: List<&2, Plan
 def cleanup(+state: State, +phase: Phase, reason: Termination) -> Step:
   cleanup_values(state, held_slots(phase), own_plans(held_plans(phase)), held_revision(phase), reason)
 
+def observation_incomplete(state: State) -> Bool:
+  match state:
+    case State{_, _, _, incomplete, _}: incomplete
+
+def ready_observation(+state: State, ready: List<&2, Outcome>) -> Step:
+  match ready:
+    case Nil{}: await_command(state, EmptyAnalytics{}, ReportEmptyAnalytics{observation_incomplete(state)})
+    case +ready: await_command(state, ReadyObserved{ready}, ObserveReady{ready})
+
 def admission_next(state: State, rest: List<&2, Outcome>, +ready: List<&2, Outcome>) -> Step:
   match rest:
-    case Nil{}: await_command(state, ReadyObserved{reverse(ready, Nil{})}, ObserveReady{reverse(ready, Nil{})})
+    case Nil{}: ready_observation(state, reverse(ready, Nil{}))
     case +outcome <> rest: await_command(state, Admitting{outcome, rest, ready}, Offer{outcome, False{}})
 
 def delivering_next(state: State, rest: List<&2, Outcome>, accepted: List<&2, Outcome>) -> Step:
@@ -429,6 +447,12 @@ def owner_barrier(yes: Bool, state: State, +planned: List<&2, Planned>) -> Step:
     case True{}: await_command(state, OwnerChecked{planned}, OwnerBarrier{})
     case False{}: await_command(state, LiveChecked{planned}, CheckActive{})
 
+def reuse_analytics(state: State, +planned: List<&2, Planned>, remaining: List<&2, Planned>) -> Step:
+  match remaining:
+    case Nil{}: owner_barrier(any_owner(planned), state, planned)
+    case Planned{_, _, Owner{}} <> rest: reuse_analytics(state, planned, rest)
+    case +item <> rest: await_command(state, PlansAnalytics{planned, rest}, RecordReuseAnalytics{item})
+
 def joined_barrier(yes: Bool, state: State, planned: List<&2, Planned>, retained: List<&2, Planned>, slots: List<&2, Maybe<&2, Slot>>) -> Step:
   match yes:
     case True{}: await_command(state, JoinedChecked{planned, retained, slots}, JoinedBarrier{})
@@ -459,10 +483,10 @@ def advance_phase(state: State, phase: Phase) -> Step:
 
 def advance(+state: State) -> Step:
   match state:
-    case State{_, _, _, phase}: advance_phase(state, phase)
+    case State{_, _, _, _, phase}: advance_phase(state, phase)
 
-def initial(invocation: Nat, round_bound: Bool, outcomes: List<&2, Outcome>) -> Step:
-  advance(State{invocation, 0n, round_bound, Begin{outcomes}})
+def initial(invocation: Nat, round_bound: Bool, +outcomes: List<&2, Outcome>, incomplete: Bool) -> Step:
+  await_command(State{invocation, 0n, round_bound, incomplete, PreparedObserved{outcomes}}, PreparedObserved{outcomes}, ObservePreparation{})
 
 def accept_outcome(accepted: Bool, +outcome: Outcome, +ready: List<&2, Outcome>) -> List<&2, Outcome>:
   match accepted:
@@ -487,7 +511,7 @@ def unit_observed(state: State, +slot: Slot, +revision: Nat, +work: Maybe<&2, Na
 
 def round_bound(state: State) -> Bool:
   match state:
-    case State{_, _, bound, _}: bound
+    case State{_, _, bound, _, _}: bound
 
 def missing_work(bound: Bool, state: State, +slot: Slot, +revision: Nat, continuation: Phase) -> Step:
   match bound:
@@ -568,16 +592,20 @@ def resume_cached(+state: State, +slot: Slot, +revision: Nat, +work: Maybe<&2, N
 
 def resume_phase(+state: State, +phase: Phase, response: Response) -> Step:
   match phase response:
+    case PreparedObserved{outcomes} Ack{}: inside(state, Begin{outcomes})
     case Begin{outcomes} Active{True{}}: inside(state, Admit{outcomes, Nil{}})
     case Begin{_} Active{False{}}: cleanup(state, phase, Inactive{})
     case Admitting{outcome, rest, ready} Offered{accepted}: inside(state, Admit{rest, accept_outcome(accepted, outcome, ready)})
+    case EmptyAnalytics{} Ack{}: await_command(state, EmptyActivity{}, ReportEmptyActivity{observation_incomplete(state)})
+    case EmptyActivity{} Ack{}: await_command(state, ReadyObserved{Nil{}}, ObserveReady{Nil{}})
     case ReadyObserved{ready} Ack{}: inside(state, Deliver{ready, Nil{}})
     case Delivering{outcome, rest, accepted} Offered{yes}: inside(state, Deliver{rest, accept_outcome(yes, outcome, accepted)})
     case Routing{outcome, rest, planned} Routed{key, route}: routed(state, Planned{outcome, key, route}, rest, planned)
     case CachedRead{item, rest, planned} CachedFacts{evaluation, findings}: inside(state, Routes{rest, cached_item(item, evaluation, findings) <> planned})
     case PendingRead{+item, rest, planned} PendingOwner{+owner}: await_command(state, PendingRestored{item, rest, planned}, RestorePending{item, owner})
     case PendingRestored{item, rest, planned} Ack{}: inside(state, Routes{rest, item <> planned})
-    case PlansObserved{+planned} Ack{}: owner_barrier(any_owner(planned), state, planned)
+    case PlansObserved{+planned} Ack{}: reuse_analytics(state, planned, planned)
+    case PlansAnalytics{+planned, remaining} Ack{}: reuse_analytics(state, planned, remaining)
     case OwnerChecked{planned} Ack{}: await_command(state, LiveChecked{planned}, CheckActive{})
     case LiveChecked{+planned} Active{True{}}:
       await_command(state, ReservedUnits{planned, retained(planned)}, CompletePreparation{retained(planned)})
@@ -617,7 +645,7 @@ def correlated(ok: Bool, state: State, phase: Phase, response: Response) -> Step
 
 def resume_state(ok: Bool, +state: State, response: Response) -> Step:
   match state:
-    case State{_, _, _, phase}: correlated(ok, state, phase, response)
+    case State{_, _, _, _, phase}: correlated(ok, state, phase, response)
 
 def resume(step: Step, reply: Reply) -> Step:
   match step reply:

@@ -151,13 +151,15 @@ try{
  }
  // Actual advice/capacity/revision owners qualify the closed tail API. Source
  // values are controlled handles here; full preparation IO has its own consumer.
- {
+ for(const releaseMode of ['normal','ack-loss','replacement']){
   const limits={globalItems:100,globalBytes:10000,partitionItems:16,partitionBytes:10000}
   const initial={residentLifetime:'source-completion',limits,canonical:initialCanonical(limits),resolverCustody:owner.initial_custody(),reservations:new Map(),partitionIds:new Map(),partitionIdentityBytes:0,roundIds:new Map(),requestRounds:new Map(),collectionTokens:new Map(),nextCollectionToken:1,nextPartitionId:1,minimumFreshStart:0,records:{runtime:{peakLedgerBytes:0}}}
   const ref=run(Ref.make(initial)),transaction=residentTransaction(ref,'source-completion'),capacity=residentCapacity(transaction)
   const partition=run(capacity.partitionId('agent')),round=run(capacity.roundId('agent')),observation=run(capacity.admitObservation('agent',round))
   assert.equal(run(capacity.observation('agent',observation,'startObservation',round)),true)
   const bridge=createResidentOwnerTransaction({owner,transaction})
+  const original=run(capacity.reserve('agent',32,'observationDispatch'));assert.ok(original)
+  bridge.bindSourceReservation(1n,original)
   const event=input=>{const result=run(bridge.event(input));assert.equal(result.refusal,undefined);return result}
   event({$:'LaunchSourceEvent',scope:{$:'SourceScope',partition:BigInt(partition),lifetime:1n,round:BigInt(round),observation:BigInt(observation),permission:{$:'SourceNew'}},input_handle:1n})
   event({$:'InstallSourceEvent',invocation:1n,generation:0n,handle:2n,request:0n,permission:{$:'SourceActivity'}})
@@ -176,9 +178,34 @@ try{
   assert.throws(()=>run(bridge.completeSourceObservation(credential)),/completion refused/);assert.strictEqual(run(transaction.read),completed)
   assert.throws(()=>run(bridge.nativeScoped(credential,()=>{throw new Error('must never enter callback')})),/forbids native mutations/)
   event({$:'ProviderCompletedEvent',invocation:1n,lease:2n,request:1n,reply_handle:5n})
-  event({$:'InstallEvent',invocation:1n,generation:2n,handle:6n,request:2n})
+  event({$:'InstallAfterSourceEvent',invocation:1n,generation:2n,handle:6n,request:2n,permission:{$:'AfterBarrier'}})
   event({$:'ProviderStartEvent',invocation:1n});event({$:'ProviderCompletedEvent',invocation:1n,lease:3n,request:2n,reply_handle:7n})
-  event({$:'TerminalEvent',invocation:1n,generation:3n,result_handle:8n})
+  event({$:'InstallAfterSourceEvent',invocation:1n,generation:3n,handle:8n,request:3n,permission:{$:'AfterRecoveryAnalytics'}})
+  event({$:'ProviderStartEvent',invocation:1n});event({$:'ProviderCompletedEvent',invocation:1n,lease:4n,request:3n,reply_handle:9n})
+  event({$:'InstallAfterSourceEvent',invocation:1n,generation:4n,handle:10n,request:4n,permission:{$:'AfterRecoveryRelease'}})
+  event({$:'ProviderStartEvent',invocation:1n})
+  const releaseCredential={invocation:1n,generation:4n,lease:5n,request:4n}
+  assert.throws(()=>bridge.forgetSourceReservation(1n),/Source authority remains active/)
+  assert.throws(()=>bridge.bindSourceReservation(1n,original),/before invocation launch/)
+  assert.throws(()=>run(bridge.releaseSourceReservation({...releaseCredential,request:3n})),/Revoked resident provider permit/)
+  let replacement
+  if(releaseMode==='replacement'){
+   replacement=Object.freeze({...original})
+   run(transaction.commitAllEffect((draft,records)=>{const retained=draft.reservations.get(original.id);draft.reservations.set(original.id,{...retained,capability:replacement});return [undefined,records]}))
+  }
+  let released
+  if(releaseMode==='ack-loss')assert.throws(()=>run(bridge.releaseSourceReservation(releaseCredential,result=>{released=result;throw new Error('source release ack loss')})),/source release ack loss/)
+  else released=run(bridge.releaseSourceReservation(releaseCredential))
+  assert.equal(released.value,releaseMode!=='replacement')
+  if(replacement)assert.strictEqual(run(transaction.read).reservations.get(original.id).capability,replacement)
+  else assert.equal(run(transaction.read).reservations.has(original.id),false)
+  assert.equal(run(bridge.releaseSourceReservation(releaseCredential)).value,false)
+  event({$:'ProviderCompletedEvent',invocation:1n,lease:5n,request:4n,reply_handle:11n})
+  assert.throws(()=>run(bridge.releaseSourceReservation(releaseCredential)),/Revoked resident provider permit/)
+  event({$:'TerminalEvent',invocation:1n,generation:5n,result_handle:12n})
+  bridge.forgetSourceReservation(1n)
+  assert.throws(()=>bridge.bindSourceReservation(1n,original),/before invocation launch/)
+  if(replacement)run(capacity.release(replacement))
   assert.equal(owner.find(1n,run(transaction.read).resolverCustody.children).value.phase.$,'ChildAccepted')
   cases++
  }

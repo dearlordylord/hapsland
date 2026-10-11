@@ -29,7 +29,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   if(projection.$==='Types.AwaitService'){
    if(projection.request.invocation!==invocation)throw new Error('Artifact request owner mismatch')
    const id=save(invocation,'state',raw);let transferred=false
-   try{hooks.beforeInstall?.({invocation,generation,handle:id,request:projection.request,driver});const child=owner.find(invocation,current().children).value;const step=child.scope.$==='AdviceTailScope'?invoke('install_advice',invocation,generation,id,projection.request.id,engine(invocation).permission(projection.request)):child.scope.$==='SourceScope'?invoke('install_source',invocation,generation,id,projection.request.id,engine(invocation).permission(projection.request)):invoke('install',invocation,generation,id,projection.request.id);apply(step);transferred=true}
+   try{hooks.beforeInstall?.({invocation,generation,handle:id,request:projection.request,driver});const child=owner.find(invocation,current().children).value;const step=child.scope.$==='AdviceTailScope'?invoke('install_advice',invocation,generation,id,projection.request.id,engine(invocation).permission(projection.request)):child.scope.$==='SourceScope'?invoke('install_source',invocation,generation,id,projection.request.id,engine(invocation).permission(projection.request)):child.scope.$==='AfterSourceScope'?invoke('install_after_source',invocation,generation,id,projection.request.id,engine(invocation).afterPermission(projection.request)):invoke('install',invocation,generation,id,projection.request.id);apply(step);transferred=true}
    finally{if(!transferred)release(id,invocation)}
   }else{
    const id=save(invocation,'result',projection)

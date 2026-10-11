@@ -1,3 +1,5 @@
+import {residentRuntime} from '../../../packages/resident-runtime/src/resident/state/resident/runtime.ts'
+import {providerTransaction,ResidentProviderPermit} from './resident-provider-permit.mjs'
 import assert from 'node:assert/strict'
 import * as Effect from 'effect/Effect'
 import {GRAPH_LIMIT_CEILINGS} from '../../../packages/canonical-policy/dist/canonical/graph-limits.js'
@@ -16,7 +18,7 @@ import {TYPE_INPUT_CONTRACT,FUNCTION_INPUT_CONTRACT} from '@hapsland/review-defi
 
 // Physical engine/effect bindings for one fresh prepareObservation session.
 // Candidate/contract/root progression stays in the checked Preparation machine.
-export function createPreparationForeign({connection,owner,driver,registry,root,rootIdentity,context,cache,mode='two-roots',onRoot}){
+export function createPreparationForeign({connection,owner,driver,registry,root,rootIdentity,context,cache,mode='two-roots',onRoot,settings={rules:configuredRules},graphLimits=GRAPH_LIMIT_CEILINGS,compareRoots=true,onMaterialization,residentContext}){
  const rootCaptures=new Map(),selections=new Map();let roots=0
  const none={$:'None'},some=value=>({$:'Some',value})
  const location=value=>({$:'RootAttribution.Location',start:{$:'RootAttribution.Position',line:BigInt(value.start.line),column:BigInt(value.start.column)},end:{$:'RootAttribution.Position',line:BigInt(value.end.line),column:BigInt(value.end.column)}})
@@ -29,16 +31,19 @@ export function createPreparationForeign({connection,owner,driver,registry,root,
      response={$:'PathAllowed',path:command.candidate.path,selection:1n};break
     }
     case 'CaptureSource': {
-     const capture=await Effect.runPromise(captureStable(root,selections.get(command.selection),{},rootIdentity));assert.equal(capture.status,'captured')
+     const capture=await Effect.runPromise((context.captureSource??captureStable)(root,selections.get(command.selection),{},rootIdentity));assert.equal(capture.status,'captured')
      rootCaptures.set(1n,capture.capture);cache.set(command.path,capture.capture)
      response={$:'SourceCaptured',capture:{$:'Capture',path:command.path,handle:1n,text:capture.capture.text,content_hash:capture.capture.contentHash,bytes:BigInt(capture.capture.byteLength)}};break
     }
     case 'Preflight':response={$:'PreflightDone',value:productValue(combinedAnalyzerMaterializationPreflight(command.capture.path,command.capture.text)??null)};break
     case 'AdmitMaterialization': {
-     const bytes=mode==='resize-refused'?200000000:analysisWorkspaceBytes(command.capture.path,Number(command.capture.bytes),fromProductValue(command.preflight)??undefined,configuredRules)
+     const bytes=mode==='resize-refused'?200000000:analysisWorkspaceBytes(command.capture.path,Number(command.capture.bytes),fromProductValue(command.preflight)??undefined,settings.rules)
      const result=Effect.runSync(connection.bridge.nativeScoped(options.ownerLease,(draft,records)=>[resize(draft,connection.preparation.reservation,bytes),records])).value
+     onMaterialization?.({kind:'resize',bytes,status:result.status})
      response={$:'MaterializationDone',requested:BigInt(bytes),result:result.status==='resized'?{$:'Resized'}:{$:'CapacityRefused',constraint:result.constraint}};break
     }
+    case 'RejectMaterializationCapacity':await Effect.runPromise(residentRuntime(providerTransaction(connection.transaction,connection.bridge)).rejectCapacity().pipe(Effect.provideService(ResidentProviderPermit,{credential:options.ownerLease})));response={$:'Ack'};break
+    case 'RecordMaterializationCapacity':await Effect.runPromise(residentContext?residentContext.deps.residentRecordAnalytics(residentContext.job,'capacity-rejected'):Effect.void);response={$:'Ack'};break
     case 'ExtractSource': {
      const facts=inspectGraphFile(command.capture.path,command.capture.text);assert.ok(facts)
      const functions=analyzeFunctionFile(command.capture.path,command.capture.text),typeFile=analyzeTypeFile(command.capture.path,command.capture.text,true)
@@ -52,13 +57,13 @@ export function createPreparationForeign({connection,owner,driver,registry,root,
      const parent=owner.find(request.invocation,driver.state.children).value
      const resolver=createBendResolver({registry,allocateInvocation:()=>driver.allocateInvocation({$:'Parent',invocation:request.invocation,generation:parent.generation,request:request.id}),onConstructionFailure:driver.constructionFailed,drive:async(...args)=>{terminal=await driver.drive(...args);return terminal}})
      const unit=await resolver(command.capture.path,rootCaptures.get(command.capture.handle),command.root.name,{...context,branch:command.contract.$==='PreparationSelection.FunctionContract'?'function':'type'},options)
-     const expected=await Effect.runPromise(resolveGraphUnit(command.capture.path,rootCaptures.get(command.capture.handle),command.root.name,{...context,branch:command.contract.$==='PreparationSelection.FunctionContract'?'function':'type',captureCache:new Map()}));assert.deepEqual(unit,expected)
+     if(compareRoots){const expected=await Effect.runPromise(resolveGraphUnit(command.capture.path,rootCaptures.get(command.capture.handle),command.root.name,{...context,branch:command.contract.$==='PreparationSelection.FunctionContract'?'function':'type',captureCache:new Map()}));assert.deepEqual(unit,expected)}
      response={$:'RootResolved',unit:unit===undefined?none:some(productValue(unit)),references:terminal.finalFrame?.$==='Some'?terminal.finalFrame.value.references:list([]),captures:snapshotCaptures()};break
     }
     case 'RenderUnits': {
      const contract=command.contract.$==='PreparationSelection.FunctionContract'?FUNCTION_INPUT_CONTRACT:TYPE_INPUT_CONTRACT
      const declarations=unlist(command.declarations).map(({id,declaration})=>({artifact:{id,kind:declaration.kind,name:declaration.name},location:{start:{line:Number(declaration.location.start.line),column:Number(declaration.location.start.column)},end:{line:Number(declaration.location.end.line),column:Number(declaration.location.end.column)}}}))
-     const outcomes=nativePrepareReadyUnits(unlist(command.units).map(fromProductValue),declarations,command.context.capture.path,{contract,graphLimits:GRAPH_LIMIT_CEILINGS,supportingCaptures:cache,observation:{root},context:{settings:{rules:configuredRules}}})
+     const outcomes=nativePrepareReadyUnits(unlist(command.units).map(fromProductValue),declarations,command.context.capture.path,{contract,graphLimits,supportingCaptures:cache,observation:{root},context:{settings}})
      response={$:'UnitsRendered',outcomes:list(outcomes.map(outcome=>({$:'OutcomeReady',path:outcome.path,prepared:productValue(outcome.prepared)})))};break
     }
     default:throw new Error('Unexpected preparation provider '+command.$)

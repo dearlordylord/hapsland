@@ -55,7 +55,7 @@ try {
  reject(m.complete_source_observation(source,1n,2n,4n,2n),'WrongPhase')
  source=advanced(m.provider_completed(source,1n,4n,2n,414n))
  reject(m.install(source,1n,3n,415n,9n),'WrongGeneration')
- source=advanced(m.install(source,1n,3n,415n,3n));source=advanced(m.provider_start(source,1n))
+ source=advanced(m.install_after_source(source,1n,3n,415n,3n,{$:'AfterBarrier'}));source=advanced(m.provider_start(source,1n))
  source=advanced(m.provider_completed(source,1n,5n,3n,416n))
  reject(m.install(source,1n,4n,418n,3n),'WrongGeneration')
  assert.equal(m.source_claimed(sourceScope,source.children),true)

@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect'
+import {release as releaseCapacityReservation} from '../../../packages/resident-runtime/src/resident/state/capacity/reservations.ts'
 import {residentAdvice} from '../../../packages/resident-runtime/src/resident/state/resident/advice.ts'
 import {encodeCanonicalEvent} from '@hapsland/canonical-policy/canonical/adapter'
 import {projectTrustedCanonical} from '@hapsland/canonical-policy/canonical/canonical-boundary'
@@ -31,7 +32,7 @@ const list=value=>{
  return out
 }
 export function createResidentOwnerTransaction({owner,transaction,onActions=()=>Effect.void,validateAdviceInput}){
- const adviceReceipts=new Map()
+ const adviceReceipts=new Map(),sourceReservations=new Map()
  const publication=(draft,raw)=>{
   if(raw.$==='Refused')return {refusal:raw.refusal,actions:[],outputs:[],raw}
   if(raw.$!=='Published')throw new TypeError('Malformed resident owner publication')
@@ -48,12 +49,13 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
  const event=input=>finish(committedEvent(input))
  // Existing native capacity operations run once. Their resulting state and child
  // invalidation are published by the same actual resident commitAllEffect.
- const nativeCommit=(operation,credential,onCommitted,pendingRestore,adviceTail,adviceBirth,cleanupAdvice)=>finish(transaction.commitAllEffect((draft,records)=>{
+ const nativeCommit=(operation,credential,onCommitted,pendingRestore,adviceTail,adviceBirth,cleanupAdvice,sourceRelease)=>finish(transaction.commitAllEffect((draft,records)=>{
   if(adviceBirth&&(!validateAdviceInput||validateAdviceInput(credential.invocation,adviceBirth.inputHandle)!==true))throw new Error('Advice input is not owned by its origin')
   if(credential&&!owner.provider_live(owner.assembled(convert(draft.canonical,true),draft.resolverCustody),credential.invocation,credential.generation,credential.lease,credential.request))throw new Error('Revoked resident provider permit')
   const child=credential?owner.find(credential.invocation,draft.resolverCustody.children):undefined
   if(child?.$==='Some'&&child.value.scope.$==='SourceScope'&&['SourceObservation','SourceStartObservation'].includes(child.value.scope.permission.$))throw new Error('Source observation completion requires its closed operation')
-  if(child?.$==='Some'&&child.value.scope.$==='AfterSourceScope')throw new Error('After source continuation forbids native mutations')
+  if(sourceRelease&&(child?.$!=='Some'||child.value.scope.$!=='AfterSourceScope'||child.value.scope.permission.$!=='AfterRecoveryRelease'||sourceReservations.get(credential.invocation)!==sourceRelease))throw new Error('Invalid original source reservation release')
+  if(child?.$==='Some'&&child.value.scope.$==='AfterSourceScope'&&!sourceRelease)throw new Error('After source continuation forbids native mutations')
   const tailScope=child?.$==='Some'&&child.value.scope.$==='AdviceTailScope'?child.value.scope:undefined
   if(tailScope){
    if(!adviceTail||!owner.advice_provider_allowed(owner.assembled(convert(draft.canonical,true),draft.resolverCustody),credential.invocation,credential.generation,credential.lease,credential.request,adviceTail.permission))throw new Error('Advice tail requires a closed capability operation')
@@ -105,6 +107,23 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   if(raw.$==='Refused')throw new Error('Source observation completion refused: '+raw.refusal.$)
   return [publication(draft,raw),records]
  }),onCommitted)
+ const bindSourceReservation=(invocation,reservation)=>{
+  const snapshot=Effect.runSync(transaction.read)
+  const child=owner.find(invocation,snapshot.resolverCustody.children)
+  if(sourceReservations.has(invocation)||child.$==='Some'&&(child.value.scope.$!=='SourceScope'||child.value.scope.permission.$!=='SourceNew'||child.value.phase.$!=='ChildInstalling'||child.value.generation!==0n||child.value.lease.$!=='None'))throw new Error('Source reservation must bind before invocation launch')
+  sourceReservations.set(invocation,Object.freeze({reservation}))
+ }
+ const forgetSourceReservation=invocation=>{
+  const snapshot=Effect.runSync(transaction.read),child=owner.find(invocation,snapshot.resolverCustody.children),receipt=sourceReservations.get(invocation)
+  if(child.$==='Some'&&(owner.child_active(child.value)||child.value.lease.$!=='None'))throw new Error('Source authority remains active')
+  if(receipt?.reservation&&snapshot.reservations.get(receipt.reservation.id)?.capability===receipt.reservation)throw new Error('Original source reservation remains owned')
+  return sourceReservations.delete(invocation)
+ }
+ const releaseSourceReservation=(credential,onCommitted)=>{
+  const receipt=sourceReservations.get(credential.invocation)
+  if(!receipt)throw new Error('Source reservation not bound')
+  return nativeCommit((draft,records)=>[receipt.reservation===undefined?false:releaseCapacityReservation(draft,receipt.reservation),records],credential,onCommitted,undefined,undefined,undefined,undefined,receipt)
+ }
  const native=(operation,onCommitted)=>nativeCommit(operation,undefined,onCommitted)
  const nativeScoped=(credential,operation,onCommitted)=>nativeCommit(operation,credential,onCommitted)
  const nativeRestorePending=(credential,pendingOwner,operation,onCommitted)=>nativeCommit(operation,credential,onCommitted,pendingOwner)
@@ -132,6 +151,7 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   launch:(scope,input_handle)=>({$:'LaunchEvent',scope,input_handle}),
   launch_source:(scope,input_handle)=>({$:'LaunchSourceEvent',scope,input_handle}),
   launch_source_preparation:(parent,scope,input_handle)=>({$:'LaunchSourcePreparationEvent',parent,scope,input_handle}),
+  install_after_source:(invocation,generation,handle,request,permission)=>({$:'InstallAfterSourceEvent',invocation,generation,handle,request,permission}),
   install_source:(invocation,generation,handle,request,permission)=>({$:'InstallSourceEvent',invocation,generation,handle,request,permission}),
   launch_preparation:(scope,input_handle)=>({$:'LaunchPreparationEvent',scope,input_handle}),
   terminal_preparation:(invocation,generation,result_handle)=>({$:'TerminalPreparationEvent',invocation,generation,result_handle}),
@@ -152,5 +172,5 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   readState(){const snapshot=Effect.runSync(transaction.read);return owner.assembled(convert(snapshot.canonical,true),snapshot.resolverCustody)},
   invoke(method,args){if(!Object.hasOwn(methods,method))throw new Error('Unknown resident owner entry');return ownerStep(Effect.runSync(committedEvent(methods[method](...args))))}
  }
- return {read:transaction.read,event,startSourceObservation,completeSourceObservation,native,nativeScoped,nativeRestorePending,adviceInsertAndHandoff,get adviceReceipts(){return [...adviceReceipts.values()]},adviceTailPublish,adviceTailRemove,adviceCleanup,control,ownerStep,canonical:input=>event({$:'CanonicalEvent',event:convert(encodeCanonicalEvent(input),true)})}
+ return {read:transaction.read,event,bindSourceReservation,forgetSourceReservation,releaseSourceReservation,startSourceObservation,completeSourceObservation,native,nativeScoped,nativeRestorePending,adviceInsertAndHandoff,get adviceReceipts(){return [...adviceReceipts.values()]},adviceTailPublish,adviceTailRemove,adviceCleanup,control,ownerStep,canonical:input=>event({$:'CanonicalEvent',event:convert(encodeCanonicalEvent(input),true)})}
 }
