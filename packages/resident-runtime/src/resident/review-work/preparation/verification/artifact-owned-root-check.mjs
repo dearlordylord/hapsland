@@ -12,6 +12,7 @@ import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import {
   createGraphServiceRegistry as createServiceRegistry,
+  createBendEffectResolver,
   createBendResolver
 } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
@@ -614,13 +615,13 @@ try {
         return await registry.perform(request, options)
       }
     })
-    const resolver = createBendResolver({
+    const resolver = createBendEffectResolver({
       drive: driver.drive,
       allocateInvocation: driver.allocateInvocation,
       onConstructionFailure: driver.constructionFailed
     })
     try {
-      actual = await resolver(path, stable(path), "Root", contextFor(bendEvents, bendCache))
+      actual = await Effect.runPromise(resolver(path, stable(path), "Root", contextFor(bendEvents, bendCache)))
     } catch (error) {
       bendError = error
     }

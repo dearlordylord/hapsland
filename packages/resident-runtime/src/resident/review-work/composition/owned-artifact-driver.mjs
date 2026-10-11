@@ -1,4 +1,5 @@
 import { createArtifactMachine } from "./artifact-dispatcher.mjs"
+import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 // Effect/lifetime adapter for actual Canonical owner actions. Root selection and
 // resident retention are not implemented here: this is a composed intermediate.
 export function createOwnedArtifactDriver({
@@ -460,6 +461,7 @@ export function createOwnedArtifactDriver({
         const outcome = finished.get(invocation)
         if (outcome?.failure?.$ === "Types.ForeignProviderFailure" || outcome?.failure?.$ === "Types.RuntimeFailure")
           throw session.exception(outcome.failure.exception)
+        if (outcome?.failure?.$ === "Types.NegativeGraphWork") readNat(-Number(outcome.failure.magnitude))
         return outcome
       }
       const applyInInvocation = (step) => requireOutcome(applyOutcome(step))
