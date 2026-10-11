@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
+import { deserialize } from "node:v8"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
@@ -13,6 +14,25 @@ import {
   createBendResolver
 } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
+if (!process.env.HAPSLAND_GRAPH_FIXTURE_FACTS)
+  throw new TypeError(
+    "Run this consumer through scripts/run-bend-capability-check.mjs to supply owned graph fixture facts"
+  )
+const graphFixtures = deserialize(Buffer.from(process.env.HAPSLAND_GRAPH_FIXTURE_FACTS, "base64"))
+assert.ok(Array.isArray(graphFixtures) && graphFixtures.length > 0)
+assert.equal(graphFixtures.length, 58, "retain every original graph fixture")
+assert.equal(new Set(graphFixtures.map((fixture) => fixture.name)).size, graphFixtures.length)
+for (const name of [
+  "go-root-type",
+  "go-import-local-module",
+  "python-preparation-deadline",
+  "large-local-reuse",
+  "capture-unavailable"
+])
+  assert.ok(
+    graphFixtures.some((fixture) => fixture.name === name),
+    "required whole graph fixture " + name
+  )
 const temp = await mkdtemp("/tmp/hapsland-owned-root-")
 try {
   const artifacts = {}
@@ -506,13 +526,125 @@ try {
     assert.equal(registry.size, 0)
     cases++
   }
+  for (const fixture of graphFixtures) {
+    const fixtureRoot = join(temp, "whole-" + fixture.name)
+    await mkdir(fixtureRoot)
+    execFileSync("git", ["init", "-q", fixtureRoot], { timeout: 5000 })
+    const path = fixture.path ?? "root.ts"
+    const source =
+      fixture.source ?? "import type { A } from '" + (fixture.importPath ?? "./a") + "'; export interface Root { a: A }"
+    const sources = new Map([[path, source], ...Object.entries(fixture.files)])
+    for (const [file, text] of sources) {
+      await mkdir(dirname(join(fixtureRoot, file)), { recursive: true })
+      await writeFile(join(fixtureRoot, file), text)
+    }
+    for (const directory of fixture.directories ?? []) await mkdir(join(fixtureRoot, directory), { recursive: true })
+    const stable = (file) => ({ text: sources.get(file), byteLength: Buffer.byteLength(sources.get(file)) })
+    const nativeEvents = [],
+      bendEvents = []
+    const nativeCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
+    const bendCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
+    const contextFor = (events, cache) => {
+      let ticks = 0
+      return {
+        root: fixtureRoot,
+        policy: fixture.policy ?? DEFAULT_DIRECT_FILE_POLICY,
+        branch: fixture.branch ?? "type",
+        limits: { ...GRAPH_LIMIT_CEILINGS, ...fixture.limits },
+        captureCache: cache,
+        now: () => {
+          const tick = ticks++
+          events.push(["clock", tick])
+          return tick >= (fixture.expireAt ?? Infinity) ? 5000 : 0
+        },
+        captureSource: (_root, selected) => {
+          events.push(["capture", selected.relativePath])
+          return Effect.succeed(
+            fixture.unavailable
+              ? { status: "unavailable", diagnostic: { stage: "capture", code: "fixture-unavailable", args: {} } }
+              : { status: "captured", capture: stable(selected.relativePath) }
+          )
+        },
+        observeCaptureDiagnostic: (file, value) => events.push(["diagnostic", file, value])
+      }
+    }
+    let expected, nativeError, actual, bendError
+    try {
+      expected = await Effect.runPromise(
+        resolveGraphUnit(path, stable(path), "Root", contextFor(nativeEvents, nativeCache))
+      )
+    } catch (error) {
+      nativeError = error
+    }
+    const registry = createServiceRegistry()
+    const driver = createOwnedArtifactDriver({
+      owner,
+      initialState: initial(),
+      scope,
+      artifacts,
+      registry,
+      foreign: async ([request], options) => {
+        totalRequests++
+        return await registry.perform(request, options)
+      }
+    })
+    const resolver = createBendResolver({
+      drive: driver.drive,
+      allocateInvocation: driver.allocateInvocation,
+      onConstructionFailure: driver.constructionFailed
+    })
+    try {
+      actual = await resolver(path, stable(path), "Root", contextFor(bendEvents, bendCache))
+    } catch (error) {
+      bendError = error
+    }
+    if (fixture.technicalFailure) {
+      assert.ok(nativeError && bendError, fixture.name + " must retain its technical failure")
+      const shape = (error) => ({
+        name: error.name,
+        message: error.message,
+        cause: { name: error.cause.name, message: error.cause.message }
+      })
+      assert.deepEqual(shape(bendError), shape(nativeError), fixture.name)
+    } else {
+      assert.ifError(nativeError)
+      assert.ifError(bendError)
+      assert.deepEqual(actual, expected, fixture.name + " whole ReviewUnit")
+      if (fixture.requireUnit) assert.ok(actual, fixture.name + " must return a ReviewUnit")
+      if (fixture.requiredExpanded) {
+        const expanded = []
+        const visit = (node) => {
+          for (const ref of node.references)
+            if (ref.kind === "expanded") {
+              expanded.push(ref.node.artifact.name)
+              visit(ref.node)
+            }
+        }
+        assert.ok(actual, fixture.name)
+        visit(actual.root)
+        for (const name of fixture.requiredExpanded)
+          assert.ok(expanded.includes(name), fixture.name + " must expand " + name)
+      }
+    }
+    assert.deepEqual(bendEvents, nativeEvents, fixture.name + " effect sequence")
+    if (nativeCache) assert.deepEqual([...bendCache], [...nativeCache], fixture.name + " caller cache")
+    assert.deepEqual(
+      driver.resources,
+      { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 },
+      fixture.name
+    )
+    assert.equal(registry.size, 0, fixture.name)
+    assert.equal(driver.stats.providerStarts, driver.stats.providerCleanups, fixture.name)
+    cases++
+  }
   console.log(
     JSON.stringify({
       passed: true,
       cases,
       requests: totalRequests,
+      graphConsumerFixtures: graphFixtures.length,
       scope:
-        "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; real resident preparation root progression/retention/revision and universal proofs remain open"
+        "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; all 58 original graph fixture facts compare full native results/effects/cache/errors; original generic IO/trace qualification, real resident preparation progression/retention/revision and universal proofs remain open"
     })
   )
 } finally {

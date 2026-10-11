@@ -130,6 +130,19 @@ for (const file of selected) {
       "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-preparation-check.mjs"
     ].includes(file)
   let executionEnv = env
+  if (file.endsWith("/artifact-owned-root-check.mjs") && !syntax) {
+    const fixtures = spawnSync(
+      process.execPath,
+      [
+        resolve(root, "packages/source-analysis/src/direct-event/graph-resolution/verification/fixtures.mjs"),
+        "--emit-fixture-facts"
+      ],
+      { cwd: root, env, encoding: "utf8", timeout: 10000, maxBuffer: 8 * 1024 * 1024 }
+    )
+    if (fixtures.error || fixtures.signal || fixtures.status !== 0)
+      throw new Error("Graph fixture facts preparation failed", { cause: fixtures.error ?? new Error(fixtures.stderr) })
+    executionEnv = { ...env, HAPSLAND_GRAPH_FIXTURE_FACTS: fixtures.stdout }
+  }
   if (fixtureConsumer) {
     const { bundledRules } = await import("./test-support/default-rules.ts")
     const { advicee } = await import("./test-support/test-fixtures.ts")

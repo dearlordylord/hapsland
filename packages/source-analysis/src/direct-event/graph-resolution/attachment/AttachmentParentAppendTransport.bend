@@ -1317,6 +1317,76 @@ def child_entries_exclude_parent_address(+parents: List<&2, Local.PlannedNode>, 
                 projected_address_count(parents, parent_entries, parent_slots, catalog, parent_values, O.NodeAddress{prior, route},
                   parent_aligned, parent_dense, parent_projected)), counted))))
 
+def parent_entries_exclude_child_address(+parents: List<&2, Local.PlannedNode>, +parent_slots: List<&2, Local.ReferenceSlot>,
+    +parent_entries: List<&2, F.AddressEntry>, +parent_values: List<&2, F.Node>,
+    +children: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +child_entries: List<&2, F.AddressEntry>, +child_values: List<&2, F.Node>, +catalog: List<&2, T.ArtifactEntry>,
+    +episode: Nat, target: O.NodeAddress,
+    parent_aligned: {P.aligned(parents, parent_entries, parents, parent_entries) == True{} : Bool},
+    parent_dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    parent_projected: {P.nodes(parents, parent_slots, catalog, parent_entries) == Some{parent_values} : Maybe<&2, List<&2, F.Node>>},
+    parent_before: {Relation.episodes_before(parent_values, episode) == True{} : Bool},
+    child_aligned: {P.aligned(children, child_entries, children, child_entries) == True{} : Bool},
+    child_dense: {Frame.dense(children, 0n) == True{} : Bool},
+    child_projected: {P.nodes(children, child_slots, catalog, child_entries) == Some{child_values} : Maybe<&2, List<&2, F.Node>>},
+    child_fresh: {Ready.episode_nodes(child_values, episode) == True{} : Bool},
+    counted: {P.address_count(child_entries, target) == 1n : Nat}) ->
+    {P.address_count(parent_entries, target) == 0n : Nat}:
+  match target:
+    case O.NodeAddress{+actual, +route}:
+      Equal.trans(Nat, P.address_count(parent_entries, O.NodeAddress{actual, route}), F.count_address(parent_values, O.NodeAddress{actual, route}), 0n,
+        projected_address_count(parents, parent_entries, parent_slots, catalog, parent_values, O.NodeAddress{actual, route},
+          parent_aligned, parent_dense, parent_projected),
+        %Equal.sym(Nat, actual, episode,
+          fresh_counted_episode(child_values, episode, actual, route, child_fresh,
+            Equal.trans(Nat, F.count_address(child_values, O.NodeAddress{actual, route}), P.address_count(child_entries, O.NodeAddress{actual, route}), 1n,
+              Equal.sym(Nat, P.address_count(child_entries, O.NodeAddress{actual, route}), F.count_address(child_values, O.NodeAddress{actual, route}),
+                projected_address_count(children, child_entries, child_slots, catalog, child_values, O.NodeAddress{actual, route},
+                  child_aligned, child_dense, child_projected)), counted))):
+          {F.count_address(parent_values, O.NodeAddress{_, route}) == 0n : Nat}
+        prior_nodes_exclude_fresh(parent_values, episode, route, parent_before))
+
+def address_count_append(items: List<&2, F.AddressEntry>, +suffix: List<&2, F.AddressEntry>, +target: O.NodeAddress) ->
+    {P.address_count(List.append(&2, F.AddressEntry, items, suffix), target)
+      == (P.address_count(items, target) + P.address_count(suffix, target) : Nat) : Nat}:
+  match items:
+    case []: {==}
+    case F.AddressEntry{_, +birth} <> +tail:
+      %Equal.sym(Nat, P.address_count(List.append(&2, F.AddressEntry, tail, suffix), target),
+        (P.address_count(tail, target) + P.address_count(suffix, target) : Nat), address_count_append(tail, suffix, target)):
+        {(Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + _ : Nat)
+          == ((Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + P.address_count(tail, target) : Nat) + P.address_count(suffix, target) : Nat) : Nat}
+      Equal.sym(Nat,
+        ((Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + P.address_count(tail, target) : Nat) + P.address_count(suffix, target) : Nat),
+        (Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + (P.address_count(tail, target) + P.address_count(suffix, target) : Nat) : Nat),
+        Arithmetic.add_assoc(Bool.pick(Nat, F.same_address(target, birth), 1n, 0n), P.address_count(tail, target), P.address_count(suffix, target)))
+
+# One paired row changes its uniqueness domain; callers supply the exact
+# recursive tail and count equations, without duplicating linear closures.
+def aligned_context_row(+id: Nat, +other: Nat, +artifact: Nat, +birth: O.NodeAddress,
+    +tail: List<&2, Local.PlannedNode>, +rest: List<&2, F.AddressEntry>,
+    +old_nodes: List<&2, Local.PlannedNode>, +old_entries: List<&2, F.AddressEntry>,
+    +new_nodes: List<&2, Local.PlannedNode>, +new_entries: List<&2, F.AddressEntry>,
+    aligned: {P.aligned(Local.PlannedNode{id, artifact} <> tail, F.AddressEntry{other, birth} <> rest, old_nodes, old_entries) == True{} : Bool},
+    node_count: {P.node_count(new_nodes, id) == 1n : Nat},
+    address_count: {P.address_count(new_entries, birth) == 1n : Nat},
+    tail_aligned: {P.aligned(tail, rest, new_nodes, new_entries) == True{} : Bool}) ->
+    {P.aligned(Local.PlannedNode{id, artifact} <> tail, F.AddressEntry{other, birth} <> rest, new_nodes, new_entries) == True{} : Bool}:
+  B.and_eq_true(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(new_nodes, id), 1n),
+    Bool.and(Nat.is_eq(P.address_count(new_entries, birth), 1n), P.aligned(tail, rest, new_nodes, new_entries))),
+    B.eq_true_of_and_left(Nat.is_eq(id, other),
+      Bool.and(Nat.is_eq(P.node_count(old_nodes, id), 1n),
+        Bool.and(Nat.is_eq(P.address_count(old_entries, birth), 1n), P.aligned(tail, rest, old_nodes, old_entries))), aligned),
+    B.and_eq_true(Nat.is_eq(P.node_count(new_nodes, id), 1n),
+      Bool.and(Nat.is_eq(P.address_count(new_entries, birth), 1n), P.aligned(tail, rest, new_nodes, new_entries)),
+      %Equal.sym(Nat, P.node_count(new_nodes, id), 1n, node_count):
+        {Nat.is_eq(_, 1n) == True{} : Bool}
+      {==},
+      B.and_eq_true(Nat.is_eq(P.address_count(new_entries, birth), 1n), P.aligned(tail, rest, new_nodes, new_entries),
+        %Equal.sym(Nat, P.address_count(new_entries, birth), 1n, address_count):
+          {Nat.is_eq(_, 1n) == True{} : Bool}
+        {==}, tail_aligned)))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

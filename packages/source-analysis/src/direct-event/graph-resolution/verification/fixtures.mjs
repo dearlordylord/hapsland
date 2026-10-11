@@ -1,4 +1,5 @@
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { serialize } from "node:v8"
 export function createGraphFixtures() {
   const c = GRAPH_LIMIT_CEILINGS
   const localSource =
@@ -388,3 +389,8 @@ export function createGraphFixtures() {
     { name: "capture-unavailable", files: { "a.ts": "export interface A {}" }, unavailable: true }
   ]
 }
+
+// Verification facts cross the subprocess boundary without publishing private
+// fixture helpers as product exports. V8 preserves the existing Map caches.
+if (process.argv.includes("--emit-fixture-facts"))
+  process.stdout.write(serialize(createGraphFixtures()).toString("base64"))
