@@ -547,7 +547,7 @@ try {
  export {prepareGraphFrame,graphIteration,nativeEvents,resetBirth,registerBirth,birthAddress,preFrameObservation,preFrameReason,nativeFrame,edgeId};\n`
   )
   const nativeModule = await import(pathToFileURL(nativeCopy))
-  const { prepareGraphFrame, graphIteration, nativeEvents, resetBirth, birthAddress } = nativeModule
+  const { nativeEvents, resetBirth, birthAddress } = nativeModule
   const pythonArtifact = await compile(
     "PythonArtifact",
     path.join(root, "packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend")
@@ -643,21 +643,8 @@ try {
     nativeRust.resetFrontendCalls()
     let native, expected, failed
     try {
-      if (selected.endsWith(".go") || selected.endsWith(".py")) {
-        expected = await Effect.runPromise(nativeModule.resolveGraphUnit(selected, stable(selected), "Root", context))
-        native = nativeModule.nativeFrame
-      } else {
-        native = await Effect.runPromise(prepareGraphFrame(selected, stable(selected), "Root", context))
-        if (native) {
-          for (let i = 0; i < native.limits.work * 8 + 16; i++) {
-            const result = await Effect.runPromise(graphIteration(native))
-            if (result.done) {
-              expected = result.unit
-              break
-            }
-          }
-        }
-      }
+      expected = await Effect.runPromise(nativeModule.resolveGraphUnit(selected, stable(selected), "Root", context))
+      native = nativeModule.nativeFrame
     } catch (error) {
       native ??= nativeModule.nativeFrame
       failed = error
@@ -1675,7 +1662,7 @@ try {
     rustPreparationProviderBoundary:
       "Native preparation is the same-invocation oracle only; providers use raw TOML/module/source frontends and exact requested RustContext. Effective private preparation cache is observed separately from caller cache.",
     scope:
-      "Complete independent TypeScript/Rust/Bend/Python/Go entry/preparation/root/expansion driver against real native graphIteration, actual access/filesystem/parser and fixture capture provider. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Four injected synchronous provider Error cases qualify ordered failure prefixes and original Error identity before cleanup, with immutable fixture payloads and caller-cache snapshots; effective preparation cache failure snapshots are also compared; other provider failures, complete pre-frame retained state, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified by this harness."
+      "Complete independent TypeScript/Rust/Bend/Python/Go entry/preparation/root/expansion driver against the complete native resolveGraphUnit entry, actual access/filesystem/parser and fixture capture provider. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Four injected synchronous provider Error cases qualify ordered failure prefixes and original Error identity before cleanup, with immutable fixture payloads and caller-cache snapshots; effective preparation cache failure snapshots are also compared; other provider failures, complete pre-frame retained state, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified by this harness."
   }
   const evidenceDirectory = path.join(root, ".test-runs/bend-migration/entry")
   mkdirSync(evidenceDirectory, { recursive: true })

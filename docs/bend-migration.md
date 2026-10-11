@@ -253,8 +253,14 @@ One current obstacle list, in execution order:
    generic final clock only where the generic driver owns acceptance. The
    go-root-type focused real entry now passes its complete native chronology
    with 11 clocks on both sides (/tmp/hapsland-final-deadline-go-entry-focus.log).
-   The current whole-entry rerun remains pending; the failed 12-clock run is not
-   qualification. Publication-map passes its original 16 tree cases with 288
+   The next whole-entry run exposed an incomplete native boundary for ordinary
+   languages: its harness stopped at graphIteration and omitted resolveGraphUnit's
+   final deadline and acceptance. All language fixtures now invoke the complete
+   native resolveGraphUnit entry; exact ordered effect assertions remain intact.
+   The full Node capability consumer passes all 78 cases and 55 native comparisons
+   (/tmp/hapsland-full-native-entry-all.log); explicit runner lint and syntax pass.
+   The earlier failed runs are not qualification. This finite entry evidence does
+   not close universal correspondence or qualify production adoption. Publication-map passes its original 16 tree cases with 288
    publication-hole refusals and 144 budget counterexamples; its zero reply
    counters are outside that probe's admission-focused scope, not reply coverage.
    Parent-law closure does not close this
