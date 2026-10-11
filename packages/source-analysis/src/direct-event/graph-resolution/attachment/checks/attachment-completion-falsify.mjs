@@ -51,7 +51,8 @@ let cases = 0,
   terminalFrames = 0,
   boundaryCases = 0,
   visitedCoverageRejected = 0,
-  completionCases = 0
+  completionCases = 0,
+  finalDeadlineCases = 0
 for (let seed = 0; seed < 8; seed++)
   for (const episode of [0n, 3n]) {
     const fingerprint = seed % 2 === 0 ? { $: "None" } : { $: "Some", value: seed === 1 ? "" : "go-binding-λ-" + seed }
@@ -717,6 +718,42 @@ for (let seed = 0; seed < 8; seed++)
                             tx.reference_boundary(referenceFinal, refChild, completionHistory),
                             finalBoundary
                           )
+                          if (actualFinal.step.$ === tp + "AwaitService") {
+                            assert.equal(actualFinal.step.request.operation.$, tp + "ReadClock")
+                            for (const expired of [false, true])
+                              for (const finalOwner of [1n, 2n])
+                                for (const correlated of [true, false]) {
+                                  const deadlineReply = {
+                                    $: tp + "Reply",
+                                    invocation: finalOwner,
+                                    id: actualFinal.step.request.id + (correlated ? 0n : 1n),
+                                    outcome: {
+                                      $: tp + "ClockRead",
+                                      bits: {
+                                        $: "../../../../../source-artifacts/src/direct-event/value/Value.Binary64",
+                                        high: expired ? 1085507584 : 0,
+                                        low: 0
+                                      }
+                                    }
+                                  }
+                                  const actualAccepted = completion.actual_delivered(actualFinal, deadlineReply),
+                                    referenceAccepted = completion.delivered(referenceFinal, deadlineReply),
+                                    acceptedBoundary = tx.actual_boundary(actualAccepted, completionHistory)
+                                  assert.equal(acceptedBoundary.$, "Some")
+                                  assert.deepEqual(
+                                    tx.reference_boundary(referenceAccepted, refChild, completionHistory),
+                                    acceptedBoundary
+                                  )
+                                  if (finalOwner === 1n && correlated) {
+                                    assert.equal(actualAccepted.step.$, tp + "FinishedResolver")
+                                    assert.equal(
+                                      actualAccepted.step.result.$,
+                                      tp + (expired ? "NoReviewUnit" : "ReviewUnitResult")
+                                    )
+                                  } else assert.equal(actualAccepted.step.$, tp + "FailedResolver")
+                                  finalDeadlineCases++
+                                }
+                          }
                           completionCases++
                         }
                     }
@@ -816,13 +853,14 @@ const record = {
   boundaryCases,
   visitedCoverageRejected,
   completionCases,
+  finalDeadlineCases,
   actualCompiledConstructAndFlatten: true,
   universalProof: false,
   sourceSha256: createHash("sha256")
     .update(readFileSync(new URL("../RetainedForestProjection.bend", import.meta.url)))
     .digest("hex"),
   scope:
-    "Finite synthetic attachment phases: full staged and post-reply frames, pending registration, admission/refusal and service reply correlation. Raw source-to-child-plan reachability and universal correspondence are not established; no production adoption"
+    "Finite synthetic attachment phases: full staged and post-reply frames, pending registration, admission/refusal and service reply correlation; final deadline before result acceptance with expiry, owner and correlation refusals. Raw source-to-child-plan reachability and universal correspondence are not established; no production adoption"
 }
 recordEvidence("attachment-completion-falsification.json", record)
 console.log(JSON.stringify(record))

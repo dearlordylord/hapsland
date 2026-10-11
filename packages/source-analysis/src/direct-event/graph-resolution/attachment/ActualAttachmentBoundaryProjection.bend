@@ -54,6 +54,12 @@ def iteration(capsule: Maybe<&2, Phase.Capsule>) -> Maybe<&2, B.Continuation>:
     case Some{capsule}: Some{B.CheckingIteration{capsule}}
     case None{}: None{}
 
+def completion_deadline(capsule: Maybe<&2, Phase.Capsule>,
+    measured: Maybe<&2, ArtifactValue.ProductValue>) -> Maybe<&2, B.Continuation>:
+  match capsule measured:
+    case Some{capsule} Some{measured}: Some{B.CheckingCompletion{capsule, measured}}
+    case _ _: None{}
+
 def continuation(
   stage: T.ResolverStage,
   +state: T.ResolverState,
@@ -62,6 +68,10 @@ def continuation(
   match stage:
     case T.CheckingIterationDeadline{}: iteration(capsule(state, history))
     case T.MeasuringCompletion{}: completion(
+      capsule(state, history),
+      S.scratch_measured_product(S.state_scratch(state))
+    )
+    case T.CheckingCompletionDeadline{}: completion_deadline(
       capsule(state, history),
       S.scratch_measured_product(S.state_scratch(state))
     )

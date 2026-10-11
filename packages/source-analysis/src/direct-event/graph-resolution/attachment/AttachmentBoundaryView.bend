@@ -10,6 +10,7 @@ import ../Types.bend as T
 type Continuation is Data:
   CheckingIteration{capsule: Phase.Capsule}
   MeasuringCompletion{capsule: Phase.Capsule, measured_product: ArtifactValue.ProductValue}
+  CheckingCompletion{capsule: Phase.Capsule, measured_product: ArtifactValue.ProductValue}
 
 type Boundary is Data:
   Failed{failure: T.TechnicalFailure}

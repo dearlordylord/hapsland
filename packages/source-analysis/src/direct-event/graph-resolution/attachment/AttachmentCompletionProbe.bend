@@ -10,6 +10,7 @@ import ../ExpansionDriverSpecification.bend as D
 import ../ExpansionDriverState.bend as DriverState
 import ../Machine.bend as Machine
 import ../Loop.bend as Loop
+import ../Clock.bend as Clock
 
 # Finite consumer probe for a separate zero-elapsed clock reply and final
 # product measurement. This is not an extended attachment macrostep or law.
@@ -22,6 +23,8 @@ def consume_reusable(+state: DriverState.State, outcome: T.ServiceOutcome) -> Dr
       D.deadline(state, False{})
     case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitCompletion{product}, _} T.ProductEncoded{bytes}:
       D.completed(state, product, Nat.is_le(bytes, D.tree_cap(D.limits(DriverState.frame(state)))))
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitFinalDeadline{product}, _} T.ClockRead{bits}:
+      D.final_deadline(state, product, Clock.expired(bits))
     case _ _: DriverState.Rejected{state, T.WrongReplyKind{}}
 
 def consume(state: DriverState.State, outcome: T.ServiceOutcome) -> DriverState.Selection:

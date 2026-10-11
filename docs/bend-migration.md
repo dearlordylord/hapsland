@@ -231,6 +231,19 @@ One current obstacle list, in execution order:
    This is finite synthetic phase evidence, not universal correspondence or
    source-to-child-plan reachability. Other changed probe and whole entry
    consumers still require current qualification.
+   The partial-transaction probe passes 442368 replies and 13824 staged
+   transitions after the same fixture correction. Completion initially fails
+   at final result acceptance: actual Machine already issues a final deadline
+   read, while non-Python reference terminal_product incorrectly returned early.
+   Native resolveGraphUnit checks expired after validateAuthority and before
+   returning its unit (graph-resolver.ts), so the reference now retains that
+   final clock transition. The existing boundary observation adds its already
+   retained capsule/product at CheckingCompletion, allowing the whole consumer
+   to compare the required pre-acceptance stage instead of dropping the clock.
+   Driver, actual/reference projectors and completion probe verdicts pass under
+   hard five seconds (2.142/1.548/1.350/4.344 seconds). The full completion
+   consumer is being rechecked with expiry, wrong owner and wrong correlation;
+   universal completion correspondence and production adoption remain open.
    Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.
@@ -379,13 +392,14 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 6aad1787 measurements are
+   connected candidate. Latest existing-production 9c8f816a measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.703450060183795 (start 23:07:41.484198 UTC); build fails at
-   1.0140288520605323 (start 23:08:38.001866 UTC). Both starts meet the previous
+   passes at 0.6896013812358694 (start 23:37:08.639833 UTC); build fails at
+   1.1106982420946987 (start 23:37:45.396586 UTC). Both starts meet the previous
    cadence deadlines. These do not qualify unadopted whole preparation.
-   Next build start is due 23:38:38.001866 UTC, execution 23:37:41.484198 UTC.
-   Warm-up first failed because PreparationFinalization emission exceeded hard
+   Frozen warm build passes 46/46 tasks, 15 cached, 48.511 seconds. Next start
+   deadlines on 2026-10-12 UTC: execution 00:07:08.639833, build 00:07:45.396586.
+   The previous 6aad1787 warm-up first failed because PreparationFinalization emission exceeded hard
    five seconds. A same-CPU11/environment isolated emission passed at 2.846
    seconds, then the real frozen retry passed 46/46 tasks, 17 cached, 48.689
    seconds. The failed warm-up remains failure; isolation distinguishes workload

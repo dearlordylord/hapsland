@@ -1380,7 +1380,7 @@ def terminal_product(
   python: Maybe<&2, DriverState.PythonContext>
 ) -> DriverState.Selection:
   match python:
-    case None{}: DriverState.Success{state, Some{product}}
+    case None{}: final_clock(state, product, config(state))
     case Some{_}: DriverState.internal(state, DriverState.PythonValidationStart{product})
 
 def final_deadline(+state: DriverState.State, product: ArtifactValue.ProductValue, expired: Bool) -> DriverState.Selection:

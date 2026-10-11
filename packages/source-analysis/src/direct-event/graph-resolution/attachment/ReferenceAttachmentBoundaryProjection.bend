@@ -42,6 +42,12 @@ def selected_stage(+state: D.State, +operation: T.Operation,
         Frame.project(state, history),
         B.MeasuringCompletion{allocated(Ready.capsule(state, child)), product}
       )
+    case D.State{_, _, _, _, _, _, _, D.AwaitFinalDeadline{product}, _} T.ReadClock{_}:
+      selected(
+        Boundary.selected_request(D.Selected{state, operation}),
+        Frame.project(state, history),
+        B.CheckingCompletion{allocated(Ready.capsule(state, child)), product}
+      )
     case _ _: None{}
 
 def finished(
