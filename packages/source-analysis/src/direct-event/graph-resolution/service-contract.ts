@@ -181,19 +181,23 @@ export type SessionPorts = {
   readonly invocation: number
   readonly root: string
   readonly now?: (() => number) | undefined
-  readonly callerCache?: (Map<string, StableCapture>) | undefined
+  readonly callerCache?: Map<string, StableCapture> | undefined
   readonly access?: ((path: string, options: PerformOptions) => Promise<EligiblePath | undefined>) | undefined
-  readonly capture?: ((selection: EligiblePath, cap: number, options: PerformOptions) => Promise<CaptureResult>) | undefined
-  readonly frontend?: ((
-    path: string,
-    source: string,
-    context: Parameters<typeof inspectSourceFrontend>[2],
-    options?: PerformOptions
-  ) => ReturnType<typeof inspectSourceFrontend> | Promise<ReturnType<typeof inspectSourceFrontend>>) | undefined
-  readonly parseCargo?: (typeof parseCargoSyntax) | undefined
-  readonly inspectRustModules?: (typeof inspectRustModuleSyntax) | undefined
+  readonly capture?:
+    | ((selection: EligiblePath, cap: number, options: PerformOptions) => Promise<CaptureResult>)
+    | undefined
+  readonly frontend?:
+    | ((
+        path: string,
+        source: string,
+        context: Parameters<typeof inspectSourceFrontend>[2],
+        options?: PerformOptions
+      ) => ReturnType<typeof inspectSourceFrontend> | Promise<ReturnType<typeof inspectSourceFrontend>>)
+    | undefined
+  readonly parseCargo?: typeof parseCargoSyntax | undefined
+  readonly inspectRustModules?: typeof inspectRustModuleSyntax | undefined
   readonly selectContextPath?: ((path: string) => boolean | Promise<boolean>) | undefined
-  readonly parsePythonSyntax?: (typeof parsePythonSyntax) | undefined
+  readonly parsePythonSyntax?: typeof parsePythonSyntax | undefined
   readonly diagnostic?: ((path: string, value: unknown) => unknown) | undefined
 }
 export type ServiceSession = {

@@ -203,6 +203,11 @@ One current obstacle list, in execution order:
    authored files. check:fast passed 109 tests and source TypeScript/package graph,
    then failed five unresolved, 47 undeclared and 215 private cross-owner imports.
    These finite checks qualify this host boundary, not whole production adoption.
+   Resolver consumer/session and their closed service contracts now compile as
+   ordinary TypeScript; superseded MJS files are removed and callers use the new
+   paths. Current focused qualification: source-analysis typecheck, nonempty lint
+   of three TS files, 158 real service requests and workspace build 46/46
+   (4 cached, 42.604 seconds). This does not qualify whole production adoption.
    Remaining work here: opaque compiled resolver/session API, fixture/default/native
    comparisons outside resident's production binding, ordinary typed binding and
    public native PreparationInput encoding. Preserve full ordered effects, original
