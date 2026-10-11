@@ -68,6 +68,7 @@ try {
   }
   const observations = await compile("ExpansionSpecificationCheck"),
     expansion = await compile("ExpansionSpecification"),
+    selectExpansion = expansion.choose,
     policy = await compile("GraphSpecification"),
     spec = await compile("SPEC"),
     _environment = await compile("Environment"),
@@ -415,7 +416,7 @@ try {
     const measurements = []
     for (let steps = 0; steps < 10; steps++) {
       if (label(transaction).startsWith("Transaction")) break
-      const selected = expansion.choose(10000n, transaction)
+      const selected = selectExpansion(10000n, transaction)
       if (label(selected) === "Continue") {
         transaction = selected.transaction
         continue

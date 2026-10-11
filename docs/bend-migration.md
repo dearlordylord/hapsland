@@ -538,3 +538,13 @@ not qualification). The moved whole Source consumer passes 56 cases/6338 command
 31 native whole comparisons; the moved construction cleanup passes all 6 cases.
 Remaining specialized Machine and source-owner private capability seams stay
 open; production whole preparation adoption/removal remains 0/0.
+
+Real workspace warm-up after 21f84c37 failed before compilation: UI source preflight
+classified the verification runner's expansion.choose invocation as unregistered
+interactive input. The same emitted Bend export is now bound as selectExpansion,
+which states the domain operation explicitly; no scanner exclusion or registry
+exception was added. Ordinary lint and UI preflight pass, and the real expansion
+consumer repeats 61 cases/28 comparisons successfully. Warm-up is repeated only
+after this focused failure reproduction/fix; the earlier failed warm-up is not
+measurement qualification. The next paired start deadlines remain 17:46:50.561436
+and 17:51:49.488758 UTC.
