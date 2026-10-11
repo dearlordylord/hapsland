@@ -1,6 +1,6 @@
 // Frozen temporary decoder baseline for measured migration experiment.
 // Delete with experiment artifacts when whole resolver is accepted/rejected.
-import { unlist, fromBinary64 } from "./service-session.mjs"
+import { unlist, fromBinary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
 const tag = (name) => "Types." + name
 export function fromProductValue(value) {
   switch (value?.$) {

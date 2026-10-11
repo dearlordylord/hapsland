@@ -14,7 +14,7 @@ import {
 } from "../../state/resolver-custody/resident-provider-permit.mjs"
 import { createPostPreparationProvider } from "./post-preparation-host.mjs"
 import { decodePreparationResult } from "../../../../../review-execution/src/direct-event/preparation/preparation-result-codec.mjs"
-import { list, unlist } from "../../../../../source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 // Foreign effects and opaque receipts for one whole source. The cursor chooses
 // admission, refusal reporting, candidate progression and source completion.

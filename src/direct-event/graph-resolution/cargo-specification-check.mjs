@@ -6,7 +6,7 @@ import { dirname, join, relative, extname, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { stringify, parse } from "smol-toml"
 import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
-import { unlist } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 const folder = import.meta.dirname,
   root = join(folder, "../../.."),
   cache = join(root, "node_modules/.cache")

@@ -1,6 +1,7 @@
 import * as Effect from "effect/Effect"
 import { TransportFailure } from "./runtime-observation/transport.mjs"
-import { createServiceSession, fromProductValue } from "./service-session.mjs"
+import { createServiceSession } from "./service-session.mjs"
+import { fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax, parsePythonSyntax } from "./frontends.mjs"
 import {
   eligibleNamedPath,

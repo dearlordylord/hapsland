@@ -1,4 +1,4 @@
-import { list } from "../service-session.mjs"
+import { list } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 // Exact native node identity is projected to call-local stable row IDs.
 // All data here is parser syntax; no binding, authority or import decision.

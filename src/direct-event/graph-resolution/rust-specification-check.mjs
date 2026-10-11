@@ -13,7 +13,7 @@ import {
   contextDirectFilePolicy
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { observationCaptureBudgetRefusal } from "../../../packages/source-analysis/dist/direct-event/capture-budget.js"
-import { list, unlist } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 const folder = import.meta.dirname,
   root = join(folder, "../../.."),
   cache = join(root, "node_modules/.cache")

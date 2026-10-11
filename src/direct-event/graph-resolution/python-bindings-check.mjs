@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process"
 import { readFile, mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { unlist } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.mjs"
 import { Parser, Python } from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
 const temp = await mkdtemp("/tmp/hapsland-python-bindings-")

@@ -1,8 +1,4 @@
-import {
-  fromProductValue,
-  unlist,
-  hostNatural
-} from "../../../../source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { fromProductValue, unlist, hostNatural } from "@hapsland/source-artifacts/direct-event/value/codec"
 const optional = (value) => {
   if (value.$ === "None") return undefined
   if (value.$ === "Some") return value.value

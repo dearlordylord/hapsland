@@ -9,10 +9,9 @@ import * as Cause from "effect/Cause"
 import { createDispatcher } from "../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
 import {
   createServiceSession,
-  createServiceRegistry,
-  binary64,
-  fromProductValue
+  createServiceRegistry
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { binary64, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import {
   inspectSourceFrontend,
   parseCargoSyntax,

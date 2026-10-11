@@ -10,12 +10,7 @@ import { DEFAULT_DIRECT_FILE_POLICY } from "../../../packages/native-observation
 import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
 import { createGraphFixtures } from "./fixtures.mjs"
 import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
-import {
-  list,
-  unlist,
-  binary64,
-  fromProductValue
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { list, unlist, binary64, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const folder = import.meta.dirname,
   root = join(folder, "../../.."),

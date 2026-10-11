@@ -4,7 +4,7 @@ import { createHash } from "node:crypto"
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { list } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { list } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const folder = import.meta.dirname,
   temporary = mkdtempSync("/tmp/hapsland-graph-specification-")

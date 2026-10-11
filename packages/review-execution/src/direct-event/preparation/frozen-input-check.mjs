@@ -18,7 +18,7 @@ import {
   fromBinary64,
   list,
   unlist
-} from "../../../../source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+} from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const prefix = "../../../../source-analysis/src/direct-event/graph-resolution/Types."
 const backend = "../../../../runtime-environment/src/runtime/backend/Backend."

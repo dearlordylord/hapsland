@@ -1,100 +1,16 @@
 import * as path from "node:path"
 import { lstat } from "node:fs/promises"
 
-export function hostNatural(value) {
-  if (typeof value === "bigint") {
-    if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("unsafe host natural")
-    return Number(value)
-  }
-  if (!Number.isSafeInteger(value) || value < 0) throw new Error("unsafe host natural")
-  return value
-}
+import {
+  hostNatural,
+  list,
+  unlist,
+  binary64,
+  productValue,
+  fromProductValue
+} from "@hapsland/source-artifacts/direct-event/value/codec"
 const tag = (name) => "Types." + name
 const tagged = (name, fields = {}) => ({ $: tag(name), ...fields })
-export const nil = () => ({ $: "Nil" })
-export const list = (items) => items.reduceRight((tail, head) => ({ $: "Con", head, tail }), nil())
-export function unlist(value) {
-  const result = []
-  while (value?.$ === "Con") {
-    result.push(value.head)
-    value = value.tail
-  }
-  if (value?.$ !== "Nil") throw new Error("invalid list")
-  return result
-}
-const tuple = (key, value) => tagged("OrderedField", { key, value })
-export function binary64(value) {
-  const bytes = new DataView(new ArrayBuffer(8))
-  bytes.setFloat64(0, value, false)
-  return tagged("Binary64", { high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) })
-}
-export function fromBinary64(bits) {
-  if (
-    bits?.$ !== tag("Binary64") ||
-    ![bits.high, bits.low].every((x) => Number.isInteger(x) && x >= 0 && x <= 0xffffffff)
-  )
-    throw new Error("invalid binary64")
-  const bytes = new DataView(new ArrayBuffer(8))
-  bytes.setUint32(0, bits.high, false)
-  bytes.setUint32(4, bits.low, false)
-  return bytes.getFloat64(0, false)
-}
-export function productValue(value) {
-  if (value === null) return tagged("ProductNull")
-  if (typeof value === "boolean") return tagged("ProductBool", { value })
-  if (typeof value === "number") return tagged("ProductNumber", { bits: binary64(value) })
-  if (typeof value === "string") return tagged("ProductText", { value })
-  if (Array.isArray(value)) return tagged("ProductArray", { items: list(value.map(productValue)) })
-  if (value !== null && typeof value === "object")
-    return tagged("ProductObject", {
-      fields: list(Object.entries(value).map(([key, item]) => tuple(key, productValue(item))))
-    })
-  throw new Error("unsupported product encoding")
-}
-// Boundary conversion only. Validate the whole spine first, preserving the
-// previous decoder's malformed-list precedence before decoding any element.
-function validateList(value) {
-  while (value?.$ === "Con") value = value.tail
-  if (value?.$ !== "Nil") throw new Error("invalid list")
-}
-export function fromProductValue(value) {
-  switch (value?.$) {
-    case "Types.ProductNull":
-      return null
-    case "Types.ProductBool":
-      if (typeof value.value !== "boolean") throw new Error("invalid bool")
-      return value.value
-    case "Types.ProductNumber":
-      return fromBinary64(value.bits)
-    case "Types.ProductText":
-      if (typeof value.value !== "string") throw new Error("invalid text")
-      return value.value
-    case "Types.ProductArray": {
-      validateList(value.items)
-      const result = []
-      for (let item = value.items; item.$ === "Con"; item = item.tail) result.push(fromProductValue(item.head))
-      return result
-    }
-    case "Types.ProductObject": {
-      validateList(value.fields)
-      const result = {}
-      for (let item = value.fields; item.$ === "Con"; item = item.tail) {
-        const field = item.head
-        if (field?.$ !== "Types.OrderedField" || typeof field.key !== "string" || Object.hasOwn(result, field.key))
-          throw new Error("invalid product fields")
-        Object.defineProperty(result, field.key, {
-          value: fromProductValue(field.value),
-          enumerable: true,
-          writable: true,
-          configurable: true
-        })
-      }
-      return result
-    }
-    default:
-      throw new Error("unknown product value")
-  }
-}
 
 // Independent service/session state only: native resources and caller-owned IO.
 // No graph queues, budgets, dependency choices or result-tree construction.

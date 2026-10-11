@@ -158,10 +158,10 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
   consumerSource = consumerSource.replace(/from '([^']+)'/g, (all, specifier) =>
     specifier.startsWith(".") ? "from " + JSON.stringify(pathToFileURL(resolve(folder, specifier)).href) : all
   )
-  assert.ok(consumerSource.includes("createServiceSession,fromProductValue"))
+  assert.ok(consumerSource.includes("import { fromProductValue }"))
   consumerSource = consumerSource.replace(
-    "createServiceSession,fromProductValue",
-    "createServiceSession,fromProductValue as originalFromProductValue"
+    "import { fromProductValue }",
+    "import { fromProductValue as originalFromProductValue }"
   )
   writeFileSync(
     consumerCopy,

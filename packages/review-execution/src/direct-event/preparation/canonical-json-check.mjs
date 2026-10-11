@@ -5,10 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
-import {
-  productValue,
-  fromBinary64
-} from "../../../../source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { productValue, fromBinary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-canonical-json-"))
 const label = (value) => value.$.split(".").at(-1)

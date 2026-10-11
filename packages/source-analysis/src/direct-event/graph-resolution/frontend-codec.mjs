@@ -1,4 +1,4 @@
-import { list, binary64 } from "./service-session.mjs"
+import { list, binary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
 const tagged = (name, fields = {}) => ({ $: "Types." + name, ...fields })
 const maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
 const tuple = (key, value) => tagged("OrderedField", { key, value })

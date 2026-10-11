@@ -3,10 +3,8 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import {
-  createServiceSession,
-  unlist
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 const folder = import.meta.dirname,
   temp = await mkdtemp("/tmp/hapsland-python-capture-")
 const t = (name, fields = {}) => ({ $: "Types." + name, ...fields }),
@@ -177,8 +175,8 @@ try {
         if (fixture.expiredRound === round) actualExpired = expectedExpired = true
         const path = paths[round],
           expected = await nativeReadAuthority(path)
-        const step = child.read_authority(state, path, clock, io.callerCache.value, BigInt(invocation), next),
-          requests = []
+        let step = child.read_authority(state, path, clock, io.callerCache.value, BigInt(invocation), next)
+        const requests = []
         while (step.$ === "python-module/CaptureMachine.Await") {
           requests.push(step.request.operation.$)
           step = child.resume_authority(step, await io.perform(step.request))

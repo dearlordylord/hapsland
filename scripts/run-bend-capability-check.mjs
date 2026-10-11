@@ -10,6 +10,7 @@ const suite = args.find((arg) => arg.startsWith("--suite="))?.slice(8)
 const files = args.filter((arg) => !arg.startsWith("--"))
 const root = resolve(import.meta.dirname, "..")
 const sourceOwners = [
+  "packages/source-artifacts/src/direct-event/value",
   "packages/source-analysis/src/direct-event/graph-resolution",
   "packages/native-observation/src/direct-event/edit-attribution",
   "packages/native-observation/src/direct-event/languages/path-language",
@@ -62,6 +63,7 @@ const suites = {
     return roots
   },
   "preparation-protocol": () => [
+    "packages/source-artifacts/src/direct-event/value/codec-check.mjs",
     "src/resident/preparation/source-preparation-check.mjs",
     "src/resident/preparation/post-preparation-check.mjs",
     "src/resident/preparation/resident-owner-check.mjs",

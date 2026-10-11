@@ -11,12 +11,7 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "../../../../../native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../../../native-observation/dist/direct-event/capture.js"
-import {
-  productValue,
-  fromProductValue,
-  list,
-  unlist
-} from "../../../../../source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createBendResolver } from "../../../../../source-analysis/src/direct-event/graph-resolution/consumer.mjs"
 import {
   inspectGraphFile,

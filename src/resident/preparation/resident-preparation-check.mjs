@@ -11,13 +11,13 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../packages/native-observation/dist/direct-event/capture.js"
+import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
 import {
-  createServiceRegistry,
   productValue as __productValue,
   fromProductValue,
   list,
   unlist
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+} from "@hapsland/source-artifacts/direct-event/value/codec"
 import {
   createBendResolver as __createBendResolver,
   pureReply

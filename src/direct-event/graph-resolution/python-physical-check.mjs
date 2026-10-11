@@ -2,10 +2,8 @@ import assert from "node:assert/strict"
 import { mkdtemp, writeFile, symlink, rm, lstat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import {
-  createServiceSession,
-  unlist
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { parsePythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
 import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.mjs"
 import { Parser, Python } from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"

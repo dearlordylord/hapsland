@@ -202,6 +202,17 @@ One current obstacle list, in execution order:
    transaction; move test defaults/native comparisons to its verification adapter.
    Generated artifacts stay private and participate in receipts. Actual resident
    verification must import dist, not bypass emission with source MJS.
+   The mechanical product codec now has a typed source-artifacts package entry;
+   its resolver implementation and reexports are removed and 43 consumers import
+   the declared entry directly. Ordinary workspace build passed 46/46, and the
+   actual Source consumer passed 50 scenarios using this dist codec. Fifteen
+   boundary cases retain malformed-spine precedence, callable constructors,
+   binary64 identity and ordered fields. Lint checks 49 actual changed files.
+   Fast gate passed 109 unit tests, assets, source typing and package graph before
+   failing the remaining development imports. Bend declarations still live in
+   resolver Types and codec tags reflect that actual owner; move declarations and
+   exact emitted prefixes atomically next. Host relocation is not completed ABI
+   ownership or whole Preparation acceptance.
 2. Finish all retained source/proof and ordinary quality gates. The source gate
    uses current import closures, nonempty checking roots and a five-second limit;
    foreign Runtime IO roots compile to temporary JS, pure roots use `--verdict`.

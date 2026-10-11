@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { readFileSync, writeFileSync } from "node:fs"
 import { createHash } from "node:crypto"
-import { productValue, list, fromProductValue as after } from "./service-session.mjs"
+import { productValue, list, fromProductValue as after } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { fromProductValue as before } from "./decoder-baseline.mjs"
 const file = process.argv[2] ?? new URL("decoder-consumer-products.json", import.meta.url),
   raw = readFileSync(file),

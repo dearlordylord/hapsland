@@ -8,12 +8,7 @@ import { compileRule, selectApplicableRules } from "@hapsland/review-definition/
 import { freezeRules } from "@hapsland/review-definition/direct-event/model"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { initialCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
-import {
-  productValue,
-  fromProductValue,
-  list,
-  unlist
-} from "../../../../source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const prefix = "../../../../source-analysis/src/direct-event/graph-resolution/Types."
 const tags = (value, outward) => {

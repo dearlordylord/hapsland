@@ -7,6 +7,10 @@
     "./direct-event/artifact-model": {
       "types": "./dist/direct-event/artifact-model.d.ts",
       "default": "./dist/direct-event/artifact-model.js"
+    },
+    "./direct-event/value/codec": {
+      "types": "./dist/direct-event/value/codec.d.ts",
+      "default": "./dist/direct-event/value/codec.js"
     }
   },
   "dependencies": {},

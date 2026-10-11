@@ -7,10 +7,7 @@ import {
   artifact,
   sourceFacts
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
-import {
-  list,
-  fromProductValue
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { list, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import * as Effect from "effect/Effect"
 import { resolveGraphUnit } from "../../../packages/source-analysis/dist/direct-event/graph-resolver.js"
 import { inspectSourceFrontend } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"

@@ -4,7 +4,7 @@ import { pythonAdapter } from "../../../dist/direct-event/languages/python.js"
 import { bendAdapter } from "../../../dist/direct-event/languages/bend/adapter.js"
 import { parse } from "smol-toml"
 import { sourceFacts, tomlValue } from "./frontend-codec.mjs"
-import { unlist } from "./service-session.mjs"
+import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { projectPythonSyntax } from "./python-module/syntax-projection.mjs"
 const tag = (name) => "Types." + name
 const optional = (value) => {
