@@ -252,10 +252,19 @@ One current obstacle list, in execution order:
    temporary artifacts moved; physical fixtures remain in /tmp. This is not
    production parity evidence. The original no-omission/reference-count, Unicode dependency order and
    tree-refusal encoding-count assertions are now retained in this consumer;
-   their current qualification is pending. The first run stopped before cases
+   their current qualification passes all 105 cases / 4252 requests (log:
+   /tmp/hapsland-whole-fixtures-owned-consumer-v11.log). The first run stopped before cases
    at PythonArtifact emission. Isolated emission also timed out (5.110 wall /
    4.349 CPU); removing its unused common ArtifactProtocol import reduced the
-   same emission to 2.870 seconds under the unchanged limit. Original flattened
+   same emission to 2.870 seconds under the unchanged limit. Reference-count
+   assertions remain specific to the two original large fixtures; requireUnit
+   and no omissions apply to all requiring fixtures, including Go. Astra
+   agreed the shortest IO/trace path: compare the existing split dispatcher
+   in a verification await/resume loop against Canonical-owned execution,
+   complete request payload/order/IDs and accepted full terminal frame. This
+   qualifies scheduler/transport correspondence, not an independent algorithm
+   oracle; native outcomes/effects and generic pure-chain/Cause checks remain.
+   Original flattened
    generic IO/trace assertions, whole resident progression and universal
    correspondence remain open.
    Unsupported formatter roots remain failures, including
@@ -278,17 +287,17 @@ One current obstacle list, in execution order:
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 8291cd3d build/execution are
+   connected candidate. Latest existing-production 039135c1 build/execution are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: build fails
-   at 1.088572846862501 (all 23/46 cached); execution passes at
-   0.830087932768967. Build started 20:49:14.593832 UTC, 5 minutes 14.007602 seconds
-   after its cadence deadline; execution started 20:46:48.365067 UTC, timely.
-   Warm candidate build passed 46/46 tasks, 15 cached, in 65.306 seconds.
+   at 1.121376488122715 (all 23/46 cached); execution passes at
+   0.6634266327947798. Build started 21:16:05.089647 UTC; execution started
+   21:13:47.416402 UTC. Both started before their cadence deadlines.
+   Warm candidate build passed 46/46 tasks, 15 cached, in 75.562 seconds.
    This does not measure unadopted whole preparation. Recorded cadence misses
    remain failures. Evidence is retained under ignored
-   .test-runs/bend-migration/performance/2026-10-11T20-49-14.593832+00-00
-   and 2026-10-11T20-46-48.365067+00-00 (qualification.json and run.log).
-   Next build start is due 21:19:14.593832 UTC, execution 21:16:48.365067 UTC.
+   .test-runs/bend-migration/performance/2026-10-11T21-16-05.089647+00-00
+   and 2026-10-11T21-13-47.416402+00-00 (qualification.json and run.log).
+   Next build start is due 21:46:05.089647 UTC, execution 21:43:47.416402 UTC.
    A bounded two-pair UI-preflight diagnostic passed both roots on CPU11:
    baseline 2.702/2.625 seconds, candidate 2.694/3.037 seconds. This does not
    isolate the complete build regression or establish parity; no scanner
