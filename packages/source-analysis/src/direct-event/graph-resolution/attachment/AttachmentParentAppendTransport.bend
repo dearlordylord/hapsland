@@ -5,6 +5,7 @@ import ./AttachmentNaturalArithmeticFacts.bend as Arithmetic
 import ./AttachmentUnaffectedNodesProof.bend as Unaffected
 import ./AttachmentRemapProjectionProof.bend as Remap
 import ./AttachmentNodeReplacementTransport.bend as Replacement
+import ./AttachmentRootSelectionProof.bend as RootSelection
 import ./AttachmentProjectionAllowanceProof.bend as Count
 import ./AttachmentProjectionContentsProof.bend as Contents
 import ./AttachmentReplacementStructureProof.bend as Structure
@@ -1552,6 +1553,83 @@ def appended_projection(+root: Nat, +birth: O.NodeAddress,
     address_append_present(parent_entries, Mapping.shifted(child_entries, offset), root, birth, located),
     appended_nodes(parents, parent_slots, children, child_slots, catalog, parent_entries, child_entries,
       parent_values, child_values, parent_dense, parent_aligned, parent_owned, parent_projected, child_projected))
+
+# Every shifted child owner lies outside the allocated parent interval, so the
+# exact replacement operation leaves that entire ordered suffix unchanged.
+def shifted_slots_untouched(items: List<&2, Local.ReferenceSlot>, +offset: Nat,
+    +owner: Nat, +index: Nat, +reference: Local.PlannedReference,
+    +below: {Nat.is_lt(owner, offset) == True{} : Bool}) ->
+    {Compose.replace_slot(Compose.shift_slots(items, offset), owner, index, reference)
+      == Compose.ReplacedSlots{0n, Compose.shift_slots(items, offset)} : Compose.ReplacedSlots}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+actual_owner, +actual_index, +symbol, +previous} <> +tail:
+      %Equal.sym(Compose.ReplacedSlots, Compose.replace_slot(Compose.shift_slots(tail, offset), owner, index, reference),
+        Compose.ReplacedSlots{0n, Compose.shift_slots(tail, offset)}, shifted_slots_untouched(tail, offset, owner, index, reference, below)):
+        {Compose.replaced_prefix(_, Bool.and(Nat.is_eq(owner, (actual_owner + offset : Nat)), Nat.is_eq(index, actual_index)),
+          (actual_owner + offset : Nat), actual_index, symbol, Compose.shift_reference(previous, offset), reference)
+          == Compose.ReplacedSlots{0n, Compose.shift_slots(Local.ReferenceSlot{actual_owner, actual_index, symbol, previous} <> tail, offset)} : Compose.ReplacedSlots}
+      %Equal.sym(Bool, Nat.is_eq(owner, (actual_owner + offset : Nat)), False{},
+        Equal.trans(Bool, Nat.is_eq(owner, (actual_owner + offset : Nat)), Nat.is_eq((actual_owner + offset : Nat), owner), False{},
+          Structure.is_eq_comm(owner, (actual_owner + offset : Nat)), shifted_owner_distinct(actual_owner, offset, owner, below))):
+        {Compose.replaced_prefix(Compose.ReplacedSlots{0n, Compose.shift_slots(tail, offset)}, Bool.and(_, Nat.is_eq(index, actual_index)),
+          (actual_owner + offset : Nat), actual_index, symbol, Compose.shift_reference(previous, offset), reference)
+          == Compose.ReplacedSlots{0n, Compose.shift_slots(Local.ReferenceSlot{actual_owner, actual_index, symbol, previous} <> tail, offset)} : Compose.ReplacedSlots}
+      {==}
+
+def shifted_slots_selected_absent(items: List<&2, Local.ReferenceSlot>, +offset: Nat,
+    +owner: Nat, +index: Nat, +symbol: String,
+    +below: {Nat.is_lt(owner, offset) == True{} : Bool}) ->
+    {Ready.slot_count(Compose.shift_slots(items, offset), owner, index, symbol) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+actual_owner, +actual_index, +text, _} <> +tail:
+      %Equal.sym(Bool, Nat.is_eq(owner, (actual_owner + offset : Nat)), False{},
+        Equal.trans(Bool, Nat.is_eq(owner, (actual_owner + offset : Nat)), Nat.is_eq((actual_owner + offset : Nat), owner), False{},
+          Structure.is_eq_comm(owner, (actual_owner + offset : Nat)), shifted_owner_distinct(actual_owner, offset, owner, below))):
+        {(Bool.pick(Nat, Bool.and(_, Bool.and(Nat.is_eq(index, actual_index), String.eq(symbol, text))), 1n, 0n)
+          + Ready.slot_count(Compose.shift_slots(tail, offset), owner, index, symbol) : Nat) == 0n : Nat}
+      shifted_slots_selected_absent(tail, offset, owner, index, symbol, below)
+
+def slot_count_append(items: List<&2, Local.ReferenceSlot>, +suffix: List<&2, Local.ReferenceSlot>,
+    +owner: Nat, +index: Nat, +symbol: String) ->
+    {Ready.slot_count(List.append(&2, Local.ReferenceSlot, items, suffix), owner, index, symbol)
+      == (Ready.slot_count(items, owner, index, symbol) + Ready.slot_count(suffix, owner, index, symbol) : Nat) : Nat}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+actual_owner, +actual_index, +text, _} <> +tail:
+      +flag: Nat = Bool.pick(Nat, Bool.and(Nat.is_eq(owner, actual_owner), Bool.and(Nat.is_eq(index, actual_index), String.eq(symbol, text))), 1n, 0n)
+      %Equal.sym(Nat, Ready.slot_count(List.append(&2, Local.ReferenceSlot, tail, suffix), owner, index, symbol),
+        (Ready.slot_count(tail, owner, index, symbol) + Ready.slot_count(suffix, owner, index, symbol) : Nat),
+        slot_count_append(tail, suffix, owner, index, symbol)):
+        {(flag + _ : Nat) == ((flag + Ready.slot_count(tail, owner, index, symbol) : Nat) + Ready.slot_count(suffix, owner, index, symbol) : Nat) : Nat}
+      Equal.sym(Nat,
+        ((flag + Ready.slot_count(tail, owner, index, symbol) : Nat) + Ready.slot_count(suffix, owner, index, symbol) : Nat),
+        (flag + (Ready.slot_count(tail, owner, index, symbol) + Ready.slot_count(suffix, owner, index, symbol) : Nat) : Nat),
+        Arithmetic.add_assoc(flag, Ready.slot_count(tail, owner, index, symbol), Ready.slot_count(suffix, owner, index, symbol)))
+
+def appended_selected(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +entries: List<&2, F.AddressEntry>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +owner: Nat, +index: Nat, +symbol: String, +birth: O.NodeAddress,
+    dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    aligned: {P.aligned(parents, entries, parents, entries) == True{} : Bool},
+    located: {F.address_at(entries, owner) == Some{birth} : Maybe<&2, O.NodeAddress>},
+    selected: {Ready.slot_count(slots, owner, index, symbol) == 1n : Nat}) ->
+    {Ready.slot_count(List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))),
+      owner, index, symbol) == 1n : Nat}:
+  +suffix: List<&2, Local.ReferenceSlot> = Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))
+  %Equal.sym(Nat, Ready.slot_count(List.append(&2, Local.ReferenceSlot, slots, suffix), owner, index, symbol),
+    (Ready.slot_count(slots, owner, index, symbol) + Ready.slot_count(suffix, owner, index, symbol) : Nat),
+    slot_count_append(slots, suffix, owner, index, symbol)):
+    {_ == 1n : Nat}
+  %Equal.sym(Nat, Ready.slot_count(suffix, owner, index, symbol), 0n,
+    shifted_slots_selected_absent(child_slots, List.length(&2, Local.PlannedNode, parents), owner, index, symbol,
+      dense_owner_below(parents, owner, dense, RootSelection.count(parents, entries, parents, entries, owner, birth, aligned, located)))):
+    {(Ready.slot_count(slots, owner, index, symbol) + _ : Nat) == 1n : Nat}
+  %Equal.sym(Nat, Ready.slot_count(slots, owner, index, symbol), 1n, selected):
+    {(_ + 0n : Nat) == 1n : Nat}
+  {==}
+
 
 law parent_attachment_exact:
   for +parent_root: Nat

@@ -334,7 +334,7 @@ try {
       else ownedArtifacts[key] = artifact
     }
   const referenceEntry = entryMode
-    ? await createEntryReferenceDriver({ temporary: temp, go: ownedArtifacts.go, artifactTransport })
+    ? await createEntryReferenceDriver({ temporary: emissionTemp, go: ownedArtifacts.go, artifactTransport })
     : undefined
   let requests = 0,
     transitions = 0
