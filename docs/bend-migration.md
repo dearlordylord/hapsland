@@ -222,6 +222,20 @@ One current obstacle list, in execution order:
    stutters remain observable to cancellation; immutable resume replay is distinct
    from single consumption by the owning boundary. This fixed boundary closes the
    delivery obligation without a spec-only cancel flag or a new resource child.
+   Initial definitions now live at resident-runtime composition's
+   `PreparationFinalizationBoundary.bend`: exact provider credential, actual
+   owner transitions, lossless post-state/refusal/ordered actions/outputs and
+   issued ExecuteProvider projection. Astra reviewed these definitions; source
+   checking passes within five seconds. An issued projection checks consistency
+   with post-state, not actual emission; the composed relation must select the
+   action from the committed transition at its ordered position. The remaining
+   single resource relation must connect the saved engine Await, exact reply
+   payload/original error identity, ordered action application and reachable
+   launch/install/provider/Canonical-event prefixes. Cleanup failures retain
+   exact retry obligations while already committed owner state stays committed.
+   The boundary deliberately does not import specialized finalization algorithms:
+   that unnecessary combined import exceeded five seconds. This is definitions
+   evidence, not a proved whole delivery contract or production adoption.
    Exact executable declarations still require Astra review before proof work.
 4. Complete supported Go/session, extraction, classification and rendering scope
    and discharge the agreed whole-unit laws/proofs. The finalization language
