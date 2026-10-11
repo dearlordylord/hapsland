@@ -84,7 +84,7 @@ export function createOwnedArtifactDriver({
     }
   }
   const failed = () => ({ failure: { $: "Types.InvocationCancelled" } })
-  const settle = (invocation, generation, raw) => {
+  const settleOutcome = (invocation, generation, raw) => {
     const projection = engine(invocation).view(raw)
     if (projection.$ === "Types.AwaitService") {
       if (projection.request.invocation !== invocation) throw new Error("Artifact request owner mismatch")
@@ -122,8 +122,9 @@ export function createOwnedArtifactDriver({
                     engine(invocation).afterPermission(projection.request)
                   )
                 : invoke("install", invocation, generation, id, projection.request.id)
-        apply(step)
-        transferred = true
+        const outcome = applyOutcome(step)
+        transferred = !outcome.rejection
+        return outcome
       } finally {
         if (!transferred) release(id, invocation)
       }
@@ -142,13 +143,13 @@ export function createOwnedArtifactDriver({
               : child.scope.$ === "SourceScope" && projection.$ === "SourcePreparationStopped"
                 ? "terminal_source_failed"
                 : "terminal"
-        apply(invoke(method, invocation, generation, id))
+        return applyOutcome(invoke(method, invocation, generation, id))
       } finally {
         release(id, invocation)
       }
     }
   }
-  const action = (command) => {
+  const actionOutcome = (command) => {
     const invocation = command.invocation
     switch (command.$) {
       case "Launch":
@@ -179,8 +180,16 @@ export function createOwnedArtifactDriver({
           stats.launches++
           stats.accepted++
         } catch (error) {
-          apply(invoke("cancel", invocation))
-          throw error
+          const primary = { phase: "action", command, error }
+          try {
+            const cleanup = applyOutcome(invoke("cancel", invocation))
+            return { failures: [primary, ...cleanup.failures], rejection: primary }
+          } catch (cleanupError) {
+            return {
+              failures: [primary, { phase: "handoff-cleanup", command, error: cleanupError }],
+              rejection: primary
+            }
+          }
         }
         break
       }
@@ -199,12 +208,11 @@ export function createOwnedArtifactDriver({
           reply = load(command.reply_handle, invocation, "reply")
         if (Object.hasOwn(reply, "error")) throw reply.error
         stats.resumes++
-        settle(
+        return settleOutcome(
           invocation,
           command.generation,
           engine(invocation).resume(raw, { $: "Types.ServiceReply", reply: reply.value })
         )
-        break
       }
       case "RetireHandle":
         release(command.state_handle, invocation)
@@ -250,36 +258,47 @@ export function createOwnedArtifactDriver({
         throw new Error("Unknown owner action " + command.$)
     }
   }
-  const executeActions = (commands) => {
-    let failure
+  const executeActionsOutcome = (commands) => {
+    const failures = []
     for (const command of commands) {
-      if (failure && !["RetireHandle", "CleanupProvider", "CancelChild"].includes(command.$)) continue
+      if (failures.length && !["RetireHandle", "CleanupProvider", "CancelChild"].includes(command.$)) continue
       try {
-        action(command)
+        const nested = actionOutcome(command)
+        if (nested?.failures.length) failures.push(...nested.failures)
+        else hooks.afterAction?.({ command, driver })
       } catch (error) {
-        failure ??= { error }
+        failures.push({ phase: "action", command, error })
       }
     }
-    if (failure) throw failure.error
+    return { failures, rejection: failures[0] }
   }
-  const apply = (step) => {
+  const applyOutcome = (step) => {
     // External control has already committed through resident Ref.modify.
     if (!control) state = step.state
-    if (step.$ === "Rejected") throw new Error("Canonical resolver refused: " + step.refusal.$)
-    if (step.$ !== "Advanced") throw new Error("Unknown owner step")
-    let failure
+    if (step.$ !== "Advanced") {
+      const receipt = {
+        phase: "owner",
+        error: new Error(step.$ === "Rejected" ? "Canonical resolver refused: " + step.refusal.$ : "Unknown owner step")
+      }
+      return { failures: [receipt], rejection: receipt }
+    }
+    const failures = []
     try {
-      executeActions(list(step.actions))
+      failures.push(...executeActionsOutcome(list(step.actions)).failures)
     } catch (error) {
-      failure = { error }
+      failures.push({ phase: "actions", error })
     }
     try {
       hooks.canonicalOutputs?.(list(step.outputs))
     } catch (error) {
-      failure ??= { error }
+      failures.push({ phase: "outputs", error })
     }
-    if (failure) throw failure.error
+    return { failures, rejection: failures[0] }
   }
+  const unwrap = (outcome) => {
+    if (outcome.rejection) throw outcome.rejection.error
+  }
+  const apply = (step) => unwrap(applyOutcome(step))
   const driver = {
     allocateInvocation(parent, preparation = false, issuedScope = scope) {
       if (current().next_invocation < 1n || current().next_invocation > BigInt(Number.MAX_SAFE_INTEGER))
@@ -385,10 +404,27 @@ export function createOwnedArtifactDriver({
         taskFailure
       const failures = []
       const rememberFailure = (error) => {
-        const receipt = { error }
+        const receipt = { phase: "boundary", error }
         failures.push(receipt)
         return receipt
       }
+      // Only synchronous, known outcome-to-throw edges use this local slot.
+      // Arbitrary foreign callbacks remain observable failures at their boundary.
+      let forwardedReceipt
+      const requireOutcome = (result) => {
+        failures.push(...result.failures)
+        if (result.rejection) {
+          forwardedReceipt = result.rejection
+          throw result.rejection.error
+        }
+      }
+      const takeFailure = (error) => {
+        const receipt = forwardedReceipt ?? rememberFailure(error)
+        forwardedReceipt = undefined
+        return receipt
+      }
+      const applyInInvocation = (step) => requireOutcome(applyOutcome(step))
+      const settleInInvocation = (...args) => requireOutcome(settleOutcome(...args))
       try {
         launches.delete(invocation)
         sessions.set(invocation, session)
@@ -400,9 +436,9 @@ export function createOwnedArtifactDriver({
           const abort = () => {
             try {
               const child = owner.find(invocation, current().children)
-              if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+              if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
             } catch (error) {
-              const receipt = rememberFailure(error)
+              const receipt = takeFailure(error)
               abortFailure ??= receipt
             }
           }
@@ -411,7 +447,7 @@ export function createOwnedArtifactDriver({
             try {
               await finishSession(session)
             } catch (error) {
-              taskFailure = rememberFailure(error)
+              taskFailure = takeFailure(error)
               throw error
             }
           }
@@ -425,12 +461,16 @@ export function createOwnedArtifactDriver({
               return finished.get(invocation)
             }
             try {
-              settle(invocation, 0n, engine(invocation).initial(load(launch.input_handle, invocation, "input")))
+              settleInInvocation(
+                invocation,
+                0n,
+                engine(invocation).initial(load(launch.input_handle, invocation, "input"))
+              )
             } finally {
               release(launch.input_handle, invocation)
             }
             while (!finished.has(invocation)) {
-              apply(invoke("provider_start", invocation))
+              applyInInvocation(invoke("provider_start", invocation))
               const child = owner.find(invocation, current().children).value,
                 lease = leases.get(child.lease.value.id),
                 leaseId = child.lease.value.id
@@ -458,20 +498,21 @@ export function createOwnedArtifactDriver({
               const replyId = save(invocation, "reply", payload)
               try {
                 hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
-                apply(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
+                applyInInvocation(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
               } catch (error) {
-                taskFailure = rememberFailure(error)
+                taskFailure = takeFailure(error)
                 try {
                   const child = owner.find(invocation, current().children)
-                  if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+                  if (child.$ === "Some" && owner.child_active(child.value))
+                    applyInInvocation(invoke("cancel", invocation))
                 } catch (cleanupError) {
-                  rememberFailure(cleanupError)
+                  takeFailure(cleanupError)
                 }
                 if (leases.has(leaseId)) {
                   try {
-                    apply(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
+                    applyInInvocation(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
                   } catch (cleanupError) {
-                    rememberFailure(cleanupError)
+                    takeFailure(cleanupError)
                   }
                 }
                 throw error
@@ -485,12 +526,12 @@ export function createOwnedArtifactDriver({
             }
             return finished.get(invocation)
           } catch (error) {
-            taskFailure ??= rememberFailure(error)
+            taskFailure ??= takeFailure(error)
             try {
               const child = owner.find(invocation, current().children)
-              if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+              if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
             } catch (cleanupError) {
-              taskFailure = rememberFailure(cleanupError)
+              taskFailure = takeFailure(cleanupError)
               throw cleanupError
             }
             throw error
@@ -508,16 +549,16 @@ export function createOwnedArtifactDriver({
         }
         outcome = registryOutcome.task.value
       } catch (error) {
-        if (!registryRejected) rememberFailure(error)
+        if (!registryRejected) takeFailure(error)
         try {
           const child = owner.find(invocation, current().children)
-          if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+          if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
           if (!taskEntered && child.$ === "Some" && child.value.scope.$ === "AdviceTailScope") {
             constructionError = failures[0]
             session.forceCleanup?.(constructionError.error)
           }
         } catch (cleanupError) {
-          rememberFailure(cleanupError)
+          takeFailure(cleanupError)
         }
       }
       const releaseInvocation = () => {
@@ -546,14 +587,14 @@ export function createOwnedArtifactDriver({
             cleanupPending: false
           })
           try {
-            apply(invoke("terminal", invocation, child.value.generation, id))
+            applyInInvocation(invoke("terminal", invocation, child.value.generation, id))
           } finally {
             release(id, invocation)
           }
         }
         child = owner.find(invocation, current().children)
         if (child.$ === "Some" && owner.child_active(child.value)) {
-          apply(invoke("cancel", invocation))
+          applyInInvocation(invoke("cancel", invocation))
           child = owner.find(invocation, current().children)
           if (child.$ === "Some" && owner.child_active(child.value))
             throw new Error("Finalization has no closed Canonical owner")
@@ -563,7 +604,7 @@ export function createOwnedArtifactDriver({
       try {
         await completeInvocation()
       } catch (error) {
-        rememberFailure(error)
+        takeFailure(error)
         registry.retainCleanup(session, completeInvocation)
       }
       if (failures.length === 1) throw failures[0].error
@@ -589,10 +630,13 @@ export function createOwnedArtifactDriver({
       apply(invoke("cancel", BigInt(invocation)))
     },
     acceptActions(commands) {
-      executeActions(commands)
+      unwrap(executeActionsOutcome(commands))
     },
     acceptPublication(step) {
       apply(step)
+    },
+    acceptPublicationOutcome(step) {
+      return applyOutcome(step)
     },
     canonicalEvent(event) {
       apply(invoke("canonical_event", event))

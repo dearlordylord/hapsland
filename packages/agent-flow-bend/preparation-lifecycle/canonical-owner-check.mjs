@@ -662,6 +662,76 @@ try {
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 10
   }
+  // A real Resume can fail in nested installation while outer cleanup and the
+  // publication sink independently fail. Preserve their order and occurrences.
+  for (const mode of ["before-install", "nested-output"]) {
+    const registry = createServiceRegistry()
+    const nestedError = new Error("nested installation sink")
+    const cleanupError = new Error("cleanup acknowledgment")
+    const sinkError = new Error("outer publication sink")
+    const primary = mode === "before-install" ? undefined : nestedError
+    let armed = false,
+      nestedFailed = false,
+      resumes = 0
+    const machine = {
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      view: (value) => value,
+      resume(value) {
+        resumes++
+        return { $: "Types.AwaitService", request: { invocation: value.request.invocation, id: 8n } }
+      },
+      disposeInvocation() {},
+      get retainedHandles() {
+        return 0
+      }
+    }
+    const driver = createOwnedArtifactDriver({
+      owner: m,
+      initialState: fresh(),
+      scope,
+      registry,
+      machine,
+      foreign: () => ({ value: "provider result" }),
+      hooks: {
+        beforeInstall({ generation }) {
+          if (generation === 1n) {
+            armed = true
+            if (mode === "before-install") throw primary
+          }
+        },
+        afterAction({ command }) {
+          if (armed && command.$ === "CleanupProvider") throw cleanupError
+        },
+        canonicalOutputs() {
+          if (!armed) return
+          if (mode === "nested-output" && !nestedFailed) {
+            nestedFailed = true
+            throw nestedError
+          }
+          armed = false
+          throw sinkError
+        }
+      }
+    })
+    const invocation = driver.allocateInvocation()
+    const session = { invocation, finish() {}, close() {}, revoke() {} }
+    const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+      () => ({ raised: false }),
+      (error) => ({ raised: true, error })
+    )
+    assert.equal(observed.raised, true)
+    assert.ok(observed.error instanceof AggregateError)
+    assert.equal(observed.error.cause, primary)
+    assert.deepEqual(observed.error.errors, [primary, cleanupError, sinkError])
+    assert.equal(resumes, 1)
+    assert.equal(driver.stats.providerStarts, 1)
+    assert.equal(driver.stats.providerCleanups, 1)
+    assert.equal(driver.stats.accepted, 0)
+    assert.equal(m.find(BigInt(invocation), driver.state.children).value.phase.$, "ChildCancelled")
+    assert.equal(registry.pendingCleanup, 0)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 11
+  }
   // A rejected Source interrupt retains exact custody/resources for retry.
   {
     let controlled = fresh(),
