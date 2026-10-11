@@ -260,9 +260,9 @@ One current obstacle list, in execution order:
    observed/unavailable outcomes. Emitted service tests passed 169 requests,
    including 11 physical/injected directory cases and seven actual protocol
    owner/correlation/matching cases. Source-analysis typecheck/nonempty lint and
-   the envelope compile passed. Workspace build 46/46 and consumers 50/64/13
-   passed before the final Protocol matching correction; refreshed build/consumer
-   qualification is still required. check:fast again passed 109 tests/typecheck
+   the envelope compile passed. After the production Protocol correction,
+   workspace build passed 46/46 (15 cached, 18.242 seconds), all 23 receipts
+   validated, and actual consumers passed 50/64/13 cases. check:fast again passed 109 tests/typecheck
    and package graph, then failed development imports. This command only closes
    the raw inventory IO prerequisite; no Go workflow or native TS deletion is
    claimed.
