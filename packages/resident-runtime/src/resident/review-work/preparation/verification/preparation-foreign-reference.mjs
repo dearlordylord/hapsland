@@ -32,16 +32,7 @@ export function createVerificationPreparationForeign({ compareRoots = true, onRo
             $: "RootResolved",
             unit: { $: "None" },
             references: list([]),
-            captures: list(
-              [...options.cache].map(([path, capture], index) => ({
-                $: "Capture",
-                path,
-                handle: BigInt(index + 1),
-                text: capture.text,
-                content_hash: capture.contentHash,
-                bytes: BigInt(capture.byteLength)
-              }))
-            )
+            captures: capability.snapshotCaptures()
           }
         }
       }

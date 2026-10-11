@@ -2,11 +2,11 @@ import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-ev
 import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { residentRuntime } from "../../state/resident/runtime.ts"
 import { providerTransaction, ResidentProviderPermit } from "../../state/resolver-custody/resident-provider-permit.mjs"
-import assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../../canonical-policy/dist/canonical/graph-limits.js"
 import {
-  eligibleNamedPath,
+  inspectNamedPath,
+  resolvedDirectFilePolicy,
   DEFAULT_DIRECT_FILE_POLICY
 } from "../../../../../native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../../../native-observation/dist/direct-event/capture.js"
@@ -55,7 +55,28 @@ export function createPreparationForeign({
     }
   }
   const rootCaptures = new Map(),
-    selections = new Map()
+    selections = new Map(),
+    captureHandles = new Map()
+  let nextSelection = 1n,
+    nextCapture = 1n
+  const registerCapture = (capture) => {
+    let handle = captureHandles.get(capture)
+    if (handle === undefined) {
+      handle = nextCapture++
+      captureHandles.set(capture, handle)
+      rootCaptures.set(handle, capture)
+    }
+    return handle
+  }
+  for (const capture of cache.values()) registerCapture(capture)
+  const currentPolicy = () =>
+    context.policy === undefined
+      ? settings.configuration === undefined
+        ? DEFAULT_DIRECT_FILE_POLICY
+        : resolvedDirectFilePolicy(settings.configuration.policy)
+      : typeof context.policy === "function"
+        ? context.policy()
+        : context.policy
   const graphContext = {
     ...context,
     analysisConfiguration:
@@ -82,10 +103,10 @@ export function createPreparationForeign({
   })
   const snapshotCaptures = () =>
     list(
-      [...cache].map(([path, capture], index) => ({
+      [...cache].map(([path, capture]) => ({
         $: "Capture",
         path,
-        handle: BigInt(index + 1),
+        handle: registerCapture(capture),
         text: capture.text,
         content_hash: capture.contentHash,
         bytes: BigInt(capture.byteLength)
@@ -96,27 +117,42 @@ export function createPreparationForeign({
     let response
     switch (command.$) {
       case "InspectPath": {
-        const selected = await Effect.runPromise(
-          eligibleNamedPath(root, command.candidate.path, DEFAULT_DIRECT_FILE_POLICY, rootIdentity)
+        const admission = await Effect.runPromise(
+          inspectNamedPath(root, command.candidate.path, currentPolicy(), rootIdentity)
         )
-        assert.ok(selected)
-        selections.set(1n, selected)
-        response = { $: "PathAllowed", path: command.candidate.path, selection: 1n }
+        if (admission.status === "denied") {
+          response = { $: "PathDenied", reason: admission.reason }
+          break
+        }
+        const handle = nextSelection++
+        selections.set(handle, admission.path)
+        response = { $: "PathAllowed", path: admission.path.relativePath, selection: handle }
         break
       }
       case "CaptureSource": {
+        const selected = selections.get(command.selection)
+        if (!selected) throw new TypeError("Unknown preparation selection handle")
         const capture = await Effect.runPromise(
-          (context.captureSource ?? captureStable)(root, selections.get(command.selection), {}, rootIdentity)
+          (context.captureSource ?? captureStable)(
+            root,
+            selected,
+            context.captureHooks,
+            rootIdentity,
+            command.source_cap.$ === "None" ? undefined : Number(command.source_cap.value)
+          )
         )
-        assert.equal(capture.status, "captured")
-        rootCaptures.set(1n, capture.capture)
+        if (capture.status === "unavailable") {
+          response = { $: "SourceUnavailable", diagnostic: productValue(capture.diagnostic) }
+          break
+        }
+        const handle = registerCapture(capture.capture)
         cache.set(command.path, capture.capture)
         response = {
           $: "SourceCaptured",
           capture: {
             $: "Capture",
             path: command.path,
-            handle: 1n,
+            handle,
             text: capture.capture.text,
             content_hash: capture.capture.contentHash,
             bytes: BigInt(capture.capture.byteLength)
@@ -272,6 +308,7 @@ export function createPreparationForeign({
           name: command.root.name,
           context: {
             ...graphContext,
+            policy: currentPolicy(),
             branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type"
           }
         }
@@ -315,5 +352,5 @@ export function createPreparationForeign({
     graphLimits,
     capturedSources: cache
   })
-  return { ...capability, perform: (request, options) => capability.perform([request], options) }
+  return { ...capability, snapshotCaptures, perform: (request, options) => capability.perform([request], options) }
 }

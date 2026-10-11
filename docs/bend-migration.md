@@ -650,3 +650,23 @@ qualify the extraction, not the still-open path/capture provider contract or pub
 adoption. Astra's exact appended node-count/shifted exclusion/parent-slot ownership
 prefix passes hard five seconds in 2.775 seconds; full original parent law remains
 open with unchanged premises. All retained source and proof work is backed up.
+
+Frozen 6c390360 cadence: build starts 18:32:08.898371 UTC, qualifies all
+17 pairs (23/46 cached, unchanged inputs) but fails parity 1.1255736659156603.
+Execution starts 18:36:17.977722 UTC and qualifies at 0.7275642461714295. Both
+starts are timely. Next deadlines: 19:02:08.898371 and 19:06:17.977722 UTC.
+These qualify existing production measurements, not whole preparation adoption.
+
+Astra reviewed the full path/capture port using existing ABI. InspectPath now
+uses actual inspectNamedPath and request-time native policy precedence, preserving
+normalized relative path and denial reason. Unique selection handles retain exact
+admissions. CaptureSource forwards hooks/root identity/source cap, preserves throws
+and returns typed SourceUnavailable diagnostics. One monotonic session capture
+allocator maps exact StableCapture objects; all cache entries are registered during
+snapshots, preserving cache iteration order and supporting/reused capture custody.
+ResolveRoot reads current policy again; Bend retains cache/admission decisions.
+Verification first-refused uses the same custody snapshot rather than invented
+positional handles. Lint passes both changed files. Full existing Source passes
+56/6338/31; full resident rerun and additional physical multi-candidate, dependency
+as candidate, normalized-repeat, dynamic-policy and refusal/hook/cap fixtures remain
+required. This retained port is not accepted production; adoption/removal stay 0/0.
