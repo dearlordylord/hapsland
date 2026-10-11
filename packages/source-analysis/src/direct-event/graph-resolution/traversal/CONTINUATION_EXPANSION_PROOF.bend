@@ -46,7 +46,11 @@ def root_complete(
   +expected: Core.ExpectedKind,
   +depth: Nat,
   +valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
-  enough: {Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel) == True{} : Bool}
+  enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  }
 ) -> {
   C.build_complete(fuel, Child.root_result(fuel, machine, symbol, expected, depth)) == True{} : Bool
 }:
@@ -283,6 +287,70 @@ def root_fuels_equal(
       right,
       machine,
       symbol,
+      expected,
+      depth,
+      left_complete,
+      right_complete
+    ),
+    next
+  )
+
+def bound_root_fuels_equal(+binding: String,
+  +left: Nat,
+  +right: Nat,
+  +machine: Core.Machine,
+  +symbol: String,
+  +expected: Core.ExpectedKind,
+  +depth: Nat,
+  +owner: Nat,
+  +index: Nat,
+  +prefix: Spec.Flat,
+  +left_complete: {
+    C.build_complete(left, Child.root_result(left, machine, binding, expected, depth))
+    == True{}
+    : Bool
+  },
+  +right_complete: {
+    C.build_complete(right, Child.root_result(right, machine, binding, expected, depth))
+    == True{}
+    : Bool
+  },
+  next: Continuation.Progress -> Relation.Observation
+) -> {
+      Child.reference_next(
+        Spec.expanded_result(Child.root_result(left, machine, binding, expected, depth), symbol),
+        left,
+        owner,
+        index,
+        prefix,
+        next
+      )
+      == Child.reference_next(
+        Spec.expanded_result(Child.root_result(right, machine, binding, expected, depth), symbol),
+        right,
+        owner,
+        index,
+        prefix,
+        next
+      )
+      : Relation.Observation
+    }:
+  equal_build_fuels(
+    Child.root_result(left, machine, binding, expected, depth),
+    Child.root_result(right, machine, binding, expected, depth),
+    left,
+    right,
+    symbol,
+    owner,
+    index,
+    prefix,
+    left_complete,
+    right_complete,
+    root_results_equal(
+      left,
+      right,
+      machine,
+      binding,
       expected,
       depth,
       left_complete,

@@ -816,6 +816,686 @@ def named_equal(
       )
     case Some{_}: {==}
 
+def bound_child_or_cycle_equal(
+  +left: Nat,
+  +right: Nat,
+  +binding: String,
+  +already_seen: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +identity: String,
+  left_complete: {
+    reference_completed(
+      Spec.child_or_cycle(
+        already_seen,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  right_complete: {
+    reference_completed(
+      Spec.child_or_cycle(
+        already_seen,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  child: contract(left, right)
+) -> {
+      Spec.child_or_cycle(
+        already_seen,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+      == Spec.child_or_cycle(
+        already_seen,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+      : Spec.ReferenceResult
+    }:
+  match already_seen:
+    case True{}: {==}
+    case False{}:
+      expanded_equal(
+        left,
+        right,
+        Spec.Request{facts, path, binding, expected, (depth + 1n : Nat), state},
+        symbol,
+        left_complete,
+        right_complete,
+        child
+      )
+
+def bound_local_allowed_equal(
+  +left: Nat,
+  +right: Nat,
+  +binding: String,
+  +permit: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +identity: String,
+  left_complete: {
+    reference_completed(
+      Spec.local_allowed(
+        permit,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  right_complete: {
+    reference_completed(
+      Spec.local_allowed(
+        permit,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  child: contract(left, right)
+) -> {
+      Spec.local_allowed(
+        permit,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+      == Spec.local_allowed(
+        permit,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+      : Spec.ReferenceResult
+    }:
+  match permit:
+    case False{}: {==}
+    case True{}:
+      bound_child_or_cycle_equal(
+        left,
+        right, binding,
+        Spec.seen(state, identity),
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        left_complete,
+        right_complete,
+        child
+      )
+
+def bound_local_budget_equal(
+  +left: Nat,
+  +right: Nat,
+  +binding: String,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +identity: String,
+  left_complete: {
+    reference_completed(
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(left)(Spec.bound_child_request(binding, next)))
+    )
+    == True{}
+    : Bool
+  },
+  right_complete: {
+    reference_completed(
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(right)(Spec.bound_child_request(binding, next)))
+    )
+    == True{}
+    : Bool
+  },
+  child: contract(left, right)
+) -> {
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(left)(Spec.bound_child_request(binding, next)))
+      == Spec.local_budget(
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+      : Spec.ReferenceResult
+    }:
+  bound_local_allowed_equal(
+    left,
+    right, binding,
+    Spec.allowed(state, path),
+    state,
+    facts,
+    path,
+    symbol,
+    depth,
+    expected,
+    identity,
+    left_complete,
+    right_complete,
+    child
+  )
+
+def bound_local_kind_equal(
+  +left: Nat,
+  +right: Nat,
+  +binding: String,
+  +valid: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +identity: String,
+  left_complete: {
+    reference_completed(
+      Spec.local_kind(
+        valid,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  right_complete: {
+    reference_completed(
+      Spec.local_kind(
+        valid,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  child: contract(left, right)
+) -> {
+      Spec.local_kind(
+        valid,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+      == Spec.local_kind(
+        valid,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+      : Spec.ReferenceResult
+    }:
+  match valid:
+    case False{}: {==}
+    case True{}:
+      bound_local_budget_equal(
+        left,
+        right, binding,
+        Spec.local_work(state),
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        left_complete,
+        right_complete,
+        child
+      )
+
+def bound_local_conflict_equal(
+  +left: Nat,
+  +right: Nat,
+  +binding: String,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +declaration: Core.Declaration,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  left_complete: {
+    reference_completed(
+      Spec.local_conflict(
+        imported,
+        declaration,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  right_complete: {
+    reference_completed(
+      Spec.local_conflict(
+        imported,
+        declaration,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  child: contract(left, right)
+) -> {
+      Spec.local_conflict(
+        imported,
+        declaration,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+      == Spec.local_conflict(
+        imported,
+        declaration,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+      : Spec.ReferenceResult
+    }:
+  match imported declaration:
+    case Some{_} _: {==}
+    case None{} Core.Declaration{_, +identity, +function, _, _}:
+      bound_local_kind_equal(
+        left,
+        right, binding,
+        Spec.matches(expected, function),
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        identity,
+        left_complete,
+        right_complete,
+        child
+      )
+
+def bound_choose_local_equal(
+  +left: Nat,
+  +right: Nat,
+  +binding: String,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  left_complete: {
+    reference_completed(
+      Spec.choose_local(
+        local,
+        imported,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  right_complete: {
+    reference_completed(
+      Spec.choose_local(
+        local,
+        imported,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  child: contract(left, right)
+) -> {
+      Spec.choose_local(
+        local,
+        imported,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+      == Spec.choose_local(
+        local,
+        imported,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+      : Spec.ReferenceResult
+    }:
+  match local:
+    case Some{+declaration}:
+      bound_local_conflict_equal(
+        left,
+        right, binding,
+        imported,
+        declaration,
+        state,
+        facts,
+        path,
+        symbol,
+        depth,
+        expected,
+        left_complete,
+        right_complete,
+        child
+      )
+    case None{}: {==}
+
+def bound_ordinary_found_equal(
+  +left: Nat,
+  +right: Nat,
+  +binding: String,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  left_complete: {
+    reference_completed(
+      Spec.ordinary_found(
+        local,
+        imported,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  right_complete: {
+    reference_completed(
+      Spec.ordinary_found(
+        local,
+        imported,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+    )
+    == True{}
+    : Bool
+  },
+  child: contract(left, right)
+) -> {
+      Spec.ordinary_found(
+        local,
+        imported,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+      )
+      == Spec.ordinary_found(
+        local,
+        imported,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+      )
+      : Spec.ReferenceResult
+    }:
+  bound_choose_local_equal(left, right, binding, local, imported,
+    Spec.target(state, path, Spec.identity_key(local, imported, path, symbol)),
+    facts, path, symbol, owner, index, depth, expected, left_complete, right_complete, child)
+
+def bound_named_equal(
+  +left: Nat,
+  +right: Nat,
+  +binding: String,
+  +target_id: Maybe<&2, String>,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +state: Spec.State,
+  left_complete: {
+    reference_completed(
+      Spec.bound_named(target_id, binding,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        state,
+        C.build_child(left)
+      )
+    )
+    == True{}
+    : Bool
+  },
+  right_complete: {
+    reference_completed(
+      Spec.bound_named(target_id, binding,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        state,
+        C.build_child(right)
+      )
+    )
+    == True{}
+    : Bool
+  },
+  child: contract(left, right)
+) -> {
+      Spec.bound_named(target_id, binding,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        state,
+        C.build_child(left)
+      )
+      == Spec.bound_named(target_id, binding,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        state,
+        C.build_child(right)
+      )
+      : Spec.ReferenceResult
+    }:
+  match target_id:
+    case None{}:
+      bound_ordinary_found_equal(left, right, binding,
+        Spec.find_declaration(facts, binding, expected), Spec.find_import(facts, symbol),
+        state, facts, path, symbol, owner, index, depth, expected, left_complete, right_complete, child)
+    case Some{_}: {==}
+
 def by_kind_equal(
   +left: Nat,
   +right: Nat,
@@ -898,6 +1578,8 @@ def by_kind_equal(
       : Spec.ReferenceResult
     }:
   match kind:
+    case Core.BoundNamed{binding}: bound_named_equal(left, right, binding, target_id, facts, path, symbol,
+      owner, index, depth, expected, state, left_complete, right_complete, child)
     case Core.Unsupported{}: {==}
     case Core.Named{}:
       named_equal(left, right, target_id, facts, path, symbol, owner, index, depth,

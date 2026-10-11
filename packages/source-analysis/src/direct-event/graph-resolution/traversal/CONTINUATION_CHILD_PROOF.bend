@@ -124,7 +124,10 @@ def ensure_path_exact(+budget: Core.Budget, +path: String) -> {
         Map<&2, Bool>,
         Core.Budget,
         ensure_path_from_set(Core.Budget{limits, targets, maximum, work, graph_work, depth}, path),
-        CoreTraversal.target_map(Core.Budget{limits, targets, maximum, work, graph_work, depth}, path),
+        CoreTraversal.target_map(
+          Core.Budget{limits, targets, maximum, work, graph_work, depth},
+          path
+        ),
         Spec.path_set(Core.Budget{limits, targets, maximum, work, graph_work, depth}, path),
         State.target_map_exact(Core.Budget{limits, targets, maximum, work, graph_work, depth}, path)
       )
@@ -193,7 +196,9 @@ def expanded_join(+machine: Core.Machine, +declaration: Core.Declaration,
       Equal.trans(
         Spec.Flat,
         Spec.flat_join(
-          Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+          Prefix.prefix(
+            CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
+          ),
           Spec.Flat{nodes, slots}
         ),
         Spec.flat_join(
@@ -201,7 +206,12 @@ def expanded_join(+machine: Core.Machine, +declaration: Core.Declaration,
             Prefix.prefix(machine),
             Spec.Flat{
               Core.PlannedNode{CoreTraversal.next_node(machine), declaration_handle(declaration)} <> [],
-              Core.ReferenceSlot{owner, index, symbol, Core.Expanded{CoreTraversal.next_node(machine)}} <> []
+              Core.ReferenceSlot{
+                owner,
+                index,
+                symbol,
+                Core.Expanded{CoreTraversal.next_node(machine)}
+              } <> []
             }
           ),
           Spec.Flat{nodes, slots}
@@ -224,12 +234,19 @@ def expanded_join(+machine: Core.Machine, +declaration: Core.Declaration,
           Spec.Flat,
           Spec.Flat,
           join_right(Spec.Flat{nodes, slots}),
-          Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+          Prefix.prefix(
+            CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
+          ),
           Spec.flat_join(
             Prefix.prefix(machine),
             Spec.Flat{
               Core.PlannedNode{CoreTraversal.next_node(machine), declaration_handle(declaration)} <> [],
-              Core.ReferenceSlot{owner, index, symbol, Core.Expanded{CoreTraversal.next_node(machine)}} <> []
+              Core.ReferenceSlot{
+                owner,
+                index,
+                symbol,
+                Core.Expanded{CoreTraversal.next_node(machine)}
+              } <> []
             }
           ),
           expanded_prefix(machine, declaration, owner, index, symbol, depth)
@@ -238,7 +255,12 @@ def expanded_join(+machine: Core.Machine, +declaration: Core.Declaration,
           Prefix.prefix(machine),
           Spec.Flat{
             Core.PlannedNode{CoreTraversal.next_node(machine), declaration_handle(declaration)} <> [],
-            Core.ReferenceSlot{owner, index, symbol, Core.Expanded{CoreTraversal.next_node(machine)}} <> []
+            Core.ReferenceSlot{
+              owner,
+              index,
+              symbol,
+              Core.Expanded{CoreTraversal.next_node(machine)}
+            } <> []
           },
           Spec.Flat{nodes, slots}
         )
@@ -251,13 +273,26 @@ def continue_flat(state: Spec.State, next: Continuation.Progress -> Relation.Obs
 def finish_child_flat(+flat: Spec.Flat, +state: Spec.State, +machine: Core.Machine,
     +declaration: Core.Declaration, +owner: Nat, +index: Nat, +symbol: String, +depth: Nat,
     next: Continuation.Progress -> Relation.Observation) -> {
-  Continuation.after_flat(flat, state,
-    Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)), next)
-    == Continuation.after_flat(
-      Spec.flat_slot(Spec.flat_node(flat, CoreTraversal.next_node(machine), declaration_handle(declaration)),
-        owner, index, symbol, Core.Expanded{CoreTraversal.next_node(machine)}),
-      state, Prefix.prefix(machine), next) : Relation.Observation
-}:
+      Continuation.after_flat(
+        flat,
+        state,
+        Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+        next
+      )
+      == Continuation.after_flat(
+        Spec.flat_slot(
+          Spec.flat_node(flat, CoreTraversal.next_node(machine), declaration_handle(declaration)),
+          owner,
+          index,
+          symbol,
+          Core.Expanded{CoreTraversal.next_node(machine)}
+        ),
+        state,
+        Prefix.prefix(machine),
+        next
+      )
+      : Relation.Observation
+    }:
   match flat:
     case Spec.FlatFailure{}: {==}
     case Spec.Flat{+nodes, +slots}:
@@ -266,7 +301,9 @@ def finish_child_flat(+flat: Spec.Flat, +state: Spec.State, +machine: Core.Machi
         Relation.Observation,
         continue_flat(state, next),
         Spec.flat_join(
-          Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+          Prefix.prefix(
+            CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
+          ),
           Spec.Flat{nodes, slots}
         ),
         Spec.flat_join(
@@ -311,7 +348,11 @@ def after_child_result(+result: Spec.ReferencesResult, +fuel: Nat, +machine: Cor
       )
       == reference_next(
         Spec.expanded_result(
-          Spec.tree_result(result, CoreTraversal.next_node(machine), declaration_handle(declaration)),
+          Spec.tree_result(
+            result,
+            CoreTraversal.next_node(machine),
+            declaration_handle(declaration)
+          ),
           symbol
         ),
         (1n + fuel : Nat),
@@ -340,12 +381,31 @@ def after_child_result(+result: Spec.ReferencesResult, +fuel: Nat, +machine: Cor
 def after_child_dispatch(+result: Spec.DispatchResult, +fuel: Nat, +machine: Core.Machine,
     +declaration: Core.Declaration, +owner: Nat, +index: Nat, +symbol: String, +depth: Nat,
     next: Continuation.Progress -> Relation.Observation) -> {
-  Continuation.after_references(result, CoreTraversal.next_node(machine), 0n,
-    Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)), fuel, next)
-    == reference_next(Spec.expanded_result(Spec.tree_result(Spec.as_references(result),
-      CoreTraversal.next_node(machine), declaration_handle(declaration)), symbol),
-      (1n + fuel : Nat), owner, index, Prefix.prefix(machine), next) : Relation.Observation
-}:
+      Continuation.after_references(
+        result,
+        CoreTraversal.next_node(machine),
+        0n,
+        Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+        fuel,
+        next
+      )
+      == reference_next(
+        Spec.expanded_result(
+          Spec.tree_result(
+            Spec.as_references(result),
+            CoreTraversal.next_node(machine),
+            declaration_handle(declaration)
+          ),
+          symbol
+        ),
+        (1n + fuel : Nat),
+        owner,
+        index,
+        Prefix.prefix(machine),
+        next
+      )
+      : Relation.Observation
+    }:
   match result:
     case Spec.BuildResult{Spec.Missing{_}}: {==}
     case Spec.BuildResult{Spec.InsufficientBound{_}}: {==}
@@ -357,8 +417,15 @@ def child_request(+machine: Core.Machine, declaration: Core.Declaration, depth: 
     state: Spec.State) -> Spec.Request:
   match declaration:
     case Core.Declaration{_, _, _, _, children}:
-      Spec.ReferencesRequest{children, CoreTraversal.machine_facts(machine), CoreTraversal.machine_path(machine),
-        CoreTraversal.next_node(machine), 0n, depth, state}
+      Spec.ReferencesRequest{
+        children,
+        CoreTraversal.machine_facts(machine),
+        CoreTraversal.machine_path(machine),
+        CoreTraversal.next_node(machine),
+        0n,
+        depth,
+        state
+      }
 
 def walk_at(facts: Core.Facts, path: String, state: Spec.State, depth: Nat, fuel: Nat,
     found: Maybe<&2, Core.Declaration>) -> Spec.Build:
@@ -570,6 +637,173 @@ def entered_correspondence(
       )
       : Relation.Observation
     }
-  after_child_dispatch(Spec.interpret(fuel, child_request(machine, declaration, depth,
-    State.state(CoreTraversal.enter_node(machine, declaration, depth)))), fuel, machine, declaration,
-    owner, index, symbol, depth, next)
+  after_child_dispatch(
+    Spec.interpret(
+      fuel,
+      child_request(
+        machine,
+        declaration,
+        depth,
+        State.state(CoreTraversal.enter_node(machine, declaration, depth))
+      )
+    ),
+    fuel,
+    machine,
+    declaration,
+    owner,
+    index,
+    symbol,
+    depth,
+    next
+  )
+
+def bound_entered_correspondence(+binding: String,
+  +fuel: Nat,
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +expected: Core.ExpectedKind,
+  +depth: Nat,
+  found: {
+    Spec.find_declaration(CoreTraversal.machine_facts(machine), binding, expected)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  },
+  next: Continuation.Progress -> Relation.Observation
+) -> {
+      Continuation.after_references(
+        Spec.interpret(
+          fuel,
+          child_request(
+            machine,
+            declaration,
+            depth,
+            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+          )
+        ),
+        CoreTraversal.next_node(machine),
+        0n,
+        Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+        fuel,
+        next
+      )
+      == reference_next(
+        Spec.expanded_result(
+          root_result((1n + fuel : Nat), machine, binding, expected, depth),
+          symbol
+        ),
+        (1n + fuel : Nat),
+        owner,
+        index,
+        Prefix.prefix(machine),
+        next
+      )
+      : Relation.Observation
+    }:
+  %Equal.sym(
+    Spec.Build,
+    root_result((1n + fuel : Nat), machine, binding, expected, depth),
+    Spec.tree_result(
+      Spec.as_references(
+        Spec.interpret(
+          fuel,
+          child_request(
+            machine,
+            declaration,
+            depth,
+            Spec.enter(
+              State.state(machine),
+              CoreTraversal.machine_path(machine),
+              CoreTraversal.declaration_identity(declaration)
+            )
+          )
+        )
+      ),
+      CoreTraversal.next_node(machine),
+      declaration_handle(declaration)
+    ),
+    root_build_exact(fuel, machine, declaration, binding, expected, depth, found)
+  ):
+    {
+      Continuation.after_references(
+        Spec.interpret(
+          fuel,
+          child_request(
+            machine,
+            declaration,
+            depth,
+            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+          )
+        ),
+        CoreTraversal.next_node(machine),
+        0n,
+        Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+        fuel,
+        next
+      )
+      == reference_next(
+        Spec.expanded_result(_, symbol),
+        (1n + fuel : Nat),
+        owner,
+        index,
+        Prefix.prefix(machine),
+        next
+      )
+      : Relation.Observation
+    }
+  %enter_state_exact(machine, declaration, depth):
+    {
+      Continuation.after_references(
+        Spec.interpret(
+          fuel,
+          child_request(
+            machine,
+            declaration,
+            depth,
+            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+          )
+        ),
+        CoreTraversal.next_node(machine),
+        0n,
+        Prefix.prefix(CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+        fuel,
+        next
+      )
+      == reference_next(
+        Spec.expanded_result(
+          Spec.tree_result(
+            Spec.as_references(Spec.interpret(fuel, child_request(machine, declaration, depth, _))),
+            CoreTraversal.next_node(machine),
+            declaration_handle(declaration)
+          ),
+          symbol
+        ),
+        (1n + fuel : Nat),
+        owner,
+        index,
+        Prefix.prefix(machine),
+        next
+      )
+      : Relation.Observation
+    }
+  after_child_dispatch(
+    Spec.interpret(
+      fuel,
+      child_request(
+        machine,
+        declaration,
+        depth,
+        State.state(CoreTraversal.enter_node(machine, declaration, depth))
+      )
+    ),
+    fuel,
+    machine,
+    declaration,
+    owner,
+    index,
+    symbol,
+    depth,
+    next
+  )

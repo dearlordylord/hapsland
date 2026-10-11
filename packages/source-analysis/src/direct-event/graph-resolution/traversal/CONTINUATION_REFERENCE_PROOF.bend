@@ -142,10 +142,19 @@ def included_exact(+fuel: Nat, +machine: Core.Machine, +owner: Nat, +index: Nat,
 
 def pending_omitted_exact(+fuel: Nat, +machine: Core.Machine, +owner: Nat, +index: Nat,
     +symbol: String, +reason: Core.Omission, +item: Core.Pending) -> {
-  Machine.evaluate(fuel, CoreTraversal.add_pending(CoreTraversal.omit(machine, owner, index, symbol, reason), item))
-    == observation(Spec.omitted(Spec.pending(State.state(machine), item), symbol, reason),
-      machine, fuel, owner, index) : Relation.Observation
-}:
+      Machine.evaluate(
+        fuel,
+        CoreTraversal.add_pending(CoreTraversal.omit(machine, owner, index, symbol, reason), item)
+      )
+      == observation(
+        Spec.omitted(Spec.pending(State.state(machine), item), symbol, reason),
+        machine,
+        fuel,
+        owner,
+        index
+      )
+      : Relation.Observation
+    }:
   match machine:
     case Core.Machine{
       +facts,
@@ -217,7 +226,16 @@ def import_kind_exact(+fuel: Nat, +expected: Core.ExpectedKind, +type_only: Bool
     +imported: Core.ImportBinding) -> {
       Machine.evaluate(
         fuel,
-        CoreTraversal.import_by_kind(expected, type_only, machine, owner, index, symbol, depth, imported)
+        CoreTraversal.import_by_kind(
+          expected,
+          type_only,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          imported
+        )
       )
       == observation(
         Spec.imported_kind(
@@ -472,7 +490,16 @@ def bundle_charged_exact(+fuel: Nat, +machine: Core.Machine, +seen: Bool,
     +depth: Nat, +expected: Core.ExpectedKind) -> {
       Machine.evaluate(
         fuel,
-        CoreTraversal.bundled_charged(machine, seen, declaration, owner, index, symbol, depth, expected)
+        CoreTraversal.bundled_charged(
+          machine,
+          seen,
+          declaration,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
       )
       == observation(
         Spec.bundle_budget(
@@ -498,7 +525,16 @@ def bundle_charged_exact(+fuel: Nat, +machine: Core.Machine, +seen: Bool,
     Relation.Observation,
     Machine.evaluate(
       fuel,
-      CoreTraversal.bundled_charged(machine, seen, declaration, owner, index, symbol, depth, expected)
+      CoreTraversal.bundled_charged(
+        machine,
+        seen,
+        declaration,
+        owner,
+        index,
+        symbol,
+        depth,
+        expected
+      )
     ),
     observed_bundle_permit(
       State.state(machine),
@@ -610,14 +646,21 @@ def selected_expansion_exact(
   +expected: Core.ExpectedKind,
   +depth: Nat,
   +valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
-  +enough: {Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel) == True{} : Bool},
+  +enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  },
   found: {
     Spec.find_declaration(CoreTraversal.machine_facts(machine), symbol, expected)
     == Some{declaration}
     : Maybe<&2, Core.Declaration>
   }
 ) -> {
-      Machine.evaluate(fuel, CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth))
+      Machine.evaluate(
+        fuel,
+        CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
+      )
       == observation(
         Spec.expanded_result(Child.root_result(fuel, machine, symbol, expected, depth), symbol),
         machine,
@@ -642,7 +685,10 @@ def selected_expansion_exact(
       +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       Equal.trans(
         Relation.Observation,
-        Machine.evaluate(fuel, CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)),
+        Machine.evaluate(
+          fuel,
+          CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
+        ),
         Child.reference_next(
           Spec.expanded_result(
             Child.root_result((1n + fuel : Nat), machine, symbol, expected, depth),
@@ -730,6 +776,155 @@ def selected_expansion_exact(
           ),
           reference_next_exact(
             Spec.expanded_result(Child.root_result(fuel, machine, symbol, expected, depth), symbol),
+            machine,
+            fuel,
+            owner,
+            index
+          )
+        )
+      )
+
+def bound_selected_expansion_exact(
+  +binding: String,
+  +fuel: Nat,
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +expected: Core.ExpectedKind,
+  +depth: Nat,
+  +valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
+  +enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  },
+  found: {
+    Spec.find_declaration(CoreTraversal.machine_facts(machine), binding, expected)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  }
+) -> {
+      Machine.evaluate(
+        fuel,
+        CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
+      )
+      == observation(
+        Spec.expanded_result(Child.root_result(fuel, machine, binding, expected, depth), symbol),
+        machine,
+        fuel,
+        owner,
+        index
+      )
+      : Relation.Observation
+    }:
+  match machine:
+    case Core.Machine{
+      +facts,
+      +path,
+      +frames,
+      +visited,
+      +budget,
+      +address,
+      +nodes,
+      +slots,
+      +pending
+    }:
+      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      Equal.trans(
+        Relation.Observation,
+        Machine.evaluate(
+          fuel,
+          CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
+        ),
+        Child.reference_next(
+          Spec.expanded_result(
+            Child.root_result((1n + fuel : Nat), machine, binding, expected, depth),
+            symbol
+          ),
+          (1n + fuel : Nat),
+          owner,
+          index,
+          Prefix.prefix(machine),
+          Continuation.resume(frames, facts, path, fuel)
+        ),
+        observation(
+          Spec.expanded_result(Child.root_result(fuel, machine, binding, expected, depth), symbol),
+          machine,
+          fuel,
+          owner,
+          index
+        ),
+        Machine.bound_expanded_evaluation(binding,
+          fuel,
+          machine,
+          declaration,
+          owner,
+          index,
+          symbol,
+          expected,
+          depth,
+          found
+        ),
+        Equal.trans(
+          Relation.Observation,
+          Child.reference_next(
+            Spec.expanded_result(
+              Child.root_result((1n + fuel : Nat), machine, binding, expected, depth),
+              symbol
+            ),
+            (1n + fuel : Nat),
+            owner,
+            index,
+            Prefix.prefix(machine),
+            Continuation.resume(frames, facts, path, fuel)
+          ),
+          Child.reference_next(
+            Spec.expanded_result(Child.root_result(fuel, machine, binding, expected, depth), symbol),
+            fuel,
+            owner,
+            index,
+            Prefix.prefix(machine),
+            Continuation.resume(frames, facts, path, fuel)
+          ),
+          observation(
+            Spec.expanded_result(Child.root_result(fuel, machine, binding, expected, depth), symbol),
+            machine,
+            fuel,
+            owner,
+            index
+          ),
+          Expansion.bound_root_fuels_equal(binding,
+            (1n + fuel : Nat),
+            fuel,
+            machine,
+            symbol,
+            expected,
+            depth,
+            owner,
+            index,
+            Prefix.prefix(machine),
+            Expansion.root_complete(
+              (1n + fuel : Nat),
+              machine,
+              binding,
+              expected,
+              depth,
+              valid,
+              Order.le_trans(
+                Relation.spec_bound(facts),
+                fuel,
+                (1n + fuel : Nat),
+                enough,
+                NatFacts.le_succ(fuel)
+              )
+            ),
+            Expansion.root_complete(fuel, machine, binding, expected, depth, valid, enough),
+            Continuation.resume(frames, facts, path, fuel)
+          ),
+          reference_next_exact(
+            Spec.expanded_result(Child.root_result(fuel, machine, binding, expected, depth), symbol),
             machine,
             fuel,
             owner,

@@ -532,14 +532,24 @@ Go remap use this existing owner; no second traversal is introduced. The
 independent recursive and signed specifications cover the same lookup. After
 formatting, actual native buildLocal comparisons passed 4368 cases; 2184 of
 those additionally compare production traversal's complete plan, pending,
-visited and budget exactly with the independent specification. The original
-universal CONTINUATION_DISPATCH_PROOF currently fails at the missing BoundNamed
-branch of inventory transport. Extending the original whole laws/proofs is
-required before adoption; no finite comparison replaces it. The formatter
+visited and budget exactly with the independent specification. The original traversal PROOF, CONTINUATION_PROOF and CONTINUATION_FUEL_PROOF
+now pass after extending their existing BoundNamed cases, including inventory
+transport, completion, coherence and rank. This closes that traversal proof
+obstacle; whole Go preparation correspondence and custody remain open. The formatter
 still cannot process traversal/SPEC.bend (unsupported block expression in list);
 this remains a tooling failure, not an exemption.
 Current check:fast again passed 109 tests, source typing and package graph,
 then failed 97 private cross-owner imports. Full gate remains blocked.
-The saved whole PreparationMachine now includes source/cache/inventory/package
-and metadata/discovery transitions as WIP; resume/advance, complete remap,
-whole native consumer and universal guarantees remain unfinished.
+The saved whole PreparationMachine includes advance/resume, source/cache,
+inventory, package discovery, metadata and complete remap. Its actual native
+consumer passed 55 physical cases, 1622 requests and 3437 transitions, comparing
+declarations, locations, bindings, dependencies, fingerprint, remaining budgets,
+request chronology and caller cache. These are finite preparation checks.
+GoArtifact/Canonical connection, injected provider failures, late cancellation,
+unstable captures, cache saturation and universal guarantees remain open.
+Production preparation adoption and native TypeScript removal remain zero.
+Three changed traversal proof files remain unsupported by the formatter; all
+three upper proof gates passed after formatting the supported files.
+All retained candidate sources, tests, proofs and documentation must be committed
+and pushed to migration/bend-direct-login-resumed at each checkpoint, with local
+and remote SHA equality verified. A backup commit does not establish acceptance.

@@ -21,7 +21,11 @@ def named_exact(
   +depth: Nat,
   +expected: Core.ExpectedKind,
   valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
-  enough: {Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel) == True{} : Bool}
+  enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  }
 ) -> {
       Machine.evaluate(
         fuel,
@@ -70,6 +74,79 @@ def named_exact(
       identity
     )
 
+def bound_named_exact(
+  +binding: String,
+  +target: Maybe<&2, String>,
+  +fuel: Nat,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
+  enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  }
+) -> {
+      Machine.evaluate(
+        fuel,
+        CoreTraversal.bound_named_reference(
+          target,
+          binding,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
+      )
+      == Reference.observation(
+        Spec.bound_named(
+          target, binding,
+          CoreTraversal.machine_facts(machine),
+          CoreTraversal.machine_path(machine),
+          symbol,
+          owner,
+          index,
+          depth,
+          expected,
+          State.state(machine),
+          C.build_child(fuel)
+        ),
+        machine,
+        fuel,
+        owner,
+        index
+      )
+      : Relation.Observation
+    }:
+  match target:
+    case None{}: Ordinary.bound_ordinary_exact(binding,
+      fuel,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid,
+      enough
+    )
+    case Some{identity}: Bundled.bundled_named_exact(
+      fuel,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      identity
+    )
+
 def kind_exact(
   +kind: Core.ReferenceKind,
   +target: Maybe<&2, String>,
@@ -81,7 +158,11 @@ def kind_exact(
   +depth: Nat,
   +expected: Core.ExpectedKind,
   valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
-  enough: {Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel) == True{} : Bool}
+  enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  }
 ) -> {
       Machine.evaluate(
         fuel,
@@ -109,6 +190,19 @@ def kind_exact(
       : Relation.Observation
     }:
   match kind:
+    case Core.BoundNamed{binding}: bound_named_exact(
+      binding,
+      target,
+      fuel,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid,
+      enough
+    )
     case Core.Unsupported{}: Reference.omitted_exact(
       fuel,
       machine,
@@ -145,8 +239,12 @@ def depth_context(
         Spec.by_kind(
           kind,
           target,
-          CoreTraversal.machine_facts(CoreTraversal.observe_machine_depth(machine, (depth + 1n : Nat))),
-          CoreTraversal.machine_path(CoreTraversal.observe_machine_depth(machine, (depth + 1n : Nat))),
+          CoreTraversal.machine_facts(
+            CoreTraversal.observe_machine_depth(machine, (depth + 1n : Nat))
+          ),
+          CoreTraversal.machine_path(
+            CoreTraversal.observe_machine_depth(machine, (depth + 1n : Nat))
+          ),
           symbol,
           owner,
           index,
@@ -265,7 +363,11 @@ def visit_exact(
   +index: Nat,
   +depth: Nat,
   valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
-  enough: {Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel) == True{} : Bool}
+  enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  }
 ) -> {
       Machine.evaluate(fuel, CoreTraversal.visit_reference(machine, owner, index, depth, reference))
       == Reference.observation(

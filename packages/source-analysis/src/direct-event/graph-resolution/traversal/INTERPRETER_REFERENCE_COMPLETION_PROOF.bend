@@ -423,6 +423,319 @@ def named_complete(
         Leaf.bundle_found_leaf(Spec.supporting(facts, identity), identity, expected, state,
           path, symbol, owner, index, depth))
 
+def bound_child_or_cycle_complete(
+  selected_rank: C.selected_rank_type(),
+  +fuel: Nat, +binding: String,
+  +already_seen: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +declaration: Core.Declaration,
+  valid: {Patricia.canonical(Bool, Measure.visited(state)) == True{} : Bool},
+  selected: {
+    Spec.find_declaration(facts, binding, expected)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  },
+  tested: {Spec.seen(state, CoreTraversal.declaration_identity(declaration)) == already_seen : Bool},
+  enough: {Nat.is_le(C.allowance(facts, state), fuel) == True{} : Bool},
+  child: C.contract(fuel)
+) -> {
+  C.reference_complete(fuel, owner, index,
+    Spec.child_or_cycle(already_seen, state, facts, path, symbol, depth, expected,
+      CoreTraversal.declaration_identity(declaration), next => C.build_child(fuel)(Spec.bound_child_request(binding, next)))) == True{} : Bool
+}:
+  match already_seen:
+    case True{}: {==}
+    case False{}:
+      +valid = valid
+      +request = {Spec.Request{facts, path, binding, expected, (depth + 1n : Nat), state} : Spec.Request}
+      +result = Spec.interpret(fuel, request)
+      bound = selected_rank(
+        facts,
+        binding,
+        expected,
+        Measure.visited(state),
+        declaration,
+        valid,
+        selected,
+        Equal.trans(
+          Bool,
+          CoreTraversal.has_identity(Measure.visited(state), CoreTraversal.declaration_identity(declaration)),
+          Spec.seen(state, CoreTraversal.declaration_identity(declaration)),
+          False{},
+          seen_core_exact(state, CoreTraversal.declaration_identity(declaration)),
+          tested
+        )
+      )
+      complete = child(
+        request,
+        valid,
+        Order.le_trans(
+          Measure.request_rank(request),
+          C.allowance(facts, state),
+          fuel,
+          bound,
+          enough
+        )
+      )
+      Leaf.expanded_complete(fuel, owner, index, symbol, Spec.as_build(result),
+        root_dispatch_complete(fuel, facts, path, binding, expected, (depth + 1n : Nat), state,
+          result, complete))
+
+def bound_local_allowed_complete(
+  selected_rank: C.selected_rank_type(),
+  +fuel: Nat, +binding: String,
+  +permit: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +declaration: Core.Declaration,
+  valid: {Patricia.canonical(Bool, Measure.visited(state)) == True{} : Bool},
+  selected: {
+    Spec.find_declaration(facts, binding, expected)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  },
+  enough: {Nat.is_le(C.allowance(facts, state), fuel) == True{} : Bool},
+  child: C.contract(fuel)
+) -> {
+  C.reference_complete(fuel, owner, index,
+    Spec.local_allowed(permit, state, facts, path, symbol, depth, expected,
+      CoreTraversal.declaration_identity(declaration), next => C.build_child(fuel)(Spec.bound_child_request(binding, next)))) == True{} : Bool
+}:
+  match permit:
+    case False{}: {==}
+    case True{}:
+      bound_child_or_cycle_complete(
+        selected_rank,
+        fuel, binding,
+        Spec.seen(state, CoreTraversal.declaration_identity(declaration)),
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        declaration,
+        valid,
+        selected,
+        {==},
+        enough,
+        child
+      )
+
+def bound_local_budget_complete(selected_rank: C.selected_rank_type(), +fuel: Nat, +binding: String, +state: Spec.State,
+    +facts: Core.Facts, +path: String, +symbol: String, +owner: Nat, +index: Nat,
+    +depth: Nat, +expected: Core.ExpectedKind, +declaration: Core.Declaration,
+    valid: {Patricia.canonical(Bool, Measure.visited(state)) == True{} : Bool},
+    selected: {Spec.find_declaration(facts, binding, expected) == Some{declaration}
+      : Maybe<&2, Core.Declaration>},
+    enough: {Nat.is_le(C.allowance(facts, state), fuel) == True{} : Bool},
+    child: C.contract(fuel)) -> {
+  C.reference_complete(fuel, owner, index,
+    Spec.local_budget(state, facts, path, symbol, depth, expected,
+      CoreTraversal.declaration_identity(declaration), next => C.build_child(fuel)(Spec.bound_child_request(binding, next)))) == True{} : Bool
+}:
+  bound_local_allowed_complete(selected_rank, fuel, binding, Spec.allowed(state, path), state, facts, path, symbol,
+    owner, index, depth, expected, declaration, valid, selected, enough, child)
+
+def bound_local_kind_complete(
+  selected_rank: C.selected_rank_type(),
+  +fuel: Nat, +binding: String,
+  +kind_valid: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +declaration: Core.Declaration,
+  valid: {Patricia.canonical(Bool, Measure.visited(state)) == True{} : Bool},
+  selected: {
+    Spec.find_declaration(facts, binding, expected)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  },
+  enough: {Nat.is_le(C.allowance(facts, state), fuel) == True{} : Bool},
+  child: C.contract(fuel)
+) -> {
+  C.reference_complete(fuel, owner, index,
+    Spec.local_kind(kind_valid, state, facts, path, symbol, depth, expected,
+      CoreTraversal.declaration_identity(declaration), next => C.build_child(fuel)(Spec.bound_child_request(binding, next)))) == True{} : Bool
+}:
+  match kind_valid:
+    case False{}: {==}
+    case True{}:
+      bound_local_budget_complete(selected_rank, fuel, binding, Spec.local_work(state), facts, path, symbol,
+        owner, index, depth, expected, declaration,
+        valid_same(Spec.local_work(state), state, Prim.local_work_visited_exact(state), valid),
+        selected,
+        allowance_same(facts, Spec.local_work(state), state, fuel,
+          Prim.local_work_visited_exact(state), enough), child)
+
+def bound_local_conflict_complete(
+  selected_rank: C.selected_rank_type(),
+  +fuel: Nat, +binding: String,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +declaration: Core.Declaration,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {Patricia.canonical(Bool, Measure.visited(state)) == True{} : Bool},
+  selected: {
+    Spec.find_declaration(facts, binding, expected)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  },
+  enough: {Nat.is_le(C.allowance(facts, state), fuel) == True{} : Bool},
+  child: C.contract(fuel)
+) -> {
+  C.reference_complete(fuel, owner, index,
+    Spec.local_conflict(imported, declaration, state, facts, path, symbol, depth,
+      expected, next => C.build_child(fuel)(Spec.bound_child_request(binding, next)))) == True{} : Bool
+}:
+  match imported declaration:
+    case Some{import_binding} _: {==}
+    case None{} Core.Declaration{+handle, +identity, +function, +bundled, +references}:
+      bound_local_kind_complete(selected_rank, fuel, binding, Spec.matches(expected, function), state, facts, path,
+        symbol, owner, index, depth, expected,
+        Core.Declaration{handle, identity, function, bundled, references},
+        valid, selected, enough, child)
+
+def bound_choose_local_complete(
+  selected_rank: C.selected_rank_type(),
+  +fuel: Nat, +binding: String,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {Patricia.canonical(Bool, Measure.visited(state)) == True{} : Bool},
+  selected: {Spec.find_declaration(facts, binding, expected) == local : Maybe<&2, Core.Declaration>},
+  enough: {Nat.is_le(C.allowance(facts, state), fuel) == True{} : Bool},
+  child: C.contract(fuel)
+) -> {
+  C.reference_complete(fuel, owner, index,
+    Spec.choose_local(local, imported, state, facts, path, symbol, owner, index,
+      depth, expected, next => C.build_child(fuel)(Spec.bound_child_request(binding, next)))) == True{} : Bool
+}:
+  match local:
+    case Some{declaration}:
+      bound_local_conflict_complete(
+        selected_rank,
+        fuel, binding,
+        imported,
+        declaration,
+        state,
+        facts,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected,
+        valid,
+        selected,
+        enough,
+        child
+      )
+    case None{}:
+      Leaf.leaf_complete(fuel, owner, index,
+        Spec.import_budget(Spec.allowed(state, path), imported, state, path,
+          symbol, owner, index, depth, expected),
+        Leaf.import_budget_leaf(Spec.allowed(state, path), imported, state, path,
+          symbol, owner, index, depth, expected))
+
+def bound_ordinary_found_complete(
+  selected_rank: C.selected_rank_type(),
+  +fuel: Nat, +binding: String,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {Patricia.canonical(Bool, Measure.visited(state)) == True{} : Bool},
+  selected: {Spec.find_declaration(facts, binding, expected) == local : Maybe<&2, Core.Declaration>},
+  enough: {Nat.is_le(C.allowance(facts, state), fuel) == True{} : Bool},
+  child: C.contract(fuel)
+) -> {
+  C.reference_complete(fuel, owner, index,
+    Spec.ordinary_found(local, imported, state, facts, path, symbol, owner, index,
+      depth, expected, next => C.build_child(fuel)(Spec.bound_child_request(binding, next)))) == True{} : Bool
+}:
+  +identity = Spec.identity_key(local, imported, path, symbol)
+  +next = Spec.target(state, path, identity)
+  bound_choose_local_complete(
+    selected_rank,
+    fuel, binding,
+    local,
+    imported,
+    next,
+    facts,
+    path,
+    symbol,
+    owner,
+    index,
+    depth,
+    expected,
+    valid_same(next, state, Prim.target_visited_exact(state, path, identity), valid),
+    selected,
+    allowance_same(
+      facts,
+      next,
+      state,
+      fuel,
+      Prim.target_visited_exact(state, path, identity),
+      enough
+    ),
+    child
+  )
+
+def bound_named_complete(selected_rank: C.selected_rank_type(), +fuel: Nat,
+    +target_id: Maybe<&2, String>, +binding: String, +facts: Core.Facts, +path: String,
+    +symbol: String, +owner: Nat, +index: Nat, +depth: Nat, +expected: Core.ExpectedKind,
+    +state: Spec.State, valid: {Patricia.canonical(Bool, Measure.visited(state)) == True{} : Bool},
+    enough: {Nat.is_le(C.allowance(facts, state), fuel) == True{} : Bool}, child: C.contract(fuel)) -> {
+  C.reference_complete(fuel, owner, index, Spec.bound_named(target_id, binding, facts, path, symbol,
+    owner, index, depth, expected, state, C.build_child(fuel))) == True{} : Bool
+}:
+  match target_id:
+    case None{}: bound_ordinary_found_complete(selected_rank, fuel, binding,
+      Spec.find_declaration(facts, binding, expected), Spec.find_import(facts, symbol),
+      state, facts, path, symbol, owner, index, depth, expected, valid, {==}, enough, child)
+    case Some{identity}: named_complete(selected_rank, fuel, Some{identity}, facts, path, symbol,
+      owner, index, depth, expected, state, valid, enough, child)
+
 def by_kind_complete(selected_rank: C.selected_rank_type(), +fuel: Nat, +kind: Core.ReferenceKind,
     +target_id: Maybe<&2, String>, +facts: Core.Facts, +path: String,
     +symbol: String, +owner: Nat, +index: Nat, +depth: Nat,
@@ -435,6 +748,8 @@ def by_kind_complete(selected_rank: C.selected_rank_type(), +fuel: Nat, +kind: C
       state, C.build_child(fuel))) == True{} : Bool
 }:
   match kind:
+    case Core.BoundNamed{binding}: bound_named_complete(selected_rank, fuel, target_id, binding, facts, path, symbol,
+      owner, index, depth, expected, state, valid, enough, child)
     case Core.Unsupported{}: {==}
     case Core.Named{}:
       named_complete(selected_rank, fuel, target_id, facts, path, symbol, owner, index, depth,

@@ -82,13 +82,21 @@ def observe_machine_depth_valid(+machine: Core.Machine, +depth: Nat,
     valid: {allocation_valid(machine) == True{} : Bool}) -> {
   allocation_valid(CoreTraversal.observe_machine_depth(machine, depth)) == True{} : Bool
 }:
-  replace_budget_valid(machine, CoreTraversal.observe_depth(CoreTraversal.machine_budget(machine), depth), valid)
+  replace_budget_valid(
+    machine,
+    CoreTraversal.observe_depth(CoreTraversal.machine_budget(machine), depth),
+    valid
+  )
 
 def charge_machine_work_valid(+machine: Core.Machine,
     valid: {allocation_valid(machine) == True{} : Bool}) -> {
   allocation_valid(CoreTraversal.charge_machine_work(machine)) == True{} : Bool
 }:
-  replace_budget_valid(machine, CoreTraversal.charge_work(CoreTraversal.machine_budget(machine)), valid)
+  replace_budget_valid(
+    machine,
+    CoreTraversal.charge_work(CoreTraversal.machine_budget(machine)),
+    valid
+  )
 
 def charge_machine_target_valid(+machine: Core.Machine, +key: String,
     valid: {allocation_valid(machine) == True{} : Bool}) -> {
@@ -96,7 +104,11 @@ def charge_machine_target_valid(+machine: Core.Machine, +key: String,
 }:
   replace_budget_valid(
     machine,
-    CoreTraversal.charge_target(CoreTraversal.machine_budget(machine), CoreTraversal.machine_path(machine), key),
+    CoreTraversal.charge_target(
+      CoreTraversal.machine_budget(machine),
+      CoreTraversal.machine_path(machine),
+      key
+    ),
     valid
   )
 
@@ -200,7 +212,10 @@ def local_expand_valid(
       : Bool
     }:
   local_expand_if_valid(
-    CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration)),
+    CoreTraversal.has_identity(
+      CoreTraversal.machine_visited(machine),
+      CoreTraversal.declaration_identity(declaration)
+    ),
     machine,
     declaration,
     owner,
@@ -220,7 +235,9 @@ def queue_import_valid(
   +imported: Core.ImportBinding,
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
-      allocation_valid(CoreTraversal.queue_import(machine, owner, index, symbol, depth, expected, imported))
+      allocation_valid(
+        CoreTraversal.queue_import(machine, owner, index, symbol, depth, expected, imported)
+      )
       == True{}
       : Bool
     }:
@@ -252,7 +269,16 @@ def import_by_kind_valid(
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
       allocation_valid(
-        CoreTraversal.import_by_kind(expected, type_only, machine, owner, index, symbol, depth, imported)
+        CoreTraversal.import_by_kind(
+          expected,
+          type_only,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          imported
+        )
       )
       == True{}
       : Bool
@@ -359,7 +385,16 @@ def materialize_allowed_valid(
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
       allocation_valid(
-        CoreTraversal.materialize_allowed(local, imported, machine, owner, index, symbol, depth, expected)
+        CoreTraversal.materialize_allowed(
+          local,
+          imported,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
       )
       == True{}
       : Bool
@@ -447,7 +482,16 @@ def ordinary_charged_valid(
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
       allocation_valid(
-        CoreTraversal.ordinary_charged(machine, local, imported, owner, index, symbol, depth, expected)
+        CoreTraversal.ordinary_charged(
+          machine,
+          local,
+          imported,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
       )
       == True{}
       : Bool
@@ -519,7 +563,16 @@ def ordinary_targets_valid(
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
       allocation_valid(
-        CoreTraversal.ordinary_targets(machine, local, imported, owner, index, symbol, depth, expected)
+        CoreTraversal.ordinary_targets(
+          machine,
+          local,
+          imported,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
       )
       == True{}
       : Bool
@@ -530,7 +583,12 @@ def ordinary_targets_valid(
     imported,
     CoreTraversal.charge_machine_target(
       machine,
-      CoreTraversal.reference_target_key(CoreTraversal.machine_path(machine), symbol, local, imported)
+      CoreTraversal.reference_target_key(
+        CoreTraversal.machine_path(machine),
+        symbol,
+        local,
+        imported
+      )
     ),
     owner,
     index,
@@ -539,7 +597,12 @@ def ordinary_targets_valid(
     expected,
     charge_machine_target_valid(
       machine,
-      CoreTraversal.reference_target_key(CoreTraversal.machine_path(machine), symbol, local, imported),
+      CoreTraversal.reference_target_key(
+        CoreTraversal.machine_path(machine),
+        symbol,
+        local,
+        imported
+      ),
       valid
     )
   )
@@ -553,7 +616,9 @@ def ordinary_reference_valid(
   +expected: Core.ExpectedKind,
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
-      allocation_valid(CoreTraversal.ordinary_reference(machine, owner, index, symbol, depth, expected))
+      allocation_valid(
+        CoreTraversal.ordinary_reference(machine, owner, index, symbol, depth, expected)
+      )
       == True{}
       : Bool
     }:
@@ -709,7 +774,16 @@ def bundled_charged_valid(
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
       allocation_valid(
-        CoreTraversal.bundled_charged(machine, visited, declaration, owner, index, symbol, depth, expected)
+        CoreTraversal.bundled_charged(
+          machine,
+          visited,
+          declaration,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
       )
       == True{}
       : Bool
@@ -739,7 +813,16 @@ def bundled_seen_valid(
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
       allocation_valid(
-        CoreTraversal.bundled_seen(visited, machine, declaration, owner, index, symbol, depth, expected)
+        CoreTraversal.bundled_seen(
+          visited,
+          machine,
+          declaration,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
       )
       == True{}
       : Bool
@@ -773,7 +856,10 @@ def bundled_target_valid(
       : Bool
     }:
   bundled_seen_valid(
-    CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration)),
+    CoreTraversal.has_identity(
+      CoreTraversal.machine_visited(machine),
+      CoreTraversal.declaration_identity(declaration)
+    ),
     CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)),
     declaration,
     owner,
@@ -796,7 +882,16 @@ def bundled_admit_valid(
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
       allocation_valid(
-        CoreTraversal.bundled_admit(test, machine, declaration, owner, index, symbol, depth, expected)
+        CoreTraversal.bundled_admit(
+          test,
+          machine,
+          declaration,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
       )
       == True{}
       : Bool
@@ -855,7 +950,9 @@ def named_reference_valid(
   +expected: Core.ExpectedKind,
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
-      allocation_valid(CoreTraversal.named_reference(target, machine, owner, index, symbol, depth, expected))
+      allocation_valid(
+        CoreTraversal.named_reference(target, machine, owner, index, symbol, depth, expected)
+      )
       == True{}
       : Bool
     }:
@@ -870,6 +967,91 @@ def named_reference_valid(
       depth,
       expected,
       identity,
+      valid
+    )
+
+def bound_ordinary_reference_valid(
+  +binding: String,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bound_named_reference(
+          None{},
+          binding,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
+      )
+      == True{}
+      : Bool
+    }:
+  ordinary_targets_valid(
+    machine,
+    CoreTraversal.declaration_lookup(CoreTraversal.machine_facts(machine), binding, expected),
+    CoreTraversal.import_lookup(CoreTraversal.machine_facts(machine), symbol),
+    owner,
+    index,
+    symbol,
+    depth,
+    expected,
+    valid
+  )
+
+def bound_named_reference_valid(
+  +target: Maybe<&2, String>,
+  +binding: String,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(
+        CoreTraversal.bound_named_reference(
+          target,
+          binding,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
+      )
+      == True{}
+      : Bool
+    }:
+  match target:
+    case None{}: bound_ordinary_reference_valid(
+      binding,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid
+    )
+    case Some{identity}: named_reference_valid(
+      Some{identity},
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
       valid
     )
 
@@ -891,6 +1073,17 @@ def reference_kind_valid(
       : Bool
     }:
   match kind:
+    case Core.BoundNamed{binding}: bound_named_reference_valid(
+      target,
+      binding,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      valid
+    )
     case Core.Unsupported{}: omit_valid(
       machine,
       owner,
@@ -918,7 +1111,9 @@ def visit_reference_valid(
   +reference: Core.Reference,
   valid: {allocation_valid(machine) == True{} : Bool}
 ) -> {
-  allocation_valid(CoreTraversal.visit_reference(machine, owner, index, depth, reference)) == True{} : Bool
+  allocation_valid(CoreTraversal.visit_reference(machine, owner, index, depth, reference))
+  == True{}
+  : Bool
 }:
   match reference:
     case Core.Reference{+kind, +name, +expected, +target}: reference_kind_valid(

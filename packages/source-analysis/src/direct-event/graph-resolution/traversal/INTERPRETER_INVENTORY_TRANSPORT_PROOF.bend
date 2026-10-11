@@ -580,6 +580,459 @@ def named_progress(
       incoming
     )
 
+def bound_child_or_cycle_progress(
+  +fuel: Nat,
+  +binding: String,
+  +already_seen: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +identity: String,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  +incoming: {R.holds(Measure.visited(state), before, catalog)==True{}:Bool},
+  child: contract(fuel, catalog)
+) -> {
+    R.holds(
+      Prim.reference_visited(
+        Spec.child_or_cycle(
+          already_seen,
+          state,
+          facts,
+          path,
+          symbol,
+          depth,
+          expected,
+          identity,
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+        )
+      ),
+      before,
+      catalog
+    )
+    ==True{}
+    :Bool
+  }:
+  match already_seen:
+    case True{}: incoming
+    case False{}:
+      +request={Spec.bound_child_request(binding, Spec.Request{facts, path, symbol, expected, (depth+1n:Nat), state}) : Spec.Request}
+      +result=Spec.interpret(fuel, request)
+      after=child(request, R.lawful(Measure.visited(state), before, catalog, incoming))
+      total=R.compose(
+        Measure.visited(Measure.result_state(result)),
+        Measure.visited(state),
+        before,
+        catalog,
+        after,
+        incoming
+      )
+      R.replace_after(
+        Prim.reference_visited(Spec.expanded_result(Spec.as_build(result), symbol)),
+        Measure.visited(Measure.result_state(result)),
+        before,
+        catalog,
+        Prim.expanded_dispatch_visited_exact(result, symbol),
+        total
+      )
+
+def bound_local_allowed_progress(
+  +fuel: Nat,
+  +binding: String,
+  +permit: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +identity: String,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  +incoming: {R.holds(Measure.visited(state), before, catalog)==True{}:Bool},
+  child: contract(fuel, catalog)
+) -> {
+    R.holds(
+      Prim.reference_visited(
+        Spec.local_allowed(
+          permit,
+          state,
+          facts,
+          path,
+          symbol,
+          depth,
+          expected,
+          identity,
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+        )
+      ),
+      before,
+      catalog
+    )
+    ==True{}
+    :Bool
+  }:
+  match permit:
+    case False{}: incoming
+    case True{}: bound_child_or_cycle_progress(
+      fuel,
+      binding,
+      Spec.seen(state, identity),
+      state,
+      facts,
+      path,
+      symbol,
+      depth,
+      expected,
+      identity,
+      before,
+      catalog,
+      incoming,
+      child
+    )
+
+def bound_local_budget_progress(
+  +fuel: Nat,
+  +binding: String,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +identity: String,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  +incoming: {R.holds(Measure.visited(state), before, catalog)==True{}:Bool},
+  child: contract(fuel, catalog)
+) -> {
+    R.holds(
+      Prim.reference_visited(
+        Spec.local_budget(
+          state,
+          facts,
+          path,
+          symbol,
+          depth,
+          expected,
+          identity,
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+        )
+      ),
+      before,
+      catalog
+    )
+    ==True{}
+    :Bool
+  }:
+  bound_local_allowed_progress(
+    fuel,
+      binding,
+    Spec.allowed(state, path),
+    state,
+    facts,
+    path,
+    symbol,
+    depth,
+    expected,
+    identity,
+    before,
+    catalog,
+    incoming,
+    child
+  )
+
+def bound_local_kind_progress(
+  +fuel: Nat,
+  +binding: String,
+  +valid: Bool,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +identity: String,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  +incoming: {R.holds(Measure.visited(state), before, catalog)==True{}:Bool},
+  child: contract(fuel, catalog)
+) -> {
+    R.holds(
+      Prim.reference_visited(
+        Spec.local_kind(
+          valid,
+          state,
+          facts,
+          path,
+          symbol,
+          depth,
+          expected,
+          identity,
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+        )
+      ),
+      before,
+      catalog
+    )
+    ==True{}
+    :Bool
+  }:
+  match valid:
+    case False{}: incoming
+    case True{}: bound_local_budget_progress(
+      fuel,
+      binding,
+      Spec.local_work(state),
+      facts,
+      path,
+      symbol,
+      depth,
+      expected,
+      identity,
+      before,
+      catalog,
+      R.replace_after(
+        Measure.visited(Spec.local_work(state)),
+        Measure.visited(state),
+        before,
+        catalog,
+        Prim.local_work_visited_exact(state),
+        incoming
+      ),
+      child
+    )
+
+def bound_local_conflict_progress(
+  +fuel: Nat,
+  +binding: String,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +declaration: Core.Declaration,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  +incoming: {R.holds(Measure.visited(state), before, catalog)==True{}:Bool},
+  child: contract(fuel, catalog)
+) -> {
+    R.holds(
+      Prim.reference_visited(
+        Spec.local_conflict(
+          imported,
+          declaration,
+          state,
+          facts,
+          path,
+          symbol,
+          depth,
+          expected,
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+        )
+      ),
+      before,
+      catalog
+    )
+    ==True{}
+    :Bool
+  }:
+  match imported declaration:
+    case Some{_} _: incoming
+    case None{} Core.Declaration{_, identity, function, _, _}: bound_local_kind_progress(
+      fuel,
+      binding,
+      Spec.matches(expected, function),
+      state,
+      facts,
+      path,
+      symbol,
+      depth,
+      expected,
+      identity,
+      before,
+      catalog,
+      incoming,
+      child
+    )
+
+def bound_choose_local_progress(
+  +fuel: Nat,
+  +binding: String,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  +incoming: {R.holds(Measure.visited(state), before, catalog)==True{}:Bool},
+  child: contract(fuel, catalog)
+) -> {
+    R.holds(
+      Prim.reference_visited(
+        Spec.choose_local(
+          local,
+          imported,
+          state,
+          facts,
+          path,
+          symbol,
+          owner,
+          index,
+          depth,
+          expected,
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+        )
+      ),
+      before,
+      catalog
+    )
+    ==True{}
+    :Bool
+  }:
+  match local:
+    case Some{declaration}: bound_local_conflict_progress(
+      fuel,
+      binding,
+      imported,
+      declaration,
+      state,
+      facts,
+      path,
+      symbol,
+      depth,
+      expected,
+      before,
+      catalog,
+      incoming,
+      child
+    )
+    case None{}: R.replace_after(
+      Prim.reference_visited(
+        Spec.import_budget(
+          Spec.allowed(state, path),
+          imported,
+          state,
+          path,
+          symbol,
+          owner,
+          index,
+          depth,
+          expected
+        )
+      ),
+      Measure.visited(state),
+      before,
+      catalog,
+      Prim.import_budget_visited_exact(
+        Spec.allowed(state, path),
+        imported,
+        state,
+        path,
+        symbol,
+        owner,
+        index,
+        depth,
+        expected
+      ),
+      incoming
+    )
+
+def bound_ordinary_found_progress(
+  +fuel: Nat,
+  +binding: String,
+  +local: Maybe<&2, Core.Declaration>,
+  +imported: Maybe<&2, Core.ImportBinding>,
+  +state: Spec.State,
+  +facts: Core.Facts,
+  +path: String,
+  +symbol: String,
+  +owner: Nat,
+  +index: Nat,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  +incoming: {R.holds(Measure.visited(state), before, catalog)==True{}:Bool},
+  child: contract(fuel, catalog)
+) -> {
+    R.holds(
+      Prim.reference_visited(
+        Spec.ordinary_found(
+          local,
+          imported,
+          state,
+          facts,
+          path,
+          symbol,
+          owner,
+          index,
+          depth,
+          expected,
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+        )
+      ),
+      before,
+      catalog
+    )
+    ==True{}
+    :Bool
+  }:
+  bound_choose_local_progress(
+    fuel,
+      binding,
+    local,
+    imported,
+    Spec.target(state, path, Spec.identity_key(local, imported, path, symbol)),
+    facts,
+    path,
+    symbol,
+    owner,
+    index,
+    depth,
+    expected,
+    before,
+    catalog,
+    R.replace_after(
+      Measure.visited(Spec.target(state, path, Spec.identity_key(local, imported, path, symbol))),
+      Measure.visited(state),
+      before,
+      catalog,
+      Prim.target_visited_exact(state, path, Spec.identity_key(local, imported, path, symbol)),
+      incoming
+    ),
+    child
+  )
+
+def bound_named_progress(
+  +fuel: Nat, +target_id: Maybe<&2, String>, +binding: String,
+  +facts: Core.Facts, +path: String, +symbol: String, +owner: Nat,
+  +index: Nat, +depth: Nat, +expected: Core.ExpectedKind, +state: Spec.State,
+  +before: Map<&2, Bool>, +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  +incoming: {R.holds(Measure.visited(state), before, catalog)==True{}:Bool},
+  child: contract(fuel, catalog)
+) -> {
+  R.holds(Prim.reference_visited(Spec.bound_named(target_id, binding, facts, path, symbol,
+    owner, index, depth, expected, state, C.build_child(fuel))), before, catalog)==True{}:Bool
+}:
+  match target_id:
+    case None{}: bound_ordinary_found_progress(fuel, binding,
+      Spec.find_declaration(facts, binding, expected), Spec.find_import(facts, symbol),
+      state, facts, path, symbol, owner, index, depth, expected, before, catalog, incoming, child)
+    case Some{identity}: named_progress(fuel, Some{identity}, facts, path, symbol,
+      owner, index, depth, expected, state, before, catalog, incoming, child)
+
 def by_kind_progress(
   +fuel: Nat,
   +kind: Core.ReferenceKind,
@@ -620,6 +1073,23 @@ def by_kind_progress(
     :Bool
   }:
   match kind:
+    case Core.BoundNamed{binding}: bound_named_progress(
+      fuel,
+      target_id,
+      binding,
+      facts,
+      path,
+      symbol,
+      owner,
+      index,
+      depth,
+      expected,
+      state,
+      before,
+      catalog,
+      incoming,
+      child
+    )
     case Core.Unsupported{}: incoming
     case Core.Named{}: named_progress(
       fuel,

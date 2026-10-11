@@ -129,7 +129,16 @@ def import_by_kind_preserves_projection(+expected: Core.ExpectedKind,
   +depth: Nat,
   +imported: Core.ImportBinding) -> {
   projection(
-    CoreTraversal.import_by_kind(expected, type_only, machine, owner, index, symbol, depth, imported)
+    CoreTraversal.import_by_kind(
+      expected,
+      type_only,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      imported
+    )
   )
   == projection(machine)
   : Traversal
@@ -241,7 +250,16 @@ def bundled_materialize_preserves_projection(+visited: Bool,
   +depth: Nat,
   +expected: Core.ExpectedKind) -> {
   projection(
-    CoreTraversal.bundled_materialize(visited, machine, declaration, owner, index, symbol, depth, expected)
+    CoreTraversal.bundled_materialize(
+      visited,
+      machine,
+      declaration,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected
+    )
   )
   == projection(machine)
   : Traversal
@@ -332,7 +350,16 @@ def bundled_charged_preserves_projection(+machine: Core.Machine,
   +depth: Nat,
   +expected: Core.ExpectedKind) -> {
   projection(
-    CoreTraversal.bundled_charged(machine, visited, declaration, owner, index, symbol, depth, expected)
+    CoreTraversal.bundled_charged(
+      machine,
+      visited,
+      declaration,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected
+    )
   )
   == projection(machine)
   : Traversal
@@ -521,7 +548,10 @@ def expansion_rank(
   lawful: {valid(machine) == True{} : Bool},
   selected: {lookup(machine, key) == Some{declaration} : Maybe<&2, Core.Declaration>},
   absent: {
-    CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration))
+    CoreTraversal.has_identity(
+      CoreTraversal.machine_visited(machine),
+      CoreTraversal.declaration_identity(declaration)
+    )
     == False{}
     : Bool
   }
@@ -703,7 +733,10 @@ def expansion_growth(
   +lawful: {valid(machine) == True{} : Bool},
   selected: {lookup(machine, key) == Some{declaration} : Maybe<&2, Core.Declaration>},
   absent: {
-    CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration))
+    CoreTraversal.has_identity(
+      CoreTraversal.machine_visited(machine),
+      CoreTraversal.declaration_identity(declaration)
+    )
     == False{}
     : Bool
   }
@@ -712,9 +745,12 @@ def expansion_growth(
     == True{}
     : Bool
   }:
-  combine_growth(machine, CoreTraversal.expand_node(machine, declaration, owner, index, name, depth),
+  combine_growth(
+    machine,
+    CoreTraversal.expand_node(machine, declaration, owner, index, name, depth),
     expansion_valid(machine, declaration, owner, index, name, depth, lawful),
-    expansion_rank(machine, declaration, key, owner, index, name, depth, lawful, selected, absent))
+    expansion_rank(machine, declaration, key, owner, index, name, depth, lawful, selected, absent)
+  )
 
 def projected_lookup(state: Traversal, key: String) -> Maybe<&2, Core.Declaration>:
   match state:
@@ -807,12 +843,18 @@ def local_if_growth(
   lawful: {valid(machine) == True{} : Bool},
   selected: {lookup(machine, key) == Some{declaration} : Maybe<&2, Core.Declaration>},
   test: {
-    CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration))
+    CoreTraversal.has_identity(
+      CoreTraversal.machine_visited(machine),
+      CoreTraversal.declaration_identity(declaration)
+    )
     == seen
     : Bool
   }
 ) -> {
-    growth(machine, CoreTraversal.local_expand_if(seen, machine, declaration, owner, index, name, depth))
+    growth(
+      machine,
+      CoreTraversal.local_expand_if(seen, machine, declaration, owner, index, name, depth)
+    )
     == True{}
     : Bool
   }:
@@ -820,7 +862,13 @@ def local_if_growth(
     case True{}:
       projection_growth(
         machine,
-        CoreTraversal.include(machine, owner, index, name, CoreTraversal.declaration_identity(declaration)),
+        CoreTraversal.include(
+          machine,
+          owner,
+          index,
+          name,
+          CoreTraversal.declaration_identity(declaration)
+        ),
         include_preserves_projection(
           machine,
           owner,
@@ -842,7 +890,10 @@ def local_growth(+machine: Core.Machine, +declaration: Core.Declaration, +key: S
     : Bool
   }:
   local_if_growth(
-    CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration)),
+    CoreTraversal.has_identity(
+      CoreTraversal.machine_visited(machine),
+      CoreTraversal.declaration_identity(declaration)
+    ),
     machine,
     declaration,
     key,
@@ -870,7 +921,16 @@ def materialize_growth(
 ) -> {
     growth(
       machine,
-      CoreTraversal.materialize_allowed(local, imported, machine, owner, index, symbol, depth, expected)
+      CoreTraversal.materialize_allowed(
+        local,
+        imported,
+        machine,
+        owner,
+        index,
+        symbol,
+        depth,
+        expected
+      )
     )
     == True{}
     : Bool
@@ -920,15 +980,29 @@ def ordinary_budget_growth(
 ) -> {
     growth(
       machine,
-      CoreTraversal.ordinary_budget(allowed, local, imported, machine, owner, index, symbol, depth, expected)
+      CoreTraversal.ordinary_budget(
+        allowed,
+        local,
+        imported,
+        machine,
+        owner,
+        index,
+        symbol,
+        depth,
+        expected
+      )
     )
     == True{}
     : Bool
   }:
   match allowed:
     case False{}:
-      projection_growth(machine, CoreTraversal.omit(machine, owner, index, symbol, Core.ReferenceLimit{}),
-        omit_preserves_projection(machine, owner, index, symbol, Core.ReferenceLimit{}), lawful)
+      projection_growth(
+        machine,
+        CoreTraversal.omit(machine, owner, index, symbol, Core.ReferenceLimit{}),
+        omit_preserves_projection(machine, owner, index, symbol, Core.ReferenceLimit{}),
+        lawful
+      )
     case True{}: materialize_growth(
       local,
       imported,
@@ -958,7 +1032,16 @@ def ordinary_charged_growth(
 ) -> {
     growth(
       machine,
-      CoreTraversal.ordinary_charged(machine, local, imported, owner, index, symbol, depth, expected)
+      CoreTraversal.ordinary_charged(
+        machine,
+        local,
+        imported,
+        owner,
+        index,
+        symbol,
+        depth,
+        expected
+      )
     )
     == True{}
     : Bool
@@ -1011,15 +1094,28 @@ def ordinary_ambiguity_growth(
   }:
   match conflict:
     case True{}:
-      projection_growth(machine, CoreTraversal.omit(machine, owner, index, symbol, Core.UnsupportedTarget{}),
-        omit_preserves_projection(machine, owner, index, symbol, Core.UnsupportedTarget{}), lawful)
+      projection_growth(
+        machine,
+        CoreTraversal.omit(machine, owner, index, symbol, Core.UnsupportedTarget{}),
+        omit_preserves_projection(machine, owner, index, symbol, Core.UnsupportedTarget{}),
+        lawful
+      )
     case False{}:
       +middle = CoreTraversal.charge_if_local(local, machine)
       +same = charge_if_local_preserves_projection(local, machine)
       growth_transport(
         machine,
         middle,
-        CoreTraversal.ordinary_charged(middle, local, imported, owner, index, symbol, depth, expected),
+        CoreTraversal.ordinary_charged(
+          middle,
+          local,
+          imported,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        ),
         same,
         ordinary_charged_growth(
           local,
@@ -1051,12 +1147,26 @@ def ordinary_targets_growth(
 ) -> {
     growth(
       machine,
-      CoreTraversal.ordinary_targets(machine, local, imported, owner, index, symbol, depth, expected)
+      CoreTraversal.ordinary_targets(
+        machine,
+        local,
+        imported,
+        owner,
+        index,
+        symbol,
+        depth,
+        expected
+      )
     )
     == True{}
     : Bool
   }:
-  +target = CoreTraversal.reference_target_key(CoreTraversal.machine_path(machine), symbol, local, imported)
+  +target = CoreTraversal.reference_target_key(
+    CoreTraversal.machine_path(machine),
+    symbol,
+    local,
+    imported
+  )
   +middle = CoreTraversal.charge_machine_target(machine, target)
   +same = charge_machine_target_preserves_projection(machine, target)
   growth_transport(
@@ -1092,7 +1202,10 @@ def ordinary_targets_growth(
 
 def ordinary_growth(+machine: Core.Machine, +owner: Nat, +index: Nat, +symbol: String, +depth: Nat,
   +expected: Core.ExpectedKind, lawful: {valid(machine) == True{} : Bool}) -> {
-    growth(machine, CoreTraversal.ordinary_reference(machine, owner, index, symbol, depth, expected))
+    growth(
+      machine,
+      CoreTraversal.ordinary_reference(machine, owner, index, symbol, depth, expected)
+    )
     == True{}
     : Bool
   }:
@@ -1127,7 +1240,10 @@ def ordinary_growth(+machine: Core.Machine, +owner: Nat, +index: Nat, +symbol: S
 def named_growth(+target: Maybe<&2, String>, +machine: Core.Machine,
   +owner: Nat, +index: Nat, +symbol: String, +depth: Nat, +expected: Core.ExpectedKind,
   lawful: {valid(machine) == True{} : Bool}) -> {
-    growth(machine, CoreTraversal.named_reference(target, machine, owner, index, symbol, depth, expected))
+    growth(
+      machine,
+      CoreTraversal.named_reference(target, machine, owner, index, symbol, depth, expected)
+    )
     == True{}
     : Bool
   }:
@@ -1137,7 +1253,16 @@ def named_growth(+target: Maybe<&2, String>, +machine: Core.Machine,
       +found = CoreTraversal.supporting_lookup(CoreTraversal.machine_facts(machine), identity)
       projection_growth(
         machine,
-        CoreTraversal.bundled_lookup(found, machine, owner, index, symbol, depth, expected, identity),
+        CoreTraversal.bundled_lookup(
+          found,
+          machine,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected,
+          identity
+        ),
         bundled_lookup_preserves_projection(
           found,
           machine,
@@ -1151,6 +1276,101 @@ def named_growth(+target: Maybe<&2, String>, +machine: Core.Machine,
         lawful
       )
 
+def bound_ordinary_growth(
+  +binding: String,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +depth: Nat,
+  +expected: Core.ExpectedKind,
+  lawful: {valid(machine) == True{} : Bool}
+) -> {
+    growth(
+      machine,
+      CoreTraversal.bound_named_reference(
+        None{},
+        binding,
+        machine,
+        owner,
+        index,
+        symbol,
+        depth,
+        expected
+      )
+    )
+    == True{}
+    : Bool
+  }:
+  match machine:
+    case Core.Machine{
+      Core.Facts{+aware, +catalog, +imports, +supporting},
+      +path,
+      +frames,
+      +visited,
+      +budget,
+      +next,
+      +nodes,
+      +slots,
+      +pending
+    }:
+      +facts = {Core.Facts{aware, catalog, imports, supporting} : Core.Facts}
+      +original = {Core.Machine{facts, path, frames, visited, budget, next, nodes, slots, pending} : Core.Machine}
+      ordinary_targets_growth(
+        CoreTraversal.declaration_lookup(facts, binding, expected),
+        CoreTraversal.import_lookup(facts, symbol),
+        original,
+        owner,
+        index,
+        symbol,
+        depth,
+        expected,
+        CoreTraversal.lookup_key(aware, expected, binding),
+        lawful,
+        {==}
+      )
+
+def bound_named_growth(+target: Maybe<&2, String>, +binding: String, +machine: Core.Machine,
+  +owner: Nat, +index: Nat, +symbol: String, +depth: Nat, +expected: Core.ExpectedKind,
+  lawful: {valid(machine) == True{} : Bool}) -> {
+    growth(
+      machine,
+      CoreTraversal.bound_named_reference(
+        target,
+        binding,
+        machine,
+        owner,
+        index,
+        symbol,
+        depth,
+        expected
+      )
+    )
+    == True{}
+    : Bool
+  }:
+  match target:
+    case None{}: bound_ordinary_growth(
+      binding,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      lawful
+    )
+    case Some{identity}: named_growth(
+      Some{identity},
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      lawful
+    )
+
 def kind_growth(+kind: Core.ReferenceKind, +target: Maybe<&2, String>, +machine: Core.Machine,
   +owner: Nat, +index: Nat, +symbol: String, +depth: Nat, +expected: Core.ExpectedKind,
   lawful: {valid(machine) == True{} : Bool}) -> {
@@ -1162,9 +1382,24 @@ def kind_growth(+kind: Core.ReferenceKind, +target: Maybe<&2, String>, +machine:
     : Bool
   }:
   match kind:
+    case Core.BoundNamed{binding}: bound_named_growth(
+      target,
+      binding,
+      machine,
+      owner,
+      index,
+      symbol,
+      depth,
+      expected,
+      lawful
+    )
     case Core.Unsupported{}:
-      projection_growth(machine, CoreTraversal.omit(machine, owner, index, symbol, Core.UnsupportedTarget{}),
-        omit_preserves_projection(machine, owner, index, symbol, Core.UnsupportedTarget{}), lawful)
+      projection_growth(
+        machine,
+        CoreTraversal.omit(machine, owner, index, symbol, Core.UnsupportedTarget{}),
+        omit_preserves_projection(machine, owner, index, symbol, Core.UnsupportedTarget{}),
+        lawful
+      )
     case Core.Named{}: named_growth(target, machine, owner, index, symbol, depth, expected, lawful)
 
 def visit_growth(
@@ -1175,7 +1410,9 @@ def visit_growth(
   +reference: Core.Reference,
   lawful: {valid(machine) == True{} : Bool}
 ) -> {
-  growth(machine, CoreTraversal.visit_reference(machine, owner, index, depth, reference)) == True{} : Bool
+  growth(machine, CoreTraversal.visit_reference(machine, owner, index, depth, reference))
+  == True{}
+  : Bool
 }:
   match reference:
     case Core.Reference{+kind, +name, +expected, +target}:
@@ -1312,8 +1549,12 @@ def step_decreases_preserving_visited(machine, valid, active):
           == True{}
           : Bool
         }
-      %Equal.sym(Nat, Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, []})),
-        (Rank.rank(base) + 1n : Nat), empty_rank(base, owner, depth, index)):
+      %Equal.sym(
+        Nat,
+        Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, []})),
+        (Rank.rank(base) + 1n : Nat),
+        empty_rank(base, owner, depth, index)
+      ):
         {Nat.is_le((Rank.rank(base) + 1n : Nat), _) == True{} : Bool}
       NatFacts.le_refl((Rank.rank(base) + 1n : Nat))
     case Core.Machine{
@@ -1331,17 +1572,30 @@ def step_decreases_preserving_visited(machine, valid, active):
       +consumed = CoreTraversal.push_frame(base, Core.Frame{owner, depth, (index + 1n : Nat), rest})
       +after = CoreTraversal.visit_reference(consumed, owner, index, depth, reference)
       +bounded = visit_growth(consumed, owner, index, depth, reference, valid)
-      lawful = BoolFacts.eq_true_of_and_left(Patricia.canonical(Bool, CoreTraversal.machine_visited(after)),
-        Nat.is_le(Rank.rank(after), (Rank.rank(consumed) + 1n : Nat)), bounded)
-      bound = BoolFacts.eq_true_of_and_right(Patricia.canonical(Bool, CoreTraversal.machine_visited(after)),
-        Nat.is_le(Rank.rank(after), (Rank.rank(consumed) + 1n : Nat)), bounded)
-      %Equal.sym(Bool, Patricia.canonical(Bool, CoreTraversal.machine_visited(after)), True{}, lawful):
+      lawful = BoolFacts.eq_true_of_and_left(
+        Patricia.canonical(Bool, CoreTraversal.machine_visited(after)),
+        Nat.is_le(Rank.rank(after), (Rank.rank(consumed) + 1n : Nat)),
+        bounded
+      )
+      bound = BoolFacts.eq_true_of_and_right(
+        Patricia.canonical(Bool, CoreTraversal.machine_visited(after)),
+        Nat.is_le(Rank.rank(after), (Rank.rank(consumed) + 1n : Nat)),
+        bounded
+      )
+      %Equal.sym(
+        Bool,
+        Patricia.canonical(Bool, CoreTraversal.machine_visited(after)),
+        True{},
+        lawful
+      ):
         {
           Bool.and(
             _,
             Nat.is_le(
               (Rank.rank(after) + 1n : Nat),
-              Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest}))
+              Rank.rank(
+                CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest})
+              )
             )
           )
           == True{}
@@ -1349,7 +1603,9 @@ def step_decreases_preserving_visited(machine, valid, active):
         }
       %Equal.sym(
         Nat,
-        Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest})),
+        Rank.rank(
+          CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest})
+        ),
         (Rank.rank(consumed) + 2n : Nat),
         consuming_rank(base, owner, depth, index, reference, rest)
       ):

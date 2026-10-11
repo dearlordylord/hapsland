@@ -88,8 +88,14 @@ def empty_frame_evaluation(
 }:
   match fuel machine:
     case 0n +machine:
-      Empty.absurd({evaluate(0n, CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, []}))
-        == evaluate(0n, machine) : Relation.Observation}, Order.internal_false_ne_true(positive))
+      Empty.absurd(
+        {
+          evaluate(0n, CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, []}))
+          == evaluate(0n, machine)
+          : Relation.Observation
+        },
+        Order.internal_false_ne_true(positive)
+      )
     case 1n++remaining Core.Machine{
       +facts,
       +path,
@@ -146,6 +152,56 @@ def expanded_evaluation(
     case Core.Machine{+facts, +path, +frames, +visited, +budget, +address, +nodes, +slots, +pending}
       Core.Declaration{+artifact, +identity, +function, +bundled, +children}:
       Child.entered_correspondence(
+        fuel,
+        Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending},
+        Core.Declaration{artifact, identity, function, bundled, children},
+        owner,
+        index,
+        symbol,
+        expected,
+        depth,
+        found,
+        Continuation.resume(frames, facts, path, fuel)
+      )
+
+def bound_expanded_evaluation(+binding: String,
+  +fuel: Nat,
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +owner: Nat,
+  +index: Nat,
+  +symbol: String,
+  +expected: Core.ExpectedKind,
+  +depth: Nat,
+  found: {
+    Spec.find_declaration(CoreTraversal.machine_facts(machine), binding, expected)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  }
+) -> {
+  evaluate(fuel, CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth))
+    == Child.reference_next(
+      Spec.expanded_result(
+        Child.root_result((1n + fuel : Nat), machine, binding, expected, depth),
+        symbol
+      ),
+      (1n + fuel : Nat),
+      owner,
+      index,
+      Prefix.prefix(machine),
+      Continuation.resume(
+        State.frames(machine),
+        CoreTraversal.machine_facts(machine),
+        CoreTraversal.machine_path(machine),
+        fuel
+      )
+    )
+    : Relation.Observation
+}:
+  match machine declaration:
+    case Core.Machine{+facts, +path, +frames, +visited, +budget, +address, +nodes, +slots, +pending}
+      Core.Declaration{+artifact, +identity, +function, +bundled, +children}:
+      Child.bound_entered_correspondence(binding,
         fuel,
         Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending},
         Core.Declaration{artifact, identity, function, bundled, children},
