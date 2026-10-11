@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { execFileSync } from "node:child_process"
+import { existsSync } from "node:fs"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
@@ -36,7 +37,9 @@ for (const name of [
     "required whole graph fixture " + name
   )
 const temp = await mkdtemp("/tmp/hapsland-owned-root-")
+let emissionTemp
 try {
+  emissionTemp = await mkdtemp(join(existsSync("/dev/shm") ? "/dev/shm" : "/tmp", "hapsland-owned-emission-"))
   const artifacts = {}
   let owner
   for (const [key, name] of [
@@ -46,7 +49,7 @@ try {
     ["go", "GoArtifact"],
     ["owner", "CanonicalResolverOwner"]
   ]) {
-    const emitted = join(temp, name + ".mjs")
+    const emitted = join(emissionTemp, name + ".mjs")
     execFileSync(
       "taskset",
       [
@@ -676,5 +679,8 @@ try {
     })
   )
 } finally {
-  await rm(temp, { recursive: true, force: true })
+  await Promise.all([
+    rm(temp, { recursive: true, force: true }),
+    ...(emissionTemp ? [rm(emissionTemp, { recursive: true, force: true })] : [])
+  ])
 }
