@@ -17,13 +17,13 @@ import {
   parseCargoSyntax,
   inspectRustModuleSyntax
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
-import { resolveGraphUnit } from "../../../packages/source-analysis/dist/direct-event/graph-resolver.js"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
   eligibleNamedPath,
   contextDirectFilePolicy
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
+} from "@hapsland/native-observation/direct-event/selection"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import {
   createMachineDriver,
   createIODriver,

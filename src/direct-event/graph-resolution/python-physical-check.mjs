@@ -6,12 +6,12 @@ import { join } from "node:path"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import { parsePythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.ts"
-import { Parser, Python } from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
+import { Parser, Python } from "@hapsland/source-analysis/direct-event/languages/native-parser"
 import {
   selectedByDirectFilePolicy,
   contextDirectFilePolicy,
   DEFAULT_DIRECT_FILE_POLICY
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
+} from "@hapsland/native-observation/direct-event/selection"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 const root = await mkdtemp(join(tmpdir(), "hapsland-python-physical-"))
 let id = 0

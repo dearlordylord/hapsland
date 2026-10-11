@@ -8,7 +8,7 @@ import {
   createDispatcher,
   embedProgram
 } from "../../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
-import { Parser, TypeScript } from "../../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
+import { Parser, TypeScript } from "@hapsland/source-analysis/direct-event/languages/native-parser"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-embedding-")
 try {

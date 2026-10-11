@@ -4,13 +4,13 @@ import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
-import { resolveGraphUnit as __resolveGraphUnit } from "../../../packages/source-analysis/dist/direct-event/graph-resolver.js"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { resolveGraphUnit as __resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import {
   eligibleNamedPath as __eligibleNamedPath,
   DEFAULT_DIRECT_FILE_POLICY
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
-import { captureStable } from "../../../packages/native-observation/dist/direct-event/capture.js"
+} from "@hapsland/native-observation/direct-event/selection"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import {
   productValue as __productValue,
@@ -36,7 +36,7 @@ import {
   inspectGraphFile as __inspectGraphFile,
   combinedAnalyzerMaterializationPreflight as __combinedAnalyzerMaterializationPreflight,
   analyzeTypeFile as __analyzeTypeFile
-} from "../../../packages/source-analysis/dist/direct-event/analyzer.js"
+} from "@hapsland/source-analysis/direct-event/analyzer"
 import { resize as __resize } from "../../../packages/resident-runtime/src/resident/state/capacity/reservations.ts"
 import { analyzeFunctionFile as __analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
 import { analysisWorkspaceBytes as __analysisWorkspaceBytes } from "../../../packages/resident-runtime/src/resident/work-ownership/workspace.ts"

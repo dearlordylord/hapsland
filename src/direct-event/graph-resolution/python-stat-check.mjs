@@ -9,7 +9,7 @@ import {
   selectedByDirectFilePolicy,
   contextDirectFilePolicy,
   DEFAULT_DIRECT_FILE_POLICY
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
+} from "@hapsland/native-observation/direct-event/selection"
 const folder = import.meta.dirname,
   temp = await mkdtemp("/tmp/hapsland-python-stat-")
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),

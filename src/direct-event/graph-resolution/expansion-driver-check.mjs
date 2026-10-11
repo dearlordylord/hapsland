@@ -16,9 +16,9 @@ import {
   eligibleNamedPath,
   contextDirectFilePolicy,
   DEFAULT_DIRECT_FILE_POLICY
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
-import { languageForPath as __languageForPath } from "../../../packages/source-analysis/dist/direct-event/languages/registry.js"
+} from "@hapsland/native-observation/direct-event/selection"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { languageForPath as __languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { createGraphFixtures } from "./fixtures.mjs"
 import {
   sourceFacts,

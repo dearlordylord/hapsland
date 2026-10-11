@@ -7,13 +7,10 @@ import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Cause from "effect/Cause"
-import { resolveGraphUnit } from "../../../packages/source-analysis/dist/direct-event/graph-resolver.js"
-import { captureStable } from "../../../packages/native-observation/dist/direct-event/capture.js"
-import { discoverPhysicalWorkingTreeRoot } from "../../../packages/native-observation/dist/repository/root.js"
-import {
-  eligibleNamedPath,
-  DEFAULT_DIRECT_FILE_POLICY
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
+import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { createDispatcher } from "../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
 import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import { createVerificationEffectResolver as createBendEffectResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"

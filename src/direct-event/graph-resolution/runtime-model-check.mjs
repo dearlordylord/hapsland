@@ -5,7 +5,7 @@ import { createHash } from "node:crypto"
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 const root = join(import.meta.dirname, "../../.."),
   folder = join(root, "packages/source-analysis/src/direct-event/graph-resolution"),
   results = join(root, ".test-runs/bend-migration"),

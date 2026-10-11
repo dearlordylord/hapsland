@@ -14,13 +14,13 @@ import * as path from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import { parse } from "smol-toml"
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
   eligibleNamedPath,
   contextDirectFilePolicy
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
-import { inspectRustModules } from "../../../packages/source-analysis/dist/direct-event/languages/rust.js"
+} from "@hapsland/native-observation/direct-event/selection"
+import { inspectRustModules } from "@hapsland/source-analysis/direct-event/languages/rust"
 import { createGraphFixtures } from "./fixtures.mjs"
 import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"

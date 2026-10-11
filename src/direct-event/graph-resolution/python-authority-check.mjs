@@ -10,7 +10,7 @@ import {
   Python,
   descendants,
   sameSyntaxNode
-} from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
+} from "@hapsland/source-analysis/direct-event/languages/native-parser"
 const temp = await mkdtemp("/tmp/hapsland-python-authority-")
 try {
   const emitted = join(temp, "child.mjs")

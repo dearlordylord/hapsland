@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.ts"
-import { Parser, Python } from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
+import { Parser, Python } from "@hapsland/source-analysis/direct-event/languages/native-parser"
 const temp = await mkdtemp("/tmp/hapsland-python-bindings-")
 try {
   const file = join(

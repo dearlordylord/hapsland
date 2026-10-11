@@ -11,7 +11,7 @@ import {
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { pythonAdapter } from "../../../packages/source-analysis/dist/direct-event/languages/python.js"
 import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { Parser, Python } from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
+import { Parser, Python } from "@hapsland/source-analysis/direct-event/languages/native-parser"
 import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields })

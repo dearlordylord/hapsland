@@ -5,7 +5,7 @@ import {
   Python,
   descendants,
   sameSyntaxNode
-} from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
+} from "@hapsland/source-analysis/direct-event/languages/native-parser"
 const path = new URL("../../../packages/source-analysis/src/direct-event/languages/python.ts", import.meta.url)
 const source = readFileSync(path, "utf8"),
   fragments =

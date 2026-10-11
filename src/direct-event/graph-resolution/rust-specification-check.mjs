@@ -7,12 +7,12 @@ import { lstat } from "node:fs/promises"
 import { dirname, join, relative, isAbsolute } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
   eligibleNamedPath,
   contextDirectFilePolicy
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
+} from "@hapsland/native-observation/direct-event/selection"
 import { observationCaptureBudgetRefusal } from "../../../packages/source-analysis/dist/direct-event/capture-budget.js"
 const folder = import.meta.dirname,
   root = join(folder, "../../.."),

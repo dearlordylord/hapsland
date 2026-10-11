@@ -25,9 +25,7 @@ const commands = {
   UpdateActivateCommand: "activate"
 }
 export const nativeCases = []
-const integrated = process.argv[2]
-  ? undefined
-  : await import("../../../packages/administration/dist/onboarding/update-model.js")
+const integrated = process.argv[2] ? undefined : await import("@hapsland/administration/onboarding/update-model")
 const directory = mkdtempSync(join(tmpdir(), "hapsland-update-"))
 try {
   const output = join(directory, "core.mjs")

@@ -11,7 +11,7 @@ const corePath = resolve(
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-direct-login-parity-"))
 const production = process.argv.some((arg) => arg.endsWith(".bend"))
   ? undefined
-  : await import("../../../packages/administration/dist/credentials/direct-login-model.js")
+  : await import("@hapsland/administration/credentials/direct-login-model")
 export const nativeCases = []
 try {
   const output = join(temporary, "core.mjs")

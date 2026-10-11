@@ -4,7 +4,7 @@ import { createHash } from "node:crypto"
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 

@@ -4,13 +4,10 @@ import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
-import { resolveGraphUnit } from "../../../packages/source-analysis/dist/direct-event/graph-resolver.js"
-import {
-  eligibleNamedPath,
-  DEFAULT_DIRECT_FILE_POLICY
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
-import { captureStable } from "../../../packages/native-observation/dist/direct-event/capture.js"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import { createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
 import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"

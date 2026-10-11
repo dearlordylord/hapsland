@@ -471,7 +471,7 @@ TypeScript and package graph before failing development imports. Three relocated
 credential cold runners then switched five stale relative imports to existing
 workspace exports; all six available/locked runs passed, with nonempty lint.
 The focused import gate now reports zero unresolved paths, 46 undeclared
-dependencies and 207 cross-owner private-file violations. Those remain an
+dependencies and 137 cross-owner private-file violations. Those remain an
 acceptance blocker; fix ownership and declared interfaces before asserting a
 green ordinary gate.
 
@@ -483,3 +483,16 @@ The new path passed all 176 actual service requests and nonempty lint; the
 ordinary source-closure gate includes it by owner-tree discovery. This removes
 seven private-file import violations and one undeclared dependency without
 adding public test helpers or weakening the development-import gate.
+
+Current public-interface repair: 70 emitted-file imports in 31 verification
+files now use already declared workspace exports. No source-to-dist import was
+changed, no export or dependency direction was added, and actual module identity
+was equal for all 11 distinct runtime modules. Nonempty lint passed all 31 files;
+Astra's structural review found no blocking issue. The actual preparation
+consumer suite passed 50/64/13 cases. check:fast passed unit/source typing and
+package graph, then failed the remaining 46 undeclared dependencies and 137
+private-file imports; zero unresolved paths remain. Fixed `/tmp` imports in
+attachment falsification runners are part of that remaining source-execution
+obstacle: reconnect their generated modules to tracked owner Bend sources;
+do not treat the preexisting temporary outputs as retained source or exempt the
+runners from the ordinary gate. Whole production adoption remains open.

@@ -6,13 +6,13 @@ import { join, dirname, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import { pythonAdapter } from "../../../packages/source-analysis/dist/direct-event/languages/python.js"
-import { captureStable } from "../../../packages/native-observation/dist/direct-event/capture.js"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import {
   eligibleNamedPath,
   contextDirectFilePolicy,
   selectedByDirectFilePolicy,
   DEFAULT_DIRECT_FILE_POLICY
-} from "../../../packages/native-observation/dist/direct-event/selection.js"
+} from "@hapsland/native-observation/direct-event/selection"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import {
   inspectSourceFrontend,

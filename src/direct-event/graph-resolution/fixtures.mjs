@@ -1,4 +1,4 @@
-import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 export function createGraphFixtures() {
   const c = GRAPH_LIMIT_CEILINGS
   const localSource =
