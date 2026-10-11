@@ -242,8 +242,11 @@ One current obstacle list, in execution order:
    to compare the required pre-acceptance stage instead of dropping the clock.
    Driver, actual/reference projectors and completion probe verdicts pass under
    hard five seconds (2.142/1.548/1.350/4.344 seconds). The full completion
-   consumer is being rechecked with expiry, wrong owner and wrong correlation;
-   universal completion correspondence and production adoption remain open.
+   consumer now passes all its original 16 tree cases, 13824 reply boundaries,
+   288 completion cases and 768 final-deadline cases (expiry, wrong owner and
+   wrong correlation) through the Node capability runner
+   (/tmp/hapsland-final-deadline-completion-full.log). Universal completion
+   correspondence and production adoption remain open.
    Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.
