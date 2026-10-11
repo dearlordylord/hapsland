@@ -1,3 +1,4 @@
+import { parse } from "@babel/parser"
 import { readFileSync, realpathSync } from "node:fs"
 import { dirname, relative, resolve } from "node:path"
 import { fileEvidence } from "./compiler-evidence.mjs"
@@ -8,6 +9,28 @@ const inside = (root, path) => {
   return local !== "" && !local.startsWith("../") && local !== ".."
 }
 export const hasBendPrecompile = (node) => node.manifest?.hapsland?.bendPrecompile !== undefined
+
+/** The authored default-core declaration owns required runtime entry methods. */
+export function bendPrecompileEntryMethods(source) {
+  const body = parse(source, { sourceType: "module", plugins: ["typescript"] }).program.body
+  const defaults = body.filter((node) => node.type === "ExportDefaultDeclaration")
+  if (defaults.length !== 1 || defaults[0].declaration.type !== "Identifier")
+    throw new Error("Bend precompile ABI requires one named default core")
+  const name = defaults[0].declaration.name
+  const declarations = body
+    .flatMap((node) => (node.type === "VariableDeclaration" ? node.declarations : []))
+    .filter((node) => node.id.type === "Identifier" && node.id.name === name)
+  const type = declarations.length === 1 ? declarations[0].id.typeAnnotation?.typeAnnotation : undefined
+  if (type?.type !== "TSTypeLiteral" || !type.members.length)
+    throw new Error("Bend precompile ABI requires an explicit core method declaration")
+  const methods = type.members.map((member) => {
+    if (member.type !== "TSMethodSignature" || member.computed || member.optional || member.key.type !== "Identifier")
+      throw new Error("Bend precompile ABI requires named required methods")
+    return member.key.name
+  })
+  if (new Set(methods).size !== methods.length) throw new Error("Duplicate Bend precompile ABI method")
+  return methods
+}
 
 /** Authored owner recipe, independent of stamps, compiler execution and outputs. */
 export function readBendPrecompile(root, node) {
@@ -46,7 +69,12 @@ export function readBendPrecompile(root, node) {
       )
     )
       throw new Error("Private Bend precompile artifact must not be a package export")
-    return { source: input, declaration: abi, output: target }
+    return {
+      source: input,
+      declaration: abi,
+      output: target,
+      entryMethods: bendPrecompileEntryMethods(readFileSync(abi, "utf8"))
+    }
   })
   return { recipe, artifacts }
 }

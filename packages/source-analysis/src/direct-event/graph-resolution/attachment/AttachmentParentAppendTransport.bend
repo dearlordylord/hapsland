@@ -2171,6 +2171,116 @@ def appended_semantic_nodes(items: List<&2, F.Node>, +side: Bool,
             appended_semantic_nodes(tail, side, parents, children, episode, before, fresh, parent_valid, child_valid,
               Rollback.and_right(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old), last)))))
 
+def attachment_changed_nodes(items: List<&2, F.Node>, +all: List<&2, F.Node>,
+    +owner: O.NodeAddress, +index: Nat, +known: Bool, +child: O.NodeAddress,
+    +children: List<&2, F.Node>, +entries: List<&2, F.AddressEntry>, +symbol: String, +identity: String,
+    +selected: {F.count_address(all, owner) == 1n : Nat},
+    +fresh: {Relation.incoming(all, child) == 0n : Nat},
+    +reference_valid: {True{} == F.reference_valid(X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity), owner, all) : Bool},
+    +valid: {True{} == Relation.nodes_valid(items, all) : Bool}) ->
+    {True{} == Relation.nodes_valid(Rollback.result_nodes(F.replace_nodes(items, owner, index,
+      X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity))),
+      Rollback.result_nodes(F.replace_nodes(all, owner, index,
+        X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity)))) : Bool}:
+  match items:
+    case []: {==}
+    case F.Node{+address, +artifact, +references} <> +tail:
+      +reference: F.Reference = X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity)
+      +next: List<&2, F.Node> = Rollback.result_nodes(F.replace_nodes(all, owner, index, reference))
+      +exact: {Rollback.node_addresses(next) == Rollback.node_addresses(all) : List<&2, O.NodeAddress>} =
+        Rollback.replace_nodes_addresses(all, owner, index, reference)
+      +rest: {True{} == Bool.and(Nat.is_le(Relation.incoming(all, address), 1n),
+        Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all))) : Bool} =
+        Rollback.and_right(Nat.is_eq(F.count_address(all, address), 1n),
+          Bool.and(Nat.is_le(Relation.incoming(all, address), 1n),
+            Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all))), valid)
+      +last: {True{} == Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all)) : Bool} =
+        Rollback.and_right(Nat.is_le(Relation.incoming(all, address), 1n),
+          Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all)), rest)
+      Rollback.replacement_node_conditions(F.same_address(owner, address), F.Node{address, artifact, references},
+        F.replace_nodes(tail, owner, index, reference), owner, index, reference, next, {==},
+        Rollback.replacement_reference_valid(reference, owner, all, next, exact, reference_valid),
+        Rollback.count_valid(F.count_address(all, address), F.count_address(next, address),
+          Rollback.replace_nodes_occurrences(all, owner, index, reference, address),
+          Rollback.and_left(Nat.is_eq(F.count_address(all, address), 1n),
+            Bool.and(Nat.is_le(Relation.incoming(all, address), 1n),
+              Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all))), valid)),
+        Equal.sym(Bool, Nat.is_le(Relation.incoming(next, address), 1n), True{},
+          attachment_incoming_valid(all, owner, index, known, child, children, entries, symbol, identity, address, selected, fresh,
+            Equal.sym(Bool, True{}, Nat.is_le(Relation.incoming(all, address), 1n),
+              Rollback.and_left(Nat.is_le(Relation.incoming(all, address), 1n),
+                Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all)), rest)))),
+        Rollback.references_transport(references, address, all, next, exact,
+          Rollback.and_left(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all), last)),
+        attachment_changed_nodes(tail, all, owner, index, known, child, children, entries, symbol, identity, selected, fresh, reference_valid,
+          Rollback.and_right(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all), last)))
+
+# Complete semantic forest validity after the actual parent replacement.
+# The only hypotheses are the two original forests, freshness, and the
+# selected owner's occurrence; all union/replacement guards are derived here.
+def attachment_changed_frame(+parents: List<&2, F.Node>, +children: List<&2, F.Node>,
+    +root: O.NodeAddress, +child: O.NodeAddress, +entries: List<&2, F.AddressEntry>, +episode: Nat,
+    +owner: O.NodeAddress, +index: Nat, +known: Bool, +symbol: String, +identity: String,
+    +parent_frame: {Relation.frame_forest(F.Forest{Some{root}, parents}, episode) == True{} : Bool},
+    +child_frame: {Relation.frame_forest(F.Forest{Some{child}, children}, (episode + 1n : Nat)) == True{} : Bool},
+    +fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    +owner_present: {F.count_address(parents, owner) == 1n : Nat}) ->
+    {True{} == Relation.frame_forest(F.Forest{Some{root}, Rollback.result_nodes(F.replace_nodes(
+      List.append(&2, F.Node, parents, children), owner, index,
+      X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity)))}, (episode + 1n : Nat)) : Bool}:
+  +all: List<&2, F.Node> = List.append(&2, F.Node, parents, children)
+  +reference: F.Reference = X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity)
+  +changed: List<&2, F.Node> = Rollback.result_nodes(F.replace_nodes(all, owner, index, reference))
+  +parent_retained: {Relation.retained(F.Forest{Some{root}, parents}) == True{} : Bool} =
+    B.eq_true_of_and_left(Relation.retained(F.Forest{Some{root}, parents}), Relation.episodes_before(parents, episode), parent_frame)
+  +child_retained: {Relation.retained(F.Forest{Some{child}, children}) == True{} : Bool} =
+    B.eq_true_of_and_left(Relation.retained(F.Forest{Some{child}, children}), Relation.episodes_before(children, (episode + 1n : Nat)), child_frame)
+  +before: {Relation.episodes_before(parents, episode) == True{} : Bool} =
+    B.eq_true_of_and_right(Relation.retained(F.Forest{Some{root}, parents}), Relation.episodes_before(parents, episode), parent_frame)
+  +parent_valid: {True{} == Relation.nodes_valid(parents, parents) : Bool} =
+    Equal.sym(Bool, Relation.nodes_valid(parents, parents), True{},
+      B.eq_true_of_and_right(Relation.root_valid(Some{root}, parents), Relation.nodes_valid(parents, parents), parent_retained))
+  +child_valid: {True{} == Relation.nodes_valid(children, children) : Bool} =
+    Equal.sym(Bool, Relation.nodes_valid(children, children), True{},
+      B.eq_true_of_and_right(Relation.root_valid(Some{child}, children), Relation.nodes_valid(children, children), child_retained))
+  +parent_root: {Relation.root_valid(Some{root}, parents) == True{} : Bool} =
+    B.eq_true_of_and_left(Relation.root_valid(Some{root}, parents), Relation.nodes_valid(parents, parents), parent_retained)
+  +child_root: {Relation.root_valid(Some{child}, children) == True{} : Bool} =
+    B.eq_true_of_and_left(Relation.root_valid(Some{child}, children), Relation.nodes_valid(children, children), child_retained)
+  +root_count: {F.count_address(parents, root) == 1n : Nat} = N.eq_of_is_eq(F.count_address(parents, root), 1n,
+    B.eq_true_of_and_left(Nat.is_eq(F.count_address(parents, root), 1n), Nat.is_eq(Relation.incoming(parents, root), 0n), parent_root))
+  +child_count: {F.count_address(children, child) == 1n : Nat} = N.eq_of_is_eq(F.count_address(children, child), 1n,
+    B.eq_true_of_and_left(Nat.is_eq(F.count_address(children, child), 1n), Nat.is_eq(Relation.incoming(children, child), 0n), child_root))
+  +root_empty: {Relation.incoming(parents, root) == 0n : Nat} = N.eq_of_is_eq(Relation.incoming(parents, root), 0n,
+    B.eq_true_of_and_right(Nat.is_eq(F.count_address(parents, root), 1n), Nat.is_eq(Relation.incoming(parents, root), 0n), parent_root))
+  +child_empty: {Relation.incoming(children, child) == 0n : Nat} = N.eq_of_is_eq(Relation.incoming(children, child), 0n,
+    B.eq_true_of_and_right(Nat.is_eq(F.count_address(children, child), 1n), Nat.is_eq(Relation.incoming(children, child), 0n), child_root))
+  Rollback.and_both(Relation.retained(F.Forest{Some{root}, changed}), Relation.episodes_before(changed, (episode + 1n : Nat)),
+    Rollback.and_both(Relation.root_valid(Some{root}, changed), Relation.nodes_valid(changed, changed),
+      attachment_old_root_valid(parents, children, all, entries, episode, root, child, owner, index, known, symbol, identity,
+        before, fresh, root_count, child_count,
+        appended_old_root_valid(parents, children, episode, root, before, fresh, child_valid, root_count, root_empty)),
+      attachment_changed_nodes(all, all, owner, index, known, child, children, entries, symbol, identity,
+        appended_semantic_count(True{}, parents, children, episode, owner, before, fresh, owner_present),
+        appended_fresh_incoming(parents, children, episode, child, before, fresh, parent_valid, child_count, child_empty),
+        Equal.sym(Bool, F.reference_valid(reference, owner, all), True{},
+          attachment_reference_valid(known, owner, child, children, entries, all, symbol, identity,
+            appended_semantic_count(False{}, parents, children, episode, child, before, fresh, child_count),
+            fresh_attachment_born(parents, children, episode, owner, child, before, fresh, owner_present, child_count))),
+        Rollback.nodes_valid_append(parents, children, all,
+          appended_semantic_nodes(parents, True{}, parents, children, episode, before, fresh, parent_valid, child_valid, parent_valid),
+          appended_semantic_nodes(children, False{}, parents, children, episode, before, fresh, parent_valid, child_valid, child_valid)))),
+    %Equal.sym(Bool, Relation.episodes_before(changed, (episode + 1n : Nat)), Relation.episodes_before(all, (episode + 1n : Nat)),
+      Rollback.replace_nodes_episodes(all, owner, index, reference, (episode + 1n : Nat))):
+      {True{} == _ : Bool}
+    Rollback.episodes_before_append(parents, children, (episode + 1n : Nat),
+      Equal.sym(Bool, Relation.episodes_before(parents, (episode + 1n : Nat)), True{},
+        episodes_before_raise(parents, episode, (episode + 1n : Nat), before,
+          %Arithmetic.add_comm(1n, episode): {Nat.is_le(episode, _) == True{} : Bool}
+          N.le_succ(episode))),
+      Equal.sym(Bool, Relation.episodes_before(children, (episode + 1n : Nat)), True{},
+        B.eq_true_of_and_right(Relation.retained(F.Forest{Some{child}, children}), Relation.episodes_before(children, (episode + 1n : Nat)), child_frame))))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

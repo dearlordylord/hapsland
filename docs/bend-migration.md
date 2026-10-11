@@ -227,8 +227,9 @@ One current obstacle list, in execution order:
    Semantic incoming bounds pass at 3.044 seconds and appended-root validity at
    2.692 seconds. Union references and nodes validity pass with the full parent
    prefix at 3.130 and 2.792 seconds; general replacement-node conditions pass
-   at 1.303 seconds. These retain the original premises. Changed references,
-   episodes, full frame validity and the eight-conjunct theorem remain open.
+   at 1.303 seconds. These retain the original premises. Changed-node recursion now passes at 2.808 seconds and the full semantic
+   changed frame (root, nodes and episodes) at 2.380 seconds, retaining the
+   original conditions. Exact witnesses and all eight conjuncts remain open.
    No separate helper frontier qualifies adoption; the
    original parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
@@ -348,26 +349,22 @@ One current obstacle list, in execution order:
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
    Production artifact assembly is also open: resident Source/Post and resolver
-   cores currently come from verification emission. The normal precompile runner
-   assumes initial/advance/resume, but Source and resolver cores expose different
-   entry methods. Ship their actual private ABI through their existing domain
-   owners before connecting the production consumer.
+   cores currently come from verification emission. The precompile runner now
+   derives required entry methods from the existing authored default-core ABI,
+   rather than imposing initial/advance/resume on every core. Two focused tests
+   and lint of all three changed scripts pass; the first actual workspace run was rejected because concurrent proof edits
+   changed authored inputs. A frozen retry is required. Source/Post/resolver private recipes and the complete production
+   consumer remain to connect through their existing domain owners.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production f9ea5f3a build/execution are
-   qualified with unchanged heads/sources/artifacts and all 17 pairs: build fails
-   at 1.0970048028436157 (all 23/46 cached); execution passes at
-   0.651816636602423. Build started 22:11:00.743546 UTC; execution started
-   22:10:18.501750 UTC. Both started before their cadence deadlines.
-   Warm candidate build passed 46/46 tasks, 15 cached, in 43.459 seconds.
-   This does not measure unadopted whole preparation. Recorded cadence misses
-   and earlier failed parity measurements remain failures; later timely passes
-   do not erase them. Evidence is retained under ignored
-   .test-runs/bend-migration/performance/2026-10-11T22-11-00.743546+00-00
-   and 2026-10-11T22-10-18.501750+00-00 (qualification.json and run.log).
-   Next build start is due 22:41:00.743546 UTC, execution 22:40:18.501750 UTC.
-   All 34 preserved build logs now distinguish Turbo's reported time from total
+   connected candidate. Latest existing-production 944af1e0 measurements are
+   qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
+   passes at 0.6700735759534598 (start 22:38:41.176540 UTC); build fails at
+   1.121913984209726 (start 22:39:14.199139 UTC). Both starts meet the previous
+   cadence deadlines. These do not qualify unadopted whole preparation.
+   Next build start is due 23:09:14.199139 UTC, execution 23:08:41.176540 UTC.
+   The preceding f9ea5f3a measurement’s 34 preserved build logs distinguish Turbo's reported time from total
    wrapper time: baseline total/Turbo/outside-Turbo means are 6.042/2.457/3.585
-   seconds; candidate means are 6.628/3.145/3.483 seconds. The current gap is
+   seconds; candidate means are 6.628/3.145/3.483 seconds. That measurement’s gap is
    inside Turbo, not increased outside-Turbo time; this is phase localization,
    not a causal or parity claim (build-phase-diagnostic.json beside the build
    qualification). Both lanes still perform 23 uncached cleanup tasks and restore

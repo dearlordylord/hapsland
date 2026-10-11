@@ -42,7 +42,7 @@ export async function emitBendPrecompile(root, node, stage, expected) {
     if (loaders.modules.length || loaders.libraries.length || loaders.symbols.length)
       throw new Error("Preparation precompile must remain a pure artifact")
     const core = (await import(pathToFileURL(libraryOutput))).default
-    if (!["initial", "advance", "resume"].every((name) => typeof core?.[name] === "function"))
+    if (!artifact.entryMethods.every((name) => typeof core?.[name] === "function"))
       throw new Error("Bend precompile entry ABI changed")
     renameSync(libraryOutput, output)
     copyFileSync(artifact.declaration, output.replace(/\.js$/, ".d.ts"))

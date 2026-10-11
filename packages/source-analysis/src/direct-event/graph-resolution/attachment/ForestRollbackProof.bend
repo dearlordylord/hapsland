@@ -898,6 +898,18 @@ def valid_nodes_absent_incoming(items: List<&2, F.Node>, +all: List<&2, F.Node>,
       valid_nodes_absent_incoming(tail, all, query,
         and_right(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all), rest), absent)
 
+def episodes_before_append(items: List<&2, F.Node>, +suffix: List<&2, F.Node>, +next: Nat,
+    +first: {True{} == Relation.episodes_before(items, next) : Bool},
+    +last: {True{} == Relation.episodes_before(suffix, next) : Bool}) ->
+    {True{} == Relation.episodes_before(List.append(&2, F.Node, items, suffix), next) : Bool}:
+  match items:
+    case []: last
+    case F.Node{O.NodeAddress{+episode, _}, _, _} <> +tail:
+      and_both(Nat.is_lt(episode, next), Relation.episodes_before(List.append(&2, F.Node, tail, suffix), next),
+        and_left(Nat.is_lt(episode, next), Relation.episodes_before(tail, next), first),
+        episodes_before_append(tail, suffix, next,
+          and_right(Nat.is_lt(episode, next), Relation.episodes_before(tail, next), first), last))
+
 def nodes_valid_append(items: List<&2, F.Node>, +suffix: List<&2, F.Node>, +all: List<&2, F.Node>,
     +first: {True{} == Relation.nodes_valid(items, all) : Bool},
     +last: {True{} == Relation.nodes_valid(suffix, all) : Bool}) ->
