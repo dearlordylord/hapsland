@@ -470,7 +470,16 @@ compiler receipts validated. check:fast passed 109 unit tests, repository assets
 TypeScript and package graph before failing development imports. Three relocated
 credential cold runners then switched five stale relative imports to existing
 workspace exports; all six available/locked runs passed, with nonempty lint.
-The focused import gate now reports zero unresolved paths, 47 undeclared
-dependencies and 214 cross-owner private-file violations. Those remain an
+The focused import gate now reports zero unresolved paths, 46 undeclared
+dependencies and 207 cross-owner private-file violations. Those remain an
 acceptance blocker; fix ownership and declared interfaces before asserting a
 green ordinary gate.
+
+The service-session check now lives beside its graph-resolution owner at
+`packages/source-analysis/src/direct-event/graph-resolution/checks/service-session-check.mjs`.
+Private implementation imports are owner-local; compiled neighboring frontend
+calls use existing workspace exports. The old verification-tree copy is deleted.
+The new path passed all 176 actual service requests and nonempty lint; the
+ordinary source-closure gate includes it by owner-tree discovery. This removes
+seven private-file import violations and one undeclared dependency without
+adding public test helpers or weakening the development-import gate.

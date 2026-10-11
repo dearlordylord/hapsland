@@ -1,4 +1,4 @@
-import { inspectGoFile } from "../../../packages/source-analysis/src/direct-event/languages/go.ts"
+import { inspectGoFile } from "../../languages/go.ts"
 import { opendir } from "node:fs/promises"
 import {
   artifactValueTag,
@@ -14,59 +14,29 @@ import { execFileSync } from "node:child_process"
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { createDispatcher } from "../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
-import {
-  createServiceSession,
-  createServiceRegistry
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import {
-  sourceFacts,
-  tomlValue
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import {
-  inspectSourceFrontend,
-  parseCargoSyntax,
-  inspectRustModuleSyntax
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
-import { inspectTypeScript } from "../../../packages/source-analysis/dist/direct-event/languages/typescript.js"
+import { createDispatcher } from "../runtime-observation/transport.mjs"
+import { createServiceSession, createServiceRegistry } from "../service-session.ts"
+import { sourceFacts, tomlValue } from "../frontend-codec.ts"
+import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax } from "../frontends.ts"
+import { inspectTypeScript } from "@hapsland/source-analysis/direct-event/languages/typescript"
 import {
   inspectRust,
   inspectRustModules as __inspectRustModules
-} from "../../../packages/source-analysis/dist/direct-event/languages/rust.js"
-import { bendAdapter } from "../../../packages/source-analysis/dist/direct-event/languages/bend/adapter.js"
+} from "@hapsland/source-analysis/direct-event/languages/rust"
+import { bendAdapter } from "@hapsland/source-analysis/direct-event/languages/bend/adapter"
 import { parse } from "smol-toml"
-const folder = import.meta.dirname,
+const folder = join(import.meta.dirname, ".."),
   temporary = mkdtempSync("/tmp/hapsland-whole-resolver-services-")
 const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 try {
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
   const program = join(temporary, "services.js")
-  execFileSync(
-    "bend",
-    [join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Runtime.bend"), "-o", program],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "Runtime.bend"), "-o", program], { timeout: 5000 })
   const protocolPath = join(temporary, "protocol.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Protocol.bend"),
-      "-o",
-      protocolPath
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "Protocol.bend"), "-o", protocolPath], { timeout: 5000 })
   const protocol = (await import(pathToFileURL(protocolPath))).default
   const goProbePath = join(temporary, "go-probe.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/go-module/ABIProbe.bend"),
-      "-o",
-      goProbePath
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "go-module/ABIProbe.bend"), "-o", goProbePath], { timeout: 5000 })
   const goProbe = (await import(pathToFileURL(goProbePath))).default
   // Bend 2.0.36 uses the loading module's relative import in constructor tags.
   // Preserve all payload fields while projecting the probe's nominal namespace.
@@ -342,24 +312,17 @@ try {
   )
   assert.equal((await api.request("PathJoin", { parts: list(["src", "..", "root.ts"]) })).path, "root.ts")
   assert.equal((await api.request("ReadPathSeparator")).separator, "/")
-  assert.equal(
-    (
-      await api.request("ReadFileStatus", {
-        path: "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend"
-      })
-    ).status.$,
-    "Types.ExistingFile"
-  )
+  assert.equal((await api.request("ReadFileStatus", { path: "Types.bend" })).status.$, "Types.ExistingFile")
   assert.equal((await api.request("ReadFileStatus", { path: "." })).status.$, "Types.ExistingOther")
   assert.equal((await api.request("ReadFileStatus", { path: "missing" })).status.$, "Types.FileAbsent")
   const joinedPathCases = [
-    ["src/parent.bend/child/root.bend", "../../../packages/source-analysis/src/direct-event"],
+    ["src/parent.bend/child/root.bend", ".."],
     ["src/root.ts", "./a"],
     ["/root.ts", "../a"],
     ["src/root.ts", "../../a"],
     ["src/root.ts", "/absolute/a"],
     ["src/root.ts", ""],
-    ["root.bend", "../../../packages/source-analysis/src/direct-event/graph-resolution"],
+    ["root.bend", "."],
     ["src/root.ts", "../x/../a.JS"],
     ["src/root.ts", "./a.mjs"],
     ["src/root.ts", "./a.cjs"],
@@ -593,7 +556,7 @@ try {
     arbitraryBigIntAsDecimal: true,
     scope: "typed service/foreign IO boundary only; no whole resolver transition or adoption claim"
   }
-  const evidenceDirectory = join(folder, "../../../.test-runs/bend-migration")
+  const evidenceDirectory = join(folder, "../../../../../.test-runs/bend-migration")
   mkdirSync(evidenceDirectory, { recursive: true })
   writeFileSync(
     join(evidenceDirectory, "service-session-" + record.runtime + "-evidence.json"),
