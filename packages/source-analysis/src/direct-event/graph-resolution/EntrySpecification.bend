@@ -2,6 +2,8 @@ import ../../../../source-artifacts/src/direct-event/value/Value.bend as Artifac
 import Base
 import ./BoundaryValidationSpecification.bend as Boundary
 import ./Types.bend as T
+import ./go-module/ArtifactProtocol.bend as GoProtocol
+import ./go-module/PreparationModel.bend as Go
 import ./Environment.bend as E
 import ./WholeObservation.bend as O
 import ./PreparationSpecification.bend as P
@@ -27,6 +29,12 @@ type Stage is Data:
   AwaitClock{}
   LanguageAdmission{}
   PythonAdmission{}
+  GoAdmission{}
+  GoPreparing{}
+  GoInspecting{}
+  AwaitGoRootDeadline{prepared: Go.Prepared}
+  AwaitGoPublicationClock{driver: D.State, product: Maybe<&2, ArtifactValue.ProductValue>}
+  GoPublished{}
   AwaitPythonDeadline{}
   RootAdmission{}
   RustAdmission{binding: Bool}
@@ -54,6 +62,8 @@ type Selection is Data:
   Selected{state: State, operation: T.Operation}
   Prepare{state: State, clock: T.ClockToken}
   Launch{state: State, expansion: D.State}
+  GoChild{state: State, command: GoProtocol.GoCommand}
+  GoCompleted{state: State, driver: D.State, product: Maybe<&2, ArtifactValue.ProductValue>}
   NoUnit{state: State, retained: Maybe<&2, Root.RejectedRoot>}
   EvaluationExhausted{state: State}
   InvariantFailed{state: State}
@@ -64,6 +74,10 @@ type Progress<-World: Data> is Data:
   EntryWaiting{state: State, exchange: E.Exchange<World>}
   EntryPreparing{state: State, progress: P.Progress<World>}
   EntryExpanding{state: State, progress: D.Progress<World>}
+  EntryGoChildBegin{state: State, command: GoProtocol.GoCommand, world: E.WorldState<World>}
+  EntryGoChildAdvance{state: State, world: E.WorldState<World>}
+  EntryGoChildResume{state: State, request: T.Request, reply: T.Reply, world: E.WorldState<World>}
+  EntryGoChildWaiting{state: State, exchange: E.Exchange<World>}
   EntryFinished{state: State, world: E.WorldState<World>, retained: Maybe<&2, Root.RejectedRoot>}
   EntryExhausted{state: State, world: E.WorldState<World>}
   EntryInvalid{state: State, world: E.WorldState<World>}
@@ -584,6 +598,7 @@ def language_for(extension: String) -> Maybe<&2, T.Language>:
     case ".rs": Some{T.RustLanguage{}}
     case ".bend": Some{T.BendLanguage{}}
     case ".py": Some{T.PythonLanguage{}}
+    case ".go": Some{T.GoLanguage{}}
     case _: None{}
 
 def word_char(+char: Char) -> Bool:
@@ -662,6 +677,9 @@ def selected_language(+state: State, selected: Maybe<&2, T.Language>) -> Selecti
       Internal{with_stage(with_language(with_frontend(state,
         Some{T.PythonSourceContext{input_branch(input(state))}}),
         Some{T.PythonLanguage{}}), PythonAdmission{})}
+    case Some{T.GoLanguage{}}:
+      Internal{with_stage(with_language(with_frontend(state,
+        Some{T.GoSourceContext{input_branch(input(state))}}), Some{T.GoLanguage{}}), GoAdmission{})}
     case Some{+language}:
       Internal{with_stage(with_language(with_frontend(state,
         Some{context(language, input_branch(input(state)), T.RustContext{None{}, None{}, None{}})}),
@@ -680,12 +698,34 @@ def rust_clock(+state: State, binding: Bool, clock: Maybe<&2, T.ClockToken>) -> 
 def rust_admission(+state: State, binding: Bool) -> Selection:
   rust_clock(state, binding, clock(state))
 
+# Entry owns admission and chronology; the existing Go child owns package policy.
+def go_admission(+state: State, clock: Maybe<&2, T.ClockToken>) -> Selection:
+  match clock:
+    case Some{clock}: GoChild{with_stage(state, GoPreparing{}), GoProtocol.GoPrepare{Go.Input{
+      input_invocation(input(state)), next_request(state), input_path(input(state)),
+      input_capture(input(state)), input_bytes(input(state)), input_branch(input(state)),
+      clock, input_cache(input(state)), limits(state), None{}, None{}}}}
+    case None{}: InvariantFailed{state}
+
+def go_root_deadline(+state: State, +prepared: Go.Prepared, expired: Bool) -> Selection:
+  match expired:
+    case True{}: NoUnit{state, None{}}
+    case False{}: GoChild{with_stage(state, GoInspecting{}), GoProtocol.GoInspect{
+      prepared, input_path(input(state)), input_branch(input(state)), next_request(state)}}
+
+def go_publication(+state: State, driver: D.State,
+    product: Maybe<&2, ArtifactValue.ProductValue>, expired: Bool) -> Selection:
+  match expired:
+    case True{}: GoCompleted{with_stage(state, GoPublished{}), driver, None{}}
+    case False{}: GoCompleted{with_stage(state, GoPublished{}), driver, product}
+
 def choose_stage(~extension: String -> String, +state: State, stage: Stage) -> Selection:
   match stage:
     case Starting{}: selected(state, AwaitClock{}, T.StartClock{})
     case LanguageAdmission{}: selected_language(state,
       language_for(String.to_lower(extension(input_path(input(state))))))
     case PythonAdmission{}: request_deadline(state, AwaitPythonDeadline{}, True{})
+    case GoAdmission{}: go_admission(state, clock(state))
     case RootAdmission{}: request_deadline(state, AwaitRootDeadline{},
       root_available(limits(state), input_bytes(input(state))))
     case RustAdmission{binding}: rust_admission(state, binding)
@@ -976,6 +1016,17 @@ def consume_stage(
         Internal{with_stage(state, RootAdmission{})}
       )
     case AwaitRootDeadline{} T.ClockRead{bits}: root_deadline(state, expired(bits))
+    case AwaitGoRootDeadline{prepared} T.ClockRead{bits}: go_root_deadline(
+      state,
+      prepared,
+      expired(bits)
+    )
+    case AwaitGoPublicationClock{driver, product} T.ClockRead{bits}: go_publication(
+      state,
+      driver,
+      product,
+      expired(bits)
+    )
     case AwaitRootFacts{} T.FrontendResult{source}: root_facts(state, source)
     case AwaitRootBytes{frame, _} T.ProductEncoded{bytes}: launch(state, frame, bytes)
     case _ T.ProviderRejected{exception}: Rejected{state, T.ForeignProviderFailure{exception}}
@@ -1013,10 +1064,108 @@ def consumed(-World: Data, selection: Selection, world: E.WorldState<World>) -> 
     case Prepare{+state, clock}: EntryPreparing{state,
       P.begin(World, input(state), clock, next_request(state), world)}
     case Launch{state, expansion}: EntryExpanding{state, D.DriverReady{expansion, world}}
+    case GoChild{state, command}: EntryGoChildBegin{state, command, world}
+    case GoCompleted{state, driver, product}: EntryExpanding{
+      state,
+      D.DriverFinished{driver, product, world}
+    }
     case NoUnit{state, retained}: EntryFinished{state, world, retained}
     case EvaluationExhausted{state}: EntryExhausted{state, world}
     case InvariantFailed{state}: EntryInvalid{state, world}
     case Rejected{state, failure}: EntryFailed{state, failure, world}
+
+def go_prepared(+state: State, +prepared: Go.Prepared) -> Selection:
+  match prepared:
+    case Go.Prepared{_, _, dependencies, fingerprint, +limits}:
+      +ready: State = with_prepared_language(
+        state,
+        T.PreparedLanguage{limits, dependencies, Some{fingerprint}}
+      )
+      request_deadline(
+        ready,
+        AwaitGoRootDeadline{prepared},
+        root_available(limits, input_bytes(input(ready)))
+      )
+
+def go_returned(+state: State, stage: Stage, result: GoProtocol.GoResult) -> Selection:
+  match stage result:
+    case GoPreparing{} GoProtocol.GoUnavailable{}: NoUnit{state, None{}}
+    case GoPreparing{} GoProtocol.GoPrepared{prepared}: go_prepared(state, prepared)
+    case GoInspecting{} GoProtocol.GoInspected{Some{facts}}: root_facts(
+      state,
+      T.SourceInspected{facts}
+    )
+    case GoInspecting{} GoProtocol.GoInspected{None{}}: NoUnit{state, None{}}
+    case _ _: Rejected{state, T.MalformedReply{}}
+
+def go_exchanged(-World: Data, state: State, request: T.Request,
+    exchange: E.Exchange<World>) -> Progress<World>:
+  match exchange:
+    case E.Delivered{world, reply}: EntryGoChildResume{state, request, reply, world}
+    case exchange: EntryGoChildWaiting{state, exchange}
+
+def go_await_checked(
+  -World: Data,
+  state: State,
+  +request: T.Request,
+  next: Nat,
+  respond: T.Operation -> World -> E.Response<World>,
+  world: E.WorldState<World>,
+  valid: Bool
+) -> Progress<World>:
+  match valid:
+    case True{}: go_exchanged(
+      World,
+      with_next_request(state, next),
+      request,
+      E.step(World, respond, request, world)
+    )
+    case False{}: EntryFailed{state, T.MalformedReply{}, world}
+
+def go_await(
+  -World: Data,
+  +state: State,
+  +request: T.Request,
+  +next: Nat,
+  respond: T.Operation -> World -> E.Response<World>,
+  world: E.WorldState<World>
+) -> Progress<World>:
+  match request:
+    case T.Request{invocation, +id, _}:
+      go_await_checked(World, state, request, next, respond, world,
+        Bool.and(Nat.is_eq(invocation, input_invocation(input(state))),
+          Bool.and(Nat.is_eq(id, next_request(state)), Nat.is_eq(next, Nat.add(id, 1n)))))
+
+def go_terminal_checked(-World: Data, state: State, selection: Selection,
+    world: E.WorldState<World>, valid: Bool) -> Progress<World>:
+  match valid:
+    case True{}: consumed(World, selection, world)
+    case False{}: EntryFailed{state, T.MalformedReply{}, world}
+
+def go_view(
+  -World: Data,
+  +state: State,
+  view: GoProtocol.GoView,
+  respond: T.Operation -> World -> E.Response<World>,
+  +world: E.WorldState<World>
+) -> Progress<World>:
+  match view:
+    case GoProtocol.GoContinue{}: EntryGoChildAdvance{state, world}
+    case GoProtocol.GoAwait{request, next}: go_await(World, state, request, next, respond, world)
+    case GoProtocol.GoReturned{result, next}:
+      go_terminal_checked(World, state, go_returned(state, stage(state), result), world,
+        Nat.is_eq(next, next_request(state)))
+    case GoProtocol.GoFailed{failure, next}:
+      go_terminal_checked(World, state, Rejected{state, failure}, world,
+        Nat.is_eq(next, next_request(state)))
+
+def go_child_completed(-World: Data, respond: T.Operation -> World -> E.Response<World>,
+    progress: Progress<World>, view: GoProtocol.GoView) -> Progress<World>:
+  match progress:
+    case EntryGoChildBegin{state, _, world}: go_view(World, state, view, respond, world)
+    case EntryGoChildAdvance{state, world}: go_view(World, state, view, respond, world)
+    case EntryGoChildResume{state, _, _, world}: go_view(World, state, view, respond, world)
+    case other: other
 
 def preparation_progress(
   -World: Data,
@@ -1076,6 +1225,44 @@ def issue(~reply: State -> T.ServiceOutcome -> Selection, -World: Data,
     )
   )
 
+def go_publication_needed(stage: Stage) -> Bool:
+  match stage:
+    case GoPublished{}: False{}
+    case _: True{}
+
+def expansion_finished(-World: Data, +state: State, +driver: D.State,
+    +product: Maybe<&2, ArtifactValue.ProductValue>, world: E.WorldState<World>,
+    needed: Bool, language: Maybe<&2, T.Language>) -> Progress<World>:
+  match product needed language:
+    case Some{_} True{} Some{T.GoLanguage{}}:
+      consumed(
+        World,
+        request_deadline(
+          with_next_request(state, D.next_request(driver)),
+          AwaitGoPublicationClock{
+            D.with_next(driver, Nat.add(D.next_request(driver), 1n)),
+            product
+          },
+          True{}
+        ),
+        world
+      )
+    case _ _ _: EntryExpanding{state, D.DriverFinished{driver, product, world}}
+
+def expansion_progress(-World: Data, +state: State, progress: D.Progress<World>) -> Progress<World>:
+  match progress:
+    case D.DriverFinished{driver, product, world}:
+      expansion_finished(
+        World,
+        state,
+        driver,
+        product,
+        world,
+        go_publication_needed(stage(state)),
+        language(state)
+      )
+    case other: EntryExpanding{state, other}
+
 def advance(
   ~select: State -> Selection,
   ~reply: State -> T.ServiceOutcome -> Selection,
@@ -1099,8 +1286,8 @@ def advance(
     )
     case EntryPreparing{state, progress}: preparation_progress(World, state,
       P.advance(prepare_select, prepare_reply, World, respond, progress))
-    case EntryExpanding{state, progress}: EntryExpanding{state,
-      D.advance(expand_select, expand_reply, World, respond, progress)}
+    case EntryExpanding{state, progress}: expansion_progress(World, state,
+      D.advance(expand_select, expand_reply, World, respond, progress))
     case other: other
 
 def completed_exchange(~reply: State -> T.ServiceOutcome -> Selection, -World: Data,
@@ -1109,6 +1296,17 @@ def completed_exchange(~reply: State -> T.ServiceOutcome -> Selection, -World: D
     case E.Waiting{_, request, _}:
       exchanged(reply, World, request, state, E.complete(World, exchange, completion))
     case E.Delivered{_, _}: EntryWaiting{state, exchange}
+
+def go_completed_exchange(-World: Data, state: State, +exchange: E.Exchange<World>,
+    completion: E.Completion<World>) -> Progress<World>:
+  match exchange:
+    case E.Waiting{_, request, _}: go_exchanged(
+      World,
+      state,
+      request,
+      E.complete(World, exchange, completion)
+    )
+    case other: EntryGoChildWaiting{state, other}
 
 def complete(
   ~reply: State -> T.ServiceOutcome -> Selection,
@@ -1126,10 +1324,10 @@ def complete(
     )
     case EntryPreparing{state, progress}: preparation_progress(World, state,
       P.complete(prepare_reply, World, progress, completion))
-    case EntryExpanding{state, progress}: EntryExpanding{
-      state,
-      D.complete(expand_reply, World, progress, completion)
-    }
+    case EntryExpanding{state, progress}: expansion_progress(World, state,
+      D.complete(expand_reply, World, progress, completion))
+    case EntryGoChildWaiting{state, +exchange}:
+      go_completed_exchange(World, state, exchange, completion)
     case other: other
 
 def cancelled_world(
@@ -1151,6 +1349,10 @@ def cancelled(-World: Data, +state: State, world: E.WorldState<World>) -> Progre
 def cancel(-World: Data, progress: Progress<World>) -> Progress<World>:
   match progress:
     case EntryReady{state, world}: cancelled(World, state, world)
+    case EntryGoChildBegin{state, _, world}: cancelled(World, state, world)
+    case EntryGoChildAdvance{state, world}: cancelled(World, state, world)
+    case EntryGoChildResume{state, _, _, world}: cancelled(World, state, world)
+    case EntryGoChildWaiting{state, E.Waiting{world, _, _}}: cancelled(World, state, world)
     case EntrySelected{state, _, world}: cancelled(World, state, world)
     case EntryWaiting{state, E.Waiting{world, _, _}}: cancelled(World, state, world)
     case EntryPreparing{state, progress}: preparation_progress(

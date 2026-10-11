@@ -295,8 +295,19 @@ One current obstacle list, in execution order:
    fixture ABI consumers or the remaining universal guarantees. No new law or weakened
    premise is claimed. Full materialization/transaction guarantees
    remain open. The
-   reference entry still lacks the complete Go preparation bridge; its metadata
-   installer does not qualify that missing path. Astra agreed the full entry
+   reference entry's Go preparation bridge is now drafted, but the full consumer
+   is not connected or qualified. EntrySpecification now recognizes .go, starts
+   the existing Go child, validates request owner/id/next continuity, installs
+   returned limits/dependencies/fingerprint before root construction, projects
+   cancellation and performs the publication clock. Definitions check after
+   formatting in 4.775 seconds under the unchanged five-second limit; this is
+   not a universal whole-flow proof. Initial full check timed out after concrete
+   parse/quantity errors were fixed; baseline Entry at 30982d50 with identical
+   dependencies passed in 4.278 seconds. Replacing large Bool.pick Progress
+   terms with explicit Bool transitions brought the new source within budget.
+   The existing full entry runner still needs mechanical Go begin/advance/resume
+   and exact native whole-product/effect/cache/clock correspondence; source
+   checking alone does not qualify this bridge. Astra agreed the full entry
    path: independent entry owns lazy type-only configuration ordering, root
    admission, returned limits/dependencies/fingerprint installation and final
    publication clock; existing specialized Go policy is shared through commands
@@ -308,11 +319,17 @@ One current obstacle list, in execution order:
    3528 transitions, whole Canonical-owned Go 58 cases/2075 requests, and general
    Canonical-owned resolver 46 cases/2049 requests. These close protocol move
    qualification, not the missing Go Entry or public adoption. Original optional
-   fingerprint materialization theorem is being extended without changed
-   premises: existing unit-product witness equations check in 1.283 seconds;
-   full theorem and its completion prefix hit the five-second deadline and
-   remain unqualified. Next diagnostic corrects the first completion body's
-   large rewrite via explicit congruence; no increased deadline or new premise. Missing Go cases in actual context/reference
+   fingerprint materialization theorem is extended without changed premises:
+   existing unit-product witness equations check in 1.283 seconds. Metadata now
+   lifts the final existential witness once; intermediate completion proofs keep
+   their raw witness. The unused prepared_completed experiment was removed.
+   Full theorem remains unqualified at five seconds. The original pre-extension
+   Materialization also times out on current dependencies; imports alone pass
+   in 4.01 seconds. A prefix printing ALL PROOFS CHECK but exiting 124 is not
+   qualified. Reduce the first complete_ready/closure normalization cost before
+   proceeding to node replacement. Exact formatter rejects this proof owner
+   with Incomplete declaration header; no formatting pass or exclusion is
+   claimed. Neither deadline nor original premise was changed. Missing Go cases in actual context/reference
    branch projections are added and formatted. Both projection roots check
    within five seconds after the explicit reference Go candidates row returns
    [] as native does; no filesystem scan is introduced. No new proof or

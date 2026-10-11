@@ -26,24 +26,24 @@ import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 # Private dependency of the approved whole attachment law. Astra agreed the
 # statement before proof. This is not another migration acceptance frontier.
 # Both successful rendering and exact ordered product equality are conclusions.
-def common_product(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+def unprepared_product(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
-    +forest: F.Forest, +deps: List<&2, String>, +fingerprint: Maybe<&2, String>, +value: ArtifactValue.ProductValue) -> Type:
-  {PreparedRoot.fingerprint_product(Core.review_unit(root, nodes, slots, artifacts, deps), fingerprint) == Some{value}
+    +forest: F.Forest, +deps: List<&2, String>, +value: ArtifactValue.ProductValue) -> Type:
+  {Core.review_unit(root, nodes, slots, artifacts, deps) == Some{Core.unit_product(value, deps)}
     : Maybe<&2, ArtifactValue.ProductValue>} &
-  {F.prepared_unit(Allowance.materialization(forest), forest, deps, fingerprint) == F.Materialized{value}
+  {F.unit(Allowance.materialization(forest), forest, deps) == F.Materialized{Core.unit_product(value, deps)}
     : F.Materialization}
 
 def complete_ready(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
     +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>,
-    +deps: List<&2, String>, +fingerprint: Maybe<&2, String>, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
+    +deps: List<&2, String>, +built: Map<&2, Maybe<&2, ArtifactValue.ProductValue>>,
     done: {Products.products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>},
     root_present: {F.address_at(addresses, root) == Some{birth} : Maybe<&2, O.NodeAddress>},
     node_done: {P.nodes(nodes, slots, artifacts, addresses) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
     ready: References.ready(Local.Expanded{root}, addresses, F.Forest{Some{birth}, retained}, built,
       Nat.add(Suffix.suffix_allowance(nodes, slots), 0n))) ->
-    Exists(ArtifactValue.ProductValue, value => common_product(root, nodes, slots, artifacts, F.Forest{Some{birth}, retained}, deps, fingerprint, value)):
+    Exists(ArtifactValue.ProductValue, value => unprepared_product(root, nodes, slots, artifacts, F.Forest{Some{birth}, retained}, deps, value)):
   match ready:
     case (+address, (+value, (address_present, (built_present, materialized)))):
       same_address: {address == birth : O.NodeAddress} = Count.some_equal(O.NodeAddress, address, birth,
@@ -62,19 +62,16 @@ def complete_ready(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
         %same_address:
           {F.materialize(Nat.add(Suffix.suffix_allowance(nodes, slots), 0n), F.Forest{Some{birth}, retained}, _) == F.Materialized{value} : F.Materialization}
         materialized
-      Tuple{UnitProduct.prepared_value(value, deps, fingerprint), Tuple{
-        %Equal.sym(Maybe<&2, ArtifactValue.ProductValue>, Core.review_unit(root, nodes, slots, artifacts, deps),
-          Some{Core.unit_product(value, deps)}, UnitConstruction.completed(root, nodes, slots, artifacts, deps, built, value, done, built_present)):
-          {PreparedRoot.fingerprint_product(_, fingerprint) == Some{UnitProduct.prepared_value(value, deps, fingerprint)} : Maybe<&2, ArtifactValue.ProductValue>}
-        UnitProduct.actual_prepared(value, deps, fingerprint),
+      Tuple{value, Tuple{
+        UnitConstruction.completed(root, nodes, slots, artifacts, deps, built, value, done, built_present),
         %Equal.sym(F.Materialization, F.materialize(Allowance.materialization(F.Forest{Some{birth}, retained}), F.Forest{Some{birth}, retained}, birth),
           F.Materialized{value}, root_materialized):
-          {F.prepared_product(F.unit_product(_, deps), fingerprint) == F.Materialized{UnitProduct.prepared_value(value, deps, fingerprint)} : F.Materialization}
-        UnitProduct.reference_prepared(value, deps, fingerprint)}}
+          {F.unit_product(_, deps) == F.Materialized{Core.unit_product(value, deps)} : F.Materialization}
+        UnitProduct.product(value, deps)}}
 
 def complete_built(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
-    +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>, +deps: List<&2, String>, +fingerprint: Maybe<&2, String>,
+    +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>, +deps: List<&2, String>,
     aligned: {P.aligned(nodes, addresses, nodes, addresses) == True{} : Bool},
     +root_present: {F.address_at(addresses, root) == Some{birth} : Maybe<&2, O.NodeAddress>},
     node_done: {P.nodes(nodes, slots, artifacts, addresses) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
@@ -82,16 +79,16 @@ def complete_built(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
       {Products.products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
       {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
       Copies.copies(1n, Suffix.rendered_suffix(nodes, slots, addresses, F.Forest{Some{birth}, retained}, built)))) ->
-    Exists(ArtifactValue.ProductValue, value => common_product(root, nodes, slots, artifacts, F.Forest{Some{birth}, retained}, deps, fingerprint, value)):
+    Exists(ArtifactValue.ProductValue, value => unprepared_product(root, nodes, slots, artifacts, F.Forest{Some{birth}, retained}, deps, value)):
   match products:
     case (+built, (done, (_, (rendered, _)))):
-      complete_ready(root, nodes, slots, artifacts, addresses, birth, retained, deps, fingerprint, built, done, root_present, node_done,
+      complete_ready(root, nodes, slots, artifacts, addresses, birth, retained, deps, built, done, root_present, node_done,
         References.child_ready(nodes, root, slots, addresses, F.Forest{Some{birth}, retained}, built, 0n,
           Root.count(nodes, addresses, nodes, addresses, root, birth, aligned, root_present), rendered))
 
 def complete_forest(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
-    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +deps: List<&2, String>, +fingerprint: Maybe<&2, String>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +deps: List<&2, String>,
     aligned: {P.aligned(nodes, addresses, nodes, addresses) == True{} : Bool},
     contents: Exists(O.NodeAddress, birth => Exists(List<&2, F.Node>, retained =>
       {F.address_at(addresses, root) == Some{birth} : Maybe<&2, O.NodeAddress>} &
@@ -101,7 +98,7 @@ def complete_forest(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
       {Products.products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
       {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
       Copies.copies(1n, Suffix.rendered_suffix(nodes, slots, addresses, forest, built)))) ->
-    Exists(ArtifactValue.ProductValue, value => common_product(root, nodes, slots, artifacts, forest, deps, fingerprint, value)):
+    Exists(ArtifactValue.ProductValue, value => unprepared_product(root, nodes, slots, artifacts, forest, deps, value)):
   match contents:
     case (+birth, (+retained, (root_present, (node_done, same)))):
       +same_forest: {F.Forest{Some{birth}, retained} == forest : F.Forest} = Count.some_equal(F.Forest, F.Forest{Some{birth}, retained}, forest, same)
@@ -115,12 +112,12 @@ def complete_forest(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
             {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
             Copies.copies(1n, Suffix.rendered_suffix(nodes, slots, addresses, _, built)))
         products
-      %same_forest: Exists(ArtifactValue.ProductValue, value => common_product(root, nodes, slots, artifacts, _, deps, fingerprint, value))
-      complete_built(root, nodes, slots, artifacts, addresses, birth, retained, deps, fingerprint, aligned, root_present, node_done, fixed_products)
+      %same_forest: Exists(ArtifactValue.ProductValue, value => unprepared_product(root, nodes, slots, artifacts, _, deps, value))
+      complete_built(root, nodes, slots, artifacts, addresses, birth, retained, deps, aligned, root_present, node_done, fixed_products)
 
 def complete_projection(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
-    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +deps: List<&2, String>, +fingerprint: Maybe<&2, String>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +deps: List<&2, String>,
     contents: {Bool.and(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(artifacts, artifacts),
       Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)))) == True{} : Bool} &
       {P.forest(F.address_at(addresses, root), P.nodes(nodes, slots, artifacts, addresses)) == Some{forest} : Maybe<&2, F.Forest>},
@@ -128,13 +125,40 @@ def complete_projection(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
       {Products.products(nodes, slots, artifacts) == Some{built} : Maybe<&2, Map<&2, Maybe<&2, ArtifactValue.ProductValue>>>} &
       {Patricia.canonical(Maybe<&2, ArtifactValue.ProductValue>, built) == True{} : Bool} &
       Copies.copies(1n, Suffix.rendered_suffix(nodes, slots, addresses, forest, built)))) ->
-    Exists(ArtifactValue.ProductValue, value => common_product(root, nodes, slots, artifacts, forest, deps, fingerprint, value)):
+    Exists(ArtifactValue.ProductValue, value => unprepared_product(root, nodes, slots, artifacts, forest, deps, value)):
   match contents:
     case (guards, present):
-      complete_forest(root, nodes, slots, artifacts, addresses, forest, deps, fingerprint,
+      complete_forest(root, nodes, slots, artifacts, addresses, forest, deps,
         B.eq_true_of_and_left(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(artifacts, artifacts),
           Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots))), guards),
         Contents.forest_contents(F.address_at(addresses, root), P.nodes(nodes, slots, artifacts, addresses), forest, present), products)
+
+def common_product(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
+    +forest: F.Forest, +deps: List<&2, String>, +fingerprint: Maybe<&2, String>, +value: ArtifactValue.ProductValue) -> Type:
+  {PreparedRoot.fingerprint_product(Core.review_unit(root, nodes, slots, artifacts, deps), fingerprint) == Some{value}
+    : Maybe<&2, ArtifactValue.ProductValue>} &
+  {F.prepared_unit(Allowance.materialization(forest), forest, deps, fingerprint) == F.Materialized{value}
+    : F.Materialization}
+
+def prepare_product(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
+    +forest: F.Forest, +deps: List<&2, String>, +fingerprint: Maybe<&2, String>,
+    result: Exists(ArtifactValue.ProductValue, value => unprepared_product(root, nodes, slots, artifacts, forest, deps, value))) ->
+    Exists(ArtifactValue.ProductValue, value => common_product(root, nodes, slots, artifacts, forest, deps, fingerprint, value)):
+  match result:
+    case (+value, (actual, reference)):
+      Tuple{UnitProduct.prepared_value(value, deps, fingerprint), Tuple{
+        %Equal.sym(Maybe<&2, ArtifactValue.ProductValue>, Core.review_unit(root, nodes, slots, artifacts, deps),
+          Some{Core.unit_product(value, deps)}, actual):
+          {PreparedRoot.fingerprint_product(_, fingerprint) == Some{UnitProduct.prepared_value(value, deps, fingerprint)} : Maybe<&2, ArtifactValue.ProductValue>}
+        UnitProduct.actual_prepared(value, deps, fingerprint),
+        %Equal.sym(F.Materialization, F.unit(Allowance.materialization(forest), forest, deps),
+          F.Materialized{Core.unit_product(value, deps)}, reference):
+          {F.prepared_product(_, fingerprint) == F.Materialized{UnitProduct.prepared_value(value, deps, fingerprint)} : F.Materialization}
+        %UnitProduct.product(value, deps):
+          {F.prepared_product(_, fingerprint) == F.Materialized{UnitProduct.prepared_value(value, deps, fingerprint)} : F.Materialization}
+        UnitProduct.reference_prepared(value, deps, fingerprint)}}
 
 law projected_unit_total:
   for +root: Nat
@@ -159,10 +183,12 @@ def projected_unit_total(root, nodes, slots, artifacts, addresses, forest, next_
   +artifacts = artifacts
   +addresses = addresses
   +forest = forest
+  +deps = deps
   +projected = projected
-  complete_projection(root, nodes, slots, artifacts, addresses, forest, deps, fingerprint,
+  prepare_product(root, nodes, slots, artifacts, forest, deps, fingerprint,
+    complete_projection(root, nodes, slots, artifacts, addresses, forest, deps,
     Contents.project_contents(root, nodes, slots, artifacts, addresses, forest, projected),
-    Products.rendered_products(root, nodes, slots, artifacts, addresses, forest, next_episode, 1n, projected, artifacts_valid, forest_valid))
+    Products.rendered_products(root, nodes, slots, artifacts, addresses, forest, next_episode, 1n, projected, artifacts_valid, forest_valid)))
 
 def main() -> Unit:
   Unit{}
