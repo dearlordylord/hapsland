@@ -559,3 +559,24 @@ five-minute build pair. Next build deadline: 17:18:04.222878 UTC; next execution
 deadline: 17:23:34.691205 UTC. These measure existing production, not unadopted
 whole preparation. Production preparation adoption and replaced TS removal
 remain 0/0.
+
+The next agreed whole-section step with Astra is the existing physical Source →
+Preparation → Post consumer across all five supported languages. It previously
+loaded only Generic/Python artifacts and used Python roots (plus a TypeScript
+comment case). The retained checker now loads GoArtifact and adds complete
+TypeScript, Go, Bend and Rust source modes with two physical candidates, keeping
+the same actual native makeResidentPreparation comparison, ordered effects,
+prepared inputs, semantic identities and pre-teardown owner snapshots.
+The first full Go mode reached resident result comparison and found a real
+configuration transport gap: preparation-foreign omitted resolved analysis
+configuration/identity from resolver context. The resulting Go fingerprint and
+semantic input identity differed from native. The main foreign binding now
+passes the same resolved settings fields as native graphResolutionOptions;
+verification remains open. The next run stopped before fixtures because
+GenericArtifact emission exceeded hard five seconds; its standalone canary also
+exited 124. Diagnose this unchanged artifact's compilation cost without raising
+the deadline before repeating the full resident comparison. Ordinary lint
+selected and passed both changed MJS files. Existing parent append projection,
+address append lookup and reference append definitions check in 2.235 seconds;
+the original parent law and transaction remain open. These retained WIP sources
+are backed up regardless of qualification; public adoption/TS removal remain 0/0.

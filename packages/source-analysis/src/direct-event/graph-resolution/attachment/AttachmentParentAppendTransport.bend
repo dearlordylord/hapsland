@@ -3,6 +3,7 @@ import ./RetainedForestProjection.bend as P
 import ./AttachmentMapping.bend as Mapping
 import ./AttachmentNodeReplacementTransport.bend as Replacement
 import ./AttachmentProjectionAllowanceProof.bend as Count
+import ./AttachmentProjectionContentsProof.bend as Contents
 import ./AttachmentParentAllocationProof.bend as Allocation
 import ./ActualAttachmentFrameProjection.bend as Frame
 import ./ActualAttachmentPhaseProjection.bend as Ready
@@ -74,6 +75,26 @@ def tentative_success(+root: Nat, +next: Nat, +children: List<&2, Local.PlannedN
 
 # Append projection is structural over retained occurrences, including detached
 # nodes. Both sides use the final shared slot/address context.
+def nodes_append_row(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>,
+    +right: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>,
+    +before: List<&2, F.Node>, +after: List<&2, F.Node>,
+    parts: Replacement.row_contents(id, handle, tail, slots, catalog, addresses, before),
+    recursive: @+rest: List<&2, F.Node> ->
+      {P.nodes(tail, slots, catalog, addresses) == Some{rest} : Maybe<&2, List<&2, F.Node>>} ->
+      {P.nodes(List.append(&2, Local.PlannedNode, tail, right), slots, catalog, addresses)
+        == Some{List.append(&2, F.Node, rest, after)} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.nodes(Local.PlannedNode{id, handle} <> List.append(&2, Local.PlannedNode, tail, right), slots, catalog, addresses)
+      == Some{List.append(&2, F.Node, before, after)} : Maybe<&2, List<&2, F.Node>>}:
+  match parts:
+    case (+birth, (+artifact, (+refs, (+rest, (located, (selected, (references, (tail_done, same)))))))):
+      %same:
+        {P.nodes(Local.PlannedNode{id, handle} <> List.append(&2, Local.PlannedNode, tail, right), slots, catalog, addresses)
+          == Some{List.append(&2, F.Node, _, after)} : Maybe<&2, List<&2, F.Node>>}
+      Replacement.projected_cons(id, handle, List.append(&2, Local.PlannedNode, tail, right), slots, catalog, addresses,
+        birth, artifact, refs, List.append(&2, F.Node, rest, after), located, selected, references,
+        recursive(rest)(tail_done))
+
 def nodes_append(left: List<&2, Local.PlannedNode>, +right: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
     +addresses: List<&2, F.AddressEntry>, +before: List<&2, F.Node>, +after: List<&2, F.Node>,
@@ -87,14 +108,72 @@ def nodes_append(left: List<&2, Local.PlannedNode>, +right: List<&2, Local.Plann
         {P.nodes(right, slots, catalog, addresses) == Some{List.append(&2, F.Node, _, after)} : Maybe<&2, List<&2, F.Node>>}
       right_done
     case Local.PlannedNode{+id, +handle} <> +tail:
-      match Replacement.split_nodes(id, handle, tail, slots, catalog, addresses, before, left_done):
-        case (+birth, (+artifact, (+refs, (+rest, (located, (selected, (references, (tail_done, same)))))))):
-          %same:
-            {P.nodes(Local.PlannedNode{id, handle} <> List.append(&2, Local.PlannedNode, tail, right), slots, catalog, addresses)
-              == Some{List.append(&2, F.Node, _, after)} : Maybe<&2, List<&2, F.Node>>}
-          Replacement.projected_cons(id, handle, List.append(&2, Local.PlannedNode, tail, right), slots, catalog, addresses,
-            birth, artifact, refs, List.append(&2, F.Node, rest, after), located, selected, references,
-            nodes_append(tail, right, slots, catalog, addresses, rest, after, tail_done, right_done))
+      nodes_append_row(id, handle, tail, right, slots, catalog, addresses, before, after,
+        Replacement.split_nodes(id, handle, tail, slots, catalog, addresses, before, left_done),
+        rest => done => nodes_append(tail, right, slots, catalog, addresses, rest, after, done, right_done))
+
+# Extending an address table cannot change an already resolved parent address.
+def address_append_selected(+id: Nat, +birth: O.NodeAddress, +tail: List<&2, F.AddressEntry>,
+    +suffix: List<&2, F.AddressEntry>, +query: Nat, +found: O.NodeAddress,
+    flag: Bool, branch: {Nat.is_eq(id, query) == flag : Bool},
+    present: {Bool.pick(Maybe<&2, O.NodeAddress>, flag, Some{birth}, F.address_at(tail, query))
+      == Some{found} : Maybe<&2, O.NodeAddress>},
+    recursive: {F.address_at(tail, query) == Some{found} : Maybe<&2, O.NodeAddress>} ->
+      {F.address_at(List.append(&2, F.AddressEntry, tail, suffix), query) == Some{found} : Maybe<&2, O.NodeAddress>}) ->
+    {F.address_at(F.AddressEntry{id, birth} <> List.append(&2, F.AddressEntry, tail, suffix), query)
+      == Some{found} : Maybe<&2, O.NodeAddress>}:
+  match flag:
+    case True{}:
+      %Equal.sym(Bool, Nat.is_eq(id, query), True{}, branch):
+        {Bool.pick(Maybe<&2, O.NodeAddress>, _, Some{birth}, F.address_at(List.append(&2, F.AddressEntry, tail, suffix), query))
+          == Some{found} : Maybe<&2, O.NodeAddress>}
+      present
+    case False{}:
+      %Equal.sym(Bool, Nat.is_eq(id, query), False{}, branch):
+        {Bool.pick(Maybe<&2, O.NodeAddress>, _, Some{birth}, F.address_at(List.append(&2, F.AddressEntry, tail, suffix), query))
+          == Some{found} : Maybe<&2, O.NodeAddress>}
+      recursive(present)
+
+def address_append_present(prefix: List<&2, F.AddressEntry>, +suffix: List<&2, F.AddressEntry>,
+    +query: Nat, +found: O.NodeAddress,
+    present: {F.address_at(prefix, query) == Some{found} : Maybe<&2, O.NodeAddress>}) ->
+    {F.address_at(List.append(&2, F.AddressEntry, prefix, suffix), query) == Some{found} : Maybe<&2, O.NodeAddress>}:
+  match prefix:
+    case []:
+      Empty.absurd({F.address_at(suffix, query) == Some{found} : Maybe<&2, O.NodeAddress>},
+        Contents.none_some(O.NodeAddress, found, present))
+    case F.AddressEntry{+id, +birth} <> +tail:
+      address_append_selected(id, birth, tail, suffix, query, found, Nat.is_eq(id, query), {==}, present,
+        done => address_append_present(tail, suffix, query, found, done))
+
+def expanded_append(+addresses: List<&2, F.AddressEntry>, +suffix: List<&2, F.AddressEntry>,
+    owner: Nat, index: Nat, +symbol: String, +child: Nat, +reference: F.Reference,
+    observed: Maybe<&2, O.NodeAddress>, located: {F.address_at(addresses, child) == observed : Maybe<&2, O.NodeAddress>},
+    present: {P.expanded_reference(observed, symbol) == Some{reference} : Maybe<&2, F.Reference>}) ->
+    {P.reference(Local.ReferenceSlot{owner, index, symbol, Local.Expanded{child}}, List.append(&2, F.AddressEntry, addresses, suffix))
+      == Some{reference} : Maybe<&2, F.Reference>}:
+  match observed:
+    case None{}:
+      Empty.absurd({P.expanded_reference(F.address_at(List.append(&2, F.AddressEntry, addresses, suffix), child), symbol)
+        == Some{reference} : Maybe<&2, F.Reference>}, Contents.none_some(F.Reference, reference, present))
+    case Some{+birth}:
+      %Equal.sym(Maybe<&2, O.NodeAddress>, F.address_at(List.append(&2, F.AddressEntry, addresses, suffix), child), Some{birth},
+        address_append_present(addresses, suffix, child, birth, located)):
+        {P.expanded_reference(_, symbol) == Some{reference} : Maybe<&2, F.Reference>}
+      present
+
+
+# Every old expanded reference is resolved before extending the table. Its
+# original symbol and target address therefore survive extension unchanged.
+def reference_append(slot: Local.ReferenceSlot, +addresses: List<&2, F.AddressEntry>,
+    +suffix: List<&2, F.AddressEntry>, +reference: F.Reference,
+    present: {P.reference(slot, addresses) == Some{reference} : Maybe<&2, F.Reference>}) ->
+    {P.reference(slot, List.append(&2, F.AddressEntry, addresses, suffix)) == Some{reference} : Maybe<&2, F.Reference>}:
+  match slot:
+    case Local.ReferenceSlot{_, _, _, Local.Included{_}}: present
+    case Local.ReferenceSlot{_, _, _, Local.Omitted{_, _}}: present
+    case Local.ReferenceSlot{owner, index, symbol, Local.Expanded{+child}}:
+      expanded_append(addresses, suffix, owner, index, symbol, child, reference, F.address_at(addresses, child), {==}, present)
 
 law parent_attachment_exact:
   for +parent_root: Nat

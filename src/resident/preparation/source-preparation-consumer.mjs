@@ -46,6 +46,7 @@ try {
     "ArtifactComposition",
     "GenericArtifact",
     "PythonArtifact",
+    "GoArtifact",
     "CanonicalResolverOwner",
     "PostPreparation",
     "SourcePreparation"
@@ -123,6 +124,7 @@ try {
             PreparationSpecification:
               "../../../packages/source-analysis/src/direct-event/graph-resolution/PreparationSpecification.bend",
             Protocol: "../../../packages/source-analysis/src/direct-event/graph-resolution/Protocol.bend",
+            GoArtifact: "../../../packages/resident-runtime/src/resident/review-work/composition/GoArtifact.bend",
             PythonArtifact:
               "../../../packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend",
             PythonModule: "../../../packages/source-analysis/src/direct-event/graph-resolution/PythonModule.bend",
@@ -207,7 +209,8 @@ try {
     artifacts = {
       composition: modules.ArtifactComposition,
       parent: modules.GenericArtifact,
-      python: modules.PythonArtifact
+      python: modules.PythonArtifact,
+      go: modules.GoArtifact
     }
   const machines = {
     source: createSourcePreparationMachine(modules.SourcePreparation),
@@ -238,6 +241,40 @@ try {
     join(root, "comment.ts"),
     '// updated outside declarations\nexport class Example { value: string = "x" }\nexport function identity(value: string): string { return value }\n'
   )
+  const languageSources = {
+    typescript: {
+      "first.ts": 'import { Foo } from "./leaf"; export interface First { field: Foo }',
+      "second.ts": 'import { Foo } from "./leaf"; export interface Second { field: Foo }',
+      "leaf.ts": "export interface Foo { value: string }"
+    },
+    go: {
+      "go.mod": "module example.com/sourcefixture\ngo 1.23\n",
+      "first.go": "package sourcefixture\ntype First struct { Field Foo }\n",
+      "second.go": "package sourcefixture\ntype Second struct { Field Foo }\n",
+      "leaf.go": "package sourcefixture\ntype Foo struct { Value string }\n"
+    },
+    bend: {
+      "first.bend": "import ./leaf.bend as Leaf\ntype First is Data:\n  First{field: Leaf.Foo}\n",
+      "second.bend": "import ./leaf.bend as Leaf\ntype Second is Data:\n  Second{field: Leaf.Foo}\n",
+      "leaf.bend": "type Foo is Data:\n  Foo{value: String}\n"
+    },
+    rust: {
+      "Cargo.toml": '[package]\nname = "sourcefixture"\nversion = "0.1.0"\nedition = "2021"\n',
+      "src/lib.rs": "mod other; pub struct First { pub value: String }\n",
+      "src/other.rs": "pub struct Second { pub value: String }\n"
+    }
+  }
+  for (const [language, files] of Object.entries(languageSources))
+    for (const [file, text] of Object.entries(files)) {
+      await mkdir(join(root, language, file, ".."), { recursive: true })
+      await writeFile(join(root, language, file), text)
+    }
+  const languageCandidates = {
+    typescript: ["typescript/first.ts", "typescript/second.ts"],
+    go: ["go/first.go", "go/second.go"],
+    bend: ["bend/first.bend", "bend/second.bend"],
+    rust: ["rust/src/lib.rs", "rust/src/other.rs"]
+  }
   let cases = 0,
     totalRequests = 0,
     nativeWholeCases = 0
@@ -257,6 +294,7 @@ try {
     "source-cleanup-pending",
     "post-finalizer-cause",
     "full-workflow",
+    ...Object.keys(languageCandidates).map((language) => "full-language-" + language),
     "full-repeat",
     "full-refused-second",
     "full-owner-barrier-failure",
@@ -464,8 +502,9 @@ try {
       }
     })
     connection.owned = { driver }
-    const candidates =
-      mode === "full-comment-update"
+    const candidates = mode.startsWith("full-language-")
+      ? languageCandidates[mode.slice("full-language-".length)].map((path) => ({ operation: "add", path }))
+      : mode === "full-comment-update"
         ? [
             { operation: "update", path: "comment.ts", addedLines: ["// updated outside declarations"] },
             { operation: "update", path: "comment.ts", addedLines: ["// updated outside declarations"] }

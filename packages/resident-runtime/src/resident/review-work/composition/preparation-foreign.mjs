@@ -60,6 +60,15 @@ export function createPreparationForeign({
   }
   const rootCaptures = new Map(),
     selections = new Map()
+  const graphContext = {
+    ...context,
+    analysisConfiguration:
+      settings.configuration?.policy.layers.reduce(
+        (current, layer) => ({ ...current, ...layer.document.analysis }),
+        {}
+      ) ?? {},
+    analysisConfigurationIdentity: settings.configuration?.policy.digest ?? "unconfigured"
+  }
   let roots = 0
   const none = { $: "None" },
     some = (value) => ({ $: "Some", value })
@@ -292,13 +301,16 @@ export function createPreparationForeign({
           command.capture.path,
           rootCaptures.get(command.capture.handle),
           command.root.name,
-          { ...context, branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type" },
+          {
+            ...graphContext,
+            branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type"
+          },
           options
         )
         if (compareRoots) {
           const expected = await Effect.runPromise(
             resolveGraphUnit(command.capture.path, rootCaptures.get(command.capture.handle), command.root.name, {
-              ...context,
+              ...graphContext,
               branch: command.contract.$ === "PreparationSelection.FunctionContract" ? "function" : "type",
               captureCache: new Map()
             })
