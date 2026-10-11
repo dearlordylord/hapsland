@@ -1,7 +1,7 @@
 import Base
+import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/ArtifactProtocol.bend as GoProtocol
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Protocol.bend as Protocol
 import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/Configuration.bend as Configuration
-import ./ArtifactProtocol.bend as A
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationMachine.bend as Preparation
 import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationModel.bend as M
@@ -49,28 +49,28 @@ def inspect(prepared: M.Prepared, path: String, branch: T.Branch, next: Nat) -> 
       next
     )
 
-def preparation_await(state: Preparation.State, request: T.Request) -> A.GoView:
+def preparation_await(state: Preparation.State, request: T.Request) -> GoProtocol.GoView:
   match state:
-    case Preparation.State{runtime, _}: A.GoAwait{request, M.next_request(runtime)}
+    case Preparation.State{runtime, _}: GoProtocol.GoAwait{request, M.next_request(runtime)}
 
-def preparation_returned(prepared: Maybe<&2, M.Prepared>, next: Nat) -> A.GoView:
+def preparation_returned(prepared: Maybe<&2, M.Prepared>, next: Nat) -> GoProtocol.GoView:
   match prepared:
-    case None{}: A.GoReturned{A.GoUnavailable{}, next}
-    case Some{prepared}: A.GoReturned{A.GoPrepared{prepared}, next}
+    case None{}: GoProtocol.GoReturned{GoProtocol.GoUnavailable{}, next}
+    case Some{prepared}: GoProtocol.GoReturned{GoProtocol.GoPrepared{prepared}, next}
 
-def preparation_view(child: Preparation.Step) -> A.GoView:
+def preparation_view(child: Preparation.Step) -> GoProtocol.GoView:
   match child:
-    case Preparation.Internal{_}: A.GoContinue{}
+    case Preparation.Internal{_}: GoProtocol.GoContinue{}
     case Preparation.Await{state, request}: preparation_await(state, request)
     case Preparation.Returned{prepared, next}: preparation_returned(prepared, next)
-    case Preparation.Failed{failure, next}: A.GoFailed{failure, next}
+    case Preparation.Failed{failure, next}: GoProtocol.GoFailed{failure, next}
 
 def configuration_next(request: T.Request) -> Nat:
   match request:
     case T.Request{_, id, _}: Nat.add(id, 1n)
 
-def configuration_view(+request: T.Request) -> A.GoView:
-  A.GoAwait{request, configuration_next(request)}
+def configuration_view(+request: T.Request) -> GoProtocol.GoView:
+  GoProtocol.GoAwait{request, configuration_next(request)}
 
 def configured(
   input: M.Input,
@@ -120,16 +120,16 @@ def prepare(+input: M.Input) -> Step:
       T.Request{owner, next, T.ReadGoConfiguration{}}
     }
 
-def view(step: Step) -> A.GoView:
+def view(step: Step) -> GoProtocol.GoView:
   match step:
     case Configuring{_, request}: configuration_view(request)
     case Preparing{child}: preparation_view(child)
-    case Inspected{facts, next}: A.GoReturned{A.GoInspected{facts}, next}
+    case Inspected{facts, next}: GoProtocol.GoReturned{GoProtocol.GoInspected{facts}, next}
 
-def begin(command: A.GoCommand) -> Step:
+def begin(command: GoProtocol.GoCommand) -> Step:
   match command:
-    case A.GoPrepare{input}: prepare(input)
-    case A.GoInspect{prepared, path, branch, next}: inspect(prepared, path, branch, next)
+    case GoProtocol.GoPrepare{input}: prepare(input)
+    case GoProtocol.GoInspect{prepared, path, branch, next}: inspect(prepared, path, branch, next)
 
 def advance(step: Step) -> Step:
   match step:

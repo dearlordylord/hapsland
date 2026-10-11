@@ -1,4 +1,5 @@
 import Base
+import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/ArtifactProtocol.bend as GoProtocol
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../../source-analysis/src/direct-event/graph-resolution/State.bend as S
 import ./ArtifactProtocol.bend as A
@@ -38,7 +39,7 @@ type PythonDispatch is Data:
   BeginPython{command: P.PythonCommand}
   ResumePython{handle: A.StateHandle, reply: T.Reply}
 type GoDispatch is Data:
-  BeginGo{command: A.GoCommand}
+  BeginGo{command: GoProtocol.GoCommand}
   ResumeGo{handle: A.StateHandle, reply: T.Reply}
   AdvanceGo{handle: A.StateHandle}
 type AwaitOwner is Data:
@@ -235,10 +236,10 @@ def child_handle(
     case True{}: child_view(context, continuation, handle, view)
     case False{}: malformed(context)
 
-def go_returned(context: Context, continuation: Return, result: A.GoResult) -> Step:
+def go_returned(context: Context, continuation: Return, result: GoProtocol.GoResult) -> Step:
   match continuation result:
-    case GoPreparationReturn{_} A.GoUnavailable{}: parent(context, A.Unavailable{})
-    case GoPreparationReturn{state} A.GoPrepared{+prepared}:
+    case GoPreparationReturn{_} GoProtocol.GoUnavailable{}: parent(context, A.Unavailable{})
+    case GoPreparationReturn{state} GoProtocol.GoPrepared{+prepared}:
       match prepared:
         case Go.Prepared{_, _, dependencies, fingerprint, limits}: parent(
           with_go(context, prepared),
@@ -249,33 +250,38 @@ def go_returned(context: Context, continuation: Return, result: A.GoResult) -> S
             )
           }
         )
-    case GoRootReturn{state} A.GoInspected{facts}: parent(
+    case GoRootReturn{state} GoProtocol.GoInspected{facts}: parent(
       context,
       A.RootInspected{state, source(facts)}
     )
     case _ _: malformed(context)
 
-def go_view(context: Context, continuation: Return, handle: A.StateHandle, view: A.GoView) -> Step:
+def go_view(
+  context: Context,
+  continuation: Return,
+  handle: A.StateHandle,
+  view: GoProtocol.GoView
+) -> Step:
   match view:
-    case A.GoContinue{}: GoCall{context, continuation, AdvanceGo{handle}}
-    case A.GoAwait{request, next}: Service{
+    case GoProtocol.GoContinue{}: GoCall{context, continuation, AdvanceGo{handle}}
+    case GoProtocol.GoAwait{request, next}: Service{
       context,
       GoAwaitOwner{handle, with_return_next(continuation, next)},
       request
     }
-    case A.GoReturned{result, next}: go_returned(
+    case GoProtocol.GoReturned{result, next}: go_returned(
       context,
       with_return_next(continuation, next),
       result
     )
-    case A.GoFailed{failure, _}: failed(context, failure)
+    case GoProtocol.GoFailed{failure, _}: failed(context, failure)
 
 def go_handle(
   valid: Bool,
   context: Context,
   continuation: Return,
   handle: A.StateHandle,
-  view: A.GoView
+  view: GoProtocol.GoView
 ) -> Step:
   match valid:
     case True{}: go_view(context, continuation, handle, view)
@@ -295,7 +301,7 @@ def receive_python(+step: Step, +handle: A.StateHandle, view: P.PythonView) -> S
       child_handle(Nat.is_eq(owner(context), invocation), context, continuation, handle, view)
     case _ _: malformed(context_of(step))
 
-def receive_go(+step: Step, +handle: A.StateHandle, view: A.GoView) -> Step:
+def receive_go(+step: Step, +handle: A.StateHandle, view: GoProtocol.GoView) -> Step:
   match step handle:
     case GoCall{+context, continuation, _} A.StateHandle{invocation, _}:
       go_handle(Nat.is_eq(owner(context), invocation), context, continuation, handle, view)
@@ -306,7 +312,7 @@ def prepare_go(clock: Maybe<&2, T.ClockToken>, +context: Context, +state: T.Reso
     case None{}: malformed(context)
     case Some{clock}:
       +input = S.state_input(state)
-      GoCall{context, GoPreparationReturn{state}, BeginGo{A.GoPrepare{Go.Input{
+      GoCall{context, GoPreparationReturn{state}, BeginGo{GoProtocol.GoPrepare{Go.Input{
         S.input_invocation(input), S.state_next_request(state), S.input_root_path(input),
         S.input_root_capture(input), S.input_root_bytes(input), S.input_branch(input), clock,
         S.input_caller_cache(input), S.input_limits(input), None{},
@@ -317,7 +323,7 @@ def inspect_go(prepared: Maybe<&2, Go.Prepared>, context: Context, +state: T.Res
     case None{}: malformed(context)
     case Some{prepared}:
       +input = S.state_input(state)
-      GoCall{context, GoRootReturn{state}, BeginGo{A.GoInspect{prepared,
+      GoCall{context, GoRootReturn{state}, BeginGo{GoProtocol.GoInspect{prepared,
         S.input_root_path(input), S.input_branch(input), S.state_next_request(state)}}}
 
 def prepare(clock: Maybe<&2, T.ClockToken>, +context: Context, +state: T.ResolverState) -> Step:

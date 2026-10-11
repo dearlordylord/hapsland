@@ -271,7 +271,7 @@ try {
           if (incoming) {
             if (item.startsWith("../Types.") || item.startsWith("../traversal/core."))
               return [key, artifactOwner + item.slice(3)]
-            if (/^(?:PreparationModel|Configuration|RawText|Input|Package)\./u.test(item))
+            if (/^(?:PreparationModel|Configuration|RawText|Input|Package|ArtifactProtocol)\./u.test(item))
               return [key, artifactOwner + "go-module/" + item]
           } else if (item.startsWith(artifactOwner)) {
             const local = item.slice(artifactOwner.length)
@@ -321,8 +321,7 @@ try {
   }
   const core = artifactMode
     ? {
-        initial: (input) =>
-          project(emittedCore.begin({ $: "ArtifactProtocol.GoPrepare", input: artifactTransport(input) })),
+        initial: (input) => project(emittedCore.begin(artifactTransport({ $: "ArtifactProtocol.GoPrepare", input }))),
         advance: (state) => project(emittedCore.advance(state)),
         resume: (step, reply) => project(emittedCore.resume(step.rawStep, artifactTransport(reply)))
       }
@@ -541,13 +540,15 @@ try {
               [path + ".other", "TypeBranch", false],
               [path, "FunctionBranch", false]
             ]) {
-              const inspected = emittedCore.begin({
-                $: "ArtifactProtocol.GoInspect",
-                prepared: artifactTransport(prepared),
-                path: inspectPath,
-                branch: artifactTransport(transport(t(inspectBranch))),
-                next: step.next_request
-              })
+              const inspected = emittedCore.begin(
+                artifactTransport({
+                  $: "ArtifactProtocol.GoInspect",
+                  prepared: artifactTransport(prepared),
+                  path: inspectPath,
+                  branch: artifactTransport(transport(t(inspectBranch))),
+                  next: step.next_request
+                })
+              )
               const view = artifactTransport(emittedCore.view(inspected), false)
               assert.equal(view.$, "ArtifactProtocol.GoReturned")
               assert.equal(view.result.$, "ArtifactProtocol.GoInspected")
@@ -665,24 +666,28 @@ try {
         )
         const actual = await outcome(() => resolver(path, rootCapture, "Root", context("bend")))
         try {
-        assert.equal(actual.ok, expected.ok, fixture.name + " owned failure: " + String(expected.error))
-        if (expected.ok) {
-          assert.deepEqual(actual.value, expected.value, fixture.name + " owned whole unit")
-          assert.equal(JSON.stringify(actual.value), JSON.stringify(expected.value), fixture.name + " owned JSON order")
-        } else {
-          assert.equal(actual.error.constructor, expected.error.constructor, fixture.name + " owned error type")
-          assert.equal(actual.error.message, expected.error.message, fixture.name + " owned error message")
-          if (fault === true) {
-            assert.equal(actual.error, captureFailure)
-            assert.equal(expected.error, captureFailure)
+          assert.equal(actual.ok, expected.ok, fixture.name + " owned failure: " + String(expected.error))
+          if (expected.ok) {
+            assert.deepEqual(actual.value, expected.value, fixture.name + " owned whole unit")
+            assert.equal(
+              JSON.stringify(actual.value),
+              JSON.stringify(expected.value),
+              fixture.name + " owned JSON order"
+            )
+          } else {
+            assert.equal(actual.error.constructor, expected.error.constructor, fixture.name + " owned error type")
+            assert.equal(actual.error.message, expected.error.message, fixture.name + " owned error message")
+            if (fault === true) {
+              assert.equal(actual.error, captureFailure)
+              assert.equal(expected.error, captureFailure)
+            }
           }
-        }
-        assert.deepEqual(wholeTraces.bend, wholeTraces.native, fixture.name + " owned chronology")
-        assert.deepEqual(
-          [...wholeCaches.bend].map(([file, capture]) => [file, capture.contentHash]),
-          [...wholeCaches.native].map(([file, capture]) => [file, capture.contentHash]),
-          fixture.name + " owned cache"
-        )
+          assert.deepEqual(wholeTraces.bend, wholeTraces.native, fixture.name + " owned chronology")
+          assert.deepEqual(
+            [...wholeCaches.bend].map(([file, capture]) => [file, capture.contentHash]),
+            [...wholeCaches.native].map(([file, capture]) => [file, capture.contentHash]),
+            fixture.name + " owned cache"
+          )
         } catch (error) {
           ownedFailures.push(new Error(fixture.name + " / " + String(fault), { cause: error }))
         }
@@ -694,7 +699,8 @@ try {
         assert.equal(registry.size, 0)
       }
   }
-  if (ownedFailures.length > 0) throw new AggregateError(ownedFailures, `${ownedFailures.length} of ${ownedCases} owned Go cases failed`)
+  if (ownedFailures.length > 0)
+    throw new AggregateError(ownedFailures, `${ownedFailures.length} of ${ownedCases} owned Go cases failed`)
   console.log(
     JSON.stringify({
       passed: true,

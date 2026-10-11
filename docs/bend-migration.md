@@ -280,15 +280,39 @@ One current obstacle list, in execution order:
    it and was reverted. With the split, Driver definitions pass in 2.016 seconds,
    attachment boundary in 1.915, and contract definitions in 3.257. These are
    definition checks, not the still-open universal attachment proof. The actual
-   Canonical-owned consumer returned pass for 46 cases/2049 requests after the
-   protocol move, but two source format edits overlapped that run; retain it as
-   diagnostic only and rerun on stable inputs before acceptance.
+   Canonical-owned consumer initially returned pass for 46 cases/2049 requests
+   after the protocol move while two source format edits overlapped that run;
+   that result remains diagnostic only. The unchanged rerun now passes the same
+   46 cases/2049 requests on stable inputs: complete authored-source SHA-256 is
+   identical before/after. It exercises actual Canonical admission/Prepare,
+   physical services, two roots, cancellation, retirement, late-result rejection,
+   provisional refusal and throw cleanup. Whole resident progression and
+   universal guarantees remain open. Next agreed proof work extends existing
+   projected_unit_total to arbitrary optional fingerprint without changing its
+   premises, then fills existing node_replacement_exact for the original whole
+   attachment transaction obligation.
    This finite traversal pass does not qualify the full expansion driver, all
    fixture ABI consumers or the remaining universal guarantees. No new law or weakened
    premise is claimed. Full materialization/transaction guarantees
    remain open. The
    reference entry still lacks the complete Go preparation bridge; its metadata
-   installer does not qualify that missing path. Missing Go cases in actual context/reference
+   installer does not qualify that missing path. Astra agreed the full entry
+   path: independent entry owns lazy type-only configuration ordering, root
+   admission, returned limits/dependencies/fingerprint installation and final
+   publication clock; existing specialized Go policy is shared through commands
+   and results. Its exact three command/result/view declarations now have one
+   source-analysis/go-module/ArtifactProtocol owner, consumed by the resident
+   artifacts; resident handles/leases remain unchanged. Structural review found
+   no reversed dependency or host policy. Actual affected consumers pass after
+   formatting and codec changes: Go artifact 55 physical fixtures/1713 requests/
+   3528 transitions, whole Canonical-owned Go 58 cases/2075 requests, and general
+   Canonical-owned resolver 46 cases/2049 requests. These close protocol move
+   qualification, not the missing Go Entry or public adoption. Original optional
+   fingerprint materialization theorem is being extended without changed
+   premises: existing unit-product witness equations check in 1.283 seconds;
+   full theorem and its completion prefix hit the five-second deadline and
+   remain unqualified. Next diagnostic corrects the first completion body's
+   large rewrite via explicit congruence; no increased deadline or new premise. Missing Go cases in actual context/reference
    branch projections are added and formatted. Both projection roots check
    within five seconds after the explicit reference Go candidates row returns
    [] as native does; no filesystem scan is introduced. No new proof or
@@ -321,18 +345,23 @@ One current obstacle list, in execution order:
    connected: **0**; replaced production TypeScript removed: **0**. A connected
    candidate resolver, source relocation or backup does not change those counts.
 6. Pass selected local acceptance checks and strict paired build/execution parity
-   on the connected candidate. Latest matched warm build at acf04659 started
-   2026-10-11T14:21:02.910303Z: 17 pairs, all 23/46 cached, qualified and
-   build parity failed at **1.1241580601102825**. Execution at the same candidate
-   started 2026-10-11T14:20:06.825087Z, qualified and passed at
-   **0.7711837402035618**. Earlier build at 14:14:44 had a cold candidate first
+   on the connected candidate. Latest matched warm build at 12a2a197 started
+   2026-10-11T14:55:48.475707Z: 17 pairs, all 23/46 cached, qualified with
+   unchanged sources/artifacts, and build parity failed at
+   **1.1400346823725842** (baseline mean 8.3214 seconds, candidate 9.4867).
+   Execution at the same candidate started 2026-10-11T14:49:47.209133Z,
+   qualified and passed at **0.7600354303045934**. Previous acf04659 matched
+   warm build at 14:21:02 failed at 1.1241580601102825; execution at 14:20:06
+   passed at 0.7711837402035618. Earlier build at 14:14:44 had a cold candidate first
    sample (15/46 cached, 64.844 seconds) and warmPreparationMatched=false;
    although its snapshot runner reported qualified=true, its ratio 1.6170620566
    does not establish matched warm parity. The unchanged retry repairs that
    measurement condition, not the failed threshold. Prior 7df6b8b warm build
    ratio was 1.2389400457 and execution 0.6661053170. The historical missed
    13:17:03 / 13:20:20 UTC start deadlines remain failures; later timely runs
-   do not erase them. Next start deadlines are 14:51:02 / 14:50:06 UTC.
+   do not erase them. The 14:51:02 build start deadline was also missed: current
+   candidate warm preparation began at 14:53 UTC and completed before the
+   14:55:48 pair. Next start deadlines are 15:25:48 / 15:19:47 UTC.
    Records remain ignored under .test-runs/bend-migration/performance. These
    measure existing production, not unadopted whole preparation. Warm the
    actual changed candidate before each pair; an earlier source revision's warm

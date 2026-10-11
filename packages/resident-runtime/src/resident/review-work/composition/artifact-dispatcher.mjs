@@ -11,7 +11,7 @@ const artifactNamespaces = [
     "../../../../../source-analysis/src/direct-event/graph-resolution/" + name + "."
   ]),
   ["traversal/core.", "../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."],
-  ...["PreparationModel", "Configuration", "RawText", "Input", "Package"].map((name) => [
+  ...["PreparationModel", "Configuration", "RawText", "Input", "Package", "ArtifactProtocol"].map((name) => [
     "go-module/" + name + ".",
     "../../../../../source-analysis/src/direct-event/graph-resolution/go-module/" + name + "."
   ]),
