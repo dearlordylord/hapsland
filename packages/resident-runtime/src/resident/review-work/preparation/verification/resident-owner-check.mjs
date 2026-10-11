@@ -20,7 +20,7 @@ import { initialDelivery } from "../../../state/delivery/operations.ts"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import { createAdviceTailMachine } from "../post-preparation-dispatcher.mjs"
 import { createAdviceTailProvider } from "../../evaluation/advice-tail-provider.mjs"
-import { createServiceRegistry } from "../../../../../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 const temp = await mkdtemp("/tmp/hapsland-resident-owner-")
 try {

@@ -644,6 +644,72 @@ def shifted_nodes_prefix(items: List<&2, Local.PlannedNode>, +slots: List<&2, Lo
         P.nodes(Compose.shift_nodes(tail, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))),
         shifted_nodes_prefix(tail, slots, catalog, parents, addresses, children, aligned, dense))
 
+# Both complete projections now share the actual post-allocation context.
+# Local lets abbreviate existing lists; they do not introduce a second forest.
+def parent_common_nodes(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +child_slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +child_addresses: List<&2, F.AddressEntry>, +retained: List<&2, F.Node>,
+    dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    present: {P.nodes(parents, slots, catalog, addresses) == Some{retained} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.nodes(parents, List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))), catalog,
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(child_addresses, List.length(&2, Local.PlannedNode, parents))))
+      == Some{retained} : Maybe<&2, List<&2, F.Node>>}:
+  +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+  +combined_slots: List<&2, Local.ReferenceSlot> = List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, offset))
+  +suffix: List<&2, F.AddressEntry> = Mapping.shifted(child_addresses, offset)
+  +combined_addresses: List<&2, F.AddressEntry> = List.append(&2, F.AddressEntry, addresses, suffix)
+  Equal.trans(Maybe<&2, List<&2, F.Node>>,
+    P.nodes(parents, combined_slots, catalog, combined_addresses), P.nodes(parents, slots, catalog, combined_addresses), Some{retained},
+    nodes_child_slots(parents, 0n, offset, slots, child_slots, catalog, combined_addresses, dense, N.le_refl(offset)),
+    nodes_addresses(parents, slots, catalog, addresses, suffix, retained, present))
+
+def child_common_nodes(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +children: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>,
+    +child_addresses: List<&2, F.AddressEntry>, +retained: List<&2, F.Node>,
+    +dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    aligned: {P.aligned(parents, addresses, parents, addresses) == True{} : Bool},
+    owned: {P.slots_owned(slots, parents) == True{} : Bool},
+    present: {P.nodes(children, child_slots, catalog, child_addresses) == Some{retained} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.nodes(Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents)),
+      List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))), catalog,
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(child_addresses, List.length(&2, Local.PlannedNode, parents))))
+      == Some{retained} : Maybe<&2, List<&2, F.Node>>}:
+  +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+  +shifted_nodes: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
+  +shifted_slots: List<&2, Local.ReferenceSlot> = Compose.shift_slots(child_slots, offset)
+  +combined_slots: List<&2, Local.ReferenceSlot> = List.append(&2, Local.ReferenceSlot, slots, shifted_slots)
+  +suffix: List<&2, F.AddressEntry> = Mapping.shifted(child_addresses, offset)
+  +combined_addresses: List<&2, F.AddressEntry> = List.append(&2, F.AddressEntry, addresses, suffix)
+  Equal.trans(Maybe<&2, List<&2, F.Node>>,
+    P.nodes(shifted_nodes, combined_slots, catalog, combined_addresses), P.nodes(shifted_nodes, shifted_slots, catalog, combined_addresses), Some{retained},
+    nodes_parent_slots(children, parents, slots, child_slots, catalog, combined_addresses, dense, owned),
+    Equal.trans(Maybe<&2, List<&2, F.Node>>,
+      P.nodes(shifted_nodes, shifted_slots, catalog, combined_addresses), P.nodes(shifted_nodes, shifted_slots, catalog, suffix), Some{retained},
+      shifted_nodes_prefix(children, child_slots, catalog, parents, addresses, child_addresses, aligned, dense),
+      %Remap.nodes(children, child_slots, catalog, child_addresses, offset): {_ == Some{retained} : Maybe<&2, List<&2, F.Node>>}
+      present))
+
+# Exact complete retained-node append, before the selected reference changes.
+def appended_nodes(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +children: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>, +child_addresses: List<&2, F.AddressEntry>,
+    +parent_values: List<&2, F.Node>, +child_values: List<&2, F.Node>,
+    +dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    aligned: {P.aligned(parents, addresses, parents, addresses) == True{} : Bool},
+    owned: {P.slots_owned(slots, parents) == True{} : Bool},
+    parent_present: {P.nodes(parents, slots, catalog, addresses) == Some{parent_values} : Maybe<&2, List<&2, F.Node>>},
+    child_present: {P.nodes(children, child_slots, catalog, child_addresses) == Some{child_values} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.nodes(List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))),
+      List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))), catalog,
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(child_addresses, List.length(&2, Local.PlannedNode, parents))))
+      == Some{List.append(&2, F.Node, parent_values, child_values)} : Maybe<&2, List<&2, F.Node>>}:
+  nodes_append(parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents)),
+    List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))), catalog,
+    List.append(&2, F.AddressEntry, addresses, Mapping.shifted(child_addresses, List.length(&2, Local.PlannedNode, parents))), parent_values, child_values,
+    parent_common_nodes(parents, slots, child_slots, catalog, addresses, child_addresses, parent_values, dense, parent_present),
+    child_common_nodes(parents, slots, children, child_slots, catalog, addresses, child_addresses, child_values, dense, aligned, owned, child_present))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

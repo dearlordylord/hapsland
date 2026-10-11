@@ -11,7 +11,7 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { createServiceRegistry } from "../../../../../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import {
   productValue as __productValue,
   fromProductValue,
@@ -19,7 +19,6 @@ import {
   unlist
 } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createBendResolver as __createBendResolver } from "../../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
-import { pureReply } from "../../../../../../source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import * as Ref from "effect/Ref"
 import { initialCanonical, projectCanonical as __projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
@@ -561,21 +560,20 @@ try {
           return adviceSession.perform(request, options)
         }
         if (request.operation) {
-          const session = registry.get(Number(request.invocation))
           if (
             mode.startsWith("parent-cancel") &&
             mode !== "parent-cancel-finalization-gate" &&
             !cancelled &&
             request.operation.$ === "Types.CaptureSource"
           ) {
-            const pending = session.perform(request, { ...options, signal: undefined })
+            const pending = registry.perform(request, { ...options, signal: undefined })
             cancelled = true
             driver.cancel(parentInvocation)
             const reply = await pending
             if (mode === "parent-cancel-late-rejection") throw new Error("late capture provider fault")
-            return pureReply(reply)
+            return reply
           }
-          return pureReply(await session.perform(request, options))
+          return await registry.perform(request, options)
         }
         return preparationForeign.perform(request, options)
       }

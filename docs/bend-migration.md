@@ -190,7 +190,8 @@ One current obstacle list, in execution order:
    hard five seconds with unchanged premises. Parent registration, ordered
    append, slot-filter disjointness and child address-prefix elimination are
    checked under hard five seconds, including full child node/reference context
-   transport (latest coherent prefix 2.026 seconds). Full original parent theorem remains WIP.
+   transport and exact ordered appended-node projection (latest coherent prefix
+   3.257 seconds). Full original parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
@@ -200,7 +201,7 @@ One current obstacle list, in execution order:
    Full physical cancellation/late cleanup and universal correspondence remain
    distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
    its accepted supported-input boundary before claiming complete replacement.
-3. Resolve ordinary source gates: 25 remaining cross-owner private development imports,
+3. Resolve ordinary source gates: 17 remaining cross-owner private development imports,
    without exposing verification helpers or excluding sources. check:fast's last
    executed result passes 109 tests and source typing, then fails these imports.
    Source-owned graph verification and its sole fixture set now live together
@@ -225,13 +226,13 @@ One current obstacle list, in execution order:
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production build/execution at 1f932eab
+   connected candidate. Latest existing-production build/execution at aeca742c
    qualify on frozen heads, sources and artifacts: build **fails** parity at
-   1.117880785151437; execution passes at 0.89727052782812. Both starts are timely
-   (17:16:50.561436 / 17:21:49.488758 UTC). This does not measure unadopted whole
+   1.1405082116423289; execution passes at 0.7839269033645367. Both starts are timely
+   (17:44:37.298423 / 17:48:22.440959 UTC). This does not measure unadopted whole
    preparation. Recorded cadence misses remain failures. Start the next warm-up
    early enough for the measured five-minute build pair; next build deadline
-   17:46:50.561436 UTC, execution 17:51:49.488758 UTC.
+   18:14:37.298423 UTC, execution 18:18:22.440959 UTC.
 
 Historical performance evidence (existing production, not whole preparation): Latest matched warm build at 12a2a197 started
    2026-10-11T14:55:48.475707Z: 17 pairs, all 23/46 cached, qualified with
@@ -548,3 +549,37 @@ consumer repeats 61 cases/28 comparisons successfully. Warm-up is repeated only
 after this focused failure reproduction/fix; the earlier failed warm-up is not
 measurement qualification. The next paired start deadlines remain 17:46:50.561436
 and 17:51:49.488758 UTC.
+
+Graph service capability seam: the existing source-analysis graph-resolution
+package interface now exports createGraphServiceRegistry. It is the same registry
+implementation, retaining register/remove/runOutcome receipts, construction
+cleanup (including absent session), exception access and pending cleanup. Its
+perform operation finds an existing invocation through the existing hostNatural
+conversion, calls that session and encodes the reply through the owning Nat ABI
+codec. Unknown invocation throws; it never invents an unowned provider token.
+Canonical still allocates invocations and owns continuation, cancellation, result
+acceptance and progression. Frontend/parser helpers remain private. Astra reviewed
+this interface scope; no state representation, product format or law changed.
+
+Five resident verification consumers now use the ordinary compiled package export;
+three graph request paths use registry.perform instead of importing private reply
+encoding. The initial cleanup attempt hit stale dist before tests; the first
+workspace compiler exposed an inaccurate host Reply return type for encoded Nat
+fields. The method now declares the exact existing encoder result type, without
+casting. The repeat actual workspace build passes 46/46. Actual package-export
+cleanup passes 6/6; full Source passes 56 cases/6338 commands/31 native comparisons;
+resident preparation passes 64 cases/14395 requests/807 post requests, including
+parent cancellation, late success/rejection and cleanup. Ordinary lint passes.
+Required check:fast passes 109 tests, source typing/package graph, then fails 17
+remaining import violations; its final lint stage was not reached. No full quality
+run or whole-production acceptance is claimed.
+
+The frozen aeca742c build/execution measurements remain qualified but build parity
+failed 1.1405082116423289 while execution passed 0.7839269033645367. Measurement
+artifacts are ignored results under their start timestamps; both start deadlines
+were met. They do not qualify the later graph-service candidate or whole adoption.
+
+Astra's exact ordered appended_nodes assembly is checked under hard five seconds
+(exit 0, 3.257 seconds); original parent_attachment_exact premises and conclusion
+are unchanged and its body remains unfinished. This prefix is saved with the
+whole service-capability WIP, not counted as whole-law or production acceptance.

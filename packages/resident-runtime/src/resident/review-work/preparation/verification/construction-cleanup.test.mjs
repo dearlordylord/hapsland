@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { createServiceRegistry } from "../../../../../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createBendResolver } from "../../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 

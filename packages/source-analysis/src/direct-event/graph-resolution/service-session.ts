@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { pureReply } from "./frontend-codec.ts"
 import { parseGoFileFacts } from "./go-module/parser-facts.ts"
 import type {
   CaptureDiagnostic,
@@ -544,6 +545,11 @@ export function createServiceRegistry() {
       return cleanupObligations.size
     },
     get: (id: number) => sessions.get(id),
+    async perform(request: Request, options?: PerformOptions): Promise<ReturnType<typeof pureReply<Reply>>> {
+      const session = sessions.get(hostNatural(request.invocation))
+      if (!session) throw new TypeError("Unknown graph service invocation")
+      return pureReply(await session.perform(request, options))
+    },
     get size() {
       return sessions.size
     },

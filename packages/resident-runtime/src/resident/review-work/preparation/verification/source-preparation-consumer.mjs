@@ -25,9 +25,8 @@ import {
   snapshotReservationCustody
 } from "./native-source-reference.mjs"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
-import { createServiceRegistry } from "../../../../../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { pureReply } from "../../../../../../source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import { createSourcePreparationMachine } from "../source-preparation-dispatcher.mjs"
@@ -442,8 +441,8 @@ try {
                 : undefined,
       foreign: async ([request], options) => {
         totalRequests++
+        if (request.operation) return await registry.perform(request, options)
         const session = registry.get(Number(request.invocation))
-        if (request.operation) return pureReply(await session.perform(request, options))
         commands.push({
           invocation: request.invocation,
           command: request.command.$,

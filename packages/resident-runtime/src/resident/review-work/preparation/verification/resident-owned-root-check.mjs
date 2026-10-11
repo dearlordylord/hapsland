@@ -8,9 +8,8 @@ import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { createServiceRegistry } from "../../../../../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createBendResolver } from "../../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
-import { pureReply } from "../../../../../../source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import * as Ref from "effect/Ref"
 import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
@@ -212,16 +211,17 @@ try {
           !triggered &&
           request.operation.$ === "Types.CaptureSource"
         ) {
-          const pending = registry
-            .get(Number(request.invocation))
-            .perform(request, mode === "cancel-inflight-success" ? { ...options, signal: undefined } : options)
+          const pending = registry.perform(
+            request,
+            mode === "cancel-inflight-success" ? { ...options, signal: undefined } : options
+          )
           triggered = true
           beforeCancelResumes = driver.stats.resumes
           driver.cancel(request.invocation)
-          return pureReply(await pending)
+          return await pending
         }
         if (mode === "late-rejection") throw new Error("injected late provider rejection")
-        return pureReply(await registry.get(Number(request.invocation)).perform(request, options))
+        return await registry.perform(request, options)
       }
     })
     connection.attachDriver(driver)

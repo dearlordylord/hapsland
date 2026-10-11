@@ -191,3 +191,6 @@ export function createBendEffectResolver(options: ResolverPorts) {
   return (path: string, capture: StableCapture, name: string, context: LanguageGraphHost) =>
     Effect.promise((signal) => resolve(path, capture, name, context, { signal }))
 }
+
+// Host resource custody and encoded service replies; continuation authority stays with Canonical.
+export { createServiceRegistry as createGraphServiceRegistry } from "./service-session.ts"
