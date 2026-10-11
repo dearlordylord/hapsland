@@ -166,8 +166,8 @@ Current finite evidence, with commands at the testing matrix:
 | Boundary | Observed coverage | Limit |
 | --- | --- | --- |
 | Whole finalization machine | 66 ordered scenarios and ten actual binding vectors, 9947 requests, 194 real Canonical gates, 93 omissions, 127 current-rule reads, 75190 wrong replies | Actual native ready consumer, full JSON outcomes and chronology; universal proof remains open. |
-| Real Source composition | 50 cases, 5554 requests, 25 independent whole native comparisons | Ordered physical effects, inputs/identities, activity publication and pre-teardown custody; full error/cancellation correspondence remains open. |
-| Real Preparation → Post composition | 64 cases, 14395 requests, 807 Post requests | Native result differential, parent cancellation/late replies, retained advice, post-admission barriers and cleanup; whole proof and public adoption remain open. |
+| Real Source composition | 56 cases, 6348 requests, 31 independent whole native comparisons | Ordered physical effects, inputs/identities, activity publication and pre-teardown custody; full error/cancellation correspondence remains open. |
+| Real Preparation → Post composition | 73 cases, 15702 requests, 855 Post requests | Native result differential, parent cancellation/late replies, retained advice, post-admission barriers and cleanup; whole proof and public adoption remain open. |
 | Frozen input/identity | 60 cases, 5960 engine requests, 17880 wrong replies | All five languages, partial units, three providers; full field order and ordinary JSON checked. |
 | Configuration/provider | 91 cases, including 44 through actual settings decoder; 62 URI requests, 2385 wrong replies | Other 47 cases are explicitly raw-shape extensions, not validated producer claims. |
 | Ordered rule block | 1200 contexts, 60960 regex and 38400 real Canonical requests | Exact original rule order/freezing; arbitrary engine responses are fenced but are not correctness premises. |
@@ -217,13 +217,19 @@ One current obstacle list, in execution order:
    datatypes and original projection/freshness premises; no success assumption
    was added. Remaining path: updated post-replacement projection guards,
    semantic root/incoming validity, all eight original conjuncts and the existing
-   transaction theorem. No separate helper frontier qualifies adoption; the
+   transaction theorem. Post-replacement ownership/index/forward guards in
+   Structure pass at 1.990 seconds; selected-owner indexed preservation now
+   passes at 1.502 seconds. The entire parent prefix including changed-reference
+   forward cursors over all parent rows and unaffected child suffix passes at
+   2.170 seconds under hard five seconds (/tmp/astra-parent-replaced-forward.log).
+   Full post-replacement projection and root/incoming validity remain unclosed.
+   No separate helper frontier qualifies adoption; the
    original parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
-   consumer now passes 56 cases/6338 commands and 31 native comparisons across
+   consumer now passes 56 cases/6348 commands and 31 native comparisons across
    all five languages, including configuration fingerprint/semantic identity.
    Current Go boundary qualification passes direct 55 cases / 1659 requests /
    3474 transitions, artifact 55 / 1713 / 3528, full Entry 58 / 2017 / 6304
@@ -241,7 +247,7 @@ One current obstacle list, in execution order:
    typing and package/import graph. Its post-commit lint selects zero files;
    actual changed-source lint and physical new-path consumers qualify the edits
    separately. Source-owned graph Entry/expansion/Rust/SPEC consumers and local
-   resident Source (56/6338/31), preparation (70/15576/807), owned root
+   resident Source (56/6348/31), preparation (73/15702/855), owned root
    (46/2049) and composed Canonical root (18/1425/7125 fences/18 accepted)
    pass. The old full graph loop in the standalone machine checker is replaced by
    the resident-owned composition consumer, retaining all 58 original fixtures.
@@ -336,59 +342,31 @@ One current obstacle list, in execution order:
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 70928eb1 build/execution are
+   connected candidate. Latest existing-production f9ea5f3a build/execution are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: build fails
-   at 1.1497457067995722 (all 23/46 cached); execution passes at
-   0.892861082350742. Build started 21:45:24.850391 UTC; execution started
-   21:42:39.029086 UTC. Both started before their cadence deadlines.
-   Warm candidate build passed 46/46 tasks, 15 cached, in 77.825 seconds.
+   at 1.0970048028436157 (all 23/46 cached); execution passes at
+   0.651816636602423. Build started 22:11:00.743546 UTC; execution started
+   22:10:18.501750 UTC. Both started before their cadence deadlines.
+   Warm candidate build passed 46/46 tasks, 15 cached, in 43.459 seconds.
    This does not measure unadopted whole preparation. Recorded cadence misses
-   remain failures. Evidence is retained under ignored
-   .test-runs/bend-migration/performance/2026-10-11T21-45-24.850391+00-00
-   and 2026-10-11T21-42-39.029086+00-00 (qualification.json and run.log).
-   Next build start is due 22:15:24.850391 UTC, execution 22:12:39.029086 UTC.
-   A bounded two-pair UI-preflight diagnostic passed both roots on CPU11:
-   baseline 2.702/2.625 seconds, candidate 2.694/3.037 seconds. This does not
-   isolate the complete build regression or establish parity; no scanner
-   coverage or acceptance threshold was changed. Next performance diagnostic
-   must distinguish the wrapper preflight/input-hashing cost from Turbo tasks.
-
-Historical performance evidence (existing production, not whole preparation): Latest matched warm build at 12a2a197 started
-   2026-10-11T14:55:48.475707Z: 17 pairs, all 23/46 cached, qualified with
-   unchanged sources/artifacts, and build parity failed at
-   **1.1400346823725842** (baseline mean 8.3214 seconds, candidate 9.4867).
-   Execution at the same candidate started 2026-10-11T14:49:47.209133Z,
-   qualified and passed at **0.7600354303045934**. Previous acf04659 matched
-   warm build at 14:21:02 failed at 1.1241580601102825; execution at 14:20:06
-   passed at 0.7711837402035618. Earlier build at 14:14:44 had a cold candidate first
-   sample (15/46 cached, 64.844 seconds) and warmPreparationMatched=false;
-   although its snapshot runner reported qualified=true, its ratio 1.6170620566
-   does not establish matched warm parity. The unchanged retry repairs that
-   measurement condition, not the failed threshold. Prior 7df6b8b warm build
-   ratio was 1.2389400457 and execution 0.6661053170. The historical missed
-   13:17:03 / 13:20:20 UTC start deadlines remain failures; later timely runs
-   do not erase them. The 14:51:02 build start deadline was also missed: current
-   candidate warm preparation began at 14:53 UTC and completed before the
-   14:55:48 pair. Latest a05b91a3 execution at 15:19:10.733211 UTC passed at
-   0.7333435932681925; matched warm build at 15:19:47.352608 UTC
-   failed at 1.0644553189680463, with all 17 pairs at 23/46 cached.
-   Both qualified with unchanged inputs. At e2b7e4cd execution started 15:47:18.957612 UTC, qualified and
-   passed at 0.6689832928130847. Matched warm build started
-   15:47:56.422456 UTC, qualified with all 17 pairs at 23/46 cached,
-   and failed parity at 1.1109345084723954. At c5a64f9e matched warm build
-   started 16:17:57.827565 UTC, qualified with all 17 pairs at 23/46 cached,
-   and failed parity at 1.1118837956138083. Execution started
-   16:22:28.915800 UTC, qualified and passed at 0.8174906207336415.
-   The build start deadline was missed by 1.405109 seconds; the execution
-   start deadline was missed by 5 minutes 9.958188 seconds. These cadence
-   failures remain recorded. Next start deadlines are 16:47:57.827565 UTC
-   for build and 16:52:28.915800 UTC for execution.
-   Records remain ignored under .test-runs/bend-migration/performance. These
-   measure existing production, not unadopted whole preparation. Warm the
-   actual changed candidate before each pair; an earlier source revision's warm
-   run does not establish current cache comparability. No production emitter
-   deadline was raised or affinity added. Diagnose build costs before changing
-   performance code.
+   and earlier failed parity measurements remain failures; later timely passes
+   do not erase them. Evidence is retained under ignored
+   .test-runs/bend-migration/performance/2026-10-11T22-11-00.743546+00-00
+   and 2026-10-11T22-10-18.501750+00-00 (qualification.json and run.log).
+   Next build start is due 22:41:00.743546 UTC, execution 22:40:18.501750 UTC.
+   All 34 preserved build logs now distinguish Turbo's reported time from total
+   wrapper time: baseline total/Turbo/outside-Turbo means are 6.042/2.457/3.585
+   seconds; candidate means are 6.628/3.145/3.483 seconds. The current gap is
+   inside Turbo, not increased outside-Turbo time; this is phase localization,
+   not a causal or parity claim (build-phase-diagnostic.json beside the build
+   qualification). Both lanes still perform 23 uncached cleanup tasks and restore
+   23 cached builds. Resident source has 120 authored TS files in both current
+   master and candidate, versus 20 in the fixed baseline. Candidate compiled
+   dist totals 1934 files / 17589692 bytes versus baseline 1059 / 15162497.
+   These are possible restoration-cost contributors, not established causes;
+   preserve master structure and product/build custody contracts. Next diagnostic
+   must distinguish uncached cleanup, cache restoration and Turbo hashing without
+   removing validation or changing the fixed baseline/acceptance threshold.
 
 
 Keep this list current by removing closed work and naming specific remaining
@@ -401,7 +379,8 @@ backup commits are not acceptance claims.
 Current Go candidate evidence: the full package consumer passes 163 comparisons
 across 28 packages; BuildContext passes 4933 comparisons (61 configuration, 2079
 expression, 329 filename, 2464 header). Whole preparation and artifact consumers
-pass the same 55 physical fixtures, 1622 requests and 3437 transitions, with
+pass the same 55 physical fixtures: direct 1659 requests / 3474 transitions
+and artifact 1713 requests / 3528 transitions, with
 complete declarations/location/bindings, dependencies, fingerprint, remaining
 budgets, effect chronology and caller cache. Artifact checks also cover root/type
 inspection, wrong-root/function refusal, next identity and ReplyAfterTerminal.

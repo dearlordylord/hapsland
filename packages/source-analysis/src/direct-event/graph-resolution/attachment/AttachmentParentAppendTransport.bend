@@ -1786,6 +1786,84 @@ def forest_replacement_completed(+root: O.NodeAddress, +retained: List<&2, F.Nod
     {F.replacement(_, Some{root}) == F.Replaced{F.Forest{Some{root}, changed}} : F.Replacement}
   {==}
 
+# The new expanded reference always targets the child suffix; it is forward
+# from every retained parent row, not merely from the selected row.
+def appended_new_forward(known: Bool, +identity: String, +child_root: Nat,
+    +later: List<&2, Local.PlannedNode>, +children: List<&2, Local.PlannedNode>, +start: Nat, +offset: Nat,
+    dense: {Frame.dense(later, start) == True{} : Bool},
+    room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, later) : Nat), offset) == True{} : Bool},
+    child_count: {P.node_count(children, child_root) == 1n : Nat}) ->
+    {P.forward_reference(Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + offset : Nat)}),
+      List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset))) == True{} : Bool}:
+  match known:
+    case True{}: {==}
+    case False{}:
+      +target: Nat = (child_root + offset : Nat)
+      +shifted: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
+      %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, later, shifted), target),
+        (P.node_count(later, target) + P.node_count(shifted, target) : Nat), Contents.node_count_append(later, shifted, target)):
+        {Nat.is_eq(_, 1n) == True{} : Bool}
+      %Equal.sym(Nat, P.node_count(later, target), 0n,
+        dense_count_upper(later, start, target, dense,
+          N.le_trans((start + List.length(&2, Local.PlannedNode, later) : Nat), offset, target, room,
+            N.add_le_add_right(0n, child_root, offset, N.zero_le(child_root))))):
+        {Nat.is_eq((_ + P.node_count(shifted, target) : Nat), 1n) == True{} : Bool}
+      %Remap.node_count(children, child_root, offset): {Nat.is_eq(_, 1n) == True{} : Bool}
+      %Equal.sym(Nat, P.node_count(children, child_root), 1n, child_count): {Nat.is_eq(_, 1n) == True{} : Bool}
+      {==}
+
+def shifted_forward_unaffected(items: List<&2, Local.PlannedNode>, +offset: Nat,
+    +slots: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat, +reference: Local.PlannedReference,
+    +below: {Nat.is_lt(owner, offset) == True{} : Bool},
+    +forward: {P.forward_nodes(Compose.shift_nodes(items, offset), slots) == True{} : Bool}) ->
+    {P.forward_nodes(Compose.shift_nodes(items, offset), Structure.slots(Compose.replace_slot(slots, owner, index, reference))) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case Local.PlannedNode{+id, _} <> +tail:
+      B.and_eq_true(P.indexed(P.owner_slots(Structure.slots(Compose.replace_slot(slots, owner, index, reference)), (id + offset : Nat)), 0n,
+          Compose.shift_nodes(tail, offset)),
+        P.forward_nodes(Compose.shift_nodes(tail, offset), Structure.slots(Compose.replace_slot(slots, owner, index, reference))),
+        %Equal.sym(List<&2, Local.ReferenceSlot>, P.owner_slots(Structure.slots(Compose.replace_slot(slots, owner, index, reference)), (id + offset : Nat)),
+          P.owner_slots(slots, (id + offset : Nat)), Structure.filter_other_owner(slots, owner, index, reference, (id + offset : Nat), shifted_owner_distinct(id, offset, owner, below))):
+          {P.indexed(_, 0n, Compose.shift_nodes(tail, offset)) == True{} : Bool}
+        B.eq_true_of_and_left(P.indexed(P.owner_slots(slots, (id + offset : Nat)), 0n, Compose.shift_nodes(tail, offset)),
+          P.forward_nodes(Compose.shift_nodes(tail, offset), slots), forward),
+        shifted_forward_unaffected(tail, offset, slots, owner, index, reference, below,
+          B.eq_true_of_and_right(P.indexed(P.owner_slots(slots, (id + offset : Nat)), 0n, Compose.shift_nodes(tail, offset)),
+            P.forward_nodes(Compose.shift_nodes(tail, offset), slots), forward)))
+
+def replaced_forward_cursor(items: List<&2, Local.PlannedNode>, +children: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat, +known: Bool, +identity: String,
+    +child_root: Nat, +start: Nat, +offset: Nat,
+    +dense: {Frame.dense(items, start) == True{} : Bool},
+    +room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, items) : Nat), offset) == True{} : Bool},
+    +below: {Nat.is_lt(owner, offset) == True{} : Bool},
+    +child_count: {P.node_count(children, child_root) == 1n : Nat},
+    +forward: {P.forward_nodes(List.append(&2, Local.PlannedNode, items, Compose.shift_nodes(children, offset)), slots) == True{} : Bool}) ->
+    {P.forward_nodes(List.append(&2, Local.PlannedNode, items, Compose.shift_nodes(children, offset)),
+      Structure.slots(Compose.replace_slot(slots, owner, index,
+        Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + offset : Nat)})))) == True{} : Bool}:
+  match items:
+    case []:
+      shifted_forward_unaffected(children, offset, slots, owner, index,
+        Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + offset : Nat)}), below, forward)
+    case Local.PlannedNode{+id, _} <> +tail:
+      +new_reference: Local.PlannedReference = Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + offset : Nat)})
+      +changed: List<&2, Local.ReferenceSlot> = Structure.slots(Compose.replace_slot(slots, owner, index, new_reference))
+      +later: List<&2, Local.PlannedNode> = List.append(&2, Local.PlannedNode, tail, Compose.shift_nodes(children, offset))
+      +tail_dense: {Frame.dense(tail, (start + 1n : Nat)) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(id, start), Frame.dense(tail, (start + 1n : Nat)), dense)
+      +tail_room: {Nat.is_le(((start + 1n : Nat) + List.length(&2, Local.PlannedNode, tail) : Nat), offset) == True{} : Bool} =
+        %Allocation.length_step(start, List.length(&2, Local.PlannedNode, tail)): {Nat.is_le(_, offset) == True{} : Bool}
+        room
+      B.and_eq_true(P.indexed(P.owner_slots(changed, id), 0n, later), P.forward_nodes(later, changed),
+        Structure.replacement_owner_indexed(slots, owner, index, new_reference, id, 0n, later,
+          B.eq_true_of_and_left(P.indexed(P.owner_slots(slots, id), 0n, later), P.forward_nodes(later, slots), forward),
+          appended_new_forward(known, identity, child_root, tail, children, (start + 1n : Nat), offset, tail_dense, tail_room, child_count)),
+        replaced_forward_cursor(tail, children, slots, owner, index, known, identity, child_root, (start + 1n : Nat), offset,
+          tail_dense, tail_room, below, child_count,
+          B.eq_true_of_and_right(P.indexed(P.owner_slots(slots, id), 0n, later), P.forward_nodes(later, slots), forward)))
+
 
 law parent_attachment_exact:
   for +parent_root: Nat

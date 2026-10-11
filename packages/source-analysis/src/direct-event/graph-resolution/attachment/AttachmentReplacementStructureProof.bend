@@ -538,5 +538,120 @@ def replace_untouched_suffix(items: List<&2, Local.ReferenceSlot>, +suffix: List
       prefix_suffix(Compose.replace_slot(tail, owner, index, reference), suffix,
         Bool.and(Nat.is_eq(owner, actual_owner), Nat.is_eq(index, actual_index)), actual_owner, actual_index, symbol, previous, reference)
 
+# Replacement changes only reference payloads, preserving every slot owner.
+def owned_prefix(result: Compose.ReplacedSlots, +same: Bool, +owner: Nat, +index: Nat,
+    +symbol: String, +previous: Local.PlannedReference, +reference: Local.PlannedReference,
+    +nodes: List<&2, Local.PlannedNode>,
+    one: {Nat.is_eq(P.node_count(nodes, owner), 1n) == True{} : Bool},
+    rest: {P.slots_owned(slots(result), nodes) == True{} : Bool}) ->
+    {P.slots_owned(slots(Compose.replaced_prefix(result, same, owner, index, symbol, previous, reference)), nodes) == True{} : Bool}:
+  match result:
+    case Compose.ReplacedSlots{_, +items}:
+      B.and_eq_true(Nat.is_eq(P.node_count(nodes, owner), 1n), P.slots_owned(items, nodes), one, rest)
+
+def replacement_owned(items: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat,
+    +reference: Local.PlannedReference, +nodes: List<&2, Local.PlannedNode>,
+    +owned: {P.slots_owned(items, nodes) == True{} : Bool}) ->
+    {P.slots_owned(slots(Compose.replace_slot(items, owner, index, reference)), nodes) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+actual_owner, +actual_index, +symbol, +previous} <> +tail:
+      owned_prefix(Compose.replace_slot(tail, owner, index, reference),
+        Bool.and(Nat.is_eq(owner, actual_owner), Nat.is_eq(index, actual_index)), actual_owner, actual_index, symbol, previous, reference, nodes,
+        B.eq_true_of_and_left(Nat.is_eq(P.node_count(nodes, actual_owner), 1n), P.slots_owned(tail, nodes), owned),
+        replacement_owned(tail, owner, index, reference, nodes,
+          B.eq_true_of_and_right(Nat.is_eq(P.node_count(nodes, actual_owner), 1n), P.slots_owned(tail, nodes), owned)))
+
+def picked_forward(same: Bool, +previous: Local.PlannedReference, +reference: Local.PlannedReference,
+    +later: List<&2, Local.PlannedNode>,
+    before: {P.forward_reference(previous, later) == True{} : Bool},
+    after: {P.forward_reference(reference, later) == True{} : Bool}) ->
+    {P.forward_reference(Bool.pick(Local.PlannedReference, same, reference, previous), later) == True{} : Bool}:
+  match same:
+    case False{}: before
+    case True{}: after
+
+def indexed_prefix(result: Compose.ReplacedSlots, +same: Bool, +owner: Nat, +index: Nat,
+    +symbol: String, +previous: Local.PlannedReference, +reference: Local.PlannedReference,
+    +start: Nat, +later: List<&2, Local.PlannedNode>,
+    position: {Nat.is_eq(index, start) == True{} : Bool},
+    before: {P.forward_reference(previous, later) == True{} : Bool},
+    after: {P.forward_reference(reference, later) == True{} : Bool},
+    rest: {P.indexed(slots(result), (start + 1n : Nat), later) == True{} : Bool}) ->
+    {P.indexed(slots(Compose.replaced_prefix(result, same, owner, index, symbol, previous, reference)), start, later) == True{} : Bool}:
+  match result:
+    case Compose.ReplacedSlots{_, +items}:
+      B.and_eq_true(Nat.is_eq(index, start),
+        Bool.and(P.forward_reference(Bool.pick(Local.PlannedReference, same, reference, previous), later), P.indexed(items, (start + 1n : Nat), later)), position,
+        B.and_eq_true(P.forward_reference(Bool.pick(Local.PlannedReference, same, reference, previous), later), P.indexed(items, (start + 1n : Nat), later),
+          picked_forward(same, previous, reference, later, before, after), rest))
+
+def replacement_indexed(items: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat,
+    +reference: Local.PlannedReference, +start: Nat, +later: List<&2, Local.PlannedNode>,
+    +indexed: {P.indexed(items, start, later) == True{} : Bool},
+    +forward: {P.forward_reference(reference, later) == True{} : Bool}) ->
+    {P.indexed(slots(Compose.replace_slot(items, owner, index, reference)), start, later) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+actual_owner, +actual_index, +symbol, +previous} <> +tail:
+      +rest: {Bool.and(P.forward_reference(previous, later), P.indexed(tail, (start + 1n : Nat), later)) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(actual_index, start), Bool.and(P.forward_reference(previous, later), P.indexed(tail, (start + 1n : Nat), later)), indexed)
+      indexed_prefix(Compose.replace_slot(tail, owner, index, reference),
+        Bool.and(Nat.is_eq(owner, actual_owner), Nat.is_eq(index, actual_index)), actual_owner, actual_index, symbol, previous, reference, start, later,
+        B.eq_true_of_and_left(Nat.is_eq(actual_index, start), Bool.and(P.forward_reference(previous, later), P.indexed(tail, (start + 1n : Nat), later)), indexed),
+        B.eq_true_of_and_left(P.forward_reference(previous, later), P.indexed(tail, (start + 1n : Nat), later), rest), forward,
+        replacement_indexed(tail, owner, index, reference, (start + 1n : Nat), later,
+          B.eq_true_of_and_right(P.forward_reference(previous, later), P.indexed(tail, (start + 1n : Nat), later), rest), forward))
+
+def selected_owner_slots(+items: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat,
+    +reference: Local.PlannedReference) ->
+    {P.owner_slots(slots(Compose.replace_slot(items, owner, index, reference)), owner)
+      == slots(Compose.replace_slot(P.owner_slots(items, owner), owner, index, reference)) : List<&2, Local.ReferenceSlot>}:
+  Equal.trans(List<&2, Local.ReferenceSlot>,
+    P.owner_slots(slots(Compose.replace_slot(items, owner, index, reference)), owner),
+    slots(filtered(Compose.replace_slot(items, owner, index, reference), owner)),
+    slots(Compose.replace_slot(P.owner_slots(items, owner), owner, index, reference)),
+    slots_filtered(Compose.replace_slot(items, owner, index, reference), owner),
+    Equal.cong(Compose.ReplacedSlots, List<&2, Local.ReferenceSlot>, value => slots(value),
+      filtered(Compose.replace_slot(items, owner, index, reference), owner),
+      Compose.replace_slot(P.owner_slots(items, owner), owner, index, reference), filter_selected_owner(items, owner, index, reference)))
+
+def selected_owner_indexed(+items: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat,
+    +reference: Local.PlannedReference, +start: Nat, +later: List<&2, Local.PlannedNode>,
+    indexed: {P.indexed(P.owner_slots(items, owner), start, later) == True{} : Bool},
+    forward: {P.forward_reference(reference, later) == True{} : Bool}) ->
+    {P.indexed(P.owner_slots(slots(Compose.replace_slot(items, owner, index, reference)), owner), start, later) == True{} : Bool}:
+  %Equal.sym(List<&2, Local.ReferenceSlot>, P.owner_slots(slots(Compose.replace_slot(items, owner, index, reference)), owner),
+    slots(Compose.replace_slot(P.owner_slots(items, owner), owner, index, reference)), selected_owner_slots(items, owner, index, reference)):
+    {P.indexed(_, start, later) == True{} : Bool}
+  replacement_indexed(P.owner_slots(items, owner), owner, index, reference, start, later, indexed, forward)
+
+def owner_indexed_branch(+items: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat,
+    +reference: Local.PlannedReference, +query: Nat, +start: Nat, +later: List<&2, Local.PlannedNode>,
+    indexed: {P.indexed(P.owner_slots(items, query), start, later) == True{} : Bool},
+    forward: {P.forward_reference(reference, later) == True{} : Bool},
+    same: Bool, branch: {Nat.is_eq(query, owner) == same : Bool}) ->
+    {P.indexed(P.owner_slots(slots(Compose.replace_slot(items, owner, index, reference)), query), start, later) == True{} : Bool}:
+  match same:
+    case False{}:
+      %Equal.sym(List<&2, Local.ReferenceSlot>, P.owner_slots(slots(Compose.replace_slot(items, owner, index, reference)), query),
+        P.owner_slots(items, query), filter_other_owner(items, owner, index, reference, query, branch)):
+        {P.indexed(_, start, later) == True{} : Bool}
+      indexed
+    case True{}:
+      +equal: {query == owner : Nat} = N.eq_of_is_eq(query, owner, branch)
+      %Equal.sym(Nat, query, owner, equal):
+        {P.indexed(P.owner_slots(slots(Compose.replace_slot(items, owner, index, reference)), _), start, later) == True{} : Bool}
+      selected_owner_indexed(items, owner, index, reference, start, later,
+        %equal: {P.indexed(P.owner_slots(items, _), start, later) == True{} : Bool}
+        indexed, forward)
+
+def replacement_owner_indexed(+items: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat,
+    +reference: Local.PlannedReference, +query: Nat, +start: Nat, +later: List<&2, Local.PlannedNode>,
+    indexed: {P.indexed(P.owner_slots(items, query), start, later) == True{} : Bool},
+    forward: {P.forward_reference(reference, later) == True{} : Bool}) ->
+    {P.indexed(P.owner_slots(slots(Compose.replace_slot(items, owner, index, reference)), query), start, later) == True{} : Bool}:
+  owner_indexed_branch(items, owner, index, reference, query, start, later, indexed, forward, Nat.is_eq(query, owner), {==})
+
 def main() -> Unit:
   Unit{}
