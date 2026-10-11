@@ -7,7 +7,7 @@ import {pathToFileURL} from 'node:url'
 const temporary=mkdtempSync(join(tmpdir(),'hapsland-rank-'))
 try {
  const emitted=join(temporary,'rank.mjs')
- execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/RANK_MACHINE.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[resolve(import.meta.dirname,'../representations/list-state/RANK_MACHINE.bend'),'-o',emitted],{timeout:5000})
  const c=(await import(pathToFileURL(emitted))).default
  const tag=(name,fields={})=>({$:'core.'+name,...fields}),nil=()=>({$:'Own.DNil'}),none=()=>({$:'None'}),some=value=>({$:'Some',value})
  const list=xs=>xs.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})

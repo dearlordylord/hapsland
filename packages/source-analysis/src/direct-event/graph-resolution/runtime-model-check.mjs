@@ -169,7 +169,7 @@ def main() -> Unit:
    }
   }
  }
- const record={reachablePrefixes:prefixes.length,cancellationSuffixComparisons,exactActionSuffixComparisons,rawInvariantComparisons,schedulerComparisons,invariantHash:createHash('sha256').update(readFileSync(join(folder,'RuntimeInvariant.bend'))).digest('hex'),specificationHash:createHash('sha256').update(readFileSync(join(folder,'RuntimeSpecification.bend'))).digest('hex'),at:new Date().toISOString(),runtime:typeof Bun==='undefined'?'node':'bun',modelHash:createHash('sha256').update(readFileSync(join(folder,'RuntimeModel.bend'))).digest('hex'),
+ const record={reachablePrefixes:prefixes.length,cancellationSuffixComparisons,exactActionSuffixComparisons,rawInvariantComparisons,schedulerComparisons,invariantHash:createHash('sha256').update(readFileSync(join(folder,'./RuntimeInvariant.bend'))).digest('hex'),specificationHash:createHash('sha256').update(readFileSync(join(folder,'./RuntimeSpecification.bend'))).digest('hex'),at:new Date().toISOString(),runtime:typeof Bun==='undefined'?'node':'bun',modelHash:createHash('sha256').update(readFileSync(join(folder,'./RuntimeModel.bend'))).digest('hex'),
   waitingInvocationDoesNotRepeat:true,foreignCancellationAndCompletionAreIdentity:true,cancelledLeaseRetained:true,lateProviderWorldAndEffectsRetained:true,
   lateReplyCannotResume:true,duplicateCompletionIsIdentity:true,freshLeaseOnNextSuspension:true,oldLeaseCannotResumeNewRequest:true,
   activeReplyResumesOnce:true,orderedInvocationProviderResponseTrace:true,providerExceptionObservedBeforeClose:true,

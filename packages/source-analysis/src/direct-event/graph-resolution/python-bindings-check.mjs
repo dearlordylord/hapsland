@@ -8,7 +8,7 @@ import {projectPythonSyntax} from './python-module/syntax-projection.mjs'
 import {Parser,Python} from '../../../dist/direct-event/languages/native-parser.js'
 const temp=await mkdtemp('/tmp/hapsland-python-bindings-')
 try{
- const file=join(import.meta.dirname,'PythonModule.bend'),emitted=join(temp,'bindings.mjs');execFileSync('taskset',['-c','10','bend',file,'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
+ const file=join(import.meta.dirname,'./PythonModule.bend'),emitted=join(temp,'bindings.mjs');execFileSync('taskset',['-c','10','bend',file,'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
  const source=await readFile(join(import.meta.dirname,'../languages/python.ts'),'utf8')
  const fragments=source.slice(source.indexOf('const assignment ='),source.indexOf('const rootFor ='))+source.slice(source.indexOf('const scopedNodes ='),source.indexOf('const primitives ='))+source.slice(source.indexOf('const staticTypeBlock ='),source.indexOf('export type PythonImport ='))
  const js=execFileSync('bun',['-e','process.stdout.write(new Bun.Transpiler({loader:"ts"}).transformSync(await Bun.stdin.text()))'],{input:fragments,encoding:'utf8',timeout:5000})

@@ -3,8 +3,8 @@ import hashlib,json,os,pathlib,re,resource,shutil,subprocess,sys,tempfile,time
 ROOT=pathlib.Path(__file__).resolve().parents[3]
 SOURCE=pathlib.Path(__file__).resolve().parent
 CPU=os.environ.get('HAPSLAND_PROOF_CPU','11')
-LAWS=(SOURCE/'RUNTIME_LAWS.bend').read_text()
-MODEL=(SOURCE/'RuntimeModel.bend').read_text()
+LAWS=(SOURCE/'./RUNTIME_LAWS.bend').read_text()
+MODEL=(SOURCE/'./RuntimeModel.bend').read_text()
 PRELUDE='''import Base
 import ./RuntimeModel.bend as R
 import ./RuntimeSpecification.bend as Specification
@@ -86,15 +86,15 @@ try:
   assert MODEL.count(before)==1,(name,'mutation anchor not unique')
   statement,bindings=claim(name)
   wrapper=PRELUDE+'\ndef original_law_instance() -> '+statement+':\n  {==}\ndef main() -> Unit:\n  Unit{}\n'
-  (folder/'INSTANCE.bend').write_text(wrapper);(folder/'RuntimeModel.bend').write_text(MODEL)
+  (folder/'INSTANCE.bend').write_text(wrapper);(folder/'./RuntimeModel.bend').write_text(MODEL)
   row={'law':name,'mutation':mutation,'bindings':bindings,'instantiatedStatement':statement,'mutationBefore':before,'mutationAfter':after};rows.append(row)
   row['originalInstance']=check(folder,'INSTANCE.bend',name+'-original')
   if not passed(row['originalInstance']):raise RuntimeError('Unqualified original instance: '+name)
-  (folder/'RuntimeModel.bend').write_text(MODEL.replace(before,after))
-  row['mutantModel']=check(folder,'RuntimeModel.bend',name+'-model')
+  (folder/'./RuntimeModel.bend').write_text(MODEL.replace(before,after))
+  row['mutantModel']=check(folder,'./RuntimeModel.bend',name+'-model')
   if not passed(row['mutantModel']):raise RuntimeError('Invalid or unqualified mutant: '+name)
   row['mutantInstance']=check(folder,'INSTANCE.bend',name+'-instance')
-  row['mutantCanonicalProof']=check(folder,'RUNTIME_PROOF.bend',name+'-proof')
+  row['mutantCanonicalProof']=check(folder,'./RUNTIME_PROOF.bend',name+'-proof')
   for key in ['mutantInstance','mutantCanonicalProof']:
    result=row[key]
    if result['exitCode']!=1 or result['seconds']>5 or not all(marker in result['output'] for marker in ['SOME PROOFS FAIL','- expected :','- observed :','Location:']):raise RuntimeError('Missing mathematical rejection: '+name+' '+key)

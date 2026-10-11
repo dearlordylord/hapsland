@@ -5,7 +5,7 @@ import {join} from 'node:path'
 import {pathToFileURL} from 'node:url'
 const temp=await mkdtemp('/tmp/hapsland-composed-budget-')
 try{
- const output=join(temp,'budget.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'ComposedBudget.bend'),'-o',output],{timeout:5000});const {default:core}=await import(pathToFileURL(output))
+ const output=join(temp,'budget.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'./ComposedBudget.bend'),'-o',output],{timeout:5000});const {default:core}=await import(pathToFileURL(output))
  let checks=0
  for(const cap of [0,8,40])for(const rootBytes of [0,10,50]){
   let census=core.initial('root.py',BigInt(rootBytes));const captures=new Map([['root.py',rootBytes]]),failed=new Set()

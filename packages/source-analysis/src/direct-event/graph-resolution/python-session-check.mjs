@@ -16,7 +16,7 @@ const limits={version:1,files:8,sourceBytes:2048,treeBytes:100000,readBytes:2000
 const remaining={files:7,readBytes:19000,work:80}
 const bounded=(child,budget)=>s('Remaining',{files:child.difference(BigInt(Math.max(0,budget.files)),BigInt(Math.max(0,-budget.files))),read_bytes:child.difference(BigInt(Math.max(0,budget.readBytes)),BigInt(Math.max(0,-budget.readBytes))),work:child.difference(BigInt(Math.max(0,budget.work)),BigInt(Math.max(0,-budget.work)))})
 try{
- const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PythonModule.bend'),'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
+ const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'./PythonModule.bend'),'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
  const fixtures=[
   {name:'persistent-transfer',files:{'pkg/__init__.py':'class Foo:\n id: str\n'},calls:[['pkg','Foo'],['pkg','Foo']]},
   {name:'persistent-reexport',files:{'pkg/__init__.py':'from .leaf import Foo','pkg/leaf.py':'class Foo:\n id: str\n'},calls:[['pkg','Foo'],['pkg','Foo']]},

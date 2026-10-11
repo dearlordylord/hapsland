@@ -13,12 +13,12 @@ import {GRAPH_LIMIT_CEILINGS} from '@hapsland/canonical-policy/canonical/graph-l
 const root=resolve(import.meta.dirname,'../../../../../..'),temporary=mkdtempSync(join(tmpdir(),'hapsland-graph-connected-bench-')),requireRoot=createRequire(root+'/package.json')
 try{
  const emitted=join(temporary,'core.mjs')
- execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/core.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[resolve(import.meta.dirname,'../representations/list-state/core.bend'),'-o',emitted],{timeout:5000})
  const originalPath=join(root,'packages/source-analysis/dist/direct-event/graph-resolver.js')
  const original=readFileSync(originalPath,'utf8').replace(/from "([^"\n]+)"/g,(_,specifier)=>'from '+JSON.stringify(specifier.startsWith('.')?resolve(dirname(originalPath),specifier):requireRoot.resolve(specifier)))
  const start=original.indexOf('const buildLocal = ('),end=original.indexOf('\nconst graphClock = ',start)
  assert.ok(start>=0&&end>start)
- const adapterSource=readFileSync(resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/adapter.mjs'),'utf8')
+ const adapterSource=readFileSync(resolve(import.meta.dirname,'../representations/list-state/adapter.mjs'),'utf8')
  const instrumented=adapterSource.replace('export function createLocalGraphPlanner(core){', `export const profile=[];let begin=0,coreBegin=0,coreEnd=0;
 export function createLocalGraphPlanner(originalCore){
  const core={...originalCore,plan(...args){coreBegin=performance.now();const result=originalCore.plan(...args);coreEnd=performance.now();return result}};`).replace(' return planLocal\n}', ` return (...args)=>{begin=performance.now();const result=planLocal(...args);const end=performance.now();profile.push({packingMilliseconds:coreBegin-begin,coreMilliseconds:coreEnd-coreBegin,decodeMilliseconds:end-coreEnd,commitMilliseconds:0,declarations:args[0].declarations.size,supporting:args[0].supportingDeclarations?.size??0});return result};\n}`)

@@ -8,7 +8,7 @@ import {tomlValue} from './frontend-codec.mjs'
 import {createServiceSession,unlist} from './service-session.mjs'
 const temp=await mkdtemp('/tmp/hapsland-python-roots-'),t=(name,fields={})=>({$:'Types.'+name,...fields}),s=(name,fields={})=>({$:'python-module/Session.'+name,...fields})
 try {
- const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PythonModule.bend'),'-o',emitted],{timeout:5000})
+ const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'./PythonModule.bend'),'-o',emitted],{timeout:5000})
  const {default:child}=await import(pathToFileURL(emitted))
  const fixtures=[
   {name:'no-metadata',roots:['.','src']},

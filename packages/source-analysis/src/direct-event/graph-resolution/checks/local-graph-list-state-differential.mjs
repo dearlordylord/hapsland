@@ -20,16 +20,16 @@ const normalize=(built,visited,budget)=>{
 }
 let invocationPath
 try{
- const emitted=join(temporary,'core.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/core.bend'),'-o',emitted],{timeout:5000});const core=(await import(pathToFileURL(emitted))).default
+ const emitted=join(temporary,'core.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/core.bend'),'-o',emitted],{timeout:5000});const core=(await import(pathToFileURL(emitted))).default
  const coreTags=new Set(['PlannedNode','ReferenceSlot','Facts','Declaration','ImportBinding','Reference','AnyKind','TypeKind','FunctionKind','Named','Unsupported','Budget','LocalLimits','Pending','Imported','BundledTarget','Unresolved','UnsupportedTarget','ReferenceLimit','Unavailable'])
  const moduleTags=(value,prefix)=>{
   if(value===null||typeof value!=='object')return value
   if(Array.isArray(value))return value.map(v=>moduleTags(v,prefix))
   return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,k==='$'?(prefix&&coreTags.has(v)?'core.'+v:!prefix&&typeof v==='string'&&v.startsWith('core.')?v.slice(5):v):moduleTags(v,prefix)]))
  }
- const specEmitted=join(temporary,'spec.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/SPEC.bend'),'-o',specEmitted],{timeout:5000});const spec=(await import(pathToFileURL(specEmitted))).default
- const relationEmitted=join(temporary,'relation.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/RELATION.bend'),'-o',relationEmitted],{timeout:5000});const relation=(await import(pathToFileURL(relationEmitted))).default
- const directEmitted=join(temporary,'interned.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/core.bend'),'-o',directEmitted],{timeout:5000});const models={direct:(await import(pathToFileURL(directEmitted))).default}
+ const specEmitted=join(temporary,'spec.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/SPEC.bend'),'-o',specEmitted],{timeout:5000});const spec=(await import(pathToFileURL(specEmitted))).default
+ const relationEmitted=join(temporary,'relation.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/RELATION.bend'),'-o',relationEmitted],{timeout:5000});const relation=(await import(pathToFileURL(relationEmitted))).default
+ const directEmitted=join(temporary,'interned.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../representations/list-state/core.bend'),'-o',directEmitted],{timeout:5000});const models={direct:(await import(pathToFileURL(directEmitted))).default}
  let lastMaterialized
  const planner=createLocalGraphPlanner(models.direct)
  function directCandidate(file,name,expected,visited,budget,depth){

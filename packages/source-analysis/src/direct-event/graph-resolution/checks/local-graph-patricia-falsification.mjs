@@ -11,7 +11,7 @@ const values=['','x','y','type:x','function:x','type:type:x','a\0b','a','b\0c','
 let seed=80319,checks=0;const draw=n=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n}
 try{
  const emitted=join(temporary,'model.mjs')
- const owner=resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/PATRICIA_CANARY.bend')
+ const owner=resolve(import.meta.dirname,'../representations/list-state/PATRICIA_CANARY.bend')
  execFileSync('bend',[owner,'-o',emitted],{timeout:5000})
  const c=(await import(pathToFileURL(emitted))).default
  for(const left of values)for(const right of values){

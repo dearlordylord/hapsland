@@ -63,7 +63,7 @@ for(let i=0;i<31;i++){
  samples.push({typescriptMilliseconds,integratedBendMilliseconds,ratio:integratedBendMilliseconds/typescriptMilliseconds,checksum:paired[0].checksum,callerDirections:paired})
 }
 const medianRatio=samples.map(s=>s.ratio).toSorted((a,b)=>a-b)[15]
-const sha256=Object.fromEntries(["selection-ui-performance.mjs","selection-ui-parity.mjs"].map(name=>[name,createHash("sha256").update(readFileSync(new URL(name,import.meta.url))).digest("hex")]))
+const sha256=Object.fromEntries(["./selection-ui-performance.mjs","./selection-ui-parity.mjs"].map(name=>[name,createHash("sha256").update(readFileSync(new URL(name,import.meta.url))).digest("hex")]))
 const record={at:new Date().toISOString(),runtime:"Bun 1.3.14",baselineRevision:execFileSync("git",["rev-parse","HEAD"],{cwd:baselineRoot,encoding:"utf8"}).trim(),timedCases:nativeCases.length,roundsPerSample:8,warmupRounds:20,samplePairs:31,callerDirectionsPerSample:2,method:"balanced caller crossover",medianRatio,diagnosticControl:control,productionCompared:!control,executionParity:control?null:medianRatio<=1,sha256,samples,scope:"actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; both reducers through both identical caller sites per sample; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"}
 writeFileSync(new URL(control?"selection-ui-execution-same-binary-control.json":"selection-ui-performance.json",import.meta.url),JSON.stringify(record,null,2)+"\n")
 console.log(JSON.stringify({timedCases:nativeCases.length,medianRatio,executionParity:record.executionParity,diagnosticControl:control}))

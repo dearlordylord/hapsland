@@ -127,11 +127,11 @@ try{
   const bridge=createResidentOwnerTransaction({owner,transaction,validateAdviceInput:(origin,handle)=>attachedDriver?.validateAdviceInput(origin,handle)===true,onActions:actions=>Effect.sync(()=>{if(actions.length&&!attachedDriver)throw new Error('Unbound resident action consumer');attachedDriver?.acceptActions(actions)})})
   return {postCore,control:bridge.control,bridge,transaction,preparation,round,partition,attachDriver:driver=>{attachedDriver=driver}}
  }
- const preparationEmission=join(temp,'Preparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'Preparation.bend'),'-o',preparationEmission],{timeout:5000})
+ const preparationEmission=join(temp,'Preparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'../../../../../review-execution/src/direct-event/preparation/Preparation.bend'),'-o',preparationEmission],{timeout:5000})
  const core=(await import(pathToFileURL(preparationEmission))).default,preparationMachine=createPreparationMachine(core)
  const none={$:'None'},some=value=>({$:'Some',value})
  const location=value=>({$:'RootAttribution.Location',start:{$:'RootAttribution.Position',line:BigInt(value.start.line),column:BigInt(value.start.column)},end:{$:'RootAttribution.Position',line:BigInt(value.end.line),column:BigInt(value.end.column)}})
- const postEmission=join(temp,'PostPreparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PostPreparation.bend'),'-o',postEmission],{timeout:5000})
+ const postEmission=join(temp,'PostPreparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'./PostPreparation.bend'),'-o',postEmission],{timeout:5000})
  const postCore=(await import(pathToFileURL(postEmission))).default,postMachine=createPostPreparationMachine(postCore),tailMachine=createAdviceTailMachine(postCore)
  let cases=0,requests=0,postRequests=0
  for(const testCase of selectedScenarios) {

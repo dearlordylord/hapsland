@@ -7,7 +7,7 @@ import {createOwnedArtifactDriver} from '../../resident-runtime/src/resident/rev
 import {createServiceRegistry} from '../../source-analysis/src/direct-event/graph-resolution/service-session.mjs'
 const temp=await mkdtemp('/tmp/hapsland-canonical-owner-')
 try {
- const emitted=join(temp,'owner.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'CanonicalResolverOwner.bend'),'-o',emitted],{timeout:5000});const m=(await import(pathToFileURL(emitted))).default
+ const emitted=join(temp,'owner.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'./CanonicalResolverOwner.bend'),'-o',emitted],{timeout:5000});const m=(await import(pathToFileURL(emitted))).default
  const c=(name,fields={})=>({$:'../../../packages/agent-flow-bend/Canonical.'+name,...fields})
  const scope={$:'Scope',partition:1n,lifetime:1n,round:1n,preparation:2n}
  const list=value=>{const out=[];while(value.$==='Con'){out.push(value.head);value=value.tail}assert.equal(value.$,'Nil');return out}

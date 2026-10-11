@@ -15,7 +15,7 @@ const names=['','A','B','type:A','function:A','type:type:A','a\0b','a','b\0c','Ã
 let cases=0,invalidRegistries=0,checks=0
 try{
  const emitted=join(temporary,'model.mjs')
- execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/TREE_MACHINE_CANARY.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[resolve(import.meta.dirname,'../representations/list-state/TREE_MACHINE_CANARY.bend'),'-o',emitted],{timeout:5000})
  const all=(await import(pathToFileURL(emitted))).default
  const c={...all,...Object.fromEntries(Object.entries(all).filter(([key])=>key.startsWith('BOUNDARY_ENCODING.')).map(([key,value])=>[key.slice('BOUNDARY_ENCODING.'.length),value]))}
  for(let seed=0;seed<384;seed++){

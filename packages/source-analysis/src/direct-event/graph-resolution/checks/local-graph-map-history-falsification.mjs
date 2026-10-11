@@ -10,7 +10,7 @@ const values=['','x','y','type:x','function:x','type:type:x','a\0b','a','b\0c','
 let seed=46781,checks=0;const draw=n=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n}
 try{
  const emitted=join(temporary,'model.mjs')
- execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/MAP_HISTORY_CANARY.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[resolve(import.meta.dirname,'../representations/list-state/MAP_HISTORY_CANARY.bend'),'-o',emitted],{timeout:5000})
  const c=(await import(pathToFileURL(emitted))).default
  for(let trial=0;trial<512;trial++){
   const records=Array.from({length:draw(32)},()=>({$:'MAP_HISTORY_RELATION.Record',key:values[draw(values.length)],value:BigInt(draw(100))})),items=list(records)

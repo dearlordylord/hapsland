@@ -9,7 +9,7 @@ const list=xs=>xs.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
 const unlist=xs=>{const result=[];while(xs.$==='Con'){result.push(xs.head);xs=xs.tail}assert.equal(xs.$,'Nil');return result}
 try{
  const emitted=join(temporary,'registry.mjs')
- execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/REGISTRY_RELATION.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[resolve(import.meta.dirname,'../representations/list-state/REGISTRY_RELATION.bend'),'-o',emitted],{timeout:5000})
  const c=(await import(pathToFileURL(emitted))).default
  const values=['','x','type:x','function:x','type:type:x','a\0b','a\0b\0c','a','b','c','é','e\u0301','😀','\ud800','\udc00']
  let seed=17877;const draw=n=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n}

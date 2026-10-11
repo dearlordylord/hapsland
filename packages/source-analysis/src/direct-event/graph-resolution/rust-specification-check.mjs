@@ -13,13 +13,13 @@ import {list,unlist} from './service-session.mjs'
 const folder=import.meta.dirname,root=join(folder,'../../../../..'),cache=join(root,'node_modules/.cache')
 mkdirSync(cache,{recursive:true});const temporary=mkdtempSync(join(cache,'rust-specification-'))
 const native=join(root,'packages/source-analysis/dist/direct-event/languages/rust-module-context.js')
-const inputs=['RustSpecification.bend','GraphSpecification.bend','Types.bend','rust-specification-check.mjs',native,join(root,'packages/source-analysis/dist/direct-event/capture-budget.js')]
+const inputs=['./RustSpecification.bend','./GraphSpecification.bend','./Types.bend','./rust-specification-check.mjs',native,join(root,'packages/source-analysis/dist/direct-event/capture-budget.js')]
 const hash=path=>createHash('sha256').update(readFileSync(path)).digest('hex')
 const sources=Object.fromEntries(inputs.map(path=>[path,hash(isAbsolute(path)?path:join(folder,path))]))
 const tag=(name,fields={})=>({$:'Types.'+name,...fields}),label=value=>value.$.split('.').at(-1),maybe=value=>value===undefined?{$:'None'}:{$:'Some',value}
 const normalize=value=>typeof value==='bigint'?Number(value):Array.isArray(value)?value.map(normalize):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,key==='$'?label(value):normalize(item)])):value
 try{
- const emitted=join(temporary,'spec.mjs');execFileSync('bend',[join(folder,'RustSpecification.bend'),'-o',emitted],{timeout:5000})
+ const emitted=join(temporary,'spec.mjs');execFileSync('bend',[join(folder,'./RustSpecification.bend'),'-o',emitted],{timeout:5000})
  const spec=(await import(pathToFileURL(emitted))).default
  let source=readFileSync(native,'utf8').replaceAll(/from "(\.{1,2}\/[^\"]+)"/g,(_all,path)=>`from "${pathToFileURL(join(dirname(native),path))}"`)
  source=source.replace('import { lstat }','import { lstat as originalLstat }').replace('contextDirectFilePolicy, eligibleNamedPath','contextDirectFilePolicy, eligibleNamedPath as originalEligible')

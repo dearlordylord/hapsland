@@ -8,7 +8,7 @@ import {selectedByDirectFilePolicy,contextDirectFilePolicy,DEFAULT_DIRECT_FILE_P
 const folder=import.meta.dirname,temp=await mkdtemp('/tmp/hapsland-python-stat-')
 const t=(name,fields={})=>({$:'Types.'+name,...fields}),s=(name,fields={})=>({$:'python-module/Session.'+name,...fields})
 try{
- const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(folder,'PythonModule.bend'),'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
+ const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(folder,'./PythonModule.bend'),'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
  for(const path of ['src/pkg/root.py','a/b/c/d/e/f/g/root.py']){await mkdir(dirname(join(temp,path)),{recursive:true});await writeFile(join(temp,path),'class Root: pass\n')}
  await writeFile(join(temp,'file.py'),'class Root: pass\n');await symlink('src',join(temp,'link'));await symlink('file.py',join(temp,'link.py'))
  const policy=contextDirectFilePolicy(DEFAULT_DIRECT_FILE_POLICY),signature=observation=>observation?.$==='Types.MembershipPresent'?observation.signature:'absent'

@@ -14,7 +14,7 @@ const names=['','A','B','type:A','function:A','type:type:A','a\0b','a','b\0c','Ã
 let cases=0,invalidRegistries=0,checks=0
 try{
  const emitted=join(temporary,'model.mjs')
- execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/BOUNDARY_ENCODING.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[resolve(import.meta.dirname,'../representations/list-state/BOUNDARY_ENCODING.bend'),'-o',emitted],{timeout:5000})
  const c=(await import(pathToFileURL(emitted))).default
  for(let seed=0;seed<384;seed++){
   const tag=(name,fields={})=>({$:source+name,...fields}),aware=seed%2===0,path=names[seed%names.length],query=names[(seed+1)%names.length]

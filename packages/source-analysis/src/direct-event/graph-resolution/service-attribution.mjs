@@ -51,7 +51,7 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
  const native=(...args)=>Effect.runPromise(instrumentedNative(...args))
  const runtime=join(temporary,'runtime.mjs')
  assert.equal(execFileSync('bend',['version'],{encoding:'utf8',timeout:5000}).trim(),'bend 2.0.36')
- execFileSync('bend',[join(folder,'Runtime.bend'),'-o',runtime],{timeout:5000})
+ execFileSync('bend',[join(folder,'./Runtime.bend'),'-o',runtime],{timeout:5000})
  let emitted=readFileSync(runtime,'utf8')
  const marshallers=[...emitted.matchAll(/function (\$0m\d+)\(/g)].map(match=>match[1])
  assert.ok(marshallers.length>0)
@@ -62,7 +62,7 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
  const registry=createServiceRegistry()
  globalThis.__hapslandWholeResolverServices={get size(){return registry.size},get(id){const session=registry.get(id);return session===undefined?undefined:{perform:(request,options)=>timedPromise('service:'+request.operation.$,()=>session.perform(request,options))}}}
  const observe=operation=>operation?.kont?{...operation,kont:reply=>timedSync('continuation',()=>observe(operation.kont(reply)))}:operation
- const consumerOriginal=join(folder,'consumer.mjs'),consumerCopy=join(temporary,'consumer.mjs')
+ const consumerOriginal=join(folder,'./consumer.mjs'),consumerCopy=join(temporary,'./consumer.mjs')
  let consumerSource=readFileSync(consumerOriginal,'utf8')
  sourceHashes[consumerOriginal]=createHash('sha256').update(consumerSource).digest('hex')
  consumerSource=consumerSource.replace(/from '([^']+)'/g,(all,specifier)=>specifier.startsWith('.')?'from '+JSON.stringify(pathToFileURL(resolve(folder,specifier)).href):all)

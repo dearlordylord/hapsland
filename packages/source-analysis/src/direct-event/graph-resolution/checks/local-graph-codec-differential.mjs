@@ -19,16 +19,16 @@ const normalize=(built,visited,budget)=>{
 }
 let invocationPath
 try{
- const emitted=join(temporary,'core.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/core.bend'),'-o',emitted],{timeout:5000});const core=(await import(pathToFileURL(emitted))).default
+ const emitted=join(temporary,'core.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/core.bend'),'-o',emitted],{timeout:5000});const core=(await import(pathToFileURL(emitted))).default
  const coreTags=new Set(['PlannedNode','ReferenceSlot','Facts','Declaration','ImportBinding','Reference','AnyKind','TypeKind','FunctionKind','Named','Unsupported','Budget','LocalLimits','Pending','Imported','BundledTarget','Unresolved','UnsupportedTarget','ReferenceLimit','Unavailable'])
  const moduleTags=(value,prefix)=>{
   if(value===null||typeof value!=='object')return value
   if(Array.isArray(value))return value.map(v=>moduleTags(v,prefix))
   return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,k==='$'?(prefix&&coreTags.has(v)?'core.'+v:!prefix&&typeof v==='string'&&v.startsWith('core.')?v.slice(5):v):moduleTags(v,prefix)]))
  }
- const specEmitted=join(temporary,'spec.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/SPEC.bend'),'-o',specEmitted],{timeout:5000});const spec=(await import(pathToFileURL(specEmitted))).default
- const relationEmitted=join(temporary,'relation.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/RELATION.bend'),'-o',relationEmitted],{timeout:5000});const relation=(await import(pathToFileURL(relationEmitted))).default
- const directEmitted=join(temporary,'interned.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/split-symbol/core.bend'),'-o',directEmitted],{timeout:5000});const models={direct:(await import(pathToFileURL(directEmitted))).default}
+ const specEmitted=join(temporary,'spec.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/SPEC.bend'),'-o',specEmitted],{timeout:5000});const spec=(await import(pathToFileURL(specEmitted))).default
+ const relationEmitted=join(temporary,'relation.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/RELATION.bend'),'-o',relationEmitted],{timeout:5000});const relation=(await import(pathToFileURL(relationEmitted))).default
+ const directEmitted=join(temporary,'interned.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../representations/split-symbol/core.bend'),'-o',directEmitted],{timeout:5000});const models={direct:(await import(pathToFileURL(directEmitted))).default}
  function directCandidate(file,name,expected,visited,budget,depth){
   const ids=new Map(),strings=[],labels=new Map()
   const intern=s=>{if(typeof s!=='string')throw new TypeError('registry key must be String');const old=ids.get(s);if(old!==undefined)return old;const id=ids.size+1;if(!Number.isSafeInteger(id)||id>0xffffffff)throw new RangeError('registry ID outside uint32');ids.set(s,id);strings[id]=s;return id}

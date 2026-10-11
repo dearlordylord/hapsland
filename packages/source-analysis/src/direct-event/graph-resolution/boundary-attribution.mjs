@@ -56,7 +56,7 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
   if(basename(original)==='registry.js')wrappers+=`\nfor(let i=0;i<registeredLanguages.length;i++){const adapter=registeredLanguages[i];registeredLanguages[i]={...adapter,prepareGraph:(...args)=>adapter.prepareGraph(...args).pipe(Effect.map(binding=>binding===undefined?undefined:{...binding,session:{...binding.session,inspect:(...args)=>timedSync('frontend',()=>binding.session.inspect(...args))}}))};}`
   writeFileSync(copies.get(original),`import * as Effect from 'effect/Effect';\nimport {timedSync,timedPromise,timedEffect} from ${JSON.stringify(pathToFileURL(helper).href)};\n`+source.replace('import * as Effect from "effect/Effect";','')+wrappers)
  }
- const frontendOriginal=join(folder,'frontends.mjs'),frontendCopy=join(temporary,'frontends.mjs')
+ const frontendOriginal=join(folder,'./frontends.mjs'),frontendCopy=join(temporary,'./frontends.mjs')
  let frontendSource=readFileSync(frontendOriginal,'utf8');sourceHashes[frontendOriginal]=createHash('sha256').update(frontendSource).digest('hex')
  frontendSource=frontendSource.replace(/from '([^']+)'/g,(all,specifier)=>specifier.startsWith('.')?'from '+JSON.stringify(pathToFileURL(resolve(folder,specifier)).href):all)
  let frontendWrappers=''
@@ -68,7 +68,7 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
  }
  frontendSource=frontendSource.replace('bendAdapter.inspect(path,source)',"globalThis.__hapslandAttribution.timedProvider('provider:bend-parser',()=>bendAdapter.inspect(path,source))")
  writeFileSync(frontendCopy,frontendWrappers+'\n'+frontendSource)
- const sessionOriginal=join(folder,'service-session.mjs'),sessionCopy=join(temporary,'service-session.mjs')
+ const sessionOriginal=join(folder,'./service-session.mjs'),sessionCopy=join(temporary,'./service-session.mjs')
  let sessionSource=readFileSync(sessionOriginal,'utf8');sourceHashes[sessionOriginal]=createHash('sha256').update(sessionSource).digest('hex')
  sessionSource=sessionSource.replace("import {lstat} from 'node:fs/promises'","import {lstat as originalLstat} from 'node:fs/promises'\nconst lstat=(...args)=>globalThis.__hapslandAttribution.timedProvider('provider:lstat',()=>originalLstat(...args))")
  const sessionAnchor='  const resources='
@@ -85,7 +85,7 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
  const native=(...args)=>Effect.runPromise(instrumentedNative(...args))
  const runtime=join(temporary,'runtime.mjs')
  assert.equal(execFileSync('bend',['version'],{encoding:'utf8',timeout:5000}).trim(),'bend 2.0.36')
- execFileSync('bend',[join(folder,'Runtime.bend'),'-o',runtime],{timeout:5000})
+ execFileSync('bend',[join(folder,'./Runtime.bend'),'-o',runtime],{timeout:5000})
  let emitted=readFileSync(runtime,'utf8')
  const marshallers=[...emitted.matchAll(/function (\$0m\d+)\(/g)].map(match=>match[1])
  assert.ok(marshallers.length>0)
@@ -100,7 +100,7 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
  const registry=createServiceRegistry()
  globalThis.__hapslandWholeResolverServices={get size(){return registry.size},get(id){const session=registry.get(id);return session===undefined?undefined:{perform:(request,options)=>timedPromise('service:'+request.operation.$,()=>session.perform(request,options))}}}
  const observe=operation=>operation?.kont?{...operation,kont:reply=>timedSync('continuation',()=>observe(operation.kont(reply)))}:operation
- const consumerOriginal=join(folder,'consumer.mjs'),consumerCopy=join(temporary,'consumer.mjs')
+ const consumerOriginal=join(folder,'./consumer.mjs'),consumerCopy=join(temporary,'./consumer.mjs')
  let consumerSource=readFileSync(consumerOriginal,'utf8')
  sourceHashes[consumerOriginal]=createHash('sha256').update(consumerSource).digest('hex')
  consumerSource=consumerSource.replace(/from '([^']+)'/g,(all,specifier)=>specifier.startsWith('.')?'from '+JSON.stringify(pathToFileURL(specifier==='./service-session.mjs'?sessionCopy:specifier==='./frontends.mjs'?frontendCopy:resolve(folder,specifier)).href):all)

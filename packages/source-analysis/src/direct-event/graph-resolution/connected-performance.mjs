@@ -19,7 +19,7 @@ const pairs=Number(process.env.HAPSLAND_WHOLE_BENCH_PAIRS??17)
 assert.ok(Number.isSafeInteger(pairs)&&pairs>=1&&pairs<=17)
 const deadlineSeconds=Number(process.env.HAPSLAND_WHOLE_BENCH_DEADLINE_SECONDS??180)
 assert.ok(Number.isSafeInteger(deadlineSeconds)&&deadlineSeconds>=60&&deadlineSeconds<=720)
-const worker=join(import.meta.dirname,'connected-worker.mjs'),startedAt=new Date().toISOString(),stop=Date.now()+deadlineSeconds*1000
+const worker=join(import.meta.dirname,'./connected-worker.mjs'),startedAt=new Date().toISOString(),stop=Date.now()+deadlineSeconds*1000
 const stableCaptureLane=process.env.HAPSLAND_WHOLE_STABLE_CAPTURE==='1'
 const expectedCases=createGraphFixtures().filter(fixture=>!stableCaptureLane||!fixture.unavailable).length+(stableCaptureLane?2:0)
 const outputLane=stableCaptureLane?'connected-stable-':'connected-'
@@ -41,11 +41,11 @@ try{
  const frozenManifestPath=process.env.HAPSLAND_WHOLE_RUNTIME_MANIFEST
  if(frozenManifestPath){
   const manifest=JSON.parse(readFileSync(frozenManifestPath,'utf8'))
-  assert.equal(manifest.entry,join(import.meta.dirname,'Runtime.bend'),'manifest owns actual complete Runtime')
+  assert.equal(manifest.entry,join(import.meta.dirname,'./Runtime.bend'),'manifest owns actual complete Runtime')
   for(const [source,digest] of Object.entries(manifest.sources))assert.equal(createHash('sha256').update(readFileSync(join(import.meta.dirname,'../../../../..',source))).digest('hex'),digest,'emitted Runtime source unchanged: '+source)
   assert.equal(createHash('sha256').update(readFileSync(manifest.artifact)).digest('hex'),manifest.artifactHash,'previously qualified complete emitted artifact')
   copyFileSync(manifest.artifact,artifactPath)
- }else execFileSync('bend',[join(import.meta.dirname,'Runtime.bend'),'-o',artifactPath],{timeout:5000})
+ }else execFileSync('bend',[join(import.meta.dirname,'./Runtime.bend'),'-o',artifactPath],{timeout:5000})
  artifactHash=createHash('sha256').update(readFileSync(artifactPath)).digest('hex')
  if(!stableCaptureLane)run('typescript','prepare')
  for(let pair=0;pair<pairs;pair++){

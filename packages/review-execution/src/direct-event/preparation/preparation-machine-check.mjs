@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url'
 const temporary=await mkdtemp('/tmp/hapsland-preparation-machine-')
 try {
  const emitted=join(temporary,'preparation.mjs')
- execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'Preparation.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'./Preparation.bend'),'-o',emitted],{timeout:5000})
  const machine=(await import(pathToFileURL(emitted))).default
  const list=values=>values.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
  const array=value=>{const values=[];while(value.$==='Con'){values.push(value.head);value=value.tail}assert.equal(value.$,'Nil');return values}

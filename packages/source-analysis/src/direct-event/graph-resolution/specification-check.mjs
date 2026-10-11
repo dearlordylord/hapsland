@@ -16,8 +16,8 @@ const folder=import.meta.dirname,root=join(folder,'../../../../..'),scratch=join
 mkdirSync(scratch,{recursive:true})
 const temporary=mkdtempSync(join(scratch,'whole-specification-'))
 const hash=path=>createHash('sha256').update(readFileSync(path)).digest('hex')
-const inputs=['ForestSpecification.bend','SPEC.bend','GraphSpecification.bend','Environment.bend','WholeObservation.bend','Types.bend','specification-check.mjs',
- './traversal/SPEC.bend','./traversal/core.bend','./traversal/Traversal.bend','fixtures.mjs','frontend-codec.mjs',
+const inputs=['./ForestSpecification.bend','./SPEC.bend','./GraphSpecification.bend','./Environment.bend','./WholeObservation.bend','./Types.bend','./specification-check.mjs',
+ './traversal/SPEC.bend','./traversal/core.bend','./traversal/Traversal.bend','./fixtures.mjs','./frontend-codec.mjs',
  '../../../dist/direct-event/graph-resolver.js',
  '../../../dist/direct-event/languages/rust-module-context.js']
 const sources=Object.fromEntries(inputs.map(path=>[path,hash(join(folder,path))]))

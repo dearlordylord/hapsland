@@ -18,15 +18,15 @@ const normalize=(built,visited,budget)=>{
  return {node:built.node,pending:built.pending.map(p=>({owner:addresses.get(p.owner),index:p.index,from:p.from,symbol:p.symbol,name:p.name,depth:p.depth,...(p.expectedKind===undefined?{}:{expectedKind:p.expectedKind}),...(p.bundled?{bundled:p.bundled.declaration.artifact.id}:{importPath:p.importPath})})),state:stateSummary(visited,budget)}
 }
 try{
- const emitted=join(temporary,'core.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/core.bend'),'-o',emitted],{timeout:5000});const core=(await import(pathToFileURL(emitted))).default
+ const emitted=join(temporary,'core.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/core.bend'),'-o',emitted],{timeout:5000});const core=(await import(pathToFileURL(emitted))).default
  const coreTags=new Set(['PlannedNode','ReferenceSlot','Facts','Declaration','ImportBinding','Reference','AnyKind','TypeKind','FunctionKind','Named','Unsupported','Budget','LocalLimits','Pending','Imported','BundledTarget','Unresolved','UnsupportedTarget','ReferenceLimit','Unavailable'])
  const moduleTags=(value,prefix)=>{
   if(value===null||typeof value!=='object')return value
   if(Array.isArray(value))return value.map(v=>moduleTags(v,prefix))
   return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,k==='$'?(prefix&&coreTags.has(v)?'core.'+v:!prefix&&typeof v==='string'&&v.startsWith('core.')?v.slice(5):v):moduleTags(v,prefix)]))
  }
- const specEmitted=join(temporary,'spec.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/SPEC.bend'),'-o',specEmitted],{timeout:5000});const spec=(await import(pathToFileURL(specEmitted))).default
- const relationEmitted=join(temporary,'relation.mjs');execFileSync('bend',[resolve(import.meta.dirname,'local-graph-draft/RELATION.bend'),'-o',relationEmitted],{timeout:5000});const relation=(await import(pathToFileURL(relationEmitted))).default
+ const specEmitted=join(temporary,'spec.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/SPEC.bend'),'-o',specEmitted],{timeout:5000});const spec=(await import(pathToFileURL(specEmitted))).default
+ const relationEmitted=join(temporary,'relation.mjs');execFileSync('bend',[resolve(import.meta.dirname,'../traversal/RELATION.bend'),'-o',relationEmitted],{timeout:5000});const relation=(await import(pathToFileURL(relationEmitted))).default
  function candidate(file,name,expected,visited,budget,depth){
   const artifacts=new Map();let next=1
   const encodeDeclaration=d=>{const handle=next++;artifacts.set(handle,d.artifact);return {$:'Declaration',handle,identity:d.artifact.id,function:d.artifact.kind==='function',bundled:d.artifact.origin?.kind==='bundled',references:list(d.references.map(r=>({$:'Reference',kind:{$:r.kind==='unsupported'?'Unsupported':'Named'},name:r.name,expected:expectation(r.expectedKind),target:r.targetId===undefined?{$:'None'}:{$:'Some',value:r.targetId}})))}}

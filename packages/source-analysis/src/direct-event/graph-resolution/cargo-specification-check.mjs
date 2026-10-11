@@ -11,13 +11,13 @@ const folder=import.meta.dirname,root=join(folder,'../../../../..'),cache=join(r
 mkdirSync(cache,{recursive:true})
 const temporary=mkdtempSync(join(cache,'cargo-specification-'))
 const native=join(root,'packages/source-analysis/dist/direct-event/languages/rust-module-context.js')
-const inputs=['CargoSpecification.bend','CargoSpecificationCheck.bend','Types.bend','cargo-specification-check.mjs','frontend-codec.mjs',native]
+const inputs=['./CargoSpecification.bend','./CargoSpecificationCheck.bend','./Types.bend','./cargo-specification-check.mjs','./frontend-codec.mjs',native]
 const hash=path=>createHash('sha256').update(readFileSync(path)).digest('hex')
 const sources=Object.fromEntries(inputs.map(path=>[path,hash(isAbsolute(path)?path:join(folder,path))]))
 try{
  assert.equal(sep,'/','this check qualifies Linux path algebra only')
  const emitted=join(temporary,'spec.mjs')
- execFileSync('bend',[join(folder,'CargoSpecificationCheck.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[join(folder,'./CargoSpecificationCheck.bend'),'-o',emitted],{timeout:5000})
  const spec=(await import(pathToFileURL(emitted))).default
  const nativeCopy=join(temporary,'native.mjs')
  writeFileSync(nativeCopy,readFileSync(native,'utf8').replaceAll(/from "(\.{1,2}\/[^\"]+)"/g,(_all,path)=>`from "${pathToFileURL(join(dirname(native),path))}"`)+'\nexport {cargoTargetRoots};\n')

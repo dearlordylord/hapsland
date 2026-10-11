@@ -7,7 +7,7 @@ import {createServiceSession,list,unlist} from './service-session.mjs'
 const folder=import.meta.dirname,temp=await mkdtemp('/tmp/hapsland-python-module-')
 const t=(name,fields={})=>({$:'Types.'+name,...fields}),s=(name,fields={})=>({$:'python-module/Session.'+name,...fields})
 try{
- const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(folder,'PythonModule.bend'),'-o',emitted],{timeout:5000})
+ const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(folder,'./PythonModule.bend'),'-o',emitted],{timeout:5000})
  const {default:child}=await import(pathToFileURL(emitted))
  await writeFile(join(temp,'root.py'),'class Root: pass\n');await symlink('root.py',join(temp,'link.py'))
  let elapsed=0,invocation=0,checks=0

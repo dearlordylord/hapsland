@@ -24,10 +24,10 @@ import {createResidentOwnerTransaction} from './resident-owner-transaction.mjs'
 const temp=await mkdtemp('/tmp/hapsland-resident-owner-')
 try{
  const emitted=join(temp,'owner.mjs')
- execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'CanonicalResolverOwner.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend'),'-o',emitted],{timeout:5000})
  const owner=(await import(pathToFileURL(emitted))).default
  const postEmission=join(temp,'post.mjs')
- execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PostPreparation.bend'),'-o',postEmission],{timeout:5000})
+ execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'../../review-work/preparation/PostPreparation.bend'),'-o',postEmission],{timeout:5000})
  const postCore=(await import(pathToFileURL(postEmission))).default,tailMachine=createAdviceTailMachine(postCore)
  const run=Effect.runSync,limits={globalItems:100,globalBytes:10000,partitionItems:16,partitionBytes:10000}
  let cases=0

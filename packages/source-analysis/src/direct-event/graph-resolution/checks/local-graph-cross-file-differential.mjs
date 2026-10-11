@@ -13,7 +13,7 @@ import {GRAPH_LIMIT_CEILINGS} from '@hapsland/canonical-policy/canonical/graph-l
 const root=resolve(import.meta.dirname,'../../../../../..'),temporary=mkdtempSync(join(tmpdir(),'hapsland-graph-cross-file-')),requireRoot=createRequire(root+'/package.json')
 try{
  const emitted=join(temporary,'core.mjs')
- execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/word-route/core.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[resolve(import.meta.dirname,'../representations/word-route/core.bend'),'-o',emitted],{timeout:5000})
  const originalPath=join(root,'packages/source-analysis/dist/direct-event/graph-resolver.js')
  let original=readFileSync(originalPath,'utf8').replace(/from "([^"\n]+)"/g,(_,specifier)=>'from '+JSON.stringify(specifier.startsWith('.')?resolve(dirname(originalPath),specifier):requireRoot.resolve(specifier)))
  assert.equal(original.split('    return frame;').length,2)
@@ -35,7 +35,7 @@ try{
  };
  `
  const native=original.slice(0,start)+original.slice(start,end).replace('const buildLocal = (','const runLocal = (')+observation+original.slice(end)
- const adapterPath=pathToFileURL(resolve(import.meta.dirname,'local-graph-planner-adapter.mjs')).href
+ const adapterPath=pathToFileURL(resolve(import.meta.dirname,'./local-graph-planner-adapter.mjs')).href
  const candidate=original.slice(0,start)+`import {createLocalGraphPlanner,commitLocalGraphPlan} from ${JSON.stringify(adapterPath)};
  import core from ${JSON.stringify(pathToFileURL(emitted).href)};
  const planner=createLocalGraphPlanner(core);

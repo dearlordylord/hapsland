@@ -9,7 +9,7 @@ import {sourceFacts} from './frontend-codec.mjs'
 import {unlist} from './service-session.mjs'
 
 const folder=import.meta.dirname,temporary=mkdtempSync(join(folder,'../../../node_modules/.cache/signed-local-'))
-const inputs=['SignedLocalSpecification.bend','SignedLocalSpecificationCheck.bend','SPEC.bend','WholeObservation.bend','Types.bend','signed-local-specification-check.mjs','frontend-codec.mjs','service-session.mjs','./traversal/SPEC.bend','./traversal/core.bend','./traversal/Traversal.bend','../../../../../bun.lock','../../../dist/direct-event/graph-resolver.js','../../../../canonical-policy/dist/canonical/graph-adapter.js']
+const inputs=['./SignedLocalSpecification.bend','./SignedLocalSpecificationCheck.bend','./SPEC.bend','./WholeObservation.bend','./Types.bend','./signed-local-specification-check.mjs','./frontend-codec.mjs','./service-session.mjs','./traversal/SPEC.bend','./traversal/core.bend','./traversal/Traversal.bend','../../../../../bun.lock','../../../dist/direct-event/graph-resolver.js','../../../../canonical-policy/dist/canonical/graph-adapter.js']
 const hash=path=>createHash('sha256').update(readFileSync(join(folder,path))).digest('hex')
 const sources=Object.fromEntries(inputs.map(path=>[path,hash(path)]))
 const label=value=>value.$.split('.').at(-1)
@@ -22,7 +22,7 @@ const ref=(name,fields={})=>({kind:'named',name,...fields})
 const variants=[{kind:'unsupported',name:'Unsupported'},ref('A'),ref('B',{expectedKind:'type'}),ref('Conflict'),ref('Missing'),ref('Imported'),ref('TypeOnly',{expectedKind:'function'}),ref('Bundle',{targetId:'bundle'}),ref('Invalid',{targetId:'invalid'}),ref('Mismatch',{targetId:'mismatch'})]
 const sequences=[[],...variants.map(item=>[item]),...variants.flatMap(first=>variants.map(second=>[first,second]))]
 try{
- const compiled=join(temporary,'signed.mjs');execFileSync('bend',[join(folder,'SignedLocalSpecificationCheck.bend'),'-o',compiled],{timeout:5000});const spec=(await import(pathToFileURL(compiled))).default
+ const compiled=join(temporary,'signed.mjs');execFileSync('bend',[join(folder,'./SignedLocalSpecificationCheck.bend'),'-o',compiled],{timeout:5000});const spec=(await import(pathToFileURL(compiled))).default
  const nativePath=join(folder,'../../../dist/direct-event/graph-resolver.js')
  const source=readFileSync(nativePath,'utf8').replaceAll(/from "(\.\/[^\"]+)"/g,(_all,path)=>`from "${pathToFileURL(join(dirname(nativePath),path))}"`)
  const nativeCopy=join(temporary,'native.mjs');writeFileSync(nativeCopy,source+'\nexport {buildLocal};\n');const {buildLocal}=await import(pathToFileURL(nativeCopy))

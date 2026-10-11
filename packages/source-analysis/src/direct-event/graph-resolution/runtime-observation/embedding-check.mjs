@@ -8,7 +8,7 @@ import {Parser,TypeScript} from '../../../../dist/direct-event/languages/native-
 const folder=import.meta.dirname,temp=mkdtempSync('/tmp/hapsland-resolver-embedding-')
 try{
  assert.equal(execFileSync('bend',['version'],{encoding:'utf8',timeout:5000}).trim(),'bend 2.0.36')
- const program=join(temp,'program.js'),embedded=join(temp,'embedded.mjs');execFileSync('bend',[join(folder,'Embedding.bend'),'-o',program],{timeout:5000})
+ const program=join(temp,'program.js'),embedded=join(temp,'embedded.mjs');execFileSync('bend',[join(folder,'./Embedding.bend'),'-o',program],{timeout:5000})
  const source=readFileSync(program,'utf8');assert.throws(()=>embedProgram(source+'\nunknown-layout'),TransportFailure)
  writeFileSync(embedded,embedProgram(source));globalThis.__hapslandWholeResolverProbeEngine=Object.freeze({Parser,TypeScript})
  const {start,startMany,handlers}=await import(pathToFileURL(embedded));assert.deepEqual(Object.keys(handlers),['Runtime.parser_request'])

@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url'
 const temp=await mkdtemp('/tmp/hapsland-source-cursor-')
 try{
  const emitted=join(temp,'cursor.mjs')
- execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'SourcePreparation.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'./SourcePreparation.bend'),'-o',emitted],{timeout:5000})
  const core=(await import(pathToFileURL(emitted))).default
  const list=items=>items.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
  const recover=initial=>{

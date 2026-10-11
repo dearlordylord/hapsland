@@ -13,12 +13,12 @@ import {GRAPH_LIMIT_CEILINGS} from '@hapsland/canonical-policy/canonical/graph-l
 const root=resolve(import.meta.dirname,'../../../../../..'),temporary=mkdtempSync(join(tmpdir(),'hapsland-graph-connected-bench-')),requireRoot=createRequire(root+'/package.json')
 try{
  const emitted=join(temporary,'core.mjs')
- execFileSync('bend',[resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/core.bend'),'-o',emitted],{timeout:5000})
+ execFileSync('bend',[resolve(import.meta.dirname,'../representations/list-state/core.bend'),'-o',emitted],{timeout:5000})
  const originalPath=join(root,'packages/source-analysis/dist/direct-event/graph-resolver.js')
  const original=readFileSync(originalPath,'utf8').replace(/from "([^"\n]+)"/g,(_,specifier)=>'from '+JSON.stringify(specifier.startsWith('.')?resolve(dirname(originalPath),specifier):requireRoot.resolve(specifier)))
  const start=original.indexOf('const buildLocal = ('),end=original.indexOf('\nconst graphClock = ',start)
  assert.ok(start>=0&&end>start)
- const adapterPath=pathToFileURL(resolve(import.meta.dirname,'local-graph-representation-prototypes/list-state/adapter.mjs')).href
+ const adapterPath=pathToFileURL(resolve(import.meta.dirname,'../representations/list-state/adapter.mjs')).href
  const candidate=original.slice(0,start)+`import {createLocalGraphPlanner,commitLocalGraphPlan} from ${JSON.stringify(adapterPath)};
  import core from ${JSON.stringify(pathToFileURL(emitted).href)};
  const planner=createLocalGraphPlanner(core);

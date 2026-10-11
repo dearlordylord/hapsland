@@ -7,8 +7,8 @@ import {pathToFileURL} from 'node:url'
 import {list} from './service-session.mjs'
 
 const folder=import.meta.dirname,temporary=mkdtempSync('/tmp/hapsland-graph-specification-')
-const inputFiles=['GraphSpecification.bend','SPEC.bend','SpecificationCheck.bend',
- '../../../../agent-flow-bend/ImportGraph.bend','graph-specification-check.mjs']
+const inputFiles=['./GraphSpecification.bend','./SPEC.bend','./SpecificationCheck.bend',
+ '../../../../agent-flow-bend/ImportGraph.bend','./graph-specification-check.mjs']
 const hashes=()=>Object.fromEntries(inputFiles.map(path=>[path,createHash('sha256').update(readFileSync(join(folder,path))).digest('hex')]))
 const sources=hashes(),tag=(name,fields={})=>({$:'../../../packages/agent-flow-bend/ImportGraph.'+name,...fields})
 const caps=n=>tag('Limits',{version:1n,source_bytes:n,tree_bytes:n,files:n,read_bytes:n,outgoing_edges:n,depth:n,work:n})
@@ -27,7 +27,7 @@ const events=()=>[tag('Root',{target:1n,source_bytes:nat(),tree_bytes:nat(),loca
  tag('CaptureFailed'),tag('DeadlineReached')]
 try{
  assert.equal(execFileSync('bend',['version'],{encoding:'utf8',timeout:5000}).trim(),'bend 2.0.36')
- const compiled=join(temporary,'check.mjs');execFileSync('bend',[join(folder,'SpecificationCheck.bend'),'-o',compiled],{timeout:5000})
+ const compiled=join(temporary,'check.mjs');execFileSync('bend',[join(folder,'./SpecificationCheck.bend'),'-o',compiled],{timeout:5000})
  const {default:program}=await import(pathToFileURL(compiled))
  function compare(state,event){const actual=program.reference_event(state,event),expected=program.native_event(state,event);assert.deepEqual(actual,expected,JSON.stringify({state,event},(_key,value)=>typeof value==='bigint'?String(value):value));compared++;return actual}
  for(const cap of [0n,1n,2n,4n,8n]){
@@ -75,6 +75,6 @@ try{
   scope:'Finite independent reference ImportGraph state/event checks against current production kernel, full state and command. Includes raw/nonreachable states and bounded reachable compositions. No universal law, whole resolver driver/projection, proof or production migration acceptance.'}
  // Check the call boundary as well as results: only datatype constructors G.X{}
  // are permitted in this reference module, no lowercase production helpers.
- assert.ok(!/\bG\.[a-z][A-Za-z_0-9]*\s*\(/.test(readFileSync(join(folder,'GraphSpecification.bend'),'utf8')))
+ assert.ok(!/\bG\.[a-z][A-Za-z_0-9]*\s*\(/.test(readFileSync(join(folder,'./GraphSpecification.bend'),'utf8')))
  writeFileSync(join(folder,'graph-specification-'+record.runtime+'-evidence.json'),JSON.stringify(record,null,2)+'\n');console.log(JSON.stringify(record))
 }finally{rmSync(temporary,{recursive:true,force:true})}

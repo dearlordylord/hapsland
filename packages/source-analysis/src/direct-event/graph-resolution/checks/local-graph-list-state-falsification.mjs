@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url"
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-trie-laws-"))
 try {
   const emitted = join(temporary, "invariant.mjs")
-  execFileSync("bend", [resolve(import.meta.dirname, "local-graph-representation-prototypes/list-state/INVARIANT.bend"), "-o", emitted], { timeout: 5000 })
+  execFileSync("bend", [resolve(import.meta.dirname, "../representations/list-state/INVARIANT.bend"), "-o", emitted], { timeout: 5000 })
   const core = (await import(pathToFileURL(emitted))).default
   const nil = () => ({ $: "Own.DNil" })
   const cons=(key,rest=nil(),count=1)=>({$:"Own.DCon",key,value:7,rest,count})

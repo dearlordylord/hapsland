@@ -7,7 +7,7 @@ import {createServiceSession,unlist} from './service-session.mjs'
 const t=(name,fields={})=>({$:'Types.'+name,...fields}),s=(name,fields={})=>({$:'python-module/Session.'+name,...fields})
 const temp=await mkdtemp('/tmp/hapsland-python-alternatives-')
 try{
- const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PythonModule.bend'),'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
+ const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'./PythonModule.bend'),'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
  const native=await readFile(join(import.meta.dirname,'../languages/python-module-context.ts'),'utf8')
  // Current production algorithm, retaining its generator/short circuit structure.
  const body=native.slice(native.indexOf('    const candidates ='),native.indexOf('    const packageParents ='))

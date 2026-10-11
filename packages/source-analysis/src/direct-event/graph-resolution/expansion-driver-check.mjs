@@ -72,7 +72,7 @@ function mapKeys(value){switch(label(value)){case'MTip':return [];case'MLeaf':re
 try{
  const tables=pathTables();writeFileSync(wrapperPath,wrapper(tables))
  const nativePath=path.join(root,'packages/source-analysis/dist/direct-event/graph-resolver.js')
- const dependencies=['ExpansionDriverSpecification.bend','ExpansionSpecification.bend','ForestSpecification.bend','SignedLocalSpecification.bend','SPEC.bend','GraphSpecification.bend','RustSpecification.bend','WholeObservation.bend','Environment.bend','Types.bend','expansion-driver-check.mjs','fixtures.mjs','frontend-codec.mjs','service-session.mjs','./traversal/SPEC.bend','./traversal/core.bend','./traversal/Traversal.bend','../../../../../bun.lock',nativePath]
+ const dependencies=['./ExpansionDriverSpecification.bend','./ExpansionSpecification.bend','./ForestSpecification.bend','./SignedLocalSpecification.bend','./SPEC.bend','./GraphSpecification.bend','./RustSpecification.bend','./WholeObservation.bend','./Environment.bend','./Types.bend','./expansion-driver-check.mjs','./fixtures.mjs','./frontend-codec.mjs','./service-session.mjs','./traversal/SPEC.bend','./traversal/core.bend','./traversal/Traversal.bend','../../../../../bun.lock',nativePath]
  const hashes=()=>Object.fromEntries(dependencies.map(n=>[n,createHash('sha256').update(readFileSync(path.isAbsolute(n)?n:path.join(folder,n))).digest('hex')]))
  const sources=hashes(),cases=[]
  async function compile(name,file=path.join(folder,name+'.bend')){const output=path.join(temporary,name+'.mjs');execFileSync('bend',[file,'-o',output],{timeout:5000,maxBuffer:2**20});if(name==='DriverCheck'){

@@ -9,7 +9,7 @@ const t=(name,fields={})=>({$:'Types.'+name,...fields}),s=(name,fields={})=>({$:
 const rootCapture={text:'class Root: pass',byteLength:16},source={text:'class Child: pass',byteLength:17}
 const failure={stage:'capture',code:'capture-unavailable',args:{reason:'missing'}}
 try{
- const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(folder,'PythonModule.bend'),'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
+ const emitted=join(temp,'child.mjs');execFileSync('taskset',['-c','10','bend',join(folder,'./PythonModule.bend'),'-o',emitted],{timeout:5000});const {default:child}=await import(pathToFileURL(emitted))
  await writeFile(join(temp,'child.py'),source.text)
  const cases=[
   {name:'fresh-and-known',paths:['child.py','child.py'],expiredRound:1},

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 const roots={typescript:process.env.HAPSLAND_PERFORMANCE_BASELINE_ROOT??'/workspace/typescript/hapsland-bend-baseline-master-5726758e',integratedBend:process.env.HAPSLAND_PERFORMANCE_CANDIDATE_ROOT??resolve(import.meta.dirname,'../../../../..')}
 const pairs=Number(process.env.HAPSLAND_BENCH_PAIRS??17);assert.ok(Number.isSafeInteger(pairs)&&pairs>0&&pairs<=17)
 const temporary=mkdtempSync(join(tmpdir(),'hapsland-reference-bench-')),goldenPath=join(temporary,'golden.json')
-const bun=roots.integratedBend+'/node_modules/bun/bin/bun.exe',worker=resolve(import.meta.dirname,'reference-isolated-helper-worker.mjs'),startedAt=new Date().toISOString(),samples={typescript:[],integratedBend:[]},stop=Date.now()+180000
+const bun=roots.integratedBend+'/node_modules/bun/bin/bun.exe',worker=resolve(import.meta.dirname,'./reference-isolated-helper-worker.mjs'),startedAt=new Date().toISOString(),samples={typescript:[],integratedBend:[]},stop=Date.now()+180000
 
 try{
 for(let pair=0;pair<pairs;pair++){const order=Object.entries(roots);if(pair%2)order.reverse();for(const [lane,root] of order){assert.ok(Date.now()<stop);const output=execFileSync('taskset',['-c','11',bun,worker,root,'measure',goldenPath],{encoding:'utf8',timeout:Math.min(20000,stop-Date.now())});const sample=JSON.parse(output);assert.ok(sample.coreValidated);samples[lane].push(sample);console.log(JSON.stringify({pair,lane,...sample}));writeFileSync('/tmp/hapsland-reference-isolated-helper-progress.json',JSON.stringify({startedAt,samples},null,2))}}
