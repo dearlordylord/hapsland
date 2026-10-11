@@ -141,6 +141,7 @@ def address_count_append(items: List<&2, F.AddressEntry>, +suffix: List<&2, F.Ad
         (Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + (P.address_count(tail, target) + P.address_count(suffix, target) : Nat) : Nat),
         Arithmetic.add_assoc(Bool.pick(Nat, F.same_address(target, birth), 1n, 0n), P.address_count(tail, target), P.address_count(suffix, target)))
 
+# Keep the same complete uniqueness domain while moving the paired cursor.
 def aligned_append_fixed(nodes: List<&2, Local.PlannedNode>, entries: List<&2, F.AddressEntry>,
     +suffix_nodes: List<&2, Local.PlannedNode>, +suffix_entries: List<&2, F.AddressEntry>,
     +all_nodes: List<&2, Local.PlannedNode>, +all_entries: List<&2, F.AddressEntry>,
@@ -180,6 +181,8 @@ def aligned_append_fixed(nodes: List<&2, Local.PlannedNode>, entries: List<&2, F
       Empty.absurd({P.aligned(List.append(&2, Local.PlannedNode, nodes, suffix_nodes),
         List.append(&2, F.AddressEntry, entries, suffix_entries), all_nodes, all_entries) == True{} : Bool}, B.internal_false_ne_true(first))
 
+# One paired row changes its uniqueness domain; callers supply the exact
+# recursive tail and count equations, without duplicating linear closures.
 def aligned_context_row(+id: Nat, +other: Nat, +artifact: Nat, +birth: O.NodeAddress,
     +tail: List<&2, Local.PlannedNode>, +rest: List<&2, F.AddressEntry>,
     +old_nodes: List<&2, Local.PlannedNode>, +old_entries: List<&2, F.AddressEntry>,
@@ -203,6 +206,30 @@ def aligned_context_row(+id: Nat, +other: Nat, +artifact: Nat, +birth: O.NodeAdd
         %Equal.sym(Nat, P.address_count(new_entries, birth), 1n, address_count):
           {Nat.is_eq(_, 1n) == True{} : Bool}
         {==}, tail_aligned)))
+
+# Assembly is the converse direction of project_contents for the same guard.
+def project_from_parts(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +entries: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +values: List<&2, F.Node>,
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool},
+    unique: {P.catalog_unique(catalog, catalog) == True{} : Bool},
+    owned: {P.slots_owned(slots, nodes) == True{} : Bool},
+    forward: {P.forward_nodes(nodes, slots) == True{} : Bool},
+    located: {F.address_at(entries, root) == Some{birth} : Maybe<&2, O.NodeAddress>},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{values} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.project(root, nodes, slots, catalog, entries) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>}:
+  %Equal.sym(Bool, Bool.and(P.aligned(nodes, entries, nodes, entries), Bool.and(P.catalog_unique(catalog, catalog),
+    Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)))), True{},
+    B.and_eq_true(P.aligned(nodes, entries, nodes, entries), Bool.and(P.catalog_unique(catalog, catalog),
+      Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots))), aligned,
+      B.and_eq_true(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)), unique,
+        B.and_eq_true(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots), owned, forward)))):
+    {P.validated(_, root, nodes, slots, catalog, entries) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>}
+  %Equal.sym(Maybe<&2, O.NodeAddress>, F.address_at(entries, root), Some{birth}, located):
+    {P.forest(_, P.nodes(nodes, slots, catalog, entries)) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>}
+  %Equal.sym(Maybe<&2, List<&2, F.Node>>, P.nodes(nodes, slots, catalog, entries), Some{values}, projected):
+    {P.forest(Some{birth}, _) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>}
+  {==}
 
 def main() -> Unit:
   Unit{}

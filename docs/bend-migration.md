@@ -203,8 +203,11 @@ One current obstacle list, in execution order:
    all four combined-domain count equations pass with the whole prefix at
    3.096 seconds. Both full paired-list recursions now pass the whole prefix
    at 3.944 seconds with unchanged premises. The appended_aligned wrapper is
-   authored but unqualified after a hard-five-second timeout. Remaining path:
-   checked appended alignment,
+   now qualified at 3.517 seconds after moving four generic facts (sole
+   declarations) to existing AttachmentProjectionContentsProof, whose gate
+   passes at 2.911 seconds. Failed factoring attempts remain diagnostic evidence.
+   Full appended_projection is authored from those checked components but
+   unqualified. Remaining path:
    full projection, owner-only replacement commutation, semantic validity,
    original eight conjuncts and the existing transaction theorem. No separate
    helper frontier qualifies adoption; the original parent theorem remains WIP.
@@ -286,7 +289,18 @@ One current obstacle list, in execution order:
    fencing, original exception/Cause identity, resource custody, accepted result
    publication and independent dispatcher/advice scopes. The new multilingual
    physical consumer closes its former language fixture gap; it is not public
-   adoption or proof of every lifecycle case.
+   adoption or proof of every lifecycle case. The real resident preparation
+   consumer now includes Go/Rust/Bend roots through the same Canonical-owned
+   preparation → nested resolver → Post/retention path, adding the existing Go
+   artifact. Focused Go passes 1 case / 61 requests / 16 Post requests with native
+   whole differential and cleanup (/tmp/hapsland-resident-go-whole-flow-v2.log).
+   The complete 73-case set remains unqualified: ArtifactComposition emission
+   timed out before scenarios even in /dev/shm. Isolated reproduction also
+   timed out at 5.070 seconds (4.221 user / 0.409 system), while an earlier same
+   artifact emission passed at 4.120 seconds. No emission limit was raised;
+   retained physical fixtures stay in /tmp, compiled temporary outputs alone
+   use measured memory storage. Next diagnostic must reduce or distinguish
+   actual composition preparation cost before another complete run.
 5. Connect the whole section through production Canonical launch, lifecycle,
    cancellation, acceptance and progression. Delete replaced TS preparation,
    graph/language package policy and orchestration only with their qualified

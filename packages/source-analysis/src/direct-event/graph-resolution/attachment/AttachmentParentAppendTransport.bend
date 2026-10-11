@@ -1025,7 +1025,6 @@ def aligned_absent_lookup(nodes: List<&2, Local.PlannedNode>, entries: List<&2, 
     case Con{_, _} Nil{}:
       Empty.absurd({F.address_at(entries, query) == None{} : Maybe<&2, O.NodeAddress>}, B.internal_false_ne_true(aligned))
 
-# Keep the same complete uniqueness domain while moving the paired cursor.
 
 def cursor_address_lookup(+prefix_nodes: List<&2, Local.PlannedNode>, +prefix_entries: List<&2, F.AddressEntry>,
     +all_nodes: List<&2, Local.PlannedNode>, +all_entries: List<&2, F.AddressEntry>,
@@ -1295,8 +1294,6 @@ def parent_entries_exclude_child_address(+parents: List<&2, Local.PlannedNode>, 
         prior_nodes_exclude_fresh(parent_values, episode, route, parent_before))
 
 
-# One paired row changes its uniqueness domain; callers supply the exact
-# recursive tail and count equations, without duplicating linear closures.
 
 # Numeric counts in the full allocation domain: the prefix ends strictly
 # before every shifted child ID, irrespective of the child list's ordering.
@@ -1516,6 +1513,45 @@ def appended_aligned(
       %Remap.aligned(children, child_entries, children, child_entries, offset):
         {_ == True{} : Bool}
       child_aligned))
+
+# Exact full projection of the appended frame before replacing the selected
+# parent slot. All guards come from the two original successful projections.
+def appended_projection(+root: Nat, +birth: O.NodeAddress,
+    +parents: List<&2, Local.PlannedNode>, +parent_slots: List<&2, Local.ReferenceSlot>,
+    +parent_entries: List<&2, F.AddressEntry>, +parent_values: List<&2, F.Node>,
+    +children: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +child_entries: List<&2, F.AddressEntry>, +child_values: List<&2, F.Node>, +catalog: List<&2, T.ArtifactEntry>, +episode: Nat,
+    +parent_aligned: {P.aligned(parents, parent_entries, parents, parent_entries) == True{} : Bool},
+    +parent_dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    +parent_projected: {P.nodes(parents, parent_slots, catalog, parent_entries) == Some{parent_values} : Maybe<&2, List<&2, F.Node>>},
+    +parent_before: {Relation.episodes_before(parent_values, episode) == True{} : Bool},
+    +child_aligned: {P.aligned(children, child_entries, children, child_entries) == True{} : Bool},
+    +child_dense: {Frame.dense(children, 0n) == True{} : Bool},
+    +child_projected: {P.nodes(children, child_slots, catalog, child_entries) == Some{child_values} : Maybe<&2, List<&2, F.Node>>},
+    +child_fresh: {Ready.episode_nodes(child_values, episode) == True{} : Bool},
+    +parent_owned: {P.slots_owned(parent_slots, parents) == True{} : Bool},
+    child_owned: {P.slots_owned(child_slots, children) == True{} : Bool},
+    parent_forward: {P.forward_nodes(parents, parent_slots) == True{} : Bool},
+    child_forward: {P.forward_nodes(children, child_slots) == True{} : Bool},
+    unique: {P.catalog_unique(catalog, catalog) == True{} : Bool},
+    located: {F.address_at(parent_entries, root) == Some{birth} : Maybe<&2, O.NodeAddress>}) ->
+    {P.project(root,
+      List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))),
+      List.append(&2, Local.ReferenceSlot, parent_slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))), catalog,
+      List.append(&2, F.AddressEntry, parent_entries, Mapping.shifted(child_entries, List.length(&2, Local.PlannedNode, parents))))
+      == Some{F.Forest{Some{birth}, List.append(&2, F.Node, parent_values, child_values)}} : Maybe<&2, F.Forest>}:
+  +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+  +nodes: List<&2, Local.PlannedNode> = List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, offset))
+  +slots: List<&2, Local.ReferenceSlot> = List.append(&2, Local.ReferenceSlot, parent_slots, Compose.shift_slots(child_slots, offset))
+  +entries: List<&2, F.AddressEntry> = List.append(&2, F.AddressEntry, parent_entries, Mapping.shifted(child_entries, offset))
+  Contents.project_from_parts(root, nodes, slots, catalog, entries, birth, List.append(&2, F.Node, parent_values, child_values),
+    appended_aligned(parents, parent_slots, parent_entries, parent_values, children, child_slots, child_entries, child_values, catalog, episode,
+      parent_aligned, parent_dense, parent_projected, parent_before, child_aligned, child_dense, child_projected, child_fresh), unique,
+    appended_slots_owned(parents, parent_slots, children, child_slots, parent_dense, parent_owned, child_owned),
+    appended_forward(parents, parent_slots, children, child_slots, parent_dense, parent_owned, parent_forward, child_forward),
+    address_append_present(parent_entries, Mapping.shifted(child_entries, offset), root, birth, located),
+    appended_nodes(parents, parent_slots, children, child_slots, catalog, parent_entries, child_entries,
+      parent_values, child_values, parent_dense, parent_aligned, parent_owned, parent_projected, child_projected))
 
 law parent_attachment_exact:
   for +parent_root: Nat
