@@ -231,15 +231,24 @@ One current obstacle list, in execution order:
    The resident-owned root consumer now includes all 58 original graph fixture
    facts through a source-owned verification CLI and the existing runner's
    subprocess input boundary (V8 preserves Maps/order). It retains the previous
-   46 physical/lifecycle cases and adds final-publication expiry. Qualification
-   is pending: first run found a missing dirname import; a later run exposed
+   46 physical/lifecycle cases and adds final-publication expiry. The full
+   consumer now passes 105 cases / 4252 requests, comparing full results,
+   errors, ordered effects, cache and resource cleanup (log:
+   /tmp/hapsland-whole-fixtures-owned-consumer-v8.log). Earlier failures found
+   a missing dirname import; a later run exposed
    incomplete fixture StableCapture facts, now supplied equally to both sides;
    the full run then found a missing generic final deadline read. Native
    resolveGraphUnit checks frame.expired before returning every unit, while
    Machine previously performed final checks only for Python/Go. Generic
    completion now requests ReadClock using the existing saved product/frame;
-   Machine source checking and both changed Bend formats pass. Full consumer
-   qualification and the original generic IO/trace assertions remain open.
+   Machine source checking and both changed Bend formats pass. Negative graph
+   work now uses the existing public readNat error boundary and both fixture
+   sides use the public Effect resolver boundary. Emission preparation retains
+   its hard five-second limit: two reversed output-storage pairs passed at
+   3.260/3.888 seconds in /dev/shm versus 4.388/4.668 in /tmp. Only compiled
+   temporary artifacts moved; physical fixtures remain in /tmp. This is not
+   production parity evidence. Original generic IO/trace assertions, whole
+   resident progression and universal correspondence remain open.
    Unsupported formatter roots remain failures, including
    attachment declaration headers and UnitEvidence/Glob/list blocks.
    Astra's structural review found no blocking ownership/dependency issue in
@@ -260,17 +269,17 @@ One current obstacle list, in execution order:
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 933dc332 build/execution are
+   connected candidate. Latest existing-production 8291cd3d build/execution are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: build fails
-   at 1.075254328177227 (all 23/46 cached); execution passes at
-   0.8857561852789442. Build started 20:14:00.586230 UTC, 4.172886 seconds
-   after its cadence deadline; execution started 20:20:53.531594 UTC, timely.
-   Warm candidate build passed 46/46 tasks, 15 cached, in 69.011 seconds.
+   at 1.088572846862501 (all 23/46 cached); execution passes at
+   0.830087932768967. Build started 20:49:14.593832 UTC, 5 minutes 14.007602 seconds
+   after its cadence deadline; execution started 20:46:48.365067 UTC, timely.
+   Warm candidate build passed 46/46 tasks, 15 cached, in 65.306 seconds.
    This does not measure unadopted whole preparation. Recorded cadence misses
    remain failures. Evidence is retained under ignored
-   .test-runs/bend-migration/performance/2026-10-11T20-14-00.586230+00-00
-   and 2026-10-11T20-20-53.531594+00-00 (qualification.json and run.log).
-   Next build start is due 20:44:00.586230 UTC, execution 20:50:53.531594 UTC.
+   .test-runs/bend-migration/performance/2026-10-11T20-49-14.593832+00-00
+   and 2026-10-11T20-46-48.365067+00-00 (qualification.json and run.log).
+   Next build start is due 21:19:14.593832 UTC, execution 21:16:48.365067 UTC.
    A bounded two-pair UI-preflight diagnostic passed both roots on CPU11:
    baseline 2.702/2.625 seconds, candidate 2.694/3.037 seconds. This does not
    isolate the complete build regression or establish parity; no scanner
