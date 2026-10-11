@@ -1,6 +1,5 @@
 import Base
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
-import ./ArtifactProtocol.bend as A
 import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.bend as P
 import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/Session.bend as Python
 import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/PreparationMachine.bend as Preparation
