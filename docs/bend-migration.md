@@ -125,6 +125,10 @@ runtime-inputs, and provider/rule semantics to review-definition. All retained
 sources, tests, specifications, proofs and runners are ordinary tracked files at
 these owners. Evidence contains results only. Commit and push source checkpoints
 to `migration/bend-direct-login-resumed`, verifying the remote SHA, throughout work.
+Disk-loss recovery must require only a Git clone of that remote branch for retained
+migration sources, tests, proofs and runners; local temporary files are diagnostic
+results, never the sole copy of an implementation. Push incomplete source work as
+an explicitly unaccepted checkpoint rather than leaving it only on local storage.
 
 `PreparationFinalization.bend` now replaces the candidate's complete RenderUnits
 native child. Bend controls ordered units, required root-location short-circuit

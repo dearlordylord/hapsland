@@ -35,6 +35,7 @@ await withBuildLock(root, async (buildEnvironment) => {
   generateBendBaseEvidence(root, bendToolchain, true)
   const toolchain = {
     node: fileEvidence(root, realpathSync(process.execPath)),
+    ...(bendToolchain ? { bend: bendToolchain } : {}),
     bun: fileEvidence(root, realpathSync(resolveBunRuntime().executable)),
     typescript: (await resolvePinnedTypeScript(resolve(root, "scripts"))).identity,
     platform: process.platform,

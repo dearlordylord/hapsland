@@ -1,3 +1,4 @@
+import { hasBendPrecompile } from "./bend-precompile-inputs.mjs"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { fileEvidence } from "./compiler-evidence.mjs"
@@ -17,6 +18,7 @@ export const readCompilerToolchain = (root) => {
   }
   verify(toolchain.node)
   verify(toolchain.typescript)
+  verify(toolchain.bend)
   return toolchain
 }
 const producerInputs = (root, node) => {
@@ -37,11 +39,20 @@ const producerInputs = (root, node) => {
 }
 // A synchronous verifier may supply its freshly byte-verified phase observation.
 export const compilerContext = (root, node, toolchain = readCompilerToolchain(root)) => {
-  const { source, configuration, dependencyVersions } = authoredSourceContext(root, node)
+  const { source, configuration, dependencyVersions, bendPrecompile } = authoredSourceContext(
+    root,
+    node,
+    toolchain.bend
+  )
   return {
-    toolchain: { node: toolchain.node, typescript: toolchain.typescript },
+    toolchain: {
+      node: toolchain.node,
+      typescript: toolchain.typescript,
+      ...(hasBendPrecompile(node) ? { bend: toolchain.bend } : {})
+    },
     configuration,
     source,
+    ...(bendPrecompile ? { bendPrecompile } : {}),
     dependencyVersions,
     producers: producerInputs(root, node)
   }

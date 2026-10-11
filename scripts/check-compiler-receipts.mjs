@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url"
 import { fileEvidence, fileInventory } from "./compiler-evidence.mjs"
 import { compilerContext, readCompilerToolchain } from "./compiler-context.mjs"
 import { readPackageGraph } from "./package-graph.mjs"
-import { checkBendProducerReceipt } from "./bend-producer.mjs"
+import { checkBendProducerReceipt, bendGeneratedLoaderEvidence } from "./bend-producer.mjs"
 
 const freezeObservation = (value) => {
   if (value && typeof value === "object") {
@@ -34,6 +34,29 @@ export const checkCompilerReceipts = (root) => {
       throw new Error(`Invalid compiler receipt: ${node.manifest.name}`)
     if (JSON.stringify(receipt.context) !== JSON.stringify(compilerContext(root, node, toolchain)))
       throw new Error(`Stale compiler context: ${node.manifest.name}`)
+    if (receipt.context.bendPrecompile) {
+      const expected = receipt.context.bendPrecompile
+      if (!Array.isArray(receipt.bendPrecompile) || receipt.bendPrecompile.length !== expected.artifacts.length)
+        throw new Error("Missing Bend precompile output evidence")
+      for (let index = 0; index < expected.artifacts.length; index++) {
+        const artifact = expected.artifacts[index]
+        const evidence = receipt.bendPrecompile[index]
+        const output = resolve(node.path, "dist", artifact.output)
+        if (
+          evidence.output !== artifact.output ||
+          JSON.stringify(bendGeneratedLoaderEvidence(readFileSync(output, "utf8"), artifact.output)) !==
+            JSON.stringify(evidence.loaders)
+        )
+          throw new Error("Changed Bend precompile output provenance")
+        if (
+          !readFileSync(output.replace(/\.js$/, ".d.ts")).equals(readFileSync(resolve(root, artifact.declaration.path)))
+        )
+          throw new Error("Bend precompile declaration differs from authored ABI")
+        for (const input of expected.closure)
+          if (!receipt.inputs.some((entry) => entry.path === input.path && entry.sha256 === input.sha256))
+            throw new Error("Missing Bend precompile closure evidence")
+      }
+    } else if (receipt.bendPrecompile !== undefined) throw new Error("Unexpected Bend precompile receipt")
     for (const input of receipt.inputs) {
       const actual = fileEvidence(root, resolve(root, input.path))
       if (JSON.stringify(actual) !== JSON.stringify(input))

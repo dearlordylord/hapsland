@@ -1,8 +1,10 @@
+import { emitBendPrecompile } from "./bend-precompile.mjs"
+import { readBendPrecompile } from "./bend-precompile-inputs.mjs"
 import { checkUiFlows } from "./check-ui-flows.mjs"
 import { resolvePinnedTypeScript } from "./pinned-typescript.mjs"
 import { withBuildLock } from "./build-lock.mjs"
 import { spawnSync } from "node:child_process"
-import { copyFileSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, relative, resolve } from "node:path"
 import { compilerInputs, fileEvidence, fileInventory } from "./compiler-evidence.mjs"
 import { compilerContext, readCompilerToolchain } from "./compiler-context.mjs"
@@ -20,11 +22,22 @@ await withBuildLock(root, async () => {
   const receipt = resolve(output, ".compile-receipt.json")
   rmSync(output, { recursive: true, force: true })
   mkdirSync(output, { recursive: true })
+  let precompileStage
   try {
     const selected = await resolvePinnedTypeScript(resolve(root, "scripts"))
     if (JSON.stringify(selected.identity) !== JSON.stringify(readCompilerToolchain(root).typescript))
       throw new Error("Compiler selection disagrees with recorded toolchain")
     const authored = verifyAuthoredInputStamp(root, node)
+    const contextBefore = compilerContext(root, node)
+    const precompile = readBendPrecompile(root, node)
+    let generated = []
+    if (precompile) {
+      mkdirSync(resolve(node.path, "artifacts"), { recursive: true })
+      precompileStage = mkdtempSync(resolve(node.path, "artifacts/.precompile-"))
+      generated = await emitBendPrecompile(root, node, precompileStage, contextBefore.toolchain.bend)
+      verifyAuthoredInputStamp(root, node, authored)
+    }
+    const precompilePaths = contextBefore.bendPrecompile?.closure.map((entry) => resolve(root, entry.path)) ?? []
     const compiler = selected.executable
     const assets = (directory) =>
       readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -47,9 +60,8 @@ await withBuildLock(root, async () => {
         anticipated.error ?? new Error(`Compiler input discovery failed: ${anticipated.stdout}${anticipated.stderr}`)
       )
     }
-    const paths = [...new Set([...compilerInputs(anticipated.stdout), ...assetPaths])].sort()
+    const paths = [...new Set([...compilerInputs(anticipated.stdout), ...assetPaths, ...precompilePaths])].sort()
     const before = paths.map((path) => fileEvidence(root, path))
-    const contextBefore = compilerContext(root, node)
     const result = spawnSync(
       compiler,
       ["-p", resolve(node.path, "tsconfig.json"), "--listFiles", "--listEmittedFiles", "--pretty", "false"],
@@ -84,6 +96,7 @@ await withBuildLock(root, async () => {
       }
     }
     copyAssets(resolve(node.path, "src"))
+    for (const path of precompilePaths) if (!inputs.includes(path)) inputs.push(path)
     const actual = [...new Set(inputs)].sort()
     if (JSON.stringify(actual) !== JSON.stringify(paths))
       throw new Error(`Compiler input set changed: ${node.manifest.name}`)
@@ -97,6 +110,11 @@ await withBuildLock(root, async () => {
     if (JSON.stringify(contextBefore) !== JSON.stringify(contextAfter))
       throw new Error(`Compiler context changed during compilation: ${node.manifest.name}`)
     verifyAuthoredInputStamp(root, node, authored)
+    for (const artifact of generated) {
+      const target = resolve(output, artifact.output)
+      mkdirSync(dirname(target), { recursive: true })
+      copyFileSync(resolve(precompileStage, artifact.output), target)
+    }
     writeFileSync(
       receipt,
       `${JSON.stringify(
@@ -106,6 +124,7 @@ await withBuildLock(root, async () => {
           host: node.manifest.hapsland.host,
           compilerVersion: `Version ${selected.version}`,
           inputs: after,
+          ...(precompile ? { bendPrecompile: generated } : {}),
           outputs: fileInventory(node.path, output)
         },
         null,
@@ -116,5 +135,7 @@ await withBuildLock(root, async () => {
   } catch (error) {
     rmSync(output, { recursive: true, force: true })
     throw error
+  } finally {
+    if (precompileStage) rmSync(precompileStage, { recursive: true, force: true })
   }
 })

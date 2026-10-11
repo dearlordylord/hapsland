@@ -11,6 +11,8 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
   mkdirSync(resolve(root, "scripts"), { recursive: true })
   for (const name of [
     "bend-producer.mjs",
+    "bend-import-inputs.mjs",
+    "bend-precompile-inputs.mjs",
     "authored-task-inputs.mjs",
     "package-graph.mjs",
     "bend-toolchain.mjs",

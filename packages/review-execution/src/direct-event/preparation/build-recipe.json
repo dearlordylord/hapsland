@@ -1,0 +1,12 @@
+[
+  {
+    "source": "Preparation.bend",
+    "output": "preparation-core.js",
+    "declaration": "preparation-core.d.ts"
+  },
+  {
+    "source": "PreparationFinalization.bend",
+    "output": "preparation-finalization-core.js",
+    "declaration": "preparation-finalization-core.d.ts"
+  }
+]

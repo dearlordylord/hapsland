@@ -1,3 +1,4 @@
+import { hasBendPrecompile } from "./bend-precompile-inputs.mjs"
 import { resolveTurboExecutable } from "./pinned-turbo.mjs"
 import { mkdirSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
@@ -10,7 +11,7 @@ import { prepareAuthoredTaskInputs } from "./authored-task-inputs.mjs"
 
 export const prepareBendProducerToolchain = async (root, graph = readPackageGraph(root)) => {
   const producers = [...graph.packages.values()].filter((node) => node.compiler === "bend")
-  if (!producers.length) return
+  if (!producers.length && ![...graph.packages.values()].some(hasBendPrecompile)) return
   mkdirSync(resolve(root, ".test-runs"), { recursive: true })
   const toolchain = await bendProducerToolchain(root)
   writeFileSync(resolve(root, ".test-runs/bend-toolchain.json"), JSON.stringify(toolchain))

@@ -1,3 +1,4 @@
+import { bendImportInputs } from "./bend-import-inputs.mjs"
 import { authoredTaskInputPath, prepareAuthoredTaskInputs } from "./authored-task-inputs.mjs"
 import { buildBendProducers } from "./build-bend-producers.mjs"
 import { resolveDeclaredDependencyVersion } from "./package-graph.mjs"
@@ -22,7 +23,6 @@ import {
   bendProducerEnvironment,
   bendProducerToolchain,
   buildBendProducer,
-  bendImportInputs,
   bendGeneratedLoaderEvidence,
   bendDarwinLoadedLibraries,
   bendProducerContext,
@@ -42,6 +42,8 @@ async function fixture(t) {
   mkdirSync(resolve(root, "packages/agent-flow-bend"), { recursive: true })
   for (const name of [
     "bend-producer.mjs",
+    "bend-import-inputs.mjs",
+    "bend-precompile-inputs.mjs",
     "pure-bend-artifact.mjs",
     "authored-task-inputs.mjs",
     "package-graph.mjs",

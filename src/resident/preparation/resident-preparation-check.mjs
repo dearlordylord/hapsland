@@ -1,3 +1,5 @@
+import preparationCore from "../../../packages/review-execution/dist/direct-event/preparation/preparation-core.js"
+import finalizationCore from "../../../packages/review-execution/dist/direct-event/preparation/preparation-finalization-core.js"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
@@ -161,6 +163,10 @@ try {
     ["python", "PythonArtifact"],
     ["owner", "CanonicalResolverOwner"]
   ]) {
+    if (name === "PreparationFinalization") {
+      artifacts[key] = finalizationCore
+      continue
+    }
     const emitted = join(temp, name + ".mjs")
     execFileSync(
       "taskset",

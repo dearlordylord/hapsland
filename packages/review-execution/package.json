@@ -96,6 +96,7 @@
     "host": "bun",
     "capabilities": [
       "provider-execution"
-    ]
+    ],
+    "bendPrecompile": "src/direct-event/preparation/build-recipe.json"
   }
 }

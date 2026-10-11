@@ -1,3 +1,4 @@
+import { hasBendPrecompile, bendPrecompileInputs } from "./bend-precompile-inputs.mjs"
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { dirname, relative, resolve } from "node:path"
 import { fileEvidence } from "./compiler-evidence.mjs"
@@ -6,6 +7,8 @@ import { readPackageGraph, resolveDeclaredDependencyVersion } from "./package-gr
 export const authoredTaskToolingFiles = (node) => [
   ...[
     "authored-task-inputs",
+    "bend-precompile-inputs",
+    "bend-import-inputs",
     "compiler-evidence",
     "package-graph",
     "build-lock",
@@ -15,7 +18,14 @@ export const authoredTaskToolingFiles = (node) => [
     "build-groups",
     ...(node.compiler === "bend"
       ? ["bend-producer", "bend-toolchain"]
-      : ["compile-package", "compiler-context", "pinned-typescript"])
+      : [
+          "compile-package",
+          "compiler-context",
+          "pinned-typescript",
+          ...(hasBendPrecompile(node)
+            ? ["bend-precompile", "bend-producer", "bend-toolchain", "source-loader-policy", "native-toolchain-inputs"]
+            : [])
+        ])
   ].map((name) => `scripts/${name}.mjs`),
   "native/src/inspection-lock.c"
 ]
@@ -52,7 +62,15 @@ const selectedToolchain = (root, node, options) => {
         "utf8"
       )
     )
-  const selected = node.compiler === "bend" ? recorded : { node: recorded.node, typescript: recorded.typescript }
+  const selected =
+    node.compiler === "bend"
+      ? recorded
+      : {
+          node: recorded.node,
+          typescript: recorded.typescript,
+          ...(hasBendPrecompile(node) ? { bend: options.bendToolchain ?? recorded.bend } : {})
+        }
+  if (hasBendPrecompile(node) && !selected.bend?.bend?.path) throw new Error("Missing hybrid Bend toolchain")
   if (
     !selected ||
     typeof selected !== "object" ||
@@ -70,11 +88,11 @@ const selectedToolchain = (root, node, options) => {
     for (const child of Object.values(value)) if (child && typeof child === "object") verify(child)
   }
   verify(selected)
-  return selected
+  return structuredClone(selected)
 }
 
 /** Capture authored membership before Turbo hashes tasks; upstream outputs are deliberately absent. */
-export const authoredSourceContext = (root, node) => {
+export const authoredSourceContext = (root, node, bendToolchain) => {
   const configuration = [`${node.directory}/package.json`, ...authoredTaskToolingFiles(node)]
   if (node.compiler !== "bend")
     configuration.push("tsconfig.json", "tsconfig.package.json", `${node.directory}/tsconfig.json`)
@@ -96,15 +114,24 @@ export const authoredSourceContext = (root, node) => {
     compiler: node.compiler,
     source: authoredInventory(root, node),
     configuration: configuration.map((path) => fileEvidence(root, resolve(root, path))),
-    dependencyVersions
+    dependencyVersions,
+    ...(hasBendPrecompile(node)
+      ? {
+          bendPrecompile: bendPrecompileInputs(
+            root,
+            node,
+            bendToolchain ?? JSON.parse(readFileSync(resolve(root, ".test-runs/bend-toolchain.json"), "utf8"))
+          )
+        }
+      : {})
   }
 }
 
 /** A validated stamp adds byte-verified tool identity to the pure authored projection. */
-export const captureAuthoredInputs = (root, node, options = {}) => ({
-  ...authoredSourceContext(root, node),
-  toolchain: selectedToolchain(root, node, options)
-})
+export const captureAuthoredInputs = (root, node, options = {}) => {
+  const toolchain = selectedToolchain(root, node, options)
+  return { ...authoredSourceContext(root, node, toolchain.bend), toolchain }
+}
 
 export const captureAuthoredTaskInputs = (root, graph = readPackageGraph(root), options = {}) => {
   const stamps = new Map(),
@@ -112,8 +139,10 @@ export const captureAuthoredTaskInputs = (root, graph = readPackageGraph(root), 
     toolchains = new Map()
   for (const node of graph.packages.values()) {
     if (!["typescript", "bend"].includes(node.compiler)) continue
-    if (!toolchains.has(node.compiler)) toolchains.set(node.compiler, selectedToolchain(root, node, options))
-    const stamp = { ...authoredSourceContext(root, node), toolchain: toolchains.get(node.compiler) }
+    const kind = `${node.compiler}${hasBendPrecompile(node) ? ":precompile" : ""}`
+    if (!toolchains.has(kind)) toolchains.set(kind, selectedToolchain(root, node, options))
+    const toolchain = toolchains.get(kind)
+    const stamp = { ...authoredSourceContext(root, node, toolchain.bend), toolchain }
     const path = authoredTaskInputPath(root, node)
     if (paths.has(path)) throw new Error(`Duplicate authored task stamp path: ${path}`)
     paths.add(path)

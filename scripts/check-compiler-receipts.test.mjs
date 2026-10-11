@@ -41,6 +41,9 @@ test("receipts reject corruption, stale inputs, extra output and missing evidenc
     "scripts/pinned-typescript.mjs",
     "scripts/package-graph.mjs",
     "scripts/authored-task-inputs.mjs",
+    "scripts/bend-import-inputs.mjs",
+    "scripts/bend-precompile-inputs.mjs",
+    "scripts/bend-precompile.mjs",
     "packages/subject/tsconfig.json"
   ]) {
     const absolute = resolve(root, path)

@@ -1,3 +1,4 @@
+import { bendImportInputs } from "./bend-import-inputs.mjs"
 import { verifyAuthoredInputStamp } from "./authored-task-inputs.mjs"
 import { readPackageGraph } from "./package-graph.mjs"
 import { readBendToolchain } from "./bend-toolchain.mjs"
@@ -176,32 +177,6 @@ export function bendAnalyzerDependencyInputs(
   }
   for (const entry of initialEntries) visit(entry)
   return [...packages.values()].sort((a, b) => a.manifest.path.localeCompare(b.manifest.path))
-}
-/** Base and relative imports are the supported offline producer grammar. */
-export function bendImportInputs(root, entries, base) {
-  const visited = new Set()
-  const visit = (path) => {
-    const actual = realpathSync(path)
-    if (visited.has(actual)) return
-    visited.add(actual)
-    if (!actual.endsWith(".bend")) return
-    const text = readFileSync(actual, "utf8")
-    for (const line of text.split(/\r?\n/)) {
-      if (!/^\s*import\b/.test(line)) continue
-      const foreign = line.match(/^\s*import\s+"(\.\.?\/[^"\s]+\.(?:c|js))"\s*(?:#.*)?$/)
-      if (foreign) {
-        visit(resolve(dirname(actual), foreign[1]))
-        continue
-      }
-      const match = line.match(
-        /^\s*import\s+(Base|\.\.?\/[^\s#]+\.bend)(?:\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?\s*(?:#.*)?$/
-      )
-      if (!match) throw new Error(`Unsupported Bend producer import: ${actual}: ${line}`)
-      visit(match[1] === "Base" ? base : resolve(dirname(actual), match[1]))
-    }
-  }
-  for (const entry of entries) visit(entry)
-  return [...visited].sort().map((path) => evidence(root, path))
 }
 /** Independently inventory generated loader sites; no package-wide loader exemption. */
 export function bendGeneratedLoaderEvidence(text, file) {
@@ -390,6 +365,8 @@ function toolchainCore(root, env) {
     loaderIncludes: nativeDirectoryInventory("/etc/ld.so.conf.d", true),
     tooling: [
       "scripts/bend-producer.mjs",
+      "scripts/bend-import-inputs.mjs",
+      "scripts/bend-precompile-inputs.mjs",
       "scripts/authored-task-inputs.mjs",
       "scripts/package-graph.mjs",
       "packages/agent-flow-bend/package.json",

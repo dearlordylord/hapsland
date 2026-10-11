@@ -95,3 +95,37 @@ test("batch verification freshly observes the phase without rewriting declared s
   assert.equal(readFileSync(path, "utf8"), before)
   assert.equal(statSync(path).mtimeMs, beforeTime)
 })
+
+test("hybrid stamps include cross-owner Bend closure, authored ABI and Bend identity", (t) => {
+  const { root, node, options, put } = fixture(t)
+  mkdirSync(resolve(root, "packages/second/src"), { recursive: true })
+  put("base.bend", "# pinned Base")
+  put("packages/second/src/shared.bend", "import Base\n# shared value")
+  put("packages/owner/src/Preparation.bend", "import Base\nimport ../../second/src/shared.bend as Shared\n")
+  put("packages/owner/src/preparation-core.d.ts", "declare const core: { initial(): number }; export default core")
+  put("packages/owner/src/build-recipe.json", [
+    { source: "Preparation.bend", output: "preparation-core.js", declaration: "preparation-core.d.ts" }
+  ])
+  node.manifest.hapsland.bendPrecompile = "src/build-recipe.json"
+  for (const path of authoredTaskToolingFiles(node))
+    copyFileSync(new URL(`../${path}`, import.meta.url), resolve(root, path))
+  options.bendToolchain = {
+    bend: options.toolchain.node,
+    base: fileEvidence(root, resolve(root, "base.bend")),
+    environment: { PATH: "pinned" }
+  }
+  const stamp = captureAuthoredInputs(root, node, options)
+  assert.ok(stamp.bendPrecompile.closure.some((entry) => entry.path === "packages/second/src/shared.bend"))
+  assert.deepEqual(stamp.toolchain.bend, options.bendToolchain)
+  mkdirSync(resolve(node.path, "dist"))
+  put("packages/owner/dist/preparation-core.js", "different generated output")
+  assert.deepEqual(captureAuthoredInputs(root, node, options), stamp)
+  put("packages/second/src/shared.bend", "import Base\n# changed policy")
+  assert.throws(() => verifyAuthoredInputStamp(root, node, stamp, options), /Authored task inputs changed/)
+  put("packages/second/src/shared.bend", "import Base\n# shared value")
+  put("packages/owner/src/preparation-core.d.ts", "declare const core: { initial(): string }; export default core")
+  assert.throws(() => verifyAuthoredInputStamp(root, node, stamp, options), /Authored task inputs changed/)
+  put("packages/owner/src/preparation-core.d.ts", "declare const core: { initial(): number }; export default core")
+  options.bendToolchain.environment.PATH = "different selection"
+  assert.throws(() => verifyAuthoredInputStamp(root, node, stamp, options), /Authored task inputs changed/)
+})
