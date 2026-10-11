@@ -41,9 +41,8 @@ def initial_rank_bound(facts, path, visited, budget, key, declaration, depth, va
       +identity,
       function,
       bundled,
-      +references
-    }:
-      +entry = {Core.Declaration{handle, identity, function, bundled, references} : Core.Declaration}
+      +references, +source_path}:
+      +entry = {Core.Declaration{handle, identity, function, bundled, references, source_path} : Core.Declaration}
       +unseen = Rank.unseen_catalog(Map.set(&2, Bool, visited, identity, True{}), catalog)
       +amount = List.length(&2, Core.Reference, references)
       +total = Weight.inventory(catalog)

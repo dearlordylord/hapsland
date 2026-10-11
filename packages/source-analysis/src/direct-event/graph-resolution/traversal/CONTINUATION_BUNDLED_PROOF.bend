@@ -22,7 +22,7 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -31,7 +31,8 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       %State.work_exact(machine):
         {
           Reference.observation(
@@ -235,7 +236,7 @@ def target_context(+seen: Bool, +fuel: Nat, +machine: Core.Machine, +declaration
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -244,7 +245,8 @@ def target_context(+seen: Bool, +fuel: Nat, +machine: Core.Machine, +declaration
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       %State.target_exact(machine, CoreTraversal.declaration_identity(declaration)):
         {
           Reference.observation(
@@ -628,8 +630,8 @@ def lookup_exact(
       symbol,
       Core.UnsupportedTarget{}
     )
-    case Some{Core.Declaration{+artifact, +identity, +function, +bundled, +references, _}}:
-      +declaration = {Core.Declaration{artifact, identity, function, bundled, references} : Core.Declaration}
+    case Some{Core.Declaration{+artifact, +identity, +function, +bundled, +references, +source_path}}:
+      +declaration = {Core.Declaration{artifact, identity, function, bundled, references, source_path} : Core.Declaration}
       Equal.trans(
         Relation.Observation,
         Machine.evaluate(

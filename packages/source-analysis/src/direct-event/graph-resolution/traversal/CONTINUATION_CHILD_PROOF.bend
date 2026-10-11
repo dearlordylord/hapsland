@@ -28,7 +28,7 @@ def expanded_prefix(+machine: Core.Machine, +declaration: Core.Declaration,
     }:
   match machine declaration:
     case Core.Machine{_, _, _, _, _, +address, +nodes, +slots, _}
-      Core.Declaration{+artifact, _, _, _, _}:
+      Core.Declaration{+artifact, _, _, _, _, +source_path}:
       %Equal.sym(
         List<&2, Core.PlannedNode>,
         List.reverse(&2, Core.PlannedNode, Core.PlannedNode{address, artifact} <> nodes),
@@ -132,18 +132,19 @@ def ensure_path_exact(+budget: Core.Budget, +path: String) -> {
         State.target_map_exact(Core.Budget{limits, targets, maximum, work, graph_work, depth}, path)
       )
 
-def enter_state_exact(+machine: Core.Machine, +declaration: Core.Declaration, +depth: Nat) -> {
-  State.state(CoreTraversal.enter_node(machine, declaration, depth))
+def enter_state_exact(+entry_path: String, +machine: Core.Machine, +declaration: Core.Declaration, +depth: Nat) -> {
+  State.state(CoreTraversal.enter_node_at(machine, declaration, depth, entry_path))
   == Spec.enter(
     State.state(machine),
-    CoreTraversal.machine_path(machine),
+    entry_path,
     CoreTraversal.declaration_identity(declaration)
   )
   : Spec.State
 }:
   match machine declaration:
-    case Core.Machine{_, +path, _, +visited, +budget, +address, _, _, +pending}
-      Core.Declaration{_, +identity, _, _, _}:
+    case Core.Machine{_, root_path, frames, +visited, +budget, +address, _, _, +pending}
+      Core.Declaration{_, +identity, _, _, _, +source_path}:
+      +path = entry_path
       Equal.cong(
         Core.Budget,
         Spec.State,
@@ -413,14 +414,14 @@ def after_child_dispatch(+result: Spec.DispatchResult, +fuel: Nat, +machine: Cor
     case Spec.ListResult{references}:
       after_child_result(references, fuel, machine, declaration, owner, index, symbol, depth, next)
 
-def child_request(+machine: Core.Machine, declaration: Core.Declaration, depth: Nat,
+def child_request(+entry_path: String, +machine: Core.Machine, declaration: Core.Declaration, depth: Nat,
     state: Spec.State) -> Spec.Request:
   match declaration:
     case Core.Declaration{_, _, _, _, children, _}:
       Spec.ReferencesRequest{
         children,
         CoreTraversal.machine_facts(machine),
-        CoreTraversal.machine_path(machine),
+        entry_path,
         CoreTraversal.next_node(machine),
         0n,
         depth,
@@ -431,7 +432,7 @@ def walk_at(facts: Core.Facts, path: String, state: Spec.State, depth: Nat, fuel
     found: Maybe<&2, Core.Declaration>) -> Spec.Build:
   Spec.walk_declaration(found, facts, path, state, depth, Spec.interpret(fuel))
 
-def root_build_exact(
+def root_build_exact(+entry_path: String,
   +fuel: Nat,
   +machine: Core.Machine,
   +declaration: Core.Declaration,
@@ -449,7 +450,7 @@ def root_build_exact(
           (1n + fuel : Nat),
           Spec.Request{
             CoreTraversal.machine_facts(machine),
-            CoreTraversal.machine_path(machine),
+            entry_path,
             symbol,
             expected,
             depth,
@@ -461,13 +462,13 @@ def root_build_exact(
         Spec.as_references(
           Spec.interpret(
             fuel,
-            child_request(
+            child_request(entry_path,
               machine,
               declaration,
               depth,
               Spec.enter(
                 State.state(machine),
-                CoreTraversal.machine_path(machine),
+                entry_path,
                 CoreTraversal.declaration_identity(declaration)
               )
             )
@@ -479,25 +480,26 @@ def root_build_exact(
       : Spec.Build
     }:
   match machine declaration:
-    case Core.Machine{+facts, +path, _, +visited, +budget, +address, _, _, +pending}
-      Core.Declaration{+artifact, +identity, +function, +bundled, +children}:
+    case Core.Machine{+facts, root_path, frames, +visited, +budget, +address, _, _, +pending}
+      Core.Declaration{+artifact, +identity, +function, +bundled, +children, +source_path}:
+      +path = entry_path
       Equal.cong(
         Maybe<&2, Core.Declaration>,
         Spec.Build,
         walk_at(facts, path, Spec.State{visited, budget, address, pending}, depth, fuel),
         Spec.find_declaration(facts, symbol, expected),
-        Some{Core.Declaration{artifact, identity, function, bundled, children}},
+        Some{Core.Declaration{artifact, identity, function, bundled, children, source_path}},
         found
       )
 
-def root_result(fuel: Nat, +machine: Core.Machine, symbol: String,
+def root_result(+entry_path: String, fuel: Nat, +machine: Core.Machine, symbol: String,
     expected: Core.ExpectedKind, depth: Nat) -> Spec.Build:
   Spec.as_build(
     Spec.interpret(
       fuel,
       Spec.Request{
         CoreTraversal.machine_facts(machine),
-        CoreTraversal.machine_path(machine),
+        entry_path,
         symbol,
         expected,
         depth,
@@ -525,11 +527,11 @@ def entered_correspondence(
       Continuation.after_references(
         Spec.interpret(
           fuel,
-          child_request(
+          child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             machine,
             declaration,
             depth,
-            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+            State.state(CoreTraversal.enter_node_at(machine, declaration, depth, CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine))))
           )
         ),
         CoreTraversal.next_node(machine),
@@ -540,7 +542,7 @@ def entered_correspondence(
       )
       == reference_next(
         Spec.expanded_result(
-          root_result((1n + fuel : Nat), machine, symbol, expected, depth),
+          root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, symbol, expected, depth),
           symbol
         ),
         (1n + fuel : Nat),
@@ -553,18 +555,18 @@ def entered_correspondence(
     }:
   %Equal.sym(
     Spec.Build,
-    root_result((1n + fuel : Nat), machine, symbol, expected, depth),
+    root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, symbol, expected, depth),
     Spec.tree_result(
       Spec.as_references(
         Spec.interpret(
           fuel,
-          child_request(
+          child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             machine,
             declaration,
             depth,
             Spec.enter(
               State.state(machine),
-              CoreTraversal.machine_path(machine),
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
               CoreTraversal.declaration_identity(declaration)
             )
           )
@@ -573,17 +575,17 @@ def entered_correspondence(
       CoreTraversal.next_node(machine),
       declaration_handle(declaration)
     ),
-    root_build_exact(fuel, machine, declaration, symbol, expected, depth, found)
+    root_build_exact(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, declaration, symbol, expected, depth, found)
   ):
     {
       Continuation.after_references(
         Spec.interpret(
           fuel,
-          child_request(
+          child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             machine,
             declaration,
             depth,
-            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+            State.state(CoreTraversal.enter_node_at(machine, declaration, depth, CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine))))
           )
         ),
         CoreTraversal.next_node(machine),
@@ -602,16 +604,16 @@ def entered_correspondence(
       )
       : Relation.Observation
     }
-  %enter_state_exact(machine, declaration, depth):
+  %enter_state_exact(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), machine, declaration, depth):
     {
       Continuation.after_references(
         Spec.interpret(
           fuel,
-          child_request(
+          child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             machine,
             declaration,
             depth,
-            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+            State.state(CoreTraversal.enter_node_at(machine, declaration, depth, CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine))))
           )
         ),
         CoreTraversal.next_node(machine),
@@ -623,7 +625,7 @@ def entered_correspondence(
       == reference_next(
         Spec.expanded_result(
           Spec.tree_result(
-            Spec.as_references(Spec.interpret(fuel, child_request(machine, declaration, depth, _))),
+            Spec.as_references(Spec.interpret(fuel, child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), machine, declaration, depth, _))),
             CoreTraversal.next_node(machine),
             declaration_handle(declaration)
           ),
@@ -640,11 +642,11 @@ def entered_correspondence(
   after_child_dispatch(
     Spec.interpret(
       fuel,
-      child_request(
+      child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
         machine,
         declaration,
         depth,
-        State.state(CoreTraversal.enter_node(machine, declaration, depth))
+        State.state(CoreTraversal.enter_node_at(machine, declaration, depth, CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine))))
       )
     ),
     fuel,
@@ -676,11 +678,11 @@ def bound_entered_correspondence(+binding: String,
       Continuation.after_references(
         Spec.interpret(
           fuel,
-          child_request(
+          child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             machine,
             declaration,
             depth,
-            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+            State.state(CoreTraversal.enter_node_at(machine, declaration, depth, CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine))))
           )
         ),
         CoreTraversal.next_node(machine),
@@ -691,7 +693,7 @@ def bound_entered_correspondence(+binding: String,
       )
       == reference_next(
         Spec.expanded_result(
-          root_result((1n + fuel : Nat), machine, binding, expected, depth),
+          root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, binding, expected, depth),
           symbol
         ),
         (1n + fuel : Nat),
@@ -704,18 +706,18 @@ def bound_entered_correspondence(+binding: String,
     }:
   %Equal.sym(
     Spec.Build,
-    root_result((1n + fuel : Nat), machine, binding, expected, depth),
+    root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, binding, expected, depth),
     Spec.tree_result(
       Spec.as_references(
         Spec.interpret(
           fuel,
-          child_request(
+          child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             machine,
             declaration,
             depth,
             Spec.enter(
               State.state(machine),
-              CoreTraversal.machine_path(machine),
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
               CoreTraversal.declaration_identity(declaration)
             )
           )
@@ -724,17 +726,17 @@ def bound_entered_correspondence(+binding: String,
       CoreTraversal.next_node(machine),
       declaration_handle(declaration)
     ),
-    root_build_exact(fuel, machine, declaration, binding, expected, depth, found)
+    root_build_exact(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, declaration, binding, expected, depth, found)
   ):
     {
       Continuation.after_references(
         Spec.interpret(
           fuel,
-          child_request(
+          child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             machine,
             declaration,
             depth,
-            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+            State.state(CoreTraversal.enter_node_at(machine, declaration, depth, CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine))))
           )
         ),
         CoreTraversal.next_node(machine),
@@ -753,16 +755,16 @@ def bound_entered_correspondence(+binding: String,
       )
       : Relation.Observation
     }
-  %enter_state_exact(machine, declaration, depth):
+  %enter_state_exact(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), machine, declaration, depth):
     {
       Continuation.after_references(
         Spec.interpret(
           fuel,
-          child_request(
+          child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             machine,
             declaration,
             depth,
-            State.state(CoreTraversal.enter_node(machine, declaration, depth))
+            State.state(CoreTraversal.enter_node_at(machine, declaration, depth, CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine))))
           )
         ),
         CoreTraversal.next_node(machine),
@@ -774,7 +776,7 @@ def bound_entered_correspondence(+binding: String,
       == reference_next(
         Spec.expanded_result(
           Spec.tree_result(
-            Spec.as_references(Spec.interpret(fuel, child_request(machine, declaration, depth, _))),
+            Spec.as_references(Spec.interpret(fuel, child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), machine, declaration, depth, _))),
             CoreTraversal.next_node(machine),
             declaration_handle(declaration)
           ),
@@ -791,11 +793,11 @@ def bound_entered_correspondence(+binding: String,
   after_child_dispatch(
     Spec.interpret(
       fuel,
-      child_request(
+      child_request(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
         machine,
         declaration,
         depth,
-        State.state(CoreTraversal.enter_node(machine, declaration, depth))
+        State.state(CoreTraversal.enter_node_at(machine, declaration, depth, CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine))))
       )
     ),
     fuel,

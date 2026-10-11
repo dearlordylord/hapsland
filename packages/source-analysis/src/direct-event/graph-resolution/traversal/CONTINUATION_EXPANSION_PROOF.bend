@@ -39,7 +39,7 @@ def root_projection(
     case Spec.ListResult{Spec.ReferencesResult{_, _}}: {==}
     case Spec.ListResult{Spec.ReferencesFailure{_}}: {==}
 
-def root_complete(
+def root_complete(+entry_path: String,
   +fuel: Nat,
   +machine: Core.Machine,
   +symbol: String,
@@ -52,12 +52,12 @@ def root_complete(
     : Bool
   }
 ) -> {
-  C.build_complete(fuel, Child.root_result(fuel, machine, symbol, expected, depth)) == True{} : Bool
+  C.build_complete(fuel, Child.root_result(entry_path, fuel, machine, symbol, expected, depth)) == True{} : Bool
 }:
   match machine:
     case Core.Machine{+facts, +path, _, +visited, +budget, +address, _, _, +pending}:
       +state = {Spec.State{visited, budget, address, pending} : Spec.State}
-      +request = {Spec.Request{facts, path, symbol, expected, depth, state} : Spec.Request}
+      +request = {Spec.Request{facts, entry_path, symbol, expected, depth, state} : Spec.Request}
       actual = Interpreter.interpret_and_flatten_complete(
         fuel,
         request,
@@ -82,7 +82,7 @@ def root_complete(
           root_projection(
             fuel,
             facts,
-            path,
+            entry_path,
             symbol,
             expected,
             depth,
@@ -104,7 +104,7 @@ def build_projection_completed(+fuel: Nat, +result: Spec.DispatchResult,
     case Spec.ListResult{Spec.ReferencesResult{_, _}}: {==}
     case Spec.ListResult{Spec.ReferencesFailure{_}}: complete
 
-def root_results_equal(
+def root_results_equal(+entry_path: String,
   +left: Nat,
   +right: Nat,
   +machine: Core.Machine,
@@ -112,20 +112,20 @@ def root_results_equal(
   +expected: Core.ExpectedKind,
   +depth: Nat,
   left_complete: {
-    C.build_complete(left, Child.root_result(left, machine, symbol, expected, depth))
+    C.build_complete(left, Child.root_result(entry_path, left, machine, symbol, expected, depth))
     == True{}
     : Bool
   },
   right_complete: {
-    C.build_complete(right, Child.root_result(right, machine, symbol, expected, depth))
+    C.build_complete(right, Child.root_result(entry_path, right, machine, symbol, expected, depth))
     == True{}
     : Bool
   }
 ) -> {
-  Child.root_result(left, machine, symbol, expected, depth)
-    == Child.root_result(right, machine, symbol, expected, depth) : Spec.Build
+  Child.root_result(entry_path, left, machine, symbol, expected, depth)
+    == Child.root_result(entry_path, right, machine, symbol, expected, depth) : Spec.Build
 }:
-  +request = {Spec.Request{CoreTraversal.machine_facts(machine), CoreTraversal.machine_path(machine), symbol,
+  +request = {Spec.Request{CoreTraversal.machine_facts(machine), entry_path, symbol,
     expected, depth, State.state(machine)} : Spec.Request}
   Equal.cong(Spec.DispatchResult, Spec.Build, Spec.as_build,
     Spec.interpret(left, request), Spec.interpret(right, request),
@@ -231,7 +231,7 @@ def equal_build_fuels(+left_result: Spec.Build, +right_result: Spec.Build,
     next
   )
 
-def root_fuels_equal(
+def root_fuels_equal(+entry_path: String,
   +left: Nat,
   +right: Nat,
   +machine: Core.Machine,
@@ -242,19 +242,19 @@ def root_fuels_equal(
   +index: Nat,
   +prefix: Spec.Flat,
   +left_complete: {
-    C.build_complete(left, Child.root_result(left, machine, symbol, expected, depth))
+    C.build_complete(left, Child.root_result(entry_path, left, machine, symbol, expected, depth))
     == True{}
     : Bool
   },
   +right_complete: {
-    C.build_complete(right, Child.root_result(right, machine, symbol, expected, depth))
+    C.build_complete(right, Child.root_result(entry_path, right, machine, symbol, expected, depth))
     == True{}
     : Bool
   },
   next: Continuation.Progress -> Relation.Observation
 ) -> {
       Child.reference_next(
-        Spec.expanded_result(Child.root_result(left, machine, symbol, expected, depth), symbol),
+        Spec.expanded_result(Child.root_result(entry_path, left, machine, symbol, expected, depth), symbol),
         left,
         owner,
         index,
@@ -262,7 +262,7 @@ def root_fuels_equal(
         next
       )
       == Child.reference_next(
-        Spec.expanded_result(Child.root_result(right, machine, symbol, expected, depth), symbol),
+        Spec.expanded_result(Child.root_result(entry_path, right, machine, symbol, expected, depth), symbol),
         right,
         owner,
         index,
@@ -272,8 +272,8 @@ def root_fuels_equal(
       : Relation.Observation
     }:
   equal_build_fuels(
-    Child.root_result(left, machine, symbol, expected, depth),
-    Child.root_result(right, machine, symbol, expected, depth),
+    Child.root_result(entry_path, left, machine, symbol, expected, depth),
+    Child.root_result(entry_path, right, machine, symbol, expected, depth),
     left,
     right,
     symbol,
@@ -282,7 +282,7 @@ def root_fuels_equal(
     prefix,
     left_complete,
     right_complete,
-    root_results_equal(
+    root_results_equal(entry_path,
       left,
       right,
       machine,
@@ -295,7 +295,7 @@ def root_fuels_equal(
     next
   )
 
-def bound_root_fuels_equal(+binding: String,
+def bound_root_fuels_equal(+entry_path: String, +binding: String,
   +left: Nat,
   +right: Nat,
   +machine: Core.Machine,
@@ -306,19 +306,19 @@ def bound_root_fuels_equal(+binding: String,
   +index: Nat,
   +prefix: Spec.Flat,
   +left_complete: {
-    C.build_complete(left, Child.root_result(left, machine, binding, expected, depth))
+    C.build_complete(left, Child.root_result(entry_path, left, machine, binding, expected, depth))
     == True{}
     : Bool
   },
   +right_complete: {
-    C.build_complete(right, Child.root_result(right, machine, binding, expected, depth))
+    C.build_complete(right, Child.root_result(entry_path, right, machine, binding, expected, depth))
     == True{}
     : Bool
   },
   next: Continuation.Progress -> Relation.Observation
 ) -> {
       Child.reference_next(
-        Spec.expanded_result(Child.root_result(left, machine, binding, expected, depth), symbol),
+        Spec.expanded_result(Child.root_result(entry_path, left, machine, binding, expected, depth), symbol),
         left,
         owner,
         index,
@@ -326,7 +326,7 @@ def bound_root_fuels_equal(+binding: String,
         next
       )
       == Child.reference_next(
-        Spec.expanded_result(Child.root_result(right, machine, binding, expected, depth), symbol),
+        Spec.expanded_result(Child.root_result(entry_path, right, machine, binding, expected, depth), symbol),
         right,
         owner,
         index,
@@ -336,8 +336,8 @@ def bound_root_fuels_equal(+binding: String,
       : Relation.Observation
     }:
   equal_build_fuels(
-    Child.root_result(left, machine, binding, expected, depth),
-    Child.root_result(right, machine, binding, expected, depth),
+    Child.root_result(entry_path, left, machine, binding, expected, depth),
+    Child.root_result(entry_path, right, machine, binding, expected, depth),
     left,
     right,
     symbol,
@@ -346,7 +346,7 @@ def bound_root_fuels_equal(+binding: String,
     prefix,
     left_complete,
     right_complete,
-    root_results_equal(
+    root_results_equal(entry_path,
       left,
       right,
       machine,

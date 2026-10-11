@@ -1,5 +1,6 @@
 import Base
 import ./core.bend as Core
+import ./Traversal.bend as CoreTraversal
 import ./SPEC.bend as Spec
 import ./RELATION.bend as Relation
 import ./CONTINUATION_CHILD_PROOF.bend as Child
@@ -66,26 +67,26 @@ def roots_equal(
   +expected: Core.ExpectedKind,
   +depth: Nat,
   +left_complete: {
-    C.build_complete(left, Child.root_result(left, machine, symbol, expected, depth))
+    C.build_complete(left, Child.root_result(CoreTraversal.machine_path(machine), left, machine, symbol, expected, depth))
     == True{}
     : Bool
   },
   +right_complete: {
-    C.build_complete(right, Child.root_result(right, machine, symbol, expected, depth))
+    C.build_complete(right, Child.root_result(CoreTraversal.machine_path(machine), right, machine, symbol, expected, depth))
     == True{}
     : Bool
   }
 ) -> {
-      Relation.observe_build(Child.root_result(left, machine, symbol, expected, depth), left)
-      == Relation.observe_build(Child.root_result(right, machine, symbol, expected, depth), right)
+      Relation.observe_build(Child.root_result(CoreTraversal.machine_path(machine), left, machine, symbol, expected, depth), left)
+      == Relation.observe_build(Child.root_result(CoreTraversal.machine_path(machine), right, machine, symbol, expected, depth), right)
       : Relation.Observation
     }:
   equal_builds(
-    Child.root_result(left, machine, symbol, expected, depth),
-    Child.root_result(right, machine, symbol, expected, depth),
+    Child.root_result(CoreTraversal.machine_path(machine), left, machine, symbol, expected, depth),
+    Child.root_result(CoreTraversal.machine_path(machine), right, machine, symbol, expected, depth),
     left,
     right,
-    Expansion.root_results_equal(
+    Expansion.root_results_equal(CoreTraversal.machine_path(machine),
       left,
       right,
       machine,

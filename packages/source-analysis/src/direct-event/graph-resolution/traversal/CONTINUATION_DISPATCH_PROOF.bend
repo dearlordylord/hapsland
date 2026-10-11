@@ -282,7 +282,7 @@ def depth_context(
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -291,7 +291,8 @@ def depth_context(
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       %State.depth_exact(machine, (depth + 1n : Nat)):
         {
           Reference.observation(
@@ -390,8 +391,9 @@ def visit_exact(
     }:
   match reference machine:
     case Core.Reference{+kind, +symbol, +expected, +target}
-      Core.Machine{+facts, +path, +frames, +visited, +budget, +address, +nodes, +slots, +pending}:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      Core.Machine{+facts, +root_path, +frames, +visited, +budget, +address, +nodes, +slots, +pending}:
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       Equal.trans(
         Relation.Observation,
         Machine.evaluate(

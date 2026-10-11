@@ -83,7 +83,7 @@ def expanded_equal(
       expanded_input_completed(C.build_child(left, request), symbol, left_complete),
       expanded_input_completed(C.build_child(right, request), symbol, right_complete), child))
 
-def child_or_cycle_equal(
+def child_or_cycle_equal(+source: Maybe<&2, String>,
   +left: Nat,
   +right: Nat,
   +already_seen: Bool,
@@ -105,7 +105,7 @@ def child_or_cycle_equal(
         depth,
         expected,
         identity,
-        C.build_child(left)
+        next => C.build_child(left)(Spec.source_child_request(source, next))
       )
     )
     == True{}
@@ -122,7 +122,7 @@ def child_or_cycle_equal(
         depth,
         expected,
         identity,
-        C.build_child(right)
+        next => C.build_child(right)(Spec.source_child_request(source, next))
       )
     )
     == True{}
@@ -139,7 +139,7 @@ def child_or_cycle_equal(
         depth,
         expected,
         identity,
-        C.build_child(left)
+        next => C.build_child(left)(Spec.source_child_request(source, next))
       )
       == Spec.child_or_cycle(
         already_seen,
@@ -150,7 +150,7 @@ def child_or_cycle_equal(
         depth,
         expected,
         identity,
-        C.build_child(right)
+        next => C.build_child(right)(Spec.source_child_request(source, next))
       )
       : Spec.ReferenceResult
     }:
@@ -160,14 +160,14 @@ def child_or_cycle_equal(
       expanded_equal(
         left,
         right,
-        Spec.Request{facts, path, symbol, expected, (depth + 1n : Nat), state},
+        Spec.Request{facts, Spec.source_path(source, path), symbol, expected, (depth + 1n : Nat), state},
         symbol,
         left_complete,
         right_complete,
         child
       )
 
-def local_allowed_equal(
+def local_allowed_equal(+source: Maybe<&2, String>,
   +left: Nat,
   +right: Nat,
   +permit: Bool,
@@ -189,7 +189,7 @@ def local_allowed_equal(
         depth,
         expected,
         identity,
-        C.build_child(left)
+        next => C.build_child(left)(Spec.source_child_request(source, next))
       )
     )
     == True{}
@@ -206,7 +206,7 @@ def local_allowed_equal(
         depth,
         expected,
         identity,
-        C.build_child(right)
+        next => C.build_child(right)(Spec.source_child_request(source, next))
       )
     )
     == True{}
@@ -223,7 +223,7 @@ def local_allowed_equal(
         depth,
         expected,
         identity,
-        C.build_child(left)
+        next => C.build_child(left)(Spec.source_child_request(source, next))
       )
       == Spec.local_allowed(
         permit,
@@ -234,14 +234,14 @@ def local_allowed_equal(
         depth,
         expected,
         identity,
-        C.build_child(right)
+        next => C.build_child(right)(Spec.source_child_request(source, next))
       )
       : Spec.ReferenceResult
     }:
   match permit:
     case False{}: {==}
     case True{}:
-      child_or_cycle_equal(
+      child_or_cycle_equal(source,
         left,
         right,
         Spec.seen(state, identity),
@@ -257,7 +257,7 @@ def local_allowed_equal(
         child
       )
 
-def local_budget_equal(
+def local_budget_equal(+source: Maybe<&2, String>,
   +left: Nat,
   +right: Nat,
   +state: Spec.State,
@@ -269,21 +269,21 @@ def local_budget_equal(
   +identity: String,
   left_complete: {
     reference_completed(
-      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, C.build_child(left))
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(left)(Spec.source_child_request(source, next)))
     )
     == True{}
     : Bool
   },
   right_complete: {
     reference_completed(
-      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, C.build_child(right))
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(right)(Spec.source_child_request(source, next)))
     )
     == True{}
     : Bool
   },
   child: contract(left, right)
 ) -> {
-      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, C.build_child(left))
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(left)(Spec.source_child_request(source, next)))
       == Spec.local_budget(
         state,
         facts,
@@ -292,11 +292,11 @@ def local_budget_equal(
         depth,
         expected,
         identity,
-        C.build_child(right)
+        next => C.build_child(right)(Spec.source_child_request(source, next))
       )
       : Spec.ReferenceResult
     }:
-  local_allowed_equal(
+  local_allowed_equal(source,
     left,
     right,
     Spec.allowed(state, path),
@@ -312,7 +312,7 @@ def local_budget_equal(
     child
   )
 
-def local_kind_equal(
+def local_kind_equal(+source: Maybe<&2, String>,
   +left: Nat,
   +right: Nat,
   +valid: Bool,
@@ -334,7 +334,7 @@ def local_kind_equal(
         depth,
         expected,
         identity,
-        C.build_child(left)
+        next => C.build_child(left)(Spec.source_child_request(source, next))
       )
     )
     == True{}
@@ -351,7 +351,7 @@ def local_kind_equal(
         depth,
         expected,
         identity,
-        C.build_child(right)
+        next => C.build_child(right)(Spec.source_child_request(source, next))
       )
     )
     == True{}
@@ -368,7 +368,7 @@ def local_kind_equal(
         depth,
         expected,
         identity,
-        C.build_child(left)
+        next => C.build_child(left)(Spec.source_child_request(source, next))
       )
       == Spec.local_kind(
         valid,
@@ -379,14 +379,14 @@ def local_kind_equal(
         depth,
         expected,
         identity,
-        C.build_child(right)
+        next => C.build_child(right)(Spec.source_child_request(source, next))
       )
       : Spec.ReferenceResult
     }:
   match valid:
     case False{}: {==}
     case True{}:
-      local_budget_equal(
+      local_budget_equal(source,
         left,
         right,
         Spec.local_work(state),
@@ -474,8 +474,8 @@ def local_conflict_equal(
     }:
   match imported declaration:
     case Some{_} _: {==}
-    case None{} Core.Declaration{_, +identity, +function, _, _, _}:
-      local_kind_equal(
+    case None{} Core.Declaration{_, +identity, +function, _, _, source}:
+      local_kind_equal(source,
         left,
         right,
         Spec.matches(expected, function),
@@ -816,7 +816,7 @@ def named_equal(
       )
     case Some{_}: {==}
 
-def bound_child_or_cycle_equal(
+def bound_child_or_cycle_equal(+source: Maybe<&2, String>,
   +left: Nat,
   +right: Nat,
   +binding: String,
@@ -839,7 +839,7 @@ def bound_child_or_cycle_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+        next => C.build_child(left)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
     )
     == True{}
@@ -856,7 +856,7 @@ def bound_child_or_cycle_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+        next => C.build_child(right)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
     )
     == True{}
@@ -873,7 +873,7 @@ def bound_child_or_cycle_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+        next => C.build_child(left)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
       == Spec.child_or_cycle(
         already_seen,
@@ -884,7 +884,7 @@ def bound_child_or_cycle_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+        next => C.build_child(right)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
       : Spec.ReferenceResult
     }:
@@ -894,14 +894,14 @@ def bound_child_or_cycle_equal(
       expanded_equal(
         left,
         right,
-        Spec.Request{facts, path, binding, expected, (depth + 1n : Nat), state},
+        Spec.Request{facts, Spec.source_path(source, path), binding, expected, (depth + 1n : Nat), state},
         symbol,
         left_complete,
         right_complete,
         child
       )
 
-def bound_local_allowed_equal(
+def bound_local_allowed_equal(+source: Maybe<&2, String>,
   +left: Nat,
   +right: Nat,
   +binding: String,
@@ -924,7 +924,7 @@ def bound_local_allowed_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+        next => C.build_child(left)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
     )
     == True{}
@@ -941,7 +941,7 @@ def bound_local_allowed_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+        next => C.build_child(right)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
     )
     == True{}
@@ -958,7 +958,7 @@ def bound_local_allowed_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+        next => C.build_child(left)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
       == Spec.local_allowed(
         permit,
@@ -969,14 +969,14 @@ def bound_local_allowed_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+        next => C.build_child(right)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
       : Spec.ReferenceResult
     }:
   match permit:
     case False{}: {==}
     case True{}:
-      bound_child_or_cycle_equal(
+      bound_child_or_cycle_equal(source,
         left,
         right, binding,
         Spec.seen(state, identity),
@@ -992,7 +992,7 @@ def bound_local_allowed_equal(
         child
       )
 
-def bound_local_budget_equal(
+def bound_local_budget_equal(+source: Maybe<&2, String>,
   +left: Nat,
   +right: Nat,
   +binding: String,
@@ -1005,21 +1005,21 @@ def bound_local_budget_equal(
   +identity: String,
   left_complete: {
     reference_completed(
-      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(left)(Spec.bound_child_request(binding, next)))
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(left)(Spec.bound_child_request(binding, Spec.source_child_request(source, next))))
     )
     == True{}
     : Bool
   },
   right_complete: {
     reference_completed(
-      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(right)(Spec.bound_child_request(binding, next)))
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(right)(Spec.bound_child_request(binding, Spec.source_child_request(source, next))))
     )
     == True{}
     : Bool
   },
   child: contract(left, right)
 ) -> {
-      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(left)(Spec.bound_child_request(binding, next)))
+      Spec.local_budget(state, facts, path, symbol, depth, expected, identity, next => C.build_child(left)(Spec.bound_child_request(binding, Spec.source_child_request(source, next))))
       == Spec.local_budget(
         state,
         facts,
@@ -1028,11 +1028,11 @@ def bound_local_budget_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+        next => C.build_child(right)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
       : Spec.ReferenceResult
     }:
-  bound_local_allowed_equal(
+  bound_local_allowed_equal(source,
     left,
     right, binding,
     Spec.allowed(state, path),
@@ -1048,7 +1048,7 @@ def bound_local_budget_equal(
     child
   )
 
-def bound_local_kind_equal(
+def bound_local_kind_equal(+source: Maybe<&2, String>,
   +left: Nat,
   +right: Nat,
   +binding: String,
@@ -1071,7 +1071,7 @@ def bound_local_kind_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+        next => C.build_child(left)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
     )
     == True{}
@@ -1088,7 +1088,7 @@ def bound_local_kind_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+        next => C.build_child(right)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
     )
     == True{}
@@ -1105,7 +1105,7 @@ def bound_local_kind_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(left)(Spec.bound_child_request(binding, next))
+        next => C.build_child(left)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
       == Spec.local_kind(
         valid,
@@ -1116,14 +1116,14 @@ def bound_local_kind_equal(
         depth,
         expected,
         identity,
-        next => C.build_child(right)(Spec.bound_child_request(binding, next))
+        next => C.build_child(right)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
       )
       : Spec.ReferenceResult
     }:
   match valid:
     case False{}: {==}
     case True{}:
-      bound_local_budget_equal(
+      bound_local_budget_equal(source,
         left,
         right, binding,
         Spec.local_work(state),
@@ -1212,8 +1212,8 @@ def bound_local_conflict_equal(
     }:
   match imported declaration:
     case Some{_} _: {==}
-    case None{} Core.Declaration{_, +identity, +function, _, _, _}:
-      bound_local_kind_equal(
+    case None{} Core.Declaration{_, +identity, +function, _, _, source}:
+      bound_local_kind_equal(source,
         left,
         right, binding,
         Spec.matches(expected, function),

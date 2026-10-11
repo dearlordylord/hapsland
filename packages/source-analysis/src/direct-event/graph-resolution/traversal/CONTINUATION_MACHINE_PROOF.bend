@@ -76,6 +76,7 @@ def resume_prefix(frames: List<&2, Core.Frame>, facts: Core.Facts, path: String,
   Continuation.resume(frames, facts, path, fuel, Continuation.Progress{state, prefix})
 
 def empty_frame_evaluation(
+  +frame_path: String,
   +fuel: Nat,
   +machine: Core.Machine,
   +owner: Nat,
@@ -83,14 +84,14 @@ def empty_frame_evaluation(
   +index: Nat,
   positive: {Nat.is_le(1n, fuel) == True{} : Bool}
 ) -> {
-  evaluate(fuel, CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, []}))
+  evaluate(fuel, CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, [], frame_path}))
     == evaluate(fuel, machine) : Relation.Observation
 }:
   match fuel machine:
     case 0n +machine:
       Empty.absurd(
         {
-          evaluate(0n, CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, []}))
+          evaluate(0n, CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, [], frame_path}))
           == evaluate(0n, machine)
           : Relation.Observation
         },
@@ -132,7 +133,7 @@ def expanded_evaluation(
   evaluate(fuel, CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth))
     == Child.reference_next(
       Spec.expanded_result(
-        Child.root_result((1n + fuel : Nat), machine, symbol, expected, depth),
+        Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, symbol, expected, depth),
         symbol
       ),
       (1n + fuel : Nat),
@@ -142,7 +143,7 @@ def expanded_evaluation(
       Continuation.resume(
         State.frames(machine),
         CoreTraversal.machine_facts(machine),
-        CoreTraversal.machine_path(machine),
+        CoreTraversal.machine_root_path(machine),
         fuel
       )
     )
@@ -150,11 +151,11 @@ def expanded_evaluation(
 }:
   match machine declaration:
     case Core.Machine{+facts, +path, +frames, +visited, +budget, +address, +nodes, +slots, +pending}
-      Core.Declaration{+artifact, +identity, +function, +bundled, +children}:
+      Core.Declaration{+artifact, +identity, +function, +bundled, +children, +source_path}:
       Child.entered_correspondence(
         fuel,
         Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending},
-        Core.Declaration{artifact, identity, function, bundled, children},
+        Core.Declaration{artifact, identity, function, bundled, children, source_path},
         owner,
         index,
         symbol,
@@ -182,7 +183,7 @@ def bound_expanded_evaluation(+binding: String,
   evaluate(fuel, CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth))
     == Child.reference_next(
       Spec.expanded_result(
-        Child.root_result((1n + fuel : Nat), machine, binding, expected, depth),
+        Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, binding, expected, depth),
         symbol
       ),
       (1n + fuel : Nat),
@@ -192,7 +193,7 @@ def bound_expanded_evaluation(+binding: String,
       Continuation.resume(
         State.frames(machine),
         CoreTraversal.machine_facts(machine),
-        CoreTraversal.machine_path(machine),
+        CoreTraversal.machine_root_path(machine),
         fuel
       )
     )
@@ -200,11 +201,11 @@ def bound_expanded_evaluation(+binding: String,
 }:
   match machine declaration:
     case Core.Machine{+facts, +path, +frames, +visited, +budget, +address, +nodes, +slots, +pending}
-      Core.Declaration{+artifact, +identity, +function, +bundled, +children}:
+      Core.Declaration{+artifact, +identity, +function, +bundled, +children, +source_path}:
       Child.bound_entered_correspondence(binding,
         fuel,
         Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending},
-        Core.Declaration{artifact, identity, function, bundled, children},
+        Core.Declaration{artifact, identity, function, bundled, children, source_path},
         owner,
         index,
         symbol,

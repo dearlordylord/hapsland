@@ -220,7 +220,7 @@ def tail_references(fuel: Nat, items: List<&2, Core.Reference>, facts: Core.Fact
     path: String, owner: Nat, index: Nat, depth: Nat, state: Spec.State) -> Spec.ReferencesResult:
   Spec.as_references(tail_dispatch(fuel, items, facts, path, owner, index, depth, state))
 
-def tail_state_exact(+flat: Spec.Flat, +state: Spec.State, +prefix: Spec.Flat,
+def tail_state_exact(+frame_path: String, +flat: Spec.Flat, +state: Spec.State, +prefix: Spec.Flat,
     +fuel: Nat, +items: List<&2, Core.Reference>, +facts: Core.Facts, +path: String,
     +owner: Nat, +index: Nat, +depth: Nat, +parents: List<&2, Core.Frame>) -> {
       Continuation.after_flat(
@@ -228,7 +228,7 @@ def tail_state_exact(+flat: Spec.Flat, +state: Spec.State, +prefix: Spec.Flat,
         state,
         prefix,
         after_sibling(
-          tail_dispatch(fuel, items, facts, path, owner, index, depth, state),
+          tail_dispatch(fuel, items, facts, frame_path, owner, index, depth, state),
           owner,
           index,
           fuel,
@@ -239,7 +239,7 @@ def tail_state_exact(+flat: Spec.Flat, +state: Spec.State, +prefix: Spec.Flat,
         flat,
         state,
         prefix,
-        Continuation.resume(Core.Frame{owner, depth, index, items} <> parents, facts, path, fuel)
+        Continuation.resume(Core.Frame{owner, depth, index, items, frame_path} <> parents, facts, path, fuel)
       )
       : Relation.Observation
     }:
@@ -247,7 +247,7 @@ def tail_state_exact(+flat: Spec.Flat, +state: Spec.State, +prefix: Spec.Flat,
     case Spec.FlatFailure{}: {==}
     case Spec.Flat{_, _}: {==}
 
-def reference_sequence(
+def reference_sequence(+frame_path: String,
   +result: Spec.ReferenceResult,
   +fuel: Nat,
   +owner: Nat,
@@ -263,7 +263,7 @@ def reference_sequence(
         Spec.ListResult{
           Spec.after_reference(
             result,
-            tail_references(fuel, items, facts, path, owner, (index + 1n : Nat), depth)
+            tail_references(fuel, items, facts, frame_path, owner, (index + 1n : Nat), depth)
           )
         },
         owner,
@@ -279,7 +279,7 @@ def reference_sequence(
         index,
         prefix,
         Continuation.resume(
-          Core.Frame{owner, depth, (index + 1n : Nat), items} <> parents,
+          Core.Frame{owner, depth, (index + 1n : Nat), items, frame_path} <> parents,
           facts,
           path,
           fuel
@@ -295,7 +295,7 @@ def reference_sequence(
         Continuation.after_references(
           Spec.ListResult{
             Spec.prepend(
-              tail_references(fuel, items, facts, path, owner, (index + 1n : Nat), depth, state),
+              tail_references(fuel, items, facts, frame_path, owner, (index + 1n : Nat), depth, state),
               reference
             )
           },
@@ -310,7 +310,7 @@ def reference_sequence(
           state,
           prefix,
           after_sibling(
-            tail_dispatch(fuel, items, facts, path, owner, (index + 1n : Nat), depth, state),
+            tail_dispatch(fuel, items, facts, frame_path, owner, (index + 1n : Nat), depth, state),
             owner,
             (index + 1n : Nat),
             fuel,
@@ -324,14 +324,14 @@ def reference_sequence(
           index,
           prefix,
           Continuation.resume(
-            Core.Frame{owner, depth, (index + 1n : Nat), items} <> parents,
+            Core.Frame{owner, depth, (index + 1n : Nat), items, frame_path} <> parents,
             facts,
             path,
             fuel
           )
         ),
         dispatch_prepend_exact(
-          tail_dispatch(fuel, items, facts, path, owner, (index + 1n : Nat), depth, state),
+          tail_dispatch(fuel, items, facts, frame_path, owner, (index + 1n : Nat), depth, state),
           reference,
           fuel,
           owner,
@@ -340,7 +340,7 @@ def reference_sequence(
           prefix,
           Continuation.resume(parents, facts, path, fuel)
         ),
-        tail_state_exact(
+        tail_state_exact(frame_path,
           Spec.flat_head(reference, owner, index, Spec.flatten(fuel)),
           state,
           prefix,

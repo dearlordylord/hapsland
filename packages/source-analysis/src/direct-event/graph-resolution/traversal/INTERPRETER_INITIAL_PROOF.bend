@@ -71,8 +71,8 @@ def found_rank_bounded(
       NatFacts.le_add_left(3n,
         (3n * Relation.count_catalog(Map.values(&2, Maybe<&2, Core.Declaration>, catalog)) : Nat))
     case Core.Facts{+aware, +catalog, imports, supporting}
-      Some{Core.Declaration{+handle, +identity, +function, +bundled, +references}}:
-      +declaration = {Core.Declaration{handle, identity, function, bundled, references} : Core.Declaration}
+      Some{Core.Declaration{+handle, +identity, +function, +bundled, +references, +source_path}}:
+      +declaration = {Core.Declaration{handle, identity, function, bundled, references, source_path} : Core.Declaration}
       +key = Spec.key(aware, expected, name)
       +load = (Rank.unseen_catalog(Map.set(&2, Bool, visited, identity, True{}), catalog)
         + List.length(&2, Core.Reference, references) : Nat)

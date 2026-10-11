@@ -15,6 +15,7 @@ import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 # Whole nonempty-frame step. The different recursive request depths are exact;
 # only the already-completed parents' adequate fuel is transported.
 def nonempty_step_exact(
+  +frame_path: String,
   +machine: Core.Machine,
   +reference: Core.Reference,
   +items: List<&2, Core.Reference>,
@@ -45,11 +46,11 @@ def nonempty_step_exact(
 ) -> {
       Machine.evaluate(
         (1n + fuel : Nat),
-        CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items})
+        CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items, frame_path})
       )
       == Machine.evaluate(
         fuel,
-        CoreTraversal.step(CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items}))
+        CoreTraversal.step(CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items, frame_path}))
       )
       : Relation.Observation
     }:
@@ -66,16 +67,16 @@ def nonempty_step_exact(
       +pending
     }:
       +machine = {Core.Machine{facts, path, parents, visited, budget, address, nodes, slots, pending} : Core.Machine}
-      %Head.head_exact(machine, reference, items, owner, index, depth, fuel, valid, enough):
+      %Head.head_exact(frame_path, machine, reference, items, owner, index, depth, fuel, valid, enough):
         {
           Machine.evaluate(
             (1n + fuel : Nat),
-            CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items})
+            CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items, frame_path})
           )
           == _
           : Relation.Observation
         }
-      Parent.first_frame_suffix(
+      Parent.first_frame_suffix(frame_path,
         reference <> items,
         facts,
         path,

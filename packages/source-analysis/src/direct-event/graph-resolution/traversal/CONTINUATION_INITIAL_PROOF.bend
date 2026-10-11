@@ -50,7 +50,7 @@ def missing_exact(
   found: {Spec.find_declaration(facts, symbol, expected) == None{} : Maybe<&2, Core.Declaration>}
 ) -> {
       Relation.observe_build(
-        Child.root_result(
+        Child.root_result(path,
           (1n + fuel : Nat),
           Rank.initial(facts, path, visited, budget),
           symbol,
@@ -66,7 +66,7 @@ def missing_exact(
     Spec.Build,
     Relation.Observation,
     Fuel.observe_at((1n + fuel : Nat)),
-    Child.root_result(
+    Child.root_result(path,
       (1n + fuel : Nat),
       Rank.initial(facts, path, visited, budget),
       symbol,
@@ -104,7 +104,7 @@ def selected_exact(
         CoreTraversal.enter_node(Rank.initial(facts, path, visited, budget), declaration, depth)
       )
       == Relation.observe_build(
-        Child.root_result(
+        Child.root_result(path,
           Relation.spec_bound(facts),
           Rank.initial(facts, path, visited, budget),
           symbol,
@@ -137,7 +137,7 @@ def selected_exact(
     {
       _
       == Relation.observe_build(
-        Child.root_result(original, base, symbol, expected, depth),
+        Child.root_result(CoreTraversal.machine_path(base), original, base, symbol, expected, depth),
         original
       )
       : Relation.Observation
@@ -157,7 +157,7 @@ def selected_exact(
     {
       _
       == Relation.observe_build(
-        Child.root_result(original, base, symbol, expected, depth),
+        Child.root_result(CoreTraversal.machine_path(base), original, base, symbol, expected, depth),
         original
       )
       : Relation.Observation
@@ -169,7 +169,7 @@ def selected_exact(
     symbol,
     expected,
     depth,
-    Expansion.root_complete(
+    Expansion.root_complete(path,
       left,
       base,
       symbol,
@@ -178,7 +178,7 @@ def selected_exact(
       valid,
       Adequate.successor(original, fuel, Adequate.third(bound, 0n, original))
     ),
-    Expansion.root_complete(original, base, symbol, expected, depth, valid, Order.le_refl(original))
+    Expansion.root_complete(path, original, base, symbol, expected, depth, valid, Order.le_refl(original))
   )
 
 def found_exact(
@@ -195,7 +195,7 @@ def found_exact(
 ) -> {
       Continuation.start(found, facts, path, visited, budget, depth)
       == Relation.observe_build(
-        Child.root_result(
+        Child.root_result(path,
           Relation.spec_bound(facts),
           Rank.initial(facts, path, visited, budget),
           symbol,
@@ -227,7 +227,7 @@ def found_exact(
         {
           _
           == Relation.observe_build(
-            Child.root_result(original, base, symbol, expected, depth),
+            Child.root_result(CoreTraversal.machine_path(base), original, base, symbol, expected, depth),
             original
           )
           : Relation.Observation
@@ -239,7 +239,7 @@ def found_exact(
         symbol,
         expected,
         depth,
-        Expansion.root_complete(
+        Expansion.root_complete(path,
           left,
           base,
           symbol,
@@ -248,7 +248,7 @@ def found_exact(
           valid,
           Adequate.successor(original, original, Order.le_refl(original))
         ),
-        Expansion.root_complete(
+        Expansion.root_complete(path,
           original,
           base,
           symbol,

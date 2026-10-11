@@ -16,6 +16,7 @@ import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 
 # Actual first nonempty frame, with the parent's fuel already normalized.
 def head_exact(
+  +frame_path: String,
   +machine: Core.Machine,
   +reference: Core.Reference,
   +items: List<&2, Core.Reference>,
@@ -32,7 +33,7 @@ def head_exact(
           Spec.ReferencesRequest{
             reference <> items,
             CoreTraversal.machine_facts(machine),
-            CoreTraversal.machine_path(machine),
+            frame_path,
             owner,
             index,
             depth,
@@ -46,14 +47,14 @@ def head_exact(
         Continuation.resume(
           State.frames(machine),
           CoreTraversal.machine_facts(machine),
-          CoreTraversal.machine_path(machine),
+          CoreTraversal.machine_root_path(machine),
           fuel
         )
       )
       == Machine.evaluate(
         fuel,
         CoreTraversal.visit_reference(
-          CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), items}),
+          CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), items, frame_path}),
           owner,
           index,
           depth,
@@ -76,12 +77,12 @@ def head_exact(
     }:
       +state = {Spec.State{visited, budget, address, pending} : Spec.State}
       +prefix = {Spec.Flat{List.reverse(&2, Core.PlannedNode, nodes), List.reverse(&2, Core.ReferenceSlot, slots)} : Spec.Flat}
-      +tail = {Core.Machine{facts, path, Core.Frame{owner, depth, (index + 1n : Nat), items} <> parents,
+      +tail = {Core.Machine{facts, path, Core.Frame{owner, depth, (index + 1n : Nat), items, frame_path} <> parents,
         visited, budget, address, nodes, slots, pending} : Core.Machine}
       +result = Spec.reference(
         reference,
         facts,
-        path,
+        frame_path,
         owner,
         index,
         depth,
@@ -96,7 +97,7 @@ def head_exact(
           Continuation.after_references(
             Spec.interpret(
               (1n + fuel : Nat),
-              Spec.ReferencesRequest{reference <> items, facts, path, owner, index, depth, state}
+              Spec.ReferencesRequest{reference <> items, facts, frame_path, owner, index, depth, state}
             ),
             owner,
             index,
@@ -112,7 +113,7 @@ def head_exact(
           Continuation.after_references(
             Spec.interpret(
               (1n + fuel : Nat),
-              Spec.ReferencesRequest{reference <> items, facts, path, owner, index, depth, state}
+              Spec.ReferencesRequest{reference <> items, facts, frame_path, owner, index, depth, state}
             ),
             owner,
             index,
@@ -123,7 +124,7 @@ def head_exact(
           == _
           : Relation.Observation
         }
-      Sequence.reference_sequence(
+      Sequence.reference_sequence(frame_path,
         result,
         fuel,
         owner,

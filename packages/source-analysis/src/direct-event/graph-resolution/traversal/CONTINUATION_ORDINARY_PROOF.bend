@@ -43,7 +43,7 @@ def local_expand_if_exact(
         depth,
         expected,
         CoreTraversal.declaration_identity(declaration),
-        C.build_child(fuel)
+        next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
       ),
       machine,
       fuel,
@@ -61,7 +61,15 @@ def local_expand_if_exact(
       symbol,
       CoreTraversal.declaration_identity(declaration)
     )
-    case False{}: Reference.selected_expansion_exact(
+    case False{}:
+      %State.declaration_path_exact(declaration, CoreTraversal.machine_path(machine)):
+        {Machine.evaluate(fuel, CoreTraversal.local_expand_if(False{}, machine, declaration,
+          owner, index, symbol, (depth + 1n : Nat)))
+          == Reference.observation(Spec.expanded_result(Spec.as_build(Spec.interpret(fuel,
+            Spec.Request{CoreTraversal.machine_facts(machine), _, symbol, expected,
+              (depth + 1n : Nat), State.state(machine)})), symbol), machine, fuel, owner, index)
+          : Relation.Observation}
+      Reference.selected_expansion_exact(
       fuel,
       machine,
       declaration,
@@ -77,7 +85,7 @@ def local_expand_if_exact(
 
 def observed_cycle(
   +machine: Core.Machine,
-  declaration: Core.Declaration,
+  +declaration: Core.Declaration,
   +fuel: Nat,
   +owner: Nat,
   +index: Nat,
@@ -96,7 +104,7 @@ def observed_cycle(
       depth,
       expected,
       CoreTraversal.declaration_identity(declaration),
-      C.build_child(fuel)
+      next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
     ),
     machine,
     fuel,
@@ -192,7 +200,7 @@ def local_expand_exact(
 
 def observed_local_permit(
   +machine: Core.Machine,
-  declaration: Core.Declaration,
+  +declaration: Core.Declaration,
   +fuel: Nat,
   +owner: Nat,
   +index: Nat,
@@ -211,7 +219,7 @@ def observed_local_permit(
       depth,
       expected,
       CoreTraversal.declaration_identity(declaration),
-      C.build_child(fuel)
+      next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
     ),
     machine,
     fuel,
@@ -328,7 +336,7 @@ def local_charged_exact(
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
         ),
         machine,
         fuel,
@@ -573,7 +581,7 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
         ),
         CoreTraversal.charge_machine_work(machine),
         fuel,
@@ -589,7 +597,7 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
         ),
         machine,
         fuel,
@@ -601,7 +609,7 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -610,7 +618,8 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       %State.work_exact(machine):
         {
           Reference.observation(
@@ -622,7 +631,7 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
               depth,
               expected,
               CoreTraversal.declaration_identity(declaration),
-              C.build_child(fuel)
+              next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
             ),
             CoreTraversal.charge_machine_work(machine),
             fuel,
@@ -638,7 +647,7 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
               depth,
               expected,
               CoreTraversal.declaration_identity(declaration),
-              C.build_child(fuel)
+              next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
             ),
             machine,
             fuel,
@@ -656,7 +665,7 @@ def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
         ),
         machine,
         CoreTraversal.charge_work(budget),
@@ -704,7 +713,7 @@ def work_exact(
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
         ),
         machine,
         fuel,
@@ -716,7 +725,7 @@ def work_exact(
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -725,7 +734,8 @@ def work_exact(
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       Equal.trans(
         Relation.Observation,
         Machine.evaluate(
@@ -750,7 +760,7 @@ def work_exact(
             depth,
             expected,
             CoreTraversal.declaration_identity(declaration),
-            C.build_child(fuel)
+            next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
           ),
           CoreTraversal.charge_machine_work(machine),
           fuel,
@@ -766,7 +776,7 @@ def work_exact(
             depth,
             expected,
             CoreTraversal.declaration_identity(declaration),
-            C.build_child(fuel)
+            next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
           ),
           machine,
           fuel,
@@ -792,7 +802,7 @@ def work_exact(
 
 def observed_kind(
   +machine: Core.Machine,
-  declaration: Core.Declaration,
+  +declaration: Core.Declaration,
   +fuel: Nat,
   +owner: Nat,
   +index: Nat,
@@ -811,7 +821,7 @@ def observed_kind(
       depth,
       expected,
       CoreTraversal.declaration_identity(declaration),
-      C.build_child(fuel)
+      next => C.build_child(fuel)(Spec.source_child_request(CoreTraversal.declaration_source(declaration), next))
     ),
     machine,
     fuel,
@@ -929,10 +939,10 @@ def conflict_exact(
       : Relation.Observation
     }:
   match imported declaration:
-    case Some{_} Core.Declaration{_, _, _, _, _, _}:
+    case Some{_} Core.Declaration{_, _, _, _, _, +source_path}:
       Reference.omitted_exact(fuel, machine, owner, index, symbol, Core.UnsupportedTarget{})
-    case None{} Core.Declaration{+artifact, +identity, +function, +bundled, +references, _}:
-      +declaration = {Core.Declaration{artifact, identity, function, bundled, references} : Core.Declaration}
+    case None{} Core.Declaration{+artifact, +identity, +function, +bundled, +references, +source_path}:
+      +declaration = {Core.Declaration{artifact, identity, function, bundled, references, source_path} : Core.Declaration}
       Equal.trans(
         Relation.Observation,
         Machine.evaluate(
@@ -1143,7 +1153,7 @@ def target_context(
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -1152,7 +1162,8 @@ def target_context(
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       %State.target_exact(machine, key):
         {
           Reference.observation(
@@ -1255,7 +1266,7 @@ def target_key_branch_exact(
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -1264,7 +1275,8 @@ def target_key_branch_exact(
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       Equal.trans(
         Relation.Observation,
         Machine.evaluate(
@@ -1556,7 +1568,7 @@ def bound_local_expand_if_exact(+binding: String,
         depth,
         expected,
         CoreTraversal.declaration_identity(declaration),
-        next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+        next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
       ),
       machine,
       fuel,
@@ -1574,7 +1586,15 @@ def bound_local_expand_if_exact(+binding: String,
       symbol,
       CoreTraversal.declaration_identity(declaration)
     )
-    case False{}: Reference.bound_selected_expansion_exact(binding, fuel,
+    case False{}:
+      %State.declaration_path_exact(declaration, CoreTraversal.machine_path(machine)):
+        {Machine.evaluate(fuel, CoreTraversal.local_expand_if(False{}, machine, declaration,
+          owner, index, symbol, (depth + 1n : Nat)))
+          == Reference.observation(Spec.expanded_result(Spec.as_build(Spec.interpret(fuel,
+            Spec.Request{CoreTraversal.machine_facts(machine), _, binding, expected,
+              (depth + 1n : Nat), State.state(machine)})), symbol), machine, fuel, owner, index)
+          : Relation.Observation}
+      Reference.bound_selected_expansion_exact(binding, fuel,
       machine,
       declaration,
       owner,
@@ -1590,7 +1610,7 @@ def bound_local_expand_if_exact(+binding: String,
 
 def bound_observed_cycle(+binding: String,
   +machine: Core.Machine,
-  declaration: Core.Declaration,
+  +declaration: Core.Declaration,
   +fuel: Nat,
   +owner: Nat,
   +index: Nat,
@@ -1609,7 +1629,7 @@ def bound_observed_cycle(+binding: String,
       depth,
       expected,
       CoreTraversal.declaration_identity(declaration),
-      next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+      next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
     ),
     machine,
     fuel,
@@ -1707,7 +1727,7 @@ def bound_local_expand_exact(+binding: String,
 
 def bound_observed_local_permit(+binding: String,
   +machine: Core.Machine,
-  declaration: Core.Declaration,
+  +declaration: Core.Declaration,
   +fuel: Nat,
   +owner: Nat,
   +index: Nat,
@@ -1726,7 +1746,7 @@ def bound_observed_local_permit(+binding: String,
       depth,
       expected,
       CoreTraversal.declaration_identity(declaration),
-      next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+      next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
     ),
     machine,
     fuel,
@@ -1845,7 +1865,7 @@ def bound_local_charged_exact(+binding: String,
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
         ),
         machine,
         fuel,
@@ -1928,7 +1948,7 @@ def bound_work_context(+binding: String, +fuel: Nat, +machine: Core.Machine, +de
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
         ),
         CoreTraversal.charge_machine_work(machine),
         fuel,
@@ -1944,7 +1964,7 @@ def bound_work_context(+binding: String, +fuel: Nat, +machine: Core.Machine, +de
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
         ),
         machine,
         fuel,
@@ -1956,7 +1976,7 @@ def bound_work_context(+binding: String, +fuel: Nat, +machine: Core.Machine, +de
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -1965,7 +1985,8 @@ def bound_work_context(+binding: String, +fuel: Nat, +machine: Core.Machine, +de
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       %State.work_exact(machine):
         {
           Reference.observation(
@@ -1977,7 +1998,7 @@ def bound_work_context(+binding: String, +fuel: Nat, +machine: Core.Machine, +de
               depth,
               expected,
               CoreTraversal.declaration_identity(declaration),
-              next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+              next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
             ),
             CoreTraversal.charge_machine_work(machine),
             fuel,
@@ -1993,7 +2014,7 @@ def bound_work_context(+binding: String, +fuel: Nat, +machine: Core.Machine, +de
               depth,
               expected,
               CoreTraversal.declaration_identity(declaration),
-              next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+              next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
             ),
             machine,
             fuel,
@@ -2011,7 +2032,7 @@ def bound_work_context(+binding: String, +fuel: Nat, +machine: Core.Machine, +de
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
         ),
         machine,
         CoreTraversal.charge_work(budget),
@@ -2060,7 +2081,7 @@ def bound_work_exact(+binding: String,
           depth,
           expected,
           CoreTraversal.declaration_identity(declaration),
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
         ),
         machine,
         fuel,
@@ -2072,7 +2093,7 @@ def bound_work_exact(+binding: String,
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -2081,7 +2102,8 @@ def bound_work_exact(+binding: String,
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       Equal.trans(
         Relation.Observation,
         Machine.evaluate(
@@ -2106,7 +2128,7 @@ def bound_work_exact(+binding: String,
             depth,
             expected,
             CoreTraversal.declaration_identity(declaration),
-            next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+            next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
           ),
           CoreTraversal.charge_machine_work(machine),
           fuel,
@@ -2122,7 +2144,7 @@ def bound_work_exact(+binding: String,
             depth,
             expected,
             CoreTraversal.declaration_identity(declaration),
-            next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+            next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
           ),
           machine,
           fuel,
@@ -2149,7 +2171,7 @@ def bound_work_exact(+binding: String,
 
 def bound_observed_kind(+binding: String,
   +machine: Core.Machine,
-  declaration: Core.Declaration,
+  +declaration: Core.Declaration,
   +fuel: Nat,
   +owner: Nat,
   +index: Nat,
@@ -2168,7 +2190,7 @@ def bound_observed_kind(+binding: String,
       depth,
       expected,
       CoreTraversal.declaration_identity(declaration),
-      next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+      next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(CoreTraversal.declaration_source(declaration), next)))
     ),
     machine,
     fuel,
@@ -2288,10 +2310,10 @@ def bound_conflict_exact(+binding: String,
       : Relation.Observation
     }:
   match imported declaration:
-    case Some{_} Core.Declaration{_, _, _, _, _, _}:
+    case Some{_} Core.Declaration{_, _, _, _, _, +source_path}:
       Reference.omitted_exact(fuel, machine, owner, index, symbol, Core.UnsupportedTarget{})
-    case None{} Core.Declaration{+artifact, +identity, +function, +bundled, +references, _}:
-      +declaration = {Core.Declaration{artifact, identity, function, bundled, references} : Core.Declaration}
+    case None{} Core.Declaration{+artifact, +identity, +function, +bundled, +references, +source_path}:
+      +declaration = {Core.Declaration{artifact, identity, function, bundled, references, source_path} : Core.Declaration}
       Equal.trans(
         Relation.Observation,
         Machine.evaluate(
@@ -2505,7 +2527,7 @@ def bound_target_context(+binding: String,
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -2514,7 +2536,8 @@ def bound_target_context(+binding: String,
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       %State.target_exact(machine, key):
         {
           Reference.observation(
@@ -2618,7 +2641,7 @@ def bound_target_key_branch_exact(+binding: String,
   match machine:
     case Core.Machine{
       +facts,
-      +path,
+      +root_path,
       +frames,
       +visited,
       +budget,
@@ -2627,7 +2650,8 @@ def bound_target_key_branch_exact(+binding: String,
       +slots,
       +pending
     }:
-      +machine = {Core.Machine{facts, path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
+      +path = CoreTraversal.frame_path(frames, root_path)
+      +machine = {Core.Machine{facts, root_path, frames, visited, budget, address, nodes, slots, pending} : Core.Machine}
       Equal.trans(
         Relation.Observation,
         Machine.evaluate(

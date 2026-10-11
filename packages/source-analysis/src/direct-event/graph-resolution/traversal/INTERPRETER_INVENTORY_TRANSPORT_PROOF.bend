@@ -22,6 +22,7 @@ def contract(+fuel: Nat, +catalog: Map<&2, Maybe<&2, Core.Declaration>>) -> Type
     }
 
 def child_or_cycle_progress(
+  +source: Maybe<&2, String>,
   +fuel: Nat,
   +already_seen: Bool,
   +state: Spec.State,
@@ -47,7 +48,7 @@ def child_or_cycle_progress(
           depth,
           expected,
           identity,
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(source, next))
         )
       ),
       before,
@@ -59,7 +60,7 @@ def child_or_cycle_progress(
   match already_seen:
     case True{}: incoming
     case False{}:
-      +request={Spec.Request{facts, path, symbol, expected, (depth+1n:Nat), state} : Spec.Request}
+      +request={Spec.Request{facts, Spec.source_path(source, path), symbol, expected, (depth+1n:Nat), state} : Spec.Request}
       +result=Spec.interpret(fuel, request)
       after=child(request, R.lawful(Measure.visited(state), before, catalog, incoming))
       total=R.compose(
@@ -80,6 +81,7 @@ def child_or_cycle_progress(
       )
 
 def local_allowed_progress(
+  +source: Maybe<&2, String>,
   +fuel: Nat,
   +permit: Bool,
   +state: Spec.State,
@@ -105,7 +107,7 @@ def local_allowed_progress(
           depth,
           expected,
           identity,
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(source, next))
         )
       ),
       before,
@@ -117,6 +119,7 @@ def local_allowed_progress(
   match permit:
     case False{}: incoming
     case True{}: child_or_cycle_progress(
+      source,
       fuel,
       Spec.seen(state, identity),
       state,
@@ -133,6 +136,7 @@ def local_allowed_progress(
     )
 
 def local_budget_progress(
+  +source: Maybe<&2, String>,
   +fuel: Nat,
   +state: Spec.State,
   +facts: Core.Facts,
@@ -156,7 +160,7 @@ def local_budget_progress(
           depth,
           expected,
           identity,
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(source, next))
         )
       ),
       before,
@@ -166,6 +170,7 @@ def local_budget_progress(
     :Bool
   }:
   local_allowed_progress(
+    source,
     fuel,
     Spec.allowed(state, path),
     state,
@@ -182,6 +187,7 @@ def local_budget_progress(
   )
 
 def local_kind_progress(
+  +source: Maybe<&2, String>,
   +fuel: Nat,
   +valid: Bool,
   +state: Spec.State,
@@ -207,7 +213,7 @@ def local_kind_progress(
           depth,
           expected,
           identity,
-          C.build_child(fuel)
+          next => C.build_child(fuel)(Spec.source_child_request(source, next))
         )
       ),
       before,
@@ -219,6 +225,7 @@ def local_kind_progress(
   match valid:
     case False{}: incoming
     case True{}: local_budget_progress(
+      source,
       fuel,
       Spec.local_work(state),
       facts,
@@ -277,7 +284,8 @@ def local_conflict_progress(
   }:
   match imported declaration:
     case Some{_} _: incoming
-    case None{} Core.Declaration{_, identity, function, _, _, _}: local_kind_progress(
+    case None{} Core.Declaration{_, identity, function, _, _, source}: local_kind_progress(
+      source,
       fuel,
       Spec.matches(expected, function),
       state,
@@ -581,6 +589,7 @@ def named_progress(
     )
 
 def bound_child_or_cycle_progress(
+  +source: Maybe<&2, String>,
   +fuel: Nat,
   +binding: String,
   +already_seen: Bool,
@@ -607,7 +616,7 @@ def bound_child_or_cycle_progress(
           depth,
           expected,
           identity,
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
         )
       ),
       before,
@@ -619,7 +628,7 @@ def bound_child_or_cycle_progress(
   match already_seen:
     case True{}: incoming
     case False{}:
-      +request={Spec.bound_child_request(binding, Spec.Request{facts, path, symbol, expected, (depth+1n:Nat), state}) : Spec.Request}
+      +request={Spec.bound_child_request(binding, Spec.Request{facts, Spec.source_path(source, path), symbol, expected, (depth+1n:Nat), state}) : Spec.Request}
       +result=Spec.interpret(fuel, request)
       after=child(request, R.lawful(Measure.visited(state), before, catalog, incoming))
       total=R.compose(
@@ -640,6 +649,7 @@ def bound_child_or_cycle_progress(
       )
 
 def bound_local_allowed_progress(
+  +source: Maybe<&2, String>,
   +fuel: Nat,
   +binding: String,
   +permit: Bool,
@@ -666,7 +676,7 @@ def bound_local_allowed_progress(
           depth,
           expected,
           identity,
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
         )
       ),
       before,
@@ -678,6 +688,7 @@ def bound_local_allowed_progress(
   match permit:
     case False{}: incoming
     case True{}: bound_child_or_cycle_progress(
+      source,
       fuel,
       binding,
       Spec.seen(state, identity),
@@ -695,6 +706,7 @@ def bound_local_allowed_progress(
     )
 
 def bound_local_budget_progress(
+  +source: Maybe<&2, String>,
   +fuel: Nat,
   +binding: String,
   +state: Spec.State,
@@ -719,7 +731,7 @@ def bound_local_budget_progress(
           depth,
           expected,
           identity,
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
         )
       ),
       before,
@@ -729,6 +741,7 @@ def bound_local_budget_progress(
     :Bool
   }:
   bound_local_allowed_progress(
+    source,
     fuel,
       binding,
     Spec.allowed(state, path),
@@ -746,6 +759,7 @@ def bound_local_budget_progress(
   )
 
 def bound_local_kind_progress(
+  +source: Maybe<&2, String>,
   +fuel: Nat,
   +binding: String,
   +valid: Bool,
@@ -772,7 +786,7 @@ def bound_local_kind_progress(
           depth,
           expected,
           identity,
-          next => C.build_child(fuel)(Spec.bound_child_request(binding, next))
+          next => C.build_child(fuel)(Spec.bound_child_request(binding, Spec.source_child_request(source, next)))
         )
       ),
       before,
@@ -784,6 +798,7 @@ def bound_local_kind_progress(
   match valid:
     case False{}: incoming
     case True{}: bound_local_budget_progress(
+      source,
       fuel,
       binding,
       Spec.local_work(state),
@@ -844,7 +859,8 @@ def bound_local_conflict_progress(
   }:
   match imported declaration:
     case Some{_} _: incoming
-    case None{} Core.Declaration{_, identity, function, _, _, _}: bound_local_kind_progress(
+    case None{} Core.Declaration{_, identity, function, _, _, source}: bound_local_kind_progress(
+      source,
       fuel,
       binding,
       Spec.matches(expected, function),

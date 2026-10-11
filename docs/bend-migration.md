@@ -27,6 +27,15 @@ algorithms and product orchestration. Completion means connected Bend, deleted
 superseded TypeScript and passing local checks of the composed flow. Counts of
 migrated decisions, helpers or proofs are intermediate evidence.
 
+## Preserve the candidate on the remote branch
+
+Keep all retained migration sources, tests, specifications, proofs, runners and
+documentation tracked in the working branch, including unfinished work. Commit
+and push stable work batches frequently, and verify that the local commit SHA
+matches the remote branch SHA. A local commit alone does not protect against
+loss of the workstation disk. Backup checkpoints do not constitute migration
+acceptance; report their validation limits explicitly.
+
 ## Connect subsystems through Canonical
 
 Canonical owns the launch, lifecycle, cancellation, result acceptance and

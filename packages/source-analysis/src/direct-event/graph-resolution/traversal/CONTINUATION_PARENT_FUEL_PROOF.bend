@@ -70,6 +70,7 @@ def result_suffix(
     case Spec.BuildResult{Spec.InsufficientBound{_}}: {==}
 
 def first_frame_suffix(
+  +frame_path: String,
   +items: List<&2, Core.Reference>,
   +facts: Core.Facts,
   +path: String,
@@ -95,7 +96,7 @@ def first_frame_suffix(
       Continuation.after_references(
         Spec.interpret(
           head_fuel,
-          Spec.ReferencesRequest{items, facts, path, owner, index, depth, state}
+          Spec.ReferencesRequest{items, facts, frame_path, owner, index, depth, state}
         ),
         owner,
         index,
@@ -106,7 +107,7 @@ def first_frame_suffix(
       == Continuation.after_references(
         Spec.interpret(
           head_fuel,
-          Spec.ReferencesRequest{items, facts, path, owner, index, depth, state}
+          Spec.ReferencesRequest{items, facts, frame_path, owner, index, depth, state}
         ),
         owner,
         index,
@@ -116,7 +117,7 @@ def first_frame_suffix(
       )
       : Relation.Observation
     }:
-  +request = {Spec.ReferencesRequest{items, facts, path, owner, index, depth, state} : Spec.Request}
+  +request = {Spec.ReferencesRequest{items, facts, frame_path, owner, index, depth, state} : Spec.Request}
   +result = Spec.interpret(head_fuel, request)
   final_valid = Order.eq_true_of_and_left(
     Patricia.canonical(Bool, Measure.visited(Measure.result_state(result))),
@@ -127,7 +128,7 @@ def first_frame_suffix(
     head_fuel,
     items,
     facts,
-    path,
+    frame_path,
     owner,
     index,
     depth,

@@ -29,7 +29,7 @@ def enter_node_valid(+machine: Core.Machine, +declaration: Core.Declaration, +de
 }:
   match machine declaration:
     case Core.Machine{facts, path, frames, visited, budget, +next, +nodes, refs, pending}
-        Core.Declaration{+artifact, identity, function, bundled, children}:
+        Core.Declaration{+artifact, identity, function, bundled, children, +source_path}:
       %Equal.sym(Nat, (next + 1n : Nat), 1n+next, successor(next)):
         {Bool.and(backward(Core.PlannedNode{next, artifact} <> nodes, _), True{}) == True{} : Bool}
       B.and_eq_true(
@@ -1150,14 +1150,14 @@ def process_frame_valid(+machine: Core.Machine, +frame: Core.Frame,
   allocation_valid(CoreTraversal.process_frame(machine, frame)) == True{} : Bool
 }:
   match frame:
-    case Core.Frame{_, _, _, [], _}: valid
-    case Core.Frame{+owner, +depth, +index, +reference <> +rest, _}: visit_reference_valid(
-      CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest}),
+    case Core.Frame{_, _, _, [], +frame_path}: valid
+    case Core.Frame{+owner, +depth, +index, +reference <> +rest, +frame_path}: visit_reference_valid(
+      CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path}),
       owner,
       index,
       depth,
       reference,
-      push_frame_valid(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest}, valid)
+      push_frame_valid(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path}, valid)
     )
 
 def step_valid(+machine: Core.Machine,

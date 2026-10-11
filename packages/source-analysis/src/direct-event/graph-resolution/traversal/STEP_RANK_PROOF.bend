@@ -237,8 +237,7 @@ def bundled_queue_preserves_projection(+machine: Core.Machine,
       identity,
       function,
       bundled,
-      references
-    }: {==}
+      references, +source_path}: {==}
 
 
 def bundled_materialize_preserves_projection(+visited: Bool,
@@ -565,9 +564,8 @@ def expansion_rank(
       +identity,
       function,
       bundled,
-      +references
-    }:
-      +entry = {Core.Declaration{handle, identity, function, bundled, references} : Core.Declaration}
+      +references, +source_path}:
+      +entry = {Core.Declaration{handle, identity, function, bundled, references, source_path} : Core.Declaration}
       +catalog = Rank.declaration_catalog(facts)
       +after = Rank.unseen_catalog(Map.set(&2, Bool, visited, identity, True{}), catalog)
       +before = Rank.unseen_catalog(visited, catalog)
@@ -1436,11 +1434,11 @@ def visit_growth(
         )
       )
 
-def consuming_rank(+machine: Core.Machine, +owner: Nat, +depth: Nat, +index: Nat,
+def consuming_rank(+frame_path: String, +machine: Core.Machine, +owner: Nat, +depth: Nat, +index: Nat,
   reference: Core.Reference, +rest: List<&2, Core.Reference>) -> {
-    Rank.rank(CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> rest}))
+    Rank.rank(CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> rest, frame_path}))
     == (Rank.rank(
-      CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest})
+      CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path})
     ) + 2n : Nat)
     : Nat
   }:
@@ -1470,8 +1468,8 @@ def consuming_rank(+machine: Core.Machine, +owner: Nat, +depth: Nat, +index: Nat
         {_ == Nat.add(Nat.add(Nat.add(base, work), frame_count), 2n) : Nat}
       {==}
 
-def empty_rank(+machine: Core.Machine, owner: Nat, depth: Nat, index: Nat) -> {
-  Rank.rank(CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, []}))
+def empty_rank(frame_path: String, +machine: Core.Machine, owner: Nat, depth: Nat, index: Nat) -> {
+  Rank.rank(CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, [], frame_path}))
   == (Rank.rank(machine) + 1n : Nat) : Nat
 }:
   match machine:
@@ -1528,7 +1526,7 @@ def step_decreases_preserving_visited(machine, valid, active):
     case Core.Machine{
       +facts,
       +path,
-      Core.Frame{+owner, +depth, +index, []} <> +tail,
+      Core.Frame{+owner, +depth, +index, [], +frame_path} <> +tail,
       +visited,
       +budget,
       +next,
@@ -1543,7 +1541,7 @@ def step_decreases_preserving_visited(machine, valid, active):
             _,
             Nat.is_le(
               (Rank.rank(base) + 1n : Nat),
-              Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, []}))
+              Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, [], frame_path}))
             )
           )
           == True{}
@@ -1551,16 +1549,16 @@ def step_decreases_preserving_visited(machine, valid, active):
         }
       %Equal.sym(
         Nat,
-        Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, []})),
+        Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, [], frame_path})),
         (Rank.rank(base) + 1n : Nat),
-        empty_rank(base, owner, depth, index)
+        empty_rank(frame_path, base, owner, depth, index)
       ):
         {Nat.is_le((Rank.rank(base) + 1n : Nat), _) == True{} : Bool}
       NatFacts.le_refl((Rank.rank(base) + 1n : Nat))
     case Core.Machine{
       +facts,
       +path,
-      Core.Frame{+owner, +depth, +index, +reference <> +rest} <> +tail,
+      Core.Frame{+owner, +depth, +index, +reference <> +rest, +frame_path} <> +tail,
       +visited,
       +budget,
       +next,
@@ -1569,7 +1567,7 @@ def step_decreases_preserving_visited(machine, valid, active):
       +pending
     }:
       +base = {Core.Machine{facts, path, tail, visited, budget, next, nodes, slots, pending} : Core.Machine}
-      +consumed = CoreTraversal.push_frame(base, Core.Frame{owner, depth, (index + 1n : Nat), rest})
+      +consumed = CoreTraversal.push_frame(base, Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path})
       +after = CoreTraversal.visit_reference(consumed, owner, index, depth, reference)
       +bounded = visit_growth(consumed, owner, index, depth, reference, valid)
       lawful = BoolFacts.eq_true_of_and_left(
@@ -1594,7 +1592,7 @@ def step_decreases_preserving_visited(machine, valid, active):
             Nat.is_le(
               (Rank.rank(after) + 1n : Nat),
               Rank.rank(
-                CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest})
+                CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest, frame_path})
               )
             )
           )
@@ -1604,10 +1602,10 @@ def step_decreases_preserving_visited(machine, valid, active):
       %Equal.sym(
         Nat,
         Rank.rank(
-          CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest})
+          CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest, frame_path})
         ),
         (Rank.rank(consumed) + 2n : Nat),
-        consuming_rank(base, owner, depth, index, reference, rest)
+        consuming_rank(frame_path, base, owner, depth, index, reference, rest)
       ):
         {Nat.is_le((Rank.rank(after) + 1n : Nat), _) == True{} : Bool}
       growth_consumes_two(Rank.rank(consumed), Rank.rank(after), bound)

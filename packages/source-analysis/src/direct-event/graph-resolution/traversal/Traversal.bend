@@ -101,10 +101,18 @@ def machine_facts(machine: Core.Machine) -> Core.Facts:
   match machine:
     case Core.Machine{facts, _, _, _, _, _, _, _, _}: facts
 
+def machine_root_path(machine: Core.Machine) -> String:
+  match machine:
+    case Core.Machine{_, path, _, _, _, _, _, _, _}: path
+
+def frame_path(frames: List<&2, Core.Frame>, fallback: String) -> String:
+  match frames:
+    case []: fallback
+    case Core.Frame{_, _, _, _, path} <> _: path
+
 def machine_path(machine: Core.Machine) -> String:
   match machine:
-    case Core.Machine{_, path, [], _, _, _, _, _, _}: path
-    case Core.Machine{_, _, Core.Frame{_, _, _, _, path} <> _, _, _, _, _, _, _}: path
+    case Core.Machine{_, path, frames, _, _, _, _, _, _}: frame_path(frames, path)
 
 def machine_budget(machine: Core.Machine) -> Core.Budget:
   match machine:
@@ -192,6 +200,10 @@ def enter_node_at(machine: Core.Machine, declaration: Core.Declaration, depth: N
 
 def enter_node(+machine: Core.Machine, declaration: Core.Declaration, depth: Nat) -> Core.Machine:
   enter_node_at(machine, declaration, depth, machine_path(machine))
+
+def declaration_source(declaration: Core.Declaration) -> Maybe<&2, String>:
+  match declaration:
+    case Core.Declaration{_, _, _, _, _, source}: source
 
 def declaration_path(declaration: Core.Declaration, fallback: String) -> String:
   match declaration:

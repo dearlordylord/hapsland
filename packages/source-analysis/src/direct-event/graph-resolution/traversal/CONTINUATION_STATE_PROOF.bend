@@ -255,7 +255,8 @@ def target_exact(+machine: Core.Machine, +identity: String) -> {
     == Spec.target(state(machine), CoreTraversal.machine_path(machine), identity) : Spec.State
 }:
   match machine:
-    case Core.Machine{_, +path, _, +visited, +budget, +address, _, _, +pending}:
+    case Core.Machine{_, root_path, frames, +visited, +budget, +address, _, _, +pending}:
+      +path = CoreTraversal.frame_path(frames, root_path)
       Equal.cong(Core.Budget, Spec.State, with_budget(visited, address, pending),
         CoreTraversal.charge_target(budget, path, identity), Spec.target_budget(budget, path, identity),
         target_budget_exact(budget, path, identity))
@@ -267,7 +268,8 @@ def allowed_exact(+machine: Core.Machine) -> {
   CoreTraversal.machine_allows(machine) == Spec.allowed(state(machine), CoreTraversal.machine_path(machine)) : Bool
 }:
   match machine:
-    case Core.Machine{_, +path, _, _, +budget, _, _, _, _}:
+    case Core.Machine{_, root_path, frames, _, +budget, _, _, _, _}:
+      +path = CoreTraversal.frame_path(frames, root_path)
       Equal.trans(Bool,
         CoreTraversal.budget_allows(budget, Map.size(&2, Bool, CoreTraversal.target_map(budget, path))),
         CoreTraversal.budget_allows(budget, Map.size(&2, Bool, Spec.path_set(budget, path))),
@@ -428,3 +430,12 @@ def bundled_test_exact(
           : Bool
         }
       {==}
+
+
+def declaration_path_exact(+declaration: Core.Declaration, +parent: String) -> {
+  CoreTraversal.declaration_path(declaration, parent)
+  == Spec.source_path(CoreTraversal.declaration_source(declaration), parent) : String
+}:
+  match declaration:
+    case Core.Declaration{_, _, _, _, _, None{}}: {==}
+    case Core.Declaration{_, _, _, _, _, Some{_}}: {==}

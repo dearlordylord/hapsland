@@ -69,7 +69,7 @@ def entered_root(
   }
 ) -> {
       Relation.observe_build(
-        Child.root_result(
+        Child.root_result(path,
           (1n + fuel : Nat),
           Rank.initial(facts, path, visited, budget),
           symbol,
@@ -85,18 +85,18 @@ def entered_root(
       : Relation.Observation
     }:
   match declaration:
-    case Core.Declaration{+artifact, +identity, +function, +bundled, +items, _}:
-      +declaration = {Core.Declaration{artifact, identity, function, bundled, items} : Core.Declaration}
+    case Core.Declaration{+artifact, +identity, +function, +bundled, +items, +source_path}:
+      +declaration = {Core.Declaration{artifact, identity, function, bundled, items, source_path} : Core.Declaration}
       +base = Rank.initial(facts, path, visited, budget)
       +entered = CoreTraversal.enter_node(base, declaration, depth)
       %Equal.sym(
         Spec.Build,
-        Child.root_result((1n + fuel : Nat), base, symbol, expected, depth),
+        Child.root_result(CoreTraversal.machine_path(base), (1n + fuel : Nat), base, symbol, expected, depth),
         Spec.tree_result(
           Spec.as_references(
             Spec.interpret(
               fuel,
-              Child.child_request(
+              Child.child_request(CoreTraversal.machine_path(base),
                 base,
                 declaration,
                 depth,
@@ -107,14 +107,14 @@ def entered_root(
           0n,
           artifact
         ),
-        Child.root_build_exact(fuel, base, declaration, symbol, expected, depth, found)
+        Child.root_build_exact(CoreTraversal.machine_path(base), fuel, base, declaration, symbol, expected, depth, found)
       ):
         {
           Relation.observe_build(_, (1n + fuel : Nat))
           == Machine.evaluate(fuel, entered)
           : Relation.Observation
         }
-      %Child.enter_state_exact(base, declaration, depth):
+      %Child.enter_state_exact(CoreTraversal.machine_path(base), base, declaration, depth):
         {
           Relation.observe_build(
             Spec.tree_result(

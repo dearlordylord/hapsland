@@ -249,8 +249,8 @@ def resume_equal(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: String
     }:
   match frames:
     case []: {==}
-    case Core.Frame{+owner, +depth, +index, +items, _} <> +rest:
-      +request = {Spec.ReferencesRequest{items, facts, path, owner, index, depth, state} : Spec.Request}
+    case Core.Frame{+owner, +depth, +index, +items, +frame_path} <> +rest:
+      +request = {Spec.ReferencesRequest{items, facts, frame_path, owner, index, depth, state} : Spec.Request}
       +a = Spec.interpret(left, request)
       +b = Spec.interpret(right, request)
       +head_cap = Bound.cap(facts, List.length(&2, Core.Reference, items))
@@ -258,7 +258,7 @@ def resume_equal(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: String
         left,
         items,
         facts,
-        path,
+        frame_path,
         owner,
         index,
         depth,
@@ -274,7 +274,7 @@ def resume_equal(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: String
         right,
         items,
         facts,
-        path,
+        frame_path,
         owner,
         index,
         depth,

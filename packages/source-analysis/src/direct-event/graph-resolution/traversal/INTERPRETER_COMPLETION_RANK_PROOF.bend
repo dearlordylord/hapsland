@@ -36,7 +36,7 @@ def entered_children_rank_decreases(+facts: Core.Facts, +path: String,
 }:
   match state declaration:
     case Spec.State{+visited, budget, address, pending}
-      Core.Declaration{handle, +identity, function, bundled, +references}:
+      Core.Declaration{handle, +identity, function, bundled, +references, +source_path}:
       children_score_decreases(
         Rank.unseen_catalog(Map.set(&2, Bool, visited, identity, True{}),
           Rank.declaration_catalog(facts)),
@@ -85,8 +85,8 @@ def selected_unseen_rank_bound(+facts: Core.Facts, +name: String,
 }:
   match facts declaration:
     case Core.Facts{+aware, +catalog, imports, supporting}
-      Core.Declaration{+handle, +identity, +function, +bundled, +references}:
-      +entry = {Core.Declaration{handle, identity, function, bundled, references} : Core.Declaration}
+      Core.Declaration{+handle, +identity, +function, +bundled, +references, +source_path}:
+      +entry = {Core.Declaration{handle, identity, function, bundled, references, source_path} : Core.Declaration}
       +query = Spec.key(aware, expected, name)
       +found = Spec.value(Maybe<&2, Core.Declaration>,
         Map.get(Maybe<&2, Core.Declaration>, None{}, catalog, query))
