@@ -539,6 +539,67 @@ try {
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 3
   }
+  // Opaque provider failures include falsy JavaScript thrown values. They must
+  // survive saved-reply delivery without a Resume or terminal acceptance.
+  for (const { original, cleanupFails } of [undefined, null, false, 0, ""].flatMap((original) =>
+    [false, true].map((cleanupFails) => ({ original, cleanupFails }))
+  )) {
+    const registry = createServiceRegistry()
+    const machine = {
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      view: (value) => value,
+      resume() {
+        assert.fail("failed provider must not resume the engine")
+      },
+      disposeInvocation() {},
+      get retainedHandles() {
+        return 0
+      }
+    }
+    const driver = createOwnedArtifactDriver({
+      owner: m,
+      initialState: fresh(),
+      scope,
+      registry,
+      machine,
+      foreign() {
+        throw original
+      }
+    })
+    const invocation = driver.allocateInvocation()
+    const cleanupError = new Error("original cleanup failure")
+    let allowCleanup = !cleanupFails
+    const session = {
+      invocation,
+      finish() {
+        if (!allowCleanup) throw cleanupError
+      },
+      close() {},
+      revoke() {}
+    }
+    const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+      () => ({ raised: false }),
+      (error) => ({ raised: true, error })
+    )
+    assert.equal(observed.raised, true)
+    if (cleanupFails) {
+      assert.ok(observed.error instanceof AggregateError)
+      assert.equal(observed.error.cause, original)
+      assert.ok(observed.error.errors.includes(original))
+      assert.ok(observed.error.errors.includes(cleanupError))
+      assert.equal(registry.pendingCleanup, 1)
+      assert.equal(driver.resources.sessions, 1)
+      allowCleanup = true
+      await registry.retryCleanup()
+      assertions += 6
+    } else assert.equal(observed.error, original)
+    assert.equal(driver.stats.resumes, 0)
+    assert.equal(driver.stats.accepted, 0)
+    assert.equal(registry.pendingCleanup, 0)
+    assert.equal(registry.size, 0)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 7
+  }
   // A rejected Source interrupt retains exact custody/resources for retry.
   {
     let controlled = fresh(),

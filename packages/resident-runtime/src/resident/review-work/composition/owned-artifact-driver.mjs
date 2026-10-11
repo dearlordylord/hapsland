@@ -197,7 +197,7 @@ export function createOwnedArtifactDriver({
       case "Resume": {
         const raw = load(command.state_handle, invocation, "state"),
           reply = load(command.reply_handle, invocation, "reply")
-        if (reply.error) throw reply.error
+        if (Object.hasOwn(reply, "error")) throw reply.error
         stats.resumes++
         settle(
           invocation,
@@ -234,7 +234,7 @@ export function createOwnedArtifactDriver({
         const result = load(command.result_handle, invocation, "result")
         finished.set(
           invocation,
-          result.$ === "AdviceTailStopped" && result.reason instanceof Error
+          result.$ === "AdviceTailStopped"
             ? { adviceRetained: false, reason: result.reason, cleanupPending: result.cleanupPending }
             : engine(invocation).accepted
               ? engine(invocation).accepted(result)
@@ -257,10 +257,10 @@ export function createOwnedArtifactDriver({
       try {
         action(command)
       } catch (error) {
-        failure ??= error
+        failure ??= { error }
       }
     }
-    if (failure) throw failure
+    if (failure) throw failure.error
   }
   const apply = (step) => {
     // External control has already committed through resident Ref.modify.
@@ -271,14 +271,14 @@ export function createOwnedArtifactDriver({
     try {
       executeActions(list(step.actions))
     } catch (error) {
-      failure = error
+      failure = { error }
     }
     try {
       hooks.canonicalOutputs?.(list(step.outputs))
     } catch (error) {
-      failure ??= error
+      failure ??= { error }
     }
-    if (failure) throw failure
+    if (failure) throw failure.error
   }
   const driver = {
     allocateInvocation(parent, preparation = false, issuedScope = scope) {
@@ -398,7 +398,7 @@ export function createOwnedArtifactDriver({
               const child = owner.find(invocation, current().children)
               if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
             } catch (error) {
-              abortFailure ??= error
+              abortFailure ??= { error }
             }
           }
           options.signal?.addEventListener("abort", abort, { once: true })
@@ -460,7 +460,7 @@ export function createOwnedArtifactDriver({
                 release(replyId, invocation)
               }
             }
-            if (abortFailure) throw abortFailure
+            if (abortFailure) throw abortFailure.error
             return finished.get(invocation)
           } catch (error) {
             rememberFailure(error)
@@ -479,8 +479,8 @@ export function createOwnedArtifactDriver({
           const child = owner.find(invocation, current().children)
           if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
           if (!taskEntered && child.$ === "Some" && child.value.scope.$ === "AdviceTailScope") {
-            constructionError = failures[0]
-            session.forceCleanup?.(constructionError)
+            constructionError = { error: failures[0] }
+            session.forceCleanup?.(constructionError.error)
           }
         } catch (cleanupError) {
           rememberFailure(cleanupError)
@@ -508,7 +508,7 @@ export function createOwnedArtifactDriver({
         if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
           const id = save(invocation, "result", {
             $: "AdviceTailStopped",
-            reason: constructionError,
+            reason: constructionError.error,
             cleanupPending: false
           })
           try {
@@ -536,7 +536,7 @@ export function createOwnedArtifactDriver({
       if (failures.length > 1) {
         let primary = failures[0]
         const seen = new Set()
-        while (primary instanceof AggregateError && primary.cause !== undefined && !seen.has(primary.cause)) {
+        while (primary instanceof AggregateError && Object.hasOwn(primary, "cause") && !seen.has(primary.cause)) {
           seen.add(primary)
           primary = primary.cause
         }

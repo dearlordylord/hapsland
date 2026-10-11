@@ -152,7 +152,7 @@ Current finite evidence, with commands at the testing matrix:
 
 | Boundary | Observed coverage | Limit |
 | --- | --- | --- |
-| Whole finalization machine | 66 ordered scenarios and five actual binding vectors, 9947 requests, 194 real Canonical gates, 93 omissions, 127 current-rule reads, 75190 wrong replies | Actual native ready consumer, full JSON outcomes and chronology; universal proof remains open. |
+| Whole finalization machine | 66 ordered scenarios and ten actual binding vectors, 9947 requests, 194 real Canonical gates, 93 omissions, 127 current-rule reads, 75190 wrong replies | Actual native ready consumer, full JSON outcomes and chronology; universal proof remains open. |
 | Real Source composition | 50 cases, 5554 requests, 25 independent whole native comparisons | Ordered physical effects, inputs/identities, activity publication and pre-teardown custody; full error/cancellation correspondence remains open. |
 | Real Preparation → Post composition | 64 cases, 14395 requests, 807 Post requests | Native result differential, parent cancellation/late replies, retained advice, post-admission barriers and cleanup; whole proof and public adoption remain open. |
 | Frozen input/identity | 60 cases, 5960 engine requests, 17880 wrong replies | All five languages, partial units, three providers; full field order and ordinary JSON checked. |
@@ -207,6 +207,19 @@ One current obstacle list, in execution order:
    during the actual resident Canonical gate rejects terminal publication and
    discharges all resources. Whole failure/cancellation correspondence is still
    required; transport failures must not become omissions or InvalidReply.
+   The resource audit reproduced a real opaque-failure defect: falsy provider
+   rejection values reached engine Resume. Delivery now distinguishes error
+   property presence from its value, including first-action/sink/abort/construction
+   failures and AggregateError cause presence. The actual Canonical owner/driver
+   check passes 225 assertions, including all five falsy values with and without
+   cleanup Error; failed cleanup retains a retry obligation. Ten runtime vectors
+   compare original rules failures with native behavior and stop before the second
+   unit. Independent failure multiplicity remains open: current value-based
+   deduplication can merge separate identical primitive exceptions. Replace it
+   with receipts for concrete failure events and explicit known rethrow edges;
+   expose task versus registry-finalizer outcomes without changing the original
+   caller error. Constructor failure plus a separate identical cleanup failure
+   must retain both reasons and the exact retry obligation before qualification.
    Astra's agreed next draft is one independent native-loop specification and two
    whole declarations: observational correspondence and scope/interruption
    preservation. The specification must not call the actual Evidence/Rules/Input

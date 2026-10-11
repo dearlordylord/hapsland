@@ -467,6 +467,28 @@ try {
     (error) => error === readError
   )
   runtimeCases++
+  for (const original of [undefined, null, false, 0, ""]) {
+    for (const native of [false, true]) {
+      let reads = 0
+      const input = runtimeInput({ rules }, () => {
+        reads++
+        throw original
+      })
+      input.units = [unit, unit]
+      const observed = await Promise.resolve()
+        .then(() =>
+          native ? nativePrepareReadyUnits(input.units, input.declarations, input.path, input.frame) : consume(input)
+        )
+        .then(
+          () => ({ raised: false }),
+          (error) => ({ raised: true, error })
+        )
+      assert.equal(observed.raised, true)
+      assert.equal(observed.error, original)
+      assert.equal(reads, 1, "a failed rules read must stop before the next unit")
+    }
+    runtimeCases++
+  }
   const settingsBefore = () => ({
     rules,
     providerIdentity: { provider: "openai", model: "gpt-6-luna", destination: "before" }
