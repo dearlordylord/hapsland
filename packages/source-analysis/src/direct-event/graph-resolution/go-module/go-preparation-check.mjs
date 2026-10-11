@@ -1,6 +1,7 @@
 import { artifactTransport } from "./artifact-check-codec.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
+import { existsSync } from "node:fs"
 import { mkdtemp, mkdir, writeFile, lstat, rm } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
@@ -265,8 +266,10 @@ const fixtures = [
     }
   }
 ]
+let emissionTemp
 try {
-  const emitted = join(temp, "machine.mjs")
+  emissionTemp = await mkdtemp(join(existsSync("/dev/shm") ? "/dev/shm" : "/tmp", "hapsland-go-emission-"))
+  const emitted = join(emissionTemp, "machine.mjs")
   execFileSync(
     "bend",
     [
@@ -324,7 +327,7 @@ try {
       ["go", "resident-runtime/src/resident/review-work/composition/GoArtifact.bend"],
       ["owner", "agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"]
     ]) {
-      const output = join(temp, key + ".mjs")
+      const output = join(emissionTemp, key + ".mjs")
       execFileSync("bend", [join(import.meta.dirname, "../../../../../", source), "-o", output], { timeout: 5000 })
       const artifact = (await import(pathToFileURL(output))).default
       if (key === "owner") owner = artifact
@@ -745,5 +748,8 @@ try {
     })
   )
 } finally {
-  await rm(temp, { recursive: true, force: true })
+  await Promise.all([
+    rm(temp, { recursive: true, force: true }),
+    ...(emissionTemp ? [rm(emissionTemp, { recursive: true, force: true })] : [])
+  ])
 }
