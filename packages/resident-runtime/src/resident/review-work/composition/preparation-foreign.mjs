@@ -33,7 +33,6 @@ export function createPreparationForeign({
   rootIdentity,
   context,
   cache,
-  mode = "two-roots",
   onRoot,
   settings,
   graphLimits = GRAPH_LIMIT_CEILINGS,
@@ -66,7 +65,6 @@ export function createPreparationForeign({
       ) ?? {},
     analysisConfigurationIdentity: settings.configuration?.policy.digest ?? "unconfigured"
   }
-  let roots = 0
   const none = { $: "None" },
     some = (value) => ({ $: "Some", value })
   const location = (value) => ({
@@ -135,15 +133,12 @@ export function createPreparationForeign({
         }
         break
       case "AdmitMaterialization": {
-        const bytes =
-          mode === "resize-refused"
-            ? 200000000
-            : analysisWorkspaceBytes(
-                command.capture.path,
-                Number(command.capture.bytes),
-                fromProductValue(command.preflight) ?? undefined,
-                settings.rules
-              )
+        const bytes = analysisWorkspaceBytes(
+          command.capture.path,
+          Number(command.capture.bytes),
+          fromProductValue(command.preflight) ?? undefined,
+          settings.rules
+        )
         const result = Effect.runSync(
           connection.bridge.nativeScoped(options.ownerLease, (draft, records) => [
             resize(draft, connection.preparation.reservation, bytes),
@@ -271,7 +266,6 @@ export function createPreparationForeign({
         break
       }
       case "ResolveRoot": {
-        roots++
         const rootFacts = {
           path: command.capture.path,
           capture: rootCaptures.get(command.capture.handle),
@@ -282,10 +276,6 @@ export function createPreparationForeign({
           }
         }
         onRoot?.(rootFacts)
-        if (mode === "first-refused" && roots === 1) {
-          response = { $: "RootResolved", unit: none, references: list([]), captures: snapshotCaptures() }
-          break
-        }
         let terminal
         const parent = owner.find(request.invocation, driver.state.children).value
         const resolver = createBendResolver({

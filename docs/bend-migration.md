@@ -638,3 +638,15 @@ repeats 64/14395/807 including cancellation, late responses and cleanup. Fixture
 modes still require extraction; full path/capture refusals, universal attachment and
 public production adoption remain open. Freshness-count proof prefix now passes
 hard five seconds (3.532 wall, 3.094 user); original parent theorem is unfinished.
+
+Product preparation-foreign now contains no fixture modes, root counters, native
+oracle, compareRoots selection or configuredRules default. Fault stimuli belong
+to its capability-local verification wrapper. first-refused preserves the original
+pre-launch observer and exact captures snapshot; resize-refused performs the real
+200000000-byte nativeScoped resize under the same owner lease, preserving status
+and observer chronology. Ordinary lint selects both actual changed files and passes.
+Full resident repeats 64/14395/807 and full Source repeats 56/6338/31. These results
+qualify the extraction, not the still-open path/capture provider contract or public
+adoption. Astra's exact appended node-count/shifted exclusion/parent-slot ownership
+prefix passes hard five seconds in 2.775 seconds; full original parent law remains
+open with unchanged premises. All retained source and proof work is backed up.

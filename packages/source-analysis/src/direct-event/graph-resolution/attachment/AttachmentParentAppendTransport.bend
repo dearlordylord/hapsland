@@ -1,6 +1,7 @@
 import Base
 import ./RetainedForestProjection.bend as P
 import ./AttachmentMapping.bend as Mapping
+import ./AttachmentNaturalArithmeticFacts.bend as Arithmetic
 import ./AttachmentRemapProjectionProof.bend as Remap
 import ./AttachmentNodeReplacementTransport.bend as Replacement
 import ./AttachmentProjectionAllowanceProof.bend as Count
@@ -748,6 +749,61 @@ def fresh_nodes_exclude_prior(items: List<&2, F.Node>, +episode: Nat, +prior: Na
         {(Bool.pick(Nat, Bool.and(_, F.same_route(route, actual_route)), 1n, 0n) + F.count_address(tail, O.NodeAddress{prior, route}) : Nat) == 0n : Nat}
       fresh_nodes_exclude_prior(tail, episode, prior, route,
         B.eq_true_of_and_right(Nat.is_eq(actual, episode), Ready.episode_nodes(tail, episode), fresh), below)
+
+# The complete slot ownership guard is preserved across allocation, including
+# interleaved slots and retained nodes that no longer have a rendered parent.
+def node_count_append(items: List<&2, Local.PlannedNode>, +suffix: List<&2, Local.PlannedNode>, +query: Nat) ->
+    {P.node_count(List.append(&2, Local.PlannedNode, items, suffix), query)
+      == (P.node_count(items, query) + P.node_count(suffix, query) : Nat) : Nat}:
+  match items:
+    case []: {==}
+    case Local.PlannedNode{+id, _} <> +tail:
+      %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, tail, suffix), query),
+        (P.node_count(tail, query) + P.node_count(suffix, query) : Nat), node_count_append(tail, suffix, query)):
+        {(Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n) + _ : Nat)
+          == ((Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n) + P.node_count(tail, query) : Nat) + P.node_count(suffix, query) : Nat) : Nat}
+      Equal.sym(Nat,
+        ((Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n) + P.node_count(tail, query) : Nat) + P.node_count(suffix, query) : Nat),
+        (Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n) + (P.node_count(tail, query) + P.node_count(suffix, query) : Nat) : Nat),
+        Arithmetic.add_assoc(Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n), P.node_count(tail, query), P.node_count(suffix, query)))
+
+def shifted_nodes_exclude_parent(items: List<&2, Local.PlannedNode>, +offset: Nat, +owner: Nat,
+    +below: {Nat.is_lt(owner, offset) == True{} : Bool}) ->
+    {P.node_count(Compose.shift_nodes(items, offset), owner) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case Local.PlannedNode{+id, _} <> +tail:
+      %Equal.sym(Bool, Nat.is_eq(owner, (id + offset : Nat)), False{},
+        Equal.trans(Bool, Nat.is_eq(owner, (id + offset : Nat)), Nat.is_eq((id + offset : Nat), owner), False{},
+          Structure.is_eq_comm(owner, (id + offset : Nat)), shifted_owner_distinct(id, offset, owner, below))):
+        {(Bool.pick(Nat, _, 1n, 0n) + P.node_count(Compose.shift_nodes(tail, offset), owner) : Nat) == 0n : Nat}
+      shifted_nodes_exclude_parent(tail, offset, owner, below)
+
+def parent_owned_appended(items: List<&2, Local.ReferenceSlot>, +parents: List<&2, Local.PlannedNode>,
+    +children: List<&2, Local.PlannedNode>, +dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    +owned: {P.slots_owned(items, parents) == True{} : Bool}) ->
+    {P.slots_owned(items, List.append(&2, Local.PlannedNode, parents,
+      Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents)))) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+id, _, _, _} <> +tail:
+      +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+      +shifted: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
+      +one: {P.node_count(parents, id) == 1n : Nat} = N.eq_of_is_eq(P.node_count(parents, id), 1n,
+        B.eq_true_of_and_left(Nat.is_eq(P.node_count(parents, id), 1n), P.slots_owned(tail, parents), owned))
+      B.and_eq_true(Nat.is_eq(P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), id), 1n),
+        P.slots_owned(tail, List.append(&2, Local.PlannedNode, parents, shifted)),
+        %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), id),
+          (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), node_count_append(parents, shifted, id)):
+          {Nat.is_eq(_, 1n) == True{} : Bool}
+        %Equal.sym(Nat, P.node_count(shifted, id), 0n,
+          shifted_nodes_exclude_parent(children, offset, id, dense_owner_below(parents, id, dense, one))):
+          {Nat.is_eq((P.node_count(parents, id) + _ : Nat), 1n) == True{} : Bool}
+        %Equal.sym(Nat, P.node_count(parents, id), 1n, one):
+          {Nat.is_eq((_ + 0n : Nat), 1n) == True{} : Bool}
+        {==},
+        parent_owned_appended(tail, parents, children, dense,
+          B.eq_true_of_and_right(Nat.is_eq(P.node_count(parents, id), 1n), P.slots_owned(tail, parents), owned)))
 
 law parent_attachment_exact:
   for +parent_root: Nat
