@@ -196,8 +196,21 @@ def capsule(
 ) -> Maybe<&2, Phase.Capsule>:
   match clock language active edge state:
     case Some{clock} Some{+language} Some{active} Some{edge}
-      T.ResolverState{T.ResolverInput{invocation, path, _, _, _, _, branch, cache, _},
-        _, _, next, iterations, _, _, rust, _, _, _, _, _}:
+      T.ResolverState{
+        T.ResolverInput{invocation, path, _, _, _, _, branch, cache, _, None{}, None{}},
+        _,
+        _,
+        next,
+        iterations,
+        _,
+        _,
+        rust,
+        _,
+        _,
+        _,
+        _,
+        _
+      }:
       Some{Phase.Capsule{invocation, path, language, context(language, branch, rust),
         clock, cache, next, iterations, active, edge}}
     case _ _ _ _ _: None{}

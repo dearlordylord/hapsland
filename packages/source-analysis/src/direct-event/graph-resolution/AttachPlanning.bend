@@ -87,7 +87,7 @@ def measure_child(
 ) -> Loop.Continuation:
   match bundled:
     case True{}: Measurement.previous(S.scratch_bundled_previous(S.state_scratch(state)), state)
-    case False{}: request_previous(Root.unit(frame), state)
+    case False{}: request_previous(Root.prepared_unit(frame, S.state_prepared(state)), state)
 
 def built_allowed(
   allowed: Bool,

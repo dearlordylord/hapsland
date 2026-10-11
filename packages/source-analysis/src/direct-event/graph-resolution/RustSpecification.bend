@@ -524,7 +524,7 @@ def request_search(state: Search, stage: SearchStage, operation: T.Operation) ->
 
 def start_cache(+input: T.ResolverInput, cache: Maybe<&2, T.CacheToken>) -> SearchStep:
   match input cache:
-    case T.ResolverInput{_, path, capture, _, _, _, _, _, _} Some{+cache}:
+    case T.ResolverInput{_, path, capture, _, _, _, _, _, _, _, _} Some{+cache}:
       SearchRequest{Search{input, InsertingRoot{}, Some{cache}, "", "", 0n},
         T.InsertRootCaptureCache{cache, path, capture}}
     case _ None{}:
@@ -532,11 +532,18 @@ def start_cache(+input: T.ResolverInput, cache: Maybe<&2, T.CacheToken>) -> Sear
 
 def begin(+input: T.ResolverInput) -> SearchStep:
   match input:
-    case T.ResolverInput{_, _, _, _, _, _, _, cache, _}: start_cache(input, cache)
+    case T.ResolverInput{_, _, _, _, _, _, _, cache, _, _, _}: start_cache(input, cache)
 
 def finish_search(state: Search, cargo: Maybe<&2, String>) -> SearchStep:
   match state:
-    case Search{T.ResolverInput{_, path, _, bytes, _, _, _, _, limits}, _, Some{cache}, _, _, _}:
+    case Search{
+      T.ResolverInput{_, path, _, bytes, _, _, _, _, limits, _, _},
+      _,
+      Some{cache},
+      _,
+      _,
+      _
+    }:
       SearchFinished{cache, initialize(limits, path, bytes, cargo)}
     case _: SearchFailed{T.MalformedReply{}}
 
@@ -561,7 +568,7 @@ def status_absent(status: T.FileStatus) -> Bool:
 # is inserted during up to sixteen ancestor status reads.
 def root_inserted(+state: Search) -> SearchStep:
   match state:
-    case Search{T.ResolverInput{_, path, _, _, _, _, _, _, _}, _, _, _, _, _}:
+    case Search{T.ResolverInput{_, path, _, _, _, _, _, _, _, _, _}, _, _, _, _, _}:
       request_search(state, InitialDirectory{}, T.PathDirname{path})
 
 def parent_directory(exhausted: Bool, state: Search, +directory: String) -> SearchStep:

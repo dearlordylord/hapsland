@@ -11,6 +11,8 @@ type Continuation is Data:
   InspectPythonTarget{state: T.ResolverState, capture: T.CaptureToken}
   ResolvePython{state: T.ResolverState, edge: Local.Pending}
   PreparePython{state: T.ResolverState}
+  PrepareGo{state: T.ResolverState}
+  InspectGoRoot{state: T.ResolverState}
   InspectPythonRoot{state: T.ResolverState}
   PrepareRust{state: T.ResolverState}
   PreparedRust{state: T.ResolverState, prepared: T.PreparedLanguage, frontend: T.RustContext}

@@ -2,6 +2,7 @@ import ../../../../source-artifacts/src/direct-event/value/Value.bend as Artifac
 import Base
 import ./go-module/Input.bend as GoInput
 import ./go-module/RawText.bend as GoText
+import ./go-module/Configuration.bend as GoConfiguration
 import ./traversal/core.bend as Local
 import ../../../../agent-flow-bend/ImportGraph.bend as Graph
 
@@ -33,6 +34,7 @@ type Language is Data:
   RustLanguage{}
   BendLanguage{}
   PythonLanguage{}
+  GoLanguage{}
 type Branch is Data:
   TypeBranch{}
   FunctionBranch{}
@@ -47,6 +49,7 @@ type FrontendContext is Data:
   RustSourceContext{branch: Branch, context: RustContext}
   BendSourceContext{branch: Branch}
   PythonSourceContext{branch: Branch}
+  GoSourceContext{branch: Branch}
 
 type ArtifactKind is Data:
   InterfaceArtifact{}
@@ -124,7 +127,11 @@ type GoAlias is Data:
 type GoConstantMember is Data:
   GoConstantMember{name: String, type_name: Maybe<&2, String>, expression: Maybe<&2, Nat>}
 type GoConstantFacts is Data:
-  GoConstantFacts{artifact_name: String, names: List<&2, String>, members: List<&2, GoConstantMember>}
+  GoConstantFacts{
+    artifact_name: String,
+    names: List<&2, String>,
+    members: List<&2, GoConstantMember>
+  }
 type GoSourcePosition is Data:
   GoSourcePosition{line: Nat, column: Nat}
 type GoSourceLocation is Data:
@@ -367,7 +374,9 @@ type ResolverInput is Data:
     root_source: String,
     branch: Branch,
     caller_cache: Maybe<&2, CacheToken>,
-    limits: Graph.Limits
+    limits: Graph.Limits,
+    configuration: Maybe<&2, GoConfiguration.Configuration>,
+    configuration_identity: Maybe<&2, String>
   }
 
 type TentativeChild is Data:
@@ -505,7 +514,11 @@ type ResolverScratch is Data:
   }
 
 type PreparedLanguage is Data:
-  PreparedLanguage{limits: Graph.Limits, dependencies: List<&2, String>}
+  PreparedLanguage{
+    limits: Graph.Limits,
+    dependencies: List<&2, String>,
+    binding_fingerprint: Maybe<&2, String>
+  }
 
 type ResolverState is Data:
   ResolverState{

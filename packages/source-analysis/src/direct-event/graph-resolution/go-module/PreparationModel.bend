@@ -3,19 +3,27 @@ import ../Types.bend as T
 import ../../../../../agent-flow-bend/ImportGraph.bend as Graph
 import ../../../../../source-artifacts/src/direct-event/value/Value.bend as Value
 import ./RawText.bend as Raw
+import ./Configuration.bend as Configuration
 import ./BuildContext.bend as Build
 import ./Package.bend as Package
 import ./Input.bend as Unicode
 
 # Source-bearing state for the complete Go preparation, shared by its stages.
 # Capture/cache/provider tokens retain their existing single declaration owner.
-type Configuration is Data:
-  Configuration{goos: String, goarch: String, tags: List<&2, Raw.Text>}
 type Input is Data:
-  Input{invocation: Nat, next_request: Nat, root_path: String,
-    root_capture: T.CaptureToken, root_bytes: Nat, branch: T.Branch,
-    clock: T.ClockToken, caller_cache: Maybe<&2, T.CacheToken>, limits: Graph.Limits,
-    configuration: Maybe<&2, Configuration>, configuration_identity: Maybe<&2, String>}
+  Input{
+    invocation: Nat,
+    next_request: Nat,
+    root_path: String,
+    root_capture: T.CaptureToken,
+    root_bytes: Nat,
+    branch: T.Branch,
+    clock: T.ClockToken,
+    caller_cache: Maybe<&2, T.CacheToken>,
+    limits: Graph.Limits,
+    configuration: Maybe<&2, Configuration.Configuration>,
+    configuration_identity: Maybe<&2, String>
+  }
 type BoundDeclaration is Data:
   BoundDeclaration{key: String, declaration: Package.Declaration}
 type Prepared is Data:

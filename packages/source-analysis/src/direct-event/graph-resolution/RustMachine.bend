@@ -150,7 +150,7 @@ def finish(+state: T.ResolverState) -> Loop.Continuation:
     ),
     S.with_state_prepared(
       state,
-      T.PreparedLanguage{limits, sorted(S.rust_dependencies(get(state)))}
+      T.PreparedLanguage{limits, sorted(S.rust_dependencies(get(state))), None{}}
     )
   )
 

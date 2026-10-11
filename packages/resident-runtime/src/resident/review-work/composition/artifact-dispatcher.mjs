@@ -11,6 +11,10 @@ const artifactNamespaces = [
     "../../../../../source-analysis/src/direct-event/graph-resolution/" + name + "."
   ]),
   ["traversal/core.", "../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."],
+  ...["PreparationModel", "Configuration", "RawText", "Input", "Package"].map((name) => [
+    "go-module/" + name + ".",
+    "../../../../../source-analysis/src/direct-event/graph-resolution/go-module/" + name + "."
+  ]),
   ["python-module/Session.", "../../../../../source-analysis/src/direct-event/graph-resolution/python-module/Session."],
   ["../../../../agent-flow-bend/ImportGraph.", "../../../../../agent-flow-bend/ImportGraph."]
 ]
@@ -35,7 +39,7 @@ const artifactAbi = (value, intoArtifact) => {
 // Prefix mode preserves immutable states for cloned probes. Operational mode
 // consumes artifact handles; owned-artifact-driver binds their outer lifecycle
 // to Canonical. Production resident preparation integration remains open.
-export function createArtifactMachine({ composition, parent, python, retainPrefixes = true }) {
+export function createArtifactMachine({ composition, parent, python, go, retainPrefixes = true }) {
   const handles = new Map()
   let next = 1n
   const save = (invocation, artifact, state) => {
@@ -52,7 +56,7 @@ export function createArtifactMachine({ composition, parent, python, retainPrefi
   }
   const pump = (initial) => {
     let step = initial
-    for (let count = 0; count < 10000; count++) {
+    while (true) {
       if (step.$ === "ParentCall") {
         const command = step.command
         let raw
@@ -98,10 +102,34 @@ export function createArtifactMachine({ composition, parent, python, retainPrefi
         }
         continue
       }
+      if (step.$ === "GoCall") {
+        const command = step.command
+        let raw
+        switch (command.$) {
+          case "BeginGo":
+            raw = go.begin(command.command)
+            break
+          case "ResumeGo":
+            raw = go.resume(load(command.handle, "go"), command.reply)
+            break
+          case "AdvanceGo":
+            raw = go.advance(load(command.handle, "go"))
+            break
+          default:
+            throw new Error("Unknown Go dispatch tag " + command.$)
+        }
+        const handle = save(step.context.invocation, "go", raw)
+        try {
+          step = composition.receive_go(step, handle, go.view(raw))
+        } finally {
+          if (!retainPrefixes && step.owner?.handle?.id !== handle.id && step.command?.handle?.id !== handle.id)
+            handles.delete(handle.id)
+        }
+        continue
+      }
       if (step.$ === "Service" || step.$ === "Terminal") return step
       throw new Error("Unknown composition dispatch tag " + step.$)
     }
-    throw new Error("Artifact dispatch did not settle")
   }
   return {
     initial: (input) => pump(composition.initial(artifactAbi(input, true))),

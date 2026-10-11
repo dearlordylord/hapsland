@@ -36,6 +36,7 @@ def language(extension: String) -> Maybe<&2, T.Language>:
     case ".rs": Some{T.RustLanguage{}}
     case ".bend": Some{T.BendLanguage{}}
     case ".py": Some{T.PythonLanguage{}}
+    case ".go": Some{T.GoLanguage{}}
     case _: None{}
 
 def context(language: T.Language, branch: T.Branch, rust: T.RustContext) -> T.FrontendContext:
@@ -44,11 +45,13 @@ def context(language: T.Language, branch: T.Branch, rust: T.RustContext) -> T.Fr
     case T.RustLanguage{}: T.RustSourceContext{branch, rust}
     case T.BendLanguage{}: T.BendSourceContext{branch}
     case T.PythonLanguage{}: T.PythonSourceContext{branch}
+    case T.GoLanguage{}: T.GoSourceContext{branch}
 
 def root_inspect(language: Maybe<&2, T.Language>, +state: T.ResolverState) -> Loop.Continuation:
   match language:
     case None{}: malformed()
     case Some{T.PythonLanguage{}}: Loop.InspectPythonRoot{state}
+    case Some{T.GoLanguage{}}: Loop.InspectGoRoot{state}
     case Some{language}:
       +input = S.state_input(state)
       Loop.ServiceStep{
@@ -82,11 +85,11 @@ def root_admission(available: Bool, +state: T.ResolverState) -> Loop.Continuatio
 
 def prepared_limits(prepared: T.PreparedLanguage) -> Graph.Limits:
   match prepared:
-    case T.PreparedLanguage{limits, _}: limits
+    case T.PreparedLanguage{limits, _, _}: limits
 
 def prepared_dependencies(prepared: T.PreparedLanguage) -> List<&2, String>:
   match prepared:
-    case T.PreparedLanguage{_, dependencies}: dependencies
+    case T.PreparedLanguage{_, dependencies, _}: dependencies
 
 def root_budget(+state: T.ResolverState) -> Loop.Continuation:
   +input = S.state_input(state)
@@ -115,6 +118,7 @@ def selected_language(
           # falsely report a Rust binding failure as NoReviewUnit here.
           Loop.PrepareRust{S.with_state_language(state, Some{selected})}
         case T.PythonLanguage{}: Loop.PreparePython{S.with_state_language(state, Some{selected})}
+        case T.GoLanguage{}: Loop.PrepareGo{S.with_state_language(state, Some{selected})}
         case _: root_budget(S.with_state_language(state, Some{selected}))
 
 def root_product(
@@ -125,13 +129,13 @@ def root_product(
     case None{}: malformed()
     case Some{value}: Loop.ServiceStep{S.request(state, T.MeasuringRoot{}, T.EncodeProduct{value})}
 
-def prepared_root(outcome: Root.RootOutcome, state: T.ResolverState) -> Loop.Continuation:
+def prepared_root(outcome: Root.RootOutcome, +state: T.ResolverState) -> Loop.Continuation:
   match outcome:
     case Root.RootUnavailable{}: unavailable()
     case Root.RootMalformedSyntax{}: malformed()
     case Root.RootTraversalFailure{_}: Loop.ServiceStep{T.FailedResolver{T.LocalTraversalFailure{}}}
     case Root.RootPrepared{+frame}: root_product(
-      Root.unit(frame),
+      Root.prepared_unit(frame, S.state_prepared(state)),
       S.with_state_frame(state, Some{frame})
     )
 
@@ -327,6 +331,8 @@ def settle_step(fuel: Nat, step: Loop.Continuation,
     case Loop.InspectPythonTarget{_, _}: step
     case Loop.ResolvePython{_, _}: step
     case Loop.PreparePython{_}: step
+    case Loop.PrepareGo{_}: step
+    case Loop.InspectGoRoot{_}: step
     case Loop.InspectPythonRoot{_}: step
     case _: recurse(dispatch_action(step))
 
@@ -340,6 +346,8 @@ def settled_boundary(step: Loop.Continuation) -> Loop.Continuation:
     case Loop.InspectPythonTarget{_, _}: step
     case Loop.ResolvePython{_, _}: step
     case Loop.PreparePython{_}: step
+    case Loop.PrepareGo{_}: step
+    case Loop.InspectGoRoot{_}: step
     case Loop.InspectPythonRoot{_}: step
     case _: malformed()
 
@@ -421,7 +429,7 @@ def initial(+input: T.ResolverInput) -> Loop.Continuation:
     None{},
     None{},
     scratch,
-    T.PreparedLanguage{S.input_limits(input), []},
+    T.PreparedLanguage{S.input_limits(input), [], None{}},
     T.RustWork{False{}, 0n, None{}, [], [], [], "", [], [], "", False{}, T.CapturedTaskReturn{}}
   }
   Loop.ServiceStep{S.request(state, T.Starting{}, T.StartClock{})}

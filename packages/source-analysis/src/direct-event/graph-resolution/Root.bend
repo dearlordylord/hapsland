@@ -89,3 +89,22 @@ def frame_transition(frame: T.ResolverFrame, transition: Graph.Step) -> T.Resolv
 
 def main() -> Unit:
   Unit{}
+
+
+# Fingerprint is first in native unit JSON and participates in every size gate.
+def fingerprint_product(
+  product: Maybe<&2, ArtifactValue.ProductValue>,
+  fingerprint: Maybe<&2, String>
+) -> Maybe<&2, ArtifactValue.ProductValue>:
+  match product fingerprint:
+    case Some{ArtifactValue.ProductObject{fields}} Some{value}: Some{ArtifactValue.ProductObject{
+      Materialize.field("bindingFingerprint", Materialize.text(value)) <> fields}}
+    case _ None{}: product
+    case _ _: None{}
+
+def prepared_unit(
+  frame: T.ResolverFrame,
+  prepared: T.PreparedLanguage
+) -> Maybe<&2, ArtifactValue.ProductValue>:
+  match prepared:
+    case T.PreparedLanguage{_, _, fingerprint}: fingerprint_product(unit(frame), fingerprint)

@@ -20,6 +20,7 @@ try {
     ["composition", "ArtifactComposition"],
     ["parent", "GenericArtifact"],
     ["python", "PythonArtifact"],
+    ["go", "GoArtifact"],
     ["owner", "CanonicalResolverOwner"]
   ]) {
     const emitted = join(temp, name + ".mjs")
@@ -76,6 +77,7 @@ try {
             ForestAllowance: "../../../packages/source-analysis/src/direct-event/graph-resolution/ForestAllowance.bend",
             ForestSpecification:
               "../../../packages/source-analysis/src/direct-event/graph-resolution/ForestSpecification.bend",
+            GoArtifact: "../../../packages/resident-runtime/src/resident/review-work/composition/GoArtifact.bend",
             GenericArtifact:
               "../../../packages/resident-runtime/src/resident/review-work/composition/GenericArtifact.bend",
             GraphSpecification:
@@ -200,7 +202,7 @@ try {
     ),
     captured = await Effect.runPromise(captureStable(root, selection, {}, rootIdentity))
   assert.equal(captured.status, "captured")
-  const c = (name, fields = {}) => ({ $: "../../../packages/agent-flow-bend/Canonical." + name, ...fields }),
+  const c = (name, fields = {}) => ({ $: "../Canonical." + name, ...fields }),
     scope = { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n }
   const initial = () => {
     let state = owner.initial_limits(100n, 100000000n, 100n, 100000000n)
@@ -245,184 +247,221 @@ try {
   assert.throws(() => overflow.allocateInvocation(), RangeError)
   assert.deepEqual(overflow.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
   cases++
-  for (const mode of [
-    "two-roots",
-    "cancel-provider",
-    "cancel-inflight",
-    "cancel-inflight-success",
-    "retire-provider",
-    "late-rejection",
-    "cancel-before-install",
-    "cancel-before-terminal",
-    "resume-throws",
-    "completion-hook-throws",
-    "construction-throws",
-    "external-abort",
-    "between-roots"
+  await writeFile(join(root, "go.mod"), "module example\n")
+  await mkdir(join(root, "lib"))
+  await writeFile(join(root, "root.go"), 'package p\nimport "example/lib"\ntype Root lib.Foo\ntype Second lib.Foo\n')
+  await writeFile(join(root, "lib/leaf.go"), "package lib\ntype Foo struct { Value string }\n")
+  const goSelection = await Effect.runPromise(
+    eligibleNamedPath(root, "root.go", DEFAULT_DIRECT_FILE_POLICY, rootIdentity)
+  )
+  const goCaptured = await Effect.runPromise(captureStable(root, goSelection, {}, rootIdentity))
+  assert.equal(goCaptured.status, "captured")
+  for (const [fixturePath, fixtureCapture, configuration] of [
+    ["root.py", captured.capture],
+    ["root.go", goCaptured.capture],
+    ["root.go", goCaptured.capture, { goos: "linux", goarch: "amd64", tags: ["custom"] }]
   ]) {
-    const registry = createServiceRegistry()
-    let triggered = false,
-      requests = 0,
-      beforeCancelResumes,
-      captureSuccesses = 0
-    const hooks = {},
-      controller = new AbortController()
-    if (["cancel-provider", "retire-provider", "late-rejection"].includes(mode))
-      hooks.beforeProvider = ({ invocation, driver }) => {
-        if (triggered) return
-        triggered = true
-        if (mode === "retire-provider")
-          driver.canonicalEvent(c("RetirePartition", { partition: 1n, lifetime: 1n, round: 1n }))
-        else driver.cancel(invocation)
-      }
-    if (mode === "completion-hook-throws")
-      hooks.beforeCompletion = () => {
-        throw new Error("injected completion fault")
-      }
-    if (mode === "external-abort") hooks.beforeProvider = () => controller.abort()
-    if (mode === "cancel-before-install")
-      hooks.beforeInstall = ({ invocation, generation, driver }) => {
-        if (generation === 0n || triggered) return
-        triggered = true
-        driver.cancel(invocation)
-      }
-    if (mode === "cancel-before-terminal")
-      hooks.beforeTerminal = ({ invocation, driver }) => {
-        if (triggered) return
-        triggered = true
-        driver.cancel(invocation)
-      }
-    const wrapped =
-      mode === "resume-throws"
-        ? {
-            ...artifacts,
-            composition: {
-              ...artifacts.composition,
-              resume() {
-                throw new Error("injected artifact fault")
+    for (const mode of [
+      "unit-budget",
+      "two-roots",
+      "cancel-provider",
+      "cancel-inflight",
+      "cancel-inflight-success",
+      "retire-provider",
+      "late-rejection",
+      "cancel-before-install",
+      "cancel-before-terminal",
+      "resume-throws",
+      "completion-hook-throws",
+      "construction-throws",
+      "external-abort",
+      "between-roots"
+    ]) {
+      const registry = createServiceRegistry()
+      let triggered = false,
+        requests = 0,
+        beforeCancelResumes,
+        captureSuccesses = 0
+      const hooks = {},
+        controller = new AbortController()
+      if (["cancel-provider", "retire-provider", "late-rejection"].includes(mode))
+        hooks.beforeProvider = ({ invocation, driver }) => {
+          if (triggered) return
+          triggered = true
+          if (mode === "retire-provider")
+            driver.canonicalEvent(c("RetirePartition", { partition: 1n, lifetime: 1n, round: 1n }))
+          else driver.cancel(invocation)
+        }
+      if (mode === "completion-hook-throws")
+        hooks.beforeCompletion = () => {
+          throw new Error("injected completion fault")
+        }
+      if (mode === "external-abort") hooks.beforeProvider = () => controller.abort()
+      if (mode === "cancel-before-install")
+        hooks.beforeInstall = ({ invocation, generation, driver }) => {
+          if (generation === 0n || triggered) return
+          triggered = true
+          driver.cancel(invocation)
+        }
+      if (mode === "cancel-before-terminal")
+        hooks.beforeTerminal = ({ invocation, driver }) => {
+          if (triggered) return
+          triggered = true
+          driver.cancel(invocation)
+        }
+      const wrapped =
+        mode === "resume-throws"
+          ? {
+              ...artifacts,
+              composition: {
+                ...artifacts.composition,
+                resume() {
+                  throw new Error("injected artifact fault")
+                }
               }
             }
+          : artifacts
+      const driver = createOwnedArtifactDriver({
+        owner,
+        initialState: initial(),
+        scope,
+        artifacts: wrapped,
+        registry,
+        hooks,
+        foreign: async ([request], options) => {
+          requests++
+          if (
+            ["cancel-inflight", "cancel-inflight-success"].includes(mode) &&
+            !triggered &&
+            request.operation.$ === "Types.CaptureSource"
+          ) {
+            const pending = registry
+              .get(Number(request.invocation))
+              .perform(request, mode === "cancel-inflight-success" ? { ...options, signal: undefined } : options)
+            triggered = true
+            beforeCancelResumes = driver.stats.resumes
+            driver.cancel(request.invocation)
+            return pureReply(await pending)
           }
-        : artifacts
-    const driver = createOwnedArtifactDriver({
-      owner,
-      initialState: initial(),
-      scope,
-      artifacts: wrapped,
-      registry,
-      hooks,
-      foreign: async ([request], options) => {
-        requests++
-        if (
-          ["cancel-inflight", "cancel-inflight-success"].includes(mode) &&
-          !triggered &&
-          request.operation.$ === "Types.CaptureSource"
-        ) {
-          const pending = registry
-            .get(Number(request.invocation))
-            .perform(request, mode === "cancel-inflight-success" ? { ...options, signal: undefined } : options)
-          triggered = true
-          beforeCancelResumes = driver.stats.resumes
-          driver.cancel(request.invocation)
-          return pureReply(await pending)
+          if (mode === "late-rejection") throw new Error("injected late provider rejection")
+          return pureReply(await registry.get(Number(request.invocation)).perform(request, options))
         }
-        if (mode === "late-rejection") throw new Error("injected late provider rejection")
-        return pureReply(await registry.get(Number(request.invocation)).perform(request, options))
+      })
+      const resolver = createBendResolver({
+        registry,
+        drive: driver.drive,
+        allocateInvocation: driver.allocateInvocation,
+        onConstructionFailure: driver.constructionFailed
+      })
+      const context = {
+        root,
+        rootIdentity,
+        policy: DEFAULT_DIRECT_FILE_POLICY,
+        branch: "type",
+        ...(configuration === undefined
+          ? {}
+          : { analysisConfiguration: { go: configuration }, analysisConfigurationIdentity: "configured-go" }),
+        limits: GRAPH_LIMIT_CEILINGS,
+        now: () => 0,
+        captureCache: new Map(),
+        captureSource: (...args) =>
+          captureStable(...args).pipe(
+            Effect.tap((result) =>
+              Effect.sync(() => {
+                if (result.status === "captured") captureSuccesses++
+              })
+            )
+          )
       }
-    })
-    const resolver = createBendResolver({
-      registry,
-      drive: driver.drive,
-      allocateInvocation: driver.allocateInvocation,
-      onConstructionFailure: driver.constructionFailed
-    })
-    const context = {
-      root,
-      rootIdentity,
-      policy: DEFAULT_DIRECT_FILE_POLICY,
-      branch: "type",
-      limits: GRAPH_LIMIT_CEILINGS,
-      now: () => 0,
-      captureCache: new Map(),
-      captureSource: (...args) =>
-        captureStable(...args).pipe(
-          Effect.tap((result) =>
-            Effect.sync(() => {
-              if (result.status === "captured") captureSuccesses++
+      if (mode === "unit-budget") {
+        const full = await Effect.runPromise(
+          resolveGraphUnit(fixturePath, fixtureCapture, "Root", { ...context, captureCache: new Map() })
+        )
+        assert.ok(full)
+        const bytes = Buffer.byteLength(JSON.stringify(full))
+        for (const treeBytes of [bytes - 1, bytes, bytes + 1]) {
+          const bounded = { ...context, limits: { ...context.limits, treeBytes }, captureCache: new Map() }
+          const expected = await Effect.runPromise(
+            resolveGraphUnit(fixturePath, fixtureCapture, "Root", { ...bounded, captureCache: new Map() })
+          )
+          assert.deepEqual(
+            await resolver(fixturePath, fixtureCapture, "Root", bounded),
+            expected,
+            fixturePath + " treeBytes=" + treeBytes
+          )
+        }
+      } else if (mode === "construction-throws") {
+        await assert.rejects(
+          resolver(fixturePath, { ...fixtureCapture, byteLength: undefined }, "Root", context),
+          TypeError
+        )
+      } else if (mode === "two-roots" || mode === "between-roots") {
+        const expected = await Effect.runPromise(
+          resolveGraphUnit(fixturePath, fixtureCapture, "Root", { ...context, captureCache: new Map() })
+        )
+        assert.deepEqual(await resolver(fixturePath, fixtureCapture, "Root", context), expected)
+        if (mode === "between-roots") {
+          driver.canonicalEvent(c("InterruptPreparation", { partition: 1n, lifetime: 1n, round: 1n, operation: 2n }))
+          await assert.rejects(resolver(fixturePath, fixtureCapture, "Second", context), /NotPreparing/)
+        } else {
+          const second = await Effect.runPromise(
+            resolveGraphUnit(fixturePath, fixtureCapture, "Second", { ...context, captureCache: new Map() })
+          )
+          assert.deepEqual(await resolver(fixturePath, fixtureCapture, "Second", context), second)
+          driver.canonicalEvent(
+            c("PreparationCompleted", {
+              partition: 1n,
+              lifetime: 1n,
+              round: 1n,
+              operation: 2n,
+              unit_bytes: { $: "Con", head: 100n, tail: { $: "Con", head: 100n, tail: { $: "Nil" } } }
             })
           )
-        )
-    }
-    if (mode === "construction-throws") {
-      await assert.rejects(
-        resolver("root.py", { ...captured.capture, byteLength: undefined }, "Root", context),
-        TypeError
-      )
-    } else if (mode === "two-roots" || mode === "between-roots") {
-      const expected = await Effect.runPromise(
-        resolveGraphUnit("root.py", captured.capture, "Root", { ...context, captureCache: new Map() })
-      )
-      assert.deepEqual(await resolver("root.py", captured.capture, "Root", context), expected)
-      if (mode === "between-roots") {
-        driver.canonicalEvent(c("InterruptPreparation", { partition: 1n, lifetime: 1n, round: 1n, operation: 2n }))
-        await assert.rejects(resolver("root.py", captured.capture, "Second", context), /NotPreparing/)
+          assert.equal(driver.stats.accepted, 2)
+          assert.equal(driver.stats.launches, 2)
+          assert.equal(owner.live(driver.state.canonical, scope), false)
+        }
       } else {
-        const second = await Effect.runPromise(
-          resolveGraphUnit("root.py", captured.capture, "Second", { ...context, captureCache: new Map() })
+        await assert.rejects(
+          resolver(fixturePath, fixtureCapture, "Root", context, { signal: controller.signal }),
+          mode === "completion-hook-throws"
+            ? /injected completion fault/
+            : mode === "resume-throws"
+              ? /injected artifact fault/
+              : mode === "cancel-before-install"
+                ? /WrongGeneration/
+                : mode === "cancel-before-terminal"
+                  ? /WrongPhase/
+                  : /InvocationCancelled/
         )
-        assert.deepEqual(await resolver("root.py", captured.capture, "Second", context), second)
-        driver.canonicalEvent(
-          c("PreparationCompleted", {
-            partition: 1n,
-            lifetime: 1n,
-            round: 1n,
-            operation: 2n,
-            unit_bytes: { $: "Con", head: 100n, tail: { $: "Con", head: 100n, tail: { $: "Nil" } } }
-          })
-        )
-        assert.equal(driver.stats.accepted, 2)
-        assert.equal(driver.stats.launches, 2)
-        assert.equal(owner.live(driver.state.canonical, scope), false)
+        assert.equal(driver.stats.accepted, 0)
+        if (["cancel-provider", "retire-provider", "late-rejection"].includes(mode))
+          assert.equal(driver.stats.resumes, 0)
+        if (["cancel-inflight", "cancel-inflight-success"].includes(mode)) {
+          assert.equal(triggered, true)
+          assert.equal(driver.stats.resumes, beforeCancelResumes)
+        }
+        if (mode === "cancel-inflight-success")
+          assert.ok(captureSuccesses > 0, "physical late capture succeeds while session registration is revoked")
       }
-    } else {
-      await assert.rejects(
-        resolver("root.py", captured.capture, "Root", context, { signal: controller.signal }),
-        mode === "completion-hook-throws"
-          ? /injected completion fault/
-          : mode === "resume-throws"
-            ? /injected artifact fault/
-            : mode === "cancel-before-install"
-              ? /WrongGeneration/
-              : mode === "cancel-before-terminal"
-                ? /WrongPhase/
-                : /InvocationCancelled/
+      assert.deepEqual(
+        driver.resources,
+        { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 },
+        mode + " cleanup"
       )
-      assert.equal(driver.stats.accepted, 0)
-      if (["cancel-provider", "retire-provider", "late-rejection"].includes(mode)) assert.equal(driver.stats.resumes, 0)
-      if (["cancel-inflight", "cancel-inflight-success"].includes(mode)) {
-        assert.equal(triggered, true)
-        assert.equal(driver.stats.resumes, beforeCancelResumes)
-      }
-      if (mode === "cancel-inflight-success")
-        assert.ok(captureSuccesses > 0, "physical late capture succeeds while session registration is revoked")
+      assert.equal(registry.size, 0)
+      const rootFds = await Promise.all(
+        (await readdir("/proc/self/fd")).map((fd) => readlink("/proc/self/fd/" + fd).catch(() => ""))
+      )
+      assert.equal(
+        rootFds.filter((path) => path === root || path.startsWith(root + "/")).length,
+        0,
+        mode + " physical root-owned descriptors"
+      )
+      assert.equal(driver.stats.providerStarts, driver.stats.providerCleanups, mode + " provider lease cleanup")
+      totalRequests += requests
+      cases++
     }
-    assert.deepEqual(
-      driver.resources,
-      { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 },
-      mode + " cleanup"
-    )
-    assert.equal(registry.size, 0)
-    const rootFds = await Promise.all(
-      (await readdir("/proc/self/fd")).map((fd) => readlink("/proc/self/fd/" + fd).catch(() => ""))
-    )
-    assert.equal(
-      rootFds.filter((path) => path === root || path.startsWith(root + "/")).length,
-      0,
-      mode + " physical root-owned descriptors"
-    )
-    assert.equal(driver.stats.providerStarts, driver.stats.providerCleanups, mode + " provider lease cleanup")
-    totalRequests += requests
-    cases++
   }
   console.log(
     JSON.stringify({

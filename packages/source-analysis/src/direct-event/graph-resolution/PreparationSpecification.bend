@@ -34,7 +34,7 @@ def stage(state: State, stage: Stage) -> State:
 
 def invocation(input: T.ResolverInput) -> Nat:
   match input:
-    case T.ResolverInput{invocation, _, _, _, _, _, _, _, _}: invocation
+    case T.ResolverInput{invocation, _, _, _, _, _, _, _, _, _, _}: invocation
 
 def begin(-World: Data, +input: T.ResolverInput, clock: T.ClockToken,
     next_request: Nat, world: E.WorldState<World>) -> Progress<World>:

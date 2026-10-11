@@ -75,7 +75,7 @@ def request_completion(
 ) -> Loop.Continuation:
   match allowed:
     case False{}: Loop.ServiceStep{T.FinishedResolver{T.NoReviewUnit{}, S.state_frame(state)}}
-    case True{}: completion_product(Root.unit(frame), state)
+    case True{}: completion_product(Root.prepared_unit(frame, S.state_prepared(state)), state)
 
 def next_clock(clock: Maybe<&2, T.ClockToken>, state: T.ResolverState) -> Loop.Continuation:
   match clock:

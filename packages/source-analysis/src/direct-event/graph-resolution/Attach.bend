@@ -108,7 +108,7 @@ def attachment(attachment: Maybe<&2, Compose.Attachment>, child: T.TentativeChil
         case Compose.Attachment{_, _, _, _, _, _, ids, _, _}:
           +updated = attached_frame(attachment, frame)
           request_candidate(
-            Root.unit(updated),
+            Root.prepared_unit(updated, S.state_prepared(state)),
             child,
             ids,
             previous,
