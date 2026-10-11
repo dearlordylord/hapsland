@@ -1,11 +1,13 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
-const folder = import.meta.dirname,
+const root = join(import.meta.dirname, "../../.."),
+  folder = join(root, "packages/source-analysis/src/direct-event/graph-resolution"),
+  results = join(root, ".test-runs/bend-migration"),
   temporary = mkdtempSync("/tmp/hapsland-runtime-model-")
 const wrapper = join(folder, ".runtime-model-check-" + temporary.split("/").at(-1) + ".bend")
 const label = (value) => value.$.split(".").at(-1)
@@ -240,8 +242,8 @@ def main() -> Unit:
         )
     ].map((run) => run())
   }
-  let prefixes = [initial],
-    frontier = [initial]
+  const prefixes = [initial]
+  let frontier = [initial]
   for (let depth = 0; depth < 2; depth++) {
     frontier = frontier.flatMap(choices)
     prefixes.push(...frontier)
@@ -318,27 +320,15 @@ def main() -> Unit:
     rawInvariantComparisons,
     schedulerComparisons,
     invariantHash: createHash("sha256")
-      .update(
-        readFileSync(
-          join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeInvariant.bend")
-        )
-      )
+      .update(readFileSync(join(folder, "RuntimeInvariant.bend")))
       .digest("hex"),
     specificationHash: createHash("sha256")
-      .update(
-        readFileSync(
-          join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeSpecification.bend")
-        )
-      )
+      .update(readFileSync(join(folder, "RuntimeSpecification.bend")))
       .digest("hex"),
     at: new Date().toISOString(),
     runtime: typeof Bun === "undefined" ? "node" : "bun",
     modelHash: createHash("sha256")
-      .update(
-        readFileSync(
-          join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeModel.bend")
-        )
-      )
+      .update(readFileSync(join(folder, "RuntimeModel.bend")))
       .digest("hex"),
     waitingInvocationDoesNotRepeat: true,
     foreignCancellationAndCompletionAreIdentity: true,
@@ -356,8 +346,9 @@ def main() -> Unit:
     scope:
       "Finite compiled instances of the fixed runtime shell around actual Machine.initial/resume; pure Nat world with stateful suspend/reject responses. Not universal proof, descriptor cleanup, frontend correctness, graph correspondence or performance qualification."
   }
+  mkdirSync(results, { recursive: true })
   writeFileSync(
-    join(folder, "runtime-model-" + record.runtime + "-evidence.json"),
+    join(results, "runtime-model-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify(record))

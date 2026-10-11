@@ -133,6 +133,9 @@ One current obstacle list, in execution order:
    subsequent source changes require another pushed checkpoint. Three obsolete
    scheduler compiler-control roots and their dead runner map entries were
    removed after Astra review; canonical scheduler proof roots remain required.
+   The relocated compiled scheduler runner now imports the current source owner
+   and stores diagnostic results in `.test-runs/bend-migration`; its actual run
+   passed 2,212 scheduler comparisons and 1,806 cancellation suffix comparisons.
 2. Qualify new named `check:bend-preparation:sources`, `:protocol` and
    `:consumer` gates against current paths. Ordinary lint and root TypeScript
    coverage remain required; root typechecking includes the relocated TS reference
@@ -164,6 +167,18 @@ One current obstacle list, in execution order:
    Replace that whole application finalization child rather than exporting the
    extracted native implementation; compiled consumers must use emitted exports.
    Retained host bindings must enter normal compiler/declaration receipts.
+   Astra reviewed the whole finalization replacement on 2026-10-11: reuse
+   `ProductValue`, captures and ordered units/declarations; Bend selects root
+   evidence, validates/sorts dependency fingerprints, computes omissions and
+   capabilities, selects ordered rules and their first matching frozen target,
+   and constructs the complete input and identity bytes. Host may perform
+   SHA-256 and mechanical freezing, but not Hapsland glob policy or input/identity
+   selection. Preserve partial-unit `complete:true` rule selection, restricted
+   capabilities, UTF-16/JSON canonical semantics, identity exclusion of locations
+   and fingerprints, and best-effort omission diagnostics. The acceptance
+   comparison must exercise native `prepareObservation` against the compiled
+   preparation API, including ordered inputs, identities, omissions and failures;
+   finalization correspondence joins the whole Preparation trace/custody law.
 6. Pass required local gates and paired build/execution parity on that connected
    candidate. Previous measurements qualify only their original source paths and
    inputs; source moves do not inherit their qualification. Current relocated
