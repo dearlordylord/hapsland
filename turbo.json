@@ -1734,7 +1734,8 @@
         "@hapsland/review-execution#build",
         "@hapsland/runtime-environment#build",
         "@hapsland/runtime-inputs#build",
-        "@hapsland/source-analysis#build"
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-artifacts#build"
       ],
       "inputs": [
         "src/**",
