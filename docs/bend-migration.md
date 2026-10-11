@@ -348,18 +348,22 @@ One current obstacle list, in execution order:
    graph/language package policy and orchestration only with their qualified
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
-   Production artifact assembly is also open: resident Source/Post and resolver
-   cores currently come from verification emission. The precompile runner now
-   derives required entry methods from the existing authored default-core ABI,
-   rather than imposing initial/advance/resume on every core. Two focused tests
-   and lint of all three changed scripts pass; the first actual workspace run was rejected because concurrent proof edits
-   changed authored inputs. The frozen retry passes all 46 tasks, 11 cached,
-   at 57.845 seconds, including real existing private-core emission. This
-   qualifies that assembly change, not whole preparation adoption. Source/Post now have a private recipe and closed authored ABI declarations
-   in resident preparation. The full Source verification consumer loads both
-   packaged cores directly, with no temporary-emission fallback; actual build
-   and full-consumer qualification are pending. Resolver artifact shipping and
-   the complete production entrypoint remain to connect through their owners.
+   Production artifact assembly now ships Source/Post through the resident
+   preparation private recipe and closed authored ABIs. The normal precompile
+   runner validates each core's declared entry methods, rather than imposing
+   initial/advance/resume. Generated Turbo inputs include the recipe closure.
+   Actual frozen workspace build passes 46/46 tasks (15 cached, 46.206 seconds);
+   all 23 compiler receipts pass under the same declared producer environment.
+   The full Source consumer loads both packaged cores with no temporary-emission
+   fallback: 56 cases, 6348 requests and 31 independent native comparisons pass
+   through the normal Node capability runner. Node is required by the physical
+   fs observer: its builtin-export probe sees one intercepted call, while Bun
+   sees zero; the failed Bun run is not qualification. check:fast passes 109
+   unit tests, typing and dependency checks; explicit lint covers both authored
+   declarations and the changed consumer, independently of zero-file changed
+   lint. Resolver artifact shipping and the complete production entrypoint
+   remain open. No whole preparation adoption or TS deletion is claimed.
+
 6. Pass all selected local acceptance gates and strict paired performance on the
    connected candidate. Latest existing-production 944af1e0 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
