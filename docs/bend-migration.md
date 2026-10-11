@@ -226,13 +226,18 @@ One current obstacle list, in execution order:
    connected: **0**; replaced production TypeScript removed: **0**. A connected
    candidate resolver, source relocation or backup does not change those counts.
 6. Pass selected local acceptance checks and strict paired build/execution parity
-   on the connected candidate. Latest frozen pair at 2056488b started
-   2026-10-11T12:47:03.353852Z / 12:50:20.354958Z. Both qualified; build failed
-   parity at **1.1507634472705122**, execution passed at **0.7363771544916771**.
-   Records remain ignored under .test-runs/bend-migration/performance. Next start
-   deadlines are 13:17:03 / 13:20:20 UTC. These measure existing production, not
-   unadopted Go preparation. Diagnose build costs before changing performance
-   code; no production emitter deadline was raised or affinity added. Earlier
+   on the connected candidate. Latest frozen pair at 186b00aa started
+   2026-10-11T13:21:32.390895Z / 13:27:37.709375Z. Both qualified; build failed
+   parity at **1.1470986775083787**, execution passed at **0.7299762437945972**.
+   The preceding 13:17:03 / 13:20:20 UTC start deadlines were both missed;
+   these later runs do not erase those cadence failures. Next start deadlines
+   are 13:51:32 / 13:57:37 UTC. Records remain ignored under
+   .test-runs/bend-migration/performance. These measure existing production,
+   not unadopted Go preparation. Warm prerequisite first failed with the
+   unchanged PreparationFinalization emitter's five-second timeout. Isolated
+   emission passed in 2.128 seconds; a subsequent full warm passed 46/46 tasks
+   in 48.941 seconds. No production emitter deadline was raised or affinity
+   added. Diagnose build costs before changing performance code. Earlier
    missed cadence starts remain failures; later timely pairs do not erase them.
 
 Keep this list current by removing closed work and naming specific remaining
