@@ -395,7 +395,8 @@ One current obstacle list, in execution order:
    sequential frozen measurement. This breach remains observed; build failure
    still blocks strict overall parity. The next 10:49:44 build start deadline
    was missed while qualifying Go extraction and correcting ABI kinds/locations;
-   the next frozen pair is still required.
+   the 10:53:09 execution start deadline was also missed during Go ABI
+   qualification. The next frozen pair is still required.
    The previous pair at 1a61bacc measured 1.0181202463/0.7812988998. Its
    09:20:57 build and 09:26:41 execution
    cadence deadlines were missed during physical qualification and diagnostic
@@ -425,3 +426,10 @@ One current obstacle list, in execution order:
 Keep this obstacle list current by removing closed work and naming specific
 remaining failures. Source backup, relocation and finite candidate qualification
 do not count as connected production Bend or removed replacement TypeScript.
+
+Current source-backup checkpoint: the ordinary Go ABI numeric canary and its
+service-session test are retained in the migration branch. Its latest execution
+failed because the imported constructor is named `../Types.GoFileSyntax` while
+the supplied value uses `Types.GoFileSyntax`. Correct that mechanical boundary
+before claiming this canary passes or advancing the complete Go consumer. This
+checkpoint preserves work; it does not qualify production adoption or parity.

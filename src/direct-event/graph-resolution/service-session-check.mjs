@@ -57,6 +57,17 @@ try {
     { timeout: 5000 }
   )
   const protocol = (await import(pathToFileURL(protocolPath))).default
+  const goProbePath = join(temporary, "go-probe.mjs")
+  execFileSync(
+    "bend",
+    [
+      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/go-module/ABIProbe.bend"),
+      "-o",
+      goProbePath
+    ],
+    { timeout: 5000 }
+  )
+  const goProbe = (await import(pathToFileURL(goProbePath))).default
   const directoryRequest = tagged("Request", {
     invocation: 1n,
     id: 2n,
@@ -183,6 +194,25 @@ try {
         }
       }
     }
+    let numericTotal = 0n
+    for (const row of rows) {
+      for (const value of [
+        row.id,
+        row.start,
+        row.end,
+        ...unlist(row.children),
+        ...unlist(row.fields).map((f) => f.child)
+      ])
+        numericTotal += BigInt(value)
+    }
+    for (const location of unlist(facts.type_locations))
+      if (location.$ === "Some")
+        for (const point of [location.value.start, location.value.end])
+          numericTotal += BigInt(point.line + point.column)
+    for (const group of unlist(facts.groups))
+      for (const member of unlist(group.members))
+        if (member.expression.$ === "Some") numericTotal += BigInt(member.expression.value) + 1n
+    assert.equal(goProbe.numeric_total(facts), numericTotal)
     assert.equal(facts.cgo, native.cgo)
     const checked = protocol.check(
       tagged("Request", { invocation: 1n, id: 2n, operation: tagged("InspectGoFile", { path: "root.go", capture }) }),
