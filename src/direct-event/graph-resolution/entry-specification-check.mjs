@@ -540,7 +540,17 @@ try {
       writeFileSync(path.join(directory, n), text)
     }
     for (const n of fixture.directories ?? []) mkdirSync(path.join(directory, n), { recursive: true })
-    const stable = (n) => ({ text: files.get(n), byteLength: Buffer.byteLength(files.get(n)) }),
+    const stable = (n) => {
+        const text = files.get(n),
+          bytes = new Uint8Array(Buffer.from(text, "utf8"))
+        return {
+          text,
+          bytes,
+          byteLength: bytes.byteLength,
+          contentHash: createHash("sha256").update(bytes).digest("hex"),
+          metadata: "immutable-fixture:" + n
+        }
+      },
       cache = fixture.cache === undefined ? undefined : new Map(fixture.cache),
       callerCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
     nativePorts.reset()
@@ -954,7 +964,13 @@ try {
             continuation: label(progress),
             nativeClocks: nativePhysical.filter((item) => item.kind === "clock").length,
             actualClocks: candidatePorts.filter((item) => item.kind === "clock").length,
-            nativeReturned: expected !== undefined
+            nativeReturned: expected !== undefined,
+            failure: progress.failure === undefined ? undefined : label(progress.failure),
+            providerFailure:
+              progress.failure !== undefined && label(progress.failure) === "ForeignProviderFailure"
+                ? session.exception(progress.failure.exception).message
+                : undefined,
+            lastRequest: trace.filter((item) => item.request !== undefined).at(-1)?.request
           })
         )
       assert.deepEqual(
