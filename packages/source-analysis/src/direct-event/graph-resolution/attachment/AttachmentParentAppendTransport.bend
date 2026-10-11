@@ -2,6 +2,7 @@ import Base
 import ./RetainedForestProjection.bend as P
 import ./AttachmentMapping.bend as Mapping
 import ./AttachmentNaturalArithmeticFacts.bend as Arithmetic
+import ./AttachmentUnaffectedNodesProof.bend as Unaffected
 import ./AttachmentRemapProjectionProof.bend as Remap
 import ./AttachmentNodeReplacementTransport.bend as Replacement
 import ./AttachmentProjectionAllowanceProof.bend as Count
@@ -991,6 +992,51 @@ def appended_forward(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Loc
   forward_appended_cursor(parents, children, slots, child_slots, 0n, List.length(&2, Local.PlannedNode, parents), dense,
     N.le_refl(List.length(&2, Local.PlannedNode, parents)), parent_forward,
     child_forward_combined(children, parents, slots, child_slots, dense, owned, child_forward))
+
+# A synchronized address prefix cannot shadow an absent numeric node. This
+# uses the original zipper, not a new well-formedness condition on its caller.
+def aligned_absent_lookup_step(+id: Nat, +other: Nat, +birth: O.NodeAddress,
+    +rest: List<&2, F.AddressEntry>, +tail: List<&2, Local.PlannedNode>, +query: Nat,
+    same: {id == other : Nat},
+    parts: {Nat.is_eq(query, id) == False{} : Bool} & {P.node_count(tail, query) == 0n : Nat},
+    recursive: {P.node_count(tail, query) == 0n : Nat} -> {F.address_at(rest, query) == None{} : Maybe<&2, O.NodeAddress>}) ->
+    {F.address_at(F.AddressEntry{other, birth} <> rest, query) == None{} : Maybe<&2, O.NodeAddress>}:
+  match parts:
+    case (different, tail_absent):
+      %Equal.sym(Bool, Nat.is_eq(other, query), False{},
+        %same: {Nat.is_eq(_, query) == False{} : Bool}
+        Equal.trans(Bool, Nat.is_eq(id, query), Nat.is_eq(query, id), False{},
+          Structure.is_eq_comm(id, query), different)):
+        {Bool.pick(Maybe<&2, O.NodeAddress>, _, Some{birth}, F.address_at(rest, query)) == None{} : Maybe<&2, O.NodeAddress>}
+      recursive(tail_absent)
+
+def aligned_absent_lookup(nodes: List<&2, Local.PlannedNode>, entries: List<&2, F.AddressEntry>,
+    +all_nodes: List<&2, Local.PlannedNode>, +all_entries: List<&2, F.AddressEntry>, +query: Nat,
+    +aligned: {P.aligned(nodes, entries, all_nodes, all_entries) == True{} : Bool},
+    absent: {P.node_count(nodes, query) == 0n : Nat}) ->
+    {F.address_at(entries, query) == None{} : Maybe<&2, O.NodeAddress>}:
+  match nodes entries:
+    case Nil{} Nil{}: {==}
+    case Con{Local.PlannedNode{+id, _}, +tail} Con{F.AddressEntry{+other, +birth}, +rest}:
+      +after_id: {Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+        Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(id, other),
+          Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), aligned)
+      +same: {id == other : Nat} = N.eq_of_is_eq(id, other,
+        B.eq_true_of_and_left(Nat.is_eq(id, other),
+          Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), aligned))
+      aligned_absent_lookup_step(id, other, birth, rest, tail, query, same,
+        Unaffected.zero_parts(Nat.is_eq(query, id), P.node_count(tail, query), absent),
+        tail_absent => aligned_absent_lookup(tail, rest, all_nodes, all_entries, query,
+          B.eq_true_of_and_right(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries),
+            B.eq_true_of_and_right(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+              Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)), after_id)), tail_absent))
+    case Nil{} Con{_, _}:
+      Empty.absurd({F.address_at(entries, query) == None{} : Maybe<&2, O.NodeAddress>}, B.internal_false_ne_true(aligned))
+    case Con{_, _} Nil{}:
+      Empty.absurd({F.address_at(entries, query) == None{} : Maybe<&2, O.NodeAddress>}, B.internal_false_ne_true(aligned))
 
 law parent_attachment_exact:
   for +parent_root: Nat

@@ -788,3 +788,19 @@ format or helper interface. Actual changed-source lint and physical
 retention-owned-joined-pending pass (513 preparation/51 post requests),
 including repeated accepted-result decoding and cleanup. The remaining
 development-import gate must be rechecked; whole regression/adoption stay open.
+
+Actual development-import gate after observation identity reports six violations.
+The complete owned-root consumer is now relocated from root src to resident
+preparation verification as artifact-owned-root-check.mjs; its private owned
+driver is local and resolver is consumed through the existing public capability.
+All native/cancellation fixtures remain, and preparation-consumer suite selects
+the new owner path. Actual changed-file lint passes; development imports now
+report five violations. First physical run stops before fixtures at GenericArtifact
+emission hard5 while the separate imports gate runs. The unchanged consumer
+is repeated after that gate becomes terminal; relocation remains unqualified
+until this real consumer passes. No new production helper export or exclusion.
+
+Astra's existing-list paired address-prefix no-shadow proof checks 4.781 seconds
+under hard5, with original premises/law unchanged. Exact row/count transport
+and full alignment remain required. Checked prefix and all owner move WIP
+are retained for remote backup; whole adoption/removal remain 0/0.
