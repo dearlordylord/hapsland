@@ -16,6 +16,10 @@ const artifactNamespaces = [
     "../../../../../source-analysis/src/direct-event/graph-resolution/go-module/" + name + "."
   ]),
   ["python-module/Session.", "../../../../../source-analysis/src/direct-event/graph-resolution/python-module/Session."],
+  [
+    "python-module/ArtifactProtocol.",
+    "../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol."
+  ],
   ["../../../../agent-flow-bend/ImportGraph.", "../../../../../agent-flow-bend/ImportGraph."]
 ]
 const artifactAbi = (value, intoArtifact) => {

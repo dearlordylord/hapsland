@@ -265,8 +265,24 @@ One current obstacle list, in execution order:
    duplicating that policy as a new acceptance prerequisite. Both the direct
    child import canary (2.696 seconds) and the raw-root PythonModule emission
    pass within the unchanged five-second limit. Runner raw capture now drives
-   prepare/inspect and compares root facts exactly; full continuation integration
-   and the unchanged full native corpus remain unqualified.
+   prepare/inspect and compares root facts exactly. The full driver now passes
+   its unchanged included corpus: 43 cases, 37 exact native comparisons,
+   including Python imports and no retained child continuation at completion.
+   Source-bearing Python command/result/view and Resolution now have one
+   declaration owner at source-analysis/python-module/ArtifactProtocol.bend;
+   resident lifecycle StateHandle/ProviderLease stay with the resident owner.
+   Driver mechanically relays a separately emitted PythonArtifact using the
+   exact saved request identity/payload; all continuation/accounting decisions
+   stay in Bend. Architectural review by Astra confirms dependency direction
+   and lifecycle separation. This split follows two measured five-second full
+   wrapper timeouts; direct machine import fitted alone, but not the specialized
+   consumer/proof closure. The attempted fixed String table lookup did not fix
+   it and was reverted. With the split, Driver definitions pass in 2.016 seconds,
+   attachment boundary in 1.915, and contract definitions in 3.257. These are
+   definition checks, not the still-open universal attachment proof. The actual
+   Canonical-owned consumer returned pass for 46 cases/2049 requests after the
+   protocol move, but two source format edits overlapped that run; retain it as
+   diagnostic only and rerun on stable inputs before acceptance.
    This finite traversal pass does not qualify the full expansion driver, all
    fixture ABI consumers or the remaining universal guarantees. No new law or weakened
    premise is claimed. Full materialization/transaction guarantees

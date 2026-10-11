@@ -2,6 +2,7 @@ import Base
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../../source-analysis/src/direct-event/graph-resolution/State.bend as S
 import ./ArtifactProtocol.bend as A
+import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.bend as P
 import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationModel.bend as Go
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Protocol.bend as Protocol
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Loop.bend as Loop
@@ -34,7 +35,7 @@ type ParentCommand is Data:
   ResumeParent{handle: A.StateHandle, event: T.ResolverEvent}
   Execute{action: A.ParentAction}
 type PythonDispatch is Data:
-  BeginPython{command: A.PythonCommand}
+  BeginPython{command: P.PythonCommand}
   ResumePython{handle: A.StateHandle, reply: T.Reply}
 type GoDispatch is Data:
   BeginGo{command: A.GoCommand}
@@ -164,13 +165,13 @@ def validation_result(
     case True{}: final_clock(S.state_clock(state), context, state, result)
 
 def import_allowed(allowed: Bool, context: Context, state: T.ResolverState, edge: Local.Pending,
-    result: Maybe<&2, A.Resolution>) -> Step:
+    result: Maybe<&2, P.Resolution>) -> Step:
   match allowed:
     case False{}: parent(context, A.PythonUnresolved{state})
     case True{}: parent(context, A.ImportResolved{state, edge, result})
 
 def import_result(frame: Maybe<&2, T.ResolverFrame>, +context: Context, +state: T.ResolverState,
-    edge: Local.Pending, +session: Python.Session, result: Maybe<&2, A.Resolution>) -> Step:
+    edge: Local.Pending, +session: Python.Session, result: Maybe<&2, P.Resolution>) -> Step:
   match frame:
     case None{}: malformed(context)
     case Some{+frame}: import_allowed(
@@ -184,22 +185,22 @@ def import_result(frame: Maybe<&2, T.ResolverFrame>, +context: Context, +state: 
       result
     )
 
-def returned(+context: Context, continuation: Return, result: A.PythonResult) -> Step:
+def returned(+context: Context, continuation: Return, result: P.PythonResult) -> Step:
   match continuation result:
-    case PreparationReturn{state} A.PreparationUnavailable{}: parent(context, A.Unavailable{})
-    case PreparationReturn{state} A.Prepared{session, cache}: parent(
+    case PreparationReturn{state} P.PreparationUnavailable{}: parent(context, A.Unavailable{})
+    case PreparationReturn{state} P.Prepared{session, cache}: parent(
       Context{owner(context), Some{session}, Some{cache}, census(context), go_session(context)},
       A.RootBudget{state}
     )
-    case RootReturn{state} A.Inspected{facts}: parent(
+    case RootReturn{state} P.Inspected{facts}: parent(
       context,
       A.RootInspected{state, source(facts)}
     )
-    case TargetReturn{state} A.Inspected{facts}: parent(
+    case TargetReturn{state} P.Inspected{facts}: parent(
       context,
       A.TargetInspected{state, source(facts)}
     )
-    case ImportReturn{+state, edge} A.Resolved{+session, result}: import_result(
+    case ImportReturn{+state, edge} P.Resolved{+session, result}: import_result(
       S.state_frame(state),
       with_session(context, Some{session}),
       state,
@@ -207,7 +208,7 @@ def returned(+context: Context, continuation: Return, result: A.PythonResult) ->
       session,
       result
     )
-    case ValidationReturn{state, result} A.Revalidated{session, valid}:
+    case ValidationReturn{state, result} P.Revalidated{session, valid}:
       validation_result(valid, with_session(context, Some{session}), state, result)
     case _ _: malformed(context)
 
@@ -215,20 +216,20 @@ def child_view(
   context: Context,
   continuation: Return,
   handle: A.StateHandle,
-  view: A.PythonView
+  view: P.PythonView
 ) -> Step:
   match view:
-    case A.Await{request, session, next}: Service{with_session(context, session),
+    case P.Await{request, session, next}: Service{with_session(context, session),
       PythonAwait{handle, with_return_next(continuation, next)}, request}
-    case A.Returned{result, next}: returned(context, with_return_next(continuation, next), result)
-    case A.Failed{failure, session, _}: failed(with_session(context, session), failure)
+    case P.Returned{result, next}: returned(context, with_return_next(continuation, next), result)
+    case P.Failed{failure, session, _}: failed(with_session(context, session), failure)
 
 def child_handle(
   valid: Bool,
   context: Context,
   continuation: Return,
   handle: A.StateHandle,
-  view: A.PythonView
+  view: P.PythonView
 ) -> Step:
   match valid:
     case True{}: child_view(context, continuation, handle, view)
@@ -288,7 +289,7 @@ def context_of(step: Step) -> Context:
     case Service{context, _, _}: context
     case Terminal{context, _}: context
 
-def receive_python(+step: Step, +handle: A.StateHandle, view: A.PythonView) -> Step:
+def receive_python(+step: Step, +handle: A.StateHandle, view: P.PythonView) -> Step:
   match step handle:
     case PythonCall{+context, continuation, _} A.StateHandle{invocation, _}:
       child_handle(Nat.is_eq(owner(context), invocation), context, continuation, handle, view)
@@ -329,7 +330,7 @@ def prepare(clock: Maybe<&2, T.ClockToken>, +context: Context, +state: T.Resolve
         context,
         PreparationReturn{state},
         BeginPython{
-          A.Prepare{
+          P.Prepare{
             S.input_root_path(input),
             S.input_root_capture(input),
             S.input_root_bytes(input),
@@ -354,7 +355,7 @@ def inspect(
   continuation: Return
 ) -> Step:
   +input = S.state_input(state)
-  PythonCall{context, continuation, BeginPython{A.Inspect{S.input_branch(input), path,
+  PythonCall{context, continuation, BeginPython{P.Inspect{S.input_branch(input), path,
     S.input_root_path(input), capture, owner(context), S.state_next_request(state)}}}
 
 def import_path(edge: Local.Pending) -> String:
@@ -379,7 +380,7 @@ def resolve(context: Context, +state: T.ResolverState, +edge: Local.Pending,
         Context{invocation, Some{session}, Some{cache}, census, go},
         ImportReturn{state, edge},
         BeginPython{
-          A.ResolveImport{
+          P.ResolveImport{
             session,
             Budget.remaining(census, frame),
             import_from(edge),
@@ -419,7 +420,7 @@ def validate(context: Context, +state: T.ResolverState, result: T.ResolverStep,
         Context{invocation, Some{session}, cache, census, go},
         ValidationReturn{state, result},
         BeginPython{
-          A.Revalidate{
+          P.Revalidate{
             session,
             Budget.remaining(census, frame),
             clock,

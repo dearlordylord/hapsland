@@ -62,6 +62,8 @@ def progress_world(-World: Data, progress: D.Progress<World>) -> Maybe<&2, E.Wor
     case D.DriverInvalid{_, world}: Some{world}
     case D.DriverFailed{_, _, world}: Some{world}
     case D.DriverWaiting{_, _}: None{}
+    case D.DriverChildBegin{_, _, world}: Some{world}
+    case D.DriverChildResume{_, _, _, world}: Some{world}
 
 def claim(-World: Data, +actual: T.ResolverState, +reference: D.State,
     +child: X.Child, +phase: Phase.Phase, +history: V.History,

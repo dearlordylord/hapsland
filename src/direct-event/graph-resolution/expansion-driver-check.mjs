@@ -123,7 +123,7 @@ function pathTables() {
 }
 function wrapper(tables) {
   let text =
-    "import Base\nimport ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\nimport ./python-module/Session.bend as Python\nimport ./ComposedBudget.bend as Budget\n"
+    "import Base\nimport ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\nimport ./python-module/Session.bend as Python\nimport ./ComposedBudget.bend as Budget\nimport ./python-module/ArtifactProtocol.bend as P\n"
   text +=
     'def path_read(result: Map<&2, String> & String) -> String:\n  match result:\n    case Tuple{_, value}: value\ndef path_get(table: Map<&2, String>, key: String) -> String:\n  path_read(Map.get(String, "__MISSING_PATH_FACT__", table, key))\ndef join_key(parts: List<&2, String>) -> String:\n  match parts:\n    case []: ""\n    case head <> tail: head ++ "|" ++ join_key(tail)\n'
   for (const [kind, table] of Object.entries(tables)) {
@@ -148,7 +148,7 @@ function wrapper(tables) {
   }
   return (
     text +
-    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: ArtifactValue.Binary64) -> Bool:\n  match bits:\n    case ArtifactValue.Binary64{high, _}: U32.is_gt(high, 0)\ndef selection(state: D.State) -> D.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef initial(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>) -> D.Progress<Nat>:\n  D.DriverReady{D.begin(config, frame, [], ids, 2n, 37n), E.WorldState{0n, []}}\ndef initial_python(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>, session: Python.Session, cache: T.CacheToken, census: Budget.Census, next: Nat) -> D.Progress<Nat>:\n  D.DriverReady{D.with_python(D.begin(config, frame, [], ids, 2n, next), session, cache, census), E.WorldState{0n, []}}\ndef advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.advance(~selection, ~reply, Nat, suspend, progress)\ndef complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:\n  D.complete(~reply, Nat, progress, completion)\ndef cancel(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.cancel(Nat, progress)\ndef main() -> Unit:\n  Unit{}\n`
+    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: ArtifactValue.Binary64) -> Bool:\n  match bits:\n    case ArtifactValue.Binary64{high, _}: U32.is_gt(high, 0)\ndef selection(state: D.State) -> D.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef initial(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>) -> D.Progress<Nat>:\n  D.DriverReady{D.begin(config, frame, [], ids, 2n, 37n), E.WorldState{0n, []}}\ndef initial_python(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>, session: Python.Session, cache: T.CacheToken, census: Budget.Census, next: Nat) -> D.Progress<Nat>:\n  D.DriverReady{D.with_python(D.begin(config, frame, [], ids, 2n, next), session, cache, census), E.WorldState{0n, []}}\ndef advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.advance(~selection, ~reply, Nat, suspend, progress)\ndef complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:\n  D.complete(~reply, Nat, progress, completion)\ndef child_completed(progress: D.Progress<Nat>, view: P.PythonView) -> D.Progress<Nat>:\n  D.child_completed(Nat, progress, view)\ndef cancel(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.cancel(Nat, progress)\ndef main() -> Unit:\n  Unit{}\n`
   )
 }
 function event(e) {
@@ -219,6 +219,7 @@ try {
     "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/PythonModule.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/ComposedBudget.bend",
+    "../../../packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/Traversal.bend",
@@ -252,6 +253,21 @@ try {
   async function compile(name, file = path.join(sourceOwner, name + ".bend")) {
     const output = path.join(temporary, name + ".mjs")
     execFileSync("bend", [file, "-o", output], { timeout: 5000, maxBuffer: 2 ** 20 })
+    if (name === "PythonArtifact") {
+      // Rebase nominal owners mechanically across independently emitted artifacts.
+      const emitted = readFileSync(output, "utf8")
+      const ownerPrefix = '"../../../../../source-analysis/src/direct-event/graph-resolution/'
+      assert.ok(emitted.includes(ownerPrefix), "Python artifact declaration owner")
+      writeFileSync(
+        output,
+        emitted
+          .replaceAll(ownerPrefix, '"')
+          .replaceAll(
+            '"../../../../../source-artifacts/src/direct-event/value/Value.',
+            '"../../../../source-artifacts/src/direct-event/value/Value.'
+          )
+      )
+    }
     if (name === "DriverCheck") {
       let js = readFileSync(output, "utf8")
       for (const kind of Object.keys(tables)) {
@@ -272,7 +288,11 @@ try {
     forest = await compile("ForestSpecification"),
     policy = await compile("GraphSpecification"),
     python = await compile("PythonModule"),
-    composedBudget = await compile("ComposedBudget")
+    composedBudget = await compile("ComposedBudget"),
+    pythonArtifact = await compile(
+      "PythonArtifact",
+      path.join(root, "packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend")
+    )
   const nativeCopy = path.join(temporary, "native.mjs"),
     nativeSource = readFileSync(nativePath, "utf8").replaceAll(
       /from "(\.{1,2}\/[^"]+)"/g,
@@ -521,15 +541,46 @@ try {
             targetIds,
             preparedPython.session,
             preparedPython.cache,
-            composedBudget.initial(selected, BigInt(stable(selected).byteLength)),
+            { ...composedBudget.initial(selected, BigInt(stable(selected).byteLength)), $: "ComposedBudget.Census" },
             initialRequestId
           )
         : bound.initial(config, frame, targetIds),
       requests = 0,
       steps = 0
-    const trace = []
-    while (["DriverReady", "DriverSelected", "DriverWaiting"].includes(label(progress))) {
+    const trace = [],
+      pythonChildren = new Map()
+    const childKey = (request) => `${request.invocation}:${request.id}`
+    while (
+      ["DriverReady", "DriverSelected", "DriverWaiting", "DriverChildBegin", "DriverChildResume"].includes(
+        label(progress)
+      )
+    ) {
       assert.ok(++steps < 20000, "mathematical evaluation bound is not normal completion")
+      if (["DriverChildBegin", "DriverChildResume"].includes(label(progress))) {
+        let child
+        if (label(progress) === "DriverChildBegin") child = pythonArtifact.begin(progress.command)
+        else {
+          const key = childKey(progress.request),
+            saved = pythonChildren.get(key)
+          assert.ok(saved, "Python child exact saved request identity")
+          assert.deepEqual(
+            canonical(saved.request),
+            canonical(progress.request),
+            "Python child original request payload"
+          )
+          pythonChildren.delete(key)
+          child = pythonArtifact.resume(saved.child, progress.reply)
+        }
+        const view = pythonArtifact.view(child)
+        if (label(view) === "Await") {
+          const key = childKey(view.request)
+          assert.ok(!pythonChildren.has(key), "Python child request cannot be overwritten")
+          pythonChildren.set(key, { child, request: view.request })
+        }
+        trace.push({ child: label(view) })
+        progress = bound.child_completed(progress, view)
+        continue
+      }
       if (["DriverReady", "DriverSelected"].includes(label(progress))) {
         trace.push({ stage: label(progress.state.stage), command: label(progress.state.frame.command) })
         progress = bound.advance(progress)
@@ -594,6 +645,7 @@ try {
         JSON.stringify({ trace, progress }, (_k, v) => (typeof v === "bigint" ? String(v) : v), 2)
       )
     assert.equal(label(progress), "DriverFinished", fixture.name + " terminal")
+    assert.equal(pythonChildren.size, 0, fixture.name + " no retained Python continuation")
     const actual = label(progress.product) === "None" ? undefined : fromProductValue(progress.product.value)
     assert.equal(JSON.stringify(actual), JSON.stringify(expected), fixture.name + " exact returned product/order")
     const final = progress.state.frame
@@ -731,9 +783,16 @@ try {
         ? { kind: "file", path: target.path, name: target.name }
         : { kind: "bundled", declaration: withoutKey(target.declaration), source: canonical(target.source) })
     }))
+    const nativeTargetEdgeId = (edge) => {
+      const slots = [...native.pending].filter(
+        ([, pending]) => pending.owner === edge.owner && pending.index === edge.index
+      )
+      assert.equal(slots.length, 1, "target clone has one exact native owner slot")
+      return slots[0][0]
+    }
     const nativeTargets = [...native.pathForTarget].map(([id, x]) => ({
       id,
-      edge: nativePending([...native.pending].find(([, value]) => value === x.edge)?.[0], x.edge),
+      edge: nativePending(nativeTargetEdgeId(x.edge), x.edge),
       ...(x.kind === "file"
         ? { kind: "file", path: x.path, name: x.name }
         : {

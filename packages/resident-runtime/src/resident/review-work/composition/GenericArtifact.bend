@@ -2,6 +2,7 @@ import Base
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../../source-analysis/src/direct-event/graph-resolution/State.bend as S
 import ./ArtifactProtocol.bend as A
+import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.bend as P
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Loop.bend as Loop
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Machine.bend as Machine
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Resolve.bend as Resolve
@@ -20,12 +21,25 @@ def rename(edge: Local.Pending, name: String) -> Local.Pending:
 def unresolved(frame: Maybe<&2, T.ResolverFrame>, state: T.ResolverState) -> Loop.Continuation:
   match frame:
     case None{}: Machine.malformed()
-    case Some{frame}: Resolve.progressed(False{}, state, Resolve.allocated(frame, Graph.Unhandled{}))
+    case Some{frame}: Resolve.progressed(
+      False{},
+      state,
+      Resolve.allocated(frame, Graph.Unhandled{})
+    )
 
-def resolved(result: Maybe<&2, A.Resolution>, edge: Local.Pending, +state: T.ResolverState) -> Loop.Continuation:
+def resolved(
+  result: Maybe<&2, P.Resolution>,
+  edge: Local.Pending,
+  +state: T.ResolverState
+) -> Loop.Continuation:
   match result:
     case None{}: unresolved(S.state_frame(state), state)
-    case Some{A.Resolution{path, name}}: Resolve.select_path(S.state_frame(state), Some{rename(edge, name)}, path, state)
+    case Some{P.Resolution{path, name}}: Resolve.select_path(
+      S.state_frame(state),
+      Some{rename(edge, name)},
+      path,
+      state
+    )
 
 def action(command: A.ParentAction) -> Loop.Continuation:
   match command:

@@ -4,9 +4,7 @@ import ./BoundaryValidationSpecification.bend as Boundary
 import ./SourceValidationSpecification.bend as SourceValidation
 import ./Types.bend as T
 import ./python-module/Session.bend as Python
-import ./python-module/ResolveImportMachine.bend as PythonImport
-import ./python-module/InspectMachine.bend as PythonInspect
-import ./python-module/RevalidationMachine.bend as PythonRevalidation
+import ./python-module/ArtifactProtocol.bend as P
 import ./ComposedBudget.bend as Budget
 import ./WholeObservation.bend as O
 import ./Environment.bend as E
@@ -58,7 +56,7 @@ type Stage is Data:
   Transaction{transaction: X.Transaction}
   Completion{partial: Maybe<&2, G.Reason>}
   AwaitCompletion{product: ArtifactValue.ProductValue}
-  PythonImporting{edge: X.Edge, child: PythonImport.Step}
+  PythonImporting{edge: X.Edge, pending: Maybe<&2, T.Request>}
   PythonInspectStart{
     id: Nat,
     target: Target,
@@ -73,10 +71,10 @@ type Stage is Data:
     path: String,
     bytes: Nat,
     before: Nat,
-    child: PythonInspect.Step
+    pending: Maybe<&2, T.Request>
   }
   PythonValidationStart{product: ArtifactValue.ProductValue}
-  PythonValidating{product: ArtifactValue.ProductValue, child: PythonRevalidation.Step}
+  PythonValidating{product: ArtifactValue.ProductValue, pending: Maybe<&2, T.Request>}
   AwaitFinalDeadline{product: ArtifactValue.ProductValue}
 type PythonContext is Data:
   PythonContext{session: Python.Session, cache: T.CacheToken, census: Budget.Census}
@@ -87,6 +85,8 @@ type State is Data:
 type Selection is Data:
   Internal{state: State}
   Selected{state: State, operation: T.Operation}
+  ChildBegin{state: State, command: P.PythonCommand}
+  ChildResume{state: State, request: T.Request, reply: T.Reply}
   Success{state: State, product: Maybe<&2, ArtifactValue.ProductValue>}
   EvaluationExhausted{state: State}
   InvariantFailed{state: State}
@@ -95,6 +95,8 @@ type Progress<-World: Data> is Data:
   DriverReady{state: State, world: E.WorldState<World>}
   DriverSelected{state: State, operation: T.Operation, world: E.WorldState<World>}
   DriverWaiting{state: State, exchange: E.Exchange<World>}
+  DriverChildBegin{state: State, command: P.PythonCommand, world: E.WorldState<World>}
+  DriverChildResume{state: State, request: T.Request, reply: T.Reply, world: E.WorldState<World>}
   DriverFinished{
     state: State,
     product: Maybe<&2, ArtifactValue.ProductValue>,
@@ -700,32 +702,18 @@ def renamed_edge(edge: X.Edge, name: String) -> X.Edge:
 def python_resolution(
   +state: State,
   edge: X.Edge,
-  resolution: Maybe<&2, PythonImport.Resolution>,
+  resolution: Maybe<&2, P.Resolution>,
   available: Bool
 ) -> Selection:
   match resolution available:
-    case Some{PythonImport.Resolution{path, name}} True{}: chosen_path(
+    case Some{P.Resolution{path, name}} True{}: chosen_path(
       state,
       renamed_edge(edge, name),
       path
     )
     case _ _: allocated(state, G.Unhandled{}, False{})
 
-def python_import_step(+state: State, +edge: X.Edge, +child: PythonImport.Step) -> Selection:
-  match child:
-    case PythonImport.Await{child_state, +pending}:
-      child_request(
-        synchronized(state, PythonImport.state_session(child_state)),
-        PythonImporting{edge, child},
-        pending
-      )
-    case PythonImport.Returned{+session, resolution, next}:
-      python_resolution(with_next(synchronized(state, session), next), edge, resolution,
-        python_available(synchronized(state, session)))
-    case PythonImport.Failed{failure, session, next}: Rejected{
-      with_next(synchronized(state, session), next),
-      failure
-    }
+
 
 def python_import(
   +state: State,
@@ -741,10 +729,10 @@ def python_import(
       _,
       _
     }
-      PythonContext{session, cache, +census} Config{owner, root, _, _, clock, _}:
-      python_import_step(state, edge, PythonImport.begin(session,
+      PythonContext{session, cache, census} Config{owner, root, _, _, clock, _}:
+      ChildBegin{stage(state, PythonImporting{edge, None{}}), P.ResolveImport{session,
         Budget.remaining_usage(source_usage(state, census), limits(frame(state))),
-        from, imported, name, root, clock, cache, separator, owner, next_request(state)))
+        from, imported, name, root, clock, cache, separator, owner, next_request(state)}}
     case _ _ _: InvariantFailed{state}
 
 def chosen_paths(+state: State, +edge: X.Edge, +paths: List<&2, String>) -> Selection:
@@ -1458,29 +1446,7 @@ def python_inspected(+state: State, id: Nat, target: Target, path: String, bytes
       T.SourceInspected{facts}
     )
 
-def python_inspect_step(
-  +state: State,
-  +id: Nat,
-  +target: Target,
-  +path: String,
-  +bytes: Nat,
-  +before: Nat,
-  +child: PythonInspect.Step
-) -> Selection:
-  match child:
-    case PythonInspect.Await{_, +pending}:
-      child_request(state, PythonInspecting{id, target, path, bytes, before, child}, pending)
-    case PythonInspect.Returned{facts, next}: python_inspected(
-      state,
-      id,
-      target,
-      path,
-      bytes,
-      before,
-      facts,
-      next
-    )
-    case PythonInspect.Failed{failure}: Rejected{state, failure}
+
 
 def python_inspect_begin(
   +state: State,
@@ -1493,15 +1459,11 @@ def python_inspect_begin(
   observed: Config
 ) -> Selection:
   match observed:
-    case Config{owner, root, _, T.PythonSourceContext{T.TypeBranch{}}, _, _}:
-      python_inspect_step(state, id, target, path, bytes, before,
-        PythonInspect.begin(T.TypeBranch{}, path, root, capture, owner, next_request(state)))
-    case Config{owner, root, _, _, _, _}:
-      python_inspect_step(state, id, target, path, bytes, before,
-        PythonInspect.begin(T.FunctionBranch{}, path, root, capture, owner, next_request(state)))
+    case Config{owner, root, _, T.PythonSourceContext{branch}, _, _}:
+      ChildBegin{stage(state, PythonInspecting{id, target, path, bytes, before, None{}}),
+        P.Inspect{branch, path, root, capture, owner, next_request(state)}}
+    case _: InvariantFailed{state}
 
-# Bundled traversal reuses absolute handles and raw source/catalog pairing.
-# Only its ordinary declaration lookup map is cloned under the artifact name.
 def bundle_catalog(+state: State, +target: Nat, +edge: X.Edge,
     +declaration: T.FactDeclaration, +source: T.SourceFacts,
     +catalog: Root.Source, +bytes: Nat, found: Maybe<&2, Local.Declaration>) -> Selection:
@@ -1696,40 +1658,15 @@ def python_validated(+state: State, product: ArtifactValue.ProductValue, valid: 
     case False{}: no_unit(state)
     case True{}: final_clock(state, product, config(state))
 
-def python_validation_step(
-  +state: State,
-  +product: ArtifactValue.ProductValue,
-  +child: PythonRevalidation.Step
-) -> Selection:
-  match child:
-    case PythonRevalidation.Await{child_state, +pending}:
-      child_request(
-        synchronized(state, PythonRevalidation.state_session(child_state)),
-        PythonValidating{product, child},
-        pending
-      )
-    case PythonRevalidation.Returned{session, valid, next}:
-      python_validated(with_next(synchronized(state, session), next), product, valid)
-    case PythonRevalidation.Failed{failure}: Rejected{state, failure}
+
 
 def python_validation_begin(+state: State, product: ArtifactValue.ProductValue, separator: String,
     python: Maybe<&2, PythonContext>, observed: Config) -> Selection:
   match python observed:
     case Some{PythonContext{session, _, census}} Config{owner, _, _, _, clock, _}:
-      python_validation_step(
-        state,
-        product,
-        PythonRevalidation.begin(
-          Python.with_remaining(
-            session,
-            Budget.remaining_usage(source_usage(state, census), limits(frame(state)))
-          ),
-          clock,
-          separator,
-          owner,
-          next_request(state)
-        )
-      )
+      ChildBegin{stage(state, PythonValidating{product, None{}}), P.Revalidate{session,
+        Budget.remaining_usage(source_usage(state, census), limits(frame(state))),
+        clock, separator, owner, next_request(state)}}
     case None{} _: InvariantFailed{state}
 
 def terminal_product(
@@ -1750,6 +1687,98 @@ def completed(+state: State, +product: ArtifactValue.ProductValue, +allowed: Boo
   match allowed:
     case False{}: no_unit(state)
     case True{}: terminal_product(state, product, python_context(state))
+
+# Child steps are emitted separately. The saved request names an immutable
+# continuation in the mechanical interpreter, not a production provider lease.
+# Begin/resume/view all execute the existing PythonArtifact implementation.
+def python_resume(
+  +state: State,
+  pending: Maybe<&2, T.Request>,
+  outcome: T.ServiceOutcome
+) -> Selection:
+  match pending:
+    case Some{+pending}: ChildResume{state, pending, child_reply(pending, outcome)}
+    case None{}: InvariantFailed{state}
+
+def optional_session(+state: State, session: Maybe<&2, Python.Session>) -> State:
+  match session:
+    case None{}: state
+    case Some{session}: synchronized(state, session)
+
+def python_await_stage(+state: State, +pending: T.Request, next: Nat, saved: Stage) -> Selection:
+  match saved:
+    case PythonImporting{edge, _}:
+      child_request_at(state, PythonImporting{edge, Some{pending}}, pending,
+        Nat.is_eq(next, Nat.add(next_request(state), 1n)))
+    case PythonInspecting{id, target, path, bytes, before, _}:
+      child_request_at(
+        state,
+        PythonInspecting{id, target, path, bytes, before, Some{pending}},
+        pending,
+        Nat.is_eq(next, Nat.add(next_request(state), 1n))
+      )
+    case PythonValidating{product, _}:
+      child_request_at(state, PythonValidating{product, Some{pending}}, pending,
+        Nat.is_eq(next, Nat.add(next_request(state), 1n)))
+    case _: InvariantFailed{state}
+
+def state_stage(state: State) -> Stage:
+  match state:
+    case State{_, _, _, _, _, _, _, stage, _}: stage
+
+def python_await(+state: State, +pending: T.Request, next: Nat, valid: Bool) -> Selection:
+  match valid:
+    case False{}: InvariantFailed{state}
+    case True{}: python_await_stage(state, pending, next, state_stage(state))
+
+def python_await_request(+state: State, +pending: T.Request, next: Nat) -> Selection:
+  match pending:
+    case T.Request{owner, id, _}:
+      python_await(state, pending, next,
+        Bool.and(Nat.is_eq(owner, invocation(config(state))), Nat.is_eq(id, next_request(state))))
+
+def python_returned(+state: State, result: P.PythonResult, saved: Stage) -> Selection:
+  match result saved:
+    case P.Resolved{+session, resolution} PythonImporting{edge, _}:
+      python_resolution(
+        synchronized(state, session),
+        edge,
+        resolution,
+        python_available(synchronized(state, session))
+      )
+    case P.Inspected{facts} PythonInspecting{id, target, path, bytes, before, _}:
+      python_inspected(state, id, target, path, bytes, before, facts, next_request(state))
+    case P.Revalidated{session, valid} PythonValidating{product, _}:
+      python_validated(synchronized(state, session), product, valid)
+    case _ _: Rejected{state, T.WrongReplyKind{}}
+
+def python_return_checked(+state: State, result: P.PythonResult, valid: Bool) -> Selection:
+  match valid:
+    case False{}: InvariantFailed{state}
+    case True{}: python_returned(state, result, state_stage(state))
+
+def python_failed(+state: State, failure: T.TechnicalFailure, next: Maybe<&2, Nat>) -> Selection:
+  match next:
+    case None{}: Rejected{state, failure}
+    case Some{next}: Rejected{with_next(state, next), failure}
+
+def receive_python(+state: State, view: P.PythonView) -> Selection:
+  match view:
+    case P.Await{pending, session, next}: python_await_request(
+      optional_session(state, session),
+      pending,
+      next
+    )
+    case P.Returned{result, next}: python_return_checked(
+      state,
+      result,
+      Nat.is_eq(next, next_request(state))
+    )
+    case P.Failed{failure, session, next}: python_failed(
+      optional_session(state, session),
+      failure,
+      next
+    )
 
 def choose(
   ~absolute: String -> Bool,
@@ -1823,53 +1852,11 @@ def choose(
     case State{_, _, _, _, _, _, _, Completion{+partial}, +python}: completion(fuel, state, partial)
     case _: InvariantFailed{state}
 
-def python_import_reply(
-  state: State,
-  edge: X.Edge,
-  +child: PythonImport.Step,
-  outcome: T.ServiceOutcome
-) -> Selection:
-  match child:
-    case PythonImport.Await{_, pending}: python_import_step(
-      state,
-      edge,
-      PythonImport.resume(child, child_reply(pending, outcome))
-    )
-    case _: InvariantFailed{state}
 
-def python_inspect_reply(
-  state: State,
-  id: Nat,
-  target: Target,
-  path: String,
-  bytes: Nat,
-  before: Nat,
-  +child: PythonInspect.Step,
-  outcome: T.ServiceOutcome
-) -> Selection:
-  match child:
-    case PythonInspect.Await{_, pending}:
-      python_inspect_step(
-        state,
-        id,
-        target,
-        path,
-        bytes,
-        before,
-        PythonInspect.resume(child, child_reply(pending, outcome))
-      )
-    case _: InvariantFailed{state}
 
-def python_validation_reply(state: State, product: ArtifactValue.ProductValue,
-    +child: PythonRevalidation.Step, outcome: T.ServiceOutcome) -> Selection:
-  match child:
-    case PythonRevalidation.Await{_, pending}:
-      python_validation_step(
-        state,
-        product,
-        PythonRevalidation.resume(child, child_reply(pending, outcome))
-      )
-    case _: InvariantFailed{state}
+
+
+
 
 def consume(
   ~dirname: String -> String,
@@ -1880,12 +1867,12 @@ def consume(
   +outcome: T.ServiceOutcome
 ) -> Selection:
   match state outcome:
-    case State{_, _, _, _, _, _, _, PythonImporting{edge, +child}, _} _:
-      python_import_reply(state, edge, child, outcome)
-    case State{_, _, _, _, _, _, _, PythonInspecting{id, target, path, bytes, before, +child}, _} _:
-      python_inspect_reply(state, id, target, path, bytes, before, child, outcome)
-    case State{_, _, _, _, _, _, _, PythonValidating{product, +child}, _} _:
-      python_validation_reply(state, product, child, outcome)
+    case State{_, _, _, _, _, _, _, PythonImporting{_, pending}, _} _:
+      python_resume(state, pending, outcome)
+    case State{_, _, _, _, _, _, _, PythonInspecting{_, _, _, _, _, pending}, _} _:
+      python_resume(state, pending, outcome)
+    case State{_, _, _, _, _, _, _, PythonValidating{_, pending}, _} _:
+      python_resume(state, pending, outcome)
     case State{_, _, _, _, _, _, _, AwaitFinalDeadline{product}, _} T.ClockRead{bits}:
       final_deadline(state, product, Bool.or(expired(bits), Bool.not(python_available(state))))
     case _ T.ProviderRejected{+exception}: Rejected{state, T.ForeignProviderFailure{exception}}
@@ -1983,6 +1970,14 @@ def consumed(-World: Data, +selection: Selection, +world: E.WorldState<World>) -
     case InvariantFailed{+state}: DriverInvalid{state, world}
     case Rejected{+state, +failure}: DriverFailed{state, failure, world}
     case Selected{+state, +operation}: DriverSelected{state, operation, world}
+    case ChildBegin{state, command}: DriverChildBegin{state, command, world}
+    case ChildResume{state, request, reply}: DriverChildResume{state, request, reply, world}
+
+def child_completed(-World: Data, progress: Progress<World>, view: P.PythonView) -> Progress<World>:
+  match progress:
+    case DriverChildBegin{state, _, world}: consumed(World, receive_python(state, view), world)
+    case DriverChildResume{state, _, _, world}: consumed(World, receive_python(state, view), world)
+    case _: progress
 
 def validated(~consume: State -> T.ServiceOutcome -> Selection, -World: Data,
     failure: Maybe<&2, T.TechnicalFailure>, state: State,
@@ -2090,6 +2085,8 @@ def cancelled(-World: Data, +state: State, +world: E.WorldState<World>) -> Progr
 def cancel(-World: Data, +progress: Progress<World>) -> Progress<World>:
   match progress:
     case DriverReady{+state, +world}: cancelled(World, state, world)
+    case DriverChildBegin{state, _, world}: cancelled(World, state, world)
+    case DriverChildResume{state, _, _, world}: cancelled(World, state, world)
     case DriverSelected{+state, _, +world}: cancelled(World, state, world)
     case DriverWaiting{+state, E.Waiting{+world, _, _}}: cancelled(World, state, world)
     case +other: other
