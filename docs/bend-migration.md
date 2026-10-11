@@ -205,11 +205,19 @@ One current obstacle list, in execution order:
    construction-failure callback. Its standalone machine/IO drivers and counter
    live only in the verification owner; production no longer selects that fallback.
    Actual Canonical-owned resident 13 and whole source 50 cases passed. The
-   standalone machine check still rejects local Child expansion (unsupported
-   instead of expanded); the pre-change factory/driver from bb343b0a reproduced
-   the same failure against current frontends/artifacts. This isolates today's
-   driver extraction, not the broader semantic fault, which remains an acceptance
-   blocker. Construction cleanup must preserve all falsy failure occurrences and
+   standalone machine check originally rejected local Child expansion because the
+   frontend encoded ./traversal/core.* while the pinned emitted root uses
+   traversal/core.*. Both absolute and relative emissions confirmed that exact ABI.
+   The codec and mechanical preparation/resident rebase now match the emitted
+   names; the native local Child fixture passes. The unfiltered machine check
+   advances to go-root-type, returning no unit where native requires the Go unit.
+   Go/session integration remains a whole-unit acceptance
+   blocker. The corrected ABI passed ordinary workspace build 46/46, 23 receipts,
+   14 preparation cases, whole source 50 and resident 64. Result construction passed
+   four native fixtures, including exact empty sourceDependencies under the current
+   native producer contract. Changed authored-file lint selected 14 files; check:fast
+   passed source typechecking and 109 tests but still failed development imports
+   (five unresolved, 47 undeclared, 212 private cross-owner). Construction cleanup must preserve all falsy failure occurrences and
    retain pending session/invocation obligations through the existing owner registry;
    an inactive child alone cannot discharge failed Canonical cancellation actions.
    Source-analysis still needs an opaque resolver/session capability. Resident's

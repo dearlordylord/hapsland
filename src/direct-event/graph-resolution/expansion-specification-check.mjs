@@ -265,19 +265,19 @@ try {
     assert.ok(artifact, fixture.name + " child catalog artifact")
     const handle = artifact.handle ?? artifact.id
     const local = {
-      $: "./traversal/core.Declaration",
+      $: "traversal/core.Declaration",
       handle,
       identity: declaration.artifact.id,
       function: declaration.artifact.kind === "function",
       bundled: !!declaration.artifact.origin,
       references: list(
         declaration.references.map((ref) => ({
-          $: "./traversal/core.Reference",
-          kind: { $: "./traversal/core." + (ref.kind === "unsupported" ? "Unsupported" : "Named") },
+          $: "traversal/core.Reference",
+          kind: { $: "traversal/core." + (ref.kind === "unsupported" ? "Unsupported" : "Named") },
           name: ref.name,
           expected: {
             $:
-              "./traversal/core." +
+              "traversal/core." +
               (ref.expectedKind === "function" ? "FunctionKind" : ref.expectedKind === "type" ? "TypeKind" : "AnyKind")
           },
           target: maybe(ref.targetId)
@@ -386,7 +386,7 @@ try {
       source: childEncoded,
       bytes: BigInt(isBundle ? Buffer.byteLength(declaration.artifact.source) : childCapture.byteLength),
       name,
-      expected: { $: "./traversal/core." + (isBundle ? "AnyKind" : expected) },
+      expected: { $: "traversal/core." + (isBundle ? "AnyKind" : expected) },
       declaration: local,
       catalog: { ...catalog, $: "SPEC.Source" },
       local_work_before: BigInt(nativeBefore)

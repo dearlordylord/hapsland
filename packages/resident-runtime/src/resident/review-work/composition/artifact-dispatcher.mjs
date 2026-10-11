@@ -10,7 +10,7 @@ const artifactNamespaces = [
     name + ".",
     "../../../../../source-analysis/src/direct-event/graph-resolution/" + name + "."
   ]),
-  ["./traversal/core.", "../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."],
+  ["traversal/core.", "../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."],
   ["python-module/Session.", "../../../../../source-analysis/src/direct-event/graph-resolution/python-module/Session."],
   ["../../../../agent-flow-bend/ImportGraph.", "../../../../../agent-flow-bend/ImportGraph."]
 ]

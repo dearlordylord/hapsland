@@ -11,7 +11,7 @@ import tx from "/tmp/hapsland-attachment-transaction-probe.mjs"
 const fp = "../whole-resolver/ForestSpecification.",
   tp = "../whole-resolver/Types.",
   sp = "../local-graph-draft/SPEC.",
-  cp = "./traversal/core."
+  cp = "traversal/core."
 const list = (xs) => xs.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const arr = (xs) => (xs.$ === "Nil" ? [] : [xs.head, ...arr(xs.tail)])
 const artifact = {

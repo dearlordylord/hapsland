@@ -206,7 +206,7 @@ try {
         $: "Omitted",
         symbol: { $: "ReferenceSymbol", text: "" },
         target: { $: "ReferenceSymbol", text: "" },
-        reason: { $: "./traversal/core.Unavailable" }
+        reason: { $: "traversal/core.Unavailable" }
       })
       assert.equal(label(empty), "Replaced")
       assert.equal(

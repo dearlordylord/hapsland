@@ -93,7 +93,7 @@ export function artifact(value: ReviewArtifact) {
 }
 const expected = (kind: GraphReference["expectedKind"]) => {
   if (kind !== undefined && kind !== "type" && kind !== "function") throw new Error("invalid expected kind")
-  return { $: "./traversal/core." + (kind === "type" ? "TypeKind" : kind === "function" ? "FunctionKind" : "AnyKind") }
+  return { $: "traversal/core." + (kind === "type" ? "TypeKind" : kind === "function" ? "FunctionKind" : "AnyKind") }
 }
 function declaration(
   key: string,
@@ -115,7 +115,7 @@ function declaration(
     references: list(
       value.references.map((ref) =>
         tagged("FactReference", {
-          kind: { $: "./traversal/core." + (ref.kind === "named" ? "Named" : "Unsupported") },
+          kind: { $: "traversal/core." + (ref.kind === "named" ? "Named" : "Unsupported") },
           name: ref.name,
           expected: expected(ref.expectedKind),
           target: maybe(ref.targetId)

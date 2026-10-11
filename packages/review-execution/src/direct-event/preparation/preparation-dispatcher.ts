@@ -3,7 +3,7 @@ import type { Input, Step, Request, Reply } from "./preparation-core.js"
 type ResolverTag<Tag> = Tag extends `../../../../source-analysis/src/direct-event/graph-resolution/Types.${infer Name}`
   ? `Types.${Name}`
   : Tag extends `../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.${infer Name}`
-    ? `./traversal/core.${Name}`
+    ? `traversal/core.${Name}`
     : Tag
 export type ResolverWire<Value> = Value extends object
   ? { [Key in keyof Value]: Key extends "$" ? ResolverTag<Value[Key]> : ResolverWire<Value[Key]> }
@@ -22,7 +22,7 @@ type Projection =
 // the preparation artifact root.
 const importedTags = [
   ["Types.", "../../../../source-analysis/src/direct-event/graph-resolution/Types."],
-  ["./traversal/core.", "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."]
+  ["traversal/core.", "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."]
 ] as const
 const preparationAbi = (value: unknown, intoPreparation: boolean): unknown => {
   if (Array.isArray(value)) return value.map((item) => preparationAbi(item, intoPreparation))

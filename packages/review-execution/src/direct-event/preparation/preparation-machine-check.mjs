@@ -185,13 +185,15 @@ try {
                 options.omitted && ordinal === 1
                   ? [
                       {
-                        $: "./traversal/core.ReferenceSlot",
+                        $: "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.ReferenceSlot",
                         owner: 1n,
                         index: 0n,
                         symbol: "missing",
                         reference: {
-                          $: "./traversal/core.Omitted",
-                          reason: { $: "./traversal/core.Unresolved" },
+                          $: "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.Omitted",
+                          reason: {
+                            $: "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.Unresolved"
+                          },
                           target_name: "missing"
                         }
                       }

@@ -1,7 +1,7 @@
 import { artifactValueTag, list, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import {
@@ -24,9 +24,9 @@ try {
     { timeout: 5000 }
   )
   const source = readFileSync(program, "utf8")
-  assert.ok(source.includes("./traversal/core.PlannedNode"))
+  assert.ok(source.includes("traversal/core.PlannedNode"))
   const { default: core } = await import(pathToFileURL(program)),
-    local = (name, fields = {}) => ({ $: "./traversal/core." + name, ...fields }),
+    local = (name, fields = {}) => ({ $: "traversal/core." + name, ...fields }),
     typed = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
   const root = {
       path: "root.ts",
@@ -93,7 +93,7 @@ try {
   assert.equal(JSON.stringify(plain), JSON.stringify(expected))
   const bare = core.review_unit(0n, nodes, refs, entries, list([]))
   assert.equal(bare.$, "Some")
-  assert.deepEqual(Object.keys(fromProductValue(bare.value)), ["root"])
+  assert.deepEqual(fromProductValue(bare.value), { ...expected, sourceDependencies: [] })
   const badOrder = {
     ...artifact(root),
     order: list([
@@ -470,7 +470,7 @@ try {
     unreachableRejectedNodesAllowed: true,
     missingOrDuplicateAttachmentRejected: true,
     propertyOrder: true,
-    absentOptionalDependencies: true,
+    emptySourceDependenciesPreserved: true,
     artifactOriginOrder: true,
     duplicateArtifactFieldsRejected: true,
     duplicateHandlesRejected: true,
@@ -478,7 +478,12 @@ try {
     scope:
       "compiled pure Bend entire result construction over flat graph addresses; full resolver orchestration/integration/proofs pending"
   }
-  writeFileSync(join(folder, "result-" + record.runtime + "-evidence.json"), JSON.stringify(record, null, 2) + "\n")
+  const evidenceDirectory = join(folder, "../../../.test-runs/bend-migration")
+  mkdirSync(evidenceDirectory, { recursive: true })
+  writeFileSync(
+    join(evidenceDirectory, "result-" + record.runtime + "-evidence.json"),
+    JSON.stringify(record, null, 2) + "\n"
+  )
   console.log(JSON.stringify(record))
 } finally {
   rmSync(temporary, { recursive: true, force: true })
