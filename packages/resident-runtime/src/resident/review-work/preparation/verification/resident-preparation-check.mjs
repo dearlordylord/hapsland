@@ -87,6 +87,7 @@ const scenarios = [
   ),
   scenario("two-roots", twoDeclarations, { compareNative: true }),
   scenario("first-refused", twoDeclarations, { expected: { selected: 2n, units: 1 } }),
+  scenario("parent-cancel-between-reads", twoDeclarations),
   scenario("parent-cancel-late-success", twoDeclarations),
   scenario("parent-cancel-late-rejection", twoDeclarations),
   scenario("parent-cancel-finalization-gate", twoDeclarations),
@@ -432,7 +433,9 @@ try {
     let cancelled = false,
       roots = 0,
       physicalLateSuccess = 0,
-      acceptedAtFinalizationCancel
+      acceptedAtFinalizationCancel,
+      captureReads = 0,
+      betweenReads = 0
     const context = {
       root,
       rootIdentity,
@@ -441,6 +444,21 @@ try {
       limits: GRAPH_LIMIT_CEILINGS,
       now: () => 0,
       captureCache: cache,
+      ...(mode === "parent-cancel-between-reads"
+        ? {
+            captureHooks: {
+              sourceRead() {
+                captureReads++
+              },
+              betweenReads: () =>
+                Effect.sync(() => {
+                  betweenReads++
+                  cancelled = true
+                  driver.cancel(parentInvocation)
+                }).pipe(Effect.andThen(Effect.never))
+            }
+          }
+        : {}),
       captureSource: (...args) =>
         captureStable(...args).pipe(
           Effect.tap((result) =>
@@ -574,8 +592,7 @@ try {
         }
         if (request.operation) {
           if (
-            mode.startsWith("parent-cancel") &&
-            mode !== "parent-cancel-finalization-gate" &&
+            ["parent-cancel-late-success", "parent-cancel-late-rejection"].includes(mode) &&
             !cancelled &&
             request.operation.$ === "Types.CaptureSource"
           ) {
@@ -691,7 +708,15 @@ try {
     }
     if (mode.startsWith("parent-cancel")) {
       assert.ok(outcome.failure)
-      if (mode === "parent-cancel-finalization-gate") {
+      if (mode === "parent-cancel-between-reads") {
+        assert.equal(cancelled, true)
+        assert.equal(captureReads, 1)
+        assert.equal(betweenReads, 1)
+        assert.equal(cache.size, 0)
+        assert.equal(roots, 0)
+        assert.equal(physicalLateSuccess, 0)
+        assert.equal(driver.stats.accepted, 0)
+      } else if (mode === "parent-cancel-finalization-gate") {
         assert.equal(cancelled, true)
         assert.equal(roots, 2)
         assert.equal(physicalLateSuccess, 0)

@@ -698,3 +698,11 @@ requests, including dependency-as-candidate, normalized repeat and exact unavail
 path semantics. Physical betweenReads cancellation and full Source rerun after
 signal changes remain open; configuration/digest read timing is a separate pending
 port gap. Original guarantees and whole production adoption are not yet qualified.
+
+Actual betweenReads cancellation now qualifies its physical port vector: the
+resident consumer performs one native capture read, cancels the parent invocation
+in CaptureHooks.betweenReads, and passes with no second read, cache entry, root
+launch or accepted result. Existing terminal resource/FD cleanup assertions pass.
+The two-request focused case and actual runner lint pass; full Source and the
+expanded complete resident corpus still require repetition on the final candidate.
+This closes the observed signal-forwarding failure vector, not whole adoption.
