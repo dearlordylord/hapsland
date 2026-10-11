@@ -519,3 +519,20 @@ claiming full entry correspondence. The existing parent attachment transport
 has two new internal definitions saved as unverified work; its original law
 and premises remain unchanged. Public adoption and removed production TS
 remain zero.
+
+The next independent EntryDriverCheck emission passed in 2.634 seconds under
+hard five seconds. Full entry diagnostics then isolated missing host bindings:
+Python InspectSource incorrectly dereferenced the intentionally absent legacy
+parserBinding; it now uses the existing inspectSourceFrontend. SelectContextPath
+uses the existing selectedByDirectFilePolicy binding. Python cycle, diamond and
+alias fixtures pass product/state/effect comparisons with 6/6 clock reads.
+The existing imported-Child fixture now completes with 23/23 clocks and exact
+external chronology, including actual Python cache writes and path membership.
+Go native lstat is also observed, preserving its corresponding membership calls.
+The next failure is retained target edge identity: looking up an ID in the final
+pending map loses IDs after consumption. The checker now observes actual edge
+registration and copies that diagnostic identity when native resolution renames
+an edge. The rename observation remains unverified until the next full run.
+ParentAppendTransport registered-fields/tentative-success definitions check;
+its new append transport still has a syntax failure and the original parent
+law remains open. None of these intermediate results establishes public adoption.

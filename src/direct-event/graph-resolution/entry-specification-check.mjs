@@ -17,6 +17,7 @@ import { inspectRust, inspectRustModules } from "@hapsland/source-analysis/direc
 import {
   eligibleNamedPath,
   contextDirectFilePolicy,
+  selectedByDirectFilePolicy,
   DEFAULT_DIRECT_FILE_POLICY
 } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
@@ -28,7 +29,10 @@ import {
   tomlValue
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createEntryReferenceDriver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/entry-driver-check.mjs"
-import { parsePythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
+import {
+  parsePythonSyntax,
+  inspectSourceFrontend
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
@@ -421,6 +425,11 @@ try {
   )
   goModuleSource = instrument(
     goModuleSource,
+    'import { lstat, opendir } from "node:fs/promises";',
+    `import {opendir} from "node:fs/promises";import {lstat} from "${pathToFileURL(portCopy)}";`
+  )
+  goModuleSource = instrument(
+    goModuleSource,
     "host.captureCache?.set(candidate, found);",
     'host.captureCache?.set(candidate, found);if(host.captureCache!==undefined)events.push({kind:"cacheStore",role:"caller",path:candidate,capture:found});'
   )
@@ -529,15 +538,19 @@ try {
     'target.edge.owner.references[target.edge.index] = {\n        kind: "expanded",',
     'registerBirth(child.node); target.edge.owner.references[target.edge.index] = {\n        kind: "expanded",'
   )
+  observed = instrument(observed, "frame.pending.set(id, edge);", "frame.pending.set(id, edge);edgeIds.set(edge,id);")
+  observed = instrument(observed, "{ ...edge, name: resolved.name }", "observedRenamedEdge(edge,resolved.name)")
   observed = instrument(observed, "return frame;", "nativeFrame=frame;registerBirth(frame.unit.root);return frame;")
   writeFileSync(
     nativeCopy,
     observed +
-      `\nconst nativeEvents=[]; let preFrameObservation,preFrameReason,nativeFrame;let birth=new WeakMap(),episode=0;
- function resetBirth(){preFrameObservation=undefined;preFrameReason=undefined;nativeFrame=undefined;birth=new WeakMap();episode=0}
+      `\nconst nativeEvents=[]; let preFrameObservation,preFrameReason,nativeFrame;let birth=new WeakMap(),edgeIds=new WeakMap(),episode=0;
+ function resetBirth(){preFrameObservation=undefined;preFrameReason=undefined;nativeFrame=undefined;birth=new WeakMap();edgeIds=new WeakMap();episode=0}
  function registerBirth(root){const current=++episode;function visit(node,route){if(birth.has(node))throw Error('node birth was renamed');birth.set(node,[current,route]);for(const [index,reference]of node.references.entries())if(reference.kind==='expanded')visit(reference.node,[...route,index])}visit(root,[])}
+ function observedRenamedEdge(edge,name){const renamed={...edge,name};edgeIds.set(renamed,edgeId(edge));return renamed}
+ function edgeId(edge){const id=edgeIds.get(edge);if(id===undefined)throw Error("unobserved edge registration");return id}
  function birthAddress(node){const value=birth.get(node);if(value===undefined)throw Error('unobserved node construction');return value}
- export {prepareGraphFrame,graphIteration,nativeEvents,resetBirth,registerBirth,birthAddress,preFrameObservation,preFrameReason,nativeFrame};\n`
+ export {prepareGraphFrame,graphIteration,nativeEvents,resetBirth,registerBirth,birthAddress,preFrameObservation,preFrameReason,nativeFrame,edgeId};\n`
   )
   const nativeModule = await import(pathToFileURL(nativeCopy))
   const { prepareGraphFrame, graphIteration, nativeEvents, resetBirth, birthAddress } = nativeModule
@@ -720,6 +733,7 @@ try {
         candidatePorts.push({ kind: "clock", value })
         return value
       },
+      selectContextPath: (n) => selectedByDirectFilePolicy(n, contextDirectFilePolicy(context.policy)),
       access: async (n) => {
         const value = await Effect.runPromise(eligibleNamedPath(directory, n, contextDirectFilePolicy(context.policy)))
         candidatePorts.push({
@@ -782,6 +796,10 @@ try {
           "exact frontend branch"
         )
         const requestedBranch = label(frontend.branch) === "FunctionBranch" ? "function" : "type"
+        if (selected.endsWith(".py")) {
+          parsedPythonText = text
+          return inspectSourceFrontend(n, text, frontend)
+        }
         if (rust && requestedBranch === "function") {
           candidatePorts.push({ kind: "frontend", path: n, text, branch: requestedBranch, facts: undefined })
           return undefined
@@ -919,6 +937,19 @@ try {
           path: path.join(directory, request.operation.path),
           status: label(response.outcome.status)
         })
+      if (label(request.operation) === "ReadPathMembership") {
+        const membership = response.outcome.membership
+        candidatePorts.push({
+          kind: "status",
+          path: path.join(directory, request.operation.path),
+          status:
+            label(membership) === "MembershipPresent"
+              ? membership.is_file
+                ? "ExistingFile"
+                : "ExistingOther"
+              : "FileAbsent"
+        })
+      }
       if (["StoreCaptureCache", "InsertRootCaptureCache"].includes(label(request.operation))) {
         const op = request.operation,
           entries = session.cacheSnapshot(op.cache)
@@ -990,25 +1021,24 @@ try {
           offset++
         }
       }
-      if (selected.endsWith(".go"))
-        console.log(
-          JSON.stringify({
-            diagnostic: "entry phase",
-            fixture: fixture.name,
-            phase: label(entry),
-            stage: label(entry.state.stage),
-            continuation: label(progress),
-            nativeClocks: nativePhysical.filter((item) => item.kind === "clock").length,
-            actualClocks: candidatePorts.filter((item) => item.kind === "clock").length,
-            nativeReturned: expected !== undefined,
-            failure: progress.failure === undefined ? undefined : label(progress.failure),
-            providerFailure:
-              progress.failure !== undefined && label(progress.failure) === "ForeignProviderFailure"
-                ? session.exception(progress.failure.exception).message
-                : undefined,
-            lastRequest: trace.filter((item) => item.request !== undefined).at(-1)?.request
-          })
-        )
+      console.log(
+        JSON.stringify({
+          diagnostic: "entry phase",
+          fixture: fixture.name,
+          phase: label(entry),
+          stage: label(entry.state.stage),
+          continuation: label(progress),
+          nativeClocks: nativePhysical.filter((item) => item.kind === "clock").length,
+          actualClocks: candidatePorts.filter((item) => item.kind === "clock").length,
+          nativeReturned: expected !== undefined,
+          failure: progress.failure === undefined ? undefined : label(progress.failure),
+          providerFailure:
+            progress.failure !== undefined && label(progress.failure) === "ForeignProviderFailure"
+              ? session.exception(progress.failure.exception).message
+              : undefined,
+          lastRequest: trace.filter((item) => item.request !== undefined).at(-1)?.request
+        })
+      )
       assert.deepEqual(
         candidatePorts,
         nativePhysical,
@@ -1549,7 +1579,7 @@ try {
     }))
     const nativeTargets = [...native.pathForTarget].map(([id, x]) => ({
       id,
-      edge: nativePending([...native.pending].find(([, value]) => value === x.edge)?.[0], x.edge),
+      edge: nativePending(nativeModule.edgeId(x.edge), x.edge),
       ...(x.kind === "file"
         ? { kind: "file", path: x.path, name: x.name }
         : {

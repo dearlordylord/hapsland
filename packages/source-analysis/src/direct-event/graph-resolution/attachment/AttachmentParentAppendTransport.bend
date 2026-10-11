@@ -1,6 +1,8 @@
 import Base
 import ./RetainedForestProjection.bend as P
 import ./AttachmentMapping.bend as Mapping
+import ./AttachmentNodeReplacementTransport.bend as Replacement
+import ./AttachmentProjectionAllowanceProof.bend as Count
 import ./AttachmentParentAllocationProof.bend as Allocation
 import ./ActualAttachmentFrameProjection.bend as Frame
 import ./ActualAttachmentPhaseProjection.bend as Ready
@@ -60,15 +62,39 @@ def tentative_success(+root: Nat, +next: Nat, +children: List<&2, Local.PlannedN
         Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, replaced)} : Maybe<&2, Compose.Attachment>}:
   match known:
     case False{}:
-      %success: {Compose.attach_replaced(_, Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget},
-        parents, next_edge, pending) == Some{Compose.attachment_registered(Compose.register_pending(edges, next_edge, pending),
-          Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, replaced)} : Maybe<&2, Compose.Attachment>}
-      {==}
+      Equal.cong(Maybe<&2, List<&2, Local.ReferenceSlot>>, Maybe<&2, Compose.Attachment>,
+        value => Compose.attach_replaced(value,
+          Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, next_edge, pending),
+        Compose.replacement(Compose.replace_slot(slots, owner, index, Local.Expanded{root})), Some{replaced}, success)
     case True{}:
-      %success: {Compose.attach_replaced(_, Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget},
-        parents, next_edge, pending) == Some{Compose.attachment_registered(Compose.register_pending(edges, next_edge, pending),
-          Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, replaced)} : Maybe<&2, Compose.Attachment>}
-      {==}
+      Equal.cong(Maybe<&2, List<&2, Local.ReferenceSlot>>, Maybe<&2, Compose.Attachment>,
+        value => Compose.attach_replaced(value,
+          Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, next_edge, pending),
+        Compose.replacement(Compose.replace_slot(slots, owner, index, Local.Included{identity})), Some{replaced}, success)
+
+# Append projection is structural over retained occurrences, including detached
+# nodes. Both sides use the final shared slot/address context.
+def nodes_append(left: List<&2, Local.PlannedNode>, +right: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +before: List<&2, F.Node>, +after: List<&2, F.Node>,
+    left_done: {P.nodes(left, slots, catalog, addresses) == Some{before} : Maybe<&2, List<&2, F.Node>>},
+    right_done: {P.nodes(right, slots, catalog, addresses) == Some{after} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.nodes(List.append(&2, Local.PlannedNode, left, right), slots, catalog, addresses)
+      == Some{List.append(&2, F.Node, before, after)} : Maybe<&2, List<&2, F.Node>>}:
+  match left:
+    case []:
+      %Count.some_equal(List<&2, F.Node>, [], before, left_done):
+        {P.nodes(right, slots, catalog, addresses) == Some{List.append(&2, F.Node, _, after)} : Maybe<&2, List<&2, F.Node>>}
+      right_done
+    case Local.PlannedNode{+id, +handle} <> +tail:
+      match Replacement.split_nodes(id, handle, tail, slots, catalog, addresses, before, left_done):
+        case (+birth, (+artifact, (+refs, (+rest, (located, (selected, (references, (tail_done, same)))))))):
+          %same:
+            {P.nodes(Local.PlannedNode{id, handle} <> List.append(&2, Local.PlannedNode, tail, right), slots, catalog, addresses)
+              == Some{List.append(&2, F.Node, _, after)} : Maybe<&2, List<&2, F.Node>>}
+          Replacement.projected_cons(id, handle, List.append(&2, Local.PlannedNode, tail, right), slots, catalog, addresses,
+            birth, artifact, refs, List.append(&2, F.Node, rest, after), located, selected, references,
+            nodes_append(tail, right, slots, catalog, addresses, rest, after, tail_done, right_done))
 
 law parent_attachment_exact:
   for +parent_root: Nat
