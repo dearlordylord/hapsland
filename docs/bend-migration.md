@@ -198,9 +198,11 @@ One current obstacle list, in execution order:
    ATTACHMENT_TRANSACTION_LAWS.attachment_transaction_exact: nine equalities
    for one witness, actual/reference EncodeProduct, staged frame, arbitrary
    Reply boundary and unchanged World. Actual-ready inversion and the ninth
-   unchanged-World claim now pass with the full definition prefix at 4.404
+   unchanged-World claim now pass with the full definition prefix at 4.330
    seconds under hard five seconds on CPU10, for arbitrary replies and
-   validation outcomes (/tmp/astra-transaction-world.log). The first eight
+   validation outcomes. Actual frame-view inversion also supplies exact
+   P.project and frame_forest premises for the closed parent/materialization
+   laws (/tmp/astra-transaction-parent-premises.log). The first eight
    transaction claims and its full original body remain open. Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.
@@ -335,7 +337,12 @@ One current obstacle list, in execution order:
    includes a resident-owned strict ABI config with skipLibCheck=false; its
    actual check and the revised check:fast pass. Explicit lint covers both authored
    declarations and the changed consumer, independently of zero-file changed
-   lint. Resolver artifact shipping and the complete production entrypoint
+   lint. At frozen 2239af77, the full resident consumer also loads packaged
+   PostPreparation without temporary emission: all 73 cases, 15702 preparation
+   requests and 855 Post requests pass through the Node capability runner
+   (/tmp/hapsland-2239-packaged-resident-full.log). Its actual workspace build
+   passes 46/46 tasks, 15 cached, 48.518 seconds; explicit lint selects and
+   passes the changed runner. Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
