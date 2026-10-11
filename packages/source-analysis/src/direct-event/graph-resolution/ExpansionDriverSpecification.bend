@@ -130,7 +130,7 @@ def limits(+frame: X.Frame) -> G.Limits:
       _,
       _,
       _
-    }: limits
+    , _}: limits
 
 def source_cap(+limits: G.Limits) -> Nat:
   match limits:
@@ -172,7 +172,7 @@ def edge_at(+items: List<&2, X.Edge>, +id: Nat) -> Maybe<&2, X.Edge>:
 
 def pending(+frame: X.Frame, +id: Nat) -> Maybe<&2, X.Edge>:
   match frame:
-    case X.Frame{_, _, _, _, +items, _, _, _, _, _, _}: edge_at(items, id)
+    case X.Frame{_, _, _, _, +items, _, _, _, _, _, _, _}: edge_at(items, id)
 
 def target_at(+items: List<&2, TargetEntry>, +id: Nat) -> Maybe<&2, Target>:
   match items:
@@ -372,7 +372,7 @@ def included(+frame: X.Frame, +replacement: F.Replacement) -> Maybe<&2, X.Frame>
       +episode,
       +artifact,
       +dependencies
-    }
+    , fingerprint}
       F.Replaced{+forest}:
       Some{
         X.Frame{
@@ -387,7 +387,7 @@ def included(+frame: X.Frame, +replacement: F.Replacement) -> Maybe<&2, X.Frame>
           episode,
           artifact,
           dependencies
-        }
+        , fingerprint}
       }
     case _ _: None{}
 
@@ -397,7 +397,7 @@ def include_identity(
   +identity: Maybe<&2, String>
 ) -> Maybe<&2, X.Frame>:
   match frame edge identity:
-    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, _}
+    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, _, _}
       X.Edge{_, F.Pending{+owner, Local.Pending{_, +index, _, +symbol, _, _, _, _}}, _, _} Some{
         +identity
       }:
@@ -407,7 +407,7 @@ def include_identity(
 
 def include_known(+frame: X.Frame, +target: Nat, +edge: X.Edge) -> Maybe<&2, X.Frame>:
   match frame:
-    case X.Frame{_, G.NoCommand{}, _, _, _, _, +identities, _, _, _, _}:
+    case X.Frame{_, G.NoCommand{}, _, _, _, _, +identities, _, _, _, _, _}:
       include_identity(frame, edge, target_artifact(identities, target))
     case _: Some{frame}
 
@@ -448,7 +448,7 @@ def resolve_selected_observed(
   +edge: X.Edge
 ) -> Selection:
   match observed edge:
-    case X.Frame{_, _, _, _, _, +captures, _, _, _, _, _}
+    case X.Frame{_, _, _, _, _, +captures, _, _, _, _, _, _}
       X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, +name, _, +expected, _}}, _, _}:
       resolved_known(state, id, FileTarget{path, name, edge}, edge,
         supported_capture(captured(captures, path), name, expected))
@@ -686,7 +686,7 @@ def after_command(+state: State, +frame: X.Frame, +skip: Bool) -> Selection:
       _,
       _,
       _
-    } False{}:
+    , _} False{}:
       phase_completion(state, phase)
 
 def iteration_clock(+state: State, +config: Config) -> Selection:
@@ -834,7 +834,7 @@ def context(
 
 def observed_graph_work(+frame: X.Frame) -> X.Frame:
   match frame:
-    case X.Frame{_, _, _, Signed.State{+local, _}, _, _, _, _, _, _, _}:
+    case X.Frame{_, _, _, Signed.State{+local, _}, _, _, _, _, _, _, _, _}:
       X.with_local(frame, X.known_state(local,
         X.difference(X.graph_work(X.frame_graph(frame)), X.local_work(X.frame_local(frame)))))
 
@@ -974,9 +974,9 @@ def declaration_handle(
 def catalog_allocated_frame(value: X.Frame, next: Nat) -> X.Frame:
   match value:
     case X.Frame{graph, command, forest, local, pending, captured, identities,
-        edge, episode, _, dependencies}:
+        edge, episode, _, dependencies, fingerprint}:
       X.Frame{graph, command, forest, local, pending, captured, identities,
-        edge, episode, next, dependencies}
+        edge, episode, next, dependencies, fingerprint}
 
 def catalog_allocated(+state: State, catalog: Root.Source) -> State:
   match catalog:
@@ -1016,7 +1016,7 @@ def prepare_file(+valid: Bool, +state: State, +id: Nat, +target: Target,
     +path: String, +source: T.SourceFacts, +bytes: Nat, +before: Nat) -> Selection:
   match valid state:
     case False{} _: Rejected{state, T.MalformedReply{}}
-    case True{} State{_, X.Frame{_, _, _, _, _, _, _, _, _, next, _}, _, _, _, _, _, _}:
+    case True{} State{_, X.Frame{_, _, _, _, _, _, _, _, _, next, _, _}, _, _, _, _, _, _}:
       prepared_file(state, id, target, path, source, bytes, before, Root.source(source, next))
 
 def edge_id(+edge: X.Edge) -> Nat:
@@ -1177,8 +1177,8 @@ def completion_product(+state: State, +result: F.Materialization) -> Selection:
 
 def materialize_unit(+fuel: Nat, +state: State, +frame: X.Frame) -> Selection:
   match frame:
-    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, +dependencies}:
-      completion_product(state, F.unit(fuel, forest, dependencies))
+    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, +dependencies, fingerprint}:
+      completion_product(state, F.prepared_unit(fuel, forest, dependencies, fingerprint))
 
 def partial_omissions(
   +fuel: Nat,
@@ -1214,8 +1214,8 @@ def completion_observed(
       _,
       _,
       _
-    } Some{_}: no_unit(state)
-    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, _} Some{_}:
+    , _} Some{_}: no_unit(state)
+    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, _, _} Some{_}:
       partial_omissions(fuel, state, observed, forest_omissions(fuel, forest))
 
 def completion(+fuel: Nat, +state: State, +partial: Maybe<&2, G.Reason>) -> Selection:
@@ -1238,7 +1238,7 @@ def choose(
 ) -> Selection:
   match state:
     case State{_, _, _, _, _, _, _, Iteration{}}: iteration(state)
-    case State{_, X.Frame{_, +command, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, Command{}}: dispatch_command(
+    case State{_, X.Frame{_, +command, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, Command{}}: dispatch_command(
       state,
       command
     )

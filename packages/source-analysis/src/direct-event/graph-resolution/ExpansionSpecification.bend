@@ -22,7 +22,7 @@ type Frame is Data:
   Frame{graph: G.Bounded, command: G.Command, forest: F.Forest,
     local: Signed.State, pending: List<&2, Edge>, captured: List<&2, Captured>,
     identities: List<&2, TargetArtifact>, next_edge: Nat, next_episode: Nat,
-    next_artifact: Nat, dependencies: List<&2, String>}
+    next_artifact: Nat, dependencies: List<&2, String>, fingerprint: Maybe<&2, String>}
 type ChildKind is Data:
   FileChild{path: String}
   BundledChild{}
@@ -85,27 +85,27 @@ def retain_budget(+old: Signed.State, +tentative: Signed.State) -> Signed.State:
 def with_local(+frame: Frame, +state: Signed.State) -> Frame:
   match frame:
     case Frame{graph, command, forest, _, pending, captured, identities,
-      edge, episode, artifact, dependencies}:
+      edge, episode, artifact, dependencies, fingerprint}:
       Frame{graph, command, forest, state, pending, captured, identities,
-        edge, episode, artifact, dependencies}
+        edge, episode, artifact, dependencies, fingerprint}
 
 def event_result(+frame: Frame, +step: G.BoundedStep) -> Frame:
   match frame step:
     case Frame{_, _, forest, local, pending, captured, identities,
-      edge, episode, artifact, dependencies} G.BoundedStep{graph, command}:
+      edge, episode, artifact, dependencies, fingerprint} G.BoundedStep{graph, command}:
       Frame{graph, command, forest, local, pending, captured, identities,
-        edge, episode, artifact, dependencies}
+        edge, episode, artifact, dependencies, fingerprint}
 
 def frame_graph(+frame: Frame) -> G.Bounded:
   match frame:
-    case Frame{graph, _, _, _, _, _, _, _, _, _, _}: graph
+    case Frame{graph, _, _, _, _, _, _, _, _, _, _, _}: graph
 
 def event(+frame: Frame, +event: G.GraphEvent) -> Frame:
   event_result(frame, Policy.bounded_transition(frame_graph(frame), event))
 
 def frame_local(+frame: Frame) -> Signed.State:
   match frame:
-    case Frame{_, _, _, local, _, _, _, _, _, _, _}: local
+    case Frame{_, _, _, local, _, _, _, _, _, _, _, _}: local
 
 def captured_event(+frame: Frame, +bytes: Nat, +contribution: Nat,
     +before: Nat, +edges: List<&2, Nat>) -> Frame:
@@ -206,9 +206,9 @@ def attached(
   match replacement frame child:
     case F.ReplacementInvalid{} _ _: TransactionInvalid{frame}
     case F.Replaced{forest} Frame{graph, command, _, local, pending, captured, identities,
-      edge, episode, artifact, dependencies} Child{_, _, _, _}:
+      edge, episode, artifact, dependencies, fingerprint} Child{_, _, _, _}:
       MeasureAfter{Frame{graph, command, forest, local, pending, captured, identities,
-        edge, (episode + 1n : Nat), artifact, dependencies}, child, previous}
+        edge, (episode + 1n : Nat), artifact, dependencies, fingerprint}, child, previous}
 
 def attachment_reference(
   +known: Bool,
@@ -222,7 +222,7 @@ def attachment_reference(
 
 def attachment_kind(+frame: Frame, +child: Child, +known: Bool) -> F.Replacement:
   match frame child:
-    case Frame{_, _, forest, _, _, _, _, _, _, _, _}
+    case Frame{_, _, forest, _, _, _, _, _, _, _, _, _}
       Child{
         Attempt{
           _,
@@ -291,7 +291,7 @@ def guard_work(
     case _ Attempt{_, _, FileChild{_}, _, bytes, _, _, _, _, before} False{} _:
       TransactionFinished{captured_event(frame, bytes, 0n, before, [])}
     case _ _ _ False{}: TransactionFinished{event(frame, G.CaptureFailed{})}
-    case Frame{_, _, _, _, _, _, _, _, episode, _, _}
+    case Frame{_, _, _, _, _, _, _, _, episode, _, _, _}
       Attempt{_, _, _, _, _, _, _, _, Root.Source{_, _, artifacts}, _} _ True{}:
       constructed(frame, attempt, state, previous, F.construct(fuel, tree, episode, [], artifacts))
 
@@ -364,9 +364,9 @@ def rolled_back(+frame: Frame, +replacement: F.Replacement) -> Transaction:
   match frame replacement:
     case _ F.ReplacementInvalid{}: TransactionInvalid{frame}
     case Frame{graph, command, _, local, pending, captured, identities,
-      edge, episode, artifact, dependencies} F.Replaced{forest}:
+      edge, episode, artifact, dependencies, fingerprint} F.Replaced{forest}:
       TransactionFinished{Frame{graph, command, forest, local, pending, captured, identities,
-        edge, episode, artifact, dependencies}}
+        edge, episode, artifact, dependencies, fingerprint}}
 
 # Captured/target lists are insertion-ordered maps. Replacement preserves the
 # original position, exactly as native Map.set does.
@@ -378,7 +378,7 @@ def rollback_target(+kind: ChildKind, +name: String, +symbol: String) -> String:
 def rollback(+frame: Frame, +child: Child) -> Transaction:
   match frame child:
     case Frame{graph, command, forest, local, pending, captured, identities,
-      edge, episode, artifact, dependencies}
+      edge, episode, artifact, dependencies, fingerprint}
       Child{
         Attempt{
           _,
@@ -459,7 +459,7 @@ def publish(
 ) -> Transaction:
   match frame child next old:
     case Frame{graph, command, forest, Signed.State{_, signed}, pending, captured, identities,
-      edge, episode, artifact, dependencies}
+      edge, episode, artifact, dependencies, fingerprint}
       Child{Attempt{target, _, kind, source, bytes, _, _, declaration, _, _}, _, _, _}
       Recursive.State{visited, budget, _, _} Recursive.State{_, _, address, old_pending}:
       TransactionFinished{
@@ -475,20 +475,20 @@ def publish(
           episode,
           artifact,
           dependencies
-        }
+        , fingerprint}
       }
 
 def committed(+frame: Frame, +child: Child) -> Transaction:
   match frame child:
-    case Frame{_, G.SkipImport{_, _}, _, _, _, _, _, _, _, _, _} _: rollback(frame, child)
-    case Frame{_, _, _, local, _, _, _, _, _, _, _} Child{_, _, state, _}:
+    case Frame{_, G.SkipImport{_, _}, _, _, _, _, _, _, _, _, _, _} _: rollback(frame, child)
+    case Frame{_, _, _, local, _, _, _, _, _, _, _, _} Child{_, _, state, _}:
       publish(frame, child, Signed.local(state), Signed.local(local))
 
 def registered_capture(+frame: Frame, +child: Child, +previous: Nat, +measured: Nat,
     +registration: Registration) -> Transaction:
   match frame child registration:
     case Frame{graph, command, forest, local, pending, captured, identities,
-      _, episode, artifact, dependencies}
+      _, episode, artifact, dependencies, fingerprint}
       Child{Attempt{_, _, _, _, bytes, _, _, _, _, before}, _, _, _}
       Registration{edges, ids, next}:
       committed(
@@ -505,7 +505,7 @@ def registered_capture(+frame: Frame, +child: Child, +previous: Nat, +measured: 
             episode,
             artifact,
             dependencies
-          },
+          , fingerprint},
           bytes,
           Nat.sub(measured, previous),
           before,
@@ -516,7 +516,7 @@ def registered_capture(+frame: Frame, +child: Child, +previous: Nat, +measured: 
 
 def admitted(+frame: Frame, +child: Child, +previous: Nat, +measured: Nat) -> Transaction:
   match frame child:
-    case Frame{_, _, _, _, _, _, _, edge, _, _, _}
+    case Frame{_, _, _, _, _, _, _, edge, _, _, _, _}
       Child{Attempt{_, _, _, source, _, _, _, _, catalog, _}, _, _, more}:
       registered_capture(frame, child, previous, measured, register(more, source, catalog, edge))
 
@@ -528,8 +528,8 @@ def measured(+result: F.Materialization, +frame: Frame, +transaction: Transactio
 
 def measure(+fuel: Nat, +frame: Frame, +transaction: Transaction) -> Selection:
   match frame:
-    case Frame{_, _, forest, _, _, _, _, _, _, _, dependencies}:
-      measured(F.unit(fuel, forest, dependencies), frame, transaction)
+    case Frame{_, _, forest, _, _, _, _, _, _, _, dependencies, fingerprint}:
+      measured(F.prepared_unit(fuel, forest, dependencies, fingerprint), frame, transaction)
 
 def choose(+fuel: Nat, +transaction: Transaction) -> Selection:
   match transaction:

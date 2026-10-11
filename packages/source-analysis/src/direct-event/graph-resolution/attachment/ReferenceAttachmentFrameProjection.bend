@@ -171,7 +171,7 @@ def assembled(state: D.State, history: V.History,
     case D.State{D.Config{_, _, _, context, _, _},
       X.Frame{G.Bounded{+graph, remaining}, command, +forest,
         Signed.State{Recursive.State{_, budget, _, _}, signed}, edges, _, artifacts_by_target,
-        next_edge, episode, next_artifact, dependencies}, _, target_ids, next_target, _, _, _}
+        next_edge, episode, next_artifact, dependencies, _}, _, target_ids, next_target, _, _, _}
       V.History{_, _, _, _, artifacts, _, _}
       Some{targets} Some{captures} Some{seen}:
       Some{V.Frame{branch(context), graph_limits(graph), graph, command, dependencies, forest,
@@ -183,7 +183,7 @@ def assembled(state: D.State, history: V.History,
 def project(+state: D.State, +history: V.History) -> Maybe<&2, V.Frame>:
   match state history:
     case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{values, _, _, _}, _},
-      _, captures, _, _, _, _, _}, target_values, _, _, _, _, _}
+      _, captures, _, _, _, _, _, _}, target_values, _, _, _, _, _}
       V.History{_, V.Order{_, _, _, _, _, seen}, _, sources, _, _, _}:
       assembled(
         state,

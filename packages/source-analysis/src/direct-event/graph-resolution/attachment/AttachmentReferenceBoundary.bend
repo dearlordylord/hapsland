@@ -11,7 +11,7 @@ import ../ForestAllowance.bend as Allowance
 # this point remains owned by the full driver. No graph policy is parameterized.
 def attached(+state: D.State, +transaction: X.Transaction) -> D.Selection:
   match transaction:
-    case X.MeasureAfter{X.Frame{_, _, +forest, _, _, _, _, _, _, _, _}, _, _}:
+    case X.MeasureAfter{X.Frame{_, _, +forest, _, _, _, _, _, _, _, _, _}, _, _}:
       D.transaction_selection(state, X.choose(Allowance.materialization(forest), transaction))
     case _:
       D.transaction_selection(state, X.Continue{transaction})
@@ -72,7 +72,7 @@ def deliver(-World: Data, +selection: D.Selection, reply: T.Reply,
 def completion_frame(+state: D.State, frame: X.Frame,
     partial: Maybe<&2, G.Reason>) -> D.Selection:
   match frame:
-    case X.Frame{_, _, forest, _, _, _, _, _, _, _, _}:
+    case X.Frame{_, _, forest, _, _, _, _, _, _, _, _, _}:
       D.completion(Allowance.materialization(forest), state, partial)
 
 def boundary_step(+selection: D.Selection) -> D.Selection:

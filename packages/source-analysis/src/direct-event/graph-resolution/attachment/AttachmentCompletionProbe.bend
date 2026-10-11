@@ -26,7 +26,7 @@ def consume(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:
 
 def frame_command(frame: X.Frame) -> G.Command:
   match frame:
-    case X.Frame{_, command, _, _, _, _, _, _, _, _, _}: command
+    case X.Frame{_, command, _, _, _, _, _, _, _, _, _, _}: command
 
 def pure_step(+selection: D.Selection) -> D.Selection:
   match selection:

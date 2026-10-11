@@ -48,7 +48,7 @@ type State is Data:
     preparation_cache: Maybe<&2, T.CacheToken>,
     root_local: Maybe<&2, Recursive.State>,
     selected_root_identity: Maybe<&2, String>
-  }
+  , fingerprint: Maybe<&2, String>}
 type Selection is Data:
   Internal{state: State}
   Selected{state: State, operation: T.Operation}
@@ -69,9 +69,46 @@ type Progress<-World: Data> is Data:
   EntryInvalid{state: State, world: E.WorldState<World>}
   EntryFailed{state: State, failure: T.TechnicalFailure, world: E.WorldState<World>}
 
+def fingerprint(state: State) -> Maybe<&2, String>:
+  match state:
+    case State{_, _, _, _, _, _, _, _, _, _, _, _, fingerprint}: fingerprint
+
+def with_fingerprint(state: State, fingerprint: Maybe<&2, String>) -> State:
+  match state:
+    case State{
+      input,
+      clock,
+      language,
+      frontend,
+      limits,
+      dependencies,
+      next,
+      stage,
+      preparation,
+      cache,
+      local,
+      identity,
+      _
+    }:
+      State{
+        input,
+        clock,
+        language,
+        frontend,
+        limits,
+        dependencies,
+        next,
+        stage,
+        preparation,
+        cache,
+        local,
+        identity,
+        fingerprint
+      }
+
 def input(state: State) -> T.ResolverInput:
   match state:
-    case State{input, _, _, _, _, _, _, _, _, _, _, _}: input
+    case State{input, _, _, _, _, _, _, _, _, _, _, _, _}: input
 
 def with_input(state: State, input: T.ResolverInput) -> State:
   match state:
@@ -88,7 +125,7 @@ def with_input(state: State, input: T.ResolverInput) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -101,11 +138,11 @@ def with_input(state: State, input: T.ResolverInput) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def clock(state: State) -> Maybe<&2, T.ClockToken>:
   match state:
-    case State{_, clock, _, _, _, _, _, _, _, _, _, _}: clock
+    case State{_, clock, _, _, _, _, _, _, _, _, _, _, _}: clock
 
 def with_clock(state: State, clock: Maybe<&2, T.ClockToken>) -> State:
   match state:
@@ -122,7 +159,7 @@ def with_clock(state: State, clock: Maybe<&2, T.ClockToken>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -135,11 +172,11 @@ def with_clock(state: State, clock: Maybe<&2, T.ClockToken>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def language(state: State) -> Maybe<&2, T.Language>:
   match state:
-    case State{_, _, language, _, _, _, _, _, _, _, _, _}: language
+    case State{_, _, language, _, _, _, _, _, _, _, _, _, _}: language
 
 def with_language(state: State, language: Maybe<&2, T.Language>) -> State:
   match state:
@@ -156,7 +193,7 @@ def with_language(state: State, language: Maybe<&2, T.Language>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -169,11 +206,11 @@ def with_language(state: State, language: Maybe<&2, T.Language>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def frontend(state: State) -> Maybe<&2, T.FrontendContext>:
   match state:
-    case State{_, _, _, frontend, _, _, _, _, _, _, _, _}: frontend
+    case State{_, _, _, frontend, _, _, _, _, _, _, _, _, _}: frontend
 
 def with_frontend(state: State, frontend: Maybe<&2, T.FrontendContext>) -> State:
   match state:
@@ -190,7 +227,7 @@ def with_frontend(state: State, frontend: Maybe<&2, T.FrontendContext>) -> State
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -203,11 +240,11 @@ def with_frontend(state: State, frontend: Maybe<&2, T.FrontendContext>) -> State
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def limits(state: State) -> G.Limits:
   match state:
-    case State{_, _, _, _, limits, _, _, _, _, _, _, _}: limits
+    case State{_, _, _, _, limits, _, _, _, _, _, _, _, _}: limits
 
 def with_limits(state: State, limits: G.Limits) -> State:
   match state:
@@ -224,7 +261,7 @@ def with_limits(state: State, limits: G.Limits) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -237,11 +274,11 @@ def with_limits(state: State, limits: G.Limits) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def dependencies(state: State) -> List<&2, String>:
   match state:
-    case State{_, _, _, _, _, dependencies, _, _, _, _, _, _}: dependencies
+    case State{_, _, _, _, _, dependencies, _, _, _, _, _, _, _}: dependencies
 
 def with_dependencies(state: State, dependencies: List<&2, String>) -> State:
   match state:
@@ -258,7 +295,7 @@ def with_dependencies(state: State, dependencies: List<&2, String>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -271,11 +308,16 @@ def with_dependencies(state: State, dependencies: List<&2, String>) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
+
+def with_prepared_language(state: State, prepared: T.PreparedLanguage) -> State:
+  match prepared:
+    case T.PreparedLanguage{limits, dependencies, fingerprint}:
+      with_fingerprint(with_dependencies(with_limits(state, limits), dependencies), fingerprint)
 
 def next_request(state: State) -> Nat:
   match state:
-    case State{_, _, _, _, _, _, next_request, _, _, _, _, _}: next_request
+    case State{_, _, _, _, _, _, next_request, _, _, _, _, _, _}: next_request
 
 def with_next_request(state: State, next_request: Nat) -> State:
   match state:
@@ -292,7 +334,7 @@ def with_next_request(state: State, next_request: Nat) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -305,11 +347,11 @@ def with_next_request(state: State, next_request: Nat) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def stage(state: State) -> Stage:
   match state:
-    case State{_, _, _, _, _, _, _, stage, _, _, _, _}: stage
+    case State{_, _, _, _, _, _, _, stage, _, _, _, _, _}: stage
 
 def with_stage(state: State, stage: Stage) -> State:
   match state:
@@ -326,7 +368,7 @@ def with_stage(state: State, stage: Stage) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -339,11 +381,11 @@ def with_stage(state: State, stage: Stage) -> State:
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def preparation(state: State) -> Maybe<&2, Rust.Preparation>:
   match state:
-    case State{_, _, _, _, _, _, _, _, preparation, _, _, _}: preparation
+    case State{_, _, _, _, _, _, _, _, preparation, _, _, _, _}: preparation
 
 def with_preparation(state: State, preparation: Maybe<&2, Rust.Preparation>) -> State:
   match state:
@@ -360,7 +402,7 @@ def with_preparation(state: State, preparation: Maybe<&2, Rust.Preparation>) -> 
       preparation_cache,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -373,11 +415,11 @@ def with_preparation(state: State, preparation: Maybe<&2, Rust.Preparation>) -> 
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def preparation_cache(state: State) -> Maybe<&2, T.CacheToken>:
   match state:
-    case State{_, _, _, _, _, _, _, _, _, preparation_cache, _, _}: preparation_cache
+    case State{_, _, _, _, _, _, _, _, _, preparation_cache, _, _, _}: preparation_cache
 
 def with_preparation_cache(state: State, preparation_cache: Maybe<&2, T.CacheToken>) -> State:
   match state:
@@ -394,7 +436,7 @@ def with_preparation_cache(state: State, preparation_cache: Maybe<&2, T.CacheTok
       _,
       root_local,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -407,11 +449,11 @@ def with_preparation_cache(state: State, preparation_cache: Maybe<&2, T.CacheTok
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def root_local(state: State) -> Maybe<&2, Recursive.State>:
   match state:
-    case State{_, _, _, _, _, _, _, _, _, _, root_local, _}: root_local
+    case State{_, _, _, _, _, _, _, _, _, _, root_local, _, _}: root_local
 
 def with_root_local(state: State, root_local: Maybe<&2, Recursive.State>) -> State:
   match state:
@@ -428,7 +470,7 @@ def with_root_local(state: State, root_local: Maybe<&2, Recursive.State>) -> Sta
       preparation_cache,
       _,
       selected_root_identity
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -441,11 +483,11 @@ def with_root_local(state: State, root_local: Maybe<&2, Recursive.State>) -> Sta
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def selected_root_identity(state: State) -> Maybe<&2, String>:
   match state:
-    case State{_, _, _, _, _, _, _, _, _, _, _, selected_root_identity}: selected_root_identity
+    case State{_, _, _, _, _, _, _, _, _, _, _, selected_root_identity, _}: selected_root_identity
 
 def with_selected_root_identity(state: State, selected_root_identity: Maybe<&2, String>) -> State:
   match state:
@@ -462,7 +504,7 @@ def with_selected_root_identity(state: State, selected_root_identity: Maybe<&2, 
       preparation_cache,
       root_local,
       _
-    }: State{
+    , fingerprint}: State{
       input,
       clock,
       language,
@@ -475,7 +517,7 @@ def with_selected_root_identity(state: State, selected_root_identity: Maybe<&2, 
       preparation_cache,
       root_local,
       selected_root_identity
-    }
+    , fingerprint}
 
 def input_invocation(input: T.ResolverInput) -> Nat:
   match input:
@@ -529,7 +571,7 @@ def begin(-World: Data, +input: T.ResolverInput, next: Nat,
       None{},
       None{},
       None{}
-    },
+    , None{}},
     world
   }
 
@@ -570,6 +612,7 @@ def context(language: T.Language, branch: T.Branch, role: T.RustContext) -> T.Fr
     case T.TypeScriptLanguage{}: T.TypeScriptContext{branch}
     case T.BendLanguage{}: T.BendSourceContext{branch}
     case T.PythonLanguage{}: T.PythonSourceContext{branch}
+    case T.GoLanguage{}: T.GoSourceContext{branch}
     case T.RustLanguage{}: T.RustSourceContext{branch, role}
 
 def selected(+state: State, stage: Stage, operation: T.Operation) -> Selection:
@@ -707,9 +750,17 @@ def root_pending(+state: State, +source: T.SourceFacts, +catalog: Root.Source,
         2n,
         catalog_next(catalog),
         dependencies(state)
-      }
-      root_materialized(state, frame,
-        F.unit(Allowance.materialization(forest), forest, dependencies(state)))
+      , fingerprint(state)}
+      root_materialized(
+        state,
+        frame,
+        F.prepared_unit(
+          Allowance.materialization(forest),
+          forest,
+          dependencies(state),
+          fingerprint(state)
+        )
+      )
     case _ _ _ _: InvariantFailed{state}
 
 def root_created(+state: State, +source: T.SourceFacts, +catalog: Root.Source,
@@ -815,7 +866,7 @@ def initialize(+frame: X.Frame, bytes: Nat, tree: Nat) -> X.Frame:
       episode,
       artifact,
       deps
-    }:
+    , fingerprint}:
       +step : G.BoundedStep = Policy.bounded_transition(
         graph,
         G.Root{
@@ -838,7 +889,7 @@ def initialize(+frame: X.Frame, bytes: Nat, tree: Nat) -> X.Frame:
         episode,
         artifact,
         deps
-      }
+      , fingerprint}
 
 def function_branch(branch: T.Branch) -> Bool:
   match branch:
@@ -847,7 +898,21 @@ def function_branch(branch: T.Branch) -> Bool:
 
 def launch(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
   match state:
-    case State{+input, Some{+clock}, Some{+language}, Some{frontend}, _, _, +next, _, _, _, _, _}:
+    case State{
+      +input,
+      Some{+clock},
+      Some{+language},
+      Some{frontend},
+      _,
+      _,
+      +next,
+      _,
+      _,
+      _,
+      _,
+      _,
+      fingerprint
+    }:
       Launch{
         state,
         D.begin(

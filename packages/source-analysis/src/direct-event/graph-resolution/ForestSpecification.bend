@@ -569,5 +569,19 @@ def unit(fuel: Nat, +forest: Forest, dependencies: List<&2, String>) -> Material
     case Forest{None{}, _}: MaterializationInvalid{}
     case Forest{Some{root}, _}: unit_product(materialize(fuel, forest, root), dependencies)
 
+# Independent whole-unit metadata construction. Invalid/exhausted rendering
+# remains a failure; a present fingerprint is the first ordered JSON field.
+def prepared_product(result: Materialization, fingerprint: Maybe<&2, String>) -> Materialization:
+  match result fingerprint:
+    case Materialized{ArtifactValue.ProductObject{fields}} Some{value}:
+      Materialized{ArtifactValue.ProductObject{field("bindingFingerprint", text(value)) <> fields}}
+    case other None{}: other
+    case MaterializationExhausted{} _: MaterializationExhausted{}
+    case _ _: MaterializationInvalid{}
+
+def prepared_unit(fuel: Nat, forest: Forest, dependencies: List<&2, String>,
+    fingerprint: Maybe<&2, String>) -> Materialization:
+  prepared_product(unit(fuel, forest, dependencies), fingerprint)
+
 def main() -> Unit:
   Unit{}

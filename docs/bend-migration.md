@@ -205,9 +205,16 @@ One current obstacle list, in execution order:
    representation or auxiliary-law chain is accepted merely for easy proofs.
    Astra's actual-source review found the metadata-blind attachment relation
    false for paired Some fingerprint inputs: reference measurement omits a real
-   field. Extend reference X.Frame and the existing phase capsule with the same
-   optional fingerprint, preserving terminal exact product observation; do not
-   invent terminal frame evidence. Missing Go cases in actual context/reference
+   field. Reference X.Frame, reference entry metadata and the existing phase
+   capsule now carry the same optional fingerprint, preserving it through all
+   frame transitions and request allocation. Independent F.prepared_unit is
+   used for reference root/attachment/completion measurement, with first-field
+   JSON order and unchanged Invalid/Exhausted. Seven actual/reference projection
+   and forest roots check within five seconds; three reference cores checked
+   before formatting. No terminal frame evidence is invented. Changed finite
+   consumers and full materialization/transaction guarantees remain open. The
+   reference entry still lacks the complete Go preparation bridge; its metadata
+   installer does not qualify that missing path. Missing Go cases in actual context/reference
    branch projections are added and formatted. Both projection roots check
    within five seconds after the explicit reference Go candidates row returns
    [] as native does; no filesystem scan is introduced. No new proof or

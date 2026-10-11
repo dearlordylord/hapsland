@@ -50,10 +50,10 @@ def child_project(+child: X.Child, +history: Phase.ChildHistory) -> Maybe<&2, Ph
 def capsule(state: D.State, child: X.Child) -> Phase.Capsule:
   match state child:
     case D.State{D.Config{invocation, path, language, context, clock, cache},
-      _, _, _, _, next, iterations, _}
+      X.Frame{_, _, _, _, _, _, _, _, _, _, _, fingerprint}, _, _, _, next, iterations, _}
       X.Child{X.Attempt{target, edge, _, _, _, _, _, _, _, _}, _, _, _}:
       Phase.Capsule{invocation, path, language, context, clock, cache,
-        next, iterations, target, Frame.edge_payload(edge)}
+        next, iterations, target, Frame.edge_payload(edge), fingerprint}
 
 def assembled(frame: Maybe<&2, V.Frame>, child: Maybe<&2, Phase.Child>,
     capsule: Phase.Capsule) -> Maybe<&2, Phase.Phase>:

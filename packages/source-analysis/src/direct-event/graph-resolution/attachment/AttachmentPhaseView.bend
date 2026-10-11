@@ -18,9 +18,19 @@ type Child is Data:
     pending: List<&2, V.PendingPayload>, visited: List<&2, String>, budget: V.Budget,
     source: T.SourceFacts, catalog: Root.Source}
 type Capsule is Data:
-  Capsule{invocation: Nat, root_path: String, language: T.Language,
-    context: T.FrontendContext, clock: T.ClockToken, caller_cache: Maybe<&2, T.CacheToken>,
-    next_request: Nat, iterations: Nat, active_target: Nat, edge: V.PendingPayload}
+  Capsule{
+    invocation: Nat,
+    root_path: String,
+    language: T.Language,
+    context: T.FrontendContext,
+    clock: T.ClockToken,
+    caller_cache: Maybe<&2, T.CacheToken>,
+    next_request: Nat,
+    iterations: Nat,
+    active_target: Nat,
+    edge: V.PendingPayload,
+    fingerprint: Maybe<&2, String>
+  }
 type Phase is Data:
   Phase{frame: V.Frame, child: Child, capsule: Capsule}
 

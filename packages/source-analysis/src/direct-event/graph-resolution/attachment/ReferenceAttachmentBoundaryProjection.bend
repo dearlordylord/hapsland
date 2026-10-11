@@ -17,9 +17,9 @@ import ../ExpansionDriverSpecification.bend as D
 def allocated(capsule: Phase.Capsule) -> Phase.Capsule:
   match capsule:
     case Phase.Capsule{invocation, path, language, context, clock, cache,
-      next, iterations, target, edge}:
+      next, iterations, target, edge, fingerprint}:
       Phase.Capsule{invocation, path, language, context, clock, cache,
-        (next + 1n : Nat), iterations, target, edge}
+        (next + 1n : Nat), iterations, target, edge, fingerprint}
 
 def selected(request: Maybe<&2, T.Request>, frame: Maybe<&2, V.Frame>,
     continuation: B.Continuation) -> Maybe<&2, B.Boundary>:

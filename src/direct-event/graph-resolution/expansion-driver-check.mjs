@@ -390,7 +390,8 @@ try {
       next_edge: BigInt(native.nextId),
       next_episode: 2n,
       next_artifact: built.source.next_artifact,
-      dependencies: list(native.dependencies)
+      dependencies: list(native.dependencies),
+      fingerprint: native.bindingFingerprint === undefined ? { $: "None" } : { $: "Some", value: native.bindingFingerprint }
     })
     const callerCache = cache === undefined ? undefined : new Map(cache)
     let clockReads = 0

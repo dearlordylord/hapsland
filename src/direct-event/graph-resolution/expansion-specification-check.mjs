@@ -376,7 +376,8 @@ try {
       next_edge: BigInt(frame.nextId),
       next_episode: 2n,
       next_artifact: result.source.next_artifact,
-      dependencies: list(binding.dependencies)
+      dependencies: list(binding.dependencies),
+      fingerprint: binding.bindingFingerprint === undefined ? { $: "None" } : { $: "Some", value: binding.bindingFingerprint }
     }
     const attempt = {
       $: "Attempt",

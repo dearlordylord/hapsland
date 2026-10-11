@@ -11,13 +11,13 @@ import ../SPEC.bend as Root
 def registered(frame: X.Frame, registration: X.Registration) -> X.Frame:
   match frame registration:
     case X.Frame{graph, command, forest, local, pending, captures, identities,
-        _, episode, artifact, deps} X.Registration{more, _, next}:
+        _, episode, artifact, deps, fingerprint} X.Registration{more, _, next}:
       X.Frame{graph, command, forest, local, List.append(&2, X.Edge, pending, more),
-        captures, identities, next, episode, artifact, deps}
+        captures, identities, next, episode, artifact, deps, fingerprint}
 
 def staged(+frame: X.Frame, child: X.Child) -> X.Frame:
   match frame child:
-    case X.Frame{_, _, _, _, _, _, _, edge, _, _, _}
+    case X.Frame{_, _, _, _, _, _, _, edge, _, _, _, _}
       X.Child{X.Attempt{_, _, _, source, _, _, _, _, catalog, _}, _, _, pending}:
       registered(frame, X.register(pending, source, catalog, edge))
 

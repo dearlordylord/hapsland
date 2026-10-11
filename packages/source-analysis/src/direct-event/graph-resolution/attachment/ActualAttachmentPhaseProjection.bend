@@ -188,12 +188,16 @@ def context(language: T.Language, branch: T.Branch, rust: T.RustContext) -> T.Fr
     case T.PythonLanguage{}: T.PythonSourceContext{branch}
     case T.GoLanguage{}: T.GoSourceContext{branch}
 
+def fingerprint(prepared: T.PreparedLanguage) -> Maybe<&2, String>:
+  match prepared:
+    case T.PreparedLanguage{_, _, value}: value
+
 def capsule(
   clock: Maybe<&2, T.ClockToken>,
   language: Maybe<&2, T.Language>,
   active: Maybe<&2, Nat>,
   edge: Maybe<&2, V.PendingPayload>,
-  state: T.ResolverState
+  +state: T.ResolverState
 ) -> Maybe<&2, Phase.Capsule>:
   match clock language active edge state:
     case Some{clock} Some{+language} Some{active} Some{edge}
@@ -213,7 +217,7 @@ def capsule(
         _
       }:
       Some{Phase.Capsule{invocation, path, language, context(language, branch, rust),
-        clock, cache, next, iterations, active, edge}}
+        clock, cache, next, iterations, active, edge, fingerprint(S.state_prepared(state))}}
     case _ _ _ _ _: None{}
 
 def assembled(frame: Maybe<&2, V.Frame>, child: Maybe<&2, Phase.Child>,

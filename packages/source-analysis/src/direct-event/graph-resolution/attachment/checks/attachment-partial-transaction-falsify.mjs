@@ -205,7 +205,8 @@ for (let seed = 0; seed < 128; seed++)
       next_edge: 0n,
       next_episode: episode + 1n,
       next_artifact: 1n,
-      dependencies: list([])
+      dependencies: list([]),
+      fingerprint: { $: "None" }
     }
     const refState = {
       $: dp + "State",
