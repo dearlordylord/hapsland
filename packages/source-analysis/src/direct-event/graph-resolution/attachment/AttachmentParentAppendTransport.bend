@@ -1717,6 +1717,75 @@ def appended_attachment_reference(known: Bool, +owner: Nat, +index: Nat, +symbol
         {P.expanded_reference(_, symbol) == Some{F.Expanded{F.ReferenceSymbol{symbol}, birth}} : Maybe<&2, F.Reference>}
       {==}
 
+def projected_lookup_count(+nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>, +values: List<&2, F.Node>,
+    +query: Nat, +birth: O.NodeAddress,
+    +aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool},
+    dense: {Frame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{values} : Maybe<&2, List<&2, F.Node>>},
+    located: {F.address_at(entries, query) == Some{birth} : Maybe<&2, O.NodeAddress>}) ->
+    {F.count_address(values, birth) == 1n : Nat}:
+  Equal.trans(Nat, F.count_address(values, birth), P.address_count(entries, birth), 1n,
+    Equal.sym(Nat, P.address_count(entries, birth), F.count_address(values, birth),
+      projected_address_count(nodes, entries, slots, catalog, values, birth, aligned, dense, projected)),
+    Replacement.aligned_lookup_unique(nodes, entries, nodes, entries, query, birth, aligned, located))
+
+# Birth order follows solely from the original episode frontier; routes remain
+# arbitrary, including the empty routes of both roots.
+def born_later_episode(prior: Nat, later: Nat, +route: List<&2, Nat>, +rest: List<&2, Nat>,
+    below: {Nat.is_lt(prior, later) == True{} : Bool}) ->
+    {F.born_after(O.NodeAddress{prior, route}, O.NodeAddress{later, rest}) == True{} : Bool}:
+  match prior later:
+    case 0n 0n:
+      Empty.absurd({F.born_after(O.NodeAddress{0n, route}, O.NodeAddress{0n, rest}) == True{} : Bool}, B.internal_false_ne_true(below))
+    case 0n 1n++next: {==}
+    case 1n++old 0n:
+      Empty.absurd({F.born_after(O.NodeAddress{1n+old, route}, O.NodeAddress{0n, rest}) == True{} : Bool}, B.internal_false_ne_true(below))
+    case 1n++old 1n++next:
+      born_later_episode(old, next, route, rest, below)
+
+def fresh_attachment_born(+parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    owner: O.NodeAddress, child: O.NodeAddress,
+    before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    owner_present: {F.count_address(parents, owner) == 1n : Nat},
+    child_present: {F.count_address(children, child) == 1n : Nat}) ->
+    {F.born_after(owner, child) == True{} : Bool}:
+  match owner child:
+    case O.NodeAddress{+prior, +route} O.NodeAddress{+later, +rest}:
+      %Equal.sym(Nat, later, episode, fresh_counted_episode(children, episode, later, rest, fresh, child_present)):
+        {F.born_after(O.NodeAddress{prior, route}, O.NodeAddress{_, rest}) == True{} : Bool}
+      born_later_episode(prior, episode, route, rest, counted_episode_before(parents, prior, route, episode, before, owner_present))
+
+def attachment_reference_valid(known: Bool, +owner: O.NodeAddress, +child: O.NodeAddress,
+    +children: List<&2, F.Node>, +child_entries: List<&2, F.AddressEntry>, +all: List<&2, F.Node>,
+    +symbol: String, +identity: String,
+    counted: {F.count_address(all, child) == 1n : Nat},
+    born: {F.born_after(owner, child) == True{} : Bool}) ->
+    {F.reference_valid(X.attachment_reference(known, F.Created{child, children, child_entries}, symbol, identity), owner, all) == True{} : Bool}:
+  match known:
+    case True{}: {==}
+    case False{}:
+      B.and_eq_true(Nat.is_eq(F.count_address(all, child), 1n), F.born_after(owner, child),
+        %Equal.sym(Nat, F.count_address(all, child), 1n, counted): {Nat.is_eq(_, 1n) == True{} : Bool}
+        {==}, born)
+
+# Lift the exact existing node-replacement result through F's checked wrapper.
+def forest_replacement_completed(+root: O.NodeAddress, +retained: List<&2, F.Node>, +owner: O.NodeAddress,
+    +index: Nat, +reference: F.Reference, +changed: List<&2, F.Node>,
+    owner_present: {F.count_address(retained, owner) == 1n : Nat},
+    reference_valid: {F.reference_valid(reference, owner, retained) == True{} : Bool},
+    replaced: {F.replace_nodes(retained, owner, index, reference) == F.Nodes{changed, 1n} : F.Nodes}) ->
+    {F.replace(F.Forest{Some{root}, retained}, owner, index, reference) == F.Replaced{F.Forest{Some{root}, changed}} : F.Replacement}:
+  %Equal.sym(Bool, Bool.and(Nat.is_eq(F.count_address(retained, owner), 1n), F.reference_valid(reference, owner, retained)), True{},
+    B.and_eq_true(Nat.is_eq(F.count_address(retained, owner), 1n), F.reference_valid(reference, owner, retained),
+      %Equal.sym(Nat, F.count_address(retained, owner), 1n, owner_present): {Nat.is_eq(_, 1n) == True{} : Bool}
+      {==}, reference_valid)):
+    {F.replace_allowed(_, F.Forest{Some{root}, retained}, owner, index, reference) == F.Replaced{F.Forest{Some{root}, changed}} : F.Replacement}
+  %Equal.sym(F.Nodes, F.replace_nodes(retained, owner, index, reference), F.Nodes{changed, 1n}, replaced):
+    {F.replacement(_, Some{root}) == F.Replaced{F.Forest{Some{root}, changed}} : F.Replacement}
+  {==}
+
 
 law parent_attachment_exact:
   for +parent_root: Nat

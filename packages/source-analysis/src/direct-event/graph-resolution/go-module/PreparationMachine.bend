@@ -1611,8 +1611,23 @@ def initial_configuration(
 
 def initial(+input: GoBoundary.Input) -> Step:
   match input:
-    case GoBoundary.Input{_, +next, _, _, _, T.FunctionBranch{}, _, _, _, _, _}: Returned{None{}, next}
-    case GoBoundary.Input{_, +next, +path, +capture, +bytes, T.TypeBranch{}, _, _, _, +configuration, _}:
+    case GoBoundary.Input{_, +next, _, _, _, T.FunctionBranch{}, _, _, _, _, _}: Returned{
+      None{},
+      next
+    }
+    case GoBoundary.Input{
+      _,
+      +next,
+      +path,
+      +capture,
+      +bytes,
+      T.TypeBranch{},
+      _,
+      _,
+      _,
+      +configuration,
+      _
+    }:
       initial_configuration(
         M.Runtime{
           input,

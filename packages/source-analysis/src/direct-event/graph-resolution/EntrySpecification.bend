@@ -747,10 +747,24 @@ def python_root_deadline(+state: State, expired: Bool) -> Selection:
 # Entry owns admission and chronology; the existing Go child owns package policy.
 def go_admission(+state: State, clock: Maybe<&2, T.ClockToken>) -> Selection:
   match clock:
-    case Some{clock}: GoChild{with_stage(state, GoPreparing{}), GoProtocol.GoPrepare{GoBoundary.Input{
-      input_invocation(input(state)), next_request(state), input_path(input(state)),
-      input_capture(input(state)), input_bytes(input(state)), input_branch(input(state)),
-      clock, input_cache(input(state)), limits(state), None{}, None{}}}}
+    case Some{clock}: GoChild{
+      with_stage(state, GoPreparing{}),
+      GoProtocol.GoPrepare{
+        GoBoundary.Input{
+          input_invocation(input(state)),
+          next_request(state),
+          input_path(input(state)),
+          input_capture(input(state)),
+          input_bytes(input(state)),
+          input_branch(input(state)),
+          clock,
+          input_cache(input(state)),
+          limits(state),
+          None{},
+          None{}
+        }
+      }
+    }
     case None{}: InvariantFailed{state}
 
 def go_root_deadline(+state: State, +prepared: GoBoundary.Prepared, expired: Bool) -> Selection:

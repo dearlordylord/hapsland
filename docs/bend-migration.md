@@ -208,19 +208,30 @@ One current obstacle list, in execution order:
    passes at 2.911 seconds. Failed factoring attempts remain diagnostic evidence.
    Full appended_projection now passes the entire parent prefix at 3.913
    seconds; its projection assembly owner passes at 1.781 seconds. Replacement
-   of the selected parent slot through an untouched child suffix is authored
-   in existing AttachmentReplacementStructureProof but unqualified (first
-   hard-five-second timeout: 5.051 wall / 3.205 user / 0.259 system).
-   Remaining path:
-   full projection, owner-only replacement commutation, semantic validity,
-   original eight conjuncts and the existing transaction theorem. No separate
-   helper frontier qualifies adoption; the original parent theorem remains WIP.
+   of the selected parent slot through an untouched child suffix now checks in
+   its existing Structure owner at 2.103 seconds. The full parent prefix through
+   forest_replacement_completed checks at 2.511 seconds under hard five seconds
+   on CPU10 (/tmp/astra-parent-replacement-semantic.log). It includes selected
+   count preservation, unchanged shifted suffix, parent payload recovery, exact
+   child lookup/new reference, semantic counts and birth order. All use existing
+   datatypes and original projection/freshness premises; no success assumption
+   was added. Remaining path: updated post-replacement projection guards,
+   semantic root/incoming validity, all eight original conjuncts and the existing
+   transaction theorem. No separate helper frontier qualifies adoption; the
+   original parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
    consumer now passes 56 cases/6338 commands and 31 native comparisons across
    all five languages, including configuration fingerprint/semantic identity.
+   Current Go boundary qualification passes direct 55 cases / 1659 requests /
+   3474 transitions, artifact 55 / 1713 / 3528, full Entry 58 / 2017 / 6304
+   and Canonical-owned 58 / 2075 requests after the sole-declaration move.
+   Entry uses separate compiled temporary outputs while physical fixtures stay
+   in /tmp; all emissions retain five seconds. Its earlier preparation timeouts
+   remain failures, not fixture verdicts (current pass:
+   /tmp/hapsland-go-boundary-entry-current-v4.log).
    Full physical cancellation/late cleanup and universal correspondence remain
    distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
    its accepted supported-input boundary before claiming complete replacement.
@@ -298,24 +309,27 @@ One current obstacle list, in execution order:
    preparation → nested resolver → Post/retention path, adding the existing Go
    artifact. Focused Go passes 1 case / 61 requests / 16 Post requests with native
    whole differential and cleanup (/tmp/hapsland-resident-go-whole-flow-v2.log).
-   The complete 73-case set remains unqualified: ArtifactComposition emission
-   timed out before scenarios even in /dev/shm. Isolated reproduction also
-   timed out at 5.070 seconds (4.221 user / 0.409 system), while an earlier same
-   artifact emission passed at 4.120 seconds. No emission limit was raised;
-   retained physical fixtures stay in /tmp, compiled temporary outputs alone
-   use measured memory storage. Next diagnostic must reduce or distinguish
-   actual composition preparation cost before another complete run. Its Go
-   boundary currently imports all PreparationModel (660 lines), which imports
-   BuildContext (675 lines), although the composition only uses Input/Prepared.
-   A sole-declaration move of unchanged Go boundary types to existing
-   ArtifactProtocol is now implemented without duplicate declarations or shims.
-   All three declarations preserve exact original bytes (fields/types/order);
-   constructor references and direct Go verification tags changed atomically.
-   The same ArtifactComposition emission now passes hard five seconds at
-   2.840 seconds (2.318 user / 0.465 system) versus the prior 5.070 timeout.
-   Changed JS lint passes. Direct Go, artifact/owned/Entry and complete
-   resident/graph consumers still require current-input qualification before
-   this blocker closes. No representation or original premise changed.
+   The complete 73-case set now passes 15702 preparation requests and 855 Post
+   requests, including all five languages, original cancellation/late replies,
+   retention/advice and fault-cleanup cases
+   (/tmp/hapsland-resident-boundary-current-v2.log). Earlier full runs stopped
+   at ArtifactComposition emission before scenarios, including one after the
+   boundary move; those failures remain recorded. No emission limit was raised.
+   An isolated declared-environment CPU10 reproduction passes at 1.626 seconds
+   (1.336 user / 0.268 system); the cause of timing variability is not established.
+   The composition's current authored closure is 21 files / 8732 lines and
+   excludes Go PreparationModel and BuildContext. Three unchanged Go boundary
+   records now have sole declarations in existing ArtifactProtocol; fields,
+   types and order remain exact, with constructor references updated atomically.
+   Direct/artifact/full Entry and Canonical-owned Go qualify this boundary move.
+   The full graph consumer also passes current inputs: 105 cases / 4252 requests,
+   all 58 original fixtures and 59 exact IO/accepted-terminal comparisons
+   (/tmp/hapsland-owned-105-boundary-current.log). Pinned formatting selected
+   seven changed Bend sources and passes after correcting five files with
+   whitespace-only changes, preserving exact non-whitespace tokens. Actual changed-runner lint selected
+   one file and passed. These finite checks do not establish the original
+   universal theorem or public production adoption. No representation or
+   original premise changed.
 5. Connect the whole section through production Canonical launch, lifecycle,
    cancellation, acceptance and progression. Delete replaced TS preparation,
    graph/language package policy and orchestration only with their qualified

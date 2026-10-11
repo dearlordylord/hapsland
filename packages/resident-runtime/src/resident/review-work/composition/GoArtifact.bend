@@ -79,7 +79,19 @@ def configured(
   configuration: Maybe<&2, Configuration.Configuration>
 ) -> Step:
   match input:
-    case GoBoundary.Input{owner, _, path, capture, bytes, branch, clock, cache, limits, _, identity}:
+    case GoBoundary.Input{
+      owner,
+      _,
+      path,
+      capture,
+      bytes,
+      branch,
+      clock,
+      cache,
+      limits,
+      _,
+      identity
+    }:
       Preparing{
         Preparation.initial(
           GoBoundary.Input{

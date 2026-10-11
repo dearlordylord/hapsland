@@ -318,7 +318,11 @@ def prepare_go(clock: Maybe<&2, T.ClockToken>, +context: Context, +state: T.Reso
         S.input_caller_cache(input), S.input_limits(input), None{},
         None{}}}}}
 
-def inspect_go(prepared: Maybe<&2, GoBoundary.Prepared>, context: Context, +state: T.ResolverState) -> Step:
+def inspect_go(
+  prepared: Maybe<&2, GoBoundary.Prepared>,
+  context: Context,
+  +state: T.ResolverState
+) -> Step:
   match prepared:
     case None{}: malformed(context)
     case Some{prepared}:
