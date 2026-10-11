@@ -17,8 +17,8 @@ import { generateTurboConfig } from "./generate-turbo-config.mjs"
 const root = resolve(import.meta.dirname, "..")
 checkUiFlows(root)
 const args = process.argv.slice(2)
-if (args.length > 1 || args.some((arg) => arg !== "--with-native"))
-  throw new Error("Workspace build accepts only --with-native")
+if (new Set(args).size !== args.length || args.some((arg) => !["--with-native", "--summarize"].includes(arg)))
+  throw new Error("Workspace build accepts only --with-native and --summarize")
 const withNative = args.includes("--with-native")
 await withBuildLock(root, async (buildEnvironment) => {
   const graph = generatePackageConfigs(root, true)
@@ -51,6 +51,7 @@ await withBuildLock(root, async (buildEnvironment) => {
     [
       "run",
       "build",
+      ...(args.includes("--summarize") ? ["--summarize"] : []),
       ...(withNative ? profiles.map((profile) => `native:${profile}`) : []),
       "--cache=local:rw",
       "--concurrency=2",

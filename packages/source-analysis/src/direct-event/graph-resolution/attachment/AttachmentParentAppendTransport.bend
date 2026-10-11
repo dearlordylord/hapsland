@@ -1865,6 +1865,44 @@ def replaced_forward_cursor(items: List<&2, Local.PlannedNode>, +children: List<
           B.eq_true_of_and_right(P.indexed(P.owner_slots(slots, id), 0n, later), P.forward_nodes(later, slots), forward)))
 
 
+# Reassemble the complete projection at the exact replacement witness. The
+# node equation is the conclusion of node_replacement_exact; all structural
+# guards here are transported from the original appended frame.
+def replaced_appended_projection(+root: Nat, +birth: O.NodeAddress,
+    +parents: List<&2, Local.PlannedNode>, +children: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +entries: List<&2, F.AddressEntry>, +owner: Nat, +index: Nat,
+    +known: Bool, +identity: String, +child_root: Nat,
+    +changed_slots: List<&2, Local.ReferenceSlot>, +changed_nodes: List<&2, F.Node>,
+    aligned: {P.aligned(List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))), entries,
+      List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))), entries) == True{} : Bool},
+    unique: {P.catalog_unique(catalog, catalog) == True{} : Bool},
+    owned: {P.slots_owned(slots, List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents)))) == True{} : Bool},
+    forward: {P.forward_nodes(List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))), slots) == True{} : Bool},
+    dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    below: {Nat.is_lt(owner, List.length(&2, Local.PlannedNode, parents)) == True{} : Bool},
+    child_count: {P.node_count(children, child_root) == 1n : Nat},
+    located: {F.address_at(entries, root) == Some{birth} : Maybe<&2, O.NodeAddress>},
+    replaced: {Compose.replacement(Compose.replace_slot(slots, owner, index,
+      Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + List.length(&2, Local.PlannedNode, parents) : Nat)})))
+      == Some{changed_slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>},
+    projected: {P.nodes(List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))),
+      changed_slots, catalog, entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.project(root, List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))),
+      changed_slots, catalog, entries) == Some{F.Forest{Some{birth}, changed_nodes}} : Maybe<&2, F.Forest>}:
+  +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+  +nodes: List<&2, Local.PlannedNode> = List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, offset))
+  +reference: Local.PlannedReference = Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + offset : Nat)})
+  +payload: {Structure.slots(Compose.replace_slot(slots, owner, index, reference)) == changed_slots : List<&2, Local.ReferenceSlot>} =
+    Replacement.replacement_payload(Compose.replace_slot(slots, owner, index, reference), changed_slots, replaced)
+  Contents.project_from_parts(root, nodes, changed_slots, catalog, entries, birth, changed_nodes, aligned, unique,
+    %payload: {P.slots_owned(_, nodes) == True{} : Bool}
+      Structure.replacement_owned(slots, owner, index, reference, nodes, owned),
+    %payload: {P.forward_nodes(nodes, _) == True{} : Bool}
+      replaced_forward_cursor(parents, children, slots, owner, index, known, identity, child_root, 0n, offset,
+        dense, N.le_refl(offset), below, child_count, forward),
+    located, projected)
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

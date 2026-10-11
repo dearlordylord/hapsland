@@ -215,14 +215,16 @@ One current obstacle list, in execution order:
    count preservation, unchanged shifted suffix, parent payload recovery, exact
    child lookup/new reference, semantic counts and birth order. All use existing
    datatypes and original projection/freshness premises; no success assumption
-   was added. Remaining path: updated post-replacement projection guards,
-   semantic root/incoming validity, all eight original conjuncts and the existing
-   transaction theorem. Post-replacement ownership/index/forward guards in
+   was added. Remaining path: semantic root/incoming validity, all eight
+   original conjuncts and the existing transaction theorem. Post-replacement ownership/index/forward guards in
    Structure pass at 1.990 seconds; selected-owner indexed preservation now
    passes at 1.502 seconds. The entire parent prefix including changed-reference
    forward cursors over all parent rows and unaffected child suffix passes at
    2.170 seconds under hard five seconds (/tmp/astra-parent-replaced-forward.log).
-   Full post-replacement projection and root/incoming validity remain unclosed.
+   Full post-replacement projection now passes with the entire prefix at
+   2.580 seconds under hard five seconds (/tmp/astra-parent-updated-project.log),
+   using exact witness slots/nodes and all original P.project guards.
+   Semantic root/incoming validity remains unclosed.
    No separate helper frontier qualifies adoption; the
    original parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
@@ -367,6 +369,14 @@ One current obstacle list, in execution order:
    preserve master structure and product/build custody contracts. Next diagnostic
    must distinguish uncached cleanup, cache restoration and Turbo hashing without
    removing validation or changing the fixed baseline/acceptance threshold.
+   The existing workspace runner now accepts optional --summarize; ordinary
+   builds retain their previous command. Syntax and one-file lint pass, and
+   actual summary builds pass 46/46 tasks: first 15 cached / 39.951 seconds,
+   then warm 23 cached / 2.577 Turbo seconds. The warm summary records 23
+   cleanup tasks with 2.789 summed seconds and 23 cached restores with 1.458
+   summed seconds; their intervals overlap, so these are not additive wall-time
+   shares. Current diagnostic: .test-runs/bend-migration/build-summary-diagnostic.json.
+   This is diagnostic localization, not another paired parity result.
 
 
 Keep this list current by removing closed work and naming specific remaining

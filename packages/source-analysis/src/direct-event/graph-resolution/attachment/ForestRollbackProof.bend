@@ -3,6 +3,7 @@ import ../ForestSpecification.bend as F
 import ../WholeObservation.bend as O
 import ../Types.bend as T
 import ./ForestRelation.bend as Relation
+import ./AttachmentNaturalArithmeticFacts.bend as Arithmetic
 import ../traversal/INTERPRETER_NAT_FACTS.bend as Order
 import ../traversal/core.bend as Local
 import ../traversal/INTERPRETER_ORDER_PROOF.bend as BoolFacts
@@ -209,6 +210,50 @@ def slots_incoming_prefix(+slots: F.Slots, +head: F.Reference, +address: O.NodeA
     case F.Slots{_, _} F.Expanded{_, _}: {==}
     case F.Slots{_, _} F.Included{_, _}: {==}
     case F.Slots{_, _} F.Omitted{_, _, _}: {==}
+
+# A replacement adds at most its own incoming weight. This handles both the
+# old targets (weight zero) and the fresh attachment root (weight at most one).
+def replacement_slot_incoming(+items: List<&2, F.Reference>, +index: Nat,
+    +reference: F.Reference, +address: O.NodeAddress, +allowance: Nat,
+    +weight: Order.le(reference_weight(reference, address), allowance)) ->
+    Order.le(Relation.incoming_references(slot_references(F.replace_slot(items, index, reference)), address),
+      (allowance + Relation.incoming_references(items, address) : Nat)):
+  match items index:
+    case [] _: Order.zero_le(allowance)
+    case +head <> +tail 0n:
+      %Equal.sym(Nat, Relation.incoming_references(reference <> tail, address),
+        (reference_weight(reference, address) + Relation.incoming_references(tail, address) : Nat),
+        incoming_head(reference, tail, address)):
+        Order.le(_, (allowance + Relation.incoming_references(head <> tail, address) : Nat))
+      Order.le_trans((reference_weight(reference, address) + Relation.incoming_references(tail, address) : Nat),
+        (allowance + Relation.incoming_references(tail, address) : Nat),
+        (allowance + Relation.incoming_references(head <> tail, address) : Nat),
+        Order.add_le_add_right(reference_weight(reference, address), allowance, Relation.incoming_references(tail, address), weight),
+        Order.add_le_add_left(Relation.incoming_references(tail, address), Relation.incoming_references(head <> tail, address), allowance,
+          %Equal.sym(Nat, Relation.incoming_references(head <> tail, address),
+            (reference_weight(head, address) + Relation.incoming_references(tail, address) : Nat), incoming_head(head, tail, address)):
+            Order.le(Relation.incoming_references(tail, address), _)
+          Order.add_le_add_right(0n, reference_weight(head, address), Relation.incoming_references(tail, address),
+            Order.zero_le(reference_weight(head, address)))))
+    case +head <> +tail 1n+++remaining:
+      %Equal.sym(Nat, Relation.incoming_references(slot_references(F.slots_prefix(F.replace_slot(tail, remaining, reference), head)), address),
+        (reference_weight(head, address) + Relation.incoming_references(slot_references(F.replace_slot(tail, remaining, reference)), address) : Nat),
+        slots_incoming_prefix(F.replace_slot(tail, remaining, reference), head, address)):
+        Order.le(_, (allowance + Relation.incoming_references(head <> tail, address) : Nat))
+      %Equal.sym(Nat, Relation.incoming_references(head <> tail, address),
+        (reference_weight(head, address) + Relation.incoming_references(tail, address) : Nat), incoming_head(head, tail, address)):
+        Order.le((reference_weight(head, address) + Relation.incoming_references(slot_references(F.replace_slot(tail, remaining, reference)), address) : Nat), (allowance + _ : Nat))
+      %Arithmetic.add_assoc(allowance, reference_weight(head, address), Relation.incoming_references(tail, address)):
+        Order.le((reference_weight(head, address) + Relation.incoming_references(slot_references(F.replace_slot(tail, remaining, reference)), address) : Nat), _)
+      %Arithmetic.add_comm(allowance, reference_weight(head, address)):
+        Order.le((reference_weight(head, address) + Relation.incoming_references(slot_references(F.replace_slot(tail, remaining, reference)), address) : Nat), (_ + Relation.incoming_references(tail, address) : Nat))
+      %Equal.sym(Nat, ((reference_weight(head, address) + allowance : Nat) + Relation.incoming_references(tail, address) : Nat),
+        (reference_weight(head, address) + (allowance + Relation.incoming_references(tail, address) : Nat) : Nat),
+        Arithmetic.add_assoc(reference_weight(head, address), allowance, Relation.incoming_references(tail, address))):
+        Order.le((reference_weight(head, address) + Relation.incoming_references(slot_references(F.replace_slot(tail, remaining, reference)), address) : Nat), _)
+      Order.add_le_add_left(Relation.incoming_references(slot_references(F.replace_slot(tail, remaining, reference)), address),
+        (allowance + Relation.incoming_references(tail, address) : Nat), reference_weight(head, address),
+        replacement_slot_incoming(tail, remaining, reference, address, allowance, weight))
 
 def omitted_slot_incoming(
   +items: List<&2, F.Reference>, +index: Nat, +symbol: F.ReferenceSymbol,
