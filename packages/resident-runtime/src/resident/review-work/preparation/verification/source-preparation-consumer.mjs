@@ -47,6 +47,13 @@ try {
     "PostPreparation",
     "SourcePreparation"
   ]) {
+    if (name === "SourcePreparation" || name === "PostPreparation") {
+      const stem = name === "SourcePreparation" ? "source-preparation" : "post-preparation"
+      modules[name] = (
+        await import(new URL(`../../../../../dist/resident/review-work/preparation/${stem}-core.js`, import.meta.url))
+      ).default
+      continue
+    }
     const emitted = join(temp, name + ".mjs")
     execFileSync(
       "taskset",

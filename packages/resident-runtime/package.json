@@ -94,6 +94,7 @@
     "host": "bun",
     "capabilities": [
       "review-orchestration"
-    ]
+    ],
+    "bendPrecompile": "src/resident/review-work/preparation/build-recipe.json"
   }
 }

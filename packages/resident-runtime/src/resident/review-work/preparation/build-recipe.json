@@ -1,0 +1,12 @@
+[
+  {
+    "source": "SourcePreparation.bend",
+    "output": "source-preparation-core.js",
+    "declaration": "source-preparation-core.d.ts"
+  },
+  {
+    "source": "PostPreparation.bend",
+    "output": "post-preparation-core.js",
+    "declaration": "post-preparation-core.d.ts"
+  }
+]

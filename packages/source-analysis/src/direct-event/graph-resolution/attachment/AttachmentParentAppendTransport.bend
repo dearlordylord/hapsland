@@ -2281,6 +2281,52 @@ def attachment_changed_frame(+parents: List<&2, F.Node>, +children: List<&2, F.N
       Equal.sym(Bool, Relation.episodes_before(children, (episode + 1n : Nat)), True{},
         B.eq_true_of_and_right(Relation.retained(F.Forest{Some{child}, children}), Relation.episodes_before(children, (episode + 1n : Nat)), child_frame))))
 
+# Exact existing parent theorem conclusion, shared only by proof eliminations.
+def parent_result(+parent_root: Nat,
+    +parent_nodes: List<&2, Local.PlannedNode>,
+    +parent_slots: List<&2, Local.ReferenceSlot>,
+    +parent_addresses: List<&2, F.AddressEntry>,
+    +parent_forest: F.Forest,
+    +child_root: Nat,
+    +child_nodes: List<&2, Local.PlannedNode>,
+    +child_slots: List<&2, Local.ReferenceSlot>,
+    +child_pending: List<&2, Local.Pending>,
+    +child_visited: Map<&2, Bool>,
+    +child_budget: Local.Budget,
+    +child_birth: O.NodeAddress,
+    +child_semantic_nodes: List<&2, F.Node>,
+    +child_addresses: List<&2, F.AddressEntry>,
+    +catalog: List<&2, T.ArtifactEntry>,
+    +episode: Nat,
+    +owner: Nat,
+    +index: Nat,
+    +symbol: String,
+    +owner_address: O.NodeAddress,
+    +known: Bool,
+    +identity: String,
+    +next_edge: Nat,
+    +pending: Map<&2, Maybe<&2, Local.Pending>>) -> Type:
+  Exists(List<&2, Local.ReferenceSlot>, replaced => Exists(Compose.Attachment, attachment => Exists(F.Forest, updated =>
+    {Compose.replacement(Compose.replace_slot(parent_slots, owner, index, Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + List.length(&2, Local.PlannedNode, parent_nodes) : Nat)})))
+      == Some{replaced} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {Compose.tentative_attachment(Compose.remap(Local.Plan{child_root, child_nodes, child_slots, child_pending, child_visited, child_budget}, List.length(&2, Local.PlannedNode, parent_nodes)), parent_nodes, parent_slots,
+      owner, index, Bool.pick(Maybe<&2, String>, known, Some{identity}, None{}), next_edge, pending) == Some{attachment} : Maybe<&2, Compose.Attachment>} &
+    {attachment == Compose.attachment_registered(Compose.register_pending(Compose.shift_pending(child_pending, List.length(&2, Local.PlannedNode, parent_nodes)),
+      next_edge, pending), Compose.remap(Local.Plan{child_root, child_nodes, child_slots, child_pending, child_visited, child_budget}, List.length(&2, Local.PlannedNode, parent_nodes)), parent_nodes, replaced) : Compose.Attachment} &
+    {F.replace(F.append(parent_forest, F.Created{child_birth, child_semantic_nodes, child_addresses}), owner_address, index,
+      X.attachment_reference(known, F.Created{child_birth, child_semantic_nodes, child_addresses}, symbol, identity)) == F.Replaced{updated} : F.Replacement} &
+    {P.project(parent_root, attachment_nodes(attachment), attachment_slots(attachment), catalog,
+      Mapping.extended(parent_addresses, List.length(&2, Local.PlannedNode, parent_nodes), F.Created{child_birth, child_semantic_nodes, child_addresses})) == Some{updated} : Maybe<&2, F.Forest>} &
+    {Relation.frame_forest(updated, (episode + 1n : Nat)) == True{} : Bool} &
+    {attachment_next_node(attachment) == (List.length(&2, Local.PlannedNode, parent_nodes) + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat} &
+    {Frame.dense(attachment_nodes(attachment), 0n) == True{} : Bool}
+  )))
+
+def eliminate_witness(-A: Type, -P: @-value: A -> Type, -R: Type,
+    witness: Exists(A, P), continuation: @value: A -> P(value) -> R) -> R:
+  match witness:
+    case (value, evidence): continuation(value)(evidence)
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

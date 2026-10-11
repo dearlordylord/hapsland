@@ -231,5 +231,23 @@ def project_from_parts(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     {P.forest(Some{birth}, _) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>}
   {==}
 
+def forest_birth(value: Maybe<&2, F.Forest>) -> Maybe<&2, O.NodeAddress>:
+  match value:
+    case Some{F.Forest{root, _}}: root
+    case None{}: None{}
+
+def projected_forest_root(root: Maybe<&2, O.NodeAddress>, items: Maybe<&2, List<&2, F.Node>>,
+    +birth: O.NodeAddress, +values: List<&2, F.Node>,
+    present: {P.forest(root, items) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>}) ->
+    {root == Some{birth} : Maybe<&2, O.NodeAddress>}:
+  match root items:
+    case Some{+actual} Some{+nodes}:
+      Equal.cong(Maybe<&2, F.Forest>, Maybe<&2, O.NodeAddress>, forest_birth,
+        Some{F.Forest{Some{actual}, nodes}}, Some{F.Forest{Some{birth}, values}}, present)
+    case None{} _:
+      Empty.absurd({None{} == Some{birth} : Maybe<&2, O.NodeAddress>}, none_some(F.Forest, F.Forest{Some{birth}, values}, present))
+    case Some{_} None{}:
+      Empty.absurd({root == Some{birth} : Maybe<&2, O.NodeAddress>}, none_some(F.Forest, F.Forest{Some{birth}, values}, present))
+
 def main() -> Unit:
   Unit{}
