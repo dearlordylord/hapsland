@@ -186,6 +186,7 @@ def context(language: T.Language, branch: T.Branch, rust: T.RustContext) -> T.Fr
     case T.RustLanguage{}: T.RustSourceContext{branch, rust}
     case T.BendLanguage{}: T.BendSourceContext{branch}
     case T.PythonLanguage{}: T.PythonSourceContext{branch}
+    case T.GoLanguage{}: T.GoSourceContext{branch}
 
 def capsule(
   clock: Maybe<&2, T.ClockToken>,

@@ -179,21 +179,23 @@ One current obstacle list, in execution order:
    the typed resolver carries one shared raw Configuration declaration, and the
    composition installs returned limits/dependencies/fingerprint before root
    admission. Fingerprint is first in every root, previous/candidate attachment
-   and final unit size calculation. The actual owned driver passes 44 cases and
-   2005 requests across Python, default/configured Go, two roots, exact treeBytes
+   and final unit size calculation. The actual owned driver passes 46 cases and
+   2049 requests across Python, default/configured Go, two roots, exact treeBytes
    boundaries, cancellation, retirement, late replies and injected faults, with
-   zero retained invocation resources/descriptors. Extend the complete 55-case
-   physical Go corpus through this driver, including unstable capture and cache
-   saturation. Go configuration and final configuration identity are now lazy foreign
+   zero retained invocation resources/descriptors. The complete physical Go
+   corpus now passes through this driver: 58 cases and 2075 owned requests,
+   comparing full JSON/order, observation chronology, cache, publication deadline,
+   depth-zero RangeError and original capture exceptions. The separate native
+   preparation comparison passes 55 fixtures, 1659 requests and 3474 transitions. Go configuration and final configuration identity are now lazy foreign
    observations selected by Bend; eager general-input projection is removed.
-   Function/non-Go throwing-getter vectors await the affected consumer rerun.
+   Function/non-Go throwing-getter vectors pass the affected 46-case consumer.
    The full owned corpus detected a missing final publication clock, now routed
-   through existing final-await; the deadline-at-publication vector awaits rerun.
+   through existing final-await; the deadline-at-publication vector passes.
    It also detected depth-zero profile validation missing at graph initialization.
    The candidate now requests the exact native RangeError at that phase using
    canonical GraphLimits policy; source check and ordinary format pass.
-   The 58-case full owned diagnostic consumer is saved, still unqualified until
-   rerun. Negative/fractional raw-profile ABI is not qualified by the Nat policy.
+   The 58-case full owned consumer passes on the current source candidate;
+   this finite comparison does not establish universal guarantees or adoption. Negative/fractional raw-profile ABI is not qualified by the Nat policy.
 2. Extend the original complete materialization/attachment guarantees to present
    fingerprint, plus whole preparation/native correspondence and Cause/custody.
    Neutral None literals do not qualify changed Some behavior. The original
@@ -201,13 +203,24 @@ One current obstacle list, in execution order:
    extending BoundNamed cases; qualified lookup, display symbol, explicit target
    priority and inventory/rank/completion guarantees remain distinct. No new
    representation or auxiliary-law chain is accepted merely for easy proofs.
-   Obtain Astra review of actual whole declarations before new proof work.
+   Astra's actual-source review found the metadata-blind attachment relation
+   false for paired Some fingerprint inputs: reference measurement omits a real
+   field. Extend reference X.Frame and the existing phase capsule with the same
+   optional fingerprint, preserving terminal exact product observation; do not
+   invent terminal frame evidence. Missing Go cases in actual context/reference
+   branch projections are added and formatted. The actual projection checks;
+   the reference root is blocked by ExpansionDriverSpecification.candidates
+   missing GoLanguage. No new proof or universal correspondence is claimed.
+   Obtain review of the complete amended declarations before proof work.
 3. Resolve the remaining ordinary source and consumer boundaries: zero unresolved
    imports, zero undeclared dependencies, 97 cross-owner private-file imports.
    Do not expose test helpers or exclude candidate sources. check:fast currently
    passes 109 tests, source TypeScript and package graph, then fails these imports;
    a full gate is blocked. Ordinary lint selected all five changed TS/MJS files. The fast gate and
-   affected service/owned consumers must rerun after the lazy-observation changes.
+   affected service/owned consumers pass after the lazy-observation changes:
+   service boundary 195 requests, owned resolver 46 cases/2049 requests, full
+   owned Go 58 cases/2075 requests. The current fast rerun passes 109 tests and
+   source typing, then fails the same 97 private imports before lint.
    The formatter still cannot process AttachmentTransactionLiteralCuts, and
    previously unsupported traversal/UnitEvidence/Glob roots remain open tooling
    failures. Actual supported changed sources are formatted. Relocated runners

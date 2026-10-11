@@ -153,6 +153,7 @@ def branch(context: T.FrontendContext) -> T.Branch:
     case T.RustSourceContext{value, _}: value
     case T.BendSourceContext{value}: value
     case T.PythonSourceContext{value}: value
+    case T.GoSourceContext{value}: value
 
 def node_count(forest: F.Forest) -> Nat:
   match forest:
