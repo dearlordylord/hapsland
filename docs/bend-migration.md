@@ -353,7 +353,9 @@ One current obstacle list, in execution order:
    derives required entry methods from the existing authored default-core ABI,
    rather than imposing initial/advance/resume on every core. Two focused tests
    and lint of all three changed scripts pass; the first actual workspace run was rejected because concurrent proof edits
-   changed authored inputs. A frozen retry is required. Source/Post/resolver private recipes and the complete production
+   changed authored inputs. The frozen retry passes all 46 tasks, 11 cached,
+   at 57.845 seconds, including real existing private-core emission. This
+   qualifies that assembly change, not whole preparation adoption. Source/Post/resolver private recipes and the complete production
    consumer remain to connect through their existing domain owners.
 6. Pass all selected local acceptance gates and strict paired performance on the
    connected candidate. Latest existing-production 944af1e0 measurements are
