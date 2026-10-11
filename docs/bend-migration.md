@@ -129,7 +129,7 @@ One current obstacle list, in execution order:
 
 1. Finish relocation dependency and nominal ABI qualification; remove obsolete
    representations and historical runners after identifying the retained closure.
-   Actual sources are secured on the remote working branch at `61cae888`;
+   Actual sources are secured on the remote working branch at `8b67a18a`;
    subsequent source changes require another pushed checkpoint. Three obsolete
    scheduler compiler-control roots and their dead runner map entries were
    removed after Astra review; canonical scheduler proof roots remain required.
@@ -157,11 +157,22 @@ One current obstacle list, in execution order:
 5. Connect launch, lifecycle, cancellation, acceptance and progression through
    the single production Canonical authority; remove replaced TypeScript
    algorithms and orchestration, then qualify the full composed consumer.
+   Astra's shortest compiled boundary: source-analysis resolver/session API,
+   review-execution preparation API and resident-runtime Canonical workflow API;
+   private stages remain hidden. The current `native-preparation-children.mjs`
+   reads TypeScript and extracts `prepareReadyUnits` through `new Function`.
+   Replace that whole application finalization child rather than exporting the
+   extracted native implementation; compiled consumers must use emitted exports.
+   Retained host bindings must enter normal compiler/declaration receipts.
 6. Pass required local gates and paired build/execution parity on that connected
    candidate. Previous measurements qualify only their original source paths and
    inputs; source moves do not inherit their qualification. Current relocated
-   production cadence: build qualified but failed parity (`1.4407631441036857`);
-   execution qualified and passed (`0.6953556257858333`). These measurements
+   production cadence at `8b67a18a`: build qualified but failed parity
+   (`1.0552003656893472`); execution qualified but failed parity
+   (`1.062814778554533`). Inputs, HEAD and artifact trees remained unchanged;
+   all build samples used 23/46 cached tasks and all execution outputs matched.
+   Build began at 04:07:53 UTC on 2026-10-11, exceeding the required 30-minute
+   interval from 03:36:19; cadence compliance remains unmet. These measurements
    cover the existing production analyzer, not adoption of the preparation candidate.
 
 Relocation and source backup do not increase the amount of connected production
