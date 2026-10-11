@@ -167,6 +167,20 @@ import still needs a narrow shared ABI owner before production interfaces qualif
 there is no duplicated ProductValue declaration. Named source checks include the
 actual rule owner after the move.
 
+The full glob dialect is now authored at runtime-inputs/matcher/glob, together
+with its emitted consumer. Bend owns normalization, UTF-16 limits/class ranges,
+native brace expansion (including class intersections), regex construction,
+greedy dot-pointer behavior, validation-before-matching and ordered any-pattern
+short-circuit. The host only converts code units to JS strings and invokes the
+no-flags RegExp engine, distinguishing invalid syntax from valid false. Passing
+12,771 comparisons with native validate/matches/matchesAny covers finite dialect
+and protocol cases, not universal proof or production adoption. Astra reviewed
+ownership and the full dialect; finalization must still provide invocation/request
+correlation. The actual owner enters named source selection. Source checking and
+runner lint pass; the pinned formatter reports `Unsupported block expression in
+list`, so formatting remains open. Next connect this owner to RuleSnapshot and
+the existing Canonical gate in the ordered whole-finalization machine.
+
 1. Finish relocation dependency and nominal ABI qualification; remove obsolete
    representations and historical runners after identifying the retained closure.
    Actual sources are secured on the remote working branch at `8b67a18a`;
