@@ -804,3 +804,9 @@ Astra's existing-list paired address-prefix no-shadow proof checks 4.781 seconds
 under hard5, with original premises/law unchanged. Exact row/count transport
 and full alignment remain required. Checked prefix and all owner move WIP
 are retained for remote backup; whole adoption/removal remain 0/0.
+
+Relocated artifact-owned-root-check now passes all 46 cases/2049 requests
+on the new owner paths after the separate imports gate stops. Canonical
+admission, split children, cancellation/retirement/refusal/throw and resource
+cleanup assertions remain. This qualifies the owner move and suite route,
+not whole resident preparation adoption or the original universal proofs.
