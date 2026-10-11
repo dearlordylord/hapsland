@@ -249,6 +249,16 @@ One current obstacle list, in execution order:
    comparison, then fails at Python imported Child: native expands other.py,
    while the candidate/reference returns omitted unavailable. Repair that Python
    import-session behavior without dropping the case or weakening observations.
+   Existing DriverSpecification candidates explicitly return no Python paths,
+   and its configuration omits the prepared Python.Session. The actual Canonical
+   composition already uses ResolveImportMachine. Agreed path with Astra: carry
+   that prepared session and census/effective-cache custody in the independent
+   driver, with a typed child continuation over the existing Request/Reply and
+   Resolution protocol. Preserve packages/reexports, root policy, budgets,
+   revalidation, dependencies and combined usage. Seed the session from
+   preparation; do not substitute a host-resolved target callback or a .py-only
+   candidate shortcut. This representation closes whole-consumer correspondence
+   directly; original transport obligations and guarantees remain required.
    This finite traversal pass does not qualify the full expansion driver, all
    fixture ABI consumers or the remaining universal guarantees. No new law or weakened
    premise is claimed. Full materialization/transaction guarantees
