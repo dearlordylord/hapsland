@@ -20,6 +20,7 @@ import ./traversal/core.bend as Local
 import ./traversal/SPEC.bend as Recursive
 import ./traversal/RELATION.bend as LocalRelation
 import ../../../../agent-flow-bend/ImportGraph.bend as G
+import ../../../../agent-flow-bend/GraphLimits.bend as Profile
 
 # Independent complete entry. The native frame is never an input. Preparation,
 # root construction and expansion share one world, clock and request chronology.
@@ -42,6 +43,7 @@ type Stage is Data:
   AwaitRootDeadline{}
   AwaitRootFacts{}
   AwaitRootBytes{frame: X.Frame, product: ArtifactValue.ProductValue}
+  AwaitGraphProfileRejection{}
 type State is Data:
   State{
     input: T.ResolverInput,
@@ -750,12 +752,19 @@ def root_artifact(created: F.Created) -> Maybe<&2, T.Artifact>:
     case F.Created{_, F.Node{_, artifact, _} <> _, _}: Some{artifact}
     case _: None{}
 
+def root_profiled(state: State, frame: X.Frame, +product: ArtifactValue.ProductValue,
+    violation: Maybe<&2, String>) -> Selection:
+  match violation:
+    case Some{message}: selected(state, AwaitGraphProfileRejection{}, T.CreateRangeError{message})
+    case None{}: selected(state, AwaitRootBytes{frame, product}, T.EncodeProduct{product})
+
 def root_materialized(+state: State, +frame: X.Frame, value: F.Materialization) -> Selection:
   match value:
-    case F.Materialized{+product}: selected(
+    case F.Materialized{product}: root_profiled(
       state,
-      AwaitRootBytes{frame, product},
-      T.EncodeProduct{product}
+      frame,
+      product,
+      Profile.violation(limits(state))
     )
     case F.MaterializationExhausted{}: EvaluationExhausted{state}
     case F.MaterializationInvalid{}: InvariantFailed{state}
@@ -1362,6 +1371,30 @@ def cancel(-World: Data, progress: Progress<World>) -> Progress<World>:
     )
     case EntryExpanding{state, progress}: EntryExpanding{state, D.cancel(World, progress)}
     case other: other
+
+# Only this entry projection accepts completion; a driver's Some result still
+# requires the Go publication clock before it is observable as an entry result.
+def accepted_unit(state: State, value: ArtifactValue.ProductValue,
+    language: Maybe<&2, T.Language>) -> Maybe<&2, T.ProductResult>:
+  match language:
+    case Some{T.GoLanguage{}}:
+      Bool.pick(Maybe<&2, T.ProductResult>, go_publication_needed(stage(state)),
+        None{}, Some{T.ReviewUnitResult{value}})
+    case _: Some{T.ReviewUnitResult{value}}
+
+def accepted_product(
+  +state: State,
+  product: Maybe<&2, ArtifactValue.ProductValue>
+) -> Maybe<&2, T.ProductResult>:
+  match product:
+    case None{}: Some{T.NoReviewUnit{}}
+    case Some{value}: accepted_unit(state, value, language(state))
+
+def accepted_result(progress: Progress<Nat>) -> Maybe<&2, T.ProductResult>:
+  match progress:
+    case EntryFinished{_, _, _}: Some{T.NoReviewUnit{}}
+    case EntryExpanding{state, D.DriverFinished{_, product, _}}: accepted_product(state, product)
+    case _: None{}
 
 def main() -> Unit:
   Unit{}

@@ -14,12 +14,14 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
 import { prepareGoGraph } from "../../languages/go-module-context.ts"
 import { createServiceRegistry, createServiceSession } from "../service-session.ts"
 import { factDeclaration, pureReply } from "../frontend-codec.ts"
+import { createEntryReferenceDriver } from "./entry-driver-check.mjs"
 
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { resolveGraphUnit } from "../../graph-resolver.ts"
 import { createBendResolver } from "../consumer.ts"
 import { createOwnedArtifactDriver } from "../../../../../resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
-const ownedMode = process.argv.includes("--owned")
+const entryMode = process.argv.includes("--entry")
+const ownedMode = process.argv.includes("--owned") || entryMode
 const artifactMode = process.argv.includes("--artifact")
 const temp = await mkdtemp("/tmp/hapsland-go-preparation-")
 const t = (name, fields = {}) => ({ $: `Types.${name}`, ...fields })
@@ -345,6 +347,9 @@ try {
       if (key === "owner") owner = artifact
       else ownedArtifacts[key] = artifact
     }
+  const referenceEntry = entryMode
+    ? await createEntryReferenceDriver({ temporary: temp, go: ownedArtifacts.go, transport, artifactTransport })
+    : undefined
   let requests = 0,
     transitions = 0
   for (const [index, fixture] of fixtures.entries()) {
@@ -628,8 +633,8 @@ try {
           allocateInvocation: driver.allocateInvocation,
           onConstructionFailure: driver.constructionFailed
         })
-        const wholeTraces = { native: [], bend: [] },
-          wholeCaches = { native: new Map(), bend: new Map() }
+        const wholeTraces = { native: [], bend: [], entry: [] },
+          wholeCaches = { native: new Map(), bend: new Map(), entry: new Map() }
         const context = (lane) => {
           let ticks = 0
           return {
@@ -665,7 +670,45 @@ try {
           Effect.runPromise(resolveGraphUnit(path, rootCapture, "Root", context("native")))
         )
         const actual = await outcome(() => resolver(path, rootCapture, "Root", context("bend")))
+        const reference =
+          referenceEntry === undefined
+            ? undefined
+            : await outcome(() => createBendResolver(referenceEntry)(path, rootCapture, "Root", context("entry")))
         try {
+          if (reference !== undefined) {
+            assert.equal(
+              reference.ok,
+              expected.ok,
+              fixture.name + " full reference entry failure: " + String(reference.error)
+            )
+            if (expected.ok) {
+              assert.deepEqual(reference.value, expected.value, fixture.name + " full reference entry product")
+              assert.equal(
+                JSON.stringify(reference.value),
+                JSON.stringify(expected.value),
+                fixture.name + " full reference entry JSON order"
+              )
+            } else {
+              assert.equal(
+                reference.error.constructor,
+                expected.error.constructor,
+                fixture.name + " full reference entry error type"
+              )
+              assert.equal(
+                reference.error.message,
+                expected.error.message,
+                fixture.name + " full reference entry error message"
+              )
+              if (fault === true)
+                assert.equal(reference.error, captureFailure, fixture.name + " opaque entry error identity")
+            }
+            assert.deepEqual(wholeTraces.entry, wholeTraces.native, fixture.name + " full reference entry chronology")
+            assert.deepEqual(
+              [...wholeCaches.entry].map(([file, capture]) => [file, capture.contentHash]),
+              [...wholeCaches.native].map(([file, capture]) => [file, capture.contentHash]),
+              fixture.name + " full reference entry cache"
+            )
+          }
           assert.equal(actual.ok, expected.ok, fixture.name + " owned failure: " + String(expected.error))
           if (expected.ok) {
             assert.deepEqual(actual.value, expected.value, fixture.name + " owned whole unit")
@@ -705,6 +748,9 @@ try {
     JSON.stringify({
       passed: true,
       artifactMode,
+      entryMode,
+      entry: referenceEntry?.counts,
+      entryEmissions: referenceEntry?.emissions,
       ownedMode,
       ownedRequests,
       ownedCases,

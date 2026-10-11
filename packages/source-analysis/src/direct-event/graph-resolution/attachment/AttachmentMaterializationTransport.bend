@@ -34,6 +34,17 @@ def unprepared_product(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
   {F.unit(Allowance.materialization(forest), forest, deps) == F.Materialized{Core.unit_product(value, deps)}
     : F.Materialization}
 
+def transport_root(+forest: F.Forest, +address: O.NodeAddress, +birth: O.NodeAddress,
+    +required: Nat, +available: Nat, +value: ArtifactValue.ProductValue,
+    fuel: {required == available : Nat}, same_address: {address == birth : O.NodeAddress},
+    rendered: {F.materialize(available, forest, address) == F.Materialized{value} : F.Materialization}) ->
+    {F.materialize(required, forest, birth) == F.Materialized{value} : F.Materialization}:
+  %Equal.sym(Nat, required, available, fuel):
+    {F.materialize(_, forest, birth) == F.Materialized{value} : F.Materialization}
+  %same_address:
+    {F.materialize(available, forest, _) == F.Materialized{value} : F.Materialization}
+  rendered
+
 def complete_ready(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     +slots: List<&2, Local.ReferenceSlot>, +artifacts: List<&2, T.ArtifactEntry>,
     +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>,
@@ -57,11 +68,9 @@ def complete_ready(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
           Equal.sym(Nat, Nat.add(Suffix.suffix_allowance(nodes, slots), 0n), Suffix.suffix_allowance(nodes, slots), N.add_zero(Suffix.suffix_allowance(nodes, slots))))
       root_materialized: {F.materialize(Allowance.materialization(F.Forest{Some{birth}, retained}), F.Forest{Some{birth}, retained}, birth)
         == F.Materialized{value} : F.Materialization} =
-        %Equal.sym(Nat, Allowance.materialization(F.Forest{Some{birth}, retained}), Nat.add(Suffix.suffix_allowance(nodes, slots), 0n), fuel):
-          {F.materialize(_, F.Forest{Some{birth}, retained}, birth) == F.Materialized{value} : F.Materialization}
-        %same_address:
-          {F.materialize(Nat.add(Suffix.suffix_allowance(nodes, slots), 0n), F.Forest{Some{birth}, retained}, _) == F.Materialized{value} : F.Materialization}
-        materialized
+        transport_root(F.Forest{Some{birth}, retained}, address, birth,
+          Allowance.materialization(F.Forest{Some{birth}, retained}), Nat.add(Suffix.suffix_allowance(nodes, slots), 0n),
+          value, fuel, same_address, materialized)
       Tuple{value, Tuple{
         UnitConstruction.completed(root, nodes, slots, artifacts, deps, built, value, done, built_present),
         %Equal.sym(F.Materialization, F.materialize(Allowance.materialization(F.Forest{Some{birth}, retained}), F.Forest{Some{birth}, retained}, birth),

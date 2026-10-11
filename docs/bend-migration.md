@@ -378,7 +378,11 @@ One current obstacle list, in execution order:
    13:17:03 / 13:20:20 UTC start deadlines remain failures; later timely runs
    do not erase them. The 14:51:02 build start deadline was also missed: current
    candidate warm preparation began at 14:53 UTC and completed before the
-   14:55:48 pair. Next start deadlines are 15:25:48 / 15:19:47 UTC.
+   14:55:48 pair. Latest a05b91a3 execution at 15:19:10.733211 UTC passed at
+   0.7333435932681925; matched warm build at 15:19:47.352608 UTC
+   failed at 1.0644553189680463, with all 17 pairs at 23/46 cached.
+   Both qualified with unchanged inputs. Next start deadlines are
+   15:49:10 / 15:49:47 UTC.
    Records remain ignored under .test-runs/bend-migration/performance. These
    measure existing production, not unadopted whole preparation. Warm the
    actual changed candidate before each pair; an earlier source revision's warm
@@ -414,3 +418,17 @@ surrogate expressions remain unknown. Existing verification CPU affinity remains
 a Linux qualification limitation. Normal cleanup does not guarantee SIGKILL
 cleanup. Source retention, finite checks and structural review remain separate
 from whole-unit acceptance.
+
+Current retained Go entry checkpoint: the actual reference entry and expansion
+consumers pass all 58 owned cases, 2017 requests and 6304 transitions against
+native complete results, cache and effect chronology. The same run passes
+55 artifact cases (1713 requests, 3528 transitions) and 58 Canonical-owned
+cases (2075 requests). All authored source hashes remained unchanged. Separate
+entry and expansion emitters retain the existing progress/state representation;
+Bend entry accepts expansion results and owns final publication clock. This is
+finite consumer evidence, not public adoption. The original universal attachment
+materialization transport now passes its complete proof within five seconds;
+node replacement and transaction proofs remain open. Its formatter still rejects
+the declaration header, so this checkpoint does not claim full formatting or
+acceptance gates. All retained implementation, proof and runner changes belong
+to the remote working branch; backup preserves WIP as well as validated code.
