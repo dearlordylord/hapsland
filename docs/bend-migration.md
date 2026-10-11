@@ -222,6 +222,11 @@ One current obstacle list, in execution order:
    verdicts pass in 1.847 and 2.269 seconds under hard five seconds. Combined
    transaction prefix after this cut still times out: exit 124, 5.026 seconds
    wall / 4.612 user / .402 system (/tmp/astra-transaction-lower-joined.log).
+   Imports-only diagnostics isolate the remaining cost: combined imports alone
+   time out at 5.030 seconds, and Parent+Materialization alone at 5.026; the
+   boundary closure without those imports passes in 3.095 seconds. The full
+   prefix also times out at 5.024. Removing local provisional proof bodies
+   cannot close this baseline dependency cost. Original premises are unchanged.
    No faster complete proof is claimed. Physical probes also require updating constructor
    namespaces and the four reference fixtures' existing mandatory python=None
    field; the first incomplete-fixture failure is retained.
@@ -268,6 +273,14 @@ One current obstacle list, in execution order:
    No new or weakened acceptance premise is authorized.
 
 2. Qualify the remaining complete consumer boundaries and supported input scope.
+   The existing frontend codec now preserves literal constructor, Maybe,
+   artifact/field and reference-kind tags in its inferred source-facts ABI.
+   This narrows the real records already emitted; it adds no runtime policy or
+   synthetic opaque argument. Root and preparation ABI typechecks, check:fast
+   (including one changed authored source in lint), and the full independent
+   entry consumer (78 cases/55 native comparisons) pass on these inputs
+   (/tmp/hapsland-frontend-literal-{fast,entry}.log). Remaining composition ABI
+   declarations and normal build recipes are still required before packaging.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
    consumer now passes 56 cases/6348 commands and 31 native comparisons across

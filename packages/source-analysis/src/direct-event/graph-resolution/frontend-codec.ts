@@ -15,18 +15,36 @@ type TomlValue =
   | { readonly $: string; readonly representation: string }
   | { readonly $: string; readonly items: List<TomlValue> }
   | { readonly $: string; readonly fields: List<OrderedField<TomlValue>> }
-function tagged(name: string): { readonly $: string }
-function tagged<Fields extends object>(name: string, fields: Fields): { readonly $: string } & Fields
+type ValueConstructor =
+  | "Binary64"
+  | "OrderedField"
+  | "ProductNull"
+  | "ProductBool"
+  | "ProductNumber"
+  | "ProductText"
+  | "ProductArray"
+  | "ProductObject"
+type ConstructorTag<Name extends string> = Name extends ValueConstructor
+  ? `../../../../source-artifacts/src/direct-event/value/Value.${Name}`
+  : `Types.${Name}`
+function tagged<Name extends string>(name: Name): { readonly $: ConstructorTag<Name> }
+function tagged<Name extends string, Fields extends object>(
+  name: Name,
+  fields: Fields
+): { readonly $: ConstructorTag<Name> } & Fields
 function tagged(name: string, fields?: object) {
   return { $: artifactValueTag(name) ?? "Types." + name, ...fields }
 }
-const maybe = <Value>(value: Value | undefined) => (value === undefined ? { $: "None" } : { $: "Some", value })
+const maybe = <Value>(
+  value: Value | undefined
+): { readonly $: "None" } | { readonly $: "Some"; readonly value: Value } =>
+  value === undefined ? { $: "None" } : { $: "Some", value }
 const tuple = <Value>(key: string, value: Value): OrderedField<Value> => ({
   $: "../../../../source-artifacts/src/direct-event/value/Value.OrderedField",
   key,
   value
 })
-const artifactKinds: Readonly<Record<string, string>> = {
+const artifactKinds = {
   interface: "InterfaceArtifact",
   "type-alias": "TypeAliasArtifact",
   struct: "StructArtifact",
@@ -36,8 +54,8 @@ const artifactKinds: Readonly<Record<string, string>> = {
   class: "ClassArtifact",
   "defined-type": "DefinedTypeArtifact",
   "constant-group": "ConstantGroupArtifact"
-}
-const artifactKeys: Readonly<Record<string, string>> = {
+} as const satisfies Readonly<Record<string, string>>
+const artifactKeys = {
   origin: "OriginKey",
   path: "ArtifactPathKey",
   id: "ArtifactIdKey",
@@ -45,16 +63,16 @@ const artifactKeys: Readonly<Record<string, string>> = {
   name: "ArtifactNameKey",
   source: "ArtifactSourceKey",
   sourceHash: "ArtifactHashKey"
-}
-const originKeys: Readonly<Record<string, string>> = {
+} as const satisfies Readonly<Record<string, string>>
+const originKeys = {
   kind: "OriginKindKey",
   library: "LibraryKey",
   compilerVersion: "CompilerVersionKey",
   compilerSource: "CompilerSourceKey",
   moduleHash: "ModuleHashKey",
   declarationHash: "DeclarationHashKey"
-}
-function orderedKeys(value: object, keys: Readonly<Record<string, string>>) {
+} as const satisfies Readonly<Record<string, string>>
+function orderedKeys<Name extends string>(value: object, keys: Readonly<Record<string, Name>>) {
   return list(
     Object.keys(value).map((key) => {
       if (!Object.hasOwn(keys, key)) throw new Error("unsupported artifact field")
@@ -78,7 +96,9 @@ function origin(value: BundledArtifactOrigin) {
 }
 export function artifact(value: ReviewArtifact) {
   if (value.path !== undefined && typeof value.path !== "string") throw new Error("invalid artifact path")
-  const kind = Object.hasOwn(artifactKinds, value.kind) ? artifactKinds[value.kind] : undefined
+  const kind = Object.hasOwn(artifactKinds, value.kind)
+    ? artifactKinds[value.kind as keyof typeof artifactKinds]
+    : undefined
   if (kind === undefined) throw new Error("unknown artifact kind")
   for (const key of ["id", "name", "source", "sourceHash"] as const)
     if (typeof value[key] !== "string") throw new Error("invalid artifact " + key)
@@ -95,7 +115,11 @@ export function artifact(value: ReviewArtifact) {
 }
 const expected = (kind: GraphReference["expectedKind"]) => {
   if (kind !== undefined && kind !== "type" && kind !== "function") throw new Error("invalid expected kind")
-  return { $: "traversal/core." + (kind === "type" ? "TypeKind" : kind === "function" ? "FunctionKind" : "AnyKind") }
+  return kind === "type"
+    ? { $: "traversal/core.TypeKind" as const }
+    : kind === "function"
+      ? { $: "traversal/core.FunctionKind" as const }
+      : { $: "traversal/core.AnyKind" as const }
 }
 export function factDeclaration(
   key: string,
@@ -120,8 +144,10 @@ export function factDeclaration(
         tagged("FactReference", {
           kind:
             ref.kind === "named" && ref.bindingName !== undefined
-              ? { $: "traversal/core.BoundNamed", binding: ref.bindingName }
-              : { $: "traversal/core." + (ref.kind === "named" ? "Named" : "Unsupported") },
+              ? { $: "traversal/core.BoundNamed" as const, binding: ref.bindingName }
+              : ref.kind === "named"
+                ? { $: "traversal/core.Named" as const }
+                : { $: "traversal/core.Unsupported" as const },
           name: ref.name,
           expected: expected(ref.expectedKind),
           target: maybe(ref.targetId)
