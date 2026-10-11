@@ -400,7 +400,17 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest frozen pair at `15cfabed` began
+   parity on the connected candidate. Latest frozen pair at `e02ce809` began
+   2026-10-11 11:24:07/11:27:52 UTC, before the 11:29:59/11:33:07
+   cadence deadlines: build qualified but failed **1.0250620627**; execution
+   qualified and passed **0.6248663067**. All 34 build runs used 23/46 cached
+   tasks; HEAD, source hashes and artifact trees stayed unchanged. Records are
+   in ignored `.test-runs/bend-migration/performance/2026-10-11T11-24-07.170166+00-00/`
+   and `2026-10-11T11-27-52.011965+00-00/`. Current workspace preparation passed
+   46/46, then the unchanged warm repeat used 23/46 cached tasks. Next start
+   deadlines are 11:54:07/11:57:52 UTC. Strict build parity remains open; these
+   measurements concern existing production, not unadopted whole preparation.
+   The previous frozen pair at `15cfabed` began
    2026-10-11 10:59:59/11:03:07 UTC: build qualified but failed **1.0486182727**;
    execution qualified and passed **0.7409846759**. All 34 build runs used 23/46
    cached tasks; HEAD, source hashes and artifact trees stayed unchanged.
@@ -526,5 +536,5 @@ undeclared cases are two tooling imports of the verification credential oracle
 and one update-notice dependency on an external baseline checkout. Keep the
 oracle independent while repairing ownership; substituting the current Bend
 wrapper would be circular qualification. Whole Go and production adoption
-remain open; the next build/execution cadence deadlines remain 11:29:59 and
-11:33:07 UTC from the last frozen pair.
+remain open; current build/execution cadence deadlines are 11:54:07 and
+11:57:52 UTC from the latest frozen pair.
