@@ -475,7 +475,7 @@ boundary and existing artifact-kind proof evidence, not complete Go package
 inference, whole preparation correspondence, production adoption or parity.
 
 Current source organization and gate blocker: zero unresolved imports, zero
-undeclared dependencies and 101 cross-owner private-file imports. Resolve their
+undeclared dependencies and 97 cross-owner private-file imports. Resolve their
 owner/interface boundaries without publishing test helpers or excluding source
 from the ordinary gates. The latest compiled preparation qualification passed
 50 source, 64 resident and 13 owned-root cases with all 23 compiler receipts;
@@ -489,7 +489,14 @@ cancellation beside graph-resolution. Superseded copies are deleted. All these
 real relocated consumers passed. Cargo compared 21,003 cases; the physical
 Linux cancellation consumer used freshly emitted current Runtime with its SHA,
 checked native/Bend effect order, interruption, exact failure identity and
-resource discharge. These finite checks retain their stated scope and are not
+resource discharge. Owner-local clock-failure and foreign-effect embedding
+checks also passed. The clock assertion now follows native preparation:
+start/preparation defects precede root cache insertion, while a root-stage
+clock defect retains the exact input capture. Error/cause identity, ordered
+clock prefixes, zero registry custody and descriptor cleanup remain checked.
+check:fast passed 109 unit tests, assets, TypeScript and package graph, then
+failed the remaining 97 private-file imports; no full gate was attempted.
+These finite checks retain their stated scope and are not
 universal proof or Canonical production adoption. Diagnostics go to ignored
 root .test-runs; normal temporary cleanup does not guarantee SIGKILL cleanup.
 Nonempty lint checked the changed files. The hardcoded CPU10 affinity in some

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync, readlinkSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync, readlinkSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
@@ -11,9 +11,9 @@ import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-r
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
-import { createDispatcher } from "../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import { createVerificationEffectResolver as createBendEffectResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
+import { createDispatcher } from "../../runtime-observation/transport.mjs"
+import { createServiceRegistry } from "../../service-session.ts"
+import { createVerificationEffectResolver as createBendEffectResolver } from "../../verification/resolver-driver.mjs"
 console.error("phase:imports-ready")
 assert.equal(process.platform, "linux", "descriptor observations are Linux qualification only")
 const temporary = mkdtempSync("/tmp/hapsland-stable-cancellation-")
@@ -131,7 +131,10 @@ try {
         Array.from({ length: throwAt + 1 }, (_, index) => ["clock", index])
       )
       assert.equal(registry.size, 0)
-      assert.deepEqual([...cache], [])
+      // Python preparation inserts the root after its first clock read. A later
+      // root-admission failure retains that exact capture in the caller cache.
+      assert.deepEqual([...cache.keys()], point === "root" ? ["root.py"] : [])
+      if (point === "root") assert.equal(cache.get("root.py"), captured.capture)
       assert.deepEqual(rootDescriptors(root), [])
       pair.push({
         mode,
@@ -152,10 +155,12 @@ try {
     artifactHash,
     observations,
     scope:
-      "Actual complete Python native and Bend Effect resolver: start/preparation/root clock defects, including preparation before zero-file admission; exact clock prefix and original error/cause identity; empty cache/registry and no repository descriptors. No whole proof or performance claim."
+      "Actual complete Python native and Bend Effect resolver: start/preparation/root clock defects, including preparation before zero-file admission; exact clock prefix and original error/cause identity; native-phase root cache retention, empty registry and no repository descriptors. No whole proof or performance claim."
   }
+  const evidenceDirectory = join(import.meta.dirname, "../../../../../../../.test-runs/bend-migration")
+  mkdirSync(evidenceDirectory, { recursive: true })
   writeFileSync(
-    join(import.meta.dirname, "python-clock-failure-" + record.runtime + "-evidence.json"),
+    join(evidenceDirectory, "python-clock-failure-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify(record))

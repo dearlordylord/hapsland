@@ -4,10 +4,7 @@ import { execFileSync } from "node:child_process"
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync } from "node:fs"
 import { resolve as __resolve, join } from "node:path"
 import { pathToFileURL } from "node:url"
-import {
-  createDispatcher,
-  embedProgram
-} from "../../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
+import { createDispatcher, embedProgram } from "../transport.mjs"
 import { Parser, TypeScript } from "@hapsland/source-analysis/direct-event/languages/native-parser"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-embedding-")
@@ -15,18 +12,7 @@ try {
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
   const program = join(temp, "program.js"),
     embedded = join(temp, "embedded.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(
-        folder,
-        "../../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/Embedding.bend"
-      ),
-      "-o",
-      program
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Embedding.bend"), "-o", program], { timeout: 5000 })
   const source = readFileSync(program, "utf8")
   assert.throws(() => embedProgram(source + "\nunknown-layout"), TransportFailure)
   writeFileSync(embedded, embedProgram(source))
@@ -278,7 +264,7 @@ try {
     scope:
       "technical sequential foreign-effect dispatcher over actual emitted Bend continuations; not full resolver or adoption; synchronous engine plus controlled async lifecycle fixtures; no process.exit/BEND_IO scheduling"
   }
-  const evidenceFolder = join(folder, "../../../../.test-runs/bend-migration")
+  const evidenceFolder = join(folder, "../../../../../../../.test-runs/bend-migration")
   mkdirSync(evidenceFolder, { recursive: true })
   writeFileSync(
     join(evidenceFolder, "embedding-" + record.runtime + "-evidence.json"),
