@@ -224,7 +224,11 @@ One current obstacle list, in execution order:
    Full post-replacement projection now passes with the entire prefix at
    2.580 seconds under hard five seconds (/tmp/astra-parent-updated-project.log),
    using exact witness slots/nodes and all original P.project guards.
-   Semantic root/incoming validity remains unclosed.
+   Semantic incoming bounds pass at 3.044 seconds and appended-root validity at
+   2.692 seconds. Union references and nodes validity pass with the full parent
+   prefix at 3.130 and 2.792 seconds; general replacement-node conditions pass
+   at 1.303 seconds. These retain the original premises. Changed references,
+   episodes, full frame validity and the eight-conjunct theorem remain open.
    No separate helper frontier qualifies adoption; the
    original parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
@@ -343,6 +347,11 @@ One current obstacle list, in execution order:
    graph/language package policy and orchestration only with their qualified
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
+   Production artifact assembly is also open: resident Source/Post and resolver
+   cores currently come from verification emission. The normal precompile runner
+   assumes initial/advance/resume, but Source and resolver cores expose different
+   entry methods. Ship their actual private ABI through their existing domain
+   owners before connecting the production consumer.
 6. Pass all selected local acceptance gates and strict paired performance on the
    connected candidate. Latest existing-production f9ea5f3a build/execution are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: build fails
@@ -376,6 +385,10 @@ One current obstacle list, in execution order:
    cleanup tasks with 2.789 summed seconds and 23 cached restores with 1.458
    summed seconds; their intervals overlap, so these are not additive wall-time
    shares. Current diagnostic: .test-runs/bend-migration/build-summary-diagnostic.json.
+   A separate locked baseline Turbo phase passes 46/46 tasks, 23 cached,
+   at 3.117 Turbo seconds with authored inputs unchanged. Its overlapping
+   cleanup/restore sums are 4.665/1.026 seconds. These separate phases do not
+   establish causality or paired whole-build parity.
    This is diagnostic localization, not another paired parity result.
 
 

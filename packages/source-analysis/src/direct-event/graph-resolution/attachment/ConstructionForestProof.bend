@@ -4,6 +4,7 @@ import ../WholeObservation.bend as O
 import ../Types.bend as T
 import ../traversal/SPEC.bend as Recursive
 import ./ForestRelation.bend as Relation
+import ./ForestRollbackProof.bend as ReplacementFacts
 import ../traversal/INTERPRETER_BOOL_FACTS.bend as B
 import ../traversal/INTERPRETER_NAT_FACTS.bend as N
 import ../traversal/INTERPRETER_COMPLETION_NAT_FACTS.bend as Addition
@@ -62,45 +63,6 @@ def same_route_refl(route: List<&2, Nat>) -> {F.same_route(route, route) == True
       B.and_eq_true(Nat.is_eq(head, head), F.same_route(tail, tail),
         NatEquality.is_eq_refl(head), same_route_refl(tail))
 
-def same_route_equal(
-  +left: List<&2, Nat>,
-  +right: List<&2, Nat>,
-  +same: {F.same_route(left, right) == True{} : Bool}
-) -> {left == right : List<&2, Nat>}:
-  match left right:
-    case Nil{} Nil{}: {==}
-    case Nil{} Con{_, _}: Empty.absurd(
-      {left == right : List<&2, Nat>},
-      B.internal_false_ne_true(same)
-    )
-    case Con{_, _} Nil{}: Empty.absurd(
-      {left == right : List<&2, Nat>},
-      B.internal_false_ne_true(same)
-    )
-    case +head <> +tail +other <> +rest:
-      %NatEquality.eq_of_is_eq(head, other,
-        B.eq_true_of_and_left(Nat.is_eq(head, other), F.same_route(tail, rest), same)):
-        {head <> tail == _ <> rest : List<&2, Nat>}
-      %same_route_equal(tail, rest,
-        B.eq_true_of_and_right(Nat.is_eq(head, other), F.same_route(tail, rest), same)):
-        {head <> tail == head <> _ : List<&2, Nat>}
-      {==}
-
-def same_address_equal(
-  +left: O.NodeAddress,
-  +right: O.NodeAddress,
-  +same: {F.same_address(left, right) == True{} : Bool}
-) -> {left == right : O.NodeAddress}:
-  match left right:
-    case O.NodeAddress{+episode, +route} O.NodeAddress{+other, +rest}:
-      %NatEquality.eq_of_is_eq(episode, other,
-        B.eq_true_of_and_left(Nat.is_eq(episode, other), F.same_route(route, rest), same)):
-        {O.NodeAddress{episode, route} == O.NodeAddress{_, rest} : O.NodeAddress}
-      %same_route_equal(route, rest,
-        B.eq_true_of_and_right(Nat.is_eq(episode, other), F.same_route(route, rest), same)):
-        {O.NodeAddress{episode, route} == O.NodeAddress{episode, _} : O.NodeAddress}
-      {==}
-
 def within_self(route: List<&2, Nat>) -> {within_route(route, route) == True{} : Bool}:
   match route:
     case []: {==}
@@ -120,93 +82,8 @@ def later_self(
       later_self(tail, first)
 
 
-def count_append(
-  left: List<&2, F.Node>,
-  +right: List<&2, F.Node>,
-  +address: O.NodeAddress
-) -> {
-  F.count_address(List.append(&2, F.Node, left, right), address)
-  == (F.count_address(left, address) + F.count_address(right, address) : Nat)
-  : Nat
-}:
-  match left:
-    case []: {==}
-    case F.Node{+owner, artifact, references} <> +tail:
-      %Equal.sym(Nat,
-        F.count_address(List.append(&2, F.Node, tail, right), address),
-        (F.count_address(tail, address) + F.count_address(right, address) : Nat),
-        count_append(tail, right, address)): {
-          (Bool.pick(Nat, F.same_address(address, owner), 1n, 0n) + _ : Nat)
-          == ((Bool.pick(
-            Nat,
-            F.same_address(address, owner),
-            1n,
-            0n
-          ) + F.count_address(tail, address) : Nat) + F.count_address(right, address) : Nat)
-          : Nat
-        }
-      Equal.sym(
-        Nat,
-        ((Bool.pick(
-          Nat,
-          F.same_address(address, owner),
-          1n,
-          0n
-        ) + F.count_address(tail, address) : Nat) + F.count_address(right, address) : Nat),
-        (Bool.pick(
-          Nat,
-          F.same_address(address, owner),
-          1n,
-          0n
-        ) + (F.count_address(tail, address) + F.count_address(right, address) : Nat) : Nat),
-        Addition.add_assoc(
-          Bool.pick(Nat, F.same_address(address, owner), 1n, 0n),
-          F.count_address(tail, address),
-          F.count_address(right, address)
-        )
-      )
 
-def incoming_append(
-  left: List<&2, F.Node>,
-  +right: List<&2, F.Node>,
-  +address: O.NodeAddress
-) -> {
-  Relation.incoming(List.append(&2, F.Node, left, right), address)
-  == (Relation.incoming(left, address) + Relation.incoming(right, address) : Nat)
-  : Nat
-}:
-  match left:
-    case []: {==}
-    case F.Node{owner, artifact, +references} <> +tail:
-      %Equal.sym(Nat,
-        Relation.incoming(List.append(&2, F.Node, tail, right), address),
-        (Relation.incoming(tail, address) + Relation.incoming(right, address) : Nat),
-        incoming_append(tail, right, address)): {
-          (Relation.incoming_references(references, address) + _ : Nat)
-          == ((Relation.incoming_references(
-            references,
-            address
-          ) + Relation.incoming(tail, address) : Nat) + Relation.incoming(right, address) : Nat)
-          : Nat
-        }
-      Equal.sym(
-        Nat,
-        ((Relation.incoming_references(
-          references,
-          address
-        ) + Relation.incoming(tail, address) : Nat) + Relation.incoming(right, address) : Nat),
-        (Relation.incoming_references(
-          references,
-          address
-        ) + (Relation.incoming(tail, address) + Relation.incoming(right, address) : Nat) : Nat),
-        Addition.add_assoc(
-          Relation.incoming_references(references, address),
-          Relation.incoming(tail, address),
-          Relation.incoming(right, address)
-        )
-      )
 
-# Child cone inclusion: routing through prefix+[index] stays under prefix.
 def within_child_parent(
   +prefix: List<&2, Nat>,
   +index: Nat,
@@ -290,7 +167,7 @@ def later_parent_disjoint(
   inside: {later_route(prefix, index, route) == True{} : Bool}
 ) -> Empty:
   self : {later_route(prefix, index, prefix) == True{} : Bool} =
-    %Equal.sym(List<&2, Nat>, prefix, route, same_route_equal(prefix, route, same)):
+    %Equal.sym(List<&2, Nat>, prefix, route, ReplacementFacts.same_route_equal(prefix, route, same)):
       {later_route(prefix, index, _) == True{} : Bool}
     inside
   later_self_impossible(prefix, index, self)
@@ -1162,7 +1039,7 @@ def prefix_balance(
         Nat,
         Relation.incoming(List.append(&2, F.Node, nodes, more), query),
         (Relation.incoming(nodes, query) + Relation.incoming(more, query) : Nat),
-        incoming_append(nodes, more, query)
+        ReplacementFacts.incoming_append(nodes, more, query)
       ):
         {(_ + Relation.incoming_references(reference <> references, query) : Nat)
           == F.count_address(List.append(&2, F.Node, nodes, more), query) : Nat}
@@ -1175,7 +1052,7 @@ def prefix_balance(
         Nat,
         F.count_address(List.append(&2, F.Node, nodes, more), query),
         (F.count_address(nodes, query) + F.count_address(more, query) : Nat),
-        count_append(nodes, more, query)
+        ReplacementFacts.count_append(nodes, more, query)
       ):
         {
           ((Relation.incoming(
@@ -1471,7 +1348,7 @@ def within_different_case(
     case False{}: {==}
     case True{}:
       at_query : {node_within(episode, prefix, query) == True{} : Bool} =
-        %Equal.sym(O.NodeAddress, query, owner, same_address_equal(query, owner, actual)):
+        %Equal.sym(O.NodeAddress, query, owner, ReplacementFacts.same_address_equal(query, owner, actual)):
           {node_within(episode, prefix, _) == True{} : Bool}
         inside
       impossible : {False{} == True{} : Bool} =
@@ -1535,7 +1412,7 @@ def later_different_case(
     case False{}: {==}
     case True{}:
       at_query : {node_later(episode, prefix, first, query) == True{} : Bool} =
-        %Equal.sym(O.NodeAddress, query, owner, same_address_equal(query, owner, actual)):
+        %Equal.sym(O.NodeAddress, query, owner, ReplacementFacts.same_address_equal(query, owner, actual)):
           {node_later(episode, prefix, first, _) == True{} : Bool}
         inside
       impossible : {False{} == True{} : Bool} =
@@ -1706,7 +1583,7 @@ def separated_count(
     Nat,
     F.count_address(List.append(&2, F.Node, left, right), query),
     (F.count_address(left, query) + F.count_address(right, query) : Nat),
-    count_append(left, right, query)
+    ReplacementFacts.count_append(left, right, query)
   ):
     {Nat.is_le(_, 1n) == True{} : Bool}
   separated_count_case(
@@ -1743,7 +1620,7 @@ def parent_count_case(
     case True{}:
       outside : {node_later(episode, prefix, 0n, query) == False{} : Bool} =
         %Equal.sym(O.NodeAddress, query, O.NodeAddress{episode, prefix},
-          same_address_equal(query, O.NodeAddress{episode, prefix}, actual)):
+          ReplacementFacts.same_address_equal(query, O.NodeAddress{episode, prefix}, actual)):
           {node_later(episode, prefix, 0n, _) == False{} : Bool}
         parent_not_later(episode, prefix, 0n)
       %Equal.sym(Nat, F.count_address(nodes, query), 0n,
@@ -2340,7 +2217,7 @@ def born_expanded(
 }:
   match result:
     case F.Constructed{F.Created{+root, +nodes, +addresses}}:
-      root_eq = same_address_equal(
+      root_eq = ReplacementFacts.same_address_equal(
         root,
         O.NodeAddress{episode, List.append(&2, Nat, prefix, [index])},
         B.eq_true_of_and_left(

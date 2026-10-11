@@ -16,6 +16,7 @@ import ./AttachmentParentAllocationProof.bend as Allocation
 import ./ActualAttachmentFrameProjection.bend as Frame
 import ./ActualAttachmentPhaseProjection.bend as Ready
 import ./ForestRelation.bend as Relation
+import ./ForestRollbackProof.bend as Rollback
 import ../Composition.bend as Compose
 import ../ForestSpecification.bend as F
 import ../ExpansionSpecification.bend as X
@@ -1902,6 +1903,273 @@ def replaced_appended_projection(+root: Nat, +birth: O.NodeAddress,
       replaced_forward_cursor(parents, children, slots, owner, index, known, identity, child_root, 0n, offset,
         dense, N.le_refl(offset), below, child_count, forward),
     located, projected)
+
+def fresh_attachment_distinct(+parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    prior: O.NodeAddress, child: O.NodeAddress,
+    before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    prior_present: {F.count_address(parents, prior) == 1n : Nat},
+    child_present: {F.count_address(children, child) == 1n : Nat}) ->
+    {F.same_address(child, prior) == False{} : Bool}:
+  match prior child:
+    case O.NodeAddress{+old, +route} O.NodeAddress{+next, +rest}:
+      %Equal.sym(Nat, next, episode, fresh_counted_episode(children, episode, next, rest, fresh, child_present)):
+        {F.same_address(O.NodeAddress{_, rest}, O.NodeAddress{old, route}) == False{} : Bool}
+      later_address_distinct(old, episode, route, rest, counted_episode_before(parents, old, route, episode, before, prior_present))
+
+def attachment_reference_absent(known: Bool, +prior: O.NodeAddress, +child: O.NodeAddress,
+    +children: List<&2, F.Node>, +entries: List<&2, F.AddressEntry>, +symbol: String, +identity: String,
+    distinct: {F.same_address(child, prior) == False{} : Bool}) ->
+    {Rollback.reference_weight(X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity), prior) == 0n : Nat}:
+  match known:
+    case True{}: {==}
+    case False{}:
+      %Equal.sym(Bool, F.same_address(child, prior), False{}, distinct): {Bool.pick(Nat, _, 1n, 0n) == 0n : Nat}
+      {==}
+
+def attachment_old_root_valid(+parents: List<&2, F.Node>, +children: List<&2, F.Node>, +all: List<&2, F.Node>,
+    +entries: List<&2, F.AddressEntry>, +episode: Nat, +root: O.NodeAddress, +child: O.NodeAddress,
+    +owner: O.NodeAddress, +index: Nat, +known: Bool, +symbol: String, +identity: String,
+    before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    root_present: {F.count_address(parents, root) == 1n : Nat},
+    child_present: {F.count_address(children, child) == 1n : Nat},
+    valid: {True{} == Relation.root_valid(Some{root}, all) : Bool}) ->
+    {True{} == Relation.root_valid(Some{root}, Rollback.result_nodes(F.replace_nodes(all, owner, index,
+      X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity)))) : Bool}:
+  Rollback.replacement_root_valid(root, all, owner, index, X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity),
+    attachment_reference_absent(known, root, child, children, entries, symbol, identity,
+      fresh_attachment_distinct(parents, children, episode, root, child, before, fresh, root_present, child_present)), valid)
+
+def attachment_incoming_branch(+all: List<&2, F.Node>, +owner: O.NodeAddress, +index: Nat,
+    known: Bool, +child: O.NodeAddress, +children: List<&2, F.Node>, +entries: List<&2, F.AddressEntry>,
+    +symbol: String, +identity: String, +query: O.NodeAddress, same: Bool,
+    selected: {F.count_address(all, owner) == 1n : Nat},
+    fresh: {Relation.incoming(all, child) == 0n : Nat},
+    previous: {Nat.is_le(Relation.incoming(all, query), 1n) == True{} : Bool},
+    equal: {F.same_address(child, query) == same : Bool}) ->
+    {Nat.is_le(Relation.incoming(Rollback.result_nodes(F.replace_nodes(all, owner, index,
+      X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity))), query), 1n) == True{} : Bool}:
+  match known same:
+    case True{} _:
+      N.le_trans(Relation.incoming(Rollback.result_nodes(F.replace_nodes(all, owner, index, F.Included{F.ReferenceSymbol{symbol}, F.ArtifactIdentity{identity}})), query),
+        Relation.incoming(all, query), 1n,
+        Rollback.replacement_non_target_incoming(all, owner, index, F.Included{F.ReferenceSymbol{symbol}, F.ArtifactIdentity{identity}}, query, {==}), previous)
+    case False{} False{}:
+      N.le_trans(Relation.incoming(Rollback.result_nodes(F.replace_nodes(all, owner, index, F.Expanded{F.ReferenceSymbol{symbol}, child})), query),
+        Relation.incoming(all, query), 1n,
+        Rollback.replacement_non_target_incoming(all, owner, index, F.Expanded{F.ReferenceSymbol{symbol}, child}, query,
+          %Equal.sym(Bool, F.same_address(child, query), False{}, equal): {Bool.pick(Nat, _, 1n, 0n) == 0n : Nat}
+          {==}), previous)
+    case False{} True{}:
+      %Rollback.same_address_equal(child, query, equal):
+        {Nat.is_le(Relation.incoming(Rollback.result_nodes(F.replace_nodes(all, owner, index, F.Expanded{F.ReferenceSymbol{symbol}, child})), _), 1n) == True{} : Bool}
+      Rollback.replacement_fresh_incoming(all, owner, index, F.Expanded{F.ReferenceSymbol{symbol}, child}, child, selected, fresh)
+
+def attachment_incoming_valid(+all: List<&2, F.Node>, +owner: O.NodeAddress, +index: Nat,
+    +known: Bool, +child: O.NodeAddress, +children: List<&2, F.Node>, +entries: List<&2, F.AddressEntry>,
+    +symbol: String, +identity: String, +query: O.NodeAddress,
+    selected: {F.count_address(all, owner) == 1n : Nat},
+    fresh: {Relation.incoming(all, child) == 0n : Nat},
+    previous: {Nat.is_le(Relation.incoming(all, query), 1n) == True{} : Bool}) ->
+    {Nat.is_le(Relation.incoming(Rollback.result_nodes(F.replace_nodes(all, owner, index,
+      X.attachment_reference(known, F.Created{child, children, entries}, symbol, identity))), query), 1n) == True{} : Bool}:
+  attachment_incoming_branch(all, owner, index, known, child, children, entries, symbol, identity, query,
+    F.same_address(child, query), selected, fresh, previous, {==})
+
+def parent_excludes_child(+parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    child: O.NodeAddress,
+    before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    present: {F.count_address(children, child) == 1n : Nat}) ->
+    {F.count_address(parents, child) == 0n : Nat}:
+  match child:
+    case O.NodeAddress{+actual, +route}:
+      %Equal.sym(Nat, actual, episode, fresh_counted_episode(children, episode, actual, route, fresh, present)):
+        {F.count_address(parents, O.NodeAddress{_, route}) == 0n : Nat}
+      prior_nodes_exclude_fresh(parents, episode, route, before)
+
+def child_excludes_parent(+parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    prior: O.NodeAddress,
+    before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    present: {F.count_address(parents, prior) == 1n : Nat}) ->
+    {F.count_address(children, prior) == 0n : Nat}:
+  match prior:
+    case O.NodeAddress{+actual, +route}:
+      fresh_nodes_exclude_prior(children, episode, actual, route, fresh,
+        counted_episode_before(parents, actual, route, episode, before, present))
+
+def appended_fresh_incoming(+parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    +child: O.NodeAddress,
+    before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    valid: {True{} == Relation.nodes_valid(parents, parents) : Bool},
+    present: {F.count_address(children, child) == 1n : Nat},
+    empty: {Relation.incoming(children, child) == 0n : Nat}) ->
+    {Relation.incoming(List.append(&2, F.Node, parents, children), child) == 0n : Nat}:
+  %Equal.sym(Nat, Relation.incoming(List.append(&2, F.Node, parents, children), child),
+    (Relation.incoming(parents, child) + Relation.incoming(children, child) : Nat), Rollback.incoming_append(parents, children, child)):
+    {_ == 0n : Nat}
+  %Equal.sym(Nat, Relation.incoming(parents, child), 0n,
+    Rollback.valid_nodes_absent_incoming(parents, parents, child, valid,
+      parent_excludes_child(parents, children, episode, child, before, fresh, present))):
+    {(_ + Relation.incoming(children, child) : Nat) == 0n : Nat}
+  empty
+
+def appended_old_root_valid(+parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    +root: O.NodeAddress,
+    before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    valid: {True{} == Relation.nodes_valid(children, children) : Bool},
+    +present: {F.count_address(parents, root) == 1n : Nat},
+    empty: {Relation.incoming(parents, root) == 0n : Nat}) ->
+    {True{} == Relation.root_valid(Some{root}, List.append(&2, F.Node, parents, children)) : Bool}:
+  +absent: {F.count_address(children, root) == 0n : Nat} = child_excludes_parent(parents, children, episode, root, before, fresh, present)
+  +no_incoming: {Relation.incoming(children, root) == 0n : Nat} = Rollback.valid_nodes_absent_incoming(children, children, root, valid, absent)
+  Rollback.and_both(Nat.is_eq(F.count_address(List.append(&2, F.Node, parents, children), root), 1n),
+    Nat.is_eq(Relation.incoming(List.append(&2, F.Node, parents, children), root), 0n),
+    %Equal.sym(Nat, F.count_address(List.append(&2, F.Node, parents, children), root),
+      (F.count_address(parents, root) + F.count_address(children, root) : Nat), Rollback.count_append(parents, children, root)):
+      {True{} == Nat.is_eq(_, 1n) : Bool}
+    %Equal.sym(Nat, F.count_address(parents, root), 1n, present): {True{} == Nat.is_eq((_ + F.count_address(children, root) : Nat), 1n) : Bool}
+    %Equal.sym(Nat, F.count_address(children, root), 0n, absent): {True{} == Nat.is_eq((1n + _ : Nat), 1n) : Bool}
+    {==},
+    %Equal.sym(Nat, Relation.incoming(List.append(&2, F.Node, parents, children), root),
+      (Relation.incoming(parents, root) + Relation.incoming(children, root) : Nat), Rollback.incoming_append(parents, children, root)):
+      {True{} == Nat.is_eq(_, 0n) : Bool}
+    %Equal.sym(Nat, Relation.incoming(parents, root), 0n, empty): {True{} == Nat.is_eq((_ + Relation.incoming(children, root) : Nat), 0n) : Bool}
+    %Equal.sym(Nat, Relation.incoming(children, root), 0n, no_incoming): {True{} == Nat.is_eq(_, 0n) : Bool}
+    {==})
+
+def appended_semantic_count(side: Bool, +parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    +query: O.NodeAddress,
+    +before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    +fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    +counted: {F.count_address(Bool.pick(List<&2, F.Node>, side, parents, children), query) == 1n : Nat}) ->
+    {F.count_address(List.append(&2, F.Node, parents, children), query) == 1n : Nat}:
+  match side:
+    case True{}:
+      %Equal.sym(Nat, F.count_address(List.append(&2, F.Node, parents, children), query),
+        (F.count_address(parents, query) + F.count_address(children, query) : Nat), Rollback.count_append(parents, children, query)):
+        {_ == 1n : Nat}
+      %Equal.sym(Nat, F.count_address(parents, query), 1n, counted): {(_ + F.count_address(children, query) : Nat) == 1n : Nat}
+      %Equal.sym(Nat, F.count_address(children, query), 0n, child_excludes_parent(parents, children, episode, query, before, fresh, counted)):
+        {(1n + _ : Nat) == 1n : Nat}
+      {==}
+    case False{}:
+      %Equal.sym(Nat, F.count_address(List.append(&2, F.Node, parents, children), query),
+        (F.count_address(parents, query) + F.count_address(children, query) : Nat), Rollback.count_append(parents, children, query)):
+        {_ == 1n : Nat}
+      %Equal.sym(Nat, F.count_address(parents, query), 0n, parent_excludes_child(parents, children, episode, query, before, fresh, counted)):
+        {(_ + F.count_address(children, query) : Nat) == 1n : Nat}
+      counted
+
+def appended_semantic_incoming(side: Bool, +parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    +query: O.NodeAddress,
+    before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    parent_valid: {True{} == Relation.nodes_valid(parents, parents) : Bool},
+    child_valid: {True{} == Relation.nodes_valid(children, children) : Bool},
+    counted: {F.count_address(Bool.pick(List<&2, F.Node>, side, parents, children), query) == 1n : Nat}) ->
+    {Relation.incoming(List.append(&2, F.Node, parents, children), query)
+      == Relation.incoming(Bool.pick(List<&2, F.Node>, side, parents, children), query) : Nat}:
+  match side:
+    case True{}:
+      %Equal.sym(Nat, Relation.incoming(List.append(&2, F.Node, parents, children), query),
+        (Relation.incoming(parents, query) + Relation.incoming(children, query) : Nat), Rollback.incoming_append(parents, children, query)):
+        {_ == Relation.incoming(parents, query) : Nat}
+      %Equal.sym(Nat, Relation.incoming(children, query), 0n,
+        Rollback.valid_nodes_absent_incoming(children, children, query, child_valid,
+          child_excludes_parent(parents, children, episode, query, before, fresh, counted))):
+        {(Relation.incoming(parents, query) + _ : Nat) == Relation.incoming(parents, query) : Nat}
+      Arithmetic.add_zero(Relation.incoming(parents, query))
+    case False{}:
+      %Equal.sym(Nat, Relation.incoming(List.append(&2, F.Node, parents, children), query),
+        (Relation.incoming(parents, query) + Relation.incoming(children, query) : Nat), Rollback.incoming_append(parents, children, query)):
+        {_ == Relation.incoming(children, query) : Nat}
+      %Equal.sym(Nat, Relation.incoming(parents, query), 0n,
+        Rollback.valid_nodes_absent_incoming(parents, parents, query, parent_valid,
+          parent_excludes_child(parents, children, episode, query, before, fresh, counted))):
+        {(_ + Relation.incoming(children, query) : Nat) == Relation.incoming(children, query) : Nat}
+      {==}
+
+def appended_semantic_references(items: List<&2, F.Reference>, +owner: O.NodeAddress, +side: Bool,
+    +parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    +before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    +fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    +valid: {True{} == Relation.references_valid(items, owner, Bool.pick(List<&2, F.Node>, side, parents, children)) : Bool}) ->
+    {True{} == Relation.references_valid(items, owner, List.append(&2, F.Node, parents, children)) : Bool}:
+  match items:
+    case []: {==}
+    case F.Included{_, _} <> tail: appended_semantic_references(tail, owner, side, parents, children, episode, before, fresh, valid)
+    case F.Omitted{_, _, _} <> tail: appended_semantic_references(tail, owner, side, parents, children, episode, before, fresh, valid)
+    case F.Expanded{_, +child} <> +tail:
+      +old: List<&2, F.Node> = Bool.pick(List<&2, F.Node>, side, parents, children)
+      +all: List<&2, F.Node> = List.append(&2, F.Node, parents, children)
+      +counted: {F.count_address(old, child) == 1n : Nat} =
+        N.eq_of_is_eq(F.count_address(old, child), 1n,
+          Equal.sym(Bool, True{}, Nat.is_eq(F.count_address(old, child), 1n),
+            Rollback.and_left(Nat.is_eq(F.count_address(old, child), 1n),
+              Bool.and(F.born_after(owner, child), Relation.references_valid(tail, owner, old)), valid)))
+      +rest: {True{} == Bool.and(F.born_after(owner, child), Relation.references_valid(tail, owner, old)) : Bool} =
+        Rollback.and_right(Nat.is_eq(F.count_address(old, child), 1n),
+          Bool.and(F.born_after(owner, child), Relation.references_valid(tail, owner, old)), valid)
+      Rollback.and_both(Nat.is_eq(F.count_address(all, child), 1n),
+        Bool.and(F.born_after(owner, child), Relation.references_valid(tail, owner, all)),
+        %Equal.sym(Nat, F.count_address(all, child), 1n, appended_semantic_count(side, parents, children, episode, child, before, fresh, counted)):
+          {True{} == Nat.is_eq(_, 1n) : Bool}
+        {==},
+        Rollback.and_both(F.born_after(owner, child), Relation.references_valid(tail, owner, all),
+          Rollback.and_left(F.born_after(owner, child), Relation.references_valid(tail, owner, old), rest),
+          appended_semantic_references(tail, owner, side, parents, children, episode, before, fresh,
+            Rollback.and_right(F.born_after(owner, child), Relation.references_valid(tail, owner, old), rest))))
+
+def appended_semantic_nodes(items: List<&2, F.Node>, +side: Bool,
+    +parents: List<&2, F.Node>, +children: List<&2, F.Node>, +episode: Nat,
+    +before: {Relation.episodes_before(parents, episode) == True{} : Bool},
+    +fresh: {Ready.episode_nodes(children, episode) == True{} : Bool},
+    +parent_valid: {True{} == Relation.nodes_valid(parents, parents) : Bool},
+    +child_valid: {True{} == Relation.nodes_valid(children, children) : Bool},
+    +valid: {True{} == Relation.nodes_valid(items, Bool.pick(List<&2, F.Node>, side, parents, children)) : Bool}) ->
+    {True{} == Relation.nodes_valid(items, List.append(&2, F.Node, parents, children)) : Bool}:
+  match items:
+    case []: {==}
+    case F.Node{+address, _, +references} <> +tail:
+      +old: List<&2, F.Node> = Bool.pick(List<&2, F.Node>, side, parents, children)
+      +all: List<&2, F.Node> = List.append(&2, F.Node, parents, children)
+      +one: {True{} == Nat.is_eq(F.count_address(old, address), 1n) : Bool} =
+        Rollback.and_left(Nat.is_eq(F.count_address(old, address), 1n),
+          Bool.and(Nat.is_le(Relation.incoming(old, address), 1n),
+            Bool.and(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old))), valid)
+      +counted: {F.count_address(old, address) == 1n : Nat} =
+        N.eq_of_is_eq(F.count_address(old, address), 1n, Equal.sym(Bool, True{}, Nat.is_eq(F.count_address(old, address), 1n), one))
+      +rest: {True{} == Bool.and(Nat.is_le(Relation.incoming(old, address), 1n),
+        Bool.and(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old))) : Bool} =
+        Rollback.and_right(Nat.is_eq(F.count_address(old, address), 1n),
+          Bool.and(Nat.is_le(Relation.incoming(old, address), 1n),
+            Bool.and(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old))), valid)
+      +last: {True{} == Bool.and(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old)) : Bool} =
+        Rollback.and_right(Nat.is_le(Relation.incoming(old, address), 1n),
+          Bool.and(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old)), rest)
+      Rollback.and_both(Nat.is_eq(F.count_address(all, address), 1n),
+        Bool.and(Nat.is_le(Relation.incoming(all, address), 1n),
+          Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all))),
+        %Equal.sym(Nat, F.count_address(all, address), 1n, appended_semantic_count(side, parents, children, episode, address, before, fresh, counted)):
+          {True{} == Nat.is_eq(_, 1n) : Bool}
+        {==},
+        Rollback.and_both(Nat.is_le(Relation.incoming(all, address), 1n),
+          Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all)),
+          %Equal.sym(Nat, Relation.incoming(all, address), Relation.incoming(old, address),
+            appended_semantic_incoming(side, parents, children, episode, address, before, fresh, parent_valid, child_valid, counted)):
+            {True{} == Nat.is_le(_, 1n) : Bool}
+          Rollback.and_left(Nat.is_le(Relation.incoming(old, address), 1n),
+            Bool.and(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old)), rest),
+          Rollback.and_both(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all),
+            appended_semantic_references(references, address, side, parents, children, episode, before, fresh,
+              Rollback.and_left(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old), last)),
+            appended_semantic_nodes(tail, side, parents, children, episode, before, fresh, parent_valid, child_valid,
+              Rollback.and_right(Relation.references_valid(references, address, old), Relation.nodes_valid(tail, old), last)))))
 
 law parent_attachment_exact:
   for +parent_root: Nat
