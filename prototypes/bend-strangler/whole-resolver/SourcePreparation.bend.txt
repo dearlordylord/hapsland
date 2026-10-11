@@ -18,6 +18,20 @@ type CandidateAnalytics is Data:
   CapacityRejected{}
   PreparationFailed{}
 type Command is Data:
+  StartPolicySource{}
+  StartObservation{}
+  AwaitBackendGate{}
+  ReadRuntimeActive{}
+  DecodeControlled{}
+  ReadCredentialRequired{}
+  CheckCredentialShape{}
+  VerifyObservationRoot{}
+  CheckCredentialGeneration{}
+  ReleaseJobReservation{early: Bool}
+  CheckJobActive{}
+  RecordPreparationFailureAnalytics{}
+  RecordUnavailableActivity{}
+  ReadEffectiveAnalytics{}
   CheckCandidateActive{candidate: Nat}
   AdmitCandidateWorkspace{candidate: Nat}
   PrepareCandidate{candidate: Nat, preparation: Nat}
@@ -31,6 +45,7 @@ type Command is Data:
   CompleteObservation{}
   AfterPrepare{}
 type Response is Data:
+  GateAccepted{value: Bool}
   ExpectedActivity{identities: List<&2, Nat>}
   Active{value: Bool}
   WorkspaceAdmitted{preparation: Nat}
@@ -41,7 +56,33 @@ type Response is Data:
   CompletionAccepted{value: Bool}
   Failed{token: Nat}
   Cancelled{token: Nat}
+type GatePhase is Data:
+  PolicyStart{}
+  ObservationStart{}
+  Backend{}
+  RuntimeFirst{}
+  Controlled{}
+  Required{}
+  Shape{}
+  Root{}
+  Generation{}
+  ReleaseNormal{}
+  RuntimeSecond{}
+  JobActive{}
+  Analytics{}
+  FailureAnalytics{}
+  FailureActivity{}
+  ReleaseEarly{}
+  RecoveryAnalytics{}
+  RecoveryRelease{}
+  RecoveryRuntime{}
+  RecoveryActivity{}
+type Gate is Data:
+  Gate{candidates: List<&2, Nat>, controlled_present: Bool, phase: GatePhase, reason: Maybe<&2, Reason>}
+
 type Phase is Data:
+  GatePending{gate: Gate}
+  RecoveryPending{phase: GatePhase, reason: Reason}
   CandidateChecking{candidate: Nat, remaining: List<&2, Nat>}
   WorkspacePending{candidate: Nat, remaining: List<&2, Nat>}
   RefusalDiagnostic{remaining: List<&2, Nat>, capacity: Bool, analytics: CandidateAnalytics}
@@ -61,6 +102,9 @@ type Request is Data:
 type Reply is Data:
   Reply{invocation: Nat, id: Nat, response: Response}
 type Reason is Data:
+  StartRefused{}
+  SourceInactive{}
+  SettingsRefused{}
   CandidateStopped{}
   PolicyRefused{}
   ObservationRefused{}
@@ -81,7 +125,7 @@ def next_candidate(+invocation: Nat, +next: Nat, +policy_required: Bool, remaini
     case Nil{}: await_command(invocation, next, policy_required, False{}, ExpectedPending{}, ReadExpectedActivity{})
     case +candidate <> rest: await_command(invocation, next, policy_required, False{}, CandidateChecking{candidate, rest}, CheckCandidateActive{candidate})
 
-def initial(invocation: Nat, policy_required: Bool, candidates: List<&2, Nat>) -> Step:
+def initial_after_gates(invocation: Nat, policy_required: Bool, candidates: List<&2, Nat>) -> Step:
   next_candidate(invocation, 0n, policy_required, candidates)
 
 def policy_next(bound: Bool, invocation: Nat, next: Nat) -> Step:
@@ -105,8 +149,143 @@ def refusal_diagnostic_done(invocation: Nat, next: Nat, policy_required: Bool, r
     case True{}: await_command(invocation, next, policy_required, False{}, RefusalCapacity{remaining}, RejectCandidateCapacity{})
     case False{}: await_command(invocation, next, policy_required, False{}, RefusalAnalytics{remaining}, RecordCandidateAnalytics{analytics})
 
+def gate_command(phase: GatePhase) -> Command:
+  match phase:
+    case PolicyStart{}: StartPolicySource{}
+    case ObservationStart{}: StartObservation{}
+    case Backend{}: AwaitBackendGate{}
+    case RuntimeFirst{}: ReadRuntimeActive{}
+    case Controlled{}: DecodeControlled{}
+    case Required{}: ReadCredentialRequired{}
+    case Shape{}: CheckCredentialShape{}
+    case Root{}: VerifyObservationRoot{}
+    case Generation{}: CheckCredentialGeneration{}
+    case ReleaseNormal{}: ReleaseJobReservation{False{}}
+    case RuntimeSecond{}: ReadRuntimeActive{}
+    case JobActive{}: CheckJobActive{}
+    case Analytics{}: ReadEffectiveAnalytics{}
+    case FailureAnalytics{}: RecordPreparationFailureAnalytics{}
+    case FailureActivity{}: RecordUnavailableActivity{}
+    case ReleaseEarly{}: ReleaseJobReservation{True{}}
+    case RecoveryAnalytics{}: RecordPreparationFailureAnalytics{}
+    case RecoveryRelease{}: ReleaseJobReservation{True{}}
+    case RecoveryRuntime{}: ReadRuntimeActive{}
+    case RecoveryActivity{}: RecordUnavailableActivity{}
+
+def gate_await(invocation: Nat, next: Nat, policy_required: Bool, candidates: List<&2, Nat>, controlled: Bool, +phase: GatePhase, reason: Maybe<&2, Reason>) -> Step:
+  await_command(invocation, next, policy_required, False{}, GatePending{Gate{candidates, controlled, phase, reason}}, gate_command(phase))
+
+def initial(invocation: Nat, +policy_required: Bool, controlled_present: Bool, candidates: List<&2, Nat>) -> Step:
+  gate_await(invocation, 0n, policy_required, candidates, controlled_present,
+    Bool.pick(GatePhase, policy_required, PolicyStart{}, ObservationStart{}), None{})
+
+def gate_stopped(reason: Maybe<&2, Reason>) -> Step:
+  match reason:
+    case Some{value}: Stopped{False{}, value}
+    case None{}: Stopped{False{}, ProtocolFailure{}}
+
+def gate_after_release(invocation: Nat, next: Nat, policy_required: Bool, candidates: List<&2, Nat>, controlled: Bool, +reason: Maybe<&2, Reason>) -> Step:
+  match reason:
+    case None{}: gate_await(invocation, next, policy_required, candidates, controlled, RuntimeSecond{}, None{})
+    case Some{_}: gate_await(invocation, next, policy_required, candidates, controlled, FailureAnalytics{}, reason)
+
+def gate_recovering(phase: GatePhase) -> Bool:
+  match phase:
+    case RecoveryAnalytics{}: True{}
+    case RecoveryRelease{}: True{}
+    case RecoveryRuntime{}: True{}
+    case RecoveryActivity{}: True{}
+    case _: False{}
+
+def gate_error(recovering: Bool, invocation: Nat, next: Nat, policy_required: Bool, candidates: List<&2, Nat>, controlled: Bool, reason: Maybe<&2, Reason>, failure: Reason) -> Step:
+  match recovering:
+    case True{}: gate_stopped(reason)
+    case False{}: gate_await(invocation, next, policy_required, candidates, controlled, RecoveryAnalytics{}, Some{failure})
+
+def gate_reply(invocation: Nat, next: Nat, policy_required: Bool, gate: Gate, response: Response) -> Step:
+  match gate response:
+    case Gate{candidates, controlled, PolicyStart{}, _} GateAccepted{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ObservationStart{}, None{})
+    case Gate{candidates, controlled, PolicyStart{}, _} GateAccepted{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ReleaseEarly{}, Some{StartRefused{}})
+    case Gate{candidates, controlled, ObservationStart{}, _} GateAccepted{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, Backend{}, None{})
+    case Gate{candidates, controlled, ObservationStart{}, _} GateAccepted{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ReleaseEarly{}, Some{StartRefused{}})
+    case Gate{candidates, controlled, Backend{}, _} Ack{}:
+      gate_await(invocation, next, policy_required, candidates, controlled, RuntimeFirst{}, None{})
+    case Gate{candidates, controlled, RuntimeFirst{}, _} Active{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, Controlled{}, None{})
+    case Gate{candidates, controlled, RuntimeFirst{}, _} Active{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ReleaseEarly{}, Some{SourceInactive{}})
+    case Gate{candidates, controlled, Controlled{}, _} GateAccepted{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, Required{}, None{})
+    case Gate{candidates, False{}, Controlled{}, _} GateAccepted{False{}}:
+      gate_await(invocation, next, policy_required, candidates, False{}, Required{}, None{})
+    case Gate{candidates, controlled, Controlled{}, _} GateAccepted{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ReleaseNormal{}, Some{SettingsRefused{}})
+    case Gate{candidates, controlled, Required{}, _} Ack{}:
+      gate_await(invocation, next, policy_required, candidates, controlled, Shape{}, None{})
+    case Gate{candidates, controlled, Shape{}, _} GateAccepted{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, Root{}, None{})
+    case Gate{candidates, controlled, Shape{}, _} GateAccepted{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ReleaseNormal{}, Some{SettingsRefused{}})
+    case Gate{candidates, controlled, Root{}, _} GateAccepted{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, Generation{}, None{})
+    case Gate{candidates, controlled, Root{}, _} GateAccepted{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ReleaseNormal{}, Some{SettingsRefused{}})
+    case Gate{candidates, controlled, Generation{}, _} GateAccepted{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ReleaseNormal{}, None{})
+    case Gate{candidates, controlled, Generation{}, _} GateAccepted{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, ReleaseNormal{}, Some{SettingsRefused{}})
+    case Gate{candidates, controlled, RuntimeSecond{}, _} Active{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, JobActive{}, None{})
+    case Gate{candidates, controlled, RuntimeSecond{}, _} Active{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, FailureAnalytics{}, Some{SourceInactive{}})
+    case Gate{candidates, controlled, JobActive{}, _} Active{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, Analytics{}, None{})
+    case Gate{candidates, controlled, JobActive{}, _} Active{False{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, FailureAnalytics{}, Some{SourceInactive{}})
+    case Gate{candidates, controlled, ReleaseNormal{}, reason} Ack{}:
+      gate_after_release(invocation, next, policy_required, candidates, controlled, reason)
+    case Gate{candidates, _, Analytics{}, _} Ack{}: next_candidate(invocation, next, policy_required, candidates)
+    case Gate{candidates, controlled, FailureAnalytics{}, reason} Ack{}:
+      gate_await(invocation, next, policy_required, candidates, controlled, FailureActivity{}, reason)
+    case Gate{_, _, FailureActivity{}, reason} Ack{}: gate_stopped(reason)
+    case Gate{_, _, ReleaseEarly{}, reason} Ack{}: gate_stopped(reason)
+    case Gate{candidates, controlled, RecoveryAnalytics{}, reason} Ack{}:
+      gate_await(invocation, next, policy_required, candidates, controlled, RecoveryRelease{}, reason)
+    case Gate{candidates, controlled, RecoveryRelease{}, reason} Ack{}:
+      gate_await(invocation, next, policy_required, candidates, controlled, RecoveryRuntime{}, reason)
+    case Gate{candidates, controlled, RecoveryRuntime{}, reason} Active{True{}}:
+      gate_await(invocation, next, policy_required, candidates, controlled, RecoveryActivity{}, reason)
+    case Gate{_, _, RecoveryRuntime{}, reason} Active{False{}}: gate_stopped(reason)
+    case Gate{_, _, RecoveryActivity{}, reason} Ack{}: gate_stopped(reason)
+    case Gate{candidates, controlled, phase, reason} Failed{token}:
+      gate_error(gate_recovering(phase), invocation, next, policy_required, candidates, controlled, reason, TechnicalFailure{token})
+    case Gate{_, _, _, _} Cancelled{token}: Stopped{False{}, InvocationCancelled{token}}
+    case _ _: Rejected{}
+
+def recovery_await(invocation: Nat, next: Nat, policy_required: Bool, completed: Bool, +phase: GatePhase, reason: Reason) -> Step:
+  await_command(invocation, next, policy_required, completed, RecoveryPending{phase, reason}, gate_command(phase))
+
+def recovery_reply(invocation: Nat, next: Nat, policy_required: Bool, completed: Bool, phase: GatePhase, reason: Reason, response: Response) -> Step:
+  match phase response:
+    case RecoveryAnalytics{} Ack{}: recovery_await(invocation, next, policy_required, completed, RecoveryRelease{}, reason)
+    case RecoveryRelease{} Ack{}: recovery_await(invocation, next, policy_required, completed, RecoveryRuntime{}, reason)
+    case RecoveryRuntime{} Active{True{}}: recovery_await(invocation, next, policy_required, completed, RecoveryActivity{}, reason)
+    case RecoveryRuntime{} Active{False{}}: Stopped{completed, reason}
+    case RecoveryActivity{} Ack{}: Stopped{completed, reason}
+    case _ Failed{_}: Stopped{completed, reason}
+    case _ Cancelled{token}: Stopped{completed, InvocationCancelled{token}}
+    case _ _: Rejected{}
+
 def phase_reply(state: State, response: Response) -> Step:
   match state response:
+    case State{invocation, next, policy_required, completed, RecoveryPending{phase, reason}} response:
+      recovery_reply(invocation, next, policy_required, completed, phase, reason, response)
+    case State{invocation, next, policy_required, _, GatePending{gate}} response:
+      gate_reply(invocation, next, policy_required, gate, response)
     case State{invocation, next, policy_required, _, CandidateChecking{+candidate, remaining}} Active{True{}}:
       await_command(invocation, next, policy_required, False{}, WorkspacePending{candidate, remaining}, AdmitCandidateWorkspace{candidate})
     case State{_, _, _, completed, CandidateChecking{_, _}} Active{False{}}:
@@ -133,16 +312,16 @@ def phase_reply(state: State, response: Response) -> Step:
       policy_next(policy_required, invocation, next)
     case State{invocation, next, policy_required, _, PolicyPending{}} CompletionAccepted{True{}}:
       await_command(invocation, next, policy_required, False{}, ObservationPending{}, CompleteObservation{})
-    case State{_, _, _, completed, PolicyPending{}} CompletionAccepted{False{}}:
-      Stopped{completed, PolicyRefused{}}
+    case State{invocation, next, policy_required, completed, PolicyPending{}} CompletionAccepted{False{}}:
+      recovery_await(invocation, next, policy_required, completed, RecoveryAnalytics{}, PolicyRefused{})
     case State{invocation, next, policy_required, _, ObservationPending{}} CompletionAccepted{True{}}:
       await_command(invocation, next, policy_required, True{}, BarrierPending{}, AfterPrepare{})
-    case State{_, _, _, _, ObservationPending{}} ObservationCommittedFailure{token}:
-      Stopped{True{}, TechnicalFailure{token}}
-    case State{_, _, _, completed, ObservationPending{}} CompletionAccepted{False{}}:
-      Stopped{completed, ObservationRefused{}}
+    case State{invocation, next, policy_required, _, ObservationPending{}} ObservationCommittedFailure{token}:
+      recovery_await(invocation, next, policy_required, True{}, RecoveryAnalytics{}, TechnicalFailure{token})
+    case State{invocation, next, policy_required, completed, ObservationPending{}} CompletionAccepted{False{}}:
+      recovery_await(invocation, next, policy_required, completed, RecoveryAnalytics{}, ObservationRefused{})
     case State{_, _, _, _, BarrierPending{}} Ack{}: Finished{}
-    case State{_, _, _, completed, _} Failed{token}: Stopped{completed, TechnicalFailure{token}}
+    case State{invocation, next, policy_required, completed, _} Failed{token}: recovery_await(invocation, next, policy_required, completed, RecoveryAnalytics{}, TechnicalFailure{token})
     case State{_, _, _, completed, _} Cancelled{token}: Stopped{completed, InvocationCancelled{token}}
     case State{_, _, _, _, _} _: Rejected{}
 
@@ -159,6 +338,21 @@ def resume(step: Step, reply: Reply) -> Step:
 
 def permission(command: Command) -> Nat:
   match command:
+    case StartPolicySource{}: 6n
+    case StartObservation{}: 7n
+    case ReleaseJobReservation{True{}}: 9n
+    case AwaitBackendGate{}: 8n
+    case ReadRuntimeActive{}: 9n
+    case DecodeControlled{}: 8n
+    case ReadCredentialRequired{}: 8n
+    case CheckCredentialShape{}: 8n
+    case VerifyObservationRoot{}: 8n
+    case CheckCredentialGeneration{}: 8n
+    case ReleaseJobReservation{False{}}: 8n
+    case CheckJobActive{}: 8n
+    case RecordPreparationFailureAnalytics{}: 9n
+    case RecordUnavailableActivity{}: 9n
+    case ReadEffectiveAnalytics{}: 8n
     case CheckCandidateActive{_}: 1n
     case AdmitCandidateWorkspace{_}: 1n
     case PrepareCandidate{_, _}: 1n

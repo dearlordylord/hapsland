@@ -19,6 +19,11 @@ try {
   assert.equal(m.live(s.canonical,scope),true);return s
  }
  let assertions=0
+ let invalidSource=fresh()
+ const wrongScope={$:'SourceScope',partition:1n,lifetime:1n,round:1n,observation:2n,permission:{$:'SourceNew'}}
+ invalidSource={...invalidSource,children:{$:'Con',head:{$:'Child',scope:wrongScope,invocation:1n,generation:0n,handle:0n,phase:{$:'ChildInstalling'},request:{$:'None'},lease:{$:'None'},parent:{$:'None'}},tail:{$:'Nil'}}}
+ const refusedSource=m.terminal_source_failed(invalidSource,1n,0n,600n)
+ reject(refusedSource,'CanonicalRejected');assert.equal(refusedSource.refusal.reason.$,'../../../packages/agent-flow-bend/Canonical.WrongStage');assert.deepEqual(refusedSource.state,invalidSource);assertions++
  let source=fresh()
  const sourceScope={$:'SourceScope',partition:1n,lifetime:1n,round:1n,observation:1n,permission:{$:'SourceNew'}}
  source=advanced(m.launch_source(source,sourceScope,400n))
@@ -153,6 +158,26 @@ try {
   assert.equal(finishes,1);assert.equal(closes,1)
   assert.deepEqual(driver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0})
   assertions+=3
+ }
+ // A rejected Source interrupt retains exact custody/resources for retry.
+ {
+  let controlled=fresh(),savedWork
+  const control={readState:()=>controlled,invoke:(method,args)=>{const step=m[method](controlled,...args);if(step.$==='Advanced')controlled=step.state;return step}}
+  const registry=createServiceRegistry(),machine={initial:()=>({$:'SourcePreparationStopped',completed:false,reason:{$:'TechnicalFailure',token:1n}}),view:value=>value,disposeInvocation(){},get retainedHandles(){return 0}}
+  const driver=createOwnedArtifactDriver({owner:m,control,registry,machine,hooks:{beforeTerminal:()=>{
+   savedWork=controlled.canonical.work
+   const changed=list(savedWork).map(work=>work.operation===1n?{...work,kind:c('Preparing')}:work)
+   controlled={...controlled,canonical:{...controlled.canonical,work:changed.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})}}
+  }},foreign:()=>{throw new Error('unexpected Source provider')}})
+  const invocation=driver.allocateSourceInvocation(sourceScope)
+  const session={invocation,finish(){},close(){},revoke(){}}
+  await assert.rejects(driver.drive(session,{invocation:BigInt(invocation)}),/Canonical resolver refused: CanonicalRejected/)
+  assert.equal(registry.size,0);assert.equal(registry.pendingCleanup,1);assert.equal(driver.resources.sessions,1);assert.equal(driver.resources.payloads,0)
+  assert.equal(m.find(1n,controlled.children).value.phase.$,'ChildInstalling')
+  await assert.rejects(registry.retryCleanup(),/cleanup obligations remain pending/);assert.equal(registry.pendingCleanup,1)
+  controlled={...controlled,canonical:{...controlled.canonical,work:savedWork}}
+  await registry.retryCleanup();assert.equal(registry.pendingCleanup,0);assert.equal(m.find(1n,controlled.children).value.phase.$,'ChildCancelled')
+  assert.deepEqual(driver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0});assertions+=8
  }
  console.log(JSON.stringify({passed:true,assertions,scope:'actual Canonical admission/work invalidation plus source-free child generations, unique terminal and separate late-provider cleanup; opaque controlled handles only; actual split-child resident consumer, provisional rejected-handle disposal, retention/revision and universal proofs remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}

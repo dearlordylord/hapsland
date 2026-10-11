@@ -182,6 +182,46 @@ try{
   assert.equal(owner.find(1n,run(transaction.read).resolverCustody.children).value.phase.$,'ChildAccepted')
   cases++
  }
+ // Exact source interruption is atomic with custody, including a leased child.
+ for(const variant of ['failed','cancel-leased','absent']){
+  const initial={residentLifetime:'source-interruption',limits,canonical:initialCanonical(limits),resolverCustody:owner.initial_custody(),reservations:new Map(),partitionIds:new Map(),partitionIdentityBytes:0,roundIds:new Map(),requestRounds:new Map(),collectionTokens:new Map(),nextCollectionToken:1,nextPartitionId:1,minimumFreshStart:0,records:{runtime:{peakLedgerBytes:0}}}
+  const ref=run(Ref.make(initial)),transaction=residentTransaction(ref,'source-interruption'),capacity=residentCapacity(transaction)
+  const partition=run(capacity.partitionId('agent')),round=run(capacity.roundId('agent')),observation=run(capacity.admitObservation('agent',round))
+  run(capacity.observation('agent',observation,'startObservation',round))
+  const bridge=createResidentOwnerTransaction({owner,transaction}),event=input=>run(bridge.event(input))
+  const sourceScope={$:'SourceScope',partition:BigInt(partition),lifetime:1n,round:BigInt(round),observation:BigInt(observation),permission:{$:'SourceNew'}}
+  event({$:'LaunchSourceEvent',scope:sourceScope,input_handle:1n})
+  const beforeGeneric=run(transaction.read)
+  assert.equal(event({$:'TerminalEvent',invocation:1n,generation:0n,result_handle:9n}).refusal.$,'WrongPhase');assert.deepEqual(run(transaction.read),beforeGeneric)
+  let preparation
+  if(variant==='cancel-leased'){
+   preparation=run(capacity.beginObservedPreparation('agent',observation,100,round))
+   event({$:'InstallSourceEvent',invocation:1n,generation:0n,handle:2n,request:0n,permission:{$:'SourceCandidate'}})
+   event({$:'ProviderStartEvent',invocation:1n})
+   event({$:'LaunchSourcePreparationEvent',parent:{$:'Parent',invocation:1n,generation:0n,request:0n},scope:{$:'PreparationScope',partition:BigInt(partition),lifetime:1n,round:BigInt(round),preparation:BigInt(preparation.operation)},input_handle:3n})
+   event({$:'InstallEvent',invocation:2n,generation:0n,handle:4n,request:0n});event({$:'ProviderStartEvent',invocation:2n})
+  }
+  if(variant==='absent')assert.equal(run(capacity.observation('agent',observation,'completeObservation',round)),true)
+  const before=run(transaction.read)
+  const result=event(variant==='cancel-leased'?{$:'CancelEvent',invocation:1n}:{$:'TerminalSourceFailedEvent',invocation:1n,generation:0n,result_handle:9n})
+  if(variant==='wrong-stage'){
+   assert.equal(result.refusal.$,'CanonicalRejected');assert.equal(result.refusal.reason.$,'../../../packages/agent-flow-bend/Canonical.WrongStage');assert.deepEqual(run(transaction.read),before);cases++;continue
+  }
+  assert.equal(result.refusal,undefined)
+  assert.equal(result.outputs.filter(output=>output.$==='Canonical.EventEstablished'&&output.event.$==='Canonical.ObservationInterrupted').length,variant==='absent'?0:1)
+  const snapshot=run(transaction.read),child=owner.find(1n,snapshot.resolverCustody.children).value
+  assert.equal(child.phase.$,variant==='cancel-leased'?'ChildCancelled':'ChildAccepted')
+  assert.equal(result.actions.some(action=>action.$==='AcceptResult'&&action.result_handle===9n),variant!=='cancel-leased')
+  if(variant==='cancel-leased'){
+   assert.equal(child.lease.$,'Some');assert.equal(owner.find(2n,snapshot.resolverCustody.children).value.phase.$,'ChildCancelled')
+   for(const [invocation,lease] of [[1n,1n],[2n,2n]]){
+    const late=event({$:'ProviderCompletedEvent',invocation,lease,request:0n,reply_handle:8n})
+    assert.equal(late.actions.some(action=>action.$==='Resume'),false);assert.equal(late.actions.filter(action=>action.$==='CleanupProvider').length,1)
+   }
+   run(capacity.release(preparation.reservation))
+  }
+  cases++
+ }
  for(const tailVariant of ['normal','missing-publish','driver-active-false','driver-cleanup-pending','driver-barrier-failure','driver-expired-failure','driver-fate-ack-failure','driver-observer-pending','driver-construction-failure']){
   const limits={globalItems:100,globalBytes:100000,partitionItems:16,partitionBytes:100000}
   const initial={residentLifetime:'advice-tail',limits,canonical:initialCanonical(limits),resolverCustody:owner.initial_custody(),reservations:new Map(),partitionIds:new Map(),partitionIdentityBytes:0,roundIds:new Map(),requestRounds:new Map(),collectionTokens:new Map(),nextCollectionToken:1,nextPartitionId:1,minimumFreshStart:0,records:{runtime:{peakLedgerBytes:0},revision:initialRevision(),advice:initialAdviceRecords(),joined:initialJoinedReviews(),delivery:initialDelivery(),adviceCaptures:new Map()}}

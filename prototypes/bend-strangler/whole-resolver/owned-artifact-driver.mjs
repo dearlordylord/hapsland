@@ -33,7 +33,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    finally{if(!transferred)release(id,invocation)}
   }else{
    const id=save(invocation,'result',projection)
-   try{hooks.beforeTerminal?.({invocation,generation,handle:id,driver});const child=owner.find(invocation,current().children).value;const method=child.scope.$==='PreparationScope'?(projection.$==='PreparationFinished'?'terminal_preparation':'terminal_preparation_failed'):'terminal';apply(invoke(method,invocation,generation,id))}
+   try{hooks.beforeTerminal?.({invocation,generation,handle:id,driver});const child=owner.find(invocation,current().children).value;const method=child.scope.$==='PreparationScope'?(projection.$==='PreparationFinished'?'terminal_preparation':'terminal_preparation_failed'):child.scope.$==='SourceScope'&&projection.$==='SourcePreparationStopped'?'terminal_source_failed':'terminal';apply(invoke(method,invocation,generation,id))}
    finally{release(id,invocation)}
   }
  }
@@ -226,12 +226,26 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
        try{apply(invoke('terminal',invocation,child.value.generation,id))}finally{release(id,invocation)}
       }
      }
-     try{engine(invocation).disposeInvocation(invocation)}finally{
-      machines.delete(invocation);sessions.delete(invocation);finished.delete(invocation)
-      for(const [id,held] of resources)if(held.invocation===invocation)release(id,invocation)
-      // registry.run owns close when it registered; construction failure does not.
-      if(!taskEntered&&registry.get(Number(invocation))!==session)session.close?.()
+     const releaseInvocation=()=>{
+      try{engine(invocation).disposeInvocation(invocation)}finally{
+       machines.delete(invocation);sessions.delete(invocation);finished.delete(invocation)
+       for(const [id,held] of resources)if(held.invocation===invocation)release(id,invocation)
+       // registry.run owns close when it registered; construction failure does not.
+       if(!taskEntered&&registry.get(Number(invocation))!==session)session.close?.()
+      }
      }
+     const authority=owner.find(invocation,current().children)
+     if(authority.$==='Some'&&authority.value.scope.$==='SourceScope'&&owner.child_active(authority.value)){
+      // A rejected interrupt is not a closed Source. Preserve its exact opaque
+      // handles and session as a visible registry obligation until the closed
+      // owner transition succeeds; no host finalizer edits Canonical work.
+      registry.retainCleanup(session,async()=>{
+       const pending=owner.find(invocation,current().children)
+       if(pending.$==='Some'&&owner.child_active(pending.value))apply(invoke('cancel',invocation))
+       await finishSession(session)
+       releaseInvocation()
+      })
+     }else releaseInvocation()
     }
    }
   },

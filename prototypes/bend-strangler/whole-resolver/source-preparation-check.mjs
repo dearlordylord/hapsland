@@ -11,7 +11,7 @@ try{
  const list=items=>items.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
  let cases=0
  for(const bound of [false,true])for(const candidates of [[],[11n],[11n,22n],[11n,11n]]){
-  let step=core.initial(7n,bound,list(candidates)),commands=[]
+  let step=core.initial_after_gates(7n,bound,list(candidates)),commands=[]
   const reply=response=>{const request=step.request;step=core.resume(step,{$:'Reply',invocation:request.invocation,id:request.id,response})}
   while(step.$==='Await'){
    const {request}=step
@@ -54,7 +54,7 @@ try{
   [{$:'Unavailable',reason:{$:'WrongStage'}},{$:'WorkspaceUnavailable',reason:{$:'WrongStage'}},[]],
   [{$:'InvalidMeasurement'},{$:'WorkspacePanic'},[]]
  ]){
-  let step=core.initial(7n,true,list([11n,22n]))
+  let step=core.initial_after_gates(7n,true,list([11n,22n]))
   const reply=response=>{step=core.resume(step,{$:'Reply',invocation:7n,id:step.request.id,response})}
   reply({$:'Active',value:true});reply({$:'WorkspaceRefused',reason,requested_bytes:128n})
   assert.deepEqual(step.request.command,{$:'ObserveCandidateDiagnostic',candidate:11n,diagnostic})

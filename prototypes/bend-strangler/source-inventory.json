@@ -3186,7 +3186,7 @@
     {
       "path": "whole-resolver/CanonicalResolverOwner.bend",
       "capture": "whole-resolver/CanonicalResolverOwner.bend.txt",
-      "sha256": "e2a1f2e38cba31003d69ddf86cea3feb9bf58357baa6c76c235a98beb17ec2ee"
+      "sha256": "6720852655c53749bf39849713ac439b865656aed15184a1d645c844ad206462"
     },
     {
       "path": "whole-resolver/CaptureAdmission.bend",
@@ -3541,7 +3541,7 @@
     {
       "path": "whole-resolver/SourcePreparation.bend",
       "capture": "whole-resolver/SourcePreparation.bend.txt",
-      "sha256": "93e40d2823b4045bed9fb8c0a079bdd54a881ca7ce7d987ec6349aef70f2e9d1"
+      "sha256": "9a1c9da97133f67ccda47c1e2b6e48c84cffc18de685752b225cbf91ef9915fb"
     },
     {
       "path": "whole-resolver/SourcePreparationProbe.bend",
@@ -3606,7 +3606,7 @@
     {
       "path": "whole-resolver/canonical-owner-check.mjs",
       "capture": "whole-resolver/canonical-owner-check.mjs",
-      "sha256": "1fe9889bd473228136fbae0135530d947c9766e59592986ac9efd9ee013309b2"
+      "sha256": "3f95ecaefce33f50259e3bbd754f1aaaf79aa97863da9b17fd50250f8281c40f"
     },
     {
       "path": "whole-resolver/cargo-specification-check.mjs",
@@ -3701,7 +3701,7 @@
     {
       "path": "whole-resolver/owned-artifact-driver.mjs",
       "capture": "whole-resolver/owned-artifact-driver.mjs",
-      "sha256": "c9798ea12b0f7c73da8557ddfec5020ac1171c89586c6209f459a5d116a98bc1"
+      "sha256": "dadd6c07434462428ed79348fc1a2ed753ecd4d000fe175a6b166372be7828d2"
     },
     {
       "path": "whole-resolver/owned-root-check.mjs",
@@ -3931,12 +3931,12 @@
     {
       "path": "whole-resolver/resident-owner-check.mjs",
       "capture": "whole-resolver/resident-owner-check.mjs",
-      "sha256": "fbef38d8a3026b9387e794d3fcf583b4465ed00e5d9b66f6143565d4e303b00a"
+      "sha256": "8465c3b6680bae05f9e2df13362f780d684e1c88e9c7e788350b68e73542a67c"
     },
     {
       "path": "whole-resolver/resident-owner-transaction.mjs",
       "capture": "whole-resolver/resident-owner-transaction.mjs",
-      "sha256": "b1dd078c30cefa74571712c4890899581ad83973410ddf9b9e80005043100208"
+      "sha256": "ce19f903ce58616eaa3e78930886492a7bdd6a07d39fbc2001a2a0aec0b4df39"
     },
     {
       "path": "whole-resolver/resident-preparation-check.mjs",
@@ -4016,12 +4016,22 @@
     {
       "path": "whole-resolver/source-preparation-check.mjs",
       "capture": "whole-resolver/source-preparation-check.mjs",
-      "sha256": "bec94a91e10d0dcfd5acf85555ca897cfc52152c30c4ceb7d42c52cdae7d406e"
+      "sha256": "e64298313b400254ac41063f5930a04e645b9a461c36687e4a6c4214837a539a"
+    },
+    {
+      "path": "whole-resolver/source-preparation-consumer.mjs",
+      "capture": "whole-resolver/source-preparation-consumer.mjs",
+      "sha256": "d7b15823466f820afd337cf335c41a10260739a832be6a480456501f8131073d"
     },
     {
       "path": "whole-resolver/source-preparation-dispatcher.mjs",
       "capture": "whole-resolver/source-preparation-dispatcher.mjs",
-      "sha256": "9e93d12f65446e51362063dc4370d0bc8612095af627e5c6ae6170658c18d5ff"
+      "sha256": "9c3753b6f7d54a32ae32fe7c8d5068033ced528f78e15b269af3b2d5a2d21089"
+    },
+    {
+      "path": "whole-resolver/source-preparation-provider.mjs",
+      "capture": "whole-resolver/source-preparation-provider.mjs",
+      "sha256": "566416a21ae63cd23727facc8fa2853da87a4fdde75ab214eaf22a0a98f8ea6b"
     },
     {
       "path": "whole-resolver/specification-check.mjs",
