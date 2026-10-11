@@ -9,7 +9,7 @@ import {
 } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createDispatcher } from "../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
@@ -367,8 +367,10 @@ try {
     arbitraryBigIntAsDecimal: true,
     scope: "typed service/foreign IO boundary only; no whole resolver transition or adoption claim"
   }
+  const evidenceDirectory = join(folder, "../../../.test-runs/bend-migration")
+  mkdirSync(evidenceDirectory, { recursive: true })
   writeFileSync(
-    join(folder, "service-session-" + record.runtime + "-evidence.json"),
+    join(evidenceDirectory, "service-session-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify(record))
