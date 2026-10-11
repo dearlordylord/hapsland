@@ -197,7 +197,7 @@ One current obstacle list, in execution order:
    The eventual public entry remains pipeline.prepareObservation; no parallel backend.
    The current `check:fast` at `1a61bacc` passed 109 tests, source TypeScript
    checking and the 23-package graph, then failed development-import enforcement.
-   The gate reported five unresolved paths, 47 undeclared dependencies and 213
+   The gate reported five unresolved paths, 47 undeclared dependencies and 210
    private cross-owner imports; these prevent full-gate acceptance. Requalify each changed candidate
    without exposing helper stages or bypassing this gate. Supported Go/session,
    extraction, whole proofs and connected parity remain required. Production whole
