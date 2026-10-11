@@ -11,7 +11,8 @@ import { createDispatcher } from "../runtime-observation/transport.mjs"
 import { createServiceSession, createServiceRegistry } from "../service-session.ts"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax } from "../frontends.ts"
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
-import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
+import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import {
   createMachineDriver,
@@ -139,12 +140,19 @@ try {
     }
   })
 
+  execFileSync("git", ["init", "-q", temp])
+  writeFileSync(join(temp, "probe-a.ts"), "export interface A { value: string }")
+  const physicalPorts = {
+    access: (path) => Effect.runPromise(eligibleNamedPath(temp, path, DEFAULT_DIRECT_FILE_POLICY)),
+    capture: (selection) => Effect.runPromise(captureStable(temp, selection))
+  }
   const fixtures = [
     ["root.ts", "export interface Child { value: boolean }; export interface Root { child: Child }", "type"],
     ["root.ts", "export function Root(value: string): string { return value }", "function"],
-    ["root.bend", "type Child is Data:\n  Child{}\ntype Root is Data:\n  Root{child: Child}", "type"]
+    ["root.bend", "type Child is Data:\n  Child{}\ntype Root is Data:\n  Root{child: Child}", "type"],
+    ["root.ts", "import type { A } from './probe-a'; export interface Root { a: A }", "type", true]
   ]
-  for (const [path, source, branch] of fixtures) {
+  for (const [path, source, branch, crossFile] of fixtures) {
     requestTrace = []
     let calls = 0
     const session = createServiceSession({
@@ -154,6 +162,7 @@ try {
           calls++
           return 0
         },
+        ...physicalPorts,
         frontend: inspectSourceFrontend,
         parseCargo: parseCargoSyntax,
         inspectRustModules: inspectRustModuleSyntax
@@ -175,16 +184,17 @@ try {
     )
     assert.equal(JSON.stringify(fromProductValue(actual.result.value)), JSON.stringify(expected))
     assert.equal(calls, nativeCalls)
-    assert.deepEqual(actual.trace, [
-      "Types.StartClock",
-      "Types.PathExtension",
-      "Types.ReadClock",
-      "Types.InspectSource",
-      "Types.EncodeProduct",
-      "Types.ReadClock",
-      "Types.EncodeProduct",
-      "Types.ReadClock"
-    ])
+    if (!crossFile)
+      assert.deepEqual(actual.trace, [
+        "Types.StartClock",
+        "Types.PathExtension",
+        "Types.ReadClock",
+        "Types.InspectSource",
+        "Types.EncodeProduct",
+        "Types.ReadClock",
+        "Types.EncodeProduct",
+        "Types.ReadClock"
+      ])
     for (const [label, driver] of [
       ["debug", ioDrive],
       ["product", ioProductDrive]
@@ -194,6 +204,7 @@ try {
         invocation: id++,
         root: temp,
         now: () => 0,
+        ...physicalPorts,
         frontend: inspectSourceFrontend,
         parseCargo: parseCargoSyntax,
         inspectRustModules: inspectRustModuleSyntax
@@ -212,6 +223,7 @@ try {
         assert.equal(normalize(ioResult.finalFrame), normalize(actual.finalFrame), path + " generic terminal frame")
     }
   }
+  assert.ok(maximumPureChain > 0, "cross-file fixture must exercise nonzero pure dispatch")
   const expired = createServiceSession({
     invocation: id++,
     root: temp,
