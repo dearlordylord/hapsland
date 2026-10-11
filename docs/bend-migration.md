@@ -308,27 +308,31 @@ One current obstacle list, in execution order:
    boundary currently imports all PreparationModel (660 lines), which imports
    BuildContext (675 lines), although the composition only uses Input/Prepared.
    A sole-declaration move of unchanged Go boundary types to existing
-   ArtifactProtocol is being reviewed as an emission-cost reduction; no
-   representation or original premise change is proposed. Actual before/after
-   hard-five-second emission and complete resident/graph consumers must qualify
-   it before closing this blocker.
+   ArtifactProtocol is now implemented without duplicate declarations or shims.
+   All three declarations preserve exact original bytes (fields/types/order);
+   constructor references and direct Go verification tags changed atomically.
+   The same ArtifactComposition emission now passes hard five seconds at
+   2.840 seconds (2.318 user / 0.465 system) versus the prior 5.070 timeout.
+   Changed JS lint passes. Direct Go, artifact/owned/Entry and complete
+   resident/graph consumers still require current-input qualification before
+   this blocker closes. No representation or original premise changed.
 5. Connect the whole section through production Canonical launch, lifecycle,
    cancellation, acceptance and progression. Delete replaced TS preparation,
    graph/language package policy and orchestration only with their qualified
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 039135c1 build/execution are
+   connected candidate. Latest existing-production 70928eb1 build/execution are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: build fails
-   at 1.121376488122715 (all 23/46 cached); execution passes at
-   0.6634266327947798. Build started 21:16:05.089647 UTC; execution started
-   21:13:47.416402 UTC. Both started before their cadence deadlines.
-   Warm candidate build passed 46/46 tasks, 15 cached, in 75.562 seconds.
+   at 1.1497457067995722 (all 23/46 cached); execution passes at
+   0.892861082350742. Build started 21:45:24.850391 UTC; execution started
+   21:42:39.029086 UTC. Both started before their cadence deadlines.
+   Warm candidate build passed 46/46 tasks, 15 cached, in 77.825 seconds.
    This does not measure unadopted whole preparation. Recorded cadence misses
    remain failures. Evidence is retained under ignored
-   .test-runs/bend-migration/performance/2026-10-11T21-16-05.089647+00-00
-   and 2026-10-11T21-13-47.416402+00-00 (qualification.json and run.log).
-   Next build start is due 21:46:05.089647 UTC, execution 21:43:47.416402 UTC.
+   .test-runs/bend-migration/performance/2026-10-11T21-45-24.850391+00-00
+   and 2026-10-11T21-42-39.029086+00-00 (qualification.json and run.log).
+   Next build start is due 22:15:24.850391 UTC, execution 22:12:39.029086 UTC.
    A bounded two-pair UI-preflight diagnostic passed both roots on CPU11:
    baseline 2.702/2.625 seconds, candidate 2.694/3.037 seconds. This does not
    isolate the complete build regression or establish parity; no scanner
