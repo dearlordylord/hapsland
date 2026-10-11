@@ -215,6 +215,11 @@ One current obstacle list, in execution order:
    pass. The generic machine checker still cannot drive specialized Go/Python
    continuations. Unsupported formatter roots remain failures, including
    attachment declaration headers and UnitEvidence/Glob/list blocks.
+   Astra's structural review found no blocking ownership/dependency issue in
+   the composed-consumer move and tooling fixture boundary. Its two cleanups
+   remove obsolete emission paths and ignored resolver ports; changed-source
+   lint selects one file and the actual composed consumer again passes
+   18/1425/7125 fences/36 terminal suffixes/18 Canonical accepted results.
    A full gate remains blocked; placement is not production adoption.
 4. Complete and qualify compiled preparation → Source → Post in the actual public
    resident lifecycle, preserving source/parent/child revision and identity
@@ -228,12 +233,17 @@ One current obstacle list, in execution order:
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production f9b535ec build/execution are
-   qualified with unchanged heads/sources/artifacts: build fails at
-   1.1165650680940578; execution passes at 0.7465336756148849. Both starts are
-   timely (19:43:56.413344 / 19:51:12.866359 UTC). This does not measure
-   unadopted whole preparation. Recorded cadence misses remain failures.
-   Next build start is due20:13:56.413344 UTC, execution20:21:12.866359 UTC.
+   connected candidate. Latest existing-production 933dc332 build/execution are
+   qualified with unchanged heads/sources/artifacts and all 17 pairs: build fails
+   at 1.075254328177227 (all 23/46 cached); execution passes at
+   0.8857561852789442. Build started 20:14:00.586230 UTC, 4.172886 seconds
+   after its cadence deadline; execution started 20:20:53.531594 UTC, timely.
+   Warm candidate build passed 46/46 tasks, 15 cached, in 69.011 seconds.
+   This does not measure unadopted whole preparation. Recorded cadence misses
+   remain failures. Evidence is retained under ignored
+   .test-runs/bend-migration/performance/2026-10-11T20-14-00.586230+00-00
+   and 2026-10-11T20-20-53.531594+00-00 (qualification.json and run.log).
+   Next build start is due 20:44:00.586230 UTC, execution 20:50:53.531594 UTC.
 
 Historical performance evidence (existing production, not whole preparation): Latest matched warm build at 12a2a197 started
    2026-10-11T14:55:48.475707Z: 17 pairs, all 23/46 cached, qualified with
