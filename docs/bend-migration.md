@@ -208,9 +208,10 @@ One current obstacle list, in execution order:
    field. Extend reference X.Frame and the existing phase capsule with the same
    optional fingerprint, preserving terminal exact product observation; do not
    invent terminal frame evidence. Missing Go cases in actual context/reference
-   branch projections are added and formatted. The actual projection checks;
-   the reference root is blocked by ExpansionDriverSpecification.candidates
-   missing GoLanguage. No new proof or universal correspondence is claimed.
+   branch projections are added and formatted. Both projection roots check
+   within five seconds after the explicit reference Go candidates row returns
+   [] as native does; no filesystem scan is introduced. No new proof or
+   universal correspondence is claimed.
    Obtain review of the complete amended declarations before proof work.
 3. Resolve the remaining ordinary source and consumer boundaries: zero unresolved
    imports, zero undeclared dependencies, 97 cross-owner private-file imports.

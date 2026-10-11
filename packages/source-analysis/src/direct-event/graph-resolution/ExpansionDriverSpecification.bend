@@ -249,6 +249,7 @@ def candidates(
   match language:
     case T.TypeScriptLanguage{}: typescript_candidates(base, String.to_lower(extension(base)))
     case T.PythonLanguage{}: []
+    case T.GoLanguage{}: []
     case T.RustLanguage{}: Bool.pick(List<&2, String>, String.is_empty(extension(base)),
       [base ++ ".rs", join([base, "mod.rs"])], [])
     case T.BendLanguage{}: Bool.pick(List<&2, String>,
