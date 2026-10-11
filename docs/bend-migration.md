@@ -206,8 +206,12 @@ One current obstacle list, in execution order:
    now qualified at 3.517 seconds after moving four generic facts (sole
    declarations) to existing AttachmentProjectionContentsProof, whose gate
    passes at 2.911 seconds. Failed factoring attempts remain diagnostic evidence.
-   Full appended_projection is authored from those checked components but
-   unqualified. Remaining path:
+   Full appended_projection now passes the entire parent prefix at 3.913
+   seconds; its projection assembly owner passes at 1.781 seconds. Replacement
+   of the selected parent slot through an untouched child suffix is authored
+   in existing AttachmentReplacementStructureProof but unqualified (first
+   hard-five-second timeout: 5.051 wall / 3.205 user / 0.259 system).
+   Remaining path:
    full projection, owner-only replacement commutation, semantic validity,
    original eight conjuncts and the existing transaction theorem. No separate
    helper frontier qualifies adoption; the original parent theorem remains WIP.
@@ -300,7 +304,14 @@ One current obstacle list, in execution order:
    artifact emission passed at 4.120 seconds. No emission limit was raised;
    retained physical fixtures stay in /tmp, compiled temporary outputs alone
    use measured memory storage. Next diagnostic must reduce or distinguish
-   actual composition preparation cost before another complete run.
+   actual composition preparation cost before another complete run. Its Go
+   boundary currently imports all PreparationModel (660 lines), which imports
+   BuildContext (675 lines), although the composition only uses Input/Prepared.
+   A sole-declaration move of unchanged Go boundary types to existing
+   ArtifactProtocol is being reviewed as an emission-cost reduction; no
+   representation or original premise change is proposed. Actual before/after
+   hard-five-second emission and complete resident/graph consumers must qualify
+   it before closing this blocker.
 5. Connect the whole section through production Canonical launch, lifecycle,
    cancellation, acceptance and progression. Delete replaced TS preparation,
    graph/language package policy and orchestration only with their qualified

@@ -506,5 +506,37 @@ def slots_filtered(+result: Compose.ReplacedSlots, +owner: Nat) ->
   match result:
     case Compose.ReplacedSlots{_, _}: {==}
 
+# Transport the existing replacement result across an untouched suffix.
+def with_suffix(result: Compose.ReplacedSlots, suffix: List<&2, Local.ReferenceSlot>) -> Compose.ReplacedSlots:
+  match result:
+    case Compose.ReplacedSlots{count, items}:
+      Compose.ReplacedSlots{count, List.append(&2, Local.ReferenceSlot, items, suffix)}
+
+def prefix_suffix(result: Compose.ReplacedSlots, +suffix: List<&2, Local.ReferenceSlot>,
+    +same: Bool, +owner: Nat, +index: Nat, +symbol: String,
+    +previous: Local.PlannedReference, +reference: Local.PlannedReference) ->
+    {Compose.replaced_prefix(with_suffix(result, suffix), same, owner, index, symbol, previous, reference)
+      == with_suffix(Compose.replaced_prefix(result, same, owner, index, symbol, previous, reference), suffix) : Compose.ReplacedSlots}:
+  match result:
+    case Compose.ReplacedSlots{_, _}: {==}
+
+def replace_untouched_suffix(items: List<&2, Local.ReferenceSlot>, +suffix: List<&2, Local.ReferenceSlot>,
+    +owner: Nat, +index: Nat, +reference: Local.PlannedReference,
+    +untouched: {Compose.replace_slot(suffix, owner, index, reference) == Compose.ReplacedSlots{0n, suffix} : Compose.ReplacedSlots}) ->
+    {Compose.replace_slot(List.append(&2, Local.ReferenceSlot, items, suffix), owner, index, reference)
+      == with_suffix(Compose.replace_slot(items, owner, index, reference), suffix) : Compose.ReplacedSlots}:
+  match items:
+    case []: untouched
+    case Local.ReferenceSlot{+actual_owner, +actual_index, +symbol, +previous} <> +tail:
+      %Equal.sym(Compose.ReplacedSlots,
+        Compose.replace_slot(List.append(&2, Local.ReferenceSlot, tail, suffix), owner, index, reference),
+        with_suffix(Compose.replace_slot(tail, owner, index, reference), suffix),
+        replace_untouched_suffix(tail, suffix, owner, index, reference, untouched)):
+        {Compose.replaced_prefix(_, Bool.and(Nat.is_eq(owner, actual_owner), Nat.is_eq(index, actual_index)),
+          actual_owner, actual_index, symbol, previous, reference)
+          == with_suffix(Compose.replace_slot(Local.ReferenceSlot{actual_owner, actual_index, symbol, previous} <> tail, owner, index, reference), suffix) : Compose.ReplacedSlots}
+      prefix_suffix(Compose.replace_slot(tail, owner, index, reference), suffix,
+        Bool.and(Nat.is_eq(owner, actual_owner), Nat.is_eq(index, actual_index)), actual_owner, actual_index, symbol, previous, reference)
+
 def main() -> Unit:
   Unit{}
