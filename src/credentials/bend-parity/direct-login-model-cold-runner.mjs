@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { performance } from "node:perf_hooks"
 const started = performance.now(),
   cpuStart = process.cpuUsage()
-const policy = await import("../packages/administration/dist/credentials/direct-login-model.js")
+const policy = await import("@hapsland/administration/credentials/direct-login-model")
 const imported = performance.now(),
   importCpu = process.cpuUsage(cpuStart),
   runCpu = process.cpuUsage()

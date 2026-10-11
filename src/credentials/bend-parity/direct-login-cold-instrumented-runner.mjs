@@ -5,8 +5,8 @@ const started = performance.now(),
 const [{ Effect }, { runDirectCredentialInput, DirectLoginOwnerService }, { makeInitialCredentialState }] =
   await Promise.all([
     import("effect"),
-    import("../packages/administration/dist/credentials/direct-input.js"),
-    import("../packages/runtime-inputs/dist/credentials/state.js")
+    import("@hapsland/administration/credentials/direct-input"),
+    import("@hapsland/runtime-inputs/credentials/state")
   ])
 const imported = performance.now(),
   importCpu = process.cpuUsage(startCpu),

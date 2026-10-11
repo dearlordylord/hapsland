@@ -249,6 +249,22 @@ One current obstacle list, in execution order:
    add terminal revalidation absent from native Go. The first complete consumer
    compares actual prepareGoGraph then native resolver across siblings/build tags,
    nested modules/workspaces/internal imports/constants/budgets/cancellation.
+   Astra's implementation path is one full `go-module/Package.bend` for
+   native goGraphFacts, followed by `PreparationMachine.bend` for the complete
+   prepareGoGraph session and a Go artifact through the existing Canonical
+   composition. Package inference retains positions (file, group, member),
+   insertion order, the final unchanged fixed-point pass, exact work charges,
+   and file-scoped qualified provenance. Its whole consumer compares actual
+   goGraphFacts ordered declarations, constantTypes, refusal and discoveryWork.
+   The agreed mechanical Unicode boundary observes letter/number/uppercaseLetter
+   per JS code point using actual ECMAScript Unicode property expressions;
+   Bend decides qualified grammar, underscore, dots and uppercase eligibility.
+   Lone surrogates retain their bytes and observe three false flags. This avoids
+   a second Unicode database and preserves the current engine's behavior.
+   Qualified inference uses a distinct {name, source_path} constructor, with
+   both fields compared and native insertion order preserved; decoded output
+   remains the same. No production callback may call native goGraphFacts,
+   goFileMembership or prepareGoGraph. No helper-law acceptance series is planned.
    Whole correspondence and exact Canonical invocation/request/generation/lease
    with directory/capture/session cleanup are the two agreed proof obligations.
 
@@ -447,3 +463,14 @@ and the existing `AttachmentArtifactProductTransport.bend` proof root both
 reported `ALL PROOFS CHECK` within the unchanged five-second limit. This is
 boundary and existing artifact-kind proof evidence, not complete Go package
 inference, whole preparation correspondence, production adoption or parity.
+
+Current ordinary candidate qualification at `2be20276`: the preparation
+consumer suite passed 50 source, 64 resident and 13 owned-root cases; all 23
+compiler receipts validated. check:fast passed 109 unit tests, repository assets,
+TypeScript and package graph before failing development imports. Three relocated
+credential cold runners then switched five stale relative imports to existing
+workspace exports; all six available/locked runs passed, with nonempty lint.
+The focused import gate now reports zero unresolved paths, 47 undeclared
+dependencies and 214 cross-owner private-file violations. Those remain an
+acceptance blocker; fix ownership and declared interfaces before asserting a
+green ordinary gate.

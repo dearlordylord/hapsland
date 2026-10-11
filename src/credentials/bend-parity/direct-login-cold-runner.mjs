@@ -1,10 +1,7 @@
 import assert from "node:assert/strict"
 import { Effect } from "effect"
-import {
-  runDirectCredentialInput,
-  DirectLoginOwnerService
-} from "../packages/administration/dist/credentials/direct-input.js"
-import { makeInitialCredentialState } from "../packages/runtime-inputs/dist/credentials/state.js"
+import { runDirectCredentialInput, DirectLoginOwnerService } from "@hapsland/administration/credentials/direct-input"
+import { makeInitialCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 const available = process.argv[2] === "available"
 const key = "synthetic-offline-benchmark-credential"
 const calls = [],
