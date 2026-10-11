@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
 import { dirname, join } from "node:path"
@@ -527,6 +528,7 @@ try {
     cases++
   }
   for (const fixture of graphFixtures) {
+    console.log(JSON.stringify({ graphFixture: fixture.name }))
     const fixtureRoot = join(temp, "whole-" + fixture.name)
     await mkdir(fixtureRoot)
     execFileSync("git", ["init", "-q", fixtureRoot], { timeout: 5000 })
@@ -539,7 +541,17 @@ try {
       await writeFile(join(fixtureRoot, file), text)
     }
     for (const directory of fixture.directories ?? []) await mkdir(join(fixtureRoot, directory), { recursive: true })
-    const stable = (file) => ({ text: sources.get(file), byteLength: Buffer.byteLength(sources.get(file)) })
+    const stable = (file) => {
+      const text = sources.get(file)
+      const bytes = Buffer.from(text)
+      return {
+        text,
+        bytes,
+        byteLength: bytes.length,
+        contentHash: createHash("sha256").update(bytes).digest("hex"),
+        metadata: "fixture:" + file
+      }
+    }
     const nativeEvents = [],
       bendEvents = []
     const nativeCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
@@ -585,6 +597,15 @@ try {
       registry,
       foreign: async ([request], options) => {
         totalRequests++
+        if (request.operation.$ === "Types.HashJsonProduct") {
+          const checkText = (value, at = "value") => {
+            if (!value || typeof value !== "object") return
+            if (value.$?.endsWith("Value.ProductText"))
+              assert.equal(typeof value.value, "string", fixture.name + " invalid ProductText at " + at)
+            for (const [key, child] of Object.entries(value)) if (key !== "$") checkText(child, at + "." + key)
+          }
+          checkText(request.operation.value)
+        }
         return await registry.perform(request, options)
       }
     })
