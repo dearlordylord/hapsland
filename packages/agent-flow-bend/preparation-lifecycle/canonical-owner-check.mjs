@@ -590,10 +590,12 @@ try {
     })
     const invocation = driver.allocateSourceInvocation(sourceScope)
     const session = { invocation, finish() {}, close() {}, revoke() {} }
-    await assert.rejects(
-      driver.drive(session, { invocation: BigInt(invocation) }),
-      /Canonical resolver refused: CanonicalRejected/
-    )
+    await assert.rejects(driver.drive(session, { invocation: BigInt(invocation) }), (error) => {
+      assert.ok(error instanceof AggregateError)
+      assert.match(error.cause.message, /Canonical resolver refused: CanonicalRejected/)
+      assert.ok(error.errors.includes(error.cause))
+      return true
+    })
     assert.equal(registry.size, 0)
     assert.equal(registry.pendingCleanup, 1)
     assert.equal(driver.resources.sessions, 1)

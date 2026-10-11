@@ -1,4 +1,4 @@
-import type { SetupClient } from "./client-selection.ts"
+import type { SetupClient } from "../../../packages/administration/src/onboarding/client-selection.ts"
 
 export type MaintenanceCommand = "repair" | "reinstall" | "uninstall"
 export type MaintenanceOperation = "install" | "update" | "uninstall"

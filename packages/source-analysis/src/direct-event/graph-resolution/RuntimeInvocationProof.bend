@@ -36,6 +36,14 @@ def resumed_inv(
     case L.ServiceStep{T.FailedResolver{T.ReplyAfterTerminal{}}}: {==}
     case L.ServiceStep{T.AwaitService{_, _}}: {==}
     case L.ServiceStep{T.FinishedResolver{_, _}}: {==}
+    case L.PythonIteration{_}: {==}
+    case L.PythonTerminal{_, _}: {==}
+    case L.AdmitPythonCapture{_, _}: {==}
+    case L.PythonCaptured{_, _}: {==}
+    case L.InspectPythonTarget{_, _}: {==}
+    case L.ResolvePython{_, _}: {==}
+    case L.PreparePython{_}: {==}
+    case L.InspectPythonRoot{_}: {==}
     case L.PrepareRust{_}: {==}
     case L.PreparedRust{_, _, _}: {==}
     case L.RustAdvance{_, _}: {==}
@@ -160,6 +168,14 @@ def advance_step_inv(
       actions
     )
     case L.ServiceStep{T.FinishedResolver{_, _}}: {==}
+    case L.PythonIteration{_}: {==}
+    case L.PythonTerminal{_, _}: {==}
+    case L.AdmitPythonCapture{_, _}: {==}
+    case L.PythonCaptured{_, _}: {==}
+    case L.InspectPythonTarget{_, _}: {==}
+    case L.ResolvePython{_, _}: {==}
+    case L.PreparePython{_}: {==}
+    case L.InspectPythonRoot{_}: {==}
     case L.PrepareRust{_}: {==}
     case L.PreparedRust{_, _, _}: {==}
     case L.RustAdvance{_, _}: {==}

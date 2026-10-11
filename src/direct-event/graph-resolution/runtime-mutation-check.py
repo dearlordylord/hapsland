@@ -1,10 +1,12 @@
 """Check literal instances extracted from the original laws and reject core mutants."""
 import hashlib,json,os,pathlib,re,resource,shutil,subprocess,sys,tempfile,time
 ROOT=pathlib.Path(__file__).resolve().parents[3]
-SOURCE=pathlib.Path(__file__).resolve().parent
+SOURCE=ROOT/'packages/source-analysis/src/direct-event/graph-resolution'
+RESULTS=ROOT/'.test-runs/bend-migration'
+RESULTS.mkdir(parents=True,exist_ok=True)
 CPU=os.environ.get('HAPSLAND_PROOF_CPU','11')
-LAWS=(SOURCE/'../../../packages/source-analysis/src/direct-event/graph-resolution/RUNTIME_LAWS.bend').read_text()
-MODEL=(SOURCE/'../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeModel.bend').read_text()
+LAWS=(SOURCE/'RUNTIME_LAWS.bend').read_text()
+MODEL=(SOURCE/'RuntimeModel.bend').read_text()
 PRELUDE='''import Base
 import ./RuntimeModel.bend as R
 import ./RuntimeSpecification.bend as Specification
@@ -12,7 +14,7 @@ import ./RuntimeLawObservation.bend as Observation
 import ./Types.bend as T
 import ./Environment.bend as E
 import ./WholeObservation.bend as O
-import ../../../packages/agent-flow-bend/ImportGraph.bend as G
+import ../../../../agent-flow-bend/ImportGraph.bend as G
 def suspend(operation: T.Operation, world: Nat) -> R.ProviderResponse<Nat>:
   R.ProviderSuspended{world, []}
 def observe(exception: T.ExceptionToken, world: Nat) -> O.Error:
@@ -78,23 +80,35 @@ def passed(r):return r['exitCode']==0 and r['seconds']<=5 and 'ALL PROOFS CHECK'
 selected=set(sys.argv[1:])
 assert selected <= {row[0] for row in CASES}, 'Unknown original law selection'
 checks=[row for row in CASES if not selected or row[0] in selected]
-folder=pathlib.Path(tempfile.mkdtemp(prefix='.runtime-mutant-',dir=SOURCE.parent));rows=[]
+temporary=pathlib.Path(tempfile.mkdtemp(prefix='runtime-mutant-',dir=RESULTS))
+folder=temporary/SOURCE.relative_to(ROOT);rows=[]
 record={'lawOwnerSha256':hashlib.sha256(LAWS.encode()).hexdigest(),'modelSha256':hashlib.sha256(MODEL.encode()).hexdigest(),'cpu':CPU,'selectedLaws':[row[0] for row in checks],'cases':rows,'selectedChecksQualified':False,'qualified':False,'scope':'Four finite literal instances mechanically extracted from original law statements plus unchanged canonical proof rejection. Pure runtime model only; not physical cleanup or graph correctness.'}
 try:
- for file in SOURCE.glob('*.bend'):shutil.copy2(file,folder/file.name)
+ # Fresh compiler artifacts for a mutant; original repository sources stay unchanged.
+ copied=set()
+ def copy_closure(file):
+  file=file.resolve()
+  if file in copied:return
+  relative=file.relative_to(ROOT)
+  copied.add(file)
+  target=temporary/relative;target.parent.mkdir(parents=True,exist_ok=True)
+  shutil.copy2(file,target)
+  for dependency in re.findall(r'^import\s+(\S+\.bend)(?:\s+as\s+\S+)?\s*$',file.read_text(),re.M):
+   copy_closure(file.parent/dependency)
+ copy_closure(SOURCE/'RUNTIME_PROOF.bend')
  for name,mutation,before,after in checks:
   assert MODEL.count(before)==1,(name,'mutation anchor not unique')
   statement,bindings=claim(name)
   wrapper=PRELUDE+'\ndef original_law_instance() -> '+statement+':\n  {==}\ndef main() -> Unit:\n  Unit{}\n'
-  (folder/'INSTANCE.bend').write_text(wrapper);(folder/'../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeModel.bend').write_text(MODEL)
+  (folder/'INSTANCE.bend').write_text(wrapper);(folder/'RuntimeModel.bend').write_text(MODEL)
   row={'law':name,'mutation':mutation,'bindings':bindings,'instantiatedStatement':statement,'mutationBefore':before,'mutationAfter':after};rows.append(row)
   row['originalInstance']=check(folder,'INSTANCE.bend',name+'-original')
   if not passed(row['originalInstance']):raise RuntimeError('Unqualified original instance: '+name)
-  (folder/'../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeModel.bend').write_text(MODEL.replace(before,after))
-  row['mutantModel']=check(folder,'../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeModel.bend',name+'-model')
+  (folder/'RuntimeModel.bend').write_text(MODEL.replace(before,after))
+  row['mutantModel']=check(folder,'RuntimeModel.bend',name+'-model')
   if not passed(row['mutantModel']):raise RuntimeError('Invalid or unqualified mutant: '+name)
   row['mutantInstance']=check(folder,'INSTANCE.bend',name+'-instance')
-  row['mutantCanonicalProof']=check(folder,'../../../packages/source-analysis/src/direct-event/graph-resolution/RUNTIME_PROOF.bend',name+'-proof')
+  row['mutantCanonicalProof']=check(folder,'RUNTIME_PROOF.bend',name+'-proof')
   for key in ['mutantInstance','mutantCanonicalProof']:
    result=row[key]
    if result['exitCode']!=1 or result['seconds']>5 or not all(marker in result['output'] for marker in ['SOME PROOFS FAIL','- expected :','- observed :','Location:']):raise RuntimeError('Missing mathematical rejection: '+name+' '+key)
@@ -107,5 +121,5 @@ try:
  record['qualified']=len(checks)==len(CASES)
 finally:
  record['at']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
- (SOURCE/('runtime-mutation-selected-evidence.json' if selected else 'runtime-mutation-evidence.json')).write_text(json.dumps(record,indent=2)+'\n')
- shutil.rmtree(folder)
+ (RESULTS/('runtime-mutation-selected-evidence.json' if selected else 'runtime-mutation-evidence.json')).write_text(json.dumps(record,indent=2)+'\n')
+ shutil.rmtree(temporary)

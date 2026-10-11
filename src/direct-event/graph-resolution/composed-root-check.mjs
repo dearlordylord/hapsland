@@ -36,12 +36,6 @@ try {
           "bend",
           new URL(
             {
-              ".runtime-cancellation-closure-diagnostic":
-                "../../../packages/source-analysis/src/direct-event/graph-resolution/.runtime-cancellation-closure-diagnostic.bend",
-              ".runtime-correspondence-closure-diagnostic":
-                "../../../packages/source-analysis/src/direct-event/graph-resolution/.runtime-correspondence-closure-diagnostic.bend",
-              ".runtime-resumed-proof-control":
-                "../../../packages/source-analysis/src/direct-event/graph-resolution/.runtime-resumed-proof-control.bend",
               ArtifactComposition:
                 "../../../packages/resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend",
               ArtifactIndexSkipMutantCore:

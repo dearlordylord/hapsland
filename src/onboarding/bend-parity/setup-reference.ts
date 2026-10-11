@@ -1,5 +1,5 @@
-import type { SetupProgressObservation } from "./setup.ts"
-import type { VerificationOutcome } from "./verification-conversation.ts"
+import type { SetupProgressObservation } from "../../../packages/administration/src/onboarding/setup.ts"
+import type { VerificationOutcome } from "../../../packages/administration/src/onboarding/verification-conversation.ts"
 
 // Only safe owner observations enter the model. Credential values and raw owner
 // records stay inside the interpreter and the existing setup/credential owners.

@@ -1,4 +1,4 @@
-import type { SetupClient } from "./client-selection.ts"
+import type { SetupClient } from "../../../packages/administration/src/onboarding/client-selection.ts"
 
 export type UpdateOutcome = "updated" | "already current" | "skipped" | "partial" | "busy" | "indeterminate" | "failed"
 export type UpdateAgent = {

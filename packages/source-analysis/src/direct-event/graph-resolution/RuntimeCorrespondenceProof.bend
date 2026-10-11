@@ -45,6 +45,14 @@ def resumed_exact(~World: Data, ~observe: T.ExceptionToken -> World -> O.Error,
     case L.ServiceStep{T.FailedResolver{T.ReplyAfterTerminal{}}}: {==}
     case L.ServiceStep{T.AwaitService{_, _}}: {==}
     case L.ServiceStep{T.FinishedResolver{_, _}}: {==}
+    case L.PythonIteration{_}: {==}
+    case L.PythonTerminal{_, _}: {==}
+    case L.AdmitPythonCapture{_, _}: {==}
+    case L.PythonCaptured{_, _}: {==}
+    case L.InspectPythonTarget{_, _}: {==}
+    case L.ResolvePython{_, _}: {==}
+    case L.PreparePython{_}: {==}
+    case L.InspectPythonRoot{_}: {==}
     case L.PrepareRust{_}: {==}
     case L.PreparedRust{_, _, _}: {==}
     case L.RustAdvance{_, _}: {==}
@@ -183,6 +191,22 @@ def ready_exact(~World: Data, ~respond: T.Operation -> World -> R.ProviderRespon
     case L.ServiceStep{T.FailedResolver{_}}:
       resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
     case L.ServiceStep{T.FinishedResolver{_, _}}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.PythonIteration{_}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.PythonTerminal{_, _}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.AdmitPythonCapture{_, _}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.PythonCaptured{_, _}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.InspectPythonTarget{_, _}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.ResolvePython{_, _}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.PreparePython{_}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.InspectPythonRoot{_}:
       resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
     case L.PrepareRust{_}:
       resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)

@@ -114,7 +114,10 @@
     "typecheck:source": "node scripts/pinned-typescript.mjs -p tsconfig.json --noEmit && node scripts/package-graph.mjs --check && node scripts/generate-release-identity.mjs --check && node scripts/check-development-imports.mjs",
     "bend:base:generate": "node scripts/generate-bend-base-evidence.mjs --update",
     "bend:base:check": "node scripts/generate-bend-base-evidence.mjs --check",
-    "release:prepare:distribution": "node scripts/prepare-platform-distribution.mjs"
+    "release:prepare:distribution": "node scripts/prepare-platform-distribution.mjs",
+    "check:bend-preparation:sources": "node scripts/run-bend-capability-check.mjs --suite=preparation-sources",
+    "check:bend-preparation:protocol": "node scripts/run-bend-capability-check.mjs --suite=preparation-protocol",
+    "check:bend-preparation:consumer": "node scripts/run-bend-capability-check.mjs --suite=preparation-consumer"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",

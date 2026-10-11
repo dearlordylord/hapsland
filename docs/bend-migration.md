@@ -130,9 +130,21 @@ One current obstacle list, in execution order:
 1. Finish relocation dependency and nominal ABI qualification; remove obsolete
    representations and historical runners after identifying the retained closure.
    Actual sources are secured on the remote working branch at `61cae888`;
-   subsequent source changes require another pushed checkpoint.
-2. Make changed source coverage explicit in lint, TypeScript, Bend and focused
-   consumer gates; qualify new paths against actual resident and resolver consumers.
+   subsequent source changes require another pushed checkpoint. Three obsolete
+   scheduler compiler-control roots and their dead runner map entries were
+   removed after Astra review; canonical scheduler proof roots remain required.
+2. Qualify new named `check:bend-preparation:sources`, `:protocol` and
+   `:consumer` gates against current paths. Ordinary lint and root TypeScript
+   coverage remain required; root typechecking includes the relocated TS reference
+   sources. Source closure checks do not imply JS typing or production emission.
+   Named protocol and physical consumer suites passed (four and three real
+   consumers respectively); consumer summaries must report nonzero cases.
+   Source checking remains blocked: retained scheduler closure was repaired and
+   its two roots plus four original-law mutant rejections passed, but all remaining
+   checking roots need qualification. Standard development imports still report
+   5 unresolved paths, 47 undeclared dependencies and 223 private cross-owner
+   imports from the relocation. Use declared capability/testing entrypoints;
+   do not expose every internal helper or bypass the development import gate.
 3. Close whole error/custody correspondence: precommit failures, constructor
    failures, round-bound retained inspection and multi-unit finalization. Constructor
    plus cleanup failure is covered by an actual Canonical AdviceTail fixture:
