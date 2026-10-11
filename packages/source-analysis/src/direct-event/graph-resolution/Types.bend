@@ -1,5 +1,7 @@
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
+import ./go-module/Input.bend as GoInput
+import ./go-module/RawText.bend as GoText
 import ./traversal/core.bend as Local
 import ../../../../agent-flow-bend/ImportGraph.bend as Graph
 
@@ -210,6 +212,10 @@ type Operation is Data:
   CaptureSource{selection: SelectionToken, source_cap: Nat}
   InspectSource{path: String, capture: CaptureToken, context: FrontendContext}
   ParseCargo{capture: CaptureToken}
+  ReadCapturedText{capture: CaptureToken}
+  ReadGoCharacters{text: String}
+  ReadGoBuildText{text: String}
+  HashJsonProduct{value: ArtifactValue.ProductValue}
   InspectGoFile{path: String, capture: CaptureToken}
   InspectRustModules{capture: CaptureToken}
   ObserveDiagnostic{path: String, diagnostic: CaptureDiagnostic}
@@ -250,6 +256,10 @@ type ServiceOutcome is Data:
   CaptureResult{outcome: CaptureOutcome}
   FrontendResult{outcome: SourceOutcome}
   CargoResult{outcome: CargoOutcome}
+  CapturedText{text: String, content_hash: String}
+  GoCharactersResult{characters: List<&2, GoInput.Character>}
+  GoBuildTextResult{source: GoText.Text}
+  JsonProductHashed{hash: String}
   GoFileResult{outcome: GoFileOutcome}
   RustModulesResult{outcome: RustModulesOutcome}
   DiagnosticObserved{}

@@ -49,8 +49,14 @@ export type Operation =
   | Variant<"PathJoin", { readonly parts: List<string> }>
   | Variant<"PathRelative", { readonly from: string; readonly to: string }>
   | Variant<"JoinedPathFacts", { readonly from: string; readonly leaf: string }>
-  | Variant<"ParsePythonSyntax" | "ParseCargo" | "InspectRustModules", { readonly capture: Token<"CaptureToken"> }>
-  | Variant<"ReadIdentifierCharacters" | "EncodeSourceText", { readonly text: string }>
+  | Variant<
+      "ReadCapturedText" | "ParsePythonSyntax" | "ParseCargo" | "InspectRustModules",
+      { readonly capture: Token<"CaptureToken"> }
+    >
+  | Variant<
+      "ReadGoBuildText" | "ReadGoCharacters" | "ReadIdentifierCharacters" | "EncodeSourceText",
+      { readonly text: string }
+    >
   | Variant<"LookupCaptureCache", { readonly cache: Token<"CacheToken">; readonly path: string }>
   | Variant<"SnapshotCaptureCache", { readonly cache: Token<"CacheToken"> }>
   | Variant<
@@ -67,7 +73,7 @@ export type Operation =
       }
     >
   | Variant<"ObserveDiagnostic", { readonly path: string; readonly diagnostic: CaptureDiagnostic }>
-  | Variant<"EncodeProduct", { readonly value: ProductValue }>
+  | Variant<"HashJsonProduct" | "EncodeProduct", { readonly value: ProductValue }>
 export type Request = Variant<
   "Request",
   { readonly invocation: Natural; readonly id: Natural; readonly operation: Operation }
@@ -76,6 +82,34 @@ type CacheOutcome =
   | Variant<"CacheAbsent">
   | Variant<"CachePresent", { readonly capture: Token<"CaptureToken">; readonly bytes: Natural }>
 export type ServiceOutcome =
+  | Variant<
+      "GoBuildTextResult",
+      {
+        readonly source: {
+          readonly $: "go-module/RawText.Text"
+          readonly value: string
+          readonly characters: List<{
+            readonly $: "go-module/RawText.Character"
+            readonly code: Natural
+            readonly whitespace: boolean
+          }>
+        }
+      }
+    >
+  | Variant<"CapturedText", { readonly text: string; readonly content_hash: string }>
+  | Variant<"JsonProductHashed", { readonly hash: string }>
+  | Variant<
+      "GoCharactersResult",
+      {
+        readonly characters: List<{
+          readonly $: "go-module/Input.Character"
+          readonly text: string
+          readonly letter: boolean
+          readonly number: boolean
+          readonly uppercase: boolean
+        }>
+      }
+    >
   | Variant<
       "GoFileResult",
       {

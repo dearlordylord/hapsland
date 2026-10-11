@@ -490,3 +490,12 @@ physical consumers and original guarantee/parity qualification. Delete native
 goGraphFacts/prepareGoGraph and membership policy only when that complete
 replacement is connected and qualified. Package code is currently a candidate;
 production preparation adoption and native TypeScript removal remain zero.
+
+The disk-loss checkpoint includes the ordinary tracked Go RawText and full
+BuildContext candidate, its consumer, and the mechanical captured-text, Unicode
+observation and JSON hash service operations. This checkpoint is not acceptance.
+The current service consumer fails strict equality because emitted RawText Nat
+fields return bigint while the expected host projection uses number; resolve
+the ABI projection and rerun the actual consumers before claiming qualification.
+Keep all implementation checkpoints pushed to the working remote branch; local
+files or commits alone do not satisfy source preservation.

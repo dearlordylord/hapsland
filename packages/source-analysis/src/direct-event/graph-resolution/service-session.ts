@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { parseGoFileFacts } from "./go-module/parser-facts.ts"
 import type {
   CaptureDiagnostic,
@@ -282,6 +283,46 @@ export function createServiceSession({
           })
           break
         }
+        case tag("ReadCapturedText"): {
+          const captured = lookup("CaptureToken", op.capture)
+          outcome = tagged("CapturedText", { text: captured.text, content_hash: captured.contentHash })
+          break
+        }
+        case tag("ReadGoBuildText"):
+          outcome = tagged("GoBuildTextResult", {
+            source: {
+              $: "go-module/RawText.Text" as const,
+              value: op.text,
+              characters: list(
+                Array.from(op.text, (text) => ({
+                  $: "go-module/RawText.Character" as const,
+                  code: text.codePointAt(0)!,
+                  whitespace: /^\s$/u.test(text)
+                }))
+              )
+            }
+          })
+          break
+        case tag("ReadGoCharacters"):
+          outcome = tagged("GoCharactersResult", {
+            characters: list(
+              Array.from(op.text, (text) => ({
+                $: "go-module/Input.Character" as const,
+                text,
+                letter: /^\p{L}$/u.test(text),
+                number: /^\p{N}$/u.test(text),
+                uppercase: /^\p{Lu}$/u.test(text)
+              }))
+            )
+          })
+          break
+        case tag("HashJsonProduct"):
+          outcome = tagged("JsonProductHashed", {
+            hash: createHash("sha256")
+              .update(JSON.stringify(fromProductValue(op.value)), "utf8")
+              .digest("hex")
+          })
+          break
         case tag("InspectGoFile"): {
           const captured = lookup("CaptureToken", op.capture)
           const file = parseGoFileFacts(op.path, captured.text)

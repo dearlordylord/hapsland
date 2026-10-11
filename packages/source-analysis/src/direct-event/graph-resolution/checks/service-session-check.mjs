@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { inspectGoFile } from "../../languages/go.ts"
 import { opendir } from "node:fs/promises"
 import {
@@ -209,6 +210,81 @@ try {
     (await goApi.request("InspectGoFile", { path: "root.go", capture: invalidGo })).outcome.$,
     "Types.GoFileUnsupported"
   )
+  const checkMechanicalReply = (operation, outcome) => {
+    const request = tagged("Request", { invocation: goApi.session.invocation, id: 2n, operation })
+    const reply = tagged("Reply", { invocation: goApi.session.invocation, id: 2n, outcome })
+    assert.deepEqual(protocol.check(request, reply), { $: "CheckedOutcome", outcome })
+    assert.equal(protocol.check(request, { ...reply, id: 3n }).failure.$, "Types.WrongCorrelation")
+    assert.equal(protocol.check(request, { ...reply, invocation: 900n }).failure.$, "Types.WrongInvocation")
+    assert.equal(
+      protocol.check(request, { ...reply, outcome: tagged("ProductEncoded", { bytes: 1n }) }).failure.$,
+      "Types.WrongReplyKind"
+    )
+  }
+  for (const text of ["", "package p\r\n//go:build linux\n", "α.Τ Ⅳ 𝔸 1_\u0000", "\ud800x\udfff"]) {
+    const contentHash = createHash("sha256").update(text, "utf8").digest("hex")
+    const capture = goApi.session.registerCapture({ text, contentHash, byteLength: Buffer.byteLength(text) })
+    const captured = await goApi.request("ReadCapturedText", { capture })
+    assert.deepEqual(captured, tagged("CapturedText", { text, content_hash: contentHash }))
+    checkMechanicalReply(tagged("ReadCapturedText", { capture }), captured)
+    const observed = await goApi.request("ReadGoCharacters", { text })
+    assert.equal(observed.$, "Types.GoCharactersResult")
+    assert.deepEqual(
+      unlist(observed.characters),
+      Array.from(text, (text) => ({
+        $: "go-module/Input.Character",
+        text,
+        letter: /^\p{L}$/u.test(text),
+        number: /^\p{N}$/u.test(text),
+        uppercase: /^\p{Lu}$/u.test(text)
+      }))
+    )
+    checkMechanicalReply(tagged("ReadGoCharacters", { text }), observed)
+    const raw = await goApi.request("ReadGoBuildText", { text })
+    assert.deepEqual(
+      raw,
+      tagged("GoBuildTextResult", {
+        source: {
+          $: "go-module/RawText.Text",
+          value: text,
+          characters: list(
+            Array.from(text, (text) => ({
+              $: "go-module/RawText.Character",
+              code: text.codePointAt(0),
+              whitespace: /^\s$/u.test(text)
+            }))
+          )
+        }
+      })
+    )
+    checkMechanicalReply(tagged("ReadGoBuildText", { text }), raw)
+  }
+  const invalidCaptured = await goApi.request("ReadCapturedText", {
+    capture: tagged("CaptureToken", { invocation: 900, id: 1 })
+  })
+  assert.equal(invalidCaptured.$, "Types.ProviderRejected")
+  assert.match(goApi.session.exception(invalidCaptured.exception).message, /invalid CaptureToken/u)
+  for (const value of [
+    { goos: "linux", goarch: "arm64", tags: ["α", "tag"] },
+    { goarch: "arm64", goos: "linux", tags: ["α", "tag"] },
+    [
+      "unconfigured",
+      "unconditional",
+      [
+        ["root.go", "hash"],
+        [".", ["a.go", "b.go"]]
+      ]
+    ],
+    ["\ud800", "\u0000", "𝔸", -0, Infinity]
+  ]) {
+    const encoded = productValue(value)
+    const hashed = await goApi.request("HashJsonProduct", { value: encoded })
+    assert.deepEqual(
+      hashed,
+      tagged("JsonProductHashed", { hash: createHash("sha256").update(JSON.stringify(value), "utf8").digest("hex") })
+    )
+    checkMechanicalReply(tagged("HashJsonProduct", { value: encoded }), hashed)
+  }
   goApi.close()
   const directoryPath = join(temporary, "raw-directory")
   mkdirSync(directoryPath)
