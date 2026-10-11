@@ -207,6 +207,22 @@ One current obstacle list, in execution order:
    during the actual resident Canonical gate rejects terminal publication and
    discharges all resources. Whole failure/cancellation correspondence is still
    required; transport failures must not become omissions or InvalidReply.
+   Astra's agreed next draft is one independent native-loop specification and two
+   whole declarations: observational correspondence and scope/interruption
+   preservation. The specification must not call the actual Evidence/Rules/Input
+   algorithms as its oracle. Its external responder supplies producer-valid reads
+   and exact mechanical-engine answers; opaque failure tokens retain original
+   identity, and only synchronous omission-observer failures are swallowed.
+   The interruption boundary must reuse actual CanonicalResolverOwner state,
+   `provider_live`, `provider_completed`, lease/generation/request and driver actions,
+   with reachable owner/resource state derived from launch. RenderUnits is an
+   intermediate reply payload: after committed cancel/invalidation, a late reply
+   must not issue Resume for that child. AcceptResult concerns the whole child,
+   including Preparation handoff, not direct acceptance of UnitsRendered. Internal
+   stutters remain observable to cancellation; immutable resume replay is distinct
+   from single consumption by the owning boundary. This fixed boundary closes the
+   delivery obligation without a spec-only cancel flag or a new resource child.
+   Exact executable declarations still require Astra review before proof work.
 4. Complete supported Go/session, extraction, classification and rendering scope
    and discharge the agreed whole-unit laws/proofs. The finalization language
    registration includes Go and explicitly guards all five supported IDs; this
@@ -218,15 +234,21 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest cadence at `c6ff0a9d` began
-   2026-10-11 05:56:48/06:01:24 UTC: build qualified but failed parity **1.1603**;
-   execution qualified and passed **0.8325**. All 17 build pairs used 23/46 cached
+   parity on the connected candidate. Latest pair at `3f43b7d3` began
+   2026-10-11 06:28:24/06:32:04 UTC: build qualified and passed **0.9944**;
+   execution qualified and passed **0.7452**. All 17 build pairs used 23/46 cached
    tasks; HEAD, sources and artifact trees stayed unchanged; execution matched
-   both callers on seven fixtures. These cover existing production, not unadopted
-   whole preparation. A prior owned-lock failure was recovered by ordinary fresh
+   both callers on seven fixtures. Qualification records are in ignored
+   `.test-runs/bend-migration/performance/2026-10-11T06-28-24.365709+00-00/`
+   and `2026-10-11T06-32-04.814481+00-00/`. These cover existing production,
+   not unadopted whole preparation. The previous candidate failed build parity
+   **1.1603**; the latest pass does not establish an optimization cause or acceptance
+   of a different production path. This pair exceeded the 30-minute cadence by
+   1m36s for build and 40s for execution; the earlier 03:36→04:07 breach also
+   remains recorded. A prior owned-lock failure was recovered by ordinary fresh
    build custody without manually deleting records; no failed build is qualified
-   by a later execution run. The earlier 03:36→04:07 cadence breach remains
-   recorded. Keep new measurements within 30 minutes and freeze their inputs.
+   by a later execution run. Keep new measurements within 30 minutes and freeze
+   their inputs.
 
 Keep this obstacle list current by removing closed work and naming specific
 remaining failures. Source backup, relocation and finite candidate qualification
