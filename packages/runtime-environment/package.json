@@ -44,6 +44,10 @@
       "types": "./dist/runtime/machine-clock.d.ts",
       "default": "./dist/runtime/machine-clock.js"
     },
+    "./runtime/resident-selection": {
+      "types": "./dist/runtime/resident-selection.d.ts",
+      "default": "./dist/runtime/resident-selection.js"
+    },
     "./runtime/package-runtime": {
       "types": "./dist/runtime/package-runtime.d.ts",
       "default": "./dist/runtime/package-runtime.js"

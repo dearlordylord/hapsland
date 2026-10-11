@@ -2,9 +2,8 @@ import type { CaptureDiagnostic } from "./capture.ts"
 import type { PathEligibilityReason } from "./selection.ts"
 import type { VerifiedPatchHunk } from "./edit-attribution.ts"
 
-export type CodexHostVersion = string
-export const isCodexHostVersion = (value: unknown): value is CodexHostVersion =>
-  typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value)
+import type { CodexHostVersion } from "./codex-version.ts"
+export { isCodexHostVersion, type CodexHostVersion } from "./codex-version.ts"
 
 export type ClaudeHostVersion = string
 export const isClaudeHostVersion = (value: unknown): value is ClaudeHostVersion =>

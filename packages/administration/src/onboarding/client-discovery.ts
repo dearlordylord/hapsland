@@ -3,7 +3,7 @@ import { CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-client
 import type { ClientChoice, SetupClient } from "./client-selection.ts"
 import type { inspectPiInstallation } from "./pi-installation.ts"
 import type { inspectClaudeInstallation } from "./claude-installation.ts"
-import type { inspectCodexInstallation } from "./codex-installation.ts"
+import type { inspectCodexInstallation } from "./codex-installation/queries.ts"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 import { hostFields } from "./invocation-fields.ts"
@@ -27,7 +27,7 @@ const codexClientStatus = Effect.fn("InteractiveSetup.codexStatus")(function* (
   status: ClientChoice["status"]
 ) {
   if (status !== "not installed") return status
-  const { previewCodexUpdate } = yield* Effect.promise(() => import("./codex-installation.ts"))
+  const { previewCodexUpdate } = yield* Effect.promise(() => import("./codex-installation/queries.ts"))
   const target = yield* previewCodexUpdate(fields)
   // An owned registration may point to a different retained package.
   if (target.status === "preview") return "installed" as const
@@ -51,7 +51,7 @@ export const clientInstallationPorts = Effect.fn("InteractiveSetup.installationP
     () => import("./claude-installation.ts")
   )
   const { hasCodexRegistration, inspectCodexInstallation } = yield* Effect.promise(
-    () => import("./codex-installation.ts")
+    () => import("./codex-installation/queries.ts")
   )
   const clientInstallations = {
     pi: { installed: hasPiRegistration, inspect: inspectPiInstallation },

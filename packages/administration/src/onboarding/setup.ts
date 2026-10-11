@@ -16,7 +16,11 @@ import type { LoginModel } from "../credentials/login-model.ts"
 import { discoverWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { loadReviewSettings, type ReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import { resolveCredential, type CredentialResolution } from "@hapsland/credential-storage/credentials/owner"
-import { installCodexIntegration, previewCodexInstallation, type InstallationRequest } from "./codex-installation.ts"
+import {
+  installCodexIntegration,
+  previewCodexInstallation,
+  type InstallationRequest
+} from "./codex-installation/index.ts"
 import {
   installClaudeIntegration,
   hasClaudeRegistration,

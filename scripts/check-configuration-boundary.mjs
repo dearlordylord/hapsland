@@ -1,5 +1,6 @@
 import {
   administrationWorkflowSourceFiles,
+  readCodexInstallationSource,
   readAdministrationWorkflowSource
 } from "./administration-workflow-source.mjs"
 import { readResidentRuntimeSource } from "./resident-runtime-source.mjs"
@@ -107,8 +108,11 @@ if (
 ) {
   throw new Error("installation lock must share caller Config/Clock, Schedule polling and scoped ownership")
 }
-for (const runtime of ["codex", "claude", "opencode"]) {
-  const source = read(`packages/administration/src/onboarding/${runtime}-installation.ts`)
+for (const [runtime, source] of [
+  ["codex", readCodexInstallationSource(root)],
+  ["claude", read("packages/administration/src/onboarding/claude-installation.ts")],
+  ["opencode", read("packages/administration/src/onboarding/opencode-installation.ts")]
+]) {
   if (
     /export const (?:install|update|uninstall)\w+Integration\s*=\s*async\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(
       source
@@ -128,7 +132,7 @@ if (
   throw new Error("Claude installation must use caller Config and scoped native host processes")
 }
 
-const codexInstallation = read("packages/administration/src/onboarding/codex-installation.ts")
+const codexInstallation = readCodexInstallationSource(root)
 if (
   /spawnSync\(|process\.env(?:\.|\[)/u.test(codexInstallation) ||
   !codexInstallation.includes('Config.NonEmptyString("CODEX_HOME")') ||

@@ -45,3 +45,11 @@ export const readAdministrationWorkflowSource = (root) =>
   administrationWorkflowSourceFiles(root)
     .map((path) => readFileSync(path, "utf8"))
     .join("\n")
+
+export const codexInstallationSourceFiles = (root) =>
+  sourceFiles(resolve(root, "packages/administration/src/onboarding/codex-installation"))
+
+export const readCodexInstallationSource = (root) =>
+  codexInstallationSourceFiles(root)
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n")

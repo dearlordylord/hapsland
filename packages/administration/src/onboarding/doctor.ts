@@ -6,7 +6,11 @@ import { join } from "node:path"
 import { analyzeTypeFile } from "@hapsland/source-analysis/direct-event/analyzer"
 import { registeredLanguages } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { inspectResidentEffect as inspectResident } from "@hapsland/resident-transport/resident/client"
-import { previewCodexInstallation, inspectCodexInstallation, type InstallationRequest } from "./codex-installation.ts"
+import {
+  previewCodexInstallation,
+  inspectCodexInstallation,
+  type InstallationRequest
+} from "./codex-installation/queries.ts"
 
 export type DoctorCheckStatus = "ready" | "missing" | "conflict" | "unsupported" | "unknown"
 export type DoctorCheck = {

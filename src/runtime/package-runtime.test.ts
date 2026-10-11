@@ -22,13 +22,15 @@ import {
   packageRootFromEntrypoint,
   runtimeProbeArguments,
   runtimeVersion,
-  readResidentTarget,
-  selectResidentCommand,
-  selectedResidentCommand,
-  residentTargetPath,
   standaloneCommand,
   versionProbeArguments
 } from "@hapsland/runtime-environment/runtime/package-runtime"
+import {
+  readResidentTarget,
+  selectResidentCommand,
+  selectedResidentCommand,
+  residentTargetPath
+} from "@hapsland/runtime-environment/runtime/resident-selection"
 it("keeps executable argv distinct for development sources and standalone retained packages", () => {
   const source = join(packageRoot, "packages/cli-entry/src/cli.ts")
   const binary = join(packageRoot, "dist/bin/linux-arm64/hapsland")

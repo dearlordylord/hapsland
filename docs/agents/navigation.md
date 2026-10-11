@@ -67,6 +67,17 @@ The [resident entrypoint](../../packages/resident-runtime/src/resident/server.ts
 
 The [administrative CLI](../../packages/cli-entry/src/cli.ts) delegates to [onboarding invocation](../../packages/administration/src/onboarding/lifecycle-invocation.ts), [installation dispatch](../../packages/administration/src/onboarding/installation/dispatch.ts), [credential commands](../../packages/administration/src/credentials/command.ts), [evaluation invocation](../../packages/administration/src/evaluation/invocation.ts) and [read-command dispatch](../../packages/administration/src/composition/read-command.ts). Read dispatch composes the status, credential-lookup and explanation owners. `src/cli.test.ts`, `src/cli-status.test.ts`, `src/credentials/cli.test.ts`, and matching onboarding interaction and installation fixtures verify these interfaces.
 
+Codex installation is exposed through [its capability interface](../../packages/administration/src/onboarding/codex-installation/index.ts).
+[Read and preview queries](../../packages/administration/src/onboarding/codex-installation/queries.ts) exclude application and file-write owners.
+[Install, update and uninstall workflows](../../packages/administration/src/onboarding/codex-installation/workflows/) retain the configuration lock, runtime re-probe and proposal approval;
+[plans](../../packages/administration/src/onboarding/codex-installation/plans/) determine ordered changes and
+[recovery](../../packages/administration/src/onboarding/codex-installation/recovery/) validates untrusted journals before
+[the journal application](../../packages/administration/src/onboarding/codex-installation/journal-application.ts) writes them.
+Ownership records, hook reconciliation and TOML hooks-feature edits remain local to this capability.
+`src/onboarding/codex-installation.test.ts`, `doctor.test.ts`, `setup.test.ts` and `interactive.test.ts` own its behavior checks.
+[Runtime command identity](../../packages/runtime-environment/src/runtime/package-runtime.ts) is separate from
+[resident selection and publication](../../packages/runtime-environment/src/runtime/resident-selection.ts).
+
 Resident state is assembled by [the state constructor](../../packages/resident-runtime/src/resident/state/resident/state.ts).
 [The transaction owner](../../packages/resident-runtime/src/resident/state/resident/transaction.ts) alone publishes canonical and native drafts;
 record facades receive its commit operation and read Effect. [Capacity operations](../../packages/resident-runtime/src/resident/state/capacity/operations.ts)
