@@ -467,6 +467,80 @@ def nodes_parent_slots(items: List<&2, Local.PlannedNode>, +parents: List<&2, Lo
         P.nodes(Compose.shift_nodes(tail, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(children, List.length(&2, Local.PlannedNode, parents)), catalog, addresses),
         nodes_parent_slots(tail, parents, slots, children, catalog, addresses, dense, owned))
 
+def address_append_absent_branch(+id: Nat, +birth: O.NodeAddress, +tail: List<&2, F.AddressEntry>,
+    +suffix: List<&2, F.AddressEntry>, +query: Nat, flag: Bool,
+    branch: {Nat.is_eq(id, query) == flag : Bool},
+    absent: {Bool.pick(Maybe<&2, O.NodeAddress>, flag, Some{birth}, F.address_at(tail, query)) == None{} : Maybe<&2, O.NodeAddress>},
+    recursive: {F.address_at(tail, query) == None{} : Maybe<&2, O.NodeAddress>} ->
+      {F.address_at(List.append(&2, F.AddressEntry, tail, suffix), query) == F.address_at(suffix, query) : Maybe<&2, O.NodeAddress>}) ->
+    {F.address_at(F.AddressEntry{id, birth} <> List.append(&2, F.AddressEntry, tail, suffix), query)
+      == F.address_at(suffix, query) : Maybe<&2, O.NodeAddress>}:
+  match flag:
+    case True{}:
+      Empty.absurd({F.address_at(F.AddressEntry{id, birth} <> List.append(&2, F.AddressEntry, tail, suffix), query)
+        == F.address_at(suffix, query) : Maybe<&2, O.NodeAddress>},
+        Contents.none_some(O.NodeAddress, birth, Equal.sym(Maybe<&2, O.NodeAddress>, Some{birth}, None{}, absent)))
+    case False{}:
+      %Equal.sym(Bool, Nat.is_eq(id, query), False{}, branch):
+        {Bool.pick(Maybe<&2, O.NodeAddress>, _, Some{birth}, F.address_at(List.append(&2, F.AddressEntry, tail, suffix), query))
+          == F.address_at(suffix, query) : Maybe<&2, O.NodeAddress>}
+      recursive(absent)
+
+def address_append_absent(prefix: List<&2, F.AddressEntry>, +suffix: List<&2, F.AddressEntry>, +query: Nat,
+    absent: {F.address_at(prefix, query) == None{} : Maybe<&2, O.NodeAddress>}) ->
+    {F.address_at(List.append(&2, F.AddressEntry, prefix, suffix), query) == F.address_at(suffix, query) : Maybe<&2, O.NodeAddress>}:
+  match prefix:
+    case []: {==}
+    case F.AddressEntry{+id, +birth} <> +tail:
+      address_append_absent_branch(id, birth, tail, suffix, query, Nat.is_eq(id, query), {==}, absent,
+        missing => address_append_absent(tail, suffix, query, missing))
+
+def aligned_address_upper(items: List<&2, Local.PlannedNode>, entries: List<&2, F.AddressEntry>,
+    +all_nodes: List<&2, Local.PlannedNode>, +all_addresses: List<&2, F.AddressEntry>, +start: Nat, +query: Nat,
+    +aligned: {P.aligned(items, entries, all_nodes, all_addresses) == True{} : Bool},
+    +dense: {Frame.dense(items, start) == True{} : Bool},
+    +room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, items) : Nat), query) == True{} : Bool}) ->
+    {F.address_at(entries, query) == None{} : Maybe<&2, O.NodeAddress>}:
+  match items entries:
+    case Nil{} Nil{}: {==}
+    case Con{Local.PlannedNode{+id, +handle}, +tail} Con{F.AddressEntry{+other, +birth}, +rest}:
+      %Equal.sym(Bool, Nat.is_eq(other, query), False{},
+        %N.eq_of_is_eq(id, other,
+          B.eq_true_of_and_left(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_addresses, birth), 1n), P.aligned(tail, rest, all_nodes, all_addresses))), aligned)):
+          {Nat.is_eq(_, query) == False{} : Bool}
+        Structure.unequal_below(id, query, dense_head_room(id, handle, tail, start, query, dense, room))):
+        {Bool.pick(Maybe<&2, O.NodeAddress>, _, Some{birth}, F.address_at(rest, query)) == None{} : Maybe<&2, O.NodeAddress>}
+      aligned_address_upper(tail, rest, all_nodes, all_addresses, (start + 1n : Nat), query,
+        B.eq_true_of_and_right(Nat.is_eq(P.address_count(all_addresses, birth), 1n), P.aligned(tail, rest, all_nodes, all_addresses),
+          B.eq_true_of_and_right(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_addresses, birth), 1n), P.aligned(tail, rest, all_nodes, all_addresses)),
+            B.eq_true_of_and_right(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+              Bool.and(Nat.is_eq(P.address_count(all_addresses, birth), 1n), P.aligned(tail, rest, all_nodes, all_addresses))), aligned))),
+        B.eq_true_of_and_right(Nat.is_eq(id, start), Frame.dense(tail, (start + 1n : Nat)), dense),
+        %Allocation.length_step(start, List.length(&2, Local.PlannedNode, tail)):
+          {Nat.is_le(_, query) == True{} : Bool}
+        room)
+    case Nil{} Con{_, _}:
+      Empty.absurd({F.address_at(entries, query) == None{} : Maybe<&2, O.NodeAddress>}, B.internal_false_ne_true(aligned))
+    case Con{_, _} Nil{}: {==}
+
+# The numeric allocation offset and existing alignment jointly authorize lookup
+# in the shifted child table; no semantic-address assumption is needed here.
+def shifted_address_prefix(+parents: List<&2, Local.PlannedNode>, +addresses: List<&2, F.AddressEntry>,
+    +children: List<&2, F.AddressEntry>, +id: Nat,
+    aligned: {P.aligned(parents, addresses, parents, addresses) == True{} : Bool},
+    dense: {Frame.dense(parents, 0n) == True{} : Bool}) ->
+    {F.address_at(List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))),
+      (id + List.length(&2, Local.PlannedNode, parents) : Nat))
+      == F.address_at(Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)),
+        (id + List.length(&2, Local.PlannedNode, parents) : Nat)) : Maybe<&2, O.NodeAddress>}:
+  address_append_absent(addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)),
+    (id + List.length(&2, Local.PlannedNode, parents) : Nat),
+    aligned_address_upper(parents, addresses, parents, addresses, 0n,
+      (id + List.length(&2, Local.PlannedNode, parents) : Nat), aligned, dense,
+      N.add_le_add_right(0n, id, List.length(&2, Local.PlannedNode, parents), N.zero_le(id))))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

@@ -160,14 +160,20 @@ try {
       }
     }
     const actual = {
+      ...(binding.bindingFingerprint === undefined ? {} : { bindingFingerprint: binding.bindingFingerprint }),
       root: tree(result.tree),
-      ...(binding.dependencies.length ? { sourceDependencies: binding.dependencies } : {})
+      sourceDependencies: binding.dependencies
     }
     assert.equal(JSON.stringify(actual), JSON.stringify(frame.unit), fixture.name + " exact root value/order")
     const created = forest.construct(10000n, result.tree, 1n, list([]), result.source.artifacts)
     assert.equal(label(created), "Constructed", fixture.name + " semantic construction")
     const semantic = { $: "Forest", root: maybe(created.created.root), nodes: created.created.nodes }
-    const product = forest.unit(10000n, semantic, list(binding.dependencies))
+    const product = forest.prepared_unit(
+      10000n,
+      semantic,
+      list(binding.dependencies),
+      maybe(binding.bindingFingerprint)
+    )
     assert.equal(label(product), "Materialized")
     assert.equal(
       JSON.stringify(fromProductValue(product.product)),

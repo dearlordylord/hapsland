@@ -188,8 +188,9 @@ One current obstacle list, in execution order:
    Worlds/replies, completion and Cause/custody. Original materialization for
    arbitrary optional fingerprint and node_replacement_exact are closed under
    hard five seconds with unchanged premises. Parent registration, ordered
-   append and full address-context extension are checked; the latest slot-filter
-   definitions remain WIP. No new or weakened acceptance premise is authorized.
+   append, slot-filter disjointness and child address-prefix elimination are
+   checked under hard five seconds. Full original parent theorem remains WIP.
+   No new or weakened acceptance premise is authorized.
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
@@ -204,10 +205,11 @@ One current obstacle list, in execution order:
    Source-owned graph verification and its sole fixture set now live together
    under source-analysis/graph-resolution/verification; the relocated complete
    Entry consumer passes 78 cases/55 comparisons. Remaining moved consumers
-   have been run: both expansion checks and Rust preparation pass, while SPEC
-   still loses native Go bindingFingerprint and the generic machine checker
-   cannot drive its Go/Python specialized continuations. These failures remain
-   blockers; this placement does not change production adoption.
+   have been run: both expansion checks, Rust preparation and SPEC pass. SPEC
+   uses existing prepared_unit and exact metadata projection (including empty
+   dependencies), with 51 native root comparisons and 11 forest guards. The
+   generic machine checker cannot drive Go/Python specialized continuations;
+   this remains a blocker. Placement does not change production adoption.
    Unsupported formatter roots remain failures (including attachment declaration
    headers and UnitEvidence/Glob/list block handling). A full gate remains blocked.
 4. Complete and qualify compiled preparation → Source → Post in the actual public
@@ -500,3 +502,16 @@ Neither failure was filtered out or weakened. They must be resolved against the
 whole compiled entry before this verification group is accepted. Astra's next
 coherent parent projection prefix passes hard five seconds at 2.432 seconds;
 original parent_attachment_exact remains unfinished with unchanged premises.
+
+SPEC metadata gap closed by existing owner interfaces: physical
+language.prepareGraph provides optional bindingFingerprint; ForestSpecification
+prepared_unit preserves that Maybe exactly and emits its ordered metadata.
+The independent runner's direct tree projection now preserves the always-present
+sourceDependencies field, matching native rootReviewUnit (including []). No Bend
+policy, product format or law changed. Full relocated SPEC consumer passes
+51 native root comparisons and 11 forest guards, with refusal/pre-frame outcomes
+recorded but not independently compared. Its scope remains root/local projection,
+not the whole entry lifecycle. Ordinary runner lint passes. The generic Machine
+consumer still requires its real specialized command/event binding. Astra's child
+address-prefix proof prefix passes at 3.085 seconds under the unchanged hard five
+seconds; the original parent theorem and whole transaction remain unfinished.
