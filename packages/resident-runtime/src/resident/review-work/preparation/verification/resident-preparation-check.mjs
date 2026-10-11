@@ -424,13 +424,11 @@ try {
       column: BigInt(value.end.column)
     }
   })
-  const postEmission = join(emissionTemp, "PostPreparation.mjs")
-  execFileSync(
-    "taskset",
-    ["-c", "10", "bend", join(import.meta.dirname, "../PostPreparation.bend"), "-o", postEmission],
-    { timeout: 5000 }
-  )
-  const postCore = (await import(pathToFileURL(postEmission))).default,
+  const postCore = (
+      await import(
+        new URL("../../../../../dist/resident/review-work/preparation/post-preparation-core.js", import.meta.url)
+      )
+    ).default,
     postMachine = createPostPreparationMachine(postCore),
     tailMachine = createAdviceTailMachine(postCore)
   let cases = 0,
