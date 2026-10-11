@@ -184,6 +184,14 @@ One current obstacle list, in execution order:
    comparison must exercise native `prepareObservation` against the compiled
    preparation API, including ordered inputs, identities, omissions and failures;
    finalization correspondence joins the whole Preparation trace/custody law.
+   The internal `CanonicalJson.bend` stage now traverses complete ProductValue
+   objects/arrays and sorts keys by UTF-16, with primitive-only JSON engine
+   requests retaining binary64 bits. Its actual compiled consumer matches native
+   `canonicalValue` for 96 cases and 596 primitive requests, including nonfinite
+   numbers, negative zero, supplementary/lone-surrogate keys and nested values.
+   This stage has no whole correspondence proof or production connection yet;
+   input validity, identity field projection and reply protocol fencing remain
+   obligations of the whole finalization machine.
 6. Pass required local gates and paired build/execution parity on that connected
    candidate. Previous measurements qualify only their original source paths and
    inputs; source moves do not inherit their qualification. Current relocated
