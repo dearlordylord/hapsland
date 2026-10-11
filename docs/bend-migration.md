@@ -273,8 +273,9 @@ One current obstacle list, in execution order:
    position stays distinct from shared inherited expression identity. Defined-type
    and constant-group artifacts retain their native kinds in the shared artifact
    contract and renderer projections. Seven extraction cases passed through the
-   emitted service/protocol before the final location field addition; current
-   typecheck, build and consumer qualification are pending. No host goGraphFacts
+   emitted service/protocol including locations and nested numeric computation.
+   Current workspace build passed 46/46; whole consumers and check:fast on this
+   candidate remain pending. No host goGraphFacts
    callback, package inference or discoveryWork computation was introduced.
 
 
@@ -383,7 +384,17 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest frozen pair at `28f55dbf` began
+   parity on the connected candidate. Latest frozen pair at `15cfabed` began
+   2026-10-11 10:59:59/11:03:07 UTC: build qualified but failed **1.0486182727**;
+   execution qualified and passed **0.7409846759**. All 34 build runs used 23/46
+   cached tasks; HEAD, source hashes and artifact trees stayed unchanged.
+   Qualification records are in ignored
+   `.test-runs/bend-migration/performance/2026-10-11T10-59-59.651982+00-00/`
+   and `2026-10-11T11-03-07.080868+00-00/`. This late pair does not erase
+   the previous cadence breaches. Next start deadlines are 11:29:59/11:33:07
+   UTC. Strict build parity remains an acceptance blocker. These measure existing
+   production, not the unadopted whole preparation.
+   The previous frozen pair at `28f55dbf` began
    2026-10-11 10:19:44/10:23:09 UTC: build qualified but failed **1.1047183573**;
    execution qualified and passed **0.6649378095**. All 34 build runs used 23/46
    cached tasks; HEAD, sources and artifact trees stayed unchanged. Qualification
