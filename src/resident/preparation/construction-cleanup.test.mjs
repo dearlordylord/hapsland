@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import { createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.mjs"
+import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
 import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
 
 const rejected = async (task) => {

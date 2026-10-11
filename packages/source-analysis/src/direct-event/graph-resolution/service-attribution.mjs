@@ -9,7 +9,7 @@ import * as Effect from "effect/Effect"
 import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolver.js"
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../../native-observation/dist/direct-event/selection.js"
 import { createDispatcher } from "./runtime-observation/transport.mjs"
-import { createServiceRegistry } from "./service-session.mjs"
+import { createServiceRegistry } from "./service-session.ts"
 import { createGraphFixtures } from "../../../../../src/direct-event/graph-resolution/fixtures.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
 
@@ -152,8 +152,8 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
     operation?.kont
       ? { ...operation, kont: (reply) => timedSync("continuation", () => observe(operation.kont(reply))) }
       : operation
-  const consumerOriginal = join(folder, "./consumer.mjs"),
-    consumerCopy = join(temporary, "./consumer.mjs")
+  const consumerOriginal = join(folder, "./consumer.ts"),
+    consumerCopy = join(temporary, "./consumer.ts")
   let consumerSource = readFileSync(consumerOriginal, "utf8")
   sourceHashes[consumerOriginal] = createHash("sha256").update(consumerSource).digest("hex")
   consumerSource = consumerSource.replace(/from '([^']+)'/g, (all, specifier) =>

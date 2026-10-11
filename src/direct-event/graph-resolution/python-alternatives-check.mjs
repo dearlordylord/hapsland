@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process"
 import { readFile, mkdtemp, mkdir, writeFile, symlink, lstat, rm } from "node:fs/promises"
 import { join, dirname, normalize, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields })
 const temp = await mkdtemp("/tmp/hapsland-python-alternatives-")

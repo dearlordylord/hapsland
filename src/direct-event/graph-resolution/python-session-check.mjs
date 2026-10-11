@@ -13,7 +13,7 @@ import {
   selectedByDirectFilePolicy,
   DEFAULT_DIRECT_FILE_POLICY
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import {
   inspectSourceFrontend,
   parsePythonSyntax,

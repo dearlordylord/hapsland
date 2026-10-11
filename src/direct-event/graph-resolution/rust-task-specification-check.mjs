@@ -23,7 +23,7 @@ import {
 import { inspectRustModules } from "../../../packages/source-analysis/dist/direct-event/languages/rust.js"
 import { createGraphFixtures } from "./fixtures.mjs"
 import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 const folder = import.meta.dirname,
   root = path.join(folder, "../../.."),
   cache = path.join(root, "node_modules/.cache")
@@ -48,7 +48,7 @@ const inputs = [
   "./rust-task-specification-check.mjs",
   "./fixtures.mjs",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs",
+  "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts",
   native
 ]
 const hash = (value) => createHash("sha256").update(value).digest("hex"),

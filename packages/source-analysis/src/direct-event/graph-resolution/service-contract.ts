@@ -1,0 +1,208 @@
+import type { List, ProductValue, Binary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
+import type { CaptureResult, StableCapture } from "@hapsland/native-observation/direct-event/capture"
+import type { EligiblePath } from "@hapsland/native-observation/direct-event/selection"
+import type {
+  inspectSourceFrontend,
+  inspectRustModuleSyntax,
+  parseCargoSyntax,
+  parsePythonSyntax
+} from "./frontends.ts"
+
+export type Natural = number | bigint
+export type Variant<Name extends string, Fields extends object = Record<never, never>> = {
+  readonly $: `Types.${Name}`
+} & Fields
+export type Maybe<Value> = { readonly $: "None" } | { readonly $: "Some"; readonly value: Value }
+export type TokenKind = "ClockToken" | "CaptureToken" | "SelectionToken" | "ExceptionToken" | "CacheToken"
+export type Token<Kind extends TokenKind> = Variant<Kind, { readonly invocation: Natural; readonly id: Natural }>
+export type ResourceValues = {
+  ClockToken: number
+  CaptureToken: StableCapture
+  SelectionToken: EligiblePath
+  ExceptionToken: unknown
+  CacheToken: Map<string, StableCapture>
+}
+export type CaptureDiagnostic =
+  | Variant<"CaptureDiagnostic", { readonly value: ProductValue }>
+  | Variant<
+      "CaptureBudgetDiagnostic",
+      { readonly resource: string; readonly used: Natural; readonly requested: Natural; readonly limit: Natural }
+    >
+export type Operation =
+  | Variant<"StartClock" | "ReadPathSeparator" | "CreateInvocationCache">
+  | Variant<"ReadClock", { readonly clock: Token<"ClockToken"> }>
+  | Variant<
+      | "PathDirname"
+      | "PathNormalize"
+      | "PathExtension"
+      | "PathIsAbsolute"
+      | "ReadFileStatus"
+      | "ReadPathMembership"
+      | "SelectContextPath"
+      | "AccessPath",
+      { readonly path: string }
+    >
+  | Variant<"PathBasename", { readonly path: string; readonly suffix: Maybe<string> }>
+  | Variant<"PathJoin", { readonly parts: List<string> }>
+  | Variant<"PathRelative", { readonly from: string; readonly to: string }>
+  | Variant<"JoinedPathFacts", { readonly from: string; readonly leaf: string }>
+  | Variant<"ParsePythonSyntax" | "ParseCargo" | "InspectRustModules", { readonly capture: Token<"CaptureToken"> }>
+  | Variant<"ReadIdentifierCharacters" | "EncodeSourceText", { readonly text: string }>
+  | Variant<"LookupCaptureCache", { readonly cache: Token<"CacheToken">; readonly path: string }>
+  | Variant<"SnapshotCaptureCache", { readonly cache: Token<"CacheToken"> }>
+  | Variant<
+      "StoreCaptureCache" | "InsertRootCaptureCache",
+      { readonly cache: Token<"CacheToken">; readonly path: string; readonly capture: Token<"CaptureToken"> }
+    >
+  | Variant<"CaptureSource", { readonly selection: Token<"SelectionToken">; readonly source_cap: Natural }>
+  | Variant<
+      "InspectSource",
+      {
+        readonly path: string
+        readonly capture: Token<"CaptureToken">
+        readonly context: Parameters<typeof inspectSourceFrontend>[2]
+      }
+    >
+  | Variant<"ObserveDiagnostic", { readonly path: string; readonly diagnostic: CaptureDiagnostic }>
+  | Variant<"EncodeProduct", { readonly value: ProductValue }>
+export type Request = Variant<
+  "Request",
+  { readonly invocation: Natural; readonly id: Natural; readonly operation: Operation }
+>
+type CacheOutcome =
+  | Variant<"CacheAbsent">
+  | Variant<"CachePresent", { readonly capture: Token<"CaptureToken">; readonly bytes: Natural }>
+export type ServiceOutcome =
+  | Variant<"ClockStarted", { readonly clock: Token<"ClockToken"> }>
+  | Variant<"ClockRead", { readonly bits: Binary64 }>
+  | Variant<"DirnameResult" | "JoinedResult" | "NormalizedResult" | "RelativeResult", { readonly path: string }>
+  | Variant<"BasenameResult", { readonly name: string }>
+  | Variant<"PathSeparatorResult", { readonly separator: string }>
+  | Variant<"ExtensionResult", { readonly extension: string }>
+  | Variant<"AbsoluteResult", { readonly absolute: boolean }>
+  | Variant<
+      "JoinedPathFactsResult",
+      {
+        readonly separator: string
+        readonly normalized: string
+        readonly absolute: boolean
+        readonly extension: string
+        readonly leaf_extension: string
+      }
+    >
+  | Variant<"StatusResult", { readonly status: Variant<"FileAbsent" | "ExistingFile" | "ExistingOther"> }>
+  | Variant<
+      "MembershipResult",
+      {
+        readonly membership:
+          | Variant<"MembershipAbsent" | "MembershipFailed">
+          | Variant<
+              "MembershipPresent",
+              {
+                readonly is_file: boolean
+                readonly is_directory: boolean
+                readonly is_symlink: boolean
+                readonly signature: string
+              }
+            >
+      }
+    >
+  | Variant<"ContextSelectionResult", { readonly selected: boolean }>
+  | Variant<"PythonSyntaxResult", { readonly syntax: Awaited<ReturnType<typeof parsePythonSyntax>> }>
+  | Variant<
+      "IdentifierCharactersResult",
+      {
+        readonly characters: List<
+          Variant<
+            "IdentifierCharacter",
+            { readonly text: string; readonly id_start: boolean; readonly id_continue: boolean }
+          >
+        >
+      }
+    >
+  | Variant<
+      "AccessResult",
+      {
+        readonly outcome:
+          | Variant<"AccessDenied">
+          | Variant<"AccessAllowed", { readonly selection: Token<"SelectionToken">; readonly relative_path: string }>
+      }
+    >
+  | Variant<"InvocationCacheCreated", { readonly cache: Token<"CacheToken"> }>
+  | Variant<"CacheResult", { readonly outcome: CacheOutcome }>
+  | Variant<
+      "CacheSnapshot",
+      { readonly entries: List<Variant<"CaptureBytes", { readonly path: string; readonly bytes: Natural }>> }
+    >
+  | Variant<"CacheStored" | "RootCacheInserted" | "DiagnosticObserved">
+  | Variant<
+      "CaptureResult",
+      {
+        readonly outcome:
+          | Variant<"CaptureUnavailable", { readonly diagnostic: CaptureDiagnostic }>
+          | Variant<
+              "SourceCaptured",
+              { readonly capture: Token<"CaptureToken">; readonly relative_path: string; readonly bytes: Natural }
+            >
+      }
+    >
+  | Variant<
+      "FrontendResult",
+      {
+        readonly outcome:
+          | Variant<"SourceUnsupported">
+          | Variant<"SourceInspected", { readonly facts: NonNullable<ReturnType<typeof inspectSourceFrontend>> }>
+      }
+    >
+  | Variant<
+      "CargoResult",
+      {
+        readonly outcome:
+          | Variant<"CargoUnsupported">
+          | Variant<"CargoInspected", { readonly syntax: NonNullable<ReturnType<typeof parseCargoSyntax>> }>
+      }
+    >
+  | Variant<
+      "RustModulesResult",
+      {
+        readonly outcome:
+          | Variant<"RustModulesUnsupported">
+          | Variant<"RustModulesInspected", { readonly names: List<string> }>
+      }
+    >
+  | Variant<"ProductEncoded" | "SourceTextEncoded", { readonly bytes: Natural }>
+  | Variant<"ProviderRejected", { readonly exception: Token<"ExceptionToken"> }>
+export type Reply = Variant<
+  "Reply",
+  { readonly invocation: Natural; readonly id: Natural; readonly outcome: ServiceOutcome }
+>
+export type PerformOptions = { readonly signal?: AbortSignal | undefined }
+export type SessionPorts = {
+  readonly invocation: number
+  readonly root: string
+  readonly now?: (() => number) | undefined
+  readonly callerCache?: (Map<string, StableCapture>) | undefined
+  readonly access?: ((path: string, options: PerformOptions) => Promise<EligiblePath | undefined>) | undefined
+  readonly capture?: ((selection: EligiblePath, cap: number, options: PerformOptions) => Promise<CaptureResult>) | undefined
+  readonly frontend?: ((
+    path: string,
+    source: string,
+    context: Parameters<typeof inspectSourceFrontend>[2],
+    options?: PerformOptions
+  ) => ReturnType<typeof inspectSourceFrontend> | Promise<ReturnType<typeof inspectSourceFrontend>>) | undefined
+  readonly parseCargo?: (typeof parseCargoSyntax) | undefined
+  readonly inspectRustModules?: (typeof inspectRustModuleSyntax) | undefined
+  readonly selectContextPath?: ((path: string) => boolean | Promise<boolean>) | undefined
+  readonly parsePythonSyntax?: (typeof parsePythonSyntax) | undefined
+  readonly diagnostic?: ((path: string, value: unknown) => unknown) | undefined
+}
+export type ServiceSession = {
+  readonly invocation: number
+  readonly callerCache: Maybe<Token<"CacheToken">>
+  perform(request: Request, options?: PerformOptions): Promise<Reply>
+  registerCapture(value: StableCapture): Token<"CaptureToken">
+  exception(token: Token<"ExceptionToken">): unknown
+  cacheSnapshot(token: Token<"CacheToken">): [string, StableCapture][]
+  revoke(): void
+  close(): void
+}

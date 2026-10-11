@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createOwnedArtifactDriver } from "../../resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
-import { createServiceRegistry } from "../../source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceRegistry } from "../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
 const temp = await mkdtemp("/tmp/hapsland-canonical-owner-")
 try {
   const emitted = join(temp, "owner.mjs")

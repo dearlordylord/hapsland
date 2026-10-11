@@ -1,5 +1,18 @@
+import type {
+  CaptureDiagnostic,
+  Request,
+  Reply,
+  ResourceValues,
+  ServiceOutcome,
+  ServiceSession,
+  SessionPorts,
+  Token,
+  TokenKind,
+  Variant,
+  PerformOptions,
+  Maybe
+} from "./service-contract.ts"
 import {
-  artifactValueTag,
   hostNatural,
   list,
   unlist,
@@ -10,12 +23,20 @@ import {
 import * as path from "node:path"
 import { lstat } from "node:fs/promises"
 
-const tag = (name) => artifactValueTag(name) ?? "Types." + name
-const tagged = (name, fields = {}) => ({ $: tag(name), ...fields })
+const required = <Value>(value: Value | undefined): Value => {
+  if (value === undefined) throw new TypeError("Missing service port")
+  return value
+}
+const tag = <Name extends string>(name: Name) => `Types.${name}` as const
+function tagged<Name extends string>(name: Name): Variant<Name>
+function tagged<Name extends string, Fields extends object>(name: Name, fields: Fields): Variant<Name, Fields>
+function tagged(name: string, fields?: object) {
+  return { $: tag(name), ...fields }
+}
 
 // Independent service/session state only: native resources and caller-owned IO.
 // No graph queues, budgets, dependency choices or result-tree construction.
-function fromDiagnostic(value) {
+function fromDiagnostic(value: CaptureDiagnostic) {
   if (value?.$ === tag("CaptureDiagnostic")) return fromProductValue(value.value)
   if (value?.$ === tag("CaptureBudgetDiagnostic"))
     return {
@@ -43,9 +64,9 @@ export function createServiceSession({
   selectContextPath,
   parsePythonSyntax,
   diagnostic
-} = {}) {
+}: SessionPorts): ServiceSession {
   if (!Number.isSafeInteger(invocation) || invocation < 0) throw new Error("invalid invocation")
-  const resources = {
+  const resources: { [Kind in TokenKind]: Map<number, ResourceValues[Kind]> } = {
     ClockToken: new Map(),
     CaptureToken: new Map(),
     SelectionToken: new Map(),
@@ -55,30 +76,31 @@ export function createServiceSession({
   let next = 1,
     closed = false,
     accepting = true
-  const register = (kind, value) => {
+  const register = <Kind extends TokenKind>(kind: Kind, value: ResourceValues[Kind]): Token<Kind> => {
     if (closed || !accepting) throw new Error("closed service session")
     const id = next++
     resources[kind].set(id, value)
     return tagged(kind, { invocation, id })
   }
-  const lookup = (kind, token) => {
+  const lookup = <Kind extends TokenKind>(kind: Kind, token: Token<Kind>): ResourceValues[Kind] => {
     if (
       token?.$ !== tag(kind) ||
       hostNatural(token.invocation) !== invocation ||
       !resources[kind].has(hostNatural(token.id))
     )
       throw new Error("invalid " + kind)
-    return resources[kind].get(hostNatural(token.id))
+    return resources[kind].get(hostNatural(token.id)) as ResourceValues[Kind]
   }
-  const caller = callerCache === undefined ? { $: "None" } : { $: "Some", value: register("CacheToken", callerCache) }
-  const capturedResult = (value) =>
+  const caller: Maybe<Token<"CacheToken">> =
+    callerCache === undefined ? { $: "None" } : { $: "Some", value: register("CacheToken", callerCache) }
+  const capturedResult = (value: ResourceValues["CaptureToken"]) =>
     tagged("CachePresent", { capture: register("CaptureToken", value), bytes: value.byteLength })
-  async function perform(request, { signal } = {}) {
+  async function perform(request: Request, { signal }: PerformOptions = {}): Promise<Reply> {
     if (closed || !accepting || request?.$ !== tag("Request") || hostNatural(request.invocation) !== invocation)
       throw new Error("invalid request owner")
     const id = hostNatural(request.id),
       op = request.operation
-    let outcome
+    let outcome: ServiceOutcome
     try {
       switch (op?.$) {
         case tag("StartClock"):
@@ -142,17 +164,21 @@ export function createServiceSession({
               signature: [status.mode, status.dev, status.ino, status.size, status.mtimeMs, status.ctimeMs].join(":")
             })
           } catch (error) {
-            membership = tagged(error?.code === "ENOENT" ? "MembershipAbsent" : "MembershipFailed")
+            membership = tagged(
+              error !== null && typeof error === "object" && "code" in error && error.code === "ENOENT"
+                ? "MembershipAbsent"
+                : "MembershipFailed"
+            )
           }
           outcome = tagged("MembershipResult", { membership })
           break
         }
         case tag("SelectContextPath"):
-          outcome = tagged("ContextSelectionResult", { selected: await selectContextPath(op.path) })
+          outcome = tagged("ContextSelectionResult", { selected: await required(selectContextPath)(op.path) })
           break
         case tag("ParsePythonSyntax"): {
           const source = lookup("CaptureToken", op.capture)
-          outcome = tagged("PythonSyntaxResult", { syntax: await parsePythonSyntax(source.text) })
+          outcome = tagged("PythonSyntaxResult", { syntax: await required(parsePythonSyntax)(source.text) })
           break
         }
         case tag("ReadIdentifierCharacters"):
@@ -193,7 +219,7 @@ export function createServiceSession({
           break
         }
         case tag("AccessPath"): {
-          const selected = await access(op.path, { signal })
+          const selected = await required(access)(op.path, { signal })
           outcome = tagged("AccessResult", {
             outcome:
               selected === undefined
@@ -206,7 +232,9 @@ export function createServiceSession({
           break
         }
         case tag("CaptureSource"): {
-          const result = await capture(lookup("SelectionToken", op.selection), hostNatural(op.source_cap), { signal })
+          const result = await required(capture)(lookup("SelectionToken", op.selection), hostNatural(op.source_cap), {
+            signal
+          })
           outcome = tagged("CaptureResult", {
             outcome:
               result.status === "unavailable"
@@ -223,7 +251,7 @@ export function createServiceSession({
         }
         case tag("InspectSource"): {
           const source = lookup("CaptureToken", op.capture)
-          const facts = await frontend(op.path, source.text, op.context, { signal })
+          const facts = await required(frontend)(op.path, source.text, op.context, { signal })
           outcome = tagged("FrontendResult", {
             outcome: facts === undefined ? tagged("SourceUnsupported") : tagged("SourceInspected", { facts })
           })
@@ -231,7 +259,7 @@ export function createServiceSession({
         }
         case tag("ParseCargo"): {
           const source = lookup("CaptureToken", op.capture)
-          const syntax = await parseCargo(source.text)
+          const syntax = await required(parseCargo)(source.text)
           outcome = tagged("CargoResult", {
             outcome: syntax === undefined ? tagged("CargoUnsupported") : tagged("CargoInspected", { syntax })
           })
@@ -239,7 +267,7 @@ export function createServiceSession({
         }
         case tag("InspectRustModules"): {
           const source = lookup("CaptureToken", op.capture)
-          const facts = await inspectRustModules(source.text)
+          const facts = await required(inspectRustModules)(source.text)
           outcome = tagged("RustModulesResult", {
             outcome:
               facts === undefined
@@ -289,17 +317,29 @@ export function createServiceSession({
   })
 }
 
+type FailureOccurrence = { readonly phase: "register" | "task" | "close" | "remove"; readonly error: unknown }
+type TaskOutcome<Value> =
+  | { readonly status: "not-started" }
+  | { readonly status: "success"; readonly value: Value }
+  | { readonly status: "failure"; readonly receipt: FailureOccurrence }
 export function createServiceRegistry() {
-  const sessions = new Map(),
-    cleanupObligations = new Map()
-  const retainCleanup = (session, retry) => {
+  const sessions = new Map<number, ServiceSession>(),
+    cleanupObligations = new Map<
+      number,
+      { session: ServiceSession | undefined; retry: () => unknown | Promise<unknown> }
+    >()
+  const retainCleanup = (session: ServiceSession, retry: () => unknown | Promise<unknown>) => {
     const previous = cleanupObligations.get(session.invocation)
     if (previous && previous.session !== session) throw new Error("Cleanup obligation owner replaced")
     cleanupObligations.set(session.invocation, { session, retry })
   }
   // Construction can fail before a session exists. Keep that exact invocation
   // in this same registry, and compose rather than replace an existing obligation.
-  const retainConstructionCleanup = (invocation, session, retry) => {
+  const retainConstructionCleanup = (
+    invocation: number,
+    session: ServiceSession | undefined,
+    retry: () => unknown | Promise<unknown>
+  ) => {
     const previous = cleanupObligations.get(invocation)
     if (previous && previous.session !== session) throw new Error("Cleanup obligation owner replaced")
     const completed = new Set()
@@ -333,23 +373,23 @@ export function createServiceRegistry() {
     }
     if (failures.length) throw new AggregateError(failures, "Resident cleanup obligations remain pending")
   }
-  const register = (session) => {
+  const register = (session: ServiceSession) => {
     if (sessions.has(session.invocation)) throw new Error("duplicate active invocation")
     sessions.set(session.invocation, session)
   }
-  const remove = (session) => {
+  const remove = (session: ServiceSession) => {
     if (sessions.get(session.invocation) !== session) throw new Error("wrong registry owner")
     sessions.delete(session.invocation)
   }
   // Preserve distinct failure events even when their original thrown values are
   // identical. A whole owning workflow can compose task and finalizer causes;
   // ordinary run retains JavaScript finally's last-failure behavior.
-  const runOutcome = async (session, task) => {
-    const failures = []
+  const runOutcome = async <Value>(session: ServiceSession, task: () => Value | Promise<Value>) => {
+    const failures: FailureOccurrence[] = []
     let registered = false,
-      taskOutcome = { status: "not-started" },
-      rejection
-    const record = (phase, error) => {
+      taskOutcome: TaskOutcome<Value> = { status: "not-started" },
+      rejection: FailureOccurrence | undefined
+    const record = (phase: FailureOccurrence["phase"], error: unknown) => {
       const receipt = { phase, error }
       failures.push(receipt)
       rejection = receipt
@@ -384,20 +424,21 @@ export function createServiceRegistry() {
     retainCleanup,
     retainConstructionCleanup,
     retryCleanup,
-    hasCleanup: (session) => cleanupObligations.get(session.invocation)?.session === session,
+    hasCleanup: (session: ServiceSession) => cleanupObligations.get(session.invocation)?.session === session,
     get pendingCleanup() {
       return cleanupObligations.size
     },
-    get: (id) => sessions.get(id),
+    get: (id: number) => sessions.get(id),
     get size() {
       return sessions.size
     },
     register,
     remove,
     runOutcome,
-    async run(session, task) {
+    async run<Value>(session: ServiceSession, task: () => Value | Promise<Value>) {
       const outcome = await runOutcome(session, task)
       if (outcome.rejection) throw outcome.rejection.error
+      if (outcome.task.status !== "success") throw new Error("Unsettled service registry task")
       return outcome.task.value
     }
   })

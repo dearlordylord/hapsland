@@ -20,7 +20,7 @@ import { initialDelivery } from "../../../packages/resident-runtime/src/resident
 import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
 import { createAdviceTailMachine } from "../../../packages/resident-runtime/src/resident/review-work/preparation/post-preparation-dispatcher.mjs"
 import { createAdviceTailProvider } from "../../../packages/resident-runtime/src/resident/review-work/evaluation/advice-tail-provider.mjs"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import { createResidentOwnerTransaction } from "../../../packages/resident-runtime/src/resident/state/resolver-custody/resident-owner-transaction.mjs"
 const temp = await mkdtemp("/tmp/hapsland-resident-owner-")
 try {

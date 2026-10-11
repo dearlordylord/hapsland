@@ -18,7 +18,7 @@ const inputs = [
   "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
   "./signed-local-specification-check.mjs",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs",
+  "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/Traversal.bend",

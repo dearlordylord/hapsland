@@ -99,7 +99,7 @@ const result = {
   meanRatio: mean(samples.after) / mean(samples.before),
   samples,
   sourceHashes: Object.fromEntries(
-    ["./decoder-baseline.mjs", "./decoder-experiment.mjs", "./service-session.mjs"].map((name) => [
+    ["./decoder-baseline.mjs", "./decoder-experiment.mjs", "./service-session.ts"].map((name) => [
       name,
       createHash("sha256")
         .update(readFileSync(new URL(name, import.meta.url)))

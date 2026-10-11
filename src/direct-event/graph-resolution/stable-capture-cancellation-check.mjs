@@ -15,7 +15,7 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { createDispatcher } from "../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import { createVerificationEffectResolver as createBendEffectResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
 
 assert.equal(process.platform, "linux", "descriptor observations are Linux qualification only")

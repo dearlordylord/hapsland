@@ -5,7 +5,7 @@ import { join, normalize, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { parse } from "smol-toml"
 import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 const temp = await mkdtemp("/tmp/hapsland-python-root-policy-")
 try {
   const emitted = join(temp, "child.mjs")

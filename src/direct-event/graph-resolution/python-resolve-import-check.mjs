@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, readFile, lstat, rm, symlink } from "node:fs/promises"
 import { join, dirname, relative, isAbsolute, sep, normalize } from "node:path"
 import { pathToFileURL } from "node:url"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import {
   inspectSourceFrontend,
   parsePythonSyntax

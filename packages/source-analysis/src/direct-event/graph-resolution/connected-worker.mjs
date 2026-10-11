@@ -13,7 +13,7 @@ import {
 import { captureStable } from "../../../../native-observation/dist/direct-event/capture.js"
 import { discoverPhysicalWorkingTreeRoot } from "../../../../native-observation/dist/repository/root.js"
 import { createDispatcher } from "./runtime-observation/transport.mjs"
-import { createServiceRegistry } from "./service-session.mjs"
+import { createServiceRegistry } from "./service-session.ts"
 import { createVerificationEffectResolver as createBendEffectResolver } from "./verification/resolver-driver.mjs"
 import { createGraphFixtures } from "../../../../../src/direct-event/graph-resolution/fixtures.mjs"
 import { packageRuntime } from "./package-runtime.mjs"

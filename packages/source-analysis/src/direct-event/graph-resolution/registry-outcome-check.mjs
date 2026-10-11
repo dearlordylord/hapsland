@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { createServiceRegistry } from "./service-session.mjs"
+import { createServiceRegistry } from "./service-session.ts"
 
 let cases = 0
 for (const mode of ["success", "register", "task-close", "task-remove", "close-remove"]) {

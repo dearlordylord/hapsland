@@ -11,7 +11,7 @@ import { createDispatcher } from "../../../packages/source-analysis/src/direct-e
 import {
   createServiceSession,
   createServiceRegistry
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import {
   inspectSourceFrontend,
   parseCargoSyntax,
@@ -29,7 +29,7 @@ import {
   createIODriver,
   createVerificationEffectResolver as createBendEffectResolver
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
-import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.mjs"
+import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
 import { createGraphFixtures } from "./fixtures.mjs"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),

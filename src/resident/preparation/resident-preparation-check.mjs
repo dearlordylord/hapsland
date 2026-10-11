@@ -11,7 +11,7 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../packages/native-observation/dist/direct-event/capture.js"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import {
   productValue as __productValue,
   fromProductValue,
@@ -21,7 +21,7 @@ import {
 import {
   createBendResolver as __createBendResolver,
   pureReply
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
 import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
 import * as Ref from "effect/Ref"
 import { initialCanonical, projectCanonical as __projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"

@@ -2,7 +2,7 @@ import { artifactValueTag } from "@hapsland/source-artifacts/direct-event/value/
 import * as Effect from "effect/Effect"
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
-import { pureReply, createBendResolver } from "../consumer.mjs"
+import { pureReply, createBendResolver } from "../consumer.ts"
 const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 export function createMachineDriver({ machine, foreign, registry, observeTransition, observeFinished, trace = false }) {
   return (session, input, options = {}) =>

@@ -27,7 +27,7 @@ import {
   artifact,
   tomlValue
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
 // services. Preparation and the universal whole-observer relation remain gates.
@@ -327,7 +327,7 @@ try {
     "./entry-specification-check.mjs",
     "./fixtures.mjs",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs",
+    "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/RELATION.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/BOUNDARY.bend",

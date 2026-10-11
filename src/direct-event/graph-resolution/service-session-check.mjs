@@ -16,7 +16,7 @@ import { createDispatcher } from "../../../packages/source-analysis/src/direct-e
 import {
   createServiceSession,
   createServiceRegistry
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import {
   sourceFacts,
   tomlValue
