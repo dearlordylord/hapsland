@@ -177,10 +177,10 @@ function facts(files, selected) {
 }
 const preparationBridges = `
 type CapturedWorld is Data:
-  CapturedWorld{sequence: Nat, captures: T.ProductValue}
-def expiry(bits: T.Binary64) -> Bool:
+  CapturedWorld{sequence: Nat, captures: ArtifactValue.ProductValue}
+def expiry(bits: ArtifactValue.Binary64) -> Bool:
   match bits:
-    case T.Binary64{high, _}: U32.is_eq(high, 1072693248)
+    case ArtifactValue.Binary64{high, _}: U32.is_eq(high, 1072693248)
 def preparation_choose(state: Preparation.State) -> Preparation.Selection:
   Preparation.choose(~absolute, ~dirname, ~relative, "/", state)
 def preparation_consume(state: Preparation.State, outcome: T.ServiceOutcome) -> Preparation.Selection:
@@ -202,7 +202,7 @@ def preparation_cancel(progress: Preparation.Progress<CapturedWorld>) -> Prepara
 function wrapper(tables) {
   const quote = JSON.stringify,
     defs = []
-  const header = `import Base\nimport ./Types.bend as T\nimport ./RustSpecification.bend as Rust\nimport ./CargoSpecification.bend as Cargo\nimport ./RustTaskSpecification.bend as Task\nimport ./PreparationSpecification.bend as Preparation\nimport ./Environment.bend as Environment\nimport ./WholeObservation.bend as Observation\nimport ../../../../agent-flow-bend/ImportGraph.bend as G\n`
+  const header = `import Base\nimport ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue\nimport ./Types.bend as T\nimport ./RustSpecification.bend as Rust\nimport ./CargoSpecification.bend as Cargo\nimport ./RustTaskSpecification.bend as Task\nimport ./PreparationSpecification.bend as Preparation\nimport ./Environment.bend as Environment\nimport ./WholeObservation.bend as Observation\nimport ../../../../agent-flow-bend/ImportGraph.bend as G\n`
   const primitive = `def read_result(result: Map<&2, String> & String) -> String:\n  match result:\n    case Tuple{_, value}: value\ndef read(table: Map<&2, String>, key: String) -> String:\n  read_result(Map.get(String, "__MISSING_PATH_FACT__", table, key))\ndef join_key(parts: List<&2, String>) -> String:\n  match parts:\n    case []: ""\n    case head <> tail: head ++ "|" ++ join_key(tail)\n`
   for (const kind of ["dirname", "base", "stem", "extension", "normalize", "join", "relative"]) {
     const entries = [...tables[kind]].map(([key, value]) => {

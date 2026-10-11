@@ -111,7 +111,7 @@ try {
     assert.ok(facts, fixture.name)
     const encoded = sourceFacts(facts),
       prepared = spec.source(encoded, 0n)
-    const limits = tag("../../../packages/agent-flow-bend/ImportGraph", "Limits", {
+    const limits = tag("../../../../agent-flow-bend/ImportGraph", "Limits", {
       version: 1n,
       ...Object.fromEntries(
         Object.entries(binding.limits).map(([key, value]) => [

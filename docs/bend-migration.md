@@ -204,7 +204,10 @@ One current obstacle list, in execution order:
    Source-owned graph verification and its sole fixture set now live together
    under source-analysis/graph-resolution/verification; the relocated complete
    Entry consumer passes 78 cases/55 comparisons. Remaining moved consumers
-   are being qualified; this placement does not change production adoption.
+   have been run: both expansion checks and Rust preparation pass, while SPEC
+   still loses native Go bindingFingerprint and the generic machine checker
+   cannot drive its Go/Python specialized continuations. These failures remain
+   blockers; this placement does not change production adoption.
    Unsupported formatter roots remain failures (including attachment declaration
    headers and UnitEvidence/Glob/list block handling). A full gate remains blocked.
 4. Complete and qualify compiled preparation → Source → Post in the actual public
@@ -482,3 +485,18 @@ separator during path rewriting; the separator was restored, and the full repeat
 passed 78 cases/55 independent native comparisons. Other relocated consumers
 remain unqualified until their actual runs complete. Parent-context proof prefix
 passes 4.315 seconds under hard five seconds; original parent theorem remains WIP.
+
+Relocated graph consumer qualification: complete Entry passes 78 cases/55 native
+comparisons; expansion specification passes 61/28; expansion driver passes 43/37;
+Rust preparation passes all 17 physical cases after correcting generated-wrapper
+Binary64/ProductValue imports to their sole source-artifacts Value owner. Its
+wrappers remain at the capability root for identical relative Bend imports and
+are removed after execution; results now go to ignored `.test-runs`. Ordinary
+lint passes on the changed runners. The local SPEC checker first exposed an
+obsolete emitted ImportGraph tag; after that mechanical fix its exact product
+assertion exposes missing Go bindingFingerprint. Machine checker exposes a
+specialized PrepareGo continuation which its generic driver cannot consume.
+Neither failure was filtered out or weakened. They must be resolved against the
+whole compiled entry before this verification group is accepted. Astra's next
+coherent parent projection prefix passes hard five seconds at 2.432 seconds;
+original parent_attachment_exact remains unfinished with unchanged premises.
