@@ -677,3 +677,13 @@ within one preparation invocation, compares complete native prepareObservation
 output, and passes 249 requests with three selected/prepared units. This closes
 that supporting-capture reuse vector; dynamic policy, normalization and exact
 refusal/hooks/cap fixtures remain open. Runner lint passes actual changed source.
+
+Additional physical path fixtures: normalized root.py/./root.py repeat passes full
+native comparison (459 requests). Missing second absent.py has native incomplete
+observation with exact path-observation-unavailable reason, retaining first-file
+units. Full decoded result comparison passes after explicitly requiring that status;
+the subsequent harness-only units projection incorrectly assumed changeSet on an
+incomplete observation. Projection now follows the original discriminated union
+(complete.changeSet.units or incomplete.units). Runner lint passes; the final refusal
+repeat and complete expanded corpus remain unqualified until rerun. No refusal
+case or full equality assertion was removed. These test sources are retained WIP.

@@ -75,6 +75,16 @@ const scenario = (name, fixture, { expected = fixture.expected, compareNative = 
 const multiCandidate = { ...twoDeclarations, candidates: ["root.py", "leaf.py"], expected: { selected: 3n, units: 3 } }
 const scenarios = [
   scenario("dependency-then-candidate", multiCandidate, { compareNative: true }),
+  scenario(
+    "normalized-repeat-candidate",
+    { ...twoDeclarations, candidates: ["root.py", "./root.py"], expected: { selected: 4n, units: 4 } },
+    { compareNative: true }
+  ),
+  scenario(
+    "denied-second-candidate",
+    { ...twoDeclarations, candidates: ["root.py", "absent.py"], observationStatus: "incomplete" },
+    { compareNative: true }
+  ),
   scenario("two-roots", twoDeclarations, { compareNative: true }),
   scenario("first-refused", twoDeclarations, { expected: { selected: 2n, units: 1 } }),
   scenario("parent-cancel-late-success", twoDeclarations),
@@ -711,9 +721,12 @@ try {
             }
           )
         )
-        assert.equal(expected.observation.status, "complete")
+        assert.equal(expected.observation.status, fixture.observationStatus ?? "complete", mode + " native status")
         assert.deepEqual(preparationForeign.decode(outcome.preparation, advicee()), expected)
-        assert.deepEqual(unlist(outcome.preparation.units).map(fromProductValue), expected.observation.changeSet.units)
+        assert.deepEqual(
+          unlist(outcome.preparation.units).map(fromProductValue),
+          expected.observation.status === "complete" ? expected.observation.changeSet.units : expected.observation.units
+        )
         const actualReady = unlist(outcome.preparation.outcomes)
           .filter((value) => value.$ === "OutcomeReady")
           .map((value) => fromProductValue(value.prepared))
