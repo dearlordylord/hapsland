@@ -23,22 +23,15 @@ import {
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { createGraphFixtures } from "./fixtures.mjs"
-import {
-  sourceFacts,
-  artifact,
-  tomlValue
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { createEntryReferenceDriver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/entry-driver-check.mjs"
-import {
-  parsePythonSyntax,
-  inspectSourceFrontend
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { sourceFacts, artifact, tomlValue } from "../frontend-codec.ts"
+import { createEntryReferenceDriver } from "../entry-driver-check.mjs"
+import { parsePythonSyntax, inspectSourceFrontend } from "../frontends.ts"
+import { createServiceSession } from "../service-session.ts"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
 // services. Preparation and the universal whole-observer relation remain gates.
 const folder = import.meta.dirname,
-  root = path.resolve(folder, "../../..")
+  root = path.resolve(folder, "../../../../../..")
 mkdirSync(path.join(root, "node_modules/.cache"), { recursive: true })
 const temporary = mkdtempSync(path.join(root, "node_modules/.cache/entry-specification-"))
 const tag = (name, fields = {}) => ({ $: name, ...fields }),
@@ -276,37 +269,37 @@ try {
   const emissionHashes = []
   const nativePath = path.join(root, "packages/source-analysis/dist/direct-event/graph-resolver.js")
   const dependencies = [
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/SourceValidationSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/DeadlineSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/BoundaryValidationSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/EntrySpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/PreparationSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionDriverSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/ForestSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/ForestAllowance.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/SignedLocalSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/SPEC.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/GraphSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/RustSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/WholeObservation.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/Environment.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
+    "../SourceValidationSpecification.bend",
+    "../DeadlineSpecification.bend",
+    "../BoundaryValidationSpecification.bend",
+    "../EntrySpecification.bend",
+    "../PreparationSpecification.bend",
+    "../ExpansionDriverSpecification.bend",
+    "../ExpansionSpecification.bend",
+    "../ForestSpecification.bend",
+    "../ForestAllowance.bend",
+    "../SignedLocalSpecification.bend",
+    "../SPEC.bend",
+    "../GraphSpecification.bend",
+    "../RustSpecification.bend",
+    "../WholeObservation.bend",
+    "../Environment.bend",
+    "../Types.bend",
     "./entry-specification-check.mjs",
     "./fixtures.mjs",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/RELATION.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/BOUNDARY.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/Traversal.bend",
-    "../../../bun.lock",
-    "../../../packages/source-analysis/dist/direct-event/languages/rust.js",
-    "../../../packages/source-analysis/dist/direct-event/languages/rust-module-context.js",
-    "../../../packages/source-analysis/dist/direct-event/languages/rust-adapter.js",
-    "../../../packages/source-analysis/dist/direct-event/languages/registry.js",
-    "../../../packages/source-analysis/dist/direct-event/languages/python.js",
+    "../frontend-codec.ts",
+    "../service-session.ts",
+    "../traversal/SPEC.bend",
+    "../traversal/RELATION.bend",
+    "../traversal/BOUNDARY.bend",
+    "../traversal/core.bend",
+    "../traversal/Traversal.bend",
+    "../../../../../../bun.lock",
+    "../../../../dist/direct-event/languages/rust.js",
+    "../../../../dist/direct-event/languages/rust-module-context.js",
+    "../../../../dist/direct-event/languages/rust-adapter.js",
+    "../../../../dist/direct-event/languages/registry.js",
+    "../../../../dist/direct-event/languages/python.js",
     nativePath
   ]
   const authored = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], { cwd: root })
@@ -346,7 +339,7 @@ try {
   const portCopy = path.join(temporary, "observed-ports.mjs")
   writeFileSync(
     portCopy,
-    `import {sourceFacts} from '${pathToFileURL(path.join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"))}';import {lstat as realLstat} from 'node:fs/promises';import * as Effect from 'effect/Effect';import {eligibleNamedPath as realAccess} from '${pathToFileURL(path.join(root, "packages/native-observation/dist/direct-event/selection.js"))}';export const events=[];export function observedInspect(session,file,source,branch){const facts=session.inspect(file,source,branch);events.push({kind:'frontend',path:file,text:source,branch,facts:facts===undefined?undefined:JSON.parse(JSON.stringify(sourceFacts(facts),(_key,value)=>typeof value==='bigint'?Number(value):value))});return facts}export function reset(){events.length=0}export async function lstat(file){try{const value=await realLstat(file);events.push({kind:'status',path:file,status:value.isFile()?'ExistingFile':'ExistingOther'});return value}catch(error){events.push({kind:'status',path:file,status:'FileAbsent'});throw error}}export function eligibleNamedPath(...args){return Effect.map(realAccess(...args),value=>{events.push({kind:'access',path:args[1],allowed:value!==undefined,relativePath:value?.relativePath});return value})}`
+    `import {sourceFacts} from '${pathToFileURL(path.join(folder, "../frontend-codec.ts"))}';import {lstat as realLstat} from 'node:fs/promises';import * as Effect from 'effect/Effect';import {eligibleNamedPath as realAccess} from '${pathToFileURL(path.join(root, "packages/native-observation/dist/direct-event/selection.js"))}';export const events=[];export function observedInspect(session,file,source,branch){const facts=session.inspect(file,source,branch);events.push({kind:'frontend',path:file,text:source,branch,facts:facts===undefined?undefined:JSON.parse(JSON.stringify(sourceFacts(facts),(_key,value)=>typeof value==='bigint'?Number(value):value))});return facts}export function reset(){events.length=0}export async function lstat(file){try{const value=await realLstat(file);events.push({kind:'status',path:file,status:value.isFile()?'ExistingFile':'ExistingOther'});return value}catch(error){events.push({kind:'status',path:file,status:'FileAbsent'});throw error}}export function eligibleNamedPath(...args){return Effect.map(realAccess(...args),value=>{events.push({kind:'access',path:args[1],allowed:value!==undefined,relativePath:value?.relativePath});return value})}`
   )
   const nativePorts = await import(pathToFileURL(portCopy))
   const nativeCopy = path.join(temporary, "native.mjs"),
@@ -400,7 +393,7 @@ try {
   )
   moduleSource = instrument(moduleSource, "return record(parse(source));", "return record(observedCargoParse(source));")
   moduleSource = instrument(moduleSource, "inspectRustModules(source));", "observedModules(source));")
-  moduleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';import {tomlValue} from '${pathToFileURL(path.join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"))}';const canonicalFacts=value=>JSON.parse(JSON.stringify(value,(_key,value)=>typeof value==='bigint'?Number(value):value));function observedCargoParse(source){try{const syntax=parse(source);events.push({kind:'cargo',text:source,syntax:canonicalFacts(tomlValue(syntax))});return syntax}catch(error){events.push({kind:'cargo',text:source,syntax:undefined});throw error}}function observedModules(source){const facts=inspectRustModules(source);events.push({kind:'modules',text:source,facts});return facts}\n`
+  moduleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';import {tomlValue} from '${pathToFileURL(path.join(folder, "../frontend-codec.ts"))}';const canonicalFacts=value=>JSON.parse(JSON.stringify(value,(_key,value)=>typeof value==='bigint'?Number(value):value));function observedCargoParse(source){try{const syntax=parse(source);events.push({kind:'cargo',text:source,syntax:canonicalFacts(tomlValue(syntax))});return syntax}catch(error){events.push({kind:'cargo',text:source,syntax:undefined});throw error}}function observedModules(source){const facts=inspectRustModules(source);events.push({kind:'modules',text:source,facts});return facts}\n`
   moduleSource = instrument(
     moduleSource,
     "const captures = context.captureCache ?? new Map();",

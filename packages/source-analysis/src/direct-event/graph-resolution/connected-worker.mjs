@@ -15,7 +15,7 @@ import { discoverPhysicalWorkingTreeRoot } from "../../../../native-observation/
 import { createDispatcher } from "./runtime-observation/transport.mjs"
 import { createServiceRegistry } from "./service-session.ts"
 import { createVerificationEffectResolver as createBendEffectResolver } from "./verification/resolver-driver.mjs"
-import { createGraphFixtures } from "../../../../../src/direct-event/graph-resolution/fixtures.mjs"
+import { createGraphFixtures } from "./verification/fixtures.mjs"
 import { packageRuntime } from "./package-runtime.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
 

@@ -4,6 +4,9 @@ import ./AttachmentMapping.bend as Mapping
 import ./AttachmentNodeReplacementTransport.bend as Replacement
 import ./AttachmentProjectionAllowanceProof.bend as Count
 import ./AttachmentProjectionContentsProof.bend as Contents
+import ./AttachmentReplacementStructureProof.bend as Structure
+import ../traversal/INTERPRETER_NAT_FACTS.bend as N
+import ../traversal/INTERPRETER_BOOL_FACTS.bend as B
 import ./AttachmentParentAllocationProof.bend as Allocation
 import ./ActualAttachmentFrameProjection.bend as Frame
 import ./ActualAttachmentPhaseProjection.bend as Ready
@@ -266,6 +269,97 @@ def owner_slots_append(left: List<&2, Local.ReferenceSlot>, +right: List<&2, Loc
             P.owner_slot(Local.ReferenceSlot{id, index, symbol, reference}, owner, P.owner_slots(tail, owner)), P.owner_slots(right, owner))
           : List<&2, Local.ReferenceSlot>}
       owner_slot_append(Nat.is_eq(id, owner), id, index, symbol, reference, P.owner_slots(tail, owner), P.owner_slots(right, owner))
+
+def shifted_owner_distinct(+id: Nat, +offset: Nat, +query: Nat,
+    below: {Nat.is_lt(query, offset) == True{} : Bool}) ->
+    {Nat.is_eq((id + offset : Nat), query) == False{} : Bool}:
+  Equal.trans(Bool, Nat.is_eq((id + offset : Nat), query), Nat.is_eq(query, (id + offset : Nat)), False{},
+    Structure.is_eq_comm((id + offset : Nat), query),
+    Structure.unequal_below(query, (id + offset : Nat),
+      N.lt_of_lt_of_le(query, offset, (id + offset : Nat), below,
+        N.add_le_add_right(0n, id, offset, N.zero_le(id)))))
+
+def shifted_slots_exclude_parent(items: List<&2, Local.ReferenceSlot>, +offset: Nat, +owner: Nat,
+    +below: {Nat.is_lt(owner, offset) == True{} : Bool}) ->
+    {P.owner_slots(Compose.shift_slots(items, offset), owner) == [] : List<&2, Local.ReferenceSlot>}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+id, +index, +symbol, +reference} <> +tail:
+      %Equal.sym(Bool, Nat.is_eq((id + offset : Nat), owner), False{}, shifted_owner_distinct(id, offset, owner, below)):
+        {Bool.pick(List<&2, Local.ReferenceSlot>, _,
+          Local.ReferenceSlot{(id + offset : Nat), index, symbol, Compose.shift_reference(reference, offset)} <>
+            P.owner_slots(Compose.shift_slots(tail, offset), owner),
+          P.owner_slots(Compose.shift_slots(tail, offset), owner)) == [] : List<&2, Local.ReferenceSlot>}
+      shifted_slots_exclude_parent(tail, offset, owner, below)
+
+def slots_append_nil(items: List<&2, Local.ReferenceSlot>) ->
+    {List.append(&2, Local.ReferenceSlot, items, []) == items : List<&2, Local.ReferenceSlot>}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      Equal.cong(List<&2, Local.ReferenceSlot>, List<&2, Local.ReferenceSlot>, rest => head <> rest,
+        List.append(&2, Local.ReferenceSlot, tail, []), tail, slots_append_nil(tail))
+
+def parent_owner_slots(+slots: List<&2, Local.ReferenceSlot>, +children: List<&2, Local.ReferenceSlot>,
+    +offset: Nat, +owner: Nat, below: {Nat.is_lt(owner, offset) == True{} : Bool}) ->
+    {P.owner_slots(List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(children, offset)), owner)
+      == P.owner_slots(slots, owner) : List<&2, Local.ReferenceSlot>}:
+  Equal.trans(List<&2, Local.ReferenceSlot>,
+    P.owner_slots(List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(children, offset)), owner),
+    List.append(&2, Local.ReferenceSlot, P.owner_slots(slots, owner), P.owner_slots(Compose.shift_slots(children, offset), owner)),
+    P.owner_slots(slots, owner), owner_slots_append(slots, Compose.shift_slots(children, offset), owner),
+    %Equal.sym(List<&2, Local.ReferenceSlot>, P.owner_slots(Compose.shift_slots(children, offset), owner), [],
+      shifted_slots_exclude_parent(children, offset, owner, below)):
+      {List.append(&2, Local.ReferenceSlot, P.owner_slots(slots, owner), _) == P.owner_slots(slots, owner) : List<&2, Local.ReferenceSlot>}
+    slots_append_nil(P.owner_slots(slots, owner)))
+
+def dense_head_room(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +start: Nat, +limit: Nat,
+    dense: {Frame.dense(Local.PlannedNode{id, handle} <> tail, start) == True{} : Bool},
+    room: {Nat.is_le((start + 1n+List.length(&2, Local.PlannedNode, tail) : Nat), limit) == True{} : Bool}) ->
+    {Nat.is_lt(id, limit) == True{} : Bool}:
+  %Equal.sym(Nat, id, start, N.eq_of_is_eq(id, start,
+    B.eq_true_of_and_left(Nat.is_eq(id, start), Frame.dense(tail, (start + 1n : Nat)), dense))):
+    {Nat.is_lt(_, limit) == True{} : Bool}
+  N.lt_of_lt_of_le(start, (start + 1n : Nat), limit,
+    %Equal.sym(Nat, (start + 1n : Nat), 1n+start, Allocation.next_add(start)):
+      {Nat.is_lt(start, _) == True{} : Bool}
+    N.lt_succ_self(start),
+    N.le_trans((start + 1n : Nat), ((start + 1n : Nat) + List.length(&2, Local.PlannedNode, tail) : Nat), limit,
+      %N.add_zero((start + 1n : Nat)):
+        {Nat.is_le(_, ((start + 1n : Nat) + List.length(&2, Local.PlannedNode, tail) : Nat)) == True{} : Bool}
+      N.add_le_add_left(0n, List.length(&2, Local.PlannedNode, tail), (start + 1n : Nat), N.zero_le(List.length(&2, Local.PlannedNode, tail))),
+      %Allocation.length_step(start, List.length(&2, Local.PlannedNode, tail)):
+        {Nat.is_le(_, limit) == True{} : Bool}
+      room))
+
+# The child suffix cannot alter the projection of any dense parent occurrence.
+def nodes_child_slots(items: List<&2, Local.PlannedNode>, +start: Nat, +offset: Nat,
+    +slots: List<&2, Local.ReferenceSlot>, +children: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>,
+    +dense: {Frame.dense(items, start) == True{} : Bool},
+    +room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, items) : Nat), offset) == True{} : Bool}) ->
+    {P.nodes(items, List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(children, offset)), catalog, addresses)
+      == P.nodes(items, slots, catalog, addresses) : Maybe<&2, List<&2, F.Node>>}:
+  match items:
+    case []: {==}
+    case Local.PlannedNode{+id, +handle} <> +tail:
+      %Equal.sym(List<&2, Local.ReferenceSlot>,
+        P.owner_slots(List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(children, offset)), id), P.owner_slots(slots, id),
+        parent_owner_slots(slots, children, offset, id, dense_head_room(id, handle, tail, start, offset, dense, room))):
+        {P.node_prefix(P.projected_node(F.address_at(addresses, id), F.artifact_at(catalog, handle), P.references(_, addresses)),
+          P.nodes(tail, List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(children, offset)), catalog, addresses))
+          == P.nodes(Local.PlannedNode{id, handle} <> tail, slots, catalog, addresses) : Maybe<&2, List<&2, F.Node>>}
+      %Equal.sym(Maybe<&2, List<&2, F.Node>>,
+        P.nodes(tail, List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(children, offset)), catalog, addresses),
+        P.nodes(tail, slots, catalog, addresses),
+        nodes_child_slots(tail, (start + 1n : Nat), offset, slots, children, catalog, addresses,
+          B.eq_true_of_and_right(Nat.is_eq(id, start), Frame.dense(tail, (start + 1n : Nat)), dense),
+          %Allocation.length_step(start, List.length(&2, Local.PlannedNode, tail)):
+            {Nat.is_le(_, offset) == True{} : Bool}
+          room)):
+        {P.node_prefix(P.projected_node(F.address_at(addresses, id), F.artifact_at(catalog, handle), P.references(P.owner_slots(slots, id), addresses)), _)
+          == P.nodes(Local.PlannedNode{id, handle} <> tail, slots, catalog, addresses) : Maybe<&2, List<&2, F.Node>>}
+      {==}
 
 law parent_attachment_exact:
   for +parent_root: Nat

@@ -7,16 +7,9 @@ import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Cause from "effect/Cause"
-import { createDispatcher } from "../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
-import {
-  createServiceSession,
-  createServiceRegistry
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import {
-  inspectSourceFrontend,
-  parseCargoSyntax,
-  inspectRustModuleSyntax
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
+import { createDispatcher } from "../runtime-observation/transport.mjs"
+import { createServiceSession, createServiceRegistry } from "../service-session.ts"
+import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax } from "../frontends.ts"
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
@@ -28,8 +21,8 @@ import {
   createMachineDriver,
   createIODriver,
   createVerificationEffectResolver as createBendEffectResolver
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
-import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+} from "./resolver-driver.mjs"
+import { pureReply } from "../frontend-codec.ts"
 import { createGraphFixtures } from "./fixtures.mjs"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),
@@ -37,22 +30,10 @@ const folder = import.meta.dirname,
 try {
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
   const machinePath = join(temp, "machine.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Machine.bend"),
-      "-o",
-      machinePath
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Machine.bend"), "-o", machinePath], { timeout: 5000 })
   const { default: machine } = await import(pathToFileURL(machinePath))
   const clockPath = join(temp, "clock.mjs")
-  execFileSync(
-    "bend",
-    [join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Clock.bend"), "-o", clockPath],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Clock.bend"), "-o", clockPath], { timeout: 5000 })
   const { default: clock } = await import(pathToFileURL(clockPath))
   const numbers = [
     0,
@@ -69,15 +50,7 @@ try {
   ]
   for (const n of numbers) assert.equal(clock.expired(binary64(n)), n >= 5000)
   const runtimePath = join(temp, "runtime.js")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Runtime.bend"),
-      "-o",
-      runtimePath
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Runtime.bend"), "-o", runtimePath], { timeout: 5000 })
   const source = readFileSync(runtimePath, "utf8"),
     footer = "\ncli(process.argv.slice(1));\nio_exit($main$, null);"
   assert.ok(source.endsWith(footer))
@@ -94,15 +67,7 @@ try {
   const { start, handlers } = await import(pathToFileURL(embedded)),
     foreign = createDispatcher(start, handlers)
   const fullRuntime = join(temp, "full-runtime.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Runtime.bend"),
-      "-o",
-      fullRuntime
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Runtime.bend"), "-o", fullRuntime], { timeout: 5000 })
   writeFileSync(
     fullRuntime,
     readFileSync(fullRuntime, "utf8") + "\nexport const handlers=Object.freeze({perform:$0eff.perform});\n"
@@ -724,7 +689,11 @@ try {
       "Bend entry/root/iteration/completion with actual foreign service dispatch; Rust/Cargo/module and TS/Bend cross-file composition candidate; no whole migration adoption or proof claim"
   }
   assert.equal(registry.size, 0)
-  writeFileSync(join(folder, "machine-" + record.runtime + "-evidence.json"), JSON.stringify(record, null, 2) + "\n")
+  mkdirSync(join(folder, "../../../../../..", ".test-runs"), { recursive: true })
+  writeFileSync(
+    join(folder, "../../../../../..", ".test-runs", "machine-" + record.runtime + "-evidence.json"),
+    JSON.stringify(record, null, 2) + "\n"
+  )
   console.log(JSON.stringify(record))
 } finally {
   rmSync(temp, { recursive: true, force: true })

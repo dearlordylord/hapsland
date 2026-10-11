@@ -198,9 +198,13 @@ One current obstacle list, in execution order:
    Full physical cancellation/late cleanup and universal correspondence remain
    distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
    its accepted supported-input boundary before claiming complete replacement.
-3. Resolve ordinary source gates: 97 cross-owner private development imports,
+3. Resolve ordinary source gates: 84 remaining cross-owner private development imports,
    without exposing verification helpers or excluding sources. check:fast's last
    executed result passes 109 tests and source typing, then fails these imports.
+   Source-owned graph verification and its sole fixture set now live together
+   under source-analysis/graph-resolution/verification; the relocated complete
+   Entry consumer passes 78 cases/55 comparisons. Remaining moved consumers
+   are being qualified; this placement does not change production adoption.
    Unsupported formatter roots remain failures (including attachment declaration
    headers and UnitEvidence/Glob/list block handling). A full gate remains blocked.
 4. Complete and qualify compiled preparation → Source → Post in the actual public
@@ -466,3 +470,15 @@ respective start timestamps. These measurements cover existing production,
 not adoption of whole preparation. The earlier 3bb097ce build/execution passes
 0.9810143780417804 / 0.7674854651331289 and recorded late starts remain historical
 evidence; they do not override this candidate's failed build threshold.
+
+Source verification ownership checkpoint: six graph checks and the sole shared
+fixture source moved from root verification to the graph-resolution capability's
+`verification/` owner. Three attribution/worker consumers use that sole source.
+Astra reviewed the owner closure; no verification helper was published as a
+production export. Ordinary lint selected ten actual changed files and passed.
+The import gate still fails, with 84 violations remaining (previously 97).
+The first relocated Entry run caught an erroneous replacement of the ABI label
+separator during path rewriting; the separator was restored, and the full repeat
+passed 78 cases/55 independent native comparisons. Other relocated consumers
+remain unqualified until their actual runs complete. Parent-context proof prefix
+passes 4.315 seconds under hard five seconds; original parent theorem remains WIP.

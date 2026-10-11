@@ -9,7 +9,7 @@ import { languageForPath } from "@hapsland/source-analysis/direct-event/language
 import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { createGraphFixtures } from "./fixtures.mjs"
-import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+import { sourceFacts } from "../frontend-codec.ts"
 import {
   list,
   unlist,
@@ -17,30 +17,30 @@ import {
   fromProductValue
 } from "@hapsland/source-artifacts/direct-event/value/codec"
 const folder = import.meta.dirname,
-  root = join(folder, "../../.."),
+  root = join(folder, "../../../../../.."),
   scratch = join(root, "node_modules/.cache")
 mkdirSync(scratch, { recursive: true })
 const temporary = mkdtempSync(join(scratch, "whole-specification-"))
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
 const inputs = [
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionSpecificationCheck.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/SignedLocalSpecification.bend",
+  "../ExpansionSpecificationCheck.bend",
+  "../ExpansionSpecification.bend",
+  "../SignedLocalSpecification.bend",
   "./expansion-specification-check.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/ForestSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/SPEC.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/GraphSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/Environment.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/WholeObservation.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
+  "../ForestSpecification.bend",
+  "../SPEC.bend",
+  "../GraphSpecification.bend",
+  "../Environment.bend",
+  "../WholeObservation.bend",
+  "../Types.bend",
   "./specification-check.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/Traversal.bend",
+  "../traversal/SPEC.bend",
+  "../traversal/core.bend",
+  "../traversal/Traversal.bend",
   "./fixtures.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
-  "../../../packages/source-analysis/dist/direct-event/graph-resolver.js",
-  "../../../packages/source-analysis/dist/direct-event/languages/rust-module-context.js"
+  "../frontend-codec.ts",
+  "../../../../dist/direct-event/graph-resolver.js",
+  "../../../../dist/direct-event/languages/rust-module-context.js"
 ]
 const sources = Object.fromEntries(inputs.map((path) => [path, hash(join(folder, path))]))
 const tag = (module, name, fields = {}) => ({
@@ -73,7 +73,7 @@ try {
     _environment = await compile("Environment"),
     _observation = await compile("WholeObservation"),
     forest = await compile("ForestSpecification")
-  const nativePath = join(folder, "../../../packages/source-analysis/dist/direct-event/graph-resolver.js")
+  const nativePath = join(folder, "../../../../dist/direct-event/graph-resolver.js")
   const nativeSource = readFileSync(nativePath, "utf8").replaceAll(
     /from "(\.\/[^"]+)"/g,
     (_all, path) => `from "${pathToFileURL(join(dirname(nativePath), path))}"`

@@ -22,10 +22,10 @@ import {
 } from "@hapsland/native-observation/direct-event/selection"
 import { inspectRustModules } from "@hapsland/source-analysis/direct-event/languages/rust"
 import { createGraphFixtures } from "./fixtures.mjs"
-import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { tomlValue } from "../frontend-codec.ts"
+import { createServiceSession } from "../service-session.ts"
 const folder = import.meta.dirname,
-  root = path.join(folder, "../../.."),
+  root = path.join(folder, "../../../../../.."),
   cache = path.join(root, "node_modules/.cache")
 mkdirSync(cache, { recursive: true })
 const environmentCheck = process.env.HAPSLAND_PREPARATION_ENVIRONMENT_CHECK === "1"
@@ -33,22 +33,22 @@ const temporary = mkdtempSync(path.join(cache, "rust-task-specification-")),
   generatedWrappers = []
 const native = path.join(root, "packages/source-analysis/dist/direct-event/languages/rust-module-context.js")
 const inputs = [
-  "../../../bun.lock",
-  "../../../packages/source-analysis/dist/direct-event/languages/rust.js",
-  "../../../packages/source-analysis/dist/direct-event/capture-budget.js",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/RustTaskSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/ModuleSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/CargoSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/RustSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/GraphSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/PreparationSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/Environment.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/WholeObservation.bend",
+  "../../../../../../bun.lock",
+  "../../../../dist/direct-event/languages/rust.js",
+  "../../../../dist/direct-event/capture-budget.js",
+  "../RustTaskSpecification.bend",
+  "../ModuleSpecification.bend",
+  "../CargoSpecification.bend",
+  "../RustSpecification.bend",
+  "../GraphSpecification.bend",
+  "../Types.bend",
+  "../PreparationSpecification.bend",
+  "../Environment.bend",
+  "../WholeObservation.bend",
   "./rust-task-specification-check.mjs",
   "./fixtures.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts",
+  "../frontend-codec.ts",
+  "../service-session.ts",
   native
 ]
 const hash = (value) => createHash("sha256").update(value).digest("hex"),
@@ -315,7 +315,7 @@ try {
     }
     for (const name of fixture.directories ?? []) mkdirSync(path.join(directory, name), { recursive: true })
     const tables = facts(files, fixture.path),
-      bendFile = path.join(folder, ".rust-task-check-" + path.basename(temporary) + "-" + fixture.name + ".bend"),
+      bendFile = path.join(folder, "..", ".rust-task-check-" + path.basename(temporary) + "-" + fixture.name + ".bend"),
       moduleFile = path.join(temporary, fixture.name + ".mjs")
     generatedWrappers.push(bendFile)
     writeFileSync(bendFile, wrapper(tables))
@@ -738,9 +738,11 @@ try {
     scope:
       "Independent full needs-binding Rust preparation on physical fixtures versus actual native owner, ordered physical/provider effects, bounded graph, semantic state, roles, UTF-16 dependency sort, remaining caps and final cache. Mechanical path tables have no query script and all actually evaluated arguments including eager branches are checked. No whole resolver/adapter/protocol/cancellation/universal proof or candidate performance qualification."
   }
+  mkdirSync(path.join(root, ".test-runs"), { recursive: true })
   writeFileSync(
     path.join(
-      folder,
+      root,
+      ".test-runs",
       (environmentCheck ? "preparation-specification" : "rust-task-specification") +
         "-" +
         record.runtime +

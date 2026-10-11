@@ -21,20 +21,14 @@ import {
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { languageForPath as __languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { createGraphFixtures } from "./fixtures.mjs"
-import {
-  sourceFacts,
-  artifact
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import {
-  inspectSourceFrontend,
-  parsePythonSyntax
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
+import { sourceFacts, artifact } from "../frontend-codec.ts"
+import { createServiceSession } from "../service-session.ts"
+import { inspectSourceFrontend, parsePythonSyntax } from "../frontends.ts"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
 // services. Preparation and the universal whole-observer relation remain gates.
 const folder = import.meta.dirname,
-  root = path.resolve(folder, "../../..")
+  root = path.resolve(folder, "../../../../../..")
 mkdirSync(path.join(root, "node_modules/.cache"), { recursive: true })
 const temporary = mkdtempSync(path.join(root, "node_modules/.cache/expansion-driver-"))
 const sourceOwner = path.join(root, "packages/source-analysis/src/direct-event/graph-resolution")
@@ -202,28 +196,28 @@ try {
   writeFileSync(wrapperPath, wrapper(tables))
   const nativePath = path.join(root, "packages/source-analysis/dist/direct-event/graph-resolver.js")
   const dependencies = [
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionDriverSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/ForestSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/SignedLocalSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/SPEC.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/GraphSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/RustSpecification.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/WholeObservation.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/Environment.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
+    "../ExpansionDriverSpecification.bend",
+    "../ExpansionSpecification.bend",
+    "../ForestSpecification.bend",
+    "../SignedLocalSpecification.bend",
+    "../SPEC.bend",
+    "../GraphSpecification.bend",
+    "../RustSpecification.bend",
+    "../WholeObservation.bend",
+    "../Environment.bend",
+    "../Types.bend",
     "./expansion-driver-check.mjs",
     "./fixtures.mjs",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/PythonModule.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/ComposedBudget.bend",
-    "../../../packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/Traversal.bend",
-    "../../../bun.lock",
+    "../frontend-codec.ts",
+    "../service-session.ts",
+    "../frontends.ts",
+    "../PythonModule.bend",
+    "../ComposedBudget.bend",
+    "../../../../../resident-runtime/src/resident/review-work/composition/PythonArtifact.bend",
+    "../traversal/SPEC.bend",
+    "../traversal/core.bend",
+    "../traversal/Traversal.bend",
+    "../../../../../../bun.lock",
     nativePath
   ]
   // Freeze the full authored Bend import closure, including the shared Python child.

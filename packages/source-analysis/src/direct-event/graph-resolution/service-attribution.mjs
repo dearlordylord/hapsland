@@ -10,7 +10,7 @@ import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolver.js"
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../../native-observation/dist/direct-event/selection.js"
 import { createDispatcher } from "./runtime-observation/transport.mjs"
 import { createServiceRegistry } from "./service-session.ts"
-import { createGraphFixtures } from "../../../../../src/direct-event/graph-resolution/fixtures.mjs"
+import { createGraphFixtures } from "./verification/fixtures.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
 
 // Diagnostic only. Copies add timing wrappers to the current compiled consumer;
