@@ -71,6 +71,10 @@
     "./direct-event/handoff-sources": {
       "types": "./dist/direct-event/handoff-sources.d.ts",
       "default": "./dist/direct-event/handoff-sources.js"
+    },
+    "./direct-event/preparation": {
+      "types": "./dist/direct-event/preparation/capability.d.ts",
+      "default": "./dist/direct-event/preparation/capability.js"
     }
   },
   "dependencies": {

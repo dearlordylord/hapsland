@@ -22,14 +22,12 @@ import { resize } from "../../state/capacity/reservations.ts"
 import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
 import { analysisWorkspaceBytes } from "../../work-ownership/workspace.ts"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
-import { createPreparationFinalizationConsumer } from "../../../../../review-execution/src/direct-event/preparation/preparation-finalization.mjs"
-import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { createPreparationCapability } from "@hapsland/review-execution/direct-event/preparation"
 
 // Physical engine/effect bindings for one fresh prepareObservation session.
 // Candidate/contract/root progression stays in the checked Preparation machine.
 export function createPreparationForeign({
   connection,
-  finalization,
   owner,
   driver,
   registry,
@@ -45,24 +43,21 @@ export function createPreparationForeign({
   onMaterialization,
   residentContext
 }) {
-  const render = createPreparationFinalizationConsumer({
-    machine: finalization,
-    canonicalGate: async (event) => {
-      const result = await Effect.runPromise(connection.bridge.canonical(event))
-      if (result.refusal || result.outputs.length !== 1) throw new Error("Canonical finalization gate refused")
-      const output = result.outputs[0]
-      if (output.$ !== "Canonical.PolicyDecided" || output.decision.$ !== "Canonical.RuleGate")
-        throw new Error("Canonical finalization gate missing")
-      switch (output.decision.gate.$) {
-        case "RulePolicy.Admit":
-          return true
-        case "RulePolicy.Omit":
-          return false
-        default:
-          throw new TypeError("Invalid Canonical finalization gate")
-      }
+  const canonicalGate = async (event) => {
+    const result = await Effect.runPromise(connection.bridge.canonical(event))
+    if (result.refusal || result.outputs.length !== 1) throw new Error("Canonical finalization gate refused")
+    const output = result.outputs[0]
+    if (output.$ !== "Canonical.PolicyDecided" || output.decision.$ !== "Canonical.RuleGate")
+      throw new Error("Canonical finalization gate missing")
+    switch (output.decision.gate.$) {
+      case "RulePolicy.Admit":
+        return true
+      case "RulePolicy.Omit":
+        return false
+      default:
+        throw new TypeError("Invalid Canonical finalization gate")
     }
-  })
+  }
   const rootCaptures = new Map(),
     selections = new Map()
   let roots = 0
@@ -92,7 +87,7 @@ export function createPreparationForeign({
         bytes: BigInt(capture.byteLength)
       }))
     )
-  return async (request, options) => {
+  const performEffect = async (request, options) => {
     const command = request.command
     let response
     switch (command.$) {
@@ -318,52 +313,18 @@ export function createPreparationForeign({
         }
         break
       }
-      case "RenderUnits": {
-        const contract =
-          command.contract.$ === "PreparationSelection.FunctionContract"
-            ? FUNCTION_INPUT_CONTRACT
-            : command.contract.$ === "PreparationSelection.TypeContract"
-              ? TYPE_INPUT_CONTRACT
-              : command.contract.name
-        const declarations = unlist(command.declarations).map(({ id, declaration }) => ({
-          artifact: { id, kind: declaration.kind, name: declaration.name },
-          location: {
-            start: { line: Number(declaration.location.start.line), column: Number(declaration.location.start.column) },
-            end: { line: Number(declaration.location.end.line), column: Number(declaration.location.end.column) }
-          }
-        }))
-        const outcomes = await render(
-          {
-            invocation: request.invocation,
-            command: request.id,
-            units: unlist(command.units).map(fromProductValue),
-            declarations,
-            path: command.context.capture.path,
-            frame: {
-              contract,
-              graphLimits,
-              supportingCaptures: cache,
-              observation: { root },
-              context: { ...context, settings }
-            }
-          },
-          options
-        )
-        response = {
-          $: "UnitsRendered",
-          outcomes: list(
-            outcomes.map((outcome) => ({
-              $: "OutcomeReady",
-              path: outcome.path,
-              prepared: productValue(outcome.prepared)
-            }))
-          )
-        }
-        break
-      }
       default:
         throw new Error("Unexpected preparation provider " + command.$)
     }
     return { $: "Reply", invocation: request.invocation, id: request.id, response }
   }
+  const capability = createPreparationCapability({
+    canonicalGate,
+    performEffect,
+    context: { ...context, settings },
+    root,
+    graphLimits,
+    capturedSources: cache
+  })
+  return { ...capability, perform: (request, options) => capability.perform([request], options) }
 }

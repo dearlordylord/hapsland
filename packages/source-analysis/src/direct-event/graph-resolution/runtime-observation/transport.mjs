@@ -1,9 +1,4 @@
-export class TransportFailure extends Error {
-  constructor(code) {
-    super("Bend effect transport: " + code)
-    this.code = code
-  }
-}
+import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 const abortFailure = () => new TransportFailure("aborted")
 const checkAbort = (signal) => {
   if (signal?.aborted) throw abortFailure()

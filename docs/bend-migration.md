@@ -175,6 +175,20 @@ expression in list`; this is an open gate, not an exemption.
 One current obstacle list, in execution order:
 
 1. Qualify ordinary compiled capability boundaries and the unique shared ABI:
+   The current authored entry is one typed driver-compatible preparation capability:
+   machine/perform/decode, with both generated cores and typed dispatcher/finalization
+   private. Its external command port excludes RenderUnits; finalization stays inside
+   the owner. Source and resident verification bindings use this factory, and Source
+   decodes only after actual Canonical handoff acceptance. These changed consumers
+   still require physical qualification. The public pipeline remains native TS;
+   connected production whole units and deleted replacement algorithms remain zero.
+   Astra reviewed the ownership/lifecycle seam. GraphLimits uses its existing owner
+   and perform checks invocation/request against the supplied driver lease; live
+   fencing remains exclusively Canonical. The single TransportFailure class now
+   belongs to runtime-environment/runtime/effect-transport, with direct consumers;
+   no transport implementation or duplicate error class is exported from analysis.
+   Fixture defaults and native comparisons in resident's composition binding,
+   source-analysis session API, whole proofs and public input encoding remain open.
    The owner recipe now emits Preparation and PreparationFinalization as private
    library artifacts during ordinary review-execution compilation. Exact transitive
    inputs, authored closed declarations and pinned Bend identity enter compiler
@@ -358,14 +372,20 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest pair at `d35c2fb9` began
-   2026-10-11 08:15:06/08:18:52 UTC: build qualified but failed **1.0827**;
-   execution qualified and passed **0.7633**. All 34 build runs used 23/46 cached
-   tasks; baseline mean was 5.9381s, candidate mean 6.4291s. HEAD, sources and
-   artifact trees stayed unchanged. Qualification records are in ignored
-   `.test-runs/bend-migration/performance/2026-10-11T08-15-06.191786+00-00/`
-   and `2026-10-11T08-18-52.278567+00-00/`. These cover existing production,
-   not unadopted whole preparation. Both starts met the 30-minute cadence.
+   parity on the connected candidate. Latest pair at `2668b9b5` began
+   2026-10-11 08:50:57/08:56:41 UTC: build qualified but failed **1.1421**;
+   execution qualified and passed **0.6860**. All 34 build runs used 23/46 cached
+   tasks; HEAD, sources and artifact trees stayed unchanged. Qualification records
+   are in ignored `.test-runs/bend-migration/performance/2026-10-11T08-50-57.686915+00-00/`
+   and `2026-10-11T08-56-41.915288+00-00/`. These cover existing production,
+   not unadopted whole preparation. The 08:45 build and 08:48 execution deadlines
+   were missed while fixing hybrid environment/library emission and cold preparation.
+   Cold Finalization still exceeded five seconds during affinity-limited parallel
+   builds. Isolated actual precompile emitted and validated both roots in 4.82s
+   combined; each invocation retained its five-second deadline. Relative/absolute
+   direct diagnostics were 2.56s/timeout, with 2.47s/4.28s CPU. Relative rooted inputs
+   are now used; this diagnostic does not establish supported build or parity.
+   Current cold/physical qualification and a newly prepared frozen pair remain gates.
    Previous build/execution ratios were 1.5609/0.9944: the first candidate build
    used 13/46 cached tasks after the Value.bend EOF correction followed warm
    preparation; its remaining 16 runs and every baseline run used 23/46. That

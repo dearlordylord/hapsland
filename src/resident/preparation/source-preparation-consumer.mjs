@@ -1,5 +1,3 @@
-import preparationCore from "../../../packages/review-execution/dist/direct-event/preparation/preparation-core.js"
-import finalizationCore from "../../../packages/review-execution/dist/direct-event/preparation/preparation-finalization-core.js"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
@@ -32,7 +30,6 @@ import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-even
 import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.mjs"
 import { createResidentOwnerTransaction } from "../../../packages/resident-runtime/src/resident/state/resolver-custody/resident-owner-transaction.mjs"
 import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
-import { createPreparationMachine } from "../../../packages/review-execution/src/direct-event/preparation/preparation-dispatcher.mjs"
 import { createSourcePreparationMachine } from "../../../packages/resident-runtime/src/resident/review-work/preparation/source-preparation-dispatcher.mjs"
 import {
   createPostPreparationMachine,
@@ -50,15 +47,9 @@ try {
     "GenericArtifact",
     "PythonArtifact",
     "CanonicalResolverOwner",
-    "Preparation",
-    "PreparationFinalization",
     "PostPreparation",
     "SourcePreparation"
   ]) {
-    if (name === "Preparation" || name === "PreparationFinalization") {
-      modules[name] = name === "Preparation" ? preparationCore : finalizationCore
-      continue
-    }
     const emitted = join(temp, name + ".mjs")
     execFileSync(
       "taskset",
@@ -220,7 +211,6 @@ try {
     }
   const machines = {
     source: createSourcePreparationMachine(modules.SourcePreparation),
-    preparation: createPreparationMachine(modules.Preparation),
     post: createPostPreparationMachine(modules.PostPreparation),
     tail: createAdviceTailMachine(modules.PostPreparation)
   }
@@ -377,6 +367,7 @@ try {
       commands = [],
       caches = [],
       preparationIds = [],
+      preparationCapabilities = new Map(),
       sourceEffects = []
     const bridge = createResidentOwnerTransaction({
       owner,
@@ -403,7 +394,7 @@ try {
         input.sourcePreparation
           ? machines.source
           : input.preparation
-            ? machines.preparation
+            ? preparationCapabilities.get(input.invocation)?.machine
             : input.postPreparation
               ? machines.post
               : input.adviceTail
@@ -805,7 +796,6 @@ try {
             : captureStable
         }
         const foreign = createPreparationForeign({
-          finalization: modules.PreparationFinalization,
           connection: { ...connection, preparation },
           owner,
           driver,
@@ -824,11 +814,15 @@ try {
               }
             : {})
         })
+        preparationCapabilities.set(BigInt(invocation), foreign)
         return {
           invocation,
           revoke() {},
-          close() {},
-          perform: foreign,
+          close() {
+            preparationCapabilities.delete(BigInt(invocation))
+          },
+          perform: foreign.perform,
+          decode: foreign.decode,
           input: {
             invocation: BigInt(invocation),
             preparation: {

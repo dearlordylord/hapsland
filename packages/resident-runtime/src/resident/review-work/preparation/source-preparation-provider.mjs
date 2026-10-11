@@ -13,7 +13,6 @@ import {
   ResidentResourceReceipt
 } from "../../state/resolver-custody/resident-provider-permit.mjs"
 import { createPostPreparationProvider } from "./post-preparation-host.mjs"
-import { decodePreparationResult } from "../../../../../review-execution/dist/direct-event/preparation/preparation-result-codec.js"
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 // Foreign effects and opaque receipts for one whole source. The cursor chooses
@@ -315,7 +314,7 @@ export function createSourcePreparationProvider(
                 )
               )
             const result = driver.handoffResult(handoff).preparation
-            const prepared = decodePreparationResult(result, job.observation.advicee)
+            const prepared = session.decode(result, job.observation.advicee)
             const pathObservation = { ...job.observation, candidates: [candidate(command.candidate)] }
             const post = createPostPreparationProvider(
               handoff.handoff,

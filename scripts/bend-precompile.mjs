@@ -1,5 +1,5 @@
 import { copyFileSync, mkdirSync, readFileSync, renameSync } from "node:fs"
-import { dirname, resolve } from "node:path"
+import { dirname, resolve, relative } from "node:path"
 import { spawnSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { bendProducerToolchain, bendProducerEnvironment, bendGeneratedLoaderEvidence } from "./bend-producer.mjs"
@@ -28,7 +28,7 @@ export async function emitBendPrecompile(root, node, stage, expected) {
     mkdirSync(dirname(output), { recursive: true })
     const executable = resolve(root, before.bend.path)
     const libraryOutput = output.replace(/\.js$/, ".mjs")
-    const args = [artifact.source, "-o", libraryOutput]
+    const args = [relative(root, artifact.source), "-o", libraryOutput]
     const result = spawnSync(executable, args, {
       cwd: root,
       env,

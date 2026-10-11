@@ -1,6 +1,6 @@
 import { artifactValueTag, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import * as Effect from "effect/Effect"
-import { TransportFailure } from "./runtime-observation/transport.mjs"
+import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import { createServiceSession } from "./service-session.mjs"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax, parsePythonSyntax } from "./frontends.mjs"
 import {

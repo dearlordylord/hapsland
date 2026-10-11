@@ -1,5 +1,3 @@
-import preparationCore from "../../../packages/review-execution/dist/direct-event/preparation/preparation-core.js"
-import finalizationCore from "../../../packages/review-execution/dist/direct-event/preparation/preparation-finalization-core.js"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
@@ -32,7 +30,6 @@ import { residentCapacity } from "../../../packages/resident-runtime/src/residen
 import { retireRound as __retireRound } from "../../../packages/resident-runtime/src/resident/state/capacity/rounds.ts"
 import { completePreparation } from "../../../packages/resident-runtime/src/resident/state/capacity/preparation.ts"
 import { createResidentOwnerTransaction } from "../../../packages/resident-runtime/src/resident/state/resolver-custody/resident-owner-transaction.mjs"
-import { createPreparationMachine } from "../../../packages/review-execution/src/direct-event/preparation/preparation-dispatcher.mjs"
 import {
   createAdviceTailMachine,
   createPostPreparationMachine
@@ -50,7 +47,6 @@ import { nativePrepareReadyUnits as __nativePrepareReadyUnits } from "../../../p
 import { nativePostPreparationSource } from "./native-post-preparation-child.mjs"
 import { consumeRetainedPreparation } from "./retention-consumer.mjs"
 import { createPreparationForeign } from "../../../packages/resident-runtime/src/resident/review-work/composition/preparation-foreign.mjs"
-import { decodePreparationResult } from "../../../packages/review-execution/dist/direct-event/preparation/preparation-result-codec.js"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import {
@@ -157,16 +153,11 @@ try {
   const artifacts = {}
   let owner
   for (const [key, name] of [
-    ["finalization", "PreparationFinalization"],
     ["composition", "ArtifactComposition"],
     ["parent", "GenericArtifact"],
     ["python", "PythonArtifact"],
     ["owner", "CanonicalResolverOwner"]
   ]) {
-    if (name === "PreparationFinalization") {
-      artifacts[key] = finalizationCore
-      continue
-    }
     const emitted = join(temp, name + ".mjs")
     execFileSync(
       "taskset",
@@ -393,7 +384,6 @@ try {
       }
     }
   }
-  const preparationMachine = createPreparationMachine(preparationCore)
   const none = { $: "None" },
     _some = (value) => ({ $: "Some", value })
   const _location = (value) => ({
@@ -505,7 +495,7 @@ try {
         if (input.postPreparation && mode === "retention-owned-constructor-fault")
           throw new Error("injected post machine construction failure")
         return input.preparation
-          ? preparationMachine
+          ? preparationForeign.machine
           : input.postPreparation
             ? postMachine
             : input.adviceTail
@@ -609,12 +599,11 @@ try {
           }
           return pureReply(await session.perform(request, options))
         }
-        return preparationForeign(request, options)
+        return preparationForeign.perform(request, options)
       }
     })
     // One action sink and one resource dispatcher for both parent and resolver.
     const preparationForeign = createPreparationForeign({
-      finalization: artifacts.finalization,
       connection:
         mode === "parent-cancel-finalization-gate"
           ? {
@@ -733,7 +722,7 @@ try {
           )
         )
         assert.equal(expected.observation.status, "complete")
-        assert.deepEqual(decodePreparationResult(outcome.preparation, advicee()), expected)
+        assert.deepEqual(preparationForeign.decode(outcome.preparation, advicee()), expected)
         assert.deepEqual(unlist(outcome.preparation.units).map(fromProductValue), expected.observation.changeSet.units)
         const actualReady = unlist(outcome.preparation.outcomes)
           .filter((value) => value.$ === "OutcomeReady")

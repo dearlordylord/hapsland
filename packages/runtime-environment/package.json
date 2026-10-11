@@ -63,6 +63,10 @@
     "./runtime/user-paths": {
       "types": "./dist/runtime/user-paths.d.ts",
       "default": "./dist/runtime/user-paths.js"
+    },
+    "./runtime/effect-transport": {
+      "types": "./dist/runtime/effect-transport.d.ts",
+      "default": "./dist/runtime/effect-transport.js"
     }
   },
   "dependencies": {
