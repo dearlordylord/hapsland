@@ -96,6 +96,7 @@ export async function nativeSourceReference({
   root,
   rootIdentity,
   candidates,
+  advicee,
   nativePatchCommand,
   settings,
   limits,
@@ -139,11 +140,16 @@ export async function nativeSourceReference({
     observationId = run(capacity.admitObservation("agent", round))
   const bridge = createResidentOwnerTransaction({ owner, transaction })
   const shared = await createResidentRetentionContext({ transaction, bridge, partition, round }, root, rootIdentity, {
-    observation: { root, rootIdentity, candidates, ...(nativePatchCommand === undefined ? {} : { nativePatchCommand }) }
+    observation: {
+      root,
+      rootIdentity,
+      candidates,
+      advicee,
+      ...(nativePatchCommand === undefined ? {} : { nativePatchCommand })
+    }
   })
   const { context, scope, hold, lifecycle } = shared,
     trace = []
-  context.job.observation.advicee = shared.identity
   context.job.canonicalObservationId = observationId
   context.job.settings = settings
   context.job.dispatch.controlled = {}

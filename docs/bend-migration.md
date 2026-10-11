@@ -840,3 +840,18 @@ through the actual fixture-supplying runner still require qualification.
 Astra's new aligned_append_fixed/cursor_address_lookup prefix is unqualified
 WIP after hard5 timeout (5.186 wall/3.364 user/0.928 system), no verdict.
 Previous checked proofs and original parent law remain unchanged.
+
+The full fixture-boundary consumers now qualify through the actual tooling
+runner: Source 56 cases/6338 requests/31 independent native whole comparisons;
+resident 70 cases/15576 preparation requests/807 post requests. The initial
+run exposed Source caller passing undefined identity after the earlier retention
+context change; supplied rule facts and identity round-trip were independently
+equal. Both Source and independent native oracle now supply fixture identity
+before retention-context construction, removing late identity patching. All
+retention-context callers were checked. Actual two changed-source lint passes.
+The complete unchanged final repeat passes within original per-consumer120s.
+All three tooling fixture import violations are closed; check:fast still fails
+the two composed-root private edges, so whole quality/adoption remain open.
+This full regression also qualifies request-time graph options and lazy
+finalization reads across the current 56/70 case corpus; original universal
+proofs, production Canonical connection and replaced TS deletion remain required.

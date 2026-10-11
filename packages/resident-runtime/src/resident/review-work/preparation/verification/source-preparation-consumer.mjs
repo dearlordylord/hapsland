@@ -24,7 +24,7 @@ import {
   captureActivityPublications,
   snapshotReservationCustody
 } from "./native-source-reference.mjs"
-import { configuredRules } from "./preparation-fixtures.mjs"
+import { configuredRules, advicee } from "./preparation-fixtures.mjs"
 import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
@@ -537,12 +537,11 @@ try {
       observation: {
         root,
         rootIdentity,
-        advicee: undefined,
+        advicee: advicee(),
         candidates,
         ...(nativePatchCommand === undefined ? {} : { nativePatchCommand })
       }
     })
-    shared.observation.advicee = shared.identity
     if (mode.startsWith("full-"))
       shared.context.job.dispatch.activityPath = join(
         root,
@@ -1235,6 +1234,7 @@ try {
       }
       if (mode.startsWith("full-")) {
         const native = await nativeSourceReference({
+          advicee: advicee(),
           owner,
           root,
           rootIdentity,
