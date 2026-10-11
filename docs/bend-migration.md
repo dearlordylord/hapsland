@@ -687,3 +687,14 @@ incomplete observation. Projection now follows the original discriminated union
 (complete.changeSet.units or incomplete.units). Runner lint passes; the final refusal
 repeat and complete expanded corpus remain unqualified until rerun. No refusal
 case or full equality assertion was removed. These test sources are retained WIP.
+
+The corrected incomplete-observation units projection passes the exact missing
+second-file native comparison (233 requests). Astra's port review found missing
+AbortSignal forwarding in InspectPath/CaptureSource and a policy callback receiver
+mismatch. Both actual Effect operations now receive the invocation/lease signal;
+policy uses native current(value) invocation without a receiver. Ordinary lint
+passes. The expanded resident corpus passes 67 cases/15336 requests/807 post
+requests, including dependency-as-candidate, normalized repeat and exact unavailable
+path semantics. Physical betweenReads cancellation and full Source rerun after
+signal changes remain open; configuration/digest read timing is a separate pending
+port gap. Original guarantees and whole production adoption are not yet qualified.

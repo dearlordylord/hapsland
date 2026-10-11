@@ -69,14 +69,13 @@ export function createPreparationForeign({
     return handle
   }
   for (const capture of cache.values()) registerCapture(capture)
+  const current = (value) => (typeof value === "function" ? value() : value)
   const currentPolicy = () =>
     context.policy === undefined
       ? settings.configuration === undefined
         ? DEFAULT_DIRECT_FILE_POLICY
         : resolvedDirectFilePolicy(settings.configuration.policy)
-      : typeof context.policy === "function"
-        ? context.policy()
-        : context.policy
+      : current(context.policy)
   const graphContext = {
     ...context,
     analysisConfiguration:
@@ -118,7 +117,8 @@ export function createPreparationForeign({
     switch (command.$) {
       case "InspectPath": {
         const admission = await Effect.runPromise(
-          inspectNamedPath(root, command.candidate.path, currentPolicy(), rootIdentity)
+          inspectNamedPath(root, command.candidate.path, currentPolicy(), rootIdentity),
+          { signal: options.signal }
         )
         if (admission.status === "denied") {
           response = { $: "PathDenied", reason: admission.reason }
@@ -139,7 +139,8 @@ export function createPreparationForeign({
             context.captureHooks,
             rootIdentity,
             command.source_cap.$ === "None" ? undefined : Number(command.source_cap.value)
-          )
+          ),
+          { signal: options.signal }
         )
         if (capture.status === "unavailable") {
           response = { $: "SourceUnavailable", diagnostic: productValue(capture.diagnostic) }
