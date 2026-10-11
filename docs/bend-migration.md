@@ -670,3 +670,10 @@ positional handles. Lint passes both changed files. Full existing Source passes
 56/6338/31; full resident rerun and additional physical multi-candidate, dependency
 as candidate, normalized-repeat, dynamic-policy and refusal/hook/cap fixtures remain
 required. This retained port is not accepted production; adoption/removal stay 0/0.
+
+Current path/capture port passes full resident preparation 64/14395/807. A new
+physical dependency-then-candidate fixture uses root.py then its imported leaf.py
+within one preparation invocation, compares complete native prepareObservation
+output, and passes 249 requests with three selected/prepared units. This closes
+that supporting-capture reuse vector; dynamic policy, normalization and exact
+refusal/hooks/cap fixtures remain open. Runner lint passes actual changed source.

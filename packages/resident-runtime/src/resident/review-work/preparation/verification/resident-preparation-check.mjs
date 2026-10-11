@@ -72,7 +72,9 @@ const scenario = (name, fixture, { expected = fixture.expected, compareNative = 
   expected,
   compareNative
 })
+const multiCandidate = { ...twoDeclarations, candidates: ["root.py", "leaf.py"], expected: { selected: 3n, units: 3 } }
 const scenarios = [
+  scenario("dependency-then-candidate", multiCandidate, { compareNative: true }),
   scenario("two-roots", twoDeclarations, { compareNative: true }),
   scenario("first-refused", twoDeclarations, { expected: { selected: 2n, units: 1 } }),
   scenario("parent-cancel-late-success", twoDeclarations),
@@ -402,14 +404,15 @@ try {
     const { name: mode, fixture, expected, compareNative } = testCase
     const owned = mode.startsWith("retention-owned-"),
       postSessions = new Map(),
-      currentPath = fixture.path
+      currentPath = fixture.path,
+      candidatePaths = fixture.candidates ?? [currentPath]
     const connection = {
         ...initial(),
         preparationObservation: {
           root,
           rootIdentity,
           advicee: advicee(),
-          candidates: [{ operation: "add", path: currentPath }]
+          candidates: candidatePaths.map((path) => ({ operation: "add", path }))
         }
       },
       registry = createServiceRegistry(),
@@ -634,9 +637,14 @@ try {
     }
     const preparationInput = {
       $: "Input",
-      candidates: list([
-        { $: "Candidate", path: currentPath, operation: { $: "CandidateAdd" }, added_lines: list([]) }
-      ]),
+      candidates: list(
+        candidatePaths.map((path) => ({
+          $: "Candidate",
+          path,
+          operation: { $: "CandidateAdd" },
+          added_lines: list([])
+        }))
+      ),
       contracts: list(fixture.contracts),
       limits,
       frozen: none,
@@ -690,7 +698,12 @@ try {
       if (compareNative) {
         const expected = await Effect.runPromise(
           prepareObservation(
-            { root, rootIdentity, advicee: advicee(), candidates: [{ operation: "add", path: currentPath }] },
+            {
+              root,
+              rootIdentity,
+              advicee: advicee(),
+              candidates: candidatePaths.map((path) => ({ operation: "add", path }))
+            },
             {
               settings: { rules: configuredRules },
               policy: DEFAULT_DIRECT_FILE_POLICY,
