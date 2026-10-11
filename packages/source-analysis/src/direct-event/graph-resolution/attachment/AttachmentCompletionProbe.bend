@@ -15,9 +15,11 @@ import ../Loop.bend as Loop
 def consume_reusable(+state: D.State, outcome: T.ServiceOutcome) -> D.Selection:
   match state outcome:
     case _ T.ProviderRejected{exception}: D.Rejected{state, T.ForeignProviderFailure{exception}}
-    case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}} T.ClockRead{ArtifactValue.Binary64{0, 0}}:
+    case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}, _} T.ClockRead{
+      ArtifactValue.Binary64{0, 0}
+    }:
       D.deadline(state, False{})
-    case D.State{_, _, _, _, _, _, _, D.AwaitCompletion{product}} T.ProductEncoded{bytes}:
+    case D.State{_, _, _, _, _, _, _, D.AwaitCompletion{product}, _} T.ProductEncoded{bytes}:
       D.completed(state, product, Nat.is_le(bytes, D.tree_cap(D.limits(D.frame(state)))))
     case _ _: D.Rejected{state, T.WrongReplyKind{}}
 
@@ -32,7 +34,7 @@ def pure_step(+selection: D.Selection) -> D.Selection:
   match selection:
     case D.Internal{+state}:
       match state:
-        case D.State{_, _, _, _, _, _, _, D.Command{}}:
+        case D.State{_, _, _, _, _, _, _, D.Command{}, _}:
           D.dispatch_command(state, frame_command(D.frame(state)))
         case _: Boundary.boundary_step(selection)
     case _: selection
@@ -51,7 +53,7 @@ def normalized(progress: D.Progress<Unit>) -> D.Progress<Unit>:
 def delivered(progress: D.Progress<Unit>, reply: T.Reply) -> D.Progress<Unit>:
   match progress:
     case D.DriverSelected{
-      D.State{+config, frame, targets, ids, target, +next, iterations, stage},
+      D.State{+config, frame, targets, ids, target, +next, iterations, stage, +python},
       operation,
       world
     }:
@@ -60,7 +62,7 @@ def delivered(progress: D.Progress<Unit>, reply: T.Reply) -> D.Progress<Unit>:
           consume,
           Unit,
           T.Request{D.invocation(config), next, operation},
-          D.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage},
+          D.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python},
           reply,
           world
         )

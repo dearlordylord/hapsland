@@ -25,7 +25,7 @@ def project(selection: D.Selection, history: V.History) -> Maybe<&2, V.Frame>:
   match selection:
     case D.Selected{+state, _}:
       match state:
-        case D.State{_, _, _, _, _, _, _, D.Transaction{X.MeasureAfter{frame, child, _}}}:
+        case D.State{_, _, _, _, _, _, _, D.Transaction{X.MeasureAfter{frame, child, _}}, _}:
           Frame.project(D.with_frame(state, staged(frame, child)), history)
         case _: None{}
     case _: None{}

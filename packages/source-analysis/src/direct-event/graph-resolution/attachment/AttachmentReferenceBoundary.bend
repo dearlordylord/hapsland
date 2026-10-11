@@ -25,7 +25,7 @@ def consume_reusable(+state: D.State, +outcome: T.ServiceOutcome) -> D.Selection
   match state outcome:
     case _ T.ProviderRejected{exception}:
       D.Rejected{state, T.ForeignProviderFailure{exception}}
-    case D.State{_, _, _, _, _, _, _, D.Transaction{transaction}} _:
+    case D.State{_, _, _, _, _, _, _, D.Transaction{transaction}, _} _:
       D.transaction_selection(state, X.Continue{X.consume(transaction, outcome)})
     case _ _:
       D.Rejected{state, T.WrongReplyKind{}}
@@ -38,7 +38,7 @@ def consume(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:
 # This projection does not increment the counter; allocation below does it once.
 def selected_request(selection: D.Selection) -> Maybe<&2, T.Request>:
   match selection:
-    case D.Selected{D.State{config, _, _, _, _, next, _, _}, operation}:
+    case D.Selected{D.State{config, _, _, _, _, next, _, _, python}, operation}:
       Some{T.Request{D.invocation(config), next, operation}}
     case _: None{}
 
@@ -50,14 +50,14 @@ def deliver(-World: Data, +selection: D.Selection, reply: T.Reply,
     world: E.WorldState<World>) -> D.Progress<World>:
   match selection:
     case D.Selected{
-      D.State{+config, frame, targets, ids, target, +next, iterations, stage},
+      D.State{+config, frame, targets, ids, target, +next, iterations, stage, +python},
       operation
     }:
       D.delivered(
         consume,
         World,
         T.Request{D.invocation(config), next, operation},
-        D.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage},
+        D.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python},
         reply,
         world
       )
@@ -78,22 +78,44 @@ def completion_frame(+state: D.State, frame: X.Frame,
 def boundary_step(+selection: D.Selection) -> D.Selection:
   match selection:
     case D.Internal{
-      D.State{+config, +frame, +targets, +ids, +target, +next, +iterations, D.AfterCommand{+skip}}
+      D.State{
+        +config,
+        +frame,
+        +targets,
+        +ids,
+        +target,
+        +next,
+        +iterations,
+        D.AfterCommand{+skip},
+        +python
+      }
     }:
       D.after_command(
-        D.State{config, frame, targets, ids, target, next, iterations, D.AfterCommand{skip}},
+        D.State{config, frame, targets, ids, target, next, iterations, D.AfterCommand{skip}, python},
         frame,
         skip
       )
     case D.Internal{
-      D.State{+config, +frame, +targets, +ids, +target, +next, +iterations, D.Iteration{}}
+      D.State{+config, +frame, +targets, +ids, +target, +next, +iterations, D.Iteration{}, +python}
     }:
-      D.iteration(D.State{config, frame, targets, ids, target, next, iterations, D.Iteration{}})
+      D.iteration(
+        D.State{config, frame, targets, ids, target, next, iterations, D.Iteration{}, python}
+      )
     case D.Internal{D.State{
       +config, +frame, +targets, +ids, +target, +next, +iterations, D.Completion{+partial}
-    }}:
+    , +python}}:
       completion_frame(
-        D.State{config, frame, targets, ids, target, next, iterations, D.Completion{partial}},
+        D.State{
+          config,
+          frame,
+          targets,
+          ids,
+          target,
+          next,
+          iterations,
+          D.Completion{partial},
+          python
+        },
         frame,
         partial
       )

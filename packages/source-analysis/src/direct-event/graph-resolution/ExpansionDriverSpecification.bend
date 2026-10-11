@@ -59,8 +59,22 @@ type Stage is Data:
   Completion{partial: Maybe<&2, G.Reason>}
   AwaitCompletion{product: ArtifactValue.ProductValue}
   PythonImporting{edge: X.Edge, child: PythonImport.Step}
-  PythonInspectStart{id: Nat, target: Target, path: String, capture: T.CaptureToken, bytes: Nat, before: Nat}
-  PythonInspecting{id: Nat, target: Target, path: String, bytes: Nat, before: Nat, child: PythonInspect.Step}
+  PythonInspectStart{
+    id: Nat,
+    target: Target,
+    path: String,
+    capture: T.CaptureToken,
+    bytes: Nat,
+    before: Nat
+  }
+  PythonInspecting{
+    id: Nat,
+    target: Target,
+    path: String,
+    bytes: Nat,
+    before: Nat,
+    child: PythonInspect.Step
+  }
   PythonValidationStart{product: ArtifactValue.ProductValue}
   PythonValidating{product: ArtifactValue.ProductValue, child: PythonRevalidation.Step}
   AwaitFinalDeadline{product: ArtifactValue.ProductValue}
@@ -117,10 +131,25 @@ def with_frame(+state: State, +frame: X.Frame) -> State:
     case State{+config, _, +targets, +ids, +target, +request, +iterations, +stage, +python}:
       State{config, frame, targets, ids, target, request, iterations, stage, python}
 
-def with_python(state: State, session: Python.Session, cache: T.CacheToken, census: Budget.Census) -> State:
+def with_python(
+  state: State,
+  session: Python.Session,
+  cache: T.CacheToken,
+  census: Budget.Census
+) -> State:
   match state:
     case State{config, frame, targets, ids, target, request, iterations, stage, _}:
-      State{config, frame, targets, ids, target, request, iterations, stage, Some{PythonContext{session, cache, census}}}
+      State{
+        config,
+        frame,
+        targets,
+        ids,
+        target,
+        request,
+        iterations,
+        stage,
+        Some{PythonContext{session, cache, census}}
+      }
 
 def python_context(state: State) -> Maybe<&2, PythonContext>:
   match state:
@@ -197,27 +226,70 @@ def bounded_usage(graph: G.Bounded) -> Python.Usage:
     case G.Bounded{graph, _}: Budget.graph_usage(graph)
 
 def source_usage(+state: State, census: Budget.Census) -> Python.Usage:
-  Budget.combined_usage(census, bounded_usage(X.frame_graph(frame(state))), source_cap(limits(frame(state))))
+  Budget.combined_usage(
+    census,
+    bounded_usage(X.frame_graph(frame(state))),
+    source_cap(limits(frame(state)))
+  )
 
 def python_available_at(+state: State, python: Maybe<&2, PythonContext>) -> Bool:
   match python:
     case None{}: True{}
     case Some{PythonContext{session, _, census}}:
-      Budget.available_usage(source_usage(state, census), Python.usage(session), limits(frame(state)))
+      Budget.available_usage(
+        source_usage(state, census),
+        Python.usage(session),
+        limits(frame(state))
+      )
 
 def python_available(+state: State) -> Bool:
   python_available_at(state, python_context(state))
 
 def with_dependencies(value: X.Frame, dependencies: List<&2, String>) -> X.Frame:
   match value:
-    case X.Frame{graph, command, forest, local, pending, captured, identities, edge, episode, artifact, _, fingerprint}:
-      X.Frame{graph, command, forest, local, pending, captured, identities, edge, episode, artifact, dependencies, fingerprint}
+    case X.Frame{
+      graph,
+      command,
+      forest,
+      local,
+      pending,
+      captured,
+      identities,
+      edge,
+      episode,
+      artifact,
+      _,
+      fingerprint
+    }:
+      X.Frame{
+        graph,
+        command,
+        forest,
+        local,
+        pending,
+        captured,
+        identities,
+        edge,
+        episode,
+        artifact,
+        dependencies,
+        fingerprint
+      }
 
-def synchronized_at(+state: State, +session: Python.Session, python: Maybe<&2, PythonContext>) -> State:
+def synchronized_at(
+  +state: State,
+  +session: Python.Session,
+  python: Maybe<&2, PythonContext>
+) -> State:
   match python:
     case None{}: state
     case Some{PythonContext{_, cache, census}}:
-      with_python(with_frame(state, with_dependencies(frame(state), Python.dependencies(session))), session, cache, census)
+      with_python(
+        with_frame(state, with_dependencies(frame(state), Python.dependencies(session))),
+        session,
+        cache,
+        census
+      )
 
 def synchronized(+state: State, session: Python.Session) -> State:
   synchronized_at(state, session, python_context(state))
@@ -231,7 +303,7 @@ def child_request(+state: State, next: Stage, +expected: T.Request) -> Selection
   match expected:
     case T.Request{owner, id, _}:
       child_request_at(state, next, expected,
-        Bool.and(Nat.eq(owner, invocation(config(state))), Nat.eq(id, next_request(state))))
+        Bool.and(Nat.is_eq(owner, invocation(config(state))), Nat.is_eq(id, next_request(state))))
 
 def child_reply(request: T.Request, outcome: T.ServiceOutcome) -> T.Reply:
   match request:
@@ -304,8 +376,11 @@ def file_key(+path: String, +edge: X.Edge) -> String:
 def allocated(+state: State, +result: G.Resolution, +skip: Bool) -> Selection:
   match state:
     case State{+config, +frame, +targets, +ids, +target, +request, +iterations, +stage, +python}:
-      after(State{config, frame, targets, ids, (target + 1n : Nat), request, iterations, stage, python},
-        G.Resolved{target, result}, skip)
+      after(
+        State{config, frame, targets, ids, (target + 1n : Nat), request, iterations, stage, python},
+        G.Resolved{target, result},
+        skip
+      )
 
 def outside(~absolute: String -> Bool, +path: String, +separator: String) -> Bool:
   Bool.or(
@@ -572,9 +647,21 @@ def known_key(
         target,
         edge
       )
-    case State{+config, +frame, +targets, +ids, +next, +request, +iterations, +stage, +python} Some{+id}:
+    case State{+config, +frame, +targets, +ids, +next, +request, +iterations, +stage, +python} Some{
+      +id
+    }:
       chosen_target(
-        State{config, frame, targets, stored_id(ids, key, id), next, request, iterations, stage, python},
+        State{
+          config,
+          frame,
+          targets,
+          stored_id(ids, key, id),
+          next,
+          request,
+          iterations,
+          stage,
+          python
+        },
         id,
         target,
         edge
@@ -582,7 +669,13 @@ def known_key(
 
 def choose_key(+state: State, +key: String, +target: Target, +edge: X.Edge) -> Selection:
   match state:
-    case State{_, _, _, +ids, _, _, _, _, _}: known_key(state, key, target_id(ids, key), target, edge)
+    case State{_, _, _, +ids, _, _, _, _, _}: known_key(
+      state,
+      key,
+      target_id(ids, key),
+      target,
+      edge
+    )
 
 def chosen_path(+state: State, +edge: X.Edge, +path: String) -> Selection:
   match edge:
@@ -591,26 +684,63 @@ def chosen_path(+state: State, +edge: X.Edge, +path: String) -> Selection:
 
 def renamed_edge(edge: X.Edge, name: String) -> X.Edge:
   match edge:
-    case X.Edge{id, F.Pending{owner, Local.Pending{token, index, path, symbol, _, depth, expected, target}}, source, catalog}:
-      X.Edge{id, F.Pending{owner, Local.Pending{token, index, path, symbol, name, depth, expected, target}}, source, catalog}
+    case X.Edge{
+      id,
+      F.Pending{owner, Local.Pending{token, index, path, symbol, _, depth, expected, target}},
+      source,
+      catalog
+    }:
+      X.Edge{
+        id,
+        F.Pending{owner, Local.Pending{token, index, path, symbol, name, depth, expected, target}},
+        source,
+        catalog
+      }
 
-def python_resolution(+state: State, edge: X.Edge, resolution: Maybe<&2, PythonImport.Resolution>, available: Bool) -> Selection:
+def python_resolution(
+  +state: State,
+  edge: X.Edge,
+  resolution: Maybe<&2, PythonImport.Resolution>,
+  available: Bool
+) -> Selection:
   match resolution available:
-    case Some{PythonImport.Resolution{path, name}} True{}: chosen_path(state, renamed_edge(edge, name), path)
+    case Some{PythonImport.Resolution{path, name}} True{}: chosen_path(
+      state,
+      renamed_edge(edge, name),
+      path
+    )
     case _ _: allocated(state, G.Unhandled{}, False{})
 
 def python_import_step(+state: State, +edge: X.Edge, +child: PythonImport.Step) -> Selection:
   match child:
     case PythonImport.Await{child_state, +pending}:
-      child_request(synchronized(state, PythonImport.state_session(child_state)), PythonImporting{edge, child}, pending)
+      child_request(
+        synchronized(state, PythonImport.state_session(child_state)),
+        PythonImporting{edge, child},
+        pending
+      )
     case PythonImport.Returned{+session, resolution, next}:
       python_resolution(with_next(synchronized(state, session), next), edge, resolution,
         python_available(synchronized(state, session)))
-    case PythonImport.Failed{failure, session, next}: Rejected{with_next(synchronized(state, session), next), failure}
+    case PythonImport.Failed{failure, session, next}: Rejected{
+      with_next(synchronized(state, session), next),
+      failure
+    }
 
-def python_import(+state: State, +edge: X.Edge, separator: String, python: PythonContext, observed: Config) -> Selection:
+def python_import(
+  +state: State,
+  +edge: X.Edge,
+  separator: String,
+  python: PythonContext,
+  observed: Config
+) -> Selection:
   match edge python observed:
-    case X.Edge{_, F.Pending{_, Local.Pending{_, _, from, _, name, _, _, Local.Imported{imported, _}}}, _, _}
+    case X.Edge{
+      _,
+      F.Pending{_, Local.Pending{_, _, from, _, name, _, _, Local.Imported{imported, _}}},
+      _,
+      _
+    }
       PythonContext{session, cache, +census} Config{owner, root, _, _, clock, _}:
       python_import_step(state, edge, PythonImport.begin(session,
         Budget.remaining_usage(source_usage(state, census), limits(frame(state))),
@@ -712,7 +842,9 @@ def resolve_context(
   ~normalize: String -> String, ~extension: String -> String, +separator: String,
   +state: State, +edge: X.Edge, python: Maybe<&2, PythonContext>) -> Selection:
   match edge python:
-    case X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, _, _, _, Local.Imported{_, _}}}, _, _} Some{context}:
+    case X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, _, _, _, Local.Imported{_, _}}}, _, _} Some{
+      context
+    }:
       python_import(state, edge, separator, context, config(state))
     case _ _: resolve_generic(absolute, dirname, join, normalize, extension, separator, state, edge)
 
@@ -720,7 +852,17 @@ def resolve(
   ~absolute: String -> Bool, ~dirname: String -> String, ~join: List<&2, String> -> String,
   ~normalize: String -> String, ~extension: String -> String, +separator: String,
   +state: State, +edge: X.Edge) -> Selection:
-  resolve_context(absolute, dirname, join, normalize, extension, separator, state, edge, python_context(state))
+  resolve_context(
+    absolute,
+    dirname,
+    join,
+    normalize,
+    extension,
+    separator,
+    state,
+    edge,
+    python_context(state)
+  )
 
 def scanned_path(
   +state: State,
@@ -853,6 +995,98 @@ def read(+state: State, +id: Nat, +target: Target) -> Selection:
     case BundledTarget{T.FactDeclaration{_, +artifact, _, _}, _, _, _}:
       request(state, AwaitBundleBytes{id, target}, T.EncodeSourceText{artifact_source(artifact)})
 
+def canonical_read(
+  +state: State,
+  id: Nat,
+  target: Target,
+  +path: String,
+  +selection: T.SelectionToken,
+  observed: Config
+) -> Selection:
+  match observed:
+    case Config{_, _, _, _, _, None{}}:
+      request(
+        state,
+        AwaitCapture{id, target, path, selection},
+        T.CaptureSource{selection, source_cap(limits(frame(state)))}
+      )
+    case Config{_, _, _, _, _, Some{cache}}:
+      request(state, AwaitLookup{id, target, path, selection}, T.LookupCaptureCache{cache, path})
+
+def canonical_reserved(
+  +state: State,
+  id: Nat,
+  target: Target,
+  +path: String,
+  selection: T.SelectionToken,
+  session: Python.Session,
+  cache: T.CacheToken,
+  +census: Budget.Census,
+  allowed: Bool
+) -> Selection:
+  match allowed:
+    case False{}: after(state, G.CaptureFailed{}, False{})
+    case True{}: canonical_read(
+      with_python(
+        state,
+        session,
+        cache,
+        Budget.reserved(census, path, Budget.captured_path(census, path))
+      ),
+      id,
+      target,
+      path,
+      selection,
+      config(state)
+    )
+
+def canonical_reserve_at(
+  +state: State,
+  id: Nat,
+  target: Target,
+  +path: String,
+  selection: T.SelectionToken,
+  cached: Maybe<&2, Nat>,
+  python: Maybe<&2, PythonContext>
+) -> Selection:
+  match python:
+    case None{}: canonical_read(state, id, target, path, selection, config(state))
+    case Some{PythonContext{+session, cache, +census}}:
+      canonical_reserved(
+        state,
+        id,
+        target,
+        path,
+        selection,
+        session,
+        cache,
+        census,
+        Bool.and(
+          Bool.not(Budget.failed_path(census, path)),
+          Budget.reservation_allowed(
+            source_usage(state, census),
+            Python.usage(session),
+            limits(frame(state)),
+            Budget.reservation_file(Budget.captured_path(census, path)),
+            Budget.reservation_size(
+              Budget.captured_path(census, path),
+              cached,
+              source_cap(limits(frame(state)))
+            )
+          )
+        )
+      )
+
+def canonical_reserve(+state: State, id: Nat, target: Target, path: String,
+    selection: T.SelectionToken, cached: Maybe<&2, Nat>) -> Selection:
+  canonical_reserve_at(state, id, target, path, selection, cached, python_context(state))
+
+def cached_bytes(entries: List<&2, T.CaptureBytes>, +path: String) -> Maybe<&2, Nat>:
+  match entries:
+    case Nil{}: None{}
+    case T.CaptureBytes{entry, bytes} <> tail:
+      Bool.pick(Maybe<&2, Nat>, String.eq(entry, path), Some{bytes}, cached_bytes(tail, path))
+
 def authorized_observed(
   +observed: Config,
   +state: State,
@@ -863,11 +1097,7 @@ def authorized_observed(
   match observed access:
     case _ T.AccessDenied{}: after(state, G.CaptureFailed{}, False{})
     case Config{_, _, _, _, _, None{}} T.AccessAllowed{+selection, +path}:
-      request(
-        state,
-        AwaitCapture{id, target, path, selection},
-        T.CaptureSource{selection, source_cap(limits(frame(state)))}
-      )
+      canonical_reserve(state, id, target, path, selection, None{})
     case Config{_, _, _, _, _, Some{+cache}} T.AccessAllowed{+selection, +path}:
       request(state, AwaitSnapshot{id, target, path, selection}, T.SnapshotCaptureCache{cache})
 
@@ -881,7 +1111,8 @@ def snapshot_admission_observed(
   +target: Target,
   +path: String,
   +selection: T.SelectionToken,
-  +refusal: Maybe<&2, T.CaptureDiagnostic>
+  +refusal: Maybe<&2, T.CaptureDiagnostic>,
+  +cached: Maybe<&2, Nat>
 ) -> Selection:
   match observed refusal:
     case _ Some{+diagnostic}: request(
@@ -890,7 +1121,7 @@ def snapshot_admission_observed(
       T.ObserveDiagnostic{path, diagnostic}
     )
     case Config{_, _, _, _, _, Some{+cache}} None{}:
-      request(state, AwaitLookup{id, target, path, selection}, T.LookupCaptureCache{cache, path})
+      canonical_reserve(state, id, target, path, selection, cached)
     case _ _: InvariantFailed{state}
 
 def snapshot_admission(
@@ -899,9 +1130,10 @@ def snapshot_admission(
   +target: Target,
   +path: String,
   +selection: T.SelectionToken,
-  +refusal: Maybe<&2, T.CaptureDiagnostic>
+  +refusal: Maybe<&2, T.CaptureDiagnostic>,
+  +cached: Maybe<&2, Nat>
 ) -> Selection:
-  snapshot_admission_observed(config(state), state, id, target, path, selection, refusal)
+  snapshot_admission_observed(config(state), state, id, target, path, selection, refusal, cached)
 
 def snapshot(
   +state: State,
@@ -911,8 +1143,15 @@ def snapshot(
   +selection: T.SelectionToken,
   +entries: List<&2, T.CaptureBytes>
 ) -> Selection:
-  snapshot_admission(state, id, target, path, selection,
-    Rust.cache_refusal(Rust.captured_path(entries, path), entries, 2097152n))
+  snapshot_admission(
+    state,
+    id,
+    target,
+    path,
+    selection,
+    Rust.cache_refusal(Rust.captured_path(entries, path), entries, 2097152n),
+    cached_bytes(entries, path)
+  )
 
 def rebased_modules(
   ~dirname: String -> String,
@@ -968,10 +1207,23 @@ def observed_graph_work(+frame: X.Frame) -> X.Frame:
       X.with_local(frame, X.known_state(local,
         X.difference(X.graph_work(X.frame_graph(frame)), X.local_work(X.frame_local(frame)))))
 
-def inspect_request(+state: State, id: Nat, target: Target, path: String, capture: T.CaptureToken,
-    bytes: Nat, before: Nat, context: T.FrontendContext, python: Maybe<&2, PythonContext>) -> Selection:
+def inspect_request(
+  +state: State,
+  id: Nat,
+  target: Target,
+  +path: String,
+  +capture: T.CaptureToken,
+  bytes: Nat,
+  before: Nat,
+  context: T.FrontendContext,
+  python: Maybe<&2, PythonContext>
+) -> Selection:
   match python:
-    case None{}: request(state, AwaitFrontend{id, target, path, capture, bytes, before}, T.InspectSource{path, capture, context})
+    case None{}: request(
+      state,
+      AwaitFrontend{id, target, path, capture, bytes, before},
+      T.InspectSource{path, capture, context}
+    )
     case Some{_}: internal(state, PythonInspectStart{id, target, path, capture, bytes, before})
 
 def ready_capture(
@@ -1004,8 +1256,18 @@ def capture_ready(
   +capture: T.CaptureToken,
   +bytes: Nat
 ) -> Selection:
-  ready_capture(dirname, join, relative, counted(state, path, bytes), id, target, path, capture, bytes,
-    Nat.is_gt(bytes, source_cap(limits(frame(state)))))
+  ready_capture(
+    dirname,
+    join,
+    relative,
+    counted(state, path, bytes),
+    id,
+    target,
+    path,
+    capture,
+    bytes,
+    Nat.is_gt(bytes, source_cap(limits(frame(state))))
+  )
 
 def lookup(
   ~dirname: String -> String,
@@ -1177,19 +1439,59 @@ def frontend(
 def python_inspected(+state: State, id: Nat, target: Target, path: String, bytes: Nat, before: Nat,
     facts: Maybe<&2, T.SourceFacts>, next: Nat) -> Selection:
   match facts:
-    case None{}: frontend(with_next(state, next), id, target, path, bytes, before, T.SourceUnsupported{})
-    case Some{facts}: frontend(with_next(state, next), id, target, path, bytes, before, T.SourceInspected{facts})
+    case None{}: frontend(
+      with_next(state, next),
+      id,
+      target,
+      path,
+      bytes,
+      before,
+      T.SourceUnsupported{}
+    )
+    case Some{facts}: frontend(
+      with_next(state, next),
+      id,
+      target,
+      path,
+      bytes,
+      before,
+      T.SourceInspected{facts}
+    )
 
-def python_inspect_step(+state: State, +id: Nat, +target: Target, +path: String, +bytes: Nat, +before: Nat,
-    +child: PythonInspect.Step) -> Selection:
+def python_inspect_step(
+  +state: State,
+  +id: Nat,
+  +target: Target,
+  +path: String,
+  +bytes: Nat,
+  +before: Nat,
+  +child: PythonInspect.Step
+) -> Selection:
   match child:
     case PythonInspect.Await{_, +pending}:
       child_request(state, PythonInspecting{id, target, path, bytes, before, child}, pending)
-    case PythonInspect.Returned{facts, next}: python_inspected(state, id, target, path, bytes, before, facts, next)
+    case PythonInspect.Returned{facts, next}: python_inspected(
+      state,
+      id,
+      target,
+      path,
+      bytes,
+      before,
+      facts,
+      next
+    )
     case PythonInspect.Failed{failure}: Rejected{state, failure}
 
-def python_inspect_begin(+state: State, id: Nat, target: Target, +path: String, capture: T.CaptureToken,
-    bytes: Nat, before: Nat, observed: Config) -> Selection:
+def python_inspect_begin(
+  +state: State,
+  id: Nat,
+  target: Target,
+  +path: String,
+  capture: T.CaptureToken,
+  bytes: Nat,
+  before: Nat,
+  observed: Config
+) -> Selection:
   match observed:
     case Config{owner, root, _, T.PythonSourceContext{T.TypeBranch{}}, _, _}:
       python_inspect_step(state, id, target, path, bytes, before,
@@ -1383,17 +1685,29 @@ def completion(+fuel: Nat, +state: State, +partial: Maybe<&2, G.Reason>) -> Sele
 
 def final_clock(+state: State, product: ArtifactValue.ProductValue, observed: Config) -> Selection:
   match observed:
-    case Config{_, _, _, _, clock, _}: request(state, AwaitFinalDeadline{product}, T.ReadClock{clock})
+    case Config{_, _, _, _, clock, _}: request(
+      state,
+      AwaitFinalDeadline{product},
+      T.ReadClock{clock}
+    )
 
 def python_validated(+state: State, product: ArtifactValue.ProductValue, valid: Bool) -> Selection:
   match valid:
     case False{}: no_unit(state)
     case True{}: final_clock(state, product, config(state))
 
-def python_validation_step(+state: State, +product: ArtifactValue.ProductValue, +child: PythonRevalidation.Step) -> Selection:
+def python_validation_step(
+  +state: State,
+  +product: ArtifactValue.ProductValue,
+  +child: PythonRevalidation.Step
+) -> Selection:
   match child:
     case PythonRevalidation.Await{child_state, +pending}:
-      child_request(synchronized(state, PythonRevalidation.state_session(child_state)), PythonValidating{product, child}, pending)
+      child_request(
+        synchronized(state, PythonRevalidation.state_session(child_state)),
+        PythonValidating{product, child},
+        pending
+      )
     case PythonRevalidation.Returned{session, valid, next}:
       python_validated(with_next(synchronized(state, session), next), product, valid)
     case PythonRevalidation.Failed{failure}: Rejected{state, failure}
@@ -1402,12 +1716,27 @@ def python_validation_begin(+state: State, product: ArtifactValue.ProductValue, 
     python: Maybe<&2, PythonContext>, observed: Config) -> Selection:
   match python observed:
     case Some{PythonContext{session, _, census}} Config{owner, _, _, _, clock, _}:
-      python_validation_step(state, product, PythonRevalidation.begin(
-        Python.with_remaining(session, Budget.remaining_usage(source_usage(state, census), limits(frame(state)))),
-        clock, separator, owner, next_request(state)))
+      python_validation_step(
+        state,
+        product,
+        PythonRevalidation.begin(
+          Python.with_remaining(
+            session,
+            Budget.remaining_usage(source_usage(state, census), limits(frame(state)))
+          ),
+          clock,
+          separator,
+          owner,
+          next_request(state)
+        )
+      )
     case None{} _: InvariantFailed{state}
 
-def terminal_product(+state: State, product: ArtifactValue.ProductValue, python: Maybe<&2, PythonContext>) -> Selection:
+def terminal_product(
+  +state: State,
+  product: ArtifactValue.ProductValue,
+  python: Maybe<&2, PythonContext>
+) -> Selection:
   match python:
     case None{}: Success{state, Some{product}}
     case Some{_}: internal(state, PythonValidationStart{product})
@@ -1433,16 +1762,40 @@ def choose(
   +state: State
 ) -> Selection:
   match state:
-    case State{_, _, _, _, _, _, _, PythonInspectStart{id, target, path, capture, bytes, before}, _}:
+    case State{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      PythonInspectStart{id, target, path, capture, bytes, before},
+      _
+    }:
       python_inspect_begin(state, id, target, path, capture, bytes, before, config(state))
     case State{_, _, _, _, _, _, _, PythonValidationStart{product}, _}:
       python_validation_begin(state, product, separator, python_context(state), config(state))
     case State{_, _, _, _, _, _, _, Iteration{}, +python}: iteration(state)
-    case State{_, X.Frame{_, +command, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, Command{}, +python}: dispatch_command(
+    case State{
+      _,
+      X.Frame{_, +command, _, _, _, _, _, _, _, _, _, _},
+      _,
+      _,
+      _,
+      _,
+      _,
+      Command{},
+      +python
+    }: dispatch_command(
       state,
       command
     )
-    case State{_, +frame, _, _, _, _, _, AfterCommand{+skip}, +python}: after_command(state, frame, skip)
+    case State{_, +frame, _, _, _, _, _, AfterCommand{+skip}, +python}: after_command(
+      state,
+      frame,
+      skip
+    )
     case State{_, _, _, _, _, _, _, Resolve{+edge}, +python}: resolve(
       absolute,
       dirname,
@@ -1470,23 +1823,52 @@ def choose(
     case State{_, _, _, _, _, _, _, Completion{+partial}, +python}: completion(fuel, state, partial)
     case _: InvariantFailed{state}
 
-def python_import_reply(state: State, edge: X.Edge, +child: PythonImport.Step, outcome: T.ServiceOutcome) -> Selection:
+def python_import_reply(
+  state: State,
+  edge: X.Edge,
+  +child: PythonImport.Step,
+  outcome: T.ServiceOutcome
+) -> Selection:
   match child:
-    case PythonImport.Await{_, pending}: python_import_step(state, edge, PythonImport.resume(child, child_reply(pending, outcome)))
+    case PythonImport.Await{_, pending}: python_import_step(
+      state,
+      edge,
+      PythonImport.resume(child, child_reply(pending, outcome))
+    )
     case _: InvariantFailed{state}
 
-def python_inspect_reply(state: State, id: Nat, target: Target, path: String, bytes: Nat, before: Nat,
-    +child: PythonInspect.Step, outcome: T.ServiceOutcome) -> Selection:
+def python_inspect_reply(
+  state: State,
+  id: Nat,
+  target: Target,
+  path: String,
+  bytes: Nat,
+  before: Nat,
+  +child: PythonInspect.Step,
+  outcome: T.ServiceOutcome
+) -> Selection:
   match child:
     case PythonInspect.Await{_, pending}:
-      python_inspect_step(state, id, target, path, bytes, before, PythonInspect.resume(child, child_reply(pending, outcome)))
+      python_inspect_step(
+        state,
+        id,
+        target,
+        path,
+        bytes,
+        before,
+        PythonInspect.resume(child, child_reply(pending, outcome))
+      )
     case _: InvariantFailed{state}
 
 def python_validation_reply(state: State, product: ArtifactValue.ProductValue,
     +child: PythonRevalidation.Step, outcome: T.ServiceOutcome) -> Selection:
   match child:
     case PythonRevalidation.Await{_, pending}:
-      python_validation_step(state, product, PythonRevalidation.resume(child, child_reply(pending, outcome)))
+      python_validation_step(
+        state,
+        product,
+        PythonRevalidation.resume(child, child_reply(pending, outcome))
+      )
     case _: InvariantFailed{state}
 
 def consume(
@@ -1532,7 +1914,9 @@ def consume(
     case State{_, _, _, _, _, _, _, AwaitLookup{+id, +target, +path, +selection}, +python} T.CacheResult{
       +outcome
     }: lookup(dirname, join, relative, state, id, target, path, selection, outcome)
-    case State{_, _, _, _, _, _, _, AwaitCapture{+id, +target, +path, _}, +python} T.CaptureResult{+outcome}: capture(
+    case State{_, _, _, _, _, _, _, AwaitCapture{+id, +target, +path, _}, +python} T.CaptureResult{
+      +outcome
+    }: capture(
       dirname,
       join,
       relative,
@@ -1569,7 +1953,9 @@ def consume(
       before,
       outcome
     )
-    case State{_, _, _, _, _, _, _, AwaitBundleBytes{+id, +target}, +python} T.SourceTextEncoded{+bytes}: bundle_attempt(
+    case State{_, _, _, _, _, _, _, AwaitBundleBytes{+id, +target}, +python} T.SourceTextEncoded{
+      +bytes
+    }: bundle_attempt(
       state,
       id,
       target,

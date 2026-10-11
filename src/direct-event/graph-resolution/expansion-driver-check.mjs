@@ -39,6 +39,7 @@ mkdirSync(path.join(root, "node_modules/.cache"), { recursive: true })
 const temporary = mkdtempSync(path.join(root, "node_modules/.cache/expansion-driver-"))
 const sourceOwner = path.join(root, "packages/source-analysis/src/direct-event/graph-resolution")
 const wrapperPath = path.join(sourceOwner, ".expansion-driver-" + path.basename(temporary) + ".bend")
+const liveSessions = new Set()
 const tag = (name, fields = {}) => ({ $: name, ...fields }),
   label = (v) => v.$.split(".").at(-1)
 const t = (name, fields = {}) => tag(artifactValueTag(name) ?? "Types." + name, fields),
@@ -449,6 +450,7 @@ try {
         return facts === undefined ? undefined : sourceFacts(facts)
       }
     })
+    liveSessions.add(session)
     const clock = (await session.perform(t("Request", { invocation: 1n, id: 36n, operation: t("StartClock") }))).outcome
       .clock
     const config = d("Config", {
@@ -467,13 +469,17 @@ try {
       preparedPython
     if (isPython) {
       const rootToken = session.registerCapture(stable(selected))
+      let nextSeedRequest = 37n
       const driveChild = async (step, resume) => {
         let transitions = 0
         while (label(step) === "Await") {
           assert.ok(++transitions < 20000, "Python preparation finite transition bound")
+          assert.equal(BigInt(step.request.invocation), 1n, "Python seed invocation custody")
+          assert.equal(BigInt(step.request.id), nextSeedRequest++, "Python seed contiguous request custody")
           step = resume(step, await session.perform(step.request))
         }
         assert.equal(label(step), "Returned", "Python raw-root child returned")
+        assert.equal(BigInt(step.next), nextSeedRequest, "Python seed returned request custody")
         return step
       }
       const preparation = await driveChild(
@@ -810,6 +816,7 @@ try {
       returned: actual !== undefined
     })
     session.close()
+    liveSessions.delete(session)
   }
   assert.deepEqual(hashes(), sources, "verification sources frozen")
   const record = {
@@ -838,6 +845,7 @@ try {
     })
   )
 } finally {
+  for (const session of liveSessions) session.close()
   rmSync(wrapperPath, { force: true })
   rmSync(temporary, { recursive: true, force: true })
 }

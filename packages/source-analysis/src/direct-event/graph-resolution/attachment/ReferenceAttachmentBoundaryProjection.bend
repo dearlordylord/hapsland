@@ -33,10 +33,10 @@ def selected(request: Maybe<&2, T.Request>, frame: Maybe<&2, V.Frame>,
 def selected_stage(+state: D.State, +operation: T.Operation,
     child: X.Child, history: V.History) -> Maybe<&2, B.Boundary>:
   match state operation:
-    case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}} T.ReadClock{_}:
+    case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}, _} T.ReadClock{_}:
       selected(Boundary.selected_request(D.Selected{state, operation}),
         Frame.project(state, history), B.CheckingIteration{allocated(Ready.capsule(state, child))})
-    case D.State{_, _, _, _, _, _, _, D.AwaitCompletion{product}} T.EncodeProduct{_}:
+    case D.State{_, _, _, _, _, _, _, D.AwaitCompletion{product}, _} T.EncodeProduct{_}:
       selected(
         Boundary.selected_request(D.Selected{state, operation}),
         Frame.project(state, history),
