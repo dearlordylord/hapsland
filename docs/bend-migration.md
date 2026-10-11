@@ -226,7 +226,7 @@ One current obstacle list, in execution order:
    rejection values reached engine Resume. Delivery now distinguishes error
    property presence from its value, including first-action/sink/abort/construction
    failures and AggregateError cause presence. The actual Canonical owner/driver
-   check now passes 342 assertions, including all five falsy values with and
+   check now passes 393 assertions, including all five falsy values with and
    without cleanup Error, task/close failures with identical values, and constructor
    plus cleanup failures with identical undefined or Error values. Failed cleanup
    retains an exact retry obligation. Ten runtime vectors compare original rules
@@ -245,11 +245,19 @@ One current obstacle list, in execution order:
    completed drive or consumes its forwarding slot. Successive retry failures,
    including undefined, remain isolated; the original obligation survives until
    success. Source's 50 and resident's 64 physical scenarios pass this candidate.
-   Astra identified the next concrete custody gap: after committed cancellation
-   and an action-body failure, an inactive child alone cannot justify release.
-   Prove and exercise repetition of the still-required resource operation before
-   releasing its handles; acknowledgment/sink failures must not replay completed
-   actions. Whole universal Cause/custody and resource correspondence remain open.
+   CancelChild now retains invocation-owned cleanup suboperations after committed
+   cancellation: revoke, disposal, pending launch release, owned lease abort and
+   finished marking. A failed suboperation remains pending; retry skips completed
+   operations before releasing handles even when the child is already inactive.
+   A dispose failure plus sink failure preserves both causes; repeated failed retry
+   retains resources, and successful retry performs disposal without repeating
+   revoke. Live-provider success/error vectors ignore abort, preserve session
+   lifetime until settlement, reject late Resume and discharge the provider lease
+   before releasing resources. These are finite actual-driver checks; the map is
+   cancellation cleanup, not a general retry protocol for all owner commands.
+   Source's 50 physical scenarios passed. Resident's concurrent emission exceeded
+   its five-second limit; the isolated run passed 64 scenarios at the same limit.
+   Whole universal Cause/custody and resource correspondence remain open.
    Astra's agreed next draft is one independent native-loop specification and two
    whole declarations: observational correspondence and scope/interruption
    preservation. The specification must not call the actual Evidence/Rules/Input

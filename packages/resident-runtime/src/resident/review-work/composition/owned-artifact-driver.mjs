@@ -149,6 +149,42 @@ export function createOwnedArtifactDriver({
       }
     }
   }
+  // Cancellation commits in Canonical before these resource operations run.
+  // Keep successful suboperations so a later cleanup retry cannot replay them.
+  const cancellationCleanup = new Map()
+  const runCancellationCleanup = (obligation) => {
+    const { command, completed } = obligation
+    const invocation = command.invocation
+    const operations = [
+      () => sessions.get(invocation)?.revoke(),
+      () => engine(invocation).disposeInvocation(invocation),
+      () => {
+        const pending = launches.get(invocation)
+        if (pending) {
+          release(pending.input_handle, invocation)
+          launches.delete(invocation)
+        }
+      },
+      () => {
+        for (const lease of leases.values()) if (lease.invocation === invocation) lease.controller.abort()
+      },
+      () => {
+        if (sessions.has(invocation)) finished.set(invocation, failed())
+        stats.revoked++
+      }
+    ]
+    const failures = []
+    for (let index = 0; index < operations.length; index++) {
+      if (completed.has(index)) continue
+      try {
+        operations[index]()
+        completed.add(index)
+      } catch (error) {
+        failures.push({ phase: "action", command, operation: index, error })
+      }
+    }
+    return { failures, rejection: failures[0] }
+  }
   const actionOutcome = (command) => {
     const invocation = command.invocation
     switch (command.$) {
@@ -218,17 +254,12 @@ export function createOwnedArtifactDriver({
         release(command.state_handle, invocation)
         break
       case "CancelChild": {
-        sessions.get(invocation)?.revoke()
-        engine(invocation).disposeInvocation(invocation)
-        stats.revoked++
-        const pending = launches.get(invocation)
-        if (pending) {
-          release(pending.input_handle, invocation)
-          launches.delete(invocation)
+        let obligation = cancellationCleanup.get(invocation)
+        if (!obligation) {
+          obligation = { command, completed: new Set() }
+          cancellationCleanup.set(invocation, obligation)
         }
-        for (const lease of leases.values()) if (lease.invocation === invocation) lease.controller.abort()
-        if (sessions.has(invocation)) finished.set(invocation, failed())
-        break
+        return runCancellationCleanup(obligation)
       }
       case "CleanupProvider": {
         const lease = leases.get(command.lease)
@@ -564,7 +595,8 @@ export function createOwnedArtifactDriver({
       const releaseInvocation = () => {
         // Keep the selected engine/session reachable if native close fails.
         if (!taskEntered && registry.get(Number(invocation)) !== session) session.close?.()
-        engine(invocation).disposeInvocation(invocation)
+        if (!cancellationCleanup.get(invocation)?.completed.has(1)) engine(invocation).disposeInvocation(invocation)
+        cancellationCleanup.delete(invocation)
         machines.delete(invocation)
         sessions.delete(invocation)
         finished.delete(invocation)
@@ -578,6 +610,12 @@ export function createOwnedArtifactDriver({
           return result.rejection
         }
         try {
+          const pendingCancellation = cancellationCleanup.get(invocation)
+          if (pendingCancellation) {
+            const cleanup = runCancellationCleanup(pendingCancellation)
+            attemptFailures.push(...cleanup.failures)
+            if (cleanup.rejection) return { failures: attemptFailures, rejection: attemptFailures[0] }
+          }
           let child = owner.find(invocation, current().children)
           if (child.$ === "Some" && child.value.lease.$ !== "None")
             throw new Error("Finalization still owns a provider lease")

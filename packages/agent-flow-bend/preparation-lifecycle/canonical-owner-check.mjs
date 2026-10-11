@@ -612,6 +612,179 @@ try {
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 7
   }
+  // Canonical cancellation can commit while engine disposal fails. Keep its
+  // exact operation pending; successful revoke/abort must not run again.
+  {
+    const registry = createServiceRegistry()
+    const primary = new Error("provider failed")
+    const disposalFailure = new Error("engine disposal failed")
+    const sinkFailure = new Error("cancel sink failed")
+    let allowDisposal = false,
+      disposals = 0,
+      revokes = 0,
+      cancellations = 0
+    let providerSignal
+    const machine = {
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      view: (value) => value,
+      resume() {
+        assert.fail("failed provider cannot resume")
+      },
+      disposeInvocation() {
+        disposals++
+        if (!allowDisposal) throw disposalFailure
+      },
+      get retainedHandles() {
+        return 0
+      }
+    }
+    const driver = createOwnedArtifactDriver({
+      owner: m,
+      initialState: fresh(),
+      scope,
+      registry,
+      machine,
+      hooks: {
+        canonicalOutputs() {
+          if (revokes && !cancellations++) throw sinkFailure
+        }
+      },
+      foreign(_requests, options) {
+        providerSignal = options.signal
+        throw primary
+      }
+    })
+    const invocation = driver.allocateInvocation()
+    const session = {
+      invocation,
+      finish() {},
+      close() {},
+      revoke() {
+        revokes++
+      }
+    }
+    await assert.rejects(driver.drive(session, { invocation: BigInt(invocation) }), (error) => {
+      assert.equal(error.cause, primary)
+      assert.ok(error.errors.includes(disposalFailure))
+      assert.ok(error.errors.includes(sinkFailure))
+      return true
+    })
+    assert.equal(m.find(BigInt(invocation), driver.state.children).value.phase.$, "ChildCancelled")
+    assert.equal(revokes, 1)
+    // Provider completion already discharged its lease before cancellation.
+    assert.equal(providerSignal.aborted, false)
+    assert.equal(driver.stats.providerCleanups, 1)
+    assert.equal(registry.pendingCleanup, 1)
+    assert.equal(driver.resources.sessions, 1)
+    const failedAttempts = disposals
+    await assert.rejects(registry.retryCleanup(), (error) => {
+      assert.deepEqual(error.errors, [disposalFailure])
+      return true
+    })
+    assert.equal(disposals, failedAttempts + 1)
+    assert.equal(revokes, 1)
+    assert.equal(registry.pendingCleanup, 1)
+    assert.equal(driver.resources.sessions, 1)
+    allowDisposal = true
+    await registry.retryCleanup()
+    assert.equal(disposals, failedAttempts + 2)
+    assert.equal(revokes, 1)
+    assert.equal(registry.pendingCleanup, 0)
+    assert.equal(driver.stats.revoked, 1)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 19
+  }
+  // A provider that ignores abort must settle before the session closes. Its
+  // late reply cannot Resume an already cancelled child, even if disposal fails.
+  for (const lateFailure of [false, true]) {
+    const registry = createServiceRegistry()
+    const disposalFailure = new Error("live provider disposal failed")
+    let allowDisposal = false,
+      revokes = 0,
+      closes = 0,
+      settled = false
+    let completeProvider, providerSignal, startedProvider
+    const started = new Promise((resolve) => {
+      startedProvider = resolve
+    })
+    const machine = {
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      view: (value) => value,
+      resume() {
+        assert.fail("late provider must not Resume")
+      },
+      disposeInvocation() {
+        if (!allowDisposal) throw disposalFailure
+      },
+      get retainedHandles() {
+        return 0
+      }
+    }
+    const driver = createOwnedArtifactDriver({
+      owner: m,
+      initialState: fresh(),
+      scope,
+      registry,
+      machine,
+      foreign(_requests, options) {
+        providerSignal = options.signal
+        startedProvider()
+        return new Promise((resolve, reject) => {
+          completeProvider = () => {
+            settled = true
+            if (lateFailure) reject(undefined)
+            else resolve([])
+          }
+        })
+      }
+    })
+    const invocation = driver.allocateInvocation()
+    const session = {
+      invocation,
+      finish() {
+        assert.equal(settled, true)
+      },
+      close() {
+        assert.equal(settled, true)
+        closes++
+      },
+      revoke() {
+        revokes++
+      }
+    }
+    const observed = driver.drive(session, { invocation: BigInt(invocation) }).then(
+      () => ({ raised: false }),
+      (error) => ({ raised: true, error })
+    )
+    await started
+    assert.throws(
+      () => driver.cancel(invocation),
+      (error) => error === disposalFailure
+    )
+    assert.equal(providerSignal.aborted, true)
+    assert.equal(driver.resources.leases, 1)
+    assert.equal(closes, 0)
+    completeProvider()
+    const result = await observed
+    assert.equal(result.raised, true)
+    assert.equal(result.error, disposalFailure)
+    assert.equal(driver.stats.resumes, 0)
+    assert.equal(driver.stats.providerCleanups, 1)
+    assert.equal(closes, 1)
+    assert.equal(registry.pendingCleanup, 1)
+    assert.equal(driver.resources.sessions, 1)
+    await assert.rejects(registry.retryCleanup(), (error) => {
+      assert.deepEqual(error.errors, [disposalFailure])
+      return true
+    })
+    assert.equal(revokes, 1)
+    allowDisposal = true
+    await registry.retryCleanup()
+    assert.equal(registry.pendingCleanup, 0)
+    assert.equal(revokes, 1)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 16
+  }
   // Constructor and cleanup are separate events even with identical values.
   for (const original of [undefined, new Error("shared thrown value")]) {
     const registry = createServiceRegistry()
