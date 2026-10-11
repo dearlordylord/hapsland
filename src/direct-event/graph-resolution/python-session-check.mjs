@@ -18,8 +18,8 @@ import {
   inspectSourceFrontend,
   parsePythonSyntax,
   parseCargoSyntax
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
-import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
+import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields }),
   p = (name, fields = {}) => ({ $: "python-module/PreparationMachine." + name, ...fields })

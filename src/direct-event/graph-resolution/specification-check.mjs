@@ -9,7 +9,7 @@ import { languageForPath } from "../../../packages/source-analysis/dist/direct-e
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
 import { createGraphFixtures } from "./fixtures.mjs"
-import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { list, unlist, binary64, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const folder = import.meta.dirname,
@@ -30,7 +30,7 @@ const inputs = [
   "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/Traversal.bend",
   "./fixtures.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs",
+  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
   "../../../packages/source-analysis/dist/direct-event/graph-resolver.js",
   "../../../packages/source-analysis/dist/direct-event/languages/rust-module-context.js"
 ]

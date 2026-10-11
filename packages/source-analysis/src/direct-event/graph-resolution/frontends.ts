@@ -1,29 +1,44 @@
+import type { GraphFacts } from "../languages/contracts.ts"
+import type { List, OrderedField } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { inspectTypeScript, inspectTypeScriptFunctions } from "../../../dist/direct-event/languages/typescript.js"
-import { inspectRust, inspectRustModules } from "../../../dist/direct-event/languages/rust.js"
-import { pythonAdapter } from "../../../dist/direct-event/languages/python.js"
-import { bendAdapter } from "../../../dist/direct-event/languages/bend/adapter.js"
+import { inspectTypeScript, inspectTypeScriptFunctions } from "../languages/typescript.ts"
+import { inspectRust, inspectRustModules } from "../languages/rust.ts"
+import { pythonAdapter } from "../languages/python.ts"
+import { bendAdapter } from "../languages/bend/adapter.ts"
 import { parse } from "smol-toml"
-import { sourceFacts, tomlValue } from "./frontend-codec.mjs"
-import { projectPythonSyntax } from "./python-module/syntax-projection.mjs"
-const tag = (name) => artifactValueTag(name) ?? "Types." + name
-const optional = (value) => {
+import { sourceFacts, tomlValue } from "./frontend-codec.ts"
+import { projectPythonSyntax } from "./python-module/syntax-projection.ts"
+type Maybe<Value> = { readonly $: "None" } | { readonly $: "Some"; readonly value: Value }
+type Branch = { readonly $: string }
+type RustContext = {
+  readonly $: string
+  readonly crate_root: Maybe<boolean>
+  readonly external_module: Maybe<boolean>
+  readonly modules: Maybe<List<OrderedField<string>>>
+}
+type FrontendContext = { readonly $: string; readonly branch: Branch; readonly context: RustContext }
+const tag = (name: string) => artifactValueTag(name) ?? "Types." + name
+const optional = <Value>(value: Maybe<Value>): Value | undefined => {
   if (value?.$ === "None") return undefined
   if (value?.$ === "Some") return value.value
   throw new Error("invalid optional context")
 }
-function branch(value) {
+function branch(value: Branch) {
   if (value?.$ === tag("TypeBranch")) return "type"
   if (value?.$ === tag("FunctionBranch")) return "function"
   throw new Error("invalid branch context")
 }
-function rustContext(value) {
+function rustContext(value: RustContext) {
   if (value?.$ !== tag("RustContext")) throw new Error("invalid Rust context")
-  const result = {}
+  const result: {
+    rustCrateRoot?: boolean
+    rustExternalModule?: boolean
+    rustCrateModules?: ReadonlyMap<string, string>
+  } = {}
   for (const [field, target] of [
     ["crate_root", "rustCrateRoot"],
     ["external_module", "rustExternalModule"]
-  ]) {
+  ] as const) {
     const flag = optional(value[field])
     if (flag !== undefined) {
       if (typeof flag !== "boolean") throw new Error("invalid Rust flag")
@@ -35,7 +50,7 @@ function rustContext(value) {
     const entries = unlist(modules).map((field) => {
       if (field?.$ !== tag("OrderedField") || typeof field.key !== "string" || typeof field.value !== "string")
         throw new Error("invalid Rust module context")
-      return [field.key, field.value]
+      return [field.key, field.value] as const
     })
     if (new Set(entries.map((x) => x[0])).size !== entries.length) throw new Error("duplicate Rust module context")
     result.rustCrateModules = new Map(entries)
@@ -44,8 +59,8 @@ function rustContext(value) {
 }
 // Named independent single-source application frontends. No file reads,
 // candidate selection, graph budget or traversal is performed in this adapter.
-export function inspectSourceFrontend(path, source, context) {
-  let facts
+export function inspectSourceFrontend(path: string, source: string, context: FrontendContext) {
+  let facts: GraphFacts | undefined
   switch (context?.$) {
     case tag("TypeScriptContext"):
       facts =
@@ -68,7 +83,7 @@ export function inspectSourceFrontend(path, source, context) {
   }
   return facts === undefined ? undefined : sourceFacts(facts)
 }
-export function parseCargoSyntax(source) {
+export function parseCargoSyntax(source: string) {
   let syntax
   try {
     syntax = parse(source)
@@ -80,8 +95,8 @@ export function parseCargoSyntax(source) {
 export const inspectRustModuleSyntax = inspectRustModules
 
 // Native-parser syntax projection only. No module-scope/binding/import policy.
-export async function parsePythonSyntax(source) {
-  const { Parser, Python } = await import("../../../dist/direct-event/languages/native-parser.js")
+export async function parsePythonSyntax(source: string) {
+  const { Parser, Python } = await import("../languages/native-parser.ts")
   const parser = new Parser()
   // The pinned native Node binding exposes reset, not tree/parser delete. Native
   // objects stay call-local; the returned projection contains no engine handles.

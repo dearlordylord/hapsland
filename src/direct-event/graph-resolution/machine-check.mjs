@@ -16,7 +16,7 @@ import {
   inspectSourceFrontend,
   parseCargoSyntax,
   inspectRustModuleSyntax
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { resolveGraphUnit } from "../../../packages/source-analysis/dist/direct-event/graph-resolver.js"
 import {
   DEFAULT_DIRECT_FILE_POLICY,

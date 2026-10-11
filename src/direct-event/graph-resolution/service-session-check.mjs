@@ -20,12 +20,12 @@ import {
 import {
   sourceFacts,
   tomlValue
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import {
   inspectSourceFrontend,
   parseCargoSyntax,
   inspectRustModuleSyntax
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { inspectTypeScript } from "../../../packages/source-analysis/dist/direct-event/languages/typescript.js"
 import {
   inspectRust,
@@ -38,7 +38,7 @@ const folder = import.meta.dirname,
 const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 try {
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
-  const program = join(temporary, "../../../packages/source-analysis/src/direct-event/graph-resolution/services.js")
+  const program = join(temporary, "services.js")
   execFileSync(
     "bend",
     [join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Runtime.bend"), "-o", program],

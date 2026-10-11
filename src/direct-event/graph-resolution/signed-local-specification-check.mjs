@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
-import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const folder = import.meta.dirname,
@@ -17,7 +17,7 @@ const inputs = [
   "../../../packages/source-analysis/src/direct-event/graph-resolution/WholeObservation.bend",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
   "./signed-local-specification-check.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs",
+  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",

@@ -23,7 +23,7 @@ import { createGraphFixtures } from "./fixtures.mjs"
 import {
   sourceFacts,
   artifact
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
@@ -206,7 +206,7 @@ try {
     "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
     "./expansion-driver-check.mjs",
     "./fixtures.mjs",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs",
+    "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",

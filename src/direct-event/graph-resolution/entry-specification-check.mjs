@@ -26,7 +26,7 @@ import {
   sourceFacts,
   artifact,
   tomlValue
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
@@ -326,7 +326,7 @@ try {
     "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
     "./entry-specification-check.mjs",
     "./fixtures.mjs",
-    "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs",
+    "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/RELATION.bend",
@@ -384,7 +384,7 @@ try {
   const portCopy = path.join(temporary, "observed-ports.mjs")
   writeFileSync(
     portCopy,
-    `import {sourceFacts} from '${pathToFileURL(path.join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"))}';import {lstat as realLstat} from 'node:fs/promises';import * as Effect from 'effect/Effect';import {eligibleNamedPath as realAccess} from '${pathToFileURL(path.join(root, "packages/native-observation/dist/direct-event/selection.js"))}';export const events=[];export function observedInspect(session,file,source,branch){const facts=session.inspect(file,source,branch);events.push({kind:'frontend',path:file,text:source,branch,facts:facts===undefined?undefined:JSON.parse(JSON.stringify(sourceFacts(facts),(_key,value)=>typeof value==='bigint'?Number(value):value))});return facts}export function reset(){events.length=0}export async function lstat(file){try{const value=await realLstat(file);events.push({kind:'status',path:file,status:value.isFile()?'ExistingFile':'ExistingOther'});return value}catch(error){events.push({kind:'status',path:file,status:'FileAbsent'});throw error}}export function eligibleNamedPath(...args){return Effect.map(realAccess(...args),value=>{events.push({kind:'access',path:args[1],allowed:value!==undefined,relativePath:value?.relativePath});return value})}`
+    `import {sourceFacts} from '${pathToFileURL(path.join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"))}';import {lstat as realLstat} from 'node:fs/promises';import * as Effect from 'effect/Effect';import {eligibleNamedPath as realAccess} from '${pathToFileURL(path.join(root, "packages/native-observation/dist/direct-event/selection.js"))}';export const events=[];export function observedInspect(session,file,source,branch){const facts=session.inspect(file,source,branch);events.push({kind:'frontend',path:file,text:source,branch,facts:facts===undefined?undefined:JSON.parse(JSON.stringify(sourceFacts(facts),(_key,value)=>typeof value==='bigint'?Number(value):value))});return facts}export function reset(){events.length=0}export async function lstat(file){try{const value=await realLstat(file);events.push({kind:'status',path:file,status:value.isFile()?'ExistingFile':'ExistingOther'});return value}catch(error){events.push({kind:'status',path:file,status:'FileAbsent'});throw error}}export function eligibleNamedPath(...args){return Effect.map(realAccess(...args),value=>{events.push({kind:'access',path:args[1],allowed:value!==undefined,relativePath:value?.relativePath});return value})}`
   )
   const nativePorts = await import(pathToFileURL(portCopy))
   const nativeCopy = path.join(temporary, "native.mjs"),
@@ -438,7 +438,7 @@ try {
   )
   moduleSource = instrument(moduleSource, "return record(parse(source));", "return record(observedCargoParse(source));")
   moduleSource = instrument(moduleSource, "inspectRustModules(source));", "observedModules(source));")
-  moduleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';import {tomlValue} from '${pathToFileURL(path.join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"))}';const canonicalFacts=value=>JSON.parse(JSON.stringify(value,(_key,value)=>typeof value==='bigint'?Number(value):value));function observedCargoParse(source){try{const syntax=parse(source);events.push({kind:'cargo',text:source,syntax:canonicalFacts(tomlValue(syntax))});return syntax}catch(error){events.push({kind:'cargo',text:source,syntax:undefined});throw error}}function observedModules(source){const facts=inspectRustModules(source);events.push({kind:'modules',text:source,facts});return facts}\n`
+  moduleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';import {tomlValue} from '${pathToFileURL(path.join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"))}';const canonicalFacts=value=>JSON.parse(JSON.stringify(value,(_key,value)=>typeof value==='bigint'?Number(value):value));function observedCargoParse(source){try{const syntax=parse(source);events.push({kind:'cargo',text:source,syntax:canonicalFacts(tomlValue(syntax))});return syntax}catch(error){events.push({kind:'cargo',text:source,syntax:undefined});throw error}}function observedModules(source){const facts=inspectRustModules(source);events.push({kind:'modules',text:source,facts});return facts}\n`
   moduleSource = instrument(
     moduleSource,
     "const captures = context.captureCache ?? new Map();",

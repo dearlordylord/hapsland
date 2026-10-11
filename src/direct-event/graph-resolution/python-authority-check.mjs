@@ -4,7 +4,7 @@ import { readFile, mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.mjs"
+import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.ts"
 import {
   Parser,
   Python,

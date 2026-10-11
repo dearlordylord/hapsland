@@ -152,8 +152,8 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
         wrappers
     )
   }
-  const frontendOriginal = join(folder, "./frontends.mjs"),
-    frontendCopy = join(temporary, "./frontends.mjs")
+  const frontendOriginal = join(folder, "./frontends.ts"),
+    frontendCopy = join(temporary, "./frontends.ts")
   let frontendSource = readFileSync(frontendOriginal, "utf8")
   sourceHashes[frontendOriginal] = createHash("sha256").update(frontendSource).digest("hex")
   frontendSource = frontendSource.replace(/from '([^']+)'/g, (all, specifier) =>
@@ -282,7 +282,7 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
           pathToFileURL(
             specifier === "./service-session.mjs"
               ? sessionCopy
-              : specifier === "./frontends.mjs"
+              : specifier === "./frontends.ts"
                 ? frontendCopy
                 : resolve(folder, specifier)
           ).href

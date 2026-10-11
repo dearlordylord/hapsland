@@ -5,7 +5,7 @@ import { mkdtemp, rm, writeFile, mkdir, readFile, symlink } from "node:fs/promis
 import { join, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { parse } from "smol-toml"
-import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
 const temp = await mkdtemp("/tmp/hapsland-python-roots-"),
   t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),

@@ -8,11 +8,11 @@ import { createServiceSession } from "../../../packages/source-analysis/src/dire
 import {
   inspectSourceFrontend,
   parsePythonSyntax
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { pythonAdapter } from "../../../packages/source-analysis/dist/direct-event/languages/python.js"
-import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { Parser, Python } from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
-import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.mjs"
+import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields })
 const temp = await mkdtemp("/tmp/hapsland-python-parents-")

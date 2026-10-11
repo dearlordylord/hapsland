@@ -22,7 +22,7 @@ import {
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { inspectRustModules } from "../../../packages/source-analysis/dist/direct-event/languages/rust.js"
 import { createGraphFixtures } from "./fixtures.mjs"
-import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
 const folder = import.meta.dirname,
   root = path.join(folder, "../../.."),
@@ -47,7 +47,7 @@ const inputs = [
   "../../../packages/source-analysis/src/direct-event/graph-resolution/WholeObservation.bend",
   "./rust-task-specification-check.mjs",
   "./fixtures.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs",
+  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs",
   native
 ]

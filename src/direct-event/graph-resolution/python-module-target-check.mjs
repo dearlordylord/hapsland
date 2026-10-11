@@ -5,9 +5,9 @@ import { mkdtemp, mkdir, writeFile, readFile, lstat, rm, symlink } from "node:fs
 import { join, dirname, relative, isAbsolute, sep, normalize } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import { parsePythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
+import { parsePythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { Parser, Python } from "../../../packages/source-analysis/dist/direct-event/languages/native-parser.js"
-import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.mjs"
+import { projectPythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/python-module/syntax-projection.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields })
 const temp = await mkdtemp("/tmp/hapsland-python-parents-")

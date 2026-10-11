@@ -7,10 +7,10 @@ import { pathToFileURL } from "node:url"
 import {
   artifact,
   sourceFacts
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import * as Effect from "effect/Effect"
 import { resolveGraphUnit } from "../../../packages/source-analysis/dist/direct-event/graph-resolver.js"
-import { inspectSourceFrontend } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.mjs"
+import { inspectSourceFrontend } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/canonical/graph-limits.js"
 const temporary = mkdtempSync("/tmp/hapsland-resolver-result-"),

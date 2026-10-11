@@ -189,6 +189,15 @@ One current obstacle list, in execution order:
    it, without exposing analysis transport internals or copying the class. Artifact
    value declarations/codec and preparation contracts retain their unique owners.
    Keep exact four/five-depth ABI conversion mechanical at composition boundaries.
+   Source-analysis frontend facts, TOML encoding and Python syntax projection now
+   compile as ordinary TypeScript under that owner, importing its source adapters
+   rather than its own dist. Old MJS copies are deleted and maintained consumers
+   use the new paths. Workspace build passed 46/46, compiler receipts 23/23 and
+   nonempty lint covered 24 changed authored files. Actual service (158 requests)
+   and Python physical (20 requests, eight native-identity fixtures) checks passed.
+   The full source consumer passed all 50 cases after these frontend changes;
+   check:fast again passed 109 tests and source typechecking, then failed the same
+   five unresolved, 47 undeclared and 210 private cross-owner imports.
    Source-analysis still needs an opaque resolver/session capability. Resident's
    physical binding must move fixture defaults and native comparisons into its
    verification adapter, and enter ordinary typed compilation. The public native

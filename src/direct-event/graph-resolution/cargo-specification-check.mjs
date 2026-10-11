@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "nod
 import { dirname, join, relative, extname, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { stringify, parse } from "smol-toml"
-import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs"
+import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 const folder = import.meta.dirname,
   root = join(folder, "../../.."),
@@ -18,7 +18,7 @@ const inputs = [
   "../../../packages/source-analysis/src/direct-event/graph-resolution/CargoSpecificationCheck.bend",
   "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
   "./cargo-specification-check.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.mjs",
+  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
   native
 ]
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")

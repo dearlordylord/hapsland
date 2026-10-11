@@ -2,7 +2,7 @@ import { artifactValueTag, fromProductValue } from "@hapsland/source-artifacts/d
 import * as Effect from "effect/Effect"
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import { createServiceSession } from "./service-session.mjs"
-import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax, parsePythonSyntax } from "./frontends.mjs"
+import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax, parsePythonSyntax } from "./frontends.ts"
 import {
   eligibleNamedPath,
   DEFAULT_DIRECT_FILE_POLICY,
