@@ -7,7 +7,7 @@ import {freezeCanonicalData} from '@hapsland/canonical-policy/canonical/immutabl
 
 // Intermediate checked-artifact ABI conversion. Only the module prefix and Nat
 // representation differ; no admission, continuation or child policy lives here.
-const prefix='../../../../../agent-flow-bend'
+const prefix='../'
 const convert=(value,toOwner)=>{
  if(typeof value==='number'){
   if(!Number.isSafeInteger(value)||value<0)throw new TypeError('Inexact Canonical Nat')
