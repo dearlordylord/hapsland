@@ -135,9 +135,26 @@ semantics. Integration must check root location before traversal and bind captur
 from the unique-path Map; metadata qualification alone does not replace RenderUnits.
 The stage passes its five-second Bend source check. The pinned formatter currently
 rejects its syntax with `Unsupported block expression in list`; formatting remains
-an open gate. Ordered rule freezing, provider selection, complete input/identity,
-whole laws and production Canonical integration remain required. No replacement
+an open gate. Whole-stage sequencing, whole laws and production Canonical integration remain required. No replacement
 production TypeScript has been deleted for this stage.
+
+The connected provider/configuration stage now lives at its domain owners:
+raw backend/catalog ABI in runtime-environment, first-user-layer selection in
+runtime-inputs, destination/identity policy in review-definition, and settings
+precedence in review-execution/preparation. Astra reviewed its validated producer
+semantics. Its compiled consumer passes 91 cases (44 through the actual settings
+decoder; 47 explicitly separate raw-shape extensions), 62 URI requests and 2385
+wrong-reply rejections. `FrozenInput.bend` joins this stage to complete ReviewInput
+construction, canonical JSON and UTF-8 SHA-256 requests under one request namespace.
+The physical consumer compares evidence, ordered rules with the real Canonical gate,
+provider, input and identity against native ready preparation on 60 cases across
+five languages, complete/partial units and three providers; 5960 engine requests
+and 17880 wrong replies are checked. Source, runner lint and pinned formatting
+pass for these new files. These are finite stage-composition results: the harness
+still sequences evidence/rules/input. The next obstacle is whole-unit Bend
+progression with root-location short-circuit before traversal, then replacement of
+the RenderUnits native child. Whole laws, production lifecycle, TypeScript deletion
+and parity remain open; no production TS was removed by this checkpoint.
 
 At checkpoint `c2a75176`, the 2026-10-11 04:59 UTC build measurement reported
 ratio 1.2914 and failed parity; its first candidate sample had 15/46 cached tasks
