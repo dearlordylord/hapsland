@@ -215,11 +215,13 @@ One current obstacle list, in execution order:
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production build/execution at 3bb097ce
-   pass 0.9810143780417804 / 0.7674854651331289 on frozen inputs; this does not
-   measure unadopted whole preparation. Recorded cadence misses remain failures.
-   Start the next warm-up early enough for the measured five-minute build pair;
-   next build deadline 17:18:04.222878 UTC, execution 17:23:34.691205 UTC.
+   connected candidate. Latest existing-production build/execution at 1f932eab
+   qualify on frozen heads, sources and artifacts: build **fails** parity at
+   1.117880785151437; execution passes at 0.89727052782812. Both starts are timely
+   (17:16:50.561436 / 17:21:49.488758 UTC). This does not measure unadopted whole
+   preparation. Recorded cadence misses remain failures. Start the next warm-up
+   early enough for the measured five-minute build pair; next build deadline
+   17:46:50.561436 UTC, execution 17:51:49.488758 UTC.
 
 Historical performance evidence (existing production, not whole preparation): Latest matched warm build at 12a2a197 started
    2026-10-11T14:55:48.475707Z: 17 pairs, all 23/46 cached, qualified with
@@ -454,3 +456,13 @@ Rust and Bend successful modes, all previous full error/Cause/cleanup modes,
 full prepared inputs/effects and pre-teardown transferred ownership compare.
 These fixture corrections preserve the refusal inputs and do not change product
 support policy. Last two parent slot-filter definitions remain retained WIP.
+
+Current frozen 1f932eab cadence evidence: matched warm build completed at
+17:20:57.826521 UTC with 17 pairs (23/46 cached throughout), qualified inputs,
+and ratio 1.117880785151437: parity failed. Execution began at
+17:21:49.488758 UTC and qualified at ratio 0.89727052782812: parity passed.
+Evidence lives in ignored `.test-runs/bend-migration/performance/` under the
+respective start timestamps. These measurements cover existing production,
+not adoption of whole preparation. The earlier 3bb097ce build/execution passes
+0.9810143780417804 / 0.7674854651331289 and recorded late starts remain historical
+evidence; they do not override this candidate's failed build threshold.
