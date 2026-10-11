@@ -1,3 +1,4 @@
+import { opendir } from "node:fs/promises"
 import {
   artifactValueTag,
   binary64 as __binary64,
@@ -44,6 +45,38 @@ try {
     [join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Runtime.bend"), "-o", program],
     { timeout: 5000 }
   )
+  const protocolPath = join(temporary, "protocol.mjs")
+  execFileSync(
+    "bend",
+    [
+      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Protocol.bend"),
+      "-o",
+      protocolPath
+    ],
+    { timeout: 5000 }
+  )
+  const protocol = (await import(pathToFileURL(protocolPath))).default
+  const directoryRequest = tagged("Request", {
+    invocation: 1n,
+    id: 2n,
+    operation: tagged("ReadDirectoryEntries", { path: ".", limit: 128n })
+  })
+  for (const outcome of [
+    tagged("DirectoryEntriesObserved", { entries: list(["raw"]), complete: true }),
+    tagged("DirectoryEntriesUnavailable")
+  ]) {
+    const reply = tagged("Reply", { invocation: 1n, id: 2n, outcome })
+    assert.deepEqual(protocol.check(directoryRequest, reply), { $: "CheckedOutcome", outcome })
+    assert.equal(protocol.check(directoryRequest, { ...reply, id: 3n }).failure.$, "Types.WrongCorrelation")
+    assert.equal(protocol.check(directoryRequest, { ...reply, invocation: 4n }).failure.$, "Types.WrongInvocation")
+  }
+  assert.equal(
+    protocol.check(
+      directoryRequest,
+      tagged("Reply", { invocation: 1n, id: 2n, outcome: tagged("ProductEncoded", { bytes: 1n }) })
+    ).failure.$,
+    "Types.WrongReplyKind"
+  )
   const source = readFileSync(program, "utf8"),
     footer = "\ncli(process.argv.slice(1));\nio_exit($main$, null);"
   assert.ok(source.endsWith(footer))
@@ -85,6 +118,74 @@ try {
       }
     }
   }
+  const directoryPath = join(temporary, "raw-directory")
+  mkdirSync(directoryPath)
+  for (const name of ["visible.go", ".hidden.go", "notes.txt", "sample_test.go", "_skip.go", "z.go"])
+    writeFileSync(join(directoryPath, name), "")
+  mkdirSync(join(directoryPath, "subdirectory"))
+  const rawNames = []
+  for await (const entry of await opendir(directoryPath)) rawNames.push(entry.name)
+  const directoryApi = make({ root: temporary })
+  for (const limit of [0, 1, rawNames.length - 1, rawNames.length, rawNames.length + 1]) {
+    const observed = await directoryApi.request("ReadDirectoryEntries", { path: "raw-directory", limit })
+    assert.equal(observed.$, "Types.DirectoryEntriesObserved")
+    assert.deepEqual(unlist(observed.entries), rawNames.slice(0, limit + 1))
+    assert.equal(observed.complete, limit >= rawNames.length)
+  }
+  assert.equal(
+    (await directoryApi.request("ReadDirectoryEntries", { path: "missing", limit: 128 })).$,
+    "Types.DirectoryEntriesUnavailable"
+  )
+  assert.equal(
+    (await directoryApi.request("ReadDirectoryEntries", { path: "raw-directory/notes.txt", limit: 128 })).$,
+    "Types.DirectoryEntriesUnavailable"
+  )
+  directoryApi.close()
+  let directoryCloses = 0
+  const injectedDirectory = make({
+    async openDirectory() {
+      return (async function* () {
+        try {
+          yield { name: ".hidden.go" }
+          yield { name: "notes.txt" }
+        } finally {
+          await Promise.resolve()
+          directoryCloses++
+        }
+      })()
+    }
+  })
+  const overflow = await injectedDirectory.request("ReadDirectoryEntries", { path: "raw", limit: 0 })
+  assert.deepEqual(unlist(overflow.entries), [".hidden.go"])
+  assert.equal(overflow.complete, false)
+  assert.equal(directoryCloses, 1)
+  injectedDirectory.close()
+  for (const phase of ["open", "read", "close"]) {
+    const closeDirectory = async () => {
+      directoryCloses++
+      if (phase === "close") throw new Error("directory close")
+    }
+    const failingDirectory = make({
+      async openDirectory() {
+        if (phase === "open") throw new Error("directory open")
+        return (async function* () {
+          try {
+            yield { name: "raw" }
+            if (phase === "read") throw new Error("directory read")
+          } finally {
+            await closeDirectory()
+          }
+        })()
+      }
+    })
+    assert.equal(
+      (await failingDirectory.request("ReadDirectoryEntries", { path: "raw", limit: 128 })).$,
+      "Types.DirectoryEntriesUnavailable"
+    )
+    failingDirectory.close()
+  }
+  assert.equal(directoryCloses, 3)
+
   const numbers = [
     0,
     -0,
@@ -346,6 +447,8 @@ try {
     at: new Date().toISOString(),
     runtime: typeof Bun === "undefined" ? "node" : "bun",
     requests: total,
+    rawDirectoryObservationCases: 11,
+    rawDirectoryProtocolCases: 7,
     joinedPathFactProjectionCases: joinedPathCases.length,
     clockNumbers: numbers.length,
     clockProviderCallsPreserved: true,

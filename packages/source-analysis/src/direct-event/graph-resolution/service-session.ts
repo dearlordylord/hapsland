@@ -21,7 +21,7 @@ import {
   fromProductValue
 } from "@hapsland/source-artifacts/direct-event/value/codec"
 import * as path from "node:path"
-import { lstat } from "node:fs/promises"
+import { lstat, opendir } from "node:fs/promises"
 
 const required = <Value>(value: Value | undefined): Value => {
   if (value === undefined) throw new TypeError("Missing service port")
@@ -54,6 +54,7 @@ function fromDiagnostic(value: CaptureDiagnostic) {
 export function createServiceSession({
   invocation,
   root,
+  openDirectory = opendir,
   now = () => performance.now(),
   callerCache,
   access,
@@ -144,6 +145,29 @@ export function createServiceSession({
             extension: path.extname(normalized),
             leaf_extension: path.extname(op.leaf)
           })
+          break
+        }
+        case tag("ReadDirectoryEntries"): {
+          const limit = hostNatural(op.limit)
+          const entries: string[] = []
+          let complete = true
+          try {
+            const directory = await openDirectory(path.join(root, op.path))
+            // Keep raw iterator order and names. The Bend owner chooses its
+            // inventory bound, candidate filtering and sort. Early break awaits
+            // the iterator's cleanup; filesystem read/close failures discard all.
+            for await (const entry of directory) {
+              entries.push(entry.name)
+              if (entries.length > limit) {
+                complete = false
+                break
+              }
+            }
+            outcome = tagged("DirectoryEntriesObserved", { entries: list(entries), complete })
+          } catch (error) {
+            if (signal?.aborted) throw error
+            outcome = tagged("DirectoryEntriesUnavailable")
+          }
           break
         }
         case tag("ReadFileStatus"): {

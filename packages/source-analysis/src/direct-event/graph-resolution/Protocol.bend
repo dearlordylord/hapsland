@@ -20,6 +20,8 @@ def matching(operation: T.Operation, outcome: T.ServiceOutcome) -> Bool:
     case T.PathIsAbsolute{_} T.AbsoluteResult{_}: True{}
     case T.JoinedPathFacts{_, _} T.JoinedPathFactsResult{_, _, _, _, _}: True{}
     case T.ReadFileStatus{_} T.StatusResult{_}: True{}
+    case T.ReadDirectoryEntries{_, _} T.DirectoryEntriesObserved{_, _}: True{}
+    case T.ReadDirectoryEntries{_, _} T.DirectoryEntriesUnavailable{}: True{}
     case T.ReadPathMembership{_} T.MembershipResult{_}: True{}
     case T.SelectContextPath{_} T.ContextSelectionResult{_}: True{}
     case T.ParsePythonSyntax{_} T.PythonSyntaxResult{_}: True{}

@@ -29,6 +29,7 @@ export type CaptureDiagnostic =
       { readonly resource: string; readonly used: Natural; readonly requested: Natural; readonly limit: Natural }
     >
 export type Operation =
+  | Variant<"ReadDirectoryEntries", { readonly path: string; readonly limit: Natural }>
   | Variant<"StartClock" | "ReadPathSeparator" | "CreateInvocationCache">
   | Variant<"ReadClock", { readonly clock: Token<"ClockToken"> }>
   | Variant<
@@ -73,6 +74,8 @@ type CacheOutcome =
   | Variant<"CacheAbsent">
   | Variant<"CachePresent", { readonly capture: Token<"CaptureToken">; readonly bytes: Natural }>
 export type ServiceOutcome =
+  | Variant<"DirectoryEntriesObserved", { readonly entries: List<string>; readonly complete: boolean }>
+  | Variant<"DirectoryEntriesUnavailable">
   | Variant<"ClockStarted", { readonly clock: Token<"ClockToken"> }>
   | Variant<"ClockRead", { readonly bits: Binary64 }>
   | Variant<"DirnameResult" | "JoinedResult" | "NormalizedResult" | "RelativeResult", { readonly path: string }>
@@ -178,6 +181,7 @@ export type Reply = Variant<
 >
 export type PerformOptions = { readonly signal?: AbortSignal | undefined }
 export type SessionPorts = {
+  readonly openDirectory?: ((path: string) => Promise<AsyncIterable<{ readonly name: string }>>) | undefined
   readonly invocation: number
   readonly root: string
   readonly now?: (() => number) | undefined

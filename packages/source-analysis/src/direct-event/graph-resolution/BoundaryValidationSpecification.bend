@@ -18,6 +18,8 @@ def compatible(operation: T.Operation, outcome: T.ServiceOutcome) -> Bool:
     case T.PathIsAbsolute{_} T.AbsoluteResult{_}: True{}
     case T.JoinedPathFacts{_, _} T.JoinedPathFactsResult{_, _, _, _, _}: True{}
     case T.ReadFileStatus{_} T.StatusResult{_}: True{}
+    case T.ReadDirectoryEntries{_, _} T.DirectoryEntriesObserved{_, _}: True{}
+    case T.ReadDirectoryEntries{_, _} T.DirectoryEntriesUnavailable{}: True{}
     case T.AccessPath{_} T.AccessResult{_}: True{}
     case T.CreateInvocationCache{} T.InvocationCacheCreated{_}: True{}
     case T.LookupCaptureCache{_, _} T.CacheResult{_}: True{}

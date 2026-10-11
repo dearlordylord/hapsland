@@ -252,6 +252,22 @@ One current obstacle list, in execution order:
    Whole correspondence and exact Canonical invocation/request/generation/lease
    with directory/capture/session cleanup are the two agreed proof obligations.
 
+   Raw ReadDirectoryEntries is now implemented in the ordinary service boundary:
+   host returns raw iterator names, first limit+1 entries and actual EOF; early
+   return awaits iterator cleanup. Open/read/close failure discards partial data,
+   while an aborted error stays in the existing opaque provider failure path.
+   Both production Protocol.matching and independent envelope specification cover
+   observed/unavailable outcomes. Emitted service tests passed 169 requests,
+   including 11 physical/injected directory cases and seven actual protocol
+   owner/correlation/matching cases. Source-analysis typecheck/nonempty lint and
+   the envelope compile passed. Workspace build 46/46 and consumers 50/64/13
+   passed before the final Protocol matching correction; refreshed build/consumer
+   qualification is still required. check:fast again passed 109 tests/typecheck
+   and package graph, then failed development imports. This command only closes
+   the raw inventory IO prerequisite; no Go workflow or native TS deletion is
+   claimed.
+
+
 2. Finish all retained source/proof and ordinary quality gates. The source gate
    uses current import closures, nonempty checking roots and a five-second limit;
    foreign Runtime IO roots compile to temporary JS, pure roots use `--verdict`.

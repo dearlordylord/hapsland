@@ -168,6 +168,7 @@ type Operation is Data:
   JoinedPathFacts{from: String, leaf: String}
   ReadFileStatus{path: String}
   ReadPathMembership{path: String}
+  ReadDirectoryEntries{path: String, limit: Nat}
   SelectContextPath{path: String}
   ParsePythonSyntax{capture: CaptureToken}
   ReadIdentifierCharacters{text: String}
@@ -205,6 +206,8 @@ type ServiceOutcome is Data:
   }
   StatusResult{status: FileStatus}
   MembershipResult{membership: PathMembership}
+  DirectoryEntriesObserved{entries: List<&2, String>, complete: Bool}
+  DirectoryEntriesUnavailable{}
   ContextSelectionResult{selected: Bool}
   PythonSyntaxResult{syntax: PythonSyntax}
   IdentifierCharactersResult{characters: List<&2, IdentifierCharacter>}
