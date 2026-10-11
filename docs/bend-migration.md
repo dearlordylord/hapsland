@@ -247,6 +247,16 @@ One current obstacle list, in execution order:
    wrong correlation) through the Node capability runner
    (/tmp/hapsland-final-deadline-completion-full.log). Universal completion
    correspondence and production adoption remain open.
+   The first whole-entry run catches an extra Go clock effect (12 versus native
+   11): Entry's Go authority-validation owner already owns its final deadline.
+   terminal_without_python therefore preserves that Go handoff and adds the
+   generic final clock only where the generic driver owns acceptance. The
+   go-root-type focused real entry now passes its complete native chronology
+   with 11 clocks on both sides (/tmp/hapsland-final-deadline-go-entry-focus.log).
+   The current whole-entry rerun remains pending; the failed 12-clock run is not
+   qualification. Publication-map passes its original 16 tree cases with 288
+   publication-hole refusals and 144 budget counterexamples; its zero reply
+   counters are outside that probe's admission-focused scope, not reply coverage.
    Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.

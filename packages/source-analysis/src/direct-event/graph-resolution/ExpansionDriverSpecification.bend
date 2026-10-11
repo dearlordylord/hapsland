@@ -1374,13 +1374,21 @@ def python_validation_begin(+state: DriverState.State, product: ArtifactValue.Pr
         clock, separator, owner, next_request(state)}}
     case None{} _: DriverState.InvariantFailed{state}
 
+def terminal_without_python(+state: DriverState.State,
+  product: ArtifactValue.ProductValue, observed: DriverState.Config
+) -> DriverState.Selection:
+  match observed:
+    # Entry's Go authority-validation owner performs the final deadline read.
+    case DriverState.Config{_, _, T.GoLanguage{}, _, _, _}: DriverState.Success{state, Some{product}}
+    case _: final_clock(state, product, config(state))
+
 def terminal_product(
   +state: DriverState.State,
   product: ArtifactValue.ProductValue,
   python: Maybe<&2, DriverState.PythonContext>
 ) -> DriverState.Selection:
   match python:
-    case None{}: final_clock(state, product, config(state))
+    case None{}: terminal_without_python(state, product, config(state))
     case Some{_}: DriverState.internal(state, DriverState.PythonValidationStart{product})
 
 def final_deadline(+state: DriverState.State, product: ArtifactValue.ProductValue, expired: Bool) -> DriverState.Selection:
