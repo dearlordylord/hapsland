@@ -192,9 +192,14 @@ One current obstacle list, in execution order:
    checked under hard five seconds, including full child node/reference context
    transport and exact ordered appended-node projection (latest coherent prefix
    3.257 seconds). Full append slot ownership/forward/indexed guards, paired-prefix no-shadow,
-   exact cursor lookup and projected row count transport are checked. Recursive
-   count transport and full semantic alignment remain open; the original
-   parent theorem remains WIP.
+   exact cursor lookup and projected row count transport are checked. Full
+   recursive address-count transport is checked at 3.403 seconds under hard
+   five seconds, with original alignment/density/projection premises. The next
+   cross-episode count batch is authored WIP: its first full-prefix run timed
+   out at 5.074 seconds without a verdict. Remaining path: appended alignment,
+   full projection, owner-only replacement commutation, semantic validity,
+   original eight conjuncts and the existing transaction theorem. No separate
+   helper frontier qualifies adoption; the original parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
@@ -213,7 +218,12 @@ One current obstacle list, in execution order:
    resident Source (56/6338/31), preparation (70/15576/807), owned root
    (46/2049) and composed Canonical root (18/1425/7125 fences/18 accepted)
    pass. The generic machine checker still cannot drive specialized Go/Python
-   continuations. Unsupported formatter roots remain failures, including
+   continuations. Its replacement consumer must retain all original fixtures
+   and trace/IO assertions, route specialized commands through the actual
+   resident-owned artifact composition and public service ports, and compare
+   flattened request/reply streams and terminals. Native preparation policy
+   callbacks or filtered language cases do not close this gate.
+   Unsupported formatter roots remain failures, including
    attachment declaration headers and UnitEvidence/Glob/list blocks.
    Astra's structural review found no blocking ownership/dependency issue in
    the composed-consumer move and tooling fixture boundary. Its two cleanups

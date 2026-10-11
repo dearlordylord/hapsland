@@ -1220,6 +1220,103 @@ def projected_address_count(+nodes: List<&2, Local.PlannedNode>, +entries: List<
   projected_address_count_cursor(nodes, entries, [], [], nodes, entries, slots, catalog, retained, target,
     {==}, aligned, {==}, dense, {==}, projected)
 
+def episodes_before_raise(items: List<&2, F.Node>, +lower: Nat, +upper: Nat,
+    +before: {Relation.episodes_before(items, lower) == True{} : Bool},
+    +bound: {Nat.is_le(lower, upper) == True{} : Bool}) ->
+    {Relation.episodes_before(items, upper) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case F.Node{O.NodeAddress{+episode, _}, _, _} <> +tail:
+      B.and_eq_true(Nat.is_lt(episode, upper), Relation.episodes_before(tail, upper),
+        N.lt_of_lt_of_le(episode, lower, upper,
+          B.eq_true_of_and_left(Nat.is_lt(episode, lower), Relation.episodes_before(tail, lower), before), bound),
+        episodes_before_raise(tail, lower, upper,
+          B.eq_true_of_and_right(Nat.is_lt(episode, lower), Relation.episodes_before(tail, lower), before), bound))
+
+def counted_episode_before_branch(+items: List<&2, F.Node>, +episode: Nat, +route: List<&2, Nat>, +limit: Nat,
+    before: {Relation.episodes_before(items, limit) == True{} : Bool},
+    counted: {F.count_address(items, O.NodeAddress{episode, route}) == 1n : Nat},
+    flag: Bool, branch: {Nat.is_lt(episode, limit) == flag : Bool}) ->
+    {Nat.is_lt(episode, limit) == True{} : Bool}:
+  match flag:
+    case True{}: branch
+    case False{}:
+      Empty.absurd({Nat.is_lt(episode, limit) == True{} : Bool},
+        Structure.zero_ne_one(Equal.trans(Nat, 0n, F.count_address(items, O.NodeAddress{episode, route}), 1n,
+          Equal.sym(Nat, F.count_address(items, O.NodeAddress{episode, route}), 0n,
+            prior_nodes_exclude_fresh(items, episode, route,
+              episodes_before_raise(items, limit, episode, before, N.le_of_not_lt(episode, limit, branch)))), counted)))
+
+def counted_episode_before(+items: List<&2, F.Node>, +episode: Nat, +route: List<&2, Nat>, +limit: Nat,
+    before: {Relation.episodes_before(items, limit) == True{} : Bool},
+    counted: {F.count_address(items, O.NodeAddress{episode, route}) == 1n : Nat}) ->
+    {Nat.is_lt(episode, limit) == True{} : Bool}:
+  counted_episode_before_branch(items, episode, route, limit, before, counted, Nat.is_lt(episode, limit), {==})
+
+def fresh_nodes_exclude_other(items: List<&2, F.Node>, +episode: Nat, +query: Nat, +route: List<&2, Nat>,
+    +fresh: {Ready.episode_nodes(items, episode) == True{} : Bool},
+    +different: {Nat.is_eq(query, episode) == False{} : Bool}) ->
+    {F.count_address(items, O.NodeAddress{query, route}) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case F.Node{O.NodeAddress{+actual, +actual_route}, _, _} <> +tail:
+      %Equal.sym(Bool, Nat.is_eq(query, actual), False{},
+        %Equal.sym(Nat, actual, episode, N.eq_of_is_eq(actual, episode,
+          B.eq_true_of_and_left(Nat.is_eq(actual, episode), Ready.episode_nodes(tail, episode), fresh))):
+          {Nat.is_eq(query, _) == False{} : Bool}
+        different):
+        {(Bool.pick(Nat, Bool.and(_, F.same_route(route, actual_route)), 1n, 0n) + F.count_address(tail, O.NodeAddress{query, route}) : Nat) == 0n : Nat}
+      fresh_nodes_exclude_other(tail, episode, query, route,
+        B.eq_true_of_and_right(Nat.is_eq(actual, episode), Ready.episode_nodes(tail, episode), fresh), different)
+
+def fresh_counted_episode_branch(+items: List<&2, F.Node>, +episode: Nat, +query: Nat, +route: List<&2, Nat>,
+    fresh: {Ready.episode_nodes(items, episode) == True{} : Bool},
+    counted: {F.count_address(items, O.NodeAddress{query, route}) == 1n : Nat},
+    flag: Bool, branch: {Nat.is_eq(query, episode) == flag : Bool}) ->
+    {query == episode : Nat}:
+  match flag:
+    case True{}: N.eq_of_is_eq(query, episode, branch)
+    case False{}:
+      Empty.absurd({query == episode : Nat},
+        Structure.zero_ne_one(Equal.trans(Nat, 0n, F.count_address(items, O.NodeAddress{query, route}), 1n,
+          Equal.sym(Nat, F.count_address(items, O.NodeAddress{query, route}), 0n,
+            fresh_nodes_exclude_other(items, episode, query, route, fresh, branch)), counted)))
+
+def fresh_counted_episode(+items: List<&2, F.Node>, +episode: Nat, +query: Nat, +route: List<&2, Nat>,
+    fresh: {Ready.episode_nodes(items, episode) == True{} : Bool},
+    counted: {F.count_address(items, O.NodeAddress{query, route}) == 1n : Nat}) ->
+    {query == episode : Nat}:
+  fresh_counted_episode_branch(items, episode, query, route, fresh, counted, Nat.is_eq(query, episode), {==})
+
+# These cross-count conclusions follow from the original forest episodes and
+# exact projection counts; neither disjointness nor freshness is added as a law premise.
+def child_entries_exclude_parent_address(+parents: List<&2, Local.PlannedNode>, +parent_slots: List<&2, Local.ReferenceSlot>,
+    +parent_entries: List<&2, F.AddressEntry>, +parent_values: List<&2, F.Node>,
+    +children: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +child_entries: List<&2, F.AddressEntry>, +child_values: List<&2, F.Node>, +catalog: List<&2, T.ArtifactEntry>,
+    +episode: Nat, target: O.NodeAddress,
+    parent_aligned: {P.aligned(parents, parent_entries, parents, parent_entries) == True{} : Bool},
+    parent_dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    parent_projected: {P.nodes(parents, parent_slots, catalog, parent_entries) == Some{parent_values} : Maybe<&2, List<&2, F.Node>>},
+    parent_before: {Relation.episodes_before(parent_values, episode) == True{} : Bool},
+    child_aligned: {P.aligned(children, child_entries, children, child_entries) == True{} : Bool},
+    child_dense: {Frame.dense(children, 0n) == True{} : Bool},
+    child_projected: {P.nodes(children, child_slots, catalog, child_entries) == Some{child_values} : Maybe<&2, List<&2, F.Node>>},
+    child_fresh: {Ready.episode_nodes(child_values, episode) == True{} : Bool},
+    counted: {P.address_count(parent_entries, target) == 1n : Nat}) ->
+    {P.address_count(child_entries, target) == 0n : Nat}:
+  match target:
+    case O.NodeAddress{+prior, +route}:
+      Equal.trans(Nat, P.address_count(child_entries, O.NodeAddress{prior, route}), F.count_address(child_values, O.NodeAddress{prior, route}), 0n,
+        projected_address_count(children, child_entries, child_slots, catalog, child_values, O.NodeAddress{prior, route},
+          child_aligned, child_dense, child_projected),
+        fresh_nodes_exclude_prior(child_values, episode, prior, route, child_fresh,
+          counted_episode_before(parent_values, prior, route, episode, parent_before,
+            Equal.trans(Nat, F.count_address(parent_values, O.NodeAddress{prior, route}), P.address_count(parent_entries, O.NodeAddress{prior, route}), 1n,
+              Equal.sym(Nat, P.address_count(parent_entries, O.NodeAddress{prior, route}), F.count_address(parent_values, O.NodeAddress{prior, route}),
+                projected_address_count(parents, parent_entries, parent_slots, catalog, parent_values, O.NodeAddress{prior, route},
+                  parent_aligned, parent_dense, parent_projected)), counted))))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>
