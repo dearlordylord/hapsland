@@ -1,0 +1,62 @@
+import Base
+import ./Own.bend as Own
+import ./core.bend as Core
+import ./RANK.bend as Rank
+import ./ROOT_INVENTORY_PROOF.bend as Root
+import ../../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+law initial_rank_bound:
+  for +facts: Core.Facts
+  for +path: Nat
+  for +visited: Own.Dictionary<Bool>
+  for +budget: Core.Budget
+  for +key: Nat
+  for +declaration: Core.Declaration
+  for +depth: Nat
+  for selected: {
+    Own.lookup(Maybe<&2, Core.Declaration>, None{}, Rank.declaration_catalog(facts), key)
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  }
+  {
+    Nat.is_le(
+      (Rank.rank(
+        Core.enter_node(Rank.initial(facts, path, visited, budget), declaration, depth)
+      ) + 1n : Nat),
+      Core.traversal_bound(facts)
+    )
+    == True{}
+    : Bool
+  }
+
+# Exact initial rank bound; step decrease is a separate theorem.
+
+def initial_rank_bound(facts, path, visited, budget, key, declaration, depth, selected):
+  match facts declaration:
+    case Core.Facts{_, +catalog, _, _} Core.Declaration{
+      handle,
+      +identity,
+      function,
+      bundled,
+      +references
+    }:
+      +entry = {Core.Declaration{handle, identity, function, bundled, references} : Core.Declaration}
+      +unseen = Rank.unseen_catalog(Own.set(Bool, visited, identity, True{}), catalog)
+      +amount = List.length(&2, Core.Reference, references)
+      +total = Core.trie_reference_count(catalog)
+      bound = Root.selected_root_inventory_bound(catalog, visited, key, entry, selected)
+      %NatFacts.add_zero_sym(amount):
+        {
+          Nat.is_le(
+            Nat.add(Nat.add(Nat.add(Nat.mul(2n, unseen), Nat.mul(2n, _)), 1n), 1n),
+            Nat.add(Nat.mul(2n, total), 2n)
+          )
+          == True{}
+          : Bool
+        }
+      %NatFacts.add_assoc_sym(Nat.add(Nat.mul(2n, unseen), Nat.mul(2n, amount)), 1n, 1n):
+        {Nat.is_le(_, Nat.add(Nat.mul(2n, total), 2n)) == True{} : Bool}
+      %NatFacts.mul_add(2n, unseen, amount):
+        {Nat.is_le(Nat.add(_, 2n), Nat.add(Nat.mul(2n, total), 2n)) == True{} : Bool}
+      NatFacts.add_le_add_right(Nat.mul(2n, Nat.add(unseen, amount)), Nat.mul(2n, total), 2n,
+        NatFacts.mul_le_mul_left(Nat.add(unseen, amount), total, 2n, bound))

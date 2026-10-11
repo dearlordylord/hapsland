@@ -1,0 +1,40 @@
+import Base
+import ./Own.bend as Own
+import ./core.bend as Core
+import ./RANK.bend as Rank
+import ./RANK_PLAN_LAWS.bend as PlanSupport
+import ./INITIAL_RANK_PROOF.bend as Initial
+import ./RUN_RANK_PROOF.bend as Run
+import ./RANK_GROWTH_LAWS.bend as Growth
+import ./GROWTH_PROOF.bend as GrowthProof
+import ../../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+def PlanSupport.plan_found_completes(found, facts, path, visited, budget, depth, key, selected):
+  match found:
+    case None{}: {==}
+    case Some{+declaration}:
+      +initial = Rank.initial(facts, path, visited, budget)
+      +entered = Core.enter_node(initial, declaration, depth)
+      +fuel = Core.traversal_bound(facts)
+      enough = NatFacts.le_trans(Rank.rank(entered), Nat.add(Rank.rank(entered), 1n), fuel,
+        NatFacts.le_add_right(Rank.rank(entered), 1n),
+        Initial.initial_rank_bound(facts, path, visited, budget, key, declaration, depth, selected))
+      Run.run_completes_from_rank(fuel, entered, enough)
+
+law plan_completes:
+  for +facts: Core.Facts
+  for +path: Nat
+  for +name: Core.Label
+  for +expected: Core.ExpectedKind
+  for +visited: Own.Dictionary<Bool>
+  for +budget: Core.Budget
+  for +depth: Nat
+  {Rank.successful(Core.plan(facts, path, name, expected, visited, budget, depth)) == True{} : Bool}
+
+def plan_completes(facts, path, name, expected, visited, budget, depth):
+  +found = Core.declaration_lookup(facts, name, expected)
+  +key = Growth.query_key(facts, name, expected)
+  selected = Equal.sym(Maybe<&2, Core.Declaration>, found,
+    Own.lookup(Maybe<&2, Core.Declaration>, None{}, Rank.declaration_catalog(facts), key),
+    Growth.declaration_lookup_exact(facts, name, expected))
+  PlanSupport.plan_found_completes(found, facts, path, visited, budget, depth, key, selected)

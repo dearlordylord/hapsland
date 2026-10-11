@@ -1,0 +1,3477 @@
+import Base
+import ../ForestSpecification.bend as F
+import ../WholeObservation.bend as O
+import ../Types.bend as T
+import ../traversal/SPEC.bend as Recursive
+import ./ForestRelation.bend as Relation
+import ../traversal/INTERPRETER_BOOL_FACTS.bend as B
+import ../traversal/INTERPRETER_NAT_FACTS.bend as N
+import ../traversal/INTERPRETER_COMPLETION_NAT_FACTS.bend as Addition
+import ../RuntimeNatProof.bend as NatEquality
+
+# Internal route separation for the actual construction induction. These
+# predicates use existing birth addresses; no numeric-ID property is assumed.
+def within_route(prefix: List<&2, Nat>, route: List<&2, Nat>) -> Bool:
+  match prefix route:
+    case [] _: True{}
+    case head <> tail other <> rest:
+      Bool.and(Nat.is_eq(head, other), within_route(tail, rest))
+    case _ _: False{}
+
+def later_route(prefix: List<&2, Nat>, first: Nat, route: List<&2, Nat>) -> Bool:
+  match prefix route:
+    case [] head <> _: Nat.is_le(first, head)
+    case head <> tail other <> rest:
+      Bool.and(Nat.is_eq(head, other), later_route(tail, first, rest))
+    case _ _: False{}
+
+def node_within(+episode: Nat, prefix: List<&2, Nat>, address: O.NodeAddress) -> Bool:
+  match address:
+    case O.NodeAddress{other, route}:
+      Bool.and(Nat.is_eq(episode, other), within_route(prefix, route))
+
+def node_later(+episode: Nat, prefix: List<&2, Nat>, first: Nat, address: O.NodeAddress) -> Bool:
+  match address:
+    case O.NodeAddress{other, route}:
+      Bool.and(Nat.is_eq(episode, other), later_route(prefix, first, route))
+
+def nodes_within(items: List<&2, F.Node>, +episode: Nat, +prefix: List<&2, Nat>) -> Bool:
+  match items:
+    case []: True{}
+    case F.Node{address, _, _} <> rest:
+      Bool.and(node_within(episode, prefix, address), nodes_within(rest, episode, prefix))
+
+def nodes_later(
+  items: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +first: Nat
+) -> Bool:
+  match items:
+    case []: True{}
+    case F.Node{address, _, _} <> rest:
+      Bool.and(
+        node_later(episode, prefix, first, address),
+        nodes_later(rest, episode, prefix, first)
+      )
+
+def same_route_refl(route: List<&2, Nat>) -> {F.same_route(route, route) == True{} : Bool}:
+  match route:
+    case []: {==}
+    case +head <> +tail:
+      B.and_eq_true(Nat.is_eq(head, head), F.same_route(tail, tail),
+        NatEquality.is_eq_refl(head), same_route_refl(tail))
+
+def same_route_equal(
+  +left: List<&2, Nat>,
+  +right: List<&2, Nat>,
+  +same: {F.same_route(left, right) == True{} : Bool}
+) -> {left == right : List<&2, Nat>}:
+  match left right:
+    case Nil{} Nil{}: {==}
+    case Nil{} Con{_, _}: Empty.absurd(
+      {left == right : List<&2, Nat>},
+      B.internal_false_ne_true(same)
+    )
+    case Con{_, _} Nil{}: Empty.absurd(
+      {left == right : List<&2, Nat>},
+      B.internal_false_ne_true(same)
+    )
+    case +head <> +tail +other <> +rest:
+      %NatEquality.eq_of_is_eq(head, other,
+        B.eq_true_of_and_left(Nat.is_eq(head, other), F.same_route(tail, rest), same)):
+        {head <> tail == _ <> rest : List<&2, Nat>}
+      %same_route_equal(tail, rest,
+        B.eq_true_of_and_right(Nat.is_eq(head, other), F.same_route(tail, rest), same)):
+        {head <> tail == head <> _ : List<&2, Nat>}
+      {==}
+
+def same_address_equal(
+  +left: O.NodeAddress,
+  +right: O.NodeAddress,
+  +same: {F.same_address(left, right) == True{} : Bool}
+) -> {left == right : O.NodeAddress}:
+  match left right:
+    case O.NodeAddress{+episode, +route} O.NodeAddress{+other, +rest}:
+      %NatEquality.eq_of_is_eq(episode, other,
+        B.eq_true_of_and_left(Nat.is_eq(episode, other), F.same_route(route, rest), same)):
+        {O.NodeAddress{episode, route} == O.NodeAddress{_, rest} : O.NodeAddress}
+      %same_route_equal(route, rest,
+        B.eq_true_of_and_right(Nat.is_eq(episode, other), F.same_route(route, rest), same)):
+        {O.NodeAddress{episode, route} == O.NodeAddress{episode, _} : O.NodeAddress}
+      {==}
+
+def within_self(route: List<&2, Nat>) -> {within_route(route, route) == True{} : Bool}:
+  match route:
+    case []: {==}
+    case +head <> +tail:
+      B.and_eq_true(Nat.is_eq(head, head), within_route(tail, tail),
+        NatEquality.is_eq_refl(head), within_self(tail))
+
+def later_self(
+  route: List<&2, Nat>,
+  first: Nat
+) -> {later_route(route, first, route) == False{} : Bool}:
+  match route:
+    case []: {==}
+    case +head <> +tail:
+      %Equal.sym(Bool, Nat.is_eq(head, head), True{}, NatEquality.is_eq_refl(head)):
+        {Bool.and(_, later_route(tail, first, tail)) == False{} : Bool}
+      later_self(tail, first)
+
+
+def count_append(
+  left: List<&2, F.Node>,
+  +right: List<&2, F.Node>,
+  +address: O.NodeAddress
+) -> {
+  F.count_address(List.append(&2, F.Node, left, right), address)
+  == (F.count_address(left, address) + F.count_address(right, address) : Nat)
+  : Nat
+}:
+  match left:
+    case []: {==}
+    case F.Node{+owner, artifact, references} <> +tail:
+      %Equal.sym(Nat,
+        F.count_address(List.append(&2, F.Node, tail, right), address),
+        (F.count_address(tail, address) + F.count_address(right, address) : Nat),
+        count_append(tail, right, address)): {
+          (Bool.pick(Nat, F.same_address(address, owner), 1n, 0n) + _ : Nat)
+          == ((Bool.pick(
+            Nat,
+            F.same_address(address, owner),
+            1n,
+            0n
+          ) + F.count_address(tail, address) : Nat) + F.count_address(right, address) : Nat)
+          : Nat
+        }
+      Equal.sym(
+        Nat,
+        ((Bool.pick(
+          Nat,
+          F.same_address(address, owner),
+          1n,
+          0n
+        ) + F.count_address(tail, address) : Nat) + F.count_address(right, address) : Nat),
+        (Bool.pick(
+          Nat,
+          F.same_address(address, owner),
+          1n,
+          0n
+        ) + (F.count_address(tail, address) + F.count_address(right, address) : Nat) : Nat),
+        Addition.add_assoc(
+          Bool.pick(Nat, F.same_address(address, owner), 1n, 0n),
+          F.count_address(tail, address),
+          F.count_address(right, address)
+        )
+      )
+
+def incoming_append(
+  left: List<&2, F.Node>,
+  +right: List<&2, F.Node>,
+  +address: O.NodeAddress
+) -> {
+  Relation.incoming(List.append(&2, F.Node, left, right), address)
+  == (Relation.incoming(left, address) + Relation.incoming(right, address) : Nat)
+  : Nat
+}:
+  match left:
+    case []: {==}
+    case F.Node{owner, artifact, +references} <> +tail:
+      %Equal.sym(Nat,
+        Relation.incoming(List.append(&2, F.Node, tail, right), address),
+        (Relation.incoming(tail, address) + Relation.incoming(right, address) : Nat),
+        incoming_append(tail, right, address)): {
+          (Relation.incoming_references(references, address) + _ : Nat)
+          == ((Relation.incoming_references(
+            references,
+            address
+          ) + Relation.incoming(tail, address) : Nat) + Relation.incoming(right, address) : Nat)
+          : Nat
+        }
+      Equal.sym(
+        Nat,
+        ((Relation.incoming_references(
+          references,
+          address
+        ) + Relation.incoming(tail, address) : Nat) + Relation.incoming(right, address) : Nat),
+        (Relation.incoming_references(
+          references,
+          address
+        ) + (Relation.incoming(tail, address) + Relation.incoming(right, address) : Nat) : Nat),
+        Addition.add_assoc(
+          Relation.incoming_references(references, address),
+          Relation.incoming(tail, address),
+          Relation.incoming(right, address)
+        )
+      )
+
+# Child cone inclusion: routing through prefix+[index] stays under prefix.
+def within_child_parent(
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +route: List<&2, Nat>,
+  +inside: {within_route(List.append(&2, Nat, prefix, [index]), route) == True{} : Bool}
+) -> { within_route(prefix, route) == True{} : Bool }:
+  match prefix route:
+    case [] _: {==}
+    case _ <> _ Nil{}:
+      Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(inside))
+    case +head <> +tail +other <> +rest:
+      B.and_eq_true(Nat.is_eq(head, other), within_route(tail, rest),
+        B.eq_true_of_and_left(Nat.is_eq(head, other),
+          within_route(List.append(&2, Nat, tail, [index]), rest), inside),
+        within_child_parent(tail, index, rest,
+          B.eq_true_of_and_right(Nat.is_eq(head, other),
+            within_route(List.append(&2, Nat, tail, [index]), rest), inside)))
+
+def child_index_bound(
+  +index: Nat,
+  +other: Nat,
+  same: {Nat.is_eq(index, other) == True{} : Bool}
+) -> { Nat.is_le(index, other) == True{} : Bool }:
+  %NatEquality.eq_of_is_eq(index, other, same): {Nat.is_le(index, _) == True{} : Bool}
+  N.le_refl(index)
+
+def within_child_later(
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +route: List<&2, Nat>,
+  +inside: {within_route(List.append(&2, Nat, prefix, [index]), route) == True{} : Bool}
+) -> { later_route(prefix, index, route) == True{} : Bool }:
+  match prefix route:
+    case Nil{} Nil{}:
+      Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(inside))
+    case Nil{} +head <> tail:
+      child_index_bound(index, head,
+        B.eq_true_of_and_left(Nat.is_eq(index, head), True{}, inside))
+    case _ <> _ Nil{}:
+      Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(inside))
+    case +head <> +tail +other <> +rest:
+      B.and_eq_true(Nat.is_eq(head, other), later_route(tail, index, rest),
+        B.eq_true_of_and_left(Nat.is_eq(head, other),
+          within_route(List.append(&2, Nat, tail, [index]), rest), inside),
+        within_child_later(tail, index, rest,
+          B.eq_true_of_and_right(Nat.is_eq(head, other),
+            within_route(List.append(&2, Nat, tail, [index]), rest), inside)))
+
+def later_descendant(
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +route: List<&2, Nat>,
+  +inside: {later_route(prefix, index, route) == True{} : Bool}
+) -> { F.descendant(prefix, route) == True{} : Bool }:
+  match prefix route:
+    case Nil{} Nil{}:
+      Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(inside))
+    case Nil{} _ <> _: {==}
+    case _ <> _ Nil{}:
+      Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(inside))
+    case +head <> +tail +other <> +rest:
+      B.and_eq_true(Nat.is_eq(head, other), F.descendant(tail, rest),
+        B.eq_true_of_and_left(Nat.is_eq(head, other), later_route(tail, index, rest), inside),
+        later_descendant(tail, index, rest,
+          B.eq_true_of_and_right(Nat.is_eq(head, other), later_route(tail, index, rest), inside)))
+
+def later_self_impossible(
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  inside: {later_route(prefix, index, prefix) == True{} : Bool}
+) -> Empty:
+  B.internal_false_ne_true(
+    %later_self(prefix, index): {_ == True{} : Bool}
+    inside)
+
+def later_parent_disjoint(
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +route: List<&2, Nat>,
+  same: {F.same_route(prefix, route) == True{} : Bool},
+  inside: {later_route(prefix, index, route) == True{} : Bool}
+) -> Empty:
+  self : {later_route(prefix, index, prefix) == True{} : Bool} =
+    %Equal.sym(List<&2, Nat>, prefix, route, same_route_equal(prefix, route, same)):
+      {later_route(prefix, index, _) == True{} : Bool}
+    inside
+  later_self_impossible(prefix, index, self)
+
+# Verbatim existing mathlib fact and prerequisite aliases, approved for this
+# route-separation dependency. Source vendor/bendlib/packages/bend-mathlib/nat.bend
+# SHA256 445fb22805af3d01f9c9a08cefcf0e5d02f2ac750a424aeb1e0f0b6836f87991.
+def lt(a: Nat, b: Nat) -> Data:
+  {Nat.is_lt(a, b) == True{} : Bool}
+
+def internal_false_ne_true(e: {False{} == True{} : Bool}) -> Empty:
+  %e : Bool.pick(Type, _, Empty, Unit)
+  Unit{}
+
+# No natural is less than itself.
+law lt_irrefl:
+  for a: Nat
+  lt(a, a) -> Empty
+
+def lt_irrefl(a):
+  match a:
+    case 0n:
+      h => internal_false_ne_true(h)
+    case 1n+p:
+      lt_irrefl(p)
+
+def child_index_separated(
+  +index: Nat,
+  +other: Nat,
+  same: {Nat.is_eq(index, other) == True{} : Bool},
+  later: {Nat.is_le((index + 1n : Nat), other) == True{} : Bool}
+) -> Empty:
+  impossible : {Nat.is_le(1n+index, index) == True{} : Bool} =
+    %N.add_comm(index, 1n): {Nat.is_le(_, index) == True{} : Bool}
+    %Equal.sym(Nat, index, other, NatEquality.eq_of_is_eq(index, other, same)):
+      {Nat.is_le((index + 1n : Nat), _) == True{} : Bool}
+    later
+  lt_irrefl(index)(N.lt_of_succ_le(index, index, impossible))
+
+def child_later_separated(
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +route: List<&2, Nat>,
+  +child: {within_route(List.append(&2, Nat, prefix, [index]), route) == True{} : Bool},
+  +later: {later_route(prefix, (index + 1n : Nat), route) == True{} : Bool}
+) -> Empty:
+  match prefix route:
+    case Nil{} Nil{}: B.internal_false_ne_true(child)
+    case Nil{} +head <> tail:
+      child_index_separated(index, head,
+        B.eq_true_of_and_left(Nat.is_eq(index, head), True{}, child), later)
+    case _ <> _ Nil{}: B.internal_false_ne_true(child)
+    case +head <> +tail +other <> +rest:
+      child_later_separated(tail, index, rest,
+        B.eq_true_of_and_right(Nat.is_eq(head, other),
+          within_route(List.append(&2, Nat, tail, [index]), rest), child),
+        B.eq_true_of_and_right(Nat.is_eq(head, other),
+          later_route(tail, (index + 1n : Nat), rest), later))
+
+def within_append_nodes(
+  left: List<&2, F.Node>,
+  +right: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +left_valid: {nodes_within(left, episode, prefix) == True{} : Bool},
+  right_valid: {nodes_within(right, episode, prefix) == True{} : Bool}
+) -> { nodes_within(List.append(&2, F.Node, left, right), episode, prefix) == True{} : Bool }:
+  match left:
+    case []: right_valid
+    case F.Node{+address, _, _} <> +tail:
+      B.and_eq_true(
+        node_within(episode, prefix, address),
+        nodes_within(List.append(&2, F.Node, tail, right), episode, prefix),
+        B.eq_true_of_and_left(
+          node_within(episode, prefix, address),
+          nodes_within(tail, episode, prefix),
+          left_valid
+        ),
+        within_append_nodes(
+          tail,
+          right,
+          episode,
+          prefix,
+          B.eq_true_of_and_right(
+            node_within(episode, prefix, address),
+            nodes_within(tail, episode, prefix),
+            left_valid
+          ),
+          right_valid
+        )
+      )
+
+def later_append_nodes(
+  left: List<&2, F.Node>,
+  +right: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +first: Nat,
+  +left_valid: {nodes_later(left, episode, prefix, first) == True{} : Bool},
+  right_valid: {nodes_later(right, episode, prefix, first) == True{} : Bool}
+) -> { nodes_later(List.append(&2, F.Node, left, right), episode, prefix, first) == True{} : Bool }:
+  match left:
+    case []: right_valid
+    case F.Node{+address, _, _} <> +tail:
+      B.and_eq_true(
+        node_later(episode, prefix, first, address),
+        nodes_later(List.append(&2, F.Node, tail, right), episode, prefix, first),
+        B.eq_true_of_and_left(
+          node_later(episode, prefix, first, address),
+          nodes_later(tail, episode, prefix, first),
+          left_valid
+        ),
+        later_append_nodes(
+          tail,
+          right,
+          episode,
+          prefix,
+          first,
+          B.eq_true_of_and_right(
+            node_later(episode, prefix, first, address),
+            nodes_later(tail, episode, prefix, first),
+            left_valid
+          ),
+          right_valid
+        )
+      )
+
+def tree_scope(result: F.Construction, +episode: Nat, +prefix: List<&2, Nat>) -> Bool:
+  match result:
+    case F.Constructed{F.Created{root, nodes, _}}:
+      Bool.and(
+        F.same_address(root, O.NodeAddress{episode, prefix}),
+        nodes_within(nodes, episode, prefix)
+      )
+    case _: True{}
+
+def list_scope(result: F.ReferencesResult, episode: Nat, prefix: List<&2, Nat>, first: Nat) -> Bool:
+  match result:
+    case F.ReferencesBuilt{F.References{_, nodes, _}}: nodes_later(nodes, episode, prefix, first)
+    case _: True{}
+
+def dispatch_scope(request: F.ConstructionRequest, result: F.ConstructionDispatch) -> Bool:
+  match request result:
+    case F.TreeRequest{_, episode, prefix, _} F.TreeResult{result}: tree_scope(
+      result,
+      episode,
+      prefix
+    )
+    case F.ReferencesRequest{_, first, episode, prefix, _} F.ListResult{result}: list_scope(
+      result,
+      episode,
+      prefix,
+      first
+    )
+    case _ _: False{}
+
+def later_weaken(
+  +prefix: List<&2, Nat>,
+  +first: Nat,
+  +second: Nat,
+  +route: List<&2, Nat>,
+  order: {Nat.is_le(first, second) == True{} : Bool},
+  +inside: {later_route(prefix, second, route) == True{} : Bool}
+) -> { later_route(prefix, first, route) == True{} : Bool }:
+  match prefix route:
+    case Nil{} Nil{}: Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(inside))
+    case Nil{} +head <> _: N.le_trans(first, second, head, order, inside)
+    case _ <> _ Nil{}: Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(inside))
+    case +head <> +tail +other <> +rest:
+      B.and_eq_true(Nat.is_eq(head, other), later_route(tail, first, rest),
+        B.eq_true_of_and_left(Nat.is_eq(head, other), later_route(tail, second, rest), inside),
+        later_weaken(tail, first, second, rest, order,
+          B.eq_true_of_and_right(Nat.is_eq(head, other), later_route(tail, second, rest), inside)))
+
+def node_later_weaken(
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +first: Nat,
+  +second: Nat,
+  +address: O.NodeAddress,
+  order: {Nat.is_le(first, second) == True{} : Bool},
+  +inside: {node_later(episode, prefix, second, address) == True{} : Bool}
+) -> { node_later(episode, prefix, first, address) == True{} : Bool }:
+  match address:
+    case O.NodeAddress{+other, +route}:
+      B.and_eq_true(
+        Nat.is_eq(episode, other),
+        later_route(prefix, first, route),
+        B.eq_true_of_and_left(
+          Nat.is_eq(episode, other),
+          later_route(prefix, second, route),
+          inside
+        ),
+        later_weaken(
+          prefix,
+          first,
+          second,
+          route,
+          order,
+          B.eq_true_of_and_right(
+            Nat.is_eq(episode, other),
+            later_route(prefix, second, route),
+            inside
+          )
+        )
+      )
+
+def nodes_later_weaken(
+  items: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +first: Nat,
+  +second: Nat,
+  +order: {Nat.is_le(first, second) == True{} : Bool},
+  +inside: {nodes_later(items, episode, prefix, second) == True{} : Bool}
+) -> { nodes_later(items, episode, prefix, first) == True{} : Bool }:
+  match items:
+    case []: {==}
+    case F.Node{+address, _, _} <> +tail:
+      B.and_eq_true(
+        node_later(episode, prefix, first, address),
+        nodes_later(tail, episode, prefix, first),
+        node_later_weaken(
+          episode,
+          prefix,
+          first,
+          second,
+          address,
+          order,
+          B.eq_true_of_and_left(
+            node_later(episode, prefix, second, address),
+            nodes_later(tail, episode, prefix, second),
+            inside
+          )
+        ),
+        nodes_later_weaken(
+          tail,
+          episode,
+          prefix,
+          first,
+          second,
+          order,
+          B.eq_true_of_and_right(
+            node_later(episode, prefix, second, address),
+            nodes_later(tail, episode, prefix, second),
+            inside
+          )
+        )
+      )
+
+def node_child_later(
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +address: O.NodeAddress,
+  +inside: {node_within(episode, List.append(&2, Nat, prefix, [index]), address) == True{} : Bool}
+) -> { node_later(episode, prefix, index, address) == True{} : Bool }:
+  match address:
+    case O.NodeAddress{+other, +route}:
+      B.and_eq_true(Nat.is_eq(episode, other), later_route(prefix, index, route),
+        B.eq_true_of_and_left(Nat.is_eq(episode, other),
+          within_route(List.append(&2, Nat, prefix, [index]), route), inside),
+        within_child_later(prefix, index, route,
+          B.eq_true_of_and_right(Nat.is_eq(episode, other),
+            within_route(List.append(&2, Nat, prefix, [index]), route), inside)))
+
+def nodes_child_later(
+  items: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +inside: {nodes_within(items, episode, List.append(&2, Nat, prefix, [index])) == True{} : Bool}
+) -> { nodes_later(items, episode, prefix, index) == True{} : Bool }:
+  match items:
+    case []: {==}
+    case F.Node{+address, _, _} <> +tail:
+      B.and_eq_true(
+        node_later(episode, prefix, index, address),
+        nodes_later(tail, episode, prefix, index),
+        node_child_later(
+          episode,
+          prefix,
+          index,
+          address,
+          B.eq_true_of_and_left(
+            node_within(episode, List.append(&2, Nat, prefix, [index]), address),
+            nodes_within(tail, episode, List.append(&2, Nat, prefix, [index])),
+            inside
+          )
+        ),
+        nodes_child_later(
+          tail,
+          episode,
+          prefix,
+          index,
+          B.eq_true_of_and_right(
+            node_within(episode, List.append(&2, Nat, prefix, [index]), address),
+            nodes_within(tail, episode, List.append(&2, Nat, prefix, [index])),
+            inside
+          )
+        )
+      )
+
+def later_within(
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +route: List<&2, Nat>,
+  +inside: {later_route(prefix, index, route) == True{} : Bool}
+) -> { within_route(prefix, route) == True{} : Bool }:
+  match prefix route:
+    case Nil{} _: {==}
+    case _ <> _ Nil{}: Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(inside))
+    case +head <> +tail +other <> +rest:
+      B.and_eq_true(Nat.is_eq(head, other), within_route(tail, rest),
+        B.eq_true_of_and_left(Nat.is_eq(head, other), later_route(tail, index, rest), inside),
+        later_within(tail, index, rest,
+          B.eq_true_of_and_right(Nat.is_eq(head, other), later_route(tail, index, rest), inside)))
+
+def node_later_within(
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +address: O.NodeAddress,
+  +inside: {node_later(episode, prefix, index, address) == True{} : Bool}
+) -> { node_within(episode, prefix, address) == True{} : Bool }:
+  match address:
+    case O.NodeAddress{+other, +route}:
+      B.and_eq_true(
+        Nat.is_eq(episode, other),
+        within_route(prefix, route),
+        B.eq_true_of_and_left(Nat.is_eq(episode, other), later_route(prefix, index, route), inside),
+        later_within(
+          prefix,
+          index,
+          route,
+          B.eq_true_of_and_right(
+            Nat.is_eq(episode, other),
+            later_route(prefix, index, route),
+            inside
+          )
+        )
+      )
+
+def nodes_later_within(
+  items: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +inside: {nodes_later(items, episode, prefix, index) == True{} : Bool}
+) -> { nodes_within(items, episode, prefix) == True{} : Bool }:
+  match items:
+    case []: {==}
+    case F.Node{+address, _, _} <> +tail:
+      B.and_eq_true(
+        node_within(episode, prefix, address),
+        nodes_within(tail, episode, prefix),
+        node_later_within(
+          episode,
+          prefix,
+          index,
+          address,
+          B.eq_true_of_and_left(
+            node_later(episode, prefix, index, address),
+            nodes_later(tail, episode, prefix, index),
+            inside
+          )
+        ),
+        nodes_later_within(
+          tail,
+          episode,
+          prefix,
+          index,
+          B.eq_true_of_and_right(
+            node_later(episode, prefix, index, address),
+            nodes_later(tail, episode, prefix, index),
+            inside
+          )
+        )
+      )
+
+def scope_contract(+fuel: Nat) -> Type:
+  @+request: F.ConstructionRequest ->
+  {dispatch_scope(request, F.construct_interpret(fuel, request)) == True{} : Bool}
+
+def tree_projection(
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +result: F.ConstructionDispatch,
+  valid: {dispatch_scope(F.TreeRequest{tree, episode, prefix, artifacts}, result) == True{} : Bool}
+) -> { tree_scope(F.as_tree(result), episode, prefix) == True{} : Bool }:
+  match result:
+    case F.TreeResult{_}: valid
+    case F.ListResult{_}: {==}
+
+def list_projection(
+  +items: List<&2, Recursive.TreeReference>,
+  +first: Nat,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +result: F.ConstructionDispatch,
+  valid: {
+    dispatch_scope(F.ReferencesRequest{items, first, episode, prefix, artifacts}, result)
+    == True{}
+    : Bool
+  }
+) -> { list_scope(F.as_references(result), episode, prefix, first) == True{} : Bool }:
+  match result:
+    case F.TreeResult{_}: {==}
+    case F.ListResult{_}: valid
+
+def constructed_scope(
+  +result: F.ReferencesResult,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +local: Nat,
+  +artifact: T.Artifact,
+  valid: {list_scope(result, episode, prefix, 0n) == True{} : Bool}
+) -> {
+  tree_scope(
+    F.constructed(result, O.NodeAddress{episode, prefix}, local, artifact),
+    episode,
+    prefix
+  )
+  == True{}
+  : Bool
+}:
+  match result:
+    case F.ReferencesBuilt{F.References{references, +nodes, addresses}}:
+      B.and_eq_true(
+        F.same_address(O.NodeAddress{episode, prefix}, O.NodeAddress{episode, prefix}),
+        nodes_within(
+          F.Node{O.NodeAddress{episode, prefix}, artifact, references} <> nodes,
+          episode,
+          prefix
+        ),
+        B.and_eq_true(
+          Nat.is_eq(episode, episode),
+          F.same_route(prefix, prefix),
+          NatEquality.is_eq_refl(episode),
+          same_route_refl(prefix)
+        ),
+        B.and_eq_true(
+          node_within(episode, prefix, O.NodeAddress{episode, prefix}),
+          nodes_within(nodes, episode, prefix),
+          B.and_eq_true(
+            Nat.is_eq(episode, episode),
+            within_route(prefix, prefix),
+            NatEquality.is_eq_refl(episode),
+            within_self(prefix)
+          ),
+          nodes_later_within(nodes, episode, prefix, 0n, valid)
+        )
+      )
+    case F.ReferencesExhausted{}: {==}
+    case F.ReferencesInvalid{}: {==}
+
+def next_index_le(+index: Nat) -> {Nat.is_le(index, (index + 1n : Nat)) == True{} : Bool}:
+  %Equal.sym(Nat, (index + 1n : Nat), 1n+index, N.add_comm(index, 1n)):
+    {Nat.is_le(index, _) == True{} : Bool}
+  N.le_of_lt(index, 1n+index, N.lt_succ_self(index))
+
+def scope_prefix(
+  +result: F.ReferencesResult,
+  +reference: F.Reference,
+  +nodes: List<&2, F.Node>,
+  +addresses: List<&2, F.AddressEntry>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  head: {nodes_later(nodes, episode, prefix, index) == True{} : Bool},
+  tail: {list_scope(result, episode, prefix, (index + 1n : Nat)) == True{} : Bool}
+) -> {
+  list_scope(F.reference_prefix(result, reference, nodes, addresses), episode, prefix, index)
+  == True{}
+  : Bool
+}:
+  match result:
+    case F.ReferencesBuilt{F.References{_, +more, _}}:
+      later_append_nodes(
+        nodes,
+        more,
+        episode,
+        prefix,
+        index,
+        head,
+        nodes_later_weaken(
+          more,
+          episode,
+          prefix,
+          index,
+          (index + 1n : Nat),
+          next_index_le(index),
+          tail
+        )
+      )
+    case F.ReferencesExhausted{}: {==}
+    case F.ReferencesInvalid{}: {==}
+
+def expanded_scope(
+  remaining: Unit -> F.ReferencesResult,
+  +result: F.Construction,
+  +symbol: String,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +head: {tree_scope(result, episode, List.append(&2, Nat, prefix, [index])) == True{} : Bool},
+  tail: {list_scope(remaining(Unit{}), episode, prefix, (index + 1n : Nat)) == True{} : Bool}
+) -> { list_scope(F.expanded(result, symbol, remaining), episode, prefix, index) == True{} : Bool }:
+  match result:
+    case F.Constructed{F.Created{+root, +nodes, +addresses}}:
+      scope_prefix(
+        remaining(Unit{}),
+        F.Expanded{F.ReferenceSymbol{symbol}, root},
+        nodes,
+        addresses,
+        episode,
+        prefix,
+        index,
+        nodes_child_later(
+          nodes,
+          episode,
+          prefix,
+          index,
+          B.eq_true_of_and_right(
+            F.same_address(root, O.NodeAddress{episode, List.append(&2, Nat, prefix, [index])}),
+            nodes_within(nodes, episode, List.append(&2, Nat, prefix, [index])),
+            head
+          )
+        ),
+        tail
+      )
+    case F.ConstructionExhausted{}: {==}
+    case F.ConstructionInvalid{}: {==}
+
+def converted_scope(
+  child: Recursive.Tree -> F.Construction,
+  remaining: Unit -> F.ReferencesResult,
+  +reference: Recursive.TreeReference,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  child_valid: @+tree: Recursive.Tree -> {
+    tree_scope(child(tree), episode, List.append(&2, Nat, prefix, [index]))
+    == True{}
+    : Bool
+  },
+  tail: {list_scope(remaining(Unit{}), episode, prefix, (index + 1n : Nat)) == True{} : Bool}
+) -> {
+  list_scope(F.converted_reference(reference, child, remaining), episode, prefix, index)
+  == True{}
+  : Bool
+}:
+  match reference:
+    case Recursive.TreeReference{+symbol, Recursive.Included{+identity}}:
+      scope_prefix(
+        remaining(Unit{}),
+        F.Included{F.ReferenceSymbol{symbol}, F.ArtifactIdentity{identity}},
+        [],
+        [],
+        episode,
+        prefix,
+        index,
+        {==},
+        tail
+      )
+    case Recursive.TreeReference{+symbol, Recursive.Omitted{+reason, +target}}:
+      scope_prefix(
+        remaining(Unit{}),
+        F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{target}, reason},
+        [],
+        [],
+        episode,
+        prefix,
+        index,
+        {==},
+        tail
+      )
+    case Recursive.TreeReference{+symbol, Recursive.Expanded{+tree}}:
+      expanded_scope(
+        remaining,
+        child(tree),
+        symbol,
+        episode,
+        prefix,
+        index,
+        child_valid(tree),
+        tail
+      )
+
+def artifact_scope(
+  recurse: List<&2, Recursive.TreeReference> -> F.ReferencesResult,
+  +artifact: Maybe<&2, T.Artifact>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +local: Nat,
+  +items: List<&2, Recursive.TreeReference>,
+  valid: {list_scope(recurse(items), episode, prefix, 0n) == True{} : Bool}
+) -> {
+  tree_scope(
+    F.tree_artifact(artifact, O.NodeAddress{episode, prefix}, local, items, recurse),
+    episode,
+    prefix
+  )
+  == True{}
+  : Bool
+}:
+  match artifact:
+    case None{}: {==}
+    case Some{+value}: constructed_scope(recurse(items), episode, prefix, local, value, valid)
+
+def scope_dispatch(
+  +fuel: Nat,
+  +request: F.ConstructionRequest,
+  child: scope_contract(fuel),
+  sibling: scope_contract(fuel)
+) -> { dispatch_scope(request, F.construct_interpret(1n+fuel, request)) == True{} : Bool }:
+  match request:
+    case F.TreeRequest{Recursive.Tree{local, +handle, +items}, +episode, +prefix, +artifacts}:
+      refs_eval : List<&2, Recursive.TreeReference> -> F.ReferencesResult = items => F.as_references(
+        F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts})
+      )
+      artifact_scope(refs_eval,
+        F.artifact_at(artifacts, handle), episode, prefix, local, items,
+        list_projection(items, 0n, episode, prefix, artifacts,
+          F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts}),
+          child(F.ReferencesRequest{items, 0n, episode, prefix, artifacts})))
+    case F.ReferencesRequest{Nil{}, _, _, _, _}: {==}
+    case F.ReferencesRequest{+head <> +tail, +index, +episode, +prefix, +artifacts}:
+      tree_projection_fact : @+tree: Recursive.Tree -> {
+        tree_scope(
+          F.as_tree(
+            F.construct_interpret(
+              fuel,
+              F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+            )
+          ),
+          episode,
+          List.append(&2, Nat, prefix, [index])
+        )
+        == True{}
+        : Bool
+      } = tree => tree_projection(
+        tree,
+        episode,
+        List.append(&2, Nat, prefix, [index]),
+        artifacts,
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        ),
+        child(F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts})
+      )
+      child_eval : Recursive.Tree -> F.Construction = tree => F.as_tree(
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        )
+      )
+      tail_eval : Unit -> F.ReferencesResult = _ => F.as_references(
+        F.construct_interpret(
+          fuel,
+          F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+        )
+      )
+      converted_scope(
+        child_eval,
+        tail_eval,
+        head,
+        episode,
+        prefix,
+        index,
+        tree_projection_fact,
+        list_projection(
+          tail,
+          (index + 1n : Nat),
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(
+            fuel,
+            F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+          ),
+          sibling(F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts})
+        )
+      )
+
+def construct_scope(
+  fuel: Nat,
+  +request: F.ConstructionRequest
+) -> { dispatch_scope(request, F.construct_interpret(fuel, request)) == True{} : Bool }:
+  match fuel request:
+    case 0n F.TreeRequest{_, _, _, _}: {==}
+    case 0n F.ReferencesRequest{_, _, _, _, _}: {==}
+    case 1n++remaining _:
+      scope_dispatch(remaining, request,
+        next => construct_scope(remaining, next), next => construct_scope(remaining, next))
+
+def same_episode_before(
+  +episode: Nat,
+  +other: Nat,
+  same: {Nat.is_eq(episode, other) == True{} : Bool}
+) -> { Nat.is_lt(other, (episode + 1n : Nat)) == True{} : Bool }:
+  %NatEquality.eq_of_is_eq(episode, other, same):
+    {Nat.is_lt(_, (episode + 1n : Nat)) == True{} : Bool}
+  %Equal.sym(Nat, (episode + 1n : Nat), 1n+episode, N.add_comm(episode, 1n)):
+    {Nat.is_lt(episode, _) == True{} : Bool}
+  N.lt_succ_self(episode)
+
+def scoped_episodes_before(
+  items: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +inside: {nodes_within(items, episode, prefix) == True{} : Bool}
+) -> { Relation.episodes_before(items, (episode + 1n : Nat)) == True{} : Bool }:
+  match items:
+    case []: {==}
+    case F.Node{O.NodeAddress{+other, +route}, _, _} <> +tail:
+      B.and_eq_true(
+        Nat.is_lt(other, (episode + 1n : Nat)),
+        Relation.episodes_before(tail, (episode + 1n : Nat)),
+        same_episode_before(
+          episode,
+          other,
+          B.eq_true_of_and_left(
+            Nat.is_eq(episode, other),
+            within_route(prefix, route),
+            B.eq_true_of_and_left(
+              node_within(episode, prefix, O.NodeAddress{other, route}),
+              nodes_within(tail, episode, prefix),
+              inside
+            )
+          )
+        ),
+        scoped_episodes_before(
+          tail,
+          episode,
+          prefix,
+          B.eq_true_of_and_right(
+            node_within(episode, prefix, O.NodeAddress{other, route}),
+            nodes_within(tail, episode, prefix),
+            inside
+          )
+        )
+      )
+
+# Verbatim existing mathlib Nat fact, same pinned source hash recorded above.
+# The equality test is symmetric.
+law is_eq_comm:
+  for a: Nat
+  for b: Nat
+  {Nat.is_eq(a, b) == Nat.is_eq(b, a) : Bool}
+
+def is_eq_comm(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n++p 1n++q:
+      %is_eq_comm(p, q) : {Nat.is_eq(p, q) == _ : Bool}
+      {==}
+
+def same_route_symmetric(
+  +left: List<&2, Nat>,
+  +right: List<&2, Nat>
+) -> { F.same_route(left, right) == F.same_route(right, left) : Bool }:
+  match left right:
+    case Nil{} Nil{}: {==}
+    case Nil{} Con{_, _}: {==}
+    case Con{_, _} Nil{}: {==}
+    case +head <> +tail +other <> +rest:
+      %is_eq_comm(head, other): {
+        Bool.and(Nat.is_eq(head, other), F.same_route(tail, rest))
+        == Bool.and(_, F.same_route(rest, tail)) : Bool
+      }
+      %same_route_symmetric(tail, rest): {
+        Bool.and(Nat.is_eq(head, other), F.same_route(tail, rest))
+        == Bool.and(Nat.is_eq(head, other), _) : Bool
+      }
+      {==}
+
+def same_address_symmetric(
+  +left: O.NodeAddress,
+  +right: O.NodeAddress
+) -> { F.same_address(left, right) == F.same_address(right, left) : Bool }:
+  match left right:
+    case O.NodeAddress{+episode, +route} O.NodeAddress{+other, +rest}:
+      %is_eq_comm(episode, other): {
+        Bool.and(Nat.is_eq(episode, other), F.same_route(route, rest))
+        == Bool.and(_, F.same_route(rest, route)) : Bool
+      }
+      %same_route_symmetric(route, rest): {
+        Bool.and(Nat.is_eq(episode, other), F.same_route(route, rest))
+        == Bool.and(Nat.is_eq(episode, other), _) : Bool
+      }
+      {==}
+
+# Pointwise edge conservation counts actual occurrences, including duplicates.
+# Thus this identity alone does not assert freshness or assume a valid forest.
+def tree_balance(result: F.Construction, +query: O.NodeAddress) -> Data:
+  match result:
+    case F.Constructed{F.Created{root, +nodes, _}}:
+      {(Relation.incoming(nodes, query)
+        + Bool.pick(Nat, F.same_address(root, query), 1n, 0n) : Nat)
+        == F.count_address(nodes, query) : Nat}
+    case _: {0n == 0n : Nat}
+
+def list_balance(result: F.ReferencesResult, +query: O.NodeAddress) -> Data:
+  match result:
+    case F.ReferencesBuilt{F.References{references, +nodes, _}}:
+      {(Relation.incoming(nodes, query) + Relation.incoming_references(references, query) : Nat)
+        == F.count_address(nodes, query) : Nat}
+    case _: {0n == 0n : Nat}
+
+def dispatch_balance(
+  request: F.ConstructionRequest,
+  result: F.ConstructionDispatch,
+  query: O.NodeAddress
+) -> Data:
+  match request result:
+    case F.TreeRequest{_, _, _, _} F.TreeResult{result}: tree_balance(result, query)
+    case F.ReferencesRequest{_, _, _, _, _} F.ListResult{result}: list_balance(result, query)
+    case _ _: {0n == 0n : Nat}
+
+def balance_contract(+fuel: Nat) -> Type:
+  @+request: F.ConstructionRequest -> @+query: O.NodeAddress ->
+  dispatch_balance(request, F.construct_interpret(fuel, request), query)
+
+def edge_indicator(reference: F.Reference, query: O.NodeAddress) -> Nat:
+  match reference:
+    case F.Expanded{_, child}: Bool.pick(Nat, F.same_address(child, query), 1n, 0n)
+    case _: 0n
+
+def incoming_cons(
+  +reference: F.Reference,
+  +tail: List<&2, F.Reference>,
+  +query: O.NodeAddress
+) -> {
+  Relation.incoming_references(reference <> tail, query)
+  == (edge_indicator(reference, query) + Relation.incoming_references(tail, query) : Nat)
+  : Nat
+}:
+  match reference:
+    case F.Included{_, _}: {==}
+    case F.Expanded{_, _}: {==}
+    case F.Omitted{_, _, _}: {==}
+
+def prefix_balance(
+  +result: F.ReferencesResult,
+  +reference: F.Reference,
+  +nodes: List<&2, F.Node>,
+  +addresses: List<&2, F.AddressEntry>,
+  +query: O.NodeAddress,
+  head: {
+    (Relation.incoming(nodes, query) + edge_indicator(reference, query) : Nat)
+    == F.count_address(nodes, query)
+    : Nat
+  },
+  tail: list_balance(result, query)
+) -> list_balance(F.reference_prefix(result, reference, nodes, addresses), query):
+  match result:
+    case F.ReferencesBuilt{F.References{+references, +more, _}}:
+      %Equal.sym(
+        Nat,
+        Relation.incoming(List.append(&2, F.Node, nodes, more), query),
+        (Relation.incoming(nodes, query) + Relation.incoming(more, query) : Nat),
+        incoming_append(nodes, more, query)
+      ):
+        {(_ + Relation.incoming_references(reference <> references, query) : Nat)
+          == F.count_address(List.append(&2, F.Node, nodes, more), query) : Nat}
+      %Equal.sym(Nat, Relation.incoming_references(reference <> references, query),
+        (edge_indicator(reference, query) + Relation.incoming_references(references, query) : Nat),
+        incoming_cons(reference, references, query)):
+        {((Relation.incoming(nodes, query) + Relation.incoming(more, query) : Nat) + _ : Nat)
+          == F.count_address(List.append(&2, F.Node, nodes, more), query) : Nat}
+      %Equal.sym(
+        Nat,
+        F.count_address(List.append(&2, F.Node, nodes, more), query),
+        (F.count_address(nodes, query) + F.count_address(more, query) : Nat),
+        count_append(nodes, more, query)
+      ):
+        {
+          ((Relation.incoming(
+            nodes,
+            query
+          ) + Relation.incoming(
+            more,
+            query
+          ) : Nat) + (edge_indicator(
+            reference,
+            query
+          ) + Relation.incoming_references(references, query) : Nat) : Nat)
+          == _
+          : Nat
+        }
+      %head:
+        {
+          ((Relation.incoming(
+            nodes,
+            query
+          ) + Relation.incoming(
+            more,
+            query
+          ) : Nat) + (edge_indicator(
+            reference,
+            query
+          ) + Relation.incoming_references(references, query) : Nat) : Nat)
+          == (_ + F.count_address(more, query) : Nat)
+          : Nat
+        }
+      %tail:
+        {
+          ((Relation.incoming(
+            nodes,
+            query
+          ) + Relation.incoming(
+            more,
+            query
+          ) : Nat) + (edge_indicator(
+            reference,
+            query
+          ) + Relation.incoming_references(references, query) : Nat) : Nat)
+          == ((Relation.incoming(nodes, query) + edge_indicator(reference, query) : Nat) + _ : Nat)
+          : Nat
+        }
+      Addition.add_add_add_comm(Relation.incoming(nodes, query), Relation.incoming(more, query),
+        edge_indicator(reference, query), Relation.incoming_references(references, query))
+    case F.ReferencesExhausted{}: {==}
+    case F.ReferencesInvalid{}: {==}
+
+def constructed_balance(
+  +result: F.ReferencesResult,
+  +address: O.NodeAddress,
+  +local: Nat,
+  +artifact: T.Artifact,
+  +query: O.NodeAddress,
+  balance: list_balance(result, query)
+) -> tree_balance(F.constructed(result, address, local, artifact), query):
+  match result:
+    case F.ReferencesBuilt{F.References{+references, +nodes, _}}:
+      %same_address_symmetric(address, query): {
+        ((Relation.incoming_references(references, query) + Relation.incoming(nodes, query) : Nat)
+          + Bool.pick(Nat, F.same_address(address, query), 1n, 0n) : Nat)
+          == (Bool.pick(Nat, _, 1n, 0n) + F.count_address(nodes, query) : Nat) : Nat
+      }
+      %balance: {
+        ((Relation.incoming_references(references, query) + Relation.incoming(nodes, query) : Nat)
+          + Bool.pick(Nat, F.same_address(address, query), 1n, 0n) : Nat)
+          == (Bool.pick(Nat, F.same_address(address, query), 1n, 0n) + _ : Nat) : Nat
+      }
+      %Addition.add_comm(
+        Relation.incoming_references(references, query),
+        Relation.incoming(nodes, query)
+      ): {
+        ((Relation.incoming_references(references, query) + Relation.incoming(nodes, query) : Nat)
+          + Bool.pick(Nat, F.same_address(address, query), 1n, 0n) : Nat)
+          == (Bool.pick(Nat, F.same_address(address, query), 1n, 0n) + _ : Nat) : Nat
+      }
+      Addition.add_comm(
+        (Relation.incoming_references(references, query) + Relation.incoming(nodes, query) : Nat),
+        Bool.pick(Nat, F.same_address(address, query), 1n, 0n)
+      )
+    case F.ReferencesExhausted{}: {==}
+    case F.ReferencesInvalid{}: {==}
+
+def balance_tree_projection(
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +result: F.ConstructionDispatch,
+  +query: O.NodeAddress,
+  valid: dispatch_balance(F.TreeRequest{tree, episode, prefix, artifacts}, result, query)
+) -> tree_balance(F.as_tree(result), query):
+  match result:
+    case F.TreeResult{_}: valid
+    case F.ListResult{_}: {==}
+
+def balance_list_projection(
+  +items: List<&2, Recursive.TreeReference>,
+  +first: Nat,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +result: F.ConstructionDispatch,
+  +query: O.NodeAddress,
+  valid: dispatch_balance(
+    F.ReferencesRequest{items, first, episode, prefix, artifacts},
+    result,
+    query
+  )
+) -> list_balance(F.as_references(result), query):
+  match result:
+    case F.TreeResult{_}: {==}
+    case F.ListResult{_}: valid
+
+def expanded_balance(
+  remaining: Unit -> F.ReferencesResult,
+  +result: F.Construction,
+  +symbol: String,
+  +query: O.NodeAddress,
+  head: tree_balance(result, query),
+  tail: list_balance(remaining(Unit{}), query)
+) -> list_balance(F.expanded(result, symbol, remaining), query):
+  match result:
+    case F.Constructed{F.Created{+root, +nodes, +addresses}}:
+      prefix_balance(
+        remaining(Unit{}),
+        F.Expanded{F.ReferenceSymbol{symbol}, root},
+        nodes,
+        addresses,
+        query,
+        head,
+        tail
+      )
+    case F.ConstructionExhausted{}: {==}
+    case F.ConstructionInvalid{}: {==}
+
+def converted_balance(
+  child: Recursive.Tree -> F.Construction,
+  remaining: Unit -> F.ReferencesResult,
+  +reference: Recursive.TreeReference,
+  +query: O.NodeAddress,
+  child_valid: @+tree: Recursive.Tree -> tree_balance(child(tree), query),
+  tail: list_balance(remaining(Unit{}), query)
+) -> list_balance(F.converted_reference(reference, child, remaining), query):
+  match reference:
+    case Recursive.TreeReference{+symbol, Recursive.Included{+identity}}:
+      prefix_balance(
+        remaining(Unit{}),
+        F.Included{F.ReferenceSymbol{symbol}, F.ArtifactIdentity{identity}},
+        [],
+        [],
+        query,
+        {==},
+        tail
+      )
+    case Recursive.TreeReference{+symbol, Recursive.Omitted{+reason, +target}}:
+      prefix_balance(
+        remaining(Unit{}),
+        F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{target}, reason},
+        [],
+        [],
+        query,
+        {==},
+        tail
+      )
+    case Recursive.TreeReference{+symbol, Recursive.Expanded{+tree}}:
+      expanded_balance(remaining, child(tree), symbol, query, child_valid(tree), tail)
+
+def artifact_balance(
+  recurse: List<&2, Recursive.TreeReference> -> F.ReferencesResult,
+  +artifact: Maybe<&2, T.Artifact>,
+  +address: O.NodeAddress,
+  +local: Nat,
+  +items: List<&2, Recursive.TreeReference>,
+  +query: O.NodeAddress,
+  valid: list_balance(recurse(items), query)
+) -> tree_balance(F.tree_artifact(artifact, address, local, items, recurse), query):
+  match artifact:
+    case None{}: {==}
+    case Some{+value}: constructed_balance(recurse(items), address, local, value, query, valid)
+
+def balance_dispatch(
+  +fuel: Nat,
+  +request: F.ConstructionRequest,
+  +query: O.NodeAddress,
+  child: balance_contract(fuel),
+  sibling: balance_contract(fuel)
+) -> dispatch_balance(request, F.construct_interpret(1n+fuel, request), query):
+  match request:
+    case F.TreeRequest{Recursive.Tree{local, +handle, +items}, +episode, +prefix, +artifacts}:
+      refs_eval : List<&2, Recursive.TreeReference> -> F.ReferencesResult = items => F.as_references(
+        F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts})
+      )
+      artifact_balance(
+        refs_eval,
+        F.artifact_at(artifacts, handle),
+        O.NodeAddress{episode, prefix},
+        local,
+        items,
+        query,
+        balance_list_projection(
+          items,
+          0n,
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts}),
+          query,
+          child(F.ReferencesRequest{items, 0n, episode, prefix, artifacts}, query)
+        )
+      )
+    case F.ReferencesRequest{Nil{}, _, _, _, _}: {==}
+    case F.ReferencesRequest{+head <> +tail, +index, +episode, +prefix, +artifacts}:
+      balance_tree_projection_fact : @+tree: Recursive.Tree -> tree_balance(
+        F.as_tree(
+          F.construct_interpret(
+            fuel,
+            F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+          )
+        ),
+        query
+      ) = tree => balance_tree_projection(
+        tree,
+        episode,
+        List.append(&2, Nat, prefix, [index]),
+        artifacts,
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        ),
+        query,
+        child(F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}, query)
+      )
+      child_eval : Recursive.Tree -> F.Construction = tree => F.as_tree(
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        )
+      )
+      tail_eval : Unit -> F.ReferencesResult = _ => F.as_references(
+        F.construct_interpret(
+          fuel,
+          F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+        )
+      )
+      converted_balance(
+        child_eval,
+        tail_eval,
+        head,
+        query,
+        balance_tree_projection_fact,
+        balance_list_projection(
+          tail,
+          (index + 1n : Nat),
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(
+            fuel,
+            F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+          ),
+          query,
+          sibling(F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}, query)
+        )
+      )
+
+def construct_balance(
+  fuel: Nat,
+  +request: F.ConstructionRequest,
+  +query: O.NodeAddress
+) -> dispatch_balance(request, F.construct_interpret(fuel, request), query):
+  match fuel request:
+    case 0n F.TreeRequest{_, _, _, _}: {==}
+    case 0n F.ReferencesRequest{_, _, _, _, _}: {==}
+    case 1n++remaining _:
+      balance_dispatch(remaining, request, query,
+        next => address => construct_balance(remaining, next, address),
+        next => address => construct_balance(remaining, next, address))
+
+def within_different_case(
+  +test: Bool,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +query: O.NodeAddress,
+  +owner: O.NodeAddress,
+  actual: {F.same_address(query, owner) == test : Bool},
+  outside: {node_within(episode, prefix, query) == False{} : Bool},
+  inside: {node_within(episode, prefix, owner) == True{} : Bool}
+) -> {test == False{} : Bool}:
+  match test:
+    case False{}: {==}
+    case True{}:
+      at_query : {node_within(episode, prefix, query) == True{} : Bool} =
+        %Equal.sym(O.NodeAddress, query, owner, same_address_equal(query, owner, actual)):
+          {node_within(episode, prefix, _) == True{} : Bool}
+        inside
+      impossible : {False{} == True{} : Bool} =
+        %outside: {_ == True{} : Bool}
+        at_query
+      Empty.absurd({True{} == False{} : Bool}, B.internal_false_ne_true(impossible))
+
+def within_outside_count(
+  items: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +query: O.NodeAddress,
+  +outside: {node_within(episode, prefix, query) == False{} : Bool},
+  +inside: {nodes_within(items, episode, prefix) == True{} : Bool}
+) -> {F.count_address(items, query) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case F.Node{+owner, _, _} <> +tail:
+      different : {F.same_address(query, owner) == False{} : Bool} =
+        within_different_case(
+          F.same_address(query, owner),
+          episode,
+          prefix,
+          query,
+          owner,
+          {==},
+          outside,
+          B.eq_true_of_and_left(
+            node_within(episode, prefix, owner),
+            nodes_within(tail, episode, prefix),
+            inside
+          )
+        )
+      %Equal.sym(Bool, F.same_address(query, owner), False{}, different):
+        {(Bool.pick(Nat, _, 1n, 0n) + F.count_address(tail, query) : Nat) == 0n : Nat}
+      within_outside_count(
+        tail,
+        episode,
+        prefix,
+        query,
+        outside,
+        B.eq_true_of_and_right(
+          node_within(episode, prefix, owner),
+          nodes_within(tail, episode, prefix),
+          inside
+        )
+      )
+
+def later_different_case(
+  +test: Bool,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +first: Nat,
+  +query: O.NodeAddress,
+  +owner: O.NodeAddress,
+  actual: {F.same_address(query, owner) == test : Bool},
+  outside: {node_later(episode, prefix, first, query) == False{} : Bool},
+  inside: {node_later(episode, prefix, first, owner) == True{} : Bool}
+) -> {test == False{} : Bool}:
+  match test:
+    case False{}: {==}
+    case True{}:
+      at_query : {node_later(episode, prefix, first, query) == True{} : Bool} =
+        %Equal.sym(O.NodeAddress, query, owner, same_address_equal(query, owner, actual)):
+          {node_later(episode, prefix, first, _) == True{} : Bool}
+        inside
+      impossible : {False{} == True{} : Bool} =
+        %outside: {_ == True{} : Bool}
+        at_query
+      Empty.absurd({True{} == False{} : Bool}, B.internal_false_ne_true(impossible))
+
+def later_outside_count(
+  items: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +first: Nat,
+  +query: O.NodeAddress,
+  +outside: {node_later(episode, prefix, first, query) == False{} : Bool},
+  +inside: {nodes_later(items, episode, prefix, first) == True{} : Bool}
+) -> {F.count_address(items, query) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case F.Node{+owner, _, _} <> +tail:
+      different : {F.same_address(query, owner) == False{} : Bool} =
+        later_different_case(
+          F.same_address(query, owner),
+          episode,
+          prefix,
+          first,
+          query,
+          owner,
+          {==},
+          outside,
+          B.eq_true_of_and_left(
+            node_later(episode, prefix, first, owner),
+            nodes_later(tail, episode, prefix, first),
+            inside
+          )
+        )
+      %Equal.sym(Bool, F.same_address(query, owner), False{}, different):
+        {(Bool.pick(Nat, _, 1n, 0n) + F.count_address(tail, query) : Nat) == 0n : Nat}
+      later_outside_count(
+        tail,
+        episode,
+        prefix,
+        first,
+        query,
+        outside,
+        B.eq_true_of_and_right(
+          node_later(episode, prefix, first, owner),
+          nodes_later(tail, episode, prefix, first),
+          inside
+        )
+      )
+
+def and_false_right(+value: Bool) -> {Bool.and(value, False{}) == False{} : Bool}:
+  match value:
+    case True{}: {==}
+    case False{}: {==}
+
+def child_not_later_case(
+  +test: Bool,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +route: List<&2, Nat>,
+  actual: {later_route(prefix, (index + 1n : Nat), route) == test : Bool},
+  child: {within_route(List.append(&2, Nat, prefix, [index]), route) == True{} : Bool}
+) -> { test == False{} : Bool }:
+  match test:
+    case False{}: {==}
+    case True{}: Empty.absurd(
+      {True{} == False{} : Bool},
+      child_later_separated(prefix, index, route, child, actual)
+    )
+
+def node_child_not_later(
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +query: O.NodeAddress,
+  child: {node_within(episode, List.append(&2, Nat, prefix, [index]), query) == True{} : Bool}
+) -> { node_later(episode, prefix, (index + 1n : Nat), query) == False{} : Bool }:
+  match query:
+    case O.NodeAddress{+other, +route}:
+      separate : {later_route(prefix, (index + 1n : Nat), route) == False{} : Bool} =
+        child_not_later_case(
+          later_route(prefix, (index + 1n : Nat), route),
+          prefix,
+          index,
+          route,
+          {==},
+          B.eq_true_of_and_right(
+            Nat.is_eq(episode, other),
+            within_route(List.append(&2, Nat, prefix, [index]), route),
+            child
+          )
+        )
+      %Equal.sym(Bool, later_route(prefix, (index + 1n : Nat), route), False{}, separate):
+        {Bool.and(Nat.is_eq(episode, other), _) == False{} : Bool}
+      and_false_right(Nat.is_eq(episode, other))
+
+def parent_not_later(
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat
+) -> { node_later(episode, prefix, index, O.NodeAddress{episode, prefix}) == False{} : Bool }:
+  %Equal.sym(Bool, later_route(prefix, index, prefix), False{}, later_self(prefix, index)):
+    {Bool.and(Nat.is_eq(episode, episode), _) == False{} : Bool}
+  and_false_right(Nat.is_eq(episode, episode))
+
+def separated_count_case(
+  +test: Bool,
+  +left: List<&2, F.Node>,
+  +right: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +query: O.NodeAddress,
+  actual: {node_within(episode, List.append(&2, Nat, prefix, [index]), query) == test : Bool},
+  left_scope: {nodes_within(left, episode, List.append(&2, Nat, prefix, [index])) == True{} : Bool},
+  right_scope: {nodes_later(right, episode, prefix, (index + 1n : Nat)) == True{} : Bool},
+  left_bound: {Nat.is_le(F.count_address(left, query), 1n) == True{} : Bool},
+  right_bound: {Nat.is_le(F.count_address(right, query), 1n) == True{} : Bool}
+) -> {
+  Nat.is_le((F.count_address(left, query) + F.count_address(right, query) : Nat), 1n)
+  == True{}
+  : Bool
+}:
+  match test:
+    case False{}:
+      %Equal.sym(
+        Nat,
+        F.count_address(left, query),
+        0n,
+        within_outside_count(
+          left,
+          episode,
+          List.append(&2, Nat, prefix, [index]),
+          query,
+          actual,
+          left_scope
+        )
+      ):
+        {Nat.is_le((_ + F.count_address(right, query) : Nat), 1n) == True{} : Bool}
+      right_bound
+    case True{}:
+      %Equal.sym(Nat, F.count_address(right, query), 0n,
+        later_outside_count(right, episode, prefix, (index + 1n : Nat), query,
+          node_child_not_later(episode, prefix, index, query, actual), right_scope)):
+        {Nat.is_le((F.count_address(left, query) + _ : Nat), 1n) == True{} : Bool}
+      %Equal.sym(Nat, (F.count_address(left, query) + 0n : Nat), F.count_address(left, query),
+        Addition.add_zero(F.count_address(left, query))): {Nat.is_le(_, 1n) == True{} : Bool}
+      left_bound
+
+def separated_count(
+  +left: List<&2, F.Node>,
+  +right: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +query: O.NodeAddress,
+  left_scope: {nodes_within(left, episode, List.append(&2, Nat, prefix, [index])) == True{} : Bool},
+  right_scope: {nodes_later(right, episode, prefix, (index + 1n : Nat)) == True{} : Bool},
+  left_bound: {Nat.is_le(F.count_address(left, query), 1n) == True{} : Bool},
+  right_bound: {Nat.is_le(F.count_address(right, query), 1n) == True{} : Bool}
+) -> {
+  Nat.is_le(F.count_address(List.append(&2, F.Node, left, right), query), 1n)
+  == True{}
+  : Bool
+}:
+  %Equal.sym(
+    Nat,
+    F.count_address(List.append(&2, F.Node, left, right), query),
+    (F.count_address(left, query) + F.count_address(right, query) : Nat),
+    count_append(left, right, query)
+  ):
+    {Nat.is_le(_, 1n) == True{} : Bool}
+  separated_count_case(
+    node_within(episode, List.append(&2, Nat, prefix, [index]), query),
+    left,
+    right,
+    episode,
+    prefix,
+    index,
+    query,
+    {==},
+    left_scope,
+    right_scope,
+    left_bound,
+    right_bound
+  )
+
+def parent_count_case(
+  +test: Bool,
+  +nodes: List<&2, F.Node>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +query: O.NodeAddress,
+  actual: {F.same_address(query, O.NodeAddress{episode, prefix}) == test : Bool},
+  scope: {nodes_later(nodes, episode, prefix, 0n) == True{} : Bool},
+  bound: {Nat.is_le(F.count_address(nodes, query), 1n) == True{} : Bool}
+) -> {
+  Nat.is_le((Bool.pick(Nat, test, 1n, 0n) + F.count_address(nodes, query) : Nat), 1n)
+  == True{}
+  : Bool
+}:
+  match test:
+    case False{}: bound
+    case True{}:
+      outside : {node_later(episode, prefix, 0n, query) == False{} : Bool} =
+        %Equal.sym(O.NodeAddress, query, O.NodeAddress{episode, prefix},
+          same_address_equal(query, O.NodeAddress{episode, prefix}, actual)):
+          {node_later(episode, prefix, 0n, _) == False{} : Bool}
+        parent_not_later(episode, prefix, 0n)
+      %Equal.sym(Nat, F.count_address(nodes, query), 0n,
+        later_outside_count(nodes, episode, prefix, 0n, query, outside, scope)):
+        {Nat.is_le(1n+_, 1n) == True{} : Bool}
+      {==}
+
+def tree_bound(result: F.Construction, query: O.NodeAddress) -> Bool:
+  match result:
+    case F.Constructed{F.Created{_, nodes, _}}: Nat.is_le(F.count_address(nodes, query), 1n)
+    case _: True{}
+
+def list_bound(result: F.ReferencesResult, query: O.NodeAddress) -> Bool:
+  match result:
+    case F.ReferencesBuilt{F.References{_, nodes, _}}: Nat.is_le(F.count_address(nodes, query), 1n)
+    case _: True{}
+
+def dispatch_bound(
+  request: F.ConstructionRequest,
+  result: F.ConstructionDispatch,
+  query: O.NodeAddress
+) -> Bool:
+  match request result:
+    case F.TreeRequest{_, _, _, _} F.TreeResult{result}: tree_bound(result, query)
+    case F.ReferencesRequest{_, _, _, _, _} F.ListResult{result}: list_bound(result, query)
+    case _ _: False{}
+
+def bound_contract(+fuel: Nat) -> Type:
+  @+request: F.ConstructionRequest -> @+query: O.NodeAddress ->
+  {dispatch_bound(request, F.construct_interpret(fuel, request), query) == True{} : Bool}
+
+def bound_tree_projection(
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +result: F.ConstructionDispatch,
+  +query: O.NodeAddress,
+  valid: {
+    dispatch_bound(F.TreeRequest{tree, episode, prefix, artifacts}, result, query)
+    == True{}
+    : Bool
+  }
+) -> { tree_bound(F.as_tree(result), query) == True{} : Bool }:
+  match result:
+    case F.TreeResult{_}: valid
+    case F.ListResult{_}: {==}
+
+def bound_list_projection(
+  +items: List<&2, Recursive.TreeReference>,
+  +first: Nat,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +result: F.ConstructionDispatch,
+  +query: O.NodeAddress,
+  valid: {
+    dispatch_bound(F.ReferencesRequest{items, first, episode, prefix, artifacts}, result, query)
+    == True{}
+    : Bool
+  }
+) -> { list_bound(F.as_references(result), query) == True{} : Bool }:
+  match result:
+    case F.TreeResult{_}: {==}
+    case F.ListResult{_}: valid
+
+def bound_prefix(
+  +result: F.ReferencesResult,
+  +reference: F.Reference,
+  +nodes: List<&2, F.Node>,
+  +addresses: List<&2, F.AddressEntry>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +query: O.NodeAddress,
+  head_scope: {
+    nodes_within(nodes, episode, List.append(&2, Nat, prefix, [index]))
+    == True{}
+    : Bool
+  },
+  tail_scope: {list_scope(result, episode, prefix, (index + 1n : Nat)) == True{} : Bool},
+  head_bound: {Nat.is_le(F.count_address(nodes, query), 1n) == True{} : Bool},
+  tail_bound: {list_bound(result, query) == True{} : Bool}
+) -> {
+  list_bound(F.reference_prefix(result, reference, nodes, addresses), query)
+  == True{}
+  : Bool
+}:
+  match result:
+    case F.ReferencesBuilt{F.References{_, +more, _}}:
+      separated_count(
+        nodes,
+        more,
+        episode,
+        prefix,
+        index,
+        query,
+        head_scope,
+        tail_scope,
+        head_bound,
+        tail_bound
+      )
+    case F.ReferencesExhausted{}: {==}
+    case F.ReferencesInvalid{}: {==}
+
+def bound_constructed(
+  +result: F.ReferencesResult,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +local: Nat,
+  +artifact: T.Artifact,
+  +query: O.NodeAddress,
+  scope: {list_scope(result, episode, prefix, 0n) == True{} : Bool},
+  bound: {list_bound(result, query) == True{} : Bool}
+) -> {
+  tree_bound(F.constructed(result, O.NodeAddress{episode, prefix}, local, artifact), query)
+  == True{}
+  : Bool
+}:
+  match result:
+    case F.ReferencesBuilt{F.References{_, +nodes, _}}:
+      parent_count_case(
+        F.same_address(query, O.NodeAddress{episode, prefix}),
+        nodes,
+        episode,
+        prefix,
+        query,
+        {==},
+        scope,
+        bound
+      )
+    case F.ReferencesExhausted{}: {==}
+    case F.ReferencesInvalid{}: {==}
+
+def bound_expanded(
+  remaining: Unit -> F.ReferencesResult,
+  +result: F.Construction,
+  +symbol: String,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +query: O.NodeAddress,
+  head_scope: {tree_scope(result, episode, List.append(&2, Nat, prefix, [index])) == True{} : Bool},
+  tail_scope: {list_scope(remaining(Unit{}), episode, prefix, (index + 1n : Nat)) == True{} : Bool},
+  head_bound: {tree_bound(result, query) == True{} : Bool},
+  tail_bound: {list_bound(remaining(Unit{}), query) == True{} : Bool}
+) -> { list_bound(F.expanded(result, symbol, remaining), query) == True{} : Bool }:
+  match result:
+    case F.Constructed{F.Created{+root, +nodes, +addresses}}:
+      bound_prefix(
+        remaining(Unit{}),
+        F.Expanded{F.ReferenceSymbol{symbol}, root},
+        nodes,
+        addresses,
+        episode,
+        prefix,
+        index,
+        query,
+        B.eq_true_of_and_right(
+          F.same_address(root, O.NodeAddress{episode, List.append(&2, Nat, prefix, [index])}),
+          nodes_within(nodes, episode, List.append(&2, Nat, prefix, [index])),
+          head_scope
+        ),
+        tail_scope,
+        head_bound,
+        tail_bound
+      )
+    case F.ConstructionExhausted{}: {==}
+    case F.ConstructionInvalid{}: {==}
+
+def bound_converted(
+  child: Recursive.Tree -> F.Construction,
+  remaining: Unit -> F.ReferencesResult,
+  +reference: Recursive.TreeReference,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  +query: O.NodeAddress,
+  child_scope: @+tree: Recursive.Tree -> {
+    tree_scope(child(tree), episode, List.append(&2, Nat, prefix, [index]))
+    == True{}
+    : Bool
+  },
+  tail_scope: {list_scope(remaining(Unit{}), episode, prefix, (index + 1n : Nat)) == True{} : Bool},
+  child_bound: @+tree: Recursive.Tree -> {tree_bound(child(tree), query) == True{} : Bool},
+  tail_bound: {list_bound(remaining(Unit{}), query) == True{} : Bool}
+) -> { list_bound(F.converted_reference(reference, child, remaining), query) == True{} : Bool }:
+  match reference:
+    case Recursive.TreeReference{+symbol, Recursive.Included{+identity}}:
+      bound_prefix(
+        remaining(Unit{}),
+        F.Included{F.ReferenceSymbol{symbol}, F.ArtifactIdentity{identity}},
+        [],
+        [],
+        episode,
+        prefix,
+        index,
+        query,
+        {==},
+        tail_scope,
+        {==},
+        tail_bound
+      )
+    case Recursive.TreeReference{+symbol, Recursive.Omitted{+reason, +target}}:
+      bound_prefix(
+        remaining(Unit{}),
+        F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{target}, reason},
+        [],
+        [],
+        episode,
+        prefix,
+        index,
+        query,
+        {==},
+        tail_scope,
+        {==},
+        tail_bound
+      )
+    case Recursive.TreeReference{+symbol, Recursive.Expanded{+tree}}:
+      bound_expanded(remaining, child(tree), symbol, episode, prefix, index, query,
+        child_scope(tree), tail_scope, child_bound(tree), tail_bound)
+
+def bound_artifact(
+  recurse: List<&2, Recursive.TreeReference> -> F.ReferencesResult,
+  +artifact: Maybe<&2, T.Artifact>,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +local: Nat,
+  +items: List<&2, Recursive.TreeReference>,
+  +query: O.NodeAddress,
+  scope: {list_scope(recurse(items), episode, prefix, 0n) == True{} : Bool},
+  bound: {list_bound(recurse(items), query) == True{} : Bool}
+) -> {
+  tree_bound(
+    F.tree_artifact(artifact, O.NodeAddress{episode, prefix}, local, items, recurse),
+    query
+  )
+  == True{}
+  : Bool
+}:
+  match artifact:
+    case None{}: {==}
+    case Some{+value}: bound_constructed(
+      recurse(items),
+      episode,
+      prefix,
+      local,
+      value,
+      query,
+      scope,
+      bound
+    )
+
+def bound_dispatch(
+  +fuel: Nat,
+  +request: F.ConstructionRequest,
+  +query: O.NodeAddress,
+  child: bound_contract(fuel),
+  sibling: bound_contract(fuel)
+) -> { dispatch_bound(request, F.construct_interpret(1n+fuel, request), query) == True{} : Bool }:
+  match request:
+    case F.TreeRequest{Recursive.Tree{local, +handle, +items}, +episode, +prefix, +artifacts}:
+      refs_eval : List<&2, Recursive.TreeReference> -> F.ReferencesResult = items => F.as_references(
+        F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts})
+      )
+      bound_artifact(
+        refs_eval,
+        F.artifact_at(artifacts, handle),
+        episode,
+        prefix,
+        local,
+        items,
+        query,
+        list_projection(
+          items,
+          0n,
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts}),
+          construct_scope(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts})
+        ),
+        bound_list_projection(
+          items,
+          0n,
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts}),
+          query,
+          child(F.ReferencesRequest{items, 0n, episode, prefix, artifacts}, query)
+        )
+      )
+    case F.ReferencesRequest{Nil{}, _, _, _, _}: {==}
+    case F.ReferencesRequest{+head <> +tail, +index, +episode, +prefix, +artifacts}:
+      bound_tree_projection_fact : @+tree: Recursive.Tree -> {
+        tree_bound(
+          F.as_tree(
+            F.construct_interpret(
+              fuel,
+              F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+            )
+          ),
+          query
+        )
+        == True{}
+        : Bool
+      } = tree => bound_tree_projection(
+        tree,
+        episode,
+        List.append(&2, Nat, prefix, [index]),
+        artifacts,
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        ),
+        query,
+        child(F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}, query)
+      )
+      tree_projection_fact : @+tree: Recursive.Tree -> {
+        tree_scope(
+          F.as_tree(
+            F.construct_interpret(
+              fuel,
+              F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+            )
+          ),
+          episode,
+          List.append(&2, Nat, prefix, [index])
+        )
+        == True{}
+        : Bool
+      } = tree => tree_projection(
+        tree,
+        episode,
+        List.append(&2, Nat, prefix, [index]),
+        artifacts,
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        ),
+        construct_scope(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        )
+      )
+      child_eval : Recursive.Tree -> F.Construction = tree => F.as_tree(
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        )
+      )
+      tail_eval : Unit -> F.ReferencesResult = _ => F.as_references(
+        F.construct_interpret(
+          fuel,
+          F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+        )
+      )
+      bound_converted(
+        child_eval,
+        tail_eval,
+        head,
+        episode,
+        prefix,
+        index,
+        query,
+        tree_projection_fact,
+        list_projection(
+          tail,
+          (index + 1n : Nat),
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(
+            fuel,
+            F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+          ),
+          construct_scope(
+            fuel,
+            F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+          )
+        ),
+        bound_tree_projection_fact,
+        bound_list_projection(
+          tail,
+          (index + 1n : Nat),
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(
+            fuel,
+            F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+          ),
+          query,
+          sibling(F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}, query)
+        )
+      )
+
+def construct_bound(
+  fuel: Nat,
+  +request: F.ConstructionRequest,
+  +query: O.NodeAddress
+) -> { dispatch_bound(request, F.construct_interpret(fuel, request), query) == True{} : Bool }:
+  match fuel request:
+    case 0n F.TreeRequest{_, _, _, _}: {==}
+    case 0n F.ReferencesRequest{_, _, _, _, _}: {==}
+    case 1n++remaining _:
+      bound_dispatch(remaining, request, query,
+        next => address => construct_bound(remaining, next, address),
+        next => address => construct_bound(remaining, next, address))
+
+def references_born(items: List<&2, F.Reference>, +owner: O.NodeAddress) -> Bool:
+  match items:
+    case []: True{}
+    case F.Expanded{_, child} <> tail: Bool.and(
+      F.born_after(owner, child),
+      references_born(tail, owner)
+    )
+    case _ <> tail: references_born(tail, owner)
+
+def nodes_born(items: List<&2, F.Node>) -> Bool:
+  match items:
+    case []: True{}
+    case F.Node{+owner, _, refs} <> tail: Bool.and(references_born(refs, owner), nodes_born(tail))
+
+def tree_born(result: F.Construction) -> Bool:
+  match result:
+    case F.Constructed{F.Created{_, nodes, _}}: nodes_born(nodes)
+    case _: True{}
+
+def list_born(result: F.ReferencesResult, +owner: O.NodeAddress) -> Bool:
+  match result:
+    case F.ReferencesBuilt{F.References{refs, nodes, _}}: Bool.and(
+      references_born(refs, owner),
+      nodes_born(nodes)
+    )
+    case _: True{}
+
+def dispatch_born(request: F.ConstructionRequest, result: F.ConstructionDispatch) -> Bool:
+  match request result:
+    case F.TreeRequest{_, _, _, _} F.TreeResult{result}: tree_born(result)
+    case F.ReferencesRequest{_, _, episode, prefix, _} F.ListResult{result}: list_born(
+      result,
+      O.NodeAddress{episode, prefix}
+    )
+    case _ _: False{}
+
+def or_true_right(value: Bool) -> {Bool.or(value, True{}) == True{} : Bool}:
+  match value:
+    case True{}: {==}
+    case False{}: {==}
+
+def child_born(
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat
+) -> {
+  F.born_after(
+    O.NodeAddress{episode, prefix},
+    O.NodeAddress{episode, List.append(&2, Nat, prefix, [index])}
+  )
+  == True{}
+  : Bool
+}:
+  both = B.and_eq_true(
+    Nat.is_eq(episode, episode),
+    F.descendant(prefix, List.append(&2, Nat, prefix, [index])),
+    NatEquality.is_eq_refl(episode),
+    later_descendant(
+      prefix,
+      index,
+      List.append(&2, Nat, prefix, [index]),
+      within_child_later(
+        prefix,
+        index,
+        List.append(&2, Nat, prefix, [index]),
+        within_self(List.append(&2, Nat, prefix, [index]))
+      )
+    )
+  )
+  %Equal.sym(
+    Bool,
+    Bool.and(
+      Nat.is_eq(episode, episode),
+      F.descendant(prefix, List.append(&2, Nat, prefix, [index]))
+    ),
+    True{},
+    both
+  ):
+    {Bool.or(Nat.is_gt(episode, episode), _) == True{} : Bool}
+  or_true_right(Nat.is_gt(episode, episode))
+
+def born_append(
+  +left: List<&2, F.Node>,
+  +right: List<&2, F.Node>,
+  +head: {nodes_born(left) == True{} : Bool},
+  tail: {nodes_born(right) == True{} : Bool}
+) -> { nodes_born(List.append(&2, F.Node, left, right)) == True{} : Bool }:
+  match left:
+    case []: tail
+    case F.Node{+owner, _, +refs} <> +rest:
+      B.and_eq_true(
+        references_born(refs, owner),
+        nodes_born(List.append(&2, F.Node, rest, right)),
+        B.eq_true_of_and_left(references_born(refs, owner), nodes_born(rest), head),
+        born_append(
+          rest,
+          right,
+          B.eq_true_of_and_right(references_born(refs, owner), nodes_born(rest), head),
+          tail
+        )
+      )
+
+def born_reference(+reference: F.Reference, +owner: O.NodeAddress) -> Bool:
+  match reference:
+    case F.Expanded{_, child}: F.born_after(owner, child)
+    case _: True{}
+
+def born_cons(
+  +reference: F.Reference,
+  +refs: List<&2, F.Reference>,
+  +owner: O.NodeAddress,
+  head: {born_reference(reference, owner) == True{} : Bool},
+  tail: {references_born(refs, owner) == True{} : Bool}
+) -> { references_born(reference <> refs, owner) == True{} : Bool }:
+  match reference:
+    case F.Expanded{_, +child}: B.and_eq_true(
+      F.born_after(owner, child),
+      references_born(refs, owner),
+      head,
+      tail
+    )
+    case F.Included{_, _}: tail
+    case F.Omitted{_, _, _}: tail
+
+def born_prefix(
+  +result: F.ReferencesResult,
+  +reference: F.Reference,
+  +nodes: List<&2, F.Node>,
+  +addresses: List<&2, F.AddressEntry>,
+  +owner: O.NodeAddress,
+  head: {born_reference(reference, owner) == True{} : Bool},
+  children: {nodes_born(nodes) == True{} : Bool},
+  +tail: {list_born(result, owner) == True{} : Bool}
+) -> { list_born(F.reference_prefix(result, reference, nodes, addresses), owner) == True{} : Bool }:
+  match result:
+    case F.ReferencesBuilt{F.References{+refs, +more, _}}:
+      B.and_eq_true(
+        references_born(reference <> refs, owner),
+        nodes_born(List.append(&2, F.Node, nodes, more)),
+        born_cons(
+          reference,
+          refs,
+          owner,
+          head,
+          B.eq_true_of_and_left(references_born(refs, owner), nodes_born(more), tail)
+        ),
+        born_append(
+          nodes,
+          more,
+          children,
+          B.eq_true_of_and_right(references_born(refs, owner), nodes_born(more), tail)
+        )
+      )
+    case F.ReferencesExhausted{}: {==}
+    case F.ReferencesInvalid{}: {==}
+
+def born_constructed(
+  +result: F.ReferencesResult,
+  +owner: O.NodeAddress,
+  +local: Nat,
+  +artifact: T.Artifact,
+  valid: {list_born(result, owner) == True{} : Bool}
+) -> { tree_born(F.constructed(result, owner, local, artifact)) == True{} : Bool }:
+  match result:
+    case F.ReferencesBuilt{F.References{_, _, _}}: valid
+    case F.ReferencesExhausted{}: {==}
+    case F.ReferencesInvalid{}: {==}
+
+def born_expanded(
+  remaining: Unit -> F.ReferencesResult,
+  +result: F.Construction,
+  +symbol: String,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  scope: {tree_scope(result, episode, List.append(&2, Nat, prefix, [index])) == True{} : Bool},
+  children: {tree_born(result) == True{} : Bool},
+  tail: {list_born(remaining(Unit{}), O.NodeAddress{episode, prefix}) == True{} : Bool}
+) -> {
+  list_born(F.expanded(result, symbol, remaining), O.NodeAddress{episode, prefix})
+  == True{}
+  : Bool
+}:
+  match result:
+    case F.Constructed{F.Created{+root, +nodes, +addresses}}:
+      root_eq = same_address_equal(
+        root,
+        O.NodeAddress{episode, List.append(&2, Nat, prefix, [index])},
+        B.eq_true_of_and_left(
+          F.same_address(root, O.NodeAddress{episode, List.append(&2, Nat, prefix, [index])}),
+          nodes_within(nodes, episode, List.append(&2, Nat, prefix, [index])),
+          scope
+        )
+      )
+      born : {F.born_after(O.NodeAddress{episode, prefix}, root) == True{} : Bool} = %Equal.sym(
+        O.NodeAddress,
+        root,
+        O.NodeAddress{episode, List.append(&2, Nat, prefix, [index])},
+        root_eq
+      ): {F.born_after(O.NodeAddress{episode, prefix}, _) == True{} : Bool}
+        child_born(episode, prefix, index)
+      born_prefix(
+        remaining(Unit{}),
+        F.Expanded{F.ReferenceSymbol{symbol}, root},
+        nodes,
+        addresses,
+        O.NodeAddress{episode, prefix},
+        born,
+        children,
+        tail
+      )
+    case F.ConstructionExhausted{}: {==}
+    case F.ConstructionInvalid{}: {==}
+
+def born_converted(
+  child: Recursive.Tree -> F.Construction,
+  remaining: Unit -> F.ReferencesResult,
+  +reference: Recursive.TreeReference,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +index: Nat,
+  scope: @+tree: Recursive.Tree -> {
+    tree_scope(child(tree), episode, List.append(&2, Nat, prefix, [index]))
+    == True{}
+    : Bool
+  },
+  children: @+tree: Recursive.Tree -> {tree_born(child(tree)) == True{} : Bool},
+  tail: {list_born(remaining(Unit{}), O.NodeAddress{episode, prefix}) == True{} : Bool}
+) -> {
+  list_born(F.converted_reference(reference, child, remaining), O.NodeAddress{episode, prefix})
+  == True{}
+  : Bool
+}:
+  match reference:
+    case Recursive.TreeReference{+symbol, Recursive.Included{+identity}}:
+      born_prefix(
+        remaining(Unit{}),
+        F.Included{F.ReferenceSymbol{symbol}, F.ArtifactIdentity{identity}},
+        [],
+        [],
+        O.NodeAddress{episode, prefix},
+        {==},
+        {==},
+        tail
+      )
+    case Recursive.TreeReference{+symbol, Recursive.Omitted{+reason, +target}}:
+      born_prefix(
+        remaining(Unit{}),
+        F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{target}, reason},
+        [],
+        [],
+        O.NodeAddress{episode, prefix},
+        {==},
+        {==},
+        tail
+      )
+    case Recursive.TreeReference{+symbol, Recursive.Expanded{+tree}}:
+      born_expanded(
+        remaining,
+        child(tree),
+        symbol,
+        episode,
+        prefix,
+        index,
+        scope(tree),
+        children(tree),
+        tail
+      )
+
+def born_artifact(
+  recurse: List<&2, Recursive.TreeReference> -> F.ReferencesResult,
+  +artifact: Maybe<&2, T.Artifact>,
+  +owner: O.NodeAddress,
+  +local: Nat,
+  +items: List<&2, Recursive.TreeReference>,
+  valid: {list_born(recurse(items), owner) == True{} : Bool}
+) -> { tree_born(F.tree_artifact(artifact, owner, local, items, recurse)) == True{} : Bool }:
+  match artifact:
+    case None{}: {==}
+    case Some{+value}: born_constructed(recurse(items), owner, local, value, valid)
+
+def born_contract(+fuel: Nat) -> Type:
+  @+request: F.ConstructionRequest -> {
+    dispatch_born(request, F.construct_interpret(fuel, request))
+    == True{}
+    : Bool
+  }
+
+def born_tree_projection(
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +result: F.ConstructionDispatch,
+  valid: {dispatch_born(F.TreeRequest{tree, episode, prefix, artifacts}, result) == True{} : Bool}
+) -> {tree_born(F.as_tree(result)) == True{} : Bool}:
+  match result:
+    case F.TreeResult{_}: valid
+    case F.ListResult{_}: {==}
+
+def born_list_projection(
+  +items: List<&2, Recursive.TreeReference>,
+  +index: Nat,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +result: F.ConstructionDispatch,
+  valid: {
+    dispatch_born(F.ReferencesRequest{items, index, episode, prefix, artifacts}, result)
+    == True{}
+    : Bool
+  }
+) -> {list_born(F.as_references(result), O.NodeAddress{episode, prefix}) == True{} : Bool}:
+  match result:
+    case F.TreeResult{_}: {==}
+    case F.ListResult{_}: valid
+
+def born_dispatch(
+  +fuel: Nat,
+  +request: F.ConstructionRequest,
+  child: born_contract(fuel),
+  sibling: born_contract(fuel)
+) -> { dispatch_born(request, F.construct_interpret(1n+fuel, request)) == True{} : Bool }:
+  match request:
+    case F.TreeRequest{Recursive.Tree{local, +handle, +items}, +episode, +prefix, +artifacts}:
+      refs_eval : List<&2, Recursive.TreeReference> -> F.ReferencesResult = items => F.as_references(
+        F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts})
+      )
+      born_artifact(
+        refs_eval,
+        F.artifact_at(artifacts, handle),
+        O.NodeAddress{episode, prefix},
+        local,
+        items,
+        born_list_projection(
+          items,
+          0n,
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(fuel, F.ReferencesRequest{items, 0n, episode, prefix, artifacts}),
+          child(F.ReferencesRequest{items, 0n, episode, prefix, artifacts})
+        )
+      )
+    case F.ReferencesRequest{Nil{}, _, _, _, _}: {==}
+    case F.ReferencesRequest{+head <> +tail, +index, +episode, +prefix, +artifacts}:
+      born_tree_projection_fact : @+tree: Recursive.Tree -> {
+        tree_born(
+          F.as_tree(
+            F.construct_interpret(
+              fuel,
+              F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+            )
+          )
+        )
+        == True{}
+        : Bool
+      } = tree => born_tree_projection(
+        tree,
+        episode,
+        List.append(&2, Nat, prefix, [index]),
+        artifacts,
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        ),
+        child(F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts})
+      )
+      tree_projection_fact : @+tree: Recursive.Tree -> {
+        tree_scope(
+          F.as_tree(
+            F.construct_interpret(
+              fuel,
+              F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+            )
+          ),
+          episode,
+          List.append(&2, Nat, prefix, [index])
+        )
+        == True{}
+        : Bool
+      } = tree => tree_projection(
+        tree,
+        episode,
+        List.append(&2, Nat, prefix, [index]),
+        artifacts,
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        ),
+        construct_scope(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        )
+      )
+      child_eval : Recursive.Tree -> F.Construction = tree => F.as_tree(
+        F.construct_interpret(
+          fuel,
+          F.TreeRequest{tree, episode, List.append(&2, Nat, prefix, [index]), artifacts}
+        )
+      )
+      tail_eval : Unit -> F.ReferencesResult = _ => F.as_references(
+        F.construct_interpret(
+          fuel,
+          F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+        )
+      )
+      born_converted(
+        child_eval,
+        tail_eval,
+        head,
+        episode,
+        prefix,
+        index,
+        tree_projection_fact,
+        born_tree_projection_fact,
+        born_list_projection(
+          tail,
+          (index + 1n : Nat),
+          episode,
+          prefix,
+          artifacts,
+          F.construct_interpret(
+            fuel,
+            F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts}
+          ),
+          sibling(F.ReferencesRequest{tail, (index + 1n : Nat), episode, prefix, artifacts})
+        )
+      )
+
+def construct_born(
+  fuel: Nat,
+  +request: F.ConstructionRequest
+) -> { dispatch_born(request, F.construct_interpret(fuel, request)) == True{} : Bool }:
+  match fuel request:
+    case 0n F.TreeRequest{_, _, _, _}: {==}
+    case 0n F.ReferencesRequest{_, _, _, _, _}: {==}
+    case 1n++remaining _:
+      child : born_contract(remaining) = next => construct_born(remaining, next)
+      sibling : born_contract(remaining) = next => construct_born(remaining, next)
+      born_dispatch(remaining, request, child, sibling)
+
+def address_refl(+address: O.NodeAddress) -> {F.same_address(address, address) == True{} : Bool}:
+  match address:
+    case O.NodeAddress{+episode, +route}:
+      B.and_eq_true(
+        Nat.is_eq(episode, episode),
+        F.same_route(route, route),
+        NatEquality.is_eq_refl(episode),
+        same_route_refl(route)
+      )
+
+def one_from_bounds(
+  +value: Nat,
+  lower: {Nat.is_le(1n, value) == True{} : Bool},
+  upper: {Nat.is_le(value, 1n) == True{} : Bool}
+) -> { Nat.is_eq(value, 1n) == True{} : Bool }:
+  match value:
+    case 0n: Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(lower))
+    case 1n: {==}
+    case 2n++rest: Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(upper))
+
+def refs_positive(items: List<&2, F.Reference>, +all: List<&2, F.Reference>) -> Bool:
+  match items:
+    case []: True{}
+    case F.Expanded{_, +child} <> tail:
+      Bool.and(Nat.is_le(1n, Relation.incoming_references(all, child)), refs_positive(tail, all))
+    case _ <> tail: refs_positive(tail, all)
+
+def refs_positive_cons(
+  +items: List<&2, F.Reference>,
+  +head: F.Reference,
+  +all: List<&2, F.Reference>,
+  +valid: {refs_positive(items, all) == True{} : Bool}
+) -> {refs_positive(items, head <> all) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case F.Expanded{_, +child} <> +tail:
+      lifted : {
+        Nat.is_le(
+          Relation.incoming_references(all, child),
+          Relation.incoming_references(head <> all, child)
+        )
+        == True{}
+        : Bool
+      } =
+        %Equal.sym(
+          Nat,
+          Relation.incoming_references(head <> all, child),
+          (edge_indicator(head, child) + Relation.incoming_references(all, child) : Nat),
+          incoming_cons(head, all, child)
+        ):
+          {Nat.is_le(Relation.incoming_references(all, child), _) == True{} : Bool}
+        Addition.le_add_left(Relation.incoming_references(all, child), edge_indicator(head, child))
+      B.and_eq_true(
+        Nat.is_le(1n, Relation.incoming_references(head <> all, child)),
+        refs_positive(tail, head <> all),
+        N.le_trans(
+          1n,
+          Relation.incoming_references(all, child),
+          Relation.incoming_references(head <> all, child),
+          B.eq_true_of_and_left(
+            Nat.is_le(1n, Relation.incoming_references(all, child)),
+            refs_positive(tail, all),
+            valid
+          ),
+          lifted
+        ),
+        refs_positive_cons(
+          tail,
+          head,
+          all,
+          B.eq_true_of_and_right(
+            Nat.is_le(1n, Relation.incoming_references(all, child)),
+            refs_positive(tail, all),
+            valid
+          )
+        )
+      )
+    case F.Included{_, _} <> +tail: refs_positive_cons(tail, head, all, valid)
+    case F.Omitted{_, _, _} <> +tail: refs_positive_cons(tail, head, all, valid)
+
+def refs_positive_self(
+  +items: List<&2, F.Reference>
+) -> {refs_positive(items, items) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case F.Expanded{+symbol, +child} <> +tail:
+      lower : {
+        Nat.is_le(1n, Relation.incoming_references(F.Expanded{symbol, child} <> tail, child))
+        == True{}
+        : Bool
+      } =
+        %Equal.sym(Bool, F.same_address(child, child), True{}, address_refl(child)):
+          {
+            Nat.is_le(
+              1n,
+              (Bool.pick(Nat, _, 1n, 0n) + Relation.incoming_references(tail, child) : Nat)
+            )
+            == True{}
+            : Bool
+          }
+        Addition.le_add_right(1n, Relation.incoming_references(tail, child))
+      B.and_eq_true(
+        Nat.is_le(1n, Relation.incoming_references(F.Expanded{symbol, child} <> tail, child)),
+        refs_positive(tail, F.Expanded{symbol, child} <> tail),
+        lower,
+        refs_positive_cons(tail, F.Expanded{symbol, child}, tail, refs_positive_self(tail))
+      )
+    case F.Included{+symbol, +identity} <> +tail:
+      refs_positive_cons(tail, F.Included{symbol, identity}, tail, refs_positive_self(tail))
+    case F.Omitted{+symbol, +target, +reason} <> +tail:
+      refs_positive_cons(tail, F.Omitted{symbol, target, reason}, tail, refs_positive_self(tail))
+
+def edge_occurrences(items: List<&2, F.Reference>, +nodes: List<&2, F.Node>) -> Bool:
+  match items:
+    case []: True{}
+    case F.Expanded{_, +child} <> tail: Bool.and(
+      Nat.is_le(1n, Relation.incoming(nodes, child)),
+      edge_occurrences(tail, nodes)
+    )
+    case _ <> tail: edge_occurrences(tail, nodes)
+
+def edge_occurrences_node(
+  +items: List<&2, F.Reference>,
+  +all: List<&2, F.Reference>,
+  +owner: O.NodeAddress,
+  +artifact: T.Artifact,
+  +tail: List<&2, F.Node>,
+  +valid: {refs_positive(items, all) == True{} : Bool}
+) -> {edge_occurrences(items, F.Node{owner, artifact, all} <> tail) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case F.Expanded{_, +child} <> +rest:
+      B.and_eq_true(
+        Nat.is_le(1n, Relation.incoming(F.Node{owner, artifact, all} <> tail, child)),
+        edge_occurrences(rest, F.Node{owner, artifact, all} <> tail),
+        N.le_trans(
+          1n,
+          Relation.incoming_references(all, child),
+          Relation.incoming(F.Node{owner, artifact, all} <> tail, child),
+          B.eq_true_of_and_left(
+            Nat.is_le(1n, Relation.incoming_references(all, child)),
+            refs_positive(rest, all),
+            valid
+          ),
+          Addition.le_add_right(
+            Relation.incoming_references(all, child),
+            Relation.incoming(tail, child)
+          )
+        ),
+        edge_occurrences_node(
+          rest,
+          all,
+          owner,
+          artifact,
+          tail,
+          B.eq_true_of_and_right(
+            Nat.is_le(1n, Relation.incoming_references(all, child)),
+            refs_positive(rest, all),
+            valid
+          )
+        )
+      )
+    case F.Included{_, _} <> +rest: edge_occurrences_node(rest, all, owner, artifact, tail, valid)
+    case F.Omitted{_, _, _} <> +rest: edge_occurrences_node(rest, all, owner, artifact, tail, valid)
+
+def edge_occurrences_cons(
+  +items: List<&2, F.Reference>,
+  +head: F.Node,
+  +nodes: List<&2, F.Node>,
+  +valid: {edge_occurrences(items, nodes) == True{} : Bool}
+) -> {edge_occurrences(items, head <> nodes) == True{} : Bool}:
+  match items head:
+    case [] _: {==}
+    case F.Expanded{_, +child} <> +tail F.Node{+owner, +artifact, +refs}:
+      B.and_eq_true(
+        Nat.is_le(1n, Relation.incoming(F.Node{owner, artifact, refs} <> nodes, child)),
+        edge_occurrences(tail, F.Node{owner, artifact, refs} <> nodes),
+        N.le_trans(
+          1n,
+          Relation.incoming(nodes, child),
+          Relation.incoming(F.Node{owner, artifact, refs} <> nodes, child),
+          B.eq_true_of_and_left(
+            Nat.is_le(1n, Relation.incoming(nodes, child)),
+            edge_occurrences(tail, nodes),
+            valid
+          ),
+          Addition.le_add_left(
+            Relation.incoming(nodes, child),
+            Relation.incoming_references(refs, child)
+          )
+        ),
+        edge_occurrences_cons(
+          tail,
+          F.Node{owner, artifact, refs},
+          nodes,
+          B.eq_true_of_and_right(
+            Nat.is_le(1n, Relation.incoming(nodes, child)),
+            edge_occurrences(tail, nodes),
+            valid
+          )
+        )
+      )
+    case F.Included{_, _} <> +tail _: edge_occurrences_cons(tail, head, nodes, valid)
+    case F.Omitted{_, _, _} <> +tail _: edge_occurrences_cons(tail, head, nodes, valid)
+
+def node_occurrences(items: List<&2, F.Node>, +nodes: List<&2, F.Node>) -> Bool:
+  match items:
+    case []: True{}
+    case F.Node{+address, _, refs} <> tail:
+      Bool.and(
+        Nat.is_le(1n, F.count_address(nodes, address)),
+        Bool.and(edge_occurrences(refs, nodes), node_occurrences(tail, nodes))
+      )
+
+def node_occurrences_cons(
+  +items: List<&2, F.Node>,
+  +head: F.Node,
+  +nodes: List<&2, F.Node>,
+  +valid: {node_occurrences(items, nodes) == True{} : Bool}
+) -> {node_occurrences(items, head <> nodes) == True{} : Bool}:
+  match items head:
+    case [] _: {==}
+    case F.Node{+address, _, +refs} <> +tail F.Node{+owner, +artifact, +references}:
+      +rest = B.eq_true_of_and_right(
+        Nat.is_le(1n, F.count_address(nodes, address)),
+        Bool.and(edge_occurrences(refs, nodes), node_occurrences(tail, nodes)),
+        valid
+      )
+      B.and_eq_true(
+        Nat.is_le(1n, F.count_address(F.Node{owner, artifact, references} <> nodes, address)),
+        Bool.and(
+          edge_occurrences(refs, F.Node{owner, artifact, references} <> nodes),
+          node_occurrences(tail, F.Node{owner, artifact, references} <> nodes)
+        ),
+        N.le_trans(
+          1n,
+          F.count_address(nodes, address),
+          F.count_address(F.Node{owner, artifact, references} <> nodes, address),
+          B.eq_true_of_and_left(
+            Nat.is_le(1n, F.count_address(nodes, address)),
+            Bool.and(edge_occurrences(refs, nodes), node_occurrences(tail, nodes)),
+            valid
+          ),
+          Addition.le_add_left(
+            F.count_address(nodes, address),
+            Bool.pick(Nat, F.same_address(address, owner), 1n, 0n)
+          )
+        ),
+        B.and_eq_true(
+          edge_occurrences(refs, F.Node{owner, artifact, references} <> nodes),
+          node_occurrences(tail, F.Node{owner, artifact, references} <> nodes),
+          edge_occurrences_cons(
+            refs,
+            F.Node{owner, artifact, references},
+            nodes,
+            B.eq_true_of_and_left(
+              edge_occurrences(refs, nodes),
+              node_occurrences(tail, nodes),
+              rest
+            )
+          ),
+          node_occurrences_cons(
+            tail,
+            F.Node{owner, artifact, references},
+            nodes,
+            B.eq_true_of_and_right(
+              edge_occurrences(refs, nodes),
+              node_occurrences(tail, nodes),
+              rest
+            )
+          )
+        )
+      )
+
+def node_occurrences_self(
+  +items: List<&2, F.Node>
+) -> {node_occurrences(items, items) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case F.Node{+address, +artifact, +refs} <> +tail:
+      lower : {
+        Nat.is_le(1n, F.count_address(F.Node{address, artifact, refs} <> tail, address))
+        == True{}
+        : Bool
+      } =
+        %Equal.sym(Bool, F.same_address(address, address), True{}, address_refl(address)):
+          {
+            Nat.is_le(1n, (Bool.pick(Nat, _, 1n, 0n) + F.count_address(tail, address) : Nat))
+            == True{}
+            : Bool
+          }
+        Addition.le_add_right(1n, F.count_address(tail, address))
+      B.and_eq_true(
+        Nat.is_le(1n, F.count_address(F.Node{address, artifact, refs} <> tail, address)),
+        Bool.and(
+          edge_occurrences(refs, F.Node{address, artifact, refs} <> tail),
+          node_occurrences(tail, F.Node{address, artifact, refs} <> tail)
+        ),
+        lower,
+        B.and_eq_true(
+          edge_occurrences(refs, F.Node{address, artifact, refs} <> tail),
+          node_occurrences(tail, F.Node{address, artifact, refs} <> tail),
+          edge_occurrences_node(refs, refs, address, artifact, tail, refs_positive_self(refs)),
+          node_occurrences_cons(
+            tail,
+            F.Node{address, artifact, refs},
+            tail,
+            node_occurrences_self(tail)
+          )
+        )
+      )
+
+def incoming_from_balance(
+  +nodes: List<&2, F.Node>,
+  +root: O.NodeAddress,
+  +query: O.NodeAddress,
+  balance: {
+    (Relation.incoming(nodes, query) + Bool.pick(Nat, F.same_address(root, query), 1n, 0n) : Nat)
+    == F.count_address(nodes, query)
+    : Nat
+  }
+) -> { Nat.is_le(Relation.incoming(nodes, query), F.count_address(nodes, query)) == True{} : Bool }:
+  %balance: {Nat.is_le(Relation.incoming(nodes, query), _) == True{} : Bool}
+  Addition.le_add_right(
+    Relation.incoming(nodes, query),
+    Bool.pick(Nat, F.same_address(root, query), 1n, 0n)
+  )
+
+def root_count_lower(
+  +nodes: List<&2, F.Node>,
+  +root: O.NodeAddress,
+  balance: {
+    (Relation.incoming(nodes, root) + Bool.pick(Nat, F.same_address(root, root), 1n, 0n) : Nat)
+    == F.count_address(nodes, root)
+    : Nat
+  }
+) -> { Nat.is_le(1n, F.count_address(nodes, root)) == True{} : Bool }:
+  %balance: {Nat.is_le(1n, _) == True{} : Bool}
+  %Equal.sym(Bool, F.same_address(root, root), True{}, address_refl(root)):
+    {
+      Nat.is_le(1n, (Relation.incoming(nodes, root) + Bool.pick(Nat, _, 1n, 0n) : Nat))
+      == True{}
+      : Bool
+    }
+  Addition.le_add_left(1n, Relation.incoming(nodes, root))
+
+def zero_from_upper(
+  +value: Nat,
+  upper: {Nat.is_le((value + 1n : Nat), 1n) == True{} : Bool}
+) -> { Nat.is_eq(value, 0n) == True{} : Bool }:
+  match value:
+    case 0n: {==}
+    case 1n++rest:
+      smaller : {Nat.is_le((rest + 1n : Nat), 0n) == True{} : Bool} = Addition.le_of_succ_le_succ(
+        (rest + 1n : Nat),
+        0n,
+        upper
+      )
+      contradiction : {False{} == True{} : Bool} =
+        %N.add_comm(rest, 1n): {Nat.is_le(_, 0n) == True{} : Bool}
+        smaller
+      Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(contradiction))
+
+def root_incoming_zero(
+  +nodes: List<&2, F.Node>,
+  +root: O.NodeAddress,
+  balance: {
+    (Relation.incoming(nodes, root) + Bool.pick(Nat, F.same_address(root, root), 1n, 0n) : Nat)
+    == F.count_address(nodes, root)
+    : Nat
+  },
+  upper: {Nat.is_le(F.count_address(nodes, root), 1n) == True{} : Bool}
+) -> { Nat.is_eq(Relation.incoming(nodes, root), 0n) == True{} : Bool }:
+  sum_upper : {
+    Nat.is_le(
+      (Relation.incoming(nodes, root) + Bool.pick(Nat, F.same_address(root, root), 1n, 0n) : Nat),
+      1n
+    )
+    == True{}
+    : Bool
+  } =
+    %Equal.sym(
+      Nat,
+      (Relation.incoming(nodes, root) + Bool.pick(Nat, F.same_address(root, root), 1n, 0n) : Nat),
+      F.count_address(nodes, root),
+      balance
+    ):
+      {Nat.is_le(_, 1n) == True{} : Bool}
+    upper
+  one_upper : {Nat.is_le((Relation.incoming(nodes, root) + 1n : Nat), 1n) == True{} : Bool} =
+    %address_refl(root): {
+      Nat.is_le((Relation.incoming(nodes, root) + Bool.pick(Nat, _, 1n, 0n) : Nat), 1n)
+      == True{}
+      : Bool
+    }
+    sum_upper
+  zero_from_upper(Relation.incoming(nodes, root), one_upper)
+
+def tree_forest(result: F.Construction, episode: Nat) -> Bool:
+  match result:
+    case F.Constructed{F.Created{root, nodes, _}}:
+      Relation.frame_forest(F.Forest{Some{root}, nodes}, (episode + 1n : Nat))
+    case _: True{}
+
+def created_nodes(created: F.Created) -> List<&2, F.Node>:
+  match created:
+    case F.Created{_, nodes, _}: nodes
+
+def actual_upper_raw(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  },
+  +query: O.NodeAddress
+) -> {tree_bound(F.Constructed{created}, query) == True{} : Bool}:
+  %success: {tree_bound(_, query) == True{} : Bool}
+  bound_tree_projection(
+    tree,
+    episode,
+    prefix,
+    artifacts,
+    F.construct_interpret(fuel, F.TreeRequest{tree, episode, prefix, artifacts}),
+    query,
+    construct_bound(fuel, F.TreeRequest{tree, episode, prefix, artifacts}, query)
+  )
+
+def actual_upper(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  },
+  +query: O.NodeAddress
+) -> {Nat.is_le(F.count_address(created_nodes(created), query), 1n) == True{} : Bool}:
+  match created:
+    case F.Created{+root, +nodes, +addresses}:
+      actual_upper_raw(
+        fuel,
+        tree,
+        episode,
+        prefix,
+        artifacts,
+        F.Created{root, nodes, addresses},
+        success,
+        query
+      )
+
+def actual_balance(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  },
+  +query: O.NodeAddress
+) -> tree_balance(F.Constructed{created}, query):
+  %success: tree_balance(_, query)
+  balance_tree_projection(
+    tree,
+    episode,
+    prefix,
+    artifacts,
+    F.construct_interpret(fuel, F.TreeRequest{tree, episode, prefix, artifacts}),
+    query,
+    construct_balance(fuel, F.TreeRequest{tree, episode, prefix, artifacts}, query)
+  )
+
+def actual_scope(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  }
+) -> {tree_scope(F.Constructed{created}, episode, prefix) == True{} : Bool}:
+  %success: {tree_scope(_, episode, prefix) == True{} : Bool}
+  tree_projection(
+    tree,
+    episode,
+    prefix,
+    artifacts,
+    F.construct_interpret(fuel, F.TreeRequest{tree, episode, prefix, artifacts}),
+    construct_scope(fuel, F.TreeRequest{tree, episode, prefix, artifacts})
+  )
+
+def actual_born(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  }
+) -> {tree_born(F.Constructed{created}) == True{} : Bool}:
+  %success: {tree_born(_) == True{} : Bool}
+  born_tree_projection(
+    tree,
+    episode,
+    prefix,
+    artifacts,
+    F.construct_interpret(fuel, F.TreeRequest{tree, episode, prefix, artifacts}),
+    construct_born(fuel, F.TreeRequest{tree, episode, prefix, artifacts})
+  )
+
+def actual_incoming(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  },
+  +query: O.NodeAddress
+) -> {
+  Nat.is_le(
+    Relation.incoming(created_nodes(created), query),
+    F.count_address(created_nodes(created), query)
+  )
+  == True{}
+  : Bool
+}:
+  match created:
+    case F.Created{+root, +nodes, +addresses}:
+      incoming_from_balance(
+        nodes,
+        root,
+        query,
+        actual_balance(
+          fuel,
+          tree,
+          episode,
+          prefix,
+          artifacts,
+          F.Created{root, nodes, addresses},
+          success,
+          query
+        )
+      )
+
+def actual_reference_coverage(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  },
+  +items: List<&2, F.Reference>,
+  +owner: O.NodeAddress,
+  +positive: {edge_occurrences(items, created_nodes(created)) == True{} : Bool},
+  +born: {references_born(items, owner) == True{} : Bool}
+) -> { Relation.references_valid(items, owner, created_nodes(created)) == True{} : Bool }:
+  match items:
+    case []: {==}
+    case F.Expanded{_, +child} <> +tail:
+      B.and_eq_true(
+        Nat.is_eq(F.count_address(created_nodes(created), child), 1n),
+        Bool.and(
+          F.born_after(owner, child),
+          Relation.references_valid(tail, owner, created_nodes(created))
+        ),
+        one_from_bounds(
+          F.count_address(created_nodes(created), child),
+          N.le_trans(
+            1n,
+            Relation.incoming(created_nodes(created), child),
+            F.count_address(created_nodes(created), child),
+            B.eq_true_of_and_left(
+              Nat.is_le(1n, Relation.incoming(created_nodes(created), child)),
+              edge_occurrences(tail, created_nodes(created)),
+              positive
+            ),
+            actual_incoming(fuel, tree, episode, prefix, artifacts, created, success, child)
+          ),
+          actual_upper(fuel, tree, episode, prefix, artifacts, created, success, child)
+        ),
+        B.and_eq_true(
+          F.born_after(owner, child),
+          Relation.references_valid(tail, owner, created_nodes(created)),
+          B.eq_true_of_and_left(F.born_after(owner, child), references_born(tail, owner), born),
+          actual_reference_coverage(
+            fuel,
+            tree,
+            episode,
+            prefix,
+            artifacts,
+            created,
+            success,
+            tail,
+            owner,
+            B.eq_true_of_and_right(
+              Nat.is_le(1n, Relation.incoming(created_nodes(created), child)),
+              edge_occurrences(tail, created_nodes(created)),
+              positive
+            ),
+            B.eq_true_of_and_right(F.born_after(owner, child), references_born(tail, owner), born)
+          )
+        )
+      )
+    case F.Included{_, _} <> +tail: actual_reference_coverage(
+      fuel,
+      tree,
+      episode,
+      prefix,
+      artifacts,
+      created,
+      success,
+      tail,
+      owner,
+      positive,
+      born
+    )
+    case F.Omitted{_, _, _} <> +tail: actual_reference_coverage(
+      fuel,
+      tree,
+      episode,
+      prefix,
+      artifacts,
+      created,
+      success,
+      tail,
+      owner,
+      positive,
+      born
+    )
+
+def actual_node_coverage(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  },
+  +items: List<&2, F.Node>,
+  +positive: {node_occurrences(items, created_nodes(created)) == True{} : Bool},
+  +born: {nodes_born(items) == True{} : Bool}
+) -> { Relation.nodes_valid(items, created_nodes(created)) == True{} : Bool }:
+  match items:
+    case []: {==}
+    case F.Node{+address, _, +refs} <> +tail:
+      +rest = B.eq_true_of_and_right(
+        Nat.is_le(1n, F.count_address(created_nodes(created), address)),
+        Bool.and(
+          edge_occurrences(refs, created_nodes(created)),
+          node_occurrences(tail, created_nodes(created))
+        ),
+        positive
+      )
+      B.and_eq_true(
+        Nat.is_eq(F.count_address(created_nodes(created), address), 1n),
+        Bool.and(
+          Nat.is_le(Relation.incoming(created_nodes(created), address), 1n),
+          Bool.and(
+            Relation.references_valid(refs, address, created_nodes(created)),
+            Relation.nodes_valid(tail, created_nodes(created))
+          )
+        ),
+        one_from_bounds(
+          F.count_address(created_nodes(created), address),
+          B.eq_true_of_and_left(
+            Nat.is_le(1n, F.count_address(created_nodes(created), address)),
+            Bool.and(
+              edge_occurrences(refs, created_nodes(created)),
+              node_occurrences(tail, created_nodes(created))
+            ),
+            positive
+          ),
+          actual_upper(fuel, tree, episode, prefix, artifacts, created, success, address)
+        ),
+        B.and_eq_true(
+          Nat.is_le(Relation.incoming(created_nodes(created), address), 1n),
+          Bool.and(
+            Relation.references_valid(refs, address, created_nodes(created)),
+            Relation.nodes_valid(tail, created_nodes(created))
+          ),
+          N.le_trans(
+            Relation.incoming(created_nodes(created), address),
+            F.count_address(created_nodes(created), address),
+            1n,
+            actual_incoming(fuel, tree, episode, prefix, artifacts, created, success, address),
+            actual_upper(fuel, tree, episode, prefix, artifacts, created, success, address)
+          ),
+          B.and_eq_true(
+            Relation.references_valid(refs, address, created_nodes(created)),
+            Relation.nodes_valid(tail, created_nodes(created)),
+            actual_reference_coverage(
+              fuel,
+              tree,
+              episode,
+              prefix,
+              artifacts,
+              created,
+              success,
+              refs,
+              address,
+              B.eq_true_of_and_left(
+                edge_occurrences(refs, created_nodes(created)),
+                node_occurrences(tail, created_nodes(created)),
+                rest
+              ),
+              B.eq_true_of_and_left(references_born(refs, address), nodes_born(tail), born)
+            ),
+            actual_node_coverage(
+              fuel,
+              tree,
+              episode,
+              prefix,
+              artifacts,
+              created,
+              success,
+              tail,
+              B.eq_true_of_and_right(
+                edge_occurrences(refs, created_nodes(created)),
+                node_occurrences(tail, created_nodes(created)),
+                rest
+              ),
+              B.eq_true_of_and_right(references_born(refs, address), nodes_born(tail), born)
+            )
+          )
+        )
+      )
+
+def construction_forest(
+  +fuel: Nat,
+  +tree: Recursive.Tree,
+  +episode: Nat,
+  +prefix: List<&2, Nat>,
+  +artifacts: List<&2, T.ArtifactEntry>,
+  +created: F.Created,
+  +success: {
+    F.construct(fuel, tree, episode, prefix, artifacts)
+    == F.Constructed{created}
+    : F.Construction
+  }
+) -> {tree_forest(F.Constructed{created}, episode) == True{} : Bool}:
+  match created:
+    case F.Created{+root, +nodes, +addresses}:
+      B.and_eq_true(
+        Relation.retained(F.Forest{Some{root}, nodes}),
+        Relation.episodes_before(nodes, (episode + 1n : Nat)),
+        B.and_eq_true(
+          Relation.root_valid(Some{root}, nodes),
+          Relation.nodes_valid(nodes, nodes),
+          B.and_eq_true(
+            Nat.is_eq(F.count_address(nodes, root), 1n),
+            Nat.is_eq(Relation.incoming(nodes, root), 0n),
+            one_from_bounds(
+              F.count_address(nodes, root),
+              root_count_lower(
+                nodes,
+                root,
+                actual_balance(
+                  fuel,
+                  tree,
+                  episode,
+                  prefix,
+                  artifacts,
+                  F.Created{root, nodes, addresses},
+                  success,
+                  root
+                )
+              ),
+              actual_upper(
+                fuel,
+                tree,
+                episode,
+                prefix,
+                artifacts,
+                F.Created{root, nodes, addresses},
+                success,
+                root
+              )
+            ),
+            root_incoming_zero(
+              nodes,
+              root,
+              actual_balance(
+                fuel,
+                tree,
+                episode,
+                prefix,
+                artifacts,
+                F.Created{root, nodes, addresses},
+                success,
+                root
+              ),
+              actual_upper(
+                fuel,
+                tree,
+                episode,
+                prefix,
+                artifacts,
+                F.Created{root, nodes, addresses},
+                success,
+                root
+              )
+            )
+          ),
+          actual_node_coverage(
+            fuel,
+            tree,
+            episode,
+            prefix,
+            artifacts,
+            F.Created{root, nodes, addresses},
+            success,
+            nodes,
+            node_occurrences_self(nodes),
+            actual_born(
+              fuel,
+              tree,
+              episode,
+              prefix,
+              artifacts,
+              F.Created{root, nodes, addresses},
+              success
+            )
+          )
+        ),
+        scoped_episodes_before(
+          nodes,
+          episode,
+          prefix,
+          B.eq_true_of_and_right(
+            F.same_address(root, O.NodeAddress{episode, prefix}),
+            nodes_within(nodes, episode, prefix),
+            actual_scope(
+              fuel,
+              tree,
+              episode,
+              prefix,
+              artifacts,
+              F.Created{root, nodes, addresses},
+              success
+            )
+          )
+        )
+      )

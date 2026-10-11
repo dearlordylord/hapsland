@@ -1,0 +1,99 @@
+import Base
+import ../Types.bend as T
+import ../SPEC.bend as Root
+import ../ForestSpecification.bend as F
+import ../WholeObservation.bend as O
+import ../traversal/core.bend as Local
+import ../../../../../agent-flow-bend/ImportGraph.bend as G
+
+# Proof-only exact phase observation. Ordered provenance is erased history,
+# never fabricated by sorting native associations or by consulting an outcome.
+type Order is Data:
+  Order{pending: List<&2, Nat>, targets: List<&2, Nat>, ids: List<&2, String>,
+    captured: List<&2, String>, identities: List<&2, Nat>, visited: List<&2, String>}
+type EdgeSource is Data:
+  EdgeSource{id: Nat, source: T.SourceFacts, catalog: Root.Source}
+type CaptureSource is Data:
+  CaptureSource{path: String, source: T.SourceFacts, catalog: Root.Source}
+type History is Data:
+  History{addresses: List<&2, F.AddressEntry>, order: Order,
+    edges: List<&2, EdgeSource>, captures: List<&2, CaptureSource>,
+    artifacts: List<&2, T.ArtifactEntry>, graph_remaining: Nat, next_episode: Nat}
+type PendingPayload is Data:
+  PendingPayload{owner: O.NodeAddress, index: Nat, from: String, symbol: String,
+    name: String, depth: Nat, expected: Local.ExpectedKind, target: Local.PendingTarget}
+type PendingEntry is Data:
+  PendingEntry{id: Nat, value: PendingPayload, source: T.SourceFacts, catalog: Root.Source}
+type TargetPayload is Data:
+  FileTarget{path: String, name: String, edge: PendingPayload}
+  BundledTarget{declaration: Nat, facts: Local.Facts, edge: PendingPayload}
+type TargetEntry is Data:
+  TargetEntry{id: Nat, value: TargetPayload}
+type TargetId is Data:
+  TargetId{key: String, id: Nat}
+type CapturedEntry is Data:
+  CapturedEntry{path: String, value: T.CapturedFacts, source: T.SourceFacts}
+type TargetArtifact is Data:
+  TargetArtifact{target: Nat, identity: String}
+type Budget is Data:
+  Budget{limits: Local.LocalLimits, targets: Map<&2, Map<&2, Bool>>,
+    maximum_targets: Nat, local_work: Nat, graph_work: O.SignedNat, maximum_depth: Nat}
+type Frame is Data:
+  Frame{branch: T.Branch, limits: G.Limits, graph: G.Graph, command: G.Command,
+    dependencies: List<&2, String>, forest: F.Forest, pending: List<&2, PendingEntry>,
+    targets: List<&2, TargetEntry>, ids: List<&2, TargetId>,
+    captured: List<&2, CapturedEntry>, identities: List<&2, TargetArtifact>,
+    visited: List<&2, String>, budget: Budget, next_node: Nat, next_edge: Nat,
+    next_target: Nat, next_artifact: Nat, artifacts: List<&2, T.ArtifactEntry>,
+    graph_remaining: Nat, next_episode: Nat}
+
+def budget(value: Local.Budget, signed: O.SignedNat) -> Budget:
+  match value:
+    case Local.Budget{limits, targets, maximum, work, _, depth}:
+      Budget{limits, targets, maximum, work, signed, depth}
+
+def actual_budget(value: Local.Budget) -> Budget:
+  match value:
+    case Local.Budget{limits, targets, maximum, work, graph, depth}:
+      Budget{limits, targets, maximum, work, O.Nonnegative{graph}, depth}
+
+def edge_at(items: List<&2, EdgeSource>, +id: Nat) -> Maybe<&2, EdgeSource>:
+  match items:
+    case []: None{}
+    case +head <> tail:
+      match head:
+        case EdgeSource{other, _, _}:
+          Bool.pick(Maybe<&2, EdgeSource>, Nat.is_eq(id, other), Some{head}, edge_at(tail, id))
+
+def capture_at(items: List<&2, CaptureSource>, +path: String) -> Maybe<&2, CaptureSource>:
+  match items:
+    case []: None{}
+    case +head <> tail:
+      match head:
+        case CaptureSource{other, _, _}:
+          Bool.pick(
+            Maybe<&2, CaptureSource>,
+            String.eq(path, other),
+            Some{head},
+            capture_at(tail, path)
+          )
+
+def payload_at(
+  address: Maybe<&2, O.NodeAddress>,
+  value: Local.Pending
+) -> Maybe<&2, PendingPayload>:
+  match address value:
+    case Some{owner} Local.Pending{_, index, from, symbol, name, depth, expected, target}:
+      Some{PendingPayload{owner, index, from, symbol, name, depth, expected, target}}
+    case _ _: None{}
+
+def pending_payload(
+  +value: Local.Pending,
+  addresses: List<&2, F.AddressEntry>
+) -> Maybe<&2, PendingPayload>:
+  match value:
+    case Local.Pending{owner, _, _, _, _, _, _, _}:
+      payload_at(F.address_at(addresses, owner), value)
+
+def main() -> Unit:
+  Unit{}

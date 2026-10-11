@@ -1,0 +1,105 @@
+import Base
+import ./core.bend as Core
+import ./SPEC.bend as Spec
+import ./RANK.bend as Rank
+import ./INTERPRETER_MEASURE.bend as Measure
+import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./INTERPRETER_ORDER_PROOF.bend as Facts
+
+# Generic scalar proof bodies keep actual inventory expressions opaque until use.
+def reflexive_at(valid: Bool, +amount: Nat, proof: {valid==True{}:Bool}) -> {
+  Bool.and(valid, Nat.is_le(amount, amount))==True{}:Bool
+}:
+  match valid:
+    case True{}: Facts.le_refl(amount)
+    case False{}: Empty.absurd({False{}==True{}:Bool}, Facts.internal_false_ne_true(proof))
+
+def compose_at(valid: Bool, +middle_valid: Bool, +after: Nat, +middle: Nat, +before: Nat,
+  first: {Bool.and(valid, Nat.is_le(after, middle))==True{}:Bool},
+  second: {Bool.and(middle_valid, Nat.is_le(middle, before))==True{}:Bool}) -> {
+  Bool.and(valid, Nat.is_le(after, before))==True{}:Bool
+}:
+  match valid:
+    case False{}: Empty.absurd({False{}==True{}:Bool}, Facts.internal_false_ne_true(first))
+    case True{}:
+      Facts.le_trans(
+        after,
+        middle,
+        before,
+        first,
+        Facts.eq_true_of_and_right(middle_valid, Nat.is_le(middle, before), second)
+      )
+
+def conjoin(
+  left: Bool,
+  +right: Bool,
+  left_true: {left==True{}:Bool},
+  right_true: {right==True{}:Bool}
+) -> {Bool.and(left, right)==True{}:Bool}:
+  match left:
+    case True{}: right_true
+    case False{}: Empty.absurd({False{}==True{}:Bool}, Facts.internal_false_ne_true(left_true))
+
+def holds(
+  +after: Map<&2, Bool>,
+  before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>
+) -> Bool:
+  Bool.and(
+    Patricia.canonical(Bool, after),
+    Nat.is_le(Rank.unseen_catalog(after, catalog), Rank.unseen_catalog(before, catalog))
+  )
+
+def lawful(
+  +after: Map<&2, Bool>,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  proof: {holds(after, before, catalog)==True{}:Bool}
+) -> {Patricia.canonical(Bool, after)==True{}:Bool}:
+  Facts.eq_true_of_and_left(
+    Patricia.canonical(Bool, after),
+    Nat.is_le(Rank.unseen_catalog(after, catalog), Rank.unseen_catalog(before, catalog)),
+    proof
+  )
+
+def reflexive(
+  +visited: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  valid: {Patricia.canonical(Bool, visited)==True{}:Bool}
+) -> {holds(visited, visited, catalog)==True{}:Bool}:
+  reflexive_at(Patricia.canonical(Bool, visited), Rank.unseen_catalog(visited, catalog), valid)
+
+def compose(
+  +after: Map<&2, Bool>,
+  +middle: Map<&2, Bool>,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  left: {holds(after, middle, catalog)==True{}:Bool},
+  right: {holds(middle, before, catalog)==True{}:Bool}
+) -> {holds(after, before, catalog)==True{}:Bool}:
+  compose_at(
+    Patricia.canonical(Bool, after),
+    Patricia.canonical(Bool, middle),
+    Rank.unseen_catalog(after, catalog),
+    Rank.unseen_catalog(middle, catalog),
+    Rank.unseen_catalog(before, catalog),
+    left,
+    right
+  )
+
+def replace_after(
+  +after: Map<&2, Bool>,
+  +same: Map<&2, Bool>,
+  +before: Map<&2, Bool>,
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+  equal: {after==same:Map<&2, Bool>},
+  proof: {holds(same, before, catalog)==True{}:Bool}
+) -> {holds(after, before, catalog)==True{}:Bool}:
+  %Equal.sym(Map<&2, Bool>, after, same, equal): {holds(_, before, catalog)==True{}:Bool}
+  proof
+
+def enter_type() -> Type:
+  @+state: Spec.State -> @+path: String -> @+identity: String ->
+  @+before: Map<&2, Bool> -> @+catalog: Map<&2, Maybe<&2, Core.Declaration>> ->
+  {holds(Measure.visited(state), before, catalog)==True{}:Bool} ->
+  {holds(Measure.visited(Spec.enter(state, path, identity)), before, catalog)==True{}:Bool}

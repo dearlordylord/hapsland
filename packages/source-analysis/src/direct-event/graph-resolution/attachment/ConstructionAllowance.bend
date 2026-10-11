@@ -1,0 +1,29 @@
+import Base
+import ../traversal/SPEC.bend as Recursive
+import ../ForestSpecification.bend as Forest
+import ../Types.bend as T
+
+# Transport the existing successful flatten bound to forest conversion. This
+# is proof-only correspondence; it does not select graph policy or add a bound.
+def flatten_success(result: Recursive.Flat) -> Bool:
+  match result:
+    case Recursive.Flat{_, _}: True{}
+    case Recursive.FlatFailure{}: False{}
+
+def construction_request(request: Recursive.FlattenRequest, episode: Nat,
+    route: List<&2, Nat>, artifacts: List<&2, T.ArtifactEntry>) -> Forest.ConstructionRequest:
+  match request:
+    case Recursive.FlattenTree{tree}: Forest.TreeRequest{tree, episode, route, artifacts}
+    case Recursive.FlattenReferences{_, index, items}:
+      Forest.ReferencesRequest{items, index, episode, route, artifacts}
+
+# Invalid artifact coverage is preserved. This discriminator proves only that
+# an already adequate evaluation allowance cannot become exhausted in conversion.
+def not_exhausted(result: Forest.ConstructionDispatch) -> Bool:
+  match result:
+    case Forest.TreeResult{Forest.ConstructionExhausted{}}: False{}
+    case Forest.ListResult{Forest.ReferencesExhausted{}}: False{}
+    case _: True{}
+
+def main() -> Unit:
+  Unit{}

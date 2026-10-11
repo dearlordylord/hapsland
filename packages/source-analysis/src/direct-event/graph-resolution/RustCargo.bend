@@ -1,0 +1,434 @@
+import Base
+import ./Types.bend as T
+import ./State.bend as S
+import ./Loop.bend as Loop
+import ./Resolve.bend as Resolve
+import ./Failure.bend as ResolveOwner
+import ./Cargo.bend as Cargo
+import ./RustMachine.bend as Rust
+import ./RustStorage.bend as Storage
+import ./Core.bend as Materialize
+import ../../../../agent-flow-bend/ImportGraph.bend as Graph
+
+def first_segment(path: String, +separator: String) -> String:
+  match path:
+    case SNil{}: ""
+    case SCon{+head, tail}:
+      yes : Unit -> String = _ => ""
+      no : Unit -> String = _ => SCon{head, first_segment(tail, separator)}
+      Materialize.decide(String, String.eq(SCon{head, SNil{}}, separator), yes, no)
+
+def insert_tail(items: List<&2, String>, value: String,
+    rest: List<&2, String> -> List<&2, String>) -> List<&2, String>:
+  match items:
+    case []: [value]
+    case head <> tail: head <> rest(tail)
+
+def insert_at(index: Nat, items: List<&2, String>, +value: String) -> List<&2, String>:
+  match index:
+    case 0n: value <> items
+    case 1n++remaining:
+      rest : List<&2, String> -> List<&2, String> = tail => insert_at(remaining, tail, value)
+      insert_tail(items, value, rest)
+
+def plan_paths(plan: T.CargoPlan) -> List<&2, String>:
+  match plan:
+    case T.CargoPlan{paths, _, _}: paths
+
+def begin_path(paths: List<&2, String>, +state: T.ResolverState) -> Loop.Continuation:
+  match paths:
+    case []: Loop.RustFindCargo{state}
+    case +path <> tail: Loop.ServiceStep{
+      S.request(
+        S.with_state_rust_work(
+          S.with_state_scratch(state, S.with_scratch_resolved_path(S.state_scratch(state), path)),
+          S.with_work_remaining_paths(S.state_rust_work(state), tail)
+        ),
+        T.RustCargoTargetAbsolute{},
+        T.PathIsAbsolute{path}
+      )
+    }
+
+def start_paths(paths: List<&2, String>, +state: T.ResolverState) -> Loop.Continuation:
+  begin_path(
+    paths,
+    S.with_state_rust_work(state, S.with_work_candidates_rev(S.state_rust_work(state), []))
+  )
+
+def automatic_paths(
+  plan: Maybe<&2, T.CargoPlan>,
+  raw: String,
+  state: T.ResolverState
+) -> Loop.Continuation:
+  match plan:
+    case None{}: ResolveOwner.malformed()
+    case Some{T.CargoPlan{paths, _, index}}: start_paths(insert_at(index, paths, raw), state)
+
+def automatic_path(tail: String, +state: T.ResolverState) -> Loop.Continuation:
+  +first = first_segment(tail, S.state_separator(state))
+  raw = String.concat(
+    ["src/bin/", first, Bool.pick(String, String.ends_with(first, ".rs"), "", "/main.rs")]
+  )
+  automatic = S.work_cargo_plan(S.state_rust_work(state))
+  automatic_paths(automatic, raw, state)
+
+def no_automatic(plan: Maybe<&2, T.CargoPlan>, state: T.ResolverState) -> Loop.Continuation:
+  match plan:
+    case None{}: ResolveOwner.malformed()
+    case Some{plan}: start_paths(plan_paths(plan), state)
+
+def automatic_relative(absolute: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  yes : Unit -> Loop.Continuation = _ => automatic_path(
+    S.work_relative_selected(S.state_rust_work(state)),
+    state
+  )
+  no : Unit -> Loop.Continuation = _ => no_automatic(
+    S.work_cargo_plan(S.state_rust_work(state)),
+    state
+  )
+  Materialize.decide(
+    Loop.Continuation,
+    Bool.and(
+      Bool.not(absolute),
+      Bool.and(
+        Bool.not(
+          Resolve.outside(
+            S.work_relative_selected(S.state_rust_work(state)),
+            S.state_separator(state)
+          )
+        ),
+        Bool.not(String.is_empty(S.work_relative_selected(S.state_rust_work(state))))
+      )
+    ),
+    yes,
+    no
+  )
+
+def selected_plan(plan: Maybe<&2, T.CargoPlan>, +state: T.ResolverState) -> Loop.Continuation:
+  match plan:
+    case None{}: Storage.invalid_facts(state)
+    case Some{+plan}:
+      match plan:
+        case T.CargoPlan{paths, automatic, _}:
+          +updated = S.with_state_rust_work(
+            state,
+            S.with_work_cargo_plan(S.state_rust_work(state), Some{plan})
+          )
+          yes : Unit -> Loop.Continuation = _ => Loop.ServiceStep{
+            S.request(
+              updated,
+              T.RustCargoAutoBinDirectory{},
+              T.PathJoin{[S.scratch_directory(S.state_scratch(state)), "src/bin"]}
+            )
+          }
+          no : Unit -> Loop.Continuation = _ => start_paths(paths, updated)
+          Materialize.decide(Loop.Continuation, automatic, yes, no)
+
+def selected_syntax(
+  syntax: Maybe<&2, T.TomlValue>,
+  selected: String,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match syntax:
+    case None{}: ResolveOwner.malformed()
+    case Some{syntax}: selected_plan(
+      Cargo.select(
+        syntax,
+        selected,
+        S.state_separator(state),
+        Graph.file_cap(S.input_limits(S.state_input(state)))
+      ),
+      state
+    )
+
+def base(+path: String, +state: T.ResolverState) -> Loop.Continuation:
+  Loop.ServiceStep{
+    S.request(
+      S.with_state_scratch(state, S.with_scratch_directory(S.state_scratch(state), path)),
+      T.RustCargoSelectedRelative{},
+      T.PathRelative{path, S.input_root_path(S.state_input(state))}
+    )
+  }
+
+def active(
+  task: Maybe<&2, T.RustTask>,
+  syntax: T.TomlValue,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match task:
+    case None{}: ResolveOwner.malformed()
+    case Some{T.RustTask{path, _}}: Loop.ServiceStep{
+      S.request(
+        S.with_state_scratch(
+          state,
+          S.with_scratch_cargo_syntax(S.state_scratch(state), Some{syntax})
+        ),
+        T.RustCargoBase{},
+        T.PathDirname{path}
+      )
+    }
+
+def begin(+state: T.ResolverState, syntax: T.TomlValue) -> Loop.Continuation:
+  active(S.rust_active(Rust.get(state)), syntax, state)
+
+def target_absolute(absolute: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  match absolute:
+    case True{}: Storage.invalid_facts(state)
+    case False{}: Loop.ServiceStep{
+      S.request(
+        state,
+        T.RustCargoTargetJoin{},
+        T.PathJoin{
+          [
+            S.scratch_directory(S.state_scratch(state)),
+            S.scratch_resolved_path(S.state_scratch(state))
+          ]
+        }
+      )
+    }
+
+def joined_absolute(absolute: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  yes : Unit -> Loop.Continuation = _ => Loop.ServiceStep{
+    S.request(
+      state,
+      T.RustCargoTargetExtension{},
+      T.PathExtension{S.scratch_resolved_path(S.state_scratch(state))}
+    )
+  }
+  no : Unit -> Loop.Continuation = _ => Storage.invalid_facts(state)
+  Materialize.decide(
+    Loop.Continuation,
+    Bool.and(
+      Bool.not(absolute),
+      Bool.not(
+        Resolve.outside(S.scratch_resolved_path(S.state_scratch(state)), S.state_separator(state))
+      )
+    ),
+    yes,
+    no
+  )
+
+def target_extension(extension: String, +state: T.ResolverState) -> Loop.Continuation:
+  yes : Unit -> Loop.Continuation = _ => begin_path(
+    S.work_remaining_paths(S.state_rust_work(state)),
+    S.with_state_rust_work(
+      state,
+      S.with_work_candidates_rev(
+        S.state_rust_work(state),
+        S.scratch_resolved_path(
+          S.state_scratch(state)
+        ) <> S.work_candidates_rev(S.state_rust_work(state))
+      )
+    )
+  )
+  no : Unit -> Loop.Continuation = _ => Storage.invalid_facts(state)
+  Materialize.decide(Loop.Continuation, String.eq(extension, ".rs"), yes, no)
+
+def unique(items: List<&2, String>, +seen: List<&2, String>) -> List<&2, String>:
+  match items:
+    case []: []
+    case +head <> +tail:
+      yes : Unit -> List<&2, String> = _ => unique(tail, seen)
+      no : Unit -> List<&2, String> = _ => head <> unique(tail, head <> seen)
+      Materialize.decide(List<&2, String>, Rust.member(seen, head), yes, no)
+
+def roots_done(+state: T.ResolverState) -> Loop.Continuation:
+  Loop.RustTasks{state, S.work_tasks_out(S.state_rust_work(state))}
+
+def selected_root(+path: String, +state: T.ResolverState) -> Loop.Continuation:
+  yes : Unit -> Loop.Continuation = _ => Loop.RustFollow{
+    S.with_state_rust_work(
+      state,
+      S.with_work_follow_return(S.state_rust_work(state), T.CargoRootsReturn{})
+    ),
+    T.RustRoute{path, path, None{}, 0n},
+    S.input_root_capture(S.state_input(state))
+  }
+  no : Unit -> Loop.Continuation = _ => Loop.ServiceStep{
+    S.request(state, T.RustCrateWithinDir{}, T.PathDirname{path})
+  }
+  Materialize.decide(
+    Loop.Continuation,
+    String.eq(path, S.input_root_path(S.state_input(state))),
+    yes,
+    no
+  )
+
+def next_root(paths: List<&2, String>, +state: T.ResolverState) -> Loop.Continuation:
+  match paths:
+    case []: roots_done(state)
+    case +path <> tail: selected_root(
+      path,
+      S.with_state_rust_work(
+        S.with_state_scratch(state, S.with_scratch_resolved_path(S.state_scratch(state), path)),
+        S.with_work_remaining_paths(S.state_rust_work(state), tail)
+      )
+    )
+
+def next(+state: T.ResolverState) -> Loop.Continuation:
+  next_root(S.work_remaining_paths(S.state_rust_work(state)), state)
+
+def found_roots(+state: T.ResolverState) -> Loop.Continuation:
+  next_root(List.reverse(&2, String, S.scratch_found_paths(S.state_scratch(state))),
+    S.with_state_rust_work(state, S.with_work_tasks_out(S.state_rust_work(state), [])))
+
+def next_find(paths: List<&2, String>, +state: T.ResolverState) -> Loop.Continuation:
+  match paths:
+    case []: found_roots(state)
+    case +path <> tail: Loop.ServiceStep{
+      S.request(
+        S.with_state_scratch(
+          state,
+          S.with_scratch_resolved_path(S.with_scratch_paths(S.state_scratch(state), tail), path)
+        ),
+        T.RustFindAbsolute{},
+        T.PathIsAbsolute{path}
+      )
+    }
+
+def find_begin(+state: T.ResolverState) -> Loop.Continuation:
+  next_find(unique(List.reverse(&2, String, S.work_candidates_rev(S.state_rust_work(state))), []),
+    S.with_state_scratch(state, S.with_scratch_found_paths(S.state_scratch(state), [])))
+
+def find_absolute(absolute: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  yes : Unit -> Loop.Continuation = _ => next_find(S.scratch_paths(S.state_scratch(state)), state)
+  no : Unit -> Loop.Continuation = _ => Loop.ServiceStep{
+    S.request(
+      state,
+      T.RustFindStatus{},
+      T.ReadFileStatus{S.scratch_resolved_path(S.state_scratch(state))}
+    )
+  }
+  Materialize.decide(
+    Loop.Continuation,
+    Bool.or(
+      absolute,
+      Resolve.outside(S.scratch_resolved_path(S.state_scratch(state)), S.state_separator(state))
+    ),
+    yes,
+    no
+  )
+
+def find_status(status: T.FileStatus, +state: T.ResolverState) -> Loop.Continuation:
+  match status:
+    case T.ExistingFile{}: next_find(
+      S.scratch_paths(S.state_scratch(state)),
+      S.with_state_scratch(
+        state,
+        S.with_scratch_found_paths(
+          S.state_scratch(state),
+          S.scratch_resolved_path(
+            S.state_scratch(state)
+          ) <> S.scratch_found_paths(S.state_scratch(state))
+        )
+      )
+    )
+    case _: next_find(S.scratch_paths(S.state_scratch(state)), state)
+
+def crate_absolute(absolute: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  yes : Unit -> Loop.Continuation = _ => next(
+    S.with_state_rust_work(
+      state,
+      S.with_work_tasks_out(
+        S.state_rust_work(state),
+        List.append(
+          &2,
+          T.RustTask,
+          S.work_tasks_out(S.state_rust_work(state)),
+          [
+            T.RustTask{
+              S.scratch_resolved_path(S.state_scratch(state)),
+              Some{
+                T.RustRoute{
+                  S.scratch_resolved_path(S.state_scratch(state)),
+                  S.scratch_resolved_path(S.state_scratch(state)),
+                  None{},
+                  0n
+                }
+              }
+            }
+          ]
+        )
+      )
+    )
+  )
+  no : Unit -> Loop.Continuation = _ => next(state)
+  Materialize.decide(
+    Loop.Continuation,
+    Bool.not(absolute),
+    yes,
+    no
+  )
+
+def crate_relative(+path: String, +state: T.ResolverState) -> Loop.Continuation:
+  yes : Unit -> Loop.Continuation = _ => Loop.ServiceStep{
+    S.request(state, T.RustCrateWithinAbsolute{}, T.PathIsAbsolute{path})
+  }
+  no : Unit -> Loop.Continuation = _ => next(state)
+  Materialize.decide(Loop.Continuation,
+    Bool.not(Resolve.outside(path, S.state_separator(state))), yes, no)
+
+def reply(
+  stage: T.ResolverStage,
+  outcome: T.ServiceOutcome,
+  +state: T.ResolverState
+) -> Loop.Continuation:
+  match stage outcome:
+    case T.RustCargoBase{} T.DirnameResult{path}: base(path, state)
+    case T.RustCargoSelectedRelative{} T.RelativeResult{selected}: selected_syntax(
+      S.scratch_cargo_syntax(S.state_scratch(state)),
+      selected,
+      state
+    )
+    case T.RustCargoAutoBinDirectory{} T.JoinedResult{path}: Loop.ServiceStep{
+      S.request(
+        state,
+        T.RustCargoAutoBinRelative{},
+        T.PathRelative{path, S.input_root_path(S.state_input(state))}
+      )
+    }
+    case T.RustCargoAutoBinRelative{} T.RelativeResult{+path}: Loop.ServiceStep{
+      S.request(
+        S.with_state_rust_work(
+          state,
+          S.with_work_relative_selected(S.state_rust_work(state), path)
+        ),
+        T.RustCargoAutoBinAbsolute{},
+        T.PathIsAbsolute{path}
+      )
+    }
+    case T.RustCargoAutoBinAbsolute{} T.AbsoluteResult{absolute}: automatic_relative(
+      absolute,
+      state
+    )
+    case T.RustCargoTargetAbsolute{} T.AbsoluteResult{absolute}: target_absolute(absolute, state)
+    case T.RustCargoTargetJoin{} T.JoinedResult{path}: Loop.ServiceStep{
+      S.request(state, T.RustCargoTargetNormalize{}, T.PathNormalize{path})
+    }
+    case T.RustCargoTargetNormalize{} T.NormalizedResult{+path}: Loop.ServiceStep{
+      S.request(
+        S.with_state_scratch(state, S.with_scratch_resolved_path(S.state_scratch(state), path)),
+        T.RustCargoJoinedAbsolute{},
+        T.PathIsAbsolute{path}
+      )
+    }
+    case T.RustCargoJoinedAbsolute{} T.AbsoluteResult{absolute}: joined_absolute(absolute, state)
+    case T.RustCargoTargetExtension{} T.ExtensionResult{extension}: target_extension(
+      extension,
+      state
+    )
+    case T.RustFindAbsolute{} T.AbsoluteResult{absolute}: find_absolute(absolute, state)
+    case T.RustFindStatus{} T.StatusResult{status}: find_status(status, state)
+    case T.RustCrateWithinDir{} T.DirnameResult{path}: Loop.ServiceStep{
+      S.request(
+        state,
+        T.RustCrateWithinRelative{},
+        T.PathRelative{path, S.input_root_path(S.state_input(state))}
+      )
+    }
+    case T.RustCrateWithinRelative{} T.RelativeResult{path}: crate_relative(path, state)
+    case T.RustCrateWithinAbsolute{} T.AbsoluteResult{absolute}: crate_absolute(absolute, state)
+    case _ _: Storage.reply(stage, outcome, state)
+
+def main() -> Unit:
+  Unit{}

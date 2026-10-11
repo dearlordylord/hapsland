@@ -1,0 +1,186 @@
+import Base
+import ./core.bend as Core
+import ./Traversal.bend as CoreTraversal
+import ./DENSE.bend as Dense
+import ./DENSE_LAWS.bend as Laws
+import ./DENSE_MACHINE_PROOF.bend as M
+import ./INTERPRETER_BOOL_FACTS.bend as B
+import ../AttachPlanning.bend as AttachOwner
+
+def following_successor(+acc: List<&2, Core.PlannedNode>, +previous: Nat,
+    following: {Dense.nodes_from(acc, 1n+previous) == True{} : Bool}) -> {
+  Dense.nodes_from(acc, (previous + 1n : Nat)) == True{} : Bool
+}:
+  %Equal.sym(Nat, (previous + 1n : Nat), 1n+previous, M.successor(previous)):
+    {Dense.nodes_from(acc, _) == True{} : Bool}
+  following
+
+# Transfer the actual reversed allocation accumulator, without a second planner.
+def forward_accumulator(nodes: List<&2, Core.PlannedNode>, +next: Nat,
+    +acc: List<&2, Core.PlannedNode>,
+    +valid: {M.backward(nodes, next) == True{} : Bool},
+    following: {Dense.nodes_from(acc, next) == True{} : Bool}) -> {
+  Dense.nodes_from(List.reverse.go(&2, Core.PlannedNode, nodes, acc), 0n) == True{} : Bool
+}:
+  match nodes next:
+    case [] 0n: following
+    case [] 1n+previous:
+      Empty.absurd({Dense.nodes_from(acc, 0n) == True{} : Bool}, B.internal_false_ne_true(valid))
+    case Core.PlannedNode{node, artifact} <> rest 0n:
+      Empty.absurd(
+        {
+          Dense.nodes_from(
+            List.reverse.go(&2, Core.PlannedNode, rest, Core.PlannedNode{node, artifact} <> acc),
+            0n
+          )
+          == True{}
+          : Bool
+        },
+        B.internal_false_ne_true(valid)
+      )
+    case Core.PlannedNode{+node, +artifact} <> +rest 1n++previous:
+      forward_accumulator(rest, previous, Core.PlannedNode{node, artifact} <> acc,
+        B.eq_true_of_and_right(Nat.is_eq(node, previous), M.backward(rest, previous), valid),
+        B.and_eq_true(Nat.is_eq(node, previous), Dense.nodes_from(acc, (previous + 1n : Nat)),
+          B.eq_true_of_and_left(Nat.is_eq(node, previous), M.backward(rest, previous), valid),
+          following_successor(acc, previous, following)))
+
+def reverse_has_acc(nodes: List<&2, Core.PlannedNode>, +acc: List<&2, Core.PlannedNode>,
+    nonempty: {Dense.nonempty(acc) == True{} : Bool}) -> {
+  Dense.nonempty(List.reverse.go(&2, Core.PlannedNode, nodes, acc)) == True{} : Bool
+}:
+  match nodes:
+    case []: nonempty
+    case +head <> tail: reverse_has_acc(tail, head <> acc, {==})
+
+def reverse_nonempty(+nodes: List<&2, Core.PlannedNode>,
+    nonempty: {Dense.nonempty(nodes) == True{} : Bool}) -> {
+  Dense.nonempty(List.reverse(&2, Core.PlannedNode, nodes)) == True{} : Bool
+}:
+  match nodes:
+    case []: Empty.absurd({False{} == True{} : Bool}, B.internal_false_ne_true(nonempty))
+    case +head <> tail: reverse_has_acc(tail, [head], {==})
+
+def finish_valid(+machine: Core.Machine,
+    +valid: {M.allocation_valid(machine) == True{} : Bool}) -> {
+  Dense.plan_nodes(CoreTraversal.finish(machine)) == True{} : Bool
+}:
+  match machine:
+    case Core.Machine{_, _, _, _, _, +next, +nodes, _, _}:
+      B.and_eq_true(
+        Dense.nonempty(List.reverse(&2, Core.PlannedNode, nodes)),
+        Dense.nodes_from(List.reverse(&2, Core.PlannedNode, nodes), 0n),
+        reverse_nonempty(
+          nodes,
+          B.eq_true_of_and_right(M.backward(nodes, next), Dense.nonempty(nodes), valid)
+        ),
+        forward_accumulator(
+          nodes,
+          next,
+          [],
+          B.eq_true_of_and_left(M.backward(nodes, next), Dense.nonempty(nodes), valid),
+          {==}
+        )
+      )
+
+def result_valid(result: Core.RunResult) -> Bool:
+  match result:
+    case Core.CompletePlan{plan}: Dense.plan_nodes(plan)
+    case _: True{}
+
+def zero_valid(+done: Bool, +machine: Core.Machine,
+    +valid: {M.allocation_valid(machine) == True{} : Bool}) -> {
+  result_valid(CoreTraversal.run_zero(done, machine)) == True{} : Bool
+}:
+  match done:
+    case True{}: finish_valid(machine, valid)
+    case False{}: {==}
+
+def running_valid(+done: Bool, +fuel: Nat, +machine: Core.Machine,
+    +valid: {M.allocation_valid(machine) == True{} : Bool},
+    next: {result_valid(CoreTraversal.run(fuel, CoreTraversal.step(machine))) == True{} : Bool}) -> {
+  result_valid(CoreTraversal.run_if(done, machine, next => CoreTraversal.run(fuel, next))) == True{} : Bool
+}:
+  match done:
+    case True{}: finish_valid(machine, valid)
+    case False{}: next
+
+def run_valid(fuel: Nat, +machine: Core.Machine,
+    +valid: {M.allocation_valid(machine) == True{} : Bool}) -> {
+  result_valid(CoreTraversal.run(fuel, machine)) == True{} : Bool
+}:
+  match fuel:
+    case 0n: zero_valid(CoreTraversal.done(machine), machine, valid)
+    case 1n++rest: running_valid(CoreTraversal.done(machine), rest, machine, valid,
+      run_valid(rest, CoreTraversal.step(machine), M.step_valid(machine, valid)))
+
+def initial_valid(+facts: Core.Facts, +path: String, +visited: Map<&2, Bool>,
+    +budget: Core.Budget, +declaration: Core.Declaration, +depth: Nat) -> {
+      M.allocation_valid(
+        CoreTraversal.enter_node(
+          Core.Machine{facts, path, [], visited, budget, 0n, [], [], []},
+          declaration,
+          depth
+        )
+      )
+      == True{}
+      : Bool
+    }:
+  match declaration:
+    case Core.Declaration{_, _, _, _, _}: {==}
+
+def found_valid(+found: Maybe<&2, Core.Declaration>, +facts: Core.Facts, +path: String,
+    +visited: Map<&2, Bool>, +budget: Core.Budget, +depth: Nat) -> {
+  result_valid(CoreTraversal.plan_found(found, facts, path, visited, budget, depth)) == True{} : Bool
+}:
+  match found:
+    case None{}: {==}
+    case Some{+declaration}:
+      run_valid(CoreTraversal.traversal_bound(facts), CoreTraversal.enter_node(
+        Core.Machine{facts, path, [], visited, budget, 0n, [], [], []}, declaration, depth),
+        initial_valid(facts, path, visited, budget, declaration, depth))
+
+def Laws.successful_plan_nodes_dense(
+  facts,
+  path,
+  name,
+  expected,
+  visited,
+  budget,
+  depth,
+  plan,
+  completed
+):
+  %completed: {result_valid(_) == True{} : Bool}
+  found_valid(CoreTraversal.declaration_lookup(facts, name, expected), facts, path, visited, budget, depth)
+
+def known_result(result: Core.RunResult) -> Bool:
+  match result:
+    case Core.CompletePlan{+plan}:
+      Bool.and(Dense.plan_nodes(plan), Nat.is_eq(Dense.allocation_count(plan), 1n))
+    case _: False{}
+
+def known_valid(+facts: Core.Facts, +path: String, +edge: Core.Pending,
+    +declaration: Core.Declaration, +visited: Map<&2, Bool>, +budget: Core.Budget) -> {
+      known_result(AttachOwner.empty_or_plan(True{}, facts, path, edge, declaration, visited, budget))
+      == True{}
+      : Bool
+    }:
+  match declaration:
+    case Core.Declaration{_, _, _, _, _}: {==}
+
+def Laws.known_singleton_nodes_dense(
+  facts,
+  path,
+  edge,
+  declaration,
+  visited,
+  budget,
+  plan,
+  completed
+):
+  %completed: {known_result(_) == True{} : Bool}
+  known_valid(facts, path, edge, declaration, visited, budget)
+
+def main() -> Unit:
+  Unit{}

@@ -1,0 +1,37 @@
+import Base
+import ./ActualAttachmentFrameProjection.bend as Actual
+import ./ReferenceAttachmentFrameProjection.bend as Reference
+import ../Types.bend as T
+import ../State.bend as S
+import ../traversal/core.bend as Local
+
+# Finite model fixtures; these are not production builders or law assumptions.
+def pending(+frame: T.ResolverFrame, id: Nat, value: Local.Pending) -> T.ResolverFrame:
+  S.with_frame_pending(
+    frame,
+    Map.set(&2, Maybe<&2, Local.Pending>, S.frame_pending(frame), Nat.show(id), Some{value})
+  )
+def target(+frame: T.ResolverFrame, id: Nat, value: T.Target) -> T.ResolverFrame:
+  S.with_frame_target_paths(
+    frame,
+    Map.set(&2, Maybe<&2, T.Target>, S.frame_target_paths(frame), Nat.show(id), Some{value})
+  )
+def target_id(+frame: T.ResolverFrame, key: String, value: Nat) -> T.ResolverFrame:
+  S.with_frame_target_ids(
+    frame,
+    Map.set(&2, Maybe<&2, Nat>, S.frame_target_ids(frame), key, Some{value})
+  )
+def capture(+frame: T.ResolverFrame, key: String, value: T.CapturedFacts) -> T.ResolverFrame:
+  S.with_frame_captured(
+    frame,
+    Map.set(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame), key, Some{value})
+  )
+def identity(+frame: T.ResolverFrame, id: Nat, value: String) -> T.ResolverFrame:
+  S.with_frame_target_artifacts(
+    frame,
+    Map.set(&2, Maybe<&2, String>, S.frame_target_artifacts(frame), Nat.show(id), Some{value})
+  )
+def visited(+frame: T.ResolverFrame, key: String) -> T.ResolverFrame:
+  S.with_frame_visited(frame, Map.set(&2, Bool, S.frame_visited(frame), key, True{}))
+def main() -> Unit:
+  Unit{}

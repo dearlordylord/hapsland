@@ -1,0 +1,20 @@
+import Base
+import ./RetainedForestProjection.bend as P
+import ../Core.bend as Actual
+import ../ForestSpecification.bend as F
+import ../Types.bend as T
+import ../traversal/core.bend as Local
+
+# Finite probe for the measurement component of the whole attachment relation.
+# No law is declared here; exact law awaits the full phase relation.
+def actual(root: Nat, nodes: List<&2, Local.PlannedNode>,
+    slots: List<&2, Local.ReferenceSlot>, artifacts: List<&2, T.ArtifactEntry>,
+    dependencies: List<&2, String>) -> Maybe<&2, T.ProductValue>:
+  Actual.review_unit(root, nodes, slots, artifacts, dependencies)
+
+def expected(fuel: Nat, forest: F.Forest,
+    dependencies: List<&2, String>) -> F.Materialization:
+  F.unit(fuel, forest, dependencies)
+
+def main() -> Unit:
+  Unit{}

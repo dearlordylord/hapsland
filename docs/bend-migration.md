@@ -112,3 +112,37 @@ flow and real consumer. Check parent/child identity and revision fencing,
 cancellation, errors and result acceptance at the actual integration boundary.
 Proof counts, helper benchmarks and prototype results alone do not establish
 that a subsystem has migrated.
+
+
+## Current whole preparation acceptance path
+
+The working candidate is not accepted production. Astra reviewed the ownership
+route on 2026-10-10: graph resolution and parser facts belong to source-analysis;
+preparation progression to review-execution; resident source/post preparation,
+advice tail and resource bindings to resident-runtime; the source-free child
+lifecycle to agent-flow-bend. Actual source files, including unfinished proofs
+and verification runners, must be tracked directly at these owners and pushed.
+Evidence directories retain results only. Captures and restoration inventories
+are not source owners.
+
+One current obstacle list, in execution order:
+
+1. Finish relocation dependency and nominal ABI qualification; remove obsolete
+   representations and historical runners after identifying the retained closure.
+   Secure the actual source checkpoint on the remote working branch immediately.
+2. Make changed source coverage explicit in lint, TypeScript, Bend and focused
+   consumer gates; qualify new paths against actual resident and resolver consumers.
+3. Close whole error/custody correspondence: precommit failures, constructor
+   failures, round-bound retained inspection and multi-unit finalization.
+4. Complete supported Go/session, extraction, classification and rendering scope;
+   discharge the agreed whole-unit laws and proofs.
+5. Connect launch, lifecycle, cancellation, acceptance and progression through
+   the single production Canonical authority; remove replaced TypeScript
+   algorithms and orchestration, then qualify the full composed consumer.
+6. Pass required local gates and paired build/execution parity on that connected
+   candidate. Previous measurements qualify only their original source paths and
+   inputs; source moves do not inherit their qualification.
+
+Relocation and source backup do not increase the amount of connected production
+Bend or deleted production TypeScript. Keep this list current by removing closed
+obstacles and recording specific remaining failures here.

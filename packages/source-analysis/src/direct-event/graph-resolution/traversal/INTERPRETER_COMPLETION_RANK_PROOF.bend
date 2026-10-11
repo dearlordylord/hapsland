@@ -1,0 +1,172 @@
+import Base
+import ./core.bend as Core
+import ./Traversal.bend as CoreTraversal
+import ./SPEC.bend as Spec
+import ./RANK.bend as Rank
+import ./INTERPRETER_MEASURE.bend as Measure
+import ./CHILD_INVENTORY_PROOF.bend as Child
+import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ./INTERPRETER_COMPLETION_NAT_FACTS.bend as NatFacts
+
+# Internal transports for the approved coupled interpreter/flatten theorem.
+# Root rank already charges the actual post-insertion inventory, including a
+# root previously present in visited. No absent-root premise is introduced.
+def children(declaration: Core.Declaration) -> List<&2, Core.Reference>:
+  match declaration:
+    case Core.Declaration{_, _, _, _, references}: references
+
+def children_score_decreases(+unseen: Nat, +count: Nat) -> {
+  Nat.is_le((3n * unseen + 3n * count + 1n + 1n : Nat),
+    (3n * (unseen + count : Nat) + 3n : Nat)) == True{} : Bool
+}:
+  %NatFacts.add_assoc_sym((3n * unseen + 3n * count : Nat), 1n, 1n):
+    {Nat.is_le(_, (3n * (unseen + count : Nat) + 3n : Nat)) == True{} : Bool}
+  %NatFacts.mul_add(3n, unseen, count):
+    {Nat.is_le((_ + 2n : Nat), (3n * (unseen + count : Nat) + 3n : Nat)) == True{} : Bool}
+  NatFacts.add_le_add_left(2n, 3n, (3n * (unseen + count : Nat) : Nat), {==})
+
+def entered_children_rank_decreases(+facts: Core.Facts, +path: String,
+    +state: Spec.State, +declaration: Core.Declaration, +depth: Nat) -> {
+  Nat.is_le((Measure.request_rank(Spec.ReferencesRequest{
+    children(declaration), facts, path, Spec.address(state), 0n, depth,
+    Spec.enter(state, path, CoreTraversal.declaration_identity(declaration))
+  }) + 1n : Nat),
+    (3n * Measure.root_load(Rank.declaration_catalog(facts),
+      Measure.visited(state), Some{declaration}) + 3n : Nat)) == True{} : Bool
+}:
+  match state declaration:
+    case Spec.State{+visited, budget, address, pending}
+      Core.Declaration{handle, +identity, function, bundled, +references}:
+      children_score_decreases(
+        Rank.unseen_catalog(Map.set(&2, Bool, visited, identity, True{}),
+          Rank.declaration_catalog(facts)),
+        List.length(&2, Core.Reference, references))
+
+def selected_children_rank_decreases(+facts: Core.Facts, +path: String,
+    +state: Spec.State, +name: String, +expected: Core.ExpectedKind,
+    +declaration: Core.Declaration, +depth: Nat,
+    selected: {Spec.find_declaration(facts, name, expected) == Some{declaration}
+      : Maybe<&2, Core.Declaration>}) -> {
+  Nat.is_le((Measure.request_rank(Spec.ReferencesRequest{
+    children(declaration), facts, path, Spec.address(state), 0n, depth,
+    Spec.enter(state, path, CoreTraversal.declaration_identity(declaration))
+  }) + 1n : Nat),
+    Measure.root_rank(facts, name, expected, Measure.visited(state))) == True{} : Bool
+}:
+  %Equal.sym(Maybe<&2, Core.Declaration>, Spec.find_declaration(facts, name, expected),
+    Some{declaration}, selected):
+    {Nat.is_le((Measure.request_rank(Spec.ReferencesRequest{
+      children(declaration), facts, path, Spec.address(state), 0n, depth,
+      Spec.enter(state, path, CoreTraversal.declaration_identity(declaration))
+    }) + 1n : Nat),
+      (3n * Measure.root_load(Rank.declaration_catalog(facts),
+        Measure.visited(state), _) + 3n : Nat)) == True{} : Bool}
+  entered_children_rank_decreases(facts, path, state, declaration, depth)
+
+# The lookup witness is the actual independent Spec lookup. The catalog itself
+# remains arbitrary, including malformed routing and duplicate identities.
+def selected_value_exact(-V: Data, pair: Map<&2, V> & V) -> {
+  Core.map_result(V, pair) == Spec.value(V, pair) : V
+}:
+  match pair:
+    case Tuple{_, value}: {==}
+
+def selected_unseen_rank_bound(+facts: Core.Facts, +name: String,
+    +expected: Core.ExpectedKind, +visited: Map<&2, Bool>,
+    +declaration: Core.Declaration,
+    valid: {Patricia.canonical(Bool, visited) == True{} : Bool},
+    selected: {Spec.find_declaration(facts, name, expected) == Some{declaration}
+      : Maybe<&2, Core.Declaration>},
+    absent: {CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration))
+      == False{} : Bool}) -> {
+  Nat.is_le(Measure.root_rank(facts, name, expected, visited),
+    (3n * Rank.unseen_catalog(visited, Rank.declaration_catalog(facts)) + 3n : Nat))
+    == True{} : Bool
+}:
+  match facts declaration:
+    case Core.Facts{+aware, +catalog, imports, supporting}
+      Core.Declaration{+handle, +identity, +function, +bundled, +references}:
+      +entry = {Core.Declaration{handle, identity, function, bundled, references} : Core.Declaration}
+      +query = Spec.key(aware, expected, name)
+      +found = Spec.value(Maybe<&2, Core.Declaration>,
+        Map.get(Maybe<&2, Core.Declaration>, None{}, catalog, query))
+      +after = Rank.unseen_catalog(Map.set(&2, Bool, visited, identity, True{}), catalog)
+      +count = List.length(&2, Core.Reference, references)
+      +before = Rank.unseen_catalog(visited, catalog)
+      +selected = selected
+      drop = Child.selected_child_inventory_decrease(catalog, visited, query, entry, valid,
+        Equal.trans(Maybe<&2, Core.Declaration>,
+          Core.map_result(Maybe<&2, Core.Declaration>,
+            Map.get(Maybe<&2, Core.Declaration>, None{}, catalog, query)),
+          found, Some{entry},
+          selected_value_exact(Maybe<&2, Core.Declaration>,
+            Map.get(Maybe<&2, Core.Declaration>, None{}, catalog, query)), selected), absent)
+      %Equal.sym(Maybe<&2, Core.Declaration>, found, Some{entry}, selected):
+        {Nat.is_le((3n * Measure.root_load(catalog, visited, _) + 3n : Nat),
+          (3n * before + 3n : Nat)) == True{} : Bool}
+      NatFacts.add_le_add_right((3n * (after + count : Nat) : Nat),
+        (3n * before : Nat), 3n,
+        NatFacts.mul_le_mul_left((after + count : Nat), before, 3n, drop))
+
+# Exact existing scalar proof bodies reused from the numeric recursive proof;
+# their statements concern only Nat arithmetic and are unchanged.
+def reference_head_allowance(+before: Nat, +count: Nat, +fuel: Nat,
+    enough: {Nat.is_le((3n * before + 3n * (1n + count : Nat) + 1n : Nat),
+      (1n + fuel : Nat)) == True{} : Bool}) -> {
+  Nat.is_le((3n * before + 3n : Nat), fuel) == True{} : Bool
+}:
+  +head = (3n * before + 3n : Nat)
+  +parent = (3n * before + 3n * (1n + count : Nat) + 1n : Nat)
+  coefficient = {%NatFacts.mul_one_sym(3n):
+    {Nat.is_le(_, (3n * (1n + count : Nat) : Nat)) == True{} : Bool}
+    NatFacts.mul_le_mul_left(1n, (1n + count : Nat), 3n, NatFacts.succ_le_succ(0n, count, NatFacts.zero_le(count)))
+    : {Nat.is_le(3n, (3n * (1n + count : Nat) : Nat)) == True{} : Bool}}
+  lower = {NatFacts.add_le_add_right(head, (3n * before + 3n * (1n + count : Nat) : Nat), 1n,
+    NatFacts.add_le_add_left(3n, (3n * (1n + count : Nat) : Nat), (3n * before : Nat), coefficient)):
+    {Nat.is_le((head + 1n : Nat), parent) == True{} : Bool}}
+  successor = {%NatFacts.add_comm_sym(1n, head):
+    {Nat.is_le(_, (1n + fuel : Nat)) == True{} : Bool}
+    NatFacts.le_trans((head + 1n : Nat), parent, (1n + fuel : Nat), lower, enough)
+    : {Nat.is_le((1n + head : Nat), (1n + fuel : Nat)) == True{} : Bool}}
+  NatFacts.le_of_succ_le_succ(head, fuel, successor)
+
+def reference_sibling_bound(+after: Nat, +before: Nat, +count: Nat, +fuel: Nat,
+    drop: {Nat.is_le(after, before) == True{} : Bool},
+    enough: {Nat.is_le((3n * before + 3n * (1n + count : Nat) + 1n : Nat),
+      (1n + fuel : Nat)) == True{} : Bool}) -> {
+  Nat.is_le((3n * after + 3n * count + 1n : Nat), fuel) == True{} : Bool
+}:
+  +sibling = (3n * after + 3n * count + 1n : Nat)
+  +parent = (3n * before + 3n * (1n + count : Nat) + 1n : Nat)
+  coefficient = {%NatFacts.mul_succ_sym(3n, count):
+    {Nat.is_le((3n * count + 2n : Nat), (_ + 1n : Nat)) == True{} : Bool}
+    %NatFacts.add_assoc_sym((3n * count : Nat), 3n, 1n):
+      {Nat.is_le((3n * count + 2n : Nat), _) == True{} : Bool}
+      NatFacts.add_le_add_left(2n, 4n, (3n * count : Nat), {==})
+    : {Nat.is_le((3n * count + 2n : Nat), (3n * (1n + count : Nat) + 1n : Nat)) == True{} : Bool}}
+  lower = {%NatFacts.add_assoc_sym((3n * after + 3n * count : Nat), 1n, 1n):
+    {Nat.is_le(_, parent) == True{} : Bool}
+    %NatFacts.add_assoc_sym((3n * after : Nat), (3n * count : Nat), 2n):
+      {Nat.is_le(_, parent) == True{} : Bool}
+      %NatFacts.add_assoc_sym((3n * before : Nat), (3n * (1n + count : Nat) : Nat), 1n):
+        {Nat.is_le((3n * after + (3n * count + 2n : Nat) : Nat), _) == True{} : Bool}
+        NatFacts.add_le_add((3n * after : Nat), (3n * count + 2n : Nat), (3n * before : Nat), (3n * (1n + count : Nat) + 1n : Nat), NatFacts.mul_le_mul_left(after, before, 3n, drop), coefficient)
+    : {Nat.is_le((sibling + 1n : Nat), parent) == True{} : Bool}}
+  successor = {%NatFacts.add_comm_sym(1n, sibling):
+    {Nat.is_le(_, (1n + fuel : Nat)) == True{} : Bool}
+    NatFacts.le_trans((sibling + 1n : Nat), parent, (1n + fuel : Nat), lower, enough)
+    : {Nat.is_le((1n + sibling : Nat), (1n + fuel : Nat)) == True{} : Bool}}
+  NatFacts.le_of_succ_le_succ(sibling, fuel, successor)
+
+def request_rank_positive(+request: Spec.Request) -> {
+  Nat.is_le(1n, Measure.request_rank(request)) == True{} : Bool
+}:
+  match request:
+    case Spec.Request{+facts, path, +name, +expected, depth, +state}:
+      +amount = (3n * Measure.root_load(Rank.declaration_catalog(facts), Measure.visited(state),
+        Spec.find_declaration(facts, name, expected)) : Nat)
+      NatFacts.le_trans(1n, 3n, (amount + 3n : Nat), {==}, NatFacts.le_add_left(3n, amount))
+    case Spec.ReferencesRequest{+items, +facts, path, owner, index, depth, +state}:
+      +amount = (3n * Rank.unseen_catalog(Measure.visited(state), Rank.declaration_catalog(facts))
+        + 3n * List.length(&2, Core.Reference, items) : Nat)
+      NatFacts.le_add_left(1n, amount)

@@ -1,0 +1,31 @@
+import Base
+import ./AttachmentRenderedSuffix.bend as Suffix
+import ./AttachmentMaterializationLiteral.bend as L
+import ../Core.bend as Render
+import ../ForestSpecification.bend as F
+import ../WholeObservation.bend as O
+import ../Types.bend as T
+
+# Exact closed-tree instance of the approved suffix predicate; the extra fuel
+# is universally quantified. This is not the arbitrary-forest fold theorem.
+def node_product() -> T.ProductValue:
+  Render.object([
+    Render.field("artifact", Render.object([
+      Render.field("id", Render.text("")), Render.field("kind", Render.text("function")),
+      Render.field("name", Render.text("")), Render.field("source", Render.text("")),
+      Render.field("sourceHash", Render.text(""))])),
+    Render.field("references", T.ProductArray{[Render.object([
+      Render.field("kind", Render.text("omitted")),
+      Render.field("site", Render.object([Render.field("symbol", Render.text(""))])),
+      Render.field("target", Render.object([Render.field("kind", Render.text("unresolved")), Render.field("symbol", Render.text(""))])),
+      Render.field("reason", Render.text("unresolved"))])]})])
+
+def built() -> Map<&2, Maybe<&2, T.ProductValue>>:
+  MLeaf{"0", Some{node_product()}}
+def uniform_fuel(extra: Nat) ->
+    {F.materialize((Suffix.suffix_allowance(L.fixture_nodes(), L.fixture_slots()) + extra : Nat), L.fixture_forest(), O.NodeAddress{0n, Nil{}}) == F.Materialized{node_product()} : F.Materialization}:
+  {==}
+def rendered_instance() -> Suffix.rendered_suffix(L.fixture_nodes(), L.fixture_slots(), L.fixture_addresses(), L.fixture_forest(), built()):
+  (Tuple{O.NodeAddress{0n, Nil{}}, Tuple{node_product(), ({==}, ({==}, extra => uniform_fuel(extra)))}}, Unit{})
+def main() -> Unit:
+  Unit{}

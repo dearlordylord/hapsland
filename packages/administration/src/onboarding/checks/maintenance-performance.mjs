@@ -1,0 +1,60 @@
+import assert from "node:assert/strict"
+import {performance} from "node:perf_hooks"
+import {readFileSync,writeFileSync} from "node:fs"
+import {createHash} from "node:crypto"
+import {execFileSync} from "node:child_process"
+import {pathToFileURL} from "node:url"
+import {nativeCases} from "./maintenance-draft-parity.mjs"
+import * as frozen from "./maintenance-reference.ts"
+import * as candidate from "../../../dist/onboarding/maintenance-model.js"
+assert.equal(globalThis.Bun?.version,"1.3.14","use pinned product Bun runtime")
+const baselineRoot=process.env.HAPSLAND_PERFORMANCE_BASELINE_ROOT??"/workspace/typescript/hapsland-bend-baseline-current"
+const baselineModel=baselineRoot+"/packages/administration/dist/onboarding/maintenance-model.js"
+const reference=await import(pathToFileURL(baselineModel))
+const baselineRevision=execFileSync("git",["rev-parse","HEAD"],{cwd:baselineRoot,encoding:"utf8"}).trim()
+for(const [model,event] of nativeCases){
+ assert.deepEqual(candidate.reduceMaintenance(model,event),frozen.reduceMaintenance(model,event))
+ assert.deepEqual(reference.reduceMaintenance(model,event),frozen.reduceMaintenance(model,event))
+ assert.deepEqual(candidate.maintenanceEffectCommand(model),frozen.maintenanceEffectCommand(model))
+ assert.deepEqual(reference.maintenanceEffectCommand(model),frozen.maintenanceEffectCommand(model))
+}
+const runReference = ()=>{
+ const lane=reference
+ const start=performance.now()
+ let checksum=0
+ for(let round=0;round<8;round++)for(const [model,event] of nativeCases){
+  const result=lane.reduceMaintenance(model,event),command=lane.maintenanceEffectCommand(result)
+  checksum+=(result.revision|0)+(result.cursor|0)+result.phase.length+result.command.length+(result.emptyActivation?.length??0)+(command?.kind.length??0)+((command?.id??0)|0)+(command?.host?.length??0)+(command?.operation?.length??0)+(command?.digest?.length??0)
+  for(const agent of result.agents)checksum+=agent.host.length+(agent.operation?.length??0)+Number(agent.recovering??false)+(agent.digest?.length??0)+(agent.outcome?.length??0)+(agent.activation?.length??0)
+  for(const host of result.discoveryFailures)checksum+=host.length
+ }
+ return {milliseconds:performance.now()-start,checksum}
+}
+const runCandidate = ()=>{
+ const lane=candidate
+ const start=performance.now()
+ let checksum=0
+ for(let round=0;round<8;round++)for(const [model,event] of nativeCases){
+  const result=lane.reduceMaintenance(model,event),command=lane.maintenanceEffectCommand(result)
+  checksum+=(result.revision|0)+(result.cursor|0)+result.phase.length+result.command.length+(result.emptyActivation?.length??0)+(command?.kind.length??0)+((command?.id??0)|0)+(command?.host?.length??0)+(command?.operation?.length??0)+(command?.digest?.length??0)
+  for(const agent of result.agents)checksum+=agent.host.length+(agent.operation?.length??0)+Number(agent.recovering??false)+(agent.digest?.length??0)+(agent.outcome?.length??0)+(agent.activation?.length??0)
+  for(const host of result.discoveryFailures)checksum+=host.length
+ }
+ return {milliseconds:performance.now()-start,checksum}
+}
+const warmupRounds=20,samplePairs=31
+for(let round=0;round<warmupRounds;round++){runReference();runCandidate()}
+const samples={typescript:[],integratedBend:[]}
+for(let round=0;round<samplePairs;round++){
+ const lanes=round%2?[['integratedBend',runCandidate],['typescript',runReference]]:[['typescript',runReference],['integratedBend',runCandidate]]
+ const pair=[]
+ for(const [name,run] of lanes){const sample=run();samples[name].push(sample);pair.push(sample)}
+ assert.equal(pair[0].checksum,pair[1].checksum)
+}
+const median=values=>[...values].sort((a,b)=>a-b)[Math.floor(values.length/2)]
+const ratio=median(samples.integratedBend.map(x=>x.milliseconds))/median(samples.typescript.map(x=>x.milliseconds))
+const paths=[baselineModel,'packages/administration/src/onboarding/checks/maintenance-reference.ts','packages/administration/src/onboarding/checks/maintenance-draft-parity.mjs','packages/administration/src/onboarding/checks/maintenance-performance.mjs','packages/agent-flow-bend/maintenance-policy/core.bend','packages/agent-flow-bend/maintenance-policy/LAWS.bend','packages/agent-flow-bend/maintenance-policy/PROOF.bend','packages/agent-flow-bend/scripts/build-maintenance-policy.mjs','packages/canonical-policy/src/canonical/maintenance-adapter.ts','packages/administration/src/onboarding/maintenance-model.ts','packages/agent-flow-bend/dist/maintenance-policy.generated.js','packages/canonical-policy/dist/canonical/maintenance-adapter.js','packages/administration/dist/onboarding/maintenance-model.js']
+const sha256=Object.fromEntries(paths.map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]))
+const record={at:new Date().toISOString(),runtime:{kind:'Bun',versions:process.versions,executable:process.execPath},baselineRevision,warmupRounds,samplePairs,timedCases:nativeCases.length,samples,medianRatio:ratio,executionParity:ratio<=1,sha256,scope:'actual emitted maintenance reducers and commands; independent identical full-field-consuming harness functions; finite native models/events; CPU11 nonexclusive; no acquisition, owner IO, startup or platform claim'}
+writeFileSync('evidence/bend-strangler/maintenance-performance.json',JSON.stringify(record,null,2)+String.fromCharCode(10))
+console.log(JSON.stringify({timedCases:nativeCases.length,medianRatio:ratio,executionParity:record.executionParity}))

@@ -1,0 +1,236 @@
+import Base
+import ./REGISTRY_RELATION.bend as Registry
+import ./REGISTRY_COMPLETION_LAWS.bend as Completion
+import ./REGISTRY_SUPPORT_LAWS.bend as Support
+import ./REGISTRY_SUPPORT_PROOF.bend as SupportProof
+import ./REGISTRY_DECODE_PROOF.bend as Decode
+import ./REGISTRY_GROWTH_PROOF.bend as Growth
+import ./REGISTRY_UNIQUE_LAWS.bend as Unique
+import ./REGISTRY_UNIQUE_PROOF.bend as UniqueProof
+import ../../../../../../../vendor/bendlib/packages/bend-mathlib/bool.bend as BoolFacts
+import ../../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+import ../../../../../../../vendor/bendlib/packages/bend-mathlib/string.bend as StringFacts
+
+def Completion.get_index_bound(names, name, index, selected):
+  match names index:
+    case [] +index:
+      Empty.absurd(
+        {Nat.is_lt(index, 0n) == True{} : Bool},
+        Support.none_not_some(String, name, selected)
+      )
+    case head <> +rest 0n: NatFacts.succ_pos(List.length(&2, String, rest))
+    case head <> +rest 1n++index:
+      NatFacts.succ_lt_succ(index, List.length(&2, String, rest),
+        Completion.get_index_bound(rest, name, index, selected))
+
+def Completion.decode_id_bound(names, name, identity, decoded):
+  match identity:
+    case 0n:
+      Empty.absurd(
+        {
+          Bool.and(Nat.is_lt(0n, 0n), Nat.is_le(0n, List.length(&2, String, names)))
+          == True{}
+          : Bool
+        },
+        Support.none_not_some(String, name, decoded)
+      )
+    case 1n++index:
+      +length = List.length(&2, String, names)
+      within = Equal.trans(
+        Bool,
+        Nat.is_le((1n + index : Nat), length),
+        Nat.is_lt(index, length),
+        True{},
+        NatFacts.is_lt_eq_succ_le_sym(index, length),
+        Completion.get_index_bound(names, name, index, decoded)
+      )
+      BoolFacts.and_eq_true(
+        Nat.is_lt(0n, (1n + index : Nat)),
+        Nat.is_le((1n + index : Nat), length),
+        NatFacts.succ_pos(index),
+        within
+      )
+
+def encode_claim(names: List<&2, String>, name: String, identity: Nat) -> Data:
+  {Registry.encode(names, name) == Some{identity} : Maybe<&2, Nat>}
+
+def Completion.unique_get_step(equal, head, rest, name, index, matches, missing, selected):
+  match equal:
+    case True{}:
+      +before = Registry.encode(rest, head)
+      +after = Registry.encode(rest, name)
+      same = Equal.cong(String, Maybe<&2, Nat>, Registry.encode(rest), head, name,
+        StringFacts.eq_of_eq_true(head, name, matches))
+      contradiction = Equal.trans(Maybe<&2, Nat>, None{}, before, Some{(1n + index : Nat)},
+        Equal.sym(Maybe<&2, Nat>, before, None{}, missing),
+        Equal.trans(Maybe<&2, Nat>, before, after, Some{(1n + index : Nat)}, same, selected))
+      Empty.absurd(encode_claim(head <> rest, name, (1n + (1n + index : Nat) : Nat)),
+        Support.none_not_some(Nat, (1n + index : Nat), contradiction))
+    case False{}:
+      %Equal.sym(Bool, String.eq(head, name), False{}, matches):
+        {
+          Registry.increment(Support.selected_head(_, rest, name))
+          == Some{(1n + (1n + index : Nat) : Nat)}
+          : Maybe<&2, Nat>
+        }
+      Equal.cong(Maybe<&2, Nat>, Maybe<&2, Nat>, Registry.increment,
+        Registry.encode(rest, name), Some{(1n + index : Nat)}, selected)
+
+def Completion.unique_get_encodes(names, name, index, valid, decoded):
+  match names index:
+    case [] +index:
+      Empty.absurd(
+        encode_claim([], name, (1n + index : Nat)),
+        Support.none_not_some(String, name, decoded)
+      )
+    case +head <> +rest 0n:
+      %Support.some_injective(String, head, name, decoded):
+        {Registry.encode(head <> rest, _) == Some{1n} : Maybe<&2, Nat>}
+      %Equal.sym(Bool, String.eq(head, head), True{}, StringFacts.eq_refl(head)):
+        {Registry.increment(Support.selected_head(_, rest, head)) == Some{1n} : Maybe<&2, Nat>}
+      {==}
+    case +head <> +rest 1n++index:
+      +absent = Registry.is_missing(Registry.encode(rest, head))
+      +suffix_valid = Registry.unique(rest)
+      Completion.unique_get_step(
+        String.eq(head, name),
+        head,
+        rest,
+        name,
+        index,
+        {==},
+        Unique.missing_is_none(
+          Registry.encode(rest, head),
+          BoolFacts.eq_true_of_and_left(absent, suffix_valid, valid)
+        ),
+        Completion.unique_get_encodes(
+          rest,
+          name,
+          index,
+          BoolFacts.eq_true_of_and_right(absent, suffix_valid, valid),
+          decoded
+        )
+      )
+
+def Completion.increment_missing_exact(found):
+  match found:
+    case None{}: {==}
+    case Some{index}: {==}
+
+def present_head_at(+rest: List<&2, String>, +query: String, equal: Bool) -> Bool:
+  Bool.not(Registry.is_missing(Registry.increment(Support.selected_head(equal, rest, query))))
+
+def Completion.present_cons_false(head, rest, query, distinct, occurs):
+  +before = Registry.present(head <> rest, query)
+  +after = present_head_at(rest, query, False{})
+  +suffix = Registry.present(rest, query)
+  first = Equal.cong(
+    Bool,
+    Bool,
+    present_head_at(rest, query),
+    String.eq(head, query),
+    False{},
+    distinct
+  )
+  after_present = Equal.trans(
+    Bool,
+    after,
+    before,
+    True{},
+    Equal.sym(Bool, before, after, first),
+    occurs
+  )
+  normalize = Equal.cong(Bool, Bool, Bool.not,
+    Registry.is_missing(Registry.increment(Registry.increment(Registry.find(rest, query)))),
+    Registry.is_missing(Registry.increment(Registry.find(rest, query))),
+    Completion.increment_missing_exact(Registry.increment(Registry.find(rest, query))))
+  Equal.trans(Bool, suffix, after, True{}, Equal.sym(Bool, after, suffix, normalize), after_present)
+
+def present_optional(found: Maybe<&2, Nat>) -> Bool:
+  Bool.not(Registry.is_missing(found))
+
+def Completion.collect_head_present(rest, names, head):
+  +after = Registry.names_of(Registry.intern(names, head))
+  +identity = Registry.id_of(Registry.intern(names, head))
+  selected = Growth.collect_preserves_selected(
+    rest,
+    after,
+    head,
+    identity,
+    Growth.intern_encodes(names, head)
+  )
+  Equal.cong(Maybe<&2, Nat>, Bool, present_optional,
+    Registry.encode(Registry.collect(rest, after), head), Some{identity}, selected)
+
+def Completion.collect_occurrence_step(equal, head, rest, names, query, matches, occurs, suffix):
+  match equal:
+    case True{}:
+      %StringFacts.eq_of_eq_true(head, query, matches):
+        {Registry.present(Registry.collect(head <> rest, names), _) == True{} : Bool}
+      Completion.collect_head_present(rest, names, head)
+    case False{}:
+      suffix(
+        Registry.names_of(Registry.intern(names, head)),
+        Completion.present_cons_false(head, rest, query, matches, occurs)
+      )
+
+
+law assigned_id_in_range:
+  for +names: List<&2, String>
+  for +name: String
+  for +identity: Nat
+  for selected: {Registry.encode(names, name) == Some{identity} : Maybe<&2, Nat>}
+  {
+    Bool.and(Nat.is_lt(0n, identity), Nat.is_le(identity, List.length(&2, String, names)))
+    == True{}
+    : Bool
+  }
+
+law decoded_id_encodes:
+  for +names: List<&2, String>
+  for +name: String
+  for +identity: Nat
+  for valid: {Registry.unique(names) == True{} : Bool}
+  for decoded: {Registry.decode(names, identity) == Some{name} : Maybe<&2, String>}
+  {Registry.encode(names, name) == Some{identity} : Maybe<&2, Nat>}
+
+law collected_input_present:
+  for +items: List<&2, String>
+  for +names: List<&2, String>
+  for +query: String
+  for occurs: {Registry.present(items, query) == True{} : Bool}
+  {Registry.present(Registry.collect(items, names), query) == True{} : Bool}
+
+def assigned_id_in_range(names, name, identity, selected):
+  Completion.decode_id_bound(
+    names,
+    name,
+    identity,
+    Decode.selected_id_decodes(names, name, identity, selected)
+  )
+
+def decoded_id_encodes(names, name, identity, valid, decoded):
+  match identity:
+    case 0n:
+      Empty.absurd(encode_claim(names, name, 0n), Support.none_not_some(String, name, decoded))
+    case 1n+index: Completion.unique_get_encodes(names, name, index, valid, decoded)
+
+def collected_input_present(items, names, query, occurs):
+  match items:
+    case []:
+      Empty.absurd(
+        {Registry.present(Registry.collect([], names), query) == True{} : Bool},
+        BoolFacts.internal_false_ne_true(occurs)
+      )
+    case +head <> +rest:
+      continue = {+after => next_occurs => collected_input_present(rest, after, query, next_occurs) : Completion.coverage_continuation(rest, query)}
+      Completion.collect_occurrence_step(
+        String.eq(head, query),
+        head,
+        rest,
+        names,
+        query,
+        {==},
+        occurs,
+        continue
+      )

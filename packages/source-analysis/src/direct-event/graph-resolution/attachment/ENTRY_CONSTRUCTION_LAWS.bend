@@ -1,0 +1,37 @@
+import Base
+import ./ConstructionAddressRelation.bend as Relation
+import ../ForestSpecification.bend as F
+import ../Types.bend as T
+import ../traversal/SPEC.bend as Recursive
+import ../traversal/core.bend as Local
+
+# Draft construction case of the complete Entry/Machine relation. Completion
+# and artifact coverage must be derived at the actual caller; the successful
+# result premises here do not become restrictions on external resolver inputs.
+# Raw numeric aliases remain permitted. Combined with actual planner density,
+# ordered address alignment supplies the numeric/birth correspondence used by
+# remapping, attachment and retained pending owners after rollback.
+law successful_construction_preserves_occurrences_and_address_order:
+  for +fuel: Nat
+  for +tree: Recursive.Tree
+  for +episode: Nat
+  for +route: List<&2, Nat>
+  for +artifacts: List<&2, T.ArtifactEntry>
+  for +created: F.Created
+  for +nodes: List<&2, Local.PlannedNode>
+  for +slots: List<&2, Local.ReferenceSlot>
+  for +constructed: {
+    F.construct(fuel, tree, episode, route, artifacts) == F.Constructed{created} : F.Construction
+  }
+  for flattened: {
+    Recursive.flatten(fuel, Recursive.FlattenTree{tree})
+    == Recursive.Flat{nodes, slots}
+    : Recursive.Flat
+  }
+  {
+    Relation.construction_case(created, Recursive.Flat{nodes, slots}, episode, route) == True{}
+    : Bool
+  }
+
+def main() -> Unit:
+  Unit{}

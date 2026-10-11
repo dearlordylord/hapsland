@@ -1,0 +1,23 @@
+import Base
+import ./ForestRelation.bend as Relation
+import ../ForestSpecification.bend as F
+import ../WholeObservation.bend as O
+import ../traversal/core.bend as Local
+
+# Internal rollback case of the complete reachable Entry/Machine relation.
+# A successful actual replacement with Omitted preserves all retained forest
+# occurrences and its next-episode high-water mark. Rejection remains a
+# separate observable result; this law does not assert replacement succeeds.
+law omitted_replacement_preserves_frame_forest:
+  for +forest: F.Forest
+  for +next: Nat
+  for owner: O.NodeAddress
+  for index: Nat
+  for symbol: F.ReferenceSymbol
+  for target: F.ReferenceSymbol
+  for reason: Local.Omission
+  for +result: F.Forest
+  for before: {True{} == Relation.frame_forest(forest, next) : Bool}
+  for actual: {F.Replaced{result}
+    == F.replace(forest, owner, index, F.Omitted{symbol, target, reason}) : F.Replacement}
+  {True{} == Relation.frame_forest(result, next) : Bool}

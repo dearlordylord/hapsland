@@ -1,0 +1,17 @@
+import Base
+import ../Core.bend as Core
+import ../Types.bend as T
+import ./RetainedForestProjection.bend as P
+
+def premise(+artifact: T.Artifact) -> {P.catalog_unique([T.ArtifactEntry{0n, artifact}], [T.ArtifactEntry{0n, artifact}]) == True{} : Bool}:
+  {==}
+
+# First success conjunct of indexed_catalog at singleton0, explicit correct witness.
+# No shared proof imports: failure must occur in this law-instance conjunct.
+def claim_1(+artifact: T.Artifact) ->
+    {Core.index_artifacts([T.ArtifactEntry{0n, artifact}], MTip{}) ==
+      Some{Map.set(&2, Maybe<&2, T.Artifact>, MTip{}, Nat.show(0n), Some{artifact})} : Maybe<&2, Map<&2, Maybe<&2, T.Artifact>>>}:
+  {==}
+
+def main() -> Unit:
+  Unit{}

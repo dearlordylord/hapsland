@@ -1,0 +1,67 @@
+import Base
+import ./RetainedForestProjection.bend as P
+import ./AttachmentProjectionContentsProof.bend as C
+import ../ForestSpecification.bend as F
+import ../WholeObservation.bend as O
+import ../traversal/core.bend as Local
+import ../traversal/INTERPRETER_BOOL_FACTS.bend as B
+import ../traversal/INTERPRETER_NAT_FACTS.bend as N
+
+# Select the arbitrary projected root through the actual aligned zipper.
+def step(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +other: Nat,
+    +address: O.NodeAddress, +rest: List<&2, F.AddressEntry>,
+    +all: List<&2, Local.PlannedNode>, +all_addresses: List<&2, F.AddressEntry>,
+    +root: Nat, +birth: O.NodeAddress,
+    +valid: {P.aligned(Local.PlannedNode{id, handle} <> tail, F.AddressEntry{other, address} <> rest,
+      all, all_addresses) == True{} : Bool},
+    present: {F.address_at(F.AddressEntry{other, address} <> rest, root) == Some{birth} : Maybe<&2, O.NodeAddress>},
+    recursive: {P.aligned(tail, rest, all, all_addresses) == True{} : Bool} ->
+      {F.address_at(rest, root) == Some{birth} : Maybe<&2, O.NodeAddress>} ->
+      {P.node_count(all, root) == 1n : Nat},
+    equal: Bool, branch: {Nat.is_eq(other, root) == equal : Bool}) ->
+    {P.node_count(all, root) == 1n : Nat}:
+  match equal:
+    case True{}:
+      same: {id == root : Nat} = Equal.trans(Nat, id, other, root,
+        N.eq_of_is_eq(id, other, B.eq_true_of_and_left(Nat.is_eq(id, other),
+          Bool.and(Nat.is_eq(P.node_count(all, id), 1n), Bool.and(Nat.is_eq(P.address_count(all_addresses, address), 1n),
+            P.aligned(tail, rest, all, all_addresses))), valid)), N.eq_of_is_eq(other, root, branch))
+      %same: {P.node_count(all, _) == 1n : Nat}
+      N.eq_of_is_eq(P.node_count(all, id), 1n,
+        B.eq_true_of_and_left(Nat.is_eq(P.node_count(all, id), 1n),
+          Bool.and(Nat.is_eq(P.address_count(all_addresses, address), 1n), P.aligned(tail, rest, all, all_addresses)),
+          B.eq_true_of_and_right(Nat.is_eq(id, other),
+            Bool.and(Nat.is_eq(P.node_count(all, id), 1n), Bool.and(Nat.is_eq(P.address_count(all_addresses, address), 1n),
+              P.aligned(tail, rest, all, all_addresses))), valid)))
+    case False{}:
+      recursive(
+        B.eq_true_of_and_right(Nat.is_eq(P.address_count(all_addresses, address), 1n), P.aligned(tail, rest, all, all_addresses),
+          B.eq_true_of_and_right(Nat.is_eq(P.node_count(all, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_addresses, address), 1n), P.aligned(tail, rest, all, all_addresses)),
+            B.eq_true_of_and_right(Nat.is_eq(id, other),
+              Bool.and(Nat.is_eq(P.node_count(all, id), 1n), Bool.and(Nat.is_eq(P.address_count(all_addresses, address), 1n),
+                P.aligned(tail, rest, all, all_addresses))), valid))))(
+        %branch: {Bool.pick(Maybe<&2, O.NodeAddress>, _, Some{address}, F.address_at(rest, root))
+          == Some{birth} : Maybe<&2, O.NodeAddress>}
+        present)
+
+def count(nodes: List<&2, Local.PlannedNode>, entries: List<&2, F.AddressEntry>,
+    +all: List<&2, Local.PlannedNode>, +all_addresses: List<&2, F.AddressEntry>,
+    +root: Nat, +birth: O.NodeAddress,
+    valid: {P.aligned(nodes, entries, all, all_addresses) == True{} : Bool},
+    present: {F.address_at(entries, root) == Some{birth} : Maybe<&2, O.NodeAddress>}) ->
+    {P.node_count(all, root) == 1n : Nat}:
+  match nodes entries:
+    case Nil{} Nil{}:
+      Empty.absurd({P.node_count(all, root) == 1n : Nat}, C.none_some(O.NodeAddress, birth, present))
+    case Con{Local.PlannedNode{+id, +handle}, +tail} Con{F.AddressEntry{+other, +address}, +rest}:
+      step(id, handle, tail, other, address, rest, all, all_addresses, root, birth, valid, present,
+        tail_valid => tail_present => count(tail, rest, all, all_addresses, root, birth, tail_valid, tail_present),
+        Nat.is_eq(other, root), {==})
+    case Nil{} Con{_, _}:
+      Empty.absurd({P.node_count(all, root) == 1n : Nat}, B.internal_false_ne_true(valid))
+    case Con{_, _} Nil{}:
+      Empty.absurd({P.node_count(all, root) == 1n : Nat}, B.internal_false_ne_true(valid))
+
+def main() -> Unit:
+  Unit{}

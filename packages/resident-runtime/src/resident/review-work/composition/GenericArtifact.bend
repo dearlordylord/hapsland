@@ -1,0 +1,56 @@
+import Base
+import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
+import ../../../../../source-analysis/src/direct-event/graph-resolution/State.bend as S
+import ./ArtifactProtocol.bend as A
+import ../../../../../source-analysis/src/direct-event/graph-resolution/Loop.bend as Loop
+import ../../../../../source-analysis/src/direct-event/graph-resolution/Machine.bend as Machine
+import ../../../../../source-analysis/src/direct-event/graph-resolution/Resolve.bend as Resolve
+import ../../../../../source-analysis/src/direct-event/graph-resolution/Read.bend as Read
+import ../../../../../source-analysis/src/direct-event/graph-resolution/LoopPolicy.bend as LoopPolicy
+import ../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.bend as Local
+import ../../../../../agent-flow-bend/ImportGraph.bend as Graph
+
+# No language-child implementation imports. Every return continuation is chosen
+# by the Bend composition owner and executed here under a closed action tag.
+def rename(edge: Local.Pending, name: String) -> Local.Pending:
+  match edge:
+    case Local.Pending{owner, slot, from, key, _, depth, expected, target}:
+      Local.Pending{owner, slot, from, key, name, depth, expected, target}
+
+def unresolved(frame: Maybe<&2, T.ResolverFrame>, state: T.ResolverState) -> Loop.Continuation:
+  match frame:
+    case None{}: Machine.malformed()
+    case Some{frame}: Resolve.progressed(False{}, state, Resolve.allocated(frame, Graph.Unhandled{}))
+
+def resolved(result: Maybe<&2, A.Resolution>, edge: Local.Pending, +state: T.ResolverState) -> Loop.Continuation:
+  match result:
+    case None{}: unresolved(S.state_frame(state), state)
+    case Some{A.Resolution{path, name}}: Resolve.select_path(S.state_frame(state), Some{rename(edge, name)}, path, state)
+
+def action(command: A.ParentAction) -> Loop.Continuation:
+  match command:
+    case A.RootBudget{state}: Machine.root_budget(state)
+    case A.RootInspected{state, outcome}: Machine.inspected_root(outcome, state)
+    case A.TargetInspected{state, outcome}: Read.inspected(outcome, state)
+    case A.ImportResolved{state, edge, result}: resolved(result, edge, state)
+    case A.PythonUnresolved{+state}: unresolved(S.state_frame(state), state)
+    case A.Iteration{+state}: LoopPolicy.iteration_frame(S.state_frame(state), state)
+    case A.CaptureAdmitted{state, cached}: Read.cache_lookup_unchecked(cached, state)
+    case A.CaptureFinished{state, outcome}: Read.captured_unchecked(outcome, state)
+    case A.CaptureRefused{state}: Read.failed(state)
+    case A.Deadline{+state}: LoopPolicy.deadline(S.state_frame(state))
+    case A.Unavailable{}: Machine.unavailable()
+    case A.Failure{failure}: Loop.ServiceStep{T.FailedResolver{failure}}
+    case A.Publish{result}: Loop.ServiceStep{result}
+
+def execute(command: A.ParentAction) -> Loop.Continuation:
+  Machine.continue_action(action(command))
+
+def initial(input: T.ResolverInput) -> Loop.Continuation:
+  Machine.initial(input)
+
+def resume(step: Loop.Continuation, event: T.ResolverEvent) -> Loop.Continuation:
+  Machine.resume(step, event)
+
+def main() -> Unit:
+  Unit{}

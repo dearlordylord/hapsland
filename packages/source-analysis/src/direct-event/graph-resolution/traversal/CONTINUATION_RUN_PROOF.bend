@@ -1,0 +1,107 @@
+import Base
+import ./core.bend as Core
+import ./Traversal.bend as CoreTraversal
+import ./RANK.bend as Rank
+import ./RELATION.bend as Relation
+import ./CONTINUATION.bend as Continuation
+import ./CONTINUATION_STEP_PROOF.bend as Step
+import ./CONTINUATION_TERMINAL_PROOF.bend as Terminal
+import ./STEP_RANK_PROOF.bend as StepRank
+import ./RUN_RANK_PROOF.bend as RunRank
+import ./INTERPRETER_ORDER_PROOF.bend as Order
+import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+import ../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+
+# Adequate production fuel is used only to rule out an incomplete terminal run.
+def suffix_contract(+fuel: Nat) -> Type:
+  @+machine: Core.Machine ->
+  {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool} ->
+  {Nat.is_le(Rank.rank(machine), fuel) == True{} : Bool} ->
+  {
+    Relation.observe_core(CoreTraversal.run(fuel, machine))
+    == Continuation.observe(machine)
+    : Relation.Observation
+  }
+
+def zero_exact(+machine: Core.Machine,
+    enough: {Nat.is_le(Rank.rank(machine), 0n) == True{} : Bool}) -> {
+      Relation.observe_core(CoreTraversal.run(0n, machine))
+      == Continuation.observe(machine)
+      : Relation.Observation
+    }:
+  +terminal = RunRank.zero_rank_terminal(machine, enough)
+  %Equal.sym(Bool, CoreTraversal.done(machine), True{}, terminal):
+    {
+      Relation.observe_core(CoreTraversal.run_zero(_, machine))
+      == Continuation.observe(machine)
+      : Relation.Observation
+    }
+  Terminal.terminal_observation_exact(machine, terminal)
+
+def run_if_exact(+done: Bool, +machine: Core.Machine, +fuel: Nat,
+    +valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
+    agreement: {CoreTraversal.done(machine) == done : Bool},
+    enough: {Nat.is_le(Rank.rank(machine), (fuel + 1n : Nat)) == True{} : Bool},
+    suffix: suffix_contract(fuel)) -> {
+  Relation.observe_core(CoreTraversal.run_if(done, machine, next => CoreTraversal.run(fuel, next)))
+    == Continuation.observe(machine) : Relation.Observation
+}:
+  match done:
+    case True{}: Terminal.terminal_observation_exact(machine, agreement)
+    case False{}:
+      +bounded = StepRank.step_decreases_preserving_visited(machine, valid, agreement)
+      lawful = Order.eq_true_of_and_left(
+        Patricia.canonical(Bool, CoreTraversal.machine_visited(CoreTraversal.step(machine))),
+        Nat.is_le((Rank.rank(CoreTraversal.step(machine)) + 1n : Nat), Rank.rank(machine)),
+        bounded
+      )
+      decrease = Order.eq_true_of_and_right(
+        Patricia.canonical(Bool, CoreTraversal.machine_visited(CoreTraversal.step(machine))),
+        Nat.is_le((Rank.rank(CoreTraversal.step(machine)) + 1n : Nat), Rank.rank(machine)),
+        bounded
+      )
+      Equal.trans(
+        Relation.Observation,
+        Relation.observe_core(CoreTraversal.run(fuel, CoreTraversal.step(machine))),
+        Continuation.observe(CoreTraversal.step(machine)),
+        Continuation.observe(machine),
+        suffix(
+          CoreTraversal.step(machine),
+          lawful,
+          RunRank.step_fuel_bound(machine, fuel, decrease, enough)
+        ),
+        Step.step_preserves_continuation(machine, valid)
+      )
+
+law run_observation_exact:
+  for +fuel: Nat
+  for +machine: Core.Machine
+  for valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool}
+  for enough: {Nat.is_le(Rank.rank(machine), fuel) == True{} : Bool}
+  {
+    Relation.observe_core(CoreTraversal.run(fuel, machine))
+    == Continuation.observe(machine)
+    : Relation.Observation
+  }
+
+def run_observation_exact(fuel, machine, valid, enough):
+  match fuel:
+    case 0n: zero_exact(machine, enough)
+    case 1n++rest:
+      continue = {+next => lawful => bound => run_observation_exact(rest, next, lawful, bound) : suffix_contract(rest)}
+      adjusted = Equal.trans(
+        Bool,
+        RunRank.rank_le(machine, (rest + 1n : Nat)),
+        RunRank.rank_le(machine, (1n + rest : Nat)),
+        True{},
+        Equal.cong(
+          Nat,
+          Bool,
+          RunRank.rank_le(machine),
+          (rest + 1n : Nat),
+          (1n + rest : Nat),
+          NatFacts.add_comm(rest, 1n)
+        ),
+        enough
+      )
+      run_if_exact(CoreTraversal.done(machine), machine, rest, valid, {==}, adjusted, continue)

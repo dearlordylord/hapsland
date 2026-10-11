@@ -1,0 +1,69 @@
+import Base
+import ./AttachmentRenderedSuffix.bend as Suffix
+import ./AttachmentMapPayloadTransport.bend as Payload
+import ./AttachmentNaturalKeyEqualityProof.bend as Keys
+import ./AttachmentNaturalArithmeticFacts.bend as N
+import ./AttachmentCatalogDistinctProof.bend as D
+import ./RetainedForestProjection.bend as P
+import ../Core.bend as Core
+import ../ForestSpecification.bend as F
+import ../WholeObservation.bend as O
+import ../Types.bend as T
+import ../traversal/core.bend as Local
+import ../representations/list-state/PATRICIA_RELATION.bend as Patricia
+
+def other_lookup(+wanted: Nat, +written: Nat, +value: T.ProductValue, +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    different: {Nat.is_eq(written, wanted) == False{} : Bool},
+    valid: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool}) ->
+    {Core.map_read(Maybe<&2, T.ProductValue>, None{}, Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(written), Some{value}), Nat.show(wanted))
+      == Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(wanted)) : Maybe<&2, T.ProductValue>}:
+  key: {String.eq(Nat.show(wanted), Nat.show(written)) == False{} : Bool} =
+    Equal.trans(Bool, String.eq(Nat.show(wanted), Nat.show(written)), Nat.is_eq(wanted, written), False{}, Keys.natural_key_equality(wanted, written),
+      Equal.trans(Bool, Nat.is_eq(wanted, written), Nat.is_eq(written, wanted), False{}, N.is_eq_comm(wanted, written), different))
+  %key:
+    {Core.map_read(Maybe<&2, T.ProductValue>, None{}, Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(written), Some{value}), Nat.show(wanted))
+      == Bool.pick(Maybe<&2, T.ProductValue>, _, Some{value}, Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(wanted))) : Maybe<&2, T.ProductValue>}
+  Payload.lookup_after_set(Maybe<&2, T.ProductValue>, built, Nat.show(written), Nat.show(wanted), Some{value}, None{}, valid)
+
+def retain_node(+id: Nat, +suffix: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    +written: Nat, +value: T.ProductValue,
+    different: {Nat.is_eq(written, id) == False{} : Bool},
+    valid: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    proof: Suffix.rendered_node(id, suffix, slots, addresses, forest, built)) ->
+    Suffix.rendered_node(id, suffix, slots, addresses, forest, Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(written), Some{value})):
+  match proof:
+    case Tuple{+address, Tuple{+old, Tuple{address_present, Tuple{old_present, uniform}}}}:
+      Tuple{address, Tuple{old, Tuple{address_present, Tuple{
+        Equal.trans(Maybe<&2, T.ProductValue>, Core.map_read(Maybe<&2, T.ProductValue>, None{}, Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(written), Some{value}), Nat.show(id)),
+          Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(id)), Some{old}, other_lookup(id, written, value, built, different, valid), old_present), uniform}}}}
+
+def retain_finish(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    +written: Nat, +value: T.ProductValue,
+    parts: {Nat.is_eq(written, id) == False{} : Bool} & {P.node_count(tail, written) == 0n : Nat},
+    valid: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    proof: Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, built),
+    recursive: {P.node_count(tail, written) == 0n : Nat} -> Suffix.rendered_suffix(tail, slots, addresses, forest, built) ->
+      Suffix.rendered_suffix(tail, slots, addresses, forest, Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(written), Some{value}))) ->
+    Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(written), Some{value})):
+  match parts proof:
+    case Tuple{different, rest_zero} Tuple{head, rest}:
+      Tuple{retain_node(id, Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, built, written, value, different, valid, head), recursive(rest_zero)(rest)}
+
+def retain(nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    +written: Nat, +value: T.ProductValue,
+    zero: {P.node_count(nodes, written) == 0n : Nat},
+    +valid: {Patricia.canonical(Maybe<&2, T.ProductValue>, built) == True{} : Bool},
+    proof: Suffix.rendered_suffix(nodes, slots, addresses, forest, built)) ->
+    Suffix.rendered_suffix(nodes, slots, addresses, forest, Map.set(&2, Maybe<&2, T.ProductValue>, built, Nat.show(written), Some{value})):
+  match nodes:
+    case []: Unit{}
+    case Local.PlannedNode{+id, +handle} <> +tail:
+      retain_finish(id, handle, tail, slots, addresses, forest, built, written, value,
+        D.zero_parts(Nat.is_eq(written, id), P.node_count(tail, written), zero), valid, proof,
+        rest_zero => rest_proof => retain(tail, slots, addresses, forest, built, written, value, rest_zero, valid, rest_proof))
+
+def main() -> Unit:
+  Unit{}

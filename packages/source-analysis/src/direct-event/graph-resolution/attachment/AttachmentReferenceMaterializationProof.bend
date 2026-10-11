@@ -1,0 +1,364 @@
+import Base
+import ./AttachmentBuildCopiesProof.bend as Copies
+import ../traversal/INTERPRETER_BOOL_FACTS.bend as B
+import ./AttachmentRenderedSuffix.bend as Suffix
+import ./AttachmentNaturalArithmeticFacts.bend as N
+import ../traversal/INTERPRETER_NAT_FACTS.bend as NatFacts
+import ./RetainedForestProjection.bend as P
+import ../Core.bend as Core
+import ../ForestSpecification.bend as F
+import ../WholeObservation.bend as O
+import ../Types.bend as T
+import ../traversal/core.bend as Local
+
+# Finite affine rows are internal induction resources, never runtime state or
+# additional premises of the approved projected_unit_total entry law.
+def ready(reference: Local.PlannedReference, +addresses: List<&2, F.AddressEntry>,
+    +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>, +fuel: Nat) -> Type:
+  match reference:
+    case Local.Expanded{+id}:
+      Exists(O.NodeAddress, address => Exists(T.ProductValue, value =>
+        {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>} &
+        {Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(id)) == Some{value} : Maybe<&2, T.ProductValue>} &
+        {F.materialize(fuel, forest, address) == F.Materialized{value} : F.Materialization}))
+    case _: Unit
+
+def symbol_of(slot: Local.ReferenceSlot) -> String:
+  match slot:
+    case Local.ReferenceSlot{_, _, symbol, _}: symbol
+
+def planned_of(slot: Local.ReferenceSlot) -> Local.PlannedReference:
+  match slot:
+    case Local.ReferenceSlot{_, _, _, reference}: reference
+
+def common(+slot: Local.ReferenceSlot, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>, +fuel: Nat, +reference: F.Reference, +value: T.ProductValue) -> Type:
+  {P.reference(slot, addresses) == Some{reference} : Maybe<&2, F.Reference>} &
+  {Core.reference_product(symbol_of(slot), planned_of(slot), built) == Some{value} : Maybe<&2, T.ProductValue>} &
+  {F.reference_product(reference, address => F.materialize(fuel, forest, address)) == F.Materialized{value} : F.Materialization}
+
+def included(+symbol: String, identity: String) -> T.ProductValue:
+  Core.object([Core.field("kind", Core.text("included")), Core.field("site", Core.site(symbol)), Core.field("target", Core.text(identity))])
+
+def omitted(+symbol: String, target: String, reason: Local.Omission) -> T.ProductValue:
+  Core.object([Core.field("kind", Core.text("omitted")), Core.field("site", Core.site(symbol)),
+    Core.field("target", Core.object([Core.field("kind", Core.text("unresolved")), Core.field("symbol", Core.text(target))])), Core.field("reason", Core.text(Core.omission_name(reason)))])
+
+def expanded(symbol: String, value: T.ProductValue) -> T.ProductValue:
+  Core.object([Core.field("kind", Core.text("expanded")), Core.field("site", Core.site(symbol)), Core.field("node", value)])
+
+def omission_render(reason: Local.Omission, +symbol: String, +target: String) ->
+    {F.reference_product(F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{target}, reason}, address => F.MaterializationInvalid{})
+      == F.Materialized{omitted(symbol, target, reason)} : F.Materialization}:
+  match reason:
+    case Local.Unresolved{}: {==}
+    case Local.UnsupportedTarget{}: {==}
+    case Local.ReferenceLimit{}: {==}
+    case Local.Unavailable{}: {==}
+
+def expanded_address(+id: Nat, +symbol: String, +addresses: List<&2, F.AddressEntry>, +address: O.NodeAddress,
+    present: {F.address_at(addresses, id) == Some{address} : Maybe<&2, O.NodeAddress>}) ->
+    {P.expanded_reference(F.address_at(addresses, id), symbol) == Some{F.Expanded{F.ReferenceSymbol{symbol}, address}} : Maybe<&2, F.Reference>}:
+  %Equal.sym(Maybe<&2, O.NodeAddress>, F.address_at(addresses, id), Some{address}, present):
+    {P.expanded_reference(_, symbol) == Some{F.Expanded{F.ReferenceSymbol{symbol}, address}} : Maybe<&2, F.Reference>}
+  {==}
+
+def expanded_actual(+id: Nat, +symbol: String, +built: Map<&2, Maybe<&2, T.ProductValue>>, +value: T.ProductValue,
+    present: {Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(id)) == Some{value} : Maybe<&2, T.ProductValue>}) ->
+    {Core.reference_product(symbol, Local.Expanded{id}, built) == Some{expanded(symbol, value)} : Maybe<&2, T.ProductValue>}:
+  %Equal.sym(Maybe<&2, T.ProductValue>, Core.map_read(Maybe<&2, T.ProductValue>, None{}, built, Nat.show(id)), Some{value}, present):
+    {Core.bind(T.ProductValue, T.ProductValue, _, child => Some{expanded(symbol, child)}) == Some{expanded(symbol, value)} : Maybe<&2, T.ProductValue>}
+  {==}
+
+def expanded_reference(+symbol: String, +forest: F.Forest, +address: O.NodeAddress, +fuel: Nat, +value: T.ProductValue,
+    present: {F.materialize(fuel, forest, address) == F.Materialized{value} : F.Materialization}) ->
+    {F.reference_product(F.Expanded{F.ReferenceSymbol{symbol}, address}, child => F.materialize(fuel, forest, child)) == F.Materialized{expanded(symbol, value)} : F.Materialization}:
+  %Equal.sym(F.Materialization, F.materialize(fuel, forest, address), F.Materialized{value}, present):
+    {F.expanded_product(_, F.ReferenceSymbol{symbol}) == F.Materialized{expanded(symbol, value)} : F.Materialization}
+  {==}
+
+def finish_expanded(+owner: Nat, +index: Nat, +symbol: String, +id: Nat,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>, +fuel: Nat,
+    row: ready(Local.Expanded{id}, addresses, forest, built, fuel)) ->
+    Exists(F.Reference, reference => Exists(T.ProductValue, value => common(Local.ReferenceSlot{owner, index, symbol, Local.Expanded{id}}, addresses, forest, built, fuel, reference, value))):
+  match row:
+    case Tuple{+address, Tuple{+value, Tuple{address_present, Tuple{built_present, materialized}}}}:
+      Tuple{F.Expanded{F.ReferenceSymbol{symbol}, address}, Tuple{expanded(symbol, value), Tuple{
+        expanded_address(id, symbol, addresses, address, address_present), Tuple{
+          expanded_actual(id, symbol, built, value, built_present), expanded_reference(symbol, forest, address, fuel, value, materialized)}}}}
+
+def slot_product(slot: Local.ReferenceSlot, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>, +fuel: Nat,
+    row: ready(planned_of(slot), addresses, forest, built, fuel)) ->
+    Exists(F.Reference, reference => Exists(T.ProductValue, value => common(slot, addresses, forest, built, fuel, reference, value))):
+  match slot:
+    case Local.ReferenceSlot{owner, index, +symbol, Local.Included{+identity}}:
+      Tuple{F.Included{F.ReferenceSymbol{symbol}, F.ArtifactIdentity{identity}}, Tuple{included(symbol, identity), Tuple{{==}, Tuple{{==}, {==}}}}}
+    case Local.ReferenceSlot{owner, index, +symbol, Local.Omitted{+reason, +target}}:
+      Tuple{F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{target}, reason}, Tuple{omitted(symbol, target, reason), Tuple{{==}, Tuple{{==}, omission_render(reason, symbol, target)}}}}
+    case Local.ReferenceSlot{+owner, +index, +symbol, Local.Expanded{+id}}:
+      finish_expanded(owner, index, symbol, id, addresses, forest, built, fuel, row)
+
+def rows(slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>, fuel: Nat) -> Type:
+  match slots fuel:
+    case [] 0n: Empty
+    case [] 1n+remaining: Unit
+    case slot <> tail 0n: Empty
+    case slot <> tail 1n++remaining:
+      ready(planned_of(slot), addresses, forest, built, remaining) & rows(tail, addresses, forest, built, remaining)
+
+def list_common(+slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>, +fuel: Nat,
+    +references: List<&2, F.Reference>, +values: List<&2, T.ProductValue>) -> Type:
+  {P.references(slots, addresses) == Some{references} : Maybe<&2, List<&2, F.Reference>>} &
+  {Core.reference_products(slots, built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>} &
+  {F.as_products(F.product_interpret(fuel, F.ReferencesProductRequest{forest, references})) == F.ProductReferences{values} : F.ProductReferences}
+
+def projected_cons(+slot: Local.ReferenceSlot, +tail: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>,
+    +reference: F.Reference, +references: List<&2, F.Reference>,
+    head: {P.reference(slot, addresses) == Some{reference} : Maybe<&2, F.Reference>},
+    rest: {P.references(tail, addresses) == Some{references} : Maybe<&2, List<&2, F.Reference>>}) ->
+    {P.references(slot <> tail, addresses) == Some{reference <> references} : Maybe<&2, List<&2, F.Reference>>}:
+  %Equal.sym(Maybe<&2, F.Reference>, P.reference(slot, addresses), Some{reference}, head):
+    {P.reference_prefix(_, P.references(tail, addresses)) == Some{reference <> references} : Maybe<&2, List<&2, F.Reference>>}
+  %Equal.sym(Maybe<&2, List<&2, F.Reference>>, P.references(tail, addresses), Some{references}, rest):
+    {P.reference_prefix(Some{reference}, _) == Some{reference <> references} : Maybe<&2, List<&2, F.Reference>>}
+  {==}
+
+def actual_cons(+slot: Local.ReferenceSlot, +tail: List<&2, Local.ReferenceSlot>, +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    +value: T.ProductValue, +values: List<&2, T.ProductValue>,
+    head: {Core.reference_product(symbol_of(slot), planned_of(slot), built) == Some{value} : Maybe<&2, T.ProductValue>},
+    rest: {Core.reference_products(tail, built) == Some{values} : Maybe<&2, List<&2, T.ProductValue>>}) ->
+    {Core.reference_products(slot <> tail, built) == Some{value <> values} : Maybe<&2, List<&2, T.ProductValue>>}:
+  match slot:
+    case Local.ReferenceSlot{_, _, +symbol, +reference}:
+      %Equal.sym(Maybe<&2, T.ProductValue>, Core.reference_product(symbol, reference, built), Some{value}, head):
+        {Core.bind(T.ProductValue, List<&2, T.ProductValue>, _, next => Core.bind(List<&2, T.ProductValue>, List<&2, T.ProductValue>, Core.reference_products(tail, built), remaining => Some{next <> remaining}))
+          == Some{value <> values} : Maybe<&2, List<&2, T.ProductValue>>}
+      %Equal.sym(Maybe<&2, List<&2, T.ProductValue>>, Core.reference_products(tail, built), Some{values}, rest):
+        {Core.bind(List<&2, T.ProductValue>, List<&2, T.ProductValue>, _, remaining => Some{value <> remaining}) == Some{value <> values} : Maybe<&2, List<&2, T.ProductValue>>}
+      {==}
+
+def materialized_cons(+reference: F.Reference, +references: List<&2, F.Reference>, +forest: F.Forest, +remaining: Nat,
+    +value: T.ProductValue, +values: List<&2, T.ProductValue>,
+    head: {F.reference_product(reference, address => F.materialize(remaining, forest, address)) == F.Materialized{value} : F.Materialization},
+    rest: {F.as_products(F.product_interpret(remaining, F.ReferencesProductRequest{forest, references})) == F.ProductReferences{values} : F.ProductReferences}) ->
+    {F.as_products(F.product_interpret(1n+remaining, F.ReferencesProductRequest{forest, reference <> references})) == F.ProductReferences{value <> values} : F.ProductReferences}:
+  %Equal.sym(F.Materialization, F.reference_product(reference, address => F.materialize(remaining, forest, address)), F.Materialized{value}, head):
+    {F.product_prefix(_, unit => F.as_products(F.product_interpret(remaining, F.ReferencesProductRequest{forest, references}))) == F.ProductReferences{value <> values} : F.ProductReferences}
+  %Equal.sym(F.ProductReferences, F.as_products(F.product_interpret(remaining, F.ReferencesProductRequest{forest, references})), F.ProductReferences{values}, rest):
+    {F.product_cons(_, value) == F.ProductReferences{value <> values} : F.ProductReferences}
+  {==}
+
+def finish_list(+slot: Local.ReferenceSlot, +tail: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>,
+    +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>, +remaining: Nat,
+    head: Exists(F.Reference, reference => Exists(T.ProductValue, value => common(slot, addresses, forest, built, remaining, reference, value))),
+    rest: Exists(List<&2, F.Reference>, references => Exists(List<&2, T.ProductValue>, values => list_common(tail, addresses, forest, built, remaining, references, values)))) ->
+    Exists(List<&2, F.Reference>, references => Exists(List<&2, T.ProductValue>, values => list_common(slot <> tail, addresses, forest, built, 1n+remaining, references, values))):
+  match head rest:
+    case Tuple{+reference, Tuple{+value, Tuple{projected_head, Tuple{actual_head, materialized_head}}}} Tuple{+references, Tuple{+values, Tuple{projected_tail, Tuple{actual_tail, materialized_tail}}}}:
+      Tuple{reference <> references, Tuple{value <> values, Tuple{
+        projected_cons(slot, tail, addresses, reference, references, projected_head, projected_tail), Tuple{
+          actual_cons(slot, tail, built, value, values, actual_head, actual_tail),
+          materialized_cons(reference, references, forest, remaining, value, values, materialized_head, materialized_tail)}}}}
+
+def products_step(+slot: Local.ReferenceSlot, +tail: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>,
+    +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>, +remaining: Nat,
+    row: ready(planned_of(slot), addresses, forest, built, remaining) & rows(tail, addresses, forest, built, remaining),
+    recursive: rows(tail, addresses, forest, built, remaining) ->
+      Exists(List<&2, F.Reference>, references => Exists(List<&2, T.ProductValue>, values => list_common(tail, addresses, forest, built, remaining, references, values)))) ->
+    Exists(List<&2, F.Reference>, references => Exists(List<&2, T.ProductValue>, values => list_common(slot <> tail, addresses, forest, built, 1n+remaining, references, values))):
+  match row:
+    case Tuple{head, rest}:
+      finish_list(slot, tail, addresses, forest, built, remaining, slot_product(slot, addresses, forest, built, remaining, head), recursive(rest))
+
+def products(slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>, fuel: Nat,
+    row: rows(slots, addresses, forest, built, fuel)) ->
+    Exists(List<&2, F.Reference>, references => Exists(List<&2, T.ProductValue>, values => list_common(slots, addresses, forest, built, fuel, references, values))):
+  match slots fuel:
+    case [] 0n:
+      Empty.absurd(Exists(List<&2, F.Reference>, references => Exists(List<&2, T.ProductValue>, values => list_common([], addresses, forest, built, 0n, references, values))), row)
+    case [] 1n+remaining: Tuple{[], Tuple{[], Tuple{{==}, Tuple{{==}, {==}}}}}
+    case +slot <> +tail 0n:
+      Empty.absurd(Exists(List<&2, F.Reference>, references => Exists(List<&2, T.ProductValue>, values => list_common(slot <> tail, addresses, forest, built, 0n, references, values))), row)
+    case +slot <> +tail 1n++remaining:
+      products_step(slot, tail, addresses, forest, built, remaining, row,
+        tail_rows => products(tail, addresses, forest, built, remaining, tail_rows))
+
+def add_swap(+a: Nat, +b: Nat, +c: Nat) -> {Nat.add(a, Nat.add(b, c)) == Nat.add(b, Nat.add(a, c)) : Nat}:
+  Equal.trans(Nat, Nat.add(a, Nat.add(b, c)), Nat.add(Nat.add(a, b), c), Nat.add(b, Nat.add(a, c)),
+    Equal.sym(Nat, Nat.add(Nat.add(a, b), c), Nat.add(a, Nat.add(b, c)), N.add_assoc(a, b, c)),
+    Equal.trans(Nat, Nat.add(Nat.add(a, b), c), Nat.add(Nat.add(b, a), c), Nat.add(b, Nat.add(a, c)),
+      Equal.cong(Nat, Nat, value => Nat.add(value, c), Nat.add(a, b), Nat.add(b, a), N.add_comm(a, b)), N.add_assoc(b, a, c)))
+
+def extend_found(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +queried: Nat,
+    +slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    proof: Exists(List<&2, Local.PlannedNode>, suffix => Exists(Nat, slack =>
+      {Suffix.suffix_allowance(tail, slots) == Nat.add(Suffix.suffix_allowance(suffix, slots), slack) : Nat} &
+      Suffix.rendered_node(queried, suffix, slots, addresses, forest, built)))) ->
+    Exists(List<&2, Local.PlannedNode>, suffix => Exists(Nat, slack =>
+      {Suffix.suffix_allowance(Local.PlannedNode{id, handle} <> tail, slots) == Nat.add(Suffix.suffix_allowance(suffix, slots), slack) : Nat} &
+      Suffix.rendered_node(queried, suffix, slots, addresses, forest, built))):
+  match proof:
+    case Tuple{+suffix, Tuple{+slack, Tuple{bound, rendered}}}:
+      +cost = (2n + List.length(&2, Local.ReferenceSlot, P.owner_slots(slots, id)) : Nat)
+      Tuple{suffix, Tuple{Nat.add(cost, slack), Tuple{
+        Equal.trans(Nat, Suffix.suffix_allowance(Local.PlannedNode{id, handle} <> tail, slots), Nat.add(cost, Suffix.suffix_allowance(tail, slots)),
+          Nat.add(Suffix.suffix_allowance(suffix, slots), Nat.add(cost, slack)), N.add_assoc(cost, Suffix.suffix_weight(tail, slots), 2n),
+          Equal.trans(Nat, Nat.add(cost, Suffix.suffix_allowance(tail, slots)), Nat.add(cost, Nat.add(Suffix.suffix_allowance(suffix, slots), slack)),
+            Nat.add(Suffix.suffix_allowance(suffix, slots), Nat.add(cost, slack)),
+            Equal.cong(Nat, Nat, allowance => Nat.add(cost, allowance), Suffix.suffix_allowance(tail, slots), Nat.add(Suffix.suffix_allowance(suffix, slots), slack), bound),
+            add_swap(cost, Suffix.suffix_allowance(suffix, slots), slack))), rendered}}}
+
+def suffix_find_step(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>, +queried: Nat,
+    +slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    count: {P.node_count(Local.PlannedNode{id, handle} <> tail, queried) == 1n : Nat},
+    proof: Suffix.rendered_suffix(Local.PlannedNode{id, handle} <> tail, slots, addresses, forest, built),
+    recursive: {P.node_count(tail, queried) == 1n : Nat} -> Suffix.rendered_suffix(tail, slots, addresses, forest, built) ->
+      Exists(List<&2, Local.PlannedNode>, suffix => Exists(Nat, slack =>
+        {Suffix.suffix_allowance(tail, slots) == Nat.add(Suffix.suffix_allowance(suffix, slots), slack) : Nat} &
+        Suffix.rendered_node(queried, suffix, slots, addresses, forest, built))),
+    equal: Bool, branch: {Nat.is_eq(queried, id) == equal : Bool}) ->
+    Exists(List<&2, Local.PlannedNode>, suffix => Exists(Nat, slack =>
+        {Suffix.suffix_allowance(Local.PlannedNode{id, handle} <> tail, slots) == Nat.add(Suffix.suffix_allowance(suffix, slots), slack) : Nat} &
+        Suffix.rendered_node(queried, suffix, slots, addresses, forest, built))):
+  match proof equal:
+    case Tuple{head, rest} True{}:
+      same: {queried == id : Nat} = NatFacts.eq_of_is_eq(queried, id, branch)
+      %Equal.sym(Nat, queried, id, same):
+        Exists(List<&2, Local.PlannedNode>, suffix => Exists(Nat, slack => {Suffix.suffix_allowance(Local.PlannedNode{id, handle} <> tail, slots) == Nat.add(Suffix.suffix_allowance(suffix, slots), slack) : Nat} & Suffix.rendered_node(_, suffix, slots, addresses, forest, built)))
+      Tuple{Local.PlannedNode{id, handle} <> tail, Tuple{0n, Tuple{Equal.sym(Nat, Nat.add(Suffix.suffix_allowance(Local.PlannedNode{id, handle} <> tail, slots), 0n), Suffix.suffix_allowance(Local.PlannedNode{id, handle} <> tail, slots), N.add_zero(Suffix.suffix_allowance(Local.PlannedNode{id, handle} <> tail, slots))), head}}}
+    case Tuple{head, rest} False{}:
+      tail_count: {P.node_count(tail, queried) == 1n : Nat} =
+        %branch: {Nat.add(Bool.pick(Nat, _, 1n, 0n), P.node_count(tail, queried)) == 1n : Nat}
+        count
+      extend_found(id, handle, tail, queried, slots, addresses, forest, built, recursive(tail_count)(rest))
+
+def suffix_find(nodes: List<&2, Local.PlannedNode>, +queried: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    count: {P.node_count(nodes, queried) == 1n : Nat},
+    proof: Suffix.rendered_suffix(nodes, slots, addresses, forest, built)) ->
+    Exists(List<&2, Local.PlannedNode>, suffix => Exists(Nat, slack =>
+        {Suffix.suffix_allowance(nodes, slots) == Nat.add(Suffix.suffix_allowance(suffix, slots), slack) : Nat} &
+        Suffix.rendered_node(queried, suffix, slots, addresses, forest, built))):
+  match nodes:
+    case []:
+      Empty.absurd(Exists(List<&2, Local.PlannedNode>, suffix => Exists(Nat, slack =>
+        {Suffix.suffix_allowance(nodes, slots) == Nat.add(Suffix.suffix_allowance(suffix, slots), slack) : Nat} &
+        Suffix.rendered_node(queried, suffix, slots, addresses, forest, built))),
+        N.succ_ne_zero(0n)(Equal.sym(Nat, 0n, 1n, count)))
+    case Local.PlannedNode{+id, +handle} <> +tail:
+      suffix_find_step(id, handle, tail, queried, slots, addresses, forest, built, count, proof,
+        tail_count => tail_proof => suffix_find(tail, queried, slots, addresses, forest, built, tail_count, tail_proof), Nat.is_eq(queried, id), {==})
+
+def finish_ready(+nodes: List<&2, Local.PlannedNode>, +queried: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>, +extra: Nat,
+    proof: Exists(List<&2, Local.PlannedNode>, suffix => Exists(Nat, slack =>
+      {Suffix.suffix_allowance(nodes, slots) == Nat.add(Suffix.suffix_allowance(suffix, slots), slack) : Nat} &
+      Suffix.rendered_node(queried, suffix, slots, addresses, forest, built)))) ->
+    ready(Local.Expanded{queried}, addresses, forest, built, Nat.add(Suffix.suffix_allowance(nodes, slots), extra)):
+  match proof:
+    case Tuple{+suffix, Tuple{+slack, Tuple{bound, Tuple{+address, Tuple{+value, Tuple{address_present, Tuple{built_present, uniform}}}}}}}:
+      fuel_equal: {Nat.add(Suffix.suffix_allowance(nodes, slots), extra) == Nat.add(Suffix.suffix_allowance(suffix, slots), Nat.add(slack, extra)) : Nat} =
+        Equal.trans(Nat, Nat.add(Suffix.suffix_allowance(nodes, slots), extra), Nat.add(Nat.add(Suffix.suffix_allowance(suffix, slots), slack), extra),
+          Nat.add(Suffix.suffix_allowance(suffix, slots), Nat.add(slack, extra)),
+          Equal.cong(Nat, Nat, allowance => Nat.add(allowance, extra), Suffix.suffix_allowance(nodes, slots), Nat.add(Suffix.suffix_allowance(suffix, slots), slack), bound),
+          N.add_assoc(Suffix.suffix_allowance(suffix, slots), slack, extra))
+      Tuple{address, Tuple{value, Tuple{address_present, Tuple{built_present,
+        %Equal.sym(Nat, Nat.add(Suffix.suffix_allowance(nodes, slots), extra), Nat.add(Suffix.suffix_allowance(suffix, slots), Nat.add(slack, extra)), fuel_equal):
+          {F.materialize(_, forest, address) == F.Materialized{value} : F.Materialization}
+        uniform(Nat.add(slack, extra))}}}}
+
+def child_ready(+nodes: List<&2, Local.PlannedNode>, +queried: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>, +extra: Nat,
+    count: {P.node_count(nodes, queried) == 1n : Nat},
+    proof: Suffix.rendered_suffix(nodes, slots, addresses, forest, built)) ->
+    ready(Local.Expanded{queried}, addresses, forest, built, Nat.add(Suffix.suffix_allowance(nodes, slots), extra)):
+  finish_ready(nodes, queried, slots, addresses, forest, built, extra, suffix_find(nodes, queried, slots, addresses, forest, built, count, proof))
+
+def reference_cost(reference: Local.PlannedReference) -> Nat:
+  match reference:
+    case Local.Expanded{_}: 1n
+    case _: 0n
+
+def expanded_count(slots: List<&2, Local.ReferenceSlot>) -> Nat:
+  match slots:
+    case []: 0n
+    case Local.ReferenceSlot{_, _, _, reference} <> tail:
+      Nat.add(reference_cost(reference), expanded_count(tail))
+
+def ready_with_remaining(+later: List<&2, Local.PlannedNode>, +id: Nat, +all_slots: List<&2, Local.ReferenceSlot>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +built: Map<&2, Maybe<&2, T.ProductValue>>,
+    +prefix: Nat, +extra: Nat, count: {P.node_count(later, id) == 1n : Nat},
+    proof: Suffix.rendered_suffix(later, all_slots, addresses, forest, built)) ->
+    ready(Local.Expanded{id}, addresses, forest, built, Nat.add(prefix, Nat.add(Suffix.suffix_allowance(later, all_slots), extra))):
+  %Equal.sym(Nat, Nat.add(prefix, Nat.add(Suffix.suffix_allowance(later, all_slots), extra)),
+      Nat.add(Suffix.suffix_allowance(later, all_slots), Nat.add(prefix, extra)), add_swap(prefix, Suffix.suffix_allowance(later, all_slots), extra)):
+    ready(Local.Expanded{id}, addresses, forest, built, _)
+  child_ready(later, id, all_slots, addresses, forest, built, Nat.add(prefix, extra), count, proof)
+
+def rows_expanded(+tail: List<&2, Local.ReferenceSlot>, +id: Nat, +later: List<&2, Local.PlannedNode>,
+    +all_slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>, +extra: Nat,
+    count: {P.node_count(later, id) == 1n : Nat},
+    proof: Copies.copies(1n+expanded_count(tail), Suffix.rendered_suffix(later, all_slots, addresses, forest, built)),
+    recursive: Copies.copies(expanded_count(tail), Suffix.rendered_suffix(later, all_slots, addresses, forest, built)) ->
+      rows(tail, addresses, forest, built, Nat.add(1n+List.length(&2, Local.ReferenceSlot, tail), Nat.add(Suffix.suffix_allowance(later, all_slots), extra)))) ->
+    ready(Local.Expanded{id}, addresses, forest, built, Nat.add(1n+List.length(&2, Local.ReferenceSlot, tail), Nat.add(Suffix.suffix_allowance(later, all_slots), extra))) &
+    rows(tail, addresses, forest, built, Nat.add(1n+List.length(&2, Local.ReferenceSlot, tail), Nat.add(Suffix.suffix_allowance(later, all_slots), extra))):
+  match proof:
+    case Tuple{head, rest}:
+      Tuple{ready_with_remaining(later, id, all_slots, addresses, forest, built, 1n+List.length(&2, Local.ReferenceSlot, tail), extra, count, head), recursive(rest)}
+
+def indexed_tail(+slot: Local.ReferenceSlot, +tail: List<&2, Local.ReferenceSlot>, +next: Nat, +later: List<&2, Local.PlannedNode>,
+    valid: {P.indexed(slot <> tail, next, later) == True{} : Bool}) ->
+    {P.indexed(tail, Nat.add(next, 1n), later) == True{} : Bool}:
+  match slot:
+    case Local.ReferenceSlot{_, +index, _, +reference}:
+      B.eq_true_of_and_right(P.forward_reference(reference, later), P.indexed(tail, Nat.add(next, 1n), later),
+        B.eq_true_of_and_right(Nat.is_eq(index, next), Bool.and(P.forward_reference(reference, later), P.indexed(tail, Nat.add(next, 1n), later)), valid))
+
+def indexed_child(+slot: Local.ReferenceSlot, +tail: List<&2, Local.ReferenceSlot>, +next: Nat, +later: List<&2, Local.PlannedNode>,
+    valid: {P.indexed(slot <> tail, next, later) == True{} : Bool}) -> {P.forward_reference(planned_of(slot), later) == True{} : Bool}:
+  match slot:
+    case Local.ReferenceSlot{_, +index, _, +reference}:
+      B.eq_true_of_and_left(P.forward_reference(reference, later), P.indexed(tail, Nat.add(next, 1n), later),
+        B.eq_true_of_and_right(Nat.is_eq(index, next), Bool.and(P.forward_reference(reference, later), P.indexed(tail, Nat.add(next, 1n), later)), valid))
+
+def prepare_rows(slots: List<&2, Local.ReferenceSlot>, +next: Nat, +later: List<&2, Local.PlannedNode>,
+    +all_slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>, +extra: Nat,
+    +valid: {P.indexed(slots, next, later) == True{} : Bool},
+    proof: Copies.copies(expanded_count(slots), Suffix.rendered_suffix(later, all_slots, addresses, forest, built))) ->
+    rows(slots, addresses, forest, built, Nat.add(1n+List.length(&2, Local.ReferenceSlot, slots), Nat.add(Suffix.suffix_allowance(later, all_slots), extra))):
+  match slots:
+    case []: Unit{}
+    case Local.ReferenceSlot{+owner, +index, +symbol, Local.Included{+identity}} <> +tail:
+      Tuple{Unit{}, prepare_rows(tail, Nat.add(next, 1n), later, all_slots, addresses, forest, built, extra,
+        indexed_tail(Local.ReferenceSlot{owner, index, symbol, Local.Included{identity}}, tail, next, later, valid), proof)}
+    case Local.ReferenceSlot{+owner, +index, +symbol, Local.Omitted{+reason, +target}} <> +tail:
+      Tuple{Unit{}, prepare_rows(tail, Nat.add(next, 1n), later, all_slots, addresses, forest, built, extra,
+        indexed_tail(Local.ReferenceSlot{owner, index, symbol, Local.Omitted{reason, target}}, tail, next, later, valid), proof)}
+    case Local.ReferenceSlot{+owner, +index, +symbol, Local.Expanded{+id}} <> +tail:
+      +slot: Local.ReferenceSlot = Local.ReferenceSlot{owner, index, symbol, Local.Expanded{id}}
+      rows_expanded(tail, id, later, all_slots, addresses, forest, built, extra,
+        NatFacts.eq_of_is_eq(P.node_count(later, id), 1n, indexed_child(slot, tail, next, later, valid)), proof,
+        rest => prepare_rows(tail, Nat.add(next, 1n), later, all_slots, addresses, forest, built, extra, indexed_tail(slot, tail, next, later, valid), rest))
+
+def prepared_products(+slots: List<&2, Local.ReferenceSlot>, +next: Nat, +later: List<&2, Local.PlannedNode>,
+    +all_slots: List<&2, Local.ReferenceSlot>, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    +built: Map<&2, Maybe<&2, T.ProductValue>>, +extra: Nat,
+    valid: {P.indexed(slots, next, later) == True{} : Bool},
+    proof: Copies.copies(expanded_count(slots), Suffix.rendered_suffix(later, all_slots, addresses, forest, built))) ->
+    Exists(List<&2, F.Reference>, references => Exists(List<&2, T.ProductValue>, values =>
+      list_common(slots, addresses, forest, built, Nat.add(1n+List.length(&2, Local.ReferenceSlot, slots), Nat.add(Suffix.suffix_allowance(later, all_slots), extra)), references, values))):
+  products(slots, addresses, forest, built,
+    Nat.add(1n+List.length(&2, Local.ReferenceSlot, slots), Nat.add(Suffix.suffix_allowance(later, all_slots), extra)),
+    prepare_rows(slots, next, later, all_slots, addresses, forest, built, extra, valid, proof))
+
+def main() -> Unit:
+  Unit{}

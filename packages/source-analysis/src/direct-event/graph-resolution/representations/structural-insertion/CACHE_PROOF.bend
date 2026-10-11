@@ -1,0 +1,137 @@
+import Base
+import ./Own.bend as Own
+import ./INVARIANT.bend as Invariant
+import ../../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFacts
+import ../../../../../../../vendor/bendlib/packages/bend-mathlib/bool.bend as BoolFacts
+
+# Exact cached_size_exact statement approved in TRIE_LAWS; isolated checker entry.
+law cached_size_exact:
+  for -V: Data
+  for +catalog: Own.Dictionary<V>
+  for valid: {Invariant.valid(V, catalog) == True{} : Bool}
+  {Own.size(V, catalog) == Invariant.leaves(V, catalog) : Nat}
+
+def cached_size_exact(V, catalog, valid):
+  match catalog:
+    case Own.DNil{}: {==}
+    case Own.DLeaf{key, value}: {==}
+    case Own.DBranch{+divisor, +zero, +one, +count}:
+      NatFacts.eq_of_is_eq(
+        count,
+        (Invariant.leaves(V, zero) + Invariant.leaves(V, one) : Nat),
+        BoolFacts.eq_true_of_and_left(
+          Nat.is_eq(count, (Invariant.leaves(V, zero) + Invariant.leaves(V, one) : Nat)),
+          Bool.and(
+            Nat.is_lt(0n, Invariant.leaves(V, zero)),
+            Bool.and(
+              Nat.is_lt(0n, Invariant.leaves(V, one)),
+              Bool.and(
+                Invariant.prefix_matches(
+                  V,
+                  zero,
+                  divisor,
+                  Nat.mod(Invariant.first_key(V, zero), divisor)
+                ),
+                Bool.and(
+                  Invariant.prefix_matches(
+                    V,
+                    one,
+                    divisor,
+                    Nat.mod(Invariant.first_key(V, zero), divisor)
+                  ),
+                  Bool.and(
+                    Invariant.bit_matches(V, zero, divisor, 0n),
+                    Bool.and(
+                      Invariant.bit_matches(V, one, divisor, 1n),
+                      Bool.and(
+                        Invariant.valid_tree(V, zero, divisor),
+                        Invariant.valid_tree(V, one, divisor)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          BoolFacts.eq_true_of_and_right(
+            Invariant.power_valid(divisor),
+            Bool.and(
+              Nat.is_eq(count, (Invariant.leaves(V, zero) + Invariant.leaves(V, one) : Nat)),
+              Bool.and(
+                Nat.is_lt(0n, Invariant.leaves(V, zero)),
+                Bool.and(
+                  Nat.is_lt(0n, Invariant.leaves(V, one)),
+                  Bool.and(
+                    Invariant.prefix_matches(
+                      V,
+                      zero,
+                      divisor,
+                      Nat.mod(Invariant.first_key(V, zero), divisor)
+                    ),
+                    Bool.and(
+                      Invariant.prefix_matches(
+                        V,
+                        one,
+                        divisor,
+                        Nat.mod(Invariant.first_key(V, zero), divisor)
+                      ),
+                      Bool.and(
+                        Invariant.bit_matches(V, zero, divisor, 0n),
+                        Bool.and(
+                          Invariant.bit_matches(V, one, divisor, 1n),
+                          Bool.and(
+                            Invariant.valid_tree(V, zero, divisor),
+                            Invariant.valid_tree(V, one, divisor)
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            BoolFacts.eq_true_of_and_right(
+              Nat.is_lt(0n, divisor),
+              Bool.and(
+                Invariant.power_valid(divisor),
+                Bool.and(
+                  Nat.is_eq(count, (Invariant.leaves(V, zero) + Invariant.leaves(V, one) : Nat)),
+                  Bool.and(
+                    Nat.is_lt(0n, Invariant.leaves(V, zero)),
+                    Bool.and(
+                      Nat.is_lt(0n, Invariant.leaves(V, one)),
+                      Bool.and(
+                        Invariant.prefix_matches(
+                          V,
+                          zero,
+                          divisor,
+                          Nat.mod(Invariant.first_key(V, zero), divisor)
+                        ),
+                        Bool.and(
+                          Invariant.prefix_matches(
+                            V,
+                            one,
+                            divisor,
+                            Nat.mod(Invariant.first_key(V, zero), divisor)
+                          ),
+                          Bool.and(
+                            Invariant.bit_matches(V, zero, divisor, 0n),
+                            Bool.and(
+                              Invariant.bit_matches(V, one, divisor, 1n),
+                              Bool.and(
+                                Invariant.valid_tree(V, zero, divisor),
+                                Invariant.valid_tree(V, one, divisor)
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              valid
+            )
+          )
+        )
+      )
