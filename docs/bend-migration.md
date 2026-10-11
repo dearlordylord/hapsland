@@ -855,3 +855,22 @@ the two composed-root private edges, so whole quality/adoption remain open.
 This full regression also qualifies request-time graph options and lazy
 finalization reads across the current 56/70 case corpus; original universal
 proofs, production Canonical connection and replaced TS deletion remain required.
+
+Both final composed-root private edges are now closed by relocating the entire
+consumer to resident preparation verification and using the existing public
+resolver with the actual owned Canonical driver. Split/monolithic shadow
+comparison, full native root units, per-Await wrong identity/correlation and
+cancellation, and terminal suffix tests remain. The actual new-path runner
+passes 18 cases/1425 requests/7125 fences/36 terminal suffixes and explicitly
+18 Canonical accepted results, with matching provider cleanup and zero retained
+resources. Split mode is always exercised; the obsolete standalone driver
+import/path is deleted. Ordinary two-source lint and complete development-import
+gate now pass with zero violations. The consumer suite selects five actual
+consumers under unchanged120s each/360s total. check:fast repetition and whole
+production wiring/deletion, original universal laws and build parity stay open.
+
+Astra's previously unqualified aligned_append_fixed/cursor_address_lookup
+prefix now checks in an isolated hard5 run (3.551 wall/3.153 CPU). Exact
+projected row count transport also checks hard5 (2.818 wall/2.609 CPU).
+Recursive count transport and full semantic alignment remain open under the
+unchanged original parent law. All checked/WIP source remains at its owner.

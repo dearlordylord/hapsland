@@ -1099,6 +1099,33 @@ def cursor_address_lookup(+prefix_nodes: List<&2, Local.PlannedNode>, +prefix_en
       {Bool.pick(Maybe<&2, O.NodeAddress>, _, Some{birth}, F.address_at(rest, id)) == Some{birth} : Maybe<&2, O.NodeAddress>}
     {==})
 
+# One step of the same paired cursor: the successful projection's birth is
+# forced by the exact numeric lookup, and its tail contributes the exact count.
+def cursor_count_row(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +all_entries: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +entries: List<&2, F.AddressEntry>,
+    +retained: List<&2, F.Node>, +target: O.NodeAddress,
+    located: {F.address_at(all_entries, id) == Some{birth} : Maybe<&2, O.NodeAddress>},
+    recursive: @+rest: List<&2, F.Node> ->
+      {P.nodes(tail, slots, catalog, all_entries) == Some{rest} : Maybe<&2, List<&2, F.Node>>} ->
+      {P.address_count(entries, target) == F.count_address(rest, target) : Nat},
+    parts: Replacement.row_contents(id, handle, tail, slots, catalog, all_entries, retained)) ->
+    {P.address_count(F.AddressEntry{id, birth} <> entries, target) == F.count_address(retained, target) : Nat}:
+  match parts:
+    case (+actual, (+artifact, (+refs, (+rest, (found, (_, (_, (tail_present, same)))))))):
+      same_birth: {birth == actual : O.NodeAddress} = Count.some_equal(O.NodeAddress, birth, actual,
+        Equal.trans(Maybe<&2, O.NodeAddress>, Some{birth}, F.address_at(all_entries, id), Some{actual},
+          Equal.sym(Maybe<&2, O.NodeAddress>, F.address_at(all_entries, id), Some{birth}, located), found))
+      Equal.trans(Nat, P.address_count(F.AddressEntry{id, birth} <> entries, target),
+        F.count_address(F.Node{actual, artifact, refs} <> rest, target), F.count_address(retained, target),
+        %same_birth:
+          {P.address_count(F.AddressEntry{id, birth} <> entries, target)
+            == (Bool.pick(Nat, F.same_address(target, _), 1n, 0n) + F.count_address(rest, target) : Nat) : Nat}
+        Equal.cong(Nat, Nat, count => (Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + count : Nat),
+          P.address_count(entries, target), F.count_address(rest, target), recursive(rest)(tail_present)),
+        Equal.cong(List<&2, F.Node>, Nat, nodes => F.count_address(nodes, target),
+          F.Node{actual, artifact, refs} <> rest, retained, same))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>
