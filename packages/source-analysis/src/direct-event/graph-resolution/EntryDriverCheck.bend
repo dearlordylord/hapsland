@@ -1,12 +1,13 @@
 import Base
-import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
-import ../EntrySpecification.bend as I
-import ../ExpansionDriverSpecification.bend as D
-import ../Types.bend as T
-import ../Environment.bend as E
-import ../WholeObservation.bend as O
-import ../DeadlineSpecification.bend as Deadline
-import ./ArtifactProtocol.bend as GoProtocol
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
+import ./EntrySpecification.bend as I
+import ./ExpansionDriverSpecification.bend as D
+import ./Types.bend as T
+import ./Environment.bend as E
+import ./WholeObservation.bend as O
+import ./DeadlineSpecification.bend as Deadline
+import ./go-module/ArtifactProtocol.bend as GoProtocol
+import ./python-module/ArtifactProtocol.bend as PythonProtocol
 
 # Full reference entry over the existing operation-selected environment.
 # The check host binds only path algebra and mechanically relays Go child views.
@@ -56,6 +57,12 @@ def complete(progress: I.Progress<Nat>, completion: E.Completion<Nat>) -> I.Prog
       exchange,
       completion
     )
+    case I.EntryPythonChildWaiting{state, exchange}: I.go_completed_exchange(
+      Nat,
+      state,
+      exchange,
+      completion
+    )
     case I.EntryGoChildWaiting{state, exchange}: I.go_completed_exchange(
       Nat,
       state,
@@ -69,6 +76,11 @@ def accept_expansion(progress: I.Progress<Nat>, child: D.Progress<Nat>) -> I.Pro
     case other: other
 def go_child_completed(progress: I.Progress<Nat>, view: GoProtocol.GoView) -> I.Progress<Nat>:
   I.go_child_completed(Nat, suspend, progress, view)
+def python_child_completed(
+  progress: I.Progress<Nat>,
+  view: PythonProtocol.PythonView
+) -> I.Progress<Nat>:
+  I.python_child_completed(Nat, suspend, progress, view)
 def cancel(progress: I.Progress<Nat>) -> I.Progress<Nat>:
   I.cancel(Nat, progress)
 def accepted_result(progress: I.Progress<Nat>) -> Maybe<&2, T.ProductResult>:

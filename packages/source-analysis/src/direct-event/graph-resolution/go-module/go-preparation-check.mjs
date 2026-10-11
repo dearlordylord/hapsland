@@ -14,7 +14,7 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
 import { prepareGoGraph } from "../../languages/go-module-context.ts"
 import { createServiceRegistry, createServiceSession } from "../service-session.ts"
 import { factDeclaration, pureReply } from "../frontend-codec.ts"
-import { createEntryReferenceDriver } from "./entry-driver-check.mjs"
+import { createEntryReferenceDriver } from "../entry-driver-check.mjs"
 
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { resolveGraphUnit } from "../../graph-resolver.ts"
@@ -348,7 +348,7 @@ try {
       else ownedArtifacts[key] = artifact
     }
   const referenceEntry = entryMode
-    ? await createEntryReferenceDriver({ temporary: temp, go: ownedArtifacts.go, transport, artifactTransport })
+    ? await createEntryReferenceDriver({ temporary: temp, go: ownedArtifacts.go, artifactTransport })
     : undefined
   let requests = 0,
     transitions = 0

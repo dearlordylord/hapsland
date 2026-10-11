@@ -1,10 +1,11 @@
+import ./python-module/ArtifactProtocol.bend as PythonProtocol
 import Base
-import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
-import ../ExpansionDriverSpecification.bend as D
-import ../Types.bend as T
-import ../Environment.bend as E
-import ../WholeObservation.bend as O
-import ../DeadlineSpecification.bend as Deadline
+import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
+import ./ExpansionDriverSpecification.bend as D
+import ./Types.bend as T
+import ./Environment.bend as E
+import ./WholeObservation.bend as O
+import ./DeadlineSpecification.bend as Deadline
 
 # Separately emitted continuation of the existing independent expansion driver.
 # The host binds path algebra; all expansion selection/accounting remains in D.
@@ -35,5 +36,7 @@ def advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:
   D.advance(~selection, ~reply, Nat, suspend, progress)
 def complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:
   D.complete(~reply, Nat, progress, completion)
+def child_completed(progress: D.Progress<Nat>, view: PythonProtocol.PythonView) -> D.Progress<Nat>:
+  D.child_completed(Nat, progress, view)
 def main() -> Unit:
   Unit{}

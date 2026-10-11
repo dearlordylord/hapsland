@@ -457,3 +457,15 @@ untracked inputs. Astra's Python bridge structural review found no concrete
 custody defect in prepare/inspect, but the complete Python consumer remains
 required, especially private cache, clock failures, root refusals and final
 authority revalidation. Finite Go regression coverage does not establish it.
+
+Common entry/expansion check facades and the mechanical child relay now have
+one owner in graph-resolution, with their former Go-local copies removed.
+They use the same EntrySpecification and ExpansionDriverSpecification and
+existing Go/Python protocols; no policy or progress representation is copied.
+The actual Go consumer at these new paths passes all 58 entry cases, 55
+artifact cases and 58 Canonical-owned cases with unchanged authored inputs.
+The complete Python/other-language entry fixtures remain the next consumer
+qualification; source relocation does not count as adoption. Retained original
+node replacement work proves numeric/semantic address-key transport and
+unchanged-tail consequences, while its original universal zipper theorem
+remains open.
