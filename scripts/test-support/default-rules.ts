@@ -5,7 +5,7 @@ import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped
 import { compileRules } from "@hapsland/review-definition/rules/compiler"
 import type { LoadedRule } from "@hapsland/review-definition/rules/loader"
 import type { Rule } from "@hapsland/review-execution/policy/rules"
-const bundledRules: ReadonlyArray<LoadedRule> = SHIPPED_DEFAULT_RULES.map((rule) => ({
+export const bundledRules: ReadonlyArray<LoadedRule> = SHIPPED_DEFAULT_RULES.map((rule) => ({
   ...rule,
   origin: { layer: "built-in", source: "built-in:noul", field: "bundled.noul" },
   path: `built-in:${rule.id}`,

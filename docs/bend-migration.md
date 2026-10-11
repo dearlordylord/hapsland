@@ -827,3 +827,16 @@ the public rule compiler and supplied identity. This preserves the single
 fixture owner, avoids serializing compiled Decision objects, reverse dependency
 cycles and new production helper exports. Two composed-root private edges
 remain separate; no gate exclusion or duplicate policy is permitted.
+
+All three remaining tooling fixture edges now use the agreed subprocess data
+boundary in the existing capability runner. Tooling retains bundledRules and
+advicee construction; local preparation-fixtures compiles supplied raw rules
+through the public compiler and clones supplied identity on each use. No
+compiled Decision serialization, duplicated fixture factory or production helper
+export. Actual five-source lint passes. check:fast passes prerequisites and
+source typing/package graph, then fails only the two existing composed-root
+private imports; overall fast gate remains red. Both full affected consumers
+through the actual fixture-supplying runner still require qualification.
+Astra's new aligned_append_fixed/cursor_address_lookup prefix is unqualified
+WIP after hard5 timeout (5.186 wall/3.364 user/0.928 system), no verdict.
+Previous checked proofs and original parent law remain unchanged.

@@ -1038,6 +1038,67 @@ def aligned_absent_lookup(nodes: List<&2, Local.PlannedNode>, entries: List<&2, 
     case Con{_, _} Nil{}:
       Empty.absurd({F.address_at(entries, query) == None{} : Maybe<&2, O.NodeAddress>}, B.internal_false_ne_true(aligned))
 
+# Keep the same complete uniqueness domain while moving the paired cursor.
+def aligned_append_fixed(nodes: List<&2, Local.PlannedNode>, entries: List<&2, F.AddressEntry>,
+    +suffix_nodes: List<&2, Local.PlannedNode>, +suffix_entries: List<&2, F.AddressEntry>,
+    +all_nodes: List<&2, Local.PlannedNode>, +all_entries: List<&2, F.AddressEntry>,
+    +first: {P.aligned(nodes, entries, all_nodes, all_entries) == True{} : Bool},
+    +last: {P.aligned(suffix_nodes, suffix_entries, all_nodes, all_entries) == True{} : Bool}) ->
+    {P.aligned(List.append(&2, Local.PlannedNode, nodes, suffix_nodes),
+      List.append(&2, F.AddressEntry, entries, suffix_entries), all_nodes, all_entries) == True{} : Bool}:
+  match nodes entries:
+    case Nil{} Nil{}: last
+    case Con{Local.PlannedNode{+id, _}, +tail} Con{F.AddressEntry{+other, +birth}, +rest}:
+      +after_id: {Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+        Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(id, other),
+          Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), first)
+      +after_count: {Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+          Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)), after_id)
+      +combined: Bool = P.aligned(List.append(&2, Local.PlannedNode, tail, suffix_nodes),
+        List.append(&2, F.AddressEntry, rest, suffix_entries), all_nodes, all_entries)
+      B.and_eq_true(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+        Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), combined)),
+        B.eq_true_of_and_left(Nat.is_eq(id, other),
+          Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), first),
+        B.and_eq_true(Nat.is_eq(P.node_count(all_nodes, id), 1n), Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), combined),
+          B.eq_true_of_and_left(Nat.is_eq(P.node_count(all_nodes, id), 1n),
+            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)), after_id),
+          B.and_eq_true(Nat.is_eq(P.address_count(all_entries, birth), 1n), combined,
+            B.eq_true_of_and_left(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries), after_count),
+            aligned_append_fixed(tail, rest, suffix_nodes, suffix_entries, all_nodes, all_entries,
+              B.eq_true_of_and_right(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries), after_count), last))))
+    case Nil{} Con{_, _}:
+      Empty.absurd({P.aligned(List.append(&2, Local.PlannedNode, nodes, suffix_nodes),
+        List.append(&2, F.AddressEntry, entries, suffix_entries), all_nodes, all_entries) == True{} : Bool}, B.internal_false_ne_true(first))
+    case Con{_, _} Nil{}:
+      Empty.absurd({P.aligned(List.append(&2, Local.PlannedNode, nodes, suffix_nodes),
+        List.append(&2, F.AddressEntry, entries, suffix_entries), all_nodes, all_entries) == True{} : Bool}, B.internal_false_ne_true(first))
+
+def cursor_address_lookup(+prefix_nodes: List<&2, Local.PlannedNode>, +prefix_entries: List<&2, F.AddressEntry>,
+    +all_nodes: List<&2, Local.PlannedNode>, +all_entries: List<&2, F.AddressEntry>,
+    +id: Nat, +birth: O.NodeAddress, +rest: List<&2, F.AddressEntry>,
+    aligned: {P.aligned(prefix_nodes, prefix_entries, all_nodes, all_entries) == True{} : Bool},
+    dense: {Frame.dense(prefix_nodes, 0n) == True{} : Bool},
+    room: {Nat.is_le(List.length(&2, Local.PlannedNode, prefix_nodes), id) == True{} : Bool},
+    current: {all_entries == List.append(&2, F.AddressEntry, prefix_entries, F.AddressEntry{id, birth} <> rest) : List<&2, F.AddressEntry>}) ->
+    {F.address_at(all_entries, id) == Some{birth} : Maybe<&2, O.NodeAddress>}:
+  %Equal.sym(List<&2, F.AddressEntry>, all_entries,
+    List.append(&2, F.AddressEntry, prefix_entries, F.AddressEntry{id, birth} <> rest), current):
+    {F.address_at(_, id) == Some{birth} : Maybe<&2, O.NodeAddress>}
+  Equal.trans(Maybe<&2, O.NodeAddress>,
+    F.address_at(List.append(&2, F.AddressEntry, prefix_entries, F.AddressEntry{id, birth} <> rest), id),
+    F.address_at(F.AddressEntry{id, birth} <> rest, id), Some{birth},
+    address_append_absent(prefix_entries, F.AddressEntry{id, birth} <> rest, id,
+      aligned_absent_lookup(prefix_nodes, prefix_entries, all_nodes, all_entries, id, aligned,
+        dense_count_upper(prefix_nodes, 0n, id, dense, room))),
+    %Equal.sym(Bool, Nat.is_eq(id, id), True{}, Structure.is_eq_refl(id)):
+      {Bool.pick(Maybe<&2, O.NodeAddress>, _, Some{birth}, F.address_at(rest, id)) == Some{birth} : Maybe<&2, O.NodeAddress>}
+    {==})
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

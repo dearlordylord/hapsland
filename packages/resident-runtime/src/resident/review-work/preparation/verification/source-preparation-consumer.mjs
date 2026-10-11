@@ -24,7 +24,7 @@ import {
   captureActivityPublications,
   snapshotReservationCustody
 } from "./native-source-reference.mjs"
-import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { configuredRules } from "./preparation-fixtures.mjs"
 import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"

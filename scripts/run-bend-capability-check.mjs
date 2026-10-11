@@ -122,9 +122,24 @@ for (const file of selected) {
         : path.endsWith(".test.mjs")
           ? ["--test", "--test-reporter=tap", path]
           : [path]
+  const fixtureConsumer =
+    !syntax &&
+    [
+      "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-consumer.mjs",
+      "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-preparation-check.mjs"
+    ].includes(file)
+  let executionEnv = env
+  if (fixtureConsumer) {
+    const { bundledRules } = await import("./test-support/default-rules.ts")
+    const { advicee } = await import("./test-support/test-fixtures.ts")
+    executionEnv = {
+      ...env,
+      HAPSLAND_PREPARATION_FIXTURES: JSON.stringify({ rules: bundledRules, advicee: advicee() })
+    }
+  }
   const result = spawnSync(command, options, {
     cwd: root,
-    env,
+    env: executionEnv,
     stdio: ["inherit", "pipe", "inherit"],
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,

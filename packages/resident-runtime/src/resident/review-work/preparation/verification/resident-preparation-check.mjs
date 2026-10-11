@@ -36,12 +36,11 @@ import {
 import { resize as __resize } from "../../../state/capacity/reservations.ts"
 import { analyzeFunctionFile as __analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
 import { analysisWorkspaceBytes as __analysisWorkspaceBytes } from "../../../work-ownership/workspace.ts"
-import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { configuredRules, advicee } from "./preparation-fixtures.mjs"
 import { nativePostPreparationSource } from "./native-post-preparation-child.mjs"
 import { consumeRetainedPreparation } from "./retention-consumer.mjs"
 import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
-import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import {
   TYPE_INPUT_CONTRACT,
   FUNCTION_INPUT_CONTRACT as __FUNCTION_INPUT_CONTRACT
