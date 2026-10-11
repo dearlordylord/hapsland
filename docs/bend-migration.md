@@ -231,7 +231,10 @@ One current obstacle list, in execution order:
    changed frame (root, nodes and episodes) at 2.380 seconds, retaining the
    original conditions. Exact witnesses and all eight conjuncts remain open.
    No separate helper frontier qualifies adoption; the
-   original parent theorem remains WIP.
+   original parent theorem now has its complete eight-conjunct body authored,
+   but remains unqualified WIP: the first checker diagnostic rejects duplication
+   of a linear proof pair. Witness elimination must be made linear without
+   changing the original statement or conditions.
    No new or weakened acceptance premise is authorized.
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
@@ -359,7 +362,9 @@ One current obstacle list, in execution order:
    through the normal Node capability runner. Node is required by the physical
    fs observer: its builtin-export probe sees one intercepted call, while Bun
    sees zero; the failed Bun run is not qualification. check:fast passes 109
-   unit tests, typing and dependency checks; explicit lint covers both authored
+   unit tests, typing and dependency checks. The normal typecheck:source now
+   includes a resident-owned strict ABI config with skipLibCheck=false; its
+   actual check and the revised check:fast pass. Explicit lint covers both authored
    declarations and the changed consumer, independently of zero-file changed
    lint. Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.

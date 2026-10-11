@@ -2378,5 +2378,173 @@ law parent_attachment_exact:
     {Frame.dense(attachment_nodes(attachment), 0n) == True{} : Bool}
   )))
 
+def parent_attachment_exact(parent_root, parent_nodes, parent_slots, parent_addresses, parent_forest, child_root, child_nodes, child_slots, child_pending, child_visited, child_budget, child_birth, child_semantic_nodes, child_addresses, catalog, episode, owner, index, symbol, owner_address, known, identity, next_edge, pending, parent_projection, parent_dense, parent_valid, child_projection, child_dense, child_fresh, selected, owner_present):
+  +parent_root = parent_root
+  +parent_nodes = parent_nodes
+  +parent_slots = parent_slots
+  +parent_addresses = parent_addresses
+  +parent_forest = parent_forest
+  +child_root = child_root
+  +child_nodes = child_nodes
+  +child_slots = child_slots
+  +child_pending = child_pending
+  +child_visited = child_visited
+  +child_budget = child_budget
+  +child_birth = child_birth
+  +child_semantic_nodes = child_semantic_nodes
+  +child_addresses = child_addresses
+  +catalog = catalog
+  +episode = episode
+  +owner = owner
+  +index = index
+  +symbol = symbol
+  +owner_address = owner_address
+  +known = known
+  +identity = identity
+  +next_edge = next_edge
+  +pending = pending
+  +parent_projection = parent_projection
+  +parent_dense = parent_dense
+  +parent_valid = parent_valid
+  +child_projection = child_projection
+  +child_dense = child_dense
+  +child_fresh = child_fresh
+  +selected = selected
+  +owner_present = owner_present
+  +parent_parts: {Bool.and(P.aligned(parent_nodes, parent_addresses, parent_nodes, parent_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots)))) == True{} : Bool} & {P.forest(F.address_at(parent_addresses, parent_root), P.nodes(parent_nodes, parent_slots, catalog, parent_addresses)) == Some{parent_forest} : Maybe<&2, F.Forest>} = Contents.project_contents(parent_root, parent_nodes, parent_slots, catalog, parent_addresses, parent_forest, parent_projection)
+  +parent_guards: {Bool.and(P.aligned(parent_nodes, parent_addresses, parent_nodes, parent_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots)))) == True{} : Bool} = Pair.fst({Bool.and(P.aligned(parent_nodes, parent_addresses, parent_nodes, parent_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots)))) == True{} : Bool}, {P.forest(F.address_at(parent_addresses, parent_root), P.nodes(parent_nodes, parent_slots, catalog, parent_addresses)) == Some{parent_forest} : Maybe<&2, F.Forest>}, parent_parts)
+  +parent_present: {P.forest(F.address_at(parent_addresses, parent_root), P.nodes(parent_nodes, parent_slots, catalog, parent_addresses)) == Some{parent_forest} : Maybe<&2, F.Forest>} = Pair.snd({Bool.and(P.aligned(parent_nodes, parent_addresses, parent_nodes, parent_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots)))) == True{} : Bool}, {P.forest(F.address_at(parent_addresses, parent_root), P.nodes(parent_nodes, parent_slots, catalog, parent_addresses)) == Some{parent_forest} : Maybe<&2, F.Forest>}, parent_parts)
+  eliminate_witness(O.NodeAddress,
+    birth => Exists(List<&2, F.Node>, values => {F.address_at(parent_addresses, parent_root) == Some{birth} : Maybe<&2, O.NodeAddress>} & {P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} & {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>}),
+    parent_result(parent_root, parent_nodes, parent_slots, parent_addresses, parent_forest, child_root, child_nodes, child_slots, child_pending, child_visited, child_budget, child_birth, child_semantic_nodes, child_addresses, catalog, episode, owner, index, symbol, owner_address, known, identity, next_edge, pending),
+    Contents.forest_contents(F.address_at(parent_addresses, parent_root), P.nodes(parent_nodes, parent_slots, catalog, parent_addresses), parent_forest, parent_present),
+    birth => witness =>
+    +birth = birth
+    eliminate_witness(List<&2, F.Node>, values => {F.address_at(parent_addresses, parent_root) == Some{birth} : Maybe<&2, O.NodeAddress>} & {P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} & {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>},
+      parent_result(parent_root, parent_nodes, parent_slots, parent_addresses, parent_forest, child_root, child_nodes, child_slots, child_pending, child_visited, child_budget, child_birth, child_semantic_nodes, child_addresses, catalog, episode, owner, index, symbol, owner_address, known, identity, next_edge, pending), witness,
+      values => evidence =>
+      +values = values
+      +parent_equations: {F.address_at(parent_addresses, parent_root) == Some{birth} : Maybe<&2, O.NodeAddress>} & {P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} & {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>} = evidence
+      +parent_located: {F.address_at(parent_addresses, parent_root) == Some{birth} : Maybe<&2, O.NodeAddress>} = Pair.fst({F.address_at(parent_addresses, parent_root) == Some{birth} : Maybe<&2, O.NodeAddress>}, {P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} & {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>}, parent_equations)
+      +parent_evidence: {P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} & {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>} = Pair.snd({F.address_at(parent_addresses, parent_root) == Some{birth} : Maybe<&2, O.NodeAddress>}, {P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} & {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>}, parent_equations)
+      +parent_forest_equations: {P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} & {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>} = parent_evidence
+      +parent_projected: {P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} = Pair.fst({P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>}, {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>}, parent_forest_equations)
+      +parent_same: {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>} = Pair.snd({P.nodes(parent_nodes, parent_slots, catalog, parent_addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>}, {Some{F.Forest{Some{birth}, values}} == Some{parent_forest} : Maybe<&2, F.Forest>}, parent_forest_equations)
+      +same_forest: {F.Forest{Some{birth}, values} == parent_forest : F.Forest} =
+        Count.some_equal(F.Forest, F.Forest{Some{birth}, values}, parent_forest, parent_same)
+      +parent_frame: {Relation.frame_forest(F.Forest{Some{birth}, values}, episode) == True{} : Bool} =
+        %Equal.sym(F.Forest, F.Forest{Some{birth}, values}, parent_forest, same_forest): {Relation.frame_forest(_, episode) == True{} : Bool}
+        parent_valid
+      %same_forest: parent_result(parent_root, parent_nodes, parent_slots, parent_addresses, _, child_root, child_nodes, child_slots, child_pending, child_visited, child_budget, child_birth, child_semantic_nodes, child_addresses, catalog, episode, owner, index, symbol, owner_address, known, identity, next_edge, pending)
+      +parent_aligned: {P.aligned(parent_nodes, parent_addresses, parent_nodes, parent_addresses) == True{} : Bool} = B.eq_true_of_and_left(P.aligned(parent_nodes, parent_addresses, parent_nodes, parent_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots))), parent_guards)
+      +parent_remaining: {Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots))) == True{} : Bool} = B.eq_true_of_and_right(P.aligned(parent_nodes, parent_addresses, parent_nodes, parent_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots))), parent_guards)
+      +parent_unique: {P.catalog_unique(catalog, catalog) == True{} : Bool} = B.eq_true_of_and_left(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots)), parent_remaining)
+      +parent_slot_guards: {Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots)) == True{} : Bool} = B.eq_true_of_and_right(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots)), parent_remaining)
+      +parent_owned: {P.slots_owned(parent_slots, parent_nodes) == True{} : Bool} = B.eq_true_of_and_left(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots), parent_slot_guards)
+      +parent_forward: {P.forward_nodes(parent_nodes, parent_slots) == True{} : Bool} = B.eq_true_of_and_right(P.slots_owned(parent_slots, parent_nodes), P.forward_nodes(parent_nodes, parent_slots), parent_slot_guards)
+      +child_parts: {Bool.and(P.aligned(child_nodes, child_addresses, child_nodes, child_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots)))) == True{} : Bool} & {P.forest(F.address_at(child_addresses, child_root), P.nodes(child_nodes, child_slots, catalog, child_addresses)) == Some{F.Forest{Some{child_birth}, child_semantic_nodes}} : Maybe<&2, F.Forest>} = Contents.project_contents(child_root, child_nodes, child_slots, catalog, child_addresses, F.Forest{Some{child_birth}, child_semantic_nodes}, child_projection)
+      +child_guards: {Bool.and(P.aligned(child_nodes, child_addresses, child_nodes, child_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots)))) == True{} : Bool} = Pair.fst({Bool.and(P.aligned(child_nodes, child_addresses, child_nodes, child_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots)))) == True{} : Bool}, {P.forest(F.address_at(child_addresses, child_root), P.nodes(child_nodes, child_slots, catalog, child_addresses)) == Some{F.Forest{Some{child_birth}, child_semantic_nodes}} : Maybe<&2, F.Forest>}, child_parts)
+      +child_present: {P.forest(F.address_at(child_addresses, child_root), P.nodes(child_nodes, child_slots, catalog, child_addresses)) == Some{F.Forest{Some{child_birth}, child_semantic_nodes}} : Maybe<&2, F.Forest>} = Pair.snd({Bool.and(P.aligned(child_nodes, child_addresses, child_nodes, child_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots)))) == True{} : Bool}, {P.forest(F.address_at(child_addresses, child_root), P.nodes(child_nodes, child_slots, catalog, child_addresses)) == Some{F.Forest{Some{child_birth}, child_semantic_nodes}} : Maybe<&2, F.Forest>}, child_parts)
+      +child_aligned: {P.aligned(child_nodes, child_addresses, child_nodes, child_addresses) == True{} : Bool} = B.eq_true_of_and_left(P.aligned(child_nodes, child_addresses, child_nodes, child_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots))), child_guards)
+      +child_remaining: {Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots))) == True{} : Bool} = B.eq_true_of_and_right(P.aligned(child_nodes, child_addresses, child_nodes, child_addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots))), child_guards)
+      +child_unique: {P.catalog_unique(catalog, catalog) == True{} : Bool} = B.eq_true_of_and_left(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots)), child_remaining)
+      +child_slot_guards: {Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots)) == True{} : Bool} = B.eq_true_of_and_right(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots)), child_remaining)
+      +child_owned: {P.slots_owned(child_slots, child_nodes) == True{} : Bool} = B.eq_true_of_and_left(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots), child_slot_guards)
+      +child_forward: {P.forward_nodes(child_nodes, child_slots) == True{} : Bool} = B.eq_true_of_and_right(P.slots_owned(child_slots, child_nodes), P.forward_nodes(child_nodes, child_slots), child_slot_guards)
+      +child_located: {F.address_at(child_addresses, child_root) == Some{child_birth} : Maybe<&2, O.NodeAddress>} = Contents.projected_forest_root(F.address_at(child_addresses, child_root), P.nodes(child_nodes, child_slots, catalog, child_addresses), child_birth, child_semantic_nodes, child_present)
+      +child_projected: {P.nodes(child_nodes, child_slots, catalog, child_addresses) == Some{child_semantic_nodes} : Maybe<&2, List<&2, F.Node>>} = Replacement.projected_forest_nodes(F.address_at(child_addresses, child_root), P.nodes(child_nodes, child_slots, catalog, child_addresses), child_birth, child_semantic_nodes, child_present)
+      +before: {Relation.episodes_before(values, episode) == True{} : Bool} = B.eq_true_of_and_right(Relation.retained(F.Forest{Some{birth}, values}), Relation.episodes_before(values, episode), parent_frame)
+      +child_fresh_parts: {Bool.and(Ready.episode_nodes(child_semantic_nodes, episode), Relation.frame_forest(F.Forest{Some{child_birth}, child_semantic_nodes}, (episode + 1n : Nat))) == True{} : Bool} =
+        B.eq_true_of_and_right(F.same_address(child_birth, O.NodeAddress{episode, []}), Bool.and(Ready.episode_nodes(child_semantic_nodes, episode), Relation.frame_forest(F.Forest{Some{child_birth}, child_semantic_nodes}, (episode + 1n : Nat))), child_fresh)
+      +fresh: {Ready.episode_nodes(child_semantic_nodes, episode) == True{} : Bool} = B.eq_true_of_and_left(Ready.episode_nodes(child_semantic_nodes, episode), Relation.frame_forest(F.Forest{Some{child_birth}, child_semantic_nodes}, (episode + 1n : Nat)), child_fresh_parts)
+      +child_frame: {Relation.frame_forest(F.Forest{Some{child_birth}, child_semantic_nodes}, (episode + 1n : Nat)) == True{} : Bool} = B.eq_true_of_and_right(Ready.episode_nodes(child_semantic_nodes, episode), Relation.frame_forest(F.Forest{Some{child_birth}, child_semantic_nodes}, (episode + 1n : Nat)), child_fresh_parts)
+      +offset: Nat = List.length(&2, Local.PlannedNode, parent_nodes)
+      +combined_nodes: List<&2, Local.PlannedNode> = List.append(&2, Local.PlannedNode, parent_nodes, Compose.shift_nodes(child_nodes, offset))
+      +combined_slots: List<&2, Local.ReferenceSlot> = List.append(&2, Local.ReferenceSlot, parent_slots, Compose.shift_slots(child_slots, offset))
+      +combined_entries: List<&2, F.AddressEntry> = List.append(&2, F.AddressEntry, parent_addresses, Mapping.shifted(child_addresses, offset))
+      +combined_values: List<&2, F.Node> = List.append(&2, F.Node, values, child_semantic_nodes)
+      +new_actual: Local.PlannedReference = Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + offset : Nat)})
+      +new_semantic: F.Reference = X.attachment_reference(known, F.Created{child_birth, child_semantic_nodes, child_addresses}, symbol, identity)
+      +combined_aligned: {P.aligned(combined_nodes, combined_entries, combined_nodes, combined_entries) == True{} : Bool} =
+        appended_aligned(parent_nodes, parent_slots, parent_addresses, values, child_nodes, child_slots, child_addresses, child_semantic_nodes, catalog, episode,
+          parent_aligned, parent_dense, parent_projected, before, child_aligned, child_dense, child_projected, fresh)
+      +combined_owned: {P.slots_owned(combined_slots, combined_nodes) == True{} : Bool} = appended_slots_owned(parent_nodes, parent_slots, child_nodes, child_slots, parent_dense, parent_owned, child_owned)
+      +combined_forward: {P.forward_nodes(combined_nodes, combined_slots) == True{} : Bool} = appended_forward(parent_nodes, parent_slots, child_nodes, child_slots, parent_dense, parent_owned, parent_forward, child_forward)
+      +combined_located: {F.address_at(combined_entries, parent_root) == Some{birth} : Maybe<&2, O.NodeAddress>} = address_append_present(parent_addresses, Mapping.shifted(child_addresses, offset), parent_root, birth, parent_located)
+      +combined_projection: {P.project(parent_root, combined_nodes, combined_slots, catalog, combined_entries) == Some{F.Forest{Some{birth}, combined_values}} : Maybe<&2, F.Forest>} =
+        Contents.project_from_parts(parent_root, combined_nodes, combined_slots, catalog, combined_entries, birth, combined_values,
+          combined_aligned, parent_unique, combined_owned, combined_forward, combined_located,
+          appended_nodes(parent_nodes, parent_slots, child_nodes, child_slots, catalog, parent_addresses, child_addresses, values, child_semantic_nodes,
+            parent_dense, parent_aligned, parent_owned, parent_projected, child_projected))
+      +owner_count: {F.count_address(values, owner_address) == 1n : Nat} = projected_lookup_count(parent_nodes, parent_addresses, parent_slots, catalog, values, owner, owner_address, parent_aligned, parent_dense, parent_projected, owner_present)
+      +child_count: {F.count_address(child_semantic_nodes, child_birth) == 1n : Nat} = projected_lookup_count(child_nodes, child_addresses, child_slots, catalog, child_semantic_nodes, child_root, child_birth, child_aligned, child_dense, child_projected, child_located)
+      +child_numeric_count: {P.node_count(child_nodes, child_root) == 1n : Nat} = RootSelection.count(child_nodes, child_addresses, child_nodes, child_addresses, child_root, child_birth, child_aligned, child_located)
+      +owner_below: {Nat.is_lt(owner, offset) == True{} : Bool} = dense_owner_below(parent_nodes, owner, parent_dense, RootSelection.count(parent_nodes, parent_addresses, parent_nodes, parent_addresses, owner, owner_address, parent_aligned, owner_present))
+      eliminate_witness(List<&2, Local.ReferenceSlot>, changed_slots => Exists(List<&2, F.Node>, changed_nodes => {Compose.replacement(Compose.replace_slot(combined_slots, owner, index, new_actual)) == Some{changed_slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>} & {P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} & {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes}),
+        parent_result(parent_root, parent_nodes, parent_slots, parent_addresses, F.Forest{Some{birth}, values}, child_root, child_nodes, child_slots, child_pending, child_visited, child_budget, child_birth, child_semantic_nodes, child_addresses, catalog, episode, owner, index, symbol, owner_address, known, identity, next_edge, pending),
+        Replacement.node_replacement_exact(parent_root, combined_nodes, combined_slots, catalog, combined_entries, birth, combined_values,
+          owner, index, symbol, owner_address, new_actual, new_semantic, combined_projection,
+          appended_selected(parent_nodes, parent_slots, parent_addresses, child_slots, owner, index, symbol, owner_address, parent_dense, parent_aligned, owner_present,
+            N.eq_of_is_eq(Ready.slot_count(parent_slots, owner, index, symbol), 1n, selected)),
+          address_append_present(parent_addresses, Mapping.shifted(child_addresses, offset), owner, owner_address, owner_present),
+          appended_attachment_reference(known, owner, index, symbol, identity, child_root, offset, child_birth, child_semantic_nodes, child_addresses, combined_entries,
+            appended_child_address(parent_nodes, parent_addresses, child_addresses, child_root, child_birth, parent_aligned, parent_dense, child_located))),
+        changed_slots => witness =>
+        +changed_slots = changed_slots
+        eliminate_witness(List<&2, F.Node>, changed_nodes => {Compose.replacement(Compose.replace_slot(combined_slots, owner, index, new_actual)) == Some{changed_slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>} & {P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} & {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes}, parent_result(parent_root, parent_nodes, parent_slots, parent_addresses, F.Forest{Some{birth}, values}, child_root, child_nodes, child_slots, child_pending, child_visited, child_budget, child_birth, child_semantic_nodes, child_addresses, catalog, episode, owner, index, symbol, owner_address, known, identity, next_edge, pending), witness,
+          changed_nodes => equations =>
+          +changed_nodes = changed_nodes
+          +replacement_equations: {Compose.replacement(Compose.replace_slot(combined_slots, owner, index, new_actual)) == Some{changed_slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>} & {P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} & {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes} = equations
+          +replacement_done: {Compose.replacement(Compose.replace_slot(combined_slots, owner, index, new_actual)) == Some{changed_slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>} = Pair.fst({Compose.replacement(Compose.replace_slot(combined_slots, owner, index, new_actual)) == Some{changed_slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>}, {P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} & {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes}, replacement_equations)
+          +node_equations: {P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} & {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes} = Pair.snd({Compose.replacement(Compose.replace_slot(combined_slots, owner, index, new_actual)) == Some{changed_slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>}, {P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} & {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes}, replacement_equations)
+          +semantic_equations: {P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} & {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes} = node_equations
+          +nodes_done: {P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>} = Pair.fst({P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>}, {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes}, semantic_equations)
+          +semantic_done: {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes} = Pair.snd({P.nodes(combined_nodes, changed_slots, catalog, combined_entries) == Some{changed_nodes} : Maybe<&2, List<&2, F.Node>>}, {F.replace_nodes(combined_values, owner_address, index, new_semantic) == F.Nodes{changed_nodes, 1n} : F.Nodes}, semantic_equations)
+          +replaced: List<&2, Local.ReferenceSlot> = Structure.slots(Compose.replace_slot(parent_slots, owner, index, new_actual))
+          +suffix_equations: {Compose.replacement(Compose.replace_slot(parent_slots, owner, index, new_actual)) == Some{replaced} : Maybe<&2, List<&2, Local.ReferenceSlot>>} & {changed_slots == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>} = appended_replacement_payload(parent_nodes, parent_slots, parent_addresses, child_slots, owner, index, new_actual, owner_address, changed_slots, parent_dense, parent_aligned, owner_present, replacement_done)
+          +parent_replaced: {Compose.replacement(Compose.replace_slot(parent_slots, owner, index, new_actual)) == Some{replaced} : Maybe<&2, List<&2, Local.ReferenceSlot>>} = Pair.fst({Compose.replacement(Compose.replace_slot(parent_slots, owner, index, new_actual)) == Some{replaced} : Maybe<&2, List<&2, Local.ReferenceSlot>>}, {changed_slots == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>}, suffix_equations)
+          +slots_exact: {changed_slots == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>} = Pair.snd({Compose.replacement(Compose.replace_slot(parent_slots, owner, index, new_actual)) == Some{replaced} : Maybe<&2, List<&2, Local.ReferenceSlot>>}, {changed_slots == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>}, suffix_equations)
+          +remapped: Compose.RemappedPlan = Compose.remap(Local.Plan{child_root, child_nodes, child_slots, child_pending, child_visited, child_budget}, offset)
+          +registration: Compose.RegisteredPending = Compose.register_pending(Compose.shift_pending(child_pending, offset), next_edge, pending)
+          +attachment: Compose.Attachment = Compose.attachment_registered(registration, remapped, parent_nodes, replaced)
+          +updated: F.Forest = F.Forest{Some{birth}, changed_nodes}
+          +attachment_fields: {attachment_nodes(attachment) == combined_nodes : List<&2, Local.PlannedNode>} & {attachment_slots(attachment) == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>} & {attachment_next_node(attachment) == (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat} = registered_fields(registration, (child_root + offset : Nat), (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat), Compose.shift_nodes(child_nodes, offset), Compose.shift_slots(child_slots, offset), Compose.shift_pending(child_pending, offset), child_visited, child_budget, parent_nodes, replaced)
+          +attached_nodes: {attachment_nodes(attachment) == combined_nodes : List<&2, Local.PlannedNode>} = Pair.fst({attachment_nodes(attachment) == combined_nodes : List<&2, Local.PlannedNode>}, {attachment_slots(attachment) == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>} & {attachment_next_node(attachment) == (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat}, attachment_fields)
+          +attached_remaining: {attachment_slots(attachment) == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>} & {attachment_next_node(attachment) == (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat} = Pair.snd({attachment_nodes(attachment) == combined_nodes : List<&2, Local.PlannedNode>}, {attachment_slots(attachment) == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>} & {attachment_next_node(attachment) == (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat}, attachment_fields)
+          +attachment_tail_fields: {attachment_slots(attachment) == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>} & {attachment_next_node(attachment) == (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat} = attached_remaining
+          +attached_slots: {attachment_slots(attachment) == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>} = Pair.fst({attachment_slots(attachment) == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>}, {attachment_next_node(attachment) == (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat}, attachment_tail_fields)
+          +attached_next: {attachment_next_node(attachment) == (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat} = Pair.snd({attachment_slots(attachment) == List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)) : List<&2, Local.ReferenceSlot>}, {attachment_next_node(attachment) == (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat) : Nat}, attachment_tail_fields)
+          Tuple{replaced, Tuple{attachment, Tuple{updated, Tuple{parent_replaced,
+          Tuple{tentative_success((child_root + offset : Nat), (offset + List.length(&2, Local.PlannedNode, child_nodes) : Nat), Compose.shift_nodes(child_nodes, offset),
+            Compose.shift_slots(child_slots, offset), Compose.shift_pending(child_pending, offset), child_visited, child_budget,
+            parent_nodes, parent_slots, owner, index, known, identity, next_edge, pending, replaced, parent_replaced),
+          Tuple{{==},
+          Tuple{forest_replacement_completed(birth, combined_values, owner_address, index, new_semantic, changed_nodes,
+            appended_semantic_count(True{}, values, child_semantic_nodes, episode, owner_address, before, fresh, owner_count),
+            attachment_reference_valid(known, owner_address, child_birth, child_semantic_nodes, child_addresses, combined_values, symbol, identity,
+              appended_semantic_count(False{}, values, child_semantic_nodes, episode, child_birth, before, fresh, child_count),
+              fresh_attachment_born(values, child_semantic_nodes, episode, owner_address, child_birth, before, fresh, owner_count, child_count)), semantic_done),
+          Tuple{%Equal.sym(List<&2, Local.PlannedNode>, attachment_nodes(attachment), combined_nodes, attached_nodes):
+            {P.project(parent_root, _, attachment_slots(attachment), catalog, combined_entries) == Some{updated} : Maybe<&2, F.Forest>}
+          %Equal.sym(List<&2, Local.ReferenceSlot>, attachment_slots(attachment), List.append(&2, Local.ReferenceSlot, replaced, Compose.shift_slots(child_slots, offset)), attached_slots):
+            {P.project(parent_root, combined_nodes, _, catalog, combined_entries) == Some{updated} : Maybe<&2, F.Forest>}
+          %slots_exact: {P.project(parent_root, combined_nodes, _, catalog, combined_entries) == Some{updated} : Maybe<&2, F.Forest>}
+          replaced_appended_projection(parent_root, birth, parent_nodes, child_nodes, combined_slots, catalog, combined_entries, owner, index,
+            known, identity, child_root, changed_slots, changed_nodes, combined_aligned, parent_unique, combined_owned, combined_forward, parent_dense,
+            owner_below, child_numeric_count, combined_located, replacement_done, nodes_done),
+          Tuple{%Equal.cong(F.Nodes, List<&2, F.Node>, Rollback.result_nodes, F.replace_nodes(combined_values, owner_address, index, new_semantic),
+            F.Nodes{changed_nodes, 1n}, semantic_done):
+            {Relation.frame_forest(F.Forest{Some{birth}, _}, (episode + 1n : Nat)) == True{} : Bool}
+          Equal.sym(Bool, True{}, Relation.frame_forest(F.Forest{Some{birth}, Rollback.result_nodes(F.replace_nodes(combined_values, owner_address, index, new_semantic))}, (episode + 1n : Nat)),
+            attachment_changed_frame(values, child_semantic_nodes, birth, child_birth, child_addresses, episode, owner_address, index, known, symbol, identity,
+              parent_frame, child_frame, fresh, owner_count)),
+          Tuple{attached_next,
+          %Equal.sym(List<&2, Local.PlannedNode>, attachment_nodes(attachment), combined_nodes, attached_nodes): {Frame.dense(_, 0n) == True{} : Bool}
+          Allocation.dense_append(parent_nodes, Compose.shift_nodes(child_nodes, offset), 0n, parent_dense,
+            %Allocation.dense_shift(child_nodes, 0n, offset): {_ == True{} : Bool}
+            child_dense)}}}}}}}}}}
+        ))
+    ))
+
 def main() -> Unit:
   Unit{}
