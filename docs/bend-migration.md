@@ -211,10 +211,14 @@ One current obstacle list, in execution order:
    protocol suite 6/6. check:fast passed 109 tests/source typecheck/package graph
    but failed development-import checks; explicit nonempty lint covers the new TS
    files. This does not qualify whole production adoption.
-   Astra identified that terminal provider exceptions must be projected inside
-   the owning drive before session.close clears ExceptionToken resources; the
-   current generic resolver Error loses original identity. Go remains absent from
-   the compiled frontend. Both block public whole-resolver replacement.
+   Owning drive now projects ForeignProviderFailure/RuntimeFailure before
+   finish/registry.close clears ExceptionToken resources. Both terminal edges
+   retain original falsy values/error identity through existing cleanup receipts.
+   Astra found no blocking correction in this diff. Actual emitted Canonical
+   driver check passed 796 assertions; affected whole source/resident/owned-root
+   consumers passed 50/64/13 cases. These checks use controlled terminal tokens
+   for failure injection and do not prove universal correspondence. Generic
+   protocol-failure policy and missing Go frontend remain adoption blockers.
    Remaining work here: opaque compiled resolver/session API, fixture/default/native
    comparisons outside resident's production binding, ordinary typed binding and
    public native PreparationInput encoding. Preserve full ordered effects, original

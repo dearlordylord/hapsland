@@ -454,6 +454,14 @@ export function createOwnedArtifactDriver({
         forwardedReceipt = undefined
         return receipt
       }
+      // Project opaque terminal exceptions while this invocation still owns its
+      // session. Registry cleanup clears the token table after the task settles.
+      const terminalOutcome = () => {
+        const outcome = finished.get(invocation)
+        if (outcome?.failure?.$ === "Types.ForeignProviderFailure" || outcome?.failure?.$ === "Types.RuntimeFailure")
+          throw session.exception(outcome.failure.exception)
+        return outcome
+      }
       const applyInInvocation = (step) => requireOutcome(applyOutcome(step))
       const settleInInvocation = (...args) => requireOutcome(settleOutcome(...args))
       try {
@@ -489,7 +497,7 @@ export function createOwnedArtifactDriver({
                 taskFailure = abortFailure
                 throw abortFailure.error
               }
-              return finished.get(invocation)
+              return terminalOutcome()
             }
             try {
               settleInInvocation(
@@ -555,7 +563,7 @@ export function createOwnedArtifactDriver({
               taskFailure = abortFailure
               throw abortFailure.error
             }
-            return finished.get(invocation)
+            return terminalOutcome()
           } catch (error) {
             taskFailure ??= takeFailure(error)
             try {

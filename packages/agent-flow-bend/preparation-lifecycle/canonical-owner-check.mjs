@@ -541,77 +541,99 @@ try {
   }
   // Opaque provider failures include falsy JavaScript thrown values. They must
   // survive saved-reply delivery without a Resume or terminal acceptance.
-  for (const { original, cleanupFails, closeFails } of [undefined, null, false, 0, ""].flatMap((original) =>
-    ["none", "finish", "close"].map((phase) => ({
-      original,
-      cleanupFails: phase === "finish",
-      closeFails: phase === "close"
-    }))
-  )) {
-    const registry = createServiceRegistry()
-    const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
-      view: (value) => value,
-      resume() {
-        assert.fail("failed provider must not resume the engine")
-      },
-      disposeInvocation() {},
-      get retainedHandles() {
-        return 0
+  for (const failureKind of ["thrown", "ForeignProviderFailure", "RuntimeFailure"])
+    for (const { original, cleanupFails, closeFails } of [
+      undefined,
+      null,
+      false,
+      0,
+      "",
+      new Error("provider identity")
+    ].flatMap((original) =>
+      ["none", "finish", "close"].map((phase) => ({
+        original,
+        cleanupFails: phase === "finish",
+        closeFails: phase === "close"
+      }))
+    )) {
+      const token = { $: "Types.ExceptionToken", invocation: 0n, id: 1n }
+      let closed = false,
+        projections = 0
+      const registry = createServiceRegistry()
+      const machine = {
+        initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+        view: (value) => value,
+        resume() {
+          if (failureKind === "thrown") assert.fail("failed provider must not resume the engine")
+          return { $: "Types.FailedResolver", failure: { $: "Types." + failureKind, exception: token } }
+        },
+        disposeInvocation() {},
+        get retainedHandles() {
+          return 0
+        }
       }
-    }
-    const driver = createOwnedArtifactDriver({
-      owner: m,
-      initialState: fresh(),
-      scope,
-      registry,
-      machine,
-      foreign() {
-        throw original
+      const driver = createOwnedArtifactDriver({
+        owner: m,
+        initialState: fresh(),
+        scope,
+        registry,
+        machine,
+        foreign() {
+          if (failureKind === "thrown") throw original
+          return { $: "Types.Reply" }
+        }
+      })
+      const invocation = driver.allocateInvocation()
+      token.invocation = BigInt(invocation)
+      const cleanupError = new Error("original cleanup failure")
+      let allowCleanup = !cleanupFails
+      const session = {
+        invocation,
+        exception(value) {
+          assert.equal(closed, false)
+          assert.strictEqual(value, token)
+          projections++
+          return original
+        },
+        finish() {
+          if (!allowCleanup) throw cleanupError
+        },
+        close() {
+          closed = true
+          if (closeFails) throw original
+        },
+        revoke() {}
       }
-    })
-    const invocation = driver.allocateInvocation()
-    const cleanupError = new Error("original cleanup failure")
-    let allowCleanup = !cleanupFails
-    const session = {
-      invocation,
-      finish() {
-        if (!allowCleanup) throw cleanupError
-      },
-      close() {
-        if (closeFails) throw original
-      },
-      revoke() {}
+      const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+        () => ({ raised: false }),
+        (error) => ({ raised: true, error })
+      )
+      assert.equal(observed.raised, true)
+      if (cleanupFails) {
+        assert.ok(observed.error instanceof AggregateError)
+        assert.equal(observed.error.cause, original)
+        assert.ok(observed.error.errors.includes(original))
+        assert.ok(observed.error.errors.includes(cleanupError))
+        assert.equal(registry.pendingCleanup, 1)
+        assert.equal(driver.resources.sessions, 1)
+        allowCleanup = true
+        await registry.retryCleanup()
+        assertions += 6
+      } else if (closeFails) {
+        assert.ok(observed.error instanceof AggregateError)
+        assert.ok(Object.hasOwn(observed.error, "cause"))
+        assert.equal(observed.error.cause, original)
+        assert.deepEqual(observed.error.errors, [original, original])
+        assertions += 4
+      } else assert.equal(observed.error, original)
+      assert.equal(driver.stats.resumes, failureKind === "thrown" ? 0 : 1)
+      assert.equal(projections, failureKind === "thrown" ? 0 : 1)
+      assert.equal(driver.stats.accepted, failureKind === "thrown" ? 0 : 1)
+      assert.equal(registry.pendingCleanup, 0)
+      assert.equal(registry.size, 0)
+      assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+      assertions += 7
     }
-    const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
-      () => ({ raised: false }),
-      (error) => ({ raised: true, error })
-    )
-    assert.equal(observed.raised, true)
-    if (cleanupFails) {
-      assert.ok(observed.error instanceof AggregateError)
-      assert.equal(observed.error.cause, original)
-      assert.ok(observed.error.errors.includes(original))
-      assert.ok(observed.error.errors.includes(cleanupError))
-      assert.equal(registry.pendingCleanup, 1)
-      assert.equal(driver.resources.sessions, 1)
-      allowCleanup = true
-      await registry.retryCleanup()
-      assertions += 6
-    } else if (closeFails) {
-      assert.ok(observed.error instanceof AggregateError)
-      assert.ok(Object.hasOwn(observed.error, "cause"))
-      assert.equal(observed.error.cause, original)
-      assert.deepEqual(observed.error.errors, [original, original])
-      assertions += 4
-    } else assert.equal(observed.error, original)
-    assert.equal(driver.stats.resumes, 0)
-    assert.equal(driver.stats.accepted, 0)
-    assert.equal(registry.pendingCleanup, 0)
-    assert.equal(registry.size, 0)
-    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
-    assertions += 7
-  }
   // Canonical cancellation can commit while engine disposal fails. Keep its
   // exact operation pending; successful revoke/abort must not run again.
   {
