@@ -384,8 +384,14 @@ One current obstacle list, in execution order:
    Both qualified with unchanged inputs. At e2b7e4cd execution started 15:47:18.957612 UTC, qualified and
    passed at 0.6689832928130847. Matched warm build started
    15:47:56.422456 UTC, qualified with all 17 pairs at 23/46 cached,
-   and failed parity at 1.1109345084723954. Next start deadlines are
-   16:17:18 / 16:17:56 UTC.
+   and failed parity at 1.1109345084723954. At c5a64f9e matched warm build
+   started 16:17:57.827565 UTC, qualified with all 17 pairs at 23/46 cached,
+   and failed parity at 1.1118837956138083. Execution started
+   16:22:28.915800 UTC, qualified and passed at 0.8174906207336415.
+   The build start deadline was missed by 1.405109 seconds; the execution
+   start deadline was missed by 5 minutes 9.958188 seconds. These cadence
+   failures remain recorded. Next start deadlines are 16:47:57.827565 UTC
+   for build and 16:52:28.915800 UTC for execution.
    Records remain ignored under .test-runs/bend-migration/performance. These
    measure existing production, not unadopted whole preparation. Warm the
    actual changed candidate before each pair; an earlier source revision's warm
@@ -494,3 +500,22 @@ The Go adapter imports and reexports the module owner; both edges are rebound
 with an exact two-edge assertion. Full comparisons remain unchanged in scope
 and the next same-fixture diagnostic remains required. Go nominal ABI conversion
 has one Go-owned codec shared by the existing Go and common entry consumers.
+
+The full entry checker now invokes actual native resolveGraphUnit for Go and
+Python, retaining its frame through observation of the same invocation. The
+former manual graphIteration loop omitted authority validation and the final
+deadline. Its apparent extra Go clock was an incomplete oracle: all three Go
+fixtures now compare full external chronology exactly (11/11, 11/11 and 16/16
+clock reads), along with the existing product and retained-state assertions.
+Fixture captures now contain every StableCapture field, including bytes and
+contentHash; the previous partial fixture failed HashJsonProduct before Go
+preparation completed. These are checker corrections, not relaxed comparisons.
+The next Python fixture exposes private capture-cache publication missing from
+the native observer. Instrumentation now observes actual Python root/child
+cache writes, access and status operations. That correction is not qualified:
+the next whole run stopped before fixtures because EntryDriverCheck emission
+exceeded the unchanged five-second deadline. Diagnose the emission cost before
+claiming full entry correspondence. The existing parent attachment transport
+has two new internal definitions saved as unverified work; its original law
+and premises remain unchanged. Public adoption and removed production TS
+remain zero.

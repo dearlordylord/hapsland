@@ -430,13 +430,43 @@ try {
     goModuleUrl = pathToFileURL(goModuleOwner).href
   assert.equal(goAdapterSource.split(goModuleUrl).length, 3, "Go module import and public constant reexport")
   writeFileSync(goAdapterCopy, goAdapterSource.replaceAll(goModuleUrl, pathToFileURL(goModuleCopy).href))
+  const pythonModuleOwner = path.join(languageDirectory, "python-module-context.js"),
+    pythonAdapterOwner = path.join(languageDirectory, "python.js"),
+    pythonModuleCopy = path.join(temporary, "python-context.mjs"),
+    pythonAdapterCopy = path.join(temporary, "python-adapter.mjs")
+  let pythonModuleSource = instrument(
+    rewrite(pythonModuleOwner),
+    'import { lstat } from "node:fs/promises";',
+    `import {lstat} from "${pathToFileURL(portCopy)}";`
+  )
+  pythonModuleSource = instrument(
+    pythonModuleSource,
+    'import { contextDirectFilePolicy, eligibleNamedPath, selectedByDirectFilePolicy } from "@hapsland/native-observation/direct-event/selection";',
+    `import {contextDirectFilePolicy,selectedByDirectFilePolicy} from "@hapsland/native-observation/direct-event/selection";import {eligibleNamedPath} from "${pathToFileURL(portCopy)}";`
+  )
+  for (const [needle, selectedPath, capture] of [
+    ["captures.set(rootPath, rootCapture);", "rootPath", "rootCapture"],
+    ["captures.set(path, capture);", "path", "capture"]
+  ])
+    pythonModuleSource = instrument(
+      pythonModuleSource,
+      needle,
+      needle +
+        `events.push({kind:"cacheStore",role:host.captureCache===undefined?"private":"caller",path:${selectedPath},capture:${capture}});`
+    )
+  pythonModuleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';\n`
+  writeFileSync(pythonModuleCopy, pythonModuleSource)
+  writeFileSync(
+    pythonAdapterCopy,
+    instrument(rewrite(pythonAdapterOwner), pathToFileURL(pythonModuleOwner).href, pathToFileURL(pythonModuleCopy).href)
+  )
   writeFileSync(
     registryCopy,
     instrument(
       instrument(rewrite(registryOwner), pathToFileURL(adapterOwner).href, pathToFileURL(adapterCopy).href),
       pathToFileURL(goAdapterOwner).href,
       pathToFileURL(goAdapterCopy).href
-    )
+    ).replace(pathToFileURL(pythonAdapterOwner).href, pathToFileURL(pythonAdapterCopy).href)
   )
   const nativePreparation = await import(pathToFileURL(moduleCopy)),
     nativeRust = await import(pathToFileURL(adapterCopy))
@@ -499,17 +529,18 @@ try {
     'target.edge.owner.references[target.edge.index] = {\n        kind: "expanded",',
     'registerBirth(child.node); target.edge.owner.references[target.edge.index] = {\n        kind: "expanded",'
   )
+  observed = instrument(observed, "return frame;", "nativeFrame=frame;registerBirth(frame.unit.root);return frame;")
   writeFileSync(
     nativeCopy,
     observed +
-      `\nconst nativeEvents=[]; let preFrameObservation,preFrameReason;let birth=new WeakMap(),episode=0;
- function resetBirth(){preFrameObservation=undefined;preFrameReason=undefined;birth=new WeakMap();episode=0}
+      `\nconst nativeEvents=[]; let preFrameObservation,preFrameReason,nativeFrame;let birth=new WeakMap(),episode=0;
+ function resetBirth(){preFrameObservation=undefined;preFrameReason=undefined;nativeFrame=undefined;birth=new WeakMap();episode=0}
  function registerBirth(root){const current=++episode;function visit(node,route){if(birth.has(node))throw Error('node birth was renamed');birth.set(node,[current,route]);for(const [index,reference]of node.references.entries())if(reference.kind==='expanded')visit(reference.node,[...route,index])}visit(root,[])}
  function birthAddress(node){const value=birth.get(node);if(value===undefined)throw Error('unobserved node construction');return value}
- export {prepareGraphFrame,graphIteration,nativeEvents,resetBirth,registerBirth,birthAddress,preFrameObservation,preFrameReason};\n`
+ export {prepareGraphFrame,graphIteration,nativeEvents,resetBirth,registerBirth,birthAddress,preFrameObservation,preFrameReason,nativeFrame};\n`
   )
   const nativeModule = await import(pathToFileURL(nativeCopy))
-  const { prepareGraphFrame, graphIteration, nativeEvents, resetBirth, registerBirth, birthAddress } = nativeModule
+  const { prepareGraphFrame, graphIteration, nativeEvents, resetBirth, birthAddress } = nativeModule
   const pythonArtifact = await compile(
     "PythonArtifact",
     path.join(root, "packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend")
@@ -605,18 +636,23 @@ try {
     nativeRust.resetFrontendCalls()
     let native, expected, failed
     try {
-      native = await Effect.runPromise(prepareGraphFrame(selected, stable(selected), "Root", context))
-      if (native) {
-        registerBirth(native.unit.root)
-        for (let i = 0; i < native.limits.work * 8 + 16; i++) {
-          const result = await Effect.runPromise(graphIteration(native))
-          if (result.done) {
-            expected = result.unit
-            break
+      if (selected.endsWith(".go") || selected.endsWith(".py")) {
+        expected = await Effect.runPromise(nativeModule.resolveGraphUnit(selected, stable(selected), "Root", context))
+        native = nativeModule.nativeFrame
+      } else {
+        native = await Effect.runPromise(prepareGraphFrame(selected, stable(selected), "Root", context))
+        if (native) {
+          for (let i = 0; i < native.limits.work * 8 + 16; i++) {
+            const result = await Effect.runPromise(graphIteration(native))
+            if (result.done) {
+              expected = result.unit
+              break
+            }
           }
         }
       }
     } catch (error) {
+      native ??= nativeModule.nativeFrame
       failed = error
     }
     const nativeCallerCache = cache === undefined ? undefined : [...cache],

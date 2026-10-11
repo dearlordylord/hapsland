@@ -27,6 +27,49 @@ def attachment_next_node(value: Compose.Attachment) -> Nat:
   match value:
     case Compose.Attachment{_, node, _, _, _, _, _, _, _}: node
 
+# Keep registration opaque: projection does not inspect pending-map contents.
+def registered_fields(registration: Compose.RegisteredPending, +root: Nat, +next: Nat,
+    +children: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>,
+    edges: List<&2, Local.Pending>, visited: Map<&2, Bool>, budget: Local.Budget,
+    +parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>) ->
+    {attachment_nodes(Compose.attachment_registered(registration,
+      Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, slots))
+      == List.append(&2, Local.PlannedNode, parents, children) : List<&2, Local.PlannedNode>} &
+    {attachment_slots(Compose.attachment_registered(registration,
+      Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, slots))
+      == List.append(&2, Local.ReferenceSlot, slots, child_slots) : List<&2, Local.ReferenceSlot>} &
+    {attachment_next_node(Compose.attachment_registered(registration,
+      Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, slots)) == next : Nat}:
+  match registration:
+    case Compose.RegisteredPending{_, _, _}: Tuple{{==}, Tuple{{==}, {==}}}
+
+# Once the original replacement equation is proved, the actual tentative
+# transition preserves that very slot list and the exact pending registration.
+def tentative_success(+root: Nat, +next: Nat, +children: List<&2, Local.PlannedNode>,
+    +child_slots: List<&2, Local.ReferenceSlot>, +edges: List<&2, Local.Pending>,
+    +visited: Map<&2, Bool>, +budget: Local.Budget, +parents: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat, known: Bool,
+    +identity: String, +next_edge: Nat, +pending: Map<&2, Maybe<&2, Local.Pending>>,
+    +replaced: List<&2, Local.ReferenceSlot>,
+    success: {Compose.replacement(Compose.replace_slot(slots, owner, index,
+      Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{root})))
+      == Some{replaced} : Maybe<&2, List<&2, Local.ReferenceSlot>>}) ->
+    {Compose.tentative_attachment(Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget},
+      parents, slots, owner, index, Bool.pick(Maybe<&2, String>, known, Some{identity}, None{}), next_edge, pending)
+      == Some{Compose.attachment_registered(Compose.register_pending(edges, next_edge, pending),
+        Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, replaced)} : Maybe<&2, Compose.Attachment>}:
+  match known:
+    case False{}:
+      %success: {Compose.attach_replaced(_, Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget},
+        parents, next_edge, pending) == Some{Compose.attachment_registered(Compose.register_pending(edges, next_edge, pending),
+          Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, replaced)} : Maybe<&2, Compose.Attachment>}
+      {==}
+    case True{}:
+      %success: {Compose.attach_replaced(_, Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget},
+        parents, next_edge, pending) == Some{Compose.attachment_registered(Compose.register_pending(edges, next_edge, pending),
+          Compose.RemappedPlan{root, next, children, child_slots, edges, visited, budget}, parents, replaced)} : Maybe<&2, Compose.Attachment>}
+      {==}
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>
