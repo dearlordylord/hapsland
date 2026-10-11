@@ -1,3 +1,4 @@
+import { artifactTransport as goArtifactTransport } from "./go-module/artifact-check-codec.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { readFile, writeFile } from "node:fs/promises"
@@ -47,7 +48,7 @@ const pythonNominal = (tag, toChild) => {
 
 // Existing entry/expansion and specialized child continuations are separately emitted under
 // their unchanged five-second deadlines. This relay owns no graph decisions.
-export async function createEntryReferenceDriver({ temporary, go, python, artifactTransport }) {
+export async function createEntryReferenceDriver({ temporary, go, python, artifactTransport = goArtifactTransport }) {
   const emissions = []
   const compile = async (name) => {
     const output = path.join(temporary, name + ".mjs")
@@ -79,12 +80,16 @@ export async function createEntryReferenceDriver({ temporary, go, python, artifa
   const pythonOutgoing = (value) => mapValues(value, (tag) => pythonNominal(tag, false))
   let invocation = 100000
   const counts = { cases: 0, requests: 0, transitions: 0 }
-  const createProgram = ({ onPythonResult = () => undefined } = {}) => {
+  const createProgram = ({ onPythonResult = () => undefined, onGoResult = () => undefined } = {}) => {
     let child, savedRequest, command
     const receiveGo = (progress) => {
       const view = goOutgoing(go.view(child))
       savedRequest = label(view) === "GoAwait" ? view.request : undefined
-      if (["GoReturned", "GoFailed"].includes(label(view))) child = undefined
+      if (["GoReturned", "GoFailed"].includes(label(view))) {
+        child = undefined
+        onGoResult(command, view)
+        command = undefined
+      }
       return entry.go_child_completed(progress, view)
     }
     const relayPython = (progress, current, fromExpansion) => {
@@ -120,7 +125,8 @@ export async function createEntryReferenceDriver({ temporary, go, python, artifa
             return relayPython(progress, progress, false)
           case "EntryGoChildBegin":
             assert.equal(child, undefined, "Go begin must not overwrite a live continuation")
-            child = go.begin(goIncoming(progress.command))
+            command = progress.command
+            child = go.begin(goIncoming(command))
             return receiveGo(progress)
           case "EntryGoChildAdvance":
             assert.notEqual(child, undefined, "Go advance requires its retained continuation")

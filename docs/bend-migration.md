@@ -482,3 +482,15 @@ with full facts and positions in the external effect chronology; pure returns
 are separate from Environment provider deltas. External effects retain their
 original complete checks. This harness adaptation is retained WIP pending its
 actual full consumer run, not a new acceptance frontier or adoption claim.
+
+The full all-language entry consumer is not yet qualified. Initial preparation
+failed while hashing a gitlink as a file; hash collection now records the
+submodule commit. The next actual run exposed native oracle contamination from
+repeating Go preparation as a technical parser binding; Go/Python now use their
+actual child frontend returns without a second preparation. A subsequent run
+exposed previously unobserved native Go access operations, so the same native
+Go module owner is now instrumented rather than dropping candidate effects.
+The Go adapter imports and reexports the module owner; both edges are rebound
+with an exact two-edge assertion. Full comparisons remain unchanged in scope
+and the next same-fixture diagnostic remains required. Go nominal ABI conversion
+has one Go-owned codec shared by the existing Go and common entry consumers.

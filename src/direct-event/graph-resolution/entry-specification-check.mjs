@@ -8,7 +8,7 @@ import {
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync, statSync } from "node:fs"
 import * as path from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
@@ -320,7 +320,9 @@ try {
         createHash("sha256")
           .update(
             existsSync(path.isAbsolute(n) ? n : path.join(folder, n))
-              ? readFileSync(path.isAbsolute(n) ? n : path.join(folder, n))
+              ? statSync(path.isAbsolute(n) ? n : path.join(folder, n)).isFile()
+                ? readFileSync(path.isAbsolute(n) ? n : path.join(folder, n))
+                : execFileSync("git", ["-C", path.isAbsolute(n) ? n : path.join(folder, n), "rev-parse", "HEAD"])
               : "deleted"
           )
           .digest("hex")
@@ -408,9 +410,33 @@ try {
   adapterSource +=
     "\nexport let frontendCalls=[];export function resetFrontendCalls(){frontendCalls=[]}function observedRustInspect(file,source,options){frontendCalls.push({path:file,text:source,options:options??{}});return rust.inspectRust(file,source,options)}\n"
   writeFileSync(adapterCopy, adapterSource)
+  const goModuleOwner = path.join(languageDirectory, "go-module-context.js"),
+    goAdapterOwner = path.join(languageDirectory, "go-adapter.js"),
+    goModuleCopy = path.join(temporary, "go-context.mjs"),
+    goAdapterCopy = path.join(temporary, "go-adapter.mjs")
+  let goModuleSource = instrument(
+    rewrite(goModuleOwner),
+    'import { contextDirectFilePolicy, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection";',
+    `import {contextDirectFilePolicy} from "@hapsland/native-observation/direct-event/selection";import {eligibleNamedPath} from "${pathToFileURL(portCopy)}";`
+  )
+  goModuleSource = instrument(
+    goModuleSource,
+    "host.captureCache?.set(candidate, found);",
+    'host.captureCache?.set(candidate, found);if(host.captureCache!==undefined)events.push({kind:"cacheStore",role:"caller",path:candidate,capture:found});'
+  )
+  goModuleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';\n`
+  writeFileSync(goModuleCopy, goModuleSource)
+  const goAdapterSource = rewrite(goAdapterOwner),
+    goModuleUrl = pathToFileURL(goModuleOwner).href
+  assert.equal(goAdapterSource.split(goModuleUrl).length, 3, "Go module import and public constant reexport")
+  writeFileSync(goAdapterCopy, goAdapterSource.replaceAll(goModuleUrl, pathToFileURL(goModuleCopy).href))
   writeFileSync(
     registryCopy,
-    instrument(rewrite(registryOwner), pathToFileURL(adapterOwner).href, pathToFileURL(adapterCopy).href)
+    instrument(
+      instrument(rewrite(registryOwner), pathToFileURL(adapterOwner).href, pathToFileURL(adapterCopy).href),
+      pathToFileURL(goAdapterOwner).href,
+      pathToFileURL(goAdapterCopy).href
+    )
   )
   const nativePreparation = await import(pathToFileURL(moduleCopy)),
     nativeRust = await import(pathToFileURL(adapterCopy))
@@ -488,7 +514,11 @@ try {
     "PythonArtifact",
     path.join(root, "packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend")
   )
-  const reference = await createEntryReferenceDriver({ temporary, python: pythonArtifact })
+  const goArtifact = await compile(
+    "GoArtifact",
+    path.join(root, "packages/resident-runtime/src/resident/review-work/composition/GoArtifact.bend")
+  )
+  const reference = await createEntryReferenceDriver({ temporary, python: pythonArtifact, go: goArtifact })
   emissionHashes.push(...reference.emissions)
   for (const fixture of fixtures.filter(
     (f) => process.env.HAPSLAND_ENTRY_FIXTURE === undefined || f.name === process.env.HAPSLAND_ENTRY_FIXTURE
@@ -515,7 +545,8 @@ try {
       callerCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
     nativePorts.reset()
     const candidatePorts = [],
-      pythonFrontendResults = []
+      pythonFrontendResults = [],
+      goFrontendResults = []
     let parsedPythonText
     const injectedError = new Error("fixture provider failure")
     let nativeCaptures = 0,
@@ -587,7 +618,7 @@ try {
     const language = languageForPath(selected)
     const rust = selected.endsWith(".rs"),
       parserBinding =
-        rust || language === undefined
+        rust || selected.endsWith(".py") || selected.endsWith(".go") || language === undefined
           ? undefined
           : await Effect.runPromise(
               language.prepareGraph(
@@ -741,6 +772,26 @@ try {
       limits
     })
     const bound = reference.createProgram({
+      onGoResult(command, view) {
+        if (label(command) !== "GoInspect" || label(view) !== "GoReturned" || label(view.result) !== "GoInspected")
+          return
+        const facts = label(view.result.facts) === "None" ? undefined : view.result.facts.value
+        goFrontendResults.push({
+          offset: candidatePorts.length,
+          event: {
+            kind: "frontend",
+            path: command.path,
+            text: stable(command.path).text,
+            branch: label(command.branch) === "FunctionBranch" ? "function" : "type",
+            facts:
+              facts === undefined
+                ? undefined
+                : JSON.parse(
+                    JSON.stringify(facts, (_key, value) => (typeof value === "bigint" ? Number(value) : value))
+                  )
+          }
+        })
+      },
       onPythonResult(command, view) {
         if (label(command) !== "Inspect" || label(view) !== "Returned" || label(view.result) !== "Inspected") return
         const facts = label(view.result.facts) === "None" ? undefined : view.result.facts.value
@@ -774,6 +825,10 @@ try {
         "EntryReady",
         "EntrySelected",
         "EntryWaiting",
+        "EntryGoChildBegin",
+        "EntryGoChildAdvance",
+        "EntryGoChildResume",
+        "EntryGoChildWaiting",
         "EntryPythonChildBegin",
         "EntryPythonChildResume",
         "EntryPythonChildWaiting",
@@ -795,7 +850,13 @@ try {
       )
         preparationCacheSnapshot = session.cacheSnapshot(progress.state.preparation_cache.value)
       if (
-        !["EntryWaiting", "EntryPythonChildWaiting", "PreparationWaiting", "DriverWaiting"].includes(label(current))
+        ![
+          "EntryWaiting",
+          "EntryGoChildWaiting",
+          "EntryPythonChildWaiting",
+          "PreparationWaiting",
+          "DriverWaiting"
+        ].includes(label(current))
       ) {
         progress = bound.advance(progress)
         continue
@@ -872,7 +933,7 @@ try {
       assert.equal(headers[i].request.id, headers[i + 1].reply.id)
       assert.equal(Number(headers[i].request.id), i / 2 + 1)
     }
-    if (selected.endsWith(".py")) {
+    if (selected.endsWith(".py") || selected.endsWith(".go")) {
       let offset = 0
       const nativePhysical = [],
         nativeFrontends = []
@@ -883,9 +944,26 @@ try {
           offset++
         }
       }
-      assert.deepEqual(candidatePorts, nativePhysical, fixture.name + " complete Python external effect chronology")
+      if (selected.endsWith(".go"))
+        console.log(
+          JSON.stringify({
+            diagnostic: "entry phase",
+            fixture: fixture.name,
+            phase: label(entry),
+            stage: label(entry.state.stage),
+            continuation: label(progress),
+            nativeClocks: nativePhysical.filter((item) => item.kind === "clock").length,
+            actualClocks: candidatePorts.filter((item) => item.kind === "clock").length,
+            nativeReturned: expected !== undefined
+          })
+        )
       assert.deepEqual(
-        pythonFrontendResults,
+        candidatePorts,
+        nativePhysical,
+        fixture.name + " complete specialized external effect chronology"
+      )
+      assert.deepEqual(
+        selected.endsWith(".py") ? pythonFrontendResults : goFrontendResults,
         nativeFrontends,
         fixture.name + " complete Python frontend facts and chronology"
       )
@@ -1521,7 +1599,7 @@ try {
     rustPreparationProviderBoundary:
       "Native preparation is the same-invocation oracle only; providers use raw TOML/module/source frontends and exact requested RustContext. Effective private preparation cache is observed separately from caller cache.",
     scope:
-      "Complete independent TypeScript/Rust/Bend/Python entry/preparation/root/expansion driver against real native graphIteration, actual access/filesystem/parser and fixture capture provider. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Four injected synchronous provider Error cases qualify ordered failure prefixes and original Error identity before cleanup, with immutable fixture payloads and caller-cache snapshots; effective preparation cache failure snapshots are also compared; other provider failures, complete pre-frame retained state, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified by this harness."
+      "Complete independent TypeScript/Rust/Bend/Python/Go entry/preparation/root/expansion driver against real native graphIteration, actual access/filesystem/parser and fixture capture provider. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Four injected synchronous provider Error cases qualify ordered failure prefixes and original Error identity before cleanup, with immutable fixture payloads and caller-cache snapshots; effective preparation cache failure snapshots are also compared; other provider failures, complete pre-frame retained state, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified by this harness."
   }
   const evidenceDirectory = path.join(root, ".test-runs/bend-migration/entry")
   mkdirSync(evidenceDirectory, { recursive: true })
