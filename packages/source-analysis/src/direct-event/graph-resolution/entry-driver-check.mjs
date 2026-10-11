@@ -70,6 +70,7 @@ export async function createEntryReferenceDriver({ temporary, go, python, artifa
   }
   const entry = await compile("EntryDriverCheck")
   const expansion = await compile("ExpansionDriverCheck")
+  const preparation = await compile("PreparationDriverCheck")
   const incoming = (value) => mapValues(value)
   const outgoing = (value) => mapValues(value)
   const goIncoming = (value) => artifactTransport(mapValues(value, (tag) => goNominal(tag, true)))
@@ -78,101 +79,139 @@ export async function createEntryReferenceDriver({ temporary, go, python, artifa
   const pythonOutgoing = (value) => mapValues(value, (tag) => pythonNominal(tag, false))
   let invocation = 100000
   const counts = { cases: 0, requests: 0, transitions: 0 }
-  const drive = async (session, input, options) => {
-    counts.cases++
-    assert.equal(input.invocation, BigInt(session.invocation))
-    let progress = entry.initial(incoming(input))
-    let child,
-      savedRequest,
-      requests = 0
-    const previousPath = globalThis.__hapslandEntryCheckPath
-    globalThis.__hapslandEntryCheckPath = (kind, args) =>
-      kind === "join" ? path.join(...unlist(args[0])) : path[kind === "extension" ? "extname" : kind](...args)
-    const receiveGo = () => {
+  const createProgram = ({ onPythonResult = () => undefined } = {}) => {
+    let child, savedRequest, command
+    const receiveGo = (progress) => {
       const view = goOutgoing(go.view(child))
-      if (label(view) === "GoAwait") savedRequest = view.request
-      else savedRequest = undefined
+      savedRequest = label(view) === "GoAwait" ? view.request : undefined
       if (["GoReturned", "GoFailed"].includes(label(view))) child = undefined
-      progress = entry.go_child_completed(progress, view)
+      return entry.go_child_completed(progress, view)
     }
-    const receivePython = (fromExpansion) => {
-      const view = pythonOutgoing(python.view(child))
-      savedRequest = label(view) === "Await" ? view.request : undefined
-      if (["Returned", "Failed"].includes(label(view))) child = undefined
-      progress = fromExpansion
-        ? entry.accept_expansion(progress, expansion.child_completed(progress.progress, view))
-        : entry.python_child_completed(progress, view)
-    }
-    const relayPython = (current, fromExpansion) => {
+    const relayPython = (progress, current, fromExpansion) => {
       assert.ok(python, "Python child artifact is required")
       if (["EntryPythonChildBegin", "DriverChildBegin"].includes(label(current))) {
         assert.equal(child, undefined, "Python begin must not overwrite a live continuation")
-        child = python.begin(pythonIncoming(current.command))
+        command = current.command
+        child = python.begin(pythonIncoming(command))
       } else {
         assert.notEqual(child, undefined, "Python resume requires its retained continuation")
         assert.deepEqual(current.request, savedRequest, "Python complete saved request")
         child = python.resume(child, pythonIncoming(current.reply))
       }
-      receivePython(fromExpansion)
+      const view = pythonOutgoing(python.view(child))
+      savedRequest = label(view) === "Await" ? view.request : undefined
+      if (["Returned", "Failed"].includes(label(view))) {
+        child = undefined
+        onPythonResult(command, view)
+        command = undefined
+      }
+      return fromExpansion
+        ? entry.accept_expansion(progress, expansion.child_completed(progress.progress, view))
+        : entry.python_child_completed(progress, view)
     }
-    try {
-      for (let steps = 0; steps < 100000; steps++) {
-        counts.transitions++
-        if (options?.signal?.aborted) progress = entry.cancel(progress)
-        const accepted = entry.accepted_result(progress)
-        if (label(accepted) === "Some") {
-          assert.equal(child, undefined, "accepted entry must not retain a child continuation")
-          return { result: outgoing(accepted.value) }
-        }
-        let current = progress
+    return {
+      initial: (input) => entry.initial(incoming(input)),
+      accepted_result: entry.accepted_result,
+      cancel: entry.cancel,
+      advance(progress) {
         switch (label(progress)) {
           case "EntryPythonChildBegin":
           case "EntryPythonChildResume":
-            relayPython(progress, false)
-            continue
+            return relayPython(progress, progress, false)
           case "EntryGoChildBegin":
             assert.equal(child, undefined, "Go begin must not overwrite a live continuation")
             child = go.begin(goIncoming(progress.command))
-            receiveGo()
-            continue
+            return receiveGo(progress)
           case "EntryGoChildAdvance":
             assert.notEqual(child, undefined, "Go advance requires its retained continuation")
             child = go.advance(child)
-            receiveGo()
-            continue
+            return receiveGo(progress)
           case "EntryGoChildResume":
             assert.notEqual(child, undefined, "Go resume requires its retained continuation")
-            assert.deepEqual(progress.request, savedRequest, "resume must retain the complete saved request")
+            assert.deepEqual(progress.request, savedRequest, "Go complete saved request")
             child = go.resume(child, goIncoming(progress.reply))
-            receiveGo()
-            continue
+            return receiveGo(progress)
+          case "EntryPreparing":
+            return entry.accept_preparation(progress, preparation.advance(progress.progress))
           case "EntryExpanding":
-            current = progress.progress
-            if (["DriverChildBegin", "DriverChildResume"].includes(label(current))) {
-              relayPython(current, true)
-              continue
-            }
-            if (["DriverReady", "DriverSelected"].includes(label(current))) {
-              progress = entry.accept_expansion(progress, expansion.advance(current))
-              continue
-            }
-            if (label(current) === "DriverFinished") {
-              progress = entry.accept_expansion(progress, current)
-              continue
-            }
-            break
-          case "EntryReady":
-          case "EntrySelected":
-            progress = entry.advance(progress)
-            continue
+            return ["DriverChildBegin", "DriverChildResume"].includes(label(progress.progress))
+              ? relayPython(progress, progress.progress, true)
+              : entry.accept_expansion(progress, expansion.advance(progress.progress))
+          default:
+            return entry.advance(progress)
         }
-        if (["EntryFailed", "DriverFailed"].includes(label(current))) {
+      },
+      complete(progress, completion) {
+        switch (label(progress)) {
+          case "EntryPreparing":
+            return entry.accept_preparation(progress, preparation.complete(progress.progress, completion))
+          case "EntryExpanding":
+            return entry.accept_expansion(progress, expansion.complete(progress.progress, completion))
+          default:
+            return entry.complete(progress, completion)
+        }
+      },
+      assertClean() {
+        assert.equal(child, undefined, "accepted entry must not retain a child continuation")
+      },
+      close() {
+        child = undefined
+        savedRequest = undefined
+        command = undefined
+      }
+    }
+  }
+  const drive = async (session, input, options) => {
+    counts.cases++
+    assert.equal(input.invocation, BigInt(session.invocation))
+    const program = createProgram()
+    let progress = program.initial(input),
+      requests = 0
+    const previousPath = globalThis.__hapslandEntryCheckPath
+    globalThis.__hapslandEntryCheckPath = (kind, args) =>
+      kind === "join" ? path.join(...unlist(args[0])) : path[kind === "extension" ? "extname" : kind](...args)
+    try {
+      for (let steps = 0; steps < 100000; steps++) {
+        counts.transitions++
+        if (options?.signal?.aborted) progress = program.cancel(progress)
+        const accepted = program.accepted_result(progress)
+        if (label(accepted) === "Some") {
+          program.assertClean()
+          return { result: outgoing(accepted.value) }
+        }
+        const current = ["EntryExpanding", "EntryPreparing"].includes(label(progress)) ? progress.progress : progress
+        if (["EntryFailed", "DriverFailed", "PreparationFailed"].includes(label(current))) {
           const failure = outgoing(current.failure)
           if (label(failure) === "ForeignProviderFailure") throw session.exception(failure.exception)
           return { failure }
         }
+        if (
+          [
+            "EntryReady",
+            "EntrySelected",
+            "EntryGoChildBegin",
+            "EntryGoChildAdvance",
+            "EntryGoChildResume",
+            "EntryPythonChildBegin",
+            "EntryPythonChildResume",
+            "DriverReady",
+            "DriverSelected",
+            "DriverChildBegin",
+            "DriverChildResume",
+            "PreparationReady"
+          ].includes(label(current))
+        ) {
+          progress = program.advance(progress)
+          continue
+        }
         assert.ok(
-          ["EntryWaiting", "EntryGoChildWaiting", "EntryPythonChildWaiting", "DriverWaiting"].includes(label(current)),
+          [
+            "EntryWaiting",
+            "EntryGoChildWaiting",
+            "EntryPythonChildWaiting",
+            "DriverWaiting",
+            "PreparationWaiting"
+          ].includes(label(current)),
           "unexpected reference entry phase " + label(current)
         )
         const request = outgoing(current.exchange.request)
@@ -182,26 +221,28 @@ export async function createEntryReferenceDriver({ temporary, go, python, artifa
         const reply = pureReply(await session.perform(request, options))
         assert.equal(reply.invocation, request.invocation)
         assert.equal(reply.id, request.id)
-        const completion = {
+        progress = program.complete(progress, {
           $: "Environment.Completion",
           lease: current.exchange.lease,
           world: current.exchange.state.world,
           outcome: incoming(reply.outcome),
           effects: list([])
-        }
-        progress =
-          label(current) === "DriverWaiting"
-            ? entry.accept_expansion(progress, expansion.complete(current, completion))
-            : entry.complete(progress, completion)
+        })
       }
       throw new Error("reference entry evaluation bound exhausted")
     } finally {
-      child = undefined
-      savedRequest = undefined
+      program.close()
       session.close()
       if (previousPath === undefined) delete globalThis.__hapslandEntryCheckPath
       else globalThis.__hapslandEntryCheckPath = previousPath
     }
   }
-  return { drive, counts, emissions, allocateInvocation: () => ++invocation, onConstructionFailure: () => undefined }
+  return {
+    createProgram,
+    drive,
+    counts,
+    emissions,
+    allocateInvocation: () => ++invocation,
+    onConstructionFailure: () => undefined
+  }
 }

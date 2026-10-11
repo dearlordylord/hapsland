@@ -3,6 +3,7 @@ import ../../../../source-artifacts/src/direct-event/value/Value.bend as Artifac
 import ./EntrySpecification.bend as I
 import ./ExpansionDriverSpecification.bend as D
 import ./Types.bend as T
+import ./PreparationSpecification.bend as P
 import ./Environment.bend as E
 import ./WholeObservation.bend as O
 import ./DeadlineSpecification.bend as Deadline
@@ -73,6 +74,10 @@ def complete(progress: I.Progress<Nat>, completion: E.Completion<Nat>) -> I.Prog
 def accept_expansion(progress: I.Progress<Nat>, child: D.Progress<Nat>) -> I.Progress<Nat>:
   match progress:
     case I.EntryExpanding{state, _}: I.expansion_progress(Nat, state, child)
+    case other: other
+def accept_preparation(progress: I.Progress<Nat>, child: P.Progress<Nat>) -> I.Progress<Nat>:
+  match progress:
+    case I.EntryPreparing{state, _}: I.preparation_progress(Nat, state, child)
     case other: other
 def go_child_completed(progress: I.Progress<Nat>, view: GoProtocol.GoView) -> I.Progress<Nat>:
   I.go_child_completed(Nat, suspend, progress, view)

@@ -469,3 +469,16 @@ qualification; source relocation does not count as adoption. Retained original
 node replacement work proves numeric/semantic address-key transport and
 unchanged-tail consequences, while its original universal zipper theorem
 remains open.
+
+The original universal node_replacement_exact now checks completely within
+2.154 seconds (hard five-second limit, CPU10, ALL PROOFS CHECK and exit 0).
+Its original law and premises are unchanged. Parent attachment and complete
+transaction remain open; the formatter still rejects this declaration header.
+The complete entry fixture owner now uses the common Entry/Expansion relay
+and a separate existing Rust PreparationSpecification emitter (1.556-second
+canary), retaining all TS/Rust/Bend/Python fixtures and full native comparisons.
+Python semantic frontend results are observed from the actual Bend child return
+with full facts and positions in the external effect chronology; pure returns
+are separate from Environment provider deltas. External effects retain their
+original complete checks. This harness adaptation is retained WIP pending its
+actual full consumer run, not a new acceptance frontier or adoption claim.

@@ -8,7 +8,7 @@ import {
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs"
 import * as path from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
@@ -27,6 +27,8 @@ import {
   artifact,
   tomlValue
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+import { createEntryReferenceDriver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/entry-driver-check.mjs"
+import { parsePythonSyntax } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
@@ -35,7 +37,6 @@ const folder = import.meta.dirname,
   root = path.resolve(folder, "../../..")
 mkdirSync(path.join(root, "node_modules/.cache"), { recursive: true })
 const temporary = mkdtempSync(path.join(root, "node_modules/.cache/entry-specification-"))
-const wrapperPath = path.join(folder, ".entry-specification-" + path.basename(temporary) + ".bend")
 const tag = (name, fields = {}) => ({ $: name, ...fields }),
   label = (v) => v.$.split(".").at(-1)
 const t = (name, fields = {}) => tag(artifactValueTag(name) ?? "Types." + name, fields),
@@ -221,41 +222,6 @@ for (const fixture of fixtures)
     ;[fixture.expectedReason, fixture.expectedStage] = expectedReturns[fixture.name]
   }
 const source = (f) => f.source ?? `import type { A } from '${f.importPath ?? "./a"}'; export interface Root { a: A }`
-function wrapper() {
-  let text =
-    "import Base\nimport ./EntrySpecification.bend as I\nimport ./PreparationSpecification.bend as P\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\nimport ./DeadlineSpecification.bend as Deadline\n"
-  for (const kind of ["basename", "join", "dirname", "extension", "normalize", "relative"]) {
-    const signature =
-      kind === "join" ? "parts: List<&2, String>" : kind === "relative" ? "from: String, to: String" : "value: String"
-    text += `def ${kind}(${signature}) -> String:\n  ""\n`
-  }
-  return (
-    text +
-    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: T.Binary64) -> Bool:\n  Deadline.expired(bits)\ndef selection(state: D.State) -> D.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef suffix_result(+name: String, suffix: Maybe<&2, String>) -> String:
-  match suffix:
-    case None{}: name
-    case Some{+suffix}: Bool.pick(String, String.ends_with(name, suffix), String.take(name, (String.length(name) - String.length(suffix) : Nat)), name)
-def suffix_base(value: String, suffix: Maybe<&2, String>) -> String:
-  suffix_result(basename(value), suffix)
-def entry_selection(state: I.State) -> I.Selection:
-  I.choose(~extension, state)
-def entry_reply(state: I.State, outcome: T.ServiceOutcome) -> I.Selection:
-  I.consume(~expired, state, outcome)
-def preparation_selection(state: P.State) -> P.Selection:
-  P.choose(~absolute, ~dirname, ~relative, "/", state)
-def preparation_reply(state: P.State, outcome: T.ServiceOutcome) -> P.Selection:
-  P.consume(~absolute, ~dirname, ~suffix_base, ~join, ~relative, ~extension, ~normalize, ~expired, "/", state, outcome)
-def initial(input: T.ResolverInput) -> I.Progress<Nat>:
-  I.begin(Nat, input, 1n, E.WorldState{0n, []})
-def advance(progress: I.Progress<Nat>) -> I.Progress<Nat>:
-  I.advance(~entry_selection, ~entry_reply, ~preparation_selection, ~preparation_reply, ~selection, ~reply, Nat, suspend, progress)
-def complete(progress: I.Progress<Nat>, completion: E.Completion<Nat>) -> I.Progress<Nat>:
-  I.complete(~entry_reply, ~preparation_reply, ~reply, Nat, progress, completion)
-def cancel(progress: I.Progress<Nat>) -> I.Progress<Nat>:
-  I.cancel(Nat, progress)
-def main() -> Unit:\n  Unit{}\n`
-  )
-}
 function event(e) {
   switch (e.kind) {
     case "root":
@@ -303,9 +269,7 @@ function mapKeys(value) {
   }
 }
 try {
-  const wrapperHashes = [],
-    emissionHashes = [],
-    compiledWrappers = new Map()
+  const emissionHashes = []
   const nativePath = path.join(root, "packages/source-analysis/dist/direct-event/graph-resolver.js")
   const dependencies = [
     "../../../packages/source-analysis/src/direct-event/graph-resolution/SourceValidationSpecification.bend",
@@ -341,43 +305,35 @@ try {
     "../../../packages/source-analysis/dist/direct-event/languages/python.js",
     nativePath
   ]
+  const authored = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], { cwd: root })
+    .toString()
+    .split("\0")
+    .filter(Boolean)
+  for (const owner of authored) {
+    const absolute = path.join(root, owner)
+    if (!dependencies.includes(absolute) && !owner.startsWith(".test-runs/")) dependencies.push(absolute)
+  }
   const hashes = () =>
     Object.fromEntries(
       dependencies.map((n) => [
         n,
         createHash("sha256")
-          .update(readFileSync(path.isAbsolute(n) ? n : path.join(folder, n)))
+          .update(
+            existsSync(path.isAbsolute(n) ? n : path.join(folder, n))
+              ? readFileSync(path.isAbsolute(n) ? n : path.join(folder, n))
+              : "deleted"
+          )
           .digest("hex")
       ])
     )
   const sources = hashes(),
     cases = []
-  async function compile(name, file = path.join(folder, name + ".bend")) {
+  async function compile(
+    name,
+    file = path.join(root, "packages/source-analysis/src/direct-event/graph-resolution", name + ".bend")
+  ) {
     const output = path.join(temporary, name + ".mjs")
     execFileSync("bend", [file, "-o", output], { timeout: 5000, maxBuffer: 2 ** 20 })
-    if (name.startsWith("DriverCheck-")) {
-      let js = readFileSync(output, "utf8")
-      const originalHash = createHash("sha256").update(js).digest("hex")
-      for (const kind of ["basename", "join", "dirname", "extension", "normalize", "relative"]) {
-        const pattern = new RegExp("function \\$" + kind + "\\$\\(([^)]*)\\) \\{")
-        assert.equal(
-          [...js.matchAll(new RegExp(pattern.source, "g"))].length,
-          1,
-          kind + " unique emitted mechanical primitive"
-        )
-        const args = js
-          .match(pattern)[1]
-          .split(",")
-          .map((x) => x.trim())
-        assert.equal(args.length, kind === "relative" ? 2 : 1, kind + " emitted ABI arity")
-        js = js.replace(
-          pattern,
-          (all, args) => all + `\n return globalThis.__hapslandEntryPath(${JSON.stringify(kind)},[${args}]);`
-        )
-      }
-      emissionHashes.push({ name, originalHash, patchedHash: createHash("sha256").update(js).digest("hex") })
-      writeFileSync(output, js)
-    }
     return (await import(pathToFileURL(output))).default
   }
   const policy = await compile("GraphSpecification")
@@ -528,20 +484,17 @@ try {
   )
   const nativeModule = await import(pathToFileURL(nativeCopy))
   const { prepareGraphFrame, graphIteration, nativeEvents, resetBirth, registerBirth, birthAddress } = nativeModule
+  const pythonArtifact = await compile(
+    "PythonArtifact",
+    path.join(root, "packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend")
+  )
+  const reference = await createEntryReferenceDriver({ temporary, python: pythonArtifact })
+  emissionHashes.push(...reference.emissions)
   for (const fixture of fixtures.filter(
     (f) => process.env.HAPSLAND_ENTRY_FIXTURE === undefined || f.name === process.env.HAPSLAND_ENTRY_FIXTURE
   )) {
-    const wrapperText = wrapper(),
-      wrapperHash = createHash("sha256").update(wrapperText).digest("hex")
-    wrapperHashes.push({ fixture: fixture.name, hash: wrapperHash })
-    let bound = compiledWrappers.get(wrapperHash)
-    if (bound === undefined) {
-      writeFileSync(wrapperPath, wrapperText)
-      bound = await compile("DriverCheck-" + wrapperHashes.length, wrapperPath)
-      compiledWrappers.set(wrapperHash, bound)
-    }
     globalThis.__hapslandExpansionPathQueries = []
-    globalThis.__hapslandEntryPath = (kind, args) => {
+    globalThis.__hapslandEntryCheckPath = (kind, args) => {
       const result =
         kind === "join" ? path.join(...unlist(args[0])) : path[kind === "extension" ? "extname" : kind](...args)
       globalThis.__hapslandExpansionPathQueries.push({ kind, args, result })
@@ -561,7 +514,9 @@ try {
       cache = fixture.cache === undefined ? undefined : new Map(fixture.cache),
       callerCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
     nativePorts.reset()
-    const candidatePorts = []
+    const candidatePorts = [],
+      pythonFrontendResults = []
+    let parsedPythonText
     const injectedError = new Error("fixture provider failure")
     let nativeCaptures = 0,
       candidateCaptures = 0
@@ -673,6 +628,10 @@ try {
       invocation: 1,
       root: directory,
       callerCache,
+      parsePythonSyntax: async (text) => {
+        parsedPythonText = text
+        return parsePythonSyntax(text)
+      },
       diagnostic: (path, diagnostic) => candidatePorts.push({ kind: "diagnostic", path, diagnostic }),
       now: () => {
         const tick = driverTicks++
@@ -781,6 +740,28 @@ try {
       caller_cache: session.callerCache,
       limits
     })
+    const bound = reference.createProgram({
+      onPythonResult(command, view) {
+        if (label(command) !== "Inspect" || label(view) !== "Returned" || label(view.result) !== "Inspected") return
+        const facts = label(view.result.facts) === "None" ? undefined : view.result.facts.value
+        pythonFrontendResults.push({
+          offset: candidatePorts.length,
+          event: {
+            kind: "frontend",
+            path: command.path,
+            text: label(command.branch) === "FunctionBranch" ? stable(command.path).text : parsedPythonText,
+            branch: label(command.branch) === "FunctionBranch" ? "function" : "type",
+            facts:
+              facts === undefined
+                ? undefined
+                : JSON.parse(
+                    JSON.stringify(facts, (_key, value) => (typeof value === "bigint" ? Number(value) : value))
+                  )
+          }
+        })
+        parsedPythonText = undefined
+      }
+    })
     let progress = bound.initial(input),
       requests = 0,
       steps = 0,
@@ -793,11 +774,16 @@ try {
         "EntryReady",
         "EntrySelected",
         "EntryWaiting",
+        "EntryPythonChildBegin",
+        "EntryPythonChildResume",
+        "EntryPythonChildWaiting",
         "PreparationReady",
         "PreparationWaiting",
         "DriverReady",
         "DriverSelected",
-        "DriverWaiting"
+        "DriverWaiting",
+        "DriverChildBegin",
+        "DriverChildResume"
       ].includes(label(inner(x)))
     while (active(progress)) {
       assert.ok(++steps < 20000, "mathematical evaluation bound is not normal completion")
@@ -808,7 +794,9 @@ try {
         label(progress.state.preparation) === "Some"
       )
         preparationCacheSnapshot = session.cacheSnapshot(progress.state.preparation_cache.value)
-      if (!["EntryWaiting", "PreparationWaiting", "DriverWaiting"].includes(label(current))) {
+      if (
+        !["EntryWaiting", "EntryPythonChildWaiting", "PreparationWaiting", "DriverWaiting"].includes(label(current))
+      ) {
         progress = bound.advance(progress)
         continue
       }
@@ -884,11 +872,29 @@ try {
       assert.equal(headers[i].request.id, headers[i + 1].reply.id)
       assert.equal(Number(headers[i].request.id), i / 2 + 1)
     }
-    assert.deepEqual(
-      candidatePorts,
-      nativePublishedPrefix,
-      fixture.name + " same-invocation ordered clock/access/capture/status effects"
-    )
+    if (selected.endsWith(".py")) {
+      let offset = 0
+      const nativePhysical = [],
+        nativeFrontends = []
+      for (const item of nativePublishedPrefix) {
+        if (item.kind === "frontend") nativeFrontends.push({ offset, event: item })
+        else {
+          nativePhysical.push(item)
+          offset++
+        }
+      }
+      assert.deepEqual(candidatePorts, nativePhysical, fixture.name + " complete Python external effect chronology")
+      assert.deepEqual(
+        pythonFrontendResults,
+        nativeFrontends,
+        fixture.name + " complete Python frontend facts and chronology"
+      )
+    } else
+      assert.deepEqual(
+        candidatePorts,
+        nativePublishedPrefix,
+        fixture.name + " same-invocation ordered clock/access/capture/status effects"
+      )
     if (fixture.throwClock || fixture.throwClockAt !== undefined || fixture.throwCaptureAfter !== undefined) {
       assert.equal(failed, injectedError, fixture.name + " native original error identity")
       assert.ok(["EntryFailed", "DriverFailed"].includes(label(progress)), fixture.name + " failure terminal")
@@ -951,6 +957,7 @@ try {
           "failure after prior successful capture/cache write"
         )
       cases.push({ name: fixture.name, status: "entry-error-exact", requests, steps })
+      bound.close()
       session.close()
       continue
     }
@@ -958,6 +965,7 @@ try {
       assert.equal(label(progress), "DriverFailed", fixture.name)
       assert.equal(label(progress.failure), "NegativeGraphWork", fixture.name)
       cases.push({ name: fixture.name, status: "native-technical-failure", requests })
+      bound.close()
       session.close()
       continue
     }
@@ -1248,6 +1256,7 @@ try {
         requests,
         steps
       })
+      bound.close()
       session.close()
       continue
     }
@@ -1492,6 +1501,7 @@ try {
       detachedOwnerClosure,
       returned: actual !== undefined
     })
+    bound.close()
     session.close()
   }
   assert.deepEqual(hashes(), sources, "verification sources frozen")
@@ -1506,17 +1516,18 @@ try {
       "Same-invocation ordered clock samples, lstat status, access decisions/relative paths, capture invocation paths/caps/full returned payload; full frontend/Cargo/module parser results; caller/private cache writes and diagnostics. Events published as actual Environment ProviderEffect deltas with exact request/reply header pairing. Four injected synchronous Error cases (first-clock, caller/private preparation-capture, expansion-capture) with fixed immutable fixture payloads qualify original error identity, exact ordered effect prefix and caller-cache snapshot; effective preparation cache snapshots are compared before cleanup on both caller and private capture failures. Other provider errors and interruption remain unqualified.",
     constructionEpisodeConvention:
       "Root and child builds that reach attachment, including later rollback; rejects before attachment do not consume an observable episode. Addresses use original routes before slot rewrites and actual JS node identity.",
-    wrapperHashes,
     emissionHashes,
-    compiledWrapperCount: compiledWrappers.size,
+    compiledFacadeCount: reference.emissions.length,
     rustPreparationProviderBoundary:
       "Native preparation is the same-invocation oracle only; providers use raw TOML/module/source frontends and exact requested RustContext. Effective private preparation cache is observed separately from caller cache.",
     scope:
-      "Complete independent TypeScript/Rust/Bend entry/preparation/root/expansion driver against real native graphIteration, actual access/filesystem/parser and fixture capture provider. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Four injected synchronous provider Error cases qualify ordered failure prefixes and original Error identity before cleanup, with immutable fixture payloads and caller-cache snapshots; effective preparation cache failure snapshots are also compared; other provider failures, complete pre-frame retained state, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified by this harness."
+      "Complete independent TypeScript/Rust/Bend/Python entry/preparation/root/expansion driver against real native graphIteration, actual access/filesystem/parser and fixture capture provider. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Four injected synchronous provider Error cases qualify ordered failure prefixes and original Error identity before cleanup, with immutable fixture payloads and caller-cache snapshots; effective preparation cache failure snapshots are also compared; other provider failures, complete pre-frame retained state, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified by this harness."
   }
+  const evidenceDirectory = path.join(root, ".test-runs/bend-migration/entry")
+  mkdirSync(evidenceDirectory, { recursive: true })
   writeFileSync(
     path.join(
-      folder,
+      evidenceDirectory,
       "entry-specification-" +
         record.runtime +
         (process.env.HAPSLAND_ENTRY_FIXTURE === undefined ? "" : "-fixture") +
@@ -1532,8 +1543,7 @@ try {
     })
   )
 } finally {
-  delete globalThis.__hapslandEntryPath
+  delete globalThis.__hapslandEntryCheckPath
   delete globalThis.__hapslandExpansionPathQueries
-  rmSync(wrapperPath, { force: true })
   rmSync(temporary, { recursive: true, force: true })
 }
