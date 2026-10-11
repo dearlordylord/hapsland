@@ -733,8 +733,9 @@ try {
     scope:
       "Complete post-root TypeScript/Bend expansion driver against real native graphIteration, actual access/filesystem/parser and fixture capture provider. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Rust preparation/context, original error cause identity, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified."
   }
+  mkdirSync(path.join(root, ".test-runs"), { recursive: true })
   writeFileSync(
-    path.join(folder, "expansion-driver-" + record.runtime + "-evidence.json"),
+    path.join(root, ".test-runs", "expansion-driver-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(

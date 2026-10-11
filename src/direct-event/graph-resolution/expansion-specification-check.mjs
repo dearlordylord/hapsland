@@ -554,8 +554,9 @@ try {
     scope:
       "Independent child transaction compared with actual native attachment on first reachable capture: exact unit/order, budget scalars, retained pending allocation/count and capture/target publication. Enclosing resolution/capture services, bundle pending payload/forest observation, signed failures, completion, interruption, universal proof and performance are not qualified."
   }
+  mkdirSync(join(root, ".test-runs"), { recursive: true })
   writeFileSync(
-    join(folder, "expansion-specification-" + record.runtime + "-evidence.json"),
+    join(root, ".test-runs", "expansion-specification-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify({ runtime: record.runtime, compared, cases: cases.length }))
