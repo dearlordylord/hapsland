@@ -37,7 +37,7 @@ const temporary = mkdtempSync(path.join(root, "node_modules/.cache/entry-specifi
 const tag = (name, fields = {}) => ({ $: name, ...fields }),
   label = (v) => v.$.split(".").at(-1)
 const t = (name, fields = {}) => tag(artifactValueTag(name) ?? "Types." + name, fields),
-  _d = (name, fields = {}) => tag("ExpansionDriverSpecification." + name, fields)
+  _d = (name, fields = {}) => tag("ExpansionDriverState." + name, fields)
 const g = (name, fields = {}) => tag("../../../../agent-flow-bend/ImportGraph." + name, fields)
 const _maybe = (v) => (v === undefined ? tag("None") : tag("Some", { value: v }))
 const canonical = (v) =>
@@ -275,6 +275,7 @@ try {
     "../EntrySpecification.bend",
     "../PreparationSpecification.bend",
     "../ExpansionDriverSpecification.bend",
+    "../ExpansionDriverState.bend",
     "../ExpansionSpecification.bend",
     "../ForestSpecification.bend",
     "../ForestAllowance.bend",

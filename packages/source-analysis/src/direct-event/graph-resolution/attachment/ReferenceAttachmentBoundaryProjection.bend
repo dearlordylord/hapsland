@@ -8,7 +8,7 @@ import ./ReferenceAttachmentPhaseProjection.bend as Ready
 import ./AttachmentReferenceBoundary.bend as Boundary
 import ../Types.bend as T
 import ../ExpansionSpecification.bend as X
-import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as D
 
 # Independent next-boundary observation. The supplied child is the fixed
 # transaction child, not a new continuation chosen after observing a reply.

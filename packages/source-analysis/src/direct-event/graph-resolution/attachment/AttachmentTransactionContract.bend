@@ -16,7 +16,7 @@ import ../Machine.bend as Machine
 import ../Attach.bend as Attach
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
-import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as D
 
 # Shared contract for the whole attachment transaction and its literal instance.
 # This consolidates the existing predicates; it adds no law or premise.

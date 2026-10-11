@@ -22,126 +22,21 @@ import ../../../../agent-flow-bend/ImportGraph.bend as G
 # It begins at the prepared root frame; whole preparation/root entry and observer
 # composition are separate remaining obligations. Mathematical fuel exhaustion
 # is never an ordinary NoUnit result.
-type Config is Data:
-  Config{invocation: Nat, root_path: String, language: T.Language,
-    frontend: T.FrontendContext, clock: T.ClockToken, cache: Maybe<&2, T.CacheToken>}
-type Target is Data:
-  FileTarget{path: String, name: String, edge: X.Edge}
-  BundledTarget{declaration: T.FactDeclaration, source: T.SourceFacts,
-    catalog: Root.Source, edge: X.Edge}
-type TargetEntry is Data:
-  TargetEntry{id: Nat, target: Target}
-type TargetId is Data:
-  TargetId{key: String, id: Nat}
-type Stage is Data:
-  Iteration{}
-  AwaitDeadline{}
-  Command{}
-  AfterCommand{skip_phase: Bool}
-  Resolve{edge: X.Edge}
-  Scan{edge: X.Edge, choices: List<&2, String>, existing: List<&2, String>}
-  AwaitStatus{edge: X.Edge, path: String, remaining: List<&2, String>, existing: List<&2, String>}
-  Check{id: Nat, target: Target}
-  AwaitChecked{id: Nat, target: Target}
-  Read{id: Nat, target: Target}
-  AwaitAuthorized{id: Nat, target: Target}
-  AwaitSnapshot{id: Nat, target: Target, path: String, selection: T.SelectionToken}
-  AwaitLookup{id: Nat, target: Target, path: String, selection: T.SelectionToken}
-  AwaitCapture{id: Nat, target: Target, path: String, selection: T.SelectionToken}
-  AwaitStored{id: Nat, target: Target, path: String, capture: T.CaptureToken, bytes: Nat}
-  AwaitDiagnostic{}
-  AwaitFrontend{id: Nat, target: Target, path: String, capture: T.CaptureToken,
-    bytes: Nat, local_work_before: Nat}
-  AwaitBundleBytes{id: Nat, target: Target}
-  Transaction{transaction: X.Transaction}
-  Completion{partial: Maybe<&2, G.Reason>}
-  AwaitCompletion{product: ArtifactValue.ProductValue}
-  PythonImporting{edge: X.Edge, pending: Maybe<&2, T.Request>}
-  PythonInspectStart{
-    id: Nat,
-    target: Target,
-    path: String,
-    capture: T.CaptureToken,
-    bytes: Nat,
-    before: Nat
-  }
-  PythonInspecting{
-    id: Nat,
-    target: Target,
-    path: String,
-    bytes: Nat,
-    before: Nat,
-    pending: Maybe<&2, T.Request>
-  }
-  PythonValidationStart{product: ArtifactValue.ProductValue}
-  PythonValidating{product: ArtifactValue.ProductValue, pending: Maybe<&2, T.Request>}
-  AwaitFinalDeadline{product: ArtifactValue.ProductValue}
-type PythonContext is Data:
-  PythonContext{session: Python.Session, cache: T.CacheToken, census: Budget.Census}
-type State is Data:
-  State{config: Config, frame: X.Frame, targets: List<&2, TargetEntry>,
-    ids: List<&2, TargetId>, next_target: Nat, next_request: Nat,
-    iterations: Nat, stage: Stage, python: Maybe<&2, PythonContext>}
-type Selection is Data:
-  Internal{state: State}
-  Selected{state: State, operation: T.Operation}
-  ChildBegin{state: State, command: P.PythonCommand}
-  ChildResume{state: State, request: T.Request, reply: T.Reply}
-  Success{state: State, product: Maybe<&2, ArtifactValue.ProductValue>}
-  EvaluationExhausted{state: State}
-  InvariantFailed{state: State}
-  Rejected{state: State, failure: T.TechnicalFailure}
-type Progress<-World: Data> is Data:
-  DriverReady{state: State, world: E.WorldState<World>}
-  DriverSelected{state: State, operation: T.Operation, world: E.WorldState<World>}
-  DriverWaiting{state: State, exchange: E.Exchange<World>}
-  DriverChildBegin{state: State, command: P.PythonCommand, world: E.WorldState<World>}
-  DriverChildResume{state: State, request: T.Request, reply: T.Reply, world: E.WorldState<World>}
-  DriverFinished{
-    state: State,
-    product: Maybe<&2, ArtifactValue.ProductValue>,
-    world: E.WorldState<World>
-  }
-  DriverExhausted{state: State, world: E.WorldState<World>}
-  DriverInvalid{state: State, world: E.WorldState<World>}
-  DriverFailed{state: State, failure: T.TechnicalFailure, world: E.WorldState<World>}
+import ./ExpansionDriverState.bend as DriverState
 
-# State access/update retains every ordered association and counter.
-type OmissionResult is Data:
-  OmissionsObserved{present: Bool}
-  OmissionExhausted{}
-  OmissionInvalid{}
-type OmissionWork is Data:
-  OmissionAddress{address: O.NodeAddress}
-  OmissionReferences{references: List<&2, F.Reference>}
-
-def frame(+state: State) -> X.Frame:
+def config(+state: DriverState.State) -> DriverState.Config:
   match state:
-    case State{_, +frame, _, _, _, _, _, _, _}: frame
-
-def config(+state: State) -> Config:
-  match state:
-    case State{+config, _, _, _, _, _, _, _, _}: config
-
-def stage(+state: State, +next: Stage) -> State:
-  match state:
-    case State{+config, +frame, +targets, +ids, +target, +request, +iterations, _, +python}:
-      State{config, frame, targets, ids, target, request, iterations, next, python}
-
-def with_frame(+state: State, +frame: X.Frame) -> State:
-  match state:
-    case State{+config, _, +targets, +ids, +target, +request, +iterations, +stage, +python}:
-      State{config, frame, targets, ids, target, request, iterations, stage, python}
+    case DriverState.State{+config, _, _, _, _, _, _, _, _}: config
 
 def with_python(
-  state: State,
+  state: DriverState.State,
   session: Python.Session,
   cache: T.CacheToken,
   census: Budget.Census
-) -> State:
+) -> DriverState.State:
   match state:
-    case State{config, frame, targets, ids, target, request, iterations, stage, _}:
-      State{
+    case DriverState.State{config, frame, targets, ids, target, request, iterations, stage, _}:
+      DriverState.State{
         config,
         frame,
         targets,
@@ -150,33 +45,24 @@ def with_python(
         request,
         iterations,
         stage,
-        Some{PythonContext{session, cache, census}}
+        Some{DriverState.PythonContext{session, cache, census}}
       }
 
-def python_context(state: State) -> Maybe<&2, PythonContext>:
+def python_context(state: DriverState.State) -> Maybe<&2, DriverState.PythonContext>:
   match state:
-    case State{_, _, _, _, _, _, _, _, python}: python
+    case DriverState.State{_, _, _, _, _, _, _, _, python}: python
 
-def next_request(state: State) -> Nat:
+def next_request(state: DriverState.State) -> Nat:
   match state:
-    case State{_, _, _, _, _, next, _, _, _}: next
+    case DriverState.State{_, _, _, _, _, next, _, _, _}: next
 
-def with_next(state: State, next: Nat) -> State:
+def with_next(state: DriverState.State, next: Nat) -> DriverState.State:
   match state:
-    case State{config, frame, targets, ids, target, _, iterations, stage, python}:
-      State{config, frame, targets, ids, target, next, iterations, stage, python}
+    case DriverState.State{config, frame, targets, ids, target, _, iterations, stage, python}:
+      DriverState.State{config, frame, targets, ids, target, next, iterations, stage, python}
 
-def internal(+state: State, +next: Stage) -> Selection:
-  Internal{stage(state, next)}
-
-def request(+state: State, +next: Stage, +operation: T.Operation) -> Selection:
-  Selected{stage(state, next), operation}
-
-def no_unit(+state: State) -> Selection:
-  Success{state, None{}}
-
-def after(+state: State, +event: G.GraphEvent, +skip: Bool) -> Selection:
-  internal(with_frame(state, X.event(frame(state), event)), AfterCommand{skip})
+def after(+state: DriverState.State, +event: G.GraphEvent, +skip: Bool) -> DriverState.Selection:
+  DriverState.internal(DriverState.with_frame(state, X.event(DriverState.frame(state), event)), DriverState.AfterCommand{skip})
 
 def limits(+frame: X.Frame) -> G.Limits:
   match frame:
@@ -207,44 +93,38 @@ def work_cap(+limits: G.Limits) -> Nat:
     case G.Limits{_, _, _, _, _, _, _, +work}: work
 
 def begin(
-  +config: Config,
+  +config: DriverState.Config,
   +frame: X.Frame,
-  +targets: List<&2, TargetEntry>,
-  +ids: List<&2, TargetId>,
+  +targets: List<&2, DriverState.TargetEntry>,
+  +ids: List<&2, DriverState.TargetId>,
   +next_target: Nat,
   +next_request: Nat
-) -> State:
-  State{config, frame, targets, ids, next_target, next_request,
-    ((work_cap(limits(frame)) * 8n : Nat) + 16n : Nat), Iteration{}, None{}}
+) -> DriverState.State:
+  DriverState.State{config, frame, targets, ids, next_target, next_request,
+    ((work_cap(limits(frame)) * 8n : Nat) + 16n : Nat), DriverState.Iteration{}, None{}}
 
-def invocation(+config: Config) -> Nat:
-  match config:
-    case Config{+invocation, _, _, _, _, _}: invocation
-
-# The reference owns the orchestration and accounting; the existing specialized
-# Python policy child is shared. This is not an independent Python-policy proof.
 def bounded_usage(graph: G.Bounded) -> Python.Usage:
   match graph:
     case G.Bounded{graph, _}: Budget.graph_usage(graph)
 
-def source_usage(+state: State, census: Budget.Census) -> Python.Usage:
+def source_usage(+state: DriverState.State, census: Budget.Census) -> Python.Usage:
   Budget.combined_usage(
     census,
-    bounded_usage(X.frame_graph(frame(state))),
-    source_cap(limits(frame(state)))
+    bounded_usage(X.frame_graph(DriverState.frame(state))),
+    source_cap(limits(DriverState.frame(state)))
   )
 
-def python_available_at(+state: State, python: Maybe<&2, PythonContext>) -> Bool:
+def python_available_at(+state: DriverState.State, python: Maybe<&2, DriverState.PythonContext>) -> Bool:
   match python:
     case None{}: True{}
-    case Some{PythonContext{session, _, census}}:
+    case Some{DriverState.PythonContext{session, _, census}}:
       Budget.available_usage(
         source_usage(state, census),
         Python.usage(session),
-        limits(frame(state))
+        limits(DriverState.frame(state))
       )
 
-def python_available(+state: State) -> Bool:
+def python_available(+state: DriverState.State) -> Bool:
   python_available_at(state, python_context(state))
 
 def with_dependencies(value: X.Frame, dependencies: List<&2, String>) -> X.Frame:
@@ -279,45 +159,45 @@ def with_dependencies(value: X.Frame, dependencies: List<&2, String>) -> X.Frame
       }
 
 def synchronized_at(
-  +state: State,
+  +state: DriverState.State,
   +session: Python.Session,
-  python: Maybe<&2, PythonContext>
-) -> State:
+  python: Maybe<&2, DriverState.PythonContext>
+) -> DriverState.State:
   match python:
     case None{}: state
-    case Some{PythonContext{_, cache, census}}:
+    case Some{DriverState.PythonContext{_, cache, census}}:
       with_python(
-        with_frame(state, with_dependencies(frame(state), Python.dependencies(session))),
+        DriverState.with_frame(state, with_dependencies(DriverState.frame(state), Python.dependencies(session))),
         session,
         cache,
         census
       )
 
-def synchronized(+state: State, session: Python.Session) -> State:
+def synchronized(+state: DriverState.State, session: Python.Session) -> DriverState.State:
   synchronized_at(state, session, python_context(state))
 
-def child_request_at(+state: State, next: Stage, expected: T.Request, valid: Bool) -> Selection:
+def child_request_at(+state: DriverState.State, next: DriverState.Stage, expected: T.Request, valid: Bool) -> DriverState.Selection:
   match expected valid:
-    case T.Request{_, _, operation} True{}: request(state, next, operation)
-    case _ False{}: InvariantFailed{state}
+    case T.Request{_, _, operation} True{}: DriverState.request(state, next, operation)
+    case _ False{}: DriverState.InvariantFailed{state}
 
-def child_request(+state: State, next: Stage, +expected: T.Request) -> Selection:
+def child_request(+state: DriverState.State, next: DriverState.Stage, +expected: T.Request) -> DriverState.Selection:
   match expected:
     case T.Request{owner, id, _}:
       child_request_at(state, next, expected,
-        Bool.and(Nat.is_eq(owner, invocation(config(state))), Nat.is_eq(id, next_request(state))))
+        Bool.and(Nat.is_eq(owner, DriverState.invocation(config(state))), Nat.is_eq(id, next_request(state))))
 
 def child_reply(request: T.Request, outcome: T.ServiceOutcome) -> T.Reply:
   match request:
     case T.Request{owner, id, _}: T.Reply{owner, id, outcome}
 
-def counted_at(+state: State, path: String, bytes: Nat, python: Maybe<&2, PythonContext>) -> State:
+def counted_at(+state: DriverState.State, path: String, bytes: Nat, python: Maybe<&2, DriverState.PythonContext>) -> DriverState.State:
   match python:
     case None{}: state
-    case Some{PythonContext{session, cache, census}}:
+    case Some{DriverState.PythonContext{session, cache, census}}:
       with_python(state, session, cache, Budget.succeeded(census, path, bytes))
 
-def counted(+state: State, path: String, bytes: Nat) -> State:
+def counted(+state: DriverState.State, path: String, bytes: Nat) -> DriverState.State:
   counted_at(state, path, bytes, python_context(state))
 
 def edge_at(+items: List<&2, X.Edge>, +id: Nat) -> Maybe<&2, X.Edge>:
@@ -335,35 +215,35 @@ def pending(+frame: X.Frame, +id: Nat) -> Maybe<&2, X.Edge>:
   match frame:
     case X.Frame{_, _, _, _, +items, _, _, _, _, _, _, _}: edge_at(items, id)
 
-def target_at(+items: List<&2, TargetEntry>, +id: Nat) -> Maybe<&2, Target>:
+def target_at(+items: List<&2, DriverState.TargetEntry>, +id: Nat) -> Maybe<&2, DriverState.Target>:
   match items:
     case []: None{}
-    case TargetEntry{+actual, +target} <> +tail:
-      Bool.pick(Maybe<&2, Target>, Nat.is_eq(actual, id), Some{target}, target_at(tail, id))
+    case DriverState.TargetEntry{+actual, +target} <> +tail:
+      Bool.pick(Maybe<&2, DriverState.Target>, Nat.is_eq(actual, id), Some{target}, target_at(tail, id))
 
 def stored_target(
-  +items: List<&2, TargetEntry>,
+  +items: List<&2, DriverState.TargetEntry>,
   +id: Nat,
-  +target: Target
-) -> List<&2, TargetEntry>:
+  +target: DriverState.Target
+) -> List<&2, DriverState.TargetEntry>:
   match items:
-    case []: [TargetEntry{id, target}]
-    case TargetEntry{+actual, +previous} <> +tail:
-      Bool.pick(List<&2, TargetEntry>, Nat.is_eq(actual, id), TargetEntry{id, target} <> tail,
-        TargetEntry{actual, previous} <> stored_target(tail, id, target))
+    case []: [DriverState.TargetEntry{id, target}]
+    case DriverState.TargetEntry{+actual, +previous} <> +tail:
+      Bool.pick(List<&2, DriverState.TargetEntry>, Nat.is_eq(actual, id), DriverState.TargetEntry{id, target} <> tail,
+        DriverState.TargetEntry{actual, previous} <> stored_target(tail, id, target))
 
-def target_id(+items: List<&2, TargetId>, +key: String) -> Maybe<&2, Nat>:
+def target_id(+items: List<&2, DriverState.TargetId>, +key: String) -> Maybe<&2, Nat>:
   match items:
     case []: None{}
-    case TargetId{+actual, +id} <> +tail:
+    case DriverState.TargetId{+actual, +id} <> +tail:
       Bool.pick(Maybe<&2, Nat>, String.eq(actual, key), Some{id}, target_id(tail, key))
 
-def stored_id(+items: List<&2, TargetId>, +key: String, +id: Nat) -> List<&2, TargetId>:
+def stored_id(+items: List<&2, DriverState.TargetId>, +key: String, +id: Nat) -> List<&2, DriverState.TargetId>:
   match items:
-    case []: [TargetId{key, id}]
-    case TargetId{+actual, +previous} <> +tail:
-      Bool.pick(List<&2, TargetId>, String.eq(actual, key), TargetId{key, id} <> tail,
-        TargetId{actual, previous} <> stored_id(tail, key, id))
+    case []: [DriverState.TargetId{key, id}]
+    case DriverState.TargetId{+actual, +previous} <> +tail:
+      Bool.pick(List<&2, DriverState.TargetId>, String.eq(actual, key), DriverState.TargetId{key, id} <> tail,
+        DriverState.TargetId{actual, previous} <> stored_id(tail, key, id))
 
 def expected_name(+expected: Local.ExpectedKind) -> String:
   match expected:
@@ -375,11 +255,11 @@ def file_key(+path: String, +edge: X.Edge) -> String:
     case X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, +name, _, +expected, _}}, _, _}:
       String.concat([path, "\0", expected_name(expected), "\0", name])
 
-def allocated(+state: State, +result: G.Resolution, +skip: Bool) -> Selection:
+def allocated(+state: DriverState.State, +result: G.Resolution, +skip: Bool) -> DriverState.Selection:
   match state:
-    case State{+config, +frame, +targets, +ids, +target, +request, +iterations, +stage, +python}:
+    case DriverState.State{+config, +frame, +targets, +ids, +target, +request, +iterations, +stage, +python}:
       after(
-        State{config, frame, targets, ids, (target + 1n : Nat), request, iterations, stage, python},
+        DriverState.State{config, frame, targets, ids, (target + 1n : Nat), request, iterations, stage, python},
         G.Resolved{target, result},
         skip
       )
@@ -576,66 +456,66 @@ def include_known(+frame: X.Frame, +target: Nat, +edge: X.Edge) -> Maybe<&2, X.F
     case _: Some{frame}
 
 def publish_target(
-  +state: State,
+  +state: DriverState.State,
   +frame: Maybe<&2, X.Frame>,
   +id: Nat,
-  +target: Target
-) -> Selection:
+  +target: DriverState.Target
+) -> DriverState.Selection:
   match state frame:
-    case _ None{}: InvariantFailed{state}
-    case State{+config, _, +targets, +ids, +next, +request, +iterations, _, +python} Some{+frame}:
-      Internal{State{config, frame, stored_target(targets, id, target), ids, next, request,
-        iterations, AfterCommand{False{}}, python}}
+    case _ None{}: DriverState.InvariantFailed{state}
+    case DriverState.State{+config, _, +targets, +ids, +next, +request, +iterations, _, +python} Some{+frame}:
+      DriverState.Internal{DriverState.State{config, frame, stored_target(targets, id, target), ids, next, request,
+        iterations, DriverState.AfterCommand{False{}}, python}}
 
 def resolved_known(
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +edge: X.Edge,
   +allowed: Bool
-) -> Selection:
+) -> DriverState.Selection:
   match allowed:
     case False{}: after(state, G.Resolved{id, G.NotFound{}}, False{})
     case True{}:
       publish_target(
         state,
-        include_known(X.event(frame(state), G.Resolved{id, G.Found{}}), id, edge),
+        include_known(X.event(DriverState.frame(state), G.Resolved{id, G.Found{}}), id, edge),
         id,
         target
       )
 
 def resolve_selected_observed(
   +observed: X.Frame,
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
   +path: String,
   +edge: X.Edge
-) -> Selection:
+) -> DriverState.Selection:
   match observed edge:
     case X.Frame{_, _, _, _, _, +captures, _, _, _, _, _, _}
       X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, +name, _, +expected, _}}, _, _}:
-      resolved_known(state, id, FileTarget{path, name, edge}, edge,
+      resolved_known(state, id, DriverState.FileTarget{path, name, edge}, edge,
         supported_capture(captured(captures, path), name, expected))
 
-def resolve_selected(+state: State, +id: Nat, +path: String, +edge: X.Edge) -> Selection:
-  resolve_selected_observed(frame(state), state, id, path, edge)
+def resolve_selected(+state: DriverState.State, +id: Nat, +path: String, +edge: X.Edge) -> DriverState.Selection:
+  resolve_selected_observed(DriverState.frame(state), state, id, path, edge)
 
-def chosen_target(+state: State, +id: Nat, +target: Target, +edge: X.Edge) -> Selection:
+def chosen_target(+state: DriverState.State, +id: Nat, +target: DriverState.Target, +edge: X.Edge) -> DriverState.Selection:
   match target:
-    case FileTarget{+path, _, _}: resolve_selected(state, id, path, edge)
-    case BundledTarget{_, _, _, _}: resolved_known(state, id, target, edge, True{})
+    case DriverState.FileTarget{+path, _, _}: resolve_selected(state, id, path, edge)
+    case DriverState.BundledTarget{_, _, _, _}: resolved_known(state, id, target, edge, True{})
 
 def known_key(
-  +state: State,
+  +state: DriverState.State,
   +key: String,
   +existing: Maybe<&2, Nat>,
-  +target: Target,
+  +target: DriverState.Target,
   +edge: X.Edge
-) -> Selection:
+) -> DriverState.Selection:
   match state existing:
-    case State{+config, +frame, +targets, +ids, +next, +request, +iterations, +stage, +python} None{}:
+    case DriverState.State{+config, +frame, +targets, +ids, +next, +request, +iterations, +stage, +python} None{}:
       chosen_target(
-        State{
+        DriverState.State{
           config,
           frame,
           targets,
@@ -649,11 +529,11 @@ def known_key(
         target,
         edge
       )
-    case State{+config, +frame, +targets, +ids, +next, +request, +iterations, +stage, +python} Some{
+    case DriverState.State{+config, +frame, +targets, +ids, +next, +request, +iterations, +stage, +python} Some{
       +id
     }:
       chosen_target(
-        State{
+        DriverState.State{
           config,
           frame,
           targets,
@@ -669,9 +549,9 @@ def known_key(
         edge
       )
 
-def choose_key(+state: State, +key: String, +target: Target, +edge: X.Edge) -> Selection:
+def choose_key(+state: DriverState.State, +key: String, +target: DriverState.Target, +edge: X.Edge) -> DriverState.Selection:
   match state:
-    case State{_, _, _, +ids, _, _, _, _, _}: known_key(
+    case DriverState.State{_, _, _, +ids, _, _, _, _, _}: known_key(
       state,
       key,
       target_id(ids, key),
@@ -679,10 +559,10 @@ def choose_key(+state: State, +key: String, +target: Target, +edge: X.Edge) -> S
       edge
     )
 
-def chosen_path(+state: State, +edge: X.Edge, +path: String) -> Selection:
+def chosen_path(+state: DriverState.State, +edge: X.Edge, +path: String) -> DriverState.Selection:
   match edge:
     case X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, +name, _, _, _}}, _, _}:
-      choose_key(state, file_key(path, edge), FileTarget{path, name, edge}, edge)
+      choose_key(state, file_key(path, edge), DriverState.FileTarget{path, name, edge}, edge)
 
 def renamed_edge(edge: X.Edge, name: String) -> X.Edge:
   match edge:
@@ -700,11 +580,11 @@ def renamed_edge(edge: X.Edge, name: String) -> X.Edge:
       }
 
 def python_resolution(
-  +state: State,
+  +state: DriverState.State,
   edge: X.Edge,
   resolution: Maybe<&2, P.Resolution>,
   available: Bool
-) -> Selection:
+) -> DriverState.Selection:
   match resolution available:
     case Some{P.Resolution{path, name}} True{}: chosen_path(
       state,
@@ -716,12 +596,12 @@ def python_resolution(
 
 
 def python_import(
-  +state: State,
+  +state: DriverState.State,
   +edge: X.Edge,
   separator: String,
-  python: PythonContext,
-  observed: Config
-) -> Selection:
+  python: DriverState.PythonContext,
+  observed: DriverState.Config
+) -> DriverState.Selection:
   match edge python observed:
     case X.Edge{
       _,
@@ -729,45 +609,45 @@ def python_import(
       _,
       _
     }
-      PythonContext{session, cache, census} Config{owner, root, _, _, clock, _}:
-      ChildBegin{stage(state, PythonImporting{edge, None{}}), P.ResolveImport{session,
-        Budget.remaining_usage(source_usage(state, census), limits(frame(state))),
+      DriverState.PythonContext{session, cache, census} DriverState.Config{owner, root, _, _, clock, _}:
+      DriverState.ChildBegin{DriverState.stage(state, DriverState.PythonImporting{edge, None{}}), P.ResolveImport{session,
+        Budget.remaining_usage(source_usage(state, census), limits(DriverState.frame(state))),
         from, imported, name, root, clock, cache, separator, owner, next_request(state)}}
-    case _ _ _: InvariantFailed{state}
+    case _ _ _: DriverState.InvariantFailed{state}
 
-def chosen_paths(+state: State, +edge: X.Edge, +paths: List<&2, String>) -> Selection:
+def chosen_paths(+state: DriverState.State, +edge: X.Edge, +paths: List<&2, String>) -> DriverState.Selection:
   match paths:
     case []: allocated(state, G.NotFound{}, False{})
     case +path <> []: chosen_path(state, edge, path)
     case _: allocated(state, G.Many{}, False{})
 
 def resolved_bundle(
-  +state: State,
+  +state: DriverState.State,
   +edge: X.Edge,
   +found: Maybe<&2, T.FactDeclaration>
-) -> Selection:
+) -> DriverState.Selection:
   match edge found:
-    case _ None{}: InvariantFailed{state}
+    case _ None{}: DriverState.InvariantFailed{state}
     case X.Edge{_, _, +source, +catalog} Some{
       T.FactDeclaration{+key, +artifact, +refs, +supporting}
     }:
       choose_key(
         state,
         artifact_identity(artifact),
-        BundledTarget{T.FactDeclaration{key, artifact, refs, supporting}, source, catalog, edge},
+        DriverState.BundledTarget{T.FactDeclaration{key, artifact, refs, supporting}, source, catalog, edge},
         edge
       )
 
 def resolve_file(
-  +state: State,
+  +state: DriverState.State,
   +edge: X.Edge,
   +outside: Bool,
   +choices: List<&2, String>
-) -> Selection:
+) -> DriverState.Selection:
   match outside choices:
     case True{} _: allocated(state, G.Unhandled{}, True{})
     case False{} Nil{}: allocated(state, G.Unhandled{}, True{})
-    case False{} _: internal(state, Scan{edge, choices, []})
+    case False{} _: DriverState.internal(state, DriverState.Scan{edge, choices, []})
 
 def resolve_observed(
   ~absolute: String -> Bool,
@@ -775,13 +655,13 @@ def resolve_observed(
   ~join: List<&2, String> -> String,
   ~normalize: String -> String,
   ~extension: String -> String,
-  +observed: Config,
+  +observed: DriverState.Config,
   +separator: String,
-  +state: State,
+  +state: DriverState.State,
   +edge: X.Edge
-) -> Selection:
+) -> DriverState.Selection:
   match observed edge:
-    case Config{_, _, +language, _, _, _}
+    case DriverState.Config{_, _, +language, _, _, _}
       X.Edge{
         _,
         F.Pending{_, Local.Pending{_, _, +from, _, _, _, _, Local.Imported{+imported, _}}},
@@ -810,9 +690,9 @@ def resolve_generic(
   ~normalize: String -> String,
   ~extension: String -> String,
   +separator: String,
-  +state: State,
+  +state: DriverState.State,
   +edge: X.Edge
-) -> Selection:
+) -> DriverState.Selection:
   resolve_observed(
     absolute,
     dirname,
@@ -828,7 +708,7 @@ def resolve_generic(
 def resolve_context(
   ~absolute: String -> Bool, ~dirname: String -> String, ~join: List<&2, String> -> String,
   ~normalize: String -> String, ~extension: String -> String, +separator: String,
-  +state: State, +edge: X.Edge, python: Maybe<&2, PythonContext>) -> Selection:
+  +state: DriverState.State, +edge: X.Edge, python: Maybe<&2, DriverState.PythonContext>) -> DriverState.Selection:
   match edge python:
     case X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, _, _, _, Local.Imported{_, _}}}, _, _} Some{
       context
@@ -839,7 +719,7 @@ def resolve_context(
 def resolve(
   ~absolute: String -> Bool, ~dirname: String -> String, ~join: List<&2, String> -> String,
   ~normalize: String -> String, ~extension: String -> String, +separator: String,
-  +state: State, +edge: X.Edge) -> Selection:
+  +state: DriverState.State, +edge: X.Edge) -> DriverState.Selection:
   resolve_context(
     absolute,
     dirname,
@@ -853,29 +733,29 @@ def resolve(
   )
 
 def scanned_path(
-  +state: State,
+  +state: DriverState.State,
   +edge: X.Edge,
   +path: String,
   +remaining: List<&2, String>,
   +existing: List<&2, String>,
   +outside: Bool
-) -> Selection:
+) -> DriverState.Selection:
   match outside:
-    case True{}: internal(state, Scan{edge, remaining, existing})
-    case False{}: request(
+    case True{}: DriverState.internal(state, DriverState.Scan{edge, remaining, existing})
+    case False{}: DriverState.request(
       state,
-      AwaitStatus{edge, path, remaining, existing},
+      DriverState.AwaitStatus{edge, path, remaining, existing},
       T.ReadFileStatus{path}
     )
 
 def scan(
   ~absolute: String -> Bool,
   +separator: String,
-  +state: State,
+  +state: DriverState.State,
   +edge: X.Edge,
   +choices: List<&2, String>,
   +existing: List<&2, String>
-) -> Selection:
+) -> DriverState.Selection:
   match choices:
     case []: chosen_paths(state, edge, existing)
     case +path <> +tail: scanned_path(
@@ -888,130 +768,93 @@ def scan(
     )
 
 def status_reply(
-  +state: State,
+  +state: DriverState.State,
   +edge: X.Edge,
   +path: String,
   +remaining: List<&2, String>,
   +existing: List<&2, String>,
   +status: T.FileStatus
-) -> Selection:
+) -> DriverState.Selection:
   match status:
-    case T.ExistingFile{}: internal(
+    case T.ExistingFile{}: DriverState.internal(
       state,
-      Scan{edge, remaining, List.append(&2, String, existing, [path])}
+      DriverState.Scan{edge, remaining, List.append(&2, String, existing, [path])}
     )
-    case _: internal(state, Scan{edge, remaining, existing})
+    case _: DriverState.internal(state, DriverState.Scan{edge, remaining, existing})
 
-def selected_edge(+state: State, +edge: Maybe<&2, X.Edge>) -> Selection:
+def selected_edge(+state: DriverState.State, +edge: Maybe<&2, X.Edge>) -> DriverState.Selection:
   match edge:
-    case None{}: no_unit(state)
-    case Some{+edge}: internal(state, Resolve{edge})
+    case None{}: DriverState.no_unit(state)
+    case Some{+edge}: DriverState.internal(state, DriverState.Resolve{edge})
 
-def selected_target(+state: State, +id: Nat, +target: Maybe<&2, Target>, +read: Bool) -> Selection:
+def selected_target(+state: DriverState.State, +id: Nat, +target: Maybe<&2, DriverState.Target>, +read: Bool) -> DriverState.Selection:
   match target read:
-    case None{} _: no_unit(state)
-    case Some{+target} True{}: internal(state, Read{id, target})
-    case Some{+target} False{}: internal(state, Check{id, target})
+    case None{} _: DriverState.no_unit(state)
+    case Some{+target} True{}: DriverState.internal(state, DriverState.Read{id, target})
+    case Some{+target} False{}: DriverState.internal(state, DriverState.Check{id, target})
 
-def dispatch_command(+state: State, +command: G.Command) -> Selection:
+def dispatch_command(+state: DriverState.State, +command: G.Command) -> DriverState.Selection:
   match state command:
     case _ G.NoCommand{}: after(state, G.Next{}, False{})
     case _ G.SkipImport{_, _}: after(state, G.Next{}, False{})
-    case _ G.ResolveEdge{+id}: selected_edge(state, pending(frame(state), id))
-    case State{_, _, +targets, _, _, _, _, _, +python} G.CheckPath{+id}:
+    case _ G.ResolveEdge{+id}: selected_edge(state, pending(DriverState.frame(state), id))
+    case DriverState.State{_, _, +targets, _, _, _, _, _, +python} G.CheckPath{+id}:
       selected_target(state, id, target_at(targets, id), False{})
-    case State{_, _, +targets, _, _, _, _, _, +python} G.ReadSource{+id}:
+    case DriverState.State{_, _, +targets, _, _, _, _, _, +python} G.ReadSource{+id}:
       selected_target(state, id, target_at(targets, id), True{})
-    case _ G.UnitComplete{}: internal(state, Completion{None{}})
-    case _ G.UnitIncomplete{+reason}: internal(state, Completion{Some{reason}})
+    case _ G.UnitComplete{}: DriverState.internal(state, DriverState.Completion{None{}})
+    case _ G.UnitIncomplete{+reason}: DriverState.internal(state, DriverState.Completion{Some{reason}})
 
-def phase_completion(+state: State, +phase: G.Phase) -> Selection:
-  match phase:
-    case G.Complete{}: internal(state, Completion{None{}})
-    case G.Incomplete{+reason}: internal(state, Completion{Some{reason}})
-    case _: internal(state, Iteration{})
-
-def after_command(+state: State, +frame: X.Frame, +skip: Bool) -> Selection:
-  match frame skip:
-    case _ True{}: internal(state, Iteration{})
-    case X.Frame{
-      G.Bounded{G.Graph{+phase, _, _, _, _, _, _, _, _, _, _}, _},
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _
-    , _} False{}:
-      phase_completion(state, phase)
-
-def iteration_clock(+state: State, +config: Config) -> Selection:
-  match config:
-    case Config{_, _, _, _, +clock, _}: request(state, AwaitDeadline{}, T.ReadClock{clock})
-
-def iteration(+state: State) -> Selection:
-  match state:
-    case State{_, _, _, _, _, _, 0n, _, +python}: no_unit(state)
-    case State{+config, +frame, +targets, +ids, +target, +next_request, 1n+++remaining, _, +python}:
-      iteration_clock(
-        State{config, frame, targets, ids, target, next_request, remaining, Iteration{}, python},
-        config
-      )
-
-def deadline(+state: State, +expired: Bool) -> Selection:
+def deadline(+state: DriverState.State, +expired: Bool) -> DriverState.Selection:
   match expired:
-    case True{}: no_unit(with_frame(state, X.event(frame(state), G.DeadlineReached{})))
-    case False{}: internal(state, Command{})
+    case True{}: DriverState.no_unit(DriverState.with_frame(state, X.event(DriverState.frame(state), G.DeadlineReached{})))
+    case False{}: DriverState.internal(state, DriverState.Command{})
 
-def check(+state: State, +id: Nat, +target: Target) -> Selection:
+def check(+state: DriverState.State, +id: Nat, +target: DriverState.Target) -> DriverState.Selection:
   match target:
-    case BundledTarget{_, _, _, _}: after(state, G.PathChecked{True{}}, False{})
-    case FileTarget{+path, _, _}: request(state, AwaitChecked{id, target}, T.AccessPath{path})
+    case DriverState.BundledTarget{_, _, _, _}: after(state, G.PathChecked{True{}}, False{})
+    case DriverState.FileTarget{+path, _, _}: DriverState.request(state, DriverState.AwaitChecked{id, target}, T.AccessPath{path})
 
 def access_allowed(+access: T.AccessOutcome) -> Bool:
   match access:
     case T.AccessDenied{}: False{}
     case T.AccessAllowed{_, _}: True{}
 
-def read(+state: State, +id: Nat, +target: Target) -> Selection:
+def read(+state: DriverState.State, +id: Nat, +target: DriverState.Target) -> DriverState.Selection:
   match target:
-    case FileTarget{+path, _, _}: request(state, AwaitAuthorized{id, target}, T.AccessPath{path})
-    case BundledTarget{T.FactDeclaration{_, +artifact, _, _}, _, _, _}:
-      request(state, AwaitBundleBytes{id, target}, T.EncodeSourceText{artifact_source(artifact)})
+    case DriverState.FileTarget{+path, _, _}: DriverState.request(state, DriverState.AwaitAuthorized{id, target}, T.AccessPath{path})
+    case DriverState.BundledTarget{T.FactDeclaration{_, +artifact, _, _}, _, _, _}:
+      DriverState.request(state, DriverState.AwaitBundleBytes{id, target}, T.EncodeSourceText{artifact_source(artifact)})
 
 def canonical_read(
-  +state: State,
+  +state: DriverState.State,
   id: Nat,
-  target: Target,
+  target: DriverState.Target,
   +path: String,
   +selection: T.SelectionToken,
-  observed: Config
-) -> Selection:
+  observed: DriverState.Config
+) -> DriverState.Selection:
   match observed:
-    case Config{_, _, _, _, _, None{}}:
-      request(
+    case DriverState.Config{_, _, _, _, _, None{}}:
+      DriverState.request(
         state,
-        AwaitCapture{id, target, path, selection},
-        T.CaptureSource{selection, source_cap(limits(frame(state)))}
+        DriverState.AwaitCapture{id, target, path, selection},
+        T.CaptureSource{selection, source_cap(limits(DriverState.frame(state)))}
       )
-    case Config{_, _, _, _, _, Some{cache}}:
-      request(state, AwaitLookup{id, target, path, selection}, T.LookupCaptureCache{cache, path})
+    case DriverState.Config{_, _, _, _, _, Some{cache}}:
+      DriverState.request(state, DriverState.AwaitLookup{id, target, path, selection}, T.LookupCaptureCache{cache, path})
 
 def canonical_reserved(
-  +state: State,
+  +state: DriverState.State,
   id: Nat,
-  target: Target,
+  target: DriverState.Target,
   +path: String,
   selection: T.SelectionToken,
   session: Python.Session,
   cache: T.CacheToken,
   +census: Budget.Census,
   allowed: Bool
-) -> Selection:
+) -> DriverState.Selection:
   match allowed:
     case False{}: after(state, G.CaptureFailed{}, False{})
     case True{}: canonical_read(
@@ -1029,17 +872,17 @@ def canonical_reserved(
     )
 
 def canonical_reserve_at(
-  +state: State,
+  +state: DriverState.State,
   id: Nat,
-  target: Target,
+  target: DriverState.Target,
   +path: String,
   selection: T.SelectionToken,
   cached: Maybe<&2, Nat>,
-  python: Maybe<&2, PythonContext>
-) -> Selection:
+  python: Maybe<&2, DriverState.PythonContext>
+) -> DriverState.Selection:
   match python:
     case None{}: canonical_read(state, id, target, path, selection, config(state))
-    case Some{PythonContext{+session, cache, +census}}:
+    case Some{DriverState.PythonContext{+session, cache, +census}}:
       canonical_reserved(
         state,
         id,
@@ -1054,19 +897,19 @@ def canonical_reserve_at(
           Budget.reservation_allowed(
             source_usage(state, census),
             Python.usage(session),
-            limits(frame(state)),
+            limits(DriverState.frame(state)),
             Budget.reservation_file(Budget.captured_path(census, path)),
             Budget.reservation_size(
               Budget.captured_path(census, path),
               cached,
-              source_cap(limits(frame(state)))
+              source_cap(limits(DriverState.frame(state)))
             )
           )
         )
       )
 
-def canonical_reserve(+state: State, id: Nat, target: Target, path: String,
-    selection: T.SelectionToken, cached: Maybe<&2, Nat>) -> Selection:
+def canonical_reserve(+state: DriverState.State, id: Nat, target: DriverState.Target, path: String,
+    selection: T.SelectionToken, cached: Maybe<&2, Nat>) -> DriverState.Selection:
   canonical_reserve_at(state, id, target, path, selection, cached, python_context(state))
 
 def cached_bytes(entries: List<&2, T.CaptureBytes>, +path: String) -> Maybe<&2, Nat>:
@@ -1076,61 +919,61 @@ def cached_bytes(entries: List<&2, T.CaptureBytes>, +path: String) -> Maybe<&2, 
       Bool.pick(Maybe<&2, Nat>, String.eq(entry, path), Some{bytes}, cached_bytes(tail, path))
 
 def authorized_observed(
-  +observed: Config,
-  +state: State,
+  +observed: DriverState.Config,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +access: T.AccessOutcome
-) -> Selection:
+) -> DriverState.Selection:
   match observed access:
     case _ T.AccessDenied{}: after(state, G.CaptureFailed{}, False{})
-    case Config{_, _, _, _, _, None{}} T.AccessAllowed{+selection, +path}:
+    case DriverState.Config{_, _, _, _, _, None{}} T.AccessAllowed{+selection, +path}:
       canonical_reserve(state, id, target, path, selection, None{})
-    case Config{_, _, _, _, _, Some{+cache}} T.AccessAllowed{+selection, +path}:
-      request(state, AwaitSnapshot{id, target, path, selection}, T.SnapshotCaptureCache{cache})
+    case DriverState.Config{_, _, _, _, _, Some{+cache}} T.AccessAllowed{+selection, +path}:
+      DriverState.request(state, DriverState.AwaitSnapshot{id, target, path, selection}, T.SnapshotCaptureCache{cache})
 
-def authorized(+state: State, +id: Nat, +target: Target, +access: T.AccessOutcome) -> Selection:
+def authorized(+state: DriverState.State, +id: Nat, +target: DriverState.Target, +access: T.AccessOutcome) -> DriverState.Selection:
   authorized_observed(config(state), state, id, target, access)
 
 def snapshot_admission_observed(
-  +observed: Config,
-  +state: State,
+  +observed: DriverState.Config,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +selection: T.SelectionToken,
   +refusal: Maybe<&2, T.CaptureDiagnostic>,
   +cached: Maybe<&2, Nat>
-) -> Selection:
+) -> DriverState.Selection:
   match observed refusal:
-    case _ Some{+diagnostic}: request(
+    case _ Some{+diagnostic}: DriverState.request(
       state,
-      AwaitDiagnostic{},
+      DriverState.AwaitDiagnostic{},
       T.ObserveDiagnostic{path, diagnostic}
     )
-    case Config{_, _, _, _, _, Some{+cache}} None{}:
+    case DriverState.Config{_, _, _, _, _, Some{+cache}} None{}:
       canonical_reserve(state, id, target, path, selection, cached)
-    case _ _: InvariantFailed{state}
+    case _ _: DriverState.InvariantFailed{state}
 
 def snapshot_admission(
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +selection: T.SelectionToken,
   +refusal: Maybe<&2, T.CaptureDiagnostic>,
   +cached: Maybe<&2, Nat>
-) -> Selection:
+) -> DriverState.Selection:
   snapshot_admission_observed(config(state), state, id, target, path, selection, refusal, cached)
 
 def snapshot(
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +selection: T.SelectionToken,
   +entries: List<&2, T.CaptureBytes>
-) -> Selection:
+) -> DriverState.Selection:
   snapshot_admission(
     state,
     id,
@@ -1171,19 +1014,19 @@ def imported_modules(
     case None{}: None{}
     case Some{+items}: Some{rebased_modules(dirname, join, relative, items, root, path)}
 
-def config_context(+config: Config) -> T.FrontendContext:
+def config_context(+config: DriverState.Config) -> T.FrontendContext:
   match config:
-    case Config{_, _, _, +context, _, _}: context
+    case DriverState.Config{_, _, _, +context, _, _}: context
 
 def context(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  +config: Config,
+  +config: DriverState.Config,
   +path: String
 ) -> T.FrontendContext:
   match config:
-    case Config{_, +root, _, T.RustSourceContext{+branch, T.RustContext{_, _, +modules}}, _, _}:
+    case DriverState.Config{_, +root, _, T.RustSourceContext{+branch, T.RustContext{_, _, +modules}}, _, _}:
       Bool.pick(T.FrontendContext, String.eq(root, path), config_context(config),
         T.RustSourceContext{branch, T.RustContext{None{}, Some{True{}},
           imported_modules(dirname, join, relative, modules, root, path)}})
@@ -1196,54 +1039,54 @@ def observed_graph_work(+frame: X.Frame) -> X.Frame:
         X.difference(X.graph_work(X.frame_graph(frame)), X.local_work(X.frame_local(frame)))))
 
 def inspect_request(
-  +state: State,
+  +state: DriverState.State,
   id: Nat,
-  target: Target,
+  target: DriverState.Target,
   +path: String,
   +capture: T.CaptureToken,
   bytes: Nat,
   before: Nat,
   context: T.FrontendContext,
-  python: Maybe<&2, PythonContext>
-) -> Selection:
+  python: Maybe<&2, DriverState.PythonContext>
+) -> DriverState.Selection:
   match python:
-    case None{}: request(
+    case None{}: DriverState.request(
       state,
-      AwaitFrontend{id, target, path, capture, bytes, before},
+      DriverState.AwaitFrontend{id, target, path, capture, bytes, before},
       T.InspectSource{path, capture, context}
     )
-    case Some{_}: internal(state, PythonInspectStart{id, target, path, capture, bytes, before})
+    case Some{_}: DriverState.internal(state, DriverState.PythonInspectStart{id, target, path, capture, bytes, before})
 
 def ready_capture(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +capture: T.CaptureToken,
   +bytes: Nat,
   +oversized: Bool
-) -> Selection:
+) -> DriverState.Selection:
   match oversized:
     case True{}: after(state, G.Captured{bytes, 0n, 0n, []}, False{})
     case False{}:
-      inspect_request(with_frame(state, observed_graph_work(frame(state))),
-        id, target, path, capture, bytes, X.local_work(X.frame_local(frame(state))),
+      inspect_request(DriverState.with_frame(state, observed_graph_work(DriverState.frame(state))),
+        id, target, path, capture, bytes, X.local_work(X.frame_local(DriverState.frame(state))),
         context(dirname, join, relative, config(state), path), python_context(state))
 
 def capture_ready(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +capture: T.CaptureToken,
   +bytes: Nat
-) -> Selection:
+) -> DriverState.Selection:
   ready_capture(
     dirname,
     join,
@@ -1254,20 +1097,20 @@ def capture_ready(
     path,
     capture,
     bytes,
-    Nat.is_gt(bytes, source_cap(limits(frame(state))))
+    Nat.is_gt(bytes, source_cap(limits(DriverState.frame(state))))
   )
 
 def lookup(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +selection: T.SelectionToken,
   +outcome: T.CacheOutcome
-) -> Selection:
+) -> DriverState.Selection:
   match outcome:
     case T.CachePresent{+capture, +bytes}: capture_ready(
       dirname,
@@ -1280,32 +1123,32 @@ def lookup(
       capture,
       bytes
     )
-    case T.CacheAbsent{}: request(
+    case T.CacheAbsent{}: DriverState.request(
       state,
-      AwaitCapture{id, target, path, selection},
-      T.CaptureSource{selection, source_cap(limits(frame(state)))}
+      DriverState.AwaitCapture{id, target, path, selection},
+      T.CaptureSource{selection, source_cap(limits(DriverState.frame(state)))}
     )
 
 def capture_observed(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  +observed: Config,
-  +state: State,
+  +observed: DriverState.Config,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +outcome: T.CaptureOutcome
-) -> Selection:
+) -> DriverState.Selection:
   match observed outcome:
     case _ T.CaptureUnavailable{+diagnostic}:
-      request(state, AwaitDiagnostic{}, T.ObserveDiagnostic{path, diagnostic})
-    case Config{_, _, _, _, _, None{}} T.SourceCaptured{+capture, _, +bytes}:
+      DriverState.request(state, DriverState.AwaitDiagnostic{}, T.ObserveDiagnostic{path, diagnostic})
+    case DriverState.Config{_, _, _, _, _, None{}} T.SourceCaptured{+capture, _, +bytes}:
       capture_ready(dirname, join, relative, state, id, target, path, capture, bytes)
-    case Config{_, _, _, _, _, Some{+cache}} T.SourceCaptured{+capture, _, +bytes}:
-      request(
+    case DriverState.Config{_, _, _, _, _, Some{+cache}} T.SourceCaptured{+capture, _, +bytes}:
+      DriverState.request(
         state,
-        AwaitStored{id, target, path, capture, bytes},
+        DriverState.AwaitStored{id, target, path, capture, bytes},
         T.StoreCaptureCache{cache, path, capture}
       )
 
@@ -1315,23 +1158,23 @@ def capture(
   ~dirname: String -> String,
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +outcome: T.CaptureOutcome
-) -> Selection:
+) -> DriverState.Selection:
   capture_observed(dirname, join, relative, config(state), state, id, target, path, outcome)
 
-def start_transaction(+state: State, +attempt: X.Attempt) -> Selection:
-  internal(state, Transaction{X.begin(frame(state), attempt)})
+def start_transaction(+state: DriverState.State, +attempt: X.Attempt) -> DriverState.Selection:
+  DriverState.internal(state, DriverState.Transaction{X.begin(DriverState.frame(state), attempt)})
 
 def edge_expected(+edge: X.Edge) -> Local.ExpectedKind:
   match edge:
     case X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, _, _, +expected, _}}, _, _}: expected
 
 def file_catalog(
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
   +edge: X.Edge,
   +path: String,
@@ -1341,9 +1184,9 @@ def file_catalog(
   +before: Nat,
   +catalog: Root.Source,
   +found: Maybe<&2, Local.Declaration>
-) -> Selection:
+) -> DriverState.Selection:
   match found:
-    case None{}: InvariantFailed{state}
+    case None{}: DriverState.InvariantFailed{state}
     case Some{+declaration}:
       start_transaction(state, X.Attempt{id, edge, X.FileChild{path}, source,
         bytes, name, edge_expected(edge), declaration, catalog, before})
@@ -1364,26 +1207,26 @@ def catalog_allocated_frame(value: X.Frame, next: Nat) -> X.Frame:
       X.Frame{graph, command, forest, local, pending, captured, identities,
         edge, episode, next, dependencies, fingerprint}
 
-def catalog_allocated(+state: State, catalog: Root.Source) -> State:
+def catalog_allocated(+state: DriverState.State, catalog: Root.Source) -> DriverState.State:
   match catalog:
-    case Root.Source{_, next, _}: with_frame(state, catalog_allocated_frame(frame(state), next))
+    case Root.Source{_, next, _}: DriverState.with_frame(state, catalog_allocated_frame(DriverState.frame(state), next))
 
 def file_attempt(
-  +state: State, +id: Nat, +target: Target, +path: String,
+  +state: DriverState.State, +id: Nat, +target: DriverState.Target, +path: String,
   +source: T.SourceFacts, +bytes: Nat, +before: Nat,
   +catalog: Root.Source, +found: Maybe<&2, T.FactDeclaration>, +allowed: Bool
-) -> Selection:
+) -> DriverState.Selection:
   match target found allowed:
     case _ _ False{}: after(state, G.CaptureFailed{}, False{})
-    case FileTarget{_, +name, +edge} Some{_} True{}:
+    case DriverState.FileTarget{_, +name, +edge} Some{_} True{}:
       file_catalog(state, id, edge, path, source, bytes, name, before, catalog,
         declaration_handle(catalog, name, edge_expected(edge)))
-    case _ _ _: InvariantFailed{state}
+    case _ _ _: DriverState.InvariantFailed{state}
 
-def prepared_file(+state: State, +id: Nat, +target: Target, +path: String,
-    +source: T.SourceFacts, +bytes: Nat, +before: Nat, +catalog: Root.Source) -> Selection:
+def prepared_file(+state: DriverState.State, +id: Nat, +target: DriverState.Target, +path: String,
+    +source: T.SourceFacts, +bytes: Nat, +before: Nat, +catalog: Root.Source) -> DriverState.Selection:
   match target:
-    case FileTarget{_, +name, +edge}:
+    case DriverState.FileTarget{_, +name, +edge}:
       file_attempt(
         catalog_allocated(state, catalog),
         id,
@@ -1396,13 +1239,13 @@ def prepared_file(+state: State, +id: Nat, +target: Target, +path: String,
         declaration(source, name, edge_expected(edge)),
         supported(declaration(source, name, edge_expected(edge)), edge_expected(edge))
       )
-    case _: InvariantFailed{state}
+    case _: DriverState.InvariantFailed{state}
 
-def prepare_file(+valid: Bool, +state: State, +id: Nat, +target: Target,
-    +path: String, +source: T.SourceFacts, +bytes: Nat, +before: Nat) -> Selection:
+def prepare_file(+valid: Bool, +state: DriverState.State, +id: Nat, +target: DriverState.Target,
+    +path: String, +source: T.SourceFacts, +bytes: Nat, +before: Nat) -> DriverState.Selection:
   match valid state:
-    case False{} _: Rejected{state, T.MalformedReply{}}
-    case True{} State{_, X.Frame{_, _, _, _, _, _, _, _, _, next, _, _}, _, _, _, _, _, _, _}:
+    case False{} _: DriverState.Rejected{state, T.MalformedReply{}}
+    case True{} DriverState.State{_, X.Frame{_, _, _, _, _, _, _, _, _, next, _, _}, _, _, _, _, _, _, _}:
       prepared_file(state, id, target, path, source, bytes, before, Root.source(source, next))
 
 def edge_id(+edge: X.Edge) -> Nat:
@@ -1410,22 +1253,22 @@ def edge_id(+edge: X.Edge) -> Nat:
     case X.Edge{+id, _, _, _}: id
 
 def frontend(
-  +state: State,
+  +state: DriverState.State,
   +id: Nat,
-  +target: Target,
+  +target: DriverState.Target,
   +path: String,
   +bytes: Nat,
   +before: Nat,
   +outcome: T.SourceOutcome
-) -> Selection:
+) -> DriverState.Selection:
   match target outcome:
     case _ T.SourceUnsupported{}: after(state, G.CaptureFailed{}, False{})
-    case FileTarget{_, +name, +edge} T.SourceInspected{+source}:
+    case DriverState.FileTarget{_, +name, +edge} T.SourceInspected{+source}:
       prepare_file(SourceValidation.source(source), state, id, target, path, source, bytes, before)
-    case _ _: InvariantFailed{state}
+    case _ _: DriverState.InvariantFailed{state}
 
-def python_inspected(+state: State, id: Nat, target: Target, path: String, bytes: Nat, before: Nat,
-    facts: Maybe<&2, T.SourceFacts>, next: Nat) -> Selection:
+def python_inspected(+state: DriverState.State, id: Nat, target: DriverState.Target, path: String, bytes: Nat, before: Nat,
+    facts: Maybe<&2, T.SourceFacts>, next: Nat) -> DriverState.Selection:
   match facts:
     case None{}: frontend(
       with_next(state, next),
@@ -1449,24 +1292,24 @@ def python_inspected(+state: State, id: Nat, target: Target, path: String, bytes
 
 
 def python_inspect_begin(
-  +state: State,
+  +state: DriverState.State,
   id: Nat,
-  target: Target,
+  target: DriverState.Target,
   +path: String,
   capture: T.CaptureToken,
   bytes: Nat,
   before: Nat,
-  observed: Config
-) -> Selection:
+  observed: DriverState.Config
+) -> DriverState.Selection:
   match observed:
-    case Config{owner, root, _, T.PythonSourceContext{branch}, _, _}:
-      ChildBegin{stage(state, PythonInspecting{id, target, path, bytes, before, None{}}),
+    case DriverState.Config{owner, root, _, T.PythonSourceContext{branch}, _, _}:
+      DriverState.ChildBegin{DriverState.stage(state, DriverState.PythonInspecting{id, target, path, bytes, before, None{}}),
         P.Inspect{branch, path, root, capture, owner, next_request(state)}}
-    case _: InvariantFailed{state}
+    case _: DriverState.InvariantFailed{state}
 
-def bundle_catalog(+state: State, +target: Nat, +edge: X.Edge,
+def bundle_catalog(+state: DriverState.State, +target: Nat, +edge: X.Edge,
     +declaration: T.FactDeclaration, +source: T.SourceFacts,
-    +catalog: Root.Source, +bytes: Nat, found: Maybe<&2, Local.Declaration>) -> Selection:
+    +catalog: Root.Source, +bytes: Nat, found: Maybe<&2, Local.Declaration>) -> DriverState.Selection:
   match declaration catalog found:
     case T.FactDeclaration{_, +artifact, _, _}
         Root.Source{Local.Facts{aware, _, imports, supporting}, next, entries}
@@ -1489,280 +1332,142 @@ def bundle_catalog(+state: State, +target: Nat, +edge: X.Edge,
       }
       start_transaction(state, X.Attempt{target, edge, X.BundledChild{}, source, bytes,
         artifact_name(artifact), Local.AnyKind{}, selected, clone,
-        X.local_work(X.frame_local(frame(state)))})
-    case _ _ _: InvariantFailed{state}
+        X.local_work(X.frame_local(DriverState.frame(state)))})
+    case _ _ _: DriverState.InvariantFailed{state}
 
-def bundle_selected(+state: State, +id: Nat, +edge: X.Edge,
+def bundle_selected(+state: DriverState.State, +id: Nat, +edge: X.Edge,
     +declaration: T.FactDeclaration, +source: T.SourceFacts,
-    +catalog: Root.Source, +bytes: Nat) -> Selection:
+    +catalog: Root.Source, +bytes: Nat) -> DriverState.Selection:
   match declaration catalog:
     case T.FactDeclaration{key, _, _, _} Root.Source{Local.Facts{_, _, _, supporting}, _, _}:
       bundle_catalog(state, id, edge, declaration, source, catalog, bytes,
         Recursive.value(Maybe<&2, Local.Declaration>,
           Map.get(Maybe<&2, Local.Declaration>, None{}, supporting, key)))
 
-def bundle_attempt(+state: State, +id: Nat, +target: Target, +bytes: Nat) -> Selection:
+def bundle_attempt(+state: DriverState.State, +id: Nat, +target: DriverState.Target, +bytes: Nat) -> DriverState.Selection:
   match target:
-    case BundledTarget{declaration, source, catalog, edge}:
+    case DriverState.BundledTarget{declaration, source, catalog, edge}:
       bundle_selected(state, id, edge, declaration, source, catalog, bytes)
-    case _: InvariantFailed{state}
+    case _: DriverState.InvariantFailed{state}
 
-def transaction_selection(+state: State, +selection: X.Selection) -> Selection:
-  match selection:
-    case X.Request{+transaction, +operation}: request(state, Transaction{transaction}, operation)
-    case X.Continue{X.TransactionFinished{+frame}}: internal(
-      with_frame(state, frame),
-      AfterCommand{False{}}
-    )
-    case X.Continue{X.TransactionFailed{+frame, +failure}}: Rejected{
-      with_frame(state, frame),
-      failure
-    }
-    case X.Continue{X.TransactionExhausted{+frame}}: EvaluationExhausted{with_frame(state, frame)}
-    case X.Continue{X.TransactionInvalid{+frame}}: InvariantFailed{with_frame(state, frame)}
-    case X.Continue{+transaction}: internal(state, Transaction{transaction})
-
-# Traverse only root-reachable semantic references. Detached rollback nodes
-# are excluded. Mathematical evaluation exhaustion is an explicit result.
-def omission_node(
-  +found: Maybe<&2, F.Node>,
-  +rest: List<&2, OmissionWork>
-) -> Maybe<&2, List<&2, OmissionWork>>:
-  match found:
-    case None{}: None{}
-    case Some{F.Node{_, _, +references}}: Some{OmissionReferences{references} <> rest}
-
-def omission_step(
-  +work: OmissionWork,
-  +rest: List<&2, OmissionWork>,
-  +nodes: List<&2, F.Node>
-) -> Maybe<&2, List<&2, OmissionWork>>:
-  match work:
-    case OmissionAddress{+address}: omission_node(F.node_at(nodes, address), rest)
-    case OmissionReferences{[]}: Some{rest}
-    case OmissionReferences{F.Included{_, _} <> +tail}: Some{OmissionReferences{tail} <> rest}
-    case OmissionReferences{F.Expanded{_, +child} <> +tail}:
-      Some{OmissionAddress{child} <> OmissionReferences{tail} <> rest}
-    case OmissionReferences{F.Omitted{_, _, _} <> _}: Some{[]}
-
-def omission_found(+work: OmissionWork) -> Bool:
-  match work:
-    case OmissionReferences{F.Omitted{_, _, _} <> _}: True{}
-    case _: False{}
-
-def omission_next(
-  +next: Maybe<&2, List<&2, OmissionWork>>,
-  proceed: List<&2, OmissionWork> -> OmissionResult
-) -> OmissionResult:
-  match next:
-    case None{}: OmissionInvalid{}
-    case Some{+items}: proceed(items)
-
-def omission_dispatch(
-  +found: Bool,
-  +next: Maybe<&2, List<&2, OmissionWork>>,
-  proceed: List<&2, OmissionWork> -> OmissionResult
-) -> OmissionResult:
-  match found:
-    case True{}: OmissionsObserved{True{}}
-    case False{}: omission_next(next, proceed)
-
-def omissions(
-  +fuel: Nat,
-  +work: List<&2, OmissionWork>,
-  +nodes: List<&2, F.Node>
-) -> OmissionResult:
-  match fuel work:
-    case _ Nil{}: OmissionsObserved{False{}}
-    case 0n _: OmissionExhausted{}
-    case 1n+++remaining +head <> +tail:
-      omission_dispatch(omission_found(head), omission_step(head, tail, nodes),
-        items => omissions(remaining, items, nodes))
-
-def forest_omissions(+fuel: Nat, +forest: F.Forest) -> OmissionResult:
-  match forest:
-    case F.Forest{None{}, _}: OmissionInvalid{}
-    case F.Forest{Some{+root}, +nodes}: omissions(fuel, [OmissionAddress{root}], nodes)
-
-def completion_selected(
-  +state: State,
-  +product: ArtifactValue.ProductValue,
-  +allowed: Bool
-) -> Selection:
-  match allowed:
-    case False{}: no_unit(state)
-    case True{}: request(state, AwaitCompletion{product}, T.EncodeProduct{product})
-
-def completion_product(+state: State, +result: F.Materialization) -> Selection:
-  match result:
-    case F.MaterializationExhausted{}: EvaluationExhausted{state}
-    case F.MaterializationInvalid{}: InvariantFailed{state}
-    case F.Materialized{+product}: completion_selected(state, product, True{})
-
-def materialize_unit(+fuel: Nat, +state: State, +frame: X.Frame) -> Selection:
-  match frame:
-    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, +dependencies, fingerprint}:
-      completion_product(state, F.prepared_unit(fuel, forest, dependencies, fingerprint))
-
-def partial_omissions(
-  +fuel: Nat,
-  +state: State,
-  +frame: X.Frame,
-  +result: OmissionResult
-) -> Selection:
-  match result:
-    case OmissionsObserved{False{}}: no_unit(state)
-    case OmissionsObserved{True{}}: materialize_unit(fuel, state, frame)
-    case OmissionExhausted{}: EvaluationExhausted{state}
-    case OmissionInvalid{}: InvariantFailed{state}
-
-def completion_observed(
-  +observed: X.Frame,
-  +fuel: Nat,
-  +state: State,
-  +partial: Maybe<&2, G.Reason>
-) -> Selection:
-  match observed partial:
-    case _ None{}: materialize_unit(fuel, state, observed)
-    case _ Some{G.Deadline{}}: no_unit(state)
-    case _ Some{G.ProtocolViolation{}}: no_unit(state)
-    case X.Frame{
-      G.Bounded{G.Graph{_, _, _, 0n, _, _, _, _, _, _, _}, _},
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _
-    , _} Some{_}: no_unit(state)
-    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, _, _} Some{_}:
-      partial_omissions(fuel, state, observed, forest_omissions(fuel, forest))
-
-def completion(+fuel: Nat, +state: State, +partial: Maybe<&2, G.Reason>) -> Selection:
-  completion_observed(frame(state), fuel, state, partial)
-
-def final_clock(+state: State, product: ArtifactValue.ProductValue, observed: Config) -> Selection:
+def final_clock(+state: DriverState.State, product: ArtifactValue.ProductValue, observed: DriverState.Config) -> DriverState.Selection:
   match observed:
-    case Config{_, _, _, _, clock, _}: request(
+    case DriverState.Config{_, _, _, _, clock, _}: DriverState.request(
       state,
-      AwaitFinalDeadline{product},
+      DriverState.AwaitFinalDeadline{product},
       T.ReadClock{clock}
     )
 
-def python_validated(+state: State, product: ArtifactValue.ProductValue, valid: Bool) -> Selection:
+def python_validated(+state: DriverState.State, product: ArtifactValue.ProductValue, valid: Bool) -> DriverState.Selection:
   match valid:
-    case False{}: no_unit(state)
+    case False{}: DriverState.no_unit(state)
     case True{}: final_clock(state, product, config(state))
 
 
 
-def python_validation_begin(+state: State, product: ArtifactValue.ProductValue, separator: String,
-    python: Maybe<&2, PythonContext>, observed: Config) -> Selection:
+def python_validation_begin(+state: DriverState.State, product: ArtifactValue.ProductValue, separator: String,
+    python: Maybe<&2, DriverState.PythonContext>, observed: DriverState.Config) -> DriverState.Selection:
   match python observed:
-    case Some{PythonContext{session, _, census}} Config{owner, _, _, _, clock, _}:
-      ChildBegin{stage(state, PythonValidating{product, None{}}), P.Revalidate{session,
-        Budget.remaining_usage(source_usage(state, census), limits(frame(state))),
+    case Some{DriverState.PythonContext{session, _, census}} DriverState.Config{owner, _, _, _, clock, _}:
+      DriverState.ChildBegin{DriverState.stage(state, DriverState.PythonValidating{product, None{}}), P.Revalidate{session,
+        Budget.remaining_usage(source_usage(state, census), limits(DriverState.frame(state))),
         clock, separator, owner, next_request(state)}}
-    case None{} _: InvariantFailed{state}
+    case None{} _: DriverState.InvariantFailed{state}
 
 def terminal_product(
-  +state: State,
+  +state: DriverState.State,
   product: ArtifactValue.ProductValue,
-  python: Maybe<&2, PythonContext>
-) -> Selection:
+  python: Maybe<&2, DriverState.PythonContext>
+) -> DriverState.Selection:
   match python:
-    case None{}: Success{state, Some{product}}
-    case Some{_}: internal(state, PythonValidationStart{product})
+    case None{}: DriverState.Success{state, Some{product}}
+    case Some{_}: DriverState.internal(state, DriverState.PythonValidationStart{product})
 
-def final_deadline(+state: State, product: ArtifactValue.ProductValue, expired: Bool) -> Selection:
+def final_deadline(+state: DriverState.State, product: ArtifactValue.ProductValue, expired: Bool) -> DriverState.Selection:
   match expired:
-    case True{}: no_unit(state)
-    case False{}: Success{state, Some{product}}
+    case True{}: DriverState.no_unit(state)
+    case False{}: DriverState.Success{state, Some{product}}
 
-def completed(+state: State, +product: ArtifactValue.ProductValue, +allowed: Bool) -> Selection:
+def completed(+state: DriverState.State, +product: ArtifactValue.ProductValue, +allowed: Bool) -> DriverState.Selection:
   match allowed:
-    case False{}: no_unit(state)
+    case False{}: DriverState.no_unit(state)
     case True{}: terminal_product(state, product, python_context(state))
 
 # Child steps are emitted separately. The saved request names an immutable
 # continuation in the mechanical interpreter, not a production provider lease.
 # Begin/resume/view all execute the existing PythonArtifact implementation.
 def python_resume(
-  +state: State,
+  +state: DriverState.State,
   pending: Maybe<&2, T.Request>,
   outcome: T.ServiceOutcome
-) -> Selection:
+) -> DriverState.Selection:
   match pending:
-    case Some{+pending}: ChildResume{state, pending, child_reply(pending, outcome)}
-    case None{}: InvariantFailed{state}
+    case Some{+pending}: DriverState.ChildResume{state, pending, child_reply(pending, outcome)}
+    case None{}: DriverState.InvariantFailed{state}
 
-def optional_session(+state: State, session: Maybe<&2, Python.Session>) -> State:
+def optional_session(+state: DriverState.State, session: Maybe<&2, Python.Session>) -> DriverState.State:
   match session:
     case None{}: state
     case Some{session}: synchronized(state, session)
 
-def python_await_stage(+state: State, +pending: T.Request, next: Nat, saved: Stage) -> Selection:
+def python_await_stage(+state: DriverState.State, +pending: T.Request, next: Nat, saved: DriverState.Stage) -> DriverState.Selection:
   match saved:
-    case PythonImporting{edge, _}:
-      child_request_at(state, PythonImporting{edge, Some{pending}}, pending,
+    case DriverState.PythonImporting{edge, _}:
+      child_request_at(state, DriverState.PythonImporting{edge, Some{pending}}, pending,
         Nat.is_eq(next, Nat.add(next_request(state), 1n)))
-    case PythonInspecting{id, target, path, bytes, before, _}:
+    case DriverState.PythonInspecting{id, target, path, bytes, before, _}:
       child_request_at(
         state,
-        PythonInspecting{id, target, path, bytes, before, Some{pending}},
+        DriverState.PythonInspecting{id, target, path, bytes, before, Some{pending}},
         pending,
         Nat.is_eq(next, Nat.add(next_request(state), 1n))
       )
-    case PythonValidating{product, _}:
-      child_request_at(state, PythonValidating{product, Some{pending}}, pending,
+    case DriverState.PythonValidating{product, _}:
+      child_request_at(state, DriverState.PythonValidating{product, Some{pending}}, pending,
         Nat.is_eq(next, Nat.add(next_request(state), 1n)))
-    case _: InvariantFailed{state}
+    case _: DriverState.InvariantFailed{state}
 
-def state_stage(state: State) -> Stage:
+def state_stage(state: DriverState.State) -> DriverState.Stage:
   match state:
-    case State{_, _, _, _, _, _, _, stage, _}: stage
+    case DriverState.State{_, _, _, _, _, _, _, stage, _}: stage
 
-def python_await(+state: State, +pending: T.Request, next: Nat, valid: Bool) -> Selection:
+def python_await(+state: DriverState.State, +pending: T.Request, next: Nat, valid: Bool) -> DriverState.Selection:
   match valid:
-    case False{}: InvariantFailed{state}
+    case False{}: DriverState.InvariantFailed{state}
     case True{}: python_await_stage(state, pending, next, state_stage(state))
 
-def python_await_request(+state: State, +pending: T.Request, next: Nat) -> Selection:
+def python_await_request(+state: DriverState.State, +pending: T.Request, next: Nat) -> DriverState.Selection:
   match pending:
     case T.Request{owner, id, _}:
       python_await(state, pending, next,
-        Bool.and(Nat.is_eq(owner, invocation(config(state))), Nat.is_eq(id, next_request(state))))
+        Bool.and(Nat.is_eq(owner, DriverState.invocation(config(state))), Nat.is_eq(id, next_request(state))))
 
-def python_returned(+state: State, result: P.PythonResult, saved: Stage) -> Selection:
+def python_returned(+state: DriverState.State, result: P.PythonResult, saved: DriverState.Stage) -> DriverState.Selection:
   match result saved:
-    case P.Resolved{+session, resolution} PythonImporting{edge, _}:
+    case P.Resolved{+session, resolution} DriverState.PythonImporting{edge, _}:
       python_resolution(
         synchronized(state, session),
         edge,
         resolution,
         python_available(synchronized(state, session))
       )
-    case P.Inspected{facts} PythonInspecting{id, target, path, bytes, before, _}:
+    case P.Inspected{facts} DriverState.PythonInspecting{id, target, path, bytes, before, _}:
       python_inspected(state, id, target, path, bytes, before, facts, next_request(state))
-    case P.Revalidated{session, valid} PythonValidating{product, _}:
+    case P.Revalidated{session, valid} DriverState.PythonValidating{product, _}:
       python_validated(synchronized(state, session), product, valid)
-    case _ _: Rejected{state, T.WrongReplyKind{}}
+    case _ _: DriverState.Rejected{state, T.WrongReplyKind{}}
 
-def python_return_checked(+state: State, result: P.PythonResult, valid: Bool) -> Selection:
+def python_return_checked(+state: DriverState.State, result: P.PythonResult, valid: Bool) -> DriverState.Selection:
   match valid:
-    case False{}: InvariantFailed{state}
+    case False{}: DriverState.InvariantFailed{state}
     case True{}: python_returned(state, result, state_stage(state))
 
-def python_failed(+state: State, failure: T.TechnicalFailure, next: Maybe<&2, Nat>) -> Selection:
+def python_failed(+state: DriverState.State, failure: T.TechnicalFailure, next: Maybe<&2, Nat>) -> DriverState.Selection:
   match next:
-    case None{}: Rejected{state, failure}
-    case Some{next}: Rejected{with_next(state, next), failure}
+    case None{}: DriverState.Rejected{state, failure}
+    case Some{next}: DriverState.Rejected{with_next(state, next), failure}
 
-def receive_python(+state: State, view: P.PythonView) -> Selection:
+def receive_python(+state: DriverState.State, view: P.PythonView) -> DriverState.Selection:
   match view:
     case P.Await{pending, session, next}: python_await_request(
       optional_session(state, session),
@@ -1788,10 +1493,10 @@ def choose(
   ~extension: String -> String,
   +separator: String,
   +fuel: Nat,
-  +state: State
-) -> Selection:
+  +state: DriverState.State
+) -> DriverState.Selection:
   match state:
-    case State{
+    case DriverState.State{
       _,
       _,
       _,
@@ -1799,14 +1504,14 @@ def choose(
       _,
       _,
       _,
-      PythonInspectStart{id, target, path, capture, bytes, before},
+      DriverState.PythonInspectStart{id, target, path, capture, bytes, before},
       _
     }:
       python_inspect_begin(state, id, target, path, capture, bytes, before, config(state))
-    case State{_, _, _, _, _, _, _, PythonValidationStart{product}, _}:
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.PythonValidationStart{product}, _}:
       python_validation_begin(state, product, separator, python_context(state), config(state))
-    case State{_, _, _, _, _, _, _, Iteration{}, +python}: iteration(state)
-    case State{
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.Iteration{}, +python}: DriverState.iteration(state)
+    case DriverState.State{
       _,
       X.Frame{_, +command, _, _, _, _, _, _, _, _, _, _},
       _,
@@ -1814,18 +1519,18 @@ def choose(
       _,
       _,
       _,
-      Command{},
+      DriverState.Command{},
       +python
     }: dispatch_command(
       state,
       command
     )
-    case State{_, +frame, _, _, _, _, _, AfterCommand{+skip}, +python}: after_command(
+    case DriverState.State{_, +frame, _, _, _, _, _, DriverState.AfterCommand{+skip}, +python}: DriverState.after_command(
       state,
       frame,
       skip
     )
-    case State{_, _, _, _, _, _, _, Resolve{+edge}, +python}: resolve(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.Resolve{+edge}, +python}: resolve(
       absolute,
       dirname,
       join,
@@ -1835,7 +1540,7 @@ def choose(
       state,
       edge
     )
-    case State{_, _, _, _, _, _, _, Scan{+edge, +choices, +existing}, +python}: scan(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.Scan{+edge, +choices, +existing}, +python}: scan(
       absolute,
       separator,
       state,
@@ -1843,14 +1548,14 @@ def choose(
       choices,
       existing
     )
-    case State{_, _, _, _, _, _, _, Check{+id, +target}, +python}: check(state, id, target)
-    case State{_, _, _, _, _, _, _, Read{+id, +target}, +python}: read(state, id, target)
-    case State{_, _, _, _, _, _, _, Transaction{+transaction}, +python}: transaction_selection(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.Check{+id, +target}, +python}: check(state, id, target)
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.Read{+id, +target}, +python}: read(state, id, target)
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.Transaction{+transaction}, +python}: DriverState.transaction_selection(
       state,
       X.choose(fuel, transaction)
     )
-    case State{_, _, _, _, _, _, _, Completion{+partial}, +python}: completion(fuel, state, partial)
-    case _: InvariantFailed{state}
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.Completion{+partial}, +python}: DriverState.completion(fuel, state, partial)
+    case _: DriverState.InvariantFailed{state}
 
 
 
@@ -1863,45 +1568,45 @@ def consume(
   ~join: List<&2, String> -> String,
   ~relative: String -> String -> String,
   ~expired: ArtifactValue.Binary64 -> Bool,
-  +state: State,
+  +state: DriverState.State,
   +outcome: T.ServiceOutcome
-) -> Selection:
+) -> DriverState.Selection:
   match state outcome:
-    case State{_, _, _, _, _, _, _, PythonImporting{_, pending}, _} _:
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.PythonImporting{_, pending}, _} _:
       python_resume(state, pending, outcome)
-    case State{_, _, _, _, _, _, _, PythonInspecting{_, _, _, _, _, pending}, _} _:
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.PythonInspecting{_, _, _, _, _, pending}, _} _:
       python_resume(state, pending, outcome)
-    case State{_, _, _, _, _, _, _, PythonValidating{_, pending}, _} _:
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.PythonValidating{_, pending}, _} _:
       python_resume(state, pending, outcome)
-    case State{_, _, _, _, _, _, _, AwaitFinalDeadline{product}, _} T.ClockRead{bits}:
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitFinalDeadline{product}, _} T.ClockRead{bits}:
       final_deadline(state, product, Bool.or(expired(bits), Bool.not(python_available(state))))
-    case _ T.ProviderRejected{+exception}: Rejected{state, T.ForeignProviderFailure{exception}}
-    case State{_, _, _, _, _, _, _, AwaitDeadline{}, +python} T.ClockRead{+bits}: deadline(
+    case _ T.ProviderRejected{+exception}: DriverState.Rejected{state, T.ForeignProviderFailure{exception}}
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitDeadline{}, +python} T.ClockRead{+bits}: deadline(
       state,
       Bool.or(expired(bits), Bool.not(python_available(state)))
     )
-    case State{_, _, _, _, _, _, _, AwaitStatus{+edge, +path, +remaining, +existing}, +python} T.StatusResult{
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitStatus{+edge, +path, +remaining, +existing}, +python} T.StatusResult{
       +status
     }:
       status_reply(state, edge, path, remaining, existing, status)
-    case State{_, _, _, _, _, _, _, AwaitChecked{_, _}, +python} T.AccessResult{+access}: after(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitChecked{_, _}, +python} T.AccessResult{+access}: after(
       state,
       G.PathChecked{access_allowed(access)},
       False{}
     )
-    case State{_, _, _, _, _, _, _, AwaitAuthorized{+id, +target}, +python} T.AccessResult{+access}: authorized(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitAuthorized{+id, +target}, +python} T.AccessResult{+access}: authorized(
       state,
       id,
       target,
       access
     )
-    case State{_, _, _, _, _, _, _, AwaitSnapshot{+id, +target, +path, +selection}, +python} T.CacheSnapshot{
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitSnapshot{+id, +target, +path, +selection}, +python} T.CacheSnapshot{
       +entries
     }: snapshot(state, id, target, path, selection, entries)
-    case State{_, _, _, _, _, _, _, AwaitLookup{+id, +target, +path, +selection}, +python} T.CacheResult{
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitLookup{+id, +target, +path, +selection}, +python} T.CacheResult{
       +outcome
     }: lookup(dirname, join, relative, state, id, target, path, selection, outcome)
-    case State{_, _, _, _, _, _, _, AwaitCapture{+id, +target, +path, _}, +python} T.CaptureResult{
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitCapture{+id, +target, +path, _}, +python} T.CaptureResult{
       +outcome
     }: capture(
       dirname,
@@ -1913,7 +1618,7 @@ def consume(
       path,
       outcome
     )
-    case State{_, _, _, _, _, _, _, AwaitStored{+id, +target, +path, +capture, +bytes}, +python} T.CacheStored{}: capture_ready(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitStored{+id, +target, +path, +capture, +bytes}, +python} T.CacheStored{}: capture_ready(
       dirname,
       join,
       relative,
@@ -1924,12 +1629,12 @@ def consume(
       capture,
       bytes
     )
-    case State{_, _, _, _, _, _, _, AwaitDiagnostic{}, +python} T.DiagnosticObserved{}: after(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitDiagnostic{}, +python} T.DiagnosticObserved{}: after(
       state,
       G.CaptureFailed{},
       False{}
     )
-    case State{_, _, _, _, _, _, _, AwaitFrontend{+id, +target, +path, _, +bytes, +before}, +python} T.FrontendResult{
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitFrontend{+id, +target, +path, _, +bytes, +before}, +python} T.FrontendResult{
       +outcome
     }: frontend(
       state,
@@ -1940,7 +1645,7 @@ def consume(
       before,
       outcome
     )
-    case State{_, _, _, _, _, _, _, AwaitBundleBytes{+id, +target}, +python} T.SourceTextEncoded{
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitBundleBytes{+id, +target}, +python} T.SourceTextEncoded{
       +bytes
     }: bundle_attempt(
       state,
@@ -1948,98 +1653,73 @@ def consume(
       target,
       bytes
     )
-    case State{_, _, _, _, _, _, _, Transaction{+transaction}, +python} _: transaction_selection(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.Transaction{+transaction}, +python} _: DriverState.transaction_selection(
       state,
       X.Continue{X.consume(transaction, outcome)}
     )
-    case State{_, _, _, _, _, _, _, AwaitCompletion{+product}, +python} T.ProductEncoded{+bytes}: completed(
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitCompletion{+product}, +python} T.ProductEncoded{+bytes}: completed(
       state,
       product,
-      Nat.is_le(bytes, tree_cap(limits(frame(state))))
+      Nat.is_le(bytes, tree_cap(limits(DriverState.frame(state))))
     )
-    case _ _: Rejected{state, T.WrongReplyKind{}}
+    case _ _: DriverState.Rejected{state, T.WrongReplyKind{}}
 
 # Same stateful operation-selected environment as preparation. A suspended
 # request retains its continuation and matching completion consumes it once in
 # the returned progress; global lease/replay/late cleanup is a fixed-runtime duty.
-def consumed(-World: Data, +selection: Selection, +world: E.WorldState<World>) -> Progress<World>:
-  match selection:
-    case Internal{+state}: DriverReady{state, world}
-    case Success{+state, +product}: DriverFinished{state, product, world}
-    case EvaluationExhausted{+state}: DriverExhausted{state, world}
-    case InvariantFailed{+state}: DriverInvalid{state, world}
-    case Rejected{+state, +failure}: DriverFailed{state, failure, world}
-    case Selected{+state, +operation}: DriverSelected{state, operation, world}
-    case ChildBegin{state, command}: DriverChildBegin{state, command, world}
-    case ChildResume{state, request, reply}: DriverChildResume{state, request, reply, world}
-
-def child_completed(-World: Data, progress: Progress<World>, view: P.PythonView) -> Progress<World>:
+def child_completed(-World: Data, progress: DriverState.Progress<World>, view: P.PythonView) -> DriverState.Progress<World>:
   match progress:
-    case DriverChildBegin{state, _, world}: consumed(World, receive_python(state, view), world)
-    case DriverChildResume{state, _, _, world}: consumed(World, receive_python(state, view), world)
+    case DriverState.DriverChildBegin{state, _, world}: DriverState.consumed(World, receive_python(state, view), world)
+    case DriverState.DriverChildResume{state, _, _, world}: DriverState.consumed(World, receive_python(state, view), world)
     case _: progress
 
-def validated(~consume: State -> T.ServiceOutcome -> Selection, -World: Data,
-    failure: Maybe<&2, T.TechnicalFailure>, state: State,
-    outcome: T.ServiceOutcome, world: E.WorldState<World>) -> Progress<World>:
-  match failure:
-    case Some{failure}: DriverFailed{state, failure, world}
-    case None{}: consumed(World, consume(state, outcome), world)
-
-def delivered(~consume: State -> T.ServiceOutcome -> Selection, -World: Data,
-    +request: T.Request, state: State, +reply: T.Reply,
-    world: E.WorldState<World>) -> Progress<World>:
-  match reply:
-    case T.Reply{_, _, outcome}:
-      validated(consume, World, Boundary.check(request, reply), state, outcome, world)
-
-def exchanged(~consume: State -> T.ServiceOutcome -> Selection, -World: Data,
-    request: T.Request, state: State, +exchange: E.Exchange<World>) -> Progress<World>:
+def exchanged(~consume: DriverState.State -> T.ServiceOutcome -> DriverState.Selection, -World: Data,
+    request: T.Request, state: DriverState.State, +exchange: E.Exchange<World>) -> DriverState.Progress<World>:
   match exchange:
     case E.Delivered{world, +reply}:
-      delivered(consume, World, request, state, reply, world)
-    case E.Waiting{_, _, _}: DriverWaiting{state, exchange}
+      DriverState.delivered(consume, World, request, state, reply, world)
+    case E.Waiting{_, _, _}: DriverState.DriverWaiting{state, exchange}
 
 
 def issue(
-  ~consume: State -> T.ServiceOutcome -> Selection,
+  ~consume: DriverState.State -> T.ServiceOutcome -> DriverState.Selection,
   -World: Data,
   respond: T.Operation -> World -> E.Response<World>,
-  +state: State,
+  +state: DriverState.State,
   +operation: T.Operation,
   +world: E.WorldState<World>
-) -> Progress<World>:
+) -> DriverState.Progress<World>:
   match state:
-    case State{+config, +frame, +targets, +ids, +target, +next, +iterations, +stage, +python}:
+    case DriverState.State{+config, +frame, +targets, +ids, +target, +next, +iterations, +stage, +python}:
       exchanged(
         consume,
         World,
-        T.Request{invocation(config), next, operation},
-        State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python},
-        E.step(World, respond, T.Request{invocation(config), next, operation}, world)
+        T.Request{DriverState.invocation(config), next, operation},
+        DriverState.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python},
+        E.step(World, respond, T.Request{DriverState.invocation(config), next, operation}, world)
       )
 
 def selected_step(
-  ~consume: State -> T.ServiceOutcome -> Selection,
+  ~consume: DriverState.State -> T.ServiceOutcome -> DriverState.Selection,
   -World: Data,
   respond: T.Operation -> World -> E.Response<World>,
-  +selection: Selection,
+  +selection: DriverState.Selection,
   +world: E.WorldState<World>
-) -> Progress<World>:
+) -> DriverState.Progress<World>:
   match selection:
-    case Selected{+state, +operation}: issue(consume, World, respond, state, operation, world)
-    case +other: consumed(World, other, world)
+    case DriverState.Selected{+state, +operation}: issue(consume, World, respond, state, operation, world)
+    case +other: DriverState.consumed(World, other, world)
 
 def advance(
-  ~choose: State -> Selection,
-  ~consume: State -> T.ServiceOutcome -> Selection,
+  ~choose: DriverState.State -> DriverState.Selection,
+  ~consume: DriverState.State -> T.ServiceOutcome -> DriverState.Selection,
   -World: Data,
   respond: T.Operation -> World -> E.Response<World>,
-  +progress: Progress<World>
-) -> Progress<World>:
+  +progress: DriverState.Progress<World>
+) -> DriverState.Progress<World>:
   match progress:
-    case DriverReady{+state, +world}: selected_step(consume, World, respond, choose(state), world)
-    case DriverSelected{+state, +operation, +world}: issue(
+    case DriverState.DriverReady{+state, +world}: selected_step(consume, World, respond, choose(state), world)
+    case DriverState.DriverSelected{+state, +operation, +world}: issue(
       consume,
       World,
       respond,
@@ -2049,21 +1729,21 @@ def advance(
     )
     case +other: other
 
-def completed_exchange(~consume: State -> T.ServiceOutcome -> Selection, -World: Data,
-    state: State, +exchange: E.Exchange<World>, completion: E.Completion<World>) -> Progress<World>:
+def completed_exchange(~consume: DriverState.State -> T.ServiceOutcome -> DriverState.Selection, -World: Data,
+    state: DriverState.State, +exchange: E.Exchange<World>, completion: E.Completion<World>) -> DriverState.Progress<World>:
   match exchange:
     case E.Waiting{_, request, _}:
       exchanged(consume, World, request, state, E.complete(World, exchange, completion))
-    case E.Delivered{_, _}: DriverWaiting{state, exchange}
+    case E.Delivered{_, _}: DriverState.DriverWaiting{state, exchange}
 
 def complete(
-  ~consume: State -> T.ServiceOutcome -> Selection,
+  ~consume: DriverState.State -> T.ServiceOutcome -> DriverState.Selection,
   -World: Data,
-  +progress: Progress<World>,
+  +progress: DriverState.Progress<World>,
   +completion: E.Completion<World>
-) -> Progress<World>:
+) -> DriverState.Progress<World>:
   match progress:
-    case DriverWaiting{state, exchange}: completed_exchange(
+    case DriverState.DriverWaiting{state, exchange}: completed_exchange(
       consume,
       World,
       state,
@@ -2071,24 +1751,24 @@ def complete(
     )
     case +other: other
 
-def cancel_world(-World: Data, +config: Config, +world: E.WorldState<World>) -> E.WorldState<World>:
+def cancel_world(-World: Data, +config: DriverState.Config, +world: E.WorldState<World>) -> E.WorldState<World>:
   match world:
     case E.WorldState{+world, +effects}:
       E.WorldState{
         world,
-        List.append(&2, O.Effect, effects, [O.CancelledInvocation{invocation(config)}])
+        List.append(&2, O.Effect, effects, [O.CancelledInvocation{DriverState.invocation(config)}])
       }
 
-def cancelled(-World: Data, +state: State, +world: E.WorldState<World>) -> Progress<World>:
-  DriverFailed{state, T.InvocationCancelled{}, cancel_world(World, config(state), world)}
+def cancelled(-World: Data, +state: DriverState.State, +world: E.WorldState<World>) -> DriverState.Progress<World>:
+  DriverState.DriverFailed{state, T.InvocationCancelled{}, cancel_world(World, config(state), world)}
 
-def cancel(-World: Data, +progress: Progress<World>) -> Progress<World>:
+def cancel(-World: Data, +progress: DriverState.Progress<World>) -> DriverState.Progress<World>:
   match progress:
-    case DriverReady{+state, +world}: cancelled(World, state, world)
-    case DriverChildBegin{state, _, world}: cancelled(World, state, world)
-    case DriverChildResume{state, _, _, world}: cancelled(World, state, world)
-    case DriverSelected{+state, _, +world}: cancelled(World, state, world)
-    case DriverWaiting{+state, E.Waiting{+world, _, _}}: cancelled(World, state, world)
+    case DriverState.DriverReady{+state, +world}: cancelled(World, state, world)
+    case DriverState.DriverChildBegin{state, _, world}: cancelled(World, state, world)
+    case DriverState.DriverChildResume{state, _, _, world}: cancelled(World, state, world)
+    case DriverState.DriverSelected{+state, _, +world}: cancelled(World, state, world)
+    case DriverState.DriverWaiting{+state, E.Waiting{+world, _, _}}: cancelled(World, state, world)
     case +other: other
 
 def main() -> Unit:

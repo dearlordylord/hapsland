@@ -26,7 +26,7 @@ import ../Machine.bend as Machine
 import ../Attach.bend as Attach
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
-import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as D
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

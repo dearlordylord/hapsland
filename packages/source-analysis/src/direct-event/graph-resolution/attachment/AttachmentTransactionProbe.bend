@@ -16,7 +16,7 @@ import ../Machine.bend as Machine
 import ../Attach.bend as Attach
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
-import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as D
 import ../traversal/core.bend as Local
 
 # Executable finite transaction fixture; no law/correctness premise is encoded.

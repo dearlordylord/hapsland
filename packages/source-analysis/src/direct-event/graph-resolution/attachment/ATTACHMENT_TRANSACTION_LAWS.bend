@@ -29,7 +29,7 @@ import ../Machine.bend as Machine
 import ../Attach.bend as Attach
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
-import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as D
 
 # Eliminate the law's successful actual projection into the real state-owned
 # frame, tentative child and selected edge. These are conclusions, not new

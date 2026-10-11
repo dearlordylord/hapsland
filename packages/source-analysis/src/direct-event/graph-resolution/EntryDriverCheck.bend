@@ -1,7 +1,7 @@
 import Base
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import ./EntrySpecification.bend as I
-import ./ExpansionDriverSpecification.bend as D
+import ./ExpansionDriverState.bend as D
 import ./Types.bend as T
 import ./PreparationSpecification.bend as P
 import ./Environment.bend as E

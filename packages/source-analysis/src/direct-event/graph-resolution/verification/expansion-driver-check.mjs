@@ -37,7 +37,7 @@ const liveSessions = new Set()
 const tag = (name, fields = {}) => ({ $: name, ...fields }),
   label = (v) => v.$.split(".").at(-1)
 const t = (name, fields = {}) => tag(artifactValueTag(name) ?? "Types." + name, fields),
-  d = (name, fields = {}) => tag("ExpansionDriverSpecification." + name, fields)
+  d = (name, fields = {}) => tag("ExpansionDriverState." + name, fields)
 const g = (name, fields = {}) => tag("../../../../agent-flow-bend/ImportGraph." + name, fields)
 const maybe = (v) => (v === undefined ? tag("None") : tag("Some", { value: v }))
 const canonical = (v) =>
@@ -117,7 +117,7 @@ function pathTables() {
 }
 function wrapper(tables) {
   let text =
-    "import Base\nimport ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\nimport ./python-module/Session.bend as Python\nimport ./ComposedBudget.bend as Budget\nimport ./python-module/ArtifactProtocol.bend as P\n"
+    "import Base\nimport ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionDriverState.bend as DriverState\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\nimport ./python-module/Session.bend as Python\nimport ./ComposedBudget.bend as Budget\nimport ./python-module/ArtifactProtocol.bend as P\n"
   text +=
     'def path_read(result: Map<&2, String> & String) -> String:\n  match result:\n    case Tuple{_, value}: value\ndef path_get(table: Map<&2, String>, key: String) -> String:\n  path_read(Map.get(String, "__MISSING_PATH_FACT__", table, key))\ndef join_key(parts: List<&2, String>) -> String:\n  match parts:\n    case []: ""\n    case head <> tail: head ++ "|" ++ join_key(tail)\n'
   for (const [kind, table] of Object.entries(tables)) {
@@ -142,7 +142,7 @@ function wrapper(tables) {
   }
   return (
     text +
-    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: ArtifactValue.Binary64) -> Bool:\n  match bits:\n    case ArtifactValue.Binary64{high, _}: U32.is_gt(high, 0)\ndef selection(state: D.State) -> D.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef initial(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>) -> D.Progress<Nat>:\n  D.DriverReady{D.begin(config, frame, [], ids, 2n, 37n), E.WorldState{0n, []}}\ndef initial_python(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>, session: Python.Session, cache: T.CacheToken, census: Budget.Census, next: Nat) -> D.Progress<Nat>:\n  D.DriverReady{D.with_python(D.begin(config, frame, [], ids, 2n, next), session, cache, census), E.WorldState{0n, []}}\ndef advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.advance(~selection, ~reply, Nat, suspend, progress)\ndef complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:\n  D.complete(~reply, Nat, progress, completion)\ndef child_completed(progress: D.Progress<Nat>, view: P.PythonView) -> D.Progress<Nat>:\n  D.child_completed(Nat, progress, view)\ndef cancel(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.cancel(Nat, progress)\ndef main() -> Unit:\n  Unit{}\n`
+    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: ArtifactValue.Binary64) -> Bool:\n  match bits:\n    case ArtifactValue.Binary64{high, _}: U32.is_gt(high, 0)\ndef selection(state: DriverState.State) -> DriverState.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: DriverState.State, outcome: T.ServiceOutcome) -> DriverState.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef initial(config: DriverState.Config, frame: X.Frame, ids: List<&2, DriverState.TargetId>) -> DriverState.Progress<Nat>:\n  DriverState.DriverReady{D.begin(config, frame, [], ids, 2n, 37n), E.WorldState{0n, []}}\ndef initial_python(config: DriverState.Config, frame: X.Frame, ids: List<&2, DriverState.TargetId>, session: Python.Session, cache: T.CacheToken, census: Budget.Census, next: Nat) -> DriverState.Progress<Nat>:\n  DriverState.DriverReady{D.with_python(D.begin(config, frame, [], ids, 2n, next), session, cache, census), E.WorldState{0n, []}}\ndef advance(progress: DriverState.Progress<Nat>) -> DriverState.Progress<Nat>:\n  D.advance(~selection, ~reply, Nat, suspend, progress)\ndef complete(progress: DriverState.Progress<Nat>, completion: E.Completion<Nat>) -> DriverState.Progress<Nat>:\n  D.complete(~reply, Nat, progress, completion)\ndef child_completed(progress: DriverState.Progress<Nat>, view: P.PythonView) -> DriverState.Progress<Nat>:\n  D.child_completed(Nat, progress, view)\ndef cancel(progress: DriverState.Progress<Nat>) -> DriverState.Progress<Nat>:\n  D.cancel(Nat, progress)\ndef main() -> Unit:\n  Unit{}\n`
   )
 }
 function event(e) {
@@ -197,6 +197,7 @@ try {
   const nativePath = path.join(root, "packages/source-analysis/dist/direct-event/graph-resolver.js")
   const dependencies = [
     "../ExpansionDriverSpecification.bend",
+    "../ExpansionDriverState.bend",
     "../ExpansionSpecification.bend",
     "../ForestSpecification.bend",
     "../SignedLocalSpecification.bend",

@@ -5,7 +5,7 @@ import ./ReferenceAttachmentFrameProjection.bend as Frame
 import ../Types.bend as T
 import ../ForestSpecification.bend as F
 import ../ExpansionSpecification.bend as X
-import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as D
 import ../SignedLocalSpecification.bend as Signed
 import ../traversal/core.bend as Local
 import ../traversal/SPEC.bend as Recursive

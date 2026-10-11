@@ -177,7 +177,7 @@ for (let seed = 0; seed < 128; seed++)
     frames++
 
     const xp = "../ExpansionSpecification.",
-      dp = "../ExpansionDriverSpecification.",
+      dp = "../ExpansionDriverState.",
       sip = "../SignedLocalSpecification.",
       op = "../WholeObservation."
     const config = {
@@ -217,7 +217,8 @@ for (let seed = 0; seed < 128; seed++)
       next_target: 0n,
       next_request: 7n,
       iterations: 20n,
-      stage: { $: dp + "Iteration" }
+      stage: { $: dp + "Iteration" },
+      python: { $: "None" }
     }
     assert.deepEqual(rp.project(refState, history), viewed)
     pairedFrames++

@@ -7,62 +7,63 @@ import ../Types.bend as T
 import ../ExpansionSpecification.bend as X
 import ../Environment.bend as E
 import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as DriverState
 import ../Machine.bend as Machine
 import ../Loop.bend as Loop
 
 # Finite consumer probe for a separate zero-elapsed clock reply and final
 # product measurement. This is not an extended attachment macrostep or law.
-def consume_reusable(+state: D.State, outcome: T.ServiceOutcome) -> D.Selection:
+def consume_reusable(+state: DriverState.State, outcome: T.ServiceOutcome) -> DriverState.Selection:
   match state outcome:
-    case _ T.ProviderRejected{exception}: D.Rejected{state, T.ForeignProviderFailure{exception}}
-    case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}, _} T.ClockRead{
+    case _ T.ProviderRejected{exception}: DriverState.Rejected{state, T.ForeignProviderFailure{exception}}
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitDeadline{}, _} T.ClockRead{
       ArtifactValue.Binary64{0, 0}
     }:
       D.deadline(state, False{})
-    case D.State{_, _, _, _, _, _, _, D.AwaitCompletion{product}, _} T.ProductEncoded{bytes}:
-      D.completed(state, product, Nat.is_le(bytes, D.tree_cap(D.limits(D.frame(state)))))
-    case _ _: D.Rejected{state, T.WrongReplyKind{}}
+    case DriverState.State{_, _, _, _, _, _, _, DriverState.AwaitCompletion{product}, _} T.ProductEncoded{bytes}:
+      D.completed(state, product, Nat.is_le(bytes, D.tree_cap(D.limits(DriverState.frame(state)))))
+    case _ _: DriverState.Rejected{state, T.WrongReplyKind{}}
 
-def consume(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:
+def consume(state: DriverState.State, outcome: T.ServiceOutcome) -> DriverState.Selection:
   consume_reusable(state, outcome)
 
 def frame_command(frame: X.Frame) -> G.Command:
   match frame:
     case X.Frame{_, command, _, _, _, _, _, _, _, _, _, _}: command
 
-def pure_step(+selection: D.Selection) -> D.Selection:
+def pure_step(+selection: DriverState.Selection) -> DriverState.Selection:
   match selection:
-    case D.Internal{+state}:
+    case DriverState.Internal{+state}:
       match state:
-        case D.State{_, _, _, _, _, _, _, D.Command{}, _}:
-          D.dispatch_command(state, frame_command(D.frame(state)))
+        case DriverState.State{_, _, _, _, _, _, _, DriverState.Command{}, _}:
+          D.dispatch_command(state, frame_command(DriverState.frame(state)))
         case _: Boundary.boundary_step(selection)
     case _: selection
 
-def normalize(fuel: Nat, +selection: D.Selection) -> D.Selection:
+def normalize(fuel: Nat, +selection: DriverState.Selection) -> DriverState.Selection:
   match fuel selection:
     case 0n _: selection
-    case 1n+remaining D.Internal{_}: normalize(remaining, pure_step(selection))
+    case 1n+remaining DriverState.Internal{_}: normalize(remaining, pure_step(selection))
     case _ _: selection
 
-def normalized(progress: D.Progress<Unit>) -> D.Progress<Unit>:
+def normalized(progress: DriverState.Progress<Unit>) -> DriverState.Progress<Unit>:
   match progress:
-    case D.DriverReady{state, world}: D.consumed(Unit, normalize(6n, D.Internal{state}), world)
+    case DriverState.DriverReady{state, world}: DriverState.consumed(Unit, normalize(6n, DriverState.Internal{state}), world)
     case _: progress
 
-def delivered(progress: D.Progress<Unit>, reply: T.Reply) -> D.Progress<Unit>:
+def delivered(progress: DriverState.Progress<Unit>, reply: T.Reply) -> DriverState.Progress<Unit>:
   match progress:
-    case D.DriverSelected{
-      D.State{+config, frame, targets, ids, target, +next, iterations, stage, +python},
+    case DriverState.DriverSelected{
+      DriverState.State{+config, frame, targets, ids, target, +next, iterations, stage, +python},
       operation,
       world
     }:
       normalized(
-        D.delivered(
+        DriverState.delivered(
           consume,
           Unit,
-          T.Request{D.invocation(config), next, operation},
-          D.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python},
+          T.Request{DriverState.invocation(config), next, operation},
+          DriverState.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python},
           reply,
           world
         )

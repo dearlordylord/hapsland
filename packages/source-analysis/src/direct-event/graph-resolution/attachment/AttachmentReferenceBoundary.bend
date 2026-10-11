@@ -3,7 +3,7 @@ import ../../../../../agent-flow-bend/ImportGraph.bend as G
 import ../Types.bend as T
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
-import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as D
 import ../ForestAllowance.bend as Allowance
 
 # Fixed reference attachment boundary, not a provider or an application callback.

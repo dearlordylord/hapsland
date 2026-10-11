@@ -15,6 +15,7 @@ import ./ForestSpecification.bend as F
 import ./ForestAllowance.bend as Allowance
 import ./ExpansionSpecification.bend as X
 import ./ExpansionDriverSpecification.bend as D
+import ./ExpansionDriverState.bend as DriverState
 import ./SourceValidationSpecification.bend as SourceValidation
 import ./GraphSpecification.bend as Policy
 import ./SignedLocalSpecification.bend as Signed
@@ -38,7 +39,7 @@ type Stage is Data:
   GoPreparing{}
   GoInspecting{}
   AwaitGoRootDeadline{prepared: GoBoundary.Prepared}
-  AwaitGoPublicationClock{driver: D.State, product: Maybe<&2, ArtifactValue.ProductValue>}
+  AwaitGoPublicationClock{driver: DriverState.State, product: Maybe<&2, ArtifactValue.ProductValue>}
   GoPublished{}
   AwaitPythonDeadline{}
   RootAdmission{}
@@ -62,15 +63,15 @@ type State is Data:
     preparation_cache: Maybe<&2, T.CacheToken>,
     root_local: Maybe<&2, Recursive.State>,
     selected_root_identity: Maybe<&2, String>
-  , fingerprint: Maybe<&2, String>, python: Maybe<&2, D.PythonContext>}
+  , fingerprint: Maybe<&2, String>, python: Maybe<&2, DriverState.PythonContext>}
 type Selection is Data:
   Internal{state: State}
   Selected{state: State, operation: T.Operation}
   Prepare{state: State, clock: T.ClockToken}
-  Launch{state: State, expansion: D.State}
+  Launch{state: State, expansion: DriverState.State}
   PythonChild{state: State, command: PythonProtocol.PythonCommand}
   GoChild{state: State, command: GoProtocol.GoCommand}
-  GoCompleted{state: State, driver: D.State, product: Maybe<&2, ArtifactValue.ProductValue>}
+  GoCompleted{state: State, driver: DriverState.State, product: Maybe<&2, ArtifactValue.ProductValue>}
   NoUnit{state: State, retained: Maybe<&2, Root.RejectedRoot>}
   EvaluationExhausted{state: State}
   InvariantFailed{state: State}
@@ -80,7 +81,7 @@ type Progress<-World: Data> is Data:
   EntrySelected{state: State, operation: T.Operation, world: E.WorldState<World>}
   EntryWaiting{state: State, exchange: E.Exchange<World>}
   EntryPreparing{state: State, progress: P.Progress<World>}
-  EntryExpanding{state: State, progress: D.Progress<World>}
+  EntryExpanding{state: State, progress: DriverState.Progress<World>}
   EntryPythonChildBegin{
     state: State,
     command: PythonProtocol.PythonCommand,
@@ -139,11 +140,11 @@ def with_fingerprint(state: State, fingerprint: Maybe<&2, String>) -> State:
         fingerprint
       , python}
 
-def python_context(state: State) -> Maybe<&2, D.PythonContext>:
+def python_context(state: State) -> Maybe<&2, DriverState.PythonContext>:
   match state:
     case State{_, _, _, _, _, _, _, _, _, _, _, _, _, python}: python
 
-def with_python_context(state: State, python: Maybe<&2, D.PythonContext>) -> State:
+def with_python_context(state: State, python: Maybe<&2, DriverState.PythonContext>) -> State:
   match state:
     case State{input, clock, language, frontend, limits, dependencies, next, stage,
         preparation, cache, local, identity, fingerprint, _}:
@@ -773,7 +774,7 @@ def go_root_deadline(+state: State, +prepared: GoBoundary.Prepared, expired: Boo
     case False{}: GoChild{with_stage(state, GoInspecting{}), GoProtocol.GoInspect{
       prepared, input_path(input(state)), input_branch(input(state)), next_request(state)}}
 
-def go_publication(+state: State, driver: D.State,
+def go_publication(+state: State, driver: DriverState.State,
     product: Maybe<&2, ArtifactValue.ProductValue>, expired: Bool) -> Selection:
   match expired:
     case True{}: GoCompleted{with_stage(state, GoPublished{}), driver, None{}}
@@ -1023,7 +1024,7 @@ def launch_base(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
       Launch{
         state,
         D.begin(
-          D.Config{
+          DriverState.Config{
             input_invocation(input),
             input_path(input),
             language,
@@ -1034,7 +1035,7 @@ def launch_base(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
           initialize(frame, input_bytes(input), bytes),
           [],
           [
-            D.TargetId{
+            DriverState.TargetId{
               input_path(
                 input
               ) ++ "\0" ++ Bool.pick(
@@ -1052,9 +1053,9 @@ def launch_base(+state: State, frame: X.Frame, bytes: Nat) -> Selection:
       }
     case _: InvariantFailed{state}
 
-def python_launch(selection: Selection, python: Maybe<&2, D.PythonContext>) -> Selection:
+def python_launch(selection: Selection, python: Maybe<&2, DriverState.PythonContext>) -> Selection:
   match selection python:
-    case Launch{state, expansion} Some{D.PythonContext{session, cache, census}}:
+    case Launch{state, expansion} Some{DriverState.PythonContext{session, cache, census}}:
       Launch{state, D.with_python(expansion, session, cache, census)}
     case selection _: selection
 
@@ -1137,12 +1138,12 @@ def consumed(-World: Data, selection: Selection, world: E.WorldState<World>) -> 
     case Selected{state, operation}: EntrySelected{state, operation, world}
     case Prepare{+state, clock}: EntryPreparing{state,
       P.begin(World, input(state), clock, next_request(state), world)}
-    case Launch{state, expansion}: EntryExpanding{state, D.DriverReady{expansion, world}}
+    case Launch{state, expansion}: EntryExpanding{state, DriverState.DriverReady{expansion, world}}
     case PythonChild{state, command}: EntryPythonChildBegin{state, command, world}
     case GoChild{state, command}: EntryGoChildBegin{state, command, world}
     case GoCompleted{state, driver, product}: EntryExpanding{
       state,
-      D.DriverFinished{driver, product, world}
+      DriverState.DriverFinished{driver, product, world}
     }
     case NoUnit{state, retained}: EntryFinished{state, world, retained}
     case EvaluationExhausted{state}: EntryExhausted{state, world}
@@ -1265,7 +1266,7 @@ def python_returned(+state: State, stage: Stage, result: PythonProtocol.PythonRe
   match stage result:
     case PythonPreparing{} PythonProtocol.PreparationUnavailable{}: NoUnit{state, None{}}
     case PythonPreparing{} PythonProtocol.Prepared{session, cache}:
-      request_deadline(with_python_context(state, Some{D.PythonContext{session, cache,
+      request_deadline(with_python_context(state, Some{DriverState.PythonContext{session, cache,
         Budget.initial(input_path(input(state)), input_bytes(input(state)))}}),
         AwaitPythonDeadline{}, root_available(limits(state), input_bytes(input(state))))
     case PythonInspecting{} PythonProtocol.Inspected{Some{facts}}: root_facts(
@@ -1369,7 +1370,7 @@ def go_publication_needed(stage: Stage) -> Bool:
     case GoPublished{}: False{}
     case _: True{}
 
-def expansion_finished(-World: Data, +state: State, +driver: D.State,
+def expansion_finished(-World: Data, +state: State, +driver: DriverState.State,
     +product: Maybe<&2, ArtifactValue.ProductValue>, world: E.WorldState<World>,
     needed: Bool, language: Maybe<&2, T.Language>) -> Progress<World>:
   match product needed language:
@@ -1386,11 +1387,11 @@ def expansion_finished(-World: Data, +state: State, +driver: D.State,
         ),
         world
       )
-    case _ _ _: EntryExpanding{state, D.DriverFinished{driver, product, world}}
+    case _ _ _: EntryExpanding{state, DriverState.DriverFinished{driver, product, world}}
 
-def expansion_progress(-World: Data, +state: State, progress: D.Progress<World>) -> Progress<World>:
+def expansion_progress(-World: Data, +state: State, progress: DriverState.Progress<World>) -> Progress<World>:
   match progress:
-    case D.DriverFinished{driver, product, world}:
+    case DriverState.DriverFinished{driver, product, world}:
       expansion_finished(
         World,
         state,
@@ -1407,8 +1408,8 @@ def advance(
   ~reply: State -> T.ServiceOutcome -> Selection,
   ~prepare_select: P.State -> P.Selection,
   ~prepare_reply: P.State -> T.ServiceOutcome -> P.Selection,
-  ~expand_select: D.State -> D.Selection,
-  ~expand_reply: D.State -> T.ServiceOutcome -> D.Selection,
+  ~expand_select: DriverState.State -> DriverState.Selection,
+  ~expand_reply: DriverState.State -> T.ServiceOutcome -> DriverState.Selection,
   -World: Data,
   respond: T.Operation -> World -> E.Response<World>,
   progress: Progress<World>
@@ -1450,7 +1451,7 @@ def go_completed_exchange(-World: Data, state: State, +exchange: E.Exchange<Worl
 def complete(
   ~reply: State -> T.ServiceOutcome -> Selection,
   ~prepare_reply: P.State -> T.ServiceOutcome -> P.Selection,
-  ~expand_reply: D.State -> T.ServiceOutcome -> D.Selection,
+  ~expand_reply: DriverState.State -> T.ServiceOutcome -> DriverState.Selection,
   -World: Data,
   progress: Progress<World>, completion: E.Completion<World>
 ) -> Progress<World>:
@@ -1528,7 +1529,7 @@ def accepted_product(
 def accepted_result(progress: Progress<Nat>) -> Maybe<&2, T.ProductResult>:
   match progress:
     case EntryFinished{_, _, _}: Some{T.NoReviewUnit{}}
-    case EntryExpanding{state, D.DriverFinished{_, product, _}}: accepted_product(state, product)
+    case EntryExpanding{state, DriverState.DriverFinished{_, product, _}}: accepted_product(state, product)
     case _: None{}
 
 def main() -> Unit:

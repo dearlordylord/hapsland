@@ -2,6 +2,7 @@ import ./python-module/ArtifactProtocol.bend as PythonProtocol
 import Base
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import ./ExpansionDriverSpecification.bend as D
+import ./ExpansionDriverState.bend as DriverState
 import ./Types.bend as T
 import ./Environment.bend as E
 import ./WholeObservation.bend as O
@@ -25,18 +26,18 @@ def absolute(value: String) -> Bool:
   String.starts_with(value, "/")
 def expired(bits: ArtifactValue.Binary64) -> Bool:
   Deadline.expired(bits)
-def selection(state: D.State) -> D.Selection:
+def selection(state: DriverState.State) -> DriverState.Selection:
   D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)
-def reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:
+def reply(state: DriverState.State, outcome: T.ServiceOutcome) -> DriverState.Selection:
   D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)
 def suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:
   match world:
     case +sequence: E.Suspended{Nat.add(sequence, 1n), O.ProviderLease{1n, sequence}, []}
-def advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:
+def advance(progress: DriverState.Progress<Nat>) -> DriverState.Progress<Nat>:
   D.advance(~selection, ~reply, Nat, suspend, progress)
-def complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:
+def complete(progress: DriverState.Progress<Nat>, completion: E.Completion<Nat>) -> DriverState.Progress<Nat>:
   D.complete(~reply, Nat, progress, completion)
-def child_completed(progress: D.Progress<Nat>, view: PythonProtocol.PythonView) -> D.Progress<Nat>:
+def child_completed(progress: DriverState.Progress<Nat>, view: PythonProtocol.PythonView) -> DriverState.Progress<Nat>:
   D.child_completed(Nat, progress, view)
 def main() -> Unit:
   Unit{}

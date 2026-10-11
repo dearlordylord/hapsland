@@ -212,6 +212,18 @@ One current obstacle list, in execution order:
    deadline; a Parent-only diagnostic also timed out. These joined closures are
    unqualified; scheduling versus added normalization cost is not yet resolved.
    Both planned imports are retained as WIP, not claimed checked proof.
+   A same-prefix diagnostic distinguishes import cost: without the two imports
+   4.070 seconds wall / 3.675 CPU passes; with both, 5.023 wall / 4.730 CPU times
+   out. ExpansionDriverState.bend now solely owns the 39 existing state,
+   attachment and completion definitions needed by that closure (339 lines).
+   All moved definition bodies are byte-identical, removed from the full driver;
+   its discovery/language interpreter consumes the same lower owner. The original
+   transaction law/body changes only its D import. Lower-owner and full-driver
+   verdicts pass in 1.847 and 2.269 seconds under hard five seconds. Combined
+   transaction closure must still be rechecked after this cut; no faster complete
+   proof is claimed yet. Physical probes also require updating constructor
+   namespaces and the four reference fixtures' existing mandatory python=None
+   field; the first incomplete-fixture failure is retained.
    Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.

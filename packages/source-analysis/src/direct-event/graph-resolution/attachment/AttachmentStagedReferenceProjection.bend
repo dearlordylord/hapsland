@@ -2,7 +2,7 @@ import Base
 import ./AttachmentFrameView.bend as V
 import ./ReferenceAttachmentFrameProjection.bend as Frame
 import ../ExpansionSpecification.bend as X
-import ../ExpansionDriverSpecification.bend as D
+import ../ExpansionDriverState.bend as D
 import ../SPEC.bend as Root
 
 # View-only staging. The independent interpreter retains child.pending until
