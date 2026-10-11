@@ -174,99 +174,32 @@ expression in list`; this is an open gate, not an exemption.
 
 One current obstacle list, in execution order:
 
-1. Qualify ordinary compiled capability boundaries and the unique shared ABI:
-   The current authored entry is one typed driver-compatible preparation capability:
-   machine/perform/decode, with both generated cores and typed dispatcher/finalization
-   private. Its external command port excludes RenderUnits; finalization stays inside
-   the owner. Source and resident verification bindings use this factory, and Source
-   decodes only after actual Canonical handoff acceptance. These changed consumers
-   still require physical qualification. The public pipeline remains native TS;
-   connected production whole units and deleted replacement algorithms remain zero.
-   Astra reviewed the ownership/lifecycle seam. GraphLimits uses its existing owner
-   and perform checks invocation/request against the supplied driver lease; live
-   fencing remains exclusively Canonical. The single TransportFailure class now
-   belongs to runtime-environment/runtime/effect-transport, with direct consumers;
-   no transport implementation or duplicate error class is exported from analysis.
-   Fixture defaults and native comparisons in resident's composition binding,
-   source-analysis session API, whole proofs and public input encoding remain open.
-   The owner recipe now emits Preparation and PreparationFinalization as private
-   library artifacts during ordinary review-execution compilation. Exact transitive
-   inputs, authored closed declarations and pinned Bend identity enter compiler
-   receipts. Hybrid Turbo tasks retain the declared producer environment; staging
-   uses library emission before publishing package JS. Workspace build passed
-   46/46 and 23 compiler receipts passed in the matching pinned environment.
-   The Source consumer passed 50 physical cases using these dist cores. Resident
-   qualification and the typed whole capability entry remain open. The 08:45 UTC
-   paired-build deadline was missed while fixing environment and library-mode
-   build failures; this evidence does not establish parity.
-   source-analysis resolver/session, review-execution preparation, and
-   resident-runtime Canonical workflow. Keep private stages hidden. Relocated
-   sources must enter compiler/declaration receipts; authored MJS is currently
-   outside ordinary TS emission. Artifact values now have their single lower
-   owner; graph state/session contracts still need narrow compiled boundaries.
-   Current development-import gate reported 5 unresolved paths, 47 undeclared
-   dependencies and 213 private cross-owner imports; current qualification is
-   still required. Do not expose every helper or bypass that gate.
-   Astra's agreed first compiled change is one typed whole-preparation factory,
-   using the production-reachable dispatcher, finalization binding and result
-   codecs under ordinary TS compiler/declaration receipts. Resident consumes it
-   through the existing Canonical transaction; Selection/Rules/Input remain private.
-   The eventual public entry stays pipeline.prepareObservation, with no parallel
-   public backend. An owner-scoped verification entry must exercise the same dist
-   implementation before switching production. Source-analysis exposes an opaque
-   resolver/session factory, not private Python helpers. Binary64, OrderedField
-   and ProductValue declarations now live only in source-artifacts value/Value;
-   the mechanical codec uses that same owner. Resolver state/session policy stays
-   with source-analysis. Keep exact emitted-prefix conversion at artifact boundaries
-   and never reintroduce resolver forwarding declarations. Compare the compiled
-   package API with actual native prepareObservation for full ordered effects,
-   identities, failures, cancellation and custody. This entry enables connection;
-   it does not bypass whole proofs or the supported Go/session obligations.
-   Astra confirmed the concrete coherent compiled slice: convert the private
-   preparation-dispatcher, preparation-finalization and preparation-result-codec
-   host bindings to typed TS, with one preparation/capability entry joining the
-   whole machine, closed requests/replies and terminal PreparedObservation.
-   Resident's preparation-foreign consumes the compiled entry through its actual
-   transaction; move test defaults/native comparisons to its verification adapter.
-   Generated artifacts stay private and participate in receipts. Actual resident
-   verification must import dist, not bypass emission with source MJS.
-   Artifact value ownership is now relocated: one Value.bend declaration owner,
-   83 direct Bend consumer imports, one typed compiled codec, no resolver
-   reexports or copied declarations. Eighteen unused resolver Types imports were
-   removed, including whole finalization and its stages. Codec uses the exact
-   four-depth emitted owner prefix; resident composition rebases it to the exact
-   five-depth prefix. Fifteen compiled codec cases, 66 whole-finalization plus ten
-   runtime cases, and the actual Source 50/resident 64 consumers passed. Those
-   consumers passed again after supported formatting and import removal. Ordinary
-   workspace build passed 46/46; host lint selects 34 changed files. Fast gate
-   passed 109 unit tests, assets, source typing and package graph before failing
-   the remaining development imports. Pinned Bend formatter now reports 66 conforming and 22 unavailable files,
-   with no remaining supported format changes. Value itself conforms. Unsupported expression/header diagnostics remain gates,
-   not exemptions. This closes shared declaration ownership, not compiled whole
-   Preparation, universal correspondence or production acceptance.
-   The first compiled preparation boundary now has one contract.ts owner for
-   context/source/terminal types, with the existing pipeline type API retained.
-   The complete terminal codec is ordinary typed TS; its source MJS copy is
-   deleted. Source provider and both retained/resident verification consumers
-   import its emitted dist JS. Producer-valid wire types preserve existing raw
-   decoder behavior; they are not validation of arbitrary raw product schemas.
-   Package typing, recorded compiler inputs/outputs and workspace build 46/46
-   passed; actual Source 50 and resident 64 scenarios passed the compiled codec.
-   Ordinary lint selects all six changed host files. Fast passed 109 tests,
-   assets, source typing and package graph, then failed the same 5 unresolved,
-   47 undeclared and 213 private development imports. The dispatcher/finalization
-   bindings, private generated artifacts, single package capability entry and
-   resident imports remain the coherent next compiled unit. Astra's structural
-   review found no blocking extraction/codec chronology errors. The agreed build
-   path is a declared review-execution precompile recipe for the two private
-   generated JS/declaration pairs, using pinned five-second emissions in staging.
-   Extend the TS owner's authored stamp and compiler receipt with exact Bend
-   import closure, Base, generator/ABI and toolchain/environment identity; recheck
-   before publication and on cache restore. Existing agent-flow producer inventory
-   stays with that owner. Never generate into stamped src or clear package dist
-   twice. The ordinary compiled capability must hide those artifacts. Neither type
-   extraction nor terminal-codec emission closes that unit or adopts production.
-
+1. Complete the remaining compiled owner/session and public-input boundaries.
+   The preparation capability now has one package export and typed driver-compatible
+   machine/perform/decode. Generated cores, dispatcher, finalization and terminal
+   codec stay private. Its external command union excludes RenderUnits. The supplied
+   driver lease must match invocation/request; only Canonical owns live fencing,
+   launch, lifecycle, cancellation and acceptance. Source decodes after actual handoff
+   acceptance. Source 50, resident 64, whole finalization 66 plus ten runtime cases
+   and the actual transport embedding passed this entry. Workspace build passed
+   46/46 with the original five-second emission limits. These are finite qualification,
+   not public prepareObservation replacement, universal correspondence or acceptance.
+   GraphLimits retains its existing owner. TransportFailure has one typed lower
+   runtime-environment/runtime/effect-transport owner; all consumers directly import
+   it, without exposing analysis transport internals or copying the class. Artifact
+   value declarations/codec and preparation contracts retain their unique owners.
+   Keep exact four/five-depth ABI conversion mechanical at composition boundaries.
+   Source-analysis still needs an opaque resolver/session capability. Resident's
+   physical binding must move fixture defaults and native comparisons into its
+   verification adapter, and enter ordinary typed compilation. The public native
+   PreparationInput encoder and whole source/advicee entry remain open. Preserve
+   original failure, cancellation, custody and full ordered-effects correspondence.
+   The eventual public entry remains pipeline.prepareObservation; no parallel backend.
+   The last development-import gate reported five unresolved paths, 47 undeclared
+   dependencies and 213 private cross-owner imports; requalify the changed candidate
+   without exposing helper stages or bypassing this gate. Supported Go/session,
+   extraction, whole proofs and connected parity remain required. Production whole
+   units connected and replaced native TS algorithms deleted are still zero.
 2. Finish all retained source/proof and ordinary quality gates. The source gate
    uses current import closures, nonempty checking roots and a five-second limit;
    foreign Runtime IO roots compile to temporary JS, pure roots use `--verdict`.
