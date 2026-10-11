@@ -196,7 +196,7 @@ export const checkDevelopmentImports = (root) => {
         if (!destination) throw new Error(`Unresolved development import: ${record.file} -> ${specifier}`)
         const target = realpathSync(destination),
           targetOwner = ownerOf(target)
-        const resource = resources.get(owner.manifest.name).get(relative(root, target).replaceAll("\\", "/"))
+        const resource = resources.get(owner.manifest.name)?.get(relative(root, target).replaceAll("\\", "/"))
         if (resource) {
           record.imports.push({ specifier, resource })
           return
@@ -272,6 +272,16 @@ export const checkDevelopmentImports = (root) => {
     }
   }
   for (const owner of graph.auxiliaryWorkspaces.values()) visit(owner, owner.path)
+  // Capability-local verification stays checked after moving into its product owner.
+  const visitVerification = (owner, directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (!entry.isDirectory() || ["node_modules", "dist", ".test-runs"].includes(entry.name)) continue
+      const child = resolve(directory, entry.name)
+      if (entry.name === "verification") visit(owner, child)
+      else visitVerification(owner, child)
+    }
+  }
+  for (const owner of graph.workspaces.values()) if (owner.role === "production") visitVerification(owner, owner.path)
   if (errors.length) throw new Error(`Invalid development imports:\n${errors.join("\n")}`)
   return {
     files: records.length,

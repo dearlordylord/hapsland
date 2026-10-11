@@ -7,21 +7,21 @@ import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
-import { residentTransaction } from "../../../packages/resident-runtime/src/resident/state/resident/transaction.ts"
-import { residentCapacity } from "../../../packages/resident-runtime/src/resident/state/resident/capacity.ts"
-import { retireRound } from "../../../packages/resident-runtime/src/resident/state/capacity/rounds.ts"
-import { completePreparation } from "../../../packages/resident-runtime/src/resident/state/capacity/preparation.ts"
-import { residentAdvice } from "../../../packages/resident-runtime/src/resident/state/resident/advice.ts"
-import { residentRevision } from "../../../packages/resident-runtime/src/resident/state/resident/revision.ts"
-import { initialRevision } from "../../../packages/resident-runtime/src/resident/state/revision.ts"
-import { initialAdviceRecords } from "../../../packages/resident-runtime/src/resident/state/advice-records.ts"
-import { initialJoinedReviews } from "../../../packages/resident-runtime/src/resident/state/joined-reviews.ts"
-import { initialDelivery } from "../../../packages/resident-runtime/src/resident/state/delivery/operations.ts"
-import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
-import { createAdviceTailMachine } from "../../../packages/resident-runtime/src/resident/review-work/preparation/post-preparation-dispatcher.mjs"
-import { createAdviceTailProvider } from "../../../packages/resident-runtime/src/resident/review-work/evaluation/advice-tail-provider.mjs"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import { createResidentOwnerTransaction } from "../../../packages/resident-runtime/src/resident/state/resolver-custody/resident-owner-transaction.mjs"
+import { residentTransaction } from "../../../state/resident/transaction.ts"
+import { residentCapacity } from "../../../state/resident/capacity.ts"
+import { retireRound } from "../../../state/capacity/rounds.ts"
+import { completePreparation } from "../../../state/capacity/preparation.ts"
+import { residentAdvice } from "../../../state/resident/advice.ts"
+import { residentRevision } from "../../../state/resident/revision.ts"
+import { initialRevision } from "../../../state/revision.ts"
+import { initialAdviceRecords } from "../../../state/advice-records.ts"
+import { initialJoinedReviews } from "../../../state/joined-reviews.ts"
+import { initialDelivery } from "../../../state/delivery/operations.ts"
+import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
+import { createAdviceTailMachine } from "../post-preparation-dispatcher.mjs"
+import { createAdviceTailProvider } from "../../evaluation/advice-tail-provider.mjs"
+import { createServiceRegistry } from "../../../../../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 const temp = await mkdtemp("/tmp/hapsland-resident-owner-")
 try {
   const emitted = join(temp, "owner.mjs")
@@ -31,7 +31,7 @@ try {
       "-c",
       "10",
       "bend",
-      join(import.meta.dirname, "../../../packages/agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"),
+      join(import.meta.dirname, "../../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"),
       "-o",
       emitted
     ],
@@ -41,17 +41,7 @@ try {
   const postEmission = join(temp, "post.mjs")
   execFileSync(
     "taskset",
-    [
-      "-c",
-      "10",
-      "bend",
-      join(
-        import.meta.dirname,
-        "../../../packages/resident-runtime/src/resident/review-work/preparation/PostPreparation.bend"
-      ),
-      "-o",
-      postEmission
-    ],
+    ["-c", "10", "bend", join(import.meta.dirname, "../PostPreparation.bend"), "-o", postEmission],
     { timeout: 5000 }
   )
   const postCore = (await import(pathToFileURL(postEmission))).default,

@@ -189,7 +189,8 @@ One current obstacle list, in execution order:
    arbitrary optional fingerprint and node_replacement_exact are closed under
    hard five seconds with unchanged premises. Parent registration, ordered
    append, slot-filter disjointness and child address-prefix elimination are
-   checked under hard five seconds. Full original parent theorem remains WIP.
+   checked under hard five seconds, including full child node/reference context
+   transport (latest coherent prefix 2.026 seconds). Full original parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
@@ -199,7 +200,7 @@ One current obstacle list, in execution order:
    Full physical cancellation/late cleanup and universal correspondence remain
    distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
    its accepted supported-input boundary before claiming complete replacement.
-3. Resolve ordinary source gates: 84 remaining cross-owner private development imports,
+3. Resolve ordinary source gates: 25 remaining cross-owner private development imports,
    without exposing verification helpers or excluding sources. check:fast's last
    executed result passes 109 tests and source typing, then fails these imports.
    Source-owned graph verification and its sole fixture set now live together
@@ -515,3 +516,25 @@ not the whole entry lifecycle. Ordinary runner lint passes. The generic Machine
 consumer still requires its real specialized command/event binding. Astra's child
 address-prefix proof prefix passes at 3.085 seconds under the unchanged hard five
 seconds; the original parent theorem and whole transaction remain unfinished.
+
+Whole resident preparation verification ownership: all twelve retained runners,
+oracles and mutant checker are now ordinary tracked files under resident-runtime
+review-work/preparation/verification. Their sole old root copies were removed;
+suite commands, source selection, imports, generated-wrapper paths and testing
+matrix now refer to the capability owner. Astra approved the structural placement.
+The obsolete resident-request-falsification runner was deleted: it restored a
+historical server source via git show while falsely describing it as current
+native code. The retained current laws/proofs, mutation checker and actual full
+lifecycle consumers do not depend on that restoration mechanism.
+
+A gate gap was found and corrected: development imports previously scanned only
+auxiliary workspaces, so moving verification into production owners hid checks.
+It now also scans every capability-local verification directory inside production
+owners. Eleven gate tests pass, including an actual production-owner verification
+file and undeclared dependency rejection; ordinary lint selected fourteen changed
+files and passed. The real import gate still fails with 25 private edges after
+same-owner closure repairs (the intermediate 7 result omitted moved inputs and is
+not qualification). The moved whole Source consumer passes 56 cases/6338 commands/
+31 native whole comparisons; the moved construction cleanup passes all 6 cases.
+Remaining specialized Machine and source-owner private capability seams stay
+open; production whole preparation adoption/removal remains 0/0.

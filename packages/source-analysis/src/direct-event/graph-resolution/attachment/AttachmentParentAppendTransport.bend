@@ -1,6 +1,7 @@
 import Base
 import ./RetainedForestProjection.bend as P
 import ./AttachmentMapping.bend as Mapping
+import ./AttachmentRemapProjectionProof.bend as Remap
 import ./AttachmentNodeReplacementTransport.bend as Replacement
 import ./AttachmentProjectionAllowanceProof.bend as Count
 import ./AttachmentProjectionContentsProof.bend as Contents
@@ -540,6 +541,108 @@ def shifted_address_prefix(+parents: List<&2, Local.PlannedNode>, +addresses: Li
     aligned_address_upper(parents, addresses, parents, addresses, 0n,
       (id + List.length(&2, Local.PlannedNode, parents) : Nat), aligned, dense,
       N.add_le_add_right(0n, id, List.length(&2, Local.PlannedNode, parents), N.zero_le(id))))
+
+def shifted_reference_prefix(+owner: Nat, +index: Nat, +symbol: String, reference: Local.PlannedReference,
+    +parents: List<&2, Local.PlannedNode>, +addresses: List<&2, F.AddressEntry>, +children: List<&2, F.AddressEntry>,
+    aligned: {P.aligned(parents, addresses, parents, addresses) == True{} : Bool},
+    dense: {Frame.dense(parents, 0n) == True{} : Bool}) ->
+    {P.reference(Local.ReferenceSlot{(owner + List.length(&2, Local.PlannedNode, parents) : Nat), index, symbol,
+      Compose.shift_reference(reference, List.length(&2, Local.PlannedNode, parents))},
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))))
+      == P.reference(Local.ReferenceSlot{(owner + List.length(&2, Local.PlannedNode, parents) : Nat), index, symbol,
+        Compose.shift_reference(reference, List.length(&2, Local.PlannedNode, parents))}, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))
+      : Maybe<&2, F.Reference>}:
+  match reference:
+    case Local.Included{_}: {==}
+    case Local.Omitted{_, _}: {==}
+    case Local.Expanded{+id}:
+      Equal.cong(Maybe<&2, O.NodeAddress>, Maybe<&2, F.Reference>, found => P.expanded_reference(found, symbol),
+        F.address_at(List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))),
+          (id + List.length(&2, Local.PlannedNode, parents) : Nat)),
+        F.address_at(Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)), (id + List.length(&2, Local.PlannedNode, parents) : Nat)),
+        shifted_address_prefix(parents, addresses, children, id, aligned, dense))
+
+def shifted_references_prefix(items: List<&2, Local.ReferenceSlot>, +parents: List<&2, Local.PlannedNode>,
+    +addresses: List<&2, F.AddressEntry>, +children: List<&2, F.AddressEntry>,
+    +aligned: {P.aligned(parents, addresses, parents, addresses) == True{} : Bool},
+    +dense: {Frame.dense(parents, 0n) == True{} : Bool}) ->
+    {P.references(Compose.shift_slots(items, List.length(&2, Local.PlannedNode, parents)),
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))))
+      == P.references(Compose.shift_slots(items, List.length(&2, Local.PlannedNode, parents)),
+        Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))) : Maybe<&2, List<&2, F.Reference>>}:
+  match items:
+    case []: {==}
+    case Local.ReferenceSlot{+id, +index, +symbol, +reference} <> +tail:
+      %Equal.sym(Maybe<&2, F.Reference>,
+        P.reference(Local.ReferenceSlot{(id + List.length(&2, Local.PlannedNode, parents) : Nat), index, symbol, Compose.shift_reference(reference, List.length(&2, Local.PlannedNode, parents))},
+          List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))),
+        P.reference(Local.ReferenceSlot{(id + List.length(&2, Local.PlannedNode, parents) : Nat), index, symbol, Compose.shift_reference(reference, List.length(&2, Local.PlannedNode, parents))},
+          Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))),
+        shifted_reference_prefix(id, index, symbol, reference, parents, addresses, children, aligned, dense)):
+        {P.reference_prefix(_, P.references(Compose.shift_slots(tail, List.length(&2, Local.PlannedNode, parents)),
+          List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))))
+          == P.references(Compose.shift_slots(Local.ReferenceSlot{id, index, symbol, reference} <> tail, List.length(&2, Local.PlannedNode, parents)), Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))
+          : Maybe<&2, List<&2, F.Reference>>}
+      Equal.cong(Maybe<&2, List<&2, F.Reference>>, Maybe<&2, List<&2, F.Reference>>,
+        rest => P.reference_prefix(P.reference(Local.ReferenceSlot{(id + List.length(&2, Local.PlannedNode, parents) : Nat), index, symbol, Compose.shift_reference(reference, List.length(&2, Local.PlannedNode, parents))},
+          Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))), rest),
+        P.references(Compose.shift_slots(tail, List.length(&2, Local.PlannedNode, parents)), List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))),
+        P.references(Compose.shift_slots(tail, List.length(&2, Local.PlannedNode, parents)), Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))),
+        shifted_references_prefix(tail, parents, addresses, children, aligned, dense))
+
+def shifted_owner_references_prefix(+slots: List<&2, Local.ReferenceSlot>, +owner: Nat,
+    +parents: List<&2, Local.PlannedNode>, +addresses: List<&2, F.AddressEntry>, +children: List<&2, F.AddressEntry>,
+    aligned: {P.aligned(parents, addresses, parents, addresses) == True{} : Bool},
+    dense: {Frame.dense(parents, 0n) == True{} : Bool}) ->
+    {P.references(P.owner_slots(Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), (owner + List.length(&2, Local.PlannedNode, parents) : Nat)),
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))))
+      == P.references(P.owner_slots(Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), (owner + List.length(&2, Local.PlannedNode, parents) : Nat)),
+        Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))) : Maybe<&2, List<&2, F.Reference>>}:
+  %Remap.owner_slots(slots, owner, List.length(&2, Local.PlannedNode, parents)):
+    {P.references(_, List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))))
+      == P.references(_, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))) : Maybe<&2, List<&2, F.Reference>>}
+  shifted_references_prefix(P.owner_slots(slots, owner), parents, addresses, children, aligned, dense)
+
+def shifted_nodes_prefix(items: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +parents: List<&2, Local.PlannedNode>,
+    +addresses: List<&2, F.AddressEntry>, +children: List<&2, F.AddressEntry>,
+    +aligned: {P.aligned(parents, addresses, parents, addresses) == True{} : Bool},
+    +dense: {Frame.dense(parents, 0n) == True{} : Bool}) ->
+    {P.nodes(Compose.shift_nodes(items, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog,
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))))
+      == P.nodes(Compose.shift_nodes(items, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog,
+        Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))) : Maybe<&2, List<&2, F.Node>>}:
+  match items:
+    case []: {==}
+    case Local.PlannedNode{+id, +handle} <> +tail:
+      %Equal.sym(Maybe<&2, O.NodeAddress>,
+        F.address_at(List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))), (id + List.length(&2, Local.PlannedNode, parents) : Nat)),
+        F.address_at(Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)), (id + List.length(&2, Local.PlannedNode, parents) : Nat)),
+        shifted_address_prefix(parents, addresses, children, id, aligned, dense)):
+        {P.node_prefix(P.projected_node(_, F.artifact_at(catalog, handle),
+          P.references(P.owner_slots(Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), (id + List.length(&2, Local.PlannedNode, parents) : Nat)),
+            List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))))),
+          P.nodes(Compose.shift_nodes(tail, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog,
+            List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))))
+          == P.nodes(Compose.shift_nodes(Local.PlannedNode{id, handle} <> tail, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog,
+            Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))) : Maybe<&2, List<&2, F.Node>>}
+      %Equal.sym(Maybe<&2, List<&2, F.Reference>>,
+        P.references(P.owner_slots(Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), (id + List.length(&2, Local.PlannedNode, parents) : Nat)),
+          List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))),
+        P.references(P.owner_slots(Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), (id + List.length(&2, Local.PlannedNode, parents) : Nat)), Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))),
+        shifted_owner_references_prefix(slots, id, parents, addresses, children, aligned, dense)):
+        {P.node_prefix(P.projected_node(F.address_at(Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)), (id + List.length(&2, Local.PlannedNode, parents) : Nat)), F.artifact_at(catalog, handle), _),
+          P.nodes(Compose.shift_nodes(tail, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog,
+            List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))))
+          == P.nodes(Compose.shift_nodes(Local.PlannedNode{id, handle} <> tail, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog,
+            Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))) : Maybe<&2, List<&2, F.Node>>}
+      Equal.cong(Maybe<&2, List<&2, F.Node>>, Maybe<&2, List<&2, F.Node>>,
+        rest => P.node_prefix(P.projected_node(F.address_at(Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)), (id + List.length(&2, Local.PlannedNode, parents) : Nat)), F.artifact_at(catalog, handle),
+          P.references(P.owner_slots(Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), (id + List.length(&2, Local.PlannedNode, parents) : Nat)), Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))), rest),
+        P.nodes(Compose.shift_nodes(tail, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog,
+          List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))),
+        P.nodes(Compose.shift_nodes(tail, List.length(&2, Local.PlannedNode, parents)), Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, parents)), catalog, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))),
+        shifted_nodes_prefix(tail, slots, catalog, parents, addresses, children, aligned, dense))
 
 law parent_attachment_exact:
   for +parent_root: Nat

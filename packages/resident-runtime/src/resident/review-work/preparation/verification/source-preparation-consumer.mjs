@@ -9,8 +9,8 @@ import * as Ref from "effect/Ref"
 import * as Scope from "effect/Scope"
 import * as Exit from "effect/Exit"
 import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
-import { residentTransaction } from "../../../packages/resident-runtime/src/resident/state/resident/transaction.ts"
-import { residentCapacity } from "../../../packages/resident-runtime/src/resident/state/resident/capacity.ts"
+import { residentTransaction } from "../../../state/resident/transaction.ts"
+import { residentCapacity } from "../../../state/resident/capacity.ts"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
@@ -25,19 +25,16 @@ import {
   snapshotReservationCustody
 } from "./native-source-reference.mjs"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createServiceRegistry } from "../../../../../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { createResidentOwnerTransaction } from "../../../packages/resident-runtime/src/resident/state/resolver-custody/resident-owner-transaction.mjs"
-import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
-import { createSourcePreparationMachine } from "../../../packages/resident-runtime/src/resident/review-work/preparation/source-preparation-dispatcher.mjs"
-import {
-  createPostPreparationMachine,
-  createAdviceTailMachine
-} from "../../../packages/resident-runtime/src/resident/review-work/preparation/post-preparation-dispatcher.mjs"
+import { pureReply } from "../../../../../../source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
+import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
+import { createSourcePreparationMachine } from "../source-preparation-dispatcher.mjs"
+import { createPostPreparationMachine, createAdviceTailMachine } from "../post-preparation-dispatcher.mjs"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
-import { createPreparationForeign } from "../../../packages/resident-runtime/src/resident/review-work/composition/preparation-foreign.mjs"
-import { createSourcePreparationProvider } from "../../../packages/resident-runtime/src/resident/review-work/preparation/source-preparation-provider.mjs"
+import { createPreparationForeign } from "../../composition/preparation-foreign.mjs"
+import { createSourcePreparationProvider } from "../source-preparation-provider.mjs"
 const run = Effect.runSync,
   temp = await mkdtemp("/tmp/hapsland-source-composition-")
 try {
@@ -60,141 +57,134 @@ try {
         "bend",
         new URL(
           {
-            ArtifactComposition:
-              "../../../packages/resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend",
+            ArtifactComposition: "../../composition/ArtifactComposition.bend",
             ArtifactIndexSkipMutantCore:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/ArtifactIndexSkipMutantCore.bend",
-            ArtifactProtocol:
-              "../../../packages/resident-runtime/src/resident/review-work/composition/ArtifactProtocol.bend",
-            Attach: "../../../packages/source-analysis/src/direct-event/graph-resolution/Attach.bend",
-            AttachPlanning: "../../../packages/source-analysis/src/direct-event/graph-resolution/AttachPlanning.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/ArtifactIndexSkipMutantCore.bend",
+            ArtifactProtocol: "../../composition/ArtifactProtocol.bend",
+            Attach: "../../../../../../source-analysis/src/direct-event/graph-resolution/Attach.bend",
+            AttachPlanning: "../../../../../../source-analysis/src/direct-event/graph-resolution/AttachPlanning.bend",
             BoundaryLiteralCheck:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/BoundaryLiteralCheck.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/BoundaryLiteralCheck.bend",
             BoundaryValidationSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/BoundaryValidationSpecification.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/BoundaryValidationSpecification.bend",
             CanonicalResolverOwner:
-              "../../../packages/agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend",
+              "../../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend",
             CaptureAdmission:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/CaptureAdmission.bend",
-            Cargo: "../../../packages/source-analysis/src/direct-event/graph-resolution/Cargo.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/CaptureAdmission.bend",
+            Cargo: "../../../../../../source-analysis/src/direct-event/graph-resolution/Cargo.bend",
             CargoSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/CargoSpecification.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/CargoSpecification.bend",
             CargoSpecificationCheck:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/CargoSpecificationCheck.bend",
-            Check: "../../../packages/source-analysis/src/direct-event/graph-resolution/Check.bend",
-            Clock: "../../../packages/source-analysis/src/direct-event/graph-resolution/Clock.bend",
-            ComposedBudget: "../../../packages/source-analysis/src/direct-event/graph-resolution/ComposedBudget.bend",
-            ComposedMachine: "../../../packages/source-analysis/src/direct-event/graph-resolution/ComposedMachine.bend",
-            Composition: "../../../packages/source-analysis/src/direct-event/graph-resolution/Composition.bend",
-            Core: "../../../packages/source-analysis/src/direct-event/graph-resolution/Core.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/CargoSpecificationCheck.bend",
+            Check: "../../../../../../source-analysis/src/direct-event/graph-resolution/Check.bend",
+            Clock: "../../../../../../source-analysis/src/direct-event/graph-resolution/Clock.bend",
+            ComposedBudget: "../../../../../../source-analysis/src/direct-event/graph-resolution/ComposedBudget.bend",
+            ComposedMachine: "../../../../../../source-analysis/src/direct-event/graph-resolution/ComposedMachine.bend",
+            Composition: "../../../../../../source-analysis/src/direct-event/graph-resolution/Composition.bend",
+            Core: "../../../../../../source-analysis/src/direct-event/graph-resolution/Core.bend",
             DeadlineLiteralCheck:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/DeadlineLiteralCheck.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/DeadlineLiteralCheck.bend",
             DeadlineSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/DeadlineSpecification.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/DeadlineSpecification.bend",
             EntrySpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/EntrySpecification.bend",
-            Environment: "../../../packages/source-analysis/src/direct-event/graph-resolution/Environment.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/EntrySpecification.bend",
+            Environment: "../../../../../../source-analysis/src/direct-event/graph-resolution/Environment.bend",
             ExpansionDriverSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionDriverSpecification.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/ExpansionDriverSpecification.bend",
             ExpansionSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionSpecification.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/ExpansionSpecification.bend",
             ExpansionSpecificationCheck:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/ExpansionSpecificationCheck.bend",
-            Facts: "../../../packages/source-analysis/src/direct-event/graph-resolution/Facts.bend",
-            Failure: "../../../packages/source-analysis/src/direct-event/graph-resolution/Failure.bend",
-            ForestAllowance: "../../../packages/source-analysis/src/direct-event/graph-resolution/ForestAllowance.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/ExpansionSpecificationCheck.bend",
+            Facts: "../../../../../../source-analysis/src/direct-event/graph-resolution/Facts.bend",
+            Failure: "../../../../../../source-analysis/src/direct-event/graph-resolution/Failure.bend",
+            ForestAllowance: "../../../../../../source-analysis/src/direct-event/graph-resolution/ForestAllowance.bend",
             ForestSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/ForestSpecification.bend",
-            GenericArtifact:
-              "../../../packages/resident-runtime/src/resident/review-work/composition/GenericArtifact.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/ForestSpecification.bend",
+            GenericArtifact: "../../composition/GenericArtifact.bend",
             GraphSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/GraphSpecification.bend",
-            ImportedRust: "../../../packages/source-analysis/src/direct-event/graph-resolution/ImportedRust.bend",
-            Loop: "../../../packages/source-analysis/src/direct-event/graph-resolution/Loop.bend",
-            LoopPolicy: "../../../packages/source-analysis/src/direct-event/graph-resolution/LoopPolicy.bend",
-            Machine: "../../../packages/source-analysis/src/direct-event/graph-resolution/Machine.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/GraphSpecification.bend",
+            ImportedRust: "../../../../../../source-analysis/src/direct-event/graph-resolution/ImportedRust.bend",
+            Loop: "../../../../../../source-analysis/src/direct-event/graph-resolution/Loop.bend",
+            LoopPolicy: "../../../../../../source-analysis/src/direct-event/graph-resolution/LoopPolicy.bend",
+            Machine: "../../../../../../source-analysis/src/direct-event/graph-resolution/Machine.bend",
             MechanicalPathAlgebra:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/MechanicalPathAlgebra.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/MechanicalPathAlgebra.bend",
             ModuleSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/ModuleSpecification.bend",
-            PostPreparation:
-              "../../../packages/resident-runtime/src/resident/review-work/preparation/PostPreparation.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/ModuleSpecification.bend",
+            PostPreparation: "../PostPreparation.bend",
             PreparationSelection:
-              "../../../packages/review-execution/src/direct-event/preparation/PreparationSelection.bend",
+              "../../../../../../review-execution/src/direct-event/preparation/PreparationSelection.bend",
             PreparationSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/PreparationSpecification.bend",
-            Protocol: "../../../packages/source-analysis/src/direct-event/graph-resolution/Protocol.bend",
-            GoArtifact: "../../../packages/resident-runtime/src/resident/review-work/composition/GoArtifact.bend",
-            PythonArtifact:
-              "../../../packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend",
-            PythonModule: "../../../packages/source-analysis/src/direct-event/graph-resolution/PythonModule.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/PreparationSpecification.bend",
+            Protocol: "../../../../../../source-analysis/src/direct-event/graph-resolution/Protocol.bend",
+            GoArtifact: "../../composition/GoArtifact.bend",
+            PythonArtifact: "../../composition/PythonArtifact.bend",
+            PythonModule: "../../../../../../source-analysis/src/direct-event/graph-resolution/PythonModule.bend",
             RUNTIME_INVARIANT_LAWS:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RUNTIME_INVARIANT_LAWS.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RUNTIME_INVARIANT_LAWS.bend",
             RUNTIME_INVARIANT_PROOF:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RUNTIME_INVARIANT_PROOF.bend",
-            RUNTIME_LAWS: "../../../packages/source-analysis/src/direct-event/graph-resolution/RUNTIME_LAWS.bend",
-            RUNTIME_PROOF: "../../../packages/source-analysis/src/direct-event/graph-resolution/RUNTIME_PROOF.bend",
-            Read: "../../../packages/source-analysis/src/direct-event/graph-resolution/Read.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RUNTIME_INVARIANT_PROOF.bend",
+            RUNTIME_LAWS: "../../../../../../source-analysis/src/direct-event/graph-resolution/RUNTIME_LAWS.bend",
+            RUNTIME_PROOF: "../../../../../../source-analysis/src/direct-event/graph-resolution/RUNTIME_PROOF.bend",
+            Read: "../../../../../../source-analysis/src/direct-event/graph-resolution/Read.bend",
             ReferenceGroupMutantCore:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/ReferenceGroupMutantCore.bend",
-            Resolve: "../../../packages/source-analysis/src/direct-event/graph-resolution/Resolve.bend",
-            Root: "../../../packages/source-analysis/src/direct-event/graph-resolution/Root.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/ReferenceGroupMutantCore.bend",
+            Resolve: "../../../../../../source-analysis/src/direct-event/graph-resolution/Resolve.bend",
+            Root: "../../../../../../source-analysis/src/direct-event/graph-resolution/Root.bend",
             RootAttribution:
-              "../../../packages/native-observation/src/direct-event/edit-attribution/RootAttribution.bend",
-            RootPlanning: "../../../packages/source-analysis/src/direct-event/graph-resolution/RootPlanning.bend",
-            Runtime: "../../../packages/source-analysis/src/direct-event/graph-resolution/Runtime.bend",
+              "../../../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.bend",
+            RootPlanning: "../../../../../../source-analysis/src/direct-event/graph-resolution/RootPlanning.bend",
+            Runtime: "../../../../../../source-analysis/src/direct-event/graph-resolution/Runtime.bend",
             RuntimeCancellationPhaseProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeCancellationPhaseProof.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeCancellationPhaseProof.bend",
             RuntimeCorrespondenceProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeCorrespondenceProof.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeCorrespondenceProof.bend",
             RuntimeFrozenRowsProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeFrozenRowsProof.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeFrozenRowsProof.bend",
             RuntimeHistoryProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeHistoryProof.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeHistoryProof.bend",
             RuntimeInvariant:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeInvariant.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeInvariant.bend",
             RuntimeInvocationProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeInvocationProof.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeInvocationProof.bend",
             RuntimeLawObservation:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeLawObservation.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeLawObservation.bend",
             RuntimeLeaseProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeLeaseProof.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeLeaseProof.bend",
             RuntimeMachineFenceProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeMachineFenceProof.bend",
-            RuntimeModel: "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeModel.bend",
-            RuntimeNatProof: "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeNatProof.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeMachineFenceProof.bend",
+            RuntimeModel: "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeModel.bend",
+            RuntimeNatProof: "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeNatProof.bend",
             RuntimeSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeSpecification.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeSpecification.bend",
             RuntimeTraceProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeTraceProof.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeTraceProof.bend",
             RuntimeValidityProof:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RuntimeValidityProof.bend",
-            RustCargo: "../../../packages/source-analysis/src/direct-event/graph-resolution/RustCargo.bend",
-            RustFollow: "../../../packages/source-analysis/src/direct-event/graph-resolution/RustFollow.bend",
-            RustMachine: "../../../packages/source-analysis/src/direct-event/graph-resolution/RustMachine.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RuntimeValidityProof.bend",
+            RustCargo: "../../../../../../source-analysis/src/direct-event/graph-resolution/RustCargo.bend",
+            RustFollow: "../../../../../../source-analysis/src/direct-event/graph-resolution/RustFollow.bend",
+            RustMachine: "../../../../../../source-analysis/src/direct-event/graph-resolution/RustMachine.bend",
             RustSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RustSpecification.bend",
-            RustStorage: "../../../packages/source-analysis/src/direct-event/graph-resolution/RustStorage.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RustSpecification.bend",
+            RustStorage: "../../../../../../source-analysis/src/direct-event/graph-resolution/RustStorage.bend",
             RustTaskSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/RustTaskSpecification.bend",
-            SPEC: "../../../packages/source-analysis/src/direct-event/graph-resolution/SPEC.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/RustTaskSpecification.bend",
+            SPEC: "../../../../../../source-analysis/src/direct-event/graph-resolution/SPEC.bend",
             SignedLocalSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/SignedLocalSpecification.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/SignedLocalSpecification.bend",
             SignedLocalSpecificationCheck:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/SignedLocalSpecificationCheck.bend",
-            SourcePreparation:
-              "../../../packages/resident-runtime/src/resident/review-work/preparation/SourcePreparation.bend",
-            SourcePreparationProbe:
-              "../../../packages/resident-runtime/src/resident/review-work/preparation/SourcePreparationProbe.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/SignedLocalSpecificationCheck.bend",
+            SourcePreparation: "../SourcePreparation.bend",
+            SourcePreparationProbe: "../SourcePreparationProbe.bend",
             SourceValidationSpecification:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/SourceValidationSpecification.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/SourceValidationSpecification.bend",
             SpecificationCheck:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/SpecificationCheck.bend",
-            State: "../../../packages/source-analysis/src/direct-event/graph-resolution/State.bend",
-            TerminalMachine: "../../../packages/source-analysis/src/direct-event/graph-resolution/TerminalMachine.bend",
-            Types: "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/SpecificationCheck.bend",
+            State: "../../../../../../source-analysis/src/direct-event/graph-resolution/State.bend",
+            TerminalMachine: "../../../../../../source-analysis/src/direct-event/graph-resolution/TerminalMachine.bend",
+            Types: "../../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend",
             WholeObservation:
-              "../../../packages/source-analysis/src/direct-event/graph-resolution/WholeObservation.bend"
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/WholeObservation.bend"
           }[name],
           import.meta.url
         ).pathname,
@@ -561,7 +551,7 @@ try {
       )
     if (mode === "full-activity-refused") await writeFile(shared.context.job.dispatch.activityPath, "blocked directory")
     if (fullEntry) {
-      const credentials = await import("../../../packages/resident-runtime/src/resident/authorization/credentials.ts")
+      const credentials = await import("../../../authorization/credentials.ts")
       shared.context.job.dispatch.controlled = {}
       if (mode === "gates-controlled") shared.context.job.dispatch.controlled = { unknownProperty: true }
       if (mode === "gates-shape") shared.context.job.dispatch.controlled = null

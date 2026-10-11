@@ -4,24 +4,14 @@ import { stripTypeScriptTypes } from "node:module"
 import * as Effect from "effect/Effect"
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import { MAX_IPC_FRAME_BYTES } from "@hapsland/resident-transport/resident/protocol"
-import {
-  residentUnitWorstOutcomeBytes,
-  residentUnitReservationBytes
-} from "../../../packages/resident-runtime/src/resident/work-ownership/reservation.ts"
-import { withinWork } from "../../../packages/resident-runtime/src/resident/work-ownership/cancellation.ts"
-import { ResidentAdapterError } from "../../../packages/resident-runtime/src/resident/adapter-error.ts"
-import { planPreparedUnits } from "../../../packages/resident-runtime/src/resident/review-work/preparation/planning.ts"
-import {
-  observePlannedEvaluation,
-  recordReuseObservation,
-  retainPreparedUnit
-} from "../../../packages/resident-runtime/src/resident/review-work/preparation/retention.ts"
+import { residentUnitWorstOutcomeBytes, residentUnitReservationBytes } from "../../../work-ownership/reservation.ts"
+import { withinWork } from "../../../work-ownership/cancellation.ts"
+import { ResidentAdapterError } from "../../../adapter-error.ts"
+import { planPreparedUnits } from "../planning.ts"
+import { observePlannedEvaluation, recordReuseObservation, retainPreparedUnit } from "../retention.ts"
 // Explicit temporary TS child. Exercise the entire current admission/planning/
 // completion/retention sequence from its actual source, without copying policy.
-const source = await readFile(
-  new URL("../../../packages/resident-runtime/src/resident/review-work/preparation/capture.ts", import.meta.url),
-  "utf8"
-)
+const source = await readFile(new URL("../capture.ts", import.meta.url), "utf8")
 const start = source.indexOf("    context.deps.residentInspection.observePreparation(context.job, prepared)"),
   terminal = "    return yield* retainPreparedUnits()",
   end = source.indexOf(terminal, start)

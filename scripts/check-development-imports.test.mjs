@@ -193,3 +193,16 @@ test("browser-root imports require the exact bounded Vite profile and target", (
   writeFileSync(path, source + "\n// changed profile\n")
   assert.throws(() => checkDevelopmentImports(root), /Undeclared development dependency/)
 })
+
+test("capability-local verification remains checked inside a production owner", (t) => {
+  const root = fixture(t, "export {}")
+  const directory = join(root, "packages/input/src/capability/verification")
+  mkdirSync(directory, { recursive: true })
+  const check = join(directory, "check.mjs")
+  writeFileSync(check, 'import "../../index.ts";')
+  const record = checkDevelopmentImports(root).records.find((item) => item.file.endsWith("verification/check.mjs"))
+  assert.equal(record.owner, "@hapsland/input")
+  assert.equal(record.imports[0].target, "packages/input/src/index.ts")
+  writeFileSync(check, 'import "effect/Effect";')
+  assert.throws(() => checkDevelopmentImports(root), /Undeclared development dependency.*verification\/check.mjs/)
+})

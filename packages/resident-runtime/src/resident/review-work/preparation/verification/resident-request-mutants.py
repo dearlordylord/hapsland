@@ -1,6 +1,6 @@
 from pathlib import Path
 import tempfile, subprocess, json, shutil
-root = Path(__file__).resolve().parents[2]
+root = Path(__file__).resolve().parents[7]
 owner = root / 'packages/agent-flow-bend/resident-request-policy'
 core = (owner / 'core.bend').read_text()
 mutants = [
@@ -27,4 +27,6 @@ for name, before, after, law in mutants:
   records.append(record)
   print(json.dumps({k: v for k, v in record.items() if k != 'output'}), flush=True)
   assert record['detected'], record
-(root / 'evidence/bend-strangler/resident-request-mutants.json').write_text(json.dumps({'scope': 'nine pure decision mutations against unchanged approved laws and universal proofs; no native mutation claim', 'passed': True, 'records': records}, indent=2) + '\n')
+evidence = root / '.test-runs/bend-migration/resident-request-mutants.json'
+evidence.parent.mkdir(parents=True, exist_ok=True)
+evidence.write_text(json.dumps({'scope': 'nine pure decision mutations against unchanged approved laws and universal proofs; no native mutation claim', 'passed': True, 'records': records}, indent=2) + '\n')

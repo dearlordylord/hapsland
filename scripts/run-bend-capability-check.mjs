@@ -25,7 +25,6 @@ const sourceOwners = [
   "packages/resident-runtime/src/resident/review-work/evaluation",
   "packages/resident-runtime/src/resident/state/resolver-custody",
   "packages/agent-flow-bend/preparation-lifecycle",
-  "src/resident/preparation",
   "src/direct-event/graph-resolution"
 ]
 const authoredSources = (directory) =>
@@ -63,17 +62,17 @@ const suites = {
     return roots
   },
   "preparation-protocol": () => [
-    "src/resident/preparation/construction-cleanup.test.mjs",
+    "packages/resident-runtime/src/resident/review-work/preparation/verification/construction-cleanup.test.mjs",
     "packages/source-artifacts/src/direct-event/value/codec-check.mjs",
-    "src/resident/preparation/source-preparation-check.mjs",
-    "src/resident/preparation/post-preparation-check.mjs",
-    "src/resident/preparation/resident-owner-check.mjs",
+    "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-check.mjs",
+    "packages/resident-runtime/src/resident/review-work/preparation/verification/post-preparation-check.mjs",
+    "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owner-check.mjs",
     "packages/agent-flow-bend/preparation-lifecycle/canonical-owner-check.mjs"
   ],
   "preparation-consumer": () => [
-    "src/resident/preparation/source-preparation-consumer.mjs",
-    "src/resident/preparation/resident-preparation-check.mjs",
-    "src/resident/preparation/resident-owned-root-check.mjs"
+    "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-consumer.mjs",
+    "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-preparation-check.mjs",
+    "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owned-root-check.mjs"
   ]
 }
 if (

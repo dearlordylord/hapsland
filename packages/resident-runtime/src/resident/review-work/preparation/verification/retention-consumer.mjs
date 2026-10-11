@@ -3,16 +3,13 @@ import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
 import * as Scope from "effect/Scope"
 import * as Exit from "effect/Exit"
-import { completeSourcePreparation } from "../../../packages/resident-runtime/src/resident/review-work/preparation/retention.ts"
+import { completeSourcePreparation } from "../retention.ts"
 import { advicee as __advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
-import { sourcePartition } from "../../../packages/resident-runtime/src/resident/recipient/identity.ts"
-import { evaluationSourcePartition } from "../../../packages/resident-runtime/src/resident/work-ownership/identity.ts"
+import { sourcePartition } from "../../../recipient/identity.ts"
+import { evaluationSourcePartition } from "../../../work-ownership/identity.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { decodePreparationResult } from "../../../packages/review-execution/dist/direct-event/preparation/preparation-result-codec.js"
-import {
-  bendPostPreparation,
-  createPostPreparationProvider
-} from "../../../packages/resident-runtime/src/resident/review-work/preparation/post-preparation-host.mjs"
+import { decodePreparationResult } from "../../../../../../review-execution/dist/direct-event/preparation/preparation-result-codec.js"
+import { bendPostPreparation, createPostPreparationProvider } from "../post-preparation-host.mjs"
 import { nativePostPreparation } from "./native-post-preparation-child.mjs"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
 

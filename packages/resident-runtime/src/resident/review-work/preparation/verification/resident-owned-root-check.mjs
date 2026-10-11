@@ -8,17 +8,17 @@ import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import { createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
-import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
-import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
+import { createServiceRegistry } from "../../../../../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import { createBendResolver } from "../../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { pureReply } from "../../../../../../source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import * as Ref from "effect/Ref"
 import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
-import { residentTransaction } from "../../../packages/resident-runtime/src/resident/state/resident/transaction.ts"
-import { residentCapacity } from "../../../packages/resident-runtime/src/resident/state/resident/capacity.ts"
-import { retireRound } from "../../../packages/resident-runtime/src/resident/state/capacity/rounds.ts"
-import { completePreparation } from "../../../packages/resident-runtime/src/resident/state/capacity/preparation.ts"
-import { createResidentOwnerTransaction } from "../../../packages/resident-runtime/src/resident/state/resolver-custody/resident-owner-transaction.mjs"
+import { residentTransaction } from "../../../state/resident/transaction.ts"
+import { residentCapacity } from "../../../state/resident/capacity.ts"
+import { retireRound } from "../../../state/capacity/rounds.ts"
+import { completePreparation } from "../../../state/capacity/preparation.ts"
+import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 const temp = await mkdtemp("/tmp/hapsland-owned-root-")
 try {
   const artifacts = {}
@@ -38,14 +38,11 @@ try {
         "bend",
         new URL(
           {
-            ArtifactComposition:
-              "../../../packages/resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend",
-            GenericArtifact:
-              "../../../packages/resident-runtime/src/resident/review-work/composition/GenericArtifact.bend",
-            PythonArtifact:
-              "../../../packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend",
+            ArtifactComposition: "../../composition/ArtifactComposition.bend",
+            GenericArtifact: "../../composition/GenericArtifact.bend",
+            PythonArtifact: "../../composition/PythonArtifact.bend",
             CanonicalResolverOwner:
-              "../../../packages/agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"
+              "../../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"
           }[name],
           import.meta.url
         ).pathname,
