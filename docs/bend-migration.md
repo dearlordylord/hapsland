@@ -427,9 +427,12 @@ Keep this obstacle list current by removing closed work and naming specific
 remaining failures. Source backup, relocation and finite candidate qualification
 do not count as connected production Bend or removed replacement TypeScript.
 
-Current source-backup checkpoint: the ordinary Go ABI numeric canary and its
-service-session test are retained in the migration branch. Its latest execution
-failed because the imported constructor is named `../Types.GoFileSyntax` while
-the supplied value uses `Types.GoFileSyntax`. Correct that mechanical boundary
-before claiming this canary passes or advancing the complete Go consumer. This
-checkpoint preserves work; it does not qualify production adoption or parity.
+Current Go ABI boundary qualification: the ordinary numeric canary and actual
+service-session consumer pass after a payload-preserving projection from
+`Types.*` to the probe's loading-relative `../Types.*` constructor namespace
+under Bend 2.0.36. Seven Go fixtures exercise nested numeric computation inside
+emitted Bend; the service suite completed 176 requests. The canary checking root
+and the existing `AttachmentArtifactProductTransport.bend` proof root both
+reported `ALL PROOFS CHECK` within the unchanged five-second limit. This is
+boundary and existing artifact-kind proof evidence, not complete Go package
+inference, whole preparation correspondence, production adoption or parity.

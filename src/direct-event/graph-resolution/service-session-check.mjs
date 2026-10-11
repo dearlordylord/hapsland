@@ -68,6 +68,18 @@ try {
     { timeout: 5000 }
   )
   const goProbe = (await import(pathToFileURL(goProbePath))).default
+  // Bend 2.0.36 uses the loading module's relative import in constructor tags.
+  // Preserve all payload fields while projecting the probe's nominal namespace.
+  const goProbeValue = (value) => {
+    if (value === null || typeof value !== "object") return value
+    if (Array.isArray(value)) return value.map(goProbeValue)
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [
+        key,
+        key === "$" && typeof child === "string" && child.startsWith("Types.") ? "../" + child : goProbeValue(child)
+      ])
+    )
+  }
   const directoryRequest = tagged("Request", {
     invocation: 1n,
     id: 2n,
@@ -212,7 +224,7 @@ try {
     for (const group of unlist(facts.groups))
       for (const member of unlist(group.members))
         if (member.expression.$ === "Some") numericTotal += BigInt(member.expression.value) + 1n
-    assert.equal(goProbe.numeric_total(facts), numericTotal)
+    assert.equal(goProbe.numeric_total(goProbeValue(facts)), numericTotal)
     assert.equal(facts.cgo, native.cgo)
     const checked = protocol.check(
       tagged("Request", { invocation: 1n, id: 2n, operation: tagged("InspectGoFile", { path: "root.go", capture }) }),
