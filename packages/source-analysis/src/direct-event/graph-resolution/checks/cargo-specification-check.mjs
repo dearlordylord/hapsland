@@ -5,20 +5,20 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "nod
 import { dirname, join, relative, extname, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { stringify, parse } from "smol-toml"
-import { tomlValue } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+import { tomlValue } from "../frontend-codec.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 const folder = import.meta.dirname,
-  root = join(folder, "../../.."),
+  root = join(folder, "../../../../../.."),
   cache = join(root, "node_modules/.cache")
 mkdirSync(cache, { recursive: true })
 const temporary = mkdtempSync(join(cache, "cargo-specification-"))
 const native = join(root, "packages/source-analysis/dist/direct-event/languages/rust-module-context.js")
 const inputs = [
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/CargoSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/CargoSpecificationCheck.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
+  "../CargoSpecification.bend",
+  "../CargoSpecificationCheck.bend",
+  "../Types.bend",
   "./cargo-specification-check.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
+  "../frontend-codec.ts",
   native
 ]
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
@@ -26,15 +26,7 @@ const sources = Object.fromEntries(inputs.map((path) => [path, hash(isAbsolute(p
 try {
   assert.equal(sep, "/", "this check qualifies Linux path algebra only")
   const emitted = join(temporary, "spec.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/CargoSpecificationCheck.bend"),
-      "-o",
-      emitted
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../CargoSpecificationCheck.bend"), "-o", emitted], { timeout: 5000 })
   const spec = (await import(pathToFileURL(emitted))).default
   const nativeCopy = join(temporary, "native.mjs")
   writeFileSync(

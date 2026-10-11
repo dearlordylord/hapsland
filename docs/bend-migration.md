@@ -474,93 +474,36 @@ reported `ALL PROOFS CHECK` within the unchanged five-second limit. This is
 boundary and existing artifact-kind proof evidence, not complete Go package
 inference, whole preparation correspondence, production adoption or parity.
 
-Current ordinary candidate qualification at `2be20276`: the preparation
-consumer suite passed 50 source, 64 resident and 13 owned-root cases; all 23
-compiler receipts validated. check:fast passed 109 unit tests, repository assets,
-TypeScript and package graph before failing development imports. Three relocated
-credential cold runners then switched five stale relative imports to existing
-workspace exports; all six available/locked runs passed, with nonempty lint.
-The focused import gate now reports zero unresolved paths, 1 undeclared
-dependencies and 137 cross-owner private-file violations. Those remain an
-acceptance blocker; fix ownership and declared interfaces before asserting a
-green ordinary gate.
+Current source organization and gate blocker: zero unresolved imports, zero
+undeclared dependencies and 101 cross-owner private-file imports. Resolve their
+owner/interface boundaries without publishing test helpers or excluding source
+from the ordinary gates. The latest compiled preparation qualification passed
+50 source, 64 resident and 13 owned-root cases with all 23 compiler receipts;
+these do not establish whole production adoption.
 
-The service-session check now lives beside its graph-resolution owner at
-`packages/source-analysis/src/direct-event/graph-resolution/checks/service-session-check.mjs`.
-Private implementation imports are owner-local; compiled neighboring frontend
-calls use existing workspace exports. The old verification-tree copy is deleted.
-The new path passed all 176 actual service requests and nonempty lint; the
-ordinary source-closure gate includes it by owner-tree discovery. This removes
-seven private-file import violations and one undeclared dependency without
-adding public test helpers or weakening the development-import gate.
+Retained verification runners now execute ordinary tracked owner sources:
+service-session beside graph-resolution; attachment falsification beside
+attachment with fresh temporary emission; fourteen Python checks beside
+python-module; and Cargo, Rust, signed-local, result and stable-capture
+cancellation beside graph-resolution. Superseded copies are deleted. All these
+real relocated consumers passed. Cargo compared 21,003 cases; the physical
+Linux cancellation consumer used freshly emitted current Runtime with its SHA,
+checked native/Bend effect order, interruption, exact failure identity and
+resource discharge. These finite checks retain their stated scope and are not
+universal proof or Canonical production adoption. Diagnostics go to ignored
+root .test-runs; normal temporary cleanup does not guarantee SIGKILL cleanup.
+Nonempty lint checked the changed files. The hardcoded CPU10 affinity in some
+existing verification runners remains a Linux qualification limitation.
 
-Current public-interface repair: 70 emitted-file imports in 31 verification
-files now use already declared workspace exports. No source-to-dist import was
-changed, no export or dependency direction was added, and actual module identity
-was equal for all 11 distinct runtime modules. Nonempty lint passed all 31 files;
-Astra's structural review found no blocking issue. The actual preparation
-consumer suite passed 50/64/13 cases. check:fast passed unit/source typing and
-package graph, then failed the remaining 46 undeclared dependencies and 137
-private-file imports; zero unresolved paths remain. Fixed `/tmp` imports in
-attachment falsification runners are part of that remaining source-execution
-obstacle: reconnect their generated modules to tracked owner Bend sources;
-do not treat the preexisting temporary outputs as retained source or exempt the
-runners from the ordinary gate. Whole production adoption remains open.
+Verification owns its catalog-pinned smol-toml and independent credential oracle;
+credential measured runners live beside that oracle. Existing workspace exports
+replace direct dist imports without new interfaces. Update-notice expected data
+is tracked for exactly the original 144 inputs, independently obtained from
+receipt-verified e31 output; all 180 assertions passed and Astra reviewed the
+finite oracle replacement. No external baseline checkout is needed at runtime.
 
-Attachment falsification runners are now owner-local ordinary sources under
-`graph-resolution/attachment/checks`; seven old verification-tree copies were
-deleted. Their loader emits current tracked Bend into fresh temporary output
-with the unchanged five-second deadline and cleans on normal process exit;
-SIGKILL cleanup is not guaranteed. Diagnostics go to ignored root .test-runs.
-All seven actual runners passed after updating the obsolete module namespaces,
-including transaction, partial transaction, publication map and completion.
-The checks retain their assertions and explicitly remain finite synthetic
-relations; raw source-to-child-plan reachability, universal attachment proof and
-production adoption remain open. Their sourceSha256 labels one projection file,
-not a complete qualification receipt. Astra approved the structural change.
-The focused import gate now reports zero unresolved paths, eight undeclared
-dependencies and 137 cross-owner violations; the 38 removed violations were
-fixed temporary-module dependencies, not gate exclusions.
-
-Verification dependency repair: declared the already catalog-pinned smol-toml
-in the verification workspace. Bun regenerated the lock without changing
-package versions; it also reconciled obsolete CLI dependency entries against
-the current CLI manifest. The real Cargo consumer initially exposed a damaged
-post-relocation path binding (`../` was compared with a source-tree path).
-Restoring the native `../` boundary, without changing Bend policy or assertions,
-passed all 21,003 actual native comparisons. Its diagnostic JSON now goes to
-ignored root .test-runs; the final consumer passed again on that source.
-check:fast passed 109 unit tests, source typing and package graph before failing
-three undeclared dependencies and 137 private-file imports. The three remaining
-undeclared cases are two tooling imports of the verification credential oracle
-and one update-notice dependency on an external baseline checkout. Keep the
-oracle independent while repairing ownership; substituting the current Bend
-wrapper would be circular qualification. Whole Go and production adoption
-remain open; current build/execution cadence deadlines are 11:54:07 and
-11:57:52 UTC from the latest frozen pair.
-
-Credential measurement runners now live with their independent verification
-oracle under `src/credentials/bend-parity`; old tooling-owner copies are deleted.
-Both actual runners passed from the new paths; nonempty lint checked both.
-Their diagnostic JSON goes to ignored .test-runs. The isolated credential
-planning median ratio was 0.5065184505; this is not the whole production parity
-measurement. check:fast passed its unit/type/package stages and failed on one
-undeclared external update-notice oracle and 137 cross-owner private imports.
-The two tooling-to-verification dependency violations are removed by placing
-execution with its owner, without publishing the frozen oracle as a product API.
-
-Current source-organization blocker at `c4fc911f` plus the owner-local Python
-checks: zero unresolved imports, zero undeclared dependencies and 109
-cross-owner private-file imports. The update-notice checker now uses tracked
-expected data for exactly the original 144 inputs, independently obtained from
-receipt-verified e31 output; all 180 assertions passed. Astra reviewed the
-finite oracle replacement. Fourteen Python checks now live in the
-source-analysis `python-module/checks` capability; the old copies are deleted.
-All fourteen actual consumers passed, including persistent GraphSession with
-physical mutation and ordered-effect checks. Nonempty lint selected all 14.
-check:fast passed 109 unit tests, assets, TypeScript and package graph, then
-failed the remaining 109 private-file imports. No full gate was attempted on
-that failed prerequisite; test:status contains only an older unrelated run.
-These repairs preserve candidate checks and close 28 owner-boundary violations;
-whole Go Package, PreparationMachine, Canonical adoption and native TypeScript
-removal remain open. No production preparation adoption is claimed.
+Whole Go Package implementation follows Astra's agreed path to full
+PreparationMachine, GoArtifact and Canonical. Ordered inference/provenance,
+exact discoveryWork, whole native consumer qualification, original proofs and
+native TypeScript removal remain acceptance obligations. Source backup and
+relocation do not count as connected production Bend.

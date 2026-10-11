@@ -4,13 +4,10 @@ import { execFileSync } from "node:child_process"
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import {
-  artifact,
-  sourceFacts
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+import { artifact, sourceFacts } from "../frontend-codec.ts"
 import * as Effect from "effect/Effect"
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
-import { inspectSourceFrontend } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
+import { inspectSourceFrontend } from "../frontends.ts"
 import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 const temporary = mkdtempSync("/tmp/hapsland-resolver-result-"),
@@ -18,11 +15,7 @@ const temporary = mkdtempSync("/tmp/hapsland-resolver-result-"),
 try {
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
   const program = join(temporary, "core.mjs")
-  execFileSync(
-    "bend",
-    [join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Core.bend"), "-o", program],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Core.bend"), "-o", program], { timeout: 5000 })
   const source = readFileSync(program, "utf8")
   assert.ok(source.includes("traversal/core.PlannedNode"))
   const { default: core } = await import(pathToFileURL(program)),
@@ -134,15 +127,7 @@ try {
   const bundled = { origin, id: "base", kind: "datatype", name: "Nat", source: "type Nat", sourceHash: "h" }
   assert.deepEqual(fromProductValue(core.artifact_product(artifact(bundled)).value), bundled)
   const composedProgram = join(temporary, "composition.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Composition.bend"),
-      "-o",
-      composedProgram
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Composition.bend"), "-o", composedProgram], { timeout: 5000 })
   const { default: composition } = await import(pathToFileURL(composedProgram))
   const emptyMap = { $: "MTip" },
     budget = local("Budget", {
@@ -232,15 +217,7 @@ try {
     "None"
   )
   const factsProgram = join(temporary, "facts.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Facts.bend"),
-      "-o",
-      factsProgram
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Facts.bend"), "-o", factsProgram], { timeout: 5000 })
   const { default: factsCore } = await import(pathToFileURL(factsProgram))
   const rawFacts = {
     declarations: new Map([
@@ -279,11 +256,7 @@ try {
   const typedSource = sourceFacts({ ...rawFacts, kindAware: true })
   assert.equal(factsCore.prepare(typedSource, 0n).value.facts.kind_aware, true)
   const rootProgram = join(temporary, "root.mjs")
-  execFileSync(
-    "bend",
-    [join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/Root.bend"), "-o", rootProgram],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../Root.bend"), "-o", rootProgram], { timeout: 5000 })
   const { default: rootCore } = await import(pathToFileURL(rootProgram)),
     limits = {
       $: "../../../../agent-flow-bend/ImportGraph.Limits",
@@ -297,15 +270,7 @@ try {
       work: 100n
     }
   const planningProgram = join(temporary, "root-planning.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/RootPlanning.bend"),
-      "-o",
-      planningProgram
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../RootPlanning.bend"), "-o", planningProgram], { timeout: 5000 })
   const { default: rootPlanning } = await import(pathToFileURL(planningProgram))
   const rootKind = (value) => value.$
   const initialRoot = rootPlanning.prepare(syntax, "root.ts", "Root", typed("TypeBranch"), limits, 33n, list([]))
@@ -478,7 +443,7 @@ try {
     scope:
       "compiled pure Bend entire result construction over flat graph addresses; full resolver orchestration/integration/proofs pending"
   }
-  const evidenceDirectory = join(folder, "../../../.test-runs/bend-migration")
+  const evidenceDirectory = join(folder, "../../../../../../.test-runs/bend-migration")
   mkdirSync(evidenceDirectory, { recursive: true })
   writeFileSync(
     join(evidenceDirectory, "result-" + record.runtime + "-evidence.json"),

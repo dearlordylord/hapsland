@@ -13,17 +13,17 @@ import {
   eligibleNamedPath,
   contextDirectFilePolicy
 } from "@hapsland/native-observation/direct-event/selection"
-import { observationCaptureBudgetRefusal } from "../../../packages/source-analysis/dist/direct-event/capture-budget.js"
+import { observationCaptureBudgetRefusal } from "../../../../dist/direct-event/capture-budget.js"
 const folder = import.meta.dirname,
-  root = join(folder, "../../.."),
+  root = join(folder, "../../../../../.."),
   cache = join(root, "node_modules/.cache")
 mkdirSync(cache, { recursive: true })
 const temporary = mkdtempSync(join(cache, "rust-specification-"))
 const native = join(root, "packages/source-analysis/dist/direct-event/languages/rust-module-context.js")
 const inputs = [
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/RustSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/GraphSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
+  "../RustSpecification.bend",
+  "../GraphSpecification.bend",
+  "../Types.bend",
   "./rust-specification-check.mjs",
   native,
   join(root, "packages/source-analysis/dist/direct-event/capture-budget.js")
@@ -45,15 +45,7 @@ const normalize = (value) =>
         : value
 try {
   const emitted = join(temporary, "spec.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(folder, "../../../packages/source-analysis/src/direct-event/graph-resolution/RustSpecification.bend"),
-      "-o",
-      emitted
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../RustSpecification.bend"), "-o", emitted], { timeout: 5000 })
   const spec = (await import(pathToFileURL(emitted))).default
   let source = readFileSync(native, "utf8").replaceAll(
     /from "(\.{1,2}\/[^"]+)"/g,
@@ -176,9 +168,7 @@ try {
         action = spec.deadline(ticks++ >= (profile.expire ?? Infinity), action.state)
       } else if (name === "ResolvePath")
         action = spec.resolved_path(
-          !isAbsolute(action.path) &&
-            action.path !== ".." &&
-            !action.path.startsWith("../../../packages/source-analysis/src/direct-event"),
+          !isAbsolute(action.path) && action.path !== ".." && !action.path.startsWith("../.."),
           action.state,
           action.path
         )
@@ -330,8 +320,10 @@ try {
     scope:
       "Independent Rust root-cache/ancestor-search/command/deadline preparation prefixes and terminal outcomes on six physical repository cases against instrumented actual native resolveRustModuleContext. Includes 32 aggregate-cache admission and capture/store-size cases, with aggregate refusals checked against actual native capture-budget owner. No successful Cargo syntax/module continuation, full whole resolver proof, cancellation or performance qualification."
   }
+  const evidenceDirectory = join(import.meta.dirname, "../../../../../../.test-runs/bend-migration")
+  mkdirSync(evidenceDirectory, { recursive: true })
   writeFileSync(
-    join(folder, "rust-specification-" + record.runtime + "-evidence.json"),
+    join(evidenceDirectory, "rust-specification-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify(record))

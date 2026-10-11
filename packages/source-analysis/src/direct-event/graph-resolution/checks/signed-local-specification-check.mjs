@@ -1,30 +1,30 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { sourceFacts } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
+import { sourceFacts } from "../frontend-codec.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const folder = import.meta.dirname,
-  temporary = mkdtempSync(join(folder, "../../../node_modules/.cache/signed-local-"))
+  temporary = mkdtempSync(join(folder, "../../../../../../node_modules/.cache/signed-local-"))
 const inputs = [
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/SignedLocalSpecification.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/SignedLocalSpecificationCheck.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/SPEC.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/WholeObservation.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/Types.bend",
+  "../SignedLocalSpecification.bend",
+  "../SignedLocalSpecificationCheck.bend",
+  "../SPEC.bend",
+  "../WholeObservation.bend",
+  "../Types.bend",
   "./signed-local-specification-check.mjs",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",
-  "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/Traversal.bend",
-  "../../../bun.lock",
-  "../../../packages/source-analysis/dist/direct-event/graph-resolver.js",
-  "../../../packages/canonical-policy/dist/canonical/graph-adapter.js"
+  "../frontend-codec.ts",
+  "../service-session.ts",
+  "../traversal/SPEC.bend",
+  "../traversal/core.bend",
+  "../traversal/Traversal.bend",
+  "../../../../../../bun.lock",
+  "../../../../dist/direct-event/graph-resolver.js",
+  "../../../../../canonical-policy/dist/canonical/graph-adapter.js"
 ]
 const hash = (path) =>
   createHash("sha256")
@@ -89,20 +89,9 @@ const sequences = [
 ]
 try {
   const compiled = join(temporary, "signed.mjs")
-  execFileSync(
-    "bend",
-    [
-      join(
-        folder,
-        "../../../packages/source-analysis/src/direct-event/graph-resolution/SignedLocalSpecificationCheck.bend"
-      ),
-      "-o",
-      compiled
-    ],
-    { timeout: 5000 }
-  )
+  execFileSync("bend", [join(folder, "../SignedLocalSpecificationCheck.bend"), "-o", compiled], { timeout: 5000 })
   const spec = (await import(pathToFileURL(compiled))).default
-  const nativePath = join(folder, "../../../packages/source-analysis/dist/direct-event/graph-resolver.js")
+  const nativePath = join(folder, "../../../../dist/direct-event/graph-resolver.js")
   const source = readFileSync(nativePath, "utf8").replaceAll(
     /from "(\.\/[^"]+)"/g,
     (_all, path) => `from "${pathToFileURL(join(dirname(nativePath), path))}"`
@@ -285,8 +274,10 @@ try {
     scope:
       "Independent signed-domain local interpretation versus actual native buildLocal. Ordered recursive value, scalar budget, visited/target membership and exact negative permit placement; no full ordered-map/forest projection, outer post-traversal guards, exception materialization, whole expansion proof, consumer or performance qualification."
   }
+  const evidenceDirectory = join(import.meta.dirname, "../../../../../../.test-runs/bend-migration")
+  mkdirSync(evidenceDirectory, { recursive: true })
   writeFileSync(
-    join(folder, "signed-local-specification-" + record.runtime + "-evidence.json"),
+    join(evidenceDirectory, "signed-local-specification-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify(record))

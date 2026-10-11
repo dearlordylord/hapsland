@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync, readlinkSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync, readlinkSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
@@ -11,9 +11,9 @@ import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-r
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
-import { createDispatcher } from "../../../packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/transport.mjs"
-import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import { createVerificationEffectResolver as createBendEffectResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
+import { createDispatcher } from "../runtime-observation/transport.mjs"
+import { createServiceRegistry } from "../service-session.ts"
+import { createVerificationEffectResolver as createBendEffectResolver } from "../verification/resolver-driver.mjs"
 
 assert.equal(process.platform, "linux", "descriptor observations are Linux qualification only")
 const temporary = mkdtempSync("/tmp/hapsland-stable-cancellation-")
@@ -266,8 +266,10 @@ try {
     scope:
       "Actual Linux stable descriptor capture through complete native and Bend Effect resolvers. Three repetitions of each interruption point; exact ordered clock/read/hook/finalizer/cache prefixes, outer interruption, no late continuation/publication, actual root/git/source descriptors observed during first pass and absent after cleanup. No universal cancellation, buffer-erasure instrumentation, other descriptors/platforms or performance parity claim."
   }
+  const evidenceDirectory = join(import.meta.dirname, "../../../../../../.test-runs/bend-migration")
+  mkdirSync(evidenceDirectory, { recursive: true })
   writeFileSync(
-    join(import.meta.dirname, "stable-capture-cancellation-" + record.runtime + "-evidence.json"),
+    join(evidenceDirectory, "stable-capture-cancellation-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify(record))
