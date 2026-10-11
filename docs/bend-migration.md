@@ -145,6 +145,20 @@ instead of 23/46, so a fully warm repeat is required. The 05:03 UTC execution
 measurement passed at 0.6336. Both measurements cover existing production,
 not the unconnected whole-finalization stage.
 
+The fully warm repeat at checkpoint `298e83ec` also failed build parity: 1.2265
+at 05:06 UTC with 23/46 cached tasks. Its paired execution passed at 0.8656
+at 05:13 UTC. A cold sample alone therefore does not explain the build regression.
+The next internal finalization block, `RuleFinalization.bend`, computes input and
+capability facts and freezes complete ordered rules from the same snapshot;
+admission remains with the existing Canonical rule gate. Its emitted consumer
+compares 360 contexts and 8,640 snapshot rules with the native selectors/freezers.
+Authored rules are compiled by the real compiler; the additional duplicate-input
+raw-shape fixture is explicitly outside the authored decoder domain. Source,
+runner lint and pinned formatting checks pass for this block. Path/glob facts,
+correlated Canonical requests, provider/input/identity assembly and whole
+finalization proofs/production connection remain open; this is no separate
+selector acceptance.
+
 1. Finish relocation dependency and nominal ABI qualification; remove obsolete
    representations and historical runners after identifying the retained closure.
    Actual sources are secured on the remote working branch at `8b67a18a`;
