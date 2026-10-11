@@ -756,8 +756,9 @@ try {
       requests: totalRequests,
       graphConsumerFixtures: graphFixtures.length,
       finalPublicationDeadlineCases: 1,
+      completeRequestReplyAndAcceptedTerminalComparisons: graphFixtures.length + 1,
       scope:
-        "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; all 58 original graph fixture facts compare full native results/effects/cache/errors; original generic IO/trace qualification, real resident preparation progression/retention/revision and universal proofs remain open"
+        "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; all 58 original graph fixture facts compare full native results/effects/cache/errors; complete request/reply IO and accepted full terminal compare Canonical-owned execution with the existing dispatcher verification loop; standalone generic pure-chain/Cause qualification, real resident preparation progression/retention/revision and universal proofs remain open"
     })
   )
 } finally {

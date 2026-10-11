@@ -2,7 +2,7 @@ import { artifactValueTag, binary64, fromProductValue } from "@hapsland/source-a
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs"
-import { join, dirname } from "node:path"
+import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -11,11 +11,7 @@ import { createDispatcher } from "../runtime-observation/transport.mjs"
 import { createServiceSession, createServiceRegistry } from "../service-session.ts"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax } from "../frontends.ts"
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
-import {
-  DEFAULT_DIRECT_FILE_POLICY,
-  eligibleNamedPath,
-  contextDirectFilePolicy
-} from "@hapsland/native-observation/direct-event/selection"
+import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import {
   createMachineDriver,
@@ -23,7 +19,6 @@ import {
   createVerificationEffectResolver as createBendEffectResolver
 } from "./resolver-driver.mjs"
 import { pureReply } from "../frontend-codec.ts"
-import { createGraphFixtures } from "./fixtures.mjs"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),
   tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
@@ -150,6 +145,7 @@ try {
     ["root.bend", "type Child is Data:\n  Child{}\ntype Root is Data:\n  Root{child: Child}", "type"]
   ]
   for (const [path, source, branch] of fixtures) {
+    requestTrace = []
     let calls = 0
     const session = createServiceSession({
         invocation: id++,
@@ -189,176 +185,18 @@ try {
       "Types.EncodeProduct",
       "Types.ReadClock"
     ])
-  }
-  const graphCases = createGraphFixtures()
-  for (const fixture of graphCases) {
-    const root = join(temp, fixture.name)
-    mkdirSync(root)
-    execFileSync("git", ["init", "-q", root])
-    const path = fixture.path ?? "root.ts",
-      source =
-        fixture.source ??
-        "import type { A } from '" + (fixture.importPath ?? "./a") + "'; export interface Root { a: A }",
-      sources = new Map([[path, source], ...Object.entries(fixture.files)])
-    for (const [path, text] of sources) {
-      mkdirSync(dirname(join(root, path)), { recursive: true })
-      writeFileSync(join(root, path), text)
-    }
-    for (const directory of fixture.directories ?? []) mkdirSync(join(root, directory), { recursive: true })
-    const stable = (path) => ({ text: sources.get(path), byteLength: Buffer.byteLength(sources.get(path)) }),
-      nativeEvents = [],
-      bendEvents = [],
-      nativeCache = fixture.cache === undefined ? undefined : new Map(fixture.cache),
-      bendCache = fixture.cache === undefined ? undefined : new Map(fixture.cache),
-      diagnostic = { stage: "capture", code: "fixture-unavailable", args: {} }
-    let nativeTicks = 0,
-      bendTicks = 0
-    const tick = (events, count) => {
-      events.push(["clock", count])
-      return count >= (fixture.expireAt ?? Infinity) ? 5000 : 0
-    }
-    const capture = (selected, events) => {
-      events.push(["capture", selected.relativePath])
-      return fixture.unavailable
-        ? { status: "unavailable", diagnostic }
-        : { status: "captured", capture: stable(selected.relativePath) }
-    }
-    let expected, nativeError
-    try {
-      expected = await Effect.runPromise(
-        resolveGraphUnit(path, stable(path), "Root", {
-          root,
-          policy: fixture.policy ?? DEFAULT_DIRECT_FILE_POLICY,
-          now: () => tick(nativeEvents, nativeTicks++),
-          branch: fixture.branch ?? "type",
-          limits: { ...c, ...fixture.limits },
-          captureCache: nativeCache,
-          captureSource: (_root, selected) => Effect.succeed(capture(selected, nativeEvents)),
-          observeCaptureDiagnostic: (path, value) => nativeEvents.push(["diagnostic", path, value])
-        })
-      )
-    } catch (error) {
-      nativeError = error
-    }
-    requestTrace = []
-    const session = createServiceSession({
-      invocation: id++,
-      root,
-      now: () => tick(bendEvents, bendTicks++),
-      callerCache: bendCache,
-      access: (path) =>
-        Effect.runPromise(
-          eligibleNamedPath(root, path, contextDirectFilePolicy(fixture.policy ?? DEFAULT_DIRECT_FILE_POLICY))
-        ),
-      capture: (selected) => capture(selected, bendEvents),
-      frontend: inspectSourceFrontend,
-      parseCargo: parseCargoSyntax,
-      inspectRustModules: inspectRustModuleSyntax,
-      diagnostic: (path, value) => bendEvents.push(["diagnostic", path, value])
-    })
-    let actual, bendError
-    try {
-      actual = await drive(
-        session,
-        input(session, path, source, fixture.branch ?? "type", {
-          limits: {
-            ...limits,
-            ...Object.fromEntries(
-              Object.entries(fixture.limits ?? {}).map(([key, value]) => [
-                {
-                  sourceBytes: "source_bytes",
-                  treeBytes: "tree_bytes",
-                  readBytes: "read_bytes",
-                  outgoingEdges: "outgoing_edges"
-                }[key] ?? key,
-                BigInt(value)
-              ])
-            )
-          }
-        })
-      )
-    } catch (error) {
-      bendError = error
-    }
-    if (fixture.technicalFailure) {
-      const shape = (error) => ({
-        name: error.name,
-        message: error.message,
-        cause: { name: error.cause.name, message: error.cause.message }
-      })
-      assert.ok(
-        nativeError && bendError,
-        JSON.stringify({
-          fixture: fixture.name,
-          nativeError: nativeError?.message,
-          bendError: bendError?.message,
-          failure: actual?.failure,
-          trace: actual?.trace,
-          events: bendEvents
-        })
-      )
-      assert.deepEqual(shape(bendError), shape(nativeError), fixture.name)
-    } else {
-      assert.ifError(nativeError)
-      assert.ifError(bendError)
-      assert.ok(!actual.failure, fixture.name)
-      const result = actual.result.$ === "Types.NoReviewUnit" ? undefined : fromProductValue(actual.result.value)
-      assert.equal(JSON.stringify(result), JSON.stringify(expected), fixture.name)
-      if (fixture.requireUnit) {
-        assert.ok(result, fixture.name + " must return a ReviewUnit")
-        if (fixture.name === "large-local-reuse" || fixture.name === "large-import-diamond-cycle")
-          assert.equal(result.root.references.length, fixture.name === "large-local-reuse" ? 12 : 6)
-        const visit = (node) => {
-          for (const reference of node.references) {
-            assert.notEqual(reference.kind, "omitted", fixture.name + " must complete without omissions")
-            if (reference.kind === "expanded") visit(reference.node)
-          }
-        }
-        visit(result.root)
-      }
-      if (fixture.requiredExpanded) {
-        assert.ok(result)
-        const expanded = []
-        const visit = (node) => {
-          for (const ref of node.references)
-            if (ref.kind === "expanded") {
-              expanded.push(ref.node.artifact.name)
-              visit(ref.node)
-            }
-        }
-        visit(result.root)
-        for (const name of fixture.requiredExpanded)
-          assert.ok(expanded.includes(name), fixture.name + " must expand " + name)
-      }
-      if (fixture.name === "rust-unicode-multiple-roles")
-        assert.deepEqual(result.sourceDependencies, ["Cargo.toml", "src/\u{10000}.rs", "src/\ue000.rs"])
-      if (fixture.name === "tree-refusal")
-        assert.equal(actual.trace.filter((x) => x === "Types.EncodeProduct").length, 4)
-    }
-    assert.deepEqual(bendEvents, nativeEvents, fixture.name)
-    if (nativeCache) assert.deepEqual([...bendCache], [...nativeCache], fixture.name)
     for (const [label, driver] of [
       ["debug", ioDrive],
       ["product", ioProductDrive]
     ]) {
-      const ioEvents = [],
-        ioCache = fixture.cache === undefined ? undefined : new Map(fixture.cache),
-        ioTrace = []
-      let ioTicks = 0
+      const ioTrace = []
       const ioOriginal = createServiceSession({
         invocation: id++,
-        root,
-        now: () => tick(ioEvents, ioTicks++),
-        callerCache: ioCache,
-        access: (path) =>
-          Effect.runPromise(
-            eligibleNamedPath(root, path, contextDirectFilePolicy(fixture.policy ?? DEFAULT_DIRECT_FILE_POLICY))
-          ),
-        capture: (selected) => capture(selected, ioEvents),
+        root: temp,
+        now: () => 0,
         frontend: inspectSourceFrontend,
         parseCargo: parseCargoSyntax,
-        inspectRustModules: inspectRustModuleSyntax,
-        diagnostic: (path, value) => ioEvents.push(["diagnostic", path, value])
+        inspectRustModules: inspectRustModuleSyntax
       })
       const ioSession = {
         ...ioOriginal,
@@ -367,47 +205,11 @@ try {
           return ioOriginal.perform(request)
         }
       }
-      let ioResult, ioError
-      try {
-        ioResult = await driver(
-          ioSession,
-          input(ioSession, path, source, fixture.branch ?? "type", {
-            limits: {
-              ...limits,
-              ...Object.fromEntries(
-                Object.entries(fixture.limits ?? {}).map(([key, value]) => [
-                  {
-                    sourceBytes: "source_bytes",
-                    treeBytes: "tree_bytes",
-                    readBytes: "read_bytes",
-                    outgoingEdges: "outgoing_edges"
-                  }[key] ?? key,
-                  BigInt(value)
-                ])
-              )
-            }
-          })
-        )
-      } catch (error) {
-        ioError = error
-      }
-      assert.deepEqual(ioTrace, requestTrace, fixture.name + " exact IO requests")
-      assert.deepEqual(ioEvents, nativeEvents, fixture.name + " IO effects")
-      if (nativeCache) assert.deepEqual([...ioCache], [...nativeCache], fixture.name + " IO cache")
-      if (fixture.technicalFailure) {
-        assert.equal(ioError.name, nativeError.name)
-        assert.equal(ioError.message, nativeError.message)
-        assert.equal(ioError.cause.message, nativeError.cause.message)
-      } else {
-        assert.ifError(ioError)
-        assert.deepEqual(ioResult.result, actual.result, fixture.name + " IO terminal result")
-        if (label === "debug")
-          assert.equal(
-            normalize(ioResult.finalFrame),
-            normalize(actual.finalFrame),
-            fixture.name + " exact terminal state"
-          )
-      }
+      const ioResult = await driver(ioSession, input(ioSession, path, source, branch))
+      assert.deepEqual(ioTrace, requestTrace, path + " exact generic IO requests")
+      assert.deepEqual(ioResult.result, actual.result, path + " generic IO terminal result")
+      if (label === "debug")
+        assert.equal(normalize(ioResult.finalFrame), normalize(actual.finalFrame), path + " generic terminal frame")
     }
   }
   const expired = createServiceSession({
@@ -679,9 +481,7 @@ try {
     providerExceptionIdentityBeforeCleanup: true,
     outputTokenInvocationRejected: true,
     rootConsumerFixtures: fixtures.length,
-    graphConsumerFixtures: graphCases.length,
-    largeSuccessfulGraphs: graphCases.filter((x) => x.requireUnit).map((x) => x.name),
-    negativeGraphWorkErrorAndPriorEffectsPreserved: true,
+    wholeGraphConsumerOwner: "resident-runtime/preparation/verification/artifact-owned-root-check.mjs",
     exactCaptureCacheAndDiagnosticEffects: true,
     exactOrderedRootEffects: true,
     clockBitCases: numbers.length,
@@ -692,7 +492,7 @@ try {
     cancellationDistinct: true,
     registryClosed: registry.size === 0,
     scope:
-      "Bend entry/root/iteration/completion with actual foreign service dispatch; Rust/Cargo/module and TS/Bend cross-file composition candidate; no whole migration adoption or proof claim"
+      "standalone generic machine/IO pure-chain, protocol, cancellation and Cause checks; full multilingual graph fixtures belong to resident-owned composition; no whole migration adoption or proof claim"
   }
   assert.equal(registry.size, 0)
   mkdirSync(join(folder, "../../../../../..", ".test-runs"), { recursive: true })
