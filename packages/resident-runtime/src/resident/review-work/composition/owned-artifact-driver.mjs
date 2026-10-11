@@ -447,7 +447,7 @@ export function createOwnedArtifactDriver({
             try {
               await finishSession(session)
             } catch (error) {
-              taskFailure = takeFailure(error)
+              taskFailure = rememberFailure(error)
               throw error
             }
           }
@@ -570,43 +570,63 @@ export function createOwnedArtifactDriver({
         finished.delete(invocation)
         for (const [id, held] of resources) if (held.invocation === invocation) release(id, invocation)
       }
-      const completeInvocation = async () => {
-        let child = owner.find(invocation, current().children)
-        if (child.$ === "Some" && child.value.lease.$ !== "None")
-          throw new Error("Finalization still owns a provider lease")
-        // Call finish directly here: a failing retry must not replace its registry
-        // obligation, or a subsequent successful retry cannot discharge that owner.
-        if (!finalizedSessions.has(session)) {
-          await session.finish?.()
-          finalizedSessions.add(session)
+      const completeInvocationOutcome = async () => {
+        const attemptFailures = []
+        const applyAttempt = (step) => {
+          const result = applyOutcome(step)
+          attemptFailures.push(...result.failures)
+          return result.rejection
         }
-        if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
-          const id = save(invocation, "result", {
-            $: "AdviceTailStopped",
-            reason: constructionError.error,
-            cleanupPending: false
-          })
-          try {
-            applyInInvocation(invoke("terminal", invocation, child.value.generation, id))
-          } finally {
-            release(id, invocation)
+        try {
+          let child = owner.find(invocation, current().children)
+          if (child.$ === "Some" && child.value.lease.$ !== "None")
+            throw new Error("Finalization still owns a provider lease")
+          // Call finish directly here: a failing retry must not replace its registry
+          // obligation, or a subsequent successful retry cannot discharge that owner.
+          if (!finalizedSessions.has(session)) {
+            await session.finish?.()
+            finalizedSessions.add(session)
           }
-        }
-        child = owner.find(invocation, current().children)
-        if (child.$ === "Some" && owner.child_active(child.value)) {
-          applyInInvocation(invoke("cancel", invocation))
+          if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
+            const id = save(invocation, "result", {
+              $: "AdviceTailStopped",
+              reason: constructionError.error,
+              cleanupPending: false
+            })
+            try {
+              if (applyAttempt(invoke("terminal", invocation, child.value.generation, id)))
+                return { failures: attemptFailures, rejection: attemptFailures[0] }
+            } finally {
+              release(id, invocation)
+            }
+          }
           child = owner.find(invocation, current().children)
-          if (child.$ === "Some" && owner.child_active(child.value))
-            throw new Error("Finalization has no closed Canonical owner")
+          if (child.$ === "Some" && owner.child_active(child.value)) {
+            if (applyAttempt(invoke("cancel", invocation)))
+              return { failures: attemptFailures, rejection: attemptFailures[0] }
+            child = owner.find(invocation, current().children)
+            if (child.$ === "Some" && owner.child_active(child.value))
+              throw new Error("Finalization has no closed Canonical owner")
+          }
+          releaseInvocation()
+        } catch (error) {
+          attemptFailures.push({ phase: "finalization", error })
         }
-        releaseInvocation()
+        return { failures: attemptFailures, rejection: attemptFailures[0] }
       }
-      try {
-        await completeInvocation()
-      } catch (error) {
-        takeFailure(error)
-        registry.retainCleanup(session, completeInvocation)
+      const completeInvocation = async () => {
+        const attempt = await completeInvocationOutcome()
+        if (attempt.failures.length > 1)
+          throw new AggregateError(
+            attempt.failures.map((receipt) => receipt.error),
+            "Finalization attempt failed",
+            { cause: attempt.rejection.error }
+          )
+        unwrap(attempt)
       }
+      const finalization = await completeInvocationOutcome()
+      failures.push(...finalization.failures)
+      if (finalization.rejection) registry.retainCleanup(session, completeInvocation)
       if (failures.length === 1) throw failures[0].error
       if (failures.length > 1) {
         let primary = failures[0].error

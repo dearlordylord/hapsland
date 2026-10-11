@@ -226,7 +226,7 @@ One current obstacle list, in execution order:
    rejection values reached engine Resume. Delivery now distinguishes error
    property presence from its value, including first-action/sink/abort/construction
    failures and AggregateError cause presence. The actual Canonical owner/driver
-   check now passes 300 assertions, including all five falsy values with and
+   check now passes 342 assertions, including all five falsy values with and
    without cleanup Error, task/close failures with identical values, and constructor
    plus cleanup failures with identical undefined or Error values. Failed cleanup
    retains an exact retry obligation. Ten runtime vectors compare original rules
@@ -237,12 +237,19 @@ One current obstacle list, in execution order:
    Its focused check covers ten task/register/close/remove cases. Driver delivery
    consumes this outcome; known completion/task rethrow edges retain one receipt,
    while new cancel/finish/close/remove occurrences remain distinct, without
-   comparing thrown values. Astra reviewed this forwarding route. Remaining Cause
-   work includes secondary failures inside one action/publication batch:
-   executeActions/apply still propagate only the first failure. Preserve ordered
-   Resume/cleanup/sink occurrences while continuing required cleanup and retaining
-   the original primary outward failure. Whole universal Cause/custody and resource
-   correspondence remain open.
+   comparing thrown values. Astra reviewed this forwarding route. Action/publication
+   outcomes now retain ordered nested Resume, cleanup and sink receipts, continue
+   required cleanup and preserve the original primary. Actual before-install and
+   nested-output fixtures each retain three causes exactly once. Finalization
+   attempts have separate accumulators: delayed registry retry never appends to a
+   completed drive or consumes its forwarding slot. Successive retry failures,
+   including undefined, remain isolated; the original obligation survives until
+   success. Source's 50 and resident's 64 physical scenarios pass this candidate.
+   Astra identified the next concrete custody gap: after committed cancellation
+   and an action-body failure, an inactive child alone cannot justify release.
+   Prove and exercise repetition of the still-required resource operation before
+   releasing its handles; acknowledgment/sink failures must not replay completed
+   actions. Whole universal Cause/custody and resource correspondence remain open.
    Astra's agreed next draft is one independent native-loop specification and two
    whole declarations: observational correspondence and scope/interruption
    preservation. The specification must not call the actual Evidence/Rules/Input

@@ -616,6 +616,7 @@ try {
   for (const original of [undefined, new Error("shared thrown value")]) {
     const registry = createServiceRegistry()
     let allowCleanup = false
+    let cleanupFailure = original
     const machine = {
       disposeInvocation() {},
       get retainedHandles() {
@@ -639,7 +640,7 @@ try {
     const session = {
       invocation,
       finish() {
-        if (!allowCleanup) throw original
+        if (!allowCleanup) throw cleanupFailure
       },
       close() {},
       revoke() {}
@@ -656,6 +657,19 @@ try {
     assert.equal(driver.stats.accepted, 0)
     assert.equal(registry.pendingCleanup, 1)
     assert.equal(driver.resources.sessions, 1)
+    for (const retryFailure of [original, undefined]) {
+      cleanupFailure = retryFailure
+      const retry = await registry.retryCleanup().then(
+        () => ({ raised: false }),
+        (error) => ({ raised: true, error })
+      )
+      assert.equal(retry.raised, true)
+      assert.ok(retry.error instanceof AggregateError)
+      assert.deepEqual(retry.error.errors, [retryFailure])
+      assert.equal(registry.pendingCleanup, 1)
+      assert.equal(driver.resources.sessions, 1)
+      assertions += 5
+    }
     allowCleanup = true
     await registry.retryCleanup()
     assert.equal(registry.pendingCleanup, 0)
