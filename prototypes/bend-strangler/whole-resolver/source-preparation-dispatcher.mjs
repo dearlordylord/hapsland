@@ -1,0 +1,21 @@
+// Mechanical Canonical driver envelope for the outer source cursor.
+export function createSourcePreparationMachine(core){
+ return {
+  initial:input=>core.initial(input.invocation,input.sourcePreparation.policyRequired,input.sourcePreparation.candidates),
+  resume:(step,event)=>{
+   if(event.$!=='Types.ServiceReply')throw new Error('Invalid source reply envelope')
+   const resumed=core.resume(step,event.reply)
+   return resumed.$==='Rejected'?step:resumed
+  },
+  permission:request=>({$:['SourceNew','SourceCandidate','SourceActivity','SourcePolicy','SourceObservation'][Number(core.permission(request.command))]}),
+  view:step=>{
+   if(step.$==='Await')return {$:'Types.AwaitService',request:step.request}
+   if(step.$==='Finished')return {$:'SourcePreparationFinished',completed:true}
+   if(step.$==='Stopped')return {$:'SourcePreparationStopped',completed:step.completed,reason:step.reason}
+   throw new Error('Invalid source cursor projection')
+  },
+  accepted:projection=>({completed:projection.completed,continued:projection.$==='SourcePreparationFinished',reason:projection.reason}),
+  disposeInvocation(){},
+  get retainedHandles(){return 0}
+ }
+}

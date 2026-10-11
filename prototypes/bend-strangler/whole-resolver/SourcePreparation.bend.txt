@@ -1,0 +1,173 @@
+import Base
+
+# Outer resident candidate scope. Each handle gets a fresh Preparation child;
+# source-bearing inputs and external effects remain in the host. This cursor
+# starts after the existing pre-loop admission/root/credential gates.
+type UnavailableReason is Data:
+  StaleRound{}
+  WrongStage{}
+type WorkspaceRefusal is Data:
+  CapacityRefused{}
+  Unavailable{reason: UnavailableReason}
+  InvalidMeasurement{}
+type CandidateDiagnostic is Data:
+  WorkspaceCapacity{requested_bytes: Nat}
+  WorkspaceUnavailable{reason: UnavailableReason}
+  WorkspacePanic{}
+type CandidateAnalytics is Data:
+  CapacityRejected{}
+  PreparationFailed{}
+type Command is Data:
+  CheckCandidateActive{candidate: Nat}
+  AdmitCandidateWorkspace{candidate: Nat}
+  PrepareCandidate{candidate: Nat, preparation: Nat}
+  ObserveCandidateDiagnostic{candidate: Nat, diagnostic: CandidateDiagnostic}
+  RejectCandidateCapacity{}
+  RecordCandidateAnalytics{outcome: CandidateAnalytics}
+  RecordCandidateUnavailable{}
+  ReadExpectedActivity{}
+  RecordPendingActivity{identities: List<&2, Nat>}
+  CompletePolicySource{}
+  CompleteObservation{}
+  AfterPrepare{}
+type Response is Data:
+  ExpectedActivity{identities: List<&2, Nat>}
+  Active{value: Bool}
+  WorkspaceAdmitted{preparation: Nat}
+  WorkspaceRefused{reason: WorkspaceRefusal, requested_bytes: Nat}
+  ObservationCommittedFailure{token: Nat}
+  CandidateContinued{value: Bool}
+  Ack{}
+  CompletionAccepted{value: Bool}
+  Failed{token: Nat}
+  Cancelled{token: Nat}
+type Phase is Data:
+  CandidateChecking{candidate: Nat, remaining: List<&2, Nat>}
+  WorkspacePending{candidate: Nat, remaining: List<&2, Nat>}
+  RefusalDiagnostic{remaining: List<&2, Nat>, capacity: Bool, analytics: CandidateAnalytics}
+  RefusalCapacity{remaining: List<&2, Nat>}
+  RefusalAnalytics{remaining: List<&2, Nat>}
+  RefusalActivity{remaining: List<&2, Nat>}
+  CandidatePending{remaining: List<&2, Nat>}
+  ExpectedPending{}
+  ActivityPending{}
+  PolicyPending{}
+  ObservationPending{}
+  BarrierPending{}
+type State is Data:
+  State{invocation: Nat, next: Nat, policy_required: Bool, completed: Bool, phase: Phase}
+type Request is Data:
+  Request{invocation: Nat, id: Nat, command: Command}
+type Reply is Data:
+  Reply{invocation: Nat, id: Nat, response: Response}
+type Reason is Data:
+  CandidateStopped{}
+  PolicyRefused{}
+  ObservationRefused{}
+  TechnicalFailure{token: Nat}
+  InvocationCancelled{token: Nat}
+  ProtocolFailure{}
+type Step is Data:
+  Await{state: State, request: Request}
+  Finished{}
+  Stopped{completed: Bool, reason: Reason}
+  Rejected{}
+
+def await_command(+invocation: Nat, +next: Nat, policy_required: Bool, completed: Bool, phase: Phase, command: Command) -> Step:
+  Await{State{invocation, Nat.add(next, 1n), policy_required, completed, phase}, Request{invocation, next, command}}
+
+def next_candidate(+invocation: Nat, +next: Nat, +policy_required: Bool, remaining: List<&2, Nat>) -> Step:
+  match remaining:
+    case Nil{}: await_command(invocation, next, policy_required, False{}, ExpectedPending{}, ReadExpectedActivity{})
+    case +candidate <> rest: await_command(invocation, next, policy_required, False{}, CandidateChecking{candidate, rest}, CheckCandidateActive{candidate})
+
+def initial(invocation: Nat, policy_required: Bool, candidates: List<&2, Nat>) -> Step:
+  next_candidate(invocation, 0n, policy_required, candidates)
+
+def policy_next(bound: Bool, invocation: Nat, next: Nat) -> Step:
+  match bound:
+    case True{}: await_command(invocation, next, True{}, False{}, PolicyPending{}, CompletePolicySource{})
+    case False{}: await_command(invocation, next, False{}, False{}, ObservationPending{}, CompleteObservation{})
+
+def expected_activity(invocation: Nat, next: Nat, policy_required: Bool, +identities: List<&2, Nat>) -> Step:
+  match identities:
+    case Nil{}: policy_next(policy_required, invocation, next)
+    case _ <> _: await_command(invocation, next, policy_required, False{}, ActivityPending{}, RecordPendingActivity{identities})
+
+def workspace_refused(invocation: Nat, next: Nat, policy_required: Bool, candidate: Nat, remaining: List<&2, Nat>, reason: WorkspaceRefusal, requested_bytes: Nat) -> Step:
+  match reason:
+    case CapacityRefused{}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{remaining, True{}, CapacityRejected{}}, ObserveCandidateDiagnostic{candidate, WorkspaceCapacity{requested_bytes}})
+    case Unavailable{reason}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{remaining, False{}, PreparationFailed{}}, ObserveCandidateDiagnostic{candidate, WorkspaceUnavailable{reason}})
+    case InvalidMeasurement{}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{remaining, False{}, PreparationFailed{}}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
+
+def refusal_diagnostic_done(invocation: Nat, next: Nat, policy_required: Bool, remaining: List<&2, Nat>, capacity: Bool, analytics: CandidateAnalytics) -> Step:
+  match capacity:
+    case True{}: await_command(invocation, next, policy_required, False{}, RefusalCapacity{remaining}, RejectCandidateCapacity{})
+    case False{}: await_command(invocation, next, policy_required, False{}, RefusalAnalytics{remaining}, RecordCandidateAnalytics{analytics})
+
+def phase_reply(state: State, response: Response) -> Step:
+  match state response:
+    case State{invocation, next, policy_required, _, CandidateChecking{+candidate, remaining}} Active{True{}}:
+      await_command(invocation, next, policy_required, False{}, WorkspacePending{candidate, remaining}, AdmitCandidateWorkspace{candidate})
+    case State{_, _, _, completed, CandidateChecking{_, _}} Active{False{}}:
+      Stopped{completed, CandidateStopped{}}
+    case State{invocation, next, policy_required, _, WorkspacePending{candidate, remaining}} WorkspaceAdmitted{preparation}:
+      await_command(invocation, next, policy_required, False{}, CandidatePending{remaining}, PrepareCandidate{candidate, preparation})
+    case State{invocation, next, policy_required, _, WorkspacePending{candidate, remaining}} WorkspaceRefused{reason, requested_bytes}:
+      workspace_refused(invocation, next, policy_required, candidate, remaining, reason, requested_bytes)
+    case State{invocation, next, policy_required, _, RefusalDiagnostic{remaining, capacity, analytics}} Ack{}:
+      refusal_diagnostic_done(invocation, next, policy_required, remaining, capacity, analytics)
+    case State{invocation, next, policy_required, _, RefusalCapacity{remaining}} Ack{}:
+      await_command(invocation, next, policy_required, False{}, RefusalAnalytics{remaining}, RecordCandidateAnalytics{CapacityRejected{}})
+    case State{invocation, next, policy_required, _, RefusalAnalytics{remaining}} Ack{}:
+      await_command(invocation, next, policy_required, False{}, RefusalActivity{remaining}, RecordCandidateUnavailable{})
+    case State{invocation, next, policy_required, _, RefusalActivity{remaining}} Ack{}:
+      next_candidate(invocation, next, policy_required, remaining)
+    case State{invocation, next, policy_required, _, CandidatePending{remaining}} CandidateContinued{True{}}:
+      next_candidate(invocation, next, policy_required, remaining)
+    case State{_, _, _, completed, CandidatePending{_}} CandidateContinued{False{}}:
+      Stopped{completed, CandidateStopped{}}
+    case State{invocation, next, policy_required, _, ExpectedPending{}} ExpectedActivity{identities}:
+      expected_activity(invocation, next, policy_required, identities)
+    case State{invocation, next, policy_required, _, ActivityPending{}} Ack{}:
+      policy_next(policy_required, invocation, next)
+    case State{invocation, next, policy_required, _, PolicyPending{}} CompletionAccepted{True{}}:
+      await_command(invocation, next, policy_required, False{}, ObservationPending{}, CompleteObservation{})
+    case State{_, _, _, completed, PolicyPending{}} CompletionAccepted{False{}}:
+      Stopped{completed, PolicyRefused{}}
+    case State{invocation, next, policy_required, _, ObservationPending{}} CompletionAccepted{True{}}:
+      await_command(invocation, next, policy_required, True{}, BarrierPending{}, AfterPrepare{})
+    case State{_, _, _, _, ObservationPending{}} ObservationCommittedFailure{token}:
+      Stopped{True{}, TechnicalFailure{token}}
+    case State{_, _, _, completed, ObservationPending{}} CompletionAccepted{False{}}:
+      Stopped{completed, ObservationRefused{}}
+    case State{_, _, _, _, BarrierPending{}} Ack{}: Finished{}
+    case State{_, _, _, completed, _} Failed{token}: Stopped{completed, TechnicalFailure{token}}
+    case State{_, _, _, completed, _} Cancelled{token}: Stopped{completed, InvocationCancelled{token}}
+    case State{_, _, _, _, _} _: Rejected{}
+
+def correlated(valid: Bool, state: State, response: Response) -> Step:
+  match valid:
+    case True{}: phase_reply(state, response)
+    case False{}: Rejected{}
+
+def resume(step: Step, reply: Reply) -> Step:
+  match step reply:
+    case Await{state, Request{invocation, id, _}} Reply{other, other_id, response}:
+      correlated(Bool.and(Nat.is_eq(invocation, other), Nat.is_eq(id, other_id)), state, response)
+    case _ _: Rejected{}
+
+def permission(command: Command) -> Nat:
+  match command:
+    case CheckCandidateActive{_}: 1n
+    case AdmitCandidateWorkspace{_}: 1n
+    case PrepareCandidate{_, _}: 1n
+    case ObserveCandidateDiagnostic{_, _}: 1n
+    case RejectCandidateCapacity{}: 1n
+    case RecordCandidateAnalytics{_}: 1n
+    case RecordCandidateUnavailable{}: 1n
+    case ReadExpectedActivity{}: 2n
+    case RecordPendingActivity{_}: 2n
+    case CompletePolicySource{}: 3n
+    case CompleteObservation{}: 4n
+    case AfterPrepare{}: 5n

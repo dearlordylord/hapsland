@@ -19,6 +19,44 @@ try {
   assert.equal(m.live(s.canonical,scope),true);return s
  }
  let assertions=0
+ let source=fresh()
+ const sourceScope={$:'SourceScope',partition:1n,lifetime:1n,round:1n,observation:1n,permission:{$:'SourceNew'}}
+ source=advanced(m.launch_source(source,sourceScope,400n))
+ reject(m.launch_source(source,sourceScope,499n),'NotPreparing')
+ reject(m.complete_source_observation(source,1n,0n,1n,0n),'WrongPhase')
+ source=advanced(m.install_source(source,1n,0n,401n,0n,{$:'SourceCandidate'}))
+ source=advanced(m.provider_start(source,1n))
+ const sourceParent={$:'Parent',invocation:1n,generation:0n,request:0n}
+ source=advanced(m.launch_source_preparation(source,sourceParent,{$:'PreparationScope',partition:1n,lifetime:1n,round:1n,preparation:2n},402n))
+ assert.deepEqual(m.find(2n,source.children).value.parent.value,sourceParent)
+ source=advanced(m.install(source,2n,0n,403n,0n));source=advanced(m.provider_start(source,2n))
+ source=advanced(m.launch_nested(source,{$:'Parent',invocation:2n,generation:0n,request:0n},404n))
+ assert.equal(m.find(3n,source.children).value.scope.$,'Scope')
+ const sourceCancelled=advanced(m.cancel(source,1n))
+ for(const invocation of [1n,2n,3n])assert.equal(m.find(invocation,sourceCancelled.children).value.phase.$,'ChildCancelled')
+ reject(m.launch_nested(source,{$:'Parent',invocation:3n,generation:0n,request:0n},405n),'WrongPhase')
+ source=advanced(m.terminal(source,3n,0n,406n));source=advanced(m.provider_completed(source,2n,2n,0n,407n))
+ source=advanced(m.terminal_preparation(source,2n,1n,408n))
+ assert.deepEqual(m.find(4n,source.children).value.parent.value,sourceParent)
+ source=advanced(m.terminal(source,4n,0n,409n))
+ source=advanced(m.provider_completed(source,1n,1n,0n,410n))
+ source=advanced(m.install_source(source,1n,1n,411n,1n,{$:'SourceActivity'}));source=advanced(m.provider_start(source,1n))
+ reject(m.complete_source_observation(source,1n,1n,3n,1n),'WrongPhase')
+ source=advanced(m.provider_completed(source,1n,3n,1n,412n))
+ source=advanced(m.install_source(source,1n,2n,413n,2n,{$:'SourceObservation'}));source=advanced(m.provider_start(source,1n))
+ const sourceOut=m.complete_source_observation(source,1n,2n,4n,2n);source=advanced(sourceOut)
+ assert.equal(m.find(1n,source.children).value.scope.$,'AfterSourceScope')
+ assert.equal(list(sourceOut.actions).some(action=>action.$==='CancelChild'&&action.invocation===1n),false)
+ reject(m.complete_source_observation(source,1n,2n,4n,2n),'WrongPhase')
+ source=advanced(m.provider_completed(source,1n,4n,2n,414n))
+ reject(m.install(source,1n,3n,415n,9n),'WrongGeneration')
+ source=advanced(m.install(source,1n,3n,415n,3n));source=advanced(m.provider_start(source,1n))
+ source=advanced(m.provider_completed(source,1n,5n,3n,416n))
+ reject(m.install(source,1n,4n,418n,3n),'WrongGeneration')
+ assert.equal(m.source_claimed(sourceScope,source.children),true)
+ source=advanced(m.terminal(source,1n,4n,417n))
+ assert.equal(m.find(1n,source.children).value.phase.$,'ChildAccepted')
+ assertions+=12
  let s=fresh();reject(m.launch(s,{...scope,preparation:1n},50n),'NotPreparing');assertions++
  let out=m.launch(s,scope,50n);assert.deepEqual(list(out.actions),[{$:'Launch',invocation:1n,input_handle:50n}]);s=advanced(out)
  s=advanced(m.install(s,1n,0n,11n,0n));out=m.provider_start(s,1n);assert.deepEqual(list(out.actions),[{$:'ExecuteProvider',invocation:1n,lease:1n,request:0n,state_handle:11n}]);s=advanced(out);assertions+=2

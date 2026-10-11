@@ -29,7 +29,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   if(projection.$==='Types.AwaitService'){
    if(projection.request.invocation!==invocation)throw new Error('Artifact request owner mismatch')
    const id=save(invocation,'state',raw);let transferred=false
-   try{hooks.beforeInstall?.({invocation,generation,handle:id,request:projection.request,driver});const child=owner.find(invocation,current().children).value;const step=child.scope.$==='AdviceTailScope'?invoke('install_advice',invocation,generation,id,projection.request.id,engine(invocation).permission(projection.request)):invoke('install',invocation,generation,id,projection.request.id);apply(step);transferred=true}
+   try{hooks.beforeInstall?.({invocation,generation,handle:id,request:projection.request,driver});const child=owner.find(invocation,current().children).value;const step=child.scope.$==='AdviceTailScope'?invoke('install_advice',invocation,generation,id,projection.request.id,engine(invocation).permission(projection.request)):child.scope.$==='SourceScope'?invoke('install_source',invocation,generation,id,projection.request.id,engine(invocation).permission(projection.request)):invoke('install',invocation,generation,id,projection.request.id);apply(step);transferred=true}
    finally{if(!transferred)release(id,invocation)}
   }else{
    const id=save(invocation,'result',projection)
@@ -88,7 +88,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    case 'AcceptResult':{
     // Synchronous handoff in this serialized turn; no queued acceptance permit.
     const result=load(command.result_handle,invocation,'result')
-    finished.set(invocation,engine(invocation).accepted?engine(invocation).accepted(result):result.$==='Types.FinishedResolver'?{result:result.result,finalFrame:result.final_frame}:{failure:result.failure})
+    finished.set(invocation,result.$==='AdviceTailStopped'&&result.reason instanceof Error?{adviceRetained:false,reason:result.reason,cleanupPending:result.cleanupPending}:engine(invocation).accepted?engine(invocation).accepted(result):result.$==='Types.FinishedResolver'?{result:result.result,finalFrame:result.final_frame}:{failure:result.failure})
     release(command.result_handle,invocation);stats.accepted++;break
    }
    default:throw new Error('Unknown owner action '+command.$)
@@ -116,10 +116,11 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   allocateInvocation(parent,preparation=false,issuedScope=scope){
    if(current().next_invocation<1n||current().next_invocation>BigInt(Number.MAX_SAFE_INTEGER))throw new RangeError('Invocation exceeds exact native ID range')
    const inputId=save(0n,'pending-input',undefined)
-   try{apply(parent?invoke('launch_nested',parent,inputId):invoke(preparation?'launch_preparation':'launch',issuedScope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
+   try{apply(parent?(preparation?invoke('launch_source_preparation',parent,issuedScope,inputId):invoke('launch_nested',parent,inputId)):invoke(issuedScope.$==='SourceScope'?'launch_source':preparation?'launch_preparation':'launch',issuedScope,inputId));const invocation=current().next_invocation-1n;resources.set(inputId,{invocation,kind:'input',value:undefined});return Number(invocation)}
    catch(error){resources.delete(inputId);throw error}
   },
-  allocatePreparationInvocation(issuedScope=scope){return driver.allocateInvocation(undefined,true,issuedScope)},
+  allocatePreparationInvocation(issuedScope=scope,parent){return driver.allocateInvocation(parent,true,issuedScope)},
+  allocateSourceInvocation(issuedScope){return driver.allocateInvocation(undefined,false,issuedScope)},
   prepareAdviceInput(origin,value){if(typeof origin!=='bigint'||origin<1n)throw new Error('Advice input requires its origin');return save(0n,'advice-input',{origin,value})},
   validateAdviceInput(origin,handle){const held=resources.get(handle);return !!held&&held.invocation===0n&&held.kind==='advice-input'&&held.value.origin===origin},
   releaseAdviceInput(handle){release(handle,0n)},
@@ -163,7 +164,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    if([...sessions.values()].includes(session)||registry.get(session.invocation)===session)throw new Error('Session already owned by an active invocation')
    const invocation=input.invocation,launch=launches.get(invocation)
    if(!launch)return registry.run(session,async()=>{throw new Error('Missing Canonical Launch')})
-   let taskEntered=false
+   let taskEntered=false,constructionError
    try{
    launches.delete(invocation);sessions.set(invocation,session)
    machines.set(invocation,(selectMachine?selectMachine(input):undefined)??machine)
@@ -211,9 +212,20 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    }catch(error){
     const child=owner.find(invocation,current().children)
     if(child.$==='Some'&&owner.child_active(child.value))apply(invoke('cancel',invocation))
+    if(!taskEntered&&child.$==='Some'&&child.value.scope.$==='AdviceTailScope'){constructionError=error;session.forceCleanup?.(error)}
     throw error
    }finally{
     try{await finishSession(session)}finally{
+     if(constructionError){
+      const child=owner.find(invocation,current().children)
+      if(child.$==='Some'&&owner.child_active(child.value)){
+       if(child.value.lease.$!=='None')throw new Error('Construction failure still owns a provider lease')
+       if(!finalizedSessions.has(session)&&!registry.hasCleanup(session))throw new Error('Construction cleanup has no registered owner')
+       // finishSession either discharged cleanup or synchronously registered its retry.
+       const id=save(invocation,'result',{$:'AdviceTailStopped',reason:constructionError,cleanupPending:!finalizedSessions.has(session)})
+       try{apply(invoke('terminal',invocation,child.value.generation,id))}finally{release(id,invocation)}
+      }
+     }
      try{engine(invocation).disposeInvocation(invocation)}finally{
       machines.delete(invocation);sessions.delete(invocation);finished.delete(invocation)
       for(const [id,held] of resources)if(held.invocation===invocation)release(id,invocation)

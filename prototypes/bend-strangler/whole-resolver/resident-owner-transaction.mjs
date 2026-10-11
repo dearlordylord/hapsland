@@ -52,6 +52,8 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   if(adviceBirth&&(!validateAdviceInput||validateAdviceInput(credential.invocation,adviceBirth.inputHandle)!==true))throw new Error('Advice input is not owned by its origin')
   if(credential&&!owner.provider_live(owner.assembled(convert(draft.canonical,true),draft.resolverCustody),credential.invocation,credential.generation,credential.lease,credential.request))throw new Error('Revoked resident provider permit')
   const child=credential?owner.find(credential.invocation,draft.resolverCustody.children):undefined
+  if(child?.$==='Some'&&child.value.scope.$==='SourceScope'&&child.value.scope.permission.$==='SourceObservation')throw new Error('Source observation completion requires its closed operation')
+  if(child?.$==='Some'&&child.value.scope.$==='AfterSourceScope')throw new Error('After source continuation forbids native mutations')
   const tailScope=child?.$==='Some'&&child.value.scope.$==='AdviceTailScope'?child.value.scope:undefined
   if(tailScope){
    if(!adviceTail||!owner.advice_provider_allowed(owner.assembled(convert(draft.canonical,true),draft.resolverCustody),credential.invocation,credential.generation,credential.lease,credential.request,adviceTail.permission))throw new Error('Advice tail requires a closed capability operation')
@@ -94,6 +96,11 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   const bendList=joined.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
   return [{...result,adviceReceipt,adviceOwnership:ownershipBinding?Object.freeze({capability:ownershipBinding.capability,presentBefore:records.advice.entries.get(ownershipBinding.capability.id)?.capability===ownershipBinding.capability,presentAfter:nextRecords.advice.entries.get(ownershipBinding.capability.id)?.capability===ownershipBinding.capability,removed:value===true,findings:value===true?records.advice.entries.get(ownershipBinding.capability.id)?.content.findings:undefined,retirement:ownershipBinding.retirement}):undefined,actions:joined,raw:{...result.raw,actions:bendList},value,restoredPending:pendingRestore&&value?.revision?{pendingOwnerIdentity:pendingRestore.owner,revision:value.revision}:undefined,claimedKeys:credential&&nextRecords.reuse?[...nextRecords.reuse.pending.keys()].filter(key=>!records.reuse.pending.has(key)):[],transferredUnits:credential&&nextRecords.dispatch?[...nextRecords.dispatch.entries].filter(([id])=>!records.dispatch.entries.has(id)).map(([,entry])=>entry.value):[]},nextRecords]
  }),publication=>{if(publication.adviceReceipt)adviceReceipts.set(publication.adviceReceipt.invocation,publication.adviceReceipt);onCommitted?.(publication)})
+ const completeSourceObservation=(credential,onCommitted)=>finish(transaction.commitAllEffect((draft,records)=>{
+  const raw=owner.resident_step(convert(draft.canonical,true),draft.resolverCustody,{$:'CompleteSourceObservationEvent',...credential})
+  if(raw.$==='Refused')throw new Error('Source observation completion refused: '+raw.refusal.$)
+  return [publication(draft,raw),records]
+ }),onCommitted)
  const native=(operation,onCommitted)=>nativeCommit(operation,undefined,onCommitted)
  const nativeScoped=(credential,operation,onCommitted)=>nativeCommit(operation,credential,onCommitted)
  const nativeRestorePending=(credential,pendingOwner,operation,onCommitted)=>nativeCommit(operation,credential,onCommitted,pendingOwner)
@@ -119,6 +126,9 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
  const ownerStep=result=>result.raw.$==='Refused'?{$:'Rejected',refusal:result.raw.refusal}:{$:'Advanced',actions:result.raw.actions,outputs:result.raw.outputs}
  const methods={
   launch:(scope,input_handle)=>({$:'LaunchEvent',scope,input_handle}),
+  launch_source:(scope,input_handle)=>({$:'LaunchSourceEvent',scope,input_handle}),
+  launch_source_preparation:(parent,scope,input_handle)=>({$:'LaunchSourcePreparationEvent',parent,scope,input_handle}),
+  install_source:(invocation,generation,handle,request,permission)=>({$:'InstallSourceEvent',invocation,generation,handle,request,permission}),
   launch_preparation:(scope,input_handle)=>({$:'LaunchPreparationEvent',scope,input_handle}),
   terminal_preparation:(invocation,generation,result_handle)=>({$:'TerminalPreparationEvent',invocation,generation,result_handle}),
   terminal_preparation_failed:(invocation,generation,result_handle)=>({$:'TerminalPreparationFailedEvent',invocation,generation,result_handle}),
@@ -137,5 +147,5 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   readState(){const snapshot=Effect.runSync(transaction.read);return owner.assembled(convert(snapshot.canonical,true),snapshot.resolverCustody)},
   invoke(method,args){if(!Object.hasOwn(methods,method))throw new Error('Unknown resident owner entry');return ownerStep(Effect.runSync(committedEvent(methods[method](...args))))}
  }
- return {read:transaction.read,event,native,nativeScoped,nativeRestorePending,adviceInsertAndHandoff,get adviceReceipts(){return [...adviceReceipts.values()]},adviceTailPublish,adviceTailRemove,adviceCleanup,control,ownerStep,canonical:input=>event({$:'CanonicalEvent',event:convert(encodeCanonicalEvent(input),true)})}
+ return {read:transaction.read,event,completeSourceObservation,native,nativeScoped,nativeRestorePending,adviceInsertAndHandoff,get adviceReceipts(){return [...adviceReceipts.values()]},adviceTailPublish,adviceTailRemove,adviceCleanup,control,ownerStep,canonical:input=>event({$:'CanonicalEvent',event:convert(encodeCanonicalEvent(input),true)})}
 }

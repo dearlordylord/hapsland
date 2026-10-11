@@ -28,6 +28,7 @@ import {configuredRules} from '@hapsland/build-tooling/test-support/default-rule
 import {nativePrepareReadyUnits} from './native-preparation-children.mjs'
 import {nativePostPreparationSource} from './native-post-preparation-child.mjs'
 import {consumeRetainedPreparation} from './retention-consumer.mjs'
+import {createPreparationForeign} from './preparation-foreign.mjs'
 import {decodePreparationResult} from './preparation-result-codec.mjs'
 import {prepareObservation} from '@hapsland/review-execution/direct-event/pipeline'
 import {advicee} from '@hapsland/build-tooling/test-support/test-fixtures'
@@ -61,7 +62,7 @@ try{
  const postEmission=join(temp,'PostPreparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PostPreparation.bend'),'-o',postEmission],{timeout:5000})
  const postCore=(await import(pathToFileURL(postEmission))).default,postMachine=createPostPreparationMachine(postCore),tailMachine=createAdviceTailMachine(postCore)
  let cases=0,requests=0,postRequests=0
- for(const mode of ['two-roots','first-refused','parent-cancel-late-success','parent-cancel-late-rejection','resize-refused','mixed-contracts','retention-success','retention-before-flow','retention-owner-claimed','retention-after-revision','retention-fault-owner-claimed','retention-fault-after-revision','retention-cached-clear','retention-joined-claimed','retention-joined-pending','retention-bend-success','retention-bend-cached-clear','retention-bend-joined-claimed','retention-bend-joined-pending','retention-bend-after-revision','retention-bend-fault-after-revision','retention-owned-success','retention-owned-cached-clear','retention-owned-joined-claimed','retention-owned-after-revision','retention-owned-fault-after-revision','retention-owned-before-flow','retention-owned-before-enqueue','retention-owned-after-enqueue-ack','retention-owned-after-queue-commit','retention-owned-fault-after-queue-commit','retention-owned-fault-after-enqueue-ack','retention-owned-preinstall-cancel','retention-owned-constructor-fault','retention-owned-duplicate-active','retention-owned-joined-pending','retention-owned-joined-pending-restore-fault','retention-owned-fault-reuse-claim','retention-owned-fault-clear-register','retention-owned-fault-clear-release','retention-owned-fault-joined-append','retention-owned-fault-clear-shared-release','retention-owned-fault-clear-cleanup-receipt','retention-cached-finding','retention-owned-cached-finding','retention-cached-finding-standalone','retention-owned-cached-finding-standalone','retention-owned-cached-finding-standalone-cutoff','retention-owned-cached-finding-standalone-insert-ack','retention-owned-cached-finding-standalone-inspection','retention-owned-cached-finding-standalone-barrier'].filter(mode=>!process.env.HAPSLAND_POSTFLOW_CASE||mode===process.env.HAPSLAND_POSTFLOW_CASE)) {
+ for(const mode of ['two-roots','first-refused','parent-cancel-late-success','parent-cancel-late-rejection','resize-refused','mixed-contracts','retention-success','retention-before-flow','retention-owner-claimed','retention-after-revision','retention-fault-owner-claimed','retention-fault-after-revision','retention-cached-clear','retention-joined-claimed','retention-joined-pending','retention-bend-success','retention-bend-cached-clear','retention-bend-joined-claimed','retention-bend-joined-pending','retention-bend-after-revision','retention-bend-fault-after-revision','retention-owned-success','retention-owned-cached-clear','retention-owned-joined-claimed','retention-owned-after-revision','retention-owned-fault-after-revision','retention-owned-before-flow','retention-owned-before-enqueue','retention-owned-after-enqueue-ack','retention-owned-after-queue-commit','retention-owned-fault-after-queue-commit','retention-owned-fault-after-enqueue-ack','retention-owned-preinstall-cancel','retention-owned-constructor-fault','retention-owned-duplicate-active','retention-owned-joined-pending','retention-owned-joined-pending-restore-fault','retention-owned-fault-reuse-claim','retention-owned-fault-clear-register','retention-owned-fault-clear-release','retention-owned-fault-joined-append','retention-owned-fault-clear-shared-release','retention-owned-fault-clear-cleanup-receipt','retention-cached-finding','retention-owned-cached-finding','retention-cached-finding-standalone','retention-owned-cached-finding-standalone','retention-owned-cached-finding-standalone-cutoff','retention-owned-cached-finding-standalone-insert-ack','retention-owned-cached-finding-standalone-inspection','retention-owned-cached-finding-standalone-barrier','retention-cached-finding-standalone-inactive','retention-owned-cached-finding-standalone-inactive','retention-cached-finding-standalone-shared','retention-owned-cached-finding-standalone-shared'].filter(mode=>!process.env.HAPSLAND_POSTFLOW_CASE||mode===process.env.HAPSLAND_POSTFLOW_CASE)) {
   const owned=mode.startsWith('retention-owned-'),postSessions=new Map()
   const currentPath=mode==='mixed-contracts'?'mixed.ts':'root.py'
   if(mode==='mixed-contracts')await writeFile(join(root,currentPath),'export interface Foo { value: string }\nexport function run(value: Foo): Foo { return value }\n')
@@ -98,50 +99,10 @@ try{
     }
     return pureReply(await session.perform(request,options))
    }
-   const command=request.command;let response
-   switch(command.$) {
-    case 'InspectPath': {
-     const selected=await Effect.runPromise(eligibleNamedPath(root,command.candidate.path,DEFAULT_DIRECT_FILE_POLICY,rootIdentity));assert.ok(selected);selections.set(1n,selected)
-     response={$:'PathAllowed',path:command.candidate.path,selection:1n};break
-    }
-    case 'CaptureSource': {
-     const capture=await Effect.runPromise(captureStable(root,selections.get(command.selection),{},rootIdentity));assert.equal(capture.status,'captured')
-     rootCaptures.set(1n,capture.capture);cache.set(command.path,capture.capture)
-     response={$:'SourceCaptured',capture:{$:'Capture',path:command.path,handle:1n,text:capture.capture.text,content_hash:capture.capture.contentHash,bytes:BigInt(capture.capture.byteLength)}};break
-    }
-    case 'Preflight':response={$:'PreflightDone',value:productValue(combinedAnalyzerMaterializationPreflight(command.capture.path,command.capture.text)??null)};break
-    case 'AdmitMaterialization': {
-     const bytes=mode==='resize-refused'?200000000:analysisWorkspaceBytes(command.capture.path,Number(command.capture.bytes),fromProductValue(command.preflight)??undefined,configuredRules)
-     const result=Effect.runSync(connection.bridge.native((draft,records)=>[resize(draft,connection.preparation.reservation,bytes),records])).value
-     response={$:'MaterializationDone',requested:BigInt(bytes),result:result.status==='resized'?{$:'Resized'}:{$:'CapacityRefused',constraint:result.constraint}};break
-    }
-    case 'ExtractSource': {
-     const facts=inspectGraphFile(command.capture.path,command.capture.text);assert.ok(facts)
-     const functions=analyzeFunctionFile(command.capture.path,command.capture.text),typeFile=analyzeTypeFile(command.capture.path,command.capture.text,true)
-     const rootFact=({artifact,location:span})=>({$:'PreparationSelection.Root',id:artifact.id,declaration:{$:'RootAttribution.Declaration',path:command.capture.path,kind:artifact.kind,name:artifact.name,location:location(span),selection_locations:none}})
-     response={$:'SourceExtracted',extraction:{$:'Extraction',graph:some(list([...facts.declarations.values()].map(rootFact))),functions:functions===undefined?none:some({$:'FunctionFile',failure:functions.failure===undefined?none:some(functions.failure),functions:list([...functions.functions.values()].map(rootFact)),exclusions:list([...functions.excludedFunctions].map(([name,value])=>({$:'Exclusion',name,reason:value.reason,location:location(value.location)})))}),type_file:typeFile.status==='unsupported'?{$:'TypeUnavailable',reason:typeFile.reason}:{$:'TypeAnalyzed',analyses:list(typeFile.units.map(unit=>unit.status==='ready'?{$:'NativeReady',name:unit.unit.root.artifact.name}:{$:'NativeUnsupported',name:unit.root.name,reason:unit.reason}))}}};break
-    }
-    case 'ResolveRoot': {
-     roots++
-     if(mode==='first-refused'&&roots===1){response={$:'RootResolved',unit:none,references:list([]),captures:snapshotCaptures()};break}
-     let terminal
-     const parent=owner.find(request.invocation,driver.state.children).value
-     const resolver=createBendResolver({registry,allocateInvocation:()=>driver.allocateInvocation({$:'Parent',invocation:request.invocation,generation:parent.generation,request:request.id}),onConstructionFailure:driver.constructionFailed,drive:async(...args)=>{terminal=await driver.drive(...args);return terminal}})
-     const unit=await resolver(command.capture.path,rootCaptures.get(command.capture.handle),command.root.name,{...context,branch:command.contract.$==='PreparationSelection.FunctionContract'?'function':'type'},options)
-     const expected=await Effect.runPromise(resolveGraphUnit(command.capture.path,rootCaptures.get(command.capture.handle),command.root.name,{...context,branch:command.contract.$==='PreparationSelection.FunctionContract'?'function':'type',captureCache:new Map()}));assert.deepEqual(unit,expected)
-     response={$:'RootResolved',unit:unit===undefined?none:some(productValue(unit)),references:terminal.finalFrame?.$==='Some'?terminal.finalFrame.value.references:list([]),captures:snapshotCaptures()};break
-    }
-    case 'RenderUnits': {
-     const contract=command.contract.$==='PreparationSelection.FunctionContract'?FUNCTION_INPUT_CONTRACT:TYPE_INPUT_CONTRACT
-     const declarations=unlist(command.declarations).map(({id,declaration})=>({artifact:{id,kind:declaration.kind,name:declaration.name},location:{start:{line:Number(declaration.location.start.line),column:Number(declaration.location.start.column)},end:{line:Number(declaration.location.end.line),column:Number(declaration.location.end.column)}}}))
-     const outcomes=nativePrepareReadyUnits(unlist(command.units).map(fromProductValue),declarations,command.context.capture.path,{contract,graphLimits:GRAPH_LIMIT_CEILINGS,supportingCaptures:cache,observation:{root},context:{settings:{rules:configuredRules}}})
-     response={$:'UnitsRendered',outcomes:list(outcomes.map(outcome=>({$:'OutcomeReady',path:outcome.path,prepared:productValue(outcome.prepared)})))};break
-    }
-    default:throw new Error('Unexpected preparation provider '+command.$)
-   }
-   return {$:'Reply',invocation:request.invocation,id:request.id,response}
+   return preparationForeign(request,options)
   }})
   // One action sink and one resource dispatcher for both parent and resolver.
+  const preparationForeign=createPreparationForeign({connection,owner,driver,registry,root,rootIdentity,context,cache,mode,onRoot:()=>{roots++}})
   connection.attachDriver(driver);parentInvocation=owned?driver.allocatePreparationInvocation():driver.allocateInvocation()
   const session={invocation:parentInvocation,revoke(){},close(){}}
   const limits={$:'../../../packages/agent-flow-bend/ImportGraph.Limits',version:1n,...Object.fromEntries(Object.entries(GRAPH_LIMIT_CEILINGS).map(([key,value])=>[({sourceBytes:'source_bytes',treeBytes:'tree_bytes',readBytes:'read_bytes',outgoingEdges:'outgoing_edges'})[key]??key,BigInt(value)]))}

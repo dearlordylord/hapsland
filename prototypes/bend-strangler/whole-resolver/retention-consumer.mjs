@@ -2,37 +2,15 @@ import assert from 'node:assert/strict'
 import * as Effect from 'effect/Effect'
 import * as Scope from 'effect/Scope'
 import * as Exit from 'effect/Exit'
-import * as Latch from 'effect/Latch'
-import {initialRuntimeRecords} from '../../../packages/resident-runtime/src/resident/state/runtime-records.ts'
-import {initialRevision} from '../../../packages/resident-runtime/src/resident/state/revision.ts'
-import {initialEvaluationReuse} from '../../../packages/resident-runtime/src/resident/state/evaluation-reuse.ts'
-import {initialJoinedReviews} from '../../../packages/resident-runtime/src/resident/state/joined-reviews.ts'
-import {initialRoundRecords} from '../../../packages/resident-runtime/src/resident/state/round-records.ts'
-import {initialAdviceRecords} from '../../../packages/resident-runtime/src/resident/state/advice-records.ts'
-import {initialDelivery} from '../../../packages/resident-runtime/src/resident/state/delivery/operations.ts'
-import {initialDispatchRegistry,makeDispatcher} from '../../../packages/resident-runtime/src/resident/state/dispatch.ts'
-import {residentCapacity} from '../../../packages/resident-runtime/src/resident/state/resident/capacity.ts'
-import {residentRevision} from '../../../packages/resident-runtime/src/resident/state/resident/revision.ts'
-import {residentReuse} from '../../../packages/resident-runtime/src/resident/state/resident/reuse.ts'
-import {residentJoinedReviews} from '../../../packages/resident-runtime/src/resident/state/resident/joined-reviews.ts'
-import {residentRounds} from '../../../packages/resident-runtime/src/resident/state/resident/rounds.ts'
-import {residentRuntime} from '../../../packages/resident-runtime/src/resident/state/resident/runtime.ts'
-import {residentAdvice} from '../../../packages/resident-runtime/src/resident/state/resident/advice.ts'
-import {residentDelivery} from '../../../packages/resident-runtime/src/resident/state/resident/delivery.ts'
-import {residentDispatch} from '../../../packages/resident-runtime/src/resident/state/resident/dispatch.ts'
-import {makeResidentWorkLifecycle} from '../../../packages/resident-runtime/src/resident/work-ownership/lifecycle.ts'
-import {residentRetainAdvice} from '../../../packages/resident-runtime/src/resident/review-work/evaluation/retention.ts'
 import {completeSourcePreparation} from '../../../packages/resident-runtime/src/resident/review-work/preparation/retention.ts'
-import {defaultPreparationControls} from '../../../packages/resident-runtime/src/resident/execution-controls/preparation-controls.ts'
-import {logicalBytes} from '../../../packages/resident-runtime/src/resident/state/encoded-size.ts'
 import {advicee} from '@hapsland/build-tooling/test-support/test-fixtures'
 import {sourcePartition} from '../../../packages/resident-runtime/src/resident/recipient/identity.ts'
 import {evaluationSourcePartition} from '../../../packages/resident-runtime/src/resident/work-ownership/identity.ts'
 import {unlist} from './service-session.mjs'
 import {decodePreparationResult} from './preparation-result-codec.mjs'
 import {bendPostPreparation,createPostPreparationProvider} from './post-preparation-host.mjs'
-import {providerTransaction,dispatchExecutionBoundary,ResidentProviderPermit,ResidentResourceReceipt} from './resident-provider-permit.mjs'
 import {nativePostPreparation} from './native-post-preparation-child.mjs'
+import {createResidentRetentionContext} from './resident-retention-context.mjs'
 
 // Actual semantic owners and one bridged resident transaction. Recording sinks
 // are limited to analytics/inspection; revision, reuse, round and dispatch are real.
@@ -44,37 +22,14 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
  if(cachedStandalone)mode=mode.replace('-standalone','')
  const caseName=mode
  const cleanupReceiptFault=mode==='retention-owned-fault-clear-cleanup-receipt'
- const sharedRelease=mode==='retention-owned-fault-clear-shared-release'||cleanupReceiptFault
+ const sharedRelease=mode==='retention-owned-fault-clear-shared-release'||cleanupReceiptFault||cachedFault==='shared'
  const reuseFaults={'retention-owned-fault-reuse-claim':['LookupReuse','retention-success'],'retention-owned-fault-clear-register':['RegisterClear','retention-cached-clear'],'retention-owned-fault-clear-release':['ReleaseClear','retention-cached-clear'],'retention-owned-fault-joined-append':['AppendJoined','retention-joined-claimed'],'retention-owned-fault-clear-shared-release':['ReleaseClear','retention-cached-clear'],'retention-owned-fault-clear-cleanup-receipt':['Cleanup','retention-cached-clear']}
  const reuseFault=reuseFaults[mode]
  const faultJoinRestore=mode==='retention-owned-joined-pending-restore-fault'
  const useOwned=mode.startsWith('retention-owned-'),useBend=mode.startsWith('retention-bend-');mode=mode.replace('retention-bend-','retention-').replace('retention-owned-','retention-');if(mode==='retention-duplicate-active')mode='retention-success';if(faultJoinRestore)mode='retention-joined-pending';if(reuseFault)mode=reuseFault[1]
  const postFlow=(...args)=>useBend?bendPostPreparation(connection.postCore,...args):nativePostPreparation(...args)
- const run=Effect.runSync,identity=advicee(),accepted=[]
- run(connection.bridge.native((draft,records)=>[undefined,{...records,
-  runtime:{...initialRuntimeRecords(),...records.runtime},revision:initialRevision(),reuse:initialEvaluationReuse(),joined:initialJoinedReviews(),rounds:initialRoundRecords(),advice:initialAdviceRecords(),delivery:initialDelivery(),dispatch:initialDispatchRegistry()}]))
- const transaction=providerTransaction(connection.transaction,connection.bridge)
- const ledger={...residentCapacity(transaction),runtime:residentRuntime(transaction),revision:residentRevision(transaction),rounds:residentRounds(transaction),dispatch:residentDispatch(transaction)}
- const reuse=residentReuse(transaction)(logicalBytes),joined=residentJoinedReviews(transaction)(logicalBytes),advice=residentAdvice(transaction),delivery=residentDelivery(transaction)()
- ledger.advice=advice
- const admission=run(delivery.admitEdit('agent','retention-edit',0));assert.ok(admission)
- const round=run(ledger.rounds.bind('agent',admission.generation,{root,rootIdentity,advicee:identity,activityPath:undefined},'cohort'))
- assert.equal(round.canonicalRound,connection.round)
- const work=run(ledger.rounds.snapshot(round)).work
- const scope=run(Scope.make()),hold=run(Latch.make(false))
- const dispatcher=await Effect.runPromise(makeDispatcher(ledger,unit=>({operation:unit.canonicalOperationId,round:unit.canonicalRound}),entry=>Effect.gen(function*(){assert.equal(yield* ResidentProviderPermit,undefined);assert.equal(yield* ResidentResourceReceipt,undefined);accepted.push(entry.value);yield* hold.await}),dispatchExecutionBoundary).pipe(Effect.provideService(Scope.Scope,scope)))
- const observation={root,rootIdentity,advicee:identity,candidates:[{operation:'add',path:'root.py'}]}
- const receipt={scope:{root},correlation:{fixture:'postflow'}}
- const job={kind:'ingress',inspectionReceipt:receipt,observation,partition:'agent',canonicalRound:connection.round,canonicalObservationId:1,...(cachedStandalone?{}:{round,workObservationId:1}),work,settings:{configuration:{policy:{digest:'f'.repeat(64)}}},dispatch:{activityPath:undefined,credential:null,controlled:null}}
- const fateEvents=[]
- const inspection={observePreparation(){},observePreparedUnit(){},observeAdviceFate(capability,findings,fate,reason){fateEvents.push({id:capability.id,count:findings.length,fate,reason})},evaluationId(key){return 'physical:'+key},observeDiagnostic(){},forgetOrigin(){},registerOrigin(){}}
- const deps={residentNow:()=>0,residentAdviceExpired:()=>Effect.succeed(false),residentReviewControls:{afterAdvicePending:()=>cachedFault==='barrier'?Effect.fail(new Error('injected cached advice barrier failure')):Effect.void},lifetime:'physical',residentLedger:ledger,residentReuse:reuse,residentJoined:joined,residentAdvice:()=>advice.values(),residentComposedDelivery:delivery,residentDispatcher:dispatcher,residentLifetimeController:new AbortController(),residentInspection:inspection,residentRoundSnapshot:capability=>ledger.rounds.snapshot(capability).pipe(Effect.map(snapshot=>{if(!snapshot)throw new Error('Missing native round');return snapshot})),residentRecordAnalytics:()=>Effect.void}
- const lifecycle=makeResidentWorkLifecycle(deps)
- const retire=()=>Effect.gen(function*(){assert.equal(yield* ledger.rounds.retire(round),true);round.controller.abort()})
+ const {retire,run,identity,accepted,transaction,ledger,reuse,joined,advice,round,work,scope,hold,dispatcher,observation,receipt,job,fateEvents,deps,lifecycle,context}=await createResidentRetentionContext(connection,root,rootIdentity,{mode,useOwned,cachedStandalone,cachedFault})
  const prepared=decodePreparationResult(result,identity)
- const context={deps:{...deps,...lifecycle,inspection:{isEnabled:()=>cachedFault==='inspection'&&run(advice.values()).length>0,offer:()=>{throw new Error('injected retained inspection failure')}},residentRecordOperationalFailure:()=>Effect.void,residentRecordJoinedOutcomes:()=>Effect.void,residentRetainAdvice:()=>{throw new Error('Unexpected cached path')},residentPreparationControls:{...defaultPreparationControls,afterReuseBoundary:phase=>phase==='ownerClaimed'?(mode==='retention-owner-claimed'?retire():mode==='retention-fault-owner-claimed'?Effect.die(new Error('injected after owner claim')):Effect.void):Effect.void}},job,sequence:1,expectedActivityUnits:[],unassignedClaims:new Set(),activeWorkspaces:new Set([connection.preparation.reservation]),preparationSignal:work.controller.signal}
- context.deps.residentRetainAdvice=(unit,evaluation,sequence)=>residentRetainAdvice(context.deps,unit,evaluation,sequence)
- if(useOwned)context.ownedAdvice={bridge:connection.bridge,driver:connection.owned.driver,core:connection.postCore}
  const seededKeys=[],existingRevisions=[]
  if(sharedRelease)for(const outcome of prepared.outcomes.filter(outcome=>outcome.status==='ready'))existingRevisions.push({prepared:outcome.prepared,revision:run(lifecycle.residentRegisterCurrentWork(sourcePartition(observation.root,observation.advicee),outcome.prepared))})
  if(mode==='retention-cached-clear'||mode==='retention-cached-finding'||mode==='retention-joined-claimed') {
@@ -170,6 +125,15 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
    const units=[...snapshot.records.dispatch.entries.values()].map(entry=>entry.value)
    assert.equal(units.length,registrations)
    for(const unit of units){assert.equal(unit.inspectionReceipt,receipt);assert.equal(unit.inspectionEvaluationId,'physical:'+unit.evaluationKey);assert.equal(unit.prepared.identity,prepared.outcomes.find(outcome=>outcome.status==='ready'&&outcome.prepared.input.declaration.name===unit.prepared.input.declaration.name).prepared.identity);assert.equal(unit.sourceHash,prepared.observation.outcomes[0].snapshot.sourceHash);assert.equal(run(ledger.revision.current(unit.revision,unit.prepared)),true);assert.equal(unit.workUnitId,unit.canonicalOperationId)}
+  } else if(cachedFault==='inactive'||cachedFault==='shared'){
+   assert.equal(continued,true);assert.equal(registrations,seededKeys.length)
+   const snapshot=run(transaction.read),retained=run(advice.snapshots())
+   assert.equal(retained.length,cachedFault==='inactive'?0:seededKeys.length)
+   assert.equal(snapshot.records.dispatch.entries.size,0);assert.equal(snapshot.records.reuse.pending.size,0)
+   const tails=unlist(snapshot.resolverCustody.children).filter(child=>child.scope.$==='AdviceTailScope')
+   assert.equal(tails.length,useOwned?retained.length:0);for(const tail of tails)assert.equal(tail.phase.$,'ChildAccepted')
+   for(const existing of existingRevisions)assert.equal(run(ledger.revision.current(existing.revision,existing.prepared)),true,'cached advice transfer preserves pre-existing revision member')
+   assert.deepEqual(fateEvents,[])
   } else if(cachedFault){
    const snapshot=run(transaction.read),retained=run(advice.snapshots())
    const issuedTails=unlist(snapshot.resolverCustody.children).filter(child=>child.scope.$==='AdviceTailScope')

@@ -151,7 +151,38 @@ try{
  }
  // Actual advice/capacity/revision owners qualify the closed tail API. Source
  // values are controlled handles here; full preparation IO has its own consumer.
- for(const tailVariant of ['normal','missing-publish','driver-active-false','driver-cleanup-pending','driver-barrier-failure','driver-expired-failure','driver-fate-ack-failure','driver-observer-pending']){
+ {
+  const limits={globalItems:100,globalBytes:10000,partitionItems:16,partitionBytes:10000}
+  const initial={residentLifetime:'source-completion',limits,canonical:initialCanonical(limits),resolverCustody:owner.initial_custody(),reservations:new Map(),partitionIds:new Map(),partitionIdentityBytes:0,roundIds:new Map(),requestRounds:new Map(),collectionTokens:new Map(),nextCollectionToken:1,nextPartitionId:1,minimumFreshStart:0,records:{runtime:{peakLedgerBytes:0}}}
+  const ref=run(Ref.make(initial)),transaction=residentTransaction(ref,'source-completion'),capacity=residentCapacity(transaction)
+  const partition=run(capacity.partitionId('agent')),round=run(capacity.roundId('agent')),observation=run(capacity.admitObservation('agent',round))
+  assert.equal(run(capacity.observation('agent',observation,'startObservation',round)),true)
+  const bridge=createResidentOwnerTransaction({owner,transaction})
+  const event=input=>{const result=run(bridge.event(input));assert.equal(result.refusal,undefined);return result}
+  event({$:'LaunchSourceEvent',scope:{$:'SourceScope',partition:BigInt(partition),lifetime:1n,round:BigInt(round),observation:BigInt(observation),permission:{$:'SourceNew'}},input_handle:1n})
+  event({$:'InstallSourceEvent',invocation:1n,generation:0n,handle:2n,request:0n,permission:{$:'SourceActivity'}})
+  event({$:'ProviderStartEvent',invocation:1n})
+  event({$:'ProviderCompletedEvent',invocation:1n,lease:1n,request:0n,reply_handle:3n})
+  event({$:'InstallSourceEvent',invocation:1n,generation:1n,handle:4n,request:1n,permission:{$:'SourceObservation'}})
+  event({$:'ProviderStartEvent',invocation:1n})
+  const credential={invocation:1n,generation:1n,lease:2n,request:1n}
+  assert.throws(()=>run(bridge.nativeScoped(credential,()=>{throw new Error('must never enter callback')})),/requires its closed operation/)
+  let committed
+  assert.throws(()=>run(bridge.completeSourceObservation(credential,result=>{committed=result;throw new Error('injected source completion ack loss')})),/source completion ack loss/)
+  assert.equal(owner.find(1n,run(transaction.read).resolverCustody.children).value.scope.$,'AfterSourceScope')
+  assert.equal(committed.outputs.filter(output=>output.$==='Canonical.EventEstablished'&&output.event.$==='Canonical.ObservationCompleted').length,1)
+  assert.equal(committed.actions.some(action=>action.$==='CancelChild'&&action.invocation===1n),false)
+  const completed=run(transaction.read)
+  assert.throws(()=>run(bridge.completeSourceObservation(credential)),/completion refused/);assert.strictEqual(run(transaction.read),completed)
+  assert.throws(()=>run(bridge.nativeScoped(credential,()=>{throw new Error('must never enter callback')})),/forbids native mutations/)
+  event({$:'ProviderCompletedEvent',invocation:1n,lease:2n,request:1n,reply_handle:5n})
+  event({$:'InstallEvent',invocation:1n,generation:2n,handle:6n,request:2n})
+  event({$:'ProviderStartEvent',invocation:1n});event({$:'ProviderCompletedEvent',invocation:1n,lease:3n,request:2n,reply_handle:7n})
+  event({$:'TerminalEvent',invocation:1n,generation:3n,result_handle:8n})
+  assert.equal(owner.find(1n,run(transaction.read).resolverCustody.children).value.phase.$,'ChildAccepted')
+  cases++
+ }
+ for(const tailVariant of ['normal','missing-publish','driver-active-false','driver-cleanup-pending','driver-barrier-failure','driver-expired-failure','driver-fate-ack-failure','driver-observer-pending','driver-construction-failure']){
   const limits={globalItems:100,globalBytes:100000,partitionItems:16,partitionBytes:100000}
   const initial={residentLifetime:'advice-tail',limits,canonical:initialCanonical(limits),resolverCustody:owner.initial_custody(),reservations:new Map(),partitionIds:new Map(),partitionIdentityBytes:0,roundIds:new Map(),requestRounds:new Map(),collectionTokens:new Map(),nextCollectionToken:1,nextPartitionId:1,minimumFreshStart:0,records:{runtime:{peakLedgerBytes:0},revision:initialRevision(),advice:initialAdviceRecords(),joined:initialJoinedReviews(),delivery:initialDelivery(),adviceCaptures:new Map()}}
   const ref=run(Ref.make(initial)),transaction=residentTransaction(ref,'advice-tail'),capacity=residentCapacity(transaction),revision=residentRevision(transaction),advice=residentAdvice(transaction)
@@ -177,7 +208,7 @@ try{
   let birthReceipt
   const registry=createServiceRegistry()
   if(tailVariant.startsWith('driver-')){
-   adviceDriver=createOwnedArtifactDriver({owner,control:bridge.control,registry,machine:tailMachine,foreign:async([request],options)=>await registry.get(Number(request.invocation)).perform(request,options)})
+   adviceDriver=createOwnedArtifactDriver({owner,control:bridge.control,registry,machine:tailMachine,selectMachine:()=>{if(tailVariant==='driver-construction-failure')throw new Error('injected tail constructor failure');return tailMachine},foreign:async([request],options)=>await registry.get(Number(request.invocation)).perform(request,options)})
    const input=adviceDriver.prepareAdviceInput(2n,{})
    assert.equal(input,1n);assert.equal(adviceDriver.validateAdviceInput(99n,input),false);deliverTail=true
   }
@@ -198,6 +229,15 @@ try{
    const observeAdviceFate=(actual,actualFindings,fate,reason)=>{if(observerFails)throw new Error('injected observer failure before offer');assert.strictEqual(actual,capability);assert.deepEqual(actualFindings,findings);fates.push({fate,reason})}
    const tailBridge={...bridge,adviceTailRemove:(...args)=>cleanupFails?Effect.fail(new Error('injected pending removal failure')):bridge.adviceTailRemove(...args),adviceCleanup:(...args)=>cleanupFails?Effect.fail(new Error('injected registry cleanup failure')):bridge.adviceCleanup(...args)}
    const provider=createAdviceTailProvider(3n,tailBridge,capability,{},{retirementForExpired:postCore.advice_retirement,deps:{residentReviewControls:{afterAdvicePending:()=>tailVariant!=='driver-active-false'?Effect.fail(new Error('injected pending advice barrier failure')):Effect.void},residentLifetimeController:lifetimeController,residentNow:()=>0,residentAdviceExpired:()=>Effect.succeed(tailVariant==='driver-expired-failure'),residentInspection:{observeAdviceFate},residentJobActive:()=>Effect.succeed(false)}})
+   if(tailVariant==='driver-construction-failure'){
+    await assert.rejects(adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n),provider,tailOptions),/injected tail constructor failure/)
+    assert.equal(owner.find(3n,run(transaction.read).resolverCustody.children).value.phase.$,'ChildAccepted')
+    assert.equal(run(advice.values()).length,0);assert.equal(registry.pendingCleanup,0)
+    assert.deepEqual(adviceDriver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0})
+    assert.deepEqual(fates,[{fate:'discarded',reason:'retention-failed'}])
+    run(capacity.release(allocations[1].reservation));run(revision.release(revisions[1]));assert.equal(projectCanonical(run(transaction.read).canonical).global.bytes,0)
+    cases++;continue
+   }
    if(tailVariant==='driver-cleanup-pending'||tailVariant==='driver-observer-pending'){
     await assert.rejects(adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n),provider,tailOptions),/cleanup remains incomplete/)
     assert.equal(registry.size,0);assert.equal(registry.pendingCleanup,1);if(tailVariant==='driver-cleanup-pending')assert.strictEqual(run(advice.values())[0],capability);else assert.equal(run(advice.values()).length,0)
