@@ -338,14 +338,17 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest frozen pair at `1a61bacc` began
-   2026-10-11 09:23:44/09:28:51 UTC: build qualified but failed **1.0181202463**;
-   execution qualified and passed **0.7812988998**. All 34 build runs used 23/46
+   parity on the connected candidate. Latest frozen pair at `e279367e` began
+   2026-10-11 09:49:34/09:52:53 UTC: build qualified but failed **1.1873518768**;
+   execution qualified and passed **0.7422422825**. All 34 build runs used 23/46
    cached tasks; HEAD, sources and artifact trees stayed unchanged. Qualification
    records are in ignored
-   `.test-runs/bend-migration/performance/2026-10-11T09-23-44.692908+00-00/`
-   and `2026-10-11T09-28-51.086773+00-00/`. These measure existing production,
-   not unadopted whole preparation. The 09:20:57 build and 09:26:41 execution
+   `.test-runs/bend-migration/performance/2026-10-11T09-49-34.510479+00-00/`
+   and `2026-10-11T09-52-53.245574+00-00/`. These measure existing production,
+   not unadopted whole preparation. This pair started within 30 minutes of the
+   previous pair in both lanes; its failure still blocks strict overall parity.
+   The previous pair at 1a61bacc measured 1.0181202463/0.7812988998. Its
+   09:20:57 build and 09:26:41 execution
    cadence deadlines were missed during physical qualification and diagnostic
    output cleanup; the late pair does not satisfy that cadence requirement.
    Ordinary unpinned workspace build passed all 46 tasks with both preparation
