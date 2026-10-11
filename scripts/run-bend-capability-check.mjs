@@ -1,5 +1,6 @@
-import { readFileSync, readdirSync } from "node:fs"
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { resolve, relative, join, dirname } from "node:path"
+import { tmpdir } from "node:os"
 import { spawnSync } from "node:child_process"
 import { bendProducerEnvironment, bendProducerToolchain } from "./bend-producer.mjs"
 
@@ -85,6 +86,10 @@ const env = bendProducerEnvironment(root, inherited)
 Object.assign(process.env, env)
 await bendProducerToolchain(root)
 console.log(`Checking ${selected.length} authored capability files${suite ? ` (${suite})` : ""}`)
+const runtimeEntries = new Set([
+  "packages/source-analysis/src/direct-event/graph-resolution/Runtime.bend",
+  "packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/Runtime.bend"
+])
 let passed = 0
 const deadline = Date.now() + (suite === "preparation-consumer" ? 360000 : 600000)
 for (const file of selected) {
@@ -94,8 +99,12 @@ for (const file of selected) {
   const isPython = path.endsWith(".py")
   const syntax = suite === "preparation-sources" && !isProof
   const command = isProof ? "taskset" : isPython ? "python3" : process.execPath
+  const runtimeOutput =
+    suite === "preparation-sources" && runtimeEntries.has(file)
+      ? mkdtempSync(join(tmpdir(), "hapsland-runtime-source-check-"))
+      : undefined
   const options = isProof
-    ? ["-c", "10", "bend", path, "--verdict"]
+    ? ["-c", "10", "bend", path, ...(runtimeOutput ? ["-o", join(runtimeOutput, "runtime.js")] : ["--verdict"])]
     : syntax && isPython
       ? ["-c", "import ast,sys; ast.parse(open(sys.argv[1]).read(), filename=sys.argv[1])", path]
       : syntax
@@ -109,6 +118,7 @@ for (const file of selected) {
     maxBuffer: 64 * 1024 * 1024,
     timeout: Math.min(deadline - Date.now(), isProof || syntax ? 5000 : 120000)
   })
+  if (runtimeOutput) rmSync(runtimeOutput, { recursive: true, force: true })
   process.stdout.write(result.stdout ?? "")
   if (result.error) throw new Error(`Capability check failed: ${file}`, { cause: result.error })
   if (result.signal) throw new Error(`Capability check terminated by ${result.signal}: ${file}`)

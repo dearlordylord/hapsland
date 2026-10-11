@@ -144,7 +144,12 @@ One current obstacle list, in execution order:
    consumers respectively); consumer summaries must report nonzero cases.
    Source checking remains blocked: retained scheduler closure was repaired and
    its two roots plus four original-law mutant rejections passed, but all remaining
-   checking roots need qualification. Standard development imports still report
+   checking roots need qualification. The current source gate checks 370 Bend
+   files through 115 roots and selects 163 authored files. Runtime foreign IO
+   shells are compiled to temporary JS under the same five-second deadline;
+   pure roots retain `--verdict`. The repaired gate passed 38 selected files
+   before rejecting the unproved `ATTACHMENT_TRANSACTION_LAWS.bend`; this draft
+   remains a real proof blocker and is not excluded. Standard development imports still report
    5 unresolved paths, 47 undeclared dependencies and 223 private cross-owner
    imports from the relocation. Use declared capability/testing entrypoints;
    do not expose every internal helper or bypass the development import gate.
