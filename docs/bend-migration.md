@@ -400,65 +400,26 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest frozen pair at `e02ce809` began
-   2026-10-11 11:24:07/11:27:52 UTC, before the 11:29:59/11:33:07
-   cadence deadlines: build qualified but failed **1.0250620627**; execution
-   qualified and passed **0.6248663067**. All 34 build runs used 23/46 cached
+   parity on the connected candidate. Latest frozen pair at `6bfa702f` began
+   2026-10-11 11:50:58/11:54:52 UTC, before the 11:54:07/11:57:52
+   cadence deadlines: build qualified but failed **1.1465205330**; execution
+   qualified and passed **0.7373228700**. All 34 build runs used 23/46 cached
    tasks; HEAD, source hashes and artifact trees stayed unchanged. Records are
-   in ignored `.test-runs/bend-migration/performance/2026-10-11T11-24-07.170166+00-00/`
-   and `2026-10-11T11-27-52.011965+00-00/`. Current workspace preparation passed
-   46/46, then the unchanged warm repeat used 23/46 cached tasks. Next start
-   deadlines are 11:54:07/11:57:52 UTC. Strict build parity remains open; these
-   measurements concern existing production, not unadopted whole preparation.
-   The previous frozen pair at `15cfabed` began
-   2026-10-11 10:59:59/11:03:07 UTC: build qualified but failed **1.0486182727**;
-   execution qualified and passed **0.7409846759**. All 34 build runs used 23/46
-   cached tasks; HEAD, source hashes and artifact trees stayed unchanged.
-   Qualification records are in ignored
-   `.test-runs/bend-migration/performance/2026-10-11T10-59-59.651982+00-00/`
-   and `2026-10-11T11-03-07.080868+00-00/`. This late pair does not erase
-   the previous cadence breaches. Next start deadlines are 11:29:59/11:33:07
-   UTC. Strict build parity remains an acceptance blocker. These measure existing
-   production, not the unadopted whole preparation.
-   The previous frozen pair at `28f55dbf` began
-   2026-10-11 10:19:44/10:23:09 UTC: build qualified but failed **1.1047183573**;
-   execution qualified and passed **0.6649378095**. All 34 build runs used 23/46
-   cached tasks; HEAD, sources and artifact trees stayed unchanged. Qualification
-   records are in ignored
-   `.test-runs/bend-migration/performance/2026-10-11T10-19-44.676326+00-00/`
-   and `2026-10-11T10-23-09.055002+00-00/`. These measure existing production,
-   not unadopted whole preparation. The build/execution starts missed the
-   10:19:34/10:22:53 cadence deadlines during compilation qualification and
-   sequential frozen measurement. This breach remains observed; build failure
-   still blocks strict overall parity. The next 10:49:44 build start deadline
-   was missed while qualifying Go extraction and correcting ABI kinds/locations;
-   the 10:53:09 execution start deadline was also missed during Go ABI
-   qualification. The next frozen pair is still required.
-   The previous pair at 1a61bacc measured 1.0181202463/0.7812988998. Its
-   09:20:57 build and 09:26:41 execution
-   cadence deadlines were missed during physical qualification and diagnostic
-   output cleanup; the late pair does not satisfy that cadence requirement.
-   Ordinary unpinned workspace build passed all 46 tasks with both preparation
-   cores under their unchanged five-second emission deadlines. Source (50),
-   resident (64), finalization (66 plus 10 runtime cases), transport, and 23
-   compiler-receipt checks passed through the ordinary compiled capability.
-   These finite checks do not establish whole production adoption or build parity.
-   Earlier affinity-limited cold builds exceeded five seconds; isolated actual
-   precompile emitted both roots in 4.82s combined. Relative/absolute direct
-   diagnostics were 2.56s/timeout. Relative rooted inputs are now used; no deadline
-   was raised and no CPU affinity was added to the production emitter.
-   Previous build/execution ratios were 1.5609/0.9944: the first candidate build
-   used 13/46 cached tasks after the Value.bend EOF correction followed warm
-   preparation; its remaining 16 runs and every baseline run used 23/46. That
-   unmatched warm condition is fixed by preparing after all source/format edits;
-   earlier cadence breaches remain observed. Correct warm preparation did not
-   establish build parity. Subsequent isolated CPU profiles both used 23/46,
-   baseline 9.09s and candidate 7.61s; candidate UI preflight sampled 2.20s versus
-   baseline 3.05s. This diagnostic reversal cannot identify a stable regression
-   or replace the failed paired result. Separate shared-CPU timing variation from
-   authored-input/validation overhead before another performance implementation.
-   A successful execution cannot qualify failed build parity. Keep new paired
-   measurements within 30 minutes and freeze their inputs.
+   in ignored `.test-runs/bend-migration/performance/2026-10-11T11-50-58.394436+00-00/`
+   and `2026-10-11T11-54-52.572889+00-00/`. Ordinary workspace preparation
+   passed 46/46, the unchanged warm repeat used 23/46 cache hits, and all 23
+   compiler receipts validated under the declared producer environment. A manual
+   receipt probe without that environment refused toolchain context; it was not
+   candidate qualification. Next start deadlines are 12:20:58/12:24:52 UTC.
+   Strict build parity remains open. These measurements concern existing
+   production, not unadopted whole preparation. Diagnose build timing before
+   changing performance-sensitive code; an execution pass cannot qualify it.
+   Earlier observed cadence breaches remain failures: the 09:20:57/09:26:41,
+   10:19:34/10:22:53 and 10:49:44/10:53:09 starts were missed during
+   qualification/measurement. Later timely pairs do not erase those breaches.
+   The previous correctly frozen pair at `e02ce809` measured build/execution
+   1.0250620627/0.6248663067; successful execution also did not establish build
+   parity. No production emitter deadline was raised or affinity added.
 
 Keep this obstacle list current by removing closed work and naming specific
 remaining failures. Source backup, relocation and finite candidate qualification
