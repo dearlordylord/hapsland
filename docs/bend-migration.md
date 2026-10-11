@@ -810,3 +810,20 @@ on the new owner paths after the separate imports gate stops. Canonical
 admission, split children, cancellation/retirement/refusal/throw and resource
 cleanup assertions remain. This qualifies the owner move and suite route,
 not whole resident preparation adoption or the original universal proofs.
+
+Frozen f9b535ec warm build passes 46/46 tasks (15 cached), 79.88 seconds.
+Matched build starts 19:43:56.413344 UTC and qualifies all seventeen pairs,
+23/46 cached and unchanged HEAD/sources/artifacts, but fails parity at
+1.1165650680940578. Execution starts 19:51:12.866359 UTC and qualifies
+with parity 0.7465336756148849 and exact seven-fixture/two-caller preflight.
+Both starts meet their preceding deadlines. Next starts are due build
+20:13:56.413344 and execution 20:21:12.866359 UTC. Existing-production
+execution passes; build parity and unadopted whole preparation remain open.
+
+Astra's agreed next organization closure removes all three remaining tooling
+fixture edges together: tooling assembles existing LoadedRule[]/DirectAdvicee
+facts and supplies subprocess fixture data; local resident verification uses
+the public rule compiler and supplied identity. This preserves the single
+fixture owner, avoids serializing compiled Decision objects, reverse dependency
+cycles and new production helper exports. Two composed-root private edges
+remain separate; no gate exclusion or duplicate policy is permitted.
