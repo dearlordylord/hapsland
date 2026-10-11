@@ -1,5 +1,5 @@
 import { residentRuntimeSourceFiles } from "./resident-runtime-source.mjs"
-import { administrationWorkflowSourceFiles } from "./administration-workflow-source.mjs"
+import { administrationWorkflowSourceFiles, codexInstallationSourceFiles } from "./administration-workflow-source.mjs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { mkdtempSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, rmSync } from "node:fs"
@@ -13,7 +13,11 @@ function fixture(script, check) {
   try {
     const source = readFileSync(join(repository, "scripts", script), "utf8")
     const paths = new Set([...source.matchAll(/["`]((?:src\/|packages\/)[^"`]+\.ts)["`]/gu)].map((match) => match[1]))
-    for (const file of [...residentRuntimeSourceFiles(repository), ...administrationWorkflowSourceFiles(repository)])
+    for (const file of [
+      ...residentRuntimeSourceFiles(repository),
+      ...administrationWorkflowSourceFiles(repository),
+      ...codexInstallationSourceFiles(repository)
+    ])
       paths.add(relative(repository, file))
     for (const path of paths) {
       const expanded = path.includes("${runtime}")
@@ -150,3 +154,15 @@ test("delivery boundary examines the extracted authorization owner", () => {
     assert.match(result.stderr, /submission policy bypass returned/)
   })
 })
+
+for (const bypass of ["spawnSync()", "process.env.CODEX_HOME"]) {
+  test(`configuration boundary rejects Codex bypass in extracted recovery: ${bypass}`, () => {
+    fixture("check-configuration-boundary.mjs", (root, run) => {
+      const file = join(root, "packages/administration/src/onboarding/codex-installation/recovery/content.ts")
+      writeFileSync(file, readFileSync(file, "utf8") + `\n${bypass}\n`)
+      const result = run()
+      assert.notEqual(result.status, 0)
+      assert.match(result.stderr, /Codex installation must use caller Config/)
+    })
+  })
+}

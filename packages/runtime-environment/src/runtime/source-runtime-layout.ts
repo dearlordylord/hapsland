@@ -1,5 +1,5 @@
 import { basename, dirname, join, resolve } from "node:path"
-import type { PackageRole, RuntimeCommand } from "./package-runtime.ts"
+import type { PackageRole, RuntimeCommand } from "./command-model.ts"
 
 import { SOURCE_ENTRIES } from "./release-identity.generated.ts"
 

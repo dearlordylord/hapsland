@@ -105,8 +105,8 @@
       "default": "./dist/onboarding/client-selection.js"
     },
     "./onboarding/codex-installation": {
-      "types": "./dist/onboarding/codex-installation.d.ts",
-      "default": "./dist/onboarding/codex-installation.js"
+      "types": "./dist/onboarding/codex-installation/index.d.ts",
+      "default": "./dist/onboarding/codex-installation/index.js"
     },
     "./onboarding/credential-diagnostics": {
       "types": "./dist/onboarding/credential-diagnostics.d.ts",

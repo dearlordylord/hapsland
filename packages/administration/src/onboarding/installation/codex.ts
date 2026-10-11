@@ -25,7 +25,7 @@ const dispatchCodexInstall = Effect.fn("Cli.dispatchCodexInstall")(function* (
   request: ReturnType<typeof codexInstallationRequest>
 ) {
   const { previewCodexInstallation, installCodexIntegration } = yield* Effect.promise(
-    () => import("../codex-installation.ts")
+    () => import("../codex-installation/index.ts")
   )
   return operation.operation === "install-preview"
     ? yield* previewCodexInstallation(request)
@@ -37,7 +37,7 @@ const dispatchCodexLifecycleOperation = Effect.fn("Cli.dispatchCodexLifecycleOpe
   request: ReturnType<typeof codexInstallationRequest>
 ) {
   const { previewCodexUpdate, updateCodexIntegration, uninstallCodexIntegration } = yield* Effect.promise(
-    () => import("../codex-installation.ts")
+    () => import("../codex-installation/index.ts")
   )
   if (operation.operation === "update-preview") return yield* previewCodexUpdate(request)
   if (operation.operation === "update") return yield* updateCodexIntegration(request)

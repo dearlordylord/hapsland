@@ -24,6 +24,10 @@
       "types": "./dist/direct-event/languages/path-language.d.ts",
       "default": "./dist/direct-event/languages/path-language.js"
     },
+    "./direct-event/codex-version": {
+      "types": "./dist/direct-event/codex-version.d.ts",
+      "default": "./dist/direct-event/codex-version.js"
+    },
     "./direct-event/observation": {
       "types": "./dist/direct-event/observation.d.ts",
       "default": "./dist/direct-event/observation.js"

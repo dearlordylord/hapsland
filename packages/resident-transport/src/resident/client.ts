@@ -1,7 +1,7 @@
 import * as Redacted from "effect/Redacted"
 import { resolveCredentialInput } from "@hapsland/runtime-inputs/credentials/input"
 import type { CodexDirectEventOutput } from "@hapsland/delivery-output/direct-event/output"
-import { selectedResidentCommand, readResidentTarget } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { selectedResidentCommand, readResidentTarget } from "@hapsland/runtime-environment/runtime/resident-selection"
 import { effectiveSessionAnalytics } from "@hapsland/runtime-inputs/configuration/resolve"
 import type { RoundCloseReason } from "@hapsland/activity-observation/activity/status"
 import { spawn, type ChildProcess } from "node:child_process"

@@ -7,7 +7,7 @@ import {
   ResidentTarget,
   readResidentTarget,
   residentTargetPath
-} from "@hapsland/runtime-environment/runtime/package-runtime"
+} from "@hapsland/runtime-environment/runtime/resident-selection"
 import {
   ensureResidentEffect,
   inspectResidentEffect,
