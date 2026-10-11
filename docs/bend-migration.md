@@ -215,16 +215,43 @@ One current obstacle list, in execution order:
    finish/registry.close clears ExceptionToken resources. Both terminal edges
    retain original falsy values/error identity through existing cleanup receipts.
    Astra found no blocking correction in this diff. Actual emitted Canonical
-   driver check passed 796 assertions; affected whole source/resident/owned-root
-   consumers passed 50/64/13 cases. These checks use controlled terminal tokens
-   for failure injection and do not prove universal correspondence. Generic
+   driver check passed 832 assertions including actual service token storage;
+   affected whole source/resident/owned-root
+   consumers passed 50/64/13 cases. Controlled terminal-token cases and actual session storage are both covered;
+   these finite cases do not prove universal correspondence. Generic
    protocol-failure policy and missing Go frontend remain adoption blockers.
-   Remaining work here: opaque compiled resolver/session API, fixture/default/native
-   comparisons outside resident's production binding, ordinary typed binding and
+   Resolver factories now have one declared source-analysis package entry, used
+   by resident composition. Mechanical pureReply remains private in frontend-codec;
+   the session constructor is not exported. Astra reviewed this interface and
+   dependency direction without blocking findings. Qualification: ordinary build
+   46/46 (48.581 seconds), source-analysis typecheck, nonempty lint and actual
+   Source/resident/owned-root consumers 50/64/13 through the package export.
+   check:fast passed 109 tests/typecheck/package graph, then failed development
+   imports. The entry is a candidate binding, not whole native replacement.
+   Remaining work here: fixture/default/native comparisons outside resident's
+   production binding, ordinary typed binding and
    public native PreparationInput encoding. Preserve full ordered effects, original
    errors, cancellation and custody. The public entry remains prepareObservation;
    connected whole production preparation and removed native TS algorithms remain
    zero until that entry is replaced and qualified.
+
+   The agreed complete Go path is preparation/session through package-qualified
+   facts, including goGraphFacts cross-file resolution and discoveryWork. Reuse
+   existing path/clock/access/capture/cache/membership commands; add raw directory
+   observation with close/overflow, single-file parser facts and mechanical hash
+   observations. Bend owns inventory filtering/sorting, module/package discovery,
+   build membership, bindings/constant demands, fingerprint payload/order and
+   remaining budgets. This is faster to whole hookup than a partial Go frontend
+   because those decisions currently make up prepareGoGraph's native session.
+   Preserve selection before cache lookup, refusal cache, exhausted exists=true,
+   reserved root work, captured inactive-file costs, workspace checks above module,
+   unknown build facts, chronological identities and sorted dependencies. Do not
+   add terminal revalidation absent from native Go. The first complete consumer
+   compares actual prepareGoGraph then native resolver across siblings/build tags,
+   nested modules/workspaces/internal imports/constants/budgets/cancellation.
+   Whole correspondence and exact Canonical invocation/request/generation/lease
+   with directory/capture/session cleanup are the two agreed proof obligations.
+
 2. Finish all retained source/proof and ordinary quality gates. The source gate
    uses current import closures, nonempty checking roots and a five-second limit;
    foreign Runtime IO roots compile to temporary JS, pure roots use `--verdict`.

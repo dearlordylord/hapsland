@@ -27,7 +27,7 @@ import {
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
 import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createResidentOwnerTransaction } from "../../../packages/resident-runtime/src/resident/state/resolver-custody/resident-owner-transaction.mjs"
 import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
 import { createSourcePreparationMachine } from "../../../packages/resident-runtime/src/resident/review-work/preparation/source-preparation-dispatcher.mjs"

@@ -18,10 +18,8 @@ import {
   list,
   unlist
 } from "@hapsland/source-artifacts/direct-event/value/codec"
-import {
-  createBendResolver as __createBendResolver,
-  pureReply
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { createBendResolver as __createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
 import * as Ref from "effect/Ref"
 import { initialCanonical, projectCanonical as __projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"

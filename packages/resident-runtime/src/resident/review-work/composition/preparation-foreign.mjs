@@ -12,7 +12,7 @@ import {
 } from "../../../../../native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../../../native-observation/dist/direct-event/capture.js"
 import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { createBendResolver } from "../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { createBendResolver } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import {
   inspectGraphFile,
   combinedAnalyzerMaterializationPreflight,

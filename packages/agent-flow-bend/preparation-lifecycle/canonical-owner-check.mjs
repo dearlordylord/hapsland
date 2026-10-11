@@ -4,7 +4,10 @@ import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createOwnedArtifactDriver } from "../../resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
-import { createServiceRegistry } from "../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import {
+  createServiceRegistry,
+  createServiceSession
+} from "../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
 const temp = await mkdtemp("/tmp/hapsland-canonical-owner-")
 try {
   const emitted = join(temp, "owner.mjs")
@@ -634,6 +637,72 @@ try {
       assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
       assertions += 7
     }
+  // Real session token storage must be read before registry.close clears it.
+  for (const original of [undefined, false, new Error("actual session provider")]) {
+    for (const cleanupFails of [false, true]) {
+      const registry = createServiceRegistry()
+      let allowCleanup = !cleanupFails,
+        finishCalls = 0
+      const cleanupError = new Error("actual session finish")
+      const machine = {
+        initial: (input) => ({
+          $: "Types.AwaitService",
+          request: { $: "Types.Request", invocation: input.invocation, id: 7n, operation: { $: "Types.StartClock" } }
+        }),
+        view: (value) => value,
+        resume(_raw, event) {
+          assert.equal(event.reply.outcome.$, "Types.ProviderRejected")
+          return {
+            $: "Types.FailedResolver",
+            failure: { $: "Types.ForeignProviderFailure", exception: event.reply.outcome.exception }
+          }
+        },
+        disposeInvocation() {},
+        retainedHandles: 0
+      }
+      const driver = createOwnedArtifactDriver({
+        owner: m,
+        initialState: fresh(),
+        scope,
+        registry,
+        machine,
+        foreign: ([request], options) => session.perform(request, options)
+      })
+      const invocation = driver.allocateInvocation()
+      const session = {
+        ...createServiceSession({
+          invocation,
+          root: temp,
+          now() {
+            throw original
+          }
+        }),
+        finish() {
+          finishCalls++
+          if (!allowCleanup) throw cleanupError
+        }
+      }
+      const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+        () => ({ raised: false }),
+        (error) => ({ raised: true, error })
+      )
+      assert.equal(observed.raised, true)
+      if (cleanupFails) {
+        assert.ok(observed.error instanceof AggregateError)
+        assert.strictEqual(observed.error.cause, original)
+        assert.deepEqual(observed.error.errors, [original, cleanupError, cleanupError])
+        assert.equal(finishCalls, 2)
+        assert.equal(registry.pendingCleanup, 1)
+        allowCleanup = true
+        await registry.retryCleanup()
+        assertions += 4
+      } else assert.strictEqual(observed.error, original)
+      assert.equal(registry.pendingCleanup, 0)
+      assert.equal(registry.size, 0)
+      assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+      assertions += 4
+    }
+  }
   // Canonical cancellation can commit while engine disposal fails. Keep its
   // exact operation pending; successful revoke/abort must not run again.
   {

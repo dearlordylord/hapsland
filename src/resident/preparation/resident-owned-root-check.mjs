@@ -12,10 +12,8 @@ import {
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../packages/native-observation/dist/direct-event/capture.js"
 import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
-import {
-  createBendResolver,
-  pureReply
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createOwnedArtifactDriver } from "../../../packages/resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
 import * as Ref from "effect/Ref"
 import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"

@@ -1,3 +1,4 @@
+import { pureReply } from "./frontend-codec.ts"
 import type {
   StableCapture,
   CaptureDiagnostic as NativeCaptureDiagnostic
@@ -62,38 +63,20 @@ type ResolverPorts = {
     cleanup: { readonly session: ServiceSession | undefined; readonly closePending: boolean }
   ) => unknown | Promise<unknown>
 }
-type NaturalReply<Value> = Value extends readonly (infer Item)[]
-  ? NaturalReply<Item>[]
-  : Value extends object
-    ? {
-        [Key in keyof Value]: Key extends "invocation" | "id" | "bytes"
-          ? Value[Key] extends number
-            ? bigint
-            : NaturalReply<Value[Key]>
-          : NaturalReply<Value[Key]>
-      }
-    : Value
 
 function tagged<Name extends string, Fields extends object>(name: Name, fields: Fields): Variant<Name, Fields> {
   return { $: `Types.${name}`, ...fields }
 }
-// Only the emitted Nat ABI is converted here; graph decisions remain in Bend.
-export function pureReply<Value>(value: Value): NaturalReply<Value> {
-  // Mechanical conversion of known emitted Naturals; no parser or graph decision.
-  const convert = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(convert)
-    if (value && typeof value === "object")
-      return Object.fromEntries(
-        Object.entries(value).map(([key, item]) => [
-          key,
-          ["invocation", "id", "bytes"].includes(key) && typeof item === "number" ? BigInt(item) : convert(item)
-        ])
-      )
-    return value
-  }
-  return convert(value) as NaturalReply<Value>
-}
 
+/**
+ * Bind graph resolution to its Canonical owner. The owner allocates each
+ * invocation, drives commands/replies, accepts the terminal result and settles
+ * native resources. Construction failures return custody to that same owner.
+ * Drive must reject with opaque provider errors before closing session resources;
+ * remaining protocol failures reject with their named technical error.
+ * The returned resolver projects only the accepted emitted ReviewUnitResult.
+ * This candidate does not yet replace the public multi-language native resolver.
+ */
 export function createBendResolver({
   observeProduct,
   drive: ownedDrive,

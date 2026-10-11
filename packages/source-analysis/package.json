@@ -91,6 +91,10 @@
     "./direct-event/languages/go-adapter": {
       "types": "./dist/direct-event/languages/go-adapter.d.ts",
       "default": "./dist/direct-event/languages/go-adapter.js"
+    },
+    "./direct-event/graph-resolution": {
+      "types": "./dist/direct-event/graph-resolution/consumer.d.ts",
+      "default": "./dist/direct-event/graph-resolution/consumer.js"
     }
   },
   "dependencies": {

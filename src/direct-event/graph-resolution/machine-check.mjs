@@ -29,7 +29,7 @@ import {
   createIODriver,
   createVerificationEffectResolver as createBendEffectResolver
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
-import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createGraphFixtures } from "./fixtures.mjs"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),

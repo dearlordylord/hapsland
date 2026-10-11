@@ -159,3 +159,32 @@ export function tomlValue(value: unknown): TomlValue {
     })
   throw new Error("unsupported TOML engine value")
 }
+
+type NaturalReply<Value> = Value extends readonly (infer Item)[]
+  ? NaturalReply<Item>[]
+  : Value extends object
+    ? {
+        [Key in keyof Value]: Key extends "invocation" | "id" | "bytes"
+          ? Value[Key] extends number
+            ? bigint
+            : NaturalReply<Value[Key]>
+          : NaturalReply<Value[Key]>
+      }
+    : Value
+
+// Only the emitted Nat ABI is converted here; graph decisions remain in Bend.
+export function pureReply<Value>(value: Value): NaturalReply<Value> {
+  // Mechanical conversion of known emitted Naturals; no parser or graph decision.
+  const convert = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(convert)
+    if (value && typeof value === "object")
+      return Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [
+          key,
+          ["invocation", "id", "bytes"].includes(key) && typeof item === "number" ? BigInt(item) : convert(item)
+        ])
+      )
+    return value
+  }
+  return convert(value) as NaturalReply<Value>
+}
