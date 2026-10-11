@@ -45,8 +45,7 @@ try {
     ) + "\nexport {cargoTargetRoots};\n"
   )
   const { cargoTargetRoots } = await import(pathToFileURL(nativeCopy))
-  const within = (path) =>
-    path !== ".." && !path.startsWith("../../../packages/source-analysis/src/direct-event") && !isAbsolute(path)
+  const within = (path) => path !== ".." && !path.startsWith("../") && !isAbsolute(path)
   // Mechanical path realization of the returned ordered raw plan. The full
   // Bend roots/path driver is not qualified by this selection-only check.
   function realize(plan, base, path) {
@@ -161,8 +160,10 @@ try {
     scope:
       "Independent Cargo relative target policy versus actual native cargoTargetRoots, with mechanical host path realization. Linux only; does not qualify full Bend path realization, Rust driver, ordered effects, universal laws, proofs or performance."
   }
+  const evidence = join(root, ".test-runs/bend-migration")
+  mkdirSync(evidence, { recursive: true })
   writeFileSync(
-    join(folder, "cargo-specification-" + record.runtime + "-evidence.json"),
+    join(evidence, "cargo-specification-" + record.runtime + "-evidence.json"),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify(record))

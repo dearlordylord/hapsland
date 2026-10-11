@@ -29,6 +29,7 @@
     "@hapsland/source-artifacts": "workspace:*",
     "effect": "catalog:",
     "fast-check": "catalog:",
+    "smol-toml": "catalog:",
     "vitest": "catalog:"
   },
   "hapsland": {

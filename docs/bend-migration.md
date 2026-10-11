@@ -470,7 +470,7 @@ compiler receipts validated. check:fast passed 109 unit tests, repository assets
 TypeScript and package graph before failing development imports. Three relocated
 credential cold runners then switched five stale relative imports to existing
 workspace exports; all six available/locked runs passed, with nonempty lint.
-The focused import gate now reports zero unresolved paths, 8 undeclared
+The focused import gate now reports zero unresolved paths, 3 undeclared
 dependencies and 137 cross-owner private-file violations. Those remain an
 acceptance blocker; fix ownership and declared interfaces before asserting a
 green ordinary gate.
@@ -511,3 +511,20 @@ not a complete qualification receipt. Astra approved the structural change.
 The focused import gate now reports zero unresolved paths, eight undeclared
 dependencies and 137 cross-owner violations; the 38 removed violations were
 fixed temporary-module dependencies, not gate exclusions.
+
+Verification dependency repair: declared the already catalog-pinned smol-toml
+in the verification workspace. Bun regenerated the lock without changing
+package versions; it also reconciled obsolete CLI dependency entries against
+the current CLI manifest. The real Cargo consumer initially exposed a damaged
+post-relocation path binding (`../` was compared with a source-tree path).
+Restoring the native `../` boundary, without changing Bend policy or assertions,
+passed all 21,003 actual native comparisons. Its diagnostic JSON now goes to
+ignored root .test-runs; the final consumer passed again on that source.
+check:fast passed 109 unit tests, source typing and package graph before failing
+three undeclared dependencies and 137 private-file imports. The three remaining
+undeclared cases are two tooling imports of the verification credential oracle
+and one update-notice dependency on an external baseline checkout. Keep the
+oracle independent while repairing ownership; substituting the current Bend
+wrapper would be circular qualification. Whole Go and production adoption
+remain open; the next build/execution cadence deadlines remain 11:29:59 and
+11:33:07 UTC from the last frozen pair.
