@@ -777,7 +777,14 @@ try {
         )
       }
       if (mode.startsWith("retention-")) {
-        await consumeRetainedPreparation(connection, outcome.preparation, root, rootIdentity, mode)
+        await consumeRetainedPreparation(
+          connection,
+          outcome.preparation,
+          root,
+          rootIdentity,
+          mode,
+          preparationForeign.decode
+        )
       } else {
         // Only complete preparation terminal converts capacity; child terminal does not.
         const completed = Effect.runSync(

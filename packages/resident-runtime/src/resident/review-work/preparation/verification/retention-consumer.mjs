@@ -8,14 +8,13 @@ import { advicee as __advicee } from "@hapsland/build-tooling/test-support/test-
 import { sourcePartition } from "../../../recipient/identity.ts"
 import { evaluationSourcePartition } from "../../../work-ownership/identity.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { decodePreparationResult } from "../../../../../../review-execution/dist/direct-event/preparation/preparation-result-codec.js"
 import { bendPostPreparation, createPostPreparationProvider } from "../post-preparation-host.mjs"
 import { nativePostPreparation } from "./native-post-preparation-child.mjs"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
 
 // Actual semantic owners and one bridged resident transaction. Recording sinks
 // are limited to analytics/inspection; revision, reuse, round and dispatch are real.
-export async function consumeRetainedPreparation(connection, result, root, rootIdentity, mode) {
+export async function consumeRetainedPreparation(connection, result, root, rootIdentity, mode, decodePreparation) {
   const originalCase = mode
   const cachedFault = mode.includes("-standalone-") ? mode.slice(mode.indexOf("-standalone-") + 12) : undefined
   if (cachedFault) mode = mode.slice(0, mode.indexOf("-standalone-") + 11)
@@ -77,7 +76,7 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
     cachedFault,
     observation: connection.preparationObservation
   })
-  const prepared = decodePreparationResult(result, identity)
+  const prepared = decodePreparation(result, identity)
   const seededKeys = [],
     existingRevisions = []
   if (sharedRelease)
@@ -293,7 +292,7 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
         context.expectedActivityUnits.length = 0
         if (useOwned) {
           const sourceResult = await connection.owned.startPreparation(secondPreparation)
-          const secondPrepared = decodePreparationResult(sourceResult, identity)
+          const secondPrepared = decodePreparation(sourceResult, identity)
           assert.deepEqual(secondPrepared, prepared)
           const secondSession = createPostPreparationProvider(
             connection.owned.receipt.handoff,

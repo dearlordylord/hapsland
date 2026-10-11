@@ -749,3 +749,19 @@ private root/retention edges and actual affected consumers remain required.
 Astra's unchanged-law appended forest prefix checks combined slots ownership
 (3.928 seconds) and exact forward/indexed preservation (3.839 seconds), both
 under hard5. Full parent attachment law and whole adoption remain open.
+
+Frozen 709f6dc1 workspace build passes 46/46 tasks (15 cached) after refreshing
+the generated Turbo inputs for the added production dependency; the first
+attempt correctly rejected stale task configuration before compilation. Build
+measurement starts 19:20:43.645488 UTC, completes sixteen matched pairs
+(23/46 cached) but the final baseline call times out at the fixed comparison
+deadline. Qualification is false and no parity ratio is available. Execution
+starts 19:31:10.146022 UTC, qualifies all pairs with unchanged sources/artifacts
+and passes parity at 0.6730428109194586. Both starts meet the preceding cadence
+deadlines. Next starts are due 19:50:43.645488 and 20:01:10.146022 UTC.
+
+Retention verification now receives decode from its actual preparation capability
+and uses it for both accepted preparation results, removing the private codec
+import without exposing another stage. Two actual changed files pass lint;
+retention-owned-joined-pending physical consumer is running, not yet qualified.
+Whole adoption, original proofs and remaining owner/import gates stay open.
