@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
+import { existsSync } from "node:fs"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
@@ -174,7 +175,9 @@ const selectedScenarios = scenarios.filter(
 )
 assert.ok(selectedScenarios.length, "Unknown preparation scenario: " + process.env.HAPSLAND_POSTFLOW_CASE)
 const temp = await mkdtemp("/tmp/hapsland-owned-root-")
+let emissionTemp
 try {
+  emissionTemp = await mkdtemp(join(existsSync("/dev/shm") ? "/dev/shm" : "/tmp", "hapsland-resident-emission-"))
   const artifacts = {}
   let owner
   for (const [key, name] of [
@@ -184,7 +187,7 @@ try {
     ["go", "GoArtifact"],
     ["owner", "CanonicalResolverOwner"]
   ]) {
-    const emitted = join(temp, name + ".mjs")
+    const emitted = join(emissionTemp, name + ".mjs")
     execFileSync(
       "taskset",
       [
@@ -421,7 +424,7 @@ try {
       column: BigInt(value.end.column)
     }
   })
-  const postEmission = join(temp, "PostPreparation.mjs")
+  const postEmission = join(emissionTemp, "PostPreparation.mjs")
   execFileSync(
     "taskset",
     ["-c", "10", "bend", join(import.meta.dirname, "../PostPreparation.bend"), "-o", postEmission],
@@ -849,5 +852,8 @@ try {
     })
   )
 } finally {
-  await rm(temp, { recursive: true, force: true })
+  await Promise.all([
+    rm(temp, { recursive: true, force: true }),
+    ...(emissionTemp ? [rm(emissionTemp, { recursive: true, force: true })] : [])
+  ])
 }
