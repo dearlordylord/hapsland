@@ -628,7 +628,7 @@ def lookup_exact(
       symbol,
       Core.UnsupportedTarget{}
     )
-    case Some{Core.Declaration{+artifact, +identity, +function, +bundled, +references}}:
+    case Some{Core.Declaration{+artifact, +identity, +function, +bundled, +references, _}}:
       +declaration = {Core.Declaration{artifact, identity, function, bundled, references} : Core.Declaration}
       Equal.trans(
         Relation.Observation,

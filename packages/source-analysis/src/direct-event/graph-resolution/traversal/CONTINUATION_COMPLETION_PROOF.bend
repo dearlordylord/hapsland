@@ -96,7 +96,7 @@ def resume_complete(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: Str
 }:
   match frames:
     case []: flat_observation_complete(prefix, state, prefix_complete)
-    case Core.Frame{+owner, +depth, +index, +items} <> +rest:
+    case Core.Frame{+owner, +depth, +index, +items, _} <> +rest:
       +request = {Spec.ReferencesRequest{items, facts, path, owner, index, depth, state} : Spec.Request}
       +result = Spec.interpret(fuel, request)
       head_enough = Order.eq_true_of_and_left(

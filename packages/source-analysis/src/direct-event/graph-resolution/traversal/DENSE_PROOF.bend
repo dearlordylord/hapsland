@@ -127,7 +127,7 @@ def initial_valid(+facts: Core.Facts, +path: String, +visited: Map<&2, Bool>,
       : Bool
     }:
   match declaration:
-    case Core.Declaration{_, _, _, _, _}: {==}
+    case Core.Declaration{_, _, _, _, _, _}: {==}
 
 def found_valid(+found: Maybe<&2, Core.Declaration>, +facts: Core.Facts, +path: String,
     +visited: Map<&2, Bool>, +budget: Core.Budget, +depth: Nat) -> {
@@ -167,7 +167,7 @@ def known_valid(+facts: Core.Facts, +path: String, +edge: Core.Pending,
       : Bool
     }:
   match declaration:
-    case Core.Declaration{_, _, _, _, _}: {==}
+    case Core.Declaration{_, _, _, _, _, _}: {==}
 
 def Laws.known_singleton_nodes_dense(
   facts,

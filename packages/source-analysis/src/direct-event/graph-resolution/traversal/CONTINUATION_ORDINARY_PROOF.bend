@@ -929,9 +929,9 @@ def conflict_exact(
       : Relation.Observation
     }:
   match imported declaration:
-    case Some{_} Core.Declaration{_, _, _, _, _}:
+    case Some{_} Core.Declaration{_, _, _, _, _, _}:
       Reference.omitted_exact(fuel, machine, owner, index, symbol, Core.UnsupportedTarget{})
-    case None{} Core.Declaration{+artifact, +identity, +function, +bundled, +references}:
+    case None{} Core.Declaration{+artifact, +identity, +function, +bundled, +references, _}:
       +declaration = {Core.Declaration{artifact, identity, function, bundled, references} : Core.Declaration}
       Equal.trans(
         Relation.Observation,
@@ -2288,9 +2288,9 @@ def bound_conflict_exact(+binding: String,
       : Relation.Observation
     }:
   match imported declaration:
-    case Some{_} Core.Declaration{_, _, _, _, _}:
+    case Some{_} Core.Declaration{_, _, _, _, _, _}:
       Reference.omitted_exact(fuel, machine, owner, index, symbol, Core.UnsupportedTarget{})
-    case None{} Core.Declaration{+artifact, +identity, +function, +bundled, +references}:
+    case None{} Core.Declaration{+artifact, +identity, +function, +bundled, +references, _}:
       +declaration = {Core.Declaration{artifact, identity, function, bundled, references} : Core.Declaration}
       Equal.trans(
         Relation.Observation,

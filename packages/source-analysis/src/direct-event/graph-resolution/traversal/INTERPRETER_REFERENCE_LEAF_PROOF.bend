@@ -170,7 +170,7 @@ def bundle_found_leaf(+found: Maybe<&2, Core.Declaration>, +identity: String,
 }:
   match found:
     case None{}: {==}
-    case Some{Core.Declaration{handle, +actual_id, function, bundled, _}}:
+    case Some{Core.Declaration{handle, +actual_id, function, bundled, _, _}}:
       bundle_admission_leaf(Bool.and(bundled, Bool.and(String.eq(identity, actual_id),
         Spec.matches(expected, function))), state, path, symbol, owner, index, depth,
         expected, handle, actual_id)

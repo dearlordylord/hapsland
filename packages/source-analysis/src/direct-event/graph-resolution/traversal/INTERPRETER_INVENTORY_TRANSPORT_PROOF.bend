@@ -277,7 +277,7 @@ def local_conflict_progress(
   }:
   match imported declaration:
     case Some{_} _: incoming
-    case None{} Core.Declaration{_, identity, function, _, _}: local_kind_progress(
+    case None{} Core.Declaration{_, identity, function, _, _, _}: local_kind_progress(
       fuel,
       Spec.matches(expected, function),
       state,
@@ -844,7 +844,7 @@ def bound_local_conflict_progress(
   }:
   match imported declaration:
     case Some{_} _: incoming
-    case None{} Core.Declaration{_, identity, function, _, _}: bound_local_kind_progress(
+    case None{} Core.Declaration{_, identity, function, _, _, _}: bound_local_kind_progress(
       fuel,
       binding,
       Spec.matches(expected, function),
@@ -1322,7 +1322,7 @@ def walk_progress(
   }:
   match found:
     case None{}: incoming
-    case Some{Core.Declaration{+artifact, +identity, _, _, +children}}:
+    case Some{Core.Declaration{+artifact, +identity, _, _, +children, _}}:
       +entered=Spec.enter(state, path, identity)
       +entered_progress=enter(state, path, identity, before, catalog, incoming)
       +request={Spec.ReferencesRequest{children, facts, path, Spec.address(state), 0n, depth, entered} : Spec.Request}

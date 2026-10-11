@@ -46,7 +46,7 @@ def declaration_bounded(visited: Map<&2, Bool>, declaration: Maybe<&2, Core.Decl
 }:
   match declaration:
     case None{}: {==}
-    case Some{Core.Declaration{_, identity, _, _, references}}:
+    case Some{Core.Declaration{_, identity, _, _, references, _}}:
       weight_bounded(
         CoreTraversal.has_identity(visited, identity),
         List.length(&2, Core.Reference, references)

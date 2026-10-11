@@ -30,7 +30,7 @@ def entered_valid(+facts: Core.Facts, +path: String, +visited: Map<&2, Bool>, +b
       : Bool
     }:
   match declaration:
-    case Core.Declaration{_, identity, _, _, _}: Insert.set_preserves_canonical(
+    case Core.Declaration{_, identity, _, _, _, _}: Insert.set_preserves_canonical(
       Bool,
       visited,
       identity,

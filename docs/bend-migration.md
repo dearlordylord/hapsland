@@ -223,7 +223,14 @@ One current obstacle list, in execution order:
    Traversal and independent SPEC. Empty targetsByPath membership differs and
    outgoingEdges charging can differ across files. Preserve this source path on
    both sides and rerun the original traversal guarantees and whole consumers;
-   do not filter empty entries. Full materialization/transaction guarantees
+   do not filter empty entries. The runtime now carries Declaration.source_path
+   and Frame.path, charges the parent path before successful child entry, uses
+   Some empty paths without fallback and restores parent siblings through the
+   saved frame. Independent recursive SPEC changes only successful child
+   requests; root path remains supplied. Machine closure and recursive SPEC
+   source checks pass. Existing proof pattern arity is updated, but quantified
+   reconstructors, JS fixtures, signed-reference semantics and full physical
+   consumers remain unqualified. No new law or weakened premise is claimed. Full materialization/transaction guarantees
    remain open. The
    reference entry still lacks the complete Go preparation bridge; its metadata
    installer does not qualify that missing path. Missing Go cases in actual context/reference

@@ -31,7 +31,7 @@ law step_preserves_continuation:
 def step_preserves_continuation(machine, valid):
   match machine:
     case Core.Machine{_, _, [], _, _, _, _, _, _}: {==}
-    case Core.Machine{+facts, +path, Core.Frame{+owner, +depth, +index, []} <> +parents,
+    case Core.Machine{+facts, +path, Core.Frame{+owner, +depth, +index, [], _} <> +parents,
       +visited, +budget, +address, +nodes, +slots, +pending}:
       +valid = valid
       +base = {Core.Machine{facts, path, parents, visited, budget, address, nodes, slots, pending} : Core.Machine}

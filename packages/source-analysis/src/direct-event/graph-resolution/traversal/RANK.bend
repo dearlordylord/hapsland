@@ -15,7 +15,7 @@ def unseen_declaration(
 ) -> Nat:
   match declaration:
     case None{}: 0n
-    case Some{Core.Declaration{_, identity, _, _, references}}:
+    case Some{Core.Declaration{_, identity, _, _, references, _}}:
       unseen_weight(
         CoreTraversal.has_identity(visited, identity),
         List.length(&2, Core.Reference, references)
@@ -36,7 +36,7 @@ def declaration_catalog(facts: Core.Facts) -> Map<&2, Maybe<&2, Core.Declaration
 
 def frame_references(frame: Core.Frame) -> Nat:
   match frame:
-    case Core.Frame{_, _, _, references}: List.length(&2, Core.Reference, references)
+    case Core.Frame{_, _, _, references, _}: List.length(&2, Core.Reference, references)
 
 def pending_references(frames: List<&2, Core.Frame>) -> Nat:
   match frames:

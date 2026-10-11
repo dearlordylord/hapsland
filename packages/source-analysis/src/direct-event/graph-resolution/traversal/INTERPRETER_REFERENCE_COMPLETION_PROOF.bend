@@ -251,7 +251,7 @@ def local_conflict_complete(
 }:
   match imported declaration:
     case Some{binding} _: {==}
-    case None{} Core.Declaration{+handle, +identity, +function, +bundled, +references}:
+    case None{} Core.Declaration{+handle, +identity, +function, +bundled, +references, _}:
       local_kind_complete(selected_rank, fuel, Spec.matches(expected, function), state, facts, path,
         symbol, owner, index, depth, expected,
         Core.Declaration{handle, identity, function, bundled, references},
@@ -616,7 +616,7 @@ def bound_local_conflict_complete(
 }:
   match imported declaration:
     case Some{import_binding} _: {==}
-    case None{} Core.Declaration{+handle, +identity, +function, +bundled, +references}:
+    case None{} Core.Declaration{+handle, +identity, +function, +bundled, +references, _}:
       bound_local_kind_complete(selected_rank, fuel, binding, Spec.matches(expected, function), state, facts, path,
         symbol, owner, index, depth, expected,
         Core.Declaration{handle, identity, function, bundled, references},

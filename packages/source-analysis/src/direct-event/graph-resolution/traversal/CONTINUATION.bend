@@ -14,7 +14,7 @@ type Progress is Data:
 def frame_inventory(frames: List<&2, Core.Frame>) -> Nat:
   match frames:
     case []: 0n
-    case Core.Frame{_, _, _, references} <> rest:
+    case Core.Frame{_, _, _, references, _} <> rest:
       (List.length(&2, Core.Reference, references) + frame_inventory(rest) : Nat)
 
 def bound(+facts: Core.Facts, +frames: List<&2, Core.Frame>) -> Nat:
@@ -40,11 +40,11 @@ def resume(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: String,
     +fuel: Nat, progress: Progress) -> Relation.Observation:
   match frames progress:
     case [] Progress{state, prefix}: Relation.observe_flat(prefix, state)
-    case Core.Frame{+owner, depth, +index, references} <> rest Progress{state, prefix}:
+    case Core.Frame{+owner, depth, +index, references, frame_path} <> rest Progress{state, prefix}:
       after_references(
         Spec.interpret(
           fuel,
-          Spec.ReferencesRequest{references, facts, path, owner, index, depth, state}
+          Spec.ReferencesRequest{references, facts, frame_path, owner, index, depth, state}
         ),
         owner,
         index,

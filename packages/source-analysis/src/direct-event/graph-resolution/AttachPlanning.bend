@@ -103,7 +103,7 @@ def built_allowed(
     )
     case True{}:
       match declaration:
-        case Local.Declaration{handle, identity, _, _, _}:
+        case Local.Declaration{handle, identity, _, _, _, _}:
           child : T.TentativeChild = T.TentativeChild{
             target_number(state),
             S.scratch_capture_path(S.state_scratch(state)),
@@ -219,7 +219,7 @@ def empty_or_plan(
   match seen:
     case True{}:
       match declaration:
-        case Local.Declaration{handle, _, _, _, _}: Local.CompletePlan{
+        case Local.Declaration{handle, _, _, _, _, _}: Local.CompletePlan{
           Local.Plan{0n, [Local.PlannedNode{0n, handle}], [], [], visited, budget}}
     case False{}:
       match edge:
@@ -422,7 +422,7 @@ def declaration_handle(
     case None{} <> tail: declaration_handle(tail, handle)
     case Some{+declaration} <> tail:
       match declaration:
-        case Local.Declaration{actual, _, _, _, _}:
+        case Local.Declaration{actual, _, _, _, _, _}:
           yes : Unit -> Maybe<&2, Local.Declaration> = _ => Some{declaration}
           no : Unit -> Maybe<&2, Local.Declaration> = _ => declaration_handle(tail, handle)
           Materialize.decide(Maybe<&2, Local.Declaration>, Nat.is_eq(actual, handle), yes, no)

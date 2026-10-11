@@ -20,7 +20,7 @@ def observe_core(result: Core.RunResult) -> Observation:
 def count_declaration(declaration: Maybe<&2, Core.Declaration>) -> Nat:
   match declaration:
     case None{}: 0n
-    case Some{Core.Declaration{_, _, _, _, references}}: List.length(&2, Core.Reference, references)
+    case Some{Core.Declaration{_, _, _, _, references, _}}: List.length(&2, Core.Reference, references)
 
 def count_catalog(items: List<&2, Maybe<&2, Core.Declaration>>) -> Nat:
   match items:

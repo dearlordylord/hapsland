@@ -474,7 +474,7 @@ def local_conflict_equal(
     }:
   match imported declaration:
     case Some{_} _: {==}
-    case None{} Core.Declaration{_, +identity, +function, _, _}:
+    case None{} Core.Declaration{_, +identity, +function, _, _, _}:
       local_kind_equal(
         left,
         right,
@@ -1212,7 +1212,7 @@ def bound_local_conflict_equal(
     }:
   match imported declaration:
     case Some{_} _: {==}
-    case None{} Core.Declaration{_, +identity, +function, _, _}:
+    case None{} Core.Declaration{_, +identity, +function, _, _, _}:
       bound_local_kind_equal(
         left,
         right, binding,

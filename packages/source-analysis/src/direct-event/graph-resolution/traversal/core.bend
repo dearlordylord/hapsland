@@ -19,7 +19,8 @@ type Declaration is Data:
     identity: String,
     function: Bool,
     bundled: Bool,
-    references: List<&2, Reference>
+    references: List<&2, Reference>,
+    source_path: Maybe<&2, String>
   }
 
 type ImportBinding is Data:
@@ -80,7 +81,7 @@ type Pending is Data:
   }
 
 type Frame is Data:
-  Frame{owner: Nat, depth: Nat, index: Nat, remaining: List<&2, Reference>}
+  Frame{owner: Nat, depth: Nat, index: Nat, remaining: List<&2, Reference>, path: String}
 
 type Machine is Data:
   Machine{

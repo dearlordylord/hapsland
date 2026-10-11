@@ -801,7 +801,7 @@ def root_built(+state: State, source: T.SourceFacts, result: Root.RootResult) ->
 def original_identity(declaration: Maybe<&2, Local.Declaration>) -> Maybe<&2, String>:
   match declaration:
     case None{}: None{}
-    case Some{Local.Declaration{_, identity, _, _, _}}: Some{identity}
+    case Some{Local.Declaration{_, identity, _, _, _, _}}: Some{identity}
 
 def root_validated(valid: Bool, +state: State, +source: T.SourceFacts) -> Selection:
   match valid:

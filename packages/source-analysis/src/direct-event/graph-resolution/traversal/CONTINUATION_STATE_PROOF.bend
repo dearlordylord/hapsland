@@ -378,7 +378,7 @@ def target_key_exact(+path: String, +symbol: String, +local: Maybe<&2, Core.Decl
     }:
   match local:
     case None{}: other_key_exact(path, symbol, imported)
-    case Some{Core.Declaration{_, _, _, _, _}}: {==}
+    case Some{Core.Declaration{_, _, _, _, _, _}}: {==}
 
 def bundled_test(
   declaration: Core.Declaration,
@@ -386,7 +386,7 @@ def bundled_test(
   expected: Core.ExpectedKind
 ) -> Bool:
   match declaration:
-    case Core.Declaration{_, identity, function, bundled, _}:
+    case Core.Declaration{_, identity, function, bundled, _, _}:
       Bool.and(bundled, Bool.and(String.eq(target, identity), Spec.matches(expected, function)))
 
 def bundled_test_exact(
@@ -398,7 +398,7 @@ def bundled_test_exact(
     == bundled_test(declaration, target, expected) : Bool
 }:
   match declaration:
-    case Core.Declaration{_, +identity, +function, +bundled, _}:
+    case Core.Declaration{_, +identity, +function, +bundled, _, _}:
       %Equal.sym(
         Bool,
         CoreTraversal.kind_matches(expected, function),

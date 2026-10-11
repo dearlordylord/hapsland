@@ -68,7 +68,7 @@ def ordinary_local(found: Maybe<&2, Local.Declaration>,
   match found imported:
     case None{} _: permit(state)
     case Some{_} Some{_}: omitted(state, symbol)
-    case Some{Local.Declaration{_, _, function, _, _}} None{}:
+    case Some{Local.Declaration{_, _, function, _, _, _}} None{}:
       ordinary_kind(Recursive.matches(expected, function), state, symbol)
 
 def ordinary_found(+found: Maybe<&2, Local.Declaration>,
@@ -97,7 +97,7 @@ def bundle(found: Maybe<&2, Local.Declaration>, +identity: String,
     +expected: Local.ExpectedKind, state: State, path: String, symbol: String) -> ReferenceResult:
   match found:
     case None{}: omitted(state, symbol)
-    case Some{Local.Declaration{_, +actual, function, origin, _}}:
+    case Some{Local.Declaration{_, +actual, function, origin, _, _}}:
       bundle_valid(Bool.and(origin,
         Bool.and(String.eq(actual, identity), Recursive.matches(expected, function))),
         state, path, symbol, actual)
@@ -169,7 +169,7 @@ def negative_found(found: Maybe<&2, Local.Declaration>, +facts: Local.Facts,
     +path: String, depth: Nat, +state: State) -> Build:
   match found:
     case None{}: Missing{state}
-    case Some{Local.Declaration{artifact, identity, _, _, children}}:
+    case Some{Local.Declaration{artifact, identity, _, _, children, _}}:
       built(references(children, facts, path, depth,
         replace_local(state, Recursive.enter(local(state), path, identity))),
         Recursive.address(local(state)), artifact)

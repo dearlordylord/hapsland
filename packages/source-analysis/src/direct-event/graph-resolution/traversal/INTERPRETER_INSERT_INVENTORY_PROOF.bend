@@ -71,7 +71,7 @@ def declaration_nonincreasing(+visited: Map<&2, Bool>, +identity: String,
 }:
   match declaration:
     case None{}: {==}
-    case Some{Core.Declaration{_, +name, _, _, +references}}:
+    case Some{Core.Declaration{_, +name, _, _, +references, _}}:
       %Equal.sym(Bool,
         CoreTraversal.has_identity(Map.set(&2, Bool, visited, identity, True{}), name),
         Bool.or(String.eq(name, identity), CoreTraversal.has_identity(visited, name)),

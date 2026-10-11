@@ -356,7 +356,7 @@ def import_present_exact(
 
 def declaration_handle(declaration: Core.Declaration) -> Nat:
   match declaration:
-    case Core.Declaration{handle, _, _, _, _}: handle
+    case Core.Declaration{handle, _, _, _, _, _}: handle
 
 def bundled_queue_exact(+fuel: Nat, +machine: Core.Machine, +owner: Nat, +index: Nat,
     +symbol: String, +depth: Nat, +expected: Core.ExpectedKind, +declaration: Core.Declaration) -> {
@@ -383,7 +383,7 @@ def bundled_queue_exact(+fuel: Nat, +machine: Core.Machine, +owner: Nat, +index:
       : Relation.Observation
     }:
   match declaration:
-    case Core.Declaration{+handle, _, _, _, _}:
+    case Core.Declaration{+handle, _, _, _, _, _}:
       pending_omitted_exact(
         fuel,
         machine,

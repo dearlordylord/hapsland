@@ -40,7 +40,7 @@ def entered_valid(+facts: Core.Facts, +path: String, +visited: Map<&2, Bool>,
     : Bool
   }:
   match declaration:
-    case Core.Declaration{_, identity, _, _, _}:
+    case Core.Declaration{_, identity, _, _, _, _}:
       Insert.set_preserves_canonical(Bool, visited, identity, True{}, valid)
 
 def found_completes(+found: Maybe<&2, Core.Declaration>, +facts: Core.Facts,

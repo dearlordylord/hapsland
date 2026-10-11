@@ -23,7 +23,7 @@ def cap(facts: Core.Facts, references: Nat) -> Nat:
 def adequate(+facts: Core.Facts, +fuel: Nat, frames: List<&2, Core.Frame>) -> Bool:
   match frames:
     case []: True{}
-    case Core.Frame{_, _, _, references} <> rest:
+    case Core.Frame{_, _, _, references, _} <> rest:
       Bool.and(
         Nat.is_le(cap(facts, List.length(&2, Core.Reference, references)), fuel),
         adequate(facts, fuel, rest)
@@ -48,7 +48,7 @@ def adequate_from_inventory(
 }:
   match frames:
     case []: {==}
-    case Core.Frame{_, _, _, +references} <> +rest:
+    case Core.Frame{_, _, _, +references, _} <> +rest:
       +head = List.length(&2, Core.Reference, references)
       +tail = Continuation.frame_inventory(rest)
       Progress.conjoin(

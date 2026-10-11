@@ -360,7 +360,7 @@ def walk_equal(
 }:
   match found:
     case None{}: {==}
-    case Some{Core.Declaration{+artifact, +identity, _, _, +children}}:
+    case Some{Core.Declaration{+artifact, +identity, _, _, +children, _}}:
       +owner = Spec.address(state)
       +request = {Spec.ReferencesRequest{children, facts, path, owner, 0n, depth,
         Spec.enter(state, path, identity)} : Spec.Request}

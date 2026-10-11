@@ -36,13 +36,14 @@ def bundled_origin(origin: Maybe<&2, T.BundledOrigin>) -> Bool:
 
 def declaration(item: T.FactDeclaration, handle: Nat) -> Local.Declaration:
   match item:
-    case T.FactDeclaration{_, T.Artifact{origin, _, id, kind, _, _, _, _}, refs, _}:
+    case T.FactDeclaration{_, T.Artifact{origin, path, id, kind, _, _, _, _}, refs, _}:
       Local.Declaration{
         handle,
         id,
         Materialize.artifact_is_function(kind),
         bundled_origin(origin),
-        references(refs)
+        references(refs),
+        path
       }
 
 def store_ordinary(catalog: Catalog, +item: T.FactDeclaration) -> Catalog:

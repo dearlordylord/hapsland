@@ -85,7 +85,7 @@ def entered_root(
       : Relation.Observation
     }:
   match declaration:
-    case Core.Declaration{+artifact, +identity, +function, +bundled, +items}:
+    case Core.Declaration{+artifact, +identity, +function, +bundled, +items, _}:
       +declaration = {Core.Declaration{artifact, identity, function, bundled, items} : Core.Declaration}
       +base = Rank.initial(facts, path, visited, budget)
       +entered = CoreTraversal.enter_node(base, declaration, depth)

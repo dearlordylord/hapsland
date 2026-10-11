@@ -146,7 +146,7 @@ def attempt_path(+attempt: Attempt) -> String:
 
 def identity(+declaration: Local.Declaration) -> String:
   match declaration:
-    case Local.Declaration{_, identity, _, _, _}: identity
+    case Local.Declaration{_, identity, _, _, _, _}: identity
 
 def known_file(+frame: Frame, +attempt: Attempt) -> Bool:
   match attempt:
@@ -162,7 +162,7 @@ def known_state(+local: Recursive.State, +signed: O.SignedNat) -> Signed.State:
 
 def selected_child(+fuel: Nat, +frame: Frame, +attempt: Attempt, +known: Bool) -> Signed.Build:
   match attempt known:
-    case Attempt{_, _, _, _, _, _, _, Local.Declaration{artifact, _, _, _, _}, _, _} True{}:
+    case Attempt{_, _, _, _, _, _, _, Local.Declaration{artifact, _, _, _, _, _}, _, _} True{}:
       Signed.Built{known_state(build_state(frame),
         difference(graph_work(frame_graph(frame)), local_work(frame_local(frame)))),
         Recursive.Tree{0n, artifact, []}}

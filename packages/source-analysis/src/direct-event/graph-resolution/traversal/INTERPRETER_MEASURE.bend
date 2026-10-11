@@ -34,7 +34,7 @@ def root_load(+catalog: Map<&2, Maybe<&2, Core.Declaration>>, visited: Map<&2, B
     found: Maybe<&2, Core.Declaration>) -> Nat:
   match found:
     case None{}: 0n
-    case Some{Core.Declaration{_, identity, _, _, references}}:
+    case Some{Core.Declaration{_, identity, _, _, references, _}}:
       (Rank.unseen_catalog(Map.set(&2, Bool, visited, identity, True{}), catalog)
         + List.length(&2, Core.Reference, references) : Nat)
 

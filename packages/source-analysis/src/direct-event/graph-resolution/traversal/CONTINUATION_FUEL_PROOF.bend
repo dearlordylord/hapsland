@@ -249,7 +249,7 @@ def resume_equal(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: String
     }:
   match frames:
     case []: {==}
-    case Core.Frame{+owner, +depth, +index, +items} <> +rest:
+    case Core.Frame{+owner, +depth, +index, +items, _} <> +rest:
       +request = {Spec.ReferencesRequest{items, facts, path, owner, index, depth, state} : Spec.Request}
       +a = Spec.interpret(left, request)
       +b = Spec.interpret(right, request)

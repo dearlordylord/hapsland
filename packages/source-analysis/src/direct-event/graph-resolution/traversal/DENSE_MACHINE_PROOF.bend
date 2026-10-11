@@ -651,7 +651,7 @@ def bundled_queue_valid(
       : Bool
     }:
   match declaration:
-    case Core.Declaration{+handle, _, _, _, _}: add_pending_valid(
+    case Core.Declaration{+handle, _, _, _, _, _}: add_pending_valid(
       CoreTraversal.omit(machine, owner, index, symbol, Core.Unavailable{}),
       Core.Pending{
         owner,
@@ -1150,8 +1150,8 @@ def process_frame_valid(+machine: Core.Machine, +frame: Core.Frame,
   allocation_valid(CoreTraversal.process_frame(machine, frame)) == True{} : Bool
 }:
   match frame:
-    case Core.Frame{_, _, _, []}: valid
-    case Core.Frame{+owner, +depth, +index, +reference <> +rest}: visit_reference_valid(
+    case Core.Frame{_, _, _, [], _}: valid
+    case Core.Frame{+owner, +depth, +index, +reference <> +rest, _}: visit_reference_valid(
       CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest}),
       owner,
       index,

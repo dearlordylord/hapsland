@@ -13,7 +13,7 @@ import ./INTERPRETER_COMPLETION_NAT_FACTS.bend as NatFacts
 # root previously present in visited. No absent-root premise is introduced.
 def children(declaration: Core.Declaration) -> List<&2, Core.Reference>:
   match declaration:
-    case Core.Declaration{_, _, _, _, references}: references
+    case Core.Declaration{_, _, _, _, references, _}: references
 
 def children_score_decreases(+unseen: Nat, +count: Nat) -> {
   Nat.is_le((3n * unseen + 3n * count + 1n + 1n : Nat),

@@ -57,13 +57,14 @@ def declaration(
   handle: Nat
 ) -> Local.Declaration:
   match artifact:
-    case T.Artifact{origin, _, id, kind, _, _, _, _}:
+    case T.Artifact{origin, path, id, kind, _, _, _, _}:
       Local.Declaration{
         handle,
         id,
         function_kind(kind),
         origin_is_bundled(origin),
-        references(refs)
+        references(refs),
+        path
       }
 
 # Catalog location is independent of origin. A supporting-map member with no
@@ -161,7 +162,7 @@ def root_declaration(found: Maybe<&2, Local.Declaration>, fuel: Nat, +source: So
     path: String, name: String, limits: Graph.Limits) -> RootResult:
   match found source:
     case None{} _: RootMissing{None{}, None{}}
-    case Some{Local.Declaration{_, identity, _, _, _}} Source{facts, _, _}:
+    case Some{Local.Declaration{_, identity, _, _, _, _}} Source{facts, _, _}:
       root_built(
         Recursive.as_build(
           Recursive.interpret(

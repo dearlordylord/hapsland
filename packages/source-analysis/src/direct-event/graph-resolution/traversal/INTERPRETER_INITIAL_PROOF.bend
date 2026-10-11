@@ -19,7 +19,7 @@ def count_declaration_exact(+declaration: Maybe<&2, Core.Declaration>) -> {
 }:
   match declaration:
     case None{}: {==}
-    case Some{Core.Declaration{handle, identity, function, bundled, references}}: {==}
+    case Some{Core.Declaration{handle, identity, function, bundled, references, _}}: {==}
 
 def count_catalog_exact(+items: List<&2, Maybe<&2, Core.Declaration>>) -> {
   Relation.count_catalog(items) == CoreTraversal.catalog_reference_count(items) : Nat

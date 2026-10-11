@@ -654,7 +654,7 @@ def expansion_valid(+machine: Core.Machine, +declaration: Core.Declaration,
   valid(CoreTraversal.expand_node(machine, declaration, owner, index, name, depth)) == True{} : Bool
 }:
   match machine declaration:
-    case Core.Machine{_, _, _, visited, _, _, _, _, _} Core.Declaration{_, identity, _, _, _}:
+    case Core.Machine{_, _, _, visited, _, _, _, _, _} Core.Declaration{_, identity, _, _, _, _}:
       Insert.set_preserves_canonical(Bool, visited, identity, True{}, lawful)
 
 def projection_equal_rank(+before: Core.Machine, +after: Core.Machine,

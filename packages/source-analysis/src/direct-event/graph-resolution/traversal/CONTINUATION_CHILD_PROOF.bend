@@ -9,7 +9,7 @@ import ./CONTINUATION_STATE_PROOF.bend as State
 
 def declaration_handle(declaration: Core.Declaration) -> Nat:
   match declaration:
-    case Core.Declaration{artifact, _, _, _, _}: artifact
+    case Core.Declaration{artifact, _, _, _, _, _}: artifact
 
 # The production child emits its parent slot and own node before its references.
 # The recursive child prepends these to the returned flat result. These exact
@@ -170,7 +170,7 @@ def expanded_failure(+machine: Core.Machine, +declaration: Core.Declaration,
       : Spec.Flat
     }:
   match machine declaration:
-    case Core.Machine{_, _, _, _, _, _, _, _, _} Core.Declaration{_, _, _, _, _}: {==}
+    case Core.Machine{_, _, _, _, _, _, _, _, _} Core.Declaration{_, _, _, _, _, _}: {==}
 
 def expanded_join(+machine: Core.Machine, +declaration: Core.Declaration,
     +owner: Nat, +index: Nat, +symbol: String, +depth: Nat, +flat: Spec.Flat) -> {
@@ -416,7 +416,7 @@ def after_child_dispatch(+result: Spec.DispatchResult, +fuel: Nat, +machine: Cor
 def child_request(+machine: Core.Machine, declaration: Core.Declaration, depth: Nat,
     state: Spec.State) -> Spec.Request:
   match declaration:
-    case Core.Declaration{_, _, _, _, children}:
+    case Core.Declaration{_, _, _, _, children, _}:
       Spec.ReferencesRequest{
         children,
         CoreTraversal.machine_facts(machine),

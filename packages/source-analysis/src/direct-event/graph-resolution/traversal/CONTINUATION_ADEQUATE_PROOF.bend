@@ -37,7 +37,7 @@ def monotone(frames: List<&2, Core.Frame>, +facts: Core.Facts, +left: Nat, +righ
 }:
   match frames:
     case []: {==}
-    case Core.Frame{_, _, _, +items} <> +rest:
+    case Core.Frame{_, _, _, +items, _} <> +rest:
       +cap = Bound.cap(facts, List.length(&2, Core.Reference, items))
       Progress.conjoin(
         Nat.is_le(cap, right),

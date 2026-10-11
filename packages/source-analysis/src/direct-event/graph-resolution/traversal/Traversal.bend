@@ -103,7 +103,8 @@ def machine_facts(machine: Core.Machine) -> Core.Facts:
 
 def machine_path(machine: Core.Machine) -> String:
   match machine:
-    case Core.Machine{_, path, _, _, _, _, _, _, _}: path
+    case Core.Machine{_, path, [], _, _, _, _, _, _}: path
+    case Core.Machine{_, _, Core.Frame{_, _, _, _, path} <> _, _, _, _, _, _, _}: path
 
 def machine_budget(machine: Core.Machine) -> Core.Budget:
   match machine:
@@ -181,13 +182,21 @@ def store_path(budget: Core.Budget, path: String, file_targets: Map<&2, Bool>) -
 def ensure_path(+budget: Core.Budget, +path: String) -> Core.Budget:
   store_path(budget, path, target_map(budget, path))
 
-def enter_node(machine: Core.Machine, declaration: Core.Declaration, depth: Nat) -> Core.Machine:
+def enter_node_at(machine: Core.Machine, declaration: Core.Declaration, depth: Nat, +path: String) -> Core.Machine:
   match machine declaration:
-    case Core.Machine{facts, +path, frames, visited, budget, +next, nodes, references, pending}
-      Core.Declaration{artifact, identity, _, _, children}:
-      Core.Machine{facts, path, Core.Frame{next, depth, 0n, children} <> frames,
+    case Core.Machine{facts, root_path, frames, visited, budget, +next, nodes, references, pending}
+      Core.Declaration{artifact, identity, _, _, children, _}:
+      Core.Machine{facts, root_path, Core.Frame{next, depth, 0n, children, path} <> frames,
         Map.set(&2, Bool, visited, identity, True{}), ensure_path(budget, path), (next + 1n : Nat),
         Core.PlannedNode{next, artifact} <> nodes, references, pending}
+
+def enter_node(+machine: Core.Machine, declaration: Core.Declaration, depth: Nat) -> Core.Machine:
+  enter_node_at(machine, declaration, depth, machine_path(machine))
+
+def declaration_path(declaration: Core.Declaration, fallback: String) -> String:
+  match declaration:
+    case Core.Declaration{_, _, _, _, _, None{}}: fallback
+    case Core.Declaration{_, _, _, _, _, Some{path}}: path
 
 def next_node(machine: Core.Machine) -> Nat:
   match machine:
@@ -195,24 +204,25 @@ def next_node(machine: Core.Machine) -> Nat:
 
 def expand_node(
   +machine: Core.Machine,
-  declaration: Core.Declaration,
+  +declaration: Core.Declaration,
   owner: Nat,
   index: Nat,
   name: String,
   depth: Nat
 ) -> Core.Machine:
-  enter_node(
+  enter_node_at(
     add_reference(
       machine,
       Core.ReferenceSlot{owner, index, name, Core.Expanded{next_node(machine)}}
     ),
     declaration,
-    depth
+    depth,
+    declaration_path(declaration, machine_path(machine))
   )
 
 def declaration_identity(declaration: Core.Declaration) -> String:
   match declaration:
-    case Core.Declaration{_, identity, _, _, _}: identity
+    case Core.Declaration{_, identity, _, _, _, _}: identity
 
 def local_expand_if(visited: Bool, machine: Core.Machine, +declaration: Core.Declaration,
     owner: Nat, index: Nat, name: String, depth: Nat) -> Core.Machine:
@@ -300,7 +310,7 @@ def import_present(machine: Core.Machine, owner: Nat, index: Nat, symbol: String
 
 def local_kind(declaration: Core.Declaration) -> Bool:
   match declaration:
-    case Core.Declaration{_, _, function, _, _}: function
+    case Core.Declaration{_, _, function, _, _, _}: function
 
 def import_exists(imported: Maybe<&2, Core.ImportBinding>) -> Bool:
   match imported:
@@ -458,13 +468,13 @@ def bundled_valid(
   expected: Core.ExpectedKind
 ) -> Bool:
   match declaration:
-    case Core.Declaration{_, identity, function, bundled, _}:
+    case Core.Declaration{_, identity, function, bundled, _, _}:
       Bool.and(bundled, Bool.and(String.eq(identity, target), kind_matches(expected, function)))
 
 def bundled_queue(+machine: Core.Machine, +owner: Nat, +index: Nat, +symbol: String,
     depth: Nat, expected: Core.ExpectedKind, declaration: Core.Declaration) -> Core.Machine:
   match declaration:
-    case Core.Declaration{handle, _, _, _, _}:
+    case Core.Declaration{handle, _, _, _, _, _}:
       add_pending(
         omit(machine, owner, index, symbol, Core.Unavailable{}),
         Core.Pending{
@@ -690,10 +700,10 @@ def push_frame(machine: Core.Machine, frame: Core.Frame) -> Core.Machine:
 
 def process_frame(machine: Core.Machine, frame: Core.Frame) -> Core.Machine:
   match frame:
-    case Core.Frame{_, _, _, []}: machine
-    case Core.Frame{+owner, +depth, +index, reference <> rest}:
+    case Core.Frame{_, _, _, [], _}: machine
+    case Core.Frame{+owner, +depth, +index, reference <> rest, +path}:
       visit_reference(
-        push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest}),
+        push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest, path}),
         owner,
         index,
         depth,
@@ -747,7 +757,7 @@ def run(fuel: Nat, +machine: Core.Machine) -> Core.RunResult:
 def declaration_reference_count(declaration: Maybe<&2, Core.Declaration>) -> Nat:
   match declaration:
     case None{}: 0n
-    case Some{Core.Declaration{_, _, _, _, references}}: List.length(&2, Core.Reference, references)
+    case Some{Core.Declaration{_, _, _, _, references, _}}: List.length(&2, Core.Reference, references)
 
 def catalog_reference_count(entries: List<&2, Maybe<&2, Core.Declaration>>) -> Nat:
   match entries:

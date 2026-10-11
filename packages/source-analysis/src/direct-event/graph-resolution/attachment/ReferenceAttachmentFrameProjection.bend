@@ -46,7 +46,7 @@ def bundled(
   edge: X.Edge
 ) -> Maybe<&2, V.TargetPayload>:
   match found:
-    case Some{Local.Declaration{handle, _, _, _, _}}:
+    case Some{Local.Declaration{handle, _, _, _, _, _}}:
       Some{V.BundledTarget{handle, facts(catalog), edge_payload(edge)}}
     case None{}: None{}
 

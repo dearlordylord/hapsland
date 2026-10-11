@@ -28,13 +28,13 @@ def child_view(child: X.Child, history: Phase.ChildHistory,
     visited: Maybe<&2, List<&2, String>>) -> Maybe<&2, Phase.Child>:
   match child history visited:
     case X.Child{X.Attempt{+target, edge, +kind, +source, +bytes, name, expected,
-        Local.Declaration{+handle, +identity, function, bundled, references}, +catalog, +before},
+        Local.Declaration{+handle, +identity, function, bundled, references, +source_path}, +catalog, +before},
       F.Created{root, nodes, addresses},
       Signed.State{Recursive.State{_, budget, _, _}, signed}, edges}
       Phase.ChildHistory{_, _, _, capture, _} Some{visited}:
       Some{Phase.Child{target,
         X.attempt_path(X.Attempt{target, edge, kind, source, bytes, name, expected,
-          Local.Declaration{handle, identity, function, bundled, references}, catalog, before}),
+          Local.Declaration{handle, identity, function, bundled, references, source_path}, catalog, before}),
         kind, capture, bytes,
         T.CapturedFacts{Frame.facts(catalog), file_exports(kind, source), bytes},
         handle, identity, before, F.Forest{Some{root}, nodes}, addresses,

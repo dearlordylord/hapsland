@@ -72,7 +72,7 @@ def declaration_nonincreasing(+visited: Map<&2, Bool>, +identity: String,
 }:
   match declaration:
     case None{}: {==}
-    case Some{Core.Declaration{_, +name, _, _, +references}}:
+    case Some{Core.Declaration{_, +name, _, _, +references, _}}:
       %Equal.sym(Bool,
         CoreTraversal.has_identity(Map.set(&2, Bool, visited, identity, True{}), name),
         Bool.or(String.eq(name, identity), CoreTraversal.has_identity(visited, name)),
@@ -118,7 +118,7 @@ def inserted_zero(+visited: Map<&2, Bool>, declaration: Core.Declaration,
     : Nat
   }:
   match declaration:
-    case Core.Declaration{_, +identity, _, _, +references}:
+    case Core.Declaration{_, +identity, _, _, +references, _}:
       %Equal.sym(Bool,
         CoreTraversal.has_identity(Map.set(&2, Bool, visited, identity, True{}), identity),
         Bool.or(String.eq(identity, identity), CoreTraversal.has_identity(visited, identity)),
@@ -138,7 +138,7 @@ def absent_full(
   == CoreTraversal.declaration_reference_count(Some{declaration}) : Nat
 }:
   match declaration:
-    case Core.Declaration{_, +identity, _, _, +references}:
+    case Core.Declaration{_, +identity, _, _, +references, _}:
       %Equal.sym(Bool, CoreTraversal.has_identity(visited, identity), False{}, absent):
         {Rank.unseen_weight(_, List.length(&2, Core.Reference, references))
           == List.length(&2, Core.Reference, references) : Nat}

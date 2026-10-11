@@ -116,7 +116,7 @@ def root_decl(found: Maybe<&2, Local.Declaration>, +source: Syntax.PreparedFacts
     source_bytes: Nat, dependencies: List<&2, String>) -> Root.RootOutcome:
   match found:
     case None{}: Root.RootUnavailable{}
-    case Some{Local.Declaration{_, +identity, function, _, _}}:
+    case Some{Local.Declaration{_, +identity, function, _, _, _}}:
       match source:
         case Syntax.PreparedFacts{facts, _, _, _}:
           root_plan(

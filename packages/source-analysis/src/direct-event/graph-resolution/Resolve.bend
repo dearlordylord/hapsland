@@ -138,7 +138,7 @@ def declaration_export(declaration: Maybe<&2, Local.Declaration>, exported: Bool
     expected: Local.ExpectedKind) -> Bool:
   match declaration:
     case None{}: False{}
-    case Some{Local.Declaration{_, _, function, _, _}}: Bool.and(
+    case Some{Local.Declaration{_, _, function, _, _, _}}: Bool.and(
       exported,
       LocalTraversal.kind_matches(expected, function)
     )

@@ -435,7 +435,7 @@ def bundle_found_visited_exact(+found: Maybe<&2, Core.Declaration>,
   }:
   match found:
     case None{}: omitted_visited_exact(state, symbol, Core.UnsupportedTarget{})
-    case Some{Core.Declaration{handle, +actual_id, function, bundled, references}}:
+    case Some{Core.Declaration{handle, +actual_id, function, bundled, references, _}}:
       bundle_admission_visited_exact(
         Bool.and(
           bundled,

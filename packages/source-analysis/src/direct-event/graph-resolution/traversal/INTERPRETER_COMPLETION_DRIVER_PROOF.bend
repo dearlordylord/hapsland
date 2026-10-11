@@ -220,7 +220,7 @@ def walk_complete(+fuel: Nat, +found: Maybe<&2, Core.Declaration>,
 }:
   match found:
     case None{}: {==}
-    case Some{Core.Declaration{+artifact, +identity, +function, +bundled, +children}}:
+    case Some{Core.Declaration{+artifact, +identity, +function, +bundled, +children, _}}:
       +declaration = {Core.Declaration{artifact, identity, function, bundled, children} : Core.Declaration}
       +entered = Spec.enter(state, path, identity)
       +owner = Spec.address(state)

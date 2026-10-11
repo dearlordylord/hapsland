@@ -203,13 +203,28 @@ def local_kind(valid: Bool, state: State, facts: Core.Facts, path: String, symbo
     case False{}: omitted(state, symbol, Core.UnsupportedTarget{})
     case True{}: local_budget(local_work(state), facts, path, symbol, depth, expected, identity, recurse)
 
+# Only a successful non-cycle local expansion invokes this continuation.
+# Parent target charging retains its own path; Some empty text is present.
+def source_path(value: Maybe<&2, String>, fallback: String) -> String:
+  match value:
+    case Some{path}: path
+    case None{}: fallback
+
+def source_child_request(source: Maybe<&2, String>, request: Request) -> Request:
+  match request:
+    case Request{facts, path, name, expected, depth, state}:
+      Request{facts, source_path(source, path), name, expected, depth, state}
+    case ReferencesRequest{items, facts, path, owner, index, depth, state}:
+      ReferencesRequest{items, facts, path, owner, index, depth, state}
+
 def local_conflict(imported: Maybe<&2, Core.ImportBinding>, declaration: Core.Declaration,
     state: State, facts: Core.Facts, path: String, symbol: String, depth: Nat,
     +expected: Core.ExpectedKind, recurse: Request -> Build) -> ReferenceResult:
   match imported declaration:
     case Some{_} _: omitted(state, symbol, Core.UnsupportedTarget{})
-    case None{} Core.Declaration{_, identity, function, _, _}:
-      local_kind(matches(expected, function), state, facts, path, symbol, depth, expected, identity, recurse)
+    case None{} Core.Declaration{_, identity, function, _, _, source}:
+      local_kind(matches(expected, function), state, facts, path, symbol, depth, expected, identity,
+        next => recurse(source_child_request(source, next)))
 
 def import_budget(permit: Bool, imported: Maybe<&2, Core.ImportBinding>, state: State, path: String,
     symbol: String, owner: Nat, index: Nat, depth: Nat, expected: Core.ExpectedKind) -> ReferenceResult:
@@ -236,7 +251,7 @@ def other_key(imported: Maybe<&2, Core.ImportBinding>, path: String, symbol: Str
 
 def identity_key(local: Maybe<&2, Core.Declaration>, imported: Maybe<&2, Core.ImportBinding>, path: String, symbol: String) -> String:
   match local:
-    case Some{Core.Declaration{_, identity, _, _, _}}: identity
+    case Some{Core.Declaration{_, identity, _, _, _, _}}: identity
     case None{}: other_key(imported, path, symbol)
 
 def ordinary_found(+local: Maybe<&2, Core.Declaration>, +imported: Maybe<&2, Core.ImportBinding>,
@@ -291,7 +306,7 @@ def bundle_found(found: Maybe<&2, Core.Declaration>, identity: String, +expected
     state: State, path: String, symbol: String, owner: Nat, index: Nat, depth: Nat) -> ReferenceResult:
   match found:
     case None{}: omitted(state, symbol, Core.UnsupportedTarget{})
-    case Some{Core.Declaration{handle, +actual_id, function, bundled, _}}:
+    case Some{Core.Declaration{handle, +actual_id, function, bundled, _, _}}:
       bundle_admission(Bool.and(bundled, Bool.and(String.eq(identity, actual_id), matches(expected, function))),
         state, path, symbol, owner, index, depth, expected, handle, actual_id)
 
@@ -371,7 +386,7 @@ def walk_declaration(found: Maybe<&2, Core.Declaration>, +facts: Core.Facts, +pa
     +state: State, depth: Nat, recurse: Request -> DispatchResult) -> Build:
   match found:
     case None{}: Missing{state}
-    case Some{Core.Declaration{artifact, identity, _, _, children}}:
+    case Some{Core.Declaration{artifact, identity, _, _, children, _}}:
       tree_result(as_references(recurse(ReferencesRequest{children, facts, path, address(state), 0n, depth,
         enter(state, path, identity)})), address(state), artifact)
 
