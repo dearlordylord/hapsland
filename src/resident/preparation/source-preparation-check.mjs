@@ -47,8 +47,8 @@ try {
   let cases = 0
   for (const bound of [false, true])
     for (const candidates of [[], [11n], [11n, 22n], [11n, 11n]]) {
-      const step = core.initial_after_gates(7n, bound, list(candidates)),
-        commands = []
+      let step = core.initial_after_gates(7n, bound, list(candidates))
+      const commands = []
       const reply = (response) => {
         const request = step.request
         step = core.resume(step, { $: "Reply", invocation: request.invocation, id: request.id, response })

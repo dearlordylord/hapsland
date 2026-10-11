@@ -379,13 +379,18 @@ export function createOwnedArtifactDriver({
           throw new Error("Missing Canonical Launch")
         })
       let taskEntered = false,
-        constructionError
+        constructionError,
+        outcome
+      const failures = []
+      const rememberFailure = (error) => {
+        if (!failures.includes(error)) failures.push(error)
+      }
       try {
         launches.delete(invocation)
         sessions.set(invocation, session)
         machines.set(invocation, (selectMachine ? selectMachine(input) : undefined) ?? machine)
         resources.set(launch.input_handle, { invocation, kind: "input", value: input })
-        return await registry.run(session, async () => {
+        outcome = await registry.run(session, async () => {
           taskEntered = true
           let abortFailure
           const abort = () => {
@@ -436,12 +441,19 @@ export function createOwnedArtifactDriver({
                 hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
                 apply(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
               } catch (error) {
+                rememberFailure(error)
                 try {
                   const child = owner.find(invocation, current().children)
                   if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
-                } finally {
-                  if (leases.has(leaseId))
+                } catch (cleanupError) {
+                  rememberFailure(cleanupError)
+                }
+                if (leases.has(leaseId)) {
+                  try {
                     apply(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
+                  } catch (cleanupError) {
+                    rememberFailure(cleanupError)
+                  }
                 }
                 throw error
               } finally {
@@ -451,6 +463,7 @@ export function createOwnedArtifactDriver({
             if (abortFailure) throw abortFailure
             return finished.get(invocation)
           } catch (error) {
+            rememberFailure(error)
             const child = owner.find(invocation, current().children)
             if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
             throw error
@@ -461,66 +474,75 @@ export function createOwnedArtifactDriver({
           }
         })
       } catch (error) {
-        const child = owner.find(invocation, current().children)
-        if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
-        if (!taskEntered && child.$ === "Some" && child.value.scope.$ === "AdviceTailScope") {
-          constructionError = error
-          session.forceCleanup?.(error)
-        }
-        throw error
-      } finally {
+        rememberFailure(error)
         try {
-          await finishSession(session)
-        } finally {
-          if (constructionError) {
-            const child = owner.find(invocation, current().children)
-            if (child.$ === "Some" && owner.child_active(child.value)) {
-              if (child.value.lease.$ !== "None") throw new Error("Construction failure still owns a provider lease")
-              if (!finalizedSessions.has(session) && !registry.hasCleanup(session))
-                throw new Error("Construction cleanup has no registered owner")
-              // finishSession either discharged cleanup or synchronously registered its retry.
-              const id = save(invocation, "result", {
-                $: "AdviceTailStopped",
-                reason: constructionError,
-                cleanupPending: !finalizedSessions.has(session)
-              })
-              try {
-                apply(invoke("terminal", invocation, child.value.generation, id))
-              } finally {
-                release(id, invocation)
-              }
-            }
+          const child = owner.find(invocation, current().children)
+          if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+          if (!taskEntered && child.$ === "Some" && child.value.scope.$ === "AdviceTailScope") {
+            constructionError = failures[0]
+            session.forceCleanup?.(constructionError)
           }
-          const releaseInvocation = () => {
-            try {
-              engine(invocation).disposeInvocation(invocation)
-            } finally {
-              machines.delete(invocation)
-              sessions.delete(invocation)
-              finished.delete(invocation)
-              for (const [id, held] of resources) if (held.invocation === invocation) release(id, invocation)
-              // registry.run owns close when it registered; construction failure does not.
-              if (!taskEntered && registry.get(Number(invocation)) !== session) session.close?.()
-            }
-          }
-          const authority = owner.find(invocation, current().children)
-          if (
-            authority.$ === "Some" &&
-            authority.value.scope.$ === "SourceScope" &&
-            owner.child_active(authority.value)
-          ) {
-            // A rejected interrupt is not a closed Source. Preserve its exact opaque
-            // handles and session as a visible registry obligation until the closed
-            // owner transition succeeds; no host finalizer edits Canonical work.
-            registry.retainCleanup(session, async () => {
-              const pending = owner.find(invocation, current().children)
-              if (pending.$ === "Some" && owner.child_active(pending.value)) apply(invoke("cancel", invocation))
-              await finishSession(session)
-              releaseInvocation()
-            })
-          } else releaseInvocation()
+        } catch (cleanupError) {
+          rememberFailure(cleanupError)
         }
       }
+      const releaseInvocation = () => {
+        // Keep the selected engine/session reachable if native close fails.
+        if (!taskEntered && registry.get(Number(invocation)) !== session) session.close?.()
+        engine(invocation).disposeInvocation(invocation)
+        machines.delete(invocation)
+        sessions.delete(invocation)
+        finished.delete(invocation)
+        for (const [id, held] of resources) if (held.invocation === invocation) release(id, invocation)
+      }
+      const completeInvocation = async () => {
+        let child = owner.find(invocation, current().children)
+        if (child.$ === "Some" && child.value.lease.$ !== "None")
+          throw new Error("Finalization still owns a provider lease")
+        // Call finish directly here: a failing retry must not replace its registry
+        // obligation, or a subsequent successful retry cannot discharge that owner.
+        if (!finalizedSessions.has(session)) {
+          await session.finish?.()
+          finalizedSessions.add(session)
+        }
+        if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
+          const id = save(invocation, "result", {
+            $: "AdviceTailStopped",
+            reason: constructionError,
+            cleanupPending: false
+          })
+          try {
+            apply(invoke("terminal", invocation, child.value.generation, id))
+          } finally {
+            release(id, invocation)
+          }
+        }
+        child = owner.find(invocation, current().children)
+        if (child.$ === "Some" && owner.child_active(child.value)) {
+          apply(invoke("cancel", invocation))
+          child = owner.find(invocation, current().children)
+          if (child.$ === "Some" && owner.child_active(child.value))
+            throw new Error("Finalization has no closed Canonical owner")
+        }
+        releaseInvocation()
+      }
+      try {
+        await completeInvocation()
+      } catch (error) {
+        rememberFailure(error)
+        registry.retainCleanup(session, completeInvocation)
+      }
+      if (failures.length === 1) throw failures[0]
+      if (failures.length > 1) {
+        let primary = failures[0]
+        const seen = new Set()
+        while (primary instanceof AggregateError && primary.cause !== undefined && !seen.has(primary.cause)) {
+          seen.add(primary)
+          primary = primary.cause
+        }
+        throw new AggregateError(failures, "Invocation and finalization failed", { cause: primary })
+      }
+      return outcome
     },
     constructionFailed(invocation) {
       apply(invoke("cancel", BigInt(invocation)))

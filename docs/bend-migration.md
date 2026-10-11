@@ -129,11 +129,17 @@ One current obstacle list, in execution order:
 
 1. Finish relocation dependency and nominal ABI qualification; remove obsolete
    representations and historical runners after identifying the retained closure.
-   Secure the actual source checkpoint on the remote working branch immediately.
+   Actual sources are secured on the remote working branch at `61cae888`;
+   subsequent source changes require another pushed checkpoint.
 2. Make changed source coverage explicit in lint, TypeScript, Bend and focused
    consumer gates; qualify new paths against actual resident and resolver consumers.
 3. Close whole error/custody correspondence: precommit failures, constructor
-   failures, round-bound retained inspection and multi-unit finalization.
+   failures, round-bound retained inspection and multi-unit finalization. Constructor
+   plus cleanup failure is covered by an actual Canonical AdviceTail fixture:
+   both errors survive, acceptance/release waits for its registered retry, and
+   retry discharges every retained resource. The relocated full Source consumer
+   passed 50 cases (5,554 requests), including 25 native whole comparisons.
+   Whole universal custody/Cause proofs and other finalization cases remain open.
 4. Complete supported Go/session, extraction, classification and rendering scope;
    discharge the agreed whole-unit laws and proofs.
 5. Connect launch, lifecycle, cancellation, acceptance and progression through
@@ -141,7 +147,10 @@ One current obstacle list, in execution order:
    algorithms and orchestration, then qualify the full composed consumer.
 6. Pass required local gates and paired build/execution parity on that connected
    candidate. Previous measurements qualify only their original source paths and
-   inputs; source moves do not inherit their qualification.
+   inputs; source moves do not inherit their qualification. Current relocated
+   production cadence: build qualified but failed parity (`1.4407631441036857`);
+   execution qualified and passed (`0.6953556257858333`). These measurements
+   cover the existing production analyzer, not adoption of the preparation candidate.
 
 Relocation and source backup do not increase the amount of connected production
 Bend or deleted production TypeScript. Keep this list current by removing closed
