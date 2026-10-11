@@ -754,20 +754,6 @@ def fresh_nodes_exclude_prior(items: List<&2, F.Node>, +episode: Nat, +prior: Na
 
 # The complete slot ownership guard is preserved across allocation, including
 # interleaved slots and retained nodes that no longer have a rendered parent.
-def node_count_append(items: List<&2, Local.PlannedNode>, +suffix: List<&2, Local.PlannedNode>, +query: Nat) ->
-    {P.node_count(List.append(&2, Local.PlannedNode, items, suffix), query)
-      == (P.node_count(items, query) + P.node_count(suffix, query) : Nat) : Nat}:
-  match items:
-    case []: {==}
-    case Local.PlannedNode{+id, _} <> +tail:
-      %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, tail, suffix), query),
-        (P.node_count(tail, query) + P.node_count(suffix, query) : Nat), node_count_append(tail, suffix, query)):
-        {(Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n) + _ : Nat)
-          == ((Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n) + P.node_count(tail, query) : Nat) + P.node_count(suffix, query) : Nat) : Nat}
-      Equal.sym(Nat,
-        ((Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n) + P.node_count(tail, query) : Nat) + P.node_count(suffix, query) : Nat),
-        (Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n) + (P.node_count(tail, query) + P.node_count(suffix, query) : Nat) : Nat),
-        Arithmetic.add_assoc(Bool.pick(Nat, Nat.is_eq(query, id), 1n, 0n), P.node_count(tail, query), P.node_count(suffix, query)))
 
 def shifted_nodes_exclude_parent(items: List<&2, Local.PlannedNode>, +offset: Nat, +owner: Nat,
     +below: {Nat.is_lt(owner, offset) == True{} : Bool}) ->
@@ -796,7 +782,7 @@ def parent_owned_appended(items: List<&2, Local.ReferenceSlot>, +parents: List<&
       B.and_eq_true(Nat.is_eq(P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), id), 1n),
         P.slots_owned(tail, List.append(&2, Local.PlannedNode, parents, shifted)),
         %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), id),
-          (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), node_count_append(parents, shifted, id)):
+          (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), Contents.node_count_append(parents, shifted, id)):
           {Nat.is_eq(_, 1n) == True{} : Bool}
         %Equal.sym(Nat, P.node_count(shifted, id), 0n,
           shifted_nodes_exclude_parent(children, offset, id, dense_owner_below(parents, id, dense, one))):
@@ -823,7 +809,7 @@ def child_owned_appended(items: List<&2, Local.ReferenceSlot>, +parents: List<&2
       B.and_eq_true(Nat.is_eq(P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), query), 1n),
         P.slots_owned(Compose.shift_slots(tail, offset), List.append(&2, Local.PlannedNode, parents, shifted)),
         %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), query),
-          (P.node_count(parents, query) + P.node_count(shifted, query) : Nat), node_count_append(parents, shifted, query)):
+          (P.node_count(parents, query) + P.node_count(shifted, query) : Nat), Contents.node_count_append(parents, shifted, query)):
           {Nat.is_eq(_, 1n) == True{} : Bool}
         %Equal.sym(Nat, P.node_count(parents, query), 0n,
           dense_count_upper(parents, 0n, query, dense, N.add_le_add_right(0n, id, offset, N.zero_le(id)))):
@@ -894,7 +880,7 @@ def forward_reference_appended(reference: Local.PlannedReference, +later: List<&
       +one: {P.node_count(later, id) == 1n : Nat} = N.eq_of_is_eq(P.node_count(later, id), 1n, forward)
       %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, later, Compose.shift_nodes(children, offset)), id),
         (P.node_count(later, id) + P.node_count(Compose.shift_nodes(children, offset), id) : Nat),
-        node_count_append(later, Compose.shift_nodes(children, offset), id)):
+        Contents.node_count_append(later, Compose.shift_nodes(children, offset), id)):
         {Nat.is_eq(_, 1n) == True{} : Bool}
       %Equal.sym(Nat, P.node_count(Compose.shift_nodes(children, offset), id), 0n,
         shifted_nodes_exclude_parent(children, offset, id, dense_owner_room(later, start, id, offset, dense, room, one))):
@@ -1040,44 +1026,6 @@ def aligned_absent_lookup(nodes: List<&2, Local.PlannedNode>, entries: List<&2, 
       Empty.absurd({F.address_at(entries, query) == None{} : Maybe<&2, O.NodeAddress>}, B.internal_false_ne_true(aligned))
 
 # Keep the same complete uniqueness domain while moving the paired cursor.
-def aligned_append_fixed(nodes: List<&2, Local.PlannedNode>, entries: List<&2, F.AddressEntry>,
-    +suffix_nodes: List<&2, Local.PlannedNode>, +suffix_entries: List<&2, F.AddressEntry>,
-    +all_nodes: List<&2, Local.PlannedNode>, +all_entries: List<&2, F.AddressEntry>,
-    +first: {P.aligned(nodes, entries, all_nodes, all_entries) == True{} : Bool},
-    +last: {P.aligned(suffix_nodes, suffix_entries, all_nodes, all_entries) == True{} : Bool}) ->
-    {P.aligned(List.append(&2, Local.PlannedNode, nodes, suffix_nodes),
-      List.append(&2, F.AddressEntry, entries, suffix_entries), all_nodes, all_entries) == True{} : Bool}:
-  match nodes entries:
-    case Nil{} Nil{}: last
-    case Con{Local.PlannedNode{+id, _}, +tail} Con{F.AddressEntry{+other, +birth}, +rest}:
-      +after_id: {Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
-        Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))) == True{} : Bool} =
-        B.eq_true_of_and_right(Nat.is_eq(id, other),
-          Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
-            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), first)
-      +after_count: {Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)) == True{} : Bool} =
-        B.eq_true_of_and_right(Nat.is_eq(P.node_count(all_nodes, id), 1n),
-          Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)), after_id)
-      +combined: Bool = P.aligned(List.append(&2, Local.PlannedNode, tail, suffix_nodes),
-        List.append(&2, F.AddressEntry, rest, suffix_entries), all_nodes, all_entries)
-      B.and_eq_true(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
-        Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), combined)),
-        B.eq_true_of_and_left(Nat.is_eq(id, other),
-          Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
-            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries))), first),
-        B.and_eq_true(Nat.is_eq(P.node_count(all_nodes, id), 1n), Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), combined),
-          B.eq_true_of_and_left(Nat.is_eq(P.node_count(all_nodes, id), 1n),
-            Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries)), after_id),
-          B.and_eq_true(Nat.is_eq(P.address_count(all_entries, birth), 1n), combined,
-            B.eq_true_of_and_left(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries), after_count),
-            aligned_append_fixed(tail, rest, suffix_nodes, suffix_entries, all_nodes, all_entries,
-              B.eq_true_of_and_right(Nat.is_eq(P.address_count(all_entries, birth), 1n), P.aligned(tail, rest, all_nodes, all_entries), after_count), last))))
-    case Nil{} Con{_, _}:
-      Empty.absurd({P.aligned(List.append(&2, Local.PlannedNode, nodes, suffix_nodes),
-        List.append(&2, F.AddressEntry, entries, suffix_entries), all_nodes, all_entries) == True{} : Bool}, B.internal_false_ne_true(first))
-    case Con{_, _} Nil{}:
-      Empty.absurd({P.aligned(List.append(&2, Local.PlannedNode, nodes, suffix_nodes),
-        List.append(&2, F.AddressEntry, entries, suffix_entries), all_nodes, all_entries) == True{} : Bool}, B.internal_false_ne_true(first))
 
 def cursor_address_lookup(+prefix_nodes: List<&2, Local.PlannedNode>, +prefix_entries: List<&2, F.AddressEntry>,
     +all_nodes: List<&2, Local.PlannedNode>, +all_entries: List<&2, F.AddressEntry>,
@@ -1172,7 +1120,7 @@ def projected_address_count_cursor(nodes: List<&2, Local.PlannedNode>, entries: 
             {Nat.is_le(start, _) == True{} : Bool}
           N.le_refl(start), current)
       +next_aligned: {P.aligned(next_nodes, next_entries, all_nodes, all_entries) == True{} : Bool} =
-        aligned_append_fixed(prefix_nodes, prefix_entries, [Local.PlannedNode{id, handle}], [F.AddressEntry{other, birth}],
+        Contents.aligned_append_fixed(prefix_nodes, prefix_entries, [Local.PlannedNode{id, handle}], [F.AddressEntry{other, birth}],
           all_nodes, all_entries, prefix_aligned,
           B.and_eq_true(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(all_nodes, id), 1n),
             Bool.and(Nat.is_eq(P.address_count(all_entries, birth), 1n), True{})),
@@ -1346,46 +1294,9 @@ def parent_entries_exclude_child_address(+parents: List<&2, Local.PlannedNode>, 
           {F.count_address(parent_values, O.NodeAddress{_, route}) == 0n : Nat}
         prior_nodes_exclude_fresh(parent_values, episode, route, parent_before))
 
-def address_count_append(items: List<&2, F.AddressEntry>, +suffix: List<&2, F.AddressEntry>, +target: O.NodeAddress) ->
-    {P.address_count(List.append(&2, F.AddressEntry, items, suffix), target)
-      == (P.address_count(items, target) + P.address_count(suffix, target) : Nat) : Nat}:
-  match items:
-    case []: {==}
-    case F.AddressEntry{_, +birth} <> +tail:
-      %Equal.sym(Nat, P.address_count(List.append(&2, F.AddressEntry, tail, suffix), target),
-        (P.address_count(tail, target) + P.address_count(suffix, target) : Nat), address_count_append(tail, suffix, target)):
-        {(Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + _ : Nat)
-          == ((Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + P.address_count(tail, target) : Nat) + P.address_count(suffix, target) : Nat) : Nat}
-      Equal.sym(Nat,
-        ((Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + P.address_count(tail, target) : Nat) + P.address_count(suffix, target) : Nat),
-        (Bool.pick(Nat, F.same_address(target, birth), 1n, 0n) + (P.address_count(tail, target) + P.address_count(suffix, target) : Nat) : Nat),
-        Arithmetic.add_assoc(Bool.pick(Nat, F.same_address(target, birth), 1n, 0n), P.address_count(tail, target), P.address_count(suffix, target)))
 
 # One paired row changes its uniqueness domain; callers supply the exact
 # recursive tail and count equations, without duplicating linear closures.
-def aligned_context_row(+id: Nat, +other: Nat, +artifact: Nat, +birth: O.NodeAddress,
-    +tail: List<&2, Local.PlannedNode>, +rest: List<&2, F.AddressEntry>,
-    +old_nodes: List<&2, Local.PlannedNode>, +old_entries: List<&2, F.AddressEntry>,
-    +new_nodes: List<&2, Local.PlannedNode>, +new_entries: List<&2, F.AddressEntry>,
-    aligned: {P.aligned(Local.PlannedNode{id, artifact} <> tail, F.AddressEntry{other, birth} <> rest, old_nodes, old_entries) == True{} : Bool},
-    node_count: {P.node_count(new_nodes, id) == 1n : Nat},
-    address_count: {P.address_count(new_entries, birth) == 1n : Nat},
-    tail_aligned: {P.aligned(tail, rest, new_nodes, new_entries) == True{} : Bool}) ->
-    {P.aligned(Local.PlannedNode{id, artifact} <> tail, F.AddressEntry{other, birth} <> rest, new_nodes, new_entries) == True{} : Bool}:
-  B.and_eq_true(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(new_nodes, id), 1n),
-    Bool.and(Nat.is_eq(P.address_count(new_entries, birth), 1n), P.aligned(tail, rest, new_nodes, new_entries))),
-    B.eq_true_of_and_left(Nat.is_eq(id, other),
-      Bool.and(Nat.is_eq(P.node_count(old_nodes, id), 1n),
-        Bool.and(Nat.is_eq(P.address_count(old_entries, birth), 1n), P.aligned(tail, rest, old_nodes, old_entries))), aligned),
-    B.and_eq_true(Nat.is_eq(P.node_count(new_nodes, id), 1n),
-      Bool.and(Nat.is_eq(P.address_count(new_entries, birth), 1n), P.aligned(tail, rest, new_nodes, new_entries)),
-      %Equal.sym(Nat, P.node_count(new_nodes, id), 1n, node_count):
-        {Nat.is_eq(_, 1n) == True{} : Bool}
-      {==},
-      B.and_eq_true(Nat.is_eq(P.address_count(new_entries, birth), 1n), P.aligned(tail, rest, new_nodes, new_entries),
-        %Equal.sym(Nat, P.address_count(new_entries, birth), 1n, address_count):
-          {Nat.is_eq(_, 1n) == True{} : Bool}
-        {==}, tail_aligned)))
 
 # Numeric counts in the full allocation domain: the prefix ends strictly
 # before every shifted child ID, irrespective of the child list's ordering.
@@ -1396,7 +1307,7 @@ def appended_parent_node_count(+parents: List<&2, Local.PlannedNode>, +children:
   +offset: Nat = List.length(&2, Local.PlannedNode, parents)
   +shifted: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
   %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), id),
-    (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), node_count_append(parents, shifted, id)):
+    (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), Contents.node_count_append(parents, shifted, id)):
     {_ == 1n : Nat}
   %Equal.sym(Nat, P.node_count(shifted, id), 0n,
     shifted_nodes_exclude_parent(children, offset, id, dense_owner_below(parents, id, dense, counted))):
@@ -1424,7 +1335,7 @@ def appended_child_node_count(+parents: List<&2, Local.PlannedNode>, +children: 
   +offset: Nat = List.length(&2, Local.PlannedNode, parents)
   +shifted: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
   %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), id),
-    (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), node_count_append(parents, shifted, id)):
+    (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), Contents.node_count_append(parents, shifted, id)):
     {_ == 1n : Nat}
   %Equal.sym(Nat, P.node_count(parents, id), 0n,
     dense_count_upper(parents, 0n, id, dense,
@@ -1441,7 +1352,7 @@ def appended_parent_address_count(+parents: List<&2, F.AddressEntry>, +children:
     {P.address_count(List.append(&2, F.AddressEntry, parents, Mapping.shifted(children, offset)), target) == 1n : Nat}:
   %Equal.sym(Nat, P.address_count(List.append(&2, F.AddressEntry, parents, Mapping.shifted(children, offset)), target),
     (P.address_count(parents, target) + P.address_count(Mapping.shifted(children, offset), target) : Nat),
-    address_count_append(parents, Mapping.shifted(children, offset), target)):
+    Contents.address_count_append(parents, Mapping.shifted(children, offset), target)):
     {_ == 1n : Nat}
   %Remap.address_count(children, target, offset):
     {(P.address_count(parents, target) + _ : Nat) == 1n : Nat}
@@ -1458,7 +1369,7 @@ def appended_child_address_count(+parents: List<&2, F.AddressEntry>, +children: 
     {P.address_count(List.append(&2, F.AddressEntry, parents, Mapping.shifted(children, offset)), target) == 1n : Nat}:
   %Equal.sym(Nat, P.address_count(List.append(&2, F.AddressEntry, parents, Mapping.shifted(children, offset)), target),
     (P.address_count(parents, target) + P.address_count(Mapping.shifted(children, offset), target) : Nat),
-    address_count_append(parents, Mapping.shifted(children, offset), target)):
+    Contents.address_count_append(parents, Mapping.shifted(children, offset), target)):
     {_ == 1n : Nat}
   %Equal.sym(Nat, P.address_count(parents, target), 0n, absent):
     {(_ + P.address_count(Mapping.shifted(children, offset), target) : Nat) == 1n : Nat}
@@ -1499,7 +1410,7 @@ def aligned_parent_appended(nodes: List<&2, Local.PlannedNode>, entries: List<&2
       +address_one: {P.address_count(parent_entries, birth) == 1n : Nat} =
         N.eq_of_is_eq(P.address_count(parent_entries, birth), 1n,
           B.eq_true_of_and_left(Nat.is_eq(P.address_count(parent_entries, birth), 1n), P.aligned(tail, rest, parents, parent_entries), after_count))
-      aligned_context_row(id, other, artifact, birth, tail, rest, parents, parent_entries,
+      Contents.aligned_context_row(id, other, artifact, birth, tail, rest, parents, parent_entries,
         List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))),
         List.append(&2, F.AddressEntry, parent_entries, Mapping.shifted(child_entries, List.length(&2, Local.PlannedNode, parents))), aligned,
         appended_parent_node_count(parents, children, id, parent_dense, node_one),
@@ -1553,7 +1464,7 @@ def aligned_child_appended(nodes: List<&2, Local.PlannedNode>, entries: List<&2,
       +address_one: {P.address_count(shifted_entries, birth) == 1n : Nat} =
         N.eq_of_is_eq(P.address_count(shifted_entries, birth), 1n,
           B.eq_true_of_and_left(Nat.is_eq(P.address_count(shifted_entries, birth), 1n), P.aligned(tail, rest, shifted_nodes, shifted_entries), after_count))
-      aligned_context_row(id, other, artifact, birth, tail, rest, shifted_nodes, shifted_entries,
+      Contents.aligned_context_row(id, other, artifact, birth, tail, rest, shifted_nodes, shifted_entries,
         List.append(&2, Local.PlannedNode, parents, shifted_nodes),
         List.append(&2, F.AddressEntry, parent_entries, shifted_entries), aligned,
         appended_child_node_count(parents, children, id, parent_dense, node_one),
@@ -1595,7 +1506,7 @@ def appended_aligned(
   +offset: Nat = List.length(&2, Local.PlannedNode, parents)
   +shifted_nodes: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
   +shifted_entries: List<&2, F.AddressEntry> = Mapping.shifted(child_entries, offset)
-  aligned_append_fixed(parents, parent_entries, shifted_nodes, shifted_entries,
+  Contents.aligned_append_fixed(parents, parent_entries, shifted_nodes, shifted_entries,
     List.append(&2, Local.PlannedNode, parents, shifted_nodes),
     List.append(&2, F.AddressEntry, parent_entries, shifted_entries),
     aligned_parent_appended(parents, parent_entries, parents, parent_slots, parent_entries, parent_values, children, child_slots, child_entries, child_values, catalog, episode,
