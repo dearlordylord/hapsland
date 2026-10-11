@@ -197,7 +197,11 @@ One current obstacle list, in execution order:
    remain failures, not qualification. Next original root is
    ATTACHMENT_TRANSACTION_LAWS.attachment_transaction_exact: nine equalities
    for one witness, actual/reference EncodeProduct, staged frame, arbitrary
-   Reply boundary and unchanged World. Parent-law closure does not close this
+   Reply boundary and unchanged World. Actual-ready inversion and the ninth
+   unchanged-World claim now pass with the full definition prefix at 4.404
+   seconds under hard five seconds on CPU10, for arbitrary replies and
+   validation outcomes (/tmp/astra-transaction-world.log). The first eight
+   transaction claims and its full original body remain open. Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.
 
