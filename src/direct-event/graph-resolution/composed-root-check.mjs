@@ -13,10 +13,8 @@ import {
 } from "../../../packages/native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../packages/native-observation/dist/direct-event/capture.js"
 import { createServiceRegistry } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.mjs"
-import {
-  createBendResolver,
-  pureReply
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.mjs"
+import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.mjs"
+import { createVerificationResolver as createBendResolver } from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
 import { createArtifactMachine } from "../../../packages/resident-runtime/src/resident/review-work/composition/artifact-dispatcher.mjs"
 const temp = await mkdtemp("/tmp/hapsland-composed-root-")
 try {

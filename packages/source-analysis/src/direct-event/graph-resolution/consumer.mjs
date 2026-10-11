@@ -1,6 +1,5 @@
 import { artifactValueTag, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import * as Effect from "effect/Effect"
-import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import { createServiceSession } from "./service-session.mjs"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax, parsePythonSyntax } from "./frontends.ts"
 import {
@@ -11,7 +10,6 @@ import {
 } from "../../../../native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../../native-observation/dist/direct-event/capture.js"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
-import { readNat } from "../../../../canonical-policy/dist/canonical/boundary-schema.js"
 
 const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 // Only the emitted Nat ABI is converted here; graph decisions remain in Bend.
@@ -27,71 +25,17 @@ export function pureReply(value) {
   return value
 }
 
-export function createMachineDriver({ machine, foreign, registry, observeTransition, observeFinished, trace = false }) {
-  return (session, input, options = {}) =>
-    registry.run(session, async () => {
-      if (options.signal?.aborted) throw new TransportFailure("aborted")
-      let state = machine.initial(input)
-      const operations = trace ? [] : undefined
-      for (;;) {
-        const step = machine.view ? machine.view(state) : state.step
-        if (!step) throw new Error("unsettled Bend continuation")
-        if (step.$ === "Types.FinishedResolver") {
-          observeFinished?.(step)
-          return { result: step.result, finalFrame: step.final_frame, trace: operations }
-        }
-        if (step.$ === "Types.FailedResolver") {
-          if (step.failure.$ === "Types.ForeignProviderFailure") throw session.exception(step.failure.exception)
-          if (step.failure.$ === "Types.NegativeGraphWork") readNat(-Number(step.failure.magnitude))
-          return { failure: step.failure, trace: operations }
-        }
-        if (step.$ !== "Types.AwaitService") throw new Error("invalid Bend service step")
-        operations?.push(step.request.operation.$)
-        const reply = pureReply(await foreign([step.request], options))
-        if (options.signal?.aborted) throw new TransportFailure("aborted")
-        observeTransition?.(step, reply)
-        state = machine.resume(state, tagged("ServiceReply", { reply }))
-      }
-    })
-}
-
-export function createIODriver({ resolve, registry }) {
-  return (session, input, options) =>
-    registry.run(session, async () => {
-      const state = await resolve([input], options)
-      if (state.$ === "Types.RuntimeFinished") return { result: state.result }
-      if (state.$ === "Types.RuntimeFailed") {
-        if (state.failure.$ === "Types.ForeignProviderFailure") throw session.exception(state.failure.exception)
-        if (state.failure.$ === "Types.NegativeGraphWork") readNat(-Number(state.failure.magnitude))
-        return { failure: state.failure }
-      }
-      if (state.$ !== "Loop.ServiceStep") throw new Error("unsettled Bend IO continuation")
-      const step = state.step
-      if (step.$ === "Types.FinishedResolver") return { result: step.result, finalFrame: step.final_frame }
-      if (step.$ !== "Types.FailedResolver") throw new Error("Bend IO returned before terminal")
-      if (step.failure.$ === "Types.ForeignProviderFailure") throw session.exception(step.failure.exception)
-      if (step.failure.$ === "Types.NegativeGraphWork") readNat(-Number(step.failure.magnitude))
-      return { failure: step.failure }
-    })
-}
-
-export function createBendResolver({
-  machine,
-  foreign,
-  registry,
-  resolveIO,
-  observeProduct,
-  drive: ownedDrive,
-  allocateInvocation,
-  onConstructionFailure
-}) {
-  const drive =
-    ownedDrive ??
-    (resolveIO ? createIODriver({ resolve: resolveIO, registry }) : createMachineDriver({ machine, foreign, registry }))
-  let invocation = 0
+export function createBendResolver({ observeProduct, drive: ownedDrive, allocateInvocation, onConstructionFailure }) {
+  if (
+    typeof ownedDrive !== "function" ||
+    typeof allocateInvocation !== "function" ||
+    typeof onConstructionFailure !== "function"
+  )
+    throw new Error("Resolver requires its owning Canonical driver")
+  const drive = ownedDrive
   return async (path, capture, name, context, options = {}) => {
     const limits = { ...GRAPH_LIMIT_CEILINGS, ...context.limits }
-    const activeInvocation = allocateInvocation ? allocateInvocation() : ++invocation
+    const activeInvocation = allocateInvocation()
     let session, input
     try {
       session = createServiceSession({

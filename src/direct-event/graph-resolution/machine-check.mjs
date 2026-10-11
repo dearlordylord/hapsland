@@ -27,9 +27,9 @@ import { GRAPH_LIMIT_CEILINGS } from "../../../packages/canonical-policy/dist/ca
 import {
   createMachineDriver,
   createIODriver,
-  createBendEffectResolver,
-  pureReply
-} from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.mjs"
+  createVerificationEffectResolver as createBendEffectResolver
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/verification/resolver-driver.mjs"
+import { pureReply } from "../../../packages/source-analysis/src/direct-event/graph-resolution/consumer.mjs"
 import { createGraphFixtures } from "./fixtures.mjs"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),

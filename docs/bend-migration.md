@@ -198,6 +198,20 @@ One current obstacle list, in execution order:
    The full source consumer passed all 50 cases after these frontend changes;
    check:fast again passed 109 tests and source typechecking, then failed the same
    five unresolved, 47 undeclared and 210 private cross-owner imports.
+   After driver extraction, check:fast again reaches development-import enforcement
+   and reports five unresolved, 47 undeclared and 212 private cross-owner imports;
+   the remaining opaque package boundary must replace those private helper edges.
+   The resolver factory now requires its owned drive, invocation allocator and
+   construction-failure callback. Its standalone machine/IO drivers and counter
+   live only in the verification owner; production no longer selects that fallback.
+   Actual Canonical-owned resident 13 and whole source 50 cases passed. The
+   standalone machine check still rejects local Child expansion (unsupported
+   instead of expanded); the pre-change factory/driver from bb343b0a reproduced
+   the same failure against current frontends/artifacts. This isolates today's
+   driver extraction, not the broader semantic fault, which remains an acceptance
+   blocker. Construction cleanup must preserve all falsy failure occurrences and
+   retain pending session/invocation obligations through the existing owner registry;
+   an inactive child alone cannot discharge failed Canonical cancellation actions.
    Source-analysis still needs an opaque resolver/session capability. Resident's
    physical binding must move fixture defaults and native comparisons into its
    verification adapter, and enter ordinary typed compilation. The public native

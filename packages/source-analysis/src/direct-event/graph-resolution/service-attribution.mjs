@@ -1,3 +1,4 @@
+import { createVerificationResolver } from "./verification/resolver-driver.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "node:fs"
@@ -170,13 +171,16 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
       '\nconst fromProductValue=value=>timedSync("result-conversion",()=>originalFromProductValue(value));\n'
   )
   const { createBendResolver } = await import(pathToFileURL(consumerCopy))
-  const candidate = createBendResolver({
-    resolveIO: createDispatcher(
-      (input) => timedSync("continuation", () => observe(program.resolve(input)((value) => ({ $: "Emit", value })))),
-      handlers
-    ),
-    registry
-  })
+  const candidate = createVerificationResolver(
+    {
+      resolveIO: createDispatcher(
+        (input) => timedSync("continuation", () => observe(program.resolve(input)((value) => ({ $: "Emit", value })))),
+        handlers
+      ),
+      registry
+    },
+    createBendResolver
+  )
   const fixtures = createGraphFixtures()
     .filter((fixture) => selected.includes(fixture.name))
     .map((fixture) => {

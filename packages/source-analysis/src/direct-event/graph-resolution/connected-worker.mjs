@@ -14,7 +14,7 @@ import { captureStable } from "../../../../native-observation/dist/direct-event/
 import { discoverPhysicalWorkingTreeRoot } from "../../../../native-observation/dist/repository/root.js"
 import { createDispatcher } from "./runtime-observation/transport.mjs"
 import { createServiceRegistry } from "./service-session.mjs"
-import { createBendEffectResolver } from "./consumer.mjs"
+import { createVerificationEffectResolver as createBendEffectResolver } from "./verification/resolver-driver.mjs"
 import { createGraphFixtures } from "../../../../../src/direct-event/graph-resolution/fixtures.mjs"
 import { packageRuntime } from "./package-runtime.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
