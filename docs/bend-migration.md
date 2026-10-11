@@ -228,7 +228,15 @@ One current obstacle list, in execution order:
    assets, source typing and package graph, then failed the same 5 unresolved,
    47 undeclared and 213 private development imports. The dispatcher/finalization
    bindings, private generated artifacts, single package capability entry and
-   resident imports remain the coherent next compiled unit; neither type
+   resident imports remain the coherent next compiled unit. Astra's structural
+   review found no blocking extraction/codec chronology errors. The agreed build
+   path is a declared review-execution precompile recipe for the two private
+   generated JS/declaration pairs, using pinned five-second emissions in staging.
+   Extend the TS owner's authored stamp and compiler receipt with exact Bend
+   import closure, Base, generator/ABI and toolchain/environment identity; recheck
+   before publication and on cache restore. Existing agent-flow producer inventory
+   stays with that owner. Never generate into stamped src or clear package dist
+   twice. The ordinary compiled capability must hide those artifacts. Neither type
    extraction nor terminal-codec emission closes that unit or adopts production.
 
 2. Finish all retained source/proof and ordinary quality gates. The source gate
@@ -336,22 +344,26 @@ One current obstacle list, in execution order:
    inputs, identities, omissions, failures and ownership. Candidate RenderUnits
    replacement alone does not qualify public production adoption.
 6. Pass all selected local acceptance checks and strict paired build/execution
-   parity on the connected candidate. Latest pair at `0044289c` began
-   2026-10-11 07:57:07/08:05:23 UTC: build qualified but failed **1.5609**;
-   execution qualified and passed **0.9944**. Qualification records are in ignored
-   `.test-runs/bend-migration/performance/2026-10-11T07-57-07.066503+00-00/`
-   and `2026-10-11T08-05-23.840963+00-00/`. These cover existing production,
-   not unadopted whole preparation. The starts missed the preceding 30-minute
-   deadlines by 3m34s and 7m53s respectively. Previous build/execution ratios were
-   1.0581/0.8678. Diagnose the production build difference before claiming parity;
-   a successful execution cannot qualify the failed build. Keep new measurements
-   within 30 minutes and freeze their inputs. This pair's baseline used 23/46
-   cached tasks throughout; the candidate's first sample used 13/46 and took
-   72.49s, while its other 16 samples used 23/46. The ten cache misses began at
-   source-artifacts and propagated through its consumers. The final Value.bend
-   EOF correction followed warm preparation, so the next warm preparation must
-   follow every source edit, including formatting, before freezing the pair.
-   This explains the unmatched warm condition; it does not establish parity.
+   parity on the connected candidate. Latest pair at `d35c2fb9` began
+   2026-10-11 08:15:06/08:18:52 UTC: build qualified but failed **1.0827**;
+   execution qualified and passed **0.7633**. All 34 build runs used 23/46 cached
+   tasks; baseline mean was 5.9381s, candidate mean 6.4291s. HEAD, sources and
+   artifact trees stayed unchanged. Qualification records are in ignored
+   `.test-runs/bend-migration/performance/2026-10-11T08-15-06.191786+00-00/`
+   and `2026-10-11T08-18-52.278567+00-00/`. These cover existing production,
+   not unadopted whole preparation. Both starts met the 30-minute cadence.
+   Previous build/execution ratios were 1.5609/0.9944: the first candidate build
+   used 13/46 cached tasks after the Value.bend EOF correction followed warm
+   preparation; its remaining 16 runs and every baseline run used 23/46. That
+   unmatched warm condition is fixed by preparing after all source/format edits;
+   earlier cadence breaches remain observed. Correct warm preparation did not
+   establish build parity. Subsequent isolated CPU profiles both used 23/46,
+   baseline 9.09s and candidate 7.61s; candidate UI preflight sampled 2.20s versus
+   baseline 3.05s. This diagnostic reversal cannot identify a stable regression
+   or replace the failed paired result. Separate shared-CPU timing variation from
+   authored-input/validation overhead before another performance implementation.
+   A successful execution cannot qualify failed build parity. Keep new paired
+   measurements within 30 minutes and freeze their inputs.
 
 Keep this obstacle list current by removing closed work and naming specific
 remaining failures. Source backup, relocation and finite candidate qualification
