@@ -43,6 +43,7 @@ try{
    }else if(['CompletePolicySource','CompleteObservation'].includes(request.command.$)){
     const refusal=core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'CompletionAccepted',value:false}})
     assert.equal(recover(refusal).completed,false)
+    if(request.command.$==='CompleteObservation')assert.deepEqual(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'ObservationCommittedCancelled',token:96n}}),{$:'Stopped',completed:true,reason:{$:'InvocationCancelled',token:96n}})
     if(request.command.$==='CompleteObservation')assert.deepEqual(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'ObservationCommittedDefect',token:95n,recoverable:false}}),{$:'Stopped',completed:true,reason:{$:'DefectFailure',token:95n}})
     if(request.command.$==='CompleteObservation')assert.deepEqual(recover(core.resume(step,{$:'Reply',invocation:7n,id:request.id,response:{$:'ObservationCommittedFailure',token:93n}})),{$:'Stopped',completed:true,reason:{$:'TechnicalFailure',token:93n}})
     reply({$:'CompletionAccepted',value:true})
@@ -79,6 +80,10 @@ try{
   }
   assert.deepEqual(commands,['ObserveCandidateDiagnostic',...extra,'RecordCandidateAnalytics','RecordCandidateUnavailable'])
   assert.equal(step.request.command.candidate,22n);cases++
+ }
+ for(const response of [{$:'Failed',token:101n},{$:'Defect',token:102n,interrupted:false,recoverable:false},{$:'Cancelled',token:103n}]){
+  let step=core.initial_after_gates(7n,true,list([11n]));step=core.resume(step,{$:'Reply',invocation:7n,id:step.request.id,response:{$:'Failed',token:100n}})
+  const stopped=core.resume(step,{$:'Reply',invocation:7n,id:step.request.id,response});assert.equal(stopped.$,'Stopped');assert.equal(stopped.reason.token,response.token);cases++
  }
  console.log(JSON.stringify({passed:true,cases,scope:'emitted source cursor finite protocol/order checks; repeated handles denote distinct ordered positions; atomic completion custody, real child composition and production adoption remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}

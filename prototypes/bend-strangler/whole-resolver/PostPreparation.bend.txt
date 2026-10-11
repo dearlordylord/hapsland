@@ -65,6 +65,7 @@ type Command is Data:
   AdviceCheckExpired{advice: Nat}
   AdviceRemove{advice: Nat, retirement: AdviceRetirement}
   CheckActive{}
+  ReleaseWorkspace{}
   Offer{outcome: Outcome, deliverability: Bool}
   ReportEmptyAnalytics{incomplete: Bool}
   ReportEmptyActivity{incomplete: Bool}
@@ -133,6 +134,7 @@ type Response is Data:
 type Phase is Data:
   PreparedObserved{outcomes: List<&2, Outcome>}
   Begin{outcomes: List<&2, Outcome>}
+  InactiveWorkspace{planned: List<&2, Planned>}
   Admit{rest: List<&2, Outcome>, ready: List<&2, Outcome>}
   Admitting{outcome: Outcome, rest: List<&2, Outcome>, ready: List<&2, Outcome>}
   EmptyAnalytics{}
@@ -330,6 +332,7 @@ def held_plans(phase: Phase) -> List<&2, Planned>:
     case PlansAnalytics{planned, _}: planned
     case OwnerChecked{planned}: planned
     case LiveChecked{planned}: planned
+    case InactiveWorkspace{planned}: planned
     case ReservedUnits{planned, _}: planned
     case ReuseNext{_, continuation}: held_plans(continuation)
     case ReuseAwait{_, _, continuation}: held_plans(continuation)
@@ -378,16 +381,6 @@ def slot_item(slot: Slot) -> Planned:
   match slot:
     case Slot{item, _, _}: item
 
-def own_plan(+item: Planned, rest: List<&2, Planned>) -> List<&2, Planned>:
-  match item:
-    case Planned{_, _, Owner{}}: item <> rest
-    case _: rest
-
-def own_plans(items: List<&2, Planned>) -> List<&2, Planned>:
-  match items:
-    case Nil{}: Nil{}
-    case +item <> rest: own_plan(item, own_plans(rest))
-
 def moved(state: State, phase: Phase) -> State:
   match state:
     case State{invocation, next, bound, incomplete, _}: State{invocation, next, bound, incomplete, phase}
@@ -404,7 +397,7 @@ def cleanup_values(state: State, +slots: List<&2, Slot>, +planned: List<&2, Plan
   await_command(state, Cleaned{slots, planned, revision, reason}, Cleanup{slots, planned, revision})
 
 def cleanup(+state: State, +phase: Phase, reason: Termination) -> Step:
-  cleanup_values(state, held_slots(phase), own_plans(held_plans(phase)), held_revision(phase), reason)
+  cleanup_values(state, held_slots(phase), held_plans(phase), held_revision(phase), reason)
 
 def observation_incomplete(state: State) -> Bool:
   match state:
@@ -597,8 +590,9 @@ def resume_cached(+state: State, +slot: Slot, +revision: Nat, +work: Maybe<&2, N
 def resume_phase(+state: State, +phase: Phase, response: Response) -> Step:
   match phase response:
     case PreparedObserved{outcomes} Ack{}: inside(state, Begin{outcomes})
+    case InactiveWorkspace{_} Ack{}: cleanup(state, phase, Inactive{})
     case Begin{outcomes} Active{True{}}: inside(state, Admit{outcomes, Nil{}})
-    case Begin{_} Active{False{}}: cleanup(state, phase, Inactive{})
+    case Begin{_} Active{False{}}: await_command(state, InactiveWorkspace{Nil{}}, ReleaseWorkspace{})
     case Admitting{outcome, rest, ready} Offered{accepted}: inside(state, Admit{rest, accept_outcome(accepted, outcome, ready)})
     case EmptyAnalytics{} Ack{}: await_command(state, EmptyActivity{}, ReportEmptyActivity{observation_incomplete(state)})
     case EmptyActivity{} Ack{}: await_command(state, ReadyObserved{Nil{}}, ObserveReady{Nil{}})
@@ -613,7 +607,7 @@ def resume_phase(+state: State, +phase: Phase, response: Response) -> Step:
     case OwnerChecked{planned} Ack{}: await_command(state, LiveChecked{planned}, CheckActive{})
     case LiveChecked{+planned} Active{True{}}:
       await_command(state, ReservedUnits{planned, retained(planned)}, CompletePreparation{retained(planned)})
-    case LiveChecked{_} Active{False{}}: cleanup(state, phase, Inactive{})
+    case LiveChecked{planned} Active{False{}}: await_command(state, InactiveWorkspace{planned}, ReleaseWorkspace{})
     case ReservedUnits{planned, +retained} Reserved{allocations}:
       reserved_reply(state, planned, retained, assign_slots(retained, allocations))
     case ReuseAwait{_, _, _} Defect{token}: cleanup(state, phase, DefectFailure{token})

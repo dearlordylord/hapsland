@@ -3,6 +3,7 @@ import {verifyObservationRoot} from '@hapsland/native-observation/direct-event/a
 import {effectiveSessionAnalytics} from '@hapsland/runtime-inputs/configuration/resolve'
 import * as Effect from 'effect/Effect'
 import * as Cause from 'effect/Cause'
+import * as Exit from 'effect/Exit'
 import {recordActivity} from '@hapsland/activity-observation/activity/status'
 import {captureWorkspaceBytes} from '../../../packages/resident-runtime/src/resident/work-ownership/workspace.ts'
 import {withinWork} from '../../../packages/resident-runtime/src/resident/work-ownership/cancellation.ts'
@@ -48,25 +49,31 @@ export function createSourcePreparationProvider(invocation,context,{owner,bridge
    if(request.invocation!==invocation)throw new Error('Wrong source invocation')
    const command=request.command;let failureKind='Failed',failureCause
    let response={$:'Ack'},observationCommitted=false
+   const run=async effect=>{
+    const exit=await Effect.runPromiseExit(effect)
+    if(Exit.isFailure(exit)){failureCause=exit.cause;failureKind=Cause.hasDies(exit.cause)?'Defect':Cause.hasFails(exit.cause)?'Failed':Cause.hasInterrupts(exit.cause)?'Cancelled':'Failed';return Effect.runPromise(Effect.failCause(exit.cause))}
+    return exit.value
+   }
    const committed=publication=>options.afterCommit?.(command,publication)
    const scoped=effect=>run(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentProviderPermit,{credential:options.ownerLease,committed}),Effect.provideService(ResidentResourceReceipt,committed)))
    try{
+    if(command.$==='CheckCandidateActive')pendingDefectCause=undefined
     options.beforeCommand?.(command)
     switch(command.$){
      case 'StartPolicySource':response={$:'GateAccepted',value:await scoped(ledger.rounds.policyWork(job.round).pipe(Effect.map(policy=>policy.startSource(job.workObservationId))))};break
      case 'StartObservation':response={$:'GateAccepted',value:!(await run(bridge.startSourceObservation(options.ownerLease,committed))).refusal};break
      case 'AwaitBackendGate':await scoped(context.deps.residentAwaitBackendGate());break
      case 'ReadRuntimeActive':response={$:'Active',value:(await scoped(ledger.runtime.snapshot())).lifecycle==='active'};break
-     case 'DecodeControlled':controlled=decodeControlledOptions(job.dispatch.controlled);response={$:'GateAccepted',value:controlled!==undefined};break
-     case 'ReadCredentialRequired':credentialRequired=context.deps.residentCredentialRequired(controlled);break
-     case 'CheckCredentialShape':response={$:'GateAccepted',value:context.deps.residentCredentialShapeMatches(job.dispatch,job.settings.credentialEnvVar,credentialRequired)};break
+     case 'DecodeControlled':controlled=await run(Effect.sync(()=>decodeControlledOptions(job.dispatch.controlled)));response={$:'GateAccepted',value:controlled!==undefined};break
+     case 'ReadCredentialRequired':credentialRequired=await run(Effect.sync(()=>context.deps.residentCredentialRequired(controlled)));break
+     case 'CheckCredentialShape':response={$:'GateAccepted',value:await run(Effect.sync(()=>context.deps.residentCredentialShapeMatches(job.dispatch,job.settings.credentialEnvVar,credentialRequired)))};break
      case 'VerifyObservationRoot':response={$:'GateAccepted',value:await run(withinWork(verifyObservationRoot(job.observation),context.preparationSignal))};break
-     case 'CheckCredentialGeneration':response={$:'GateAccepted',value:context.deps.residentCredentialGenerationCurrent(job.dispatch,credentialRequired)};break
+     case 'CheckCredentialGeneration':response={$:'GateAccepted',value:await run(Effect.sync(()=>context.deps.residentCredentialGenerationCurrent(job.dispatch,credentialRequired)))};break
      case 'ReleaseJobReservation':{const child=owner.find(invocation,bridge.control.readState().children).value;if(child.scope.$==='AfterSourceScope')await run(bridge.releaseSourceReservation(options.ownerLease,committed));else if(originalReservation!==undefined)await scoped(ledger.release(originalReservation));break}
      case 'CheckJobActive':response={$:'Active',value:await scoped(context.deps.residentJobActive(job))};break
      case 'RecordPreparationFailureAnalytics':await scoped(context.deps.residentRecordAnalytics(job,'preparation-failed'));break
-     case 'RecordUnavailableActivity':activity({stage:'unavailable'});break
-     case 'ReadEffectiveAnalytics':analyticsEnabled=effectiveSessionAnalytics(job.settings.configuration.policy);job.analyticsEnabled=analyticsEnabled;break
+     case 'RecordUnavailableActivity':await run(Effect.sync(()=>activity({stage:'unavailable'})));break
+     case 'ReadEffectiveAnalytics':analyticsEnabled=await run(Effect.sync(()=>effectiveSessionAnalytics(job.settings.configuration.policy)));job.analyticsEnabled=analyticsEnabled;break
      case 'CheckCandidateActive':candidate(command.candidate);response={$:'Active',value:await scoped(context.deps.residentJobActive(job))};break
      case 'AdmitCandidateWorkspace':{
       const selected=candidate(command.candidate),requestedBytes=captureWorkspaceBytes(selected.path)
@@ -96,9 +103,18 @@ export function createSourcePreparationProvider(invocation,context,{owner,bridge
       const prepared=decodePreparationResult(result,job.observation.advicee)
       const pathObservation={...job.observation,candidates:[candidate(command.candidate)]}
       const post=createPostPreparationProvider(handoff.handoff,context,prepared,receipt.preparation,pathObservation,analyticsEnabled,{owner,driver,sourceInvocation:invocation,operation:BigInt(receipt.preparation.operation),capability:receipt.preparation.reservation,handoff,parent})
-      const accepted=await driver.driveHandoff(handoff,post,()=>post.input,{signal:options.signal})
-      if(accepted.reason?.$==='DefectFailure'){failureKind='Defect';failureCause=post.cause(accepted.reason.token);pendingDefectCause=failureCause;throw post.error(accepted.reason.token)??new Error('Post-preparation defect')}
-      if(['TechnicalFailure','InvocationCancelled'].includes(accepted.reason?.$))throw post.error(accepted.reason.token)??new Error('Post-preparation failed: '+accepted.reason.$)
+      let accepted
+      try{accepted=await driver.driveHandoff(handoff,post,()=>post.input,{signal:options.signal})}
+      catch(error){
+       const cause=post.handoffFailureCause
+       if(cause!==undefined){failureCause=cause;failureKind=Cause.hasDies(cause)?'Defect':Cause.hasFails(cause)?'Failed':Cause.hasInterrupts(cause)?'Cancelled':'Failed';if(failureKind==='Defect')pendingDefectCause=cause;await run(Effect.failCause(cause))}
+       throw error
+      }
+      if(['DefectFailure','TechnicalFailure','InvocationCancelled'].includes(accepted.reason?.$)){
+       failureCause=post.terminationCause??post.cause(accepted.reason.token)
+       if(failureCause!==undefined){failureKind=Cause.hasDies(failureCause)?'Defect':Cause.hasFails(failureCause)?'Failed':Cause.hasInterrupts(failureCause)?'Cancelled':'Failed';if(failureKind==='Defect')pendingDefectCause=failureCause;await run(Effect.failCause(failureCause))}
+       throw post.error(accepted.reason.token)??new Error('Post-preparation failed: '+accepted.reason.$)
+      }
       if(accepted.failure)throw options.signal?.reason??Object.assign(new Error('Post-preparation invocation cancelled'),{cause:accepted.failure})
       response={$:'CandidateContinued',value:accepted.continued===true};break
      }
@@ -110,7 +126,7 @@ export function createSourcePreparationProvider(invocation,context,{owner,bridge
      }
      case 'RejectCandidateCapacity':await scoped(ledger.runtime.rejectCapacity());break
      case 'RecordCandidateAnalytics':await scoped(context.deps.residentRecordAnalytics(job,command.outcome.$==='CapacityRejected'?'capacity-rejected':'preparation-failed'));break
-     case 'RecordCandidateUnavailable':activity({stage:'unavailable'});break
+     case 'RecordCandidateUnavailable':await run(Effect.sync(()=>activity({stage:'unavailable'})));break
      case 'ReadExpectedActivity':{
       expected.clear();context.expectedActivityUnits.forEach((identity,index)=>expected.set(BigInt(index+1),identity));response={$:'ExpectedActivity',identities:list([...expected.keys()])};break
      }
@@ -121,7 +137,7 @@ export function createSourcePreparationProvider(invocation,context,{owner,bridge
      case 'AfterPrepare':await run(withinWork(context.deps.residentPreparationControls.afterPrepare.pipe(Effect.mapError(()=>new ResidentAdapterError({operation:'preparation barrier'}))),context.preparationSignal));break
      default:throw new Error('Unknown source command '+command.$)
     }
-   }catch(error){primaryFailure??=error;const token=BigInt(errors.size+1);errors.set(token,error);const cause=failureCause??(failureKind==='Defect'?Cause.die(error):Cause.fail(error));errorCauses.set(token,command.$==='ObserveCandidateDiagnostic'&&pendingDefectCause?Cause.combine(pendingDefectCause,cause):cause);if(command.$==='ObserveCandidateDiagnostic'&&pendingDefectCause){try{await run(Effect.failCause(errorCauses.get(token)))}catch(combined){errors.set(token,combined)}}response={$:failureKind==='Defect'?(observationCommitted?'ObservationCommittedDefect':'Defect'):observationCommitted?'ObservationCommittedFailure':options.signal?.aborted?'Cancelled':'Failed',token,...(failureKind==='Defect'&&!observationCommitted?{interrupted:Cause.hasInterrupts(errorCauses.get(token)),recoverable:Cause.hasFails(errorCauses.get(token))}:failureKind==='Defect'&&observationCommitted?{recoverable:Cause.hasFails(errorCauses.get(token))}:{})}}
+   }catch(error){primaryFailure??=error;const token=BigInt(errors.size+1);errors.set(token,error);const cause=failureCause??(failureKind==='Defect'?Cause.die(error):Cause.fail(error));errorCauses.set(token,command.$==='ObserveCandidateDiagnostic'&&pendingDefectCause?Cause.combine(pendingDefectCause,cause):cause);if(failureKind==='Defect'&&['CheckCandidateActive','AdmitCandidateWorkspace','PrepareCandidate','ObserveCandidateDiagnostic','RejectCandidateCapacity','RecordCandidateAnalytics','RecordCandidateUnavailable'].includes(command.$))pendingDefectCause=errorCauses.get(token);if(command.$==='ObserveCandidateDiagnostic'&&pendingDefectCause){try{await run(Effect.failCause(errorCauses.get(token)))}catch(combined){errors.set(token,combined)}}response={$:failureKind==='Defect'?(observationCommitted?'ObservationCommittedDefect':'Defect'):failureKind==='Cancelled'?(observationCommitted?'ObservationCommittedCancelled':'Cancelled'):observationCommitted?'ObservationCommittedFailure':'Failed',token,...(failureKind==='Defect'&&!observationCommitted?{interrupted:Cause.hasInterrupts(errorCauses.get(token)),recoverable:Cause.hasFails(errorCauses.get(token))}:failureKind==='Defect'&&observationCommitted?{recoverable:Cause.hasFails(errorCauses.get(token))}:{})}}
    return {$:'Reply',invocation,id:request.id,response}
   }
  }

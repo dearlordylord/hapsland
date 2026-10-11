@@ -41,10 +41,11 @@ try{
  const machines={source:createSourcePreparationMachine(modules.SourcePreparation),preparation:createPreparationMachine(modules.Preparation),post:createPostPreparationMachine(modules.PostPreparation),tail:createAdviceTailMachine(modules.PostPreparation)}
  const root=join(temp,'fixture');await mkdir(root);execFileSync('git',['init','-q',root],{timeout:5000})
  await writeFile(join(root,'first.py'),'from leaf import Foo\nclass First:\n field: Foo\n');await writeFile(join(root,'second.py'),'from leaf import Foo\nclass Second:\n field: Foo\n');await writeFile(join(root,'empty.py'),'value = 1\n');await writeFile(join(root,'leaf.py'),'class Foo:\n value: str\n')
+ await writeFile(join(root,'multi.py'),'from leaf import Foo\nclass First:\n field: Foo\nclass Second:\n field: Foo\n')
  const a=await lstat(root),b=await lstat(join(root,'.git')),rootIdentity={rootDevice:String(a.dev),rootInode:String(a.ino),gitDirectory:join(root,'.git'),gitDevice:String(b.dev),gitInode:String(b.ino)}
  await writeFile(join(root,'comment.ts'),'// updated outside declarations\nexport class Example { value: string = "x" }\nexport function identity(value: string): string { return value }\n')
  let cases=0,totalRequests=0,nativeWholeCases=0
- const modes=['two-candidates','repeat-candidate','refused-second','admission-ack-loss','completion-ack-loss','after-prepare-failure','after-prepare-analytics-failure','after-prepare-release-ack-loss','after-prepare-runtime-inactive','cancel-between-candidates','first-preparation-failure','second-preparation-failure','source-cleanup-pending','full-workflow','full-repeat','full-refused-second','full-owner-barrier-failure','full-no-ready','full-comment-update','full-capture-failure','full-inspection-failure','full-inspection-diagnostic-failure','full-activity-refused','full-mixed-cause','gates-controlled','gates-shape','gates-root','gates-generation','gates-backend-failure','gates-runtime-first','gates-runtime-second','gates-job-inactive','gates-start-policy','gates-start-observation','gates-start-ack']
+ const modes=['two-candidates','repeat-candidate','refused-second','admission-ack-loss','completion-ack-loss','after-prepare-failure','after-prepare-analytics-failure','after-prepare-release-ack-loss','after-prepare-runtime-inactive','cancel-between-candidates','first-preparation-failure','second-preparation-failure','source-cleanup-pending','post-finalizer-cause','full-workflow','full-repeat','full-refused-second','full-owner-barrier-failure','full-no-ready','full-comment-update','full-capture-failure','full-inspection-failure','full-inspection-diagnostic-failure','full-activity-refused','full-mixed-cause','full-register-defect-cleanup','full-register-failure-cleanup','full-multi-register-cleanup','full-backend-fail','full-backend-die','full-backend-mixed','full-backend-interrupt','full-backend-fail-interrupt','full-backend-all','full-backend-recovery-fail','full-backend-recovery-die','full-backend-recovery-interrupt','full-credential-die','full-after-prepare-interrupt','gates-controlled','gates-shape','gates-root','gates-generation','gates-backend-failure','gates-runtime-first','gates-runtime-second','gates-job-inactive','gates-start-policy','gates-start-observation','gates-start-ack']
  for(const mode of modes.filter(mode=>!process.env.HAPSLAND_SOURCE_CASE||mode===process.env.HAPSLAND_SOURCE_CASE)){
   const fullEntry=mode.startsWith('full-')||mode.startsWith('gates-'),gateRefusal=mode.startsWith('gates-')
   const limits={globalItems:100,globalBytes:100000000,partitionItems:16,partitionBytes:100000000}
@@ -53,7 +54,12 @@ try{
   const partition=run(capacity.partitionId('agent')),round=run(capacity.roundId('agent')),observationId=run(capacity.admitObservation('agent',round));if(!fullEntry)assert.equal(run(capacity.observation('agent',observationId,'startObservation',round)),true)
   let driver
   const injectedPreparationError=new Error('injected original preparation failure'),injectedAdmissionError=new Error('injected source admission acknowledgement loss'),injectedDiagnosticError=new Error('injected panic diagnostic failure')
+  let finalizerAckLost=false,finalizerFailed=false
+  const backendCause=mode.startsWith('full-backend-')?{'fail':Cause.fail(injectedPreparationError),'die':Cause.die(injectedPreparationError),'mixed':Cause.combine(Cause.fail(injectedPreparationError),Cause.die(injectedDiagnosticError)),'interrupt':Cause.interrupt(42),'fail-interrupt':Cause.combine(Cause.fail(injectedPreparationError),Cause.interrupt(42)),'all':Cause.combine(Cause.combine(Cause.fail(injectedPreparationError),Cause.die(injectedDiagnosticError)),Cause.interrupt(42))}[mode.startsWith('full-backend-recovery-')?'fail':mode.slice('full-backend-'.length)]:undefined
+  const credentialCause=mode==='full-credential-die'?Cause.die(injectedPreparationError):undefined,afterPrepareCause=mode==='full-after-prepare-interrupt'?Cause.interrupt(44):undefined
+  const backendRecoveryCause=mode==='full-backend-recovery-fail'?Cause.fail(injectedDiagnosticError):mode==='full-backend-recovery-die'?Cause.die(injectedDiagnosticError):mode==='full-backend-recovery-interrupt'?Cause.interrupt(43):undefined
   const analyticsCause=mode==='full-mixed-cause'?Cause.combine(Cause.fail(injectedPreparationError),Cause.die(injectedDiagnosticError)):undefined
+  const registerWorkFailure=mode==='full-register-defect-cleanup'?'defect':mode==='full-register-failure-cleanup'?'failure':mode==='full-multi-register-cleanup'?'multi':undefined,registerWorkError=injectedPreparationError,cleanupError=injectedDiagnosticError
   const outputs=[],commands=[],caches=[],preparationIds=[],sourceEffects=[]
   const bridge=createResidentOwnerTransaction({owner,transaction,validateAdviceInput:(origin,handle)=>driver?.validateAdviceInput(origin,handle)===true,onActions:actions=>Effect.sync(()=>driver.acceptActions(actions))})
   const connection={transaction,bridge,control:bridge.control,partition,round,postCore:modules.PostPreparation}
@@ -67,10 +73,11 @@ try{
     return session.perform(request,{...options,beforeCommand:command=>{if(mode==='after-prepare-analytics-failure'&&command.$==='RecordPreparationFailureAnalytics')throw new Error('secondary recovery analytics failure');if(mode==='after-prepare-runtime-inactive'&&command.$==='ReadRuntimeActive')run(capacity.runtime.close());if(mode==='gates-start-observation'&&command.$==='StartObservation')assert.equal(run(capacity.observation('agent',observationId,'startObservation',round)),true);if(mode==='cancel-between-candidates'&&command.$==='CheckCandidateActive'&&command.candidate===2n)driver.cancel(request.invocation)},afterCommit:(command,publication)=>{if(mode==='after-prepare-release-ack-loss'&&command.$==='ReleaseJobReservation')throw new Error('secondary source release acknowledgement loss');if(mode==='gates-start-ack'&&command.$==='StartObservation')throw injectedPreparationError;if(command.$==='CompleteObservation')outputs.push(...publication.outputs);if(['admission-ack-loss','source-cleanup-pending'].includes(mode)&&command.$==='AdmitCandidateWorkspace'&&command.candidate===2n)throw injectedAdmissionError;if(mode==='completion-ack-loss'&&command.$==='CompleteObservation')throw new Error('injected observation completion acknowledgement loss')}})
    }
    if((mode==='first-preparation-failure'&&caches.length===1||mode==='second-preparation-failure'&&caches.length===2)&&session.input?.preparation&&request.command.$==='CaptureSource')throw injectedPreparationError
+   if(mode==='post-finalizer-cause'&&session.input?.postPreparation)return session.perform(request,{...options,afterCommit:(command,publication)=>{options.afterCommit?.(command,publication);if(command.$==='RegisterRevision'&&!finalizerAckLost){finalizerAckLost=true;throw injectedPreparationError}}})
    return session.perform(request,options)
   }})
   connection.owned={driver}
-  const candidates=mode==='full-comment-update'?[{operation:'update',path:'comment.ts',addedLines:['// updated outside declarations']},{operation:'update',path:'comment.ts',addedLines:['// updated outside declarations']}]:[{operation:'add',path:['full-no-ready','full-mixed-cause'].includes(mode)?'empty.py':'first.py'},{operation:'add',path:['full-no-ready','full-mixed-cause'].includes(mode)?'empty.py':['repeat-candidate','full-repeat'].includes(mode)?'first.py':'second.py'}]
+  const candidates=mode==='full-comment-update'?[{operation:'update',path:'comment.ts',addedLines:['// updated outside declarations']},{operation:'update',path:'comment.ts',addedLines:['// updated outside declarations']}]:[{operation:'add',path:['full-no-ready','full-mixed-cause'].includes(mode)?'empty.py':mode==='full-multi-register-cleanup'?'multi.py':'first.py'},{operation:'add',path:['full-no-ready','full-mixed-cause'].includes(mode)?'empty.py':['repeat-candidate','full-repeat'].includes(mode)?'first.py':'second.py'}]
   const nativePatchCommand=mode==='full-comment-update'?'*** Begin Patch\n*** Update File: comment.ts\n@@\n-// old comment\n+// updated outside declarations\n export class Example { value: string = "x" }\n*** End Patch':undefined
   const shared=await createResidentRetentionContext(connection,root,rootIdentity,{useOwned:true,observation:{root,rootIdentity,advicee:undefined,candidates,...(nativePatchCommand===undefined?{}:{nativePatchCommand})}})
   shared.observation.advicee=shared.identity
@@ -95,6 +102,13 @@ try{
   if(mode.startsWith('full-'))context.job.settings={...await Effect.runPromise(loadReviewSettings(root,{userConfigPath:join(temp,'absent-user.jsonc'),projectConfigPath:join(root,'absent-project.jsonc')})),rules:configuredRules}
   context.job.reservation=run(capacity.reserve('agent',32,'observationDispatch'))
   assert.ok(context.job.reservation)
+  if(mode==='post-finalizer-cause'){
+   const releaseRevision=context.deps.residentReleaseCurrentWork
+   context.deps.residentReleaseCurrentWork=(...args)=>releaseRevision(...args).pipe(Effect.tap(()=>Effect.sync(()=>{if(!finalizerFailed){finalizerFailed=true;throw injectedDiagnosticError}})))
+  }
+  if(credentialCause)context.deps.residentCredentialShapeMatches=()=>{sourceEffects.push({kind:'credential-shape'});throw injectedPreparationError}
+  if(afterPrepareCause)context.deps.residentPreparationControls={...context.deps.residentPreparationControls,afterPrepare:Effect.failCause(afterPrepareCause)}
+  if(backendCause)context.deps.residentAwaitBackendGate=()=>Effect.sync(()=>sourceEffects.push({kind:'backend'})).pipe(Effect.andThen(Effect.failCause(backendCause)))
   if(mode==='gates-runtime-second'){
    const generation=context.deps.residentCredentialGenerationCurrent;context.deps.residentCredentialGenerationCurrent=(...args)=>{const current=generation(...args);run(ledger.runtime.close());return current}
   }
@@ -113,8 +127,22 @@ try{
   if(mode.startsWith('full-')){
    const begin=context.deps.residentLedger.beginObservedPreparation
    context.deps.residentLedger.beginObservedPreparation=(partition,observation,bytes,round)=>begin(partition,observation,bytes,round).pipe(Effect.tap(value=>Effect.sync(()=>sourceEffects.push({kind:'admission',bytes,status:value.status}))))
-   context.deps.residentRecordAnalytics=(_job,event,findings)=>Effect.sync(()=>sourceEffects.push({kind:'analytics',event,...(findings===undefined?{}:{findings})})).pipe(Effect.andThen(analyticsCause&&event==='incomplete-candidate'?Effect.failCause(analyticsCause):Effect.void))
+   context.deps.residentRecordAnalytics=(_job,event,findings)=>Effect.sync(()=>sourceEffects.push({kind:'analytics',event,...(findings===undefined?{}:{findings})})).pipe(Effect.andThen(backendRecoveryCause&&event==='preparation-failed'?Effect.failCause(backendRecoveryCause):analyticsCause&&event==='incomplete-candidate'?Effect.failCause(analyticsCause):Effect.void))
    context.deps.residentInspection={...context.deps.residentInspection,observePreparation:(_job,value)=>{sourceEffects.push({kind:'prepared',value});if(mode.startsWith('full-inspection-'))throw injectedPreparationError},observeDiagnostic:(_receipt,path,_candidate,value)=>{sourceEffects.push({kind:'diagnostic',path,value,custody:snapshotReservationCustody(run(transaction.read))});if(mode==='full-inspection-diagnostic-failure')throw injectedDiagnosticError}}
+  }
+  if(registerWorkFailure){
+   let workFailed=false,cleanupFailed=false,claimsReleased=0
+   const policyWork=context.deps.residentLedger.rounds.policyWork,release=context.deps.residentLedger.release,releaseRevision=context.deps.residentReleaseCurrentWork
+   context.deps.residentLedger.rounds.policyWork=(...args)=>!workFailed&&run(transaction.read).records.revision.current.size>0?(workFailed=true,Effect.failCause(registerWorkFailure==='defect'?Cause.die(registerWorkError):Cause.fail(registerWorkError))):policyWork(...args)
+   context.deps.residentReleaseCurrentWork=(...args)=>{const revision=run(transaction.read).records.revision.current.get(args[0].subject);assert.equal(revision.token,args[0].token);return releaseRevision(...args).pipe(Effect.tap(()=>Effect.sync(()=>sourceEffects.push({kind:'release-revision',subject:args[0].subject,generation:args[0].generation,inputIdentity:revision.inputIdentity}))))}
+   if(registerWorkFailure==='multi'){
+    const releaseClaim=context.deps.residentReleaseReuseClaim
+    context.deps.residentReleaseReuseClaim=(key,...args)=>{const held=run(transaction.read).records.reuse.pending.has(key);return releaseClaim(key,...args).pipe(Effect.tap(()=>Effect.sync(()=>{if(held&&!run(transaction.read).records.reuse.pending.has(key)){sourceEffects.push({kind:'release-claim',key});if(++claimsReleased===2&&!cleanupFailed){cleanupFailed=true;throw cleanupError}}})))}
+   }
+   context.deps.residentLedger.release=reservation=>{
+    const retained=run(transaction.read).reservations.get(reservation.id),unit=retained?.purpose==='reviewUnit'
+    return release(reservation).pipe(Effect.tap(released=>Effect.sync(()=>{if(unit&&released){sourceEffects.push({kind:'release-unit',id:reservation.id});if(registerWorkFailure!=='multi'&&workFailed&&!cleanupFailed){cleanupFailed=true;throw cleanupError}}})))
+   }
   }
   const sourceGraphLimits=mode.startsWith('full-')?effectiveGraphLimits(context.job.settings.configuration.policy):GRAPH_LIMIT_CEILINGS
   const bendLimits={$:'../../../packages/agent-flow-bend/ImportGraph.Limits',version:1n,...Object.fromEntries(Object.entries(sourceGraphLimits).map(([key,value])=>[({sourceBytes:'source_bytes',treeBytes:'tree_bytes',readBytes:'read_bytes',outgoingEdges:'outgoing_edges'})[key]??key,BigInt(value)]))}
@@ -137,9 +165,11 @@ try{
     assert.equal(context.unassignedClaims.size,0);assert.equal(context.activeWorkspaces.size,1);assert.equal(registry.pendingCleanup,1)
     await assert.rejects(registry.retryCleanup(),/cleanup obligations remain pending/);assert.equal(registry.pendingCleanup,1)
     cleanupFails=false;await registry.retryCleanup();assert.equal(registry.pendingCleanup,0);assert.equal(context.activeWorkspaces.size,0)
-    result={completed:false,reason:{$:'TechnicalFailure',token:1n}}
+    result={completed:false,reason:{$:'DefectFailure',token:1n}}
    }finally{activity?.close()}
-   if(['completion-ack-loss','after-prepare-failure'].includes(mode))assert.deepEqual(commands.filter(item=>item.invocation===BigInt(invocation)).slice(-4).map(item=>item.command),['RecordPreparationFailureAnalytics','ReleaseJobReservation','ReadRuntimeActive','RecordUnavailableActivity'])
+   if(mode==='post-finalizer-cause'){assert.equal(finalizerAckLost,true);assert.equal(finalizerFailed,true);assert.equal(registry.pendingCleanup,1);await registry.retryCleanup();assert.equal(registry.pendingCleanup,0)}
+   if(mode==='completion-ack-loss'){assert.equal(commands.filter(item=>item.invocation===BigInt(invocation)).at(-1).command,'CompleteObservation')}
+   if(mode==='after-prepare-failure')assert.deepEqual(commands.filter(item=>item.invocation===BigInt(invocation)).slice(-4).map(item=>item.command),['RecordPreparationFailureAnalytics','ReleaseJobReservation','ReadRuntimeActive','RecordUnavailableActivity'])
    const recovery=commands.filter(item=>item.invocation===BigInt(invocation)).map(item=>item.command);const recoveryStart=recovery.indexOf('RecordPreparationFailureAnalytics')
    if(mode==='after-prepare-analytics-failure')assert.deepEqual(recovery.slice(recoveryStart),['RecordPreparationFailureAnalytics'])
    if(mode==='after-prepare-release-ack-loss')assert.deepEqual(recovery.slice(recoveryStart),['RecordPreparationFailureAnalytics','ReleaseJobReservation'])
@@ -147,7 +177,7 @@ try{
    const snapshot=run(transaction.read),units=[...snapshot.records.dispatch.entries.values()].map(entry=>entry.value)
    const interrupted=outputs.filter(output=>output.$==='../../../packages/agent-flow-bend/Canonical.EventEstablished'&&output.event.$==='../../../packages/agent-flow-bend/Canonical.ObservationInterrupted')
    const completed=outputs.filter(output=>output.$==='Canonical.EventEstablished'&&output.event.$==='Canonical.ObservationCompleted')
-   const expectedCount=gateRefusal||mode==='first-preparation-failure'||mode==='full-owner-barrier-failure'||mode==='full-capture-failure'||mode.startsWith('full-inspection-')||mode==='full-mixed-cause'||['full-no-ready','full-comment-update'].includes(mode)?0:['refused-second','full-refused-second','admission-ack-loss','cancel-between-candidates','repeat-candidate','full-repeat','second-preparation-failure','source-cleanup-pending'].includes(mode)?1:2
+   const expectedCount=gateRefusal||backendCause||credentialCause||mode==='post-finalizer-cause'||mode==='first-preparation-failure'||mode==='full-owner-barrier-failure'||mode==='full-capture-failure'||mode.startsWith('full-inspection-')||mode==='full-mixed-cause'||registerWorkFailure||['full-no-ready','full-comment-update'].includes(mode)?0:['refused-second','full-refused-second','admission-ack-loss','cancel-between-candidates','repeat-candidate','full-repeat','second-preparation-failure','source-cleanup-pending'].includes(mode)?1:2
    assert.equal(units.length,expectedCount,mode+' retains transferred units')
    assert.equal(snapshot.records.revision.current.size,expectedCount)
    assert.equal(snapshot.records.reuse.pending.size,expectedCount)
@@ -157,21 +187,31 @@ try{
    assert.equal(driver.stats.providerStarts,driver.stats.providerCleanups)
    assert.deepEqual(driver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0});assert.equal(registry.size,0);assert.equal(registry.pendingCleanup,0)
    if(mode==='full-comment-update'&&result.reason?.$==='TechnicalFailure')throw source.error(result.reason.token)
-   assert.equal(caches.length,gateRefusal?0:['refused-second','full-refused-second'].includes(mode)||mode==='admission-ack-loss'||mode==='source-cleanup-pending'||mode==='cancel-between-candidates'||mode==='first-preparation-failure'||mode==='full-owner-barrier-failure'||mode==='full-capture-failure'||mode.startsWith('full-inspection-')||mode==='full-mixed-cause'?1:2)
+   assert.equal(caches.length,gateRefusal||backendCause||credentialCause?0:mode==='post-finalizer-cause'||['refused-second','full-refused-second'].includes(mode)||mode==='admission-ack-loss'||mode==='source-cleanup-pending'||mode==='cancel-between-candidates'||mode==='first-preparation-failure'||mode==='full-owner-barrier-failure'||mode==='full-capture-failure'||mode.startsWith('full-inspection-')||mode==='full-mixed-cause'||registerWorkFailure?1:2)
    if(caches.length===2){assert.notStrictEqual(caches[0],caches[1]);assert.notEqual(preparationIds[0],preparationIds[1])}
    if(gateRefusal){
     assert.equal(result.completed,false);assert.equal(result.continued,false);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
-    if(mode==='gates-backend-failure'||mode==='gates-start-ack'){assert.equal(result.reason.$,'TechnicalFailure');assert.strictEqual(source.error(result.reason.token),injectedPreparationError)}else assert.equal(result.reason.$,mode==='gates-start-policy'||mode==='gates-start-observation'?'StartRefused':mode==='gates-runtime-first'||mode==='gates-runtime-second'||mode==='gates-job-inactive'?'SourceInactive':'SettingsRefused')
+    if(mode==='gates-backend-failure'||mode==='gates-start-ack'){assert.equal(result.reason.$,mode==='gates-start-ack'?'DefectFailure':'TechnicalFailure');assert.strictEqual(source.error(result.reason.token),injectedPreparationError)}else assert.equal(result.reason.$,mode==='gates-start-policy'||mode==='gates-start-observation'?'StartRefused':mode==='gates-runtime-first'||mode==='gates-runtime-second'||mode==='gates-job-inactive'?'SourceInactive':'SettingsRefused')
     const gates=commands.filter(item=>item.invocation===BigInt(invocation)).map(item=>item.command)
     const prefix=['StartPolicySource','StartObservation','AwaitBackendGate']
     const common=['ReadRuntimeActive','DecodeControlled']
     const checks={'gates-controlled':[],'gates-shape':['ReadCredentialRequired','CheckCredentialShape'],'gates-root':['ReadCredentialRequired','CheckCredentialShape','VerifyObservationRoot'],'gates-generation':['ReadCredentialRequired','CheckCredentialShape','VerifyObservationRoot','CheckCredentialGeneration']}
-    if(mode==='gates-start-ack')assert.deepEqual(gates,['StartPolicySource','StartObservation','RecordPreparationFailureAnalytics','ReleaseJobReservation','ReadRuntimeActive','RecordUnavailableActivity'])
+    if(mode==='gates-start-ack')assert.deepEqual(gates,['StartPolicySource','StartObservation'])
     else if(mode==='gates-start-observation')assert.deepEqual(gates,['StartPolicySource','StartObservation','ReleaseJobReservation'])
     else if(mode==='gates-start-policy')assert.deepEqual(gates,['StartPolicySource','ReleaseJobReservation'])
     else if(mode==='gates-runtime-first')assert.deepEqual(gates,[...prefix,'ReadRuntimeActive','ReleaseJobReservation'])
     else if(mode==='gates-runtime-second'||mode==='gates-job-inactive')assert.deepEqual(gates,[...prefix,...common,'ReadCredentialRequired','CheckCredentialShape','VerifyObservationRoot','CheckCredentialGeneration','ReleaseJobReservation','ReadRuntimeActive',...(mode==='gates-job-inactive'?['CheckJobActive']:[]),'RecordPreparationFailureAnalytics','RecordUnavailableActivity'])
     else assert.deepEqual(gates,mode==='gates-backend-failure'?[...prefix,'RecordPreparationFailureAnalytics','ReleaseJobReservation','ReadRuntimeActive','RecordUnavailableActivity']:[...prefix,...common,...checks[mode],'ReleaseJobReservation','RecordPreparationFailureAnalytics','RecordUnavailableActivity'])
+   }else if(credentialCause){
+    assert.equal(result.completed,false);assert.equal(result.reason.$,'DefectFailure');assert.strictEqual(Cause.squash(source.cause(result.reason.token)),injectedPreparationError);assert.equal(recoveryStart,-1);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
+   }else if(afterPrepareCause){
+    assert.equal(result.completed,true);assert.equal(result.reason.$,'InvocationCancelled');assert.equal(Cause.hasInterrupts(source.cause(result.reason.token)),true);assert.equal(recoveryStart,-1);assert.equal(interrupted.length,0);assert.equal(completed.length,1)
+   }else if(backendCause){
+    assert.equal(result.completed,false);assert.equal(result.reason.$,Cause.hasFails(backendRecoveryCause??backendCause)?'TechnicalFailure':Cause.hasDies(backendRecoveryCause??backendCause)?'DefectFailure':'InvocationCancelled');assert.equal(recoveryStart>=0,Cause.hasFails(backendCause));assert.deepEqual(source.cause(result.reason.token).reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error,fiberId:reason.fiberId})),(backendRecoveryCause??backendCause).reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error,fiberId:reason.fiberId})));assert.equal(interrupted.length,1);assert.equal(completed.length,0)
+   }else if(mode==='post-finalizer-cause'){
+    assert.equal(result.completed,false);assert.equal(result.reason.$,'DefectFailure');assert.equal(recoveryStart,-1);assert.equal(interrupted.length,1);assert.deepEqual(source.cause(result.reason.token).reasons.map(reason=>reason.defect),[injectedPreparationError,injectedDiagnosticError])
+   }else if(registerWorkFailure){
+    assert.equal(result.completed,false);assert.equal(result.reason.$,registerWorkFailure==='defect'?'DefectFailure':'TechnicalFailure');assert.equal(Cause.hasDies(source.cause(result.reason.token)),true);assert.equal(Cause.hasFails(source.cause(result.reason.token)),registerWorkFailure!=='defect');assert.equal(source.cause(result.reason.token).reasons.length,2);assert.equal(interrupted.length,1);assert.equal(completed.length,0);assert.equal(recoveryStart>=0,registerWorkFailure!=='defect')
    }else if(mode==='full-mixed-cause'){
     assert.equal(result.completed,false);assert.equal(result.reason.$,'TechnicalFailure');assert.equal(Cause.hasDies(source.cause(result.reason.token)),true);assert.equal(Cause.hasFails(source.cause(result.reason.token)),true);assert.equal(interrupted.length,1);assert.equal(completed.length,0);assert.ok(recoveryStart>=0)
    }else if(mode==='full-owner-barrier-failure'){
@@ -182,23 +222,23 @@ try{
    }else if(mode.endsWith('preparation-failure')||mode==='full-capture-failure'){
     assert.equal(result.completed,false);assert.equal(result.reason.$,'TechnicalFailure');assert.strictEqual(source.error(result.reason.token),injectedPreparationError);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
    }else if(mode==='admission-ack-loss'||mode==='source-cleanup-pending'){
-    assert.equal(result.completed,false);assert.equal(result.reason.$,'TechnicalFailure');assert.match(String(source.error(result.reason.token)),/admission acknowledgement loss/);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
+    assert.equal(result.completed,false);assert.equal(result.reason.$,'DefectFailure');assert.match(String(source.error(result.reason.token)),/admission acknowledgement loss/);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
    }else if(mode==='cancel-between-candidates'){
     assert.ok(result.failure);assert.equal(context.job.completed,undefined);assert.equal(interrupted.length,1);assert.equal(completed.length,0)
    }else{
     assert.equal(context.job.completed,true);assert.equal(result.completed,true);assert.equal(completed.length,1);assert.equal(interrupted.length,0)
     assert.equal(result.continued,mode!=='completion-ack-loss'&&!mode.startsWith('after-prepare-'))
     if(mode==='completion-ack-loss')assert.match(String(source.error(result.reason.token)),/completion acknowledgement loss/)
-    if(mode.startsWith('after-prepare-'))assert.equal(source.error(result.reason.token).operation,'preparation barrier')
+    if(mode==='after-prepare-analytics-failure')assert.match(String(source.error(result.reason.token)),/secondary recovery analytics/);else if(mode==='after-prepare-release-ack-loss')assert.match(String(source.error(result.reason.token)),/secondary source release acknowledgement/);else if(mode.startsWith('after-prepare-'))assert.equal(source.error(result.reason.token).operation,'preparation barrier')
    }
    if(mode.startsWith('full-')){
-    const native=await nativeSourceReference({owner,root,rootIdentity,candidates,nativePatchCommand,settings:context.job.settings,limits,refuseSecond:mode==='full-refused-second',ownerBarrierFailure:mode==='full-owner-barrier-failure',captureFailure:mode==='full-capture-failure'?injectedPreparationError:undefined,inspectionFailure:mode.startsWith('full-inspection-')?injectedPreparationError:undefined,diagnosticFailure:mode==='full-inspection-diagnostic-failure'?injectedDiagnosticError:undefined,analyticsCause,activityRefused:mode==='full-activity-refused'})
+    const native=await nativeSourceReference({owner,root,rootIdentity,candidates,nativePatchCommand,settings:context.job.settings,limits,refuseSecond:mode==='full-refused-second',ownerBarrierFailure:mode==='full-owner-barrier-failure',captureFailure:mode==='full-capture-failure'?injectedPreparationError:undefined,inspectionFailure:mode.startsWith('full-inspection-')?injectedPreparationError:undefined,diagnosticFailure:mode==='full-inspection-diagnostic-failure'?injectedDiagnosticError:undefined,analyticsCause,backendCause,backendRecoveryCause,credentialCause,credentialError:injectedPreparationError,afterPrepareCause,registerWorkFailure,registerWorkError,cleanupError,activityRefused:mode==='full-activity-refused'})
     assert.equal(native.completed,result.completed)
-    if(mode.startsWith('full-inspection-')){assert.ok(native.exitCause);assert.equal(Cause.hasDies(native.exitCause),true);if(mode==='full-inspection-failure')assert.strictEqual(Cause.squash(native.exitCause),injectedPreparationError);assert.deepEqual(native.exitCause.reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error})),source.cause(result.reason.token).reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error})));assert.equal(native.exitCause.reasons.length,mode==='full-inspection-diagnostic-failure'?2:1)}else assert.equal(native.exitCause,undefined)
+    if(credentialCause||afterPrepareCause||backendRecoveryCause||backendCause&&!Cause.hasFails(backendCause)){assert.ok(native.exitCause);assert.deepEqual(native.exitCause.reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error,fiberId:reason.fiberId})),source.cause(result.reason.token).reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error,fiberId:reason.fiberId})))}else if(mode.startsWith('full-inspection-')||registerWorkFailure==='defect'){assert.ok(native.exitCause);assert.equal(Cause.hasDies(native.exitCause),true);if(mode==='full-inspection-failure')assert.strictEqual(Cause.squash(native.exitCause),injectedPreparationError);assert.deepEqual(native.exitCause.reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error})),source.cause(result.reason.token).reasons.map(reason=>({kind:reason._tag,error:reason.defect??reason.error})));assert.equal(native.exitCause.reasons.length,mode==='full-inspection-diagnostic-failure'||registerWorkFailure==='defect'?2:1)}else assert.equal(native.exitCause,undefined)
     assert.deepEqual(native.canonical,projectCanonical(snapshot.canonical))
     assert.deepEqual(native.trace,sourceEffects)
     const publications=sourceEffects.filter(event=>event.kind==='activity')
-    if(mode==='full-activity-refused'||mode.startsWith('full-inspection-'))assert.equal(publications.length,0)
+    if(credentialCause||backendRecoveryCause||backendCause&&!Cause.hasFails(backendCause)||mode==='full-activity-refused'||mode.startsWith('full-inspection-')||registerWorkFailure==='defect')assert.equal(publications.length,0)
     else{assert.ok(publications.length>0,'whole activity observer must be nonvacuous');assert.ok(publications.every(event=>event.marker.observedAt===1000))}
     if(mode==='full-comment-update'){assert.ok(sourceEffects.some(event=>event.kind==='analytics'&&event.event==='incomplete-candidate'));assert.equal(sourceEffects.find(event=>event.kind==='prepared').value.observation.status,'incomplete')}
     assert.deepEqual(native.units,units.map(unit=>({prepared:unit.prepared,evaluationKey:unit.evaluationKey,sourceHash:unit.sourceHash,path:unit.observation.candidates[0].path})))

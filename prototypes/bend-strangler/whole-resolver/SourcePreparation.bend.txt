@@ -50,6 +50,7 @@ type Response is Data:
   Active{value: Bool}
   WorkspaceAdmitted{preparation: Nat}
   WorkspaceRefused{reason: WorkspaceRefusal, requested_bytes: Nat}
+  ObservationCommittedCancelled{token: Nat}
   ObservationCommittedFailure{token: Nat}
   ObservationCommittedDefect{token: Nat, recoverable: Bool}
   CandidateContinued{value: Bool}
@@ -87,10 +88,10 @@ type Phase is Data:
   RecoveryPending{phase: GatePhase, reason: Reason}
   CandidateChecking{candidate: Nat, remaining: List<&2, Nat>}
   WorkspacePending{candidate: Nat, remaining: List<&2, Nat>}
-  RefusalDiagnostic{remaining: List<&2, Nat>, capacity: Bool, analytics: CandidateAnalytics}
-  RefusalCapacity{remaining: List<&2, Nat>}
-  RefusalAnalytics{remaining: List<&2, Nat>}
-  RefusalActivity{remaining: List<&2, Nat>}
+  RefusalDiagnostic{candidate: Nat, remaining: List<&2, Nat>, capacity: Bool, analytics: CandidateAnalytics}
+  RefusalCapacity{candidate: Nat, remaining: List<&2, Nat>}
+  RefusalAnalytics{candidate: Nat, remaining: List<&2, Nat>}
+  RefusalActivity{candidate: Nat, remaining: List<&2, Nat>}
   CandidatePending{candidate: Nat, remaining: List<&2, Nat>}
   DefectDiagnostic{token: Nat, recoverable: Bool}
   ExpectedPending{}
@@ -142,16 +143,16 @@ def expected_activity(invocation: Nat, next: Nat, policy_required: Bool, +identi
     case Nil{}: policy_next(policy_required, invocation, next)
     case _ <> _: await_command(invocation, next, policy_required, False{}, ActivityPending{}, RecordPendingActivity{identities})
 
-def workspace_refused(invocation: Nat, next: Nat, policy_required: Bool, candidate: Nat, remaining: List<&2, Nat>, reason: WorkspaceRefusal, requested_bytes: Nat) -> Step:
+def workspace_refused(invocation: Nat, next: Nat, policy_required: Bool, +candidate: Nat, remaining: List<&2, Nat>, reason: WorkspaceRefusal, requested_bytes: Nat) -> Step:
   match reason:
-    case CapacityRefused{}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{remaining, True{}, CapacityRejected{}}, ObserveCandidateDiagnostic{candidate, WorkspaceCapacity{requested_bytes}})
-    case Unavailable{reason}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{remaining, False{}, PreparationFailed{}}, ObserveCandidateDiagnostic{candidate, WorkspaceUnavailable{reason}})
-    case InvalidMeasurement{}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{remaining, False{}, PreparationFailed{}}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
+    case CapacityRefused{}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{candidate, remaining, True{}, CapacityRejected{}}, ObserveCandidateDiagnostic{candidate, WorkspaceCapacity{requested_bytes}})
+    case Unavailable{reason}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{candidate, remaining, False{}, PreparationFailed{}}, ObserveCandidateDiagnostic{candidate, WorkspaceUnavailable{reason}})
+    case InvalidMeasurement{}: await_command(invocation, next, policy_required, False{}, RefusalDiagnostic{candidate, remaining, False{}, PreparationFailed{}}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
 
-def refusal_diagnostic_done(invocation: Nat, next: Nat, policy_required: Bool, remaining: List<&2, Nat>, capacity: Bool, analytics: CandidateAnalytics) -> Step:
+def refusal_diagnostic_done(invocation: Nat, next: Nat, policy_required: Bool, candidate: Nat, remaining: List<&2, Nat>, capacity: Bool, analytics: CandidateAnalytics) -> Step:
   match capacity:
-    case True{}: await_command(invocation, next, policy_required, False{}, RefusalCapacity{remaining}, RejectCandidateCapacity{})
-    case False{}: await_command(invocation, next, policy_required, False{}, RefusalAnalytics{remaining}, RecordCandidateAnalytics{analytics})
+    case True{}: await_command(invocation, next, policy_required, False{}, RefusalCapacity{candidate, remaining}, RejectCandidateCapacity{})
+    case False{}: await_command(invocation, next, policy_required, False{}, RefusalAnalytics{candidate, remaining}, RecordCandidateAnalytics{analytics})
 
 def gate_command(phase: GatePhase) -> Command:
   match phase:
@@ -203,7 +204,7 @@ def gate_recovering(phase: GatePhase) -> Bool:
 
 def gate_error(recovering: Bool, invocation: Nat, next: Nat, policy_required: Bool, candidates: List<&2, Nat>, controlled: Bool, reason: Maybe<&2, Reason>, failure: Reason) -> Step:
   match recovering:
-    case True{}: gate_stopped(reason)
+    case True{}: Stopped{False{}, failure}
     case False{}: gate_await(invocation, next, policy_required, candidates, controlled, RecoveryAnalytics{}, Some{failure})
 
 def gate_reply(invocation: Nat, next: Nat, policy_required: Bool, gate: Gate, response: Response) -> Step:
@@ -284,7 +285,7 @@ def recovery_reply(invocation: Nat, next: Nat, policy_required: Bool, completed:
     case RecoveryRuntime{} Active{False{}}: Stopped{completed, reason}
     case RecoveryActivity{} Ack{}: Stopped{completed, reason}
     case _ Defect{token, _, _}: Stopped{completed, DefectFailure{token}}
-    case _ Failed{_}: Stopped{completed, reason}
+    case _ Failed{token}: Stopped{completed, TechnicalFailure{token}}
     case _ Cancelled{token}: Stopped{completed, InvocationCancelled{token}}
     case _ _: Rejected{}
 
@@ -307,14 +308,26 @@ def phase_reply(state: State, response: Response) -> Step:
       await_command(invocation, next, policy_required, False{}, CandidatePending{candidate, remaining}, PrepareCandidate{candidate, preparation})
     case State{invocation, next, policy_required, _, WorkspacePending{candidate, remaining}} WorkspaceRefused{reason, requested_bytes}:
       workspace_refused(invocation, next, policy_required, candidate, remaining, reason, requested_bytes)
-    case State{invocation, next, policy_required, _, RefusalDiagnostic{remaining, capacity, analytics}} Ack{}:
-      refusal_diagnostic_done(invocation, next, policy_required, remaining, capacity, analytics)
-    case State{invocation, next, policy_required, _, RefusalCapacity{remaining}} Ack{}:
-      await_command(invocation, next, policy_required, False{}, RefusalAnalytics{remaining}, RecordCandidateAnalytics{CapacityRejected{}})
-    case State{invocation, next, policy_required, _, RefusalAnalytics{remaining}} Ack{}:
-      await_command(invocation, next, policy_required, False{}, RefusalActivity{remaining}, RecordCandidateUnavailable{})
-    case State{invocation, next, policy_required, _, RefusalActivity{remaining}} Ack{}:
+    case State{invocation, next, policy_required, _, RefusalDiagnostic{candidate, remaining, capacity, analytics}} Ack{}:
+      refusal_diagnostic_done(invocation, next, policy_required, candidate, remaining, capacity, analytics)
+    case State{invocation, next, policy_required, _, RefusalCapacity{candidate, remaining}} Ack{}:
+      await_command(invocation, next, policy_required, False{}, RefusalAnalytics{candidate, remaining}, RecordCandidateAnalytics{CapacityRejected{}})
+    case State{invocation, next, policy_required, _, RefusalAnalytics{candidate, remaining}} Ack{}:
+      await_command(invocation, next, policy_required, False{}, RefusalActivity{candidate, remaining}, RecordCandidateUnavailable{})
+    case State{invocation, next, policy_required, _, RefusalActivity{candidate, remaining}} Ack{}:
       next_candidate(invocation, next, policy_required, remaining)
+    case State{invocation, next, policy_required, completed, CandidateChecking{candidate, _}} Defect{token, False{}, recoverable}:
+      await_command(invocation, next, policy_required, completed, DefectDiagnostic{token, recoverable}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
+    case State{invocation, next, policy_required, completed, WorkspacePending{candidate, _}} Defect{token, False{}, recoverable}:
+      await_command(invocation, next, policy_required, completed, DefectDiagnostic{token, recoverable}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
+    case State{invocation, next, policy_required, completed, RefusalDiagnostic{candidate, _, _, _}} Defect{token, False{}, recoverable}:
+      await_command(invocation, next, policy_required, completed, DefectDiagnostic{token, recoverable}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
+    case State{invocation, next, policy_required, completed, RefusalCapacity{candidate, _}} Defect{token, False{}, recoverable}:
+      await_command(invocation, next, policy_required, completed, DefectDiagnostic{token, recoverable}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
+    case State{invocation, next, policy_required, completed, RefusalAnalytics{candidate, _}} Defect{token, False{}, recoverable}:
+      await_command(invocation, next, policy_required, completed, DefectDiagnostic{token, recoverable}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
+    case State{invocation, next, policy_required, completed, RefusalActivity{candidate, _}} Defect{token, False{}, recoverable}:
+      await_command(invocation, next, policy_required, completed, DefectDiagnostic{token, recoverable}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
     case State{invocation, next, policy_required, completed, CandidatePending{candidate, _}} Defect{token, False{}, recoverable}:
       await_command(invocation, next, policy_required, completed, DefectDiagnostic{token, recoverable}, ObserveCandidateDiagnostic{candidate, WorkspacePanic{}})
     case State{invocation, next, policy_required, completed, DefectDiagnostic{token, recoverable}} Ack{}:
@@ -337,6 +350,7 @@ def phase_reply(state: State, response: Response) -> Step:
       recovery_await(invocation, next, policy_required, completed, RecoveryAnalytics{}, PolicyRefused{})
     case State{invocation, next, policy_required, _, ObservationPending{}} CompletionAccepted{True{}}:
       await_command(invocation, next, policy_required, True{}, BarrierPending{}, AfterPrepare{})
+    case State{_, _, _, _, ObservationPending{}} ObservationCommittedCancelled{token}: Stopped{True{}, InvocationCancelled{token}}
     case State{invocation, next, policy_required, _, ObservationPending{}} ObservationCommittedDefect{token, recoverable}:
       defect_finish(invocation, next, policy_required, True{}, token, recoverable)
     case State{invocation, next, policy_required, _, ObservationPending{}} ObservationCommittedFailure{token}:

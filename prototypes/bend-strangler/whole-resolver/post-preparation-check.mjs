@@ -65,8 +65,12 @@ try {
  ]){const result=run(options);check(result);cases++}
  for(let ordinal=1;ordinal<=success.commands.length;ordinal++)for(const kind of ['failAt','cancelAt','defectAt']) {
   const result=run({[kind]:ordinal,cleanupFailOnce:true});assert.equal(result.step.$,'Stopped');assert.equal(result.step.reason.$,kind==='failAt'?'TechnicalFailure':kind==='defectAt'?'DefectFailure':'CancelledReason');assert.equal(result.step.reason.token,kind==='failAt'?77n:kind==='defectAt'?89n:88n);assert.equal(result.cleanup.length,2);assert.deepEqual(result.cleanup[0],result.cleanup[1])
-  for(const command of result.cleanup)for(const slot of array(command.remaining))assert.ok(!result.enqueued.includes(slot.item.key),'cleanup touched transferred dispatcher owner')
+  for(const command of result.cleanup)for(const slot of array(command.remaining)){assert.ok(!result.enqueued.includes(slot.item.key),'cleanup touched transferred dispatcher owner');assert.ok(array(command.planned).some(item=>item.key===slot.item.key),'cleanup lost the allocation plan for an owner or cached finding')}
   cases++
+ }
+ for(const index of success.commands.map((command,index)=>command.$==='CheckActive'?index:-1).filter(index=>index>=0).slice(0,2)){
+  const inactive=run({inactiveAt:index+1});assert.equal(inactive.step.reason.$,'Inactive');assert.equal(inactive.commands[index+1].$,'ReleaseWorkspace');cases++
+  for(const kind of ['failAt','cancelAt','defectAt']){const failed=run({inactiveAt:index+1,[kind]:index+2});assert.equal(failed.step.reason.$,kind==='failAt'?'TechnicalFailure':kind==='defectAt'?'DefectFailure':'CancelledReason');cases++}
  }
  const runTail=options=>{
   let step=core.advice_initial(77n,900n),ordinal=0;const commands=[]

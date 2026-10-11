@@ -6,6 +6,7 @@ import * as Effect from 'effect/Effect'
 import * as Ref from 'effect/Ref'
 import * as Scope from 'effect/Scope'
 import * as Exit from 'effect/Exit'
+import * as Cause from 'effect/Cause'
 import {initialCanonical,projectCanonical} from '@hapsland/canonical-policy/canonical/adapter'
 import {residentTransaction} from '../../../packages/resident-runtime/src/resident/state/resident/transaction.ts'
 import {residentCapacity} from '../../../packages/resident-runtime/src/resident/state/resident/capacity.ts'
@@ -56,7 +57,7 @@ export function snapshotSourceOwnership(snapshot){
 
 // Independent actual production workflow oracle. No Source/Preparation/Post
 // selector is used; the native entry owns all candidates and finalizers.
-export async function nativeSourceReference({owner,root,rootIdentity,candidates,nativePatchCommand,settings,limits,refuseSecond=false,ownerBarrierFailure=false,captureFailure,inspectionFailure,diagnosticFailure,analyticsCause,activityRefused=false}){
+export async function nativeSourceReference({owner,root,rootIdentity,candidates,nativePatchCommand,settings,limits,refuseSecond=false,ownerBarrierFailure=false,captureFailure,inspectionFailure,diagnosticFailure,analyticsCause,backendCause,backendRecoveryCause,credentialCause,credentialError,afterPrepareCause,registerWorkFailure,registerWorkError,cleanupError,activityRefused=false}){
  const run=Effect.runSync
  const initial={residentLifetime:'physical',limits,canonical:initialCanonical(limits),resolverCustody:owner.initial_custody(),reservations:new Map(),partitionIds:new Map(),partitionIdentityBytes:0,roundIds:new Map(),requestRounds:new Map(),collectionTokens:new Map(),nextCollectionToken:1,nextPartitionId:1,minimumFreshStart:0,records:{runtime:{peakLedgerBytes:0}}}
  const transaction=residentTransaction(run(Ref.make(initial)),'physical'),capacity=residentCapacity(transaction)
@@ -72,6 +73,9 @@ export async function nativeSourceReference({owner,root,rootIdentity,candidates,
  if(activityRefused)fs.writeFileSync(context.job.dispatch.activityPath,'blocked directory')
  context.job.reservation=run(capacity.reserve('agent',32,'observationDispatch'));assert.ok(context.job.reservation)
  Object.assign(context.deps,{runtimeConfiguration:{debug:false},residentAwaitBackendGate:()=>Effect.void,residentCredentialRequired:credentials.residentCredentialRequired,residentCredentialShapeMatches:credentials.residentCredentialShapeMatches,residentCredentialGenerationCurrent:credentials.residentCredentialGenerationCurrent})
+ if(credentialCause)context.deps.residentCredentialShapeMatches=()=>{trace.push({kind:'credential-shape'});throw credentialError}
+ if(afterPrepareCause)context.deps.residentPreparationControls={...context.deps.residentPreparationControls,afterPrepare:Effect.failCause(afterPrepareCause)}
+ if(backendCause)context.deps.residentAwaitBackendGate=()=>Effect.sync(()=>trace.push({kind:'backend'})).pipe(Effect.andThen(Effect.failCause(backendCause)))
  if(ownerBarrierFailure)context.deps.residentPreparationControls={...context.deps.residentPreparationControls,afterReuseBoundary:phase=>phase==='ownerClaimed'?Effect.fail(new Error('injected owner barrier failure')):Effect.void}
  context.deps.residentInspection={...context.deps.residentInspection,preparationPorts:()=>({}),observePreparation:(_job,value)=>{trace.push({kind:'prepared',value});if(inspectionFailure)throw inspectionFailure},observeDiagnostic:(_receipt,path,_candidate,value)=>{trace.push({kind:'diagnostic',path,value,custody:snapshotReservationCustody(run(transaction.read))});if(diagnosticFailure)throw diagnosticFailure}}
   let admissionCalls=0
@@ -79,7 +83,21 @@ export async function nativeSourceReference({owner,root,rootIdentity,candidates,
  context.deps.residentLedger.beginObservedPreparation=(partition,observation,bytes,round)=>begin(partition,observation,refuseSecond&&++admissionCalls===2?200000000:bytes,round).pipe(Effect.tap(value=>Effect.sync(()=>trace.push({kind:'admission',bytes,status:value.status}))))
  context.deps.residentLedger.resize=(reservation,bytes)=>resize(reservation,bytes).pipe(Effect.tap(value=>Effect.sync(()=>trace.push({kind:'resize',bytes,status:value.status}))))
  context.deps.residentCaptureSource=(root,selected,...args)=>(captureFailure?Effect.sync(()=>trace.push({kind:'capture-failure',path:selected.relativePath})).pipe(Effect.andThen(Effect.fail(captureFailure))):captureStable(root,selected,...args)).pipe(Effect.tap(value=>Effect.sync(()=>trace.push({kind:'capture',path:selected.relativePath,status:value.status,...(value.status==='captured'?{contentHash:value.capture.contentHash,bytes:value.capture.byteLength}:{diagnostic:value.diagnostic})}))))
- context.deps.residentRecordAnalytics=(_job,event,findings)=>Effect.sync(()=>trace.push({kind:'analytics',event,...(findings===undefined?{}:{findings})})).pipe(Effect.andThen(analyticsCause&&event==='incomplete-candidate'?Effect.failCause(analyticsCause):Effect.void))
+ context.deps.residentRecordAnalytics=(_job,event,findings)=>Effect.sync(()=>trace.push({kind:'analytics',event,...(findings===undefined?{}:{findings})})).pipe(Effect.andThen(backendRecoveryCause&&event==='preparation-failed'?Effect.failCause(backendRecoveryCause):analyticsCause&&event==='incomplete-candidate'?Effect.failCause(analyticsCause):Effect.void))
+  if(registerWorkFailure){
+   let workFailed=false,cleanupFailed=false,claimsReleased=0
+   const policyWork=context.deps.residentLedger.rounds.policyWork,release=context.deps.residentLedger.release,releaseRevision=context.deps.residentReleaseCurrentWork
+   context.deps.residentLedger.rounds.policyWork=(...args)=>!workFailed&&run(transaction.read).records.revision.current.size>0?(workFailed=true,Effect.failCause(registerWorkFailure==='defect'?Cause.die(registerWorkError):Cause.fail(registerWorkError))):policyWork(...args)
+   context.deps.residentReleaseCurrentWork=(...args)=>{const revision=run(transaction.read).records.revision.current.get(args[0].subject);assert.equal(revision.token,args[0].token);return releaseRevision(...args).pipe(Effect.tap(()=>Effect.sync(()=>trace.push({kind:'release-revision',subject:args[0].subject,generation:args[0].generation,inputIdentity:revision.inputIdentity}))))}
+   if(registerWorkFailure==='multi'){
+    const releaseClaim=context.deps.residentReleaseReuseClaim
+    context.deps.residentReleaseReuseClaim=(key,...args)=>{const held=run(transaction.read).records.reuse.pending.has(key);return releaseClaim(key,...args).pipe(Effect.tap(()=>Effect.sync(()=>{if(held&&!run(transaction.read).records.reuse.pending.has(key)){trace.push({kind:'release-claim',key});if(++claimsReleased===2&&!cleanupFailed){cleanupFailed=true;throw cleanupError}}})))}
+   }
+   context.deps.residentLedger.release=reservation=>{
+    const retained=run(transaction.read).reservations.get(reservation.id),unit=retained?.purpose==='reviewUnit'
+    return release(reservation).pipe(Effect.tap(released=>Effect.sync(()=>{if(unit&&released){trace.push({kind:'release-unit',id:reservation.id});if(registerWorkFailure!=='multi'&&workFailed&&!cleanupFailed){cleanupFailed=true;throw cleanupError}}})))
+   }
+  }
  try{
   const activity=captureActivityPublications(context.job.dispatch.activityPath,trace)
   let exit

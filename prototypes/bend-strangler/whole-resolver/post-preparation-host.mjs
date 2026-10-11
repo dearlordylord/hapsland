@@ -22,14 +22,14 @@ const array=value=>{const result=[];while(value.$==='Con'){result.push(value.hea
 const some=value=>({$:'Some',value}),none={$:'None'}
 export function createPostPreparationProvider(invocation,context,prepared,preparation,pathObservation,analyticsEnabled,sourceWorkspace) {
   const ledger=context.deps.residentLedger,plans=new Map(),reservations=new Map(),revisions=new Map(),units=new Map(),errors=new Map(),errorCauses=new Map(),pendingOwners=new Map(),adviceOwners=new Map(),publications=new Map(),tails=new Map()
-  let revoked=false,closed=false,finished=false,primaryFailure,sourceDefect=false
+  let revoked=false,closed=false,finished=false,primaryFailure,primaryCause,finalizationCause
   if(sourceWorkspace){
    const {owner,driver,sourceInvocation,operation,capability,handoff,parent}=sourceWorkspace
    driver.handoffResult(handoff)
    const child=owner.find(invocation,driver.state.children),origin=owner.find(handoff.scope.origin,driver.state.children),source=owner.find(sourceInvocation,driver.state.children)
    if(handoff.handoff!==invocation||child.$!=='Some'||child.value.scope.$!=='RetainingScope'||child.value.scope.origin!==handoff.scope.origin||origin.$!=='Some'||origin.value.scope.$!=='PreparationScope'||origin.value.scope.preparation!==operation||source.$!=='Some'||source.value.scope.$!=='SourceScope'||child.value.parent.$!=='Some'||child.value.parent.value.invocation!==sourceInvocation||child.value.parent.value.generation!==parent.generation||child.value.parent.value.request!==parent.request||source.value.generation!==parent.generation||source.value.request.$!=='Some'||source.value.request.value!==parent.request||capability!==preparation.reservation||!context.activeWorkspaces.has(capability))throw new Error('Source workspace lifetime lacks its Canonical handoff')
   }
-  const transferred=new Set(),ownedClaims=new Set(),acquiredRevisions=new Map(),revisionReservations=new Map()
+  const transferred=new Set(),dischargedReservations=new Set(),ownedClaims=new Set(),acquiredRevisions=new Map(),revisionReservations=new Map()
   const transferredReservation=handle=>[...transferred].some(value=>BigInt(value.reservation.id)===handle)
   const transferredAcquisition=handle=>revisionReservations.has(handle)&&transferredReservation(revisionReservations.get(handle))
   const transferredClaim=key=>[...transferred].some(value=>value.evaluationKey===key)
@@ -49,21 +49,27 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
   return {
    input:{invocation,postPreparation:{roundBound:context.job.round!==undefined,incomplete:prepared.observation.status==='incomplete',outcomes:list(facts)}},
    error:token=>errors.get(token),cause:token=>errorCauses.get(token),
+   get terminationCause(){return primaryCause},
+   get handoffFailureCause(){return finalizationCause===undefined?undefined:primaryCause===undefined?finalizationCause:Cause.combine(primaryCause,finalizationCause)},
    invocation:Number(invocation),
    revoke(){revoked=true},
    close(){closed=true},
    get transferredUnits(){return transferred.size},
    async finish(){
     if(finished)return
-    const failures=[],attempt=async (effect,receipt)=>{try{await rawRun(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt,receipt)))}catch(error){failures.push(error)}}
+    const failures=[],attempt=async (effect,receipt)=>{
+     const exit=await Effect.runPromiseExit(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt,receipt)))
+     if(Exit.isFailure(exit)){finalizationCause=finalizationCause===undefined?exit.cause:Cause.combine(finalizationCause,exit.cause);try{await rawRun(Effect.failCause(exit.cause))}catch(error){failures.push(error)}return false}
+     return true
+    }
     for(const tail of tails.values())if(!tail.started){tail.started=true;if(tail.failure!==undefined)tail.provider.forceCleanup(tail.failure);try{await context.ownedAdvice.driver.driveAdvice(context.ownedAdvice.driver.adviceHandoff(tail.receipt.invocation),tail.provider,{signal:context.deps.residentLifetimeController.signal})}catch(error){failures.push(error)}}
     for(const value of units.values())if([...plans.values()].some(plan=>plan.evaluationKey===value.evaluationKey&&plan.kind==='cached')&&!value.completed&&value.round!==undefined&&value.workUnitId!==undefined)await attempt(ledger.rounds.policyWork(value.round).pipe(Effect.map(policy=>policy.retire(value.workUnitId))))
     const transferredReservations=new Set([...transferred].map(value=>BigInt(value.reservation.id)))
     const transferredKeys=new Set([...transferred].map(value=>value.evaluationKey))
     for(const [handle,value] of reservations)if(!transferredReservations.has(handle))await attempt(ledger.release(value))
     for(const [handle,value] of acquiredRevisions)if(!transferredAcquisition(handle))await attempt(context.deps.residentReleaseCurrentWork(value),()=>acquiredRevisions.delete(handle))
-    for(const key of ownedClaims)if(!transferredKeys.has(key)){await attempt(context.deps.residentReleaseReuseClaim(key));context.unassignedClaims.delete(key)}
-    if(!(sourceWorkspace&&sourceDefect)&&context.activeWorkspaces.has(preparation.reservation)){await attempt(ledger.release(preparation.reservation));context.activeWorkspaces.delete(preparation.reservation)}
+    for(const key of ownedClaims)if(!transferredKeys.has(key)){if(await attempt(context.deps.residentReleaseReuseClaim(key)))context.unassignedClaims.delete(key)}
+    if(!sourceWorkspace&&context.activeWorkspaces.has(preparation.reservation)){if(await attempt(ledger.release(preparation.reservation)))context.activeWorkspaces.delete(preparation.reservation)}
     if(failures.length)throw new AggregateError(primaryFailure===undefined?failures:[primaryFailure,...failures],'Post-preparation resource finalization failed',{cause:primaryFailure??failures[0]})
     finished=true
    },
@@ -86,7 +92,7 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
     const run=async(effect,releasedAcquisition,releasedClaim)=>{
      const receipt=publication=>{if(releasedAcquisition!==undefined)acquiredRevisions.delete(releasedAcquisition);if(releasedClaim!==undefined){ownedClaims.delete(releasedClaim);context.unassignedClaims.delete(releasedClaim)}committed({...publication,releasedAcquisition})}
      const exit=await Effect.runPromiseExit(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt,receipt),Effect.provideService(ResidentProviderPermit,cleanup||!options.ownerLease?undefined:{credential:options.ownerLease,committed:receipt})))
-     if(Exit.isFailure(exit)){failureCause=exit.cause;failureKind=Cause.hasDies(exit.cause)?'Defect':Cause.hasInterrupts(exit.cause)?'Cancelled':'Failed';return rawRun(Effect.failCause(exit.cause))}
+     if(Exit.isFailure(exit)){failureCause=exit.cause;failureKind=Cause.hasDies(exit.cause)?'Defect':Cause.hasFails(exit.cause)?'Failed':Cause.hasInterrupts(exit.cause)?'Cancelled':'Failed';return rawRun(Effect.failCause(exit.cause))}
      return exit.value
     }
     const releaseAcquisition=async handle=>{if(!acquiredRevisions.has(handle)||transferredAcquisition(handle))return;await run(context.deps.residentReleaseCurrentWork(revision(handle)),handle);acquiredRevisions.delete(handle)}
@@ -95,6 +101,7 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
     failureKind='Defect'
     switch(command.$) {
      case 'CheckActive':response={$:'Active',value:await run(context.deps.residentJobActive(context.job))};break
+     case 'ReleaseWorkspace':await run(ledger.release(preparation.reservation));context.activeWorkspaces.delete(preparation.reservation);break
      case 'Offer':response={$:'Offered',accepted:(await run(ledger.preparedOffer(command.outcome.ready,!command.deliverability||command.outcome.fits)))==='preparedAdmitted'};break
      case 'ObservePreparation':context.deps.residentInspection.observePreparation(context.job,prepared);break
      case 'ReportEmptyAnalytics':await run(context.deps.residentRecordAnalytics(context.job,command.incomplete?'incomplete-candidate':'skipped-candidate'));break
@@ -197,8 +204,8 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
       const value=unit(command.slot,command.revision,command.work),accepted=await run(context.deps.residentJoined.attachOwner(value.evaluationKey,value,value.revision));if(accepted)context.unassignedClaims.delete(value.evaluationKey);response={$:'Attached',accepted};break
      }
      case 'Enqueue':response={$:'Queued',accepted:await run(context.deps.residentDispatcher.enqueue(context.job.partition,unit(command.slot,command.revision,command.work)))};break
-     case 'ReleaseUnspawned':if(transferredReservation(command.slot.reservation))break;if(command.slot.item.route.$==='Owner'){const key=item(command.slot.item).evaluationKey;if(ownedClaims.has(key))await run(context.deps.residentReleaseReuseClaim(key),undefined,key);ownedClaims.delete(key);context.unassignedClaims.delete(key)}await run(ledger.release(reservation(command.slot)));reservations.delete(command.slot.reservation);await releaseAcquisition(command.revision);break
-     case 'ReleaseAttached': {if(transferredReservation(command.slot.reservation))break;const value=unit(command.slot,command.revision,command.work);if(ownedClaims.has(value.evaluationKey))await run(context.deps.residentReleaseReuseClaim(value.evaluationKey,'capacity'),undefined,value.evaluationKey);await run(ledger.release(value.reservation));await releaseAcquisition(command.revision);value.released=true;ownedClaims.delete(value.evaluationKey);context.unassignedClaims.delete(value.evaluationKey);reservations.delete(command.slot.reservation);acquiredRevisions.delete(command.revision);break}
+     case 'ReleaseUnspawned':if(transferredReservation(command.slot.reservation))break;if(command.slot.item.route.$==='Owner'){const key=item(command.slot.item).evaluationKey;if(ownedClaims.has(key))await run(context.deps.residentReleaseReuseClaim(key),undefined,key);ownedClaims.delete(key);context.unassignedClaims.delete(key)}await run(ledger.release(reservation(command.slot)));reservations.delete(command.slot.reservation);dischargedReservations.add(command.slot.reservation);await releaseAcquisition(command.revision);break
+     case 'ReleaseAttached': {if(transferredReservation(command.slot.reservation))break;const value=unit(command.slot,command.revision,command.work);if(ownedClaims.has(value.evaluationKey))await run(context.deps.residentReleaseReuseClaim(value.evaluationKey,'capacity'),undefined,value.evaluationKey);await run(ledger.release(value.reservation));await releaseAcquisition(command.revision);value.released=true;ownedClaims.delete(value.evaluationKey);context.unassignedClaims.delete(value.evaluationKey);reservations.delete(command.slot.reservation);dischargedReservations.add(command.slot.reservation);acquiredRevisions.delete(command.revision);break}
      case 'ReportCapacity':await run(ledger.runtime.rejectCapacity());await run(context.deps.residentRecordAnalytics(context.job,'capacity-rejected'));await run(context.deps.residentRecordOperationalFailure(context.job.observation,'capacity'));break
      case 'StartCachedReview':response={$:'ReviewAccepted',value:await run(ledger.startReview(context.job.partition,Number(command.slot.operation),context.job.canonicalRound))};break
      case 'CompleteCachedReview':response={$:'ReviewAccepted',value:await run(ledger.completeReview(context.job.partition,Number(command.slot.operation),reservation(command.slot),'finding',context.job.canonicalRound))};break
@@ -206,7 +213,7 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
      case 'CheckCachedActive':response={$:'Active',value:await run(context.deps.residentJobActive(unit(command.slot,command.revision,command.work)))};break
      case 'ReadCachedAdvice':{const existing=(await run(context.deps.residentAdvice())).find(value=>value.evaluationKey===item(command.slot.item).evaluationKey);const handle=BigInt(adviceOwners.size+1);if(existing)adviceOwners.set(handle,existing);response={$:'AdviceOwner',owner:existing===undefined?none:some(handle)};break}
      case 'RetireCachedWork':{const value=unit(command.slot,command.revision,command.work);if(value.round!==undefined&&value.workUnitId!==undefined)await run(ledger.rounds.policyWork(value.round).pipe(Effect.map(policy=>policy.retire(value.workUnitId))));break}
-     case 'ReleaseCachedUnit':{await run(ledger.release(reservation(command.slot)));await releaseAcquisition(command.revision);const value=unit(command.slot,command.revision,command.work);value.released=true;reservations.delete(command.slot.reservation);break}
+     case 'ReleaseCachedUnit':{await run(ledger.release(reservation(command.slot)));await releaseAcquisition(command.revision);const value=unit(command.slot,command.revision,command.work);value.released=true;reservations.delete(command.slot.reservation);dischargedReservations.add(command.slot.reservation);break}
      case 'InsertCachedAdvice':{
       if(!context.ownedAdvice||!options.ownerLease)throw new Error('Cached advice requires Canonical composition')
       const value=unit(command.slot,command.revision,command.work),planned=item(command.slot.item),credential=value.dispatch.credential,required=value.dispatch.controlled===null||value.dispatch.controlled.requireCredential===true
@@ -226,14 +233,24 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
      case 'AwaitAdviceTail':{const tail=tails.get(command.tail);if(!tail||tail.started)throw new Error('Unknown or consumed advice transfer');tail.started=true;const accepted=await context.ownedAdvice.driver.driveAdvice(context.ownedAdvice.driver.adviceHandoff(command.tail),tail.provider,{signal:context.deps.residentLifetimeController.signal});if(!accepted.adviceRetained)throw tail.provider.error(accepted.reason?.token)??new Error('Advice tail failed');break}
      case 'FinalizeCachedUnit':{const value=unit(command.slot,command.revision,command.work);if(!value.completed&&value.round!==undefined&&value.workUnitId!==undefined){await run(ledger.rounds.policyWork(value.round).pipe(Effect.map(policy=>policy.retire(value.workUnitId))));if(!value.released){await run(ledger.release(value.reservation));await releaseAcquisition(command.revision);value.released=true}}break}
      case 'Cleanup': {
-      for(const slot of array(command.remaining))if(!transferredReservation(slot.reservation)){await run(ledger.release(reservation(slot)));reservations.delete(slot.reservation)}
       if(command.revision.$==='Some')await releaseAcquisition(command.revision.value)
-      for(const planned of array(command.planned)){const key=item(planned).evaluationKey;if(ownedClaims.has(key)&&!transferredClaim(key)){if(ownedClaims.has(key))await run(context.deps.residentReleaseReuseClaim(key),undefined,key);ownedClaims.delete(key);context.unassignedClaims.delete(key)}}
+      const remaining=new Map(array(command.remaining).map(slot=>[slot.item.key,slot]))
+      for(const planned of array(command.planned)){
+       const slot=remaining.get(planned.key)
+       if(slot&&!transferredReservation(slot.reservation)){
+        if(reservations.has(slot.reservation)){await run(ledger.release(reservation(slot)));reservations.delete(slot.reservation);dischargedReservations.add(slot.reservation)}
+        else if(!dischargedReservations.has(slot.reservation))throw new Error('Unknown native reservation')
+       }
+       remaining.delete(planned.key)
+       const key=item(planned).evaluationKey
+       if(ownedClaims.has(key)&&!transferredClaim(key)){await run(context.deps.residentReleaseReuseClaim(key),undefined,key);ownedClaims.delete(key);context.unassignedClaims.delete(key)}
+      }
+      if(remaining.size)throw new Error('Cleanup allocation lacks its bound plan')
       break
      }
      default:throw new Error('Unknown postflow command '+command.$)
     }
-   } catch(error){if(command.$==='ObserveRetainedAdvice'&&tails.has(command.tail))tails.get(command.tail).failure=error;if(primaryFailure===undefined)sourceDefect=failureKind==='Defect';primaryFailure??=error;const token=BigInt(errors.size+1);errors.set(token,error);errorCauses.set(token,failureCause??(failureKind==='Defect'?Cause.die(error):Cause.fail(error)));response={$:failureKind,token}}
+   } catch(error){if(command.$==='ObserveRetainedAdvice'&&tails.has(command.tail))tails.get(command.tail).failure=error;const cause=failureCause??(failureKind==='Defect'?Cause.die(error):Cause.fail(error));if(primaryFailure===undefined)primaryCause=cause;else if(cleanup)primaryCause=Cause.combine(primaryCause,cause);primaryFailure??=error;const token=BigInt(errors.size+1);errors.set(token,error);errorCauses.set(token,cause);response={$:failureKind,token}}
     return {$:'Reply',invocation:request.invocation,id:request.id,response}
    }
   }
@@ -247,7 +264,7 @@ export function bendPostPreparation(core,context,prepared,preparation,pathObserv
   for(let fuel=0;fuel<10000;fuel++) {
    if(step.$==='Internal'){step=core.advance(step.state);continue}
    if(step.$==='Finished')return true
-   if(step.$==='Stopped'){if(['TechnicalFailure','DefectFailure'].includes(step.reason.$)){terminalCause=provider.cause(step.reason.token);throw provider.error(step.reason.token)??new Error('Postflow refused native attachment')}return false}
+   if(step.$==='Stopped'){if(['TechnicalFailure','DefectFailure'].includes(step.reason.$)){terminalCause=provider.terminationCause??provider.cause(step.reason.token);throw provider.error(step.reason.token)??new Error('Postflow refused native attachment')}return false}
    if(step.$!=='Await')throw new Error('Postflow rejected response')
    step=core.resume(step,await provider.perform(step.request))
   }

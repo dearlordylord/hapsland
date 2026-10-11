@@ -3336,7 +3336,7 @@
     {
       "path": "whole-resolver/PostPreparation.bend",
       "capture": "whole-resolver/PostPreparation.bend.txt",
-      "sha256": "34be62fa98237939abe09febe614c31e2e6f914e7a78b2e339a2bd479a4e1fb6"
+      "sha256": "dd0ea623f107bad6ed1351e0bf676e371ee2baa81bd60c1d67a903642ff364e9"
     },
     {
       "path": "whole-resolver/Preparation.bend",
@@ -3541,7 +3541,7 @@
     {
       "path": "whole-resolver/SourcePreparation.bend",
       "capture": "whole-resolver/SourcePreparation.bend.txt",
-      "sha256": "22cbb84221ed04a5fbb6e5807f695d6fbf1215b9d6ae20e484bdf780477aae53"
+      "sha256": "2226ab1d64b75261eddfb14b82d407f052aafd02a3058967b721c5a29b3249c6"
     },
     {
       "path": "whole-resolver/SourcePreparationProbe.bend",
@@ -3701,7 +3701,7 @@
     {
       "path": "whole-resolver/native-source-reference.mjs",
       "capture": "whole-resolver/native-source-reference.mjs",
-      "sha256": "10ec0fe8efd7e4a4f9694d1171eb72c9bfebde6f14ada296e6ea479c09aa62c6"
+      "sha256": "bd0a82035a107d89d8af3b62bbad8ab3487cafe2fd6a9ae449f5df695750956e"
     },
     {
       "path": "whole-resolver/owned-artifact-driver.mjs",
@@ -3721,7 +3721,7 @@
     {
       "path": "whole-resolver/post-preparation-check.mjs",
       "capture": "whole-resolver/post-preparation-check.mjs",
-      "sha256": "bf4f7cd678dabc7b9eb598453398f1db4d5a3137119a55857b390f032e328eef"
+      "sha256": "3dcbd847cf480d89a3a29135c960230b178f2d2abb60c912d29933ef8265f7cc"
     },
     {
       "path": "whole-resolver/post-preparation-dispatcher.mjs",
@@ -3731,7 +3731,7 @@
     {
       "path": "whole-resolver/post-preparation-host.mjs",
       "capture": "whole-resolver/post-preparation-host.mjs",
-      "sha256": "565c7857ffffe09cdbe2422f7cbbf3d20ec01402c44140dac0681420a5ac0d1c"
+      "sha256": "c0ed4f7b9e301f6eee5d592d5a1fdb7a93d264322578c6b538784304d935ec5b"
     },
     {
       "path": "whole-resolver/preparation-dispatcher.mjs",
@@ -4021,12 +4021,12 @@
     {
       "path": "whole-resolver/source-preparation-check.mjs",
       "capture": "whole-resolver/source-preparation-check.mjs",
-      "sha256": "6ffbee0a51c13c720ccca0fd4955ed6788bf0b7e0fda265bab4ad12524c9bed5"
+      "sha256": "ec1b77176656fdae1b2fa38983898aeb0925753c95ca929f84070f07667fd589"
     },
     {
       "path": "whole-resolver/source-preparation-consumer.mjs",
       "capture": "whole-resolver/source-preparation-consumer.mjs",
-      "sha256": "6ab58e302bcbb096e8997b80c131897e480a03939ddb1f68a5fff7d15e23f378"
+      "sha256": "0f5282aa58aff39e2a1b8d4f166701c9594106d94809d0f22276fc6012be9dde"
     },
     {
       "path": "whole-resolver/source-preparation-dispatcher.mjs",
@@ -4036,7 +4036,7 @@
     {
       "path": "whole-resolver/source-preparation-provider.mjs",
       "capture": "whole-resolver/source-preparation-provider.mjs",
-      "sha256": "1ef5120f81d4523f990987379cb1bf8a81c403c7cc75961c6a6fb20656e2fbac"
+      "sha256": "662a54abd884fc5a13a60494345d8e4f954917047b4ae93cf61fe8b0a689c1cf"
     },
     {
       "path": "whole-resolver/specification-check.mjs",
