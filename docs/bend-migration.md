@@ -548,3 +548,19 @@ measurement. check:fast passed its unit/type/package stages and failed on one
 undeclared external update-notice oracle and 137 cross-owner private imports.
 The two tooling-to-verification dependency violations are removed by placing
 execution with its owner, without publishing the frozen oracle as a product API.
+
+Current source-organization blocker at `c4fc911f` plus the owner-local Python
+checks: zero unresolved imports, zero undeclared dependencies and 109
+cross-owner private-file imports. The update-notice checker now uses tracked
+expected data for exactly the original 144 inputs, independently obtained from
+receipt-verified e31 output; all 180 assertions passed. Astra reviewed the
+finite oracle replacement. Fourteen Python checks now live in the
+source-analysis `python-module/checks` capability; the old copies are deleted.
+All fourteen actual consumers passed, including persistent GraphSession with
+physical mutation and ordered-effect checks. Nonempty lint selected all 14.
+check:fast passed 109 unit tests, assets, TypeScript and package graph, then
+failed the remaining 109 private-file imports. No full gate was attempted on
+that failed prerequisite; test:status contains only an older unrelated run.
+These repairs preserve candidate checks and close 28 owner-boundary violations;
+whole Go Package, PreparationMachine, Canonical adoption and native TypeScript
+removal remain open. No production preparation adoption is claimed.
