@@ -16,6 +16,8 @@ import {
   createBendEffectResolver,
   createBendResolver
 } from "@hapsland/source-analysis/direct-event/graph-resolution"
+import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
+import { createArtifactMachine } from "../../composition/artifact-dispatcher.mjs"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 if (!process.env.HAPSLAND_GRAPH_FIXTURE_FACTS)
   throw new TypeError(
@@ -591,6 +593,16 @@ try {
     }
     let expected, nativeError, actual, bendError
     const operationTrace = []
+    const ownedTranscript = [],
+      directTranscript = []
+    let ownedTerminal, directTerminal
+    const ownedMachine = createArtifactMachine({ ...artifacts, retainPrefixes: false })
+    ownedMachine.accepted = (terminal) => {
+      ownedTerminal = terminal
+      return terminal.$ === "Types.FinishedResolver"
+        ? { result: terminal.result, finalFrame: terminal.final_frame }
+        : { failure: terminal.failure }
+    }
     try {
       expected = await Effect.runPromise(
         resolveGraphUnit(path, stable(path), "Root", contextFor(nativeEvents, nativeCache))
@@ -604,9 +616,11 @@ try {
       initialState: initial(),
       scope,
       artifacts,
+      machine: ownedMachine,
       registry,
       foreign: async ([request], options) => {
         totalRequests++
+        ownedTranscript.push({ request: structuredClone(request) })
         operationTrace.push(request.operation.$)
         if (request.operation.$ === "Types.HashJsonProduct") {
           const checkText = (value, at = "value") => {
@@ -617,7 +631,9 @@ try {
           }
           checkText(request.operation.value)
         }
-        return await registry.perform(request, options)
+        const reply = await registry.perform(request, options)
+        ownedTranscript.push({ reply: structuredClone(reply) })
+        return reply
       }
     })
     const resolver = createBendEffectResolver({
@@ -673,6 +689,55 @@ try {
       if (fixture.name === "tree-refusal")
         assert.equal(operationTrace.filter((operation) => operation === "Types.EncodeProduct").length, 4)
     }
+    const directEvents = []
+    const directCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
+    const directRegistry = createServiceRegistry()
+    const directMachine = createArtifactMachine({ ...artifacts, retainPrefixes: false })
+    const directResolver = createBendEffectResolver({
+      allocateInvocation: () => 1,
+      onConstructionFailure: () => {},
+      drive: (session, input, options) =>
+        directRegistry.run(session, async () => {
+          try {
+            let state = directMachine.initial(input)
+            for (;;) {
+              const step = directMachine.view(state)
+              if (step.$ !== "Types.AwaitService") {
+                directTerminal = step
+                if (step.$ === "Types.FinishedResolver") return { result: step.result, finalFrame: step.final_frame }
+                assert.equal(step.$, "Types.FailedResolver")
+                if (step.failure.$ === "Types.ForeignProviderFailure" || step.failure.$ === "Types.RuntimeFailure")
+                  throw session.exception(step.failure.exception)
+                if (step.failure.$ === "Types.NegativeGraphWork") readNat(-Number(step.failure.magnitude))
+                return { failure: step.failure }
+              }
+              directTranscript.push({ request: structuredClone(step.request) })
+              const reply = await directRegistry.perform(step.request, options)
+              directTranscript.push({ reply: structuredClone(reply) })
+              state = directMachine.resume(state, { $: "Types.ServiceReply", reply })
+            }
+          } finally {
+            directMachine.disposeInvocation(input.invocation)
+          }
+        })
+    })
+    let directResult, directError
+    try {
+      directResult = await Effect.runPromise(
+        directResolver(path, stable(path), "Root", contextFor(directEvents, directCache))
+      )
+    } catch (error) {
+      directError = error
+    }
+    assert.deepEqual(directTranscript, ownedTranscript, fixture.name + " complete request/reply IO stream")
+    assert.deepEqual(directTerminal, ownedTerminal, fixture.name + " accepted full terminal projection")
+    assert.deepEqual(directResult, actual, fixture.name + " IO terminal result")
+    assert.equal(directError?.message, bendError?.message, fixture.name + " IO error")
+    assert.deepEqual(directEvents, bendEvents, fixture.name + " IO effects")
+    if (bendCache) assert.deepEqual([...directCache], [...bendCache], fixture.name + " IO cache")
+    assert.equal(directMachine.retainedHandles, 0, fixture.name + " IO artifact cleanup")
+    assert.equal(directRegistry.size, 0, fixture.name + " IO registry cleanup")
+    assert.equal(driver.stats.accepted, 1, fixture.name + " single Canonical terminal acceptance")
     assert.deepEqual(bendEvents, nativeEvents, fixture.name + " effect sequence")
     if (nativeCache) assert.deepEqual([...bendCache], [...nativeCache], fixture.name + " caller cache")
     assert.deepEqual(
