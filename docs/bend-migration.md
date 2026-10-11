@@ -195,8 +195,10 @@ One current obstacle list, in execution order:
    exact cursor lookup and projected row count transport are checked. Full
    recursive address-count transport is checked at 3.403 seconds under hard
    five seconds, with original alignment/density/projection premises. The next
-   cross-episode count batch is authored WIP: its first full-prefix run timed
-   out at 5.074 seconds without a verdict. Remaining path: appended alignment,
+   cross-episode count exclusion is now checked: the unchanged full prefix
+   passed an isolated hard-five-second run at 1.992 seconds; episode inversion
+   passed at 2.330 seconds. Its first full-prefix timeout at 5.074 seconds is
+   retained as a failed run, not a verdict. Remaining path: appended alignment,
    full projection, owner-only replacement commutation, semantic validity,
    original eight conjuncts and the existing transaction theorem. No separate
    helper frontier qualifies adoption; the original parent theorem remains WIP.
@@ -254,6 +256,11 @@ One current obstacle list, in execution order:
    .test-runs/bend-migration/performance/2026-10-11T20-14-00.586230+00-00
    and 2026-10-11T20-20-53.531594+00-00 (qualification.json and run.log).
    Next build start is due 20:44:00.586230 UTC, execution 20:50:53.531594 UTC.
+   A bounded two-pair UI-preflight diagnostic passed both roots on CPU11:
+   baseline 2.702/2.625 seconds, candidate 2.694/3.037 seconds. This does not
+   isolate the complete build regression or establish parity; no scanner
+   coverage or acceptance threshold was changed. Next performance diagnostic
+   must distinguish the wrapper preflight/input-hashing cost from Turbo tasks.
 
 Historical performance evidence (existing production, not whole preparation): Latest matched warm build at 12a2a197 started
    2026-10-11T14:55:48.475707Z: 17 pairs, all 23/46 cached, qualified with
