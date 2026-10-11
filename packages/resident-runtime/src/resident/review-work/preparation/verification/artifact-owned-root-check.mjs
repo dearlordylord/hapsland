@@ -590,6 +590,7 @@ try {
       }
     }
     let expected, nativeError, actual, bendError
+    const operationTrace = []
     try {
       expected = await Effect.runPromise(
         resolveGraphUnit(path, stable(path), "Root", contextFor(nativeEvents, nativeCache))
@@ -606,6 +607,7 @@ try {
       registry,
       foreign: async ([request], options) => {
         totalRequests++
+        operationTrace.push(request.operation.$)
         if (request.operation.$ === "Types.HashJsonProduct") {
           const checkText = (value, at = "value") => {
             if (!value || typeof value !== "object") return
@@ -640,7 +642,17 @@ try {
       assert.ifError(nativeError)
       assert.ifError(bendError)
       assert.deepEqual(actual, expected, fixture.name + " whole ReviewUnit")
-      if (fixture.requireUnit) assert.ok(actual, fixture.name + " must return a ReviewUnit")
+      if (fixture.requireUnit) {
+        assert.ok(actual, fixture.name + " must return a ReviewUnit")
+        assert.equal(actual.root.references.length, fixture.name === "large-local-reuse" ? 12 : 6)
+        const visit = (node) => {
+          for (const reference of node.references) {
+            assert.notEqual(reference.kind, "omitted", fixture.name + " must complete without omissions")
+            if (reference.kind === "expanded") visit(reference.node)
+          }
+        }
+        visit(actual.root)
+      }
       if (fixture.requiredExpanded) {
         const expanded = []
         const visit = (node) => {
@@ -655,6 +667,10 @@ try {
         for (const name of fixture.requiredExpanded)
           assert.ok(expanded.includes(name), fixture.name + " must expand " + name)
       }
+      if (fixture.name === "rust-unicode-multiple-roles")
+        assert.deepEqual(actual.sourceDependencies, ["Cargo.toml", "src/\u{10000}.rs", "src/\ue000.rs"])
+      if (fixture.name === "tree-refusal")
+        assert.equal(operationTrace.filter((operation) => operation === "Types.EncodeProduct").length, 4)
     }
     assert.deepEqual(bendEvents, nativeEvents, fixture.name + " effect sequence")
     if (nativeCache) assert.deepEqual([...bendCache], [...nativeCache], fixture.name + " caller cache")
