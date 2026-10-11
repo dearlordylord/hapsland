@@ -1,3 +1,4 @@
+import { parseGoFileFacts } from "./go-module/parser-facts.ts"
 import type {
   CaptureDiagnostic,
   Request,
@@ -278,6 +279,14 @@ export function createServiceSession({
           const facts = await required(frontend)(op.path, source.text, op.context, { signal })
           outcome = tagged("FrontendResult", {
             outcome: facts === undefined ? tagged("SourceUnsupported") : tagged("SourceInspected", { facts })
+          })
+          break
+        }
+        case tag("InspectGoFile"): {
+          const captured = lookup("CaptureToken", op.capture)
+          const file = parseGoFileFacts(op.path, captured.text)
+          outcome = tagged("GoFileResult", {
+            outcome: file === undefined ? tagged("GoFileUnsupported") : tagged("GoFileInspected", { file })
           })
           break
         }

@@ -266,6 +266,16 @@ One current obstacle list, in execution order:
    and package graph, then failed development imports. This command only closes
    the raw inventory IO prerequisite; no Go workflow or native TS deletion is
    claimed.
+   InspectGoFile now carries the explicitly retained single-file Hapsland
+   extraction boundary into a closed GoFileSyntax: ordered raw type/constant
+   declarations, locations, imports, aliases, members, bindings and expression
+   rows including unnamed operators. Arrays are not collapsed into maps; member
+   position stays distinct from shared inherited expression identity. Defined-type
+   and constant-group artifacts retain their native kinds in the shared artifact
+   contract and renderer projections. Seven extraction cases passed through the
+   emitted service/protocol before the final location field addition; current
+   typecheck, build and consumer qualification are pending. No host goGraphFacts
+   callback, package inference or discoveryWork computation was introduced.
 
 
 2. Finish all retained source/proof and ordinary quality gates. The source gate
@@ -383,7 +393,9 @@ One current obstacle list, in execution order:
    not unadopted whole preparation. The build/execution starts missed the
    10:19:34/10:22:53 cadence deadlines during compilation qualification and
    sequential frozen measurement. This breach remains observed; build failure
-   still blocks strict overall parity.
+   still blocks strict overall parity. The next 10:49:44 build start deadline
+   was missed while qualifying Go extraction and correcting ABI kinds/locations;
+   the next frozen pair is still required.
    The previous pair at 1a61bacc measured 1.0181202463/0.7812988998. Its
    09:20:57 build and 09:26:41 execution
    cadence deadlines were missed during physical qualification and diagnostic

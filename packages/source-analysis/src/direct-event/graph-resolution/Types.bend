@@ -54,6 +54,8 @@ type ArtifactKind is Data:
   DatatypeArtifact{}
   FunctionArtifact{}
   ClassArtifact{}
+  DefinedTypeArtifact{}
+  ConstantGroupArtifact{}
 type OriginKey is Data:
   OriginKindKey{}
   LibraryKey{}
@@ -107,6 +109,33 @@ type SourceFacts is Data:
     imports: List<&2, FactImport>,
     supporting: List<&2, FactDeclaration>
   }
+
+# Single-file Hapsland extraction remains host-owned in this migration slice.
+# Ordered arrays retain duplicate declarations and distinct constant members.
+type GoSyntaxNode is Data:
+  GoSyntaxNode{id: Nat, kind: String, text: String, start: Nat, end: Nat,
+    children: List<&2, Nat>, fields: List<&2, SyntaxField>}
+type GoImport is Data:
+  GoImport{path: String, name: Maybe<&2, String>}
+type GoAlias is Data:
+  GoAlias{name: String, target: String}
+type GoConstantMember is Data:
+  GoConstantMember{name: String, type_name: Maybe<&2, String>, expression: Maybe<&2, Nat>}
+type GoConstantFacts is Data:
+  GoConstantFacts{artifact_name: String, names: List<&2, String>, members: List<&2, GoConstantMember>}
+type GoSourcePosition is Data:
+  GoSourcePosition{line: Nat, column: Nat}
+type GoSourceLocation is Data:
+  GoSourceLocation{start: GoSourcePosition, end: GoSourcePosition}
+type GoFileSyntax is Data:
+  GoFileSyntax{path: String, package_name: String, types: List<&2, FactDeclaration>,
+    type_locations: List<&2, Maybe<&2, GoSourceLocation>>,
+    constants: List<&2, FactDeclaration>, imports: List<&2, GoImport>, aliases: List<&2, GoAlias>,
+    groups: List<&2, GoConstantFacts>, bindings: List<&2, String>, imported_names: List<&2, String>,
+    uncertain_imports: Bool, cgo: Bool, expressions: List<&2, GoSyntaxNode>}
+type GoFileOutcome is Data:
+  GoFileUnsupported{}
+  GoFileInspected{file: GoFileSyntax}
 
 type CaptureBytes is Data:
   CaptureBytes{path: String, bytes: Nat}
@@ -181,6 +210,7 @@ type Operation is Data:
   CaptureSource{selection: SelectionToken, source_cap: Nat}
   InspectSource{path: String, capture: CaptureToken, context: FrontendContext}
   ParseCargo{capture: CaptureToken}
+  InspectGoFile{path: String, capture: CaptureToken}
   InspectRustModules{capture: CaptureToken}
   ObserveDiagnostic{path: String, diagnostic: CaptureDiagnostic}
   EncodeProduct{value: ArtifactValue.ProductValue}
@@ -220,6 +250,7 @@ type ServiceOutcome is Data:
   CaptureResult{outcome: CaptureOutcome}
   FrontendResult{outcome: SourceOutcome}
   CargoResult{outcome: CargoOutcome}
+  GoFileResult{outcome: GoFileOutcome}
   RustModulesResult{outcome: RustModulesOutcome}
   DiagnosticObserved{}
   ProductEncoded{bytes: Nat}

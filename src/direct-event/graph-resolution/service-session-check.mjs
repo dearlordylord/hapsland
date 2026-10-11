@@ -1,3 +1,4 @@
+import { inspectGoFile } from "../../../packages/source-analysis/src/direct-event/languages/go.ts"
 import { opendir } from "node:fs/promises"
 import {
   artifactValueTag,
@@ -118,6 +119,85 @@ try {
       }
     }
   }
+  const goApi = make({})
+  const goSources = [
+    "package p\ntype Root struct { Value string }\n",
+    "package p\ntype Duplicate int\ntype Duplicate bool\n",
+    "package p\ntype Status int\nconst (\n A Status = iota\n B\n)\nconst C = B\n",
+    'package p\nimport ext "example.test/domain"\ntype Alias = ext.Kind\nconst C = ext.Kind(1)\n',
+    "package p\ntype Status int\nconst C = min(Status(1), Status(2)) << 1\n",
+    'package p\nimport "C"\ntype Root int\n'
+  ]
+  for (const source of goSources) {
+    const native = inspectGoFile("root.go", source)
+    assert.ok(native, source)
+    const capture = goApi.session.registerCapture({ text: source, byteLength: Buffer.byteLength(source) })
+    const reply = await goApi.request("InspectGoFile", { path: "root.go", capture })
+    if (reply.$ === "Types.ProviderRejected") throw goApi.session.exception(reply.exception)
+    assert.equal(reply.$, "Types.GoFileResult")
+    assert.equal(reply.outcome.$, "Types.GoFileInspected")
+    const facts = reply.outcome.file
+    assert.equal(facts.path, native.path)
+    assert.equal(facts.package_name, native.packageName)
+    assert.deepEqual(unlist(facts.bindings), native.bindings)
+    assert.deepEqual(unlist(facts.imported_names), [...native.importedNames])
+    assert.deepEqual(
+      unlist(facts.aliases).map(({ name, target }) => [name, target]),
+      [...native.aliases]
+    )
+    assert.deepEqual(
+      unlist(facts.types).map(({ artifact }) => [artifact.name, artifact.source, artifact.source_hash]),
+      native.types.map(({ artifact }) => [artifact.name, artifact.source, artifact.sourceHash])
+    )
+    assert.deepEqual(
+      unlist(facts.constants).map(({ artifact }) => [artifact.name, artifact.source]),
+      native.constants.map(({ artifact }) => [artifact.name, artifact.source])
+    )
+    assert.deepEqual(
+      unlist(facts.type_locations).map((location) =>
+        location.$ === "None"
+          ? undefined
+          : {
+              start: { line: location.value.start.line, column: location.value.start.column },
+              end: { line: location.value.end.line, column: location.value.end.column }
+            }
+      ),
+      native.types.map((item) => item.location)
+    )
+    const rows = unlist(facts.expressions)
+    for (const [index, group] of unlist(facts.groups).entries()) {
+      assert.deepEqual(unlist(group.names), native.constants[index].names)
+      for (const [memberIndex, member] of unlist(group.members).entries()) {
+        const expected = native.constants[index].members[memberIndex]
+        assert.equal(member.name, expected.name)
+        assert.equal(member.type_name.$ === "Some" ? member.type_name.value : undefined, expected.typeName)
+        if (expected.expression === undefined) assert.equal(member.expression.$, "None")
+        else {
+          assert.equal(member.expression.$, "Some")
+          const node = rows[member.expression.value]
+          assert.equal(node.kind, expected.expression.type)
+          assert.equal(node.text, expected.expression.text)
+          assert.equal(node.start, expected.expression.startIndex)
+          for (const field of unlist(node.fields))
+            assert.equal(rows[field.child].text, expected.expression.childForFieldName(field.name).text)
+        }
+      }
+    }
+    assert.equal(facts.cgo, native.cgo)
+    const checked = protocol.check(
+      tagged("Request", { invocation: 1n, id: 2n, operation: tagged("InspectGoFile", { path: "root.go", capture }) }),
+      tagged("Reply", { invocation: 1n, id: 2n, outcome: reply })
+    )
+    assert.equal(checked.$, "CheckedOutcome")
+    assert.equal(checked.outcome.$, "Types.GoFileResult")
+    assert.equal(checked.outcome.outcome.file.path, native.path)
+  }
+  const invalidGo = goApi.session.registerCapture({ text: "package {", byteLength: 9 })
+  assert.equal(
+    (await goApi.request("InspectGoFile", { path: "root.go", capture: invalidGo })).outcome.$,
+    "Types.GoFileUnsupported"
+  )
+  goApi.close()
   const directoryPath = join(temporary, "raw-directory")
   mkdirSync(directoryPath)
   for (const name of ["visible.go", ".hidden.go", "notes.txt", "sample_test.go", "_skip.go", "z.go"])
@@ -447,6 +527,7 @@ try {
     at: new Date().toISOString(),
     runtime: typeof Bun === "undefined" ? "node" : "bun",
     requests: total,
+    goSingleFileExtractionCases: 7,
     rawDirectoryObservationCases: 11,
     rawDirectoryProtocolCases: 7,
     joinedPathFactProjectionCases: joinedPathCases.length,

@@ -373,6 +373,8 @@ def kind_name(kind: T.ArtifactKind) -> String:
     case T.DatatypeArtifact{}: "datatype"
     case T.FunctionArtifact{}: "function"
     case T.ClassArtifact{}: "class"
+    case T.DefinedTypeArtifact{}: "defined-type"
+    case T.ConstantGroupArtifact{}: "constant-group"
 
 def artifact_field(
   key: T.ArtifactKey,

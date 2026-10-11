@@ -24,6 +24,8 @@ def kind_exact(kind: T.ArtifactKind) -> {Core.artifact_kind(kind) == F.kind_name
     case T.DatatypeArtifact{}: {==}
     case T.FunctionArtifact{}: {==}
     case T.ClassArtifact{}: {==}
+    case T.DefinedTypeArtifact{}: {==}
+    case T.ConstantGroupArtifact{}: {==}
 
 def optional_origin_exact(+origin: Maybe<&2, T.BundledOrigin>,
     valid: {Validation.valid_origin(origin) == True{} : Bool}) ->

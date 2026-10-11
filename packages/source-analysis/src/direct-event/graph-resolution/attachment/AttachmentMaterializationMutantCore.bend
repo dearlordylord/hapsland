@@ -40,6 +40,8 @@ def artifact_kind(kind: T.ArtifactKind) -> String:
     case T.DatatypeArtifact{}: "datatype"
     case T.FunctionArtifact{}: "function"
     case T.ClassArtifact{}: "class"
+    case T.DefinedTypeArtifact{}: "defined-type"
+    case T.ConstantGroupArtifact{}: "constant-group"
 
 def artifact_is_function(kind: T.ArtifactKind) -> Bool:
   match kind:

@@ -1,3 +1,4 @@
+import type { parseGoFileFacts } from "./go-module/parser-facts.ts"
 import type { List, ProductValue, Binary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { CaptureResult, StableCapture } from "@hapsland/native-observation/direct-event/capture"
 import type { EligiblePath } from "@hapsland/native-observation/direct-event/selection"
@@ -29,6 +30,7 @@ export type CaptureDiagnostic =
       { readonly resource: string; readonly used: Natural; readonly requested: Natural; readonly limit: Natural }
     >
 export type Operation =
+  | Variant<"InspectGoFile", { readonly path: string; readonly capture: Token<"CaptureToken"> }>
   | Variant<"ReadDirectoryEntries", { readonly path: string; readonly limit: Natural }>
   | Variant<"StartClock" | "ReadPathSeparator" | "CreateInvocationCache">
   | Variant<"ReadClock", { readonly clock: Token<"ClockToken"> }>
@@ -74,6 +76,14 @@ type CacheOutcome =
   | Variant<"CacheAbsent">
   | Variant<"CachePresent", { readonly capture: Token<"CaptureToken">; readonly bytes: Natural }>
 export type ServiceOutcome =
+  | Variant<
+      "GoFileResult",
+      {
+        readonly outcome:
+          | Variant<"GoFileUnsupported">
+          | Variant<"GoFileInspected", { readonly file: NonNullable<ReturnType<typeof parseGoFileFacts>> }>
+      }
+    >
   | Variant<"DirectoryEntriesObserved", { readonly entries: List<string>; readonly complete: boolean }>
   | Variant<"DirectoryEntriesUnavailable">
   | Variant<"ClockStarted", { readonly clock: Token<"ClockToken"> }>

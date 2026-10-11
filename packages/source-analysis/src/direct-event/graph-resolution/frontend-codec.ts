@@ -33,7 +33,9 @@ const artifactKinds: Readonly<Record<string, string>> = {
   enum: "EnumArtifact",
   datatype: "DatatypeArtifact",
   function: "FunctionArtifact",
-  class: "ClassArtifact"
+  class: "ClassArtifact",
+  "defined-type": "DefinedTypeArtifact",
+  "constant-group": "ConstantGroupArtifact"
 }
 const artifactKeys: Readonly<Record<string, string>> = {
   origin: "OriginKey",
@@ -95,7 +97,7 @@ const expected = (kind: GraphReference["expectedKind"]) => {
   if (kind !== undefined && kind !== "type" && kind !== "function") throw new Error("invalid expected kind")
   return { $: "traversal/core." + (kind === "type" ? "TypeKind" : kind === "function" ? "FunctionKind" : "AnyKind") }
 }
-function declaration(
+export function factDeclaration(
   key: string,
   value: GraphFacts["declarations"] extends ReadonlyMap<string, infer Value> ? Value : never
 ) {
@@ -137,13 +139,13 @@ export function sourceFacts(facts: GraphFacts) {
   }
   return tagged("SourceFacts", {
     kind_aware: maybe(facts.kindAware),
-    declarations: list([...facts.declarations].map(([key, value]) => declaration(key, value))),
+    declarations: list([...facts.declarations].map(([key, value]) => factDeclaration(key, value))),
     imports: list(
       [...facts.imports].map(([key, value]) =>
         tagged("FactImport", { key, path: value.path, name: value.name, type_only: maybe(value.typeOnly) })
       )
     ),
-    supporting: list([...(facts.supportingDeclarations ?? [])].map(([key, value]) => declaration(key, value)))
+    supporting: list([...(facts.supportingDeclarations ?? [])].map(([key, value]) => factDeclaration(key, value)))
   })
 }
 export function tomlValue(value: unknown): TomlValue {
