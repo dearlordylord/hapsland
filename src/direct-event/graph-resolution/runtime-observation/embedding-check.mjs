@@ -1,7 +1,7 @@
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync } from "node:fs"
 import { resolve as __resolve, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import {
@@ -278,7 +278,12 @@ try {
     scope:
       "technical sequential foreign-effect dispatcher over actual emitted Bend continuations; not full resolver or adoption; synchronous engine plus controlled async lifecycle fixtures; no process.exit/BEND_IO scheduling"
   }
-  writeFileSync(join(folder, "embedding-" + record.runtime + "-evidence.json"), JSON.stringify(record, null, 2) + "\n")
+  const evidenceFolder = join(folder, "../../../../.test-runs/bend-migration")
+  mkdirSync(evidenceFolder, { recursive: true })
+  writeFileSync(
+    join(evidenceFolder, "embedding-" + record.runtime + "-evidence.json"),
+    JSON.stringify(record, null, 2) + "\n"
+  )
   console.log(
     JSON.stringify({
       runtime: record.runtime,
