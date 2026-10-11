@@ -11,8 +11,8 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
  const finalizedSessions=new WeakSet()
  const finishSession=async session=>{
   if(finalizedSessions.has(session))return
-  finalizedSessions.add(session)
-  await session.finish?.()
+  try{await session.finish?.();finalizedSessions.add(session)}
+  catch(error){registry.retainCleanup(session,async()=>{await session.finish?.();finalizedSessions.add(session)});throw error}
  }
  const closeUnregistered=async session=>{
   if([...sessions.values()].includes(session)||registry.get(session.invocation)===session)return
@@ -29,7 +29,7 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   if(projection.$==='Types.AwaitService'){
    if(projection.request.invocation!==invocation)throw new Error('Artifact request owner mismatch')
    const id=save(invocation,'state',raw);let transferred=false
-   try{hooks.beforeInstall?.({invocation,generation,handle:id,request:projection.request,driver});const step=invoke('install',invocation,generation,id,projection.request.id);apply(step);transferred=true}
+   try{hooks.beforeInstall?.({invocation,generation,handle:id,request:projection.request,driver});const child=owner.find(invocation,current().children).value;const step=child.scope.$==='AdviceTailScope'?invoke('install_advice',invocation,generation,id,projection.request.id,engine(invocation).permission(projection.request)):invoke('install',invocation,generation,id,projection.request.id);apply(step);transferred=true}
    finally{if(!transferred)release(id,invocation)}
   }else{
    const id=save(invocation,'result',projection)
@@ -41,6 +41,15 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
   const invocation=command.invocation
   switch(command.$){
    case 'Launch': launches.set(invocation,command);stats.launches++;break
+   case 'LaunchAdviceTail': {
+    const held=resources.get(command.input_handle)
+    if(!held||held.invocation!==0n||held.kind!=='advice-input'||held.value.origin!==command.origin)throw new Error('Advice launch requires its prepared opaque input')
+    const child=owner.find(invocation,current().children)
+    if(child.$!=='Some'||child.value.scope.$!=='AdviceTailScope')throw new Error('Advice launch lacks Canonical custody')
+    const receipt=Object.freeze({handoff:invocation,scope:child.value.scope})
+    resources.set(command.input_handle,{invocation,kind:'input',value:held.value})
+    launches.set(invocation,{...command,receipt});stats.launches++;break
+   }
    case 'LaunchPostPreparation': {
     try {
      const result=load(command.result_handle,command.preparation_invocation,'result')
@@ -111,6 +120,16 @@ export function createOwnedArtifactDriver({owner,initialState,scope,artifacts,re
    catch(error){resources.delete(inputId);throw error}
   },
   allocatePreparationInvocation(issuedScope=scope){return driver.allocateInvocation(undefined,true,issuedScope)},
+  prepareAdviceInput(origin,value){if(typeof origin!=='bigint'||origin<1n)throw new Error('Advice input requires its origin');return save(0n,'advice-input',{origin,value})},
+  validateAdviceInput(origin,handle){const held=resources.get(handle);return !!held&&held.invocation===0n&&held.kind==='advice-input'&&held.value.origin===origin},
+  releaseAdviceInput(handle){release(handle,0n)},
+  adviceHandoff(invocation){const launch=launches.get(invocation);if(launch?.$!=='LaunchAdviceTail')throw new Error('Missing advice launch');return launch.receipt},
+  async driveAdvice(receipt,session,options={}){
+   const launch=launches.get(receipt.handoff)
+   if(!launch||launch.$!=='LaunchAdviceTail'||launch.receipt!==receipt){await closeUnregistered(session);throw new Error('Unknown or consumed advice handoff')}
+   if(session.input.invocation!==receipt.handoff){await closeUnregistered(session);throw new Error('Advice session changed Canonical invocation')}
+   return await driver.drive(session,session.input,options)
+  },
   handoffResult(receipt){
    const launch=launches.get(receipt.handoff)
    if(!launch||launch.receipt!==receipt)throw new Error('Unknown preparation handoff capability')

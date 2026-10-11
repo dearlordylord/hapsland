@@ -1,3 +1,7 @@
+import {randomUUID} from 'node:crypto'
+import {createAdviceTailProvider} from './advice-tail-provider.mjs'
+import {residentSettingsEnvironmentOnly} from '../../../packages/resident-runtime/src/resident/authorization/credentials.ts'
+import {captureInspectionFate} from '@hapsland/review-execution/inspection/capture'
 import * as Effect from 'effect/Effect'
 import {recordActivity} from '@hapsland/activity-observation/activity/status'
 import {ResidentProviderPermit,ResidentResourceReceipt} from './resident-provider-permit.mjs'
@@ -13,8 +17,8 @@ const list=values=>values.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil
 const array=value=>{const result=[];while(value.$==='Con'){result.push(value.head);value=value.tail}if(value.$!=='Nil')throw new Error('Invalid postflow list');return result}
 const some=value=>({$:'Some',value}),none={$:'None'}
 export function createPostPreparationProvider(invocation,context,prepared,preparation,pathObservation,analyticsEnabled) {
-  const ledger=context.deps.residentLedger,plans=new Map(),reservations=new Map(),revisions=new Map(),units=new Map(),errors=new Map(),pendingOwners=new Map(),adviceOwners=new Map(),publications=new Map()
-  let revoked=false,closed=false,finished=false
+  const ledger=context.deps.residentLedger,plans=new Map(),reservations=new Map(),revisions=new Map(),units=new Map(),errors=new Map(),pendingOwners=new Map(),adviceOwners=new Map(),publications=new Map(),tails=new Map()
+  let revoked=false,closed=false,finished=false,primaryFailure
   const transferred=new Set(),ownedClaims=new Set(),acquiredRevisions=new Map(),revisionReservations=new Map()
   const transferredReservation=handle=>[...transferred].some(value=>BigInt(value.reservation.id)===handle)
   const transferredAcquisition=handle=>revisionReservations.has(handle)&&transferredReservation(revisionReservations.get(handle))
@@ -41,15 +45,17 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
    get transferredUnits(){return transferred.size},
    async finish(){
     if(finished)return
-    finished=true
     const failures=[],attempt=async (effect,receipt)=>{try{await rawRun(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt,receipt)))}catch(error){failures.push(error)}}
+    for(const tail of tails.values())if(!tail.started){tail.started=true;if(tail.failure!==undefined)tail.provider.forceCleanup(tail.failure);try{await context.ownedAdvice.driver.driveAdvice(context.ownedAdvice.driver.adviceHandoff(tail.receipt.invocation),tail.provider,{signal:context.deps.residentLifetimeController.signal})}catch(error){failures.push(error)}}
+    for(const value of units.values())if([...plans.values()].some(plan=>plan.evaluationKey===value.evaluationKey&&plan.kind==='cached')&&!value.completed&&value.round!==undefined&&value.workUnitId!==undefined)await attempt(ledger.rounds.policyWork(value.round).pipe(Effect.map(policy=>policy.retire(value.workUnitId))))
     const transferredReservations=new Set([...transferred].map(value=>BigInt(value.reservation.id)))
     const transferredKeys=new Set([...transferred].map(value=>value.evaluationKey))
     for(const [handle,value] of reservations)if(!transferredReservations.has(handle))await attempt(ledger.release(value))
     for(const [handle,value] of acquiredRevisions)if(!transferredAcquisition(handle))await attempt(context.deps.residentReleaseCurrentWork(value),()=>acquiredRevisions.delete(handle))
     for(const key of ownedClaims)if(!transferredKeys.has(key)){await attempt(context.deps.residentReleaseReuseClaim(key));context.unassignedClaims.delete(key)}
     if(context.activeWorkspaces.has(preparation.reservation)){await attempt(ledger.release(preparation.reservation));context.activeWorkspaces.delete(preparation.reservation)}
-    if(failures.length)throw new AggregateError(failures,'Post-preparation resource finalization failed')
+    if(failures.length)throw new AggregateError(primaryFailure===undefined?failures:[primaryFailure,...failures],'Post-preparation resource finalization failed',{cause:primaryFailure??failures[0]})
+    finished=true
    },
    async perform(request,options={}){
     if(revoked||closed||options.signal?.aborted)throw new Error('Revoked post-preparation session')
@@ -170,7 +176,31 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
      case 'ReleaseUnspawned':if(transferredReservation(command.slot.reservation))break;if(command.slot.item.route.$==='Owner'){const key=item(command.slot.item).evaluationKey;if(ownedClaims.has(key))await run(context.deps.residentReleaseReuseClaim(key),undefined,key);ownedClaims.delete(key);context.unassignedClaims.delete(key)}await run(ledger.release(reservation(command.slot)));reservations.delete(command.slot.reservation);await releaseAcquisition(command.revision);break
      case 'ReleaseAttached': {if(transferredReservation(command.slot.reservation))break;const value=unit(command.slot,command.revision,command.work);if(ownedClaims.has(value.evaluationKey))await run(context.deps.residentReleaseReuseClaim(value.evaluationKey,'capacity'),undefined,value.evaluationKey);await run(ledger.release(value.reservation));await releaseAcquisition(command.revision);value.released=true;ownedClaims.delete(value.evaluationKey);context.unassignedClaims.delete(value.evaluationKey);reservations.delete(command.slot.reservation);acquiredRevisions.delete(command.revision);break}
      case 'ReportCapacity':await run(ledger.runtime.rejectCapacity());await run(context.deps.residentRecordAnalytics(context.job,'capacity-rejected'));await run(context.deps.residentRecordOperationalFailure(context.job.observation,'capacity'));break
-     case 'SettleCached':throw new Error('Cached finding child not yet connected')
+     case 'StartCachedReview':response={$:'ReviewAccepted',value:await run(ledger.startReview(context.job.partition,Number(command.slot.operation),context.job.canonicalRound))};break
+     case 'CompleteCachedReview':response={$:'ReviewAccepted',value:await run(ledger.completeReview(context.job.partition,Number(command.slot.operation),reservation(command.slot),'finding',context.job.canonicalRound))};break
+     case 'RecordCachedActivity':{const planned=item(command.slot.item);recordActivity({statePath:context.job.dispatch.activityPath,root:context.job.observation.root,advicee:context.job.observation.advicee,lifetime:context.deps.lifetime,stage:'findings',findings:planned.cached.evaluation.findings.length,unitIdentity:planned.evaluationKey});break}
+     case 'CheckCachedActive':response={$:'Active',value:await run(context.deps.residentJobActive(unit(command.slot,command.revision,command.work)))};break
+     case 'ReadCachedAdvice':{const existing=(await run(context.deps.residentAdvice())).find(value=>value.evaluationKey===item(command.slot.item).evaluationKey);const handle=BigInt(adviceOwners.size+1);if(existing)adviceOwners.set(handle,existing);response={$:'AdviceOwner',owner:existing===undefined?none:some(handle)};break}
+     case 'RetireCachedWork':{const value=unit(command.slot,command.revision,command.work);if(value.round!==undefined&&value.workUnitId!==undefined)await run(ledger.rounds.policyWork(value.round).pipe(Effect.map(policy=>policy.retire(value.workUnitId))));break}
+     case 'ReleaseCachedUnit':{await run(ledger.release(reservation(command.slot)));await releaseAcquisition(command.revision);const value=unit(command.slot,command.revision,command.work);value.released=true;reservations.delete(command.slot.reservation);break}
+     case 'InsertCachedAdvice':{
+      if(!context.ownedAdvice||!options.ownerLease)throw new Error('Cached advice requires Canonical composition')
+      const value=unit(command.slot,command.revision,command.work),planned=item(command.slot.item),credential=value.dispatch.credential,required=value.dispatch.controlled===null||value.dispatch.controlled.requireCredential===true
+      const evaluation={prepared:value.prepared,findings:planned.cached.evaluation.findings}
+      const initial={analyticsPath:value.dispatch.activityPath,analyticsEnabled:value.analyticsEnabled??value.dispatch.sessionAnalytics===true,analyticsControlled:value.dispatch.controlled!==null,id:randomUUID(),...(value.round===undefined?{}:{round:value.round}),...(value.workUnitId===undefined?{}:{workUnitId:value.workUnitId}),admissionId:value.admissionId,canonicalOperationId:value.canonicalOperationId,canonicalRound:value.canonicalRound,observation:value.observation,settings:value.settings,partition:value.partition,reservation:value.reservation,prepared:value.prepared,...(value.sourceHash===undefined?{}:{sourceHash:value.sourceHash}),revision:value.revision,evaluationKey:value.evaluationKey,evaluations:[evaluation],findings:evaluation.findings,sequence:context.sequence,credentialGeneration:credential?.generation??null,credentialStatePath:credential?.statePath??null,credentialRequired:required,credentialEnvironmentOnly:credential===null?false:residentSettingsEnvironmentOnly(value.settings),pendingAt:context.deps.residentNow()}
+      const binding=context.ownedAdvice,handle=binding.driver.prepareAdviceInput(invocation,{unit:value,evaluation})
+      try{await rawRun(binding.bridge.adviceInsertAndHandoff(options.ownerLease,initial,handle,publication=>{
+       value.completed=true;transferred.add(value)
+       const receipt=publication.adviceReceipt
+       const provider=createAdviceTailProvider(receipt.invocation,binding.bridge,receipt.capability,value,{deps:context.deps,retirementForExpired:binding.core.advice_retirement})
+       tails.set(receipt.invocation,{receipt,provider,unit:value,evaluation,started:false});committed(publication)
+      }))}finally{binding.driver.releaseAdviceInput(handle)}
+      const tail=[...tails.values()].find(tail=>tail.unit===value);if(!tail)throw new Error('Advice insert did not establish resource receipt')
+      response={$:'AdviceInserted',tail:tail.receipt.invocation};break
+     }
+     case 'ObserveRetainedAdvice':{const tail=tails.get(command.tail);if(!tail)throw new Error('Unknown advice transfer');const value=tail.unit;if(value.inspectionReceipt!==undefined&&context.deps.inspection.isEnabled(value.inspectionReceipt.scope.root))context.deps.inspection.offer(value.inspectionReceipt.scope,{...value.inspectionReceipt.correlation,...(value.inspectionEvaluationId===undefined?{}:{evaluationId:value.inspectionEvaluationId})},captureInspectionFate(tail.evaluation.findings,'retained','pending-advice',tail.receipt.capability.id));break}
+     case 'AwaitAdviceTail':{const tail=tails.get(command.tail);if(!tail||tail.started)throw new Error('Unknown or consumed advice transfer');tail.started=true;const accepted=await context.ownedAdvice.driver.driveAdvice(context.ownedAdvice.driver.adviceHandoff(command.tail),tail.provider,{signal:context.deps.residentLifetimeController.signal});if(!accepted.adviceRetained)throw tail.provider.error(accepted.reason?.token)??new Error('Advice tail failed');break}
+     case 'FinalizeCachedUnit':{const value=unit(command.slot,command.revision,command.work);if(!value.completed&&value.round!==undefined&&value.workUnitId!==undefined){await run(ledger.rounds.policyWork(value.round).pipe(Effect.map(policy=>policy.retire(value.workUnitId))));if(!value.released){await run(ledger.release(value.reservation));await releaseAcquisition(command.revision);value.released=true}}break}
      case 'Cleanup': {
       for(const slot of array(command.remaining))if(!transferredReservation(slot.reservation)){await run(ledger.release(reservation(slot)));reservations.delete(slot.reservation)}
       if(command.revision.$==='Some')await releaseAcquisition(command.revision.value)
@@ -179,7 +209,7 @@ export function createPostPreparationProvider(invocation,context,prepared,prepar
      }
      default:throw new Error('Unknown postflow command '+command.$)
     }
-   } catch(error){const token=BigInt(errors.size+1);errors.set(token,error);response={$:'Failed',token}}
+   } catch(error){if(command.$==='ObserveRetainedAdvice'&&tails.has(command.tail))tails.get(command.tail).failure=error;primaryFailure??=error;const token=BigInt(errors.size+1);errors.set(token,error);response={$:'Failed',token}}
     return {$:'Reply',invocation:request.invocation,id:request.id,response}
    }
   }

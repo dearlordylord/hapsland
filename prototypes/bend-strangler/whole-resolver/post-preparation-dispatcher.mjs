@@ -28,8 +28,10 @@ export function createPostPreparationMachine(core) {
 
 // The same module implements the independent post-insert continuation.
 export function createAdviceTailMachine(core){
+ const permissions={AdvicePendingBarrier:'TailBarrier',AdviceCheckActive:'TailActive',AdvicePublish:'TailPublish',AdviceRecordPublished:'TailRecord',AdviceCheckExpired:'TailRemove',AdviceRemove:'TailRemove'}
  return {
-  initial:input=>core.advice_initial(input.invocation,input.adviceTail.advice),
+  permission:request=>{const permission=permissions[request.command.$];if(!permission)throw new Error('Unknown closed advice command');return {$:permission}},
+  initial:input=>input.adviceTail.failure?core.advice_initial_cleanup(input.invocation,input.adviceTail.advice,input.adviceTail.failure):core.advice_initial(input.invocation,input.adviceTail.advice),
   resume:(step,event)=>{
    if(event.$!=='Types.ServiceReply')throw new Error('Invalid advice tail reply envelope')
    return core.advice_resume(step,event.reply)

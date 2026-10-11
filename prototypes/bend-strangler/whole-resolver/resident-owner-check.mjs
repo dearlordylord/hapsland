@@ -16,12 +16,19 @@ import {initialRevision} from '../../../packages/resident-runtime/src/resident/s
 import {initialAdviceRecords} from '../../../packages/resident-runtime/src/resident/state/advice-records.ts'
 import {initialJoinedReviews} from '../../../packages/resident-runtime/src/resident/state/joined-reviews.ts'
 import {initialDelivery} from '../../../packages/resident-runtime/src/resident/state/delivery/operations.ts'
+import {createOwnedArtifactDriver} from './owned-artifact-driver.mjs'
+import {createAdviceTailMachine} from './post-preparation-dispatcher.mjs'
+import {createAdviceTailProvider} from './advice-tail-provider.mjs'
+import {createServiceRegistry} from './service-session.mjs'
 import {createResidentOwnerTransaction} from './resident-owner-transaction.mjs'
 const temp=await mkdtemp('/tmp/hapsland-resident-owner-')
 try{
  const emitted=join(temp,'owner.mjs')
  execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'CanonicalResolverOwner.bend'),'-o',emitted],{timeout:5000})
  const owner=(await import(pathToFileURL(emitted))).default
+ const postEmission=join(temp,'post.mjs')
+ execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PostPreparation.bend'),'-o',postEmission],{timeout:5000})
+ const postCore=(await import(pathToFileURL(postEmission))).default,tailMachine=createAdviceTailMachine(postCore)
  const run=Effect.runSync,limits={globalItems:100,globalBytes:10000,partitionItems:16,partitionBytes:10000}
  let cases=0
  for(const variant of ['completed','interrupted','replaced','reset-recreated','rollback','single-action-consumer']){
@@ -144,11 +151,13 @@ try{
  }
  // Actual advice/capacity/revision owners qualify the closed tail API. Source
  // values are controlled handles here; full preparation IO has its own consumer.
- {
+ for(const tailVariant of ['normal','missing-publish','driver-active-false','driver-cleanup-pending','driver-barrier-failure','driver-expired-failure','driver-fate-ack-failure','driver-observer-pending']){
   const limits={globalItems:100,globalBytes:100000,partitionItems:16,partitionBytes:100000}
   const initial={residentLifetime:'advice-tail',limits,canonical:initialCanonical(limits),resolverCustody:owner.initial_custody(),reservations:new Map(),partitionIds:new Map(),partitionIdentityBytes:0,roundIds:new Map(),requestRounds:new Map(),collectionTokens:new Map(),nextCollectionToken:1,nextPartitionId:1,minimumFreshStart:0,records:{runtime:{peakLedgerBytes:0},revision:initialRevision(),advice:initialAdviceRecords(),joined:initialJoinedReviews(),delivery:initialDelivery(),adviceCaptures:new Map()}}
   const ref=run(Ref.make(initial)),transaction=residentTransaction(ref,'advice-tail'),capacity=residentCapacity(transaction),revision=residentRevision(transaction),advice=residentAdvice(transaction)
-  const bridge=createResidentOwnerTransaction({owner,transaction}),event=input=>run(bridge.event(input))
+  let adviceDriver,deliverTail=false
+  const adviceInputs=new Map([[4n,2n],[5n,2n]])
+  const bridge=createResidentOwnerTransaction({owner,transaction,validateAdviceInput:(origin,handle)=>adviceDriver?adviceDriver.validateAdviceInput(origin,handle):adviceInputs.get(handle)===origin,onActions:actions=>Effect.sync(()=>{if(deliverTail)adviceDriver.acceptActions(actions)})}),event=input=>run(bridge.event(input))
   const partition=run(capacity.partitionId('agent')),round=run(capacity.roundId('agent')),observation=run(capacity.admitObservation('agent',round));run(capacity.observation('agent',observation,'startObservation',round))
   const preparation=run(capacity.beginObservedPreparation('agent',observation,100,round)),scope={$:'Scope',partition:BigInt(partition),lifetime:1n,round:BigInt(round),preparation:BigInt(preparation.operation)}
   event({$:'LaunchPreparationEvent',scope,input_handle:1n});event({$:'TerminalPreparationEvent',invocation:1n,generation:0n,result_handle:2n})
@@ -159,21 +168,72 @@ try{
   const revisions=allocations.map(()=>run(revision.register('controlled',prepared,true,'shared-advice')).revision)
   for(const allocation of allocations){assert.equal(run(capacity.startReview('agent',allocation.operation,round)),true);assert.equal(run(capacity.completeReview('agent',allocation.operation,allocation.reservation,'finding',round)),true)}
   const initialAdvice=index=>({settings:{},id:'same-native-id',analyticsPath:undefined,analyticsEnabled:false,analyticsControlled:false,canonicalRound:round,admissionId:observation,canonicalOperationId:allocations[index].operation,observation:{root:'/controlled',advicee:prepared.advicee},partition:'agent',reservation:allocations[index].reservation,prepared,revision:revisions[index],evaluationKey:'controlled:'+index,sequence:index+1,credentialGeneration:null,credentialStatePath:null,credentialRequired:false,credentialEnvironmentOnly:false,pendingAt:0,evaluations:[{prepared,findings}],findings})
-  const capability=run(advice.insert(initialAdvice(0)))
   event({$:'InstallEvent',invocation:2n,generation:0n,handle:3n,request:0n});event({$:'ProviderStartEvent',invocation:2n})
-  const issued=event({$:'HandoffAdviceEvent',invocation:2n,generation:0n,lease:1n,request:0n,operation:BigInt(allocations[0].operation),input_handle:4n});assert.equal(issued.refusal,undefined)
+  const birthCredential={invocation:2n,generation:0n,lease:1n,request:0n}
+  const beforeBirth=run(transaction.read)
+  assert.throws(()=>run(bridge.adviceInsertAndHandoff({...birthCredential,lease:99n},initialAdvice(0),4n)),/Revoked/);assert.strictEqual(run(transaction.read),beforeBirth)
+  // An otherwise valid insertion with a foreign canonical operation must roll back.
+  assert.throws(()=>run(bridge.adviceInsertAndHandoff(birthCredential,{...initialAdvice(0),canonicalOperationId:999},4n)));assert.strictEqual(run(transaction.read),beforeBirth)
+  let birthReceipt
+  const registry=createServiceRegistry()
+  if(tailVariant.startsWith('driver-')){
+   adviceDriver=createOwnedArtifactDriver({owner,control:bridge.control,registry,machine:tailMachine,foreign:async([request],options)=>await registry.get(Number(request.invocation)).perform(request,options)})
+   const input=adviceDriver.prepareAdviceInput(2n,{})
+   assert.equal(input,1n);assert.equal(adviceDriver.validateAdviceInput(99n,input),false);deliverTail=true
+  }
+  const birthInput=tailVariant.startsWith('driver-')?1n:4n
+  assert.throws(()=>run(bridge.adviceInsertAndHandoff(birthCredential,initialAdvice(0),birthInput,publication=>{birthReceipt=publication.adviceReceipt;throw new Error('injected advice insertion acknowledgement loss')})),/acknowledgement loss/)
+  const capability=birthReceipt.capability
+  assert.strictEqual(run(advice.values())[0],capability);assert.strictEqual(bridge.adviceReceipts[0],birthReceipt);assert.equal(birthReceipt.invocation,3n);assert.equal(birthReceipt.scope.lifetime,1n)
+  assert.equal(owner.find(3n,run(transaction.read).resolverCustody.children).value.phase.$,'ChildInstalling')
+  const afterBirth=run(transaction.read)
+  assert.throws(()=>run(bridge.adviceInsertAndHandoff(birthCredential,initialAdvice(0),5n)));assert.strictEqual(run(transaction.read),afterBirth,'duplicate birth does not publish native replacement')
+  if(tailVariant.startsWith('driver-')){
+   deliverTail=false
+   event({$:'CancelEvent',invocation:2n})
+   const lifetimeController=new AbortController()
+   let cleanupFails=tailVariant==='driver-cleanup-pending',observerFails=tailVariant==='driver-observer-pending',ackFails=tailVariant==='driver-fate-ack-failure'
+   const fates=[]
+   const tailOptions={signal:lifetimeController.signal,afterCommit:command=>{if(command.$==='AdviceRemove'&&ackFails){ackFails=false;throw new Error('injected removal acknowledgement failure')}}}
+   const observeAdviceFate=(actual,actualFindings,fate,reason)=>{if(observerFails)throw new Error('injected observer failure before offer');assert.strictEqual(actual,capability);assert.deepEqual(actualFindings,findings);fates.push({fate,reason})}
+   const tailBridge={...bridge,adviceTailRemove:(...args)=>cleanupFails?Effect.fail(new Error('injected pending removal failure')):bridge.adviceTailRemove(...args),adviceCleanup:(...args)=>cleanupFails?Effect.fail(new Error('injected registry cleanup failure')):bridge.adviceCleanup(...args)}
+   const provider=createAdviceTailProvider(3n,tailBridge,capability,{},{retirementForExpired:postCore.advice_retirement,deps:{residentReviewControls:{afterAdvicePending:()=>tailVariant!=='driver-active-false'?Effect.fail(new Error('injected pending advice barrier failure')):Effect.void},residentLifetimeController:lifetimeController,residentNow:()=>0,residentAdviceExpired:()=>Effect.succeed(tailVariant==='driver-expired-failure'),residentInspection:{observeAdviceFate},residentJobActive:()=>Effect.succeed(false)}})
+   if(tailVariant==='driver-cleanup-pending'||tailVariant==='driver-observer-pending'){
+    await assert.rejects(adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n),provider,tailOptions),/cleanup remains incomplete/)
+    assert.equal(registry.size,0);assert.equal(registry.pendingCleanup,1);if(tailVariant==='driver-cleanup-pending')assert.strictEqual(run(advice.values())[0],capability);else assert.equal(run(advice.values()).length,0)
+    await assert.rejects(registry.retryCleanup(),/obligations remain pending/);assert.equal(registry.pendingCleanup,1)
+    cleanupFails=false;observerFails=false;await registry.retryCleanup();assert.equal(registry.pendingCleanup,0);assert.equal(run(advice.values()).length,0)
+    assert.equal(run(revision.current(revisions[1],prepared)),true);run(capacity.release(allocations[1].reservation));run(revision.release(revisions[1]));assert.equal(projectCanonical(run(transaction.read).canonical).global.bytes,0)
+    assert.deepEqual(fates,[{fate:'discarded',reason:'retention-failed'}]);cases++;continue
+   }
+   if(tailVariant!=='driver-active-false'){
+    const outcome=await adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n),provider,tailOptions)
+    assert.equal(outcome.adviceRetained,false);assert.equal(outcome.reason.$,'TechnicalFailure');assert.equal(outcome.reason.token,1n)
+    assert.equal(run(advice.values()).length,0);assert.equal(registry.pendingCleanup,0)
+    assert.deepEqual(fates,[tailVariant==='driver-expired-failure'?{fate:'expired',reason:'retention-expired'}:{fate:'discarded',reason:'retention-failed'}])
+    assert.equal(run(revision.current(revisions[1],prepared)),true);run(capacity.release(allocations[1].reservation));run(revision.release(revisions[1]));assert.equal(projectCanonical(run(transaction.read).canonical).global.bytes,0)
+    assert.deepEqual(adviceDriver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0});assert.equal(registry.size,0);cases++;continue
+   }
+   assert.deepEqual(await adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n),provider,{signal:lifetimeController.signal}),{adviceRetained:true})
+   assert.strictEqual(run(advice.values())[0],capability,'completed advice survives parent cancellation and inactive work')
+   assert.equal(owner.find(3n,run(transaction.read).resolverCustody.children).value.phase.$,'ChildAccepted')
+   assert.deepEqual(adviceDriver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0});assert.equal(registry.size,0)
+   assert.equal(run(bridge.adviceCleanup(capability)),true);run(capacity.release(allocations[1].reservation));run(revision.release(revisions[1]));assert.equal(projectCanonical(run(transaction.read).canonical).global.bytes,0)
+   cases++;continue
+  }
   const install=(generation,request,permission)=>event({$:'InstallAdviceEvent',invocation:3n,generation,handle:10n+request,request,permission:{$:permission}})
   const begin=()=>event({$:'ProviderStartEvent',invocation:3n}),complete=(lease,request)=>event({$:'ProviderCompletedEvent',invocation:3n,lease,request,reply_handle:20n+request})
   install(0n,0n,'TailBarrier');begin();complete(2n,0n);install(1n,1n,'TailActive');begin();complete(3n,1n);install(2n,2n,'TailPublish');begin()
   const credential={invocation:3n,generation:2n,lease:4n,request:2n};let attempted=false
   const before=run(transaction.read)
   assert.throws(()=>run(bridge.nativeScoped(credential,(draft,records)=>{attempted=true;return [undefined,records]})),/closed capability operation/);assert.equal(attempted,false);assert.strictEqual(run(transaction.read),before)
-  assert.throws(()=>run(bridge.adviceTailPublish(credential,{...capability})),/no longer owned/);assert.strictEqual(run(transaction.read),before)
+  assert.throws(()=>run(bridge.adviceTailPublish(credential,{...capability})),/issued tail receipt/);assert.strictEqual(run(transaction.read),before)
+  if(tailVariant==='missing-publish')assert.equal(run(bridge.adviceCleanup(capability)),true)
   assert.deepEqual(run(bridge.adviceTailPublish(credential,capability)),[])
   complete(4n,2n);install(3n,3n,'TailRemove');begin()
   const cleanupCredential={invocation:3n,generation:3n,lease:5n,request:3n};let committedRemoval
   assert.throws(()=>run(bridge.adviceTailRemove(cleanupCredential,capability,publication=>{committedRemoval=publication.adviceOwnership;throw new Error('injected exact advice removal acknowledgement loss')})),/acknowledgement loss/)
-  assert.equal(committedRemoval.presentBefore,true);assert.equal(committedRemoval.presentAfter,false);assert.equal(run(advice.values()).length,0);assert.equal(run(revision.current(revisions[1],prepared)),true)
+  assert.equal(committedRemoval.presentBefore,tailVariant==='normal');assert.equal(committedRemoval.presentAfter,false);assert.equal(run(advice.values()).length,0);assert.equal(run(revision.current(revisions[1],prepared)),true)
   const replacement=run(advice.insert(initialAdvice(1)));assert.notStrictEqual(replacement,capability)
   const absent=run(bridge.adviceTailRemove(cleanupCredential,capability));assert.deepEqual(absent,{removed:false,absent:true});assert.strictEqual(run(advice.values())[0],replacement);assert.equal(run(revision.current(revisions[1],prepared)),true)
   assert.equal(run(bridge.adviceCleanup(capability)),false);assert.strictEqual(run(advice.values())[0],replacement)
@@ -182,5 +242,5 @@ try{
   assert.equal(projectCanonical(run(transaction.read).canonical).global.bytes,0)
   cases++
  }
- console.log(JSON.stringify({passed:true,cases,scope:'actual resident transaction/capacity admission and completion, one canonical state plus custody, after-commit actions, native retirement reconciliation, late cleanup and rollback; physical driver and full preparation progression remain open'}))
+ console.log(JSON.stringify({passed:true,cases,scope:'actual resident Ref/capacity/revision/advice owners; atomic insertion and independent Canonical advice-tail driver; revoked and duplicate birth rollback, insertion/removal ack loss, parent cancellation, expiry fate, absent publication and replacement identity, persistent resource/observer cleanup obligations; controlled source handles, full cached settlement and production adoption remain open'}))
 }finally{await rm(temp,{recursive:true,force:true})}

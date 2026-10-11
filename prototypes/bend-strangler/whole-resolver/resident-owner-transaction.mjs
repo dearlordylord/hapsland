@@ -30,7 +30,8 @@ const list=value=>{
  if(value.$!=='Nil')throw new TypeError('Malformed owner command list')
  return out
 }
-export function createResidentOwnerTransaction({owner,transaction,onActions=()=>Effect.void}){
+export function createResidentOwnerTransaction({owner,transaction,onActions=()=>Effect.void,validateAdviceInput}){
+ const adviceReceipts=new Map()
  const publication=(draft,raw)=>{
   if(raw.$==='Refused')return {refusal:raw.refusal,actions:[],outputs:[],raw}
   if(raw.$!=='Published')throw new TypeError('Malformed resident owner publication')
@@ -47,15 +48,16 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
  const event=input=>finish(committedEvent(input))
  // Existing native capacity operations run once. Their resulting state and child
  // invalidation are published by the same actual resident commitAllEffect.
- const nativeCommit=(operation,credential,onCommitted,pendingRestore,adviceTail)=>finish(transaction.commitAllEffect((draft,records)=>{
+ const nativeCommit=(operation,credential,onCommitted,pendingRestore,adviceTail,adviceBirth,cleanupAdvice)=>finish(transaction.commitAllEffect((draft,records)=>{
+  if(adviceBirth&&(!validateAdviceInput||validateAdviceInput(credential.invocation,adviceBirth.inputHandle)!==true))throw new Error('Advice input is not owned by its origin')
   if(credential&&!owner.provider_live(owner.assembled(convert(draft.canonical,true),draft.resolverCustody),credential.invocation,credential.generation,credential.lease,credential.request))throw new Error('Revoked resident provider permit')
   const child=credential?owner.find(credential.invocation,draft.resolverCustody.children):undefined
   const tailScope=child?.$==='Some'&&child.value.scope.$==='AdviceTailScope'?child.value.scope:undefined
   if(tailScope){
    if(!adviceTail||!owner.advice_provider_allowed(owner.assembled(convert(draft.canonical,true),draft.resolverCustody),credential.invocation,credential.generation,credential.lease,credential.request,adviceTail.permission))throw new Error('Advice tail requires a closed capability operation')
    const capability=adviceTail.capability
-   if(tailScope.partition!==BigInt(draft.partitionIds.get(capability.partition)??0)||tailScope.lifetime!==1n||tailScope.round!==BigInt(capability.canonicalRound)||tailScope.operation!==BigInt(capability.canonicalOperationId))throw new Error('Advice capability differs from issued tail scope')
-   if(adviceTail.permission.$==='TailPublish'&&records.advice.entries.get(capability.id)?.capability!==capability)throw new Error('Advice capability no longer owned')
+   if(adviceReceipts.get(credential.invocation)?.capability!==capability)throw new Error('Advice capability differs from issued tail receipt')
+   if(tailScope.partition!==BigInt(draft.partitionIds.get(capability.partition)??0)||tailScope.lifetime!==adviceReceipts.get(credential.invocation)?.scope.lifetime||tailScope.round!==BigInt(capability.canonicalRound)||tailScope.operation!==BigInt(capability.canonicalOperationId))throw new Error('Advice capability differs from issued tail scope')
   }else if(adviceTail)throw new Error('Closed advice operation requires tail authority')
   if(pendingRestore&&records.reuse.pending.get(pendingRestore.key)!==pendingRestore.owner)throw new Error('Pending revision owner changed before commit')
   // Observe every assignment, including reset -> recreation in one callback.
@@ -75,28 +77,45 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   let value,nextRecords
   try{[value,nextRecords]=operation(draft,records)}
   finally{Object.defineProperty(draft,'canonical',{configurable:true,enumerable:true,writable:true,value:canonical})}
-  const result=publication(draft,owner.resident_reconcile(convert(canonical,true),draft.resolverCustody))
-  const joined=[...actions,...result.actions]
+  const reconciled=publication(draft,owner.resident_reconcile(convert(canonical,true),draft.resolverCustody))
+  let result=reconciled,adviceReceipt
+  if(adviceBirth){
+   if(value?.reservation!==adviceBirth.initial.reservation||value?.revision!==adviceBirth.initial.revision)throw new Error('Advice insertion changed resource identity')
+   result=publication(draft,owner.resident_step(convert(draft.canonical,true),draft.resolverCustody,{$:'HandoffAdviceEvent',...credential,operation:BigInt(value.canonicalOperationId),input_handle:adviceBirth.inputHandle}))
+   if(result.refusal)throw new Error('Atomic advice handoff refused: '+result.refusal.$)
+   const launch=result.actions.find(action=>action.$==='LaunchAdviceTail')
+   if(!launch)throw new Error('Advice handoff did not issue a child')
+   const child=owner.find(launch.invocation,draft.resolverCustody.children)
+   if(child.$!=='Some'||child.value.scope.$!=='AdviceTailScope')throw new Error('Advice handoff issued invalid custody')
+   adviceReceipt=Object.freeze({invocation:launch.invocation,origin:credential.invocation,inputHandle:adviceBirth.inputHandle,capability:value,scope:freezeCanonicalData(child.value.scope)})
+  }
+  const ownershipBinding=adviceTail??cleanupAdvice
+  const joined=[...actions,...reconciled.actions,...(adviceBirth?result.actions:[])]
   const bendList=joined.reduceRight((tail,head)=>({$:'Con',head,tail}),{$:'Nil'})
-  return [{...result,adviceOwnership:adviceTail?{capability:adviceTail.capability,presentBefore:records.advice.entries.get(adviceTail.capability.id)?.capability===adviceTail.capability,presentAfter:nextRecords.advice.entries.get(adviceTail.capability.id)?.capability===adviceTail.capability}:undefined,actions:joined,raw:{...result.raw,actions:bendList},value,restoredPending:pendingRestore&&value?.revision?{pendingOwnerIdentity:pendingRestore.owner,revision:value.revision}:undefined,claimedKeys:credential&&nextRecords.reuse?[...nextRecords.reuse.pending.keys()].filter(key=>!records.reuse.pending.has(key)):[],transferredUnits:credential&&nextRecords.dispatch?[...nextRecords.dispatch.entries].filter(([id])=>!records.dispatch.entries.has(id)).map(([,entry])=>entry.value):[]},nextRecords]
- }),onCommitted)
+  return [{...result,adviceReceipt,adviceOwnership:ownershipBinding?Object.freeze({capability:ownershipBinding.capability,presentBefore:records.advice.entries.get(ownershipBinding.capability.id)?.capability===ownershipBinding.capability,presentAfter:nextRecords.advice.entries.get(ownershipBinding.capability.id)?.capability===ownershipBinding.capability,removed:value===true,findings:value===true?records.advice.entries.get(ownershipBinding.capability.id)?.content.findings:undefined,retirement:ownershipBinding.retirement}):undefined,actions:joined,raw:{...result.raw,actions:bendList},value,restoredPending:pendingRestore&&value?.revision?{pendingOwnerIdentity:pendingRestore.owner,revision:value.revision}:undefined,claimedKeys:credential&&nextRecords.reuse?[...nextRecords.reuse.pending.keys()].filter(key=>!records.reuse.pending.has(key)):[],transferredUnits:credential&&nextRecords.dispatch?[...nextRecords.dispatch.entries].filter(([id])=>!records.dispatch.entries.has(id)).map(([,entry])=>entry.value):[]},nextRecords]
+ }),publication=>{if(publication.adviceReceipt)adviceReceipts.set(publication.adviceReceipt.invocation,publication.adviceReceipt);onCommitted?.(publication)})
  const native=(operation,onCommitted)=>nativeCommit(operation,undefined,onCommitted)
  const nativeScoped=(credential,operation,onCommitted)=>nativeCommit(operation,credential,onCommitted)
  const nativeRestorePending=(credential,pendingOwner,operation,onCommitted)=>nativeCommit(operation,credential,onCommitted,pendingOwner)
  // Closed effect bindings: callers cannot supply a native transaction callback.
- const adviceTailBinding=(credential,capability,permission,onCommitted)=>residentAdvice({...transaction,
-  commitAllEffect:operation=>nativeCommit(operation,credential,onCommitted,undefined,{capability,permission}).pipe(Effect.map(result=>result.value))
+ const adviceTailBinding=(credential,capability,permission,onCommitted,retirement)=>residentAdvice({...transaction,
+  commitAllEffect:operation=>nativeCommit(operation,credential,onCommitted,undefined,{capability,permission,retirement}).pipe(Effect.map(result=>result.value))
  })
+ const adviceInsertAndHandoff=(credential,initial,inputHandle,onCommitted)=>{
+  if(!credential||typeof inputHandle!=='bigint'||inputHandle<1n)throw new Error('Advice birth requires provider credential and opaque input handle')
+  return residentAdvice({...transaction,commitAllEffect:operation=>nativeCommit(operation,credential,onCommitted,undefined,undefined,{initial,inputHandle}).pipe(Effect.map(result=>result.value))}).insert(initial)
+ }
  const adviceTailPublish=(credential,capability,onCommitted)=>adviceTailBinding(credential,capability,{$:'TailPublish'},onCommitted).publish(capability)
- const adviceTailRemove=(credential,capability,onCommitted)=>{
+ const retirementReason=retirement=>{if(retirement.$==='ExpiredRetirement')return 'expired';if(retirement.$==='RetentionFailureRetirement')return 'stale';throw new Error('Invalid advice retirement') }
+ const adviceTailRemove=(credential,capability,onCommitted,retirement={$:'RetentionFailureRetirement'})=>{
   let ownership
-  return adviceTailBinding(credential,capability,{$:'TailRemove'},publication=>{ownership=publication.adviceOwnership;onCommitted?.(publication)}).remove(capability,'stale').pipe(Effect.map(removed=>({removed,absent:ownership?.presentAfter===false})))
+  return adviceTailBinding(credential,capability,{$:'TailRemove'},publication=>{ownership=publication.adviceOwnership;onCommitted?.(publication)},retirement).remove(capability,retirementReason(retirement)).pipe(Effect.map(removed=>({removed,absent:ownership?.presentAfter===false})))
  }
  // A registry finalizer can remove only its exact capability after the lease ends.
  // Native advice.remove confirms absence without touching a replacement identity.
- const adviceCleanup=(capability,onCommitted)=>residentAdvice({...transaction,
-  commitAllEffect:operation=>native(operation,onCommitted).pipe(Effect.map(result=>result.value))
- }).remove(capability,'stale')
+ const adviceCleanup=(capability,onCommitted,retirement={$:'RetentionFailureRetirement'})=>residentAdvice({...transaction,
+  commitAllEffect:operation=>nativeCommit(operation,undefined,onCommitted,undefined,undefined,undefined,{capability,retirement}).pipe(Effect.map(result=>result.value))
+ }).remove(capability,retirementReason(retirement))
  const ownerStep=result=>result.raw.$==='Refused'?{$:'Rejected',refusal:result.raw.refusal}:{$:'Advanced',actions:result.raw.actions,outputs:result.raw.outputs}
  const methods={
   launch:(scope,input_handle)=>({$:'LaunchEvent',scope,input_handle}),
@@ -105,6 +124,7 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   terminal_preparation_failed:(invocation,generation,result_handle)=>({$:'TerminalPreparationFailedEvent',invocation,generation,result_handle}),
   launch_nested:(parent,input_handle)=>({$:'LaunchNestedEvent',parent,input_handle}),
   install:(invocation,generation,handle,request)=>({$:'InstallEvent',invocation,generation,handle,request}),
+  install_advice:(invocation,generation,handle,request,permission)=>({$:'InstallAdviceEvent',invocation,generation,handle,request,permission}),
   provider_start:invocation=>({$:'ProviderStartEvent',invocation}),
   provider_completed:(invocation,lease,request,reply_handle)=>({$:'ProviderCompletedEvent',invocation,lease,request,reply_handle}),
   cancel:invocation=>({$:'CancelEvent',invocation}),
@@ -117,5 +137,5 @@ export function createResidentOwnerTransaction({owner,transaction,onActions=()=>
   readState(){const snapshot=Effect.runSync(transaction.read);return owner.assembled(convert(snapshot.canonical,true),snapshot.resolverCustody)},
   invoke(method,args){if(!Object.hasOwn(methods,method))throw new Error('Unknown resident owner entry');return ownerStep(Effect.runSync(committedEvent(methods[method](...args))))}
  }
- return {read:transaction.read,event,native,nativeScoped,nativeRestorePending,adviceTailPublish,adviceTailRemove,adviceCleanup,control,ownerStep,canonical:input=>event({$:'CanonicalEvent',event:convert(encodeCanonicalEvent(input),true)})}
+ return {read:transaction.read,event,native,nativeScoped,nativeRestorePending,adviceInsertAndHandoff,get adviceReceipts(){return [...adviceReceipts.values()]},adviceTailPublish,adviceTailRemove,adviceCleanup,control,ownerStep,canonical:input=>event({$:'CanonicalEvent',event:convert(encodeCanonicalEvent(input),true)})}
 }

@@ -132,8 +132,10 @@ export function createServiceSession({invocation,root,now=()=>performance.now(),
 }
 
 export function createServiceRegistry() {
- const sessions=new Map()
+ const sessions=new Map(),cleanupObligations=new Map()
+ const retainCleanup=(session,retry)=>{const previous=cleanupObligations.get(session.invocation);if(previous&&previous.session!==session)throw new Error('Cleanup obligation owner replaced');cleanupObligations.set(session.invocation,{session,retry})}
+ const retryCleanup=async()=>{const failures=[];for(const [id,obligation] of [...cleanupObligations]){try{await obligation.retry();if(cleanupObligations.get(id)===obligation)cleanupObligations.delete(id)}catch(error){failures.push(error)}}if(failures.length)throw new AggregateError(failures,'Resident cleanup obligations remain pending')}
  const register=session=>{if(sessions.has(session.invocation))throw new Error('duplicate active invocation');sessions.set(session.invocation,session)}
  const remove=session=>{if(sessions.get(session.invocation)!==session)throw new Error('wrong registry owner');sessions.delete(session.invocation)}
- return Object.freeze({get:id=>sessions.get(id),get size(){return sessions.size},register,remove,async run(session,task){let registered=false;try{register(session);registered=true;return await task()}finally{if(registered){try{session.close()}finally{remove(session)}}}}})
+ return Object.freeze({retainCleanup,retryCleanup,get pendingCleanup(){return cleanupObligations.size},get:id=>sessions.get(id),get size(){return sessions.size},register,remove,async run(session,task){let registered=false;try{register(session);registered=true;return await task()}finally{if(registered){try{session.close()}finally{remove(session)}}}}})
 }

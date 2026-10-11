@@ -21,12 +21,14 @@ import {residentAdvice} from '../../../packages/resident-runtime/src/resident/st
 import {residentDelivery} from '../../../packages/resident-runtime/src/resident/state/resident/delivery.ts'
 import {residentDispatch} from '../../../packages/resident-runtime/src/resident/state/resident/dispatch.ts'
 import {makeResidentWorkLifecycle} from '../../../packages/resident-runtime/src/resident/work-ownership/lifecycle.ts'
+import {residentRetainAdvice} from '../../../packages/resident-runtime/src/resident/review-work/evaluation/retention.ts'
 import {completeSourcePreparation} from '../../../packages/resident-runtime/src/resident/review-work/preparation/retention.ts'
 import {defaultPreparationControls} from '../../../packages/resident-runtime/src/resident/execution-controls/preparation-controls.ts'
 import {logicalBytes} from '../../../packages/resident-runtime/src/resident/state/encoded-size.ts'
 import {advicee} from '@hapsland/build-tooling/test-support/test-fixtures'
 import {sourcePartition} from '../../../packages/resident-runtime/src/resident/recipient/identity.ts'
 import {evaluationSourcePartition} from '../../../packages/resident-runtime/src/resident/work-ownership/identity.ts'
+import {unlist} from './service-session.mjs'
 import {decodePreparationResult} from './preparation-result-codec.mjs'
 import {bendPostPreparation,createPostPreparationProvider} from './post-preparation-host.mjs'
 import {providerTransaction,dispatchExecutionBoundary,ResidentProviderPermit,ResidentResourceReceipt} from './resident-provider-permit.mjs'
@@ -35,6 +37,12 @@ import {nativePostPreparation} from './native-post-preparation-child.mjs'
 // Actual semantic owners and one bridged resident transaction. Recording sinks
 // are limited to analytics/inspection; revision, reuse, round and dispatch are real.
 export async function consumeRetainedPreparation(connection,result,root,rootIdentity,mode) {
+ const originalCase=mode
+ const cachedFault=mode.includes('-standalone-')?mode.slice(mode.indexOf('-standalone-')+12):undefined
+ if(cachedFault)mode=mode.slice(0,mode.indexOf('-standalone-')+11)
+ const cachedStandalone=mode.endsWith('cached-finding-standalone')
+ if(cachedStandalone)mode=mode.replace('-standalone','')
+ const caseName=mode
  const cleanupReceiptFault=mode==='retention-owned-fault-clear-cleanup-receipt'
  const sharedRelease=mode==='retention-owned-fault-clear-shared-release'||cleanupReceiptFault
  const reuseFaults={'retention-owned-fault-reuse-claim':['LookupReuse','retention-success'],'retention-owned-fault-clear-register':['RegisterClear','retention-cached-clear'],'retention-owned-fault-clear-release':['ReleaseClear','retention-cached-clear'],'retention-owned-fault-joined-append':['AppendJoined','retention-joined-claimed'],'retention-owned-fault-clear-shared-release':['ReleaseClear','retention-cached-clear'],'retention-owned-fault-clear-cleanup-receipt':['Cleanup','retention-cached-clear']}
@@ -48,6 +56,7 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
  const transaction=providerTransaction(connection.transaction,connection.bridge)
  const ledger={...residentCapacity(transaction),runtime:residentRuntime(transaction),revision:residentRevision(transaction),rounds:residentRounds(transaction),dispatch:residentDispatch(transaction)}
  const reuse=residentReuse(transaction)(logicalBytes),joined=residentJoinedReviews(transaction)(logicalBytes),advice=residentAdvice(transaction),delivery=residentDelivery(transaction)()
+ ledger.advice=advice
  const admission=run(delivery.admitEdit('agent','retention-edit',0));assert.ok(admission)
  const round=run(ledger.rounds.bind('agent',admission.generation,{root,rootIdentity,advicee:identity,activityPath:undefined},'cohort'))
  assert.equal(round.canonicalRound,connection.round)
@@ -56,20 +65,23 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
  const dispatcher=await Effect.runPromise(makeDispatcher(ledger,unit=>({operation:unit.canonicalOperationId,round:unit.canonicalRound}),entry=>Effect.gen(function*(){assert.equal(yield* ResidentProviderPermit,undefined);assert.equal(yield* ResidentResourceReceipt,undefined);accepted.push(entry.value);yield* hold.await}),dispatchExecutionBoundary).pipe(Effect.provideService(Scope.Scope,scope)))
  const observation={root,rootIdentity,advicee:identity,candidates:[{operation:'add',path:'root.py'}]}
  const receipt={scope:{root},correlation:{fixture:'postflow'}}
- const job={kind:'ingress',inspectionReceipt:receipt,observation,partition:'agent',canonicalRound:connection.round,canonicalObservationId:1,round,work,workObservationId:1,settings:{configuration:{policy:{digest:'f'.repeat(64)}}},dispatch:{activityPath:undefined,credential:null,controlled:null}}
- const inspection={observePreparation(){},observePreparedUnit(){},evaluationId(key){return 'physical:'+key},observeDiagnostic(){},forgetOrigin(){},registerOrigin(){}}
- const deps={lifetime:'physical',residentLedger:ledger,residentReuse:reuse,residentJoined:joined,residentAdvice:()=>advice.values(),residentComposedDelivery:delivery,residentDispatcher:dispatcher,residentLifetimeController:new AbortController(),residentInspection:inspection,residentRoundSnapshot:capability=>ledger.rounds.snapshot(capability).pipe(Effect.map(snapshot=>{if(!snapshot)throw new Error('Missing native round');return snapshot})),residentRecordAnalytics:()=>Effect.void}
+ const job={kind:'ingress',inspectionReceipt:receipt,observation,partition:'agent',canonicalRound:connection.round,canonicalObservationId:1,...(cachedStandalone?{}:{round,workObservationId:1}),work,settings:{configuration:{policy:{digest:'f'.repeat(64)}}},dispatch:{activityPath:undefined,credential:null,controlled:null}}
+ const fateEvents=[]
+ const inspection={observePreparation(){},observePreparedUnit(){},observeAdviceFate(capability,findings,fate,reason){fateEvents.push({id:capability.id,count:findings.length,fate,reason})},evaluationId(key){return 'physical:'+key},observeDiagnostic(){},forgetOrigin(){},registerOrigin(){}}
+ const deps={residentNow:()=>0,residentAdviceExpired:()=>Effect.succeed(false),residentReviewControls:{afterAdvicePending:()=>cachedFault==='barrier'?Effect.fail(new Error('injected cached advice barrier failure')):Effect.void},lifetime:'physical',residentLedger:ledger,residentReuse:reuse,residentJoined:joined,residentAdvice:()=>advice.values(),residentComposedDelivery:delivery,residentDispatcher:dispatcher,residentLifetimeController:new AbortController(),residentInspection:inspection,residentRoundSnapshot:capability=>ledger.rounds.snapshot(capability).pipe(Effect.map(snapshot=>{if(!snapshot)throw new Error('Missing native round');return snapshot})),residentRecordAnalytics:()=>Effect.void}
  const lifecycle=makeResidentWorkLifecycle(deps)
  const retire=()=>Effect.gen(function*(){assert.equal(yield* ledger.rounds.retire(round),true);round.controller.abort()})
  const prepared=decodePreparationResult(result,identity)
- const context={deps:{...deps,...lifecycle,inspection:{isEnabled:()=>false},residentRecordOperationalFailure:()=>Effect.void,residentRecordJoinedOutcomes:()=>Effect.void,residentRetainAdvice:()=>{throw new Error('Unexpected cached path')},residentPreparationControls:{...defaultPreparationControls,afterReuseBoundary:phase=>phase==='ownerClaimed'?(mode==='retention-owner-claimed'?retire():mode==='retention-fault-owner-claimed'?Effect.die(new Error('injected after owner claim')):Effect.void):Effect.void}},job,sequence:1,expectedActivityUnits:[],unassignedClaims:new Set(),activeWorkspaces:new Set([connection.preparation.reservation]),preparationSignal:work.controller.signal}
+ const context={deps:{...deps,...lifecycle,inspection:{isEnabled:()=>cachedFault==='inspection'&&run(advice.values()).length>0,offer:()=>{throw new Error('injected retained inspection failure')}},residentRecordOperationalFailure:()=>Effect.void,residentRecordJoinedOutcomes:()=>Effect.void,residentRetainAdvice:()=>{throw new Error('Unexpected cached path')},residentPreparationControls:{...defaultPreparationControls,afterReuseBoundary:phase=>phase==='ownerClaimed'?(mode==='retention-owner-claimed'?retire():mode==='retention-fault-owner-claimed'?Effect.die(new Error('injected after owner claim')):Effect.void):Effect.void}},job,sequence:1,expectedActivityUnits:[],unassignedClaims:new Set(),activeWorkspaces:new Set([connection.preparation.reservation]),preparationSignal:work.controller.signal}
+ context.deps.residentRetainAdvice=(unit,evaluation,sequence)=>residentRetainAdvice(context.deps,unit,evaluation,sequence)
+ if(useOwned)context.ownedAdvice={bridge:connection.bridge,driver:connection.owned.driver,core:connection.postCore}
  const seededKeys=[],existingRevisions=[]
  if(sharedRelease)for(const outcome of prepared.outcomes.filter(outcome=>outcome.status==='ready'))existingRevisions.push({prepared:outcome.prepared,revision:run(lifecycle.residentRegisterCurrentWork(sourcePartition(observation.root,observation.advicee),outcome.prepared))})
- if(mode==='retention-cached-clear'||mode==='retention-joined-claimed') {
+ if(mode==='retention-cached-clear'||mode==='retention-cached-finding'||mode==='retention-joined-claimed') {
   const partition=evaluationSourcePartition(observation,work.id,'controlled',job.settings.configuration.policy.digest)
   for(const outcome of prepared.outcomes.filter(outcome=>outcome.status==='ready')) {
    const key=reuse.key(partition,outcome.prepared);seededKeys.push(key)
-   if(mode==='retention-cached-clear')assert.equal(run(reuse.put('agent',key,{prepared:outcome.prepared,findings:[]})),true)
+   if(mode==='retention-cached-clear'||mode==='retention-cached-finding')assert.equal(run(reuse.put('agent',key,{prepared:outcome.prepared,findings:mode==='retention-cached-clear'?[]:[{path:outcome.path,declaration:outcome.prepared.input.declaration.name,ruleId:'fixture',probability:1,message:'physical cached finding',semanticIdentity:outcome.prepared.identity}]})),true)
    else assert.equal(run(reuse.claim(key)),true)
   }
  }
@@ -107,10 +119,13 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
    else if(mode==='retention-constructor-fault')await assert.rejects(flow,/injected post machine construction failure/)
    else if(['retention-fault-after-enqueue-ack','retention-fault-after-queue-commit'].includes(mode))await assert.rejects(flow,/acknowledgement loss/)
    else if(reuseFault)await assert.rejects(flow,cleanupReceiptFault?/injected original clear release failure/:/injected reuse commit acknowledgement loss/)
+   else if(cachedFault==='insert-ack')await assert.rejects(flow,/injected cached insert acknowledgement loss/)
+   else if(cachedFault==='inspection')await assert.rejects(flow,/injected retained inspection failure/)
+   else if(cachedFault==='barrier')await assert.rejects(flow,error=>error?._tag==='ResidentAdapterError'&&error.operation==='pending advice barrier')
    else if(mode==='retention-fault-owner-claimed')await assert.rejects(flow,/injected after owner claim/)
    else if(mode==='retention-fault-after-revision')await assert.rejects(flow,/injected before spawn state change/)
    else continued=await flow()
-   if(continued&&['retention-success','retention-cached-clear','retention-joined-claimed','retention-joined-pending'].includes(mode))await Effect.runPromise(completeSourcePreparation(context))
+   if(continued&&!cachedFault&&['retention-success','retention-cached-clear','retention-cached-finding','retention-joined-claimed','retention-joined-pending'].includes(mode))await Effect.runPromise(completeSourcePreparation(context))
    if(mode==='retention-joined-pending') {
     const ownerUnits=[...run(transaction.read).records.reuse.pending.values()].filter(Boolean)
     assert.equal(ownerUnits.length,prepared.outcomes.filter(outcome=>outcome.status==='ready').length)
@@ -155,6 +170,20 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
    const units=[...snapshot.records.dispatch.entries.values()].map(entry=>entry.value)
    assert.equal(units.length,registrations)
    for(const unit of units){assert.equal(unit.inspectionReceipt,receipt);assert.equal(unit.inspectionEvaluationId,'physical:'+unit.evaluationKey);assert.equal(unit.prepared.identity,prepared.outcomes.find(outcome=>outcome.status==='ready'&&outcome.prepared.input.declaration.name===unit.prepared.input.declaration.name).prepared.identity);assert.equal(unit.sourceHash,prepared.observation.outcomes[0].snapshot.sourceHash);assert.equal(run(ledger.revision.current(unit.revision,unit.prepared)),true);assert.equal(unit.workUnitId,unit.canonicalOperationId)}
+  } else if(cachedFault){
+   const snapshot=run(transaction.read),retained=run(advice.snapshots())
+   const issuedTails=unlist(snapshot.resolverCustody.children).filter(child=>child.scope.$==='AdviceTailScope')
+   assert.equal(issuedTails.length,1,'one insertion transfers exactly one independent tail');assert.equal(issuedTails[0].phase.$,'ChildAccepted')
+   assert.equal(registrations,1);assert.equal(snapshot.records.dispatch.entries.size,0);assert.equal(snapshot.records.reuse.pending.size,0)
+   assert.equal(retained.length,['cutoff','insert-ack'].includes(cachedFault)?1:0)
+   assert.equal(snapshot.records.revision.current.size,retained.length)
+   if(retained.length){assert.equal(run(ledger.revision.current(retained[0].capability.revision,retained[0].capability.prepared)),true);assert.equal(retained[0].content.findings.length,1);assert.deepEqual(fateEvents,[])}
+   else {assert.equal(fateEvents.length,1);assert.equal(fateEvents[0].fate,'discarded');assert.equal(fateEvents[0].reason,'retention-failed')}
+  } else if(mode==='retention-cached-finding'){
+   assert.equal(continued,true);assert.equal(registrations,seededKeys.length);assert.deepEqual(context.expectedActivityUnits,cachedStandalone?seededKeys:[])
+   const snapshot=run(transaction.read);assert.equal(snapshot.records.dispatch.entries.size,0);assert.equal(snapshot.records.reuse.pending.size,0)
+   const findingsAdvice=run(advice.snapshots());assert.equal(findingsAdvice.length,cachedStandalone?seededKeys.length:0)
+   for(const retained of findingsAdvice){assert.equal(retained.content.findings.length,1);assert.equal(run(ledger.revision.current(retained.capability.revision,retained.capability.prepared)),true);assert.equal(retained.capability.workUnitId,undefined)}
   } else if(mode==='retention-cached-clear'||mode==='retention-joined-claimed') {
    assert.equal(continued,true)
    assert.deepEqual(context.expectedActivityUnits,seededKeys)
@@ -172,16 +201,18 @@ export async function consumeRetainedPreparation(connection,result,root,rootIden
    assert.equal(registrations,['retention-after-revision','retention-before-enqueue'].includes(mode)?1:0)
   }
   return {registrations,ready:prepared.outcomes.filter(outcome=>outcome.status==='ready').length}
- } finally {
+ }catch(error){console.error(JSON.stringify({mode,caseName,originalCase,cachedFault,useOwned,cachedStandalone,originalFailure:String(error)}));throw error}
+ finally {
   run(hold.open)
   await Effect.runPromise(Scope.close(scope,Exit.void))
   const pending=[...run(transaction.read).records.reuse.pending.values()].filter(Boolean)
   for(const unit of pending){await Effect.runPromise(lifecycle.residentReleaseUnit(unit));await Effect.runPromise(lifecycle.residentReleaseReuseClaim(unit.evaluationKey))}
   for(const key of seededKeys)if(mode==='retention-joined-claimed')await Effect.runPromise(lifecycle.residentReleaseReuseClaim(key))
-  if(mode==='retention-cached-clear')await Effect.runPromise(reuse.clear())
+  for(const capability of run(advice.values()))await Effect.runPromise(advice.remove(capability,'stale'))
+  if(mode==='retention-cached-clear'||mode==='retention-cached-finding')await Effect.runPromise(reuse.clear())
   for(const existing of existingRevisions)await Effect.runPromise(lifecycle.residentReleaseCurrentWork(existing.revision))
   const terminal=run(transaction.read)
-  assert.equal(terminal.reservations.size,0,mode+' reservations after cleanup')
+  assert.equal(terminal.reservations.size,0,mode+' reservations after cleanup '+JSON.stringify([...terminal.reservations].map(([id,entry])=>({id,kind:entry.kind,operation:entry.operation}))))
   assert.equal(terminal.records.revision.current.size,0,mode+' revisions after cleanup')
   assert.equal(terminal.records.reuse.pending.size,0,mode+' claims after cleanup')
   assert.equal(terminal.records.dispatch.entries.size,0,mode+' dispatcher handles after cleanup')

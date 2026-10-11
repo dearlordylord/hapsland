@@ -19,7 +19,7 @@ import {retireRound} from '../../../packages/resident-runtime/src/resident/state
 import {completePreparation} from '../../../packages/resident-runtime/src/resident/state/capacity/preparation.ts'
 import {createResidentOwnerTransaction} from './resident-owner-transaction.mjs'
 import {createPreparationMachine} from './preparation-dispatcher.mjs'
-import {createPostPreparationMachine} from './post-preparation-dispatcher.mjs'
+import {createAdviceTailMachine,createPostPreparationMachine} from './post-preparation-dispatcher.mjs'
 import {inspectGraphFile,combinedAnalyzerMaterializationPreflight,analyzeTypeFile} from '../../../packages/source-analysis/dist/direct-event/analyzer.js'
 import {resize} from '../../../packages/resident-runtime/src/resident/state/capacity/reservations.ts'
 import {analyzeFunctionFile} from '@hapsland/source-analysis/direct-event/function-analyzer'
@@ -51,7 +51,7 @@ try{
   const observation=run(capacity.admitObservation('agent',round));assert.equal(run(capacity.observation('agent',observation,'startObservation',round)),true)
   const preparation=run(capacity.beginObservedPreparation('agent',observation,1000,round));assert.equal(preparation.status,'admitted');assert.equal(preparation.operation,2)
   let attachedDriver
-  const bridge=createResidentOwnerTransaction({owner,transaction,onActions:actions=>Effect.sync(()=>{if(actions.length&&!attachedDriver)throw new Error('Unbound resident action consumer');attachedDriver?.acceptActions(actions)})})
+  const bridge=createResidentOwnerTransaction({owner,transaction,validateAdviceInput:(origin,handle)=>attachedDriver?.validateAdviceInput(origin,handle)===true,onActions:actions=>Effect.sync(()=>{if(actions.length&&!attachedDriver)throw new Error('Unbound resident action consumer');attachedDriver?.acceptActions(actions)})})
   return {postCore,control:bridge.control,bridge,transaction,preparation,round,partition,attachDriver:driver=>{attachedDriver=driver}}
  }
  const preparationEmission=join(temp,'Preparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'Preparation.bend'),'-o',preparationEmission],{timeout:5000})
@@ -59,9 +59,9 @@ try{
  const none={$:'None'},some=value=>({$:'Some',value})
  const location=value=>({$:'RootAttribution.Location',start:{$:'RootAttribution.Position',line:BigInt(value.start.line),column:BigInt(value.start.column)},end:{$:'RootAttribution.Position',line:BigInt(value.end.line),column:BigInt(value.end.column)}})
  const postEmission=join(temp,'PostPreparation.mjs');execFileSync('taskset',['-c','10','bend',join(import.meta.dirname,'PostPreparation.bend'),'-o',postEmission],{timeout:5000})
- const postCore=(await import(pathToFileURL(postEmission))).default,postMachine=createPostPreparationMachine(postCore)
+ const postCore=(await import(pathToFileURL(postEmission))).default,postMachine=createPostPreparationMachine(postCore),tailMachine=createAdviceTailMachine(postCore)
  let cases=0,requests=0,postRequests=0
- for(const mode of ['two-roots','first-refused','parent-cancel-late-success','parent-cancel-late-rejection','resize-refused','mixed-contracts','retention-success','retention-before-flow','retention-owner-claimed','retention-after-revision','retention-fault-owner-claimed','retention-fault-after-revision','retention-cached-clear','retention-joined-claimed','retention-joined-pending','retention-bend-success','retention-bend-cached-clear','retention-bend-joined-claimed','retention-bend-joined-pending','retention-bend-after-revision','retention-bend-fault-after-revision','retention-owned-success','retention-owned-cached-clear','retention-owned-joined-claimed','retention-owned-after-revision','retention-owned-fault-after-revision','retention-owned-before-flow','retention-owned-before-enqueue','retention-owned-after-enqueue-ack','retention-owned-after-queue-commit','retention-owned-fault-after-queue-commit','retention-owned-fault-after-enqueue-ack','retention-owned-preinstall-cancel','retention-owned-constructor-fault','retention-owned-duplicate-active','retention-owned-joined-pending','retention-owned-joined-pending-restore-fault','retention-owned-fault-reuse-claim','retention-owned-fault-clear-register','retention-owned-fault-clear-release','retention-owned-fault-joined-append','retention-owned-fault-clear-shared-release','retention-owned-fault-clear-cleanup-receipt']) {
+ for(const mode of ['two-roots','first-refused','parent-cancel-late-success','parent-cancel-late-rejection','resize-refused','mixed-contracts','retention-success','retention-before-flow','retention-owner-claimed','retention-after-revision','retention-fault-owner-claimed','retention-fault-after-revision','retention-cached-clear','retention-joined-claimed','retention-joined-pending','retention-bend-success','retention-bend-cached-clear','retention-bend-joined-claimed','retention-bend-joined-pending','retention-bend-after-revision','retention-bend-fault-after-revision','retention-owned-success','retention-owned-cached-clear','retention-owned-joined-claimed','retention-owned-after-revision','retention-owned-fault-after-revision','retention-owned-before-flow','retention-owned-before-enqueue','retention-owned-after-enqueue-ack','retention-owned-after-queue-commit','retention-owned-fault-after-queue-commit','retention-owned-fault-after-enqueue-ack','retention-owned-preinstall-cancel','retention-owned-constructor-fault','retention-owned-duplicate-active','retention-owned-joined-pending','retention-owned-joined-pending-restore-fault','retention-owned-fault-reuse-claim','retention-owned-fault-clear-register','retention-owned-fault-clear-release','retention-owned-fault-joined-append','retention-owned-fault-clear-shared-release','retention-owned-fault-clear-cleanup-receipt','retention-cached-finding','retention-owned-cached-finding','retention-cached-finding-standalone','retention-owned-cached-finding-standalone','retention-owned-cached-finding-standalone-cutoff','retention-owned-cached-finding-standalone-insert-ack','retention-owned-cached-finding-standalone-inspection','retention-owned-cached-finding-standalone-barrier'].filter(mode=>!process.env.HAPSLAND_POSTFLOW_CASE||mode===process.env.HAPSLAND_POSTFLOW_CASE)) {
   const owned=mode.startsWith('retention-owned-'),postSessions=new Map()
   const currentPath=mode==='mixed-contracts'?'mixed.ts':'root.py'
   if(mode==='mixed-contracts')await writeFile(join(root,currentPath),'export interface Foo { value: string }\nexport function run(value: Foo): Foo { return value }\n')
@@ -71,7 +71,7 @@ try{
   let duplicateChecked=false,reuseFaultInjected=false,originalCleanupFailure=false
   const driver=createOwnedArtifactDriver({owner,control:connection.control,scope,artifacts,registry,
    hooks:{beforeInstall:({invocation})=>{if(mode==='retention-owned-preinstall-cancel'&&postSessions.has(Number(invocation)))driver.cancel(invocation)}},
-   selectMachine:input=>{if(input.postPreparation&&mode==='retention-owned-constructor-fault')throw new Error('injected post machine construction failure');return input.preparation?preparationMachine:input.postPreparation?postMachine:undefined},foreign:async([request],options)=>{
+   selectMachine:input=>{if(input.postPreparation&&mode==='retention-owned-constructor-fault')throw new Error('injected post machine construction failure');return input.preparation?preparationMachine:input.postPreparation?postMachine:input.adviceTail?tailMachine:undefined},foreign:async([request],options)=>{
    requests++
    if(postSessions.has(Number(request.invocation))){
     postRequests++;const postSession=postSessions.get(Number(request.invocation))
@@ -81,10 +81,13 @@ try{
      assert.strictEqual(Effect.runSync(connection.transaction.read),before);assert.deepEqual(driver.resources,resources)
     }
     const faultCommand={'retention-owned-fault-reuse-claim':'LookupReuse','retention-owned-fault-clear-register':'RegisterClear','retention-owned-fault-clear-release':'ReleaseClear','retention-owned-fault-joined-append':'AppendJoined','retention-owned-fault-clear-shared-release':'ReleaseClear'}[mode]
+    if(mode==='retention-owned-cached-finding-standalone-cutoff'||mode==='retention-owned-cached-finding-standalone-insert-ack')return postSession.perform(request,{...options,afterCommit:command=>{if(command.$==='InsertCachedAdvice'&&!reuseFaultInjected){reuseFaultInjected=true;if(mode.endsWith('-cutoff'))driver.cancel(request.invocation);else throw new Error('injected cached insert acknowledgement loss')}}})
     if(mode==='retention-owned-fault-clear-cleanup-receipt')return postSession.perform(request,{...options,beforeCommand:command=>{if(command.$==='ReleaseClear'&&!originalCleanupFailure){originalCleanupFailure=true;throw new Error('injected original clear release failure')}},afterCommit:(command,publication)=>{if(command.$==='Cleanup'&&publication.releasedAcquisition!==undefined&&!reuseFaultInjected){reuseFaultInjected=true;throw new Error('injected cleanup release action sink failure')}}})
     if(faultCommand)return postSession.perform(request,{...options,afterCommit:command=>{if(!reuseFaultInjected&&command.$===faultCommand){reuseFaultInjected=true;throw new Error('injected reuse commit acknowledgement loss')}}})
     return postSession.perform(request,mode==='retention-owned-joined-pending-restore-fault'?{...options,afterPendingRestore:()=>{throw new Error('injected pending restore acknowledgement loss')}}:options)
    }
+   const adviceSession=registry.get(Number(request.invocation))
+   if(adviceSession?.input?.adviceTail){postRequests++;return adviceSession.perform(request,options)}
    if(request.operation) {
     const session=registry.get(Number(request.invocation))
     if(mode.startsWith('parent-cancel')&&!cancelled&&request.operation.$==='Types.CaptureSource') {
@@ -179,7 +182,7 @@ try{
   if(mode==='retention-owned-duplicate-active')assert.equal(duplicateChecked,true)
   if(mode.includes('-fault-reuse-')||mode.includes('-fault-clear-')||mode.includes('-fault-joined-'))assert.equal(reuseFaultInjected,true)
   assert.equal(driver.stats.providerStarts,driver.stats.providerCleanups)
-  assert.deepEqual(driver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0});assert.equal(registry.size,0)
+  assert.deepEqual(driver.resources,{payloads:0,leases:0,sessions:0,artifactStates:0,launches:0});assert.equal(registry.size,0);assert.equal(registry.pendingCleanup,0)
   const rootFds=await Promise.all((await readdir('/proc/self/fd')).map(fd=>readlink('/proc/self/fd/'+fd).catch(()=>'')));assert.equal(rootFds.filter(path=>path===root||path.startsWith(root+'/')).length,0)
   cases++
  }

@@ -38,14 +38,17 @@ try {
     case 'RegisterWork':response={$:'Work',token:options.noWork?none:some(400n+command.slot.item.key)};break
     case 'AttachOwner':response={$:'Attached',accepted:!options.attachRefused};break
     case 'Enqueue':response={$:'Queued',accepted:!options.enqueueRefused};break
-    case 'SettleCached':break
+    case 'StartCachedReview':case 'CompleteCachedReview':response={$:'ReviewAccepted',value:true};break
+    case 'CheckCachedActive':response={$:'Active',value:true};break
+    case 'ReadCachedAdvice':response={$:'AdviceOwner',owner:none};break
+    case 'InsertCachedAdvice':response={$:'AdviceInserted',tail:1000n};break
     case 'Cleanup':cleanup.push(command);break
    }
    if(options.failAt===ordinal&&command.$!=='Cleanup')response={$:'Failed',token:77n}
    if(options.cancelAt===ordinal&&command.$!=='Cleanup')response={$:'Cancelled',token:88n}
    if(options.cleanupFailOnce&&command.$==='Cleanup'&&cleanup.length===1)response={$:'Failed',token:99n}
    if(command.$==='Enqueue'&&response.$==='Queued'&&response.accepted)enqueued.push(command.slot.item.key)
-   if(command.$==='SettleCached'&&response.$==='Ack')settled.push(command.slot.item.key)
+   if(command.$==='FinalizeCachedUnit'&&response.$==='Ack')settled.push(command.slot.item.key)
    step=core.resume(step,{$:'Reply',invocation:1n,id:request.id,response})
   }
   throw new Error('Postflow did not terminate')
@@ -71,7 +74,7 @@ try {
    assert.equal(command.advice,900n)
    assert.equal(core.advice_resume(step,{$:'Reply',invocation:78n,id:request.id,response:{$:'Ack'}}).$,'AdviceRejected')
    assert.equal(core.advice_resume(step,{$:'Reply',invocation:77n,id:request.id+1n,response:{$:'Ack'}}).$,'AdviceRejected')
-   let response=command.$==='AdviceCheckActive'?{$:'Active',value:!options.inactive}:command.$==='AdvicePublish'?{$:'Published',publication:44n}:{$:'Ack'}
+   let response=command.$==='AdviceCheckExpired'?{$:'Expired',value:!!options.expired}:command.$==='AdviceCheckActive'?{$:'Active',value:!options.inactive}:command.$==='AdvicePublish'?{$:'Published',publication:44n}:{$:'Ack'}
    if(ordinal===options.failAt)response={$:'Failed',token:71n}
    if(ordinal===options.cancelAt)response={$:'Cancelled',token:72n}
    if(command.$==='AdviceRemove'&&options.cleanupFailure&&(options.cleanupAlways||commands.filter(value=>value.$==='AdviceRemove').length===1))response={$:'Failed',token:73n}
@@ -80,6 +83,8 @@ try {
   throw new Error('Advice tail did not terminate')
  }
  const permanentCleanupFailure=runTail({failAt:1,cleanupFailure:true,cleanupAlways:true});assert.equal(permanentCleanupFailure.step.$,'AdviceCleanupPending');assert.equal(permanentCleanupFailure.step.advice,900n);assert.equal(permanentCleanupFailure.step.reason.token,71n);assert.equal(permanentCleanupFailure.commands.filter(value=>value.$==='AdviceRemove').length,2);cases++
+ const expiredTail=runTail({failAt:1,expired:true});assert.equal(expiredTail.commands.find(value=>value.$==='AdviceRemove').retirement.$,'ExpiredRetirement');cases++
+ const currentTail=runTail({failAt:1});assert.equal(currentTail.commands.find(value=>value.$==='AdviceRemove').retirement.$,'RetentionFailureRetirement');cases++
  const liveTail=runTail({});assert.equal(liveTail.step.$,'AdviceFinished');assert.deepEqual(liveTail.commands.map(value=>value.$),['AdvicePendingBarrier','AdviceCheckActive','AdvicePublish','AdviceRecordPublished']);cases++
  const cutoffTail=runTail({inactive:true});assert.equal(cutoffTail.step.$,'AdviceFinished');assert.deepEqual(cutoffTail.commands.map(value=>value.$),['AdvicePendingBarrier','AdviceCheckActive']);cases++
  for(let ordinal=1;ordinal<=liveTail.commands.length;ordinal++)for(const kind of ['failAt','cancelAt']){
