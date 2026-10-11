@@ -191,7 +191,10 @@ One current obstacle list, in execution order:
    append, slot-filter disjointness and child address-prefix elimination are
    checked under hard five seconds, including full child node/reference context
    transport and exact ordered appended-node projection (latest coherent prefix
-   3.257 seconds). Full original parent theorem remains WIP.
+   3.257 seconds). Full append slot ownership/forward/indexed guards, paired-prefix no-shadow,
+   exact cursor lookup and projected row count transport are checked. Recursive
+   count transport and full semantic alignment remain open; the original
+   parent theorem remains WIP.
    No new or weakened acceptance premise is authorized.
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
@@ -201,19 +204,18 @@ One current obstacle list, in execution order:
    Full physical cancellation/late cleanup and universal correspondence remain
    distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
    its accepted supported-input boundary before claiming complete replacement.
-3. Resolve ordinary source gates: 13 remaining cross-owner private development imports,
-   without exposing verification helpers or excluding sources. check:fast's last
-   executed result passes 109 tests and source typing, then fails these imports.
-   Source-owned graph verification and its sole fixture set now live together
-   under source-analysis/graph-resolution/verification; the relocated complete
-   Entry consumer passes 78 cases/55 comparisons. Remaining moved consumers
-   have been run: both expansion checks, Rust preparation and SPEC pass. SPEC
-   uses existing prepared_unit and exact metadata projection (including empty
-   dependencies), with 51 native root comparisons and 11 forest guards. The
-   generic machine checker cannot drive Go/Python specialized continuations;
-   this remains a blocker. Placement does not change production adoption.
-   Unsupported formatter roots remain failures (including attachment declaration
-   headers and UnitEvidence/Glob/list block handling). A full gate remains blocked.
+3. Complete remaining ordinary Bend/source gates. Development imports now pass
+   with zero violations after owner moves, existing public capability wiring and
+   tooling-owned fixture assembly. check:fast passes 109 tests, assets, source
+   typing and package/import graph. Its post-commit lint selects zero files;
+   actual changed-source lint and physical new-path consumers qualify the edits
+   separately. Source-owned graph Entry/expansion/Rust/SPEC consumers and local
+   resident Source (56/6338/31), preparation (70/15576/807), owned root
+   (46/2049) and composed Canonical root (18/1425/7125 fences/18 accepted)
+   pass. The generic machine checker still cannot drive specialized Go/Python
+   continuations. Unsupported formatter roots remain failures, including
+   attachment declaration headers and UnitEvidence/Glob/list blocks.
+   A full gate remains blocked; placement is not production adoption.
 4. Complete and qualify compiled preparation → Source → Post in the actual public
    resident lifecycle, preserving source/parent/child revision and identity
    fencing, original exception/Cause identity, resource custody, accepted result
@@ -226,13 +228,12 @@ One current obstacle list, in execution order:
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production build/execution at aeca742c
-   qualify on frozen heads, sources and artifacts: build **fails** parity at
-   1.1405082116423289; execution passes at 0.7839269033645367. Both starts are timely
-   (17:44:37.298423 / 17:48:22.440959 UTC). This does not measure unadopted whole
-   preparation. Recorded cadence misses remain failures. Start the next warm-up
-   early enough for the measured five-minute build pair; next build deadline
-   18:14:37.298423 UTC, execution 18:18:22.440959 UTC.
+   connected candidate. Latest existing-production f9b535ec build/execution are
+   qualified with unchanged heads/sources/artifacts: build fails at
+   1.1165650680940578; execution passes at 0.7465336756148849. Both starts are
+   timely (19:43:56.413344 / 19:51:12.866359 UTC). This does not measure
+   unadopted whole preparation. Recorded cadence misses remain failures.
+   Next build start is due20:13:56.413344 UTC, execution20:21:12.866359 UTC.
 
 Historical performance evidence (existing production, not whole preparation): Latest matched warm build at 12a2a197 started
    2026-10-11T14:55:48.475707Z: 17 pairs, all 23/46 cached, qualified with
