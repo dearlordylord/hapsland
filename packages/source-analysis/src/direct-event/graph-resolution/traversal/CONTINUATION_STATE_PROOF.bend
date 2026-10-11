@@ -119,7 +119,9 @@ def target_map_exact(+budget: Core.Budget, +path: String) -> {
       value_exact(Map<&2, Bool>, Map.get(Map<&2, Bool>, MTip{}, targets, path))
 
 def target_update_exact(+budget: Core.Budget, +path: String, +set: Map<&2, Bool>) -> {
-  CoreTraversal.store_targets(budget, path, set) == Spec.observe_set(budget, path, set) : Core.Budget
+  CoreTraversal.store_targets(budget, path, set)
+  == Spec.observe_set(budget, path, set)
+  : Core.Budget
 }:
   match budget:
     case Core.Budget{_, _, _, _, _, _}: {==}
@@ -257,26 +259,44 @@ def target_exact(+machine: Core.Machine, +identity: String) -> {
   match machine:
     case Core.Machine{_, root_path, frames, +visited, +budget, +address, _, _, +pending}:
       +path = CoreTraversal.frame_path(frames, root_path)
-      Equal.cong(Core.Budget, Spec.State, with_budget(visited, address, pending),
-        CoreTraversal.charge_target(budget, path, identity), Spec.target_budget(budget, path, identity),
-        target_budget_exact(budget, path, identity))
+      Equal.cong(
+        Core.Budget,
+        Spec.State,
+        with_budget(visited, address, pending),
+        CoreTraversal.charge_target(budget, path, identity),
+        Spec.target_budget(budget, path, identity),
+        target_budget_exact(budget, path, identity)
+      )
 
 def allowed_from_set(budget: Core.Budget, set: Map<&2, Bool>) -> Bool:
   CoreTraversal.budget_allows(budget, Map.size(&2, Bool, set))
 
 def allowed_exact(+machine: Core.Machine) -> {
-  CoreTraversal.machine_allows(machine) == Spec.allowed(state(machine), CoreTraversal.machine_path(machine)) : Bool
+  CoreTraversal.machine_allows(machine)
+  == Spec.allowed(state(machine), CoreTraversal.machine_path(machine))
+  : Bool
 }:
   match machine:
     case Core.Machine{_, root_path, frames, _, +budget, _, _, _, _}:
       +path = CoreTraversal.frame_path(frames, root_path)
-      Equal.trans(Bool,
-        CoreTraversal.budget_allows(budget, Map.size(&2, Bool, CoreTraversal.target_map(budget, path))),
+      Equal.trans(
+        Bool,
+        CoreTraversal.budget_allows(
+          budget,
+          Map.size(&2, Bool, CoreTraversal.target_map(budget, path))
+        ),
         CoreTraversal.budget_allows(budget, Map.size(&2, Bool, Spec.path_set(budget, path))),
         Spec.allowed_budget(budget, Map.size(&2, Bool, Spec.path_set(budget, path))),
-        Equal.cong(Map<&2, Bool>, Bool, allowed_from_set(budget), CoreTraversal.target_map(budget, path),
-          Spec.path_set(budget, path), target_map_exact(budget, path)),
-        budget_allows_exact(budget, Map.size(&2, Bool, Spec.path_set(budget, path))))
+        Equal.cong(
+          Map<&2, Bool>,
+          Bool,
+          allowed_from_set(budget),
+          CoreTraversal.target_map(budget, path),
+          Spec.path_set(budget, path),
+          target_map_exact(budget, path)
+        ),
+        budget_allows_exact(budget, Map.size(&2, Bool, Spec.path_set(budget, path)))
+      )
 
 def seen_exact(+machine: Core.Machine, +identity: String) -> {
   CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), identity)
@@ -326,7 +346,9 @@ def declaration_lookup_exact(+facts: Core.Facts, +name: String, +expected: Core.
       )
 
 def import_lookup_exact(+facts: Core.Facts, +name: String) -> {
-  CoreTraversal.import_lookup(facts, name) == Spec.find_import(facts, name) : Maybe<&2, Core.ImportBinding>
+  CoreTraversal.import_lookup(facts, name)
+  == Spec.find_import(facts, name)
+  : Maybe<&2, Core.ImportBinding>
 }:
   match facts:
     case Core.Facts{_, _, imports, _}:
@@ -336,7 +358,9 @@ def import_lookup_exact(+facts: Core.Facts, +name: String) -> {
       )
 
 def supporting_lookup_exact(+facts: Core.Facts, +name: String) -> {
-  CoreTraversal.supporting_lookup(facts, name) == Spec.supporting(facts, name) : Maybe<&2, Core.Declaration>
+  CoreTraversal.supporting_lookup(facts, name)
+  == Spec.supporting(facts, name)
+  : Maybe<&2, Core.Declaration>
 }:
   match facts:
     case Core.Facts{_, _, _, supporting}:

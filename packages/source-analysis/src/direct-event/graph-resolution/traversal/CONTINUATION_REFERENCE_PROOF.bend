@@ -662,7 +662,17 @@ def selected_expansion_exact(
         CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
       )
       == observation(
-        Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, symbol, expected, depth), symbol),
+        Spec.expanded_result(
+          Child.root_result(
+            CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+            fuel,
+            machine,
+            symbol,
+            expected,
+            depth
+          ),
+          symbol
+        ),
         machine,
         fuel,
         owner,
@@ -691,7 +701,14 @@ def selected_expansion_exact(
         ),
         Child.reference_next(
           Spec.expanded_result(
-            Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, symbol, expected, depth),
+            Child.root_result(
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+              (1n + fuel : Nat),
+              machine,
+              symbol,
+              expected,
+              depth
+            ),
             symbol
           ),
           (1n + fuel : Nat),
@@ -701,7 +718,17 @@ def selected_expansion_exact(
           Continuation.resume(frames, facts, path, fuel)
         ),
         observation(
-          Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, symbol, expected, depth), symbol),
+          Spec.expanded_result(
+            Child.root_result(
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+              fuel,
+              machine,
+              symbol,
+              expected,
+              depth
+            ),
+            symbol
+          ),
           machine,
           fuel,
           owner,
@@ -722,7 +749,14 @@ def selected_expansion_exact(
           Relation.Observation,
           Child.reference_next(
             Spec.expanded_result(
-              Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, symbol, expected, depth),
+              Child.root_result(
+                CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+                (1n + fuel : Nat),
+                machine,
+                symbol,
+                expected,
+                depth
+              ),
               symbol
             ),
             (1n + fuel : Nat),
@@ -732,7 +766,17 @@ def selected_expansion_exact(
             Continuation.resume(frames, facts, path, fuel)
           ),
           Child.reference_next(
-            Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, symbol, expected, depth), symbol),
+            Spec.expanded_result(
+              Child.root_result(
+                CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+                fuel,
+                machine,
+                symbol,
+                expected,
+                depth
+              ),
+              symbol
+            ),
             fuel,
             owner,
             index,
@@ -740,13 +784,24 @@ def selected_expansion_exact(
             Continuation.resume(frames, facts, path, fuel)
           ),
           observation(
-            Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, symbol, expected, depth), symbol),
+            Spec.expanded_result(
+              Child.root_result(
+                CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+                fuel,
+                machine,
+                symbol,
+                expected,
+                depth
+              ),
+              symbol
+            ),
             machine,
             fuel,
             owner,
             index
           ),
-          Expansion.root_fuels_equal(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+          Expansion.root_fuels_equal(
+            CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
             (1n + fuel : Nat),
             fuel,
             machine,
@@ -756,7 +811,8 @@ def selected_expansion_exact(
             owner,
             index,
             Prefix.prefix(machine),
-            Expansion.root_complete(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+            Expansion.root_complete(
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
               (1n + fuel : Nat),
               machine,
               symbol,
@@ -771,11 +827,30 @@ def selected_expansion_exact(
                 NatFacts.le_succ(fuel)
               )
             ),
-            Expansion.root_complete(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, symbol, expected, depth, valid, enough),
+            Expansion.root_complete(
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+              fuel,
+              machine,
+              symbol,
+              expected,
+              depth,
+              valid,
+              enough
+            ),
             Continuation.resume(frames, facts, path, fuel)
           ),
           reference_next_exact(
-            Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, symbol, expected, depth), symbol),
+            Spec.expanded_result(
+              Child.root_result(
+                CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+                fuel,
+                machine,
+                symbol,
+                expected,
+                depth
+              ),
+              symbol
+            ),
             machine,
             fuel,
             owner,
@@ -811,7 +886,17 @@ def bound_selected_expansion_exact(
         CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth)
       )
       == observation(
-        Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, binding, expected, depth), symbol),
+        Spec.expanded_result(
+          Child.root_result(
+            CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+            fuel,
+            machine,
+            binding,
+            expected,
+            depth
+          ),
+          symbol
+        ),
         machine,
         fuel,
         owner,
@@ -840,7 +925,14 @@ def bound_selected_expansion_exact(
         ),
         Child.reference_next(
           Spec.expanded_result(
-            Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, binding, expected, depth),
+            Child.root_result(
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+              (1n + fuel : Nat),
+              machine,
+              binding,
+              expected,
+              depth
+            ),
             symbol
           ),
           (1n + fuel : Nat),
@@ -850,7 +942,17 @@ def bound_selected_expansion_exact(
           Continuation.resume(frames, facts, path, fuel)
         ),
         observation(
-          Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, binding, expected, depth), symbol),
+          Spec.expanded_result(
+            Child.root_result(
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+              fuel,
+              machine,
+              binding,
+              expected,
+              depth
+            ),
+            symbol
+          ),
           machine,
           fuel,
           owner,
@@ -871,7 +973,14 @@ def bound_selected_expansion_exact(
           Relation.Observation,
           Child.reference_next(
             Spec.expanded_result(
-              Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, binding, expected, depth),
+              Child.root_result(
+                CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+                (1n + fuel : Nat),
+                machine,
+                binding,
+                expected,
+                depth
+              ),
               symbol
             ),
             (1n + fuel : Nat),
@@ -881,7 +990,17 @@ def bound_selected_expansion_exact(
             Continuation.resume(frames, facts, path, fuel)
           ),
           Child.reference_next(
-            Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, binding, expected, depth), symbol),
+            Spec.expanded_result(
+              Child.root_result(
+                CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+                fuel,
+                machine,
+                binding,
+                expected,
+                depth
+              ),
+              symbol
+            ),
             fuel,
             owner,
             index,
@@ -889,13 +1008,25 @@ def bound_selected_expansion_exact(
             Continuation.resume(frames, facts, path, fuel)
           ),
           observation(
-            Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, binding, expected, depth), symbol),
+            Spec.expanded_result(
+              Child.root_result(
+                CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+                fuel,
+                machine,
+                binding,
+                expected,
+                depth
+              ),
+              symbol
+            ),
             machine,
             fuel,
             owner,
             index
           ),
-          Expansion.bound_root_fuels_equal(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), binding,
+          Expansion.bound_root_fuels_equal(
+            CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+            binding,
             (1n + fuel : Nat),
             fuel,
             machine,
@@ -905,7 +1036,8 @@ def bound_selected_expansion_exact(
             owner,
             index,
             Prefix.prefix(machine),
-            Expansion.root_complete(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+            Expansion.root_complete(
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
               (1n + fuel : Nat),
               machine,
               binding,
@@ -920,11 +1052,30 @@ def bound_selected_expansion_exact(
                 NatFacts.le_succ(fuel)
               )
             ),
-            Expansion.root_complete(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, binding, expected, depth, valid, enough),
+            Expansion.root_complete(
+              CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+              fuel,
+              machine,
+              binding,
+              expected,
+              depth,
+              valid,
+              enough
+            ),
             Continuation.resume(frames, facts, path, fuel)
           ),
           reference_next_exact(
-            Spec.expanded_result(Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), fuel, machine, binding, expected, depth), symbol),
+            Spec.expanded_result(
+              Child.root_result(
+                CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+                fuel,
+                machine,
+                binding,
+                expected,
+                depth
+              ),
+              symbol
+            ),
             machine,
             fuel,
             owner,

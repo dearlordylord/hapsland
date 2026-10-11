@@ -52,7 +52,9 @@ def root_complete(+entry_path: String,
     : Bool
   }
 ) -> {
-  C.build_complete(fuel, Child.root_result(entry_path, fuel, machine, symbol, expected, depth)) == True{} : Bool
+  C.build_complete(fuel, Child.root_result(entry_path, fuel, machine, symbol, expected, depth))
+  == True{}
+  : Bool
 }:
   match machine:
     case Core.Machine{+facts, +path, _, +visited, +budget, +address, _, _, +pending}:
@@ -254,7 +256,10 @@ def root_fuels_equal(+entry_path: String,
   next: Continuation.Progress -> Relation.Observation
 ) -> {
       Child.reference_next(
-        Spec.expanded_result(Child.root_result(entry_path, left, machine, symbol, expected, depth), symbol),
+        Spec.expanded_result(
+          Child.root_result(entry_path, left, machine, symbol, expected, depth),
+          symbol
+        ),
         left,
         owner,
         index,
@@ -262,7 +267,10 @@ def root_fuels_equal(+entry_path: String,
         next
       )
       == Child.reference_next(
-        Spec.expanded_result(Child.root_result(entry_path, right, machine, symbol, expected, depth), symbol),
+        Spec.expanded_result(
+          Child.root_result(entry_path, right, machine, symbol, expected, depth),
+          symbol
+        ),
         right,
         owner,
         index,
@@ -318,7 +326,10 @@ def bound_root_fuels_equal(+entry_path: String, +binding: String,
   next: Continuation.Progress -> Relation.Observation
 ) -> {
       Child.reference_next(
-        Spec.expanded_result(Child.root_result(entry_path, left, machine, binding, expected, depth), symbol),
+        Spec.expanded_result(
+          Child.root_result(entry_path, left, machine, binding, expected, depth),
+          symbol
+        ),
         left,
         owner,
         index,
@@ -326,7 +337,10 @@ def bound_root_fuels_equal(+entry_path: String, +binding: String,
         next
       )
       == Child.reference_next(
-        Spec.expanded_result(Child.root_result(entry_path, right, machine, binding, expected, depth), symbol),
+        Spec.expanded_result(
+          Child.root_result(entry_path, right, machine, binding, expected, depth),
+          symbol
+        ),
         right,
         owner,
         index,

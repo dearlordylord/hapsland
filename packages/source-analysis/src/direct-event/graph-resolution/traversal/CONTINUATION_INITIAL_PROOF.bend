@@ -178,7 +178,16 @@ def selected_exact(
       valid,
       Adequate.successor(original, fuel, Adequate.third(bound, 0n, original))
     ),
-    Expansion.root_complete(path, original, base, symbol, expected, depth, valid, Order.le_refl(original))
+    Expansion.root_complete(
+      path,
+      original,
+      base,
+      symbol,
+      expected,
+      depth,
+      valid,
+      Order.le_refl(original)
+    )
   )
 
 def found_exact(
@@ -227,7 +236,14 @@ def found_exact(
         {
           _
           == Relation.observe_build(
-            Child.root_result(CoreTraversal.machine_path(base), original, base, symbol, expected, depth),
+            Child.root_result(
+              CoreTraversal.machine_path(base),
+              original,
+              base,
+              symbol,
+              expected,
+              depth
+            ),
             original
           )
           : Relation.Observation

@@ -1,9 +1,11 @@
 import assert from "node:assert/strict"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve, join, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
+import { createRequire } from "node:module"
 const _root = resolve(import.meta.dirname, "../../../../../.."),
   temporary = mkdtempSync(join(tmpdir(), "hapsland-local-graph-diff-"))
 const empty = () => ({ $: "MTip" }),
@@ -52,9 +54,11 @@ const normalize = (built, visited, budget) => {
 }
 try {
   const nativePath = resolve(import.meta.dirname, "../../../../dist/direct-event/graph-resolver.js")
-  const nativeSource = readFileSync(nativePath, "utf8").replaceAll(
-    /from "(\.\.?\/[^"]+)"/g,
-    (_all, path) => `from "${pathToFileURL(resolve(dirname(nativePath), path))}"`
+  const nativeRequire = createRequire(nativePath)
+  const nativeSource = readFileSync(nativePath, "utf8").replaceAll(/from "([^"]+)"/g, (_all, path) =>
+    path.startsWith("node:")
+      ? `from "${path}"`
+      : `from "${pathToFileURL(path.startsWith(".") ? resolve(dirname(nativePath), path) : nativeRequire.resolve(path))}"`
   )
   const nativeCopy = join(temporary, "native.mjs")
   writeFileSync(nativeCopy, nativeSource + "\nexport {buildLocal};\n")
@@ -441,7 +445,7 @@ try {
     )
     const file = { kindAware: aware, declarations, imports, supportingDeclarations }
     const makeBudget = () => ({
-      limits: { work: 1 + (seed % 12), depth: 1 + (seed % 4), outgoingEdges: 1 + (seed % 8) },
+      limits: { ...GRAPH_LIMIT_CEILINGS, work: 1 + (seed % 12), depth: 1 + (seed % 4), outgoingEdges: 1 + (seed % 8) },
       targetsByPath: new Map(seed % 6 === 0 ? [["a.ts", new Set(["prior"])]] : []),
       maxTargetsInFile: seed % 6 === 0 ? 1 : 0,
       work: seed % 3,
@@ -484,7 +488,12 @@ try {
       imports: new Map([["I", { path: "./i", name: "Remote" }]])
     }
     if (variant >= 8) file.declarations.set("type:A", declaration("A", "type-root", [], "interface"))
-    const limits = { work: 128, depth: 32, outgoingEdges: variant % 4 === 0 ? 2 : 16 }
+    const limits = {
+      ...GRAPH_LIMIT_CEILINGS,
+      work: 128,
+      depth: GRAPH_LIMIT_CEILINGS.depth,
+      outgoingEdges: variant % 4 === 0 ? 2 : 16
+    }
     const budget = {
       limits,
       targetsByPath: new Map([["other.ts", new Set(["prior\0id"])]]),
@@ -538,7 +547,7 @@ try {
       imports: new Map([["I", { path: "./i", name: "I", typeOnly: draw(2) === 0 }]])
     }
     if (draw(3) === 0) file.imports.set(names[1], { path: "./ambiguous", name: names[1] })
-    const limits = { work: 1 + draw(128), depth: 1 + draw(4), outgoingEdges: 1 + draw(16) }
+    const limits = { ...GRAPH_LIMIT_CEILINGS, work: 1 + draw(128), depth: 1 + draw(4), outgoingEdges: 1 + draw(16) }
     let nativeVisited = new Set(),
       candidateVisited = new Set(),
       nativeBudget = {
@@ -639,7 +648,7 @@ try {
       ])
     }
     const budget = () => ({
-      limits: { work: 128, depth: 4, outgoingEdges: 2 },
+      limits: { ...GRAPH_LIMIT_CEILINGS, work: 128, depth: 4, outgoingEdges: 2 },
       targetsByPath: new Map(),
       maxTargetsInFile: 0,
       work: 0,

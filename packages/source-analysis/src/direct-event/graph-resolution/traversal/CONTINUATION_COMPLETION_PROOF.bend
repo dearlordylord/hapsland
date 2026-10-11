@@ -49,7 +49,7 @@ def after_flat_complete(+flat: Spec.Flat, +state: Spec.State, +prefix: Spec.Flat
         Flatten.join_complete(prefix, Spec.Flat{nodes, slots}, prefix_complete, {==}))
     case Spec.FlatFailure{}: complete
 
-def after_references_complete(
+def after_references_complete(+frame_path: String,
   +result: Spec.DispatchResult,
   +owner: Nat,
   +index: Nat,
@@ -66,7 +66,7 @@ def after_references_complete(
   complete: {
     Measure.projected_success(
       fuel,
-      Spec.ReferencesRequest{items, facts, path, owner, index, depth, initial},
+      Spec.ReferencesRequest{items, facts, frame_path, owner, index, depth, initial},
       result
     )
     == True{}
@@ -96,8 +96,8 @@ def resume_complete(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: Str
 }:
   match frames:
     case []: flat_observation_complete(prefix, state, prefix_complete)
-    case Core.Frame{+owner, +depth, +index, +items, _} <> +rest:
-      +request = {Spec.ReferencesRequest{items, facts, path, owner, index, depth, state} : Spec.Request}
+    case Core.Frame{+owner, +depth, +index, +items, +frame_path} <> +rest:
+      +request = {Spec.ReferencesRequest{items, facts, frame_path, owner, index, depth, state} : Spec.Request}
       +result = Spec.interpret(fuel, request)
       head_enough = Order.eq_true_of_and_left(
         Nat.is_le(Bound.cap(facts, List.length(&2, Core.Reference, items)), fuel),
@@ -107,7 +107,7 @@ def resume_complete(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: Str
         Bound.adequate(facts, fuel, rest), adequate)
       enough = Order.le_trans(Measure.request_rank(request),
         Bound.cap(facts, List.length(&2, Core.Reference, items)), fuel,
-        Bound.request_cap(facts, items, path, owner, index, depth, state), head_enough)
+        Bound.request_cap(facts, items, frame_path, owner, index, depth, state), head_enough)
       final_valid = Order.eq_true_of_and_left(
         Patricia.canonical(Bool, Measure.visited(Measure.result_state(result))),
         Nat.is_le(Rank.unseen_catalog(Measure.visited(Measure.result_state(result)), MTip{}),
@@ -116,7 +116,7 @@ def resume_complete(frames: List<&2, Core.Frame>, +facts: Core.Facts, +path: Str
       suffix = {next_state => next_prefix => next_valid => next_complete =>
         resume_complete(rest, facts, path, fuel, next_state, next_prefix, next_valid, next_complete, tail_enough)
         : suffix_contract(facts, rest, path, fuel)}
-      after_references_complete(result, owner, index, prefix, facts, rest, path, fuel,
+      after_references_complete(frame_path, result, owner, index, prefix, facts, rest, path, fuel,
         items, depth, state, final_valid, prefix_complete,
         Interpreter.interpret_and_flatten_complete(fuel, request, valid, enough),
         suffix)

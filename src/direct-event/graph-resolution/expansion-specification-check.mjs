@@ -280,10 +280,16 @@ try {
       identity: declaration.artifact.id,
       function: declaration.artifact.kind === "function",
       bundled: !!declaration.artifact.origin,
+      source_path: maybe(declaration.artifact.path),
       references: list(
         declaration.references.map((ref) => ({
           $: "traversal/core.Reference",
-          kind: { $: "traversal/core." + (ref.kind === "unsupported" ? "Unsupported" : "Named") },
+          kind:
+            ref.kind === "unsupported"
+              ? { $: "traversal/core.Unsupported" }
+              : ref.bindingName === undefined
+                ? { $: "traversal/core.Named" }
+                : { $: "traversal/core.BoundNamed", binding: ref.bindingName },
           name: ref.name,
           expected: {
             $:

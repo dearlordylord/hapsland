@@ -1152,12 +1152,19 @@ def process_frame_valid(+machine: Core.Machine, +frame: Core.Frame,
   match frame:
     case Core.Frame{_, _, _, [], +frame_path}: valid
     case Core.Frame{+owner, +depth, +index, +reference <> +rest, +frame_path}: visit_reference_valid(
-      CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path}),
+      CoreTraversal.push_frame(
+        machine,
+        Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path}
+      ),
       owner,
       index,
       depth,
       reference,
-      push_frame_valid(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path}, valid)
+      push_frame_valid(
+        machine,
+        Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path},
+        valid
+      )
     )
 
 def step_valid(+machine: Core.Machine,

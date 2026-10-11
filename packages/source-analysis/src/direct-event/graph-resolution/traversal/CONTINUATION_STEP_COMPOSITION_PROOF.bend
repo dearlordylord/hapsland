@@ -24,10 +24,17 @@ def nonempty_step_exact(
   +depth: Nat,
   +fuel: Nat,
   +valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
-  enough: {Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel) == True{} : Bool},
+  enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  },
   head_enough: {
     Nat.is_le(
-      Bound.cap(CoreTraversal.machine_facts(machine), List.length(&2, Core.Reference, reference <> items)),
+      Bound.cap(
+        CoreTraversal.machine_facts(machine),
+        List.length(&2, Core.Reference, reference <> items)
+      ),
       (1n + fuel : Nat)
     )
     == True{}
@@ -46,11 +53,19 @@ def nonempty_step_exact(
 ) -> {
       Machine.evaluate(
         (1n + fuel : Nat),
-        CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items, frame_path})
+        CoreTraversal.push_frame(
+          machine,
+          Core.Frame{owner, depth, index, reference <> items, frame_path}
+        )
       )
       == Machine.evaluate(
         fuel,
-        CoreTraversal.step(CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items, frame_path}))
+        CoreTraversal.step(
+          CoreTraversal.push_frame(
+            machine,
+            Core.Frame{owner, depth, index, reference <> items, frame_path}
+          )
+        )
       )
       : Relation.Observation
     }:
@@ -67,11 +82,25 @@ def nonempty_step_exact(
       +pending
     }:
       +machine = {Core.Machine{facts, path, parents, visited, budget, address, nodes, slots, pending} : Core.Machine}
-      %Head.head_exact(frame_path, machine, reference, items, owner, index, depth, fuel, valid, enough):
+      %Head.head_exact(
+        frame_path,
+        machine,
+        reference,
+        items,
+        owner,
+        index,
+        depth,
+        fuel,
+        valid,
+        enough
+      ):
         {
           Machine.evaluate(
             (1n + fuel : Nat),
-            CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> items, frame_path})
+            CoreTraversal.push_frame(
+              machine,
+              Core.Frame{owner, depth, index, reference <> items, frame_path}
+            )
           )
           == _
           : Relation.Observation

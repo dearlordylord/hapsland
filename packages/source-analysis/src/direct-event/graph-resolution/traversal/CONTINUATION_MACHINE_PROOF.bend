@@ -91,7 +91,10 @@ def empty_frame_evaluation(
     case 0n +machine:
       Empty.absurd(
         {
-          evaluate(0n, CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, [], frame_path}))
+          evaluate(
+            0n,
+            CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, [], frame_path})
+          )
           == evaluate(0n, machine)
           : Relation.Observation
         },
@@ -133,7 +136,14 @@ def expanded_evaluation(
   evaluate(fuel, CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth))
     == Child.reference_next(
       Spec.expanded_result(
-        Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, symbol, expected, depth),
+        Child.root_result(
+          CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+          (1n + fuel : Nat),
+          machine,
+          symbol,
+          expected,
+          depth
+        ),
         symbol
       ),
       (1n + fuel : Nat),
@@ -183,7 +193,14 @@ def bound_expanded_evaluation(+binding: String,
   evaluate(fuel, CoreTraversal.expand_node(machine, declaration, owner, index, symbol, depth))
     == Child.reference_next(
       Spec.expanded_result(
-        Child.root_result(CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)), (1n + fuel : Nat), machine, binding, expected, depth),
+        Child.root_result(
+          CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
+          (1n + fuel : Nat),
+          machine,
+          binding,
+          expected,
+          depth
+        ),
         symbol
       ),
       (1n + fuel : Nat),

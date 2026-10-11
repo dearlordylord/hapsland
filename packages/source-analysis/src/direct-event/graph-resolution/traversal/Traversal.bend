@@ -190,7 +190,12 @@ def store_path(budget: Core.Budget, path: String, file_targets: Map<&2, Bool>) -
 def ensure_path(+budget: Core.Budget, +path: String) -> Core.Budget:
   store_path(budget, path, target_map(budget, path))
 
-def enter_node_at(machine: Core.Machine, declaration: Core.Declaration, depth: Nat, +path: String) -> Core.Machine:
+def enter_node_at(
+  machine: Core.Machine,
+  declaration: Core.Declaration,
+  depth: Nat,
+  +path: String
+) -> Core.Machine:
   match machine declaration:
     case Core.Machine{facts, root_path, frames, visited, budget, +next, nodes, references, pending}
       Core.Declaration{artifact, identity, _, _, children, _}:
@@ -769,7 +774,11 @@ def run(fuel: Nat, +machine: Core.Machine) -> Core.RunResult:
 def declaration_reference_count(declaration: Maybe<&2, Core.Declaration>) -> Nat:
   match declaration:
     case None{}: 0n
-    case Some{Core.Declaration{_, _, _, _, references, _}}: List.length(&2, Core.Reference, references)
+    case Some{Core.Declaration{_, _, _, _, references, _}}: List.length(
+      &2,
+      Core.Reference,
+      references
+    )
 
 def catalog_reference_count(entries: List<&2, Maybe<&2, Core.Declaration>>) -> Nat:
   match entries:

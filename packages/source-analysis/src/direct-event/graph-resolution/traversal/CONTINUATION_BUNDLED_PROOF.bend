@@ -10,15 +10,44 @@ import ./CONTINUATION_STATE_PROOF.bend as State
 # Complete bundled classifier correspondence; no recursive child is selected here.
 def work_context(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declaration,
     +owner: Nat, +index: Nat, +symbol: String, +depth: Nat, +expected: Core.ExpectedKind) -> {
-  Reference.observation(Spec.bundle_budget(State.state(CoreTraversal.charge_machine_work(machine)), True{},
-    CoreTraversal.machine_path(CoreTraversal.charge_machine_work(machine)), symbol, owner, index, depth, expected,
-    Reference.declaration_handle(declaration), CoreTraversal.declaration_identity(declaration)),
-    CoreTraversal.charge_machine_work(machine), fuel, owner, index)
-    == Reference.observation(Spec.bundle_budget(Spec.local_work(State.state(machine)), True{},
-      CoreTraversal.machine_path(machine), symbol, owner, index, depth, expected,
-      Reference.declaration_handle(declaration), CoreTraversal.declaration_identity(declaration)),
-      machine, fuel, owner, index) : Relation.Observation
-}:
+      Reference.observation(
+        Spec.bundle_budget(
+          State.state(CoreTraversal.charge_machine_work(machine)),
+          True{},
+          CoreTraversal.machine_path(CoreTraversal.charge_machine_work(machine)),
+          symbol,
+          owner,
+          index,
+          depth,
+          expected,
+          Reference.declaration_handle(declaration),
+          CoreTraversal.declaration_identity(declaration)
+        ),
+        CoreTraversal.charge_machine_work(machine),
+        fuel,
+        owner,
+        index
+      )
+      == Reference.observation(
+        Spec.bundle_budget(
+          Spec.local_work(State.state(machine)),
+          True{},
+          CoreTraversal.machine_path(machine),
+          symbol,
+          owner,
+          index,
+          depth,
+          expected,
+          Reference.declaration_handle(declaration),
+          CoreTraversal.declaration_identity(declaration)
+        ),
+        machine,
+        fuel,
+        owner,
+        index
+      )
+      : Relation.Observation
+    }:
   match machine:
     case Core.Machine{
       +facts,
@@ -136,7 +165,16 @@ def seen_exact(+seen: Bool, +fuel: Nat, +machine: Core.Machine, +declaration: Co
         Relation.Observation,
         Machine.evaluate(
           fuel,
-          CoreTraversal.bundled_seen(True{}, machine, declaration, owner, index, symbol, depth, expected)
+          CoreTraversal.bundled_seen(
+            True{},
+            machine,
+            declaration,
+            owner,
+            index,
+            symbol,
+            depth,
+            expected
+          )
         ),
         Reference.observation(
           Spec.bundle_budget(
@@ -194,11 +232,19 @@ def target_context(+seen: Bool, +fuel: Nat, +machine: Core.Machine, +declaration
         Spec.bundle_budget(
           Spec.bundle_work(
             seen,
-            State.state(CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)))
+            State.state(
+              CoreTraversal.charge_machine_target(
+                machine,
+                CoreTraversal.declaration_identity(declaration)
+              )
+            )
           ),
           seen,
           CoreTraversal.machine_path(
-            CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration))
+            CoreTraversal.charge_machine_target(
+              machine,
+              CoreTraversal.declaration_identity(declaration)
+            )
           ),
           symbol,
           owner,
@@ -208,7 +254,10 @@ def target_context(+seen: Bool, +fuel: Nat, +machine: Core.Machine, +declaration
           Reference.declaration_handle(declaration),
           CoreTraversal.declaration_identity(declaration)
         ),
-        CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)),
+        CoreTraversal.charge_machine_target(
+          machine,
+          CoreTraversal.declaration_identity(declaration)
+        ),
         fuel,
         owner,
         index
@@ -254,7 +303,10 @@ def target_context(+seen: Bool, +fuel: Nat, +machine: Core.Machine, +declaration
               Spec.bundle_work(
                 seen,
                 State.state(
-                  CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration))
+                  CoreTraversal.charge_machine_target(
+                    machine,
+                    CoreTraversal.declaration_identity(declaration)
+                  )
                 )
               ),
               seen,
@@ -267,7 +319,10 @@ def target_context(+seen: Bool, +fuel: Nat, +machine: Core.Machine, +declaration
               Reference.declaration_handle(declaration),
               CoreTraversal.declaration_identity(declaration)
             ),
-            CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)),
+            CoreTraversal.charge_machine_target(
+              machine,
+              CoreTraversal.declaration_identity(declaration)
+            ),
             fuel,
             owner,
             index
@@ -296,7 +351,12 @@ def target_context(+seen: Bool, +fuel: Nat, +machine: Core.Machine, +declaration
         Spec.bundle_budget(
           Spec.bundle_work(
             seen,
-            State.state(CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)))
+            State.state(
+              CoreTraversal.charge_machine_target(
+                machine,
+                CoreTraversal.declaration_identity(declaration)
+              )
+            )
           ),
           seen,
           path,
@@ -330,7 +390,10 @@ def target_using_seen(
         fuel,
         CoreTraversal.bundled_seen(
           seen,
-          CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)),
+          CoreTraversal.charge_machine_target(
+            machine,
+            CoreTraversal.declaration_identity(declaration)
+          ),
           declaration,
           owner,
           index,
@@ -365,7 +428,10 @@ def target_using_seen(
       fuel,
       CoreTraversal.bundled_seen(
         seen,
-        CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)),
+        CoreTraversal.charge_machine_target(
+          machine,
+          CoreTraversal.declaration_identity(declaration)
+        ),
         declaration,
         owner,
         index,
@@ -378,11 +444,19 @@ def target_using_seen(
       Spec.bundle_budget(
         Spec.bundle_work(
           seen,
-          State.state(CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration)))
+          State.state(
+            CoreTraversal.charge_machine_target(
+              machine,
+              CoreTraversal.declaration_identity(declaration)
+            )
+          )
         ),
         seen,
         CoreTraversal.machine_path(
-          CoreTraversal.charge_machine_target(machine, CoreTraversal.declaration_identity(declaration))
+          CoreTraversal.charge_machine_target(
+            machine,
+            CoreTraversal.declaration_identity(declaration)
+          )
         ),
         symbol,
         owner,
@@ -493,7 +567,10 @@ def target_exact(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
       symbol,
       depth,
       expected,
-      CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration))
+      CoreTraversal.has_identity(
+        CoreTraversal.machine_visited(machine),
+        CoreTraversal.declaration_identity(declaration)
+      )
     ),
     observed_seen(
       machine,
@@ -507,7 +584,10 @@ def target_exact(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
       Spec.seen(State.state(machine), CoreTraversal.declaration_identity(declaration))
     ),
     target_using_seen(
-      CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration)),
+      CoreTraversal.has_identity(
+        CoreTraversal.machine_visited(machine),
+        CoreTraversal.declaration_identity(declaration)
+      ),
       fuel,
       machine,
       declaration,
@@ -521,7 +601,10 @@ def target_exact(+fuel: Nat, +machine: Core.Machine, +declaration: Core.Declarat
       Bool,
       Relation.Observation,
       observed_seen(machine, declaration, fuel, owner, index, symbol, depth, expected),
-      CoreTraversal.has_identity(CoreTraversal.machine_visited(machine), CoreTraversal.declaration_identity(declaration)),
+      CoreTraversal.has_identity(
+        CoreTraversal.machine_visited(machine),
+        CoreTraversal.declaration_identity(declaration)
+      ),
       Spec.seen(State.state(machine), CoreTraversal.declaration_identity(declaration)),
       State.seen_exact(machine, CoreTraversal.declaration_identity(declaration))
     )
@@ -561,7 +644,16 @@ def admit_exact(+valid: Bool, +fuel: Nat, +machine: Core.Machine, +declaration: 
     +owner: Nat, +index: Nat, +symbol: String, +depth: Nat, +expected: Core.ExpectedKind) -> {
       Machine.evaluate(
         fuel,
-        CoreTraversal.bundled_admit(valid, machine, declaration, owner, index, symbol, depth, expected)
+        CoreTraversal.bundled_admit(
+          valid,
+          machine,
+          declaration,
+          owner,
+          index,
+          symbol,
+          depth,
+          expected
+        )
       )
       == observed_admission(
         machine,
@@ -630,7 +722,9 @@ def lookup_exact(
       symbol,
       Core.UnsupportedTarget{}
     )
-    case Some{Core.Declaration{+artifact, +identity, +function, +bundled, +references, +source_path}}:
+    case Some{
+      Core.Declaration{+artifact, +identity, +function, +bundled, +references, +source_path}
+    }:
       +declaration = {Core.Declaration{artifact, identity, function, bundled, references, source_path} : Core.Declaration}
       Equal.trans(
         Relation.Observation,

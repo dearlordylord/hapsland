@@ -67,18 +67,51 @@ def roots_equal(
   +expected: Core.ExpectedKind,
   +depth: Nat,
   +left_complete: {
-    C.build_complete(left, Child.root_result(CoreTraversal.machine_path(machine), left, machine, symbol, expected, depth))
+    C.build_complete(
+      left,
+      Child.root_result(CoreTraversal.machine_path(machine), left, machine, symbol, expected, depth)
+    )
     == True{}
     : Bool
   },
   +right_complete: {
-    C.build_complete(right, Child.root_result(CoreTraversal.machine_path(machine), right, machine, symbol, expected, depth))
+    C.build_complete(
+      right,
+      Child.root_result(
+        CoreTraversal.machine_path(machine),
+        right,
+        machine,
+        symbol,
+        expected,
+        depth
+      )
+    )
     == True{}
     : Bool
   }
 ) -> {
-      Relation.observe_build(Child.root_result(CoreTraversal.machine_path(machine), left, machine, symbol, expected, depth), left)
-      == Relation.observe_build(Child.root_result(CoreTraversal.machine_path(machine), right, machine, symbol, expected, depth), right)
+      Relation.observe_build(
+        Child.root_result(
+          CoreTraversal.machine_path(machine),
+          left,
+          machine,
+          symbol,
+          expected,
+          depth
+        ),
+        left
+      )
+      == Relation.observe_build(
+        Child.root_result(
+          CoreTraversal.machine_path(machine),
+          right,
+          machine,
+          symbol,
+          expected,
+          depth
+        ),
+        right
+      )
       : Relation.Observation
     }:
   equal_builds(

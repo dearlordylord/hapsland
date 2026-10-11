@@ -16,23 +16,40 @@ import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
 def after_valid(+machine: Core.Machine,
     valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
     active: {CoreTraversal.done(machine) == False{} : Bool}) -> {
-  Patricia.canonical(Bool, CoreTraversal.machine_visited(CoreTraversal.step(machine))) == True{} : Bool
-}:
-  Order.eq_true_of_and_left(Patricia.canonical(Bool, CoreTraversal.machine_visited(CoreTraversal.step(machine))),
+      Patricia.canonical(Bool, CoreTraversal.machine_visited(CoreTraversal.step(machine)))
+      == True{}
+      : Bool
+    }:
+  Order.eq_true_of_and_left(
+    Patricia.canonical(Bool, CoreTraversal.machine_visited(CoreTraversal.step(machine))),
     Nat.is_le((Rank.rank(CoreTraversal.step(machine)) + 1n : Nat), Rank.rank(machine)),
-    StepRank.step_decreases_preserving_visited(machine, valid, active))
+    StepRank.step_decreases_preserving_visited(machine, valid, active)
+  )
 
 # Exact isolated statement from the approved CONTINUATION_LAWS owner.
 law step_preserves_continuation:
   for +machine: Core.Machine
   for valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool}
-  {Continuation.observe(CoreTraversal.step(machine)) == Continuation.observe(machine) : Relation.Observation}
+  {
+    Continuation.observe(CoreTraversal.step(machine))
+    == Continuation.observe(machine)
+    : Relation.Observation
+  }
 
 def step_preserves_continuation(machine, valid):
   match machine:
     case Core.Machine{_, _, [], _, _, _, _, _, _}: {==}
-    case Core.Machine{+facts, +path, Core.Frame{+owner, +depth, +index, [], +frame_path} <> +parents,
-      +visited, +budget, +address, +nodes, +slots, +pending}:
+    case Core.Machine{
+      +facts,
+      +path,
+      Core.Frame{+owner, +depth, +index, [], +frame_path} <> +parents,
+      +visited,
+      +budget,
+      +address,
+      +nodes,
+      +slots,
+      +pending
+    }:
       +valid = valid
       +base = {Core.Machine{facts, path, parents, visited, budget, address, nodes, slots, pending} : Core.Machine}
       +machine = CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, [], frame_path})
@@ -41,8 +58,20 @@ def step_preserves_continuation(machine, valid):
         {_ == Continuation.observe(machine) : Relation.Observation}
       %Machine.adequate_evaluation_exact(fuel, machine, valid, Fuel.before(machine)):
         {Machine.evaluate(fuel, base) == _ : Relation.Observation}
-      Equal.sym(Relation.Observation, Machine.evaluate(fuel, machine), Machine.evaluate(fuel, base),
-        Machine.empty_frame_evaluation(frame_path, fuel, base, owner, depth, index, Fuel.positive(machine)))
+      Equal.sym(
+        Relation.Observation,
+        Machine.evaluate(fuel, machine),
+        Machine.evaluate(fuel, base),
+        Machine.empty_frame_evaluation(
+          frame_path,
+          fuel,
+          base,
+          owner,
+          depth,
+          index,
+          Fuel.positive(machine)
+        )
+      )
     case Core.Machine{
       +facts,
       +path,
@@ -56,7 +85,10 @@ def step_preserves_continuation(machine, valid):
     }:
       +valid = valid
       +base = {Core.Machine{facts, path, parents, visited, budget, address, nodes, slots, pending} : Core.Machine}
-      +machine = CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> items, frame_path})
+      +machine = CoreTraversal.push_frame(
+        base,
+        Core.Frame{owner, depth, index, reference <> items, frame_path}
+      )
       +fuel = Fuel.fuel(machine)
       +cap = Bound.cap(facts, List.length(&2, Core.Reference, reference <> items))
       %Machine.adequate_evaluation_exact(

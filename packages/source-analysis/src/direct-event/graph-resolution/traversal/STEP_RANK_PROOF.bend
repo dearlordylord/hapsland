@@ -1434,11 +1434,26 @@ def visit_growth(
         )
       )
 
-def consuming_rank(+frame_path: String, +machine: Core.Machine, +owner: Nat, +depth: Nat, +index: Nat,
-  reference: Core.Reference, +rest: List<&2, Core.Reference>) -> {
-    Rank.rank(CoreTraversal.push_frame(machine, Core.Frame{owner, depth, index, reference <> rest, frame_path}))
+def consuming_rank(
+  +frame_path: String,
+  +machine: Core.Machine,
+  +owner: Nat,
+  +depth: Nat,
+  +index: Nat,
+  reference: Core.Reference,
+  +rest: List<&2, Core.Reference>
+) -> {
+    Rank.rank(
+      CoreTraversal.push_frame(
+        machine,
+        Core.Frame{owner, depth, index, reference <> rest, frame_path}
+      )
+    )
     == (Rank.rank(
-      CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path})
+      CoreTraversal.push_frame(
+        machine,
+        Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path}
+      )
     ) + 2n : Nat)
     : Nat
   }:
@@ -1541,7 +1556,9 @@ def step_decreases_preserving_visited(machine, valid, active):
             _,
             Nat.is_le(
               (Rank.rank(base) + 1n : Nat),
-              Rank.rank(CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, [], frame_path}))
+              Rank.rank(
+                CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, [], frame_path})
+              )
             )
           )
           == True{}
@@ -1567,7 +1584,10 @@ def step_decreases_preserving_visited(machine, valid, active):
       +pending
     }:
       +base = {Core.Machine{facts, path, tail, visited, budget, next, nodes, slots, pending} : Core.Machine}
-      +consumed = CoreTraversal.push_frame(base, Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path})
+      +consumed = CoreTraversal.push_frame(
+        base,
+        Core.Frame{owner, depth, (index + 1n : Nat), rest, frame_path}
+      )
       +after = CoreTraversal.visit_reference(consumed, owner, index, depth, reference)
       +bounded = visit_growth(consumed, owner, index, depth, reference, valid)
       lawful = BoolFacts.eq_true_of_and_left(
@@ -1592,7 +1612,10 @@ def step_decreases_preserving_visited(machine, valid, active):
             Nat.is_le(
               (Rank.rank(after) + 1n : Nat),
               Rank.rank(
-                CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest, frame_path})
+                CoreTraversal.push_frame(
+                  base,
+                  Core.Frame{owner, depth, index, reference <> rest, frame_path}
+                )
               )
             )
           )
@@ -1602,7 +1625,10 @@ def step_decreases_preserving_visited(machine, valid, active):
       %Equal.sym(
         Nat,
         Rank.rank(
-          CoreTraversal.push_frame(base, Core.Frame{owner, depth, index, reference <> rest, frame_path})
+          CoreTraversal.push_frame(
+            base,
+            Core.Frame{owner, depth, index, reference <> rest, frame_path}
+          )
         ),
         (Rank.rank(consumed) + 2n : Nat),
         consuming_rank(frame_path, base, owner, depth, index, reference, rest)

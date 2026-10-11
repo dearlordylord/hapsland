@@ -15,7 +15,9 @@ import ../../../../../../vendor/bendlib/packages/bend-mathlib/nat.bend as NatFac
 
 # Exact independent counting bridge, including every raw Map.values entry.
 def count_declaration_exact(+declaration: Maybe<&2, Core.Declaration>) -> {
-  Relation.count_declaration(declaration) == CoreTraversal.declaration_reference_count(declaration) : Nat
+  Relation.count_declaration(declaration)
+  == CoreTraversal.declaration_reference_count(declaration)
+  : Nat
 }:
   match declaration:
     case None{}: {==}
@@ -27,18 +29,26 @@ def count_catalog_exact(+items: List<&2, Maybe<&2, Core.Declaration>>) -> {
   match items:
     case []: {==}
     case +head <> +tail:
-      %Equal.sym(Nat, Relation.count_declaration(head), CoreTraversal.declaration_reference_count(head),
-        count_declaration_exact(head)):
+      %Equal.sym(
+        Nat,
+        Relation.count_declaration(head),
+        CoreTraversal.declaration_reference_count(head),
+        count_declaration_exact(head)
+      ):
         {
           (_ + Relation.count_catalog(tail) : Nat)
-          == (CoreTraversal.declaration_reference_count(head) + CoreTraversal.catalog_reference_count(tail) : Nat)
+          == (CoreTraversal.declaration_reference_count(head) + CoreTraversal.catalog_reference_count(
+            tail
+          ) : Nat)
           : Nat
         }
       %Equal.sym(Nat, Relation.count_catalog(tail), CoreTraversal.catalog_reference_count(tail),
         count_catalog_exact(tail)):
         {
           (CoreTraversal.declaration_reference_count(head) + _ : Nat)
-          == (CoreTraversal.declaration_reference_count(head) + CoreTraversal.catalog_reference_count(tail) : Nat)
+          == (CoreTraversal.declaration_reference_count(head) + CoreTraversal.catalog_reference_count(
+            tail
+          ) : Nat)
           : Nat
         }
       {==}

@@ -25,7 +25,11 @@ def head_exact(
   +depth: Nat,
   +fuel: Nat,
   valid: {Patricia.canonical(Bool, CoreTraversal.machine_visited(machine)) == True{} : Bool},
-  enough: {Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel) == True{} : Bool}
+  enough: {
+    Nat.is_le(Relation.spec_bound(CoreTraversal.machine_facts(machine)), fuel)
+    == True{}
+    : Bool
+  }
 ) -> {
       Continuation.after_references(
         Spec.interpret(
@@ -54,7 +58,10 @@ def head_exact(
       == Machine.evaluate(
         fuel,
         CoreTraversal.visit_reference(
-          CoreTraversal.push_frame(machine, Core.Frame{owner, depth, (index + 1n : Nat), items, frame_path}),
+          CoreTraversal.push_frame(
+            machine,
+            Core.Frame{owner, depth, (index + 1n : Nat), items, frame_path}
+          ),
           owner,
           index,
           depth,
@@ -97,7 +104,15 @@ def head_exact(
           Continuation.after_references(
             Spec.interpret(
               (1n + fuel : Nat),
-              Spec.ReferencesRequest{reference <> items, facts, frame_path, owner, index, depth, state}
+              Spec.ReferencesRequest{
+                reference <> items,
+                facts,
+                frame_path,
+                owner,
+                index,
+                depth,
+                state
+              }
             ),
             owner,
             index,
@@ -113,7 +128,15 @@ def head_exact(
           Continuation.after_references(
             Spec.interpret(
               (1n + fuel : Nat),
-              Spec.ReferencesRequest{reference <> items, facts, frame_path, owner, index, depth, state}
+              Spec.ReferencesRequest{
+                reference <> items,
+                facts,
+                frame_path,
+                owner,
+                index,
+                depth,
+                state
+              }
             ),
             owner,
             index,

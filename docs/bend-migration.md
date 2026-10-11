@@ -237,9 +237,21 @@ One current obstacle list, in execution order:
    Some empty paths without fallback and restores parent siblings through the
    saved frame. Independent recursive SPEC changes only successful child
    requests; root path remains supplied. Machine closure and recursive SPEC
-   source checks pass. Existing proof pattern arity is updated, but quantified
-   reconstructors, JS fixtures, signed-reference semantics and full physical
-   consumers remain unqualified. No new law or weakened premise is claimed. Full materialization/transaction guarantees
+   source checks pass. The original PROOF, CONTINUATION_PROOF and CONTINUATION_FUEL_PROOF
+   roots now pass under the unchanged five-second limit, including arbitrary
+   declaration/frame paths. The local differential now uses the actual compiled
+   native buildLocal instead of a frozen source copy: 657 cases pass, including
+   five explicit source-path/budget/sibling/cycle cases. Fixtures use the full
+   accepted version-one graph profile and its depth ceiling; the frozen copy
+   previously accepted an invalid depth of 32. Native full tree, visited, pending
+   and budget observations are compared without filtering empty path entries.
+   The unchanged full expansion driver now passes the prior Go source-path
+   comparison, then fails at Python imported Child: native expands other.py,
+   while the candidate/reference returns omitted unavailable. Repair that Python
+   import-session behavior without dropping the case or weakening observations.
+   This finite traversal pass does not qualify the full expansion driver, all
+   fixture ABI consumers or the remaining universal guarantees. No new law or weakened
+   premise is claimed. Full materialization/transaction guarantees
    remain open. The
    reference entry still lacks the complete Go preparation bridge; its metadata
    installer does not qualify that missing path. Missing Go cases in actual context/reference
@@ -275,12 +287,15 @@ One current obstacle list, in execution order:
    connected: **0**; replaced production TypeScript removed: **0**. A connected
    candidate resolver, source relocation or backup does not change those counts.
 6. Pass selected local acceptance checks and strict paired build/execution parity
-   on the connected candidate. Latest frozen pair at 186b00aa started
-   2026-10-11T13:21:32.390895Z / 13:27:37.709375Z. Both qualified; build failed
-   parity at **1.1470986775083787**, execution passed at **0.7299762437945972**.
+   on the connected candidate. Latest frozen pair at 7df6b8b started
+   2026-10-11T13:50:21.956909Z / 13:54:18.145587Z. Both qualified and timely;
+   build failed parity at **1.2389400456825004**, execution passed at
+   **0.6661053169852373**. All 17 build samples per lane retained 23/46 cached
+   tasks. The preceding 186b00aa pair was also qualified, with build ratio
+   1.1470986775083787 and execution ratio 0.7299762437945972.
    The preceding 13:17:03 / 13:20:20 UTC start deadlines were both missed;
    these later runs do not erase those cadence failures. Next start deadlines
-   are 13:51:32 / 13:57:37 UTC. Records remain ignored under
+   are 14:20:21 / 14:24:18 UTC. Records remain ignored under
    .test-runs/bend-migration/performance. These measure existing production,
    not unadopted Go preparation. Warm prerequisite first failed with the
    unchanged PreparationFinalization emitter's five-second timeout. Isolated

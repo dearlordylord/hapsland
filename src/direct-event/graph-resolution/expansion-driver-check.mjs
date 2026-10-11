@@ -93,7 +93,8 @@ function pathTables() {
     for (const [name, text] of [[f.path ?? "root.ts", source(f)], ...Object.entries(f.files)]) {
       names.add(name)
       dirs.add(path.dirname(name))
-      for (const m of text.matchAll(/\bfrom\s+['"]([^'"]+)['"]|^import\s+(\.{1,2}\/\S+)/gm)) leaves.add(m[1] ?? m[2])
+      for (const m of text.matchAll(/\bfrom\s+['"]([^'"]+)['"]|^import\s+(\.{1,2}\/\S+)|^from\s+(\S+)\s+import\b/gm))
+        leaves.add(m[1] ?? m[2] ?? m[3])
     }
   for (const dir of dirs)
     for (const leaf of leaves) {

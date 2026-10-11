@@ -91,7 +91,14 @@ def entered_root(
       +entered = CoreTraversal.enter_node(base, declaration, depth)
       %Equal.sym(
         Spec.Build,
-        Child.root_result(CoreTraversal.machine_path(base), (1n + fuel : Nat), base, symbol, expected, depth),
+        Child.root_result(
+          CoreTraversal.machine_path(base),
+          (1n + fuel : Nat),
+          base,
+          symbol,
+          expected,
+          depth
+        ),
         Spec.tree_result(
           Spec.as_references(
             Spec.interpret(
@@ -107,7 +114,16 @@ def entered_root(
           0n,
           artifact
         ),
-        Child.root_build_exact(CoreTraversal.machine_path(base), fuel, base, declaration, symbol, expected, depth, found)
+        Child.root_build_exact(
+          CoreTraversal.machine_path(base),
+          fuel,
+          base,
+          declaration,
+          symbol,
+          expected,
+          depth,
+          found
+        )
       ):
         {
           Relation.observe_build(_, (1n + fuel : Nat))

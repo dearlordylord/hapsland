@@ -239,7 +239,12 @@ def tail_state_exact(+frame_path: String, +flat: Spec.Flat, +state: Spec.State, 
         flat,
         state,
         prefix,
-        Continuation.resume(Core.Frame{owner, depth, index, items, frame_path} <> parents, facts, path, fuel)
+        Continuation.resume(
+          Core.Frame{owner, depth, index, items, frame_path} <> parents,
+          facts,
+          path,
+          fuel
+        )
       )
       : Relation.Observation
     }:
@@ -295,7 +300,16 @@ def reference_sequence(+frame_path: String,
         Continuation.after_references(
           Spec.ListResult{
             Spec.prepend(
-              tail_references(fuel, items, facts, frame_path, owner, (index + 1n : Nat), depth, state),
+              tail_references(
+                fuel,
+                items,
+                facts,
+                frame_path,
+                owner,
+                (index + 1n : Nat),
+                depth,
+                state
+              ),
               reference
             )
           },
