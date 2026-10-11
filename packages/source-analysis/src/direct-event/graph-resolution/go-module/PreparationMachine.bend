@@ -11,6 +11,7 @@ import ./Package.bend as Package
 import ../../../../../source-artifacts/src/direct-event/value/Value.bend as V
 import ../Types.bend as T
 import ./PreparationModel.bend as M
+import ./ArtifactProtocol.bend as GoBoundary
 import ./RawText.bend as Raw
 import ./Configuration.bend as Configuration
 import ./Input.bend as Unicode
@@ -92,15 +93,15 @@ type Phase is Data:
   NestedRelative{+discovery: M.Discovery, +target: String, +ancestor: String, +depth: Nat}
   NestedJoin{+discovery: M.Discovery, +target: String, +ancestor: String, +depth: Nat}
   NestedParent{+discovery: M.Discovery, +target: String, +depth: Nat}
-  FinalDeadline{+declarations: List<&2, M.BoundDeclaration>}
-  FinalIdentity{+declarations: List<&2, M.BoundDeclaration>}
-  FinalHash{+declarations: List<&2, M.BoundDeclaration>}
+  FinalDeadline{+declarations: List<&2, GoBoundary.BoundDeclaration>}
+  FinalIdentity{+declarations: List<&2, GoBoundary.BoundDeclaration>}
+  FinalHash{+declarations: List<&2, GoBoundary.BoundDeclaration>}
 type State is Data:
   State{+runtime: M.Runtime, +phase: Phase}
 type Step is Data:
   Internal{+state: State}
   Await{+state: State, +request: T.Request}
-  Returned{+prepared: Maybe<&2, M.Prepared>, +next_request: Nat}
+  Returned{+prepared: Maybe<&2, GoBoundary.Prepared>, +next_request: Nat}
   Failed{+failure: T.TechnicalFailure, +next_request: Nat}
 
 def await_operation(+runtime: M.Runtime, +phase: Phase, +operation: T.Operation) -> Step:
@@ -1213,7 +1214,7 @@ def reverse_next(+runtime: M.Runtime, +cursor: R.ReverseCursor) -> Step:
 
 def final_identity(
   +runtime: M.Runtime,
-  +declarations: List<&2, M.BoundDeclaration>,
+  +declarations: List<&2, GoBoundary.BoundDeclaration>,
   identity: Maybe<&2, String>
 ) -> Step:
   await_operation(
@@ -1233,7 +1234,7 @@ def final_identity(
 def final_deadline(
   expired: Bool,
   runtime: M.Runtime,
-  declarations: List<&2, M.BoundDeclaration>
+  declarations: List<&2, GoBoundary.BoundDeclaration>
 ) -> Step:
   match expired:
     case True{}: absent(runtime)
@@ -1262,18 +1263,18 @@ def remaining_limits(
         Nat.sub(available_work, work)
       }
 
-def input_root_bytes(+input: M.Input) -> Nat:
+def input_root_bytes(+input: GoBoundary.Input) -> Nat:
   match input:
-    case M.Input{_, _, _, _, +bytes, _, _, _, _, _, _}: bytes
+    case GoBoundary.Input{_, _, _, _, +bytes, _, _, _, _, _, _}: bytes
 
 def finished(
   +runtime: M.Runtime,
-  +declarations: List<&2, M.BoundDeclaration>,
+  +declarations: List<&2, GoBoundary.BoundDeclaration>,
   +hash: String
 ) -> Step:
   Returned{
     Some{
-      M.Prepared{
+      GoBoundary.Prepared{
         M.input_root_path(M.input(runtime)),
         declarations,
         D.sorted(M.dependencies(runtime)),
@@ -1608,10 +1609,10 @@ def initial_configuration(
       Build.snapshot(goos, goarch, tags)
     )
 
-def initial(+input: M.Input) -> Step:
+def initial(+input: GoBoundary.Input) -> Step:
   match input:
-    case M.Input{_, +next, _, _, _, T.FunctionBranch{}, _, _, _, _, _}: Returned{None{}, next}
-    case M.Input{_, +next, +path, +capture, +bytes, T.TypeBranch{}, _, _, _, +configuration, _}:
+    case GoBoundary.Input{_, +next, _, _, _, T.FunctionBranch{}, _, _, _, _, _}: Returned{None{}, next}
+    case GoBoundary.Input{_, +next, +path, +capture, +bytes, T.TypeBranch{}, _, _, _, +configuration, _}:
       initial_configuration(
         M.Runtime{
           input,

@@ -2,6 +2,7 @@ import Base
 import ../Types.bend as T
 import ../traversal/core.bend as Local
 import ./PreparationModel.bend as M
+import ./ArtifactProtocol.bend as GoBoundary
 import ./PreparationData.bend as D
 import ./Package.bend as P
 import ./Input.bend as U
@@ -11,7 +12,7 @@ type Binding is Data:
 type Demand is Data:
   Demand{key: String, targets: List<&2, String>}
 type Assembly is Data:
-  Assembly{declarations: List<&2, M.BoundDeclaration>, demands: List<&2, Demand>, foreign: List<&2, String>}
+  Assembly{declarations: List<&2, GoBoundary.BoundDeclaration>, demands: List<&2, Demand>, foreign: List<&2, String>}
 
 def key(+root: String, +directory: String, +name: String) -> String:
   Bool.pick(String, String.eq(root, directory), name, String.append(directory, String.append("::", name)))
@@ -125,17 +126,17 @@ def declaration_refs(+value: P.Declaration) -> List<&2, T.FactReference>:
   match value:
     case P.Declaration{T.FactDeclaration{_, _, +references, _}, _}: references
 
-def set_declaration(+items: List<&2, M.BoundDeclaration>, +key: String, +value: P.Declaration) -> List<&2, M.BoundDeclaration>:
+def set_declaration(+items: List<&2, GoBoundary.BoundDeclaration>, +key: String, +value: P.Declaration) -> List<&2, GoBoundary.BoundDeclaration>:
   match items:
-    case []: [M.BoundDeclaration{key, value}]
+    case []: [GoBoundary.BoundDeclaration{key, value}]
     case +head <> +tail:
       match head:
-        case M.BoundDeclaration{+name, _}: Bool.pick(List<&2, M.BoundDeclaration>, String.eq(name, key), M.BoundDeclaration{key, value} <> tail, head <> set_declaration(tail, key, value))
+        case GoBoundary.BoundDeclaration{+name, _}: Bool.pick(List<&2, GoBoundary.BoundDeclaration>, String.eq(name, key), GoBoundary.BoundDeclaration{key, value} <> tail, head <> set_declaration(tail, key, value))
 
-def find_bound(+items: List<&2, M.BoundDeclaration>, +key: String) -> Maybe<&2, P.Declaration>:
+def find_bound(+items: List<&2, GoBoundary.BoundDeclaration>, +key: String) -> Maybe<&2, P.Declaration>:
   match items:
     case []: None{}
-    case M.BoundDeclaration{+name, +value} <> +tail: Bool.pick(Maybe<&2, P.Declaration>, String.eq(name, key), Some{value}, find_bound(tail, key))
+    case GoBoundary.BoundDeclaration{+name, +value} <> +tail: Bool.pick(Maybe<&2, P.Declaration>, String.eq(name, key), Some{value}, find_bound(tail, key))
 
 def demands(+items: List<&2, Demand>, +key: String) -> List<&2, String>:
   match items:
@@ -335,7 +336,7 @@ def reverse_assembly(+cursor: ReverseCursor) -> Assembly:
   match cursor:
     case ReverseCursor{+assembly, _, _, _, _}: assembly
 
-def assembled_declarations(+assembly: Assembly) -> List<&2, M.BoundDeclaration>:
+def assembled_declarations(+assembly: Assembly) -> List<&2, GoBoundary.BoundDeclaration>:
   match assembly:
     case Assembly{+items, _, _}: items
 

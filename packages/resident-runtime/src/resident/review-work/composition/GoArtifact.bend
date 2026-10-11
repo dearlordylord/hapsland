@@ -5,20 +5,21 @@ import ../../../../../source-analysis/src/direct-event/graph-resolution/go-modul
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
 import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationMachine.bend as Preparation
 import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationModel.bend as M
+import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/ArtifactProtocol.bend as GoBoundary
 import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/Package.bend as Package
 
 # The artifact owns only pure Go child progression/projection. Invocation,
 # generation, provider leases, interruption and resource disposal remain with
 # the existing Canonical composition owner and its shared mechanical driver.
 type Step is Data:
-  Configuring{input: M.Input, request: T.Request}
+  Configuring{input: GoBoundary.Input, request: T.Request}
   Preparing{child: Preparation.Step}
   Inspected{facts: Maybe<&2, T.SourceFacts>, next: Nat}
 
-def declarations(items: List<&2, M.BoundDeclaration>) -> List<&2, T.FactDeclaration>:
+def declarations(items: List<&2, GoBoundary.BoundDeclaration>) -> List<&2, T.FactDeclaration>:
   match items:
     case []: []
-    case M.BoundDeclaration{
+    case GoBoundary.BoundDeclaration{
       key,
       Package.Declaration{T.FactDeclaration{_, artifact, references, exported}, _}
     } <> tail:
@@ -30,7 +31,7 @@ def declarations(items: List<&2, M.BoundDeclaration>) -> List<&2, T.FactDeclarat
 def inspected(
   same_root: Bool,
   branch: T.Branch,
-  items: List<&2, M.BoundDeclaration>,
+  items: List<&2, GoBoundary.BoundDeclaration>,
   next: Nat
 ) -> Step:
   match same_root branch:
@@ -40,9 +41,9 @@ def inspected(
     }
     case _ _: Inspected{None{}, next}
 
-def inspect(prepared: M.Prepared, path: String, branch: T.Branch, next: Nat) -> Step:
+def inspect(prepared: GoBoundary.Prepared, path: String, branch: T.Branch, next: Nat) -> Step:
   match prepared:
-    case M.Prepared{root, declarations, _, _, _}: inspected(
+    case GoBoundary.Prepared{root, declarations, _, _, _}: inspected(
       String.eq(root, path),
       branch,
       declarations,
@@ -53,7 +54,7 @@ def preparation_await(state: Preparation.State, request: T.Request) -> GoProtoco
   match state:
     case Preparation.State{runtime, _}: GoProtocol.GoAwait{request, M.next_request(runtime)}
 
-def preparation_returned(prepared: Maybe<&2, M.Prepared>, next: Nat) -> GoProtocol.GoView:
+def preparation_returned(prepared: Maybe<&2, GoBoundary.Prepared>, next: Nat) -> GoProtocol.GoView:
   match prepared:
     case None{}: GoProtocol.GoReturned{GoProtocol.GoUnavailable{}, next}
     case Some{prepared}: GoProtocol.GoReturned{GoProtocol.GoPrepared{prepared}, next}
@@ -73,15 +74,15 @@ def configuration_view(+request: T.Request) -> GoProtocol.GoView:
   GoProtocol.GoAwait{request, configuration_next(request)}
 
 def configured(
-  input: M.Input,
+  input: GoBoundary.Input,
   next: Nat,
   configuration: Maybe<&2, Configuration.Configuration>
 ) -> Step:
   match input:
-    case M.Input{owner, _, path, capture, bytes, branch, clock, cache, limits, _, identity}:
+    case GoBoundary.Input{owner, _, path, capture, bytes, branch, clock, cache, limits, _, identity}:
       Preparing{
         Preparation.initial(
-          M.Input{
+          GoBoundary.Input{
             owner,
             next,
             path,
@@ -97,7 +98,7 @@ def configured(
         )
       }
 
-def configuration_result(outcome: T.ServiceOutcome, input: M.Input, next: Nat) -> Step:
+def configuration_result(outcome: T.ServiceOutcome, input: GoBoundary.Input, next: Nat) -> Step:
   match outcome:
     case T.GoConfigurationRead{configuration}: configured(input, next, configuration)
     case T.ProviderRejected{exception}: Preparing{
@@ -105,17 +106,17 @@ def configuration_result(outcome: T.ServiceOutcome, input: M.Input, next: Nat) -
     }
     case _: Preparing{Preparation.Failed{T.MalformedReply{}, next}}
 
-def configuration_reply(checked: Protocol.CheckedReply, input: M.Input, next: Nat) -> Step:
+def configuration_reply(checked: Protocol.CheckedReply, input: GoBoundary.Input, next: Nat) -> Step:
   match checked:
     case Protocol.CheckedOutcome{outcome}: configuration_result(outcome, input, next)
     case Protocol.RejectedReply{failure}: Preparing{Preparation.Failed{failure, next}}
 
-def prepare(+input: M.Input) -> Step:
+def prepare(+input: GoBoundary.Input) -> Step:
   match input:
-    case M.Input{_, _, _, _, _, T.FunctionBranch{}, _, _, _, _, _}: Preparing{
+    case GoBoundary.Input{_, _, _, _, _, T.FunctionBranch{}, _, _, _, _, _}: Preparing{
       Preparation.initial(input)
     }
-    case M.Input{+owner, +next, _, _, _, T.TypeBranch{}, _, _, _, _, _}: Configuring{
+    case GoBoundary.Input{+owner, +next, _, _, _, T.TypeBranch{}, _, _, _, _, _}: Configuring{
       input,
       T.Request{owner, next, T.ReadGoConfiguration{}}
     }

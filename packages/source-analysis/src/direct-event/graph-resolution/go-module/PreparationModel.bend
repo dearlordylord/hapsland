@@ -1,8 +1,8 @@
 import Base
+import ./ArtifactProtocol.bend as Boundary
 import ../Types.bend as T
 import ../../../../../agent-flow-bend/ImportGraph.bend as Graph
 import ../../../../../source-artifacts/src/direct-event/value/Value.bend as Value
-import ./RawText.bend as Raw
 import ./Configuration.bend as Configuration
 import ./BuildContext.bend as Build
 import ./Package.bend as Package
@@ -10,25 +10,6 @@ import ./Input.bend as Unicode
 
 # Source-bearing state for the complete Go preparation, shared by its stages.
 # Capture/cache/provider tokens retain their existing single declaration owner.
-type Input is Data:
-  Input{
-    invocation: Nat,
-    next_request: Nat,
-    root_path: String,
-    root_capture: T.CaptureToken,
-    root_bytes: Nat,
-    branch: T.Branch,
-    clock: T.ClockToken,
-    caller_cache: Maybe<&2, T.CacheToken>,
-    limits: Graph.Limits,
-    configuration: Maybe<&2, Configuration.Configuration>,
-    configuration_identity: Maybe<&2, String>
-  }
-type BoundDeclaration is Data:
-  BoundDeclaration{key: String, declaration: Package.Declaration}
-type Prepared is Data:
-  Prepared{root_path: String, declarations: List<&2, BoundDeclaration>,
-    dependencies: List<&2, String>, binding_fingerprint: String, limits: Graph.Limits}
 type Captured is Data:
   Captured{path: String, capture: T.CaptureToken, bytes: Nat}
 type LoadedPackage is Data:
@@ -38,7 +19,7 @@ type PackageEntry is Data:
 type Task is Data:
   Task{directory: String, depth: Nat}
 type Runtime is Data:
-  Runtime{input: Input, next_request: Nat, work: Nat, read_bytes: Nat, files_spent: Nat,
+  Runtime{input: Boundary.Input, next_request: Nat, work: Nat, read_bytes: Nat, files_spent: Nat,
     captures: List<&2, Captured>, dependencies: List<&2, String>,
     identities: List<&2, Value.ProductValue>, packages: List<&2, PackageEntry>,
     root_directory: String, snapshot: Maybe<&2, Build.Snapshot>, snapshot_hash: String,
@@ -69,25 +50,25 @@ type ExistsReturn is Data:
   ModuleAlternative{metadata: Metadata}
   NestedAlternative{discovery: Discovery, target: String, ancestor: String, depth: Nat}
 
-def invocation(input: Input) -> Nat:
+def invocation(input: Boundary.Input) -> Nat:
   match input:
-    case Input{value, _, _, _, _, _, _, _, _, _, _}: value
+    case Boundary.Input{value, _, _, _, _, _, _, _, _, _, _}: value
 
-def input_limits(input: Input) -> Graph.Limits:
+def input_limits(input: Boundary.Input) -> Graph.Limits:
   match input:
-    case Input{_, _, _, _, _, _, _, _, value, _, _}: value
+    case Boundary.Input{_, _, _, _, _, _, _, _, value, _, _}: value
 
-def input_root_path(input: Input) -> String:
+def input_root_path(input: Boundary.Input) -> String:
   match input:
-    case Input{_, _, value, _, _, _, _, _, _, _, _}: value
+    case Boundary.Input{_, _, value, _, _, _, _, _, _, _, _}: value
 
-def clock(input: Input) -> T.ClockToken:
+def clock(input: Boundary.Input) -> T.ClockToken:
   match input:
-    case Input{_, _, _, _, _, _, value, _, _, _, _}: value
+    case Boundary.Input{_, _, _, _, _, _, value, _, _, _, _}: value
 
-def cache(input: Input) -> Maybe<&2, T.CacheToken>:
+def cache(input: Boundary.Input) -> Maybe<&2, T.CacheToken>:
   match input:
-    case Input{_, _, _, _, _, _, _, value, _, _, _}: value
+    case Boundary.Input{_, _, _, _, _, _, _, value, _, _, _}: value
 
 def source_limit_value(value: Graph.Limits) -> Nat:
   match value:
@@ -112,26 +93,26 @@ def work_limit_value(value: Graph.Limits) -> Nat:
 def main() -> Unit:
   Unit{}
 
-def source_limit(input: Input) -> Nat:
+def source_limit(input: Boundary.Input) -> Nat:
   source_limit_value(input_limits(input))
 
-def files_limit(input: Input) -> Nat:
+def files_limit(input: Boundary.Input) -> Nat:
   files_limit_value(input_limits(input))
 
-def read_limit(input: Input) -> Nat:
+def read_limit(input: Boundary.Input) -> Nat:
   read_limit_value(input_limits(input))
 
-def depth_limit(input: Input) -> Nat:
+def depth_limit(input: Boundary.Input) -> Nat:
   depth_limit_value(input_limits(input))
 
-def work_limit(input: Input) -> Nat:
+def work_limit(input: Boundary.Input) -> Nat:
   work_limit_value(input_limits(input))
 
-def input(runtime: Runtime) -> Input:
+def input(runtime: Runtime) -> Boundary.Input:
   match runtime:
     case Runtime{value, _, _, _, _, _, _, _, _, _, _, _, _, _}: value
 
-def with_input(runtime: Runtime, value: Input) -> Runtime:
+def with_input(runtime: Runtime, value: Boundary.Input) -> Runtime:
   match runtime:
     case Runtime{
       _,

@@ -27,7 +27,10 @@ const artifactMode = process.argv.includes("--artifact")
 const temp = await mkdtemp("/tmp/hapsland-go-preparation-")
 const t = (name, fields = {}) => ({ $: `Types.${name}`, ...fields })
 const m = (name, fields = {}) => ({
-  $: name === "Configuration" ? "Configuration.Configuration" : `PreparationModel.${name}`,
+  $:
+    name === "Configuration"
+      ? "Configuration.Configuration"
+      : `${["Input", "Prepared", "BoundDeclaration"].includes(name) ? "ArtifactProtocol" : "PreparationModel"}.${name}`,
   ...fields
 })
 const raw = (value) => ({

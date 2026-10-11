@@ -5,7 +5,7 @@ import ./Types.bend as T
 import ./python-module/ArtifactProtocol.bend as PythonProtocol
 import ./ComposedBudget.bend as Budget
 import ./go-module/ArtifactProtocol.bend as GoProtocol
-import ./go-module/PreparationModel.bend as Go
+import ./go-module/ArtifactProtocol.bend as GoBoundary
 import ./Environment.bend as E
 import ./WholeObservation.bend as O
 import ./PreparationSpecification.bend as P
@@ -37,7 +37,7 @@ type Stage is Data:
   GoAdmission{}
   GoPreparing{}
   GoInspecting{}
-  AwaitGoRootDeadline{prepared: Go.Prepared}
+  AwaitGoRootDeadline{prepared: GoBoundary.Prepared}
   AwaitGoPublicationClock{driver: D.State, product: Maybe<&2, ArtifactValue.ProductValue>}
   GoPublished{}
   AwaitPythonDeadline{}
@@ -747,13 +747,13 @@ def python_root_deadline(+state: State, expired: Bool) -> Selection:
 # Entry owns admission and chronology; the existing Go child owns package policy.
 def go_admission(+state: State, clock: Maybe<&2, T.ClockToken>) -> Selection:
   match clock:
-    case Some{clock}: GoChild{with_stage(state, GoPreparing{}), GoProtocol.GoPrepare{Go.Input{
+    case Some{clock}: GoChild{with_stage(state, GoPreparing{}), GoProtocol.GoPrepare{GoBoundary.Input{
       input_invocation(input(state)), next_request(state), input_path(input(state)),
       input_capture(input(state)), input_bytes(input(state)), input_branch(input(state)),
       clock, input_cache(input(state)), limits(state), None{}, None{}}}}
     case None{}: InvariantFailed{state}
 
-def go_root_deadline(+state: State, +prepared: Go.Prepared, expired: Bool) -> Selection:
+def go_root_deadline(+state: State, +prepared: GoBoundary.Prepared, expired: Bool) -> Selection:
   match expired:
     case True{}: NoUnit{state, None{}}
     case False{}: GoChild{with_stage(state, GoInspecting{}), GoProtocol.GoInspect{
@@ -1135,9 +1135,9 @@ def consumed(-World: Data, selection: Selection, world: E.WorldState<World>) -> 
     case InvariantFailed{state}: EntryInvalid{state, world}
     case Rejected{state, failure}: EntryFailed{state, failure, world}
 
-def go_prepared(+state: State, +prepared: Go.Prepared) -> Selection:
+def go_prepared(+state: State, +prepared: GoBoundary.Prepared) -> Selection:
   match prepared:
-    case Go.Prepared{_, _, dependencies, fingerprint, +limits}:
+    case GoBoundary.Prepared{_, _, dependencies, fingerprint, +limits}:
       +ready: State = with_prepared_language(
         state,
         T.PreparedLanguage{limits, dependencies, Some{fingerprint}}

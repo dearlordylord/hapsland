@@ -4,7 +4,7 @@ import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.be
 import ../../../../../source-analysis/src/direct-event/graph-resolution/State.bend as S
 import ./ArtifactProtocol.bend as A
 import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.bend as P
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationModel.bend as Go
+import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/ArtifactProtocol.bend as GoBoundary
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Protocol.bend as Protocol
 import ../../../../../source-analysis/src/direct-event/graph-resolution/Loop.bend as Loop
 import ../../../../../source-analysis/src/direct-event/graph-resolution/ComposedBudget.bend as Budget
@@ -21,7 +21,7 @@ type Context is Data:
     session: Maybe<&2, Python.Session>,
     cache: Maybe<&2, T.CacheToken>,
     census: Budget.Census,
-    go: Maybe<&2, Go.Prepared>
+    go: Maybe<&2, GoBoundary.Prepared>
   }
 type Return is Data:
   GoPreparationReturn{state: T.ResolverState}
@@ -66,11 +66,11 @@ def census(context: Context) -> Budget.Census:
   match context:
     case Context{_, _, _, census, _}: census
 
-def go_session(context: Context) -> Maybe<&2, Go.Prepared>:
+def go_session(context: Context) -> Maybe<&2, GoBoundary.Prepared>:
   match context:
     case Context{_, _, _, _, go}: go
 
-def with_go(context: Context, go: Go.Prepared) -> Context:
+def with_go(context: Context, go: GoBoundary.Prepared) -> Context:
   match context:
     case Context{invocation, session, cache, census, _}: Context{
       invocation,
@@ -241,7 +241,7 @@ def go_returned(context: Context, continuation: Return, result: GoProtocol.GoRes
     case GoPreparationReturn{_} GoProtocol.GoUnavailable{}: parent(context, A.Unavailable{})
     case GoPreparationReturn{state} GoProtocol.GoPrepared{+prepared}:
       match prepared:
-        case Go.Prepared{_, _, dependencies, fingerprint, limits}: parent(
+        case GoBoundary.Prepared{_, _, dependencies, fingerprint, limits}: parent(
           with_go(context, prepared),
           A.RootBudget{
             S.with_state_prepared(
@@ -312,13 +312,13 @@ def prepare_go(clock: Maybe<&2, T.ClockToken>, +context: Context, +state: T.Reso
     case None{}: malformed(context)
     case Some{clock}:
       +input = S.state_input(state)
-      GoCall{context, GoPreparationReturn{state}, BeginGo{GoProtocol.GoPrepare{Go.Input{
+      GoCall{context, GoPreparationReturn{state}, BeginGo{GoProtocol.GoPrepare{GoBoundary.Input{
         S.input_invocation(input), S.state_next_request(state), S.input_root_path(input),
         S.input_root_capture(input), S.input_root_bytes(input), S.input_branch(input), clock,
         S.input_caller_cache(input), S.input_limits(input), None{},
         None{}}}}}
 
-def inspect_go(prepared: Maybe<&2, Go.Prepared>, context: Context, +state: T.ResolverState) -> Step:
+def inspect_go(prepared: Maybe<&2, GoBoundary.Prepared>, context: Context, +state: T.ResolverState) -> Step:
   match prepared:
     case None{}: malformed(context)
     case Some{prepared}:
