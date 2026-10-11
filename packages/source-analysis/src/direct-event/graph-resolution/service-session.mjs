@@ -400,6 +400,45 @@ export function createServiceRegistry() {
     if (sessions.get(session.invocation) !== session) throw new Error("wrong registry owner")
     sessions.delete(session.invocation)
   }
+  // Preserve distinct failure events even when their original thrown values are
+  // identical. A whole owning workflow can compose task and finalizer causes;
+  // ordinary run retains JavaScript finally's last-failure behavior.
+  const runOutcome = async (session, task) => {
+    const failures = []
+    let registered = false,
+      taskOutcome = { status: "not-started" },
+      rejection
+    const record = (phase, error) => {
+      const receipt = { phase, error }
+      failures.push(receipt)
+      rejection = receipt
+      return receipt
+    }
+    try {
+      register(session)
+      registered = true
+    } catch (error) {
+      record("register", error)
+    }
+    if (registered) {
+      try {
+        taskOutcome = { status: "success", value: await task() }
+      } catch (error) {
+        taskOutcome = { status: "failure", receipt: record("task", error) }
+      }
+      try {
+        session.close()
+      } catch (error) {
+        record("close", error)
+      }
+      try {
+        remove(session)
+      } catch (error) {
+        record("remove", error)
+      }
+    }
+    return { task: taskOutcome, failures, rejection }
+  }
   return Object.freeze({
     retainCleanup,
     retryCleanup,
@@ -413,21 +452,11 @@ export function createServiceRegistry() {
     },
     register,
     remove,
+    runOutcome,
     async run(session, task) {
-      let registered = false
-      try {
-        register(session)
-        registered = true
-        return await task()
-      } finally {
-        if (registered) {
-          try {
-            session.close()
-          } finally {
-            remove(session)
-          }
-        }
-      }
+      const outcome = await runOutcome(session, task)
+      if (outcome.rejection) throw outcome.rejection.error
+      return outcome.task.value
     }
   })
 }

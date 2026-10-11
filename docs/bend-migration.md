@@ -211,15 +211,23 @@ One current obstacle list, in execution order:
    rejection values reached engine Resume. Delivery now distinguishes error
    property presence from its value, including first-action/sink/abort/construction
    failures and AggregateError cause presence. The actual Canonical owner/driver
-   check passes 225 assertions, including all five falsy values with and without
-   cleanup Error; failed cleanup retains a retry obligation. Ten runtime vectors
-   compare original rules failures with native behavior and stop before the second
-   unit. Independent failure multiplicity remains open: current value-based
-   deduplication can merge separate identical primitive exceptions. Replace it
-   with receipts for concrete failure events and explicit known rethrow edges;
-   expose task versus registry-finalizer outcomes without changing the original
-   caller error. Constructor failure plus a separate identical cleanup failure
-   must retain both reasons and the exact retry obligation before qualification.
+   check now passes 300 assertions, including all five falsy values with and
+   without cleanup Error, task/close failures with identical values, and constructor
+   plus cleanup failures with identical undefined or Error values. Failed cleanup
+   retains an exact retry obligation. Ten runtime vectors compare original rules
+   failures with native behavior and stop before the second unit. Registry
+   `runOutcome` exposes tagged task success (including undefined), not-started or
+   failure, ordered identity-distinct failure receipts and the actual overriding
+   rejection. Ordinary `run` preserves existing operation order and rejection.
+   Its focused check covers ten task/register/close/remove cases. Driver delivery
+   consumes this outcome; known completion/task rethrow edges retain one receipt,
+   while new cancel/finish/close/remove occurrences remain distinct, without
+   comparing thrown values. Astra reviewed this forwarding route. Remaining Cause
+   work includes secondary failures inside one action/publication batch:
+   executeActions/apply still propagate only the first failure. Preserve ordered
+   Resume/cleanup/sink occurrences while continuing required cleanup and retaining
+   the original primary outward failure. Whole universal Cause/custody and resource
+   correspondence remain open.
    Astra's agreed next draft is one independent native-loop specification and two
    whole declarations: observational correspondence and scope/interruption
    preservation. The specification must not call the actual Evidence/Rules/Input

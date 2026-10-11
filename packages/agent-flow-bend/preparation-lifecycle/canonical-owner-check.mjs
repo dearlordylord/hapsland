@@ -541,8 +541,12 @@ try {
   }
   // Opaque provider failures include falsy JavaScript thrown values. They must
   // survive saved-reply delivery without a Resume or terminal acceptance.
-  for (const { original, cleanupFails } of [undefined, null, false, 0, ""].flatMap((original) =>
-    [false, true].map((cleanupFails) => ({ original, cleanupFails }))
+  for (const { original, cleanupFails, closeFails } of [undefined, null, false, 0, ""].flatMap((original) =>
+    ["none", "finish", "close"].map((phase) => ({
+      original,
+      cleanupFails: phase === "finish",
+      closeFails: phase === "close"
+    }))
   )) {
     const registry = createServiceRegistry()
     const machine = {
@@ -574,7 +578,9 @@ try {
       finish() {
         if (!allowCleanup) throw cleanupError
       },
-      close() {},
+      close() {
+        if (closeFails) throw original
+      },
       revoke() {}
     }
     const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
@@ -592,6 +598,12 @@ try {
       allowCleanup = true
       await registry.retryCleanup()
       assertions += 6
+    } else if (closeFails) {
+      assert.ok(observed.error instanceof AggregateError)
+      assert.ok(Object.hasOwn(observed.error, "cause"))
+      assert.equal(observed.error.cause, original)
+      assert.deepEqual(observed.error.errors, [original, original])
+      assertions += 4
     } else assert.equal(observed.error, original)
     assert.equal(driver.stats.resumes, 0)
     assert.equal(driver.stats.accepted, 0)
@@ -599,6 +611,56 @@ try {
     assert.equal(registry.size, 0)
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 7
+  }
+  // Constructor and cleanup are separate events even with identical values.
+  for (const original of [undefined, new Error("shared thrown value")]) {
+    const registry = createServiceRegistry()
+    let allowCleanup = false
+    const machine = {
+      disposeInvocation() {},
+      get retainedHandles() {
+        return 0
+      }
+    }
+    const driver = createOwnedArtifactDriver({
+      owner: m,
+      initialState: fresh(),
+      scope,
+      registry,
+      machine,
+      selectMachine() {
+        throw original
+      },
+      foreign() {
+        assert.fail("constructor failure cannot launch a provider")
+      }
+    })
+    const invocation = driver.allocateInvocation()
+    const session = {
+      invocation,
+      finish() {
+        if (!allowCleanup) throw original
+      },
+      close() {},
+      revoke() {}
+    }
+    const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+      () => ({ raised: false }),
+      (error) => ({ raised: true, error })
+    )
+    assert.equal(observed.raised, true)
+    assert.ok(observed.error instanceof AggregateError)
+    assert.ok(Object.hasOwn(observed.error, "cause"))
+    assert.equal(observed.error.cause, original)
+    assert.deepEqual(observed.error.errors, [original, original])
+    assert.equal(driver.stats.accepted, 0)
+    assert.equal(registry.pendingCleanup, 1)
+    assert.equal(driver.resources.sessions, 1)
+    allowCleanup = true
+    await registry.retryCleanup()
+    assert.equal(registry.pendingCleanup, 0)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 10
   }
   // A rejected Source interrupt retains exact custody/resources for retry.
   {

@@ -380,17 +380,21 @@ export function createOwnedArtifactDriver({
         })
       let taskEntered = false,
         constructionError,
-        outcome
+        outcome,
+        registryRejected = false,
+        taskFailure
       const failures = []
       const rememberFailure = (error) => {
-        if (!failures.includes(error)) failures.push(error)
+        const receipt = { error }
+        failures.push(receipt)
+        return receipt
       }
       try {
         launches.delete(invocation)
         sessions.set(invocation, session)
         machines.set(invocation, (selectMachine ? selectMachine(input) : undefined) ?? machine)
         resources.set(launch.input_handle, { invocation, kind: "input", value: input })
-        outcome = await registry.run(session, async () => {
+        const registryOutcome = await registry.runOutcome(session, async () => {
           taskEntered = true
           let abortFailure
           const abort = () => {
@@ -398,13 +402,28 @@ export function createOwnedArtifactDriver({
               const child = owner.find(invocation, current().children)
               if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
             } catch (error) {
-              abortFailure ??= { error }
+              const receipt = rememberFailure(error)
+              abortFailure ??= receipt
             }
           }
           options.signal?.addEventListener("abort", abort, { once: true })
+          const finishTaskSession = async () => {
+            try {
+              await finishSession(session)
+            } catch (error) {
+              taskFailure = rememberFailure(error)
+              throw error
+            }
+          }
           try {
             if (options.signal?.aborted) abort()
-            if (finished.has(invocation)) return finished.get(invocation)
+            if (finished.has(invocation)) {
+              if (abortFailure) {
+                taskFailure = abortFailure
+                throw abortFailure.error
+              }
+              return finished.get(invocation)
+            }
             try {
               settle(invocation, 0n, engine(invocation).initial(load(launch.input_handle, invocation, "input")))
             } finally {
@@ -441,7 +460,7 @@ export function createOwnedArtifactDriver({
                 hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
                 apply(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
               } catch (error) {
-                rememberFailure(error)
+                taskFailure = rememberFailure(error)
                 try {
                   const child = owner.find(invocation, current().children)
                   if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
@@ -460,26 +479,41 @@ export function createOwnedArtifactDriver({
                 release(replyId, invocation)
               }
             }
-            if (abortFailure) throw abortFailure.error
+            if (abortFailure) {
+              taskFailure = abortFailure
+              throw abortFailure.error
+            }
             return finished.get(invocation)
           } catch (error) {
-            rememberFailure(error)
-            const child = owner.find(invocation, current().children)
-            if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+            taskFailure ??= rememberFailure(error)
+            try {
+              const child = owner.find(invocation, current().children)
+              if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+            } catch (cleanupError) {
+              taskFailure = rememberFailure(cleanupError)
+              throw cleanupError
+            }
             throw error
           } finally {
             options.signal?.removeEventListener("abort", abort)
             // Provider await has settled before registry.run closes native resources.
-            await finishSession(session)
+            await finishTaskSession()
           }
         })
+        for (const receipt of registryOutcome.failures)
+          if (receipt.phase !== "task" || !taskFailure) rememberFailure(receipt.error)
+        if (registryOutcome.rejection) {
+          registryRejected = true
+          throw registryOutcome.rejection.error
+        }
+        outcome = registryOutcome.task.value
       } catch (error) {
-        rememberFailure(error)
+        if (!registryRejected) rememberFailure(error)
         try {
           const child = owner.find(invocation, current().children)
           if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
           if (!taskEntered && child.$ === "Some" && child.value.scope.$ === "AdviceTailScope") {
-            constructionError = { error: failures[0] }
+            constructionError = failures[0]
             session.forceCleanup?.(constructionError.error)
           }
         } catch (cleanupError) {
@@ -532,15 +566,19 @@ export function createOwnedArtifactDriver({
         rememberFailure(error)
         registry.retainCleanup(session, completeInvocation)
       }
-      if (failures.length === 1) throw failures[0]
+      if (failures.length === 1) throw failures[0].error
       if (failures.length > 1) {
-        let primary = failures[0]
+        let primary = failures[0].error
         const seen = new Set()
         while (primary instanceof AggregateError && Object.hasOwn(primary, "cause") && !seen.has(primary.cause)) {
           seen.add(primary)
           primary = primary.cause
         }
-        throw new AggregateError(failures, "Invocation and finalization failed", { cause: primary })
+        throw new AggregateError(
+          failures.map((receipt) => receipt.error),
+          "Invocation and finalization failed",
+          { cause: primary }
+        )
       }
       return outcome
     },
