@@ -15,7 +15,8 @@ import * as Effect from "effect/Effect"
 import {
   eligibleNamedPath,
   contextDirectFilePolicy,
-  DEFAULT_DIRECT_FILE_POLICY
+  DEFAULT_DIRECT_FILE_POLICY,
+  selectedByDirectFilePolicy
 } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { languageForPath as __languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
@@ -25,6 +26,10 @@ import {
   artifact
 } from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts"
 import { createServiceSession } from "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts"
+import {
+  inspectSourceFrontend,
+  parsePythonSyntax
+} from "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts"
 
 // Full post-root expansion interpreter, using actual filesystem/access/parser
 // services. Preparation and the universal whole-observer relation remain gates.
@@ -117,7 +122,7 @@ function pathTables() {
 }
 function wrapper(tables) {
   let text =
-    "import Base\nimport ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\n"
+    "import Base\nimport ../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue\nimport ./ExpansionDriverSpecification.bend as D\nimport ./ExpansionSpecification.bend as X\nimport ./Types.bend as T\nimport ./Environment.bend as E\nimport ./WholeObservation.bend as O\nimport ./python-module/Session.bend as Python\nimport ./ComposedBudget.bend as Budget\n"
   text +=
     'def path_read(result: Map<&2, String> & String) -> String:\n  match result:\n    case Tuple{_, value}: value\ndef path_get(table: Map<&2, String>, key: String) -> String:\n  path_read(Map.get(String, "__MISSING_PATH_FACT__", table, key))\ndef join_key(parts: List<&2, String>) -> String:\n  match parts:\n    case []: ""\n    case head <> tail: head ++ "|" ++ join_key(tail)\n'
   for (const [kind, table] of Object.entries(tables)) {
@@ -142,7 +147,7 @@ function wrapper(tables) {
   }
   return (
     text +
-    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: ArtifactValue.Binary64) -> Bool:\n  match bits:\n    case ArtifactValue.Binary64{high, _}: U32.is_gt(high, 0)\ndef selection(state: D.State) -> D.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef initial(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>) -> D.Progress<Nat>:\n  D.DriverReady{D.begin(config, frame, [], ids, 2n, 37n), E.WorldState{0n, []}}\ndef advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.advance(~selection, ~reply, Nat, suspend, progress)\ndef complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:\n  D.complete(~reply, Nat, progress, completion)\ndef cancel(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.cancel(Nat, progress)\ndef main() -> Unit:\n  Unit{}\n`
+    `def absolute(value: String) -> Bool:\n  String.starts_with(value, "/")\ndef expired(bits: ArtifactValue.Binary64) -> Bool:\n  match bits:\n    case ArtifactValue.Binary64{high, _}: U32.is_gt(high, 0)\ndef selection(state: D.State) -> D.Selection:\n  D.choose(~absolute, ~dirname, ~join, ~normalize, ~extension, "/", 10000n, state)\ndef reply(state: D.State, outcome: T.ServiceOutcome) -> D.Selection:\n  D.consume(~dirname, ~join, ~relative, ~expired, state, outcome)\ndef suspend(operation: T.Operation, world: Nat) -> E.Response<Nat>:\n  match world:\n    case +sequence: E.Suspended{(sequence + 1n : Nat), O.ProviderLease{1n, sequence}, []}\ndef initial(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>) -> D.Progress<Nat>:\n  D.DriverReady{D.begin(config, frame, [], ids, 2n, 37n), E.WorldState{0n, []}}\ndef initial_python(config: D.Config, frame: X.Frame, ids: List<&2, D.TargetId>, session: Python.Session, cache: T.CacheToken, census: Budget.Census, next: Nat) -> D.Progress<Nat>:\n  D.DriverReady{D.with_python(D.begin(config, frame, [], ids, 2n, next), session, cache, census), E.WorldState{0n, []}}\ndef advance(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.advance(~selection, ~reply, Nat, suspend, progress)\ndef complete(progress: D.Progress<Nat>, completion: E.Completion<Nat>) -> D.Progress<Nat>:\n  D.complete(~reply, Nat, progress, completion)\ndef cancel(progress: D.Progress<Nat>) -> D.Progress<Nat>:\n  D.cancel(Nat, progress)\ndef main() -> Unit:\n  Unit{}\n`
   )
 }
 function event(e) {
@@ -210,12 +215,28 @@ try {
     "./fixtures.mjs",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/frontend-codec.ts",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/service-session.ts",
+    "../../../packages/source-analysis/src/direct-event/graph-resolution/frontends.ts",
+    "../../../packages/source-analysis/src/direct-event/graph-resolution/PythonModule.bend",
+    "../../../packages/source-analysis/src/direct-event/graph-resolution/ComposedBudget.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/SPEC.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/core.bend",
     "../../../packages/source-analysis/src/direct-event/graph-resolution/traversal/Traversal.bend",
     "../../../bun.lock",
     nativePath
   ]
+  // Freeze the full authored Bend import closure, including the shared Python child.
+  const seenDependencies = new Set(dependencies.map((n) => path.resolve(folder, n)))
+  for (let index = 0; index < dependencies.length; index++) {
+    const owner = path.resolve(folder, dependencies[index])
+    if (!owner.endsWith(".bend")) continue
+    for (const match of readFileSync(owner, "utf8").matchAll(/^import\s+(\S+\.bend)(?:\s+as\s+\S+)?\s*$/gmu)) {
+      const imported = path.resolve(path.dirname(owner), match[1])
+      if (!seenDependencies.has(imported)) {
+        seenDependencies.add(imported)
+        dependencies.push(imported)
+      }
+    }
+  }
   const hashes = () =>
     Object.fromEntries(
       dependencies.map((n) => [
@@ -248,7 +269,9 @@ try {
   const bound = await compile("DriverCheck", wrapperPath),
     spec = await compile("SPEC"),
     forest = await compile("ForestSpecification"),
-    policy = await compile("GraphSpecification")
+    policy = await compile("GraphSpecification"),
+    python = await compile("PythonModule"),
+    composedBudget = await compile("ComposedBudget")
   const nativeCopy = path.join(temporary, "native.mjs"),
     nativeSource = readFileSync(nativePath, "utf8").replaceAll(
       /from "(\.{1,2}\/[^"]+)"/g,
@@ -396,16 +419,31 @@ try {
       fingerprint:
         native.bindingFingerprint === undefined ? { $: "None" } : { $: "Some", value: native.bindingFingerprint }
     })
-    const callerCache = cache === undefined ? undefined : new Map(cache)
-    let clockReads = 0
+    const callerCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
+    const isPython = selected.endsWith(".py")
+    let clockReads = 0,
+      preparationTicks = 0,
+      seedingPython = isPython
     const session = createServiceSession({
       invocation: 1,
       root: directory,
       callerCache,
-      now: () => (clockReads++ === 0 ? 0 : prefixTicks + clockReads - 2 >= (fixture.expireAt ?? Infinity) ? 5000 : 0),
+      now: () =>
+        seedingPython
+          ? preparationTicks++ >= (fixture.expireAt ?? Infinity)
+            ? 5000
+            : 0
+          : clockReads++ === 0
+            ? 0
+            : prefixTicks + clockReads - 2 >= (fixture.expireAt ?? Infinity)
+              ? 5000
+              : 0,
+      parsePythonSyntax,
+      selectContextPath: (n) => selectedByDirectFilePolicy(n, contextDirectFilePolicy(context.policy)),
       access: (n) => Effect.runPromise(eligibleNamedPath(directory, n, contextDirectFilePolicy(context.policy))),
       capture: (selection) => Effect.runPromise(context.captureSource(directory, selection)),
       frontend: (n, text, frontend) => {
+        if (label(frontend) === "PythonSourceContext") return inspectSourceFrontend(n, text, frontend)
         assert.equal(label(frontend), selected.endsWith(".bend") ? "BendSourceContext" : "TypeScriptContext")
         const facts = native.session.inspect(n, text, context.branch)
         return facts === undefined ? undefined : sourceFacts(facts)
@@ -416,18 +454,71 @@ try {
     const config = d("Config", {
       invocation: 1n,
       root_path: selected,
-      language: t(selected.endsWith(".bend") ? "BendLanguage" : "TypeScriptLanguage"),
-      frontend: t(selected.endsWith(".bend") ? "BendSourceContext" : "TypeScriptContext", {
-        branch: t(context.branch === "function" ? "FunctionBranch" : "TypeBranch")
-      }),
+      language: t(isPython ? "PythonLanguage" : selected.endsWith(".bend") ? "BendLanguage" : "TypeScriptLanguage"),
+      frontend: t(
+        isPython ? "PythonSourceContext" : selected.endsWith(".bend") ? "BendSourceContext" : "TypeScriptContext",
+        { branch: t(context.branch === "function" ? "FunctionBranch" : "TypeBranch") }
+      ),
       clock,
       cache: session.callerCache
     })
-    let progress = bound.initial(
-        config,
-        frame,
-        list([...native.targetIds].map(([key, id]) => d("TargetId", { key, id: BigInt(id) })))
-      ),
+    const targetIds = list([...native.targetIds].map(([key, id]) => d("TargetId", { key, id: BigInt(id) })))
+    let initialRequestId = 37n,
+      preparedPython
+    if (isPython) {
+      const rootToken = session.registerCapture(stable(selected))
+      const driveChild = async (step, resume) => {
+        let transitions = 0
+        while (label(step) === "Await") {
+          assert.ok(++transitions < 20000, "Python preparation finite transition bound")
+          step = resume(step, await session.perform(step.request))
+        }
+        assert.equal(label(step), "Returned", "Python raw-root child returned")
+        return step
+      }
+      const preparation = await driveChild(
+        python.prepare_session(
+          tag("python-module/PreparationMachine.Input", {
+            root: selected,
+            capture: rootToken,
+            root_bytes: BigInt(stable(selected).byteLength),
+            files: limits.files,
+            read_bytes: limits.read_bytes,
+            work: limits.work,
+            source_cap: limits.source_bytes,
+            depth: limits.depth,
+            clock,
+            invocation: 1n,
+            caller_cache: session.callerCache
+          }),
+          37n
+        ),
+        python.resume_preparation
+      )
+      assert.equal(label(preparation.prepared), "Some", fixture.name + " independent preparation admitted")
+      const inspected = await driveChild(
+        python.inspect_session(config.frontend.branch, selected, selected, rootToken, 1n, preparation.next),
+        python.resume_inspect
+      )
+      assert.equal(label(inspected.facts), "Some", fixture.name + " independent root inspection")
+      assert.deepEqual(canonical(inspected.facts.value), canonical(encoded), fixture.name + " raw-root Python facts")
+      preparedPython = preparation.prepared.value
+      initialRequestId = inspected.next
+      seedingPython = false
+      // Root admission has already consumed the native prefix; continuation begins there.
+      clockReads = 1
+    }
+    let progress = isPython
+        ? bound.initial_python(
+            config,
+            frame,
+            targetIds,
+            preparedPython.session,
+            preparedPython.cache,
+            composedBudget.initial(selected, BigInt(stable(selected).byteLength)),
+            initialRequestId
+          )
+        : bound.initial(config, frame, targetIds),
       requests = 0,
       steps = 0
     const trace = []
@@ -440,7 +531,7 @@ try {
       }
       const request = progress.exchange.request
       trace.push({ request: label(request.operation) })
-      assert.equal(Number(request.id), 37 + requests)
+      assert.equal(Number(request.id), Number(initialRequestId) + requests)
       assert.ok(
         !JSON.stringify(request, (_k, v) => (typeof v === "bigint" ? String(v) : v)).includes("__MISSING_PATH_FACT__"),
         "uncovered mechanical path argument"
@@ -708,7 +799,7 @@ try {
       cache === undefined ? undefined : [...cache],
       fixture.name + " caller cache mutations/order"
     )
-    assert.equal(Number(progress.state.next_request), 37 + requests)
+    assert.equal(Number(progress.state.next_request), Number(initialRequestId) + requests)
     cases.push({
       name: fixture.name,
       status: "full-expansion-exact",
@@ -732,7 +823,7 @@ try {
       "Root and child builds that reach attachment, including later rollback; rejects before attachment do not consume an observable episode. Addresses use original routes before slot rewrites and actual JS node identity.",
     pathTablesHash: createHash("sha256").update(wrapper(tables)).digest("hex"),
     scope:
-      "Complete post-root TypeScript/Bend expansion driver against real native graphIteration, actual access/filesystem/parser and fixture capture provider. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Rust preparation/context, original error cause identity, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified."
+      "Complete post-root expansion driver for the included corpus against real native graphIteration, actual access/filesystem/parser and fixture capture provider. Python preparation/import/inspect/revalidation uses the shared specialized Bend child; this comparison does not establish a second independent Python-policy implementation. Exact product/property order, bounded graph/command, target IDs/allocation, visited set, budget scalars/signed graph work/limits/all target-path entries, capture facts/identity publication, full ordered pending/target payloads and retained owner forest closure, cache and request chronology. Rust preparation/context, original error cause identity, physical cancellation/late cleanup, universal completion/proofs and candidate performance remain unqualified."
   }
   mkdirSync(path.join(root, ".test-runs"), { recursive: true })
   writeFileSync(

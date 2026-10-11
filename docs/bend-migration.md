@@ -259,6 +259,14 @@ One current obstacle list, in execution order:
    preparation; do not substitute a host-resolved target callback or a .py-only
    candidate shortcut. This representation closes whole-consumer correspondence
    directly; original transport obligations and guarantees remain required.
+   The driver may share the existing specialized Python child while defining
+   orchestration/accounting independently; this does not establish a second
+   independent Python-policy implementation. No named original law requires
+   duplicating that policy as a new acceptance prerequisite. Both the direct
+   child import canary (2.696 seconds) and the raw-root PythonModule emission
+   pass within the unchanged five-second limit. Runner raw capture now drives
+   prepare/inspect and compares root facts exactly; full continuation integration
+   and the unchanged full native corpus remain unqualified.
    This finite traversal pass does not qualify the full expansion driver, all
    fixture ABI consumers or the remaining universal guarantees. No new law or weakened
    premise is claimed. Full materialization/transaction guarantees
@@ -297,22 +305,24 @@ One current obstacle list, in execution order:
    connected: **0**; replaced production TypeScript removed: **0**. A connected
    candidate resolver, source relocation or backup does not change those counts.
 6. Pass selected local acceptance checks and strict paired build/execution parity
-   on the connected candidate. Latest frozen pair at 7df6b8b started
-   2026-10-11T13:50:21.956909Z / 13:54:18.145587Z. Both qualified and timely;
-   build failed parity at **1.2389400456825004**, execution passed at
-   **0.6661053169852373**. All 17 build samples per lane retained 23/46 cached
-   tasks. The preceding 186b00aa pair was also qualified, with build ratio
-   1.1470986775083787 and execution ratio 0.7299762437945972.
-   The preceding 13:17:03 / 13:20:20 UTC start deadlines were both missed;
-   these later runs do not erase those cadence failures. Next start deadlines
-   are 14:20:21 / 14:24:18 UTC. Records remain ignored under
-   .test-runs/bend-migration/performance. These measure existing production,
-   not unadopted Go preparation. Warm prerequisite first failed with the
-   unchanged PreparationFinalization emitter's five-second timeout. Isolated
-   emission passed in 2.128 seconds; a subsequent full warm passed 46/46 tasks
-   in 48.941 seconds. No production emitter deadline was raised or affinity
-   added. Diagnose build costs before changing performance code. Earlier
-   missed cadence starts remain failures; later timely pairs do not erase them.
+   on the connected candidate. Latest matched warm build at acf04659 started
+   2026-10-11T14:21:02.910303Z: 17 pairs, all 23/46 cached, qualified and
+   build parity failed at **1.1241580601102825**. Execution at the same candidate
+   started 2026-10-11T14:20:06.825087Z, qualified and passed at
+   **0.7711837402035618**. Earlier build at 14:14:44 had a cold candidate first
+   sample (15/46 cached, 64.844 seconds) and warmPreparationMatched=false;
+   although its snapshot runner reported qualified=true, its ratio 1.6170620566
+   does not establish matched warm parity. The unchanged retry repairs that
+   measurement condition, not the failed threshold. Prior 7df6b8b warm build
+   ratio was 1.2389400457 and execution 0.6661053170. The historical missed
+   13:17:03 / 13:20:20 UTC start deadlines remain failures; later timely runs
+   do not erase them. Next start deadlines are 14:51:02 / 14:50:06 UTC.
+   Records remain ignored under .test-runs/bend-migration/performance. These
+   measure existing production, not unadopted whole preparation. Warm the
+   actual changed candidate before each pair; an earlier source revision's warm
+   run does not establish current cache comparability. No production emitter
+   deadline was raised or affinity added. Diagnose build costs before changing
+   performance code.
 
 Keep this list current by removing closed work and naming specific remaining
 failures. Every implementation checkpoint must include all retained sources,
