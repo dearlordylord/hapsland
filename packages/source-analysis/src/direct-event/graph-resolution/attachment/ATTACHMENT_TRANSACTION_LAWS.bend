@@ -1,4 +1,7 @@
 import Base
+import ./AttachmentParentAppendTransport.bend as Parent
+import ./AttachmentMaterializationTransport.bend as Materialization
+import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import ./RetainedForestProjection.bend as P
 import ./ForestRelation.bend as Relation
 import ../ForestSpecification.bend as F
@@ -274,6 +277,166 @@ def projected_frame_semantics(+frame: T.ResolverFrame, +history: V.History, +vie
     case V.History{+addresses, V.Order{+pending_order, +target_order, +id_order, +capture_order, +identity_order, +visited_order}, +sources, +captures, _, +remaining, +episode}:
       frame_semantics_from_fields(frame, addresses, episode, ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(frame), addresses), ActualFrame.ids(id_order, S.frame_target_ids(frame)), ActualFrame.captured(capture_order, S.frame_captured(frame), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(frame)), ActualFrame.visited(visited_order, S.frame_visited(frame)), view,
         frame_view_contents(ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode), ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(frame), addresses), ActualFrame.ids(id_order, S.frame_target_ids(frame)), ActualFrame.captured(capture_order, S.frame_captured(frame), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(frame)), ActualFrame.visited(visited_order, S.frame_visited(frame)), frame, remaining, episode, view, ready))
+
+# The child inversion retains the fresh forest, pending payloads and visited
+# order together; freshness is obtained from the existing runtime predicate.
+def child_content_result(+forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingPayload>>,
+    +visited: Maybe<&2, List<&2, String>>, view: Phase.Child) -> Type:
+  match view:
+    case Phase.Child{_, _, _, _, _, _, _, _, _, forest_value, _, pending_value, visited_value, _, _, _}:
+      {forest == Some{forest_value} : Maybe<&2, F.Forest>} &
+      {pending == Some{pending_value} : Maybe<&2, List<&2, V.PendingPayload>>} &
+      {visited == Some{visited_value} : Maybe<&2, List<&2, String>>}
+
+def child_view_contents(+forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingPayload>>,
+    +visited: Maybe<&2, List<&2, String>>, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: Phase.ChildHistory, +view: Phase.Child,
+    ready: {ActualReady.child_view(forest, pending, visited, child, edge, history)
+      == Some{view} : Maybe<&2, Phase.Child>}) -> child_content_result(forest, pending, visited, view):
+  match forest pending visited child history:
+    case Some{+forest_value} Some{+pending_value} Some{+visited_value}
+      T.TentativeChild{target, +path, capture, bytes, file, artifact, identity, before, Local.Plan{_, _, _, _, _, budget}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, addresses}, source, catalog, _, _}:
+      %Count.some_equal(Phase.Child, Phase.Child{target, path, ActualReady.edge_kind(edge, path), capture, bytes, file,
+          artifact, identity, before, forest_value, addresses, pending_value, visited_value, V.actual_budget(budget), source, catalog}, view, ready):
+        child_content_result(Some{forest_value}, Some{pending_value}, Some{visited_value}, _)
+      Tuple{{==}, Tuple{{==}, {==}}}
+    case None{} _ _ _ _:
+      Empty.absurd(child_content_result(None{}, pending, visited, view), Contents.none_some(Phase.Child, view, ready))
+    case Some{_} None{} _ _ _:
+      Empty.absurd(child_content_result(forest, None{}, visited, view), Contents.none_some(Phase.Child, view, ready))
+    case Some{_} Some{_} None{} _ _:
+      Empty.absurd(child_content_result(forest, pending, None{}, view), Contents.none_some(Phase.Child, view, ready))
+
+def fresh_retained_contents(+value: F.Forest, +episode: Nat, +retained: F.Forest,
+    evidence: {ActualReady.fresh_forest(value, episode) == True{} : Bool} &
+      {Some{value} == Some{retained} : Maybe<&2, F.Forest>}) ->
+    {Some{value} == Some{retained} : Maybe<&2, F.Forest>} &
+    {ActualReady.fresh_forest(retained, episode) == True{} : Bool}:
+  match evidence:
+    case (valid, +equal):
+      Tuple{equal,
+        %Count.some_equal(F.Forest, value, retained, equal): {ActualReady.fresh_forest(_, episode) == True{} : Bool}
+        valid}
+
+def child_forest_contents(+forest: Maybe<&2, F.Forest>, +episode: Nat, +retained: F.Forest,
+    ready: {ActualReady.valid_forest(forest, episode) == Some{retained} : Maybe<&2, F.Forest>}) ->
+    {forest == Some{retained} : Maybe<&2, F.Forest>} &
+    {ActualReady.fresh_forest(retained, episode) == True{} : Bool}:
+  match forest:
+    case Some{+value}:
+      fresh_retained_contents(value, episode, retained,
+        forest_validated_contents(ActualReady.fresh_forest(value, episode), value, retained, ready))
+    case None{}:
+      Empty.absurd({None{} == Some{retained} : Maybe<&2, F.Forest>} &
+        {ActualReady.fresh_forest(retained, episode) == True{} : Bool}, Contents.none_some(F.Forest, retained, ready))
+
+def child_semantics(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +artifacts: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>, +episode: Nat, view: Phase.Child) -> Type:
+  match view:
+    case Phase.Child{_, _, _, _, _, _, _, _, _, forest, _, _, _, _, _, _}:
+      {P.project(root, nodes, slots, artifacts, addresses) == Some{forest} : Maybe<&2, F.Forest>} &
+      {ActualReady.fresh_forest(forest, episode) == True{} : Bool}
+
+def child_semantics_from_fields(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +artifacts: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>, +episode: Nat,
+    +pending: Maybe<&2, List<&2, V.PendingPayload>>, +visited: Maybe<&2, List<&2, String>>, +view: Phase.Child,
+    fields: child_content_result(ActualReady.valid_forest(P.project(root, nodes, slots, artifacts, addresses), episode), pending, visited, view)) ->
+    child_semantics(root, nodes, slots, artifacts, addresses, episode, view):
+  match view:
+    case Phase.Child{_, _, _, _, _, _, _, _, _, +forest_value, _, pending_value, visited_value, _, _, _}:
+      child_forest_contents(P.project(root, nodes, slots, artifacts, addresses), episode, forest_value,
+        Pair.fst({ActualReady.valid_forest(P.project(root, nodes, slots, artifacts, addresses), episode)
+          == Some{forest_value} : Maybe<&2, F.Forest>},
+          {pending == Some{pending_value} : Maybe<&2, List<&2, V.PendingPayload>>} &
+          {visited == Some{visited_value} : Maybe<&2, List<&2, String>>}, fields))
+
+def child_projected_result(child: T.TentativeChild, +history: Phase.ChildHistory,
+    +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child) -> Type:
+  match child history:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{root, nodes, slots, _, _, _}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, addresses}, _, _, _, _}:
+      child_semantics(root, nodes, slots, artifacts, addresses, episode, view)
+
+def child_projected_semantics(+child: T.TentativeChild, +edge: Local.Pending, +history: Phase.ChildHistory,
+    +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child,
+    ready: {ActualReady.child_projected(child, edge, history, artifacts, episode)
+      == Some{view} : Maybe<&2, Phase.Child>}) -> child_projected_result(child, history, artifacts, episode, view):
+  match child history:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+root, +nodes, +slots, +edges, +visited, _}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, +addresses}, _, _, _, +order}:
+      child_semantics_from_fields(root, nodes, slots, artifacts, addresses, episode,
+        ActualReady.pending(edges, addresses), ActualReady.visited_complete(order, visited), view,
+        child_view_contents(ActualReady.valid_forest(P.project(root, nodes, slots, artifacts, addresses), episode),
+          ActualReady.pending(edges, addresses), ActualReady.visited_complete(order, visited), child, edge, history, view, ready))
+
+def child_validated_contents(+valid: Bool, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: Phase.ChildHistory, +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child,
+    ready: {ActualReady.child_validated(valid, child, edge, history, artifacts, episode)
+      == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {valid == True{} : Bool} &
+    {ActualReady.child_projected(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}:
+  match valid:
+    case True{}: Tuple{{==}, ready}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool} &
+        {ActualReady.child_projected(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>},
+        Contents.none_some(Phase.Child, view, ready))
+
+def child_checks(child: T.TentativeChild) -> Bool:
+  match child:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, +nodes, +slots, edges, _, _}, _, _, _}:
+      Bool.and(ActualFrame.dense(nodes, 0n), ActualReady.pending_slots(edges, slots))
+
+def actual_child_contents(+child: T.TentativeChild, +edge: Local.Pending, +history: Phase.ChildHistory,
+    +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child,
+    ready: {ActualReady.child_project(child, edge, history, artifacts, episode)
+      == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {child_checks(child) == True{} : Bool} &
+    {ActualReady.child_projected(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}:
+  match child:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}:
+      child_validated_contents(child_checks(child), child, edge, history, artifacts, episode, view, ready)
+
+def selected_phase_result(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild,
+    +edge: Local.Pending, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase) -> Type:
+  match history:
+    case V.History{_, _, _, _, _, remaining, _}:
+      projected_phase_result(Bool.and(ActualReady.mutable_maps_canonical(frame),
+        Bool.and(ActualReady.fresh_registration(history, frame),
+          Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))),
+        state, frame, child, edge, history, child_history, phase)
+
+def selected_phase_contents(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild,
+    +edge: Local.Pending, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history)
+      == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    selected_phase_result(state, frame, child, edge, history, child_history, phase):
+  match history:
+    case V.History{_, _, _, _, _, remaining, _}:
+      projected_phase_contents(Bool.and(ActualReady.mutable_maps_canonical(frame),
+        Bool.and(ActualReady.fresh_registration(history, frame),
+          Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))),
+        state, frame, child, edge, history, child_history, phase, ready)
+
+# Once the proved materialization supplies its product, construct the actual
+# measurement witness and the first three exact transaction observations.
+def candidate_request_exact(+product: ArtifactValue.ProductValue, +child: T.TentativeChild,
+    +ids: List<&2, Nat>, +previous: Nat, +state: T.ResolverState) ->
+    Exists(T.ResolverState, measured => Exists(T.Request, request =>
+      {Attach.request_candidate(Some{product}, child, ids, previous, state)
+        == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation} &
+      {Contract.operation(request) == T.EncodeProduct{product} : T.Operation} &
+      {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage})):
+  match child state:
+    case T.TentativeChild{target, path, capture, bytes, file, artifact, identity, before, plan, _, _, _}
+      T.ResolverState{_, _, _, _, _, _, _, _, _, _, _, _, _}:
+      +prepared = S.with_state_scratch(state, S.with_scratch_tentative(S.state_scratch(state),
+        Some{T.TentativeChild{target, path, capture, bytes, file, artifact, identity, before, plan, previous, product, ids}}))
+      +measured = S.with_state_next_request(S.with_state_stage(prepared, T.MeasuringCandidateTree{}),
+        (S.state_next_request(prepared) + 1n : Nat))
+      +request: T.Request = T.Request{S.input_invocation(S.state_input(prepared)), S.state_next_request(prepared), T.EncodeProduct{product}}
+      Tuple{measured, Tuple{request, Tuple{{==}, Tuple{{==}, {==}}}}}
 
 # The ninth original claim transports the supplied post-provider world through
 # arbitrary reply validation and the fixed pure completion suffix.

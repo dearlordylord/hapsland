@@ -203,7 +203,16 @@ One current obstacle list, in execution order:
    validation outcomes. Actual frame-view inversion also supplies exact
    P.project and frame_forest premises for the closed parent/materialization
    laws (/tmp/astra-transaction-parent-premises.log). The first eight
-   transaction claims and its full original body remain open. Parent-law closure does not close this
+   transaction claims and its full original body remain open. The next checked
+   prefix derives child readiness/freshness and selected maps from actual_ready,
+   and constructs the measured request witness with its first three exact
+   observations (4.334 seconds, /tmp/astra-transaction-request.log). Product
+   existence still must be derived from the same original premises. Adding the
+   planned Parent/Materialization imports exceeded the unchanged hard-five-second
+   deadline; a Parent-only diagnostic also timed out. These joined closures are
+   unqualified; scheduling versus added normalization cost is not yet resolved.
+   Both planned imports are retained as WIP, not claimed checked proof.
+   Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.
 
@@ -342,7 +351,12 @@ One current obstacle list, in execution order:
    requests and 855 Post requests pass through the Node capability runner
    (/tmp/hapsland-2239-packaged-resident-full.log). Its actual workspace build
    passes 46/46 tasks, 15 cached, 48.518 seconds; explicit lint selects and
-   passes the changed runner. Resolver artifact shipping and the complete production entrypoint
+   passes the changed runner. Remaining temporary emissions are resident-owned
+   ArtifactComposition, GenericArtifact, PythonArtifact, GoArtifact and the
+   agent-flow-owned CanonicalResolverOwner. Their transport inputs must retain
+   exact raw Bend payloads: semantic frontend types are not interchangeable with
+   raw SourceFacts, and opaque command inputs would conceal this boundary.
+   Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
