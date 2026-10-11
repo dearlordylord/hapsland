@@ -480,7 +480,7 @@ compiler receipts validated. check:fast passed 109 unit tests, repository assets
 TypeScript and package graph before failing development imports. Three relocated
 credential cold runners then switched five stale relative imports to existing
 workspace exports; all six available/locked runs passed, with nonempty lint.
-The focused import gate now reports zero unresolved paths, 3 undeclared
+The focused import gate now reports zero unresolved paths, 1 undeclared
 dependencies and 137 cross-owner private-file violations. Those remain an
 acceptance blocker; fix ownership and declared interfaces before asserting a
 green ordinary gate.
@@ -538,3 +538,13 @@ oracle independent while repairing ownership; substituting the current Bend
 wrapper would be circular qualification. Whole Go and production adoption
 remain open; current build/execution cadence deadlines are 11:54:07 and
 11:57:52 UTC from the latest frozen pair.
+
+Credential measurement runners now live with their independent verification
+oracle under `src/credentials/bend-parity`; old tooling-owner copies are deleted.
+Both actual runners passed from the new paths; nonempty lint checked both.
+Their diagnostic JSON goes to ignored .test-runs. The isolated credential
+planning median ratio was 0.5065184505; this is not the whole production parity
+measurement. check:fast passed its unit/type/package stages and failed on one
+undeclared external update-notice oracle and 137 cross-owner private imports.
+The two tooling-to-verification dependency violations are removed by placing
+execution with its owner, without publishing the frozen oracle as a product API.

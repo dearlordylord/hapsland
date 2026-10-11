@@ -1,9 +1,6 @@
 import { performance } from "node:perf_hooks"
-import { writeFileSync } from "node:fs"
-import {
-  deriveLookupPlan as referenceLookup,
-  deriveSavePlan as referenceSave
-} from "../../src/credentials/bend-parity/credential-reference.ts"
+import { mkdirSync, writeFileSync } from "node:fs"
+import { deriveLookupPlan as referenceLookup, deriveSavePlan as referenceSave } from "./credential-reference.ts"
 import { deriveLookupPlan, deriveSavePlan } from "@hapsland/runtime-inputs/credentials/policy"
 const context = {
   envVar: "KEY",
@@ -37,5 +34,7 @@ const record = {
   checksum,
   scope: "diagnostic per-function warm-cache costs; fixed full-source context; not final acceptance"
 }
-writeFileSync(new URL("./integrated-profile.json", import.meta.url), JSON.stringify(record, null, 2) + "\n")
+const evidence = new URL("../../../.test-runs/bend-migration/credentials/", import.meta.url)
+mkdirSync(evidence, { recursive: true })
+writeFileSync(new URL("integrated-profile.json", evidence), JSON.stringify(record, null, 2) + "\n")
 console.log(JSON.stringify(record))

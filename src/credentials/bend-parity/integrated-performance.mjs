@@ -1,11 +1,8 @@
 import assert from "node:assert/strict"
 import { performance } from "node:perf_hooks"
-import { writeFileSync, readFileSync } from "node:fs"
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs"
 import { createHash } from "node:crypto"
-import {
-  deriveLookupPlan as baselineLookup,
-  deriveSavePlan as baselineSave
-} from "../../src/credentials/bend-parity/credential-reference.ts"
+import { deriveLookupPlan as baselineLookup, deriveSavePlan as baselineSave } from "./credential-reference.ts"
 import { deriveLookupPlan as bendLookup, deriveSavePlan as bendSave } from "@hapsland/runtime-inputs/credentials/policy"
 const contexts = Array.from({ length: 32 }, (_, bits) => ({
   envVar: "KEY",
@@ -78,5 +75,7 @@ const record = {
   scope:
     "current compiled production credential planning versus frozen master a071b9b58; full output field consumption; warm finite caches; no credential IO or startup timing"
 }
-writeFileSync(new URL("./integrated-performance.json", import.meta.url), JSON.stringify(record, null, 2) + "\n")
+const evidence = new URL("../../../.test-runs/bend-migration/credentials/", import.meta.url)
+mkdirSync(evidence, { recursive: true })
+writeFileSync(new URL("integrated-performance.json", evidence), JSON.stringify(record, null, 2) + "\n")
 console.log(JSON.stringify({ samplesMs, medianRatio, executionParity: record.executionParity }))
