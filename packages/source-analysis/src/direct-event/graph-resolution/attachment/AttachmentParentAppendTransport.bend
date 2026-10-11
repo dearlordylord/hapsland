@@ -1630,6 +1630,93 @@ def appended_selected(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Lo
     {(_ + 0n : Nat) == 1n : Nat}
   {==}
 
+# Successful replacement of the combined frame determines the original parent
+# payload; the untouched suffix cannot manufacture or hide a replacement.
+def replacement_suffix_selected(+count: Nat, +items: List<&2, Local.ReferenceSlot>,
+    +suffix: List<&2, Local.ReferenceSlot>, +changed: List<&2, Local.ReferenceSlot>,
+    selected: Bool, branch: {Nat.is_eq(count, 1n) == selected : Bool},
+    success: {Bool.pick(Maybe<&2, List<&2, Local.ReferenceSlot>>, selected,
+      Some{List.append(&2, Local.ReferenceSlot, items, suffix)}, None{}) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>}) ->
+    {Compose.replacement(Compose.ReplacedSlots{count, items}) == Some{items} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {changed == List.append(&2, Local.ReferenceSlot, items, suffix) : List<&2, Local.ReferenceSlot>}:
+  match selected:
+    case True{}:
+      Tuple{
+        %Equal.sym(Bool, Nat.is_eq(count, 1n), True{}, branch):
+          {Bool.pick(Maybe<&2, List<&2, Local.ReferenceSlot>>, _, Some{items}, None{}) == Some{items} : Maybe<&2, List<&2, Local.ReferenceSlot>>}
+        {==},
+        Equal.sym(List<&2, Local.ReferenceSlot>, List.append(&2, Local.ReferenceSlot, items, suffix), changed,
+          Count.some_equal(List<&2, Local.ReferenceSlot>, List.append(&2, Local.ReferenceSlot, items, suffix), changed, success))}
+    case False{}:
+      Empty.absurd(
+        {Compose.replacement(Compose.ReplacedSlots{count, items}) == Some{items} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+        {changed == List.append(&2, Local.ReferenceSlot, items, suffix) : List<&2, Local.ReferenceSlot>},
+        Contents.none_some(List<&2, Local.ReferenceSlot>, changed, success))
+
+def replacement_suffix_payload(+result: Compose.ReplacedSlots, +suffix: List<&2, Local.ReferenceSlot>,
+    +changed: List<&2, Local.ReferenceSlot>,
+    success: {Compose.replacement(Structure.with_suffix(result, suffix)) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>}) ->
+    {Compose.replacement(result) == Some{Structure.slots(result)} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {changed == List.append(&2, Local.ReferenceSlot, Structure.slots(result), suffix) : List<&2, Local.ReferenceSlot>}:
+  match result:
+    case Compose.ReplacedSlots{+count, +items}:
+      replacement_suffix_selected(count, items, suffix, changed, Nat.is_eq(count, 1n), {==}, success)
+
+# This is the exact payload needed by tentative_attachment, recovered from the
+# existing whole-node replacement theorem rather than assumed successful.
+def appended_replacement_payload(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +entries: List<&2, F.AddressEntry>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +owner: Nat, +index: Nat, +reference: Local.PlannedReference, +birth: O.NodeAddress,
+    +changed: List<&2, Local.ReferenceSlot>,
+    dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    aligned: {P.aligned(parents, entries, parents, entries) == True{} : Bool},
+    located: {F.address_at(entries, owner) == Some{birth} : Maybe<&2, O.NodeAddress>},
+    success: {Compose.replacement(Compose.replace_slot(List.append(&2, Local.ReferenceSlot, slots,
+      Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))), owner, index, reference))
+      == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>}) ->
+    {Compose.replacement(Compose.replace_slot(slots, owner, index, reference))
+      == Some{Structure.slots(Compose.replace_slot(slots, owner, index, reference))} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {changed == List.append(&2, Local.ReferenceSlot, Structure.slots(Compose.replace_slot(slots, owner, index, reference)),
+      Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))) : List<&2, Local.ReferenceSlot>}:
+  +suffix: List<&2, Local.ReferenceSlot> = Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents))
+  replacement_suffix_payload(Compose.replace_slot(slots, owner, index, reference), suffix, changed,
+    %Structure.replace_untouched_suffix(slots, suffix, owner, index, reference,
+      shifted_slots_untouched(child_slots, List.length(&2, Local.PlannedNode, parents), owner, index, reference,
+        dense_owner_below(parents, owner, dense, RootSelection.count(parents, entries, parents, entries, owner, birth, aligned, located)))):
+      {Compose.replacement(_) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>}
+    success)
+
+def appended_child_address(+parents: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +child_entries: List<&2, F.AddressEntry>, +child_root: Nat, +birth: O.NodeAddress,
+    aligned: {P.aligned(parents, entries, parents, entries) == True{} : Bool},
+    dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    located: {F.address_at(child_entries, child_root) == Some{birth} : Maybe<&2, O.NodeAddress>}) ->
+    {F.address_at(List.append(&2, F.AddressEntry, entries, Mapping.shifted(child_entries, List.length(&2, Local.PlannedNode, parents))),
+      (child_root + List.length(&2, Local.PlannedNode, parents) : Nat)) == Some{birth} : Maybe<&2, O.NodeAddress>}:
+  +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+  Equal.trans(Maybe<&2, O.NodeAddress>,
+    F.address_at(List.append(&2, F.AddressEntry, entries, Mapping.shifted(child_entries, offset)), (child_root + offset : Nat)),
+    F.address_at(Mapping.shifted(child_entries, offset), (child_root + offset : Nat)), Some{birth},
+    shifted_address_prefix(parents, entries, child_entries, child_root, aligned, dense),
+    %Remap.address_at(child_entries, child_root, offset):
+      {_ == Some{birth} : Maybe<&2, O.NodeAddress>}
+    located)
+
+def appended_attachment_reference(known: Bool, +owner: Nat, +index: Nat, +symbol: String, +identity: String,
+    +child_root: Nat, +offset: Nat, +birth: O.NodeAddress,
+    +child_values: List<&2, F.Node>, +child_entries: List<&2, F.AddressEntry>,
+    +entries: List<&2, F.AddressEntry>,
+    located: {F.address_at(entries, (child_root + offset : Nat)) == Some{birth} : Maybe<&2, O.NodeAddress>}) ->
+    {P.reference(Local.ReferenceSlot{owner, index, symbol,
+      Bool.pick(Local.PlannedReference, known, Local.Included{identity}, Local.Expanded{(child_root + offset : Nat)})}, entries)
+      == Some{X.attachment_reference(known, F.Created{birth, child_values, child_entries}, symbol, identity)} : Maybe<&2, F.Reference>}:
+  match known:
+    case True{}: {==}
+    case False{}:
+      %Equal.sym(Maybe<&2, O.NodeAddress>, F.address_at(entries, (child_root + offset : Nat)), Some{birth}, located):
+        {P.expanded_reference(_, symbol) == Some{F.Expanded{F.ReferenceSymbol{symbol}, birth}} : Maybe<&2, F.Reference>}
+      {==}
+
 
 law parent_attachment_exact:
   for +parent_root: Nat
