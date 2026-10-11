@@ -268,16 +268,38 @@ def component_reply(+stage: T.ResolverStage, outcome: T.ServiceOutcome,
     case T.CheckingImportCandidates{}: Resolve.reply(stage, outcome, state)
     case _: malformed()
 
+def completion_frame(
+  frame: Maybe<&2, T.ResolverFrame>,
+  state: T.ResolverState
+) -> Loop.Continuation:
+  match frame:
+    case None{}: malformed()
+    case Some{frame}: Loop.ServiceStep{
+      LoopPolicy.finished_product(S.scratch_measured_product(S.state_scratch(state)), frame)}
+
+def completion_elapsed(expired: Bool, +state: T.ResolverState) -> Loop.Continuation:
+  match expired:
+    case True{}: Loop.ServiceStep{T.FinishedResolver{T.NoReviewUnit{}, S.state_frame(state)}}
+    case False{}: completion_frame(S.state_frame(state), state)
+
+def completion_clock(clock: Maybe<&2, T.ClockToken>, state: T.ResolverState) -> Loop.Continuation:
+  match clock:
+    case None{}: malformed()
+    case Some{clock}: Loop.ServiceStep{
+      S.request(state, T.CheckingCompletionDeadline{}, T.ReadClock{clock})}
+
 def successful_terminal(
   language: Maybe<&2, T.Language>,
   result: T.ResolverStep,
-  state: T.ResolverState
+  +state: T.ResolverState
 ) -> Loop.Continuation:
   match language result:
     case Some{T.PythonLanguage{}} T.FinishedResolver{T.ReviewUnitResult{value}, frame}:
       Loop.PythonTerminal{state, T.FinishedResolver{T.ReviewUnitResult{value}, frame}}
     case Some{T.GoLanguage{}} T.FinishedResolver{T.ReviewUnitResult{value}, frame}:
       Loop.GoTerminal{state, T.FinishedResolver{T.ReviewUnitResult{value}, frame}}
+    case _ T.FinishedResolver{T.ReviewUnitResult{_}, _}:
+      completion_clock(S.state_clock(state), state)
     case _ _: Loop.ServiceStep{result}
 
 def stage_reply(
@@ -306,6 +328,10 @@ def stage_reply(
       state
     )
     case T.CheckingIterationDeadline{} T.ClockRead{bits}: LoopPolicy.elapsed(bits, state)
+    case T.CheckingCompletionDeadline{} T.ClockRead{bits}: completion_elapsed(
+      Clock.expired(bits),
+      state
+    )
     case T.MeasuringCompletion{} T.ProductEncoded{bytes}: successful_terminal(
       S.state_language(state),
       LoopPolicy.measured(bytes, state),

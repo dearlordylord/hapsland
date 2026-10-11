@@ -491,6 +491,7 @@ type ResolverStage is Data:
   MeasuringBundledPrevious{}
   EmittingCaptureDiagnostic{}
   MeasuringCompletion{}
+  CheckingCompletionDeadline{}
 
 type ResolverScratch is Data:
   ResolverScratch{

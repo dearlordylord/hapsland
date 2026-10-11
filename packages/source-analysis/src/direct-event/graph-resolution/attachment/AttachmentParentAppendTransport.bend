@@ -1387,6 +1387,83 @@ def aligned_context_row(+id: Nat, +other: Nat, +artifact: Nat, +birth: O.NodeAdd
           {Nat.is_eq(_, 1n) == True{} : Bool}
         {==}, tail_aligned)))
 
+# Numeric counts in the full allocation domain: the prefix ends strictly
+# before every shifted child ID, irrespective of the child list's ordering.
+def appended_parent_node_count(+parents: List<&2, Local.PlannedNode>, +children: List<&2, Local.PlannedNode>, +id: Nat,
+    dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    +counted: {P.node_count(parents, id) == 1n : Nat}) ->
+    {P.node_count(List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))), id) == 1n : Nat}:
+  +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+  +shifted: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
+  %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), id),
+    (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), node_count_append(parents, shifted, id)):
+    {_ == 1n : Nat}
+  %Equal.sym(Nat, P.node_count(shifted, id), 0n,
+    shifted_nodes_exclude_parent(children, offset, id, dense_owner_below(parents, id, dense, counted))):
+    {(P.node_count(parents, id) + _ : Nat) == 1n : Nat}
+  %Equal.sym(Nat, P.node_count(parents, id), 1n, counted):
+    {(_ + 0n : Nat) == 1n : Nat}
+  {==}
+
+def shifted_counted_above_branch(+children: List<&2, Local.PlannedNode>, +offset: Nat, +id: Nat,
+    counted: {P.node_count(Compose.shift_nodes(children, offset), id) == 1n : Nat},
+    flag: Bool, branch: {Nat.is_lt(id, offset) == flag : Bool}) ->
+    {Nat.is_le(offset, id) == True{} : Bool}:
+  match flag:
+    case False{}: N.le_of_not_lt(id, offset, branch)
+    case True{}:
+      Empty.absurd({Nat.is_le(offset, id) == True{} : Bool},
+        Structure.zero_ne_one(Equal.trans(Nat, 0n, P.node_count(Compose.shift_nodes(children, offset), id), 1n,
+          Equal.sym(Nat, P.node_count(Compose.shift_nodes(children, offset), id), 0n,
+            shifted_nodes_exclude_parent(children, offset, id, branch)), counted)))
+
+def appended_child_node_count(+parents: List<&2, Local.PlannedNode>, +children: List<&2, Local.PlannedNode>, +id: Nat,
+    dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    +counted: {P.node_count(Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents)), id) == 1n : Nat}) ->
+    {P.node_count(List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))), id) == 1n : Nat}:
+  +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+  +shifted: List<&2, Local.PlannedNode> = Compose.shift_nodes(children, offset)
+  %Equal.sym(Nat, P.node_count(List.append(&2, Local.PlannedNode, parents, shifted), id),
+    (P.node_count(parents, id) + P.node_count(shifted, id) : Nat), node_count_append(parents, shifted, id)):
+    {_ == 1n : Nat}
+  %Equal.sym(Nat, P.node_count(parents, id), 0n,
+    dense_count_upper(parents, 0n, id, dense,
+      shifted_counted_above_branch(children, offset, id, counted, Nat.is_lt(id, offset), {==}))):
+    {(_ + P.node_count(shifted, id) : Nat) == 1n : Nat}
+  counted
+
+# Semantic addresses do not shift: fresh-episode disjointness supplies the
+# zero count, while numeric relocation preserves the child address count.
+def appended_parent_address_count(+parents: List<&2, F.AddressEntry>, +children: List<&2, F.AddressEntry>,
+    +offset: Nat, +target: O.NodeAddress,
+    counted: {P.address_count(parents, target) == 1n : Nat},
+    absent: {P.address_count(children, target) == 0n : Nat}) ->
+    {P.address_count(List.append(&2, F.AddressEntry, parents, Mapping.shifted(children, offset)), target) == 1n : Nat}:
+  %Equal.sym(Nat, P.address_count(List.append(&2, F.AddressEntry, parents, Mapping.shifted(children, offset)), target),
+    (P.address_count(parents, target) + P.address_count(Mapping.shifted(children, offset), target) : Nat),
+    address_count_append(parents, Mapping.shifted(children, offset), target)):
+    {_ == 1n : Nat}
+  %Remap.address_count(children, target, offset):
+    {(P.address_count(parents, target) + _ : Nat) == 1n : Nat}
+  %Equal.sym(Nat, P.address_count(children, target), 0n, absent):
+    {(P.address_count(parents, target) + _ : Nat) == 1n : Nat}
+  %Equal.sym(Nat, P.address_count(parents, target), 1n, counted):
+    {(_ + 0n : Nat) == 1n : Nat}
+  {==}
+
+def appended_child_address_count(+parents: List<&2, F.AddressEntry>, +children: List<&2, F.AddressEntry>,
+    +offset: Nat, +target: O.NodeAddress,
+    absent: {P.address_count(parents, target) == 0n : Nat},
+    counted: {P.address_count(Mapping.shifted(children, offset), target) == 1n : Nat}) ->
+    {P.address_count(List.append(&2, F.AddressEntry, parents, Mapping.shifted(children, offset)), target) == 1n : Nat}:
+  %Equal.sym(Nat, P.address_count(List.append(&2, F.AddressEntry, parents, Mapping.shifted(children, offset)), target),
+    (P.address_count(parents, target) + P.address_count(Mapping.shifted(children, offset), target) : Nat),
+    address_count_append(parents, Mapping.shifted(children, offset), target)):
+    {_ == 1n : Nat}
+  %Equal.sym(Nat, P.address_count(parents, target), 0n, absent):
+    {(_ + P.address_count(Mapping.shifted(children, offset), target) : Nat) == 1n : Nat}
+  counted
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>

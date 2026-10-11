@@ -165,16 +165,20 @@ try {
       data = input(session, path, source, branch),
       actual = await drive(session, data)
     assert.equal(actual.result.$, "Types.ReviewUnitResult")
+    let nativeCalls = 0
     const expected = await Effect.runPromise(
       resolveGraphUnit(path, { text: source, byteLength: Buffer.byteLength(source) }, "Root", {
         root: temp,
         policy: DEFAULT_DIRECT_FILE_POLICY,
         branch,
-        now: () => 0
+        now: () => {
+          nativeCalls++
+          return 0
+        }
       })
     )
     assert.equal(JSON.stringify(fromProductValue(actual.result.value)), JSON.stringify(expected))
-    assert.equal(calls, 3)
+    assert.equal(calls, nativeCalls)
     assert.deepEqual(actual.trace, [
       "Types.StartClock",
       "Types.PathExtension",
@@ -182,7 +186,8 @@ try {
       "Types.InspectSource",
       "Types.EncodeProduct",
       "Types.ReadClock",
-      "Types.EncodeProduct"
+      "Types.EncodeProduct",
+      "Types.ReadClock"
     ])
   }
   const graphCases = createGraphFixtures()

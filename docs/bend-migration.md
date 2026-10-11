@@ -198,7 +198,10 @@ One current obstacle list, in execution order:
    cross-episode count exclusion is now checked: the unchanged full prefix
    passed an isolated hard-five-second run at 1.992 seconds; episode inversion
    passed at 2.330 seconds. Its first full-prefix timeout at 5.074 seconds is
-   retained as a failed run, not a verdict. Remaining path: appended alignment,
+   retained as a failed run, not a verdict. Symmetric cross-count, appended
+   address count and exact alignment-row transport pass at 4.052 seconds;
+   all four combined-domain count equations pass with the whole prefix at
+   3.096 seconds. Remaining path: appended alignment,
    full projection, owner-only replacement commutation, semantic validity,
    original eight conjuncts and the existing transaction theorem. No separate
    helper frontier qualifies adoption; the original parent theorem remains WIP.
@@ -225,6 +228,18 @@ One current obstacle list, in execution order:
    resident-owned artifact composition and public service ports, and compare
    flattened request/reply streams and terminals. Native preparation policy
    callbacks or filtered language cases do not close this gate.
+   The resident-owned root consumer now includes all 58 original graph fixture
+   facts through a source-owned verification CLI and the existing runner's
+   subprocess input boundary (V8 preserves Maps/order). It retains the previous
+   46 physical/lifecycle cases and adds final-publication expiry. Qualification
+   is pending: first run found a missing dirname import; a later run exposed
+   incomplete fixture StableCapture facts, now supplied equally to both sides;
+   the full run then found a missing generic final deadline read. Native
+   resolveGraphUnit checks frame.expired before returning every unit, while
+   Machine previously performed final checks only for Python/Go. Generic
+   completion now requests ReadClock using the existing saved product/frame;
+   Machine source checking and both changed Bend formats pass. Full consumer
+   qualification and the original generic IO/trace assertions remain open.
    Unsupported formatter roots remain failures, including
    attachment declaration headers and UnitEvidence/Glob/list blocks.
    Astra's structural review found no blocking ownership/dependency issue in

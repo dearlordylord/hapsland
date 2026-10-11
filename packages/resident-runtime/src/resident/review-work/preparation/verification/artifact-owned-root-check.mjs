@@ -527,7 +527,12 @@ try {
     assert.equal(registry.size, 0)
     cases++
   }
-  for (const fixture of graphFixtures) {
+  const finalDeadlineFixture = {
+    ...graphFixtures.find((fixture) => fixture.name === "bend-unsupported-relative-import"),
+    name: "bend-final-publication-deadline",
+    expireAt: 3
+  }
+  for (const fixture of [...graphFixtures, finalDeadlineFixture]) {
     console.log(JSON.stringify({ graphFixture: fixture.name }))
     const fixtureRoot = join(temp, "whole-" + fixture.name)
     await mkdir(fixtureRoot)
@@ -664,6 +669,7 @@ try {
       cases,
       requests: totalRequests,
       graphConsumerFixtures: graphFixtures.length,
+      finalPublicationDeadlineCases: 1,
       scope:
         "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; all 58 original graph fixture facts compare full native results/effects/cache/errors; original generic IO/trace qualification, real resident preparation progression/retention/revision and universal proofs remain open"
     })
