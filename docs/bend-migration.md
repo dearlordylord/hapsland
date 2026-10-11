@@ -765,3 +765,19 @@ and uses it for both accepted preparation results, removing the private codec
 import without exposing another stage. Two actual changed files pass lint;
 retention-owned-joined-pending physical consumer is running, not yet qualified.
 Whole adoption, original proofs and remaining owner/import gates stay open.
+
+Public retention decode now qualifies retention-owned-joined-pending on actual
+resident resources: 513 preparation requests and 51 post requests, including
+second accepted preparation decode and terminal cleanup. The first two attempts
+stop before fixtures at ArtifactComposition and then GenericArtifact emission
+hard5. Separate unchanged canaries pass 4.349 seconds and 2.802 wall/2.787 CPU;
+the unchanged third focused consumer passes. The five-second deadline remains.
+Unused retention advicee fixture import is removed; actual changed-source lint
+passes and development imports now report seven violations (three root private
+edges and four tooling fixture edges). Full regression and adoption remain open.
+
+Astra's original parent attachment prefix now proves complete appended
+P.forward_nodes from parent/child facts and existing slot-owner separation;
+hard5 CPU10 passes 4.329 wall/3.800 CPU. Original parent law remains unchanged
+and open: semantic address alignment and replacement/frame-validity assembly
+are still required.

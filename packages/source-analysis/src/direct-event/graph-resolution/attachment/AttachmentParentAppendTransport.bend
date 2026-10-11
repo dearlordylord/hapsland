@@ -926,6 +926,72 @@ def indexed_appended(items: List<&2, Local.ReferenceSlot>, +next: Nat, +later: L
           indexed_appended(tail, (next + 1n : Nat), later, children, start, offset, dense, room,
             B.eq_true_of_and_right(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later), rest))))
 
+def child_forward_combined(items: List<&2, Local.PlannedNode>, +parents: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    +owned: {P.slots_owned(slots, parents) == True{} : Bool},
+    +forward: {P.forward_nodes(items, child_slots) == True{} : Bool}) ->
+    {P.forward_nodes(Compose.shift_nodes(items, List.length(&2, Local.PlannedNode, parents)),
+      List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents)))) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case Local.PlannedNode{+id, _} <> +tail:
+      +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+      +combined: List<&2, Local.ReferenceSlot> = List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, offset))
+      B.and_eq_true(P.indexed(P.owner_slots(combined, (id + offset : Nat)), 0n, Compose.shift_nodes(tail, offset)),
+        P.forward_nodes(Compose.shift_nodes(tail, offset), combined),
+        %Equal.sym(List<&2, Local.ReferenceSlot>, P.owner_slots(combined, (id + offset : Nat)),
+          P.owner_slots(Compose.shift_slots(child_slots, offset), (id + offset : Nat)),
+          child_owner_slots(slots, child_slots, parents, id, dense, owned)):
+          {P.indexed(_, 0n, Compose.shift_nodes(tail, offset)) == True{} : Bool}
+        %Remap.owner_slots(child_slots, id, offset):
+          {P.indexed(_, 0n, Compose.shift_nodes(tail, offset)) == True{} : Bool}
+        %Remap.indexed(P.owner_slots(child_slots, id), 0n, tail, offset): {_ == True{} : Bool}
+        B.eq_true_of_and_left(P.indexed(P.owner_slots(child_slots, id), 0n, tail), P.forward_nodes(tail, child_slots), forward),
+        child_forward_combined(tail, parents, slots, child_slots, dense, owned,
+          B.eq_true_of_and_right(P.indexed(P.owner_slots(child_slots, id), 0n, tail), P.forward_nodes(tail, child_slots), forward)))
+
+def forward_appended_cursor(items: List<&2, Local.PlannedNode>, +children: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +child_slots: List<&2, Local.ReferenceSlot>, +start: Nat, +offset: Nat,
+    +dense: {Frame.dense(items, start) == True{} : Bool},
+    +room: {Nat.is_le((start + List.length(&2, Local.PlannedNode, items) : Nat), offset) == True{} : Bool},
+    +forward: {P.forward_nodes(items, slots) == True{} : Bool},
+    +child_forward: {P.forward_nodes(Compose.shift_nodes(children, offset),
+      List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, offset))) == True{} : Bool}) ->
+    {P.forward_nodes(List.append(&2, Local.PlannedNode, items, Compose.shift_nodes(children, offset)),
+      List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, offset))) == True{} : Bool}:
+  match items:
+    case []: child_forward
+    case Local.PlannedNode{+id, +handle} <> +tail:
+      +combined: List<&2, Local.ReferenceSlot> = List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, offset))
+      +tail_dense: {Frame.dense(tail, (start + 1n : Nat)) == True{} : Bool} =
+        B.eq_true_of_and_right(Nat.is_eq(id, start), Frame.dense(tail, (start + 1n : Nat)), dense)
+      +tail_room: {Nat.is_le(((start + 1n : Nat) + List.length(&2, Local.PlannedNode, tail) : Nat), offset) == True{} : Bool} =
+        %Allocation.length_step(start, List.length(&2, Local.PlannedNode, tail)): {Nat.is_le(_, offset) == True{} : Bool}
+        room
+      B.and_eq_true(P.indexed(P.owner_slots(combined, id), 0n,
+          List.append(&2, Local.PlannedNode, tail, Compose.shift_nodes(children, offset))),
+        P.forward_nodes(List.append(&2, Local.PlannedNode, tail, Compose.shift_nodes(children, offset)), combined),
+        %Equal.sym(List<&2, Local.ReferenceSlot>, P.owner_slots(combined, id), P.owner_slots(slots, id),
+          parent_owner_slots(slots, child_slots, offset, id, dense_head_room(id, handle, tail, start, offset, dense, room))):
+          {P.indexed(_, 0n, List.append(&2, Local.PlannedNode, tail, Compose.shift_nodes(children, offset))) == True{} : Bool}
+        indexed_appended(P.owner_slots(slots, id), 0n, tail, children, (start + 1n : Nat), offset, tail_dense, tail_room,
+          B.eq_true_of_and_left(P.indexed(P.owner_slots(slots, id), 0n, tail), P.forward_nodes(tail, slots), forward)),
+        forward_appended_cursor(tail, children, slots, child_slots, (start + 1n : Nat), offset, tail_dense, tail_room,
+          B.eq_true_of_and_right(P.indexed(P.owner_slots(slots, id), 0n, tail), P.forward_nodes(tail, slots), forward), child_forward))
+
+def appended_forward(+parents: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +children: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>,
+    +dense: {Frame.dense(parents, 0n) == True{} : Bool},
+    owned: {P.slots_owned(slots, parents) == True{} : Bool},
+    parent_forward: {P.forward_nodes(parents, slots) == True{} : Bool},
+    child_forward: {P.forward_nodes(children, child_slots) == True{} : Bool}) ->
+    {P.forward_nodes(List.append(&2, Local.PlannedNode, parents, Compose.shift_nodes(children, List.length(&2, Local.PlannedNode, parents))),
+      List.append(&2, Local.ReferenceSlot, slots, Compose.shift_slots(child_slots, List.length(&2, Local.PlannedNode, parents)))) == True{} : Bool}:
+  forward_appended_cursor(parents, children, slots, child_slots, 0n, List.length(&2, Local.PlannedNode, parents), dense,
+    N.le_refl(List.length(&2, Local.PlannedNode, parents)), parent_forward,
+    child_forward_combined(children, parents, slots, child_slots, dense, owned, child_forward))
+
 law parent_attachment_exact:
   for +parent_root: Nat
   for +parent_nodes: List<&2, Local.PlannedNode>
