@@ -1115,6 +1115,27 @@ One current obstacle list, in execution order:
    The new lifetime binding passes types and structural review; late cleanup-failure
    qualification and final production composition review remain required.
 
+   Actual f78305e6 production lifetime checks expose an adoption blocker: the
+   held prepared barrier fails its original two-second close limit; owner barrier,
+   claim-failure cleanup and interrupted capture pass. Resident source types and
+   addressed lint cover the two cancellation-source changes: per-job preparation
+   combines lifetime/work signals and AfterPrepare uses the actual invocation
+   signal. These changes do not close the failing fixture. Temporary diagnostics
+   (removed from authored sources) establish abort delivery, AfterPrepare failure,
+   successful Source finish, InvocationCancelled driver result and settled ingress
+   operation 1; unit operation 3 enters dispatcher settlement without completing.
+   Next concrete diagnostic captures that unit settlement Cause and its exact
+   canonical/native handle projections. Do not increase the two-second limit or
+   claim Source cleanup is stuck. Logs: /tmp/hapsland-shutdown-barrier-diagnostic-
+   {1,2,3,4}.log (first diagnostic is named without -1); retained focused records
+   include 20261012171543453-45085-50b182. Whole acceptance remains zero.
+   Separately, lifecycle Effect.cached caches a failed cleanup Exit, preventing
+   retry; independent outer-scope finalizers can destroy its required services.
+   Remaining repair: serialize close, remember success only, transfer child-scope
+   ownership atomically after composition, and qualify fail-once cleanup through
+   both explicit close and enclosing Scope closure. Preserve exact original Cause
+   and retained resource custody; structural review is advisory, not validation.
+
    The repaired entry now qualifies on 8a905233: normal workspace build passes
    46/46 (15 cached, 57.937s); original construction-defect and cancellation
    counterexamples pass with unchanged expectations (17 and 154 requests).
@@ -1229,6 +1250,17 @@ One current obstacle list, in execution order:
    starts meet cadence. Next starts due: execution 16:52:38.067245, build
    16:54:00.598885 UTC. Prepare/freeze/backup by 16:45. Logs:
    /tmp/hapsland-cf9e361b-{execution-pair,build-pair}.log.
+   Follow-up f78305e6: execution starts 16:51:48.535439, qualified parity
+   0.6823907763598388 (17 pairs, frozen sources and artifacts). Build starts
+   16:52:45.974063, both starts meet cadence. Build is UNQUALIFIED: round 12
+   integratedBend fails inherited admission's five-second owned-lock acquisition;
+   twelve complete pairs precede it. Heads/sources remain unchanged but failed
+   cleanup alters artifacts, so no build ratio/parity is claimed. No owner, lease,
+   lock or group records remain; reconciliation refuses the empty directory as
+   incomplete custody and nothing is deleted. Standard recovery warm restores
+   46/46 tasks, 23 cached, 5.803s. Logs: /tmp/hapsland-f78305e6-{execution-pair,
+   build-pair,recovery-warm}.log. Next starts due: execution 17:21:48.535439,
+   build 17:22:45.974063 UTC; freeze/backup preparation target 17:14.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

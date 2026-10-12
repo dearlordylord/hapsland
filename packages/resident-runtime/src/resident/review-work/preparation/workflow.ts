@@ -18,6 +18,9 @@ export const makeResidentPreparation = (
       expectedActivityUnits: [],
       unassignedClaims: new Set<string>(),
       activeWorkspaces: new Set<CapacityReservation>(),
-      preparationSignal: job.work?.controller.signal ?? deps.residentLifetimeController.signal
+      preparationSignal:
+        job.work === undefined
+          ? deps.residentLifetimeController.signal
+          : AbortSignal.any([job.work.controller.signal, deps.residentLifetimeController.signal])
     })
 })

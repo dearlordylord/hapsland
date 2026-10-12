@@ -563,7 +563,7 @@ export function createSourcePreparationProvider(
                 context.deps.residentPreparationControls.afterPrepare.pipe(
                   Effect.mapError(() => new ResidentAdapterError({ operation: "preparation barrier" }))
                 ),
-                context.preparationSignal
+                options.signal ?? context.preparationSignal
               )
             )
             break
