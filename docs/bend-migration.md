@@ -1064,6 +1064,27 @@ One current obstacle list, in execution order:
    semantics at the Effect entry; retain action sink through shutdown settlement
    and registry.retryCleanup. Entry and shutdown remain open; this is not adoption.
 
+   The whole Source Effect entry is now authored at resident composition and
+   called by the physical consumer. It derives its scope from ledger/job, protects
+   allocation/construction/completion acquisition against interruption, waits
+   native finalization, and preserves late cleanup failures without duplicating
+   already observed promise rejections. Structural review confirms these fixes;
+   allocation publication followed by sink failure remains an open cleanup edge.
+   Source now emits Recovered only at its four successful recovery endpoints,
+   distinguishing swallowed original failure from failed recovery without Host
+   command-history policy. Child construction uses constructionFailed and keeps
+   defect/cleanup Cause. Strict resident types and addressed lint pass; normal
+   builds pass 46/46 (15 cached,121.197s; lifecycle fix 18 cached,140.742s).
+   This entry is UNQUALIFIED: the new full construction-defect correspondence
+   test finds workspace custody still charged during panic diagnostic, while
+   native releases it beforehand. Cancellation-after-enqueue preserves physical
+   flow but entry introduces an Interrupt Cause where native exits successfully.
+   Original expectations remain intact; fix resource-finalizer ordering and map
+   Canonical cancellation separately from Effect fiber interruption before
+   production wiring. Logs: /tmp/hapsland-source-entry-{construction-defect,cancel}.log.
+   A pinned TypeScript version preflight timed out before checking code; CPU11
+   rerun succeeds. No full-consumer or check:fast pass is claimed for this WIP.
+
    Original attachment proof progress: the complete pending witness now follows
    from one original ActualReady.project (qualified 7.973s under the ten-second
    bound). The shared original-ready parent/pending witness passes in 6.068s;
@@ -1076,6 +1097,12 @@ One current obstacle list, in execution order:
    (10.036/10.028s); the isolated factored body exits 1 after 4.464s with a
    TypeScript implementation/BendTT kernel validation mismatch. The next
    diagnostic isolates its failing equality/elimination; no premise is added.
+   A concrete proof-resource correction resolves that kernel mismatch: the
+   reused history equality and projection proof are explicitly duplicable, with
+   no stronger logical premise. Full factored staged-frame body passes 4.314s.
+   The direct wrapper reports a typing seam at 3.960s: eliminate the existing
+   match-valued history result into its explicit equality witness. This wrapper
+   and the whole original theorem remain unqualified.
    Exact staged/history assembly, claims 5–8 and the whole original theorem remain open; original
    law and premises are unchanged. This unfinished source is retained on the branch
    for backup and is not proof acceptance.
@@ -1133,8 +1160,12 @@ One current obstacle list, in execution order:
    1.2397353317336566. Both meet cadence; all 17 pairs preserve heads, sources
    and artifacts, with 23/46 cached tasks and successful exits in every build.
    These production measurements do not qualify the unadopted Preparation unit.
-   Next starts due: execution 15:32:27.842886, build 15:33:26.241129 UTC.
-   Freeze/backup/warm by 15:25. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Follow-up ceb21cfc: execution starts 15:26:29.312266, qualified parity
+   0.8985420994329361; build starts 15:27:35.803887, qualified but fails parity
+   1.1303946679556114. Both meet cadence; all 17 pairs preserve heads, sources
+   and artifacts. Logs: /tmp/hapsland-ceb21cfc-{execution-pair,build-pair}.log.
+   Next starts due: execution 15:56:29.312266, build 15:57:35.803887 UTC.
+   Freeze/backup/warm by 15:55. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

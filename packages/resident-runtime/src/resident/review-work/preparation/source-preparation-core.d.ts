@@ -83,6 +83,7 @@ export type Step =
   | Tagged<"Await", { readonly state: State; readonly request: Request }>
   | Tagged<"Finished">
   | Tagged<"Stopped", { readonly completed: boolean; readonly reason: Reason }>
+  | Tagged<"Recovered", { readonly completed: boolean; readonly reason: Reason }>
   | Tagged<"Rejected">
 
 declare const core: {

@@ -67,6 +67,7 @@ export async function createResidentRetentionContext(
   )
   const transaction = providerTransaction(connection.transaction, connection.bridge)
   const ledger = {
+    canonicalLifetime: 1,
     ...residentCapacity(transaction),
     runtime: residentRuntime(transaction),
     revision: residentRevision(transaction),

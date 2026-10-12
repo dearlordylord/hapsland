@@ -37,7 +37,7 @@ import { createResidentPreparationDriver } from "../../composition/preparation-d
 import { createResidentPreparationSession } from "../../composition/preparation-session.ts"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
 import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
-import { createSourcePreparationProvider } from "../source-preparation-provider.mjs"
+import { runResidentSourcePreparation } from "../../composition/source-preparation-entry.ts"
 const run = Effect.runSync,
   temp = await mkdtemp("/tmp/hapsland-source-composition-")
 try {
@@ -138,6 +138,7 @@ try {
     "full-no-ready",
     "full-comment-update",
     "full-capture-failure",
+    "full-construction-defect",
     "full-inspection-failure",
     "full-inspection-diagnostic-failure",
     "full-activity-refused",
@@ -265,6 +266,8 @@ try {
           candidate: request.command.candidate
         })
         if (session.input?.sourcePreparation) {
+          source = session
+          invocation = session.invocation
           return performPreparationSessionRequest(registry, request, {
             ...options,
             beforeCommand: (command) => {
@@ -603,20 +606,16 @@ try {
         ])
       )
     }
-    const invocation = driver.allocateSourceInvocation({
-      $: "SourceScope",
-      partition: BigInt(partition),
-      lifetime: 1n,
-      round: BigInt(round),
-      observation: BigInt(observationId),
-      permission: { $: "SourceNew" }
-    })
-    const source = createSourcePreparationProvider(BigInt(invocation), context, {
-      owner,
+    let invocation, source, sourceExit, resultFromSource
+    const executeSource = runResidentSourcePreparation(context, {
       bridge,
       driver,
-      candidates,
       entry: fullEntry ? "full" : "after-gates",
+      onTerminal(session, outcome) {
+        source = session
+        invocation = session.invocation
+        resultFromSource = outcome
+      },
       buildPreparationSession: async (invocation, candidate, preparation) => {
         preparationIds.push(preparation.operation)
         const cache = new Map()
@@ -629,6 +628,13 @@ try {
           limits: sourceGraphLimits,
           now: () => 0,
           captureCache: cache,
+          ...(mode === "full-construction-defect"
+            ? {
+                inputContract: () => {
+                  throw injectedPreparationError
+                }
+              }
+            : {}),
           captureSource: mode.startsWith("full-")
             ? (root, selected, ...args) =>
                 (mode === "full-capture-failure"
@@ -717,7 +723,12 @@ try {
         ? captureActivityPublications(context.job.dispatch.activityPath, sourceEffects)
         : undefined
       try {
-        result = await driver.drive(source, source.input, { signal: context.preparationSignal })
+        sourceExit = await Effect.runPromiseExit(executeSource)
+        if (resultFromSource === undefined) {
+          if (Exit.isFailure(sourceExit)) throw Cause.squash(sourceExit.cause)
+          assert.fail("Source entry must expose its terminal observation")
+        }
+        result = resultFromSource
       } catch (error) {
         if (mode !== "source-cleanup-pending") throw error
         assert.ok(error instanceof AggregateError)
@@ -791,6 +802,7 @@ try {
         mode === "first-preparation-failure" ||
         mode === "full-owner-barrier-failure" ||
         mode === "full-capture-failure" ||
+        mode === "full-construction-defect" ||
         mode.startsWith("full-inspection-") ||
         mode === "full-mixed-cause" ||
         registerWorkFailure ||
@@ -855,6 +867,7 @@ try {
               mode === "first-preparation-failure" ||
               mode === "full-owner-barrier-failure" ||
               mode === "full-capture-failure" ||
+              mode === "full-construction-defect" ||
               mode.startsWith("full-inspection-") ||
               mode === "full-mixed-cause" ||
               registerWorkFailure
@@ -977,6 +990,16 @@ try {
         )
         assert.equal(interrupted.length, 1)
         assert.equal(completed.length, 0)
+      } else if (mode === "full-construction-defect") {
+        assert.equal(result.completed, false)
+        assert.equal(result.reason.$, "DefectFailure")
+        assert.equal(recoveryStart, -1)
+        assert.equal(interrupted.length, 1)
+        assert.equal(completed.length, 0)
+        assert.deepEqual(
+          source.cause(result.reason.token).reasons.map((reason) => reason.defect),
+          [injectedPreparationError]
+        )
       } else if (mode === "post-finalizer-cause") {
         assert.equal(result.completed, false)
         assert.equal(result.reason.$, "DefectFailure")
@@ -1068,6 +1091,12 @@ try {
           refuseSecond: mode === "full-refused-second",
           ownerBarrierFailure: mode === "full-owner-barrier-failure",
           captureFailure: mode === "full-capture-failure" ? injectedPreparationError : undefined,
+          inputContract:
+            mode === "full-construction-defect"
+              ? () => {
+                  throw injectedPreparationError
+                }
+              : undefined,
           inspectionFailure: mode.startsWith("full-inspection-") ? injectedPreparationError : undefined,
           diagnosticFailure: mode === "full-inspection-diagnostic-failure" ? injectedDiagnosticError : undefined,
           analyticsCause,
@@ -1108,7 +1137,11 @@ try {
                 fiberId: reason.fiberId
               }))
           )
-        } else if (mode.startsWith("full-inspection-") || registerWorkFailure === "defect") {
+        } else if (
+          mode.startsWith("full-inspection-") ||
+          mode === "full-construction-defect" ||
+          registerWorkFailure === "defect"
+        ) {
           assert.ok(native.exitCause)
           assert.equal(Cause.hasDies(native.exitCause), true)
           if (mode === "full-inspection-failure")
@@ -1124,6 +1157,17 @@ try {
             mode === "full-inspection-diagnostic-failure" || registerWorkFailure === "defect" ? 2 : 1
           )
         } else assert.equal(native.exitCause, undefined)
+        assert.deepEqual(
+          (native.exitCause?.reasons ?? []).map((reason) => ({
+            kind: reason._tag,
+            error: reason.defect ?? reason.error
+          })),
+          (Exit.isFailure(sourceExit) ? sourceExit.cause.reasons : []).map((reason) => ({
+            kind: reason._tag,
+            error: reason.defect ?? reason.error
+          })),
+          `${mode}: actual Source Effect entry preserves native exit`
+        )
         assert.deepEqual(native.canonical, projectCanonical(snapshot.canonical))
         assert.deepEqual(native.trace, sourceEffects)
         const publications = sourceEffects.filter((event) => event.kind === "activity")
@@ -1134,6 +1178,7 @@ try {
           mode === "full-activity-refused" ||
           mode === "full-cancel-after-enqueue" ||
           mode.startsWith("full-inspection-") ||
+          mode === "full-construction-defect" ||
           registerWorkFailure === "defect"
         )
           assert.equal(publications.length, 0)

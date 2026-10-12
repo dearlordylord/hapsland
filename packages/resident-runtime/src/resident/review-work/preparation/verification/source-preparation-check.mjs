@@ -122,7 +122,7 @@ try {
                   response: { $: "ObservationCommittedFailure", token: 93n }
                 })
               ),
-              { $: "Stopped", completed: true, reason: { $: "TechnicalFailure", token: 93n } }
+              { $: "Recovered", completed: true, reason: { $: "TechnicalFailure", token: 93n } }
             )
           reply({ $: "CompletionAccepted", value: true })
         } else {
@@ -179,7 +179,7 @@ try {
         recover(
           core.resume(step, { $: "Reply", invocation: 7n, id: step.request.id, response: { $: "Failed", token: 91n } })
         ),
-        { $: "Stopped", completed: false, reason: { $: "TechnicalFailure", token: 91n } }
+        { $: "Recovered", completed: false, reason: { $: "TechnicalFailure", token: 91n } }
       )
       reply({ $: "Ack" })
     }

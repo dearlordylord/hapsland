@@ -120,6 +120,7 @@ type Step is Data:
   Await{state: State, request: Request}
   Finished{}
   Stopped{completed: Bool, reason: Reason}
+  Recovered{completed: Bool, reason: Reason}
   Rejected{}
 
 def await_command(+invocation: Nat, +next: Nat, policy_required: Bool, completed: Bool, phase: Phase, command: Command) -> Step:
@@ -187,6 +188,13 @@ def initial(invocation: Nat, +policy_required: Bool, controlled_present: Bool, c
 def gate_stopped(reason: Maybe<&2, Reason>) -> Step:
   match reason:
     case Some{value}: Stopped{False{}, value}
+    case None{}: Stopped{False{}, ProtocolFailure{}}
+
+# Successful recovery preserves the original reason for diagnostics but has no
+# failing Effect exit. Recovery failures retain Stopped and their exact token.
+def gate_recovered(reason: Maybe<&2, Reason>) -> Step:
+  match reason:
+    case Some{value}: Recovered{False{}, value}
     case None{}: Stopped{False{}, ProtocolFailure{}}
 
 def gate_after_release(invocation: Nat, next: Nat, policy_required: Bool, candidates: List<&2, Nat>, controlled: Bool, +reason: Maybe<&2, Reason>) -> Step:
@@ -264,8 +272,8 @@ def gate_reply(invocation: Nat, next: Nat, policy_required: Bool, gate: Gate, re
       gate_await(invocation, next, policy_required, candidates, controlled, RecoveryRuntime{}, reason)
     case Gate{candidates, controlled, RecoveryRuntime{}, reason} Active{True{}}:
       gate_await(invocation, next, policy_required, candidates, controlled, RecoveryActivity{}, reason)
-    case Gate{_, _, RecoveryRuntime{}, reason} Active{False{}}: gate_stopped(reason)
-    case Gate{_, _, RecoveryActivity{}, reason} Ack{}: gate_stopped(reason)
+    case Gate{_, _, RecoveryRuntime{}, reason} Active{False{}}: gate_recovered(reason)
+    case Gate{_, _, RecoveryActivity{}, reason} Ack{}: gate_recovered(reason)
     case Gate{candidates, controlled, phase, reason} Failed{token}:
       gate_error(gate_recovering(phase), invocation, next, policy_required, candidates, controlled, reason, TechnicalFailure{token})
     case Gate{candidates, controlled, phase, reason} Defect{token, _, True{}}:
@@ -282,8 +290,8 @@ def recovery_reply(invocation: Nat, next: Nat, policy_required: Bool, completed:
     case RecoveryAnalytics{} Ack{}: recovery_await(invocation, next, policy_required, completed, RecoveryRelease{}, reason)
     case RecoveryRelease{} Ack{}: recovery_await(invocation, next, policy_required, completed, RecoveryRuntime{}, reason)
     case RecoveryRuntime{} Active{True{}}: recovery_await(invocation, next, policy_required, completed, RecoveryActivity{}, reason)
-    case RecoveryRuntime{} Active{False{}}: Stopped{completed, reason}
-    case RecoveryActivity{} Ack{}: Stopped{completed, reason}
+    case RecoveryRuntime{} Active{False{}}: Recovered{completed, reason}
+    case RecoveryActivity{} Ack{}: Recovered{completed, reason}
     case _ Defect{token, _, _}: Stopped{completed, DefectFailure{token}}
     case _ Failed{token}: Stopped{completed, TechnicalFailure{token}}
     case _ Cancelled{token}: Stopped{completed, InvocationCancelled{token}}

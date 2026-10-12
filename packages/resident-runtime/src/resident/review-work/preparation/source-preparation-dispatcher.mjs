@@ -1,5 +1,5 @@
 /**
- * @typedef {{$: "SourcePreparationFinished", completed: true} | {$: "SourcePreparationStopped", completed: boolean, reason: import("./source-preparation-core.js").Reason}} SourceTerminal
+ * @typedef {{$: "SourcePreparationFinished", completed: true} | {$: "SourcePreparationStopped", completed: boolean, recovered: boolean, reason: import("./source-preparation-core.js").Reason}} SourceTerminal
  * @typedef {SourceTerminal | {$: "Types.AwaitService", request: import("./source-preparation-core.js").Request}} SourceProjection
  */
 // Mechanical Canonical driver envelope for the outer source cursor.
@@ -68,13 +68,20 @@ export function createSourcePreparationMachine(core) {
     view: (step) => {
       if (step.$ === "Await") return { $: "Types.AwaitService", request: step.request }
       if (step.$ === "Finished") return { $: "SourcePreparationFinished", completed: true }
-      if (step.$ === "Stopped") return { $: "SourcePreparationStopped", completed: step.completed, reason: step.reason }
+      if (step.$ === "Stopped" || step.$ === "Recovered")
+        return {
+          $: "SourcePreparationStopped",
+          completed: step.completed,
+          recovered: step.$ === "Recovered",
+          reason: step.reason
+        }
       throw new Error("Invalid source cursor projection")
     },
-    /** @param {{ $: "SourcePreparationFinished" | "SourcePreparationStopped", completed: boolean, reason?: import("./source-preparation-core.js").Reason }} projection */
+    /** @param {{ $: "SourcePreparationFinished" | "SourcePreparationStopped", completed: boolean, recovered?: boolean, reason?: import("./source-preparation-core.js").Reason }} projection */
     accepted: (projection) => ({
       completed: projection.completed,
       continued: projection.$ === "SourcePreparationFinished",
+      recovered: projection.recovered === true,
       reason: projection.reason
     }),
     disposeInvocation() {},

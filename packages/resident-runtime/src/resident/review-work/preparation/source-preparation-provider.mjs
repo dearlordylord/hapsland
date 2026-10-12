@@ -20,7 +20,7 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
  * @typedef {{handle: bigint, candidate: bigint, invocation: bigint, admissionRequest: bigint, preparation: AdmittedPreparation}} PreparationReceipt
  * @typedef {ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>} PreparationCapability
  * @typedef {{invocation: number, machine: PreparationCapability["machine"], input: Parameters<PreparationCapability["machine"]["initial"]>[0], perform: (request: Parameters<PreparationCapability["perform"]>[0][number], options: Parameters<PreparationCapability["perform"]>[1]) => ReturnType<PreparationCapability["perform"]>, decode: PreparationCapability["decode"], revoke: () => unknown, close: () => unknown, error?: (token: bigint) => unknown, finish?: () => unknown | Promise<unknown>}} PreparationSession
- * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<PreparationSession | ReturnType<typeof createPostPreparationProvider>>>, "state" | "allocatePreparationInvocation" | "drive" | "handoffResult" | "driveHandoff">} SourceDriver
+ * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<PreparationSession | ReturnType<typeof createPostPreparationProvider>>>, "state" | "allocatePreparationInvocation" | "constructionFailed" | "drive" | "handoffResult" | "driveHandoff">} SourceDriver
  */
 // Foreign effects and opaque receipts for one whole source. The cursor chooses
 // admission, refusal reporting, candidate progression and source completion.
@@ -365,11 +365,28 @@ export function createSourcePreparationProvider(
               },
               parent
             )
-            const session = await buildPreparationSession(
-              prepInvocation,
-              candidate(command.candidate),
-              receipt.preparation
-            )
+            /** @type {PreparationSession} */
+            let session
+            try {
+              session = await run(
+                Effect.promise(() =>
+                  Promise.resolve(
+                    buildPreparationSession(prepInvocation, candidate(command.candidate), receipt.preparation)
+                  )
+                )
+              )
+            } catch (original) {
+              try {
+                driver.constructionFailed(prepInvocation)
+              } catch (cleanup) {
+                failureCause = Cause.combine(failureCause ?? Cause.die(original), Cause.die(cleanup))
+                failureKind = "Defect"
+                throw new AggregateError([original, cleanup], "Preparation construction and cleanup failed", {
+                  cause: original
+                })
+              }
+              throw original
+            }
             const handoff = await driver.drive(session, session.input, { signal: options.signal })
             if (!("handoff" in handoff)) {
               const failure = "failure" in handoff ? handoff.failure : undefined

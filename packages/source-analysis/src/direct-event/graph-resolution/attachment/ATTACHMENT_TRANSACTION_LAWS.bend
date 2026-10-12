@@ -5114,15 +5114,21 @@ def ready_updated_catalog_valid(+attachment: Compose.Attachment, +frame: T.Resol
           BoolFacts.eq_true_of_and_right(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame))),
             BoolFacts.eq_true_of_and_right(ActualFrame.coverage(order, frame), Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)))), checks))))
 
+def ready_registration_history_value(+frame: T.ResolverFrame, +history: V.History, child_history: Phase.ChildHistory, +phase: Phase.Phase) -> V.History:
+  match child_history phase:
+    case Phase.ChildHistory{F.Created{_, _, addresses}, source, catalog, _, _}
+        Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, _, _, pending, _, _, _, _}, _}:
+      History.extend(history, addresses, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)), History.ids(pending, S.frame_next_edge(frame)), source, catalog)
+
 def ready_selected_frame_parent_fields(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
     +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending, +references: List<&2, Local.ReferenceSlot>, +forest: F.Forest,
-    history_known: ready_registration_history_result(frame, history, child_history, phase),
+    +history_known: {History.measurement(phase, history) == ready_registration_history_value(frame, history, child_history, phase) : V.History},
     budget_known: ready_retained_budget_result(frame, child),
     pending_known: ready_measured_pending_result(child, history, child_history, phase, frame, references),
     coverage_known: ready_selected_coverage_result(child, history, child_history, phase, frame, references),
     checks: {frame_checks(frame, history) == True{} : Bool},
     old_projected: {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>},
-    projection: {P.project(S.frame_root(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)),
+    +projection: {P.project(S.frame_root(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)),
       S.frame_nodes(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)),
       S.frame_references(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)), S.frame_artifacts(frame),
       ready_history_addresses(History.measurement(phase, history))) == Some{forest} : Maybe<&2, F.Forest>},

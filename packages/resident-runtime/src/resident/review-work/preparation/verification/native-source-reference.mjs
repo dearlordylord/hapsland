@@ -125,6 +125,7 @@ export async function nativeSourceReference({
   refuseSecond = false,
   ownerBarrierFailure = false,
   captureFailure,
+  inputContract,
   inspectionFailure,
   diagnosticFailure,
   analyticsCause,
@@ -209,7 +210,7 @@ export async function nativeSourceReference({
     }
   context.deps.residentInspection = {
     ...context.deps.residentInspection,
-    preparationPorts: () => ({}),
+    preparationPorts: () => (inputContract === undefined ? {} : { inputContract }),
     observePreparation: (_job, value) => {
       trace.push({ kind: "prepared", value })
       if (inspectionFailure) throw inspectionFailure
