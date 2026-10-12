@@ -5,63 +5,44 @@ import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/adapt
 import { projectTrustedCanonical } from "@hapsland/canonical-policy/canonical/canonical-boundary"
 import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 
-// Intermediate checked-artifact ABI conversion. Only the module prefix and Nat
-// representation differ; no admission, continuation or child policy lives here.
-const prefix = "../"
-const convert = (value, toOwner) => {
-  if (typeof value === "number") {
-    if (!Number.isSafeInteger(value) || value < 0) throw new TypeError("Inexact Canonical Nat")
-    return toOwner ? BigInt(value) : value
-  }
-  if (typeof value === "bigint") {
-    if (toOwner) return value
-    const number = Number(value)
-    if (!Number.isSafeInteger(number) || BigInt(number) !== value || number < 0)
-      throw new TypeError("Inexact published Canonical Nat")
-    return number
-  }
-  if (Array.isArray(value)) return value.map((item) => convert(item, toOwner))
-  if (value && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        key === "$"
-          ? toOwner && item.includes(".") && !item.startsWith(prefix)
-            ? prefix + item
-            : !toOwner && item.startsWith(prefix)
-              ? item.slice(prefix.length)
-              : item
-          : convert(item, toOwner)
-      ])
-    )
-  return value
-}
-const list = (value) => {
-  const out = []
-  while (value.$ === "Con") {
-    out.push(value.head)
-    value = value.tail
-  }
-  if (value.$ !== "Nil") throw new TypeError("Malformed owner command list")
-  return out
-}
+import { toOwner, fromOwner, toOwnerCanonical, ownerList, ownerSequence } from "./resolver-transport.ts"
+
+/**
+ * @param {{ owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner,
+ * transaction: import("./provider-authority.ts").NativeTransaction,
+ * onActions?: (actions: readonly import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action[]) => Effect.Effect<void>,
+ * validateAdviceInput?: (invocation: bigint, inputHandle: bigint) => boolean }} options
+ */
 export function createResidentOwnerTransaction({
   owner,
   transaction,
   onActions = () => Effect.void,
   validateAdviceInput
 }) {
-  const adviceReceipts = new Map(),
-    sourceReservations = new Map()
+  /** @type {Map<bigint, import("./provider-authority.ts").AdviceReceipt>} */
+  const adviceReceipts = new Map()
+  /** @type {Map<bigint, { readonly reservation: import("../capacity/model.ts").CapacityReservation | undefined }>} */
+  const sourceReservations = new Map()
+  /**
+   * @param {import("../capacity/model.ts").CapacityDraft} draft
+   * @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Publication} raw
+   * @returns {import("./provider-authority.ts").OwnerPublication}
+   */
   const publication = (draft, raw) => {
     if (raw.$ === "Refused") return { refusal: raw.refusal, actions: [], outputs: [], raw }
     if (raw.$ !== "Published") throw new TypeError("Malformed resident owner publication")
-    const canonical = convert(raw.canonical, false)
+    const canonical = fromOwner(raw.canonical)
     projectTrustedCanonical(canonical)
     draft.canonical = canonical
     draft.resolverCustody = freezeCanonicalData(raw.custody)
-    return { actions: list(raw.actions), outputs: convert(list(raw.outputs), false), raw }
+    return { actions: ownerList(raw.actions), outputs: fromOwner(ownerList(raw.outputs)), raw }
   }
+  /**
+   * @template {{ actions: readonly import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action[] }} A
+   * @param {Effect.Effect<A>} effect
+   * @param {((publication: A) => void) | undefined} [onCommitted]
+   * @returns {Effect.Effect<A>}
+   */
   const finish = (effect, onCommitted) =>
     Effect.uninterruptible(
       effect.pipe(
@@ -70,14 +51,51 @@ export function createResidentOwnerTransaction({
         )
       )
     )
+  /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent} input */
   const committedEvent = (input) =>
     transaction.commitAllEffect((draft, records) => [
-      publication(draft, owner.resident_step(convert(draft.canonical, true), draft.resolverCustody, input)),
+      publication(draft, owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, input)),
       records
     ])
+  /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent} input */
   const event = (input) => finish(committedEvent(input))
+  /**
+   * @param {unknown} value
+   * @param {import("./provider-authority.ts").PendingRestore | undefined} pending
+   * @returns {import("./provider-authority.ts").NativePublication<unknown>["restoredPending"]}
+   */
+  const restoredPending = (value, pending) => {
+    if (!pending || !value || typeof value !== "object" || !("revision" in value) || !value.revision) return undefined
+    const revision = value.revision
+    if (
+      typeof revision !== "object" ||
+      !("subject" in revision) ||
+      typeof revision.subject !== "string" ||
+      !("token" in revision) ||
+      typeof revision.token !== "string" ||
+      !("generation" in revision) ||
+      typeof revision.generation !== "number"
+    )
+      throw new TypeError("Malformed restored native revision")
+    return {
+      pendingOwnerIdentity: pending.owner,
+      revision: /** @type {import("../revision.ts").WorkRevision} */ (revision)
+    }
+  }
   // Existing native capacity operations run once. Their resulting state and child
   // invalidation are published by the same actual resident commitAllEffect.
+  /**
+   * @template A
+   * @param {import("./provider-authority.ts").NativeOperation<A>} operation
+   * @param {import("./provider-authority.ts").ProviderLease | undefined} [credential]
+   * @param {import("./provider-authority.ts").CommitReceipt | undefined} [onCommitted]
+   * @param {import("./provider-authority.ts").PendingRestore | undefined} [pendingRestore]
+   * @param {(import("./provider-authority.ts").AdviceBinding & { permission: import("@hapsland/agent-flow-bend/canonical-resolver-owner").AdvicePermission }) | undefined} [adviceTail]
+   * @param {{ initial: import("../advice-records.ts").AdviceInitial, inputHandle: bigint } | undefined} [adviceBirth]
+   * @param {import("./provider-authority.ts").AdviceBinding | undefined} [cleanupAdvice]
+   * @param {{ readonly reservation: import("../capacity/model.ts").CapacityReservation | undefined } | undefined} [sourceRelease]
+   * @returns {Effect.Effect<import("./provider-authority.ts").NativePublication<A>>}
+   */
   const nativeCommit = (
     operation,
     credential,
@@ -92,13 +110,15 @@ export function createResidentOwnerTransaction({
       transaction.commitAllEffect((draft, records) => {
         if (
           adviceBirth &&
-          (!validateAdviceInput || validateAdviceInput(credential.invocation, adviceBirth.inputHandle) !== true)
+          (!credential ||
+            !validateAdviceInput ||
+            validateAdviceInput(credential.invocation, adviceBirth.inputHandle) !== true)
         )
           throw new Error("Advice input is not owned by its origin")
         if (
           credential &&
           !owner.provider_live(
-            owner.assembled(convert(draft.canonical, true), draft.resolverCustody),
+            owner.assembled(toOwnerCanonical(draft.canonical), draft.resolverCustody),
             credential.invocation,
             credential.generation,
             credential.lease,
@@ -115,7 +135,8 @@ export function createResidentOwnerTransaction({
           throw new Error("Source observation completion requires its closed operation")
         if (
           sourceRelease &&
-          (child?.$ !== "Some" ||
+          (!credential ||
+            child?.$ !== "Some" ||
             child.value.scope.$ !== "AfterSourceScope" ||
             child.value.scope.permission.$ !== "AfterRecoveryRelease" ||
             sourceReservations.get(credential.invocation) !== sourceRelease)
@@ -127,9 +148,10 @@ export function createResidentOwnerTransaction({
           child?.$ === "Some" && child.value.scope.$ === "AdviceTailScope" ? child.value.scope : undefined
         if (tailScope) {
           if (
+            !credential ||
             !adviceTail ||
             !owner.advice_provider_allowed(
-              owner.assembled(convert(draft.canonical, true), draft.resolverCustody),
+              owner.assembled(toOwnerCanonical(draft.canonical), draft.resolverCustody),
               credential.invocation,
               credential.generation,
               credential.lease,
@@ -154,18 +176,19 @@ export function createResidentOwnerTransaction({
         // Observe every assignment, including reset -> recreation in one callback.
         // This prototype interception is replaced by closed production capacity calls.
         let canonical = draft.canonical
+        /** @type {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action[]} */
         const actions = []
         Object.defineProperty(draft, "canonical", {
           configurable: true,
           enumerable: true,
           get: () => canonical,
           set: (next) => {
-            const raw = owner.resident_reconcile(convert(next, true), draft.resolverCustody)
+            const raw = owner.resident_reconcile(toOwnerCanonical(next), draft.resolverCustody)
             if (raw.$ !== "Published") throw new TypeError("Malformed native reconciliation")
             projectTrustedCanonical(next)
             canonical = next
             draft.resolverCustody = freezeCanonicalData(raw.custody)
-            actions.push(...list(raw.actions))
+            actions.push(...ownerList(raw.actions))
           }
         })
         let value, nextRecords
@@ -179,21 +202,29 @@ export function createResidentOwnerTransaction({
             value: canonical
           })
         }
-        const reconciled = publication(draft, owner.resident_reconcile(convert(canonical, true), draft.resolverCustody))
-        let result = reconciled,
-          adviceReceipt
+        const reconciled = publication(
+          draft,
+          owner.resident_reconcile(toOwnerCanonical(canonical), draft.resolverCustody)
+        )
+        let result = reconciled
+        /** @type {import("./provider-authority.ts").AdviceReceipt | undefined} */
+        let adviceReceipt
         if (adviceBirth) {
+          const inserted = nextRecords.advice.entries.get(adviceBirth.initial.id)?.capability
           if (
-            value?.reservation !== adviceBirth.initial.reservation ||
-            value?.revision !== adviceBirth.initial.revision
+            !credential ||
+            !inserted ||
+            inserted !== value ||
+            inserted.reservation !== adviceBirth.initial.reservation ||
+            inserted.revision !== adviceBirth.initial.revision
           )
             throw new Error("Advice insertion changed resource identity")
           result = publication(
             draft,
-            owner.resident_step(convert(draft.canonical, true), draft.resolverCustody, {
+            owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, {
               $: "HandoffAdviceEvent",
               ...credential,
-              operation: BigInt(value.canonicalOperationId),
+              operation: BigInt(inserted.canonicalOperationId),
               input_handle: adviceBirth.inputHandle
             })
           )
@@ -207,13 +238,13 @@ export function createResidentOwnerTransaction({
             invocation: launch.invocation,
             origin: credential.invocation,
             inputHandle: adviceBirth.inputHandle,
-            capability: value,
+            capability: inserted,
             scope: freezeCanonicalData(child.value.scope)
           })
         }
         const ownershipBinding = adviceTail ?? cleanupAdvice
         const joined = [...actions, ...reconciled.actions, ...(adviceBirth ? result.actions : [])]
-        const bendList = joined.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+        const bendList = ownerSequence(joined)
         return [
           {
             ...result,
@@ -238,10 +269,7 @@ export function createResidentOwnerTransaction({
             actions: joined,
             raw: { ...result.raw, actions: bendList },
             value,
-            restoredPending:
-              pendingRestore && value?.revision
-                ? { pendingOwnerIdentity: pendingRestore.owner, revision: value.revision }
-                : undefined,
+            restoredPending: restoredPending(value, pendingRestore),
             claimedKeys:
               credential && nextRecords.reuse
                 ? [...nextRecords.reuse.pending.keys()].filter((key) => !records.reuse.pending.has(key))
@@ -262,10 +290,14 @@ export function createResidentOwnerTransaction({
         onCommitted?.(publication)
       }
     )
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {((publication: import("./provider-authority.ts").OwnerPublication) => void) | undefined} [onCommitted]
+   */
   const startSourceObservation = (credential, onCommitted) =>
     finish(
       transaction.commitAllEffect((draft, records) => {
-        const raw = owner.resident_step(convert(draft.canonical, true), draft.resolverCustody, {
+        const raw = owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, {
           $: "StartSourceObservationEvent",
           ...credential
         })
@@ -275,10 +307,14 @@ export function createResidentOwnerTransaction({
         if (!result.refusal) onCommitted?.(result)
       }
     )
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {((publication: import("./provider-authority.ts").OwnerPublication) => void) | undefined} [onCommitted]
+   */
   const completeSourceObservation = (credential, onCommitted) =>
     finish(
       transaction.commitAllEffect((draft, records) => {
-        const raw = owner.resident_step(convert(draft.canonical, true), draft.resolverCustody, {
+        const raw = owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, {
           $: "CompleteSourceObservationEvent",
           ...credential
         })
@@ -287,6 +323,10 @@ export function createResidentOwnerTransaction({
       }),
       onCommitted
     )
+  /**
+   * @param {bigint} invocation
+   * @param {import("../capacity/model.ts").CapacityReservation | undefined} reservation
+   */
   const bindSourceReservation = (invocation, reservation) => {
     const snapshot = Effect.runSync(transaction.read)
     const child = owner.find(invocation, snapshot.resolverCustody.children)
@@ -302,6 +342,7 @@ export function createResidentOwnerTransaction({
       throw new Error("Source reservation must bind before invocation launch")
     sourceReservations.set(invocation, Object.freeze({ reservation }))
   }
+  /** @param {bigint} invocation */
   const forgetSourceReservation = (invocation) => {
     const snapshot = Effect.runSync(transaction.read),
       child = owner.find(invocation, snapshot.resolverCustody.children),
@@ -312,6 +353,10 @@ export function createResidentOwnerTransaction({
       throw new Error("Original source reservation remains owned")
     return sourceReservations.delete(invocation)
   }
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("./provider-authority.ts").CommitReceipt | undefined} [onCommitted]
+   */
   const releaseSourceReservation = (credential, onCommitted) => {
     const receipt = sourceReservations.get(credential.invocation)
     if (!receipt) throw new Error("Source reservation not bound")
@@ -329,11 +374,21 @@ export function createResidentOwnerTransaction({
       receipt
     )
   }
+  /** @type {import("./provider-authority.ts").ProviderCommitBridge["native"]} */
   const native = (operation, onCommitted) => nativeCommit(operation, undefined, onCommitted)
+  /** @type {import("./provider-authority.ts").ProviderCommitBridge["nativeScoped"]} */
   const nativeScoped = (credential, operation, onCommitted) => nativeCommit(operation, credential, onCommitted)
+  /** @type {import("./provider-authority.ts").ProviderCommitBridge["nativeRestorePending"]} */
   const nativeRestorePending = (credential, pendingOwner, operation, onCommitted) =>
     nativeCommit(operation, credential, onCommitted, pendingOwner)
   // Closed effect bindings: callers cannot supply a native transaction callback.
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("../advice-records.ts").Advice} capability
+   * @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").AdvicePermission} permission
+   * @param {import("./provider-authority.ts").CommitReceipt | undefined} onCommitted
+   * @param {import("../../review-work/preparation/post-preparation-core.js").AdviceRetirement | undefined} [retirement]
+   */
   const adviceTailBinding = (credential, capability, permission, onCommitted, retirement) =>
     residentAdvice({
       ...transaction,
@@ -342,6 +397,12 @@ export function createResidentOwnerTransaction({
           Effect.map((result) => result.value)
         )
     })
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("../advice-records.ts").AdviceInitial} initial
+   * @param {bigint} inputHandle
+   * @param {import("./provider-authority.ts").CommitReceipt | undefined} [onCommitted]
+   */
   const adviceInsertAndHandoff = (credential, initial, inputHandle, onCommitted) => {
     if (!credential || typeof inputHandle !== "bigint" || inputHandle < 1n)
       throw new Error("Advice birth requires provider credential and opaque input handle")
@@ -353,14 +414,27 @@ export function createResidentOwnerTransaction({
         )
     }).insert(initial)
   }
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("../advice-records.ts").Advice} capability
+   * @param {import("./provider-authority.ts").CommitReceipt | undefined} [onCommitted]
+   */
   const adviceTailPublish = (credential, capability, onCommitted) =>
     adviceTailBinding(credential, capability, { $: "TailPublish" }, onCommitted).publish(capability)
+  /** @param {import("../../review-work/preparation/post-preparation-core.js").AdviceRetirement} retirement */
   const retirementReason = (retirement) => {
     if (retirement.$ === "ExpiredRetirement") return "expired"
     if (retirement.$ === "RetentionFailureRetirement") return "stale"
     throw new Error("Invalid advice retirement")
   }
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("../advice-records.ts").Advice} capability
+   * @param {import("./provider-authority.ts").CommitReceipt | undefined} onCommitted
+   * @param {import("../../review-work/preparation/post-preparation-core.js").AdviceRetirement} [retirement]
+   */
   const adviceTailRemove = (credential, capability, onCommitted, retirement = { $: "RetentionFailureRetirement" }) => {
+    /** @type {import("./provider-authority.ts").AdviceOwnership | undefined} */
     let ownership
     return adviceTailBinding(
       credential,
@@ -377,6 +451,11 @@ export function createResidentOwnerTransaction({
   }
   // A registry finalizer can remove only its exact capability after the lease ends.
   // Native advice.remove confirms absence without touching a replacement identity.
+  /**
+   * @param {import("../advice-records.ts").Advice} capability
+   * @param {import("./provider-authority.ts").CommitReceipt | undefined} onCommitted
+   * @param {import("../../review-work/preparation/post-preparation-core.js").AdviceRetirement} [retirement]
+   */
   const adviceCleanup = (capability, onCommitted, retirement = { $: "RetentionFailureRetirement" }) =>
     residentAdvice({
       ...transaction,
@@ -386,19 +465,47 @@ export function createResidentOwnerTransaction({
           retirement
         }).pipe(Effect.map((result) => result.value))
     }).remove(capability, retirementReason(retirement))
+  /**
+   * @param {import("./provider-authority.ts").OwnerPublication} result
+   * @returns {import("./provider-authority.ts").ControlledStep}
+   */
   const ownerStep = (result) =>
     result.raw.$ === "Refused"
       ? { $: "Rejected", refusal: result.raw.refusal }
       : { $: "Advanced", actions: result.raw.actions, outputs: result.raw.outputs }
   const methods = {
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchEvent" }> ["scope"]} scope
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchEvent" }> ["input_handle"]} input_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchEvent" }>}
+     */
     launch: (scope, input_handle) => ({ $: "LaunchEvent", scope, input_handle }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourceEvent" }> ["scope"]} scope
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourceEvent" }> ["input_handle"]} input_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourceEvent" }>}
+     */
     launch_source: (scope, input_handle) => ({ $: "LaunchSourceEvent", scope, input_handle }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourcePreparationEvent" }> ["parent"]} parent
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourcePreparationEvent" }> ["scope"]} scope
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourcePreparationEvent" }> ["input_handle"]} input_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourcePreparationEvent" }>}
+     */
     launch_source_preparation: (parent, scope, input_handle) => ({
       $: "LaunchSourcePreparationEvent",
       parent,
       scope,
       input_handle
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAfterSourceEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAfterSourceEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAfterSourceEvent" }> ["handle"]} handle
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAfterSourceEvent" }> ["request"]} request
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAfterSourceEvent" }> ["permission"]} permission
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAfterSourceEvent" }>}
+     */
     install_after_source: (invocation, generation, handle, request, permission) => ({
       $: "InstallAfterSourceEvent",
       invocation,
@@ -407,6 +514,14 @@ export function createResidentOwnerTransaction({
       request,
       permission
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallSourceEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallSourceEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallSourceEvent" }> ["handle"]} handle
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallSourceEvent" }> ["request"]} request
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallSourceEvent" }> ["permission"]} permission
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallSourceEvent" }>}
+     */
     install_source: (invocation, generation, handle, request, permission) => ({
       $: "InstallSourceEvent",
       invocation,
@@ -415,26 +530,61 @@ export function createResidentOwnerTransaction({
       request,
       permission
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchPreparationEvent" }> ["scope"]} scope
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchPreparationEvent" }> ["input_handle"]} input_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchPreparationEvent" }>}
+     */
     launch_preparation: (scope, input_handle) => ({ $: "LaunchPreparationEvent", scope, input_handle }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalPreparationEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalPreparationEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalPreparationEvent" }> ["result_handle"]} result_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalPreparationEvent" }>}
+     */
     terminal_preparation: (invocation, generation, result_handle) => ({
       $: "TerminalPreparationEvent",
       invocation,
       generation,
       result_handle
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalSourceFailedEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalSourceFailedEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalSourceFailedEvent" }> ["result_handle"]} result_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalSourceFailedEvent" }>}
+     */
     terminal_source_failed: (invocation, generation, result_handle) => ({
       $: "TerminalSourceFailedEvent",
       invocation,
       generation,
       result_handle
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalPreparationFailedEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalPreparationFailedEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalPreparationFailedEvent" }> ["result_handle"]} result_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalPreparationFailedEvent" }>}
+     */
     terminal_preparation_failed: (invocation, generation, result_handle) => ({
       $: "TerminalPreparationFailedEvent",
       invocation,
       generation,
       result_handle
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchNestedEvent" }> ["parent"]} parent
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchNestedEvent" }> ["input_handle"]} input_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchNestedEvent" }>}
+     */
     launch_nested: (parent, input_handle) => ({ $: "LaunchNestedEvent", parent, input_handle }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallEvent" }> ["handle"]} handle
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallEvent" }> ["request"]} request
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallEvent" }>}
+     */
     install: (invocation, generation, handle, request) => ({
       $: "InstallEvent",
       invocation,
@@ -442,6 +592,14 @@ export function createResidentOwnerTransaction({
       handle,
       request
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAdviceEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAdviceEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAdviceEvent" }> ["handle"]} handle
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAdviceEvent" }> ["request"]} request
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAdviceEvent" }> ["permission"]} permission
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "InstallAdviceEvent" }>}
+     */
     install_advice: (invocation, generation, handle, request, permission) => ({
       $: "InstallAdviceEvent",
       invocation,
@@ -450,7 +608,18 @@ export function createResidentOwnerTransaction({
       request,
       permission
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "ProviderStartEvent" }> ["invocation"]} invocation
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "ProviderStartEvent" }>}
+     */
     provider_start: (invocation) => ({ $: "ProviderStartEvent", invocation }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "ProviderCompletedEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "ProviderCompletedEvent" }> ["lease"]} lease
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "ProviderCompletedEvent" }> ["request"]} request
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "ProviderCompletedEvent" }> ["reply_handle"]} reply_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "ProviderCompletedEvent" }>}
+     */
     provider_completed: (invocation, lease, request, reply_handle) => ({
       $: "ProviderCompletedEvent",
       invocation,
@@ -458,19 +627,39 @@ export function createResidentOwnerTransaction({
       request,
       reply_handle
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "CancelEvent" }> ["invocation"]} invocation
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "CancelEvent" }>}
+     */
     cancel: (invocation) => ({ $: "CancelEvent", invocation }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalAdvicePreservedEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalAdvicePreservedEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalAdvicePreservedEvent" }> ["result_handle"]} result_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalAdvicePreservedEvent" }>}
+     */
     terminal_advice_preserved: (invocation, generation, result_handle) => ({
       $: "TerminalAdvicePreservedEvent",
       invocation,
       generation,
       result_handle
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalEvent" }> ["invocation"]} invocation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalEvent" }> ["generation"]} generation
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalEvent" }> ["result_handle"]} result_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "TerminalEvent" }>}
+     */
     terminal: (invocation, generation, result_handle) => ({
       $: "TerminalEvent",
       invocation,
       generation,
       result_handle
     }),
+    /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "CanonicalEvent" }> ["event"]} event
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "CanonicalEvent" }>}
+     */
     canonical_event: (event) => ({ $: "CanonicalEvent", event })
   }
   // Synchronous driver calls are serialized through the actual Ref transaction.
@@ -478,11 +667,22 @@ export function createResidentOwnerTransaction({
   const control = {
     readState() {
       const snapshot = Effect.runSync(transaction.read)
-      return owner.assembled(convert(snapshot.canonical, true), snapshot.resolverCustody)
+      return owner.assembled(toOwnerCanonical(snapshot.canonical), snapshot.resolverCustody)
     },
+    /**
+     * @template {keyof typeof methods} Method
+     * @param {Method} method
+     * @param {Parameters<(typeof methods)[Method]>} args
+     */
     invoke(method, args) {
       if (!Object.hasOwn(methods, method)) throw new Error("Unknown resident owner entry")
-      return ownerStep(Effect.runSync(committedEvent(methods[method](...args))))
+      // The checked method table correlates each name with its exact event fields.
+      // Preserve that generic correlation where indexed union call inference loses it.
+      const makeEvent =
+        /** @type {(...args: Parameters<(typeof methods)[Method]>) => import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent} */ (
+          methods[method]
+        )
+      return ownerStep(Effect.runSync(committedEvent(makeEvent(...args))))
     }
   }
   return {
@@ -505,6 +705,7 @@ export function createResidentOwnerTransaction({
     adviceCleanup,
     control,
     ownerStep,
-    canonical: (input) => event({ $: "CanonicalEvent", event: convert(encodeCanonicalEvent(input), true) })
+    /** @param {import("@hapsland/canonical-policy/canonical/adapter").CanonicalEvent} input */
+    canonical: (input) => event({ $: "CanonicalEvent", event: toOwner(encodeCanonicalEvent(input)) })
   }
 }

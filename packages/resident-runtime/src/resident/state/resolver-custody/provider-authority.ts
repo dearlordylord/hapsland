@@ -10,7 +10,7 @@ export type ProviderLease = Omit<Extract<Owner.ResidentEvent, { readonly $: "Sta
 export type PendingRestore = { readonly key: string; readonly owner: UnitJob }
 
 // Inverse of the already-declared owner Nat/tag conversion for Canonical outputs.
-type HostTransport<Value> = Value extends bigint
+export type HostTransport<Value> = Value extends bigint
   ? number
   : Value extends object
     ? {
@@ -25,13 +25,44 @@ type ListHead<Value> = Value extends { readonly $: "Con"; readonly head: infer H
 type Published = Extract<Owner.Publication, { readonly $: "Published" }>
 export type OwnerOutput = HostTransport<ListHead<Published["outputs"]>>
 
-export type NativePublication<Value> = {
-  readonly value: Value
+export type OwnerPublication = {
   readonly raw: Owner.Publication
   readonly actions: readonly Owner.Action[]
   readonly outputs: readonly OwnerOutput[]
   readonly refusal?: Owner.Refusal | undefined
 }
+export type AdviceReceipt = {
+  readonly invocation: bigint
+  readonly origin: bigint
+  readonly inputHandle: bigint
+  readonly capability: import("../advice-records.ts").Advice
+  readonly scope: Extract<Owner.Scope, { readonly $: "AdviceTailScope" }>
+}
+export type AdviceOwnership = {
+  readonly capability: import("../advice-records.ts").Advice
+  readonly presentBefore: boolean
+  readonly presentAfter: boolean
+  readonly removed: boolean
+  readonly findings: import("../advice-records.ts").AdviceContent["findings"] | undefined
+  readonly retirement: import("../../review-work/preparation/post-preparation-core.js").AdviceRetirement | undefined
+}
+export type AdviceBinding = {
+  readonly capability: import("../advice-records.ts").Advice
+  readonly retirement?: import("../../review-work/preparation/post-preparation-core.js").AdviceRetirement | undefined
+}
+export type NativePublication<Value> = OwnerPublication & {
+  readonly value: Value
+  readonly adviceReceipt?: AdviceReceipt | undefined
+  readonly adviceOwnership?: AdviceOwnership | undefined
+  readonly restoredPending?:
+    | { readonly pendingOwnerIdentity: UnitJob; readonly revision: import("../revision.ts").WorkRevision }
+    | undefined
+  readonly claimedKeys: readonly string[]
+  readonly transferredUnits: readonly Job[]
+}
+export type ControlledStep =
+  | Omit<Extract<Owner.Step, { readonly $: "Advanced" }>, "state">
+  | Omit<Extract<Owner.Step, { readonly $: "Rejected" }>, "state">
 export type CommitReceipt = (publication: NativePublication<unknown>) => void
 export type ProviderPermit = {
   readonly credential: ProviderLease

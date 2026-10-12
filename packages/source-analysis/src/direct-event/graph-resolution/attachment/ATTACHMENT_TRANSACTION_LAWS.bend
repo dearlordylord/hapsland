@@ -1,5 +1,7 @@
 import Base
 import ../Composition.bend as Compose
+import ../SPEC.bend as RootSpec
+import ./AttachmentNaturalKeyEqualityProof.bend as NaturalKeys
 import ../Root.bend as PreparedRoot
 import ../ForestAllowance.bend as Allowance
 import ../traversal/patricia-proof/PATRICIA_MEMBERSHIP_PROOF.bend as Membership
@@ -1964,6 +1966,332 @@ def ready_joint_measurement_witness(+continuation: Loop.Continuation, +selection
           Equal.sym(Maybe<&2, T.Request>, ready_loop_request(continuation), ReferenceBoundary.selected_request(selection), selected),
           Equal.cong(Loop.Continuation, Maybe<&2, T.Request>, value => ready_loop_request(value),
             continuation, Loop.ServiceStep{T.AwaitService{state, request}}, awaiting))}}}}}
+
+# The staged witness is the original Frame observation with only the fields
+# changed by attachment/registration replaced. No runtime state is introduced.
+def ready_staged_frame(view: V.Frame, +forest: F.Forest,
+    more: List<&2, V.PendingEntry>, next: Nat) -> V.Frame:
+  match view:
+    case V.Frame{branch, limits, graph, command, deps, _, pending, targets, ids,
+      captured, identities, visited, budget, _, _, target, artifact, artifacts, remaining, episode}:
+      V.Frame{branch, limits, graph, command, deps, forest,
+        List.append(&2, V.PendingEntry, pending, more), targets, ids, captured, identities,
+        visited, budget, ReferenceFrame.node_count(forest), next, target, artifact,
+        artifacts, remaining, (episode + 1n : Nat)}
+
+def ready_staged_observation(value: Maybe<&2, V.Frame>, +forest: F.Forest,
+    +more: List<&2, V.PendingEntry>, +next: Nat) -> Maybe<&2, V.Frame>:
+  match value:
+    case Some{view}: Some{ready_staged_frame(view, forest, more, next)}
+    case None{}: None{}
+
+def ready_reference_staged_state(+state: D.State, forest: F.Forest,
+    more: List<&2, X.Edge>, next: Nat) -> D.State:
+  match state:
+    case D.State{_, X.Frame{graph, command, _, local, pending, captured, identities,
+      _, episode, artifact, dependencies, fingerprint}, _, _, _, _, _, _, _}:
+      D.with_frame(state, X.Frame{graph, command, forest, local,
+        List.append(&2, X.Edge, pending, more), captured, identities,
+        next, (episode + 1n : Nat), artifact, dependencies, fingerprint})
+
+def ready_reference_pending_append(+items: List<&2, X.Edge>, +more: List<&2, X.Edge>) ->
+    {ReferenceFrame.pending(List.append(&2, X.Edge, items, more))
+      == List.append(&2, V.PendingEntry, ReferenceFrame.pending(items), ReferenceFrame.pending(more)) : List<&2, V.PendingEntry>}:
+  match items:
+    case []: {==}
+    case X.Edge{id, value, source, catalog} <> tail:
+      Equal.cong(List<&2, V.PendingEntry>, List<&2, V.PendingEntry>,
+        rest => V.PendingEntry{id, ReferenceFrame.payload(value), source, catalog} <> rest,
+        ReferenceFrame.pending(List.append(&2, X.Edge, tail, more)),
+        List.append(&2, V.PendingEntry, ReferenceFrame.pending(tail), ReferenceFrame.pending(more)),
+        ready_reference_pending_append(tail, more))
+
+def ready_reference_staged_assembled(+state: D.State, +history: V.History,
+    +forest: F.Forest, +more: List<&2, X.Edge>, +next: Nat,
+    +targets: Maybe<&2, List<&2, V.TargetEntry>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited: Maybe<&2, List<&2, String>>) ->
+    {ReferenceFrame.assembled(ready_reference_staged_state(state, forest, more, next), history, targets, captured, visited)
+      == ready_staged_observation(ReferenceFrame.assembled(state, history, targets, captured, visited),
+        forest, ReferenceFrame.pending(more), next) : Maybe<&2, V.Frame>}:
+  match state history targets captured visited:
+    case D.State{D.Config{_, _, _, context, _, _}, X.Frame{G.Bounded{+graph, remaining}, command, _,
+        Signed.State{Recursive.State{_, budget, _, _}, signed}, +pending, _, identities,
+        _, episode, artifact, dependencies, _}, _, target_ids, next_target, _, _, _, _}
+      V.History{_, _, _, _, artifacts, _, _} Some{projected_targets} Some{projected_captured} Some{projected_visited}:
+      Equal.cong(List<&2, V.PendingEntry>, Maybe<&2, V.Frame>, entries =>
+        Some{V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command,
+          dependencies, forest, entries, projected_targets, ReferenceFrame.ids(target_ids), projected_captured,
+          ReferenceFrame.identities(identities), projected_visited, V.budget(budget, signed),
+          ReferenceFrame.node_count(forest), next, next_target, artifact, artifacts, remaining, (episode + 1n : Nat)}},
+        ReferenceFrame.pending(List.append(&2, X.Edge, pending, more)),
+        List.append(&2, V.PendingEntry, ReferenceFrame.pending(pending), ReferenceFrame.pending(more)),
+        ready_reference_pending_append(pending, more))
+    case _ _ None{} _ _: {==}
+    case _ _ Some{_} None{} _: {==}
+    case _ _ Some{_} Some{_} None{}: {==}
+
+def ready_reference_staged_project(+state: D.State, +history: V.History,
+    +forest: F.Forest, +more: List<&2, X.Edge>, +next: Nat) ->
+    {ReferenceFrame.project(ready_reference_staged_state(state, forest, more, next), history)
+      == ready_staged_observation(ReferenceFrame.project(state, history), forest, ReferenceFrame.pending(more), next) : Maybe<&2, V.Frame>}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{values, _, _, _}, _},
+      _, captures, _, _, _, _, _, _}, targets, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, seen}, _, sources, _, _, _}:
+      ready_reference_staged_assembled(state, history, forest, more, next,
+        ReferenceFrame.targets(targets), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values))
+
+def ready_reference_assembled_history(+state: D.State, +history: V.History,
+    +addresses: List<&2, F.AddressEntry>, +offset: Nat, +ids: List<&2, Nat>,
+    +source: T.SourceFacts, +catalog: RootSpec.Source,
+    +targets: Maybe<&2, List<&2, V.TargetEntry>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited: Maybe<&2, List<&2, String>>) ->
+    {ReferenceFrame.assembled(state, History.extend(history, addresses, offset, ids, source, catalog), targets, captured, visited)
+      == ReferenceFrame.assembled(state, history, targets, captured, visited) : Maybe<&2, V.Frame>}:
+  match state history targets captured visited:
+    case D.State{D.Config{_, _, _, _, _, _}, X.Frame{G.Bounded{_, _}, _, _,
+      Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _} Some{_} Some{_} Some{_}: {==}
+    case _ V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _} None{} _ _: {==}
+    case _ V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _} Some{_} None{} _: {==}
+    case _ V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _} Some{_} Some{_} None{}: {==}
+
+def ready_reference_history_extend(+state: D.State, +history: V.History,
+    +addresses: List<&2, F.AddressEntry>, +offset: Nat, +ids: List<&2, Nat>,
+    +source: T.SourceFacts, +catalog: RootSpec.Source) ->
+    {ReferenceFrame.project(state, History.extend(history, addresses, offset, ids, source, catalog))
+      == ReferenceFrame.project(state, history) : Maybe<&2, V.Frame>}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{values, _, _, _}, _},
+      _, captures, _, _, _, _, _, _}, targets, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, seen}, _, sources, _, _, _}:
+      ready_reference_assembled_history(state, history, addresses, offset, ids, source, catalog,
+        ReferenceFrame.targets(targets), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values))
+
+def ready_reference_staged_history(+state: D.State, +history: V.History,
+    +addresses: List<&2, F.AddressEntry>, +offset: Nat, +ids: List<&2, Nat>,
+    +source: T.SourceFacts, +catalog: RootSpec.Source, +forest: F.Forest,
+    +more: List<&2, X.Edge>, +next: Nat, +view: V.Frame,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ReferenceFrame.project(ready_reference_staged_state(state, forest, more, next),
+        History.extend(history, addresses, offset, ids, source, catalog))
+      == Some{ready_staged_frame(view, forest, ReferenceFrame.pending(more), next)} : Maybe<&2, V.Frame>}:
+  Equal.trans(Maybe<&2, V.Frame>,
+    ReferenceFrame.project(ready_reference_staged_state(state, forest, more, next), History.extend(history, addresses, offset, ids, source, catalog)),
+    ReferenceFrame.project(ready_reference_staged_state(state, forest, more, next), history),
+    Some{ready_staged_frame(view, forest, ReferenceFrame.pending(more), next)},
+    ready_reference_history_extend(ready_reference_staged_state(state, forest, more, next), history, addresses, offset, ids, source, catalog),
+    Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(ready_reference_staged_state(state, forest, more, next), history),
+      ready_staged_observation(ReferenceFrame.project(state, history), forest, ReferenceFrame.pending(more), next),
+      Some{ready_staged_frame(view, forest, ReferenceFrame.pending(more), next)},
+      ready_reference_staged_project(state, history, forest, more, next),
+      Equal.cong(Maybe<&2, V.Frame>, Maybe<&2, V.Frame>, value => ready_staged_observation(value, forest, ReferenceFrame.pending(more), next),
+        ReferenceFrame.project(state, history), Some{view}, ready)))
+
+def ready_reference_stage_assembled(+state: D.State, +history: V.History, +stage: D.Stage,
+    +targets: Maybe<&2, List<&2, V.TargetEntry>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited: Maybe<&2, List<&2, String>>) ->
+    {ReferenceFrame.assembled(D.stage(state, stage), history, targets, captured, visited)
+      == ReferenceFrame.assembled(state, history, targets, captured, visited) : Maybe<&2, V.Frame>}:
+  match state history targets captured visited:
+    case D.State{D.Config{_, _, _, _, _, _}, X.Frame{G.Bounded{_, _}, _, _,
+      Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      V.History{_, _, _, _, _, _, _} Some{_} Some{_} Some{_}: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ None{} _ _: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ Some{_} None{} _: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ Some{_} Some{_} None{}: {==}
+
+def ready_reference_stage_project(+state: D.State, +history: V.History, +stage: D.Stage) ->
+    {ReferenceFrame.project(D.stage(state, stage), history) == ReferenceFrame.project(state, history) : Maybe<&2, V.Frame>}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{values, _, _, _}, _},
+      _, captures, _, _, _, _, _, _}, targets, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, seen}, _, sources, _, _, _}:
+      ready_reference_stage_assembled(state, history, stage,
+        ReferenceFrame.targets(targets), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values))
+
+def ready_reference_registration(+state: D.State, child: X.Child) -> X.Registration:
+  match state child:
+    case D.State{_, X.Frame{_, _, _, _, _, _, _, edge, _, _, _, _}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, _, source, _, _, _, _, catalog, _}, _, _, pending}:
+      X.register(pending, source, catalog, edge)
+
+def ready_registration_more(registration: X.Registration) -> List<&2, X.Edge>:
+  match registration:
+    case X.Registration{more, _, _}: more
+
+def ready_registration_next(registration: X.Registration) -> Nat:
+  match registration:
+    case X.Registration{_, _, next}: next
+
+def ready_reference_registered_projection(+state: D.State, +child: X.Child, +previous: Nat,
+    +forest: F.Forest, +product: ArtifactValue.ProductValue, +history: V.History,
+    +registration: X.Registration,
+    registered: {ready_reference_registration(state, child) == registration : X.Registration}) ->
+    {Staged.project(D.request(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}, T.EncodeProduct{product}), history)
+      == ReferenceFrame.project(D.stage(ready_reference_staged_state(state, forest,
+          ready_registration_more(registration), ready_registration_next(registration)),
+          D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}), history) : Maybe<&2, V.Frame>}:
+  match state child registration:
+    case D.State{_, X.Frame{+graph, +command, _, +local, +pending, +captured, +identities,
+        +edge, +episode, +artifact, +dependencies, +fingerprint}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, _, +source, _, _, _, _, +catalog, _}, _, _, +new_pending}
+      X.Registration{+more, _, +next}:
+      Equal.cong(X.Registration, Maybe<&2, V.Frame>, value => ReferenceFrame.project(
+        D.with_frame(D.stage(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}),
+          Staged.registered(X.Frame{graph, command, forest, local, pending, captured, identities,
+            edge, (episode + 1n : Nat), artifact, dependencies, fingerprint}, value)), history),
+        X.register(new_pending, source, catalog, edge), registration, registered)
+
+def ready_reference_staged_enter(+state: D.State, +child: X.Child, +previous: Nat,
+    +forest: F.Forest, +product: ArtifactValue.ProductValue, +history: V.History,
+    +addresses: List<&2, F.AddressEntry>, +offset: Nat, +ids: List<&2, Nat>,
+    +source: T.SourceFacts, +catalog: RootSpec.Source, +view: V.Frame,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>},
+    replaced: {X.attachment(D.frame(state), child) == F.Replaced{forest} : F.Replacement},
+    materialized: {F.prepared_unit(Allowance.materialization(forest), forest,
+      ready_reference_dependencies(D.frame(state)), ready_reference_fingerprint(D.frame(state)))
+      == F.Materialized{product} : F.Materialization}) ->
+    {Staged.project(ReferenceBoundary.enter(state, child, previous),
+        History.extend(history, addresses, offset, ids, source, catalog))
+      == Some{ready_staged_frame(view, forest,
+        ReferenceFrame.pending(ready_registration_more(ready_reference_registration(state, child))),
+        ready_registration_next(ready_reference_registration(state, child)))} : Maybe<&2, V.Frame>}:
+  Equal.trans(Maybe<&2, V.Frame>,
+    Staged.project(ReferenceBoundary.enter(state, child, previous), History.extend(history, addresses, offset, ids, source, catalog)),
+    Staged.project(D.request(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}, T.EncodeProduct{product}),
+      History.extend(history, addresses, offset, ids, source, catalog)),
+    Some{ready_staged_frame(view, forest, ReferenceFrame.pending(ready_registration_more(ready_reference_registration(state, child))),
+      ready_registration_next(ready_reference_registration(state, child)))},
+    Equal.cong(D.Selection, Maybe<&2, V.Frame>, selected => Staged.project(selected, History.extend(history, addresses, offset, ids, source, catalog)),
+      ReferenceBoundary.enter(state, child, previous),
+      D.request(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}, T.EncodeProduct{product}),
+      ready_reference_replaced_measurement(state, child, previous, forest, product, replaced, materialized)),
+    Equal.trans(Maybe<&2, V.Frame>,
+      Staged.project(D.request(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}, T.EncodeProduct{product}),
+        History.extend(history, addresses, offset, ids, source, catalog)),
+      ReferenceFrame.project(D.stage(ready_reference_staged_state(state, forest,
+          ready_registration_more(ready_reference_registration(state, child)), ready_registration_next(ready_reference_registration(state, child))),
+          D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}),
+        History.extend(history, addresses, offset, ids, source, catalog)),
+      Some{ready_staged_frame(view, forest, ReferenceFrame.pending(ready_registration_more(ready_reference_registration(state, child))),
+        ready_registration_next(ready_reference_registration(state, child)))},
+      ready_reference_registered_projection(state, child, previous, forest, product,
+        History.extend(history, addresses, offset, ids, source, catalog), ready_reference_registration(state, child), {==}),
+      Equal.trans(Maybe<&2, V.Frame>,
+        ReferenceFrame.project(D.stage(ready_reference_staged_state(state, forest,
+            ready_registration_more(ready_reference_registration(state, child)), ready_registration_next(ready_reference_registration(state, child))),
+            D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}),
+          History.extend(history, addresses, offset, ids, source, catalog)),
+        ReferenceFrame.project(ready_reference_staged_state(state, forest,
+            ready_registration_more(ready_reference_registration(state, child)), ready_registration_next(ready_reference_registration(state, child))),
+          History.extend(history, addresses, offset, ids, source, catalog)),
+        Some{ready_staged_frame(view, forest, ReferenceFrame.pending(ready_registration_more(ready_reference_registration(state, child))),
+          ready_registration_next(ready_reference_registration(state, child)))},
+        ready_reference_stage_project(ready_reference_staged_state(state, forest,
+            ready_registration_more(ready_reference_registration(state, child)), ready_registration_next(ready_reference_registration(state, child))),
+          History.extend(history, addresses, offset, ids, source, catalog), D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}),
+        ready_reference_staged_history(state, history, addresses, offset, ids, source, catalog, forest,
+          ready_registration_more(ready_reference_registration(state, child)), ready_registration_next(ready_reference_registration(state, child)), view, ready))))
+
+def ready_registered_pending(registration: Compose.RegisteredPending) -> Map<&2, Maybe<&2, Local.Pending>>:
+  match registration:
+    case Compose.RegisteredPending{_, _, entries}: entries
+
+# Exact observation of the existing registration writes at one arbitrary key.
+# This is not an additional map or runtime registration representation.
+def ready_registered_value(items: List<&2, Local.Pending>, +next: Nat, +query: String,
+    previous: Maybe<&2, Local.Pending>) -> Maybe<&2, Local.Pending>:
+  match items:
+    case []: previous
+    case head <> tail:
+      ready_registered_value(tail, (next + 1n : Nat), query,
+        Bool.pick(Maybe<&2, Local.Pending>, String.eq(query, Nat.show(next)), Some{head}, previous))
+
+def ready_registered_prefix_map(+registration: Compose.RegisteredPending, +next: Nat) ->
+    {ready_registered_pending(Compose.registered_prefix(registration, next))
+      == ready_registered_pending(registration) : Map<&2, Maybe<&2, Local.Pending>>}:
+  match registration:
+    case Compose.RegisteredPending{_, _, _}: {==}
+
+def ready_registered_lookup(+items: List<&2, Local.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +query: String,
+    +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool}) ->
+    {Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{},
+        ready_registered_pending(Compose.register_pending(items, next, entries)), query))
+      == ready_registered_value(items, next, query,
+        Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, query))) : Maybe<&2, Local.Pending>}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      %Equal.sym(Map<&2, Maybe<&2, Local.Pending>>,
+        ready_registered_pending(Compose.registered_prefix(Compose.register_pending(tail, (next + 1n : Nat),
+          Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head})), next)),
+        ready_registered_pending(Compose.register_pending(tail, (next + 1n : Nat),
+          Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}))),
+        ready_registered_prefix_map(Compose.register_pending(tail, (next + 1n : Nat),
+          Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head})), next)):
+        {Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, _, query))
+          == ready_registered_value(head <> tail, next, query,
+            Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, query))) : Maybe<&2, Local.Pending>}
+      Equal.trans(Maybe<&2, Local.Pending>,
+        Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{},
+          ready_registered_pending(Compose.register_pending(tail, (next + 1n : Nat),
+            Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}))), query)),
+        ready_registered_value(tail, (next + 1n : Nat), query,
+          Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{},
+            Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}), query))),
+        ready_registered_value(head <> tail, next, query,
+          Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, query))),
+        ready_registered_lookup(tail, (next + 1n : Nat), Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}), query,
+          Insert.set_preserves_canonical(Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}, valid)),
+        Equal.cong(Maybe<&2, Local.Pending>, Maybe<&2, Local.Pending>, value => ready_registered_value(tail, (next + 1n : Nat), query, value),
+          Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{},
+            Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}), query)),
+          Bool.pick(Maybe<&2, Local.Pending>, String.eq(query, Nat.show(next)), Some{head},
+            Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, query))),
+          Payload.lookup_after_set(Maybe<&2, Local.Pending>, entries, Nat.show(next), query, Some{head}, None{}, valid)))
+
+def ready_before_distinct(+left: Nat, +right: Nat,
+    before: {Nat.is_lt(left, right) == True{} : Bool}) -> {Nat.is_eq(left, right) == False{} : Bool}:
+  match left right:
+    case 0n 0n: Empty.absurd({Nat.is_eq(0n, 0n) == False{} : Bool}, NatFacts.internal_false_ne_true(before))
+    case 0n 1n+_: {==}
+    case 1n+_ 0n: Empty.absurd({Nat.is_eq(left, 0n) == False{} : Bool}, NatFacts.internal_false_ne_true(before))
+    case 1n+a 1n+b: ready_before_distinct(a, b, before)
+
+def ready_registered_old_value(+items: List<&2, Local.Pending>, +next: Nat, +id: Nat,
+    +previous: Maybe<&2, Local.Pending>, +before: {Nat.is_lt(id, next) == True{} : Bool}) ->
+    {ready_registered_value(items, next, Nat.show(id), previous) == previous : Maybe<&2, Local.Pending>}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      Equal.trans(Maybe<&2, Local.Pending>, ready_registered_value(head <> tail, next, Nat.show(id), previous),
+        ready_registered_value(tail, (next + 1n : Nat), Nat.show(id), previous), previous,
+        Equal.cong(Bool, Maybe<&2, Local.Pending>, same =>
+          ready_registered_value(tail, (next + 1n : Nat), Nat.show(id), Bool.pick(Maybe<&2, Local.Pending>, same, Some{head}, previous)),
+          String.eq(Nat.show(id), Nat.show(next)), False{},
+          Equal.trans(Bool, String.eq(Nat.show(id), Nat.show(next)), Nat.is_eq(id, next), False{},
+            NaturalKeys.natural_key_equality(id, next), ready_before_distinct(id, next, before))),
+        ready_registered_old_value(tail, (next + 1n : Nat), id, previous,
+          Arithmetic.lt_of_lt_of_le(id, next, (next + 1n : Nat), before, Arithmetic.le_add_right(next, 1n))))
+
+def ready_registered_old_lookup(+items: List<&2, Local.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +id: Nat,
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool},
+    before: {Nat.is_lt(id, next) == True{} : Bool}) ->
+    {Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{},
+        ready_registered_pending(Compose.register_pending(items, next, entries)), Nat.show(id)))
+      == Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(id))) : Maybe<&2, Local.Pending>}:
+  Equal.trans(Maybe<&2, Local.Pending>,
+    Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{},
+      ready_registered_pending(Compose.register_pending(items, next, entries)), Nat.show(id))),
+    ready_registered_value(items, next, Nat.show(id),
+      Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(id)))),
+    Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(id))),
+    ready_registered_lookup(items, next, entries, Nat.show(id), valid),
+    ready_registered_old_value(items, next, id,
+      Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(id))), before))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

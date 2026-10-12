@@ -714,6 +714,29 @@ One current obstacle list, in execution order:
    passing host gate; do not weaken strict settings or ship an unchecked public
    entry. Finish typing the whole retained host path, emit it through the normal
    compiler, then run the full consumer against compiled entrypoints.
+   The complete shared owner transaction is now strictly typed: all 18 control
+   entries, Canonical publication, generic native commits, scoped Source permits,
+   reservation bindings and Advice handoff/removal/cleanup. Its effect callbacks
+   preserve the native result type. The existing Nat/tag/list conversion lives
+   at its ordinary resolver-custody ABI owner; assertions are confined to that
+   structural transport and checked native revision shape / correlated method
+   table, not opaque commands or Effect casts. Advice handoff additionally checks
+   that the exact returned capability is present in the transaction's advice
+   records; pending restore validates the existing three revision fields and
+   retains object identity. Full host typing reports 399 diagnostics, zero in
+   resident-owner-transaction, resolver-transport and provider-authority. Source
+   typing and three actual authored files in addressed lint pass; the complete
+   physical Source consumer passes 57 cases / 6502 requests / 32 native
+   comparisons. Logs: /tmp/hapsland-owner-complete-{typing-strict,source-types,
+   final-lint,source-consumer}.log. Host compilation and the complete production
+   entry remain open; the retained transaction implementation is still .mjs.
+   check:fast passes 109 tests, source/ABI checks and lint selecting all three
+   actual changed source files (/tmp/hapsland-owner-complete-fast.log). This is
+   not a whole-host passing gate; the strict ten-file gate remains unqualified.
+   Additional original attachment support checks: reference staged enter 1.640s,
+   arbitrary-query pending registration lookup 2.937s and old-ID preservation
+   3.628s, all hard-five-second checks. Original law/premises remain unchanged;
+   actual staged join and the complete transaction remain open proof WIP.
    Resolver custody is now a required field of the existing CapacityState and
    is initialized by the normal resident constructor from the already-packaged
    Canonical owner. draftCapacity carries it in the same resident transaction;
