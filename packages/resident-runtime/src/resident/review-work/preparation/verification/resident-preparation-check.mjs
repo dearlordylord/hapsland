@@ -11,8 +11,10 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
+import { performGraphServiceRequest } from "@hapsland/source-analysis/direct-event/graph-resolution"
+import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
 import {
+  hostNatural,
   productValue as __productValue,
   fromProductValue,
   list,
@@ -308,7 +310,7 @@ try {
           candidates: candidatePaths.map((path) => ({ operation: "add", path }))
         }
       },
-      registry = createServiceRegistry(),
+      registry = createNativeSessionRegistry(),
       cache = new Map(),
       _rootCaptures = new Map(),
       _selections = new Map()
@@ -318,6 +320,11 @@ try {
       acceptedAtFinalizationCancel,
       captureReads = 0,
       betweenReads = 0
+    const performGraphRequest = async (request, options) => {
+      const session = registry.get(hostNatural(request.invocation))
+      if (!session) throw new TypeError("Unknown graph service invocation")
+      return performGraphServiceRequest(session, request, options)
+    }
     const context = {
       root,
       rootIdentity,
@@ -487,14 +494,14 @@ try {
             !cancelled &&
             request.operation.$ === "Types.CaptureSource"
           ) {
-            const pending = registry.perform(request, { ...options, signal: undefined })
+            const pending = performGraphRequest(request, { ...options, signal: undefined })
             cancelled = true
             driver.cancel(parentInvocation)
             const reply = await pending
             if (mode === "parent-cancel-late-rejection") throw new Error("late capture provider fault")
             return reply
           }
-          return await registry.perform(request, options)
+          return await performGraphRequest(request, options)
         }
         return preparationForeign.perform(request, options)
       }

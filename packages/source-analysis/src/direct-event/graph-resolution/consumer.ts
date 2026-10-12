@@ -159,4 +159,4 @@ export function createBendEffectResolver(options: ResolverPorts) {
 }
 
 // Host resource custody and encoded service replies; continuation authority stays with Canonical.
-export { createServiceRegistry as createGraphServiceRegistry } from "./service-session.ts"
+export { createServiceRegistry as createGraphServiceRegistry, performGraphServiceRequest } from "./service-session.ts"

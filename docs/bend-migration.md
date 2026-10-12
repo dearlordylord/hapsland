@@ -972,8 +972,10 @@ One current obstacle list, in execution order:
    The linear callback reuse is resolved by a proof-only finite conjunction over
    the existing allocation-key list, without new original premises. Actual
    registration-count induction passes at 3.053s. Its complete original-ready
-   join remains unqualified: timeout 10.034s (6.688s CPU). Full
-   attachment_transaction_exact still needs its original body.
+   join subsequently passes unchanged at 5.714s under hard10 on CPU10;
+   the prior timeout 10.034s (6.688s CPU) did not reproduce. Direct actual
+   staged pending coverage then passes at 7.880s, using unchanged original
+   ready premises. Full attachment_transaction_exact still needs its original body.
    The proof-file formatter also reports Incomplete declaration header
    (/tmp/hapsland-50777b2c-proof-format.log); neither proof nor format acceptance
    is claimed. Normal compilation initially rejected source drift because the
@@ -1001,9 +1003,14 @@ One current obstacle list, in execution order:
    unchanged heads/authored sources/artifact trees; every build run succeeded
    with 23/46 tasks cached. Warm build passes 46/46, 15 cached, 47.699s.
    Logs: /tmp/hapsland-5b085f66-{warm,execution-pair,build-pair}.log.
-   Next starts due on 2026-10-12 UTC: execution 07:54:48.849965,
-   build 07:55:22.156769. Target starts five minutes earlier; freeze/backup/warm
-   by 07:47. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Work resumed after a pause at 13:15 UTC, after the preceding cadence deadline.
+   This missed cadence remains distinct from measurement qualification. Frozen
+   700c958b execution starts 13:15:57.374451, qualified parity 0.7498715378386731;
+   build starts 13:17:24.458724, qualified but fails parity 1.2031293299981762.
+   All 17 pairs complete with unchanged inputs/artifacts, all build runs succeed
+   with 23/46 cached tasks. Logs: /tmp/hapsland-700c958b-resume-{execution,build}.log.
+   Next starts due: execution 13:45:57.374451, build 13:47:24.458724 UTC.
+   Freeze/backup/warm by 13:39. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

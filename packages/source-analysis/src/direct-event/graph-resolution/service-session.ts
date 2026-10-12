@@ -435,6 +435,23 @@ export function createServiceSession({
   return session
 }
 
+// Graph effects and emitted Nat encoding retain their owner when a resident
+// registry also holds Source, Preparation, Post and Advice resource sessions.
+export async function performGraphServiceRequest(
+  session: ServiceSession,
+  request: Request,
+  options?: PerformOptions
+): Promise<ReturnType<typeof pureReply<Reply>>> {
+  if (
+    !("callerCache" in session) ||
+    typeof session.registerCapture !== "function" ||
+    typeof session.exception !== "function" ||
+    typeof session.cacheSnapshot !== "function"
+  )
+    throw new TypeError("Wrong graph service session")
+  return pureReply(await session.perform(request, options))
+}
+
 export function createServiceRegistry() {
   const registry = createNativeSessionRegistry<ServiceSession>()
   return Object.freeze({
@@ -448,7 +465,7 @@ export function createServiceRegistry() {
     async perform(request: Request, options?: PerformOptions): Promise<ReturnType<typeof pureReply<Reply>>> {
       const session = registry.get(hostNatural(request.invocation))
       if (!session) throw new TypeError("Unknown graph service invocation")
-      return pureReply(await session.perform(request, options))
+      return performGraphServiceRequest(session, request, options)
     }
   })
 }

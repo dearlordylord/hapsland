@@ -16,7 +16,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "nod
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createDispatcher } from "../runtime-observation/transport.mjs"
-import { createServiceSession, createServiceRegistry } from "../service-session.ts"
+import { createServiceSession, createServiceRegistry, performGraphServiceRequest } from "../service-session.ts"
 import { sourceFacts, tomlValue } from "../frontend-codec.ts"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax } from "../frontends.ts"
 import { inspectTypeScript } from "@hapsland/source-analysis/direct-event/languages/typescript"
@@ -585,6 +585,26 @@ try {
   const registry = createServiceRegistry(),
     first = createServiceSession({ invocation: 123, root: folder }),
     duplicate = createServiceSession({ invocation: 123, root: folder })
+  let wrongFamilyCalls = 0
+  await assert.rejects(
+    performGraphServiceRequest(
+      {
+        invocation: 123,
+        close() {},
+        perform() {
+          wrongFamilyCalls++
+          throw new Error("wrong family executed")
+        }
+      },
+      tagged("Request", { invocation: 123, id: 0, operation: tagged("ReadPathSeparator") })
+    ),
+    /Wrong graph service session/
+  )
+  assert.equal(wrongFamilyCalls, 0)
+  await assert.rejects(
+    registry.perform(tagged("Request", { invocation: 123, id: 0, operation: tagged("ReadPathSeparator") })),
+    /Unknown graph service invocation/
+  )
   registry.register(first)
   assert.throws(() => registry.register(duplicate), /duplicate/)
   registry.remove(first)

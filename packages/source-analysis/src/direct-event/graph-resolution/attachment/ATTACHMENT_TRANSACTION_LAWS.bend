@@ -3886,6 +3886,60 @@ def pending_ready_registration_count(+items: List<&2, Local.Pending>, +order: Li
       Equal.sym(Nat, List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)),
         NatFacts.eq_of_is_eq(List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)), size))))
 
+def ready_history_ids_length(+items: List<&2, V.PendingPayload>, +next: Nat) ->
+    {List.length(&2, Nat, History.ids(items, next)) == List.length(&2, V.PendingPayload, items) : Nat}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      Equal.cong(Nat, Nat, count => (1n + count : Nat), List.length(&2, Nat, History.ids(tail, (next + 1n : Nat))),
+        List.length(&2, V.PendingPayload, tail), ready_history_ids_length(tail, (next + 1n : Nat)))
+
+def ready_pending_append_length(+items: List<&2, Nat>, +suffix: List<&2, Nat>) ->
+    {List.length(&2, Nat, List.append(&2, Nat, items, suffix)) == (List.length(&2, Nat, items) + List.length(&2, Nat, suffix) : Nat) : Nat}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      Equal.trans(Nat, List.length(&2, Nat, List.append(&2, Nat, 0n <> tail, suffix)),
+        (1n + (List.length(&2, Nat, tail) + List.length(&2, Nat, suffix) : Nat) : Nat),
+        ((1n + List.length(&2, Nat, tail) : Nat) + List.length(&2, Nat, suffix) : Nat),
+        Equal.cong(Nat, Nat, count => (1n + count : Nat), List.length(&2, Nat, List.append(&2, Nat, tail, suffix)),
+          (List.length(&2, Nat, tail) + List.length(&2, Nat, suffix) : Nat), ready_pending_append_length(tail, suffix)),
+        Equal.sym(Nat, ((1n + List.length(&2, Nat, tail) : Nat) + List.length(&2, Nat, suffix) : Nat),
+          (1n + (List.length(&2, Nat, tail) + List.length(&2, Nat, suffix) : Nat) : Nat),
+          Arithmetic.add_assoc(1n, List.length(&2, Nat, tail), List.length(&2, Nat, suffix))))
+
+def ready_staged_pending_coverage(+items: List<&2, Local.Pending>, +offset: Nat, +order: List<&2, Nat>,
+    +tree: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>, +addresses: List<&2, F.AddressEntry>,
+    +rows: List<&2, V.PendingEntry>, +next: Nat, +child_addresses: List<&2, F.AddressEntry>, +payloads: List<&2, V.PendingPayload>,
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
+    unique: {ActualFrame.nats_unique(order, order) == True{} : Bool},
+    size: {Nat.is_eq(List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))) == True{} : Bool},
+    before: {ActualReady.pending_ids_before(order, next) == True{} : Bool},
+    ready: {ActualFrame.pending(order, tree, sources, addresses) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>},
+    child_ready: {ActualReady.pending(items, child_addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}) ->
+    {List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(Compose.register_pending(Compose.shift_pending(items, offset), next, tree))))
+      == List.length(&2, Nat, List.append(&2, Nat, order, History.ids(payloads, next))) : Nat}:
+  +item_count: Nat = List.length(&2, Local.Pending, items)
+  +payload_count: Nat = List.length(&2, V.PendingPayload, payloads)
+  +old_count: Nat = List.length(&2, Nat, order)
+  Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(Compose.register_pending(Compose.shift_pending(items, offset), next, tree)))),
+    (List.length(&2, Local.Pending, Compose.shift_pending(items, offset)) + old_count : Nat),
+    List.length(&2, Nat, List.append(&2, Nat, order, History.ids(payloads, next))),
+    pending_ready_registration_count(Compose.shift_pending(items, offset), order, tree, sources, addresses, rows, next, valid, unique, size, before, ready),
+    Equal.trans(Nat, (List.length(&2, Local.Pending, Compose.shift_pending(items, offset)) + old_count : Nat),
+      (payload_count + old_count : Nat), List.length(&2, Nat, List.append(&2, Nat, order, History.ids(payloads, next))),
+      Equal.cong(Nat, Nat, count => (count + old_count : Nat), List.length(&2, Local.Pending, Compose.shift_pending(items, offset)), payload_count,
+        Equal.trans(Nat, List.length(&2, Local.Pending, Compose.shift_pending(items, offset)), item_count, payload_count,
+          ready_shifted_pending_length(items, offset), ready_payload_length(items, child_addresses, payloads, child_ready))),
+      Equal.trans(Nat, (payload_count + old_count : Nat), (old_count + payload_count : Nat),
+        List.length(&2, Nat, List.append(&2, Nat, order, History.ids(payloads, next))), Arithmetic.add_comm(payload_count, old_count),
+        Equal.sym(Nat, List.length(&2, Nat, List.append(&2, Nat, order, History.ids(payloads, next))), (old_count + payload_count : Nat),
+          Equal.trans(Nat, List.length(&2, Nat, List.append(&2, Nat, order, History.ids(payloads, next))),
+            (old_count + List.length(&2, Nat, History.ids(payloads, next)) : Nat), (old_count + payload_count : Nat),
+            ready_pending_append_length(order, History.ids(payloads, next)),
+            Equal.cong(Nat, Nat, count => (old_count + count : Nat), List.length(&2, Nat, History.ids(payloads, next)), payload_count,
+              ready_history_ids_length(payloads, next)))))))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

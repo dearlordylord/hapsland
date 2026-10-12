@@ -26,8 +26,9 @@ import {
   snapshotReservationCustody
 } from "./native-source-reference.mjs"
 import { configuredRules, advicee } from "./preparation-fixtures.mjs"
-import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
-import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { performGraphServiceRequest } from "@hapsland/source-analysis/direct-event/graph-resolution"
+import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
+import { hostNatural, list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import { createSourcePreparationMachine } from "../source-preparation-dispatcher.mjs"
@@ -264,7 +265,12 @@ try {
       onActions: (actions) => Effect.sync(() => driver.acceptActions(actions))
     })
     const connection = { transaction, bridge, control: bridge.control, partition, round, postCore }
-    const registry = createServiceRegistry()
+    const registry = createNativeSessionRegistry()
+    const performGraphRequest = async (request, options) => {
+      const session = registry.get(hostNatural(request.invocation))
+      if (!session) throw new TypeError("Unknown graph service invocation")
+      return performGraphServiceRequest(session, request, options)
+    }
     const driver = createOwnedArtifactDriver({
       owner,
       control: bridge.control,
@@ -283,7 +289,7 @@ try {
                 : undefined,
       foreign: async ([request], options) => {
         totalRequests++
-        if (request.operation) return await registry.perform(request, options)
+        if (request.operation) return await performGraphRequest(request, options)
         const session = registry.get(Number(request.invocation))
         commands.push({
           invocation: request.invocation,
