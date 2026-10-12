@@ -1238,11 +1238,6 @@ def ready_known_kind(kind: X.ChildKind, entries: Map<&2, Bool>, identity: String
     case X.FileChild{_}: Local.map_result(Bool, Map.get(Bool, False{}, entries, identity))
     case X.BundledChild{}: False{}
 
-def ready_known_child(+entries: Map<&2, Bool>, child: Phase.Child) -> Bool:
-  match child:
-    case Phase.Child{_, _, kind, _, _, _, _, identity, _, _, _, _, _, _, _, _}:
-      ready_known_kind(kind, entries, identity)
-
 def ready_actual_identity(child: T.TentativeChild) -> String:
   match child:
     case T.TentativeChild{_, _, _, _, _, _, identity, _, _, _, _, _}: identity
@@ -1269,29 +1264,6 @@ def ready_edge_known(edge: Local.Pending, +path: String,
     case Local.Pending{_, _, _, _, _, _, _, target}:
       ready_edge_known_target(target, path, entries, identity)
 
-def ready_actual_child_known(+entries: Map<&2, Bool>, +forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingPayload>>,
-    +visited: Maybe<&2, List<&2, String>>, +child: T.TentativeChild, +edge: Local.Pending,
-    +history: Phase.ChildHistory, +view: Phase.Child,
-    ready: {ActualReady.child_view(forest, pending, visited, child, edge, history)
-      == Some{view} : Maybe<&2, Phase.Child>}) ->
-    {Bool.and(Bool.not(Attach.bundled_edge(edge)),
-      Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child))))
-      == ready_known_child(entries, view) : Bool}:
-  match forest pending visited child history:
-    case Some{+forest_value} Some{+pending_value} Some{+visited_value}
-      T.TentativeChild{target, +path, capture, bytes, file, artifact, +identity, before, Local.Plan{_, _, _, _, _, budget}, _, _, _}
-      Phase.ChildHistory{F.Created{_, _, addresses}, source, catalog, _, _}:
-      %Count.some_equal(Phase.Child, Phase.Child{target, path, ActualReady.edge_kind(edge, path), capture, bytes, file,
-          artifact, identity, before, forest_value, addresses, pending_value, visited_value, V.actual_budget(budget), source, catalog}, view, ready):
-        {Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, identity))) == ready_known_child(entries, _) : Bool}
-      ready_edge_known(edge, path, entries, identity)
-    case None{} _ _ _ _:
-      Empty.absurd({Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child)))) == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
-    case Some{_} None{} _ _ _:
-      Empty.absurd({Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child)))) == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
-    case Some{_} Some{_} None{} _ _:
-      Empty.absurd({Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child)))) == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
-
 def ready_reference_kind(child: X.Child) -> X.ChildKind:
   match child:
     case X.Child{X.Attempt{_, _, kind, _, _, _, _, _, _, _}, _, _, _}: kind
@@ -1299,68 +1271,6 @@ def ready_reference_kind(child: X.Child) -> X.ChildKind:
 def ready_reference_identity(child: X.Child) -> String:
   match child:
     case X.Child{X.Attempt{_, _, _, _, _, _, _, declaration, _, _}, _, _, _}: X.identity(declaration)
-
-def ready_reference_child_known(+entries: Map<&2, Bool>, +child: X.Child,
-    +history: Phase.ChildHistory, +visited: Maybe<&2, List<&2, String>>, +view: Phase.Child,
-    ready: {ReferenceReady.child_view(child, history, visited) == Some{view} : Maybe<&2, Phase.Child>}) ->
-    {ready_known_kind(ready_reference_kind(child), entries, ready_reference_identity(child))
-      == ready_known_child(entries, view) : Bool}:
-  match child history visited:
-    case X.Child{
-      X.Attempt{
-        +target,
-        edge,
-        +kind,
-        +source,
-        +bytes,
-        name,
-        expected,
-        Local.Declaration{+handle, +identity, function, bundled, references, +source_path},
-        +catalog,
-        +before
-      },
-      F.Created{root, nodes, addresses},
-      Signed.State{Recursive.State{_, budget, _, _}, signed},
-      edges
-    }
-      Phase.ChildHistory{_, _, _, capture, _} Some{+visited}:
-      %Count.some_equal(Phase.Child,
-        Phase.Child{
-          target,
-          X.attempt_path(
-            X.Attempt{
-              target,
-              edge,
-              kind,
-              source,
-              bytes,
-              name,
-              expected,
-              Local.Declaration{handle, identity, function, bundled, references, source_path},
-              catalog,
-              before
-            }
-          ),
-          kind,
-          capture,
-          bytes,
-          T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceReady.file_exports(kind, source), bytes},
-          handle,
-          identity,
-          before,
-          F.Forest{Some{root}, nodes},
-          addresses,
-          ReferenceReady.pending(edges),
-          visited,
-          V.budget(budget, signed),
-          source,
-          catalog
-        }, view, ready):
-        {ready_known_kind(kind, entries, identity) == ready_known_child(entries, _) : Bool}
-      {==}
-    case _ _ None{}:
-      Empty.absurd({ready_known_kind(ready_reference_kind(child), entries, ready_reference_identity(child))
-        == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
 
 def observed_selected_choice(side: Bool, +left: Maybe<&2, String>, +right: Maybe<&2, String>, +query: String) ->
     {Membership.selected_equal(Insert.selected_choice(side, left, right), query)
@@ -1559,6 +1469,196 @@ def ready_frame_seen_exact(+frame: T.ResolverFrame, +reference: D.State,
       == Recursive.value(Bool, Map.has(&2, Bool, ready_reference_visited(reference), query)) : Bool}:
   ready_frame_seen_parts(frame, reference, history, view, query,
     actual_frame_contents(frame, history, view, actual_ready), reference_ready)
+
+def ready_child_kind(child: Phase.Child) -> X.ChildKind:
+  match child:
+    case Phase.Child{_, _, kind, _, _, _, _, _, _, _, _, _, _, _, _, _}: kind
+
+def ready_child_identity(child: Phase.Child) -> String:
+  match child:
+    case Phase.Child{_, _, _, _, _, _, _, identity, _, _, _, _, _, _, _, _}: identity
+
+def ready_actual_child_shape(+forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingPayload>>,
+    +visited: Maybe<&2, List<&2, String>>, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: Phase.ChildHistory, +view: Phase.Child,
+    ready: {ActualReady.child_view(forest, pending, visited, child, edge, history)
+      == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ActualReady.edge_kind(edge, ready_actual_path(child)) == ready_child_kind(view) : X.ChildKind} &
+    {ready_actual_identity(child) == ready_child_identity(view) : String}:
+  match forest pending visited child history:
+    case Some{+forest_value} Some{+pending_value} Some{+visited_value}
+      T.TentativeChild{target, +path, capture, bytes, file, artifact, +identity, before, Local.Plan{_, _, _, _, _, budget}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, addresses}, source, catalog, _, _}:
+      %Count.some_equal(Phase.Child, Phase.Child{target, path, ActualReady.edge_kind(edge, path), capture, bytes, file,
+          artifact, identity, before, forest_value, addresses, pending_value, visited_value, V.actual_budget(budget), source, catalog}, view, ready):
+        {ActualReady.edge_kind(edge, path) == ready_child_kind(_) : X.ChildKind} & {identity == ready_child_identity(_) : String}
+      Tuple{{==}, {==}}
+    case None{} _ _ _ _:
+      Empty.absurd({ActualReady.edge_kind(edge, ready_actual_path(child)) == ready_child_kind(view) : X.ChildKind} &
+    {ready_actual_identity(child) == ready_child_identity(view) : String}, Contents.none_some(Phase.Child, view, ready))
+    case Some{_} None{} _ _ _:
+      Empty.absurd({ActualReady.edge_kind(edge, ready_actual_path(child)) == ready_child_kind(view) : X.ChildKind} &
+    {ready_actual_identity(child) == ready_child_identity(view) : String}, Contents.none_some(Phase.Child, view, ready))
+    case Some{_} Some{_} None{} _ _:
+      Empty.absurd({ActualReady.edge_kind(edge, ready_actual_path(child)) == ready_child_kind(view) : X.ChildKind} &
+    {ready_actual_identity(child) == ready_child_identity(view) : String}, Contents.none_some(Phase.Child, view, ready))
+
+def ready_reference_child_shape(+child: X.Child,
+    +history: Phase.ChildHistory, +visited: Maybe<&2, List<&2, String>>, +view: Phase.Child,
+    ready: {ReferenceReady.child_view(child, history, visited) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ready_reference_kind(child) == ready_child_kind(view) : X.ChildKind} &
+    {ready_reference_identity(child) == ready_child_identity(view) : String}:
+  match child history visited:
+    case X.Child{
+      X.Attempt{
+        +target,
+        edge,
+        +kind,
+        +source,
+        +bytes,
+        name,
+        expected,
+        Local.Declaration{+handle, +identity, function, bundled, references, +source_path},
+        +catalog,
+        +before
+      },
+      F.Created{root, nodes, addresses},
+      Signed.State{Recursive.State{_, budget, _, _}, signed},
+      edges
+    }
+      Phase.ChildHistory{_, _, _, capture, _} Some{+visited}:
+      %Count.some_equal(Phase.Child,
+        Phase.Child{
+          target,
+          X.attempt_path(
+            X.Attempt{
+              target,
+              edge,
+              kind,
+              source,
+              bytes,
+              name,
+              expected,
+              Local.Declaration{handle, identity, function, bundled, references, source_path},
+              catalog,
+              before
+            }
+          ),
+          kind,
+          capture,
+          bytes,
+          T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceReady.file_exports(kind, source), bytes},
+          handle,
+          identity,
+          before,
+          F.Forest{Some{root}, nodes},
+          addresses,
+          ReferenceReady.pending(edges),
+          visited,
+          V.budget(budget, signed),
+          source,
+          catalog
+        }, view, ready):
+        {kind == ready_child_kind(_) : X.ChildKind} & {identity == ready_child_identity(_) : String}
+      Tuple{{==}, {==}}
+    case _ _ None{}:
+      Empty.absurd({ready_reference_kind(child) == ready_child_kind(view) : X.ChildKind} & {ready_reference_identity(child) == ready_child_identity(view) : String}, Contents.none_some(Phase.Child, view, ready))
+
+def ready_actual_shape_projected(+child: T.TentativeChild, +edge: Local.Pending,
+    +history: Phase.ChildHistory, +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child,
+    ready: {ActualReady.child_projected(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ActualReady.edge_kind(edge, ready_actual_path(child)) == ready_child_kind(view) : X.ChildKind} &
+    {ready_actual_identity(child) == ready_child_identity(view) : String}:
+  match child history:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+root, +nodes, +slots, +edges, +visited, _}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, +addresses}, _, _, _, +order}:
+      ready_actual_child_shape(ActualReady.valid_forest(P.project(root, nodes, slots, artifacts, addresses), episode),
+        ActualReady.pending(edges, addresses), ActualReady.visited_complete(order, visited), child, edge, history, view, ready)
+
+def ready_actual_shape_parts(+child: T.TentativeChild, +edge: Local.Pending,
+    +history: Phase.ChildHistory, +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child,
+    evidence: {child_checks(child) == True{} : Bool} &
+      {ActualReady.child_projected(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ActualReady.edge_kind(edge, ready_actual_path(child)) == ready_child_kind(view) : X.ChildKind} &
+    {ready_actual_identity(child) == ready_child_identity(view) : String}:
+  match evidence:
+    case (_, projected): ready_actual_shape_projected(child, edge, history, artifacts, episode, view, projected)
+
+def ready_actual_shape_exact(+child: T.TentativeChild, +edge: Local.Pending,
+    +history: Phase.ChildHistory, +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child,
+    ready: {ActualReady.child_project(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ActualReady.edge_kind(edge, ready_actual_path(child)) == ready_child_kind(view) : X.ChildKind} &
+    {ready_actual_identity(child) == ready_child_identity(view) : String}:
+  ready_actual_shape_parts(child, edge, history, artifacts, episode, view,
+    actual_child_contents(child, edge, history, artifacts, episode, view, ready))
+
+def ready_reference_shape_exact(+child: X.Child, +history: Phase.ChildHistory, +view: Phase.Child,
+    ready: {ReferenceReady.child_project(child, history) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ready_reference_kind(child) == ready_child_kind(view) : X.ChildKind} &
+    {ready_reference_identity(child) == ready_child_identity(view) : String}:
+  match child history:
+    case X.Child{_, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _}
+      Phase.ChildHistory{_, _, _, _, +order}:
+      ready_reference_child_shape(child, history, ReferenceFrame.visited(order, values), view, ready)
+
+def ready_seen_kind(kind: X.ChildKind, entries: Map<&2, Bool>, identity: String) -> Bool:
+  match kind:
+    case X.FileChild{_}: Recursive.value(Bool, Map.has(&2, Bool, entries, identity))
+    case X.BundledChild{}: False{}
+
+def ready_reference_attempt(child: X.Child) -> X.Attempt:
+  match child:
+    case X.Child{attempt, _, _, _}: attempt
+
+def ready_reference_known_exact(+state: D.State, +child: X.Child) ->
+    {X.known_file(D.frame(state), ready_reference_attempt(child))
+      == ready_seen_kind(ready_reference_kind(child), ready_reference_visited(state), ready_reference_identity(child)) : Bool}:
+  match state child:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, X.FileChild{_}, _, _, _, _, Local.Declaration{_, _, _, _, _, _}, _, _}, _, _, _}: {==}
+    case _ X.Child{X.Attempt{_, _, X.BundledChild{}, _, _, _, _, _, _, _}, _, _, _}: {==}
+
+def ready_kind_lookup_transport(+kind: X.ChildKind, +actual: Map<&2, Bool>, +reference: Map<&2, Bool>, +identity: String,
+    lookup: {Local.map_result(Bool, Map.get(Bool, False{}, actual, identity))
+      == Recursive.value(Bool, Map.has(&2, Bool, reference, identity)) : Bool}) ->
+    {ready_known_kind(kind, actual, identity) == ready_seen_kind(kind, reference, identity) : Bool}:
+  match kind:
+    case X.FileChild{_}: lookup
+    case X.BundledChild{}: {==}
+
+def ready_selector_fields(+actual: T.TentativeChild, +edge: Local.Pending, +reference: X.Child,
+    +actual_frame: T.ResolverFrame, +reference_state: D.State, +view: Phase.Child,
+    actual_fields: {ActualReady.edge_kind(edge, ready_actual_path(actual)) == ready_child_kind(view) : X.ChildKind} &
+      {ready_actual_identity(actual) == ready_child_identity(view) : String},
+    reference_fields: {ready_reference_kind(reference) == ready_child_kind(view) : X.ChildKind} &
+      {ready_reference_identity(reference) == ready_child_identity(view) : String},
+    lookup: {Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(actual_frame), ready_child_identity(view)))
+      == Recursive.value(Bool, Map.has(&2, Bool, ready_reference_visited(reference_state), ready_child_identity(view))) : Bool}) ->
+    {Bool.and(Bool.not(Attach.bundled_edge(edge)),
+      Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(actual_frame), ready_actual_identity(actual))))
+      == X.known_file(D.frame(reference_state), ready_reference_attempt(reference)) : Bool}:
+  match actual_fields reference_fields:
+    case Tuple{+actual_kind, +actual_identity} Tuple{+reference_kind, +reference_identity}:
+      Equal.trans(Bool,
+        Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(actual_frame), ready_actual_identity(actual)))),
+        ready_known_kind(ActualReady.edge_kind(edge, ready_actual_path(actual)), S.frame_visited(actual_frame), ready_actual_identity(actual)),
+        X.known_file(D.frame(reference_state), ready_reference_attempt(reference)),
+        ready_edge_known(edge, ready_actual_path(actual), S.frame_visited(actual_frame), ready_actual_identity(actual)),
+        %Equal.sym(X.ChildKind, ActualReady.edge_kind(edge, ready_actual_path(actual)), ready_child_kind(view), actual_kind):
+          {ready_known_kind(_, S.frame_visited(actual_frame), ready_actual_identity(actual)) == X.known_file(D.frame(reference_state), ready_reference_attempt(reference)) : Bool}
+        %Equal.sym(String, ready_actual_identity(actual), ready_child_identity(view), actual_identity):
+          {ready_known_kind(ready_child_kind(view), S.frame_visited(actual_frame), _) == X.known_file(D.frame(reference_state), ready_reference_attempt(reference)) : Bool}
+        Equal.trans(Bool, ready_known_kind(ready_child_kind(view), S.frame_visited(actual_frame), ready_child_identity(view)),
+          ready_seen_kind(ready_child_kind(view), ready_reference_visited(reference_state), ready_child_identity(view)),
+          X.known_file(D.frame(reference_state), ready_reference_attempt(reference)),
+          ready_kind_lookup_transport(ready_child_kind(view), S.frame_visited(actual_frame), ready_reference_visited(reference_state), ready_child_identity(view), lookup),
+          %reference_kind:
+            {ready_seen_kind(_, ready_reference_visited(reference_state), ready_child_identity(view)) == X.known_file(D.frame(reference_state), ready_reference_attempt(reference)) : Bool}
+          %reference_identity:
+            {ready_seen_kind(ready_reference_kind(reference), ready_reference_visited(reference_state), _) == X.known_file(D.frame(reference_state), ready_reference_attempt(reference)) : Bool}
+          Equal.sym(Bool, X.known_file(D.frame(reference_state), ready_reference_attempt(reference)),
+            ready_seen_kind(ready_reference_kind(reference), ready_reference_visited(reference_state), ready_reference_identity(reference)),
+            ready_reference_known_exact(reference_state, reference))))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

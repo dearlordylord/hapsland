@@ -20,6 +20,7 @@ import { effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/res
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import {
   nativeSourceReference,
+  cancelSourceAfterFirstEnqueue,
   snapshotSourceOwnership,
   captureActivityPublications,
   snapshotReservationCustody
@@ -142,6 +143,7 @@ try {
     "source-cleanup-pending",
     "post-finalizer-cause",
     "full-workflow",
+    "full-cancel-after-enqueue",
     ...Object.keys(languageCandidates).map((language) => "full-language-" + language),
     "full-repeat",
     "full-refused-second",
@@ -418,6 +420,7 @@ try {
       })
     }
     const { context, ledger, lifecycle, scope, hold } = shared
+    if (mode === "full-cancel-after-enqueue") cancelSourceAfterFirstEnqueue(context, sourceEffects)
     if (mode.startsWith("full-"))
       context.job.settings = {
         ...(await Effect.runPromise(
@@ -825,6 +828,7 @@ try {
                 "full-refused-second",
                 "admission-ack-loss",
                 "cancel-between-candidates",
+                "full-cancel-after-enqueue",
                 "repeat-candidate",
                 "full-repeat",
                 "second-preparation-failure",
@@ -869,6 +873,7 @@ try {
               mode === "admission-ack-loss" ||
               mode === "source-cleanup-pending" ||
               mode === "cancel-between-candidates" ||
+              mode === "full-cancel-after-enqueue" ||
               mode === "first-preparation-failure" ||
               mode === "full-owner-barrier-failure" ||
               mode === "full-capture-failure" ||
@@ -1048,7 +1053,7 @@ try {
         assert.match(String(source.error(result.reason.token)), /admission acknowledgement loss/)
         assert.equal(interrupted.length, 1)
         assert.equal(completed.length, 0)
-      } else if (mode === "cancel-between-candidates") {
+      } else if (["cancel-between-candidates", "full-cancel-after-enqueue"].includes(mode)) {
         assert.ok(result.failure)
         assert.equal(context.job.completed, undefined)
         assert.equal(interrupted.length, 1)
@@ -1096,9 +1101,14 @@ try {
           registerWorkFailure,
           registerWorkError,
           cleanupError,
-          activityRefused: mode === "full-activity-refused"
+          activityRefused: mode === "full-activity-refused",
+          cancelAfterFirstEnqueue: mode === "full-cancel-after-enqueue"
         })
-        assert.equal(native.completed, result.completed)
+        if (mode === "full-cancel-after-enqueue") {
+          assert.equal(context.preparationSignal.aborted, true)
+          assert.equal(native.completed, false)
+          assert.equal(sourceEffects.filter((event) => event.kind === "source-work-aborted").length, 1)
+        } else assert.equal(native.completed, result.completed)
         if (
           credentialCause ||
           afterPrepareCause ||
@@ -1144,6 +1154,7 @@ try {
           backendRecoveryCause ||
           (backendCause && !Cause.hasFails(backendCause)) ||
           mode === "full-activity-refused" ||
+          mode === "full-cancel-after-enqueue" ||
           mode.startsWith("full-inspection-") ||
           registerWorkFailure === "defect"
         )

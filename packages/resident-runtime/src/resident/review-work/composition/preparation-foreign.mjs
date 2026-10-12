@@ -3,20 +3,20 @@ import { languageForPath } from "@hapsland/source-analysis/direct-event/language
 import { residentRuntime } from "../../state/resident/runtime.ts"
 import { providerTransaction, ResidentProviderPermit } from "../../state/resolver-custody/resident-provider-permit.mjs"
 import * as Effect from "effect/Effect"
-import { GRAPH_LIMIT_CEILINGS } from "../../../../../canonical-policy/dist/canonical/graph-limits.js"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import {
   inspectNamedPath,
   resolvedDirectFilePolicy,
   DEFAULT_DIRECT_FILE_POLICY
-} from "../../../../../native-observation/dist/direct-event/selection.js"
-import { captureStable } from "../../../../../native-observation/dist/direct-event/capture.js"
+} from "@hapsland/native-observation/direct-event/selection"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createBendResolver } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import {
   inspectGraphFile,
   combinedAnalyzerMaterializationPreflight,
   analyzeTypeFile
-} from "../../../../../source-analysis/dist/direct-event/analyzer.js"
+} from "@hapsland/source-analysis/direct-event/analyzer"
 import { resize } from "../../state/capacity/reservations.ts"
 import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
 import { analysisWorkspaceBytes } from "../../work-ownership/workspace.ts"

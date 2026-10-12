@@ -307,8 +307,9 @@ One current obstacle list, in execution order:
    into the same view/history now imply equality for every query. Unique/key-count
    guards are extracted from existing ActualFrame.coverage rather than added
    as premises. The full focused support checks hard5 in 2.942s
-   (/tmp/astra-transaction-visited-focused.log). Actual and reference child
-   identity/kind selectors also check hard5 (3.946s / 4.571s). The reference
+   (/tmp/astra-transaction-visited-focused.log). Exact actual and reference
+   child-shape inversions check hard5 (2.972s / 2.316s), replacing unused
+   provisional get-based child-selector support without losing callers. The reference
    selector reads Map.has while actual attachment reads Map.get(False).
    The original uniqueness, full observations and key cardinality now yield
    visited_presence_exact for arbitrary queries, including the absence of
@@ -316,7 +317,9 @@ One current obstacle list, in execution order:
    hard5 in 4.419s on saved 17d75e3d after the earlier 5.042s / 5.029s
    timeouts. No source change was needed for that final isolated result.
    Joining ready-frame support and child selectors into the original complete
-   transaction theorem remains open; no new runtime representation, law or
+   transaction theorem remains open; ready-frame seen and final Included/Expanded
+   joins remain unqualified WIP. The latter's tuple-pattern syntax was corrected
+   but not rechecked before backup. No new runtime representation, law or
    premise. A qualified support prefix is not full-theorem qualification.
 
 2. Qualify the remaining complete consumer boundaries and supported input scope.
@@ -646,8 +649,36 @@ One current obstacle list, in execution order:
    workflow comparisons, retaining all scenarios. Logs:
    /tmp/hapsland-packaged-source-consumer-{full,fast,lint-v2}.log.
    This closes packaged loading of the complete Source/Preparation/resolver/Post
-   chain; full error/cancellation differential and universal correspondence
-   remain distinct open obligations, not implied by these finite comparisons.
+   chain. The full consumer now also compares real work-controller cancellation
+   immediately after the first accepted dispatcher enqueue against an independent
+   actual native workflow. It checks one actual abort, one retained transferred
+   unit, no completion/activity publication, equal Canonical/effect traces and
+   complete pre-teardown ownership plus terminal cleanup. The expanded consumer
+   passes 57 cases / 6502 commands / 32 native comparisons; check:fast passes
+   with both changed authored files selected (109 unit tests). Logs:
+   /tmp/hapsland-source-cancel-{consumer-v3,fast}.log.
+   Initial attempts exposed two fixture expectation omissions (two units and a
+   mandatory activity marker after cancellation); current checks require one
+   unit and zero markers specifically for this new scenario, retaining exact
+   independent Canonical/effect/resource comparisons. The native and Bend worlds
+   both produced that behavior; production algorithms were unchanged.
+   Remaining independent cancellation boundaries include backend/capture in
+   flight; acknowledgement-loss and pending-cleanup scenarios remain candidate
+   probes rather than full native workflow comparisons. Universal correspondence
+   and whole production connection remain distinct open obligations.
+   The normal preparation effect provider now consumes the four existing public
+   package exports for graph limits, selection, capture and analyzer, deleting
+   relative sibling-dist imports. Syntax, dependency enforcement and addressed
+   lint pass; the complete Source consumer again passes 57/6502/32 with these
+   imports. Final check:fast passes (109 unit tests, strict root/ABI types and
+   three actual authored files in lint). Logs:
+   /tmp/hapsland-source-provider-public-{lint,consumer,fast}.log.
+   Normal resident tsconfig includes src/**/*.ts and JSON, not the candidate
+   host .mjs modules; the compiled resident dist currently has no preparation
+   effect provider. Shipping the complete host/provider/driver entry through
+   the normal compiler and consuming that compiled entry (rather than source
+   imports) is an explicit remaining production blocker. Do not claim packaged
+   cores or public effect imports establish packaged host execution.
    Canonical owner packaging/loading is qualified; whole production wiring
    remains open. Whole preparation connected: 0; replaced production TS removed: 0.
    Resolver artifact shipping and the complete production entrypoint

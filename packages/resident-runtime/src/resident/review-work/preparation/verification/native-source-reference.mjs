@@ -89,6 +89,28 @@ export function snapshotSourceOwnership(snapshot) {
   }
 }
 
+// Cancel the real work signal only after the dispatcher has accepted a unit.
+// This observes the same physical boundary in each independent workflow world.
+export function cancelSourceAfterFirstEnqueue(context, trace) {
+  const dispatcher = context.deps.residentDispatcher
+  let cancelled = false
+  context.deps.residentDispatcher = {
+    ...dispatcher,
+    enqueue: (...args) =>
+      dispatcher.enqueue(...args).pipe(
+        Effect.tap((accepted) =>
+          Effect.sync(() => {
+            if (accepted && !cancelled) {
+              cancelled = true
+              trace.push({ kind: "source-work-aborted" })
+              context.job.work.controller.abort()
+            }
+          })
+        )
+      )
+  }
+}
+
 // Independent actual production workflow oracle. No Source/Preparation/Post
 // selector is used; the native entry owns all candidates and finalizers.
 export async function nativeSourceReference({
@@ -114,7 +136,8 @@ export async function nativeSourceReference({
   registerWorkFailure,
   registerWorkError,
   cleanupError,
-  activityRefused = false
+  activityRefused = false,
+  cancelAfterFirstEnqueue = false
 }) {
   const run = Effect.runSync
   const initial = {
@@ -150,6 +173,7 @@ export async function nativeSourceReference({
   })
   const { context, scope, hold, lifecycle } = shared,
     trace = []
+  if (cancelAfterFirstEnqueue) cancelSourceAfterFirstEnqueue(context, trace)
   context.job.canonicalObservationId = observationId
   context.job.settings = settings
   context.job.dispatch.controlled = {}
