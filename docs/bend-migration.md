@@ -995,9 +995,15 @@ One current obstacle list, in execution order:
    06:35:31.988150, and execution 0.6305970447544569 at 06:06:01.209959 /
    build 1.1366466917311742 at 06:06:39.445377. Their starts met cadence.
    Whole preparation connected: 0; replaced production TS removed: 0.
-   Next starts due on 2026-10-12 UTC: execution 07:30:11.113773,
-   build 07:30:58.869261. Target starts five minutes earlier; freeze/backup/warm
-   by 07:22. Logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Follow-up frozen 5b085f66 measurements: execution started 07:24:48.849965,
+   ratio 0.7323469742308231, parity passes; build started 07:25:22.156769,
+   ratio 1.160071654038708, parity fails. Both are qualified: all 17 pairs,
+   unchanged heads/authored sources/artifact trees; every build run succeeded
+   with 23/46 tasks cached. Warm build passes 46/46, 15 cached, 47.699s.
+   Logs: /tmp/hapsland-5b085f66-{warm,execution-pair,build-pair}.log.
+   Next starts due on 2026-10-12 UTC: execution 07:54:48.849965,
+   build 07:55:22.156769. Target starts five minutes earlier; freeze/backup/warm
+   by 07:47. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.
