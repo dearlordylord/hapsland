@@ -1723,6 +1723,7 @@
     "@hapsland/resident-runtime#build": {
       "dependsOn": [
         "@hapsland/activity-observation#build",
+        "@hapsland/agent-flow-bend#build",
         "@hapsland/canonical-policy#build",
         "@hapsland/credential-storage#build",
         "@hapsland/delivery-output#build",

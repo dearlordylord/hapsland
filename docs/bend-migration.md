@@ -721,7 +721,16 @@ One current obstacle list, in execution order:
    to runtime dependencies, with the lockfile updated. This removes the missing
    shared-state model/initializer seam; it does not enable the Preparation driver
    or replace native progression. Source typing, graph validation and addressed
-   two-source lint pass; full compiled consumer qualification follows.
+   two-source lint pass. The first focused consumer stopped before compilation
+   because generated Turbo task configuration lacked the newly-declared runtime
+   dependency. Its standard generator adds the owner build prerequisite; that
+   focused reproduction and test:status identify a preparation failure, not a
+   runtime/test failure. With current generated configuration, workspace build
+   passes 46/46 tasks (15 cached, 48.436s), followed by all 61 existing compiled
+   capacity/round-record tests. check:fast passes 109 tests and source/ABI checks;
+   its empty post-commit lint is not authored-source qualification. The addressed
+   lint selects both changed sources. Strict full host still reports 533 errors.
+   Logs: /tmp/hapsland-custody-{focused-v2,fast,strict,lint}.log.
    The proof owner additionally checks ready_selected_requests_exact (1.829s)
    and ready_joint_measurement_witness (2.807s) under hard five seconds, joining
    original transaction measurement claims 1–4 without changed law/premises.
