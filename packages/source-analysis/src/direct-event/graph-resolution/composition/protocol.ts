@@ -96,9 +96,19 @@ type SharedDriver = ReturnType<
     ServiceSession
   >
 >
-export type GraphDriver = Omit<SharedDriver, "drive"> & {
-  drive: (...args: Parameters<SharedDriver["drive"]>) => Promise<GraphOutcome>
-}
+export type GraphDriver = Pick<
+  SharedDriver,
+  | "allocateInvocation"
+  | "constructionFailed"
+  | "cancel"
+  | "acceptActions"
+  | "acceptPublication"
+  | "acceptPublicationOutcome"
+  | "canonicalEvent"
+  | "state"
+  | "stats"
+  | "resources"
+> & { drive: (...args: Parameters<SharedDriver["drive"]>) => Promise<GraphOutcome> }
 export function createGraphDriver(options: Options): GraphDriver {
   const shared = createChildExecutionDriver({ ...options, protocol: graphProtocol })
   const drive = shared.drive
