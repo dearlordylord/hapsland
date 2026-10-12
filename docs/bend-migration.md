@@ -1099,6 +1099,11 @@ One current obstacle list, in execution order:
    authored sources and artifacts, with 23/46 cached tasks in every build.
    Normal warm build passes 46/46 (15 cached, 55.072s). Structural review
    confirms separate Post/Advice refusal and the Graph-owned emitted reply ABI.
+   Temporary paired AST comment-attachment experiment (three pairs, CPU11)
+   returns the same registry but does not establish improvement: current mean
+   2.1507s, attachComment:false mean 2.2453s. The change is rejected; no repository
+   parser change or reduced source inspection is applied. Temporary sources are
+   deleted by their experiment owner.
    Next starts due: execution 15:07:28.198985, build 15:08:08.238488 UTC.
    Freeze/backup/warm by 15:00. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
