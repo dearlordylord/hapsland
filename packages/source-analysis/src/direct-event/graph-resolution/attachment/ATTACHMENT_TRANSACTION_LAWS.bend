@@ -1742,6 +1742,184 @@ def ready_attachment_measurement(+attachment: Compose.Attachment, +frame: T.Reso
           S.with_state_frame(state, Some{Attach.attached_frame(attachment, frame)})), product)
       candidate_request_exact(product, child, ids, previous, S.with_state_frame(state, Some{Attach.attached_frame(attachment, frame)}))
 
+def ready_attached_measurement_witness(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    +child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +forest: F.Forest,
+    result: Exists(ArtifactValue.ProductValue, value =>
+      {PreparedRoot.prepared_unit(Attach.attached_frame(attachment, frame), S.state_prepared(state)) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
+      {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state)))
+        == F.Materialized{value} : F.Materialization})) ->
+    Exists(ArtifactValue.ProductValue, value =>
+      {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state)))
+        == F.Materialized{value} : F.Materialization} &
+      ready_measurement_result(Attach.attachment(Some{attachment}, child, previous, state, frame), value)):
+  match result:
+    case (+value, (actual, reference)):
+      Tuple{value, Tuple{reference, ready_attachment_measurement(attachment, frame, child, state, previous, value, actual)}}
+
+def ready_attached_measurement_total(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    +child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +forest: F.Forest,
+    +addresses: List<&2, F.AddressEntry>, +episode: Nat,
+    projected: {P.project(S.frame_root(Attach.attached_frame(attachment, frame)),
+      S.frame_nodes(Attach.attached_frame(attachment, frame)), S.frame_references(Attach.attached_frame(attachment, frame)),
+      S.frame_artifacts(Attach.attached_frame(attachment, frame)), addresses) == Some{forest} : Maybe<&2, F.Forest>},
+    artifacts_valid: {ActualFrame.catalog_valid(S.frame_artifacts(Attach.attached_frame(attachment, frame))) == True{} : Bool},
+    forest_valid: {Relation.frame_forest(forest, episode) == True{} : Bool}) ->
+    Exists(ArtifactValue.ProductValue, value =>
+      {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state)))
+        == F.Materialized{value} : F.Materialization} &
+      ready_measurement_result(Attach.attachment(Some{attachment}, child, previous, state, frame), value)):
+  ready_attached_measurement_witness(attachment, frame, child, state, previous, forest,
+    ready_frame_materialized_total(Attach.attached_frame(attachment, frame), S.state_prepared(state), forest, addresses, episode,
+      projected, artifacts_valid, forest_valid))
+
+def ready_reference_forest(frame: X.Frame) -> F.Forest:
+  match frame:
+    case X.Frame{_, _, forest, _, _, _, _, _, _, _, _, _}: forest
+
+def ready_reference_dependencies(frame: X.Frame) -> List<&2, String>:
+  match frame:
+    case X.Frame{_, _, _, _, _, _, _, _, _, _, dependencies, _}: dependencies
+
+def ready_reference_fingerprint(frame: X.Frame) -> Maybe<&2, String>:
+  match frame:
+    case X.Frame{_, _, _, _, _, _, _, _, _, _, _, fingerprint}: fingerprint
+
+def ready_reference_materialized(+state: D.State, +frame: X.Frame, +child: X.Child, +previous: Nat,
+    +product: ArtifactValue.ProductValue,
+    materialized: {F.prepared_unit(Allowance.materialization(ready_reference_forest(frame)), ready_reference_forest(frame),
+      ready_reference_dependencies(frame), ready_reference_fingerprint(frame)) == F.Materialized{product} : F.Materialization}) ->
+    {ReferenceBoundary.attached(state, X.MeasureAfter{frame, child, previous})
+      == D.request(state, D.Transaction{X.MeasureAfter{frame, child, previous}}, T.EncodeProduct{product}) : D.Selection}:
+  match frame:
+    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, +dependencies, +fingerprint}:
+      Equal.cong(F.Materialization, D.Selection,
+        result => D.transaction_selection(state, X.measured(result, frame, X.MeasureAfter{frame, child, previous})),
+        F.prepared_unit(Allowance.materialization(forest), forest, dependencies, fingerprint), F.Materialized{product}, materialized)
+
+def ready_reference_replaced_measurement(+state: D.State, +child: X.Child, +previous: Nat,
+    +forest: F.Forest, +product: ArtifactValue.ProductValue,
+    replaced: {X.attachment(D.frame(state), child) == F.Replaced{forest} : F.Replacement},
+    materialized: {F.prepared_unit(Allowance.materialization(forest), forest,
+      ready_reference_dependencies(D.frame(state)), ready_reference_fingerprint(D.frame(state)))
+      == F.Materialized{product} : F.Materialization}) ->
+    {ReferenceBoundary.enter(state, child, previous)
+      == D.request(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}, T.EncodeProduct{product}) : D.Selection}:
+  match state child:
+    case D.State{_, X.Frame{+graph, +command, _, +local, +pending, +captured, +identities,
+      +edge, +episode, +artifact, +dependencies, +fingerprint}, _, _, _, _, _, _, _} X.Child{_, _, _, _}:
+      Equal.trans(D.Selection, ReferenceBoundary.enter(state, child, previous),
+        ReferenceBoundary.attached(state, X.attached(F.Replaced{forest}, D.frame(state), child, previous)),
+        D.request(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}, T.EncodeProduct{product}),
+        Equal.cong(F.Replacement, D.Selection, result => ReferenceBoundary.attached(state, X.attached(result, D.frame(state), child, previous)),
+          X.attachment(D.frame(state), child), F.Replaced{forest}, replaced),
+        ready_reference_materialized(state,
+          X.Frame{graph, command, forest, local, pending, captured, identities, edge, (episode + 1n : Nat), artifact, dependencies, fingerprint},
+          child, previous, product, materialized))
+
+def ready_actual_request(+state: T.ResolverState, product: ArtifactValue.ProductValue) -> T.Request:
+  T.Request{S.input_invocation(S.state_input(state)), S.state_next_request(state), T.EncodeProduct{product}}
+
+def ready_reference_request(state: D.State, product: ArtifactValue.ProductValue) -> T.Request:
+  match state:
+    case D.State{config, _, _, _, _, next, _, _, _}: T.Request{D.invocation(config), next, T.EncodeProduct{product}}
+
+def ready_capsule_request(capsule: Phase.Capsule, product: ArtifactValue.ProductValue) -> T.Request:
+  match capsule:
+    case Phase.Capsule{invocation, _, _, _, _, _, next, _, _, _, _}: T.Request{invocation, next, T.EncodeProduct{product}}
+
+def ready_actual_capsule_request(+clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>,
+    +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>, +state: T.ResolverState,
+    +capsule: Phase.Capsule, +product: ArtifactValue.ProductValue,
+    ready: {ActualReady.capsule(clock, language, active, edge, state) == Some{capsule} : Maybe<&2, Phase.Capsule>}) ->
+    {ready_actual_request(state, product) == ready_capsule_request(capsule, product) : T.Request}:
+  match clock language active edge state:
+    case Some{clock_value} Some{+language_value} Some{active_value} Some{edge_value}
+      T.ResolverState{T.ResolverInput{+invocation, path, _, _, _, _, branch, cache, _}, _, _, +next, iterations, _, _, rust, _, _, _, _, _}:
+      %Count.some_equal(Phase.Capsule,
+        Phase.Capsule{invocation, path, language_value, ActualReady.context(language_value, branch, rust),
+          clock_value, cache, next, iterations, active_value, edge_value, ActualReady.fingerprint(S.state_prepared(state))}, capsule, ready):
+        {T.Request{invocation, next, T.EncodeProduct{product}} == ready_capsule_request(_, product) : T.Request}
+      {==}
+    case None{} _ _ _ _:
+      Empty.absurd({ready_actual_request(state, product) == ready_capsule_request(capsule, product) : T.Request}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} None{} _ _ _:
+      Empty.absurd({ready_actual_request(state, product) == ready_capsule_request(capsule, product) : T.Request}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} Some{_} None{} _ _:
+      Empty.absurd({ready_actual_request(state, product) == ready_capsule_request(capsule, product) : T.Request}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd({ready_actual_request(state, product) == ready_capsule_request(capsule, product) : T.Request}, Contents.none_some(Phase.Capsule, capsule, ready))
+
+def ready_reference_capsule_request(+state: D.State, +child: X.Child, +product: ArtifactValue.ProductValue) ->
+    {ready_reference_request(state, product) == ready_capsule_request(ReferenceReady.capsule(state, child), product) : T.Request}:
+  match state child:
+    case D.State{D.Config{_, _, _, _, _, _}, X.Frame{_, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _}: {==}
+
+def ready_request_identity_exact(+actual: T.ResolverState, +reference: D.State, +child: X.Child,
+    +clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>, +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>,
+    +capsule: Phase.Capsule, +product: ArtifactValue.ProductValue,
+    actual_ready: {ActualReady.capsule(clock, language, active, edge, actual) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+    reference_ready: {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}) ->
+    {ready_actual_request(actual, product) == ready_reference_request(reference, product) : T.Request}:
+  Equal.trans(T.Request, ready_actual_request(actual, product), ready_capsule_request(capsule, product), ready_reference_request(reference, product),
+    ready_actual_capsule_request(clock, language, active, edge, actual, capsule, product, actual_ready),
+    Equal.sym(T.Request, ready_reference_request(reference, product), ready_capsule_request(capsule, product),
+      Equal.trans(T.Request, ready_reference_request(reference, product), ready_capsule_request(ReferenceReady.capsule(reference, child), product),
+        ready_capsule_request(capsule, product), ready_reference_capsule_request(reference, child, product),
+        Equal.cong(Phase.Capsule, T.Request, value => ready_capsule_request(value, product),
+          ReferenceReady.capsule(reference, child), capsule, Count.some_equal(Phase.Capsule, ReferenceReady.capsule(reference, child), capsule, reference_ready)))))
+
+def ready_loop_request(value: Loop.Continuation) -> Maybe<&2, T.Request>:
+  match value:
+    case Loop.ServiceStep{T.AwaitService{_, request}}: Some{request}
+    case _: None{}
+
+def ready_candidate_request_identity(+product: ArtifactValue.ProductValue, +child: T.TentativeChild,
+    +ids: List<&2, Nat>, +previous: Nat, +state: T.ResolverState) ->
+    {ready_loop_request(Attach.request_candidate(Some{product}, child, ids, previous, state))
+      == Some{ready_actual_request(state, product)} : Maybe<&2, T.Request>}:
+  match child state:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, _, _, _, _}
+      T.ResolverState{_, _, _, _, _, _, _, _, _, _, _, _, _}: {==}
+
+def ready_attachment_request_identity(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    +child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +product: ArtifactValue.ProductValue,
+    available: {PreparedRoot.prepared_unit(Attach.attached_frame(attachment, frame), S.state_prepared(state))
+      == Some{product} : Maybe<&2, ArtifactValue.ProductValue>}) ->
+    {ready_loop_request(Attach.attachment(Some{attachment}, child, previous, state, frame))
+      == Some{ready_actual_request(state, product)} : Maybe<&2, T.Request>}:
+  match attachment state:
+    case Compose.Attachment{_, _, _, _, _, _, +ids, _, _} T.ResolverState{_, _, _, _, _, _, _, _, _, _, _, _, _}:
+      %Equal.sym(Maybe<&2, ArtifactValue.ProductValue>,
+        PreparedRoot.prepared_unit(Attach.attached_frame(attachment, frame), S.state_prepared(state)), Some{product}, available):
+        {ready_loop_request(Attach.request_candidate(_, child, ids, previous,
+          S.with_state_frame(state, Some{Attach.attached_frame(attachment, frame)})))
+          == Some{ready_actual_request(state, product)} : Maybe<&2, T.Request>}
+      ready_candidate_request_identity(product, child, ids, previous, S.with_state_frame(state, Some{Attach.attached_frame(attachment, frame)}))
+
+def ready_reference_selected_request(+state: D.State, +transaction: X.Transaction, +product: ArtifactValue.ProductValue) ->
+    {ReferenceBoundary.selected_request(D.request(state, D.Transaction{transaction}, T.EncodeProduct{product}))
+      == Some{ready_reference_request(state, product)} : Maybe<&2, T.Request>}:
+  match state:
+    case D.State{_, _, _, _, _, _, _, _, _}: {==}
+
+def ready_reference_enter_request(+state: D.State, +child: X.Child, +previous: Nat,
+    +forest: F.Forest, +product: ArtifactValue.ProductValue,
+    replaced: {X.attachment(D.frame(state), child) == F.Replaced{forest} : F.Replacement},
+    materialized: {F.prepared_unit(Allowance.materialization(forest), forest,
+      ready_reference_dependencies(D.frame(state)), ready_reference_fingerprint(D.frame(state)))
+      == F.Materialized{product} : F.Materialization}) ->
+    {ReferenceBoundary.selected_request(ReferenceBoundary.enter(state, child, previous))
+      == Some{ready_reference_request(state, product)} : Maybe<&2, T.Request>}:
+  Equal.trans(Maybe<&2, T.Request>, ReferenceBoundary.selected_request(ReferenceBoundary.enter(state, child, previous)),
+    ReferenceBoundary.selected_request(D.request(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}, T.EncodeProduct{product})),
+    Some{ready_reference_request(state, product)},
+    Equal.cong(D.Selection, Maybe<&2, T.Request>, selected => ReferenceBoundary.selected_request(selected),
+      ReferenceBoundary.enter(state, child, previous),
+      D.request(state, D.Transaction{X.attached(F.Replaced{forest}, D.frame(state), child, previous)}, T.EncodeProduct{product}),
+      ready_reference_replaced_measurement(state, child, previous, forest, product, replaced, materialized)),
+    ready_reference_selected_request(state, X.attached(F.Replaced{forest}, D.frame(state), child, previous), product))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

@@ -692,6 +692,19 @@ One current obstacle list, in execution order:
    lint and documentation links passing. Consumer log:
    /tmp/hapsland-source-dispatcher-typed-consumer.log. Type diagnostics:
    /tmp/hapsland-preparation-host-strict-{diagnostic,v2}.log.
+   The shared provider authority contract now preserves the existing lease,
+   pending UnitJob identity, generic native result and closed Canonical
+   publication types. Scoped Effect references have explicit optional service
+   types rather than an inferred undefined-only service. Strict typing now
+   reports 533 diagnostics; provider-authority and resident-provider-permit
+   have none. Addressed lint selects both actual changed files. This establishes
+   their static contract only; the complete host remains unqualified.
+   Diagnostic: /tmp/hapsland-provider-authority-strict.log. The complete physical
+   Source consumer passes 57 cases / 6502 requests / 32 independent native
+   comparisons through the ordinary capability runner with supplied fixtures:
+   /tmp/hapsland-provider-authority-consumer-v2.log. A direct unsupported launch
+   failed its missing-fixture precondition before consumer execution; it is not
+   runtime evidence. Documentation links and diff whitespace checks pass.
    This is an intentionally unqualified implementation prerequisite, not a
    passing host gate; do not weaken strict settings or ship an unchecked public
    entry. Finish typing the whole retained host path, emit it through the normal
