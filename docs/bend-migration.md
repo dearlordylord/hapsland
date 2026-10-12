@@ -705,6 +705,11 @@ One current obstacle list, in execution order:
    /tmp/hapsland-provider-authority-consumer-v2.log. A direct unsupported launch
    failed its missing-fixture precondition before consumer execution; it is not
    runtime evidence. Documentation links and diff whitespace checks pass.
+   check:fast subsequently passes 109 tests and source/ABI/dependency checks
+   (/tmp/hapsland-provider-authority-fast.log). Its post-commit changed-file lint
+   selects zero files; authored-source lint evidence is the separate two-file
+   addressed run, /tmp/hapsland-provider-authority-lint.log, not that empty gate.
+   Source/proof WIP backup 7e244625 was pushed and local/origin equality verified.
    This is an intentionally unqualified implementation prerequisite, not a
    passing host gate; do not weaken strict settings or ship an unchecked public
    entry. Finish typing the whole retained host path, emit it through the normal
