@@ -954,8 +954,14 @@ One current obstacle list, in execution order:
    /tmp/hapsland-compiled-host-{source-preparation-consumer.mjs,
    resident-preparation-check.mjs}.log. Architectural review has no structural
    findings. The ordinary consumer runner now uses compiled host loading by
-   default for both physical consumers. Final default-runner checks, production
-   adoption and replaced TS deletion remain open. These passes do not close
+   default for both physical consumers. On frozen 50777b2c, both default-runner
+   consumers pass again with the same cases/requests and compiled module receipts;
+   all seven construction/cleanup tests, check:fast (109 tests plus source/ABI/
+   dependency gates) and all 23 compiler receipts pass. Logs:
+   /tmp/hapsland-50777b2c-{source,resident,cleanup,fast,receipts}.log. Its post-commit
+   changed-file lint selects zero files and is not candidate lint evidence;
+   the matching addressed pass selected 56 authored files before commit.
+   Production adoption and replaced TS deletion remain open. These passes do not close
    original proofs. An ensuing cold workspace build hit PreparationFinalization's
    old five-second emission timeout; matching CPU11/environment isolated emission
    passed at 4.553s. The owner subsequently raised migration Bend check/emission
@@ -965,26 +971,33 @@ One current obstacle list, in execution order:
    4.270s under the new ten-second bound. No original premises were added.
    The subsequent actual registration-count join is WIP with a linear callback
    used twice; full attachment_transaction_exact still needs its original body.
+   The proof-file formatter also reports Incomplete declaration header
+   (/tmp/hapsland-50777b2c-proof-format.log); neither proof nor format acceptance
+   is claimed. Normal compilation initially rejected source drift because the
+   proof probe had not settled before build start. After freezing/pushing all WIP,
+   the matching build passes 46/46 tasks, 11 cached, 82.484s:
+   /tmp/hapsland-50777b2c-frozen-build.log. Source drift was corrected by freezing
+   inputs, without weakening the stamp verifier. A fresh origin/master fetch is entirely included (HEAD..origin/master = 0); master is untouched.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 7355553b measurements are
+   connected candidate. Latest existing-production 50777b2c measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.7288884988364855 (2026-10-12 06:34:51.462037 UTC); build fails at
-   1.2796044437180987 (06:35:31.988150 UTC). Both starts meet the preceding
-   06:36:01 / 06:36:39 deadlines. All 34 build launches succeed with 23/46 cached
+   passes at 0.7076381152930001 (2026-10-12 07:00:11.113773 UTC); build fails at
+   1.1379430268537294 (07:00:58.869261 UTC). Both start before the preceding
+   07:04:51 / 07:05:31 deadlines. All 34 build launches succeed with 23/46 cached
    tasks each; runner exit zero and wrapper exit one identify unmet build parity,
    not compilation failure. Existing-production results do not qualify unadopted
-   whole preparation. The preceding pair on the same head also qualifies:
-   execution 0.6305970447544569 at 06:06:01.209959; build 1.1366466917311742 at
-   06:06:39.445377, both before the preceding deadlines. Whole preparation
-   connected: 0; replaced production TS removed: 0.
-   Next starts due on 2026-10-12 UTC: execution 07:04:51.462037,
-   build 07:05:31.988150. Target starts five minutes earlier; freeze/backup/warm
-   by 06:56. Logs: /tmp/hapsland-7355553b-{second-execution-pair,
-   second-build-pair,execution-pair,build-pair}.log.
+   whole preparation. Earlier 7355553b pairs also qualify: execution
+   0.7288884988364855 at 06:34:51.462037 / build 1.2796044437180987 at
+   06:35:31.988150, and execution 0.6305970447544569 at 06:06:01.209959 /
+   build 1.1366466917311742 at 06:06:39.445377. Their starts met cadence.
+   Whole preparation connected: 0; replaced production TS removed: 0.
+   Next starts due on 2026-10-12 UTC: execution 07:30:11.113773,
+   build 07:30:58.869261. Target starts five minutes earlier; freeze/backup/warm
+   by 07:22. Logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
-   2026-10-12T06-34-51.462037+00-00/qualification.json and
-   2026-10-12T06-35-31.988150+00-00/qualification.json.
+   2026-10-12T07-00-11.113773+00-00/qualification.json and
+   2026-10-12T07-00-58.869261+00-00/qualification.json.
    Previous 08ddc474 execution 0.690568648809017 passed and build
    1.1428574247404586 failed, both qualified. Its build start at
    05:17:04.108860 missed the preceding 05:16:54.530041 deadline by 9.579s;
