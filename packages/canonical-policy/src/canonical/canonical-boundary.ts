@@ -1,3 +1,16 @@
+import type {
+  RawCanonicalEvent,
+  List,
+  EditHistory_Reason,
+  Admission_ProspectiveFacts,
+  Ledger_Purpose,
+  Canonical_RequestOutcome,
+  Canonical_StopScope,
+  RulePolicy_ProbabilityWords,
+  Handoff_Surface,
+  Delivery_Surface,
+  Reuse_JoinedState
+} from "@hapsland/agent-flow-bend/canonical"
 import {
   type ProbabilityWordsSchema,
   decoder,
@@ -66,13 +79,13 @@ export type {
 export const CANONICAL_MAX_BYTES = 2 ** 47 - 1
 export const CANONICAL_MAX_UNITS = 1024
 
-const completedEditTags: Record<CompletedEditReason, string> = {
+const completedEditTags = {
   consumed: "Consumed",
   released: "Released",
   expired: "Expired",
   closed: "Closed"
-}
-const encodeCompletedEditReason = (reason: CompletedEditReason): unknown => ({
+} as const satisfies Record<CompletedEditReason, string>
+const encodeCompletedEditReason = (reason: CompletedEditReason): EditHistory_Reason => ({
   $: `EditHistory.${completedEditTags[reason]}`
 })
 const decodeCompletedEditReason = (
@@ -97,8 +110,8 @@ const tag = (value: unknown): string => {
 const nat = (value: unknown, positive = false): number => (positive ? readPositiveNat(value) : readNat(value))
 const bytes = readBytes
 const bool = readBool
-const ruleOrderTag = (value: "before" | "equal" | "after"): string => {
-  return `RulePolicy.${value.slice(0, 1).toUpperCase()}${value.slice(1)}`
+const ruleOrderTag = (value: "before" | "equal" | "after"): `RulePolicy.${Capitalize<typeof value>}` => {
+  return `RulePolicy.${value.slice(0, 1).toUpperCase()}${value.slice(1)}` as `RulePolicy.${Capitalize<typeof value>}`
 }
 declare const probabilityWordsBrand: unique symbol
 export type ProbabilityWords = Readonly<{ high: number; low: number; [probabilityWordsBrand]: true }>
@@ -110,17 +123,17 @@ export const probabilityWords = (value: number): ProbabilityWords => {
   bytes.setFloat64(0, Object.is(value, -0) ? 0 : value, false)
   return { high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) } as ProbabilityWords
 }
-const encodedProbabilityWords = (value: typeof ProbabilityWordsSchema.Type): unknown => ({
+const encodedProbabilityWords = (value: typeof ProbabilityWordsSchema.Type): RulePolicy_ProbabilityWords => ({
   $: "RulePolicy.Words",
   high: value.high,
   low: value.low
 })
-const list = (values: readonly number[]): unknown =>
-  values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+const list = (values: readonly number[]): List<number> =>
+  values.reduceRight<List<number>>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const readList = <T>(value: unknown, decode: (item: unknown) => T, limit = 2048): T[] =>
   readBendList(value, decode, limit)
 
-const encodeFacts = (facts: ProspectiveFacts): unknown => {
+const encodeFacts = (facts: ProspectiveFacts): Admission_ProspectiveFacts => {
   return {
     $: "Admission.ProspectiveFacts",
     clock_valid: facts.clockValid,
@@ -132,8 +145,8 @@ const encodeFacts = (facts: ProspectiveFacts): unknown => {
   }
 }
 
-const encodePurpose = (value: CapacityPurpose): unknown => {
-  const names: Record<CapacityPurpose, string> = {
+const encodePurpose = (value: CapacityPurpose): Ledger_Purpose => {
+  const names: Record<CapacityPurpose, Ledger_Purpose["$"]> = {
     observationDispatch: "Ledger.ObservationDispatch",
     preparation: "Ledger.Preparation",
     reviewUnit: "Ledger.ReviewUnit",
@@ -148,32 +161,34 @@ const identity = (event: Extract<CanonicalEvent, { readonly partition: number; r
   partition: event.partition,
   lifetime: event.lifetime
 })
-const submissionSurface = (surface: "edit" | "background" | "stop"): unknown => {
-  const name = { edit: "Handoff.Edit", background: "Handoff.Background", stop: "Handoff.Stop" }[surface]
+const submissionSurface = (surface: "edit" | "background" | "stop"): Handoff_Surface => {
+  const name = ({ edit: "Handoff.Edit", background: "Handoff.Background", stop: "Handoff.Stop" } as const)[surface]
   return { $: name }
 }
-const deliverySurface = (surface: "edit" | "background" | "stop"): unknown => {
-  const name = { edit: "Delivery.Edit", background: "Delivery.Background", stop: "Delivery.Stop" }[surface]
+const deliverySurface = (surface: "edit" | "background" | "stop"): Delivery_Surface => {
+  const name = ({ edit: "Delivery.Edit", background: "Delivery.Background", stop: "Delivery.Stop" } as const)[surface]
   return { $: name }
 }
-const reuseMemberState = (state: ReuseMemberState): unknown => {
-  const name = {
-    pending: "JoinedPending",
-    clear: "JoinedClear",
-    finding: "JoinedFinding",
-    unavailable: "JoinedUnavailable"
-  }[state]
+const reuseMemberState = (state: ReuseMemberState): Reuse_JoinedState => {
+  const name = (
+    {
+      pending: "JoinedPending",
+      clear: "JoinedClear",
+      finding: "JoinedFinding",
+      unavailable: "JoinedUnavailable"
+    } as const
+  )[state]
   return { $: `Reuse.${name}` }
 }
-const jevOutcomeTags: Record<JevRequestOutcome, string> = {
+const jevOutcomeTags = {
   neverSent: "NeverSent",
   finding: "RequestFinding",
   clear: "RequestClear",
   backendFailure: "RequestBackendFailure",
   timeout: "RequestTimeout",
   interrupted: "RequestInterrupted"
-}
-const encodeJevRequestOutcome = (outcome: JevRequestOutcome): unknown => {
+} as const satisfies Record<JevRequestOutcome, string>
+const encodeJevRequestOutcome = (outcome: JevRequestOutcome): Canonical_RequestOutcome => {
   const name = jevOutcomeTags[outcome]
   return { $: `Canonical.${name}` }
 }
@@ -186,7 +201,7 @@ const decodeJevRequestOutcome = (value: unknown): JevRequestOutcome => {
   decodeCanonicalConstructor(value, name)
   return outcome
 }
-const encodeReserveCapacity = (event: Extract<CanonicalEvent, { kind: "reserveCapacity" }>): unknown => {
+const encodeReserveCapacity = (event: Extract<CanonicalEvent, { kind: "reserveCapacity" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.ReserveCapacity",
     partition: event.partition,
@@ -194,7 +209,7 @@ const encodeReserveCapacity = (event: Extract<CanonicalEvent, { kind: "reserveCa
     purpose: encodePurpose(event.purpose)
   }
 }
-const encodeResizeCapacity = (event: Extract<CanonicalEvent, { kind: "resizeCapacity" }>): unknown => {
+const encodeResizeCapacity = (event: Extract<CanonicalEvent, { kind: "resizeCapacity" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.ResizeCapacity",
     reservation: event.reservation,
@@ -202,13 +217,13 @@ const encodeResizeCapacity = (event: Extract<CanonicalEvent, { kind: "resizeCapa
     purpose: encodePurpose(event.purpose)
   }
 }
-const encodeReleaseCapacity = (event: Extract<CanonicalEvent, { kind: "releaseCapacity" }>): unknown => {
+const encodeReleaseCapacity = (event: Extract<CanonicalEvent, { kind: "releaseCapacity" }>): RawCanonicalEvent => {
   return { $: "Canonical.ReleaseCapacity", reservation: event.reservation }
 }
-const encodeReplaceCapacity = (event: Extract<CanonicalEvent, { kind: "replaceCapacity" }>): unknown => {
+const encodeReplaceCapacity = (event: Extract<CanonicalEvent, { kind: "replaceCapacity" }>): RawCanonicalEvent => {
   return { $: "Canonical.ReplaceCapacity", reservation: event.reservation, unit_bytes: list(event.unitBytes) }
 }
-const encodeIssuePermit = (event: Extract<CanonicalEvent, { kind: "issuePermit" }>): unknown => {
+const encodeIssuePermit = (event: Extract<CanonicalEvent, { kind: "issuePermit" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.IssuePermit",
     ...identity(event),
@@ -220,13 +235,17 @@ const encodeIssuePermit = (event: Extract<CanonicalEvent, { kind: "issuePermit" 
     facts: encodeFacts(event.facts)
   }
 }
-const encodeCheckCompletedEdit = (event: Extract<CanonicalEvent, { kind: "checkCompletedEdit" }>): unknown => {
+const encodeCheckCompletedEdit = (
+  event: Extract<CanonicalEvent, { kind: "checkCompletedEdit" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.CheckCompletedEdit", tool: event.tool }
 }
-const encodeRememberCompletedEdit = (event: Extract<CanonicalEvent, { kind: "rememberCompletedEdit" }>): unknown => {
+const encodeRememberCompletedEdit = (
+  event: Extract<CanonicalEvent, { kind: "rememberCompletedEdit" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.RememberCompletedEdit", tool: event.tool, reason: encodeCompletedEditReason(event.reason) }
 }
-const encodeQuietRoundTick = (event: Extract<CanonicalEvent, { kind: "quietRoundTick" }>): unknown => {
+const encodeQuietRoundTick = (event: Extract<CanonicalEvent, { kind: "quietRoundTick" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.QuietRoundTick",
     ...identity(event),
@@ -242,16 +261,16 @@ const encodeQuietRoundTick = (event: Extract<CanonicalEvent, { kind: "quietRound
     }
   }
 }
-const encodeQuietRoundReset = (event: Extract<CanonicalEvent, { kind: "quietRoundReset" }>): unknown => {
+const encodeQuietRoundReset = (event: Extract<CanonicalEvent, { kind: "quietRoundReset" }>): RawCanonicalEvent => {
   return { $: "Canonical.QuietRoundReset", ...identity(event), round: event.round }
 }
-const encodeConsumePermit = (event: Extract<CanonicalEvent, { kind: "consumePermit" }>): unknown => {
+const encodeConsumePermit = (event: Extract<CanonicalEvent, { kind: "consumePermit" }>): RawCanonicalEvent => {
   return { $: "Canonical.ConsumePermit", ...identity(event), token: event.token, tool: event.tool, now: event.now }
 }
-const encodeReleasePermit = (event: Extract<CanonicalEvent, { kind: "releasePermit" }>): unknown => {
+const encodeReleasePermit = (event: Extract<CanonicalEvent, { kind: "releasePermit" }>): RawCanonicalEvent => {
   return { $: "Canonical.ReleasePermit", ...identity(event), token: event.token }
 }
-const encodeExpirePermit = (event: Extract<CanonicalEvent, { kind: "expirePermit" }>): unknown => {
+const encodeExpirePermit = (event: Extract<CanonicalEvent, { kind: "expirePermit" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.ExpirePermit",
     ...identity(event),
@@ -259,34 +278,36 @@ const encodeExpirePermit = (event: Extract<CanonicalEvent, { kind: "expirePermit
     deadline_reached: event.deadlineReached
   }
 }
-const encodeClosePermitRound = (event: Extract<CanonicalEvent, { kind: "closePermitRound" }>): unknown => {
+const encodeClosePermitRound = (event: Extract<CanonicalEvent, { kind: "closePermitRound" }>): RawCanonicalEvent => {
   return { $: "Canonical.ClosePermitRound", ...identity(event), round: event.round, at: event.at }
 }
-const encodeForgetAdmission = (event: Extract<CanonicalEvent, { kind: "forgetAdmission" }>): unknown => {
+const encodeForgetAdmission = (event: Extract<CanonicalEvent, { kind: "forgetAdmission" }>): RawCanonicalEvent => {
   return { $: "Canonical.ForgetAdmission", ...identity(event) }
 }
-const encodeOpenRound = (event: Extract<CanonicalEvent, { kind: "openRound" }>): unknown => {
+const encodeOpenRound = (event: Extract<CanonicalEvent, { kind: "openRound" }>): RawCanonicalEvent => {
   return { $: "Canonical.OpenRound", ...identity(event) }
 }
-const encodeAdmitObservation = (event: Extract<CanonicalEvent, { kind: "admitObservation" }>): unknown => {
+const encodeAdmitObservation = (event: Extract<CanonicalEvent, { kind: "admitObservation" }>): RawCanonicalEvent => {
   return { $: "Canonical.AdmitObservation", ...identity(event), round: event.round }
 }
 const encodeStartObservation = (
   event: Extract<CanonicalEvent, { kind: "startObservation" | "completeObservation" | "interruptObservation" }>
-): unknown => {
-  const name = {
-    startObservation: "StartObservation",
-    completeObservation: "CompleteObservation",
-    interruptObservation: "InterruptObservation"
-  }[event.kind]
+): RawCanonicalEvent => {
+  const name = (
+    {
+      startObservation: "StartObservation",
+      completeObservation: "CompleteObservation",
+      interruptObservation: "InterruptObservation"
+    } as const
+  )[event.kind]
   return { $: `Canonical.${name}`, ...identity(event), round: event.round, observation: event.observation }
 }
-const encodeBeginPreparation = (event: Extract<CanonicalEvent, { kind: "beginPreparation" }>): unknown => {
+const encodeBeginPreparation = (event: Extract<CanonicalEvent, { kind: "beginPreparation" }>): RawCanonicalEvent => {
   return { $: "Canonical.BeginPreparation", ...identity(event), round: event.round, bytes: event.bytes }
 }
 const encodeBeginObservedPreparation = (
   event: Extract<CanonicalEvent, { kind: "beginObservedPreparation" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.BeginObservedPreparation",
     ...identity(event),
@@ -295,10 +316,14 @@ const encodeBeginObservedPreparation = (
     bytes: event.bytes
   }
 }
-const encodeInterruptPreparation = (event: Extract<CanonicalEvent, { kind: "interruptPreparation" }>): unknown => {
+const encodeInterruptPreparation = (
+  event: Extract<CanonicalEvent, { kind: "interruptPreparation" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.InterruptPreparation", ...identity(event), round: event.round, operation: event.operation }
 }
-const encodePreparationCompleted = (event: Extract<CanonicalEvent, { kind: "preparationCompleted" }>): unknown => {
+const encodePreparationCompleted = (
+  event: Extract<CanonicalEvent, { kind: "preparationCompleted" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.PreparationCompleted",
     ...identity(event),
@@ -309,19 +334,21 @@ const encodePreparationCompleted = (event: Extract<CanonicalEvent, { kind: "prep
 }
 const encodeStartReview = (
   event: Extract<CanonicalEvent, { kind: "startReview" | "retireReview" | "cancelReview" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
-    $: {
-      startReview: "Canonical.StartReview",
-      retireReview: "Canonical.RetireReview",
-      cancelReview: "Canonical.CancelReview"
-    }[event.kind],
+    $: (
+      {
+        startReview: "Canonical.StartReview",
+        retireReview: "Canonical.RetireReview",
+        cancelReview: "Canonical.CancelReview"
+      } as const
+    )[event.kind],
     ...identity(event),
     round: event.round,
     operation: event.operation
   }
 }
-const encodeJevRequestReady = (event: Extract<CanonicalEvent, { kind: "jevRequestReady" }>): unknown => {
+const encodeJevRequestReady = (event: Extract<CanonicalEvent, { kind: "jevRequestReady" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.JevRequestReady",
     ...identity(event),
@@ -337,7 +364,7 @@ const encodeJevRequestReady = (event: Extract<CanonicalEvent, { kind: "jevReques
 }
 const encodeJevRequestStarted = (
   event: Extract<CanonicalEvent, { kind: "jevRequestStarted" | "jevRequestInterrupted" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: event.kind === "jevRequestStarted" ? "Canonical.JevRequestStarted" : "Canonical.JevRequestInterrupted",
     ...identity(event),
@@ -346,7 +373,7 @@ const encodeJevRequestStarted = (
     request: event.request
   }
 }
-const encodeJevRequestSettled = (event: Extract<CanonicalEvent, { kind: "jevRequestSettled" }>): unknown => {
+const encodeJevRequestSettled = (event: Extract<CanonicalEvent, { kind: "jevRequestSettled" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.JevRequestSettled",
     ...identity(event),
@@ -357,14 +384,16 @@ const encodeJevRequestSettled = (event: Extract<CanonicalEvent, { kind: "jevRequ
     current_work: event.currentWork
   }
 }
-const encodeReviewCompleted = (event: Extract<CanonicalEvent, { kind: "reviewCompleted" }>): unknown => {
-  const outcome = {
-    finding: "Canonical.Finding",
-    clear: "Canonical.Clear",
-    unavailable: "Canonical.Unavailable",
-    interrupted: "Canonical.Interrupted",
-    discarded: "Canonical.Discarded"
-  }[event.outcome]
+const encodeReviewCompleted = (event: Extract<CanonicalEvent, { kind: "reviewCompleted" }>): RawCanonicalEvent => {
+  const outcome = (
+    {
+      finding: "Canonical.Finding",
+      clear: "Canonical.Clear",
+      unavailable: "Canonical.Unavailable",
+      interrupted: "Canonical.Interrupted",
+      discarded: "Canonical.Discarded"
+    } as const
+  )[event.outcome]
   return {
     $: "Canonical.ReviewCompleted",
     ...identity(event),
@@ -373,7 +402,7 @@ const encodeReviewCompleted = (event: Extract<CanonicalEvent, { kind: "reviewCom
     outcome: { $: outcome }
   }
 }
-const encodeReviewObserved = (event: Extract<CanonicalEvent, { kind: "reviewObserved" }>): unknown => {
+const encodeReviewObserved = (event: Extract<CanonicalEvent, { kind: "reviewObserved" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.ReviewObserved",
     ...identity(event),
@@ -383,7 +412,9 @@ const encodeReviewObserved = (event: Extract<CanonicalEvent, { kind: "reviewObse
     current_work: event.currentWork
   }
 }
-const encodeFindingCountUpdated = (event: Extract<CanonicalEvent, { kind: "findingCountUpdated" }>): unknown => {
+const encodeFindingCountUpdated = (
+  event: Extract<CanonicalEvent, { kind: "findingCountUpdated" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.FindingCountUpdated",
     ...identity(event),
@@ -394,7 +425,7 @@ const encodeFindingCountUpdated = (event: Extract<CanonicalEvent, { kind: "findi
 }
 const encodeQueueDispatch = (
   event: Extract<CanonicalEvent, { kind: "queueDispatch" | "dispatchSettled" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: event.kind === "queueDispatch" ? "Canonical.QueueDispatch" : "Canonical.DispatchSettled",
     ...identity(event),
@@ -402,10 +433,12 @@ const encodeQueueDispatch = (
     operation: event.operation
   }
 }
-const encodeDiscardDispatch = (event: Extract<CanonicalEvent, { kind: "discardDispatch" }>): unknown => {
+const encodeDiscardDispatch = (event: Extract<CanonicalEvent, { kind: "discardDispatch" }>): RawCanonicalEvent => {
   return { $: "Canonical.DiscardDispatch", operations: list(event.operations) }
 }
-const encodeDispatchScopeCheck = (event: Extract<CanonicalEvent, { kind: "dispatchScopeCheck" }>): unknown => {
+const encodeDispatchScopeCheck = (
+  event: Extract<CanonicalEvent, { kind: "dispatchScopeCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.DispatchScopeCheck",
     named_count: event.namedCount,
@@ -413,13 +446,17 @@ const encodeDispatchScopeCheck = (event: Extract<CanonicalEvent, { kind: "dispat
     has_unnamed: event.hasUnnamed
   }
 }
-const encodeCloseDispatch = (_event: Extract<CanonicalEvent, { kind: "closeDispatch" }>): unknown => {
+const encodeCloseDispatch = (_event: Extract<CanonicalEvent, { kind: "closeDispatch" }>): RawCanonicalEvent => {
   return { $: "Canonical.CloseDispatch" }
 }
-const encodePreparedOfferCheck = (event: Extract<CanonicalEvent, { kind: "preparedOfferCheck" }>): unknown => {
+const encodePreparedOfferCheck = (
+  event: Extract<CanonicalEvent, { kind: "preparedOfferCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.PreparedOfferCheck", ready: event.ready, within_frame: event.withinFrame }
 }
-const encodeEmptyPreparedCheck = (event: Extract<CanonicalEvent, { kind: "emptyPreparedCheck" }>): unknown => {
+const encodeEmptyPreparedCheck = (
+  event: Extract<CanonicalEvent, { kind: "emptyPreparedCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.EmptyPreparedCheck",
     ready_count: event.readyCount,
@@ -427,7 +464,9 @@ const encodeEmptyPreparedCheck = (event: Extract<CanonicalEvent, { kind: "emptyP
     authority_bound: event.authorityBound
   }
 }
-const encodeReviewFailureCheck = (event: Extract<CanonicalEvent, { kind: "reviewFailureCheck" }>): unknown => {
+const encodeReviewFailureCheck = (
+  event: Extract<CanonicalEvent, { kind: "reviewFailureCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.ReviewFailureCheck",
     backend_or_timeout: event.backendOrTimeout,
@@ -435,15 +474,15 @@ const encodeReviewFailureCheck = (event: Extract<CanonicalEvent, { kind: "review
     missing: event.missing
   }
 }
-const encodeStopPolled = (event: Extract<CanonicalEvent, { kind: "stopPolled" }>): unknown => {
+const encodeStopPolled = (event: Extract<CanonicalEvent, { kind: "stopPolled" }>): RawCanonicalEvent => {
   return { $: "Canonical.StopPolled", ...identity(event), round: event.round, deadline: event.deadline }
 }
 const encodeStopGroupPolled = (
   event: Extract<CanonicalEvent, { kind: "stopGroupPolled" | "stopGroupEnded" }>
-): unknown => {
+): RawCanonicalEvent => {
   const polled = event.kind === "stopGroupPolled"
 
-  const scopes = event.scopes.reduceRight<unknown>(
+  const scopes = event.scopes.reduceRight<List<Canonical_StopScope>>(
     (tail, scope) => {
       return { $: "Con", head: { $: "Canonical.StopScope", partition: scope.partition, round: scope.round }, tail }
     },
@@ -460,7 +499,7 @@ const encodeStopGroupPolled = (
       }
     : { $: "Canonical.StopGroupEnded", ...common }
 }
-const encodeCollectionReady = (event: Extract<CanonicalEvent, { kind: "collectionReady" }>): unknown => {
+const encodeCollectionReady = (event: Extract<CanonicalEvent, { kind: "collectionReady" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectionReady",
     advice: event.advice,
@@ -473,7 +512,7 @@ const encodeCollectionReady = (event: Extract<CanonicalEvent, { kind: "collectio
 }
 const encodeCollectionCredentialCheck = (
   event: Extract<CanonicalEvent, { kind: "collectionCredentialCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectionCredentialCheck",
     same_scope: event.sameScope,
@@ -482,7 +521,7 @@ const encodeCollectionCredentialCheck = (
 }
 const encodeCollectionCandidateCheck = (
   event: Extract<CanonicalEvent, { kind: "collectionCandidateCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectionCandidateCheck",
     same_partition: event.samePartition,
@@ -491,16 +530,24 @@ const encodeCollectionCandidateCheck = (
     authority_owns: event.authorityOwns
   }
 }
-const encodeCollectionOrderCheck = (event: Extract<CanonicalEvent, { kind: "collectionOrderCheck" }>): unknown => {
+const encodeCollectionOrderCheck = (
+  event: Extract<CanonicalEvent, { kind: "collectionOrderCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.CollectionOrderCheck", left_sequence: event.leftSequence, right_sequence: event.rightSequence }
 }
-const encodeCollectionExpiryCheck = (event: Extract<CanonicalEvent, { kind: "collectionExpiryCheck" }>): unknown => {
+const encodeCollectionExpiryCheck = (
+  event: Extract<CanonicalEvent, { kind: "collectionExpiryCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.CollectionExpiryCheck", elapsed: event.elapsed, lifetime: event.lifetime }
 }
-const encodeCollectionFitCheck = (event: Extract<CanonicalEvent, { kind: "collectionFitCheck" }>): unknown => {
+const encodeCollectionFitCheck = (
+  event: Extract<CanonicalEvent, { kind: "collectionFitCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.CollectionFitCheck", items: event.items, bytes: event.bytes }
 }
-const encodeCollectionFindingCheck = (event: Extract<CanonicalEvent, { kind: "collectionFindingCheck" }>): unknown => {
+const encodeCollectionFindingCheck = (
+  event: Extract<CanonicalEvent, { kind: "collectionFindingCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectionFindingCheck",
     selection_partition: event.selectionPartition,
@@ -519,7 +566,9 @@ const encodeCollectionFindingCheck = (event: Extract<CanonicalEvent, { kind: "co
     prospective_bytes: event.prospectiveBytes
   }
 }
-const encodeCollectionNoticeCheck = (event: Extract<CanonicalEvent, { kind: "collectionNoticeCheck" }>): unknown => {
+const encodeCollectionNoticeCheck = (
+  event: Extract<CanonicalEvent, { kind: "collectionNoticeCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectionNoticeCheck",
     items: event.items,
@@ -529,7 +578,7 @@ const encodeCollectionNoticeCheck = (event: Extract<CanonicalEvent, { kind: "col
 }
 const encodeCollectionReserveLease = (
   event: Extract<CanonicalEvent, { kind: "collectionReserveLease" | "collectionReleaseLease" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $:
       event.kind === "collectionReserveLease" ? "Canonical.CollectionReserveLease" : "Canonical.CollectionReleaseLease",
@@ -537,7 +586,9 @@ const encodeCollectionReserveLease = (
     token: event.token
   }
 }
-const encodeCollectionLeaseCheck = (event: Extract<CanonicalEvent, { kind: "collectionLeaseCheck" }>): unknown => {
+const encodeCollectionLeaseCheck = (
+  event: Extract<CanonicalEvent, { kind: "collectionLeaseCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectionLeaseCheck",
     advice: event.advice,
@@ -548,12 +599,14 @@ const encodeCollectionLeaseCheck = (event: Extract<CanonicalEvent, { kind: "coll
     reofferable: event.reofferable
   }
 }
-const encodeCollectionRetireAdvice = (event: Extract<CanonicalEvent, { kind: "collectionRetireAdvice" }>): unknown => {
+const encodeCollectionRetireAdvice = (
+  event: Extract<CanonicalEvent, { kind: "collectionRetireAdvice" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.CollectionRetireAdvice", advice: event.advice }
 }
 const encodeCollectionClaimBackground = (
   event: Extract<CanonicalEvent, { kind: "collectionClaimBackground" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectionClaimBackground",
     group: event.group,
@@ -564,12 +617,12 @@ const encodeCollectionClaimBackground = (
 }
 const encodeCollectionReleaseBackground = (
   event: Extract<CanonicalEvent, { kind: "collectionReleaseBackground" }>
-): unknown => {
+): RawCanonicalEvent => {
   return { $: "Canonical.CollectionReleaseBackground", group: event.group, token: event.token }
 }
 const encodeCollectionExpireBackground = (
   event: Extract<CanonicalEvent, { kind: "collectionExpireBackground" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectionExpireBackground",
     group: event.group,
@@ -578,7 +631,7 @@ const encodeCollectionExpireBackground = (
     lifetime: event.lifetime
   }
 }
-const encodeFinishReserve = (event: Extract<CanonicalEvent, { kind: "finishReserve" }>): unknown => {
+const encodeFinishReserve = (event: Extract<CanonicalEvent, { kind: "finishReserve" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.FinishReserve",
     group: event.group,
@@ -594,7 +647,7 @@ const encodeFinishReserve = (event: Extract<CanonicalEvent, { kind: "finishReser
     deadline_reached: event.deadlineReached
   }
 }
-const encodeFinishRelease = (event: Extract<CanonicalEvent, { kind: "finishRelease" }>): unknown => {
+const encodeFinishRelease = (event: Extract<CanonicalEvent, { kind: "finishRelease" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.FinishRelease",
     group: event.group,
@@ -603,7 +656,7 @@ const encodeFinishRelease = (event: Extract<CanonicalEvent, { kind: "finishRelea
     token: event.token
   }
 }
-const encodeFinishAuthorize = (event: Extract<CanonicalEvent, { kind: "finishAuthorize" }>): unknown => {
+const encodeFinishAuthorize = (event: Extract<CanonicalEvent, { kind: "finishAuthorize" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.FinishAuthorize",
     group: event.group,
@@ -613,10 +666,10 @@ const encodeFinishAuthorize = (event: Extract<CanonicalEvent, { kind: "finishAut
     selected: list(event.selected)
   }
 }
-const encodeFinishTerminal = (event: Extract<CanonicalEvent, { kind: "finishTerminal" }>): unknown => {
-  const outcome = { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" }[
-    event.outcome
-  ]
+const encodeFinishTerminal = (event: Extract<CanonicalEvent, { kind: "finishTerminal" }>): RawCanonicalEvent => {
+  const outcome = (
+    { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" } as const
+  )[event.outcome]
   return {
     $: "Canonical.FinishTerminal",
     group: event.group,
@@ -627,7 +680,7 @@ const encodeFinishTerminal = (event: Extract<CanonicalEvent, { kind: "finishTerm
     outcome: { $: outcome }
   }
 }
-const encodeFinishEnd = (event: Extract<CanonicalEvent, { kind: "finishEnd" }>): unknown => {
+const encodeFinishEnd = (event: Extract<CanonicalEvent, { kind: "finishEnd" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.FinishEnd",
     group: event.group,
@@ -636,10 +689,12 @@ const encodeFinishEnd = (event: Extract<CanonicalEvent, { kind: "finishEnd" }>):
     token: event.token
   }
 }
-const encodeContinuationConsume = (event: Extract<CanonicalEvent, { kind: "continuationConsume" }>): unknown => {
+const encodeContinuationConsume = (
+  event: Extract<CanonicalEvent, { kind: "continuationConsume" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.ContinuationConsume", group: event.group, round: event.round }
 }
-const encodeSubmissionBegin = (event: Extract<CanonicalEvent, { kind: "submissionBegin" }>): unknown => {
+const encodeSubmissionBegin = (event: Extract<CanonicalEvent, { kind: "submissionBegin" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.SubmissionBegin",
     advice: event.advice,
@@ -654,22 +709,24 @@ const encodeSubmissionBegin = (event: Extract<CanonicalEvent, { kind: "submissio
 }
 const encodeSubmissionAuthorize = (
   event: Extract<CanonicalEvent, { kind: "submissionAuthorize" | "submissionRelease" | "submissionReofferCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
-    $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`,
+    $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}` as `Canonical.${Capitalize<typeof event.kind>}`,
     advice: event.advice,
     token: event.token
   }
 }
-const encodeSubmissionTerminal = (event: Extract<CanonicalEvent, { kind: "submissionTerminal" }>): unknown => {
+const encodeSubmissionTerminal = (
+  event: Extract<CanonicalEvent, { kind: "submissionTerminal" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.SubmissionTerminal", advice: event.advice, token: event.token, certain: event.certain }
 }
-const encodeSubmissionForget = (event: Extract<CanonicalEvent, { kind: "submissionForget" }>): unknown => {
+const encodeSubmissionForget = (event: Extract<CanonicalEvent, { kind: "submissionForget" }>): RawCanonicalEvent => {
   return { $: "Canonical.SubmissionForget", advice: event.advice }
 }
 const encodeSubmissionSuppressCheck = (
   event: Extract<CanonicalEvent, { kind: "submissionSuppressCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.SubmissionSuppressCheck",
     advice: event.advice,
@@ -678,7 +735,9 @@ const encodeSubmissionSuppressCheck = (
     surface: submissionSurface(event.surface)
   }
 }
-const encodeSubmissionExpiryCheck = (event: Extract<CanonicalEvent, { kind: "submissionExpiryCheck" }>): unknown => {
+const encodeSubmissionExpiryCheck = (
+  event: Extract<CanonicalEvent, { kind: "submissionExpiryCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.SubmissionExpiryCheck",
     advice: event.advice,
@@ -687,15 +746,15 @@ const encodeSubmissionExpiryCheck = (event: Extract<CanonicalEvent, { kind: "sub
     lifetime: event.lifetime
   }
 }
-const encodeRevisionRegister = (event: Extract<CanonicalEvent, { kind: "revisionRegister" }>): unknown => {
+const encodeRevisionRegister = (event: Extract<CanonicalEvent, { kind: "revisionRegister" }>): RawCanonicalEvent => {
   return { $: "Canonical.RevisionRegister", subject: event.subject, input: event.input, add_member: event.addMember }
 }
-const encodeRevisionRelease = (event: Extract<CanonicalEvent, { kind: "revisionRelease" }>): unknown => {
+const encodeRevisionRelease = (event: Extract<CanonicalEvent, { kind: "revisionRelease" }>): RawCanonicalEvent => {
   return { $: "Canonical.RevisionRelease", subject: event.subject, generation: event.generation }
 }
 const encodeRevisionSupersededCheck = (
   event: Extract<CanonicalEvent, { kind: "revisionSupersededCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.RevisionSupersededCheck",
     subject: event.subject,
@@ -703,7 +762,9 @@ const encodeRevisionSupersededCheck = (
     generation: event.generation
   }
 }
-const encodeRevisionCurrentCheck = (event: Extract<CanonicalEvent, { kind: "revisionCurrentCheck" }>): unknown => {
+const encodeRevisionCurrentCheck = (
+  event: Extract<CanonicalEvent, { kind: "revisionCurrentCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.RevisionCurrentCheck",
     subject: event.subject,
@@ -713,25 +774,29 @@ const encodeRevisionCurrentCheck = (event: Extract<CanonicalEvent, { kind: "revi
 }
 const encodeRevisionGenerationCheck = (
   event: Extract<CanonicalEvent, { kind: "revisionGenerationCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return { $: "Canonical.RevisionGenerationCheck", subject: event.subject }
 }
-const encodeRevisionCountCheck = (_event: Extract<CanonicalEvent, { kind: "revisionCountCheck" }>): unknown => {
+const encodeRevisionCountCheck = (
+  _event: Extract<CanonicalEvent, { kind: "revisionCountCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.RevisionCountCheck" }
 }
-const encodeCollectorGateCheck = (event: Extract<CanonicalEvent, { kind: "collectorGateCheck" }>): unknown => {
+const encodeCollectorGateCheck = (
+  event: Extract<CanonicalEvent, { kind: "collectorGateCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.CollectorGateCheck", expired: event.expired, credential_valid: event.credentialValid }
 }
 const encodeCollectorFinalAuthorityCheck = (
   event: Extract<CanonicalEvent, { kind: "collectorFinalAuthorityCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CollectorFinalAuthorityCheck",
     admitted_block: event.admittedBlock,
     current_block: event.currentBlock
   }
 }
-const encodeReuseMemberCheck = (event: Extract<CanonicalEvent, { kind: "reuseMemberCheck" }>): unknown => {
+const encodeReuseMemberCheck = (event: Extract<CanonicalEvent, { kind: "reuseMemberCheck" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.ReuseMemberCheck",
     joined_state: reuseMemberState(event.state),
@@ -740,7 +805,7 @@ const encodeReuseMemberCheck = (event: Extract<CanonicalEvent, { kind: "reuseMem
     has_advice_id: event.hasAdviceId
   }
 }
-const encodeCleanupCheck = (event: Extract<CanonicalEvent, { kind: "cleanupCheck" }>): unknown => {
+const encodeCleanupCheck = (event: Extract<CanonicalEvent, { kind: "cleanupCheck" }>): RawCanonicalEvent => {
   const facts = event.facts
 
   return {
@@ -759,18 +824,22 @@ const encodeCleanupCheck = (event: Extract<CanonicalEvent, { kind: "cleanupCheck
     }
   }
 }
-const encodeCleanupCommit = (_event: Extract<CanonicalEvent, { kind: "cleanupCommit" }>): unknown => {
+const encodeCleanupCommit = (_event: Extract<CanonicalEvent, { kind: "cleanupCommit" }>): RawCanonicalEvent => {
   return { $: "Canonical.CleanupCommit" }
 }
-const encodeDeliveryReleaseCheck = (event: Extract<CanonicalEvent, { kind: "deliveryReleaseCheck" }>): unknown => {
+const encodeDeliveryReleaseCheck = (
+  event: Extract<CanonicalEvent, { kind: "deliveryReleaseCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.DeliveryReleaseCheck", acknowledged: event.acknowledged }
 }
 const encodeDeliveryAcknowledgeCheck = (
   event: Extract<CanonicalEvent, { kind: "deliveryAcknowledgeCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return { $: "Canonical.DeliveryAcknowledgeCheck", items: event.items, any_expired: event.anyExpired }
 }
-const encodeDeliveryFinalizeCheck = (event: Extract<CanonicalEvent, { kind: "deliveryFinalizeCheck" }>): unknown => {
+const encodeDeliveryFinalizeCheck = (
+  event: Extract<CanonicalEvent, { kind: "deliveryFinalizeCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.DeliveryFinalizeCheck",
     items: event.items,
@@ -780,12 +849,12 @@ const encodeDeliveryFinalizeCheck = (event: Extract<CanonicalEvent, { kind: "del
 }
 const encodeDeliveryFindingDispositionCheck = (
   event: Extract<CanonicalEvent, { kind: "deliveryFindingDispositionCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return { $: "Canonical.DeliveryFindingDispositionCheck", composed: event.composed, remaining: event.remaining }
 }
 const encodeDeliverySubmissionCandidateCheck = (
   event: Extract<CanonicalEvent, { kind: "deliverySubmissionCandidateCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   const facts = event.facts
 
   return {
@@ -805,12 +874,12 @@ const encodeDeliverySubmissionCandidateCheck = (
 }
 const encodeDeliverySubmissionBatchCheck = (
   event: Extract<CanonicalEvent, { kind: "deliverySubmissionBatchCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return { $: "Canonical.DeliverySubmissionBatchCheck", count: event.count, all_valid: event.allValid }
 }
 const encodeDeliveryCredentialObserveCheck = (
   event: Extract<CanonicalEvent, { kind: "deliveryCredentialObserveCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.DeliveryCredentialObserveCheck",
     invalid_seen: event.invalidSeen,
@@ -820,26 +889,32 @@ const encodeDeliveryCredentialObserveCheck = (
 }
 const encodeDeliveryFinalCredentialCheck = (
   event: Extract<CanonicalEvent, { kind: "deliveryFinalCredentialCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.DeliveryFinalCredentialCheck",
     shared_collect: event.sharedCollect,
     invalid_seen: event.invalidSeen
   }
 }
-const encodeSourceCacheCheck = (event: Extract<CanonicalEvent, { kind: "sourceCacheCheck" }>): unknown => ({
+const encodeSourceCacheCheck = (event: Extract<CanonicalEvent, { kind: "sourceCacheCheck" }>): RawCanonicalEvent => ({
   $: "Canonical.SourceCacheCheck",
   remaining: event.remaining,
   aborted: event.aborted
 })
-const encodeValidationRouteCheck = (event: Extract<CanonicalEvent, { kind: "validationRouteCheck" }>): unknown => {
+const encodeValidationRouteCheck = (
+  event: Extract<CanonicalEvent, { kind: "validationRouteCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.ValidationRouteCheck",
     owner_current: event.ownerCurrent,
-    status: { $: `Handoff.${event.status.slice(0, 1).toUpperCase()}${event.status.slice(1)}` }
+    status: {
+      $: `Handoff.${event.status.slice(0, 1).toUpperCase()}${event.status.slice(1)}` as `Handoff.${Capitalize<typeof event.status>}`
+    }
   }
 }
-const encodePostValidationCheck = (event: Extract<CanonicalEvent, { kind: "postValidationCheck" }>): unknown => {
+const encodePostValidationCheck = (
+  event: Extract<CanonicalEvent, { kind: "postValidationCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.PostValidationCheck",
     work_accepted: event.workAccepted,
@@ -847,7 +922,9 @@ const encodePostValidationCheck = (event: Extract<CanonicalEvent, { kind: "postV
     has_fitting: event.hasFitting
   }
 }
-const encodeFinalCandidateCheck = (event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" }>): unknown => {
+const encodeFinalCandidateCheck = (
+  event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.FinalCandidateCheck",
     owner_current: event.ownerCurrent,
@@ -858,10 +935,14 @@ const encodeFinalCandidateCheck = (event: Extract<CanonicalEvent, { kind: "final
     has_findings: event.hasFindings
   }
 }
-const encodeRoundBeginStopCheck = (event: Extract<CanonicalEvent, { kind: "roundBeginStopCheck" }>): unknown => {
+const encodeRoundBeginStopCheck = (
+  event: Extract<CanonicalEvent, { kind: "roundBeginStopCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.RoundBeginStopCheck", active: event.active, has_stop: event.hasStop, token: event.token }
 }
-const encodeRoundActivityCheck = (event: Extract<CanonicalEvent, { kind: "roundActivityCheck" }>): unknown => {
+const encodeRoundActivityCheck = (
+  event: Extract<CanonicalEvent, { kind: "roundActivityCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.RoundActivityCheck",
     bound: event.bound,
@@ -872,7 +953,7 @@ const encodeRoundActivityCheck = (event: Extract<CanonicalEvent, { kind: "roundA
     expected_generation: event.expectedGeneration
   }
 }
-const encodeRoundBarrierCheck = (event: Extract<CanonicalEvent, { kind: "roundBarrierCheck" }>): unknown => {
+const encodeRoundBarrierCheck = (event: Extract<CanonicalEvent, { kind: "roundBarrierCheck" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.RoundBarrierCheck",
     has_stop: event.hasStop,
@@ -880,7 +961,9 @@ const encodeRoundBarrierCheck = (event: Extract<CanonicalEvent, { kind: "roundBa
     used_now: event.usedNow
   }
 }
-const encodeRoundOwnsStopCheck = (event: Extract<CanonicalEvent, { kind: "roundOwnsStopCheck" }>): unknown => {
+const encodeRoundOwnsStopCheck = (
+  event: Extract<CanonicalEvent, { kind: "roundOwnsStopCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.RoundOwnsStopCheck",
     active: event.active,
@@ -888,7 +971,9 @@ const encodeRoundOwnsStopCheck = (event: Extract<CanonicalEvent, { kind: "roundO
     deciding: event.deciding
   }
 }
-const encodeRoundStopTerminalCheck = (event: Extract<CanonicalEvent, { kind: "roundStopTerminalCheck" }>): unknown => {
+const encodeRoundStopTerminalCheck = (
+  event: Extract<CanonicalEvent, { kind: "roundStopTerminalCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.RoundStopTerminalCheck",
     has_output: event.hasOutput,
@@ -896,17 +981,19 @@ const encodeRoundStopTerminalCheck = (event: Extract<CanonicalEvent, { kind: "ro
     requested_close: event.requestedClose
   }
 }
-const encodeRoundExpireCloseCheck = (event: Extract<CanonicalEvent, { kind: "roundExpireCloseCheck" }>): unknown => {
+const encodeRoundExpireCloseCheck = (
+  event: Extract<CanonicalEvent, { kind: "roundExpireCloseCheck" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.RoundExpireCloseCheck", barrier: event.barrier, authorized_output: event.authorizedOutput }
 }
 const encodeRoundContinuationBudgetCheck = (
   event: Extract<CanonicalEvent, { kind: "roundContinuationBudgetCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return { $: "Canonical.RoundContinuationBudgetCheck", active: event.active, count: event.count }
 }
 const encodeDeliverySubmissionAllowedCheck = (
   event: Extract<CanonicalEvent, { kind: "deliverySubmissionAllowedCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.DeliverySubmissionAllowedCheck",
     active: event.active,
@@ -919,7 +1006,7 @@ const encodeDeliverySubmissionAllowedCheck = (
 }
 const encodeDeliveryExistingTokenCheck = (
   event: Extract<CanonicalEvent, { kind: "deliveryExistingTokenCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return {
     $: "Canonical.DeliveryExistingTokenCheck",
     surface: deliverySurface(event.surface),
@@ -929,10 +1016,10 @@ const encodeDeliveryExistingTokenCheck = (
 }
 const encodeDeliveryUnreservedStopCheck = (
   event: Extract<CanonicalEvent, { kind: "deliveryUnreservedStopCheck" }>
-): unknown => {
+): RawCanonicalEvent => {
   return { $: "Canonical.DeliveryUnreservedStopCheck", active: event.active, deciding: event.deciding }
 }
-const encodeIncludeLayerCheck = (event: Extract<CanonicalEvent, { kind: "includeLayerCheck" }>): unknown => {
+const encodeIncludeLayerCheck = (event: Extract<CanonicalEvent, { kind: "includeLayerCheck" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.IncludeLayerCheck",
     supplied: event.supplied,
@@ -940,7 +1027,9 @@ const encodeIncludeLayerCheck = (event: Extract<CanonicalEvent, { kind: "include
     candidate_rank: event.candidateRank
   }
 }
-const encodeFileSelectionCheck = (event: Extract<CanonicalEvent, { kind: "fileSelectionCheck" }>): unknown => {
+const encodeFileSelectionCheck = (
+  event: Extract<CanonicalEvent, { kind: "fileSelectionCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.FileSelectionCheck",
     protected: event.protected,
@@ -949,10 +1038,14 @@ const encodeFileSelectionCheck = (event: Extract<CanonicalEvent, { kind: "fileSe
     included: event.included
   }
 }
-const encodeFileProtectionInvalid = (_event: Extract<CanonicalEvent, { kind: "fileProtectionInvalid" }>): unknown => {
+const encodeFileProtectionInvalid = (
+  _event: Extract<CanonicalEvent, { kind: "fileProtectionInvalid" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.FileProtectionInvalid" }
 }
-const encodeFileProtectionCheck = (event: Extract<CanonicalEvent, { kind: "fileProtectionCheck" }>): unknown => {
+const encodeFileProtectionCheck = (
+  event: Extract<CanonicalEvent, { kind: "fileProtectionCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.FileProtectionCheck",
     sensitive_name: event.sensitiveName,
@@ -960,7 +1053,9 @@ const encodeFileProtectionCheck = (event: Extract<CanonicalEvent, { kind: "fileP
     allowed_extension: event.allowedExtension
   }
 }
-const encodeCandidateFileCheck = (event: Extract<CanonicalEvent, { kind: "candidateFileCheck" }>): unknown => {
+const encodeCandidateFileCheck = (
+  event: Extract<CanonicalEvent, { kind: "candidateFileCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.CandidateFileCheck",
     git_admin: event.gitAdmin,
@@ -968,7 +1063,9 @@ const encodeCandidateFileCheck = (event: Extract<CanonicalEvent, { kind: "candid
     git_allowed: event.gitAllowed
   }
 }
-const encodeReviewAdmissionCheck = (event: Extract<CanonicalEvent, { kind: "reviewAdmissionCheck" }>): unknown => {
+const encodeReviewAdmissionCheck = (
+  event: Extract<CanonicalEvent, { kind: "reviewAdmissionCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.ReviewAdmissionCheck",
     root_valid: event.rootValid,
@@ -977,15 +1074,19 @@ const encodeReviewAdmissionCheck = (event: Extract<CanonicalEvent, { kind: "revi
     selected: event.selected
   }
 }
-const encodeRuleEnableCheck = (event: Extract<CanonicalEvent, { kind: "ruleEnableCheck" }>): unknown => {
+const encodeRuleEnableCheck = (event: Extract<CanonicalEvent, { kind: "ruleEnableCheck" }>): RawCanonicalEvent => {
   return { $: "Canonical.RuleEnableCheck", pack_enabled: event.packEnabled, rule_enabled: event.ruleEnabled }
 }
-const encodeRuleApplicabilityCheck = (event: Extract<CanonicalEvent, { kind: "ruleApplicabilityCheck" }>): unknown => {
+const encodeRuleApplicabilityCheck = (
+  event: Extract<CanonicalEvent, { kind: "ruleApplicabilityCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.RuleApplicabilityCheck",
     consent: event.consent,
     complete: event.complete,
-    target: { $: `RulePolicy.${event.target.slice(0, 1).toUpperCase()}${event.target.slice(1)}` },
+    target: {
+      $: `RulePolicy.${event.target.slice(0, 1).toUpperCase()}${event.target.slice(1)}` as `RulePolicy.${Capitalize<typeof event.target>}`
+    },
     global_included: event.globalIncluded,
     global_excluded: event.globalExcluded,
     pack_enabled: event.packEnabled,
@@ -998,14 +1099,16 @@ const encodeRuleApplicabilityCheck = (event: Extract<CanonicalEvent, { kind: "ru
     minimum_rung: event.minimumRung
   }
 }
-const encodeRuleFindingCheck = (event: Extract<CanonicalEvent, { kind: "ruleFindingCheck" }>): unknown => {
+const encodeRuleFindingCheck = (event: Extract<CanonicalEvent, { kind: "ruleFindingCheck" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.RuleFindingCheck",
     probability: encodedProbabilityWords(event.probability),
     threshold: encodedProbabilityWords(event.threshold)
   }
 }
-const encodeRuleRankOrderCheck = (event: Extract<CanonicalEvent, { kind: "ruleRankOrderCheck" }>): unknown => {
+const encodeRuleRankOrderCheck = (
+  event: Extract<CanonicalEvent, { kind: "ruleRankOrderCheck" }>
+): RawCanonicalEvent => {
   return {
     $: "Canonical.RuleRankOrderCheck",
     left: encodedProbabilityWords(event.left),
@@ -1014,7 +1117,7 @@ const encodeRuleRankOrderCheck = (event: Extract<CanonicalEvent, { kind: "ruleRa
     right_rank: event.rightRank
   }
 }
-const encodeAdviceOrderCheck = (event: Extract<CanonicalEvent, { kind: "adviceOrderCheck" }>): unknown => {
+const encodeAdviceOrderCheck = (event: Extract<CanonicalEvent, { kind: "adviceOrderCheck" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.AdviceOrderCheck",
     left: encodedProbabilityWords(event.left),
@@ -1023,18 +1126,21 @@ const encodeAdviceOrderCheck = (event: Extract<CanonicalEvent, { kind: "adviceOr
     id_order: { $: ruleOrderTag(event.idOrder) }
   }
 }
-const encodeRuleBudgetCheck = (event: Extract<CanonicalEvent, { kind: "ruleBudgetCheck" }>): unknown => {
+const encodeRuleBudgetCheck = (event: Extract<CanonicalEvent, { kind: "ruleBudgetCheck" }>): RawCanonicalEvent => {
   return { $: "Canonical.RuleBudgetCheck", position: event.position, limit: event.limit }
 }
-const encodeReuseRoute = (event: Extract<CanonicalEvent, { kind: "reuseRoute" }>): unknown => {
+const encodeReuseRoute = (event: Extract<CanonicalEvent, { kind: "reuseRoute" }>): RawCanonicalEvent => {
   return { $: "Canonical.ReuseRoute", id: event.id, live_advice: event.liveAdvice }
 }
 const encodeReuseClaim = (
   event: Extract<CanonicalEvent, { kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch" }>
-): unknown => {
-  return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: event.id }
+): RawCanonicalEvent => {
+  return {
+    $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}` as `Canonical.${Capitalize<typeof event.kind>}`,
+    id: event.id
+  }
 }
-const encodeCachePrepare = (event: Extract<CanonicalEvent, { kind: "cachePrepare" }>): unknown => {
+const encodeCachePrepare = (event: Extract<CanonicalEvent, { kind: "cachePrepare" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.CachePrepare",
     id: event.id,
@@ -1043,7 +1149,7 @@ const encodeCachePrepare = (event: Extract<CanonicalEvent, { kind: "cachePrepare
     byte_limit: event.byteLimit
   }
 }
-const encodeCacheCommit = (event: Extract<CanonicalEvent, { kind: "cacheCommit" }>): unknown => {
+const encodeCacheCommit = (event: Extract<CanonicalEvent, { kind: "cacheCommit" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.CacheCommit",
     id: event.id,
@@ -1054,13 +1160,15 @@ const encodeCacheCommit = (event: Extract<CanonicalEvent, { kind: "cacheCommit" 
     byte_limit: event.byteLimit
   }
 }
-const encodeCacheDiscardPartition = (event: Extract<CanonicalEvent, { kind: "cacheDiscardPartition" }>): unknown => {
+const encodeCacheDiscardPartition = (
+  event: Extract<CanonicalEvent, { kind: "cacheDiscardPartition" }>
+): RawCanonicalEvent => {
   return { $: "Canonical.CacheDiscardPartition", partition: event.partition }
 }
-const encodeCacheClear = (_event: Extract<CanonicalEvent, { kind: "cacheClear" }>): unknown => {
+const encodeCacheClear = (_event: Extract<CanonicalEvent, { kind: "cacheClear" }>): RawCanonicalEvent => {
   return { $: "Canonical.CacheClear" }
 }
-const encodeNoticeAdvance = (event: Extract<CanonicalEvent, { kind: "noticeAdvance" }>): unknown => {
+const encodeNoticeAdvance = (event: Extract<CanonicalEvent, { kind: "noticeAdvance" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.NoticeAdvance",
     key: event.key,
@@ -1071,7 +1179,7 @@ const encodeNoticeAdvance = (event: Extract<CanonicalEvent, { kind: "noticeAdvan
     max_count: event.maxCount
   }
 }
-const encodeNoticeCommit = (event: Extract<CanonicalEvent, { kind: "noticeCommit" }>): unknown => {
+const encodeNoticeCommit = (event: Extract<CanonicalEvent, { kind: "noticeCommit" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.NoticeCommit",
     key: event.key,
@@ -1083,7 +1191,7 @@ const encodeNoticeCommit = (event: Extract<CanonicalEvent, { kind: "noticeCommit
     maximum_keys: event.maximumKeys
   }
 }
-const encodeNoticePrune = (event: Extract<CanonicalEvent, { kind: "noticePrune" }>): unknown => {
+const encodeNoticePrune = (event: Extract<CanonicalEvent, { kind: "noticePrune" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.NoticePrune",
     key: event.key,
@@ -1093,13 +1201,18 @@ const encodeNoticePrune = (event: Extract<CanonicalEvent, { kind: "noticePrune" 
     cooldown_expired: event.cooldownExpired
   }
 }
-const encodeNoticeDrop = (event: Extract<CanonicalEvent, { kind: "noticeDrop" | "noticeClearPending" }>): unknown => {
-  return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, key: event.key }
+const encodeNoticeDrop = (
+  event: Extract<CanonicalEvent, { kind: "noticeDrop" | "noticeClearPending" }>
+): RawCanonicalEvent => {
+  return {
+    $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}` as `Canonical.${Capitalize<typeof event.kind>}`,
+    key: event.key
+  }
 }
-const encodeNoticeLease = (event: Extract<CanonicalEvent, { kind: "noticeLease" }>): unknown => {
+const encodeNoticeLease = (event: Extract<CanonicalEvent, { kind: "noticeLease" }>): RawCanonicalEvent => {
   return { $: "Canonical.NoticeLease", key: event.key, leased: event.leased }
 }
-const encodeNoticeSelect = (event: Extract<CanonicalEvent, { kind: "noticeSelect" }>): unknown => {
+const encodeNoticeSelect = (event: Extract<CanonicalEvent, { kind: "noticeSelect" }>): RawCanonicalEvent => {
   return {
     $: "Canonical.NoticeSelect",
     partition: event.partition,
@@ -1109,13 +1222,13 @@ const encodeNoticeSelect = (event: Extract<CanonicalEvent, { kind: "noticeSelect
     allowed: list(event.allowed)
   }
 }
-const encodeOutputStarted = (event: Extract<CanonicalEvent, { kind: "outputStarted" }>): unknown => {
+const encodeOutputStarted = (event: Extract<CanonicalEvent, { kind: "outputStarted" }>): RawCanonicalEvent => {
   return { $: "Canonical.OutputStarted", ...identity(event), round: event.round }
 }
-const encodeOutputTerminal = (event: Extract<CanonicalEvent, { kind: "outputTerminal" }>): unknown => {
-  const outcome = { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" }[
-    event.outcome
-  ]
+const encodeOutputTerminal = (event: Extract<CanonicalEvent, { kind: "outputTerminal" }>): RawCanonicalEvent => {
+  const outcome = (
+    { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" } as const
+  )[event.outcome]
   return {
     $: "Canonical.OutputTerminal",
     ...identity(event),
@@ -1124,7 +1237,7 @@ const encodeOutputTerminal = (event: Extract<CanonicalEvent, { kind: "outputTerm
     outcome: { $: outcome }
   }
 }
-const encodeRetirePartition = (event: Extract<CanonicalEvent, { kind: "retirePartition" }>): unknown => {
+const encodeRetirePartition = (event: Extract<CanonicalEvent, { kind: "retirePartition" }>): RawCanonicalEvent => {
   return { $: "Canonical.RetirePartition", ...identity(event), round: event.round }
 }
 type EventForKind<Kind extends CanonicalEvent["kind"], Event = CanonicalEvent> = Event extends {
@@ -1137,7 +1250,7 @@ type EventForKind<Kind extends CanonicalEvent["kind"], Event = CanonicalEvent> =
 type EventByKind = {
   [Kind in CanonicalEvent["kind"]]: EventForKind<Kind>
 }
-const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) => unknown } = {
+const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) => RawCanonicalEvent } = {
   reserveCapacity: encodeReserveCapacity,
   resizeCapacity: encodeResizeCapacity,
   releaseCapacity: encodeReleaseCapacity,
@@ -1277,9 +1390,11 @@ const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) =
   retirePartition: encodeRetirePartition
 }
 
-const encodeVariant = <Kind extends keyof EventByKind>(event: EventByKind[Kind] & { readonly kind: Kind }): unknown =>
-  eventEncoders[event.kind](event)
-export const encodeCanonicalEvent = (input: CanonicalEvent): unknown => encodeVariant(readCanonicalEvent(input))
+const encodeVariant = <Kind extends keyof EventByKind>(
+  event: EventByKind[Kind] & { readonly kind: Kind }
+): RawCanonicalEvent => eventEncoders[event.kind](event)
+export const encodeCanonicalEvent = (input: CanonicalEvent): RawCanonicalEvent =>
+  encodeVariant(readCanonicalEvent(input))
 
 const outcome = (value: unknown): "finding" | "clear" | "unavailable" | "interrupted" | "discarded" => {
   const name = tag(value)

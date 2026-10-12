@@ -294,8 +294,11 @@ One current obstacle list, in execution order:
    True map lookup, then needs the reverse unique-order/cardinality direction
    to establish actual/reference lookup equality for Included/Expanded. It adds
    no law or premise and leaves attachment_transaction_exact unchanged. The
-   current dependent existential elimination fails typing; it is unqualified
-   (/tmp/astra-transaction-visited-semantic.log), not a counterexample or proof.
+   dependent elimination was fixed using existing witness eliminators. The
+   exact semantic support/dependency slice passes hard5 in 4.272s
+   (/tmp/astra-transaction-visited-focused.log): listed identities have equal
+   actual/reference lookup results. Absent identities still need the original
+   unique-order/cardinality guards. The full original theorem remains open.
 
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    The existing frontend codec now preserves literal constructor, Maybe,
@@ -546,9 +549,9 @@ One current obstacle list, in execution order:
    whose normal producer has an exact output/ABI inventory and receipts. It must
    be exported there, not added as an external resident recipe source. Its
    resident_step/resident_reconcile/assembled boundary consumes existing
-   Canonical state and events plus local custody. The current canonical authored
-   declaration exposes unknown arguments/results, and encodeCanonicalEvent in
-   canonical-policy returns unknown. This is an actual closed owner ABI gap:
+   Canonical state and events plus local custody. The Canonical event input is
+   now closed; existing source-free state/results retain their previous boundary.
+   The owner scope/action and custody declaration remains an actual ABI gap:
    do not conceal its event input with an opaque command, or import consumer-owned
    canonical-policy types back into the Bend producer. Before wiring the export,
    establish the source-free raw Canonical transport at its existing declaration
@@ -561,8 +564,25 @@ One current obstacle list, in execution order:
    18 types/187 constructors, ordered List/Maybe and existing immediate Nat.
    Strict owner ABI checking (skipLibCheck=false) and explicit lint pass;
    typecheck:source/check:fast now select all authored Bend ABI declarations and
-   pass. Encoder return typing, public producer output/receipt and owner loading
-   remain open; this declaration alone does not qualify runtime correspondence.
+   pass. The public canonical declaration now exports the raw transport and
+   bendCanonicalStep requires RawCanonicalEvent. Every event encoder and its
+   nested payload returns the closed owner types. Runtime AST after TS erasure
+   is identical to HEAD before this change; the immediate Nat/read/validation
+   behavior is unchanged. Normal Canonical generator copies the declaration,
+   and the exact producer inventory/receipt binds all 41 files. All 77 producer
+   tests pass; explicit lint and strict ABI pass. Real canonical-policy typing
+   first used the authored interface as a diagnostic, then the real workspace
+   producer/compiler. A post-build root check found an outdated unknown mock;
+   its type now follows the public producer signature. Revised check:fast
+   passes with six actual authored sources selected. Three real Canonical
+   boundary/schema/Engine consumers pass 42 tests on the final typed candidate.
+   Standard workspace build failed at existing PreparationFinalization hard5;
+   controlled full concurrency-1 graph passes 46/46 (14 cached, 75.107s), then
+   unchanged standard concurrency-2 build passes 46/46 (23 cached, 3.132s).
+   No deadline/default concurrency changed; this does not establish timeout
+   cause or build parity. Logs: /tmp/hapsland-raw-canonical-{wire-build,
+   serial-graph,normal-warm,boundary-tests-v2,wire-fast-v2}.log. Complete
+   CanonicalResolverOwner declaration/export and owner loading remain open.
    Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 

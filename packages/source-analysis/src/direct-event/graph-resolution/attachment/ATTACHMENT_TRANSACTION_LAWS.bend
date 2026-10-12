@@ -556,10 +556,14 @@ def visited_member_cons(+head: String, +tail: List<&2, String>, +entries: Map<&2
       {List.contains(String, String.eq, tail, query) == True{} : Bool} ->
       {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}) ->
     {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}:
-  match evidence:
-    case Tuple{head_true, Tuple{+observed, +ready}}:
-      visited_member_selected(String.eq(head, query), head, tail, entries, observed, query,
-        {==}, head_true, ready, member, recurse(observed, ready))
+  Parent.eliminate_pair({Local.map_result(Bool, Map.get(Bool, False{}, entries, head)) == True{} : Bool},
+    Exists(List<&2, String>, observed => {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>}),
+    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}, evidence,
+    head_true => tail_witness => Parent.eliminate_witness(List<&2, String>,
+      observed => {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+      {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}, tail_witness,
+      +observed => +ready => visited_member_selected(String.eq(head, query), head, tail, entries,
+        observed, query, {==}, head_true, ready, member, recurse(observed, ready))))
 
 def visited_member_sound(order: List<&2, String>, +entries: Map<&2, Bool>,
     +observed: List<&2, String>, +query: String,
@@ -575,6 +579,66 @@ def visited_member_sound(order: List<&2, String>, +entries: Map<&2, Bool>,
         visited_cons_contents(head, Local.map_result(Bool, Map.get(Bool, False{}, entries, head)),
           ActualFrame.visited(tail, entries), observed, ready), member,
         value => tail_ready => tail_member => visited_member_sound(tail, entries, value, query, tail_ready, tail_member))
+
+def visited_prefix_correspondence(+head: String, +present: Bool,
+    +rest: Maybe<&2, List<&2, String>>) ->
+    {ReferenceFrame.prefix(String, ReferenceFrame.visited_item(head, present), rest)
+      == ActualFrame.visited_prefix(ActualFrame.visited_entry(head, present), rest)
+      : Maybe<&2, List<&2, String>>}:
+  match present rest:
+    case True{} Some{_}: {==}
+    case True{} None{}: {==}
+    case False{} _: {==}
+
+def reference_visited_entries(order: List<&2, String>, +entries: Map<&2, Bool>) ->
+    {ReferenceFrame.visited_entries(order, entries) == ActualFrame.visited(order, entries)
+      : Maybe<&2, List<&2, String>>}:
+  match order:
+    case []: {==}
+    case +head <> +tail:
+      %Equal.sym(Maybe<&2, List<&2, String>>, ReferenceFrame.visited_entries(tail, entries),
+        ActualFrame.visited(tail, entries), reference_visited_entries(tail, entries)):
+        {ReferenceFrame.prefix(String,
+          ReferenceFrame.visited_item(head, Local.map_result(Bool, Map.get(Bool, False{}, entries, head))),
+          _) == ActualFrame.visited(head <> tail, entries) : Maybe<&2, List<&2, String>>}
+      visited_prefix_correspondence(head, Local.map_result(Bool, Map.get(Bool, False{}, entries, head)),
+        ActualFrame.visited(tail, entries))
+
+def reference_visited_guard(+guard: Bool, +value: Maybe<&2, List<&2, String>>,
+    +observed: List<&2, String>,
+    ready: {Bool.pick(Maybe<&2, List<&2, String>>, guard, value, None{}) == Some{observed}
+      : Maybe<&2, List<&2, String>>}) ->
+    {value == Some{observed} : Maybe<&2, List<&2, String>>}:
+  match guard:
+    case True{}: ready
+    case False{}:
+      Empty.absurd({value == Some{observed} : Maybe<&2, List<&2, String>>},
+        Contents.none_some(List<&2, String>, observed, ready))
+
+def reference_visited_contents(+order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>,
+    ready: {ReferenceFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>}) ->
+    {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>}:
+  %reference_visited_entries(order, entries):
+    {_ == Some{observed} : Maybe<&2, List<&2, String>>}
+  reference_visited_guard(
+    Bool.and(ReferenceFrame.unique_strings(order, order),
+      Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries)))),
+    ReferenceFrame.visited_entries(order, entries), observed, ready)
+
+def visited_present_correspondence(+order: List<&2, String>, +actual: Map<&2, Bool>,
+    +reference: Map<&2, Bool>, +observed: List<&2, String>, +query: String,
+    actual_ready: {ActualFrame.visited(order, actual) == Some{observed} : Maybe<&2, List<&2, String>>},
+    reference_ready: {ReferenceFrame.visited(order, reference) == Some{observed} : Maybe<&2, List<&2, String>>},
+    +member: {List.contains(String, String.eq, order, query) == True{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, actual, query))
+      == Local.map_result(Bool, Map.get(Bool, False{}, reference, query)) : Bool}:
+  Equal.trans(Bool, Local.map_result(Bool, Map.get(Bool, False{}, actual, query)), True{},
+    Local.map_result(Bool, Map.get(Bool, False{}, reference, query)),
+    visited_member_sound(order, actual, observed, query, actual_ready, member),
+    Equal.sym(Bool, Local.map_result(Bool, Map.get(Bool, False{}, reference, query)), True{},
+      visited_member_sound(order, reference, observed, query,
+        reference_visited_contents(order, reference, observed, reference_ready), member)))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

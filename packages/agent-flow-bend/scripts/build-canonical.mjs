@@ -102,6 +102,7 @@ export const bendJevRequestLimit = () =>
   mkdirSync(output, { recursive: true })
   writeFileSync(join(output, "canonical.generated.js"), `// hapsland-bend-source-sha256:${sourceHash}\n${source}`)
   copyFileSync(join(root, "abi/canonical.generated.d.ts"), join(output, "canonical.generated.d.ts"))
+  copyFileSync(join(root, "abi/raw-canonical-event.d.ts"), join(output, "raw-canonical-event.d.ts"))
 } finally {
   rmSync(temporary, { recursive: true, force: true })
 }

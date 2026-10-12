@@ -2,7 +2,9 @@
 
 // Numbers retain the existing checked immediate-Nat boundary; lists retain order.
 
-type List<Value> = { readonly $: "Nil" } | { readonly $: "Con"; readonly head: Value; readonly tail: List<Value> }
+export type List<Value> =
+  | { readonly $: "Nil" }
+  | { readonly $: "Con"; readonly head: Value; readonly tail: List<Value> }
 
 type Maybe<Value> = { readonly $: "None" } | { readonly $: "Some"; readonly value: Value }
 

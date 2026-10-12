@@ -23,7 +23,7 @@ vi.mock("@hapsland/agent-flow-bend/canonical", async (importOriginal) => {
   const original = await importOriginal<typeof import("@hapsland/agent-flow-bend/canonical")>()
   return {
     ...original,
-    bendCanonicalStep: (state: unknown, event: unknown) =>
+    bendCanonicalStep: (state: unknown, event: Parameters<typeof original.bendCanonicalStep>[1]) =>
       injected.canonical === undefined ? original.bendCanonicalStep(state, event) : injected.canonical(state)
   }
 })

@@ -48,6 +48,7 @@ export const bendProducerOutputs = Object.freeze([
   "login-policy.generated.js",
   "maintenance-policy.generated.d.ts",
   "maintenance-policy.generated.js",
+  "raw-canonical-event.d.ts",
   "reference-policy.generated.d.ts",
   "reference-policy.generated.js",
   "request-content.generated.d.ts",
@@ -273,6 +274,7 @@ function contextInputs(root, node, toolchain) {
   ].map((name) => resolve(directory, "scripts", name))
   const declarations = [
     "canonical.generated.d.ts",
+    "raw-canonical-event.d.ts",
     "import-graph.generated.d.ts",
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
@@ -532,6 +534,7 @@ export function checkBendProducerReceipt(root, node, currentContext) {
     throw new Error("Incomplete or changed Bend producer output inventory")
   for (const name of [
     "canonical.generated.d.ts",
+    "raw-canonical-event.d.ts",
     "import-graph.generated.d.ts",
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
@@ -616,6 +619,7 @@ export async function buildBendProducer(root, node) {
         throw new Error("Bend generator output inventory differs from the declared ABI")
       for (const name of [
         "canonical.generated.d.ts",
+        "raw-canonical-event.d.ts",
         "import-graph.generated.d.ts",
         "request-content.generated.d.ts",
         "credential-policy.generated.d.ts",
