@@ -60,6 +60,85 @@ try {
     { timeout: 6000 }
   )
   const core = (await import(pathToFileURL(output))).default
+  const identityNamespace = "../../../../review-definition/src/review-providers/ProviderIdentity."
+  const nativeTokens = (value, fuel) => {
+    const result = []
+    let remaining = value
+    while (fuel-- > 0 && remaining !== "") {
+      const character = String.fromCodePoint(remaining.codePointAt(0))
+      const tail = remaining.slice(character.length)
+      if (character !== "{") {
+        result.push({ kind: "Literal", value: character })
+        remaining = tail
+        continue
+      }
+      const closing = tail.indexOf("}")
+      if (closing < 0) {
+        result.push({ kind: "Literal", value: remaining })
+        break
+      }
+      if (closing === 0) {
+        result.push({ kind: "Literal", value: "{" })
+        remaining = tail
+      } else {
+        result.push({ kind: "Placeholder", value: tail.slice(0, closing) })
+        remaining = tail.slice(closing + 1)
+      }
+    }
+    return result
+  }
+  const readTokens = (items) => {
+    const result = []
+    while (items.$ === "Con") {
+      const kind = label(items.head)
+      assert.ok(kind === "Literal" || kind === "Placeholder")
+      result.push({ kind, value: kind === "Literal" ? items.head.value : items.head.field })
+      items = items.tail
+    }
+    assert.equal(items.$, "Nil")
+    return result
+  }
+  let tokenCases = 0
+  const tokenInputs = [
+    "",
+    "a",
+    "}",
+    "{}",
+    "{{}}",
+    "{",
+    "{x",
+    "{x}",
+    "{x}tail}",
+    "{{x}}",
+    "a{x}b{y}c",
+    "{x}{x}{y}",
+    "{}/{{}/{accountId}",
+    "😀/{accountId}/尾",
+    "{😀}尾",
+    "a".repeat(256),
+    "😀".repeat(128)
+  ]
+  for (const value of tokenInputs) {
+    const width = [...value].length
+    const fuels = new Set([0, 1, 2, 3, 4, 5, 8, 12, width, width + 1])
+    for (const fuel of fuels) {
+      assert.deepEqual(
+        readTokens(core[identityNamespace + "tokens"](BigInt(fuel), value)),
+        nativeTokens(value, fuel),
+        JSON.stringify({ value, fuel })
+      )
+      tokenCases++
+    }
+    const closing = value.indexOf("}")
+    const captured = core[identityNamespace + "capture"](value)
+    assert.deepEqual(
+      captured,
+      closing < 0
+        ? { $: identityNamespace + "Unclosed" }
+        : { $: identityNamespace + "Closed", body: value.slice(0, closing), tail: value.slice(closing + 1) }
+    )
+    tokenCases++
+  }
   let cases = 0
   let engineRequests = 0
   let rejectedReplies = 0
@@ -214,6 +293,7 @@ try {
       passed: true,
       cases,
       producerCases,
+      tokenCases,
       engineRequests,
       rejectedReplies,
       scope:

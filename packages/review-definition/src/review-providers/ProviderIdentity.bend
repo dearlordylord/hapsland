@@ -29,16 +29,22 @@ def prepend_capture(character: Char, capture: Capture) -> Capture:
     case Closed{body, tail}: Closed{SCon{character, body}, tail}
     case Unclosed{}: Unclosed{}
 
+def capture_character(
+  +character: Char,
+  +tail: String,
+  closing: Bool,
+  next: Unit -> Capture
+) -> Capture:
+  match closing:
+    case True{}: Closed{"", tail}
+    case False{}: prepend_capture(character, next(Unit{}))
+
 def capture(value: String) -> Capture:
   match value:
     case "": Unclosed{}
     case SCon{+character, +tail}:
-      Bool.pick(
-        Capture,
-        U32.is_eq(Char.to_u32(character), 125),
-        Closed{"", tail},
-        prepend_capture(character, capture(tail))
-      )
+      next: Unit -> Capture = (unit) => capture(tail)
+      capture_character(character, tail, U32.is_eq(Char.to_u32(character), 125), next)
 
 def token_capture(
   captured: Capture,
@@ -50,14 +56,23 @@ def token_capture(
     case Closed{body, tail}: Placeholder{body} <> parse(tail)
     case Unclosed{}: Literal{SCon{'{', rest}} <> []
 
+def token_character(
+  +character: Char,
+  +tail: String,
+  opening: Bool,
+  parse: String -> List<&2, Token>
+) -> List<&2, Token>:
+  match opening:
+    case True{}: token_capture(capture(tail), tail, parse)
+    case False{}: Literal{SCon{character, ""}} <> parse(tail)
+
 def tokens(fuel: Nat, value: String) -> List<&2, Token>:
   match fuel value:
     case 0n _: []
     case _ "": []
     case 1n++k SCon{+character, +tail}:
-      Bool.pick(List<&2, Token>, U32.is_eq(Char.to_u32(character), 123),
-        token_capture(capture(tail), tail, (rest) => tokens(k, rest)),
-        Literal{SCon{character, ""}} <> tokens(k, tail))
+      parse: String -> List<&2, Token> = (rest) => tokens(k, rest)
+      token_character(character, tail, U32.is_eq(Char.to_u32(character), 123), parse)
 
 def lookup(
   +name: String,
