@@ -536,6 +536,20 @@ One current obstacle list, in execution order:
    46/46 tasks (18 cached, 43.211s); full resident consumer passes 73 cases,
    15702 preparation requests and 855 Post requests without temporary composition
    emission (/tmp/hapsland-packaged-composition-resident-full.log).
+   The remaining CanonicalResolverOwner artifact belongs to agent-flow-bend,
+   whose normal producer has an exact output/ABI inventory and receipts. It must
+   be exported there, not added as an external resident recipe source. Its
+   resident_step/resident_reconcile/assembled boundary consumes existing
+   Canonical state and events plus local custody. The current canonical authored
+   declaration exposes unknown arguments/results, and encodeCanonicalEvent in
+   canonical-policy returns unknown. This is an actual closed owner ABI gap:
+   do not conceal its event input with an opaque command, or import consumer-owned
+   canonical-policy types back into the Bend producer. Before wiring the export,
+   establish the source-free raw Canonical transport at its existing declaration
+   owner, preserve local scope/action contracts and exact ../ namespace/Nat
+   conversion, then extend the normal producer inventory/receipt and package
+   interface. Qualify its actual resident transaction and complete consumer;
+   no further temporary resident compilation or alternate Canonical authority.
    Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 
