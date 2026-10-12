@@ -13,8 +13,8 @@ import {
   createGraphServiceRegistry as createServiceRegistry,
   createBendResolver
 } from "@hapsland/source-analysis/direct-event/graph-resolution"
-import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
-import { createArtifactMachine } from "../../composition/artifact-dispatcher.mjs"
+import { createGraphDriver } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
+import { createArtifactMachine } from "../artifact-dispatcher.mjs"
 const temp = await mkdtemp("/tmp/hapsland-composed-root-")
 try {
   let machine
@@ -34,9 +34,9 @@ try {
           "bend",
           new URL(
             {
-              ArtifactComposition: "../../composition/ArtifactComposition.bend",
-              GenericArtifact: "../../composition/GenericArtifact.bend",
-              PythonArtifact: "../../composition/PythonArtifact.bend"
+              ArtifactComposition: "../ArtifactComposition.bend",
+              GenericArtifact: "../GenericArtifact.bend",
+              PythonArtifact: "../PythonArtifact.bend"
             }[name],
             import.meta.url
           ).pathname,
@@ -51,17 +51,7 @@ try {
     const shadowPath = join(temp, "shadow.mjs")
     execFileSync(
       "taskset",
-      [
-        "-c",
-        "10",
-        "bend",
-        join(
-          import.meta.dirname,
-          "../../../../../../source-analysis/src/direct-event/graph-resolution/ComposedMachine.bend"
-        ),
-        "-o",
-        shadowPath
-      ],
+      ["-c", "10", "bend", join(import.meta.dirname, "../../ComposedMachine.bend"), "-o", shadowPath],
       { timeout: 10000 }
     )
     const shadow = (await import(pathToFileURL(shadowPath))).default
@@ -149,7 +139,7 @@ try {
       return projection
     }
   }
-  const driver = createOwnedArtifactDriver({
+  const driver = createGraphDriver({
     owner,
     initialState: ownerState,
     scope: { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },

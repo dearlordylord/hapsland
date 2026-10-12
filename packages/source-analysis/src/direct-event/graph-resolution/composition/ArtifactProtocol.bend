@@ -1,7 +1,7 @@
 import Base
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
-import ../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.bend as Local
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.bend as P
+import ../Types.bend as T
+import ../traversal/core.bend as Local
+import ../python-module/ArtifactProtocol.bend as P
 
 # Closed source-bearing child contract. Canonical receives only work identity
 # and opaque result handles, never these payloads or syntax/session snapshots.

@@ -1,11 +1,7 @@
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
-import composition from "./artifact-composition-core.js"
-import parent from "./generic-artifact-core.js"
-import python from "./python-artifact-core.js"
-import go from "./go-artifact-core.js"
 import source from "../preparation/source-preparation-core.js"
 import post from "../preparation/post-preparation-core.js"
-import { createArtifactMachine } from "./artifact-dispatcher.mjs"
+import { createGraphMachine } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
 import { createSourcePreparationMachine } from "../preparation/source-preparation-dispatcher.mjs"
 import { createPostPreparationMachine, createAdviceTailMachine } from "../preparation/post-preparation-dispatcher.mjs"
 import { createOwnedArtifactDriver } from "./owned-artifact-driver.mjs"
@@ -31,7 +27,7 @@ type PreparationDriverPorts = {
  * existing providers and original native sessions.
  */
 export function createResidentPreparationDriver({ bridge, registry, hooks, foreign }: PreparationDriverPorts) {
-  const artifact = createArtifactMachine({ composition, parent, python, go, retainPrefixes: false })
+  const artifact = createGraphMachine()
   const sourceMachine = createSourcePreparationMachine(source)
   const postMachine = createPostPreparationMachine(post)
   const adviceMachine = createAdviceTailMachine(post)

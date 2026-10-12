@@ -182,21 +182,35 @@ try {
   const artifacts = {
     composition: (
       await import(
-        new URL("../../../../../dist/resident/review-work/composition/artifact-composition-core.js", import.meta.url)
+        new URL(
+          "../../../../../../source-analysis/dist/direct-event/graph-resolution/composition/artifact-composition-core.js",
+          import.meta.url
+        )
       )
     ).default,
     parent: (
       await import(
-        new URL("../../../../../dist/resident/review-work/composition/generic-artifact-core.js", import.meta.url)
+        new URL(
+          "../../../../../../source-analysis/dist/direct-event/graph-resolution/composition/generic-artifact-core.js",
+          import.meta.url
+        )
       )
     ).default,
     python: (
       await import(
-        new URL("../../../../../dist/resident/review-work/composition/python-artifact-core.js", import.meta.url)
+        new URL(
+          "../../../../../../source-analysis/dist/direct-event/graph-resolution/composition/python-artifact-core.js",
+          import.meta.url
+        )
       )
     ).default,
     go: (
-      await import(new URL("../../../../../dist/resident/review-work/composition/go-artifact-core.js", import.meta.url))
+      await import(
+        new URL(
+          "../../../../../../source-analysis/dist/direct-event/graph-resolution/composition/go-artifact-core.js",
+          import.meta.url
+        )
+      )
     ).default
   }
   const root = join(temp, "fixture")

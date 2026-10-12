@@ -3,11 +3,14 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "tsBuildInfoFile": "dist/.tsbuildinfo"
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "allowJs": true,
+    "checkJs": true
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.json"
+    "src/**/*.json",
+    "src/direct-event/graph-resolution/composition/artifact-dispatcher.mjs"
   ],
   "exclude": [
     "src/**/*.test.ts"

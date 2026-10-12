@@ -95,6 +95,10 @@
     "./direct-event/graph-resolution": {
       "types": "./dist/direct-event/graph-resolution/consumer.d.ts",
       "default": "./dist/direct-event/graph-resolution/consumer.js"
+    },
+    "./direct-event/graph-resolution/composition": {
+      "types": "./dist/direct-event/graph-resolution/composition/capability.d.ts",
+      "default": "./dist/direct-event/graph-resolution/composition/capability.js"
     }
   },
   "dependencies": {
@@ -109,7 +113,8 @@
     "tree-sitter-typescript": "catalog:",
     "bun": "catalog:",
     "tree-sitter-python": "catalog:",
-    "tree-sitter-go": "catalog:"
+    "tree-sitter-go": "catalog:",
+    "@hapsland/agent-flow-bend": "workspace:*"
   },
   "scripts": {
     "build": "node ../../scripts/compile-package.mjs",
@@ -207,6 +212,10 @@
           }
         }
       }
+    ],
+    "bendPrecompile": "src/direct-event/graph-resolution/composition/build-recipe.json",
+    "checkedJavaScript": [
+      "src/direct-event/graph-resolution/composition/artifact-dispatcher.mjs"
     ]
   }
 }

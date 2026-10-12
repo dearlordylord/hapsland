@@ -74,8 +74,8 @@ const suites = {
     "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-consumer.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-preparation-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owned-root-check.mjs",
-    "packages/resident-runtime/src/resident/review-work/preparation/verification/artifact-owned-root-check.mjs",
-    "packages/resident-runtime/src/resident/review-work/preparation/verification/artifact-composed-root-check.mjs"
+    "packages/source-analysis/src/direct-event/graph-resolution/composition/verification/artifact-owned-root-check.mjs",
+    "packages/source-analysis/src/direct-event/graph-resolution/composition/verification/artifact-composed-root-check.mjs"
   ]
 }
 if (

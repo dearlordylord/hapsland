@@ -14,10 +14,6 @@
   },
   "files": [
     "src/resident/review-work/preparation/source-preparation-core.d.ts",
-    "src/resident/review-work/preparation/post-preparation-core.d.ts",
-    "src/resident/review-work/composition/generic-artifact-core.d.ts",
-    "src/resident/review-work/composition/python-artifact-core.d.ts",
-    "src/resident/review-work/composition/go-artifact-core.d.ts",
-    "src/resident/review-work/composition/artifact-composition-core.d.ts"
+    "src/resident/review-work/preparation/post-preparation-core.d.ts"
   ]
 }

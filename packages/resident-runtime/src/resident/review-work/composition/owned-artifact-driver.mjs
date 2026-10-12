@@ -1,5 +1,4 @@
 import * as ownedMachine from "./owned-machine.mjs"
-import { createArtifactMachine } from "./artifact-dispatcher.mjs"
 import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 /**
@@ -60,23 +59,20 @@ const exactRequest = (request) => typeof request.invocation === "bigint" && type
 // executes their single shared action/custody implementation.
 /**
  * @template {NativeSession} [Session=NativeSession]
- * @param {{owner: Owner, initialState?: State, scope?: Scope, artifacts?: Parameters<typeof createArtifactMachine>[0], registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks<Session>, control?: Control, machine?: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
+ * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks<Session>, control?: Control, machine: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
  * @returns {Driver<Session>}
  */
 export function createOwnedArtifactDriver({
   owner,
   initialState,
   scope,
-  artifacts,
   registry,
   foreign,
   hooks = {},
   control,
-  machine: providedMachine,
+  machine,
   selectMachine
 }) {
-  if (!providedMachine && !artifacts) throw new TypeError("Missing owned machine artifacts")
-  const machine = providedMachine ?? createArtifactMachine({ ...required(artifacts), retainPrefixes: false })
   /** @type {import("@hapsland/canonical-policy/canonical/child-execution").Protocol<ownedMachine.Input, ownedMachine.Machine, ownedMachine.Continuation, ownedMachine.Projection, Request, ownedMachine.Reply, ReturnType<typeof ownedMachine.accepted>, PreparationResult, Session>} */
   const protocol = {
     initial: ownedMachine.initial,

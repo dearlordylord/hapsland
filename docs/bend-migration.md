@@ -1271,6 +1271,33 @@ One current obstacle list, in execution order:
    request object. Strict source-linked checkJs and explicit five-file lint/format
    pass for these fixes; normal compiled consumers remain to be requalified.
    Obsolete facade payload/resource/control-table type copies are removed.
+   Qualification on def6328a: normal workspace build 46/46; full server/capacity/
+   runtime consumers 153/153 (89.316s), Source consumer 59 cases/6673 requests/
+   34 native comparisons and resident consumer 73 cases/15702 requests/855 Post
+   requests pass. Both finite consumers assert the actual compiled CanonicalPolicy
+   driver. check:fast passes, including strict typing and a nonempty changed lint.
+   Latest frozen execution starts 19:43:46.242590 UTC, qualified 17-pair parity
+   0.6169774185707103; build starts 19:45:43.740074 UTC, qualified 17-pair FAIL
+   1.1982786931735012. All 34 builds preserve 23/46 cached tasks and frozen
+   sources/heads/artifacts. Cadence misses are 31.572729s and 75.955492s; they
+   remain violations separate from measured validity/parity. Next starts due:
+   execution 20:13:46.242590, build 20:15:43.740074 UTC.
+   Current Graph ownership move removes all twelve resident implementation
+   copies and four recipes, placing them in SourceAnalysis graph composition.
+   Existing references transport belongs to traversal; Preparation consumes it,
+   eliminating the upper dependency cycle. The Graph protocol correlation is
+   shared by resident composition and Graph-only verification, backed by the
+   same CanonicalPolicy driver rather than another action loop. Graph-only
+   runners move to that slice; cross-capability resident checks stay resident.
+   Unused root-name entries are removed from the Graph checker. Ordinary roots
+   pass hard10/CPU11; strict source-linked typing, 23-file lint/format and five
+   moved Bend-file formatter checks pass. Normal compiled consumers on the new
+   paths are still pending, and neither relocation nor checkpoint is acceptance.
+   Astra's full original-ready shared parent/forest/product witness now passes
+   7.661s under hard10/CPU10, using unchanged original premises. Shared extension
+   passes 5.877s, exact reference replacement 5.330s and reference request/staged
+   observations 4.179s. Request identity, staged rows/next alignment, arbitrary
+   replies 7/8 and the complete theorem still remain.
    Diagnostic logs: /tmp/hapsland-shared-child-{driver-warm-3,facade-source-types-final,
    private-boundary-types-final,driver-lint-final}.log. Generated Turbo config is
    tracked alongside its manifest change; no guard or check is bypassed for this

@@ -1,14 +1,14 @@
 import Base
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
-import ../../../../../source-analysis/src/direct-event/graph-resolution/State.bend as S
+import ../Types.bend as T
+import ../State.bend as S
 import ./ArtifactProtocol.bend as A
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.bend as P
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Loop.bend as Loop
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Machine.bend as Machine
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Resolve.bend as Resolve
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Read.bend as Read
-import ../../../../../source-analysis/src/direct-event/graph-resolution/LoopPolicy.bend as LoopPolicy
-import ../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.bend as Local
+import ../python-module/ArtifactProtocol.bend as P
+import ../Loop.bend as Loop
+import ../Machine.bend as Machine
+import ../Resolve.bend as Resolve
+import ../Read.bend as Read
+import ../LoopPolicy.bend as LoopPolicy
+import ../traversal/core.bend as Local
 import ../../../../../agent-flow-bend/ImportGraph.bend as Graph
 
 # No language-child implementation imports. Every return continuation is chosen

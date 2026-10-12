@@ -1,3 +1,4 @@
+import type { ReferenceSlot as GraphReferenceSlot } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
 import type { List, ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { PreparationResult } from "./preparation-result-codec.ts"
 
@@ -8,10 +9,6 @@ type Tagged<Name extends string, Fields = object> = { readonly $: Name } & Field
 type Selection<Name extends string, Fields = object> = Tagged<`PreparationSelection.${Name}`, Fields>
 type Attribution<Name extends string, Fields = object> = Tagged<
   `../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.${Name}`,
-  Fields
->
-type Local<Name extends string, Fields = object> = Tagged<
-  `../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.${Name}`,
   Fields
 >
 export type Position = Attribution<"Position", { readonly line: bigint; readonly column: bigint }>
@@ -112,15 +109,8 @@ export type Extraction = Tagged<
       | Tagged<"TypeAnalyzed", { readonly analyses: List<NativeAnalysis> }>
   }
 >
-type Omission = Local<"Unresolved"> | Local<"UnsupportedTarget"> | Local<"ReferenceLimit"> | Local<"Unavailable">
-type PlannedReference =
-  | Local<"Included", { readonly identity: string }>
-  | Local<"Expanded", { readonly node: bigint }>
-  | Local<"Omitted", { readonly reason: Omission; readonly target_name: string }>
-export type ReferenceSlot = Local<
-  "ReferenceSlot",
-  { readonly owner: bigint; readonly index: bigint; readonly symbol: string; readonly reference: PlannedReference }
->
+export type ReferenceSlot =
+  GraphReferenceSlot<"../../../../source-analysis/src/direct-event/graph-resolution/traversal/core">
 export type Command =
   | Tagged<"InspectPath", { readonly candidate: Candidate }>
   | Tagged<"CaptureSource", { readonly path: string; readonly selection: bigint; readonly source_cap: Maybe<bigint> }>

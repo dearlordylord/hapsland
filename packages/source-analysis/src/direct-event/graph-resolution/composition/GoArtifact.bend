@@ -1,12 +1,12 @@
 import Base
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/ArtifactProtocol.bend as GoProtocol
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Protocol.bend as Protocol
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/Configuration.bend as Configuration
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationMachine.bend as Preparation
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/PreparationModel.bend as M
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/ArtifactProtocol.bend as GoBoundary
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/Package.bend as Package
+import ../go-module/ArtifactProtocol.bend as GoProtocol
+import ../Protocol.bend as Protocol
+import ../go-module/Configuration.bend as Configuration
+import ../Types.bend as T
+import ../go-module/PreparationMachine.bend as Preparation
+import ../go-module/PreparationModel.bend as M
+import ../go-module/ArtifactProtocol.bend as GoBoundary
+import ../go-module/Package.bend as Package
 
 # The artifact owns only pure Go child progression/projection. Invocation,
 # generation, provider leases, interruption and resource disposal remain with

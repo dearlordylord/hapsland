@@ -1,0 +1,22 @@
+[
+  {
+    "source": "GenericArtifact.bend",
+    "output": "generic-artifact-core.js",
+    "declaration": "generic-artifact-core.d.ts"
+  },
+  {
+    "source": "PythonArtifact.bend",
+    "output": "python-artifact-core.js",
+    "declaration": "python-artifact-core.d.ts"
+  },
+  {
+    "source": "GoArtifact.bend",
+    "output": "go-artifact-core.js",
+    "declaration": "go-artifact-core.d.ts"
+  },
+  {
+    "source": "ArtifactComposition.bend",
+    "output": "artifact-composition-core.js",
+    "declaration": "artifact-composition-core.d.ts"
+  }
+]

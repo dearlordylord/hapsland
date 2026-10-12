@@ -1,7 +1,11 @@
+import {
+  acceptGraphProjection,
+  graphProtocol
+} from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
 // Private correlation of an invocation's actual Bend engine and retained step.
 // No product state is copied, and requests/replies retain their owner protocols.
 /**
- * @typedef {ReturnType<typeof import("./artifact-dispatcher.mjs").createArtifactMachine>} ArtifactMachine
+ * @typedef {ReturnType<typeof import("@hapsland/source-analysis/direct-event/graph-resolution/composition").createGraphMachine>} ArtifactMachine
  * @typedef {ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>["machine"]} PreparationMachine
  * @typedef {ReturnType<typeof import("../preparation/source-preparation-dispatcher.mjs").createSourcePreparationMachine>} SourceMachine
  * @typedef {ReturnType<typeof import("../preparation/post-preparation-dispatcher.mjs").createPostPreparationMachine>} PostMachine
@@ -26,7 +30,7 @@ export function initial(machine, input) {
   switch (machine.kind) {
     case "artifact":
       if (!("$" in input) || input.$ !== "Types.ResolverInput") throw new TypeError("Wrong artifact input binding")
-      return { kind: "artifact", machine, step: machine.initial(input) }
+      return graphProtocol.initial(machine, input)
     case "preparation":
       if (!("preparation" in input)) throw new TypeError("Wrong preparation input binding")
       return { kind: "preparation", machine, step: machine.initial(input) }
@@ -48,7 +52,7 @@ export function initial(machine, input) {
 export function view(held) {
   switch (held.kind) {
     case "artifact":
-      return { kind: "artifact", machine: held.machine, view: held.machine.view(held.step) }
+      return graphProtocol.view(held)
     case "preparation":
       return { kind: "preparation", machine: held.machine, view: held.machine.view(held.step) }
     case "source":
@@ -155,7 +159,7 @@ function preparationReply(reply) {
 export function resume(held, reply) {
   if (held.kind === "artifact") {
     if (reply.$ !== "Types.Reply") throw new TypeError("Wrong artifact reply binding")
-    return { ...held, step: held.machine.resume(held.step, { $: "Types.ServiceReply", reply }) }
+    return graphProtocol.resume(held, reply)
   }
   if (reply.$ === "Types.Reply") throw new TypeError("Wrong workflow reply binding")
   switch (held.kind) {
@@ -176,15 +180,12 @@ export function resume(held, reply) {
 }
 
 /** @param {Projection} projected
- * @returns {{result: import("./artifact-abi.d.ts").ResolverAbi<Extract<import("./generic-artifact-core.js").ResolverStep, {$: "../../../../../source-analysis/src/direct-event/graph-resolution/Types.FinishedResolver"}>["result"]>, finalFrame: import("./artifact-abi.d.ts").ResolverAbi<import("./artifact-abi.d.ts").Maybe<import("./generic-artifact-core.js").ResolverFrame>>} | {failure: import("./artifact-abi.d.ts").ResolverAbi<import("@hapsland/source-analysis/direct-event/graph-resolver").ResolverFailure>} | ReturnType<PreparationMachine["accepted"]> | ReturnType<SourceMachine["accepted"]> | ReturnType<PostMachine["accepted"]> | ReturnType<AdviceMachine["accepted"]>}
+ * @returns {ReturnType<typeof acceptGraphProjection> | ReturnType<PreparationMachine["accepted"]> | ReturnType<SourceMachine["accepted"]> | ReturnType<PostMachine["accepted"]> | ReturnType<AdviceMachine["accepted"]>}
  */
 export function accepted(projected) {
   switch (projected.kind) {
     case "artifact":
-      if (projected.view.$ === "Types.FinishedResolver")
-        return { result: projected.view.result, finalFrame: projected.view.final_frame }
-      if (projected.view.$ === "Types.FailedResolver") return { failure: projected.view.failure }
-      break
+      return acceptGraphProjection(projected.view)
     case "preparation":
       if (projected.view.$ !== "Types.AwaitService") return projected.machine.accepted(projected.view)
       break

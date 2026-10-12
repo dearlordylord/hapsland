@@ -1,16 +1,16 @@
 import Base
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/ArtifactProtocol.bend as GoProtocol
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
-import ../../../../../source-analysis/src/direct-event/graph-resolution/State.bend as S
+import ../go-module/ArtifactProtocol.bend as GoProtocol
+import ../Types.bend as T
+import ../State.bend as S
 import ./ArtifactProtocol.bend as A
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.bend as P
-import ../../../../../source-analysis/src/direct-event/graph-resolution/go-module/ArtifactProtocol.bend as GoBoundary
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Protocol.bend as Protocol
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Loop.bend as Loop
-import ../../../../../source-analysis/src/direct-event/graph-resolution/ComposedBudget.bend as Budget
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/Session.bend as Python
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Clock.bend as Clock
-import ../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.bend as Local
+import ../python-module/ArtifactProtocol.bend as P
+import ../go-module/ArtifactProtocol.bend as GoBoundary
+import ../Protocol.bend as Protocol
+import ../Loop.bend as Loop
+import ../ComposedBudget.bend as Budget
+import ../python-module/Session.bend as Python
+import ../Clock.bend as Clock
+import ../traversal/core.bend as Local
 import ../../../../../agent-flow-bend/ImportGraph.bend as Graph
 
 # Source-bearing composition policy. Algorithm artifacts are not imported.

@@ -1,11 +1,11 @@
 import Base
-import ../../../../../source-analysis/src/direct-event/graph-resolution/Types.bend as T
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.bend as P
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/Session.bend as Python
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/PreparationMachine.bend as Preparation
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/InspectMachine.bend as Inspect
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ResolveImportMachine.bend as Import
-import ../../../../../source-analysis/src/direct-event/graph-resolution/python-module/RevalidationMachine.bend as Revalidation
+import ../Types.bend as T
+import ../python-module/ArtifactProtocol.bend as P
+import ../python-module/Session.bend as Python
+import ../python-module/PreparationMachine.bend as Preparation
+import ../python-module/InspectMachine.bend as Inspect
+import ../python-module/ResolveImportMachine.bend as Import
+import ../python-module/RevalidationMachine.bend as Revalidation
 
 # Artifact-local state is retained behind invocation-owned opaque host handles.
 # The host calls begin/resume/view; continuation decisions are child Bend code.

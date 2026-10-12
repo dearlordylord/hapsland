@@ -7,20 +7,14 @@ const artifactNamespaces: readonly (readonly [string, string])[] = [
   ],
   ...["Types", "State", "Protocol", "Loop", "ComposedBudget", "Clock"].map((name): readonly [string, string] => [
     name + ".",
-    "../../../../../source-analysis/src/direct-event/graph-resolution/" + name + "."
+    "../" + name + "."
   ]),
-  ["traversal/core.", "../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."],
+  ["traversal/core.", "../traversal/core."],
   ...["PreparationModel", "Configuration", "RawText", "Input", "Package", "ArtifactProtocol"].map(
-    (name): readonly [string, string] => [
-      "go-module/" + name + ".",
-      "../../../../../source-analysis/src/direct-event/graph-resolution/go-module/" + name + "."
-    ]
+    (name): readonly [string, string] => ["go-module/" + name + ".", "../go-module/" + name + "."]
   ),
-  ["python-module/Session.", "../../../../../source-analysis/src/direct-event/graph-resolution/python-module/Session."],
-  [
-    "python-module/ArtifactProtocol.",
-    "../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol."
-  ],
+  ["python-module/Session.", "../python-module/Session."],
+  ["python-module/ArtifactProtocol.", "../python-module/ArtifactProtocol."],
   ["../../../../agent-flow-bend/ImportGraph.", "../../../../../agent-flow-bend/ImportGraph."]
 ]
 const artifactAbi = (value: unknown, intoArtifact: boolean): unknown => {

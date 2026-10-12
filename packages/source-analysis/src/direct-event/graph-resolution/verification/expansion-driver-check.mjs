@@ -214,7 +214,7 @@ try {
     "../frontends.ts",
     "../PythonModule.bend",
     "../ComposedBudget.bend",
-    "../../../../../resident-runtime/src/resident/review-work/composition/PythonArtifact.bend",
+    "../composition/PythonArtifact.bend",
     "../traversal/SPEC.bend",
     "../traversal/core.bend",
     "../traversal/Traversal.bend",

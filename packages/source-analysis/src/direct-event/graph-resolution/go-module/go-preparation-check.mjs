@@ -1,3 +1,4 @@
+import { createArtifactMachine } from "../composition/artifact-dispatcher.mjs"
 import { artifactTransport } from "./artifact-check-codec.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
@@ -21,7 +22,7 @@ import { createEntryReferenceDriver } from "../entry-driver-check.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { resolveGraphUnit } from "../../graph-resolver.ts"
 import { createBendResolver } from "../consumer.ts"
-import { createOwnedArtifactDriver } from "../../../../../resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
+import { createOwnedArtifactDriver } from "../../../../../source-analysis/src/direct-event/graph-resolution/composition/owned-artifact-driver.mjs"
 const entryMode = process.argv.includes("--entry")
 const ownedMode = process.argv.includes("--owned") || entryMode
 const artifactMode = process.argv.includes("--artifact")
@@ -274,10 +275,7 @@ try {
     "bend",
     [
       artifactMode
-        ? join(
-            import.meta.dirname,
-            "../../../../../resident-runtime/src/resident/review-work/composition/GoArtifact.bend"
-          )
+        ? join(import.meta.dirname, "../composition/GoArtifact.bend")
         : join(import.meta.dirname, "PreparationMachine.bend"),
       "-o",
       emitted
@@ -321,10 +319,10 @@ try {
   let owner
   if (ownedMode)
     for (const [key, source] of [
-      ["composition", "resident-runtime/src/resident/review-work/composition/ArtifactComposition.bend"],
-      ["parent", "resident-runtime/src/resident/review-work/composition/GenericArtifact.bend"],
-      ["python", "resident-runtime/src/resident/review-work/composition/PythonArtifact.bend"],
-      ["go", "resident-runtime/src/resident/review-work/composition/GoArtifact.bend"],
+      ["composition", "source-analysis/src/direct-event/graph-resolution/composition/ArtifactComposition.bend"],
+      ["parent", "source-analysis/src/direct-event/graph-resolution/composition/GenericArtifact.bend"],
+      ["python", "source-analysis/src/direct-event/graph-resolution/composition/PythonArtifact.bend"],
+      ["go", "source-analysis/src/direct-event/graph-resolution/composition/GoArtifact.bend"],
       ["owner", "agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"]
     ]) {
       const output = join(emissionTemp, key + ".mjs")
@@ -606,7 +604,7 @@ try {
           owner,
           initialState: state,
           scope: { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },
-          artifacts: ownedArtifacts,
+          machine: createArtifactMachine({ ...ownedArtifacts, retainPrefixes: false }),
           registry,
           foreign: async ([request], options) => {
             ownedRequests++

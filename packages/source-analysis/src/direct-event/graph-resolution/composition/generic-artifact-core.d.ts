@@ -1,5 +1,6 @@
 import type { GraphServiceReply } from "@hapsland/source-analysis/direct-event/graph-resolution"
-import type { ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
+import type { ReferenceSlot } from "../traversal/reference.ts"
+import type { List, ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type {
   ResolverInput,
   ResolverFailure,
@@ -16,49 +17,24 @@ declare const resolverFrame: unique symbol
 declare const continuation: unique symbol
 export type ResolverState = { readonly [resolverState]: true }
 // The accepted final frame exposes only the references passed to Preparation.
-type PreparationReply = Awaited<
-  ReturnType<import("@hapsland/review-execution/direct-event/preparation").PreparationPorts["performEffect"]>
->
-export type ResolverFrame = {
-  readonly [resolverFrame]: true
-  readonly references: Extract<PreparationReply["response"], { $: "RootResolved" }>["references"]
-}
+export type ResolverFrame = { readonly [resolverFrame]: true; readonly references: ArtifactAbi<List<ReferenceSlot>> }
 export type Continuation = { readonly [continuation]: true }
 type SourceOutcome = ArtifactAbi<Extract<ServiceOutcome, { readonly $: "Types.FrontendResult" }>["outcome"]>
 type CacheOutcome = ArtifactAbi<Extract<ServiceOutcome, { readonly $: "Types.CacheResult" }>["outcome"]>
 type CaptureOutcome = ArtifactAbi<Extract<ServiceOutcome, { readonly $: "Types.CaptureResult" }>["outcome"]>
 type ProductResult =
-  | Tagged<"../../../../../source-analysis/src/direct-event/graph-resolution/Types.NoReviewUnit">
-  | Tagged<
-      "../../../../../source-analysis/src/direct-event/graph-resolution/Types.ReviewUnitResult",
-      { readonly value: ArtifactAbi<ProductValue> }
-    >
+  | Tagged<"../Types.NoReviewUnit">
+  | Tagged<"../Types.ReviewUnitResult", { readonly value: ArtifactAbi<ProductValue> }>
 export type ResolverStep =
-  | Tagged<
-      "../../../../../source-analysis/src/direct-event/graph-resolution/Types.FinishedResolver",
-      { readonly result: ProductResult; readonly final_frame: Maybe<ResolverFrame> }
-    >
-  | Tagged<
-      "../../../../../source-analysis/src/direct-event/graph-resolution/Types.FailedResolver",
-      { readonly failure: ArtifactAbi<ResolverFailure> }
-    >
-  | Tagged<
-      "../../../../../source-analysis/src/direct-event/graph-resolution/Types.AwaitService",
-      { readonly state: ResolverState; readonly request: ArtifactAbi<Request> }
-    >
-type ExpectedKind =
-  Tagged<`../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.${"AnyKind" | "TypeKind" | "FunctionKind"}`>
+  | Tagged<"../Types.FinishedResolver", { readonly result: ProductResult; readonly final_frame: Maybe<ResolverFrame> }>
+  | Tagged<"../Types.FailedResolver", { readonly failure: ArtifactAbi<ResolverFailure> }>
+  | Tagged<"../Types.AwaitService", { readonly state: ResolverState; readonly request: ArtifactAbi<Request> }>
+type ExpectedKind = Tagged<`../traversal/core.${"AnyKind" | "TypeKind" | "FunctionKind"}`>
 type PendingTarget =
-  | Tagged<
-      "../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.Imported",
-      { readonly path: string; readonly name: string }
-    >
-  | Tagged<
-      "../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.BundledTarget",
-      { readonly declaration: bigint }
-    >
+  | Tagged<"../traversal/core.Imported", { readonly path: string; readonly name: string }>
+  | Tagged<"../traversal/core.BundledTarget", { readonly declaration: bigint }>
 type Pending = Tagged<
-  "../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.Pending",
+  "../traversal/core.Pending",
   {
     readonly owner: bigint
     readonly index: bigint
@@ -85,10 +61,7 @@ export type ParentAction =
         readonly state: ResolverState
         readonly edge: Pending
         readonly result: Maybe<
-          Tagged<
-            "../../../../../source-analysis/src/direct-event/graph-resolution/python-module/ArtifactProtocol.Resolution",
-            { readonly path: string; readonly name: string }
-          >
+          Tagged<"../python-module/ArtifactProtocol.Resolution", { readonly path: string; readonly name: string }>
         >
       }
     >
@@ -98,14 +71,8 @@ export type ParentAction =
   | Tagged<"ArtifactProtocol.Failure", { readonly failure: ArtifactAbi<ResolverFailure> }>
   | Tagged<"ArtifactProtocol.Publish", { readonly result: ResolverStep }>
 export type ResolverEvent =
-  | Tagged<
-      "../../../../../source-analysis/src/direct-event/graph-resolution/Types.ServiceReply",
-      { readonly reply: ArtifactAbi<GraphServiceReply> }
-    >
-  | Tagged<
-      "../../../../../source-analysis/src/direct-event/graph-resolution/Types.CancelInvocation",
-      { readonly invocation: bigint }
-    >
+  | Tagged<"../Types.ServiceReply", { readonly reply: ArtifactAbi<GraphServiceReply> }>
+  | Tagged<"../Types.CancelInvocation", { readonly invocation: bigint }>
 declare const core: {
   initial(input: ArtifactAbi<ResolverInput>): Continuation
   resume(step: Continuation, event: ResolverEvent): Continuation

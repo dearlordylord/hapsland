@@ -1,3 +1,4 @@
+import { createArtifactMachine } from "../../../../../../source-analysis/src/direct-event/graph-resolution/composition/artifact-dispatcher.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
@@ -37,9 +38,12 @@ try {
         "bend",
         new URL(
           {
-            ArtifactComposition: "../../composition/ArtifactComposition.bend",
-            GenericArtifact: "../../composition/GenericArtifact.bend",
-            PythonArtifact: "../../composition/PythonArtifact.bend",
+            ArtifactComposition:
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/composition/ArtifactComposition.bend",
+            GenericArtifact:
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/composition/GenericArtifact.bend",
+            PythonArtifact:
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/composition/PythonArtifact.bend",
             CanonicalResolverOwner:
               "../../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"
           }[name],
@@ -201,7 +205,7 @@ try {
       owner,
       control: connection.control,
       scope,
-      artifacts: wrapped,
+      machine: createArtifactMachine({ ...wrapped, retainPrefixes: false }),
       registry,
       hooks,
       foreign: async ([request], options) => {
