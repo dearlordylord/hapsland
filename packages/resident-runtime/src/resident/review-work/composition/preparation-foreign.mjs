@@ -23,6 +23,8 @@ import { createPreparationCapability } from "@hapsland/review-execution/direct-e
 
 /**
  * @typedef {import("@hapsland/review-execution/direct-event/preparation").PreparationPorts} PreparationPorts
+ * @typedef {Parameters<Parameters<typeof createBendResolver>[0]["drive"]>[0]} GraphSession
+ * @typedef {Pick<ReturnType<typeof import("./owned-artifact-driver.mjs").createOwnedArtifactDriver<GraphSession>>, "state" | "allocateInvocation" | "constructionFailed" | "drive">} GraphDriver
  * @typedef {Parameters<ReturnType<typeof createBendResolver>>} RootArguments
  * @typedef {{path: RootArguments[0], capture: RootArguments[1], name: RootArguments[2], context: RootArguments[3]}} RootFacts
  * @typedef {Awaited<ReturnType<PreparationPorts["performEffect"]>>} PreparationReply
@@ -34,7 +36,7 @@ import { createPreparationCapability } from "@hapsland/review-execution/direct-e
  * @param {{
  * connection: {bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, runtime: Pick<ReturnType<typeof import("../../state/resident/runtime.ts").residentRuntime>, "rejectCapacity">, preparation: Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>},
  * owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner,
- * driver: ReturnType<typeof import("./owned-artifact-driver.mjs").createOwnedArtifactDriver>,
+ * driver: GraphDriver,
  * root: string,
  * rootIdentity: import("@hapsland/native-observation/direct-event/observation").PhysicalRootIdentity,
  * context: Omit<Partial<PreparationPorts["context"]>, "settings"> & {now?: () => number},

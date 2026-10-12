@@ -1018,10 +1018,17 @@ One current obstacle list, in execution order:
    owner-authorized ten-second migration emission bound is now applied to this
    runner only; focused reproduction and normal consumer checks remain required.
 
+   Five-family native session integration is in progress: one registry, generic
+   driver custody, narrow provider ports, and a closed request/session gateway.
+   Structural review requires separate Post/Advice routing and the Graph-owned
+   emitted reply type. These are addressed in source; current type/consumer
+   qualification remains pending. This is not production acceptance.
+
    Original attachment proof progress: the complete pending witness now follows
    from one original ActualReady.project (qualified 7.973s under the ten-second
-   bound). Parent witness joining remains unqualified: a nested elimination has a
-   parse error. Claims 5–8 and the whole original theorem remain open; original
+   bound). The shared original-ready parent/pending witness passes in 6.068s;
+   selected frame/child coordinates pass in 3.251s. Exact staged/history assembly,
+   claims 5–8 and the whole original theorem remain open; original
    law and premises are unchanged. This unfinished source is retained on the branch
    for backup and is not proof acceptance.
 
@@ -1055,8 +1062,15 @@ One current obstacle list, in execution order:
    1.199986523322553. Both meet the preceding cadence; unchanged heads, sources,
    artifact trees and all 17 pairs, 23/46 cached build tasks. Logs:
    /tmp/hapsland-2bc46d92-{execution-pair,build-pair}.log.
-   Next starts due: execution 14:11:51.079041, build 14:14:13.956083 UTC.
-   Freeze/backup/warm by 14:05. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Follow-up dfdbe94d: execution starts 14:13:09.822846, qualified parity
+   0.6197630603821708; build starts 14:14:44.939091, qualified but fails parity
+   1.087949103541232. All 17 pairs complete with unchanged inputs/artifacts and
+   23/46 cached build tasks. Both starts miss preceding deadlines (78.744s and
+   30.983s): cold capacity-test preparation exhausted its 180s bound before
+   tests, retained build custody was reconciled, then normal warm build passed
+   46/46 (21 cached, 31.699s). No capacity-test pass is claimed.
+   Next starts due: execution 14:43:09.822846, build 14:44:44.939091 UTC.
+   Freeze/backup/warm by 14:36. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

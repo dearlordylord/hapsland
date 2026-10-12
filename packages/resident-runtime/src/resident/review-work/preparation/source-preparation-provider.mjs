@@ -20,13 +20,14 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
  * @typedef {{handle: bigint, candidate: bigint, invocation: bigint, admissionRequest: bigint, preparation: AdmittedPreparation}} PreparationReceipt
  * @typedef {ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>} PreparationCapability
  * @typedef {{invocation: number, input: Parameters<PreparationCapability["machine"]["initial"]>[0], perform: (request: Parameters<PreparationCapability["perform"]>[0][number], options: Parameters<PreparationCapability["perform"]>[1]) => ReturnType<PreparationCapability["perform"]>, decode: PreparationCapability["decode"], revoke: () => unknown, close: () => unknown, error?: (token: bigint) => unknown, finish?: () => unknown | Promise<unknown>}} PreparationSession
+ * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<PreparationSession | ReturnType<typeof createPostPreparationProvider>>>, "state" | "allocatePreparationInvocation" | "drive" | "handoffResult" | "driveHandoff">} SourceDriver
  */
 // Foreign effects and opaque receipts for one whole source. The cursor chooses
 // admission, refusal reporting, candidate progression and source completion.
 /**
  * @param {bigint} invocation
  * @param {import("./post-preparation-host.mjs").PostContext} context
- * @param {{owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner, bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, driver: ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver>, candidates: import("@hapsland/native-observation/direct-event/observation").DirectObservation["candidates"], buildPreparationSession: (invocation: number, candidate: import("@hapsland/native-observation/direct-event/observation").DirectObservation["candidates"][number], preparation: AdmittedPreparation) => PreparationSession | Promise<PreparationSession>, analyticsEnabled?: boolean, entry?: "full" | "after-gates"}} options
+ * @param {{owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner, bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, driver: SourceDriver, candidates: import("@hapsland/native-observation/direct-event/observation").DirectObservation["candidates"], buildPreparationSession: (invocation: number, candidate: import("@hapsland/native-observation/direct-event/observation").DirectObservation["candidates"][number], preparation: AdmittedPreparation) => PreparationSession | Promise<PreparationSession>, analyticsEnabled?: boolean, entry?: "full" | "after-gates"}} options
  */
 export function createSourcePreparationProvider(
   invocation,

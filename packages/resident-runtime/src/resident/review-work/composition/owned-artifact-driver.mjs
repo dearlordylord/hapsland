@@ -15,7 +15,7 @@ import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
  * @typedef {import("@hapsland/runtime-environment/runtime/native-session-registry").NativeSession & {revoke(): unknown, finish?: () => unknown | Promise<unknown>, exception?: (token: Parameters<Parameters<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").createBendResolver>[0]["drive"]>[0] extends {exception: (token: infer T) => unknown} ? T : never) => unknown, forceCleanup?: (error: unknown) => unknown}} NativeSession
  * @typedef {Extract<ownedMachine.Projection["view"], {$: "Types.AwaitService"}>["request"]} Request
  * @typedef {{signal?: AbortSignal | undefined, ownerLease?: {invocation: bigint, generation: bigint, lease: bigint, request: bigint}}} ForeignOptions
- * @typedef {{beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, afterAction?: (event: {command: Action, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, canonicalOutputs?: (outputs: readonly (Extract<Step, {$: "Advanced"}>["outputs"] extends import("@hapsland/agent-flow-bend/canonical-resolver-owner").List<infer O> ? O : never)[]) => unknown, beforeProvider?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown}} Hooks
+
  * @typedef {{kind: "construction-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} ConstructionFailure
  * @typedef {ownedMachine.Projection | ConstructionFailure} ResultPayload
  * @typedef {{origin: bigint, value: unknown}} AdviceInput
@@ -35,6 +35,10 @@ import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
  * @typedef {{command: Extract<Action, {$: "CancelChild"}>, completed: Set<number>}} CancellationCleanup
  */
 /**
+ * @template {NativeSession} [Session=NativeSession]
+ * @typedef {{beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver<Session>>}) => unknown, beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: ReturnType<typeof createOwnedArtifactDriver<Session>>}) => unknown, afterAction?: (event: {command: Action, driver: ReturnType<typeof createOwnedArtifactDriver<Session>>}) => unknown, canonicalOutputs?: (outputs: readonly (Extract<Step, {$: "Advanced"}>["outputs"] extends import("@hapsland/agent-flow-bend/canonical-resolver-owner").List<infer O> ? O : never)[]) => unknown, beforeProvider?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver<Session>>}) => unknown, beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver<Session>>}) => unknown}} Hooks
+ */
+/**
  * @template {Method} M
  * @typedef {Parameters<Owner[M]> extends [State, ...infer A] ? A : never} Arguments
  */
@@ -47,7 +51,8 @@ const required = (value) => {
 // Effect/lifetime adapter for actual Canonical owner actions. Root selection and
 // resident retention are not implemented here: this is a composed intermediate.
 /**
- * @param {{owner: Owner, initialState?: State, scope: Scope, artifacts?: Parameters<typeof createArtifactMachine>[0], registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<NativeSession>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks, control?: Control, machine?: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input) => ownedMachine.Machine | undefined}} options
+ * @template {NativeSession} [Session=NativeSession]
+ * @param {{owner: Owner, initialState?: State, scope: Scope, artifacts?: Parameters<typeof createArtifactMachine>[0], registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks<Session>, control?: Control, machine?: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
  */
 export function createOwnedArtifactDriver({
   owner,
@@ -119,13 +124,13 @@ export function createOwnedArtifactDriver({
   const leases = new Map()
   /** @type {Map<bigint, Launch>} */
   const launches = new Map()
-  /** @type {Map<bigint, NativeSession>} */
+  /** @type {Map<bigint, Session>} */
   const sessions = new Map()
   /** @type {Map<bigint, TerminalOutcome>} */
   const finished = new Map()
-  /** @type {WeakSet<NativeSession>} */
+  /** @type {WeakSet<Session>} */
   const finalizedSessions = new WeakSet()
-  /** @param {NativeSession} session */
+  /** @param {Session} session */
   const finishSession = async (session) => {
     if (finalizedSessions.has(session)) return
     try {
@@ -139,7 +144,7 @@ export function createOwnedArtifactDriver({
       throw error
     }
   }
-  /** @param {NativeSession} session */
+  /** @param {Session} session */
   const closeUnregistered = async (session) => {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session) return
     try {
@@ -440,12 +445,12 @@ export function createOwnedArtifactDriver({
   }
   /** @param {Step} step */
   const apply = (step) => unwrap(applyOutcome(step))
-  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.ArtifactMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<GraphOutcome>} */
-  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.PreparationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PreparationOutcome>} */
-  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.SourceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<SourceOutcome>} */
-  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.PostMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
-  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.AdviceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
-  /** @param {NativeSession} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.ArtifactMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<GraphOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.PreparationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PreparationOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.SourceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<SourceOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.PostMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.AdviceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
+  /** @param {Session} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
   async function driveInvocation(session, input, options = {}) {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
       throw new Error("Session already owned by an active invocation")
@@ -510,7 +515,7 @@ export function createOwnedArtifactDriver({
     try {
       launches.delete(invocation)
       sessions.set(invocation, session)
-      machines.set(invocation, (selectMachine ? selectMachine(input) : undefined) ?? machine)
+      machines.set(invocation, (selectMachine ? selectMachine(input, session) : undefined) ?? machine)
       resources.set(launch.input_handle, { invocation, kind: "input", value: input })
       const registryOutcome = await registry.runOutcome(session, async () => {
         taskEntered = true
@@ -793,7 +798,7 @@ export function createOwnedArtifactDriver({
       if (launch?.$ !== "LaunchAdviceTail") throw new Error("Missing advice launch")
       return launch.receipt
     },
-    /** @param {AdviceHandoff} receipt @param {NativeSession & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}} session @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
+    /** @param {AdviceHandoff} receipt @param {Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}} session @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
     async driveAdvice(receipt, session, options = {}) {
       const launch = launches.get(receipt.handoff)
       if (!launch || launch.$ !== "LaunchAdviceTail" || launch.receipt !== receipt) {
@@ -816,7 +821,7 @@ export function createOwnedArtifactDriver({
         throw new Error("Wrong accepted preparation handoff")
       return { preparation: projected.view.result }
     },
-    /** @param {PreparationHandoff} receipt @param {NativeSession} session @param {(result: {preparation: Extract<ReturnType<ownedMachine.PreparationMachine["view"]>, {$: "PreparationFinished"}>["result"]}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
+    /** @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: Extract<ReturnType<ownedMachine.PreparationMachine["view"]>, {$: "PreparationFinished"}>["result"]}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
     async driveHandoff(receipt, session, buildInput, options = {}) {
       const invocation = receipt.handoff
       if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
@@ -843,7 +848,7 @@ export function createOwnedArtifactDriver({
       }
     },
     drive: driveInvocation,
-    /** @param {number} invocation @param {{session?: NativeSession | undefined, closePending?: boolean}} [cleanup] */
+    /** @param {number} invocation @param {{session?: Session | undefined, closePending?: boolean}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false } = {}) {
       const ownerInvocation = BigInt(invocation)
       let cancelCommitted = false

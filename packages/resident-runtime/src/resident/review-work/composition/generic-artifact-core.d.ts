@@ -1,8 +1,8 @@
+import type { GraphServiceReply } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import type { ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type {
   ResolverInput,
   ResolverFailure,
-  Reply,
   Request,
   ServiceOutcome
 } from "@hapsland/source-analysis/direct-event/graph-resolver"
@@ -100,7 +100,7 @@ export type ParentAction =
 export type ResolverEvent =
   | Tagged<
       "../../../../../source-analysis/src/direct-event/graph-resolution/Types.ServiceReply",
-      { readonly reply: ArtifactAbi<Reply> }
+      { readonly reply: ArtifactAbi<GraphServiceReply> }
     >
   | Tagged<
       "../../../../../source-analysis/src/direct-event/graph-resolution/Types.CancelInvocation",

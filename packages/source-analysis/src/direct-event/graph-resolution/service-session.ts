@@ -435,6 +435,8 @@ export function createServiceSession({
   return session
 }
 
+export type GraphServiceReply = ReturnType<typeof pureReply<Reply>>
+
 // Graph effects and emitted Nat encoding retain their owner when a resident
 // registry also holds Source, Preparation, Post and Advice resource sessions.
 export async function performGraphServiceRequest(
