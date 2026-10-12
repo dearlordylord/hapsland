@@ -741,15 +741,22 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 520b3074 measurements are
+   connected candidate. Latest existing-production 5cf5a93b measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.7304863518137152 (2026-10-12 02:54:43.374945 UTC); build fails at
-   1.1509246821378714 (02:55:40.835636 UTC). Both starts meet the preceding
-   cadence deadlines. Results do not qualify unadopted whole preparation;
-   build parity remains an acceptance obstacle. Standard workspace preparation
-   passes 46/46 tasks, 15 cached, 46.140s. Next starts due on 2026-10-12 UTC:
-   execution 03:24:43.374945, build 03:25:40.835636.
-   Logs: /tmp/hapsland-520b307-{warm,execution-pair,build-pair}.log.
+   passes at 0.5920944718016352 (2026-10-12 03:20:36.343591 UTC); build fails at
+   1.0581467667609699 (03:21:12.268558 UTC). Both starts meet the preceding
+   cadence deadlines. All 34 build samples succeed with identical 23/46 cached
+   task counts. The measurement runner succeeds; wrapper exit 1 records the
+   unmet parity threshold, not a build error. test:status reports the prior
+   compiled capacity/round consumer passing, not a performance acceptance verdict.
+   Results do not qualify unadopted whole preparation; build parity remains an
+   acceptance obstacle. Frozen standard workspace preparation passes 46/46 tasks,
+   23 cached, 3.093s. Next starts due on 2026-10-12 UTC:
+   execution 03:50:36.343591, build 03:51:12.268558. Freeze/backup/warm by 03:46.
+   Logs: /tmp/hapsland-5cf5a93b-{warm,execution-pair,build-pair}.log.
+   Qualifications: .test-runs/bend-migration/performance/
+   2026-10-12T03-20-36.343591+00-00/qualification.json and
+   2026-10-12T03-21-12.268558+00-00/qualification.json.
    Previous 17d75e3d qualified execution .6552013 passed and build1.1799678
    failed. Both starts missed their cadence deadlines after frozen normal
    source-analysis/downstream compilation; that violation remains recorded
