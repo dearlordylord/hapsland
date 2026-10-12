@@ -34,6 +34,7 @@ import {
 import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 import { createResidentPreparationDriver } from "../../composition/preparation-driver.ts"
+import { createResidentPreparationSession } from "../../composition/preparation-session.ts"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
 import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
 import { createSourcePreparationProvider } from "../source-preparation-provider.mjs"
@@ -651,7 +652,7 @@ try {
                 )
             : captureStable
         }
-        const foreign = createPreparationForeign({
+        const foreignPorts = {
           connection: { ...connection, preparation },
           owner,
           driver,
@@ -668,7 +669,16 @@ try {
                 onMaterialization: (event) => sourceEffects.push(event)
               }
             : {})
-        })
+        }
+        if (mode.startsWith("full-"))
+          return createResidentPreparationSession({
+            ...foreignPorts,
+            invocation,
+            observation: context.job.observation,
+            candidate,
+            graphLimits: sourceGraphLimits
+          })
+        const foreign = createPreparationForeign(foreignPorts)
         return {
           invocation,
           revoke() {},
@@ -688,10 +698,7 @@ try {
                   added_lines: list(candidate.addedLines ?? [])
                 }
               ]),
-              contracts: list([
-                { $: "PreparationSelection.TypeContract" },
-                ...(mode.startsWith("full-") ? [{ $: "PreparationSelection.FunctionContract" }] : [])
-              ]),
+              contracts: list([{ $: "PreparationSelection.TypeContract" }]),
               limits: bendLimits,
               frozen: { $: "None" },
               line: { $: "None" },

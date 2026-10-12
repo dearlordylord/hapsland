@@ -1045,14 +1045,38 @@ One current obstacle list, in execution order:
    resource/workflow entry wiring, full original proof and build parity remain
    open. This establishes the factory binding path, not production acceptance.
 
+   Fresh resident Preparation session construction now belongs to resident
+   composition, using the existing public session ABI and original foreign
+   capability. It encodes all four candidate operations, configured contract
+   callback, actual host/native patch/verified post-edit spans and explicit
+   effective graph limits. Full Source modes consume this constructor; the
+   duplicate full-input assembly is removed. Prefix-only fixtures retain their
+   explicit test inputs. Structural review passes and normal resident typecheck
+   plus addressed lint select both changed code files. Normal workspace build
+   passes 46/46 (15 cached, 96.477s); sequential Source 57/6502 (32 native whole
+   comparisons) and resident 73/15702 consumers pass on frozen compiled inputs.
+   Logs: /tmp/hapsland-production-session-{warm,source-consumer,resident-consumer}.log.
+   check:fast passes 109 unit tests, root/ABI/strict JavaScript types and two
+   selected code files; doc links pass (68 documents, 1578 links, zero errors).
+   Production entry review identifies three remaining concrete integration
+   obstacles: constructionFailed after every allocated-but-unbuilt Source or
+   Preparation session; preserve source error/cause token failure/defect/interrupt
+   semantics at the Effect entry; retain action sink through shutdown settlement
+   and registry.retryCleanup. Entry and shutdown remain open; this is not adoption.
+
    Original attachment proof progress: the complete pending witness now follows
    from one original ActualReady.project (qualified 7.973s under the ten-second
    bound). The shared original-ready parent/pending witness passes in 6.068s;
    selected frame/child coordinates pass in 3.251s. Original measurement/history
    coordinates pass in 3.183s, retained budget in 5.659s, exact registration
    history in 3.552s (node-length offset 2.684s). Original tail is byte-identical.
-   Exact staged/history assembly,
-   claims 5–8 and the whole original theorem remain open; original
+   Actual selected measured pending passes in 5.500s; callback-free staged
+   observed projection passes in 3.257s under hard ten seconds. Full selected
+   frame assembly remains unqualified: direct and factored wrappers time out
+   (10.036/10.028s); the isolated factored body exits 1 after 4.464s with a
+   TypeScript implementation/BendTT kernel validation mismatch. The next
+   diagnostic isolates its failing equality/elimination; no premise is added.
+   Exact staged/history assembly, claims 5–8 and the whole original theorem remain open; original
    law and premises are unchanged. This unfinished source is retained on the branch
    for backup and is not proof acceptance.
 
@@ -1104,8 +1128,13 @@ One current obstacle list, in execution order:
    2.1507s, attachComment:false mean 2.2453s. The change is rejected; no repository
    parser change or reduced source inspection is applied. Temporary sources are
    deleted by their experiment owner.
-   Next starts due: execution 15:07:28.198985, build 15:08:08.238488 UTC.
-   Freeze/backup/warm by 15:00. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Follow-up 986862d7: execution starts 15:02:27.842886, qualified parity
+   0.7493075206425339; build starts 15:03:26.241129, qualified but fails parity
+   1.2397353317336566. Both meet cadence; all 17 pairs preserve heads, sources
+   and artifacts, with 23/46 cached tasks and successful exits in every build.
+   These production measurements do not qualify the unadopted Preparation unit.
+   Next starts due: execution 15:32:27.842886, build 15:33:26.241129 UTC.
+   Freeze/backup/warm by 15:25. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.
