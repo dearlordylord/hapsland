@@ -15,30 +15,50 @@ import {
 import { createPostPreparationProvider } from "./post-preparation-host.mjs"
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
+/**
+ * @typedef {Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>} AdmittedPreparation
+ * @typedef {{handle: bigint, candidate: bigint, invocation: bigint, admissionRequest: bigint, preparation: AdmittedPreparation}} PreparationReceipt
+ * @typedef {ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>} PreparationCapability
+ * @typedef {{invocation: number, input: Parameters<PreparationCapability["machine"]["initial"]>[0], perform: (request: Parameters<PreparationCapability["perform"]>[0][number], options: Parameters<PreparationCapability["perform"]>[1]) => ReturnType<PreparationCapability["perform"]>, decode: PreparationCapability["decode"], revoke: () => unknown, close: () => unknown, error?: (token: bigint) => unknown, finish?: () => unknown | Promise<unknown>}} PreparationSession
+ */
 // Foreign effects and opaque receipts for one whole source. The cursor chooses
 // admission, refusal reporting, candidate progression and source completion.
+/**
+ * @param {bigint} invocation
+ * @param {import("./post-preparation-host.mjs").PostContext} context
+ * @param {{owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner, bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, driver: ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver>, candidates: import("@hapsland/native-observation/direct-event/observation").DirectObservation["candidates"], buildPreparationSession: (invocation: number, candidate: import("@hapsland/native-observation/direct-event/observation").DirectObservation["candidates"][number], preparation: AdmittedPreparation) => PreparationSession | Promise<PreparationSession>, analyticsEnabled?: boolean, entry?: "full" | "after-gates"}} options
+ */
 export function createSourcePreparationProvider(
   invocation,
   context,
   { owner, bridge, driver, candidates, buildPreparationSession, analyticsEnabled = false, entry = "full" }
 ) {
   const handles = new Map(candidates.map((candidate, index) => [BigInt(index + 1), candidate]))
-  const preparations = new Map(),
-    errors = new Map(),
-    errorCauses = new Map(),
-    expected = new Map()
+  /** @type {Map<bigint, PreparationReceipt>} */
+  const preparations = new Map()
+  /** @type {Map<bigint, unknown>} */
+  const errors = new Map()
+  /** @type {Map<bigint, Cause.Cause<unknown>>} */
+  const errorCauses = new Map()
+  /** @type {Map<bigint, string>} */
+  const expected = new Map()
   let revoked = false,
     closed = false,
-    finished = false,
-    primaryFailure,
-    controlled,
-    credentialRequired,
-    pendingDefectCause
+    finished = false
+  /** @type {unknown} */
+  let primaryFailure
+  /** @type {ReturnType<typeof decodeControlledOptions>} */
+  let controlled
+  /** @type {boolean | undefined} */
+  let credentialRequired
+  /** @type {Cause.Cause<unknown> | undefined} */
+  let pendingDefectCause
   const run = Effect.runPromise,
     ledger = context.deps.residentLedger,
     job = context.job
   const originalReservation = job.reservation
   bridge.bindSourceReservation(invocation, originalReservation)
+  /** @param {Omit<Parameters<typeof recordActivity>[0], "statePath" | "root" | "advicee" | "lifetime">} fields */
   const activity = (fields) =>
     recordActivity({
       statePath: job.dispatch.activityPath,
@@ -47,6 +67,7 @@ export function createSourcePreparationProvider(
       lifetime: context.deps.lifetime,
       ...fields
     })
+  /** @param {bigint} handle */
   const candidate = (handle) => {
     const value = handles.get(handle)
     if (!value) throw new Error("Unknown source candidate")
@@ -63,7 +84,9 @@ export function createSourcePreparationProvider(
         candidates: list([...handles.keys()])
       }
     },
+    /** @param {bigint} token */
     error: (token) => errors.get(token),
+    /** @param {bigint} token */
     cause: (token) => errorCauses.get(token),
     revoke() {
       revoked = true
@@ -75,7 +98,9 @@ export function createSourcePreparationProvider(
       if (finished) return
       // Only exact resources acquired by this source; transferred units are owned
       // by their independent dispatcher/advice scope and are never swept here.
+      /** @type {unknown[]} */
       const failures = []
+      /** @template A, E @param {Effect.Effect<A, E>} effect @param {() => unknown} [settled] */
       const attempt = async (effect, settled = () => {}) => {
         try {
           await run(Effect.uninterruptible(effect))
@@ -102,14 +127,23 @@ export function createSourcePreparationProvider(
       bridge.forgetSourceReservation(invocation)
       finished = true
     },
+    /**
+     * @param {import("./source-preparation-core.js").Request} request
+     * @param {{signal?: AbortSignal | undefined, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, beforeCommand?: (command: import("./source-preparation-core.js").Command) => void, afterCommit?: (command: import("./source-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").OwnerPublication) => void}} [options]
+     * @returns {Promise<import("./source-preparation-core.js").Reply>}
+     */
     async perform(request, options = {}) {
       if (revoked || closed || options.signal?.aborted) throw new Error("Revoked source session")
       if (request.invocation !== invocation) throw new Error("Wrong source invocation")
       const command = request.command
-      let failureKind = "Failed",
-        failureCause
-      let response = { $: "Ack" },
-        observationCommitted = false
+      /** @type {"Failed" | "Defect" | "Cancelled"} */
+      let failureKind = "Failed"
+      /** @type {Cause.Cause<unknown> | undefined} */
+      let failureCause
+      /** @type {import("./source-preparation-core.js").Response} */
+      let response = { $: "Ack" }
+      let observationCommitted = false
+      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {Promise<A>} */
       const run = async (effect) => {
         const exit = await Effect.runPromiseExit(effect)
         if (Exit.isFailure(exit)) {
@@ -125,11 +159,17 @@ export function createSourcePreparationProvider(
         }
         return exit.value
       }
+      /** @param {import("../../state/resolver-custody/provider-authority.ts").OwnerPublication} publication */
       const committed = (publication) => options.afterCommit?.(command, publication)
+      const ownerLease = () => {
+        if (options.ownerLease === undefined) throw new TypeError("Source command lacks its Canonical lease")
+        return options.ownerLease
+      }
+      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {Promise<A>} */
       const scoped = (effect) =>
         run(
           Effect.uninterruptible(effect).pipe(
-            Effect.provideService(ResidentProviderPermit, { credential: options.ownerLease, committed }),
+            Effect.provideService(ResidentProviderPermit, { credential: ownerLease(), committed }),
             Effect.provideService(ResidentResourceReceipt, committed)
           )
         )
@@ -137,20 +177,22 @@ export function createSourcePreparationProvider(
         if (command.$ === "CheckCandidateActive") pendingDefectCause = undefined
         options.beforeCommand?.(command)
         switch (command.$) {
-          case "StartPolicySource":
+          case "StartPolicySource": {
+            const round = job.round,
+              observationId = job.workObservationId
+            if (round === undefined || observationId === undefined) throw new TypeError("Missing source policy binding")
             response = {
               $: "GateAccepted",
               value: await scoped(
-                ledger.rounds
-                  .policyWork(job.round)
-                  .pipe(Effect.map((policy) => policy.startSource(job.workObservationId)))
+                ledger.rounds.policyWork(round).pipe(Effect.map((policy) => policy.startSource(observationId)))
               )
             }
             break
+          }
           case "StartObservation":
             response = {
               $: "GateAccepted",
-              value: !(await run(bridge.startSourceObservation(options.ownerLease, committed))).refusal
+              value: !(await run(bridge.startSourceObservation(ownerLease(), committed))).refusal
             }
             break
           case "AwaitBackendGate":
@@ -166,38 +208,42 @@ export function createSourcePreparationProvider(
           case "ReadCredentialRequired":
             credentialRequired = await run(Effect.sync(() => context.deps.residentCredentialRequired(controlled)))
             break
-          case "CheckCredentialShape":
+          case "CheckCredentialShape": {
+            const required = credentialRequired
+            if (required === undefined) throw new TypeError("Missing source credential fact")
             response = {
               $: "GateAccepted",
               value: await run(
                 Effect.sync(() =>
-                  context.deps.residentCredentialShapeMatches(
-                    job.dispatch,
-                    job.settings.credentialEnvVar,
-                    credentialRequired
-                  )
+                  context.deps.residentCredentialShapeMatches(job.dispatch, job.settings.credentialEnvVar, required)
                 )
               )
             }
             break
+          }
           case "VerifyObservationRoot":
             response = {
               $: "GateAccepted",
               value: await run(withinWork(verifyObservationRoot(job.observation), context.preparationSignal))
             }
             break
-          case "CheckCredentialGeneration":
+          case "CheckCredentialGeneration": {
+            const required = credentialRequired
+            if (required === undefined) throw new TypeError("Missing source credential fact")
             response = {
               $: "GateAccepted",
               value: await run(
-                Effect.sync(() => context.deps.residentCredentialGenerationCurrent(job.dispatch, credentialRequired))
+                Effect.sync(() => context.deps.residentCredentialGenerationCurrent(job.dispatch, required))
               )
             }
             break
+          }
           case "ReleaseJobReservation": {
-            const child = owner.find(invocation, bridge.control.readState().children).value
+            const held = owner.find(invocation, bridge.control.readState().children)
+            if (held.$ !== "Some") throw new TypeError("Missing source invocation")
+            const child = held.value
             if (child.scope.$ === "AfterSourceScope")
-              await run(bridge.releaseSourceReservation(options.ownerLease, committed))
+              await run(bridge.releaseSourceReservation(ownerLease(), committed))
             else if (originalReservation !== undefined) await scoped(ledger.release(originalReservation))
             break
           }
@@ -223,15 +269,30 @@ export function createSourcePreparationProvider(
           case "AdmitCandidateWorkspace": {
             const selected = candidate(command.candidate),
               requestedBytes = await run(Effect.sync(() => captureWorkspaceBytes(selected.path)))
+            /** @type {PreparationReceipt | undefined} */
             let receipt
+            /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>} publication */
             const onCommitted = (publication) => {
-              if (publication.value?.status === "admitted") {
+              const value = publication.value
+              if (value && typeof value === "object" && "status" in value && value.status === "admitted") {
+                if (
+                  !("operation" in value) ||
+                  typeof value.operation !== "number" ||
+                  !("reservation" in value) ||
+                  !value.reservation ||
+                  typeof value.reservation !== "object" ||
+                  !("id" in value.reservation) ||
+                  typeof value.reservation.id !== "number" ||
+                  !("partition" in value.reservation) ||
+                  typeof value.reservation.partition !== "string"
+                )
+                  throw new TypeError("Malformed committed preparation admission")
                 receipt = Object.freeze({
                   handle: request.id + 1n,
                   candidate: command.candidate,
                   invocation,
                   admissionRequest: request.id,
-                  preparation: publication.value
+                  preparation: /** @type {AdmittedPreparation} */ (value)
                 })
                 preparations.set(receipt.handle, receipt)
                 context.activeWorkspaces.add(receipt.preparation.reservation)
@@ -247,35 +308,35 @@ export function createSourcePreparationProvider(
                   job.canonicalRound
                 )
               ).pipe(
-                Effect.provideService(ResidentProviderPermit, {
-                  credential: options.ownerLease,
-                  committed: onCommitted
-                })
+                Effect.provideService(ResidentProviderPermit, { credential: ownerLease(), committed: onCommitted })
               )
             )
+            /** @type {Record<"stale-round" | "wrong-stage", import("./source-preparation-core.js").UnavailableReason["$"]>} */
             const reasons = { "stale-round": "StaleRound", "wrong-stage": "WrongStage" }
-            response =
-              result.status === "admitted"
-                ? { $: "WorkspaceAdmitted", preparation: receipt.handle }
-                : {
-                    $: "WorkspaceRefused",
-                    requested_bytes: BigInt(requestedBytes),
-                    reason:
-                      result.status === "capacity-refused"
-                        ? { $: "CapacityRefused" }
-                        : result.status === "unavailable"
-                          ? {
-                              $: "Unavailable",
-                              reason: {
-                                $:
-                                  reasons[result.reason] ??
-                                  (() => {
-                                    throw new Error("Unknown workspace unavailability")
-                                  })()
-                              }
-                            }
-                          : { $: "InvalidMeasurement" }
-                  }
+            if (result.status === "admitted") {
+              if (receipt === undefined) throw new TypeError("Missing committed preparation admission receipt")
+              response = { $: "WorkspaceAdmitted", preparation: receipt.handle }
+            } else {
+              response = {
+                $: "WorkspaceRefused",
+                requested_bytes: BigInt(requestedBytes),
+                reason:
+                  result.status === "capacity-refused"
+                    ? { $: "CapacityRefused" }
+                    : result.status === "unavailable"
+                      ? {
+                          $: "Unavailable",
+                          reason: {
+                            $:
+                              reasons[result.reason] ??
+                              (() => {
+                                throw new Error("Unknown workspace unavailability")
+                              })()
+                          }
+                        }
+                      : { $: "InvalidMeasurement" }
+              }
+            }
             break
           }
           case "PrepareCandidate": {
@@ -287,7 +348,10 @@ export function createSourcePreparationProvider(
               receipt.admissionRequest + 1n !== request.id
             )
               throw new Error("Candidate preparation differs from issued admission receipt")
-            const child = owner.find(invocation, driver.state.children).value
+            const held = owner.find(invocation, driver.state.children)
+            if (held.$ !== "Some" || held.value.scope.$ !== "SourceScope")
+              throw new TypeError("Missing Canonical Source parent")
+            const child = held.value
             const parent = { $: "Parent", invocation, generation: child.generation, request: request.id }
             const prepInvocation = driver.allocatePreparationInvocation(
               {
@@ -379,6 +443,7 @@ export function createSourcePreparationProvider(
             failureKind = "Defect"
             const selected = candidate(command.candidate),
               diagnostic = command.diagnostic
+            /** @type {Parameters<typeof context.deps.residentInspection.observeDiagnostic>[3]} */
             const value =
               diagnostic.$ === "WorkspaceCapacity"
                 ? {
@@ -427,26 +492,29 @@ export function createSourcePreparationProvider(
                 activity({
                   stage: "pending",
                   expectedUnitIdentities: unlist(command.identities).map((handle) => {
-                    if (!expected.has(handle)) throw new Error("Unknown expected activity receipt")
-                    return expected.get(handle)
+                    const identity = expected.get(handle)
+                    if (identity === undefined) throw new Error("Unknown expected activity receipt")
+                    return identity
                   })
                 })
               )
             )
             break
-          case "CompletePolicySource":
+          case "CompletePolicySource": {
+            const round = job.round,
+              observationId = job.workObservationId
+            if (round === undefined || observationId === undefined) throw new TypeError("Missing source policy binding")
             response = {
               $: "CompletionAccepted",
               value: await scoped(
-                ledger.rounds
-                  .policyWork(job.round)
-                  .pipe(Effect.map((policy) => policy.completeSource(job.workObservationId)))
+                ledger.rounds.policyWork(round).pipe(Effect.map((policy) => policy.completeSource(observationId)))
               )
             }
             break
+          }
           case "CompleteObservation":
             await run(
-              bridge.completeSourceObservation(options.ownerLease, (publication) => {
+              bridge.completeSourceObservation(ownerLease(), (publication) => {
                 observationCommitted = true
                 job.completed = true
                 committed(publication)
@@ -465,19 +533,18 @@ export function createSourcePreparationProvider(
             )
             break
           default:
-            throw new Error("Unknown source command " + command.$)
+            throw new Error("Unknown source command")
         }
       } catch (error) {
         primaryFailure ??= error
         const token = BigInt(errors.size + 1)
         errors.set(token, error)
         const cause = failureCause ?? (failureKind === "Defect" ? Cause.die(error) : Cause.fail(error))
-        errorCauses.set(
-          token,
+        const combinedCause =
           command.$ === "ObserveCandidateDiagnostic" && pendingDefectCause
             ? Cause.combine(pendingDefectCause, cause)
             : cause
-        )
+        errorCauses.set(token, combinedCause)
         if (
           failureKind === "Defect" &&
           [
@@ -490,37 +557,31 @@ export function createSourcePreparationProvider(
             "RecordCandidateUnavailable"
           ].includes(command.$)
         )
-          pendingDefectCause = errorCauses.get(token)
+          pendingDefectCause = combinedCause
         if (command.$ === "ObserveCandidateDiagnostic" && pendingDefectCause) {
           try {
-            await run(Effect.failCause(errorCauses.get(token)))
+            await run(Effect.failCause(combinedCause))
           } catch (combined) {
             errors.set(token, combined)
           }
         }
-        response = {
-          $:
-            failureKind === "Defect"
+        response =
+          failureKind === "Defect"
+            ? observationCommitted
+              ? { $: "ObservationCommittedDefect", token, recoverable: Cause.hasFails(combinedCause) }
+              : {
+                  $: "Defect",
+                  token,
+                  interrupted: Cause.hasInterrupts(combinedCause),
+                  recoverable: Cause.hasFails(combinedCause)
+                }
+            : failureKind === "Cancelled"
               ? observationCommitted
-                ? "ObservationCommittedDefect"
-                : "Defect"
-              : failureKind === "Cancelled"
-                ? observationCommitted
-                  ? "ObservationCommittedCancelled"
-                  : "Cancelled"
-                : observationCommitted
-                  ? "ObservationCommittedFailure"
-                  : "Failed",
-          token,
-          ...(failureKind === "Defect" && !observationCommitted
-            ? {
-                interrupted: Cause.hasInterrupts(errorCauses.get(token)),
-                recoverable: Cause.hasFails(errorCauses.get(token))
-              }
-            : failureKind === "Defect" && observationCommitted
-              ? { recoverable: Cause.hasFails(errorCauses.get(token)) }
-              : {})
-        }
+                ? { $: "ObservationCommittedCancelled", token }
+                : { $: "Cancelled", token }
+              : observationCommitted
+                ? { $: "ObservationCommittedFailure", token }
+                : { $: "Failed", token }
       }
       return { $: "Reply", invocation, id: request.id, response }
     }

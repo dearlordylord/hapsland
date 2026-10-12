@@ -1,4 +1,5 @@
 import Base
+import ./AttachmentMapping.bend as Mapping
 import ../Composition.bend as Compose
 import ../SPEC.bend as RootSpec
 import ../WholeObservation.bend as O
@@ -2928,6 +2929,126 @@ def ready_registered_history_old_rows(+order: List<&2, Nat>, +items: List<&2, Lo
     ready_registered_old_rows(order, items, next, entries, List.append(&2, V.EdgeSource, sources, more_sources),
       List.append(&2, F.AddressEntry, addresses, more_addresses), valid, before),
     ready_pending_history_retained(order, entries, sources, more_sources, addresses, more_addresses, rows, ready))
+
+def ready_shifted_pending_address(+parents: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +children: List<&2, F.AddressEntry>, +owner: Nat, +index: Nat, +from: String, +symbol: String, +name: String,
+    +depth: Nat, +expected: Local.ExpectedKind, +target: Local.PendingTarget, +address: Maybe<&2, O.NodeAddress>, +payload: V.PendingPayload,
+    aligned: {P.aligned(parents, entries, parents, entries) == True{} : Bool},
+    dense: {ActualFrame.dense(parents, 0n) == True{} : Bool},
+    located: {F.address_at(children, owner) == address : Maybe<&2, O.NodeAddress>},
+    ready: {V.payload_at(address, Local.Pending{owner, index, from, symbol, name, depth, expected, target}) == Some{payload} : Maybe<&2, V.PendingPayload>}) ->
+    {V.pending_payload(Local.Pending{(owner + List.length(&2, Local.PlannedNode, parents) : Nat), index, from, symbol, name, depth, expected, target},
+      List.append(&2, F.AddressEntry, entries, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))) == Some{payload} : Maybe<&2, V.PendingPayload>}:
+  match address:
+    case Some{birth}:
+      Equal.trans(Maybe<&2, V.PendingPayload>,
+        V.pending_payload(Local.Pending{(owner + List.length(&2, Local.PlannedNode, parents) : Nat), index, from, symbol, name, depth, expected, target},
+          List.append(&2, F.AddressEntry, entries, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))),
+        V.payload_at(Some{birth}, Local.Pending{owner, index, from, symbol, name, depth, expected, target}), Some{payload},
+        Equal.cong(Maybe<&2, O.NodeAddress>, Maybe<&2, V.PendingPayload>, found =>
+          V.payload_at(found, Local.Pending{(owner + List.length(&2, Local.PlannedNode, parents) : Nat), index, from, symbol, name, depth, expected, target}),
+          F.address_at(List.append(&2, F.AddressEntry, entries, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))),
+            (owner + List.length(&2, Local.PlannedNode, parents) : Nat)), Some{birth},
+          Parent.appended_child_address(parents, entries, children, owner, birth, aligned, dense, located)), ready)
+    case None{}:
+      Empty.absurd({V.pending_payload(Local.Pending{(owner + List.length(&2, Local.PlannedNode, parents) : Nat), index, from, symbol, name, depth, expected, target},
+        List.append(&2, F.AddressEntry, entries, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents)))) == Some{payload} : Maybe<&2, V.PendingPayload>},
+        Contents.none_some(V.PendingPayload, payload, ready))
+
+def ready_payload_prefix_retained(+head: Maybe<&2, V.PendingPayload>, +tail: Maybe<&2, List<&2, V.PendingPayload>>,
+    +updated_head: Maybe<&2, V.PendingPayload>, +updated_tail: Maybe<&2, List<&2, V.PendingPayload>>, +rows: List<&2, V.PendingPayload>,
+    ready: {ActualReady.pending_prefix(head, tail) == Some{rows} : Maybe<&2, List<&2, V.PendingPayload>>},
+    retain_head: @value: V.PendingPayload -> {head == Some{value} : Maybe<&2, V.PendingPayload>} ->
+      {updated_head == Some{value} : Maybe<&2, V.PendingPayload>},
+    retain_tail: @value: List<&2, V.PendingPayload> -> {tail == Some{value} : Maybe<&2, List<&2, V.PendingPayload>>} ->
+      {updated_tail == Some{value} : Maybe<&2, List<&2, V.PendingPayload>>}) ->
+    {ActualReady.pending_prefix(updated_head, updated_tail) == Some{rows} : Maybe<&2, List<&2, V.PendingPayload>>}:
+  match head tail:
+    case Some{+value} Some{+rest}:
+      Equal.trans(Maybe<&2, List<&2, V.PendingPayload>>, ActualReady.pending_prefix(updated_head, updated_tail),
+        ActualReady.pending_prefix(Some{value}, Some{rest}), Some{rows},
+        Equal.trans(Maybe<&2, List<&2, V.PendingPayload>>, ActualReady.pending_prefix(updated_head, updated_tail),
+          ActualReady.pending_prefix(Some{value}, updated_tail), ActualReady.pending_prefix(Some{value}, Some{rest}),
+          Equal.cong(Maybe<&2, V.PendingPayload>, Maybe<&2, List<&2, V.PendingPayload>>, found => ActualReady.pending_prefix(found, updated_tail),
+            updated_head, Some{value}, retain_head(value, {==})),
+          Equal.cong(Maybe<&2, List<&2, V.PendingPayload>>, Maybe<&2, List<&2, V.PendingPayload>>, found => ActualReady.pending_prefix(Some{value}, found),
+            updated_tail, Some{rest}, retain_tail(rest, {==}))), ready)
+    case None{} _:
+      Empty.absurd({ActualReady.pending_prefix(updated_head, updated_tail) == Some{rows} : Maybe<&2, List<&2, V.PendingPayload>>},
+        Contents.none_some(List<&2, V.PendingPayload>, rows, ready))
+    case Some{_} None{}:
+      Empty.absurd({ActualReady.pending_prefix(updated_head, updated_tail) == Some{rows} : Maybe<&2, List<&2, V.PendingPayload>>},
+        Contents.none_some(List<&2, V.PendingPayload>, rows, ready))
+
+
+def ready_shifted_pending_projected(+items: List<&2, Local.Pending>, +parents: List<&2, Local.PlannedNode>,
+    +entries: List<&2, F.AddressEntry>, +children: List<&2, F.AddressEntry>, +payloads: List<&2, V.PendingPayload>,
+    +aligned: {P.aligned(parents, entries, parents, entries) == True{} : Bool},
+    +dense: {ActualFrame.dense(parents, 0n) == True{} : Bool},
+    ready: {ActualReady.pending(items, children) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}) ->
+    {ActualReady.pending(Compose.shift_pending(items, List.length(&2, Local.PlannedNode, parents)),
+      List.append(&2, F.AddressEntry, entries, Mapping.shifted(children, List.length(&2, Local.PlannedNode, parents))))
+      == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}:
+  match items:
+    case []: ready
+    case Local.Pending{+owner, +index, +from, +symbol, +name, +depth, +expected, +target} <> +tail:
+      +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+      +addresses: List<&2, F.AddressEntry> = List.append(&2, F.AddressEntry, entries, Mapping.shifted(children, offset))
+      ready_payload_prefix_retained(
+        V.pending_payload(Local.Pending{owner, index, from, symbol, name, depth, expected, target}, children),
+        ActualReady.pending(tail, children),
+        V.pending_payload(Local.Pending{(owner + offset : Nat), index, from, symbol, name, depth, expected, target}, addresses),
+        ActualReady.pending(Compose.shift_pending(tail, offset), addresses), payloads, ready,
+        value => found => ready_shifted_pending_address(parents, entries, children, owner, index, from, symbol, name, depth, expected, target,
+          F.address_at(children, owner), value, aligned, dense, {==}, found),
+        rest => found => ready_shifted_pending_projected(tail, parents, entries, children, rest, aligned, dense, found))
+
+def ready_pending_ordered_join(+order: List<&2, Nat>, +more: List<&2, Nat>,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>, +addresses: List<&2, F.AddressEntry>,
+    +old_rows: List<&2, V.PendingEntry>, +new_rows: List<&2, V.PendingEntry>,
+    old_ready: {ActualFrame.pending(order, entries, sources, addresses) == Some{old_rows} : Maybe<&2, List<&2, V.PendingEntry>>},
+    new_ready: {ActualFrame.pending(more, entries, sources, addresses) == Some{new_rows} : Maybe<&2, List<&2, V.PendingEntry>>}) ->
+    {ActualFrame.pending(List.append(&2, Nat, order, more), entries, sources, addresses)
+      == Some{List.append(&2, V.PendingEntry, old_rows, new_rows)} : Maybe<&2, List<&2, V.PendingEntry>>}:
+  Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+    ActualFrame.pending(List.append(&2, Nat, order, more), entries, sources, addresses),
+    ready_pending_join(ActualFrame.pending(order, entries, sources, addresses), ActualFrame.pending(more, entries, sources, addresses)),
+    Some{List.append(&2, V.PendingEntry, old_rows, new_rows)}, ready_pending_split(order, more, entries, sources, addresses),
+    Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+      ready_pending_join(ActualFrame.pending(order, entries, sources, addresses), ActualFrame.pending(more, entries, sources, addresses)),
+      ready_pending_join(Some{old_rows}, ActualFrame.pending(more, entries, sources, addresses)), Some{List.append(&2, V.PendingEntry, old_rows, new_rows)},
+      Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, found =>
+        ready_pending_join(found, ActualFrame.pending(more, entries, sources, addresses)),
+        ActualFrame.pending(order, entries, sources, addresses), Some{old_rows}, old_ready),
+      Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, found => ready_pending_join(Some{old_rows}, found),
+        ActualFrame.pending(more, entries, sources, addresses), Some{new_rows}, new_ready)))
+
+def ready_actual_staged_pending(+order: List<&2, Nat>, +items: List<&2, Local.Pending>, +next: Nat,
+    +pending: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>,
+    +parents: List<&2, Local.PlannedNode>, +addresses: List<&2, F.AddressEntry>, +child_addresses: List<&2, F.AddressEntry>,
+    +source: T.SourceFacts, +catalog: RootSpec.Source, +old_rows: List<&2, V.PendingEntry>, +payloads: List<&2, V.PendingPayload>,
+    +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, pending) == True{} : Bool},
+    before: {ActualReady.pending_ids_before(order, next) == True{} : Bool},
+    source_before: {ActualReady.pending_ids_before(ActualReady.provenance_ids(sources), next) == True{} : Bool},
+    aligned: {P.aligned(parents, addresses, parents, addresses) == True{} : Bool},
+    dense: {ActualFrame.dense(parents, 0n) == True{} : Bool},
+    old_ready: {ActualFrame.pending(order, pending, sources, addresses) == Some{old_rows} : Maybe<&2, List<&2, V.PendingEntry>>},
+    child_ready: {ActualReady.pending(items, child_addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}) ->
+    {ActualFrame.pending(List.append(&2, Nat, order, History.ids(payloads, next)),
+      ready_registered_pending(Compose.register_pending(Compose.shift_pending(items, List.length(&2, Local.PlannedNode, parents)), next, pending)),
+      List.append(&2, V.EdgeSource, sources, History.provenance(History.ids(payloads, next), source, catalog)),
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(child_addresses, List.length(&2, Local.PlannedNode, parents))))
+      == Some{List.append(&2, V.PendingEntry, old_rows, ready_payload_rows(payloads, next, source, catalog))} : Maybe<&2, List<&2, V.PendingEntry>>}:
+  +offset: Nat = List.length(&2, Local.PlannedNode, parents)
+  +shifted: List<&2, Local.Pending> = Compose.shift_pending(items, offset)
+  +new_addresses: List<&2, F.AddressEntry> = Mapping.shifted(child_addresses, offset)
+  +new_sources: List<&2, V.EdgeSource> = History.provenance(History.ids(payloads, next), source, catalog)
+  ready_pending_ordered_join(order, History.ids(payloads, next), ready_registered_pending(Compose.register_pending(shifted, next, pending)),
+    List.append(&2, V.EdgeSource, sources, new_sources), List.append(&2, F.AddressEntry, addresses, new_addresses),
+    old_rows, ready_payload_rows(payloads, next, source, catalog),
+    ready_registered_history_old_rows(order, shifted, next, pending, sources, new_sources, addresses, new_addresses, old_rows, valid, before, old_ready),
+    ready_registered_new_rows_exact(shifted, next, pending, sources, List.append(&2, F.AddressEntry, addresses, new_addresses), source, catalog,
+      payloads, valid, source_before, ready_shifted_pending_projected(items, parents, addresses, child_addresses, payloads, aligned, dense, child_ready)))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

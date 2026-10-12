@@ -805,6 +805,29 @@ One current obstacle list, in execution order:
    PostPreparation has none. Logs: /tmp/hapsland-post-provider-{strict-v3,
    source-preparation-consumer,resident-preparation-check,fast}.log.
    Whole compiled host, production adoption and replaced TS deletion remain open.
+   The complete Preparation physical binding and Source provider now check
+   against their existing closed protocols, original native contexts, generic
+   Effect results and exact Canonical leases. Committed workspace admissions
+   validate and retain the original operation/reservation before effect return;
+   handoff requires its actual Source parent. Error/Cause and cleanup paths
+   remain intact. The two optional context fields describe undefined-returning
+   live getters explicitly, preserving current rules reads and observer binding.
+   The obsolete registry argument to the resolver and its callers is removed.
+   Normal workspace compilation passes 46/46 tasks, 15 cached, 49.278s.
+   Both full physical consumers pass: Source 57/6502/32 and resident 73/15702/855.
+   check:fast passes 109 tests, source/ABI/dependency gates and lint selecting
+   all five actual changed source files (/tmp/hapsland-source-foreign-fast.log).
+   Documentation links and diff whitespace pass. Strict host has 97 diagnostics,
+   all in the driver; nine selected modules have none. This is a prerequisite
+   toward normal host compilation, not a qualified whole host or public adoption.
+   Logs: /tmp/hapsland-source-provider-strict-v2.log,
+   /tmp/hapsland-preparation-foreign-{workspace,lint-final}.log and
+   /tmp/hapsland-source-foreign-{source-preparation-consumer,
+   resident-preparation-check}.log.
+   The actual ordered staged pending proof now joins old rows, shifted child
+   rows, registration and both history lists under hard five seconds (4.393s).
+   Original law/premises remain unchanged; whole frame/coverage/arbitrary reply
+   obligations remain open. Proof WIP is included in the remote source checkpoint.
    Additional original attachment support preserves all old pending rows through
    actual registration and both appended history lists (4.449s, hard five seconds).
    The original transaction law/premises are byte-identical; its whole staged,
@@ -846,27 +869,26 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production e0aaf3c9 measurements are
+   connected candidate. Latest existing-production d5371d4d measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.5706595943867555 (2026-10-12 04:16:17.700874 UTC); build fails at
-   1.0952860453839122 (04:18:05.267564 UTC). Both starts meet the preceding cadence
-   deadlines. All 34 build samples succeed with identical 23/46 cached task
-   counts. The measurement runner succeeds; wrapper exit 1 records the unmet
+   passes at 0.7320293280323669 (2026-10-12 04:45:57.252898 UTC); build fails at
+   1.1589742229378936 (04:46:54.530041 UTC). Both starts meet the preceding cadence
+   deadlines. The measurement runner succeeds; wrapper exit 1 records the unmet
    parity threshold, not a build error. test:status reports the prior compiled
-   capacity/round consumer passing, not a performance acceptance verdict.
-   Results do not qualify unadopted whole preparation; build parity remains an
-   acceptance obstacle. Frozen workspace preparation passes 46/46 tasks,
-   18 cached, 84.06s. The first preparation failed on GenericArtifact emission's
-   unchanged five-second deadline. Its isolated emission passed in 4.740s;
-   the second workspace preparation passed without changing sources or raising
-   the limit. This is a near-limit emission diagnostic, not a proved cause of
-   build variance. Next starts due on 2026-10-12 UTC:
-   execution 04:46:17.700874, build 04:48:05.267564. Freeze/backup/warm by 04:42.
-   Logs: /tmp/hapsland-e0aaf3c9-{warm,warm-v2,generic-emission-diagnostic,
-   execution-pair,build-pair}.log.
+   capacity/round consumer passing on a different commit, not a performance
+   acceptance verdict. Results do not qualify unadopted whole preparation;
+   build parity remains an acceptance obstacle. Frozen workspace preparation
+   passes 46/46 tasks, 15 cached, 48.355s. Next starts due on 2026-10-12 UTC:
+   execution 05:15:57.252898, build 05:16:54.530041. Freeze/backup/warm by 05:12.
+   Logs: /tmp/hapsland-d5371d4d-{warm,execution-pair,build-pair}.log.
    Qualifications: .test-runs/bend-migration/performance/
-   2026-10-12T04-16-17.700874+00-00/qualification.json and
-   2026-10-12T04-18-05.267564+00-00/qualification.json.
+   2026-10-12T04-45-57.252898+00-00/qualification.json and
+   2026-10-12T04-46-54.530041+00-00/qualification.json.
+   Previous e0aaf3c9 execution .5706596 passed and build 1.0952860 failed,
+   both qualified. Its first workspace preparation hit GenericArtifact emission's
+   unchanged five-second limit; isolated emission passed in 4.740s and the second
+   preparation passed without changing sources or raising the limit. That
+   near-limit diagnostic does not establish a cause for build variance.
    Previous 17d75e3d qualified execution .6552013 passed and build1.1799678
    failed. Both starts missed their cadence deadlines after frozen normal
    source-analysis/downstream compilation; that violation remains recorded

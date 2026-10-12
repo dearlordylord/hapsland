@@ -19,15 +19,13 @@ export type DirectReviewContext = {
   readonly settings: Pick<ReviewSettings, "backend" | "destination"> &
     Partial<Pick<ReviewSettings, "configuration" | "rules" | "providerIdentity">>
   readonly policy?: DirectFilePolicy | (() => DirectFilePolicy)
-  readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>)
+  readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>) | undefined
   readonly inputContract?: string | (() => string)
   readonly captureHooks?: CaptureHooks
   /** Optional observation of the actual preparation refusal; never participates in review authority. */
-  readonly observePreparationOmission?: (
-    path: string,
-    declaration: string,
-    reason: "missing-evidence" | "no-applicable-rule"
-  ) => void
+  readonly observePreparationOmission?:
+    | ((path: string, declaration: string, reason: "missing-evidence" | "no-applicable-rule") => void)
+    | undefined
   /** Supporting capture evidence; observing it never changes partial-graph authority. */
   readonly observeCaptureDiagnostic?: (candidatePath: string, sourcePath: string, diagnostic: CaptureDiagnostic) => void
   /** Fixture-only source effect; production uses the stable native capture. */

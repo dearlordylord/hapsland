@@ -681,7 +681,6 @@ try {
           connection: { ...connection, preparation },
           owner,
           driver,
-          registry,
           root,
           rootIdentity,
           context: preparationContext,

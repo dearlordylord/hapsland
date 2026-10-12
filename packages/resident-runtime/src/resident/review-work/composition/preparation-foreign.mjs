@@ -22,13 +22,35 @@ import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/func
 import { analysisWorkspaceBytes } from "../../work-ownership/workspace.ts"
 import { createPreparationCapability } from "@hapsland/review-execution/direct-event/preparation"
 
+/**
+ * @typedef {import("@hapsland/review-execution/direct-event/preparation").PreparationPorts} PreparationPorts
+ * @typedef {Parameters<ReturnType<typeof createBendResolver>>} RootArguments
+ * @typedef {{path: RootArguments[0], capture: RootArguments[1], name: RootArguments[2], context: RootArguments[3]}} RootFacts
+ * @typedef {Awaited<ReturnType<PreparationPorts["performEffect"]>>} PreparationReply
+ * @typedef {Extract<Extract<PreparationReply["response"], {$: "SourceExtracted"}>["extraction"]["graph"], {$: "Some"}>["value"] extends import("@hapsland/source-artifacts/direct-event/value/codec").List<infer R> ? R : never} RootWire
+ */
 // Physical engine/effect bindings for one fresh prepareObservation session.
 // Candidate/contract/root progression stays in the checked Preparation machine.
+/**
+ * @param {{
+ * connection: {bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, transaction: import("../../state/resolver-custody/provider-authority.ts").NativeTransaction, preparation: Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>},
+ * owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner,
+ * driver: ReturnType<typeof import("./owned-artifact-driver.mjs").createOwnedArtifactDriver>,
+ * root: string,
+ * rootIdentity: import("@hapsland/native-observation/direct-event/observation").PhysicalRootIdentity,
+ * context: Omit<Partial<PreparationPorts["context"]>, "settings"> & {now?: () => number},
+ * cache: Map<string, import("@hapsland/native-observation/direct-event/capture").StableCapture>,
+ * onRoot?: (facts: RootFacts) => void,
+ * settings: PreparationPorts["context"]["settings"],
+ * graphLimits?: import("@hapsland/canonical-policy/canonical/graph-limits").GraphLimits,
+ * onMaterialization?: (event: {kind: "resize", bytes: number, status: ReturnType<typeof resize>["status"]}) => void,
+ * residentContext?: import("../preparation/context.ts").PreparationContext
+ * }} options
+ */
 export function createPreparationForeign({
   connection,
   owner,
   driver,
-  registry,
   root,
   rootIdentity,
   context,
@@ -39,11 +61,12 @@ export function createPreparationForeign({
   onMaterialization,
   residentContext
 }) {
+  /** @type {PreparationPorts["canonicalGate"]} */
   const canonicalGate = async (event) => {
     const result = await Effect.runPromise(connection.bridge.canonical(event))
     if (result.refusal || result.outputs.length !== 1) throw new Error("Canonical finalization gate refused")
     const output = result.outputs[0]
-    if (output.$ !== "Canonical.PolicyDecided" || output.decision.$ !== "Canonical.RuleGate")
+    if (output === undefined || output.$ !== "Canonical.PolicyDecided" || output.decision.$ !== "Canonical.RuleGate")
       throw new Error("Canonical finalization gate missing")
     switch (output.decision.gate.$) {
       case "RulePolicy.Admit":
@@ -54,11 +77,15 @@ export function createPreparationForeign({
         throw new TypeError("Invalid Canonical finalization gate")
     }
   }
-  const rootCaptures = new Map(),
-    selections = new Map(),
-    captureHandles = new Map()
+  /** @type {Map<bigint, import("@hapsland/native-observation/direct-event/capture").StableCapture>} */
+  const rootCaptures = new Map()
+  /** @type {Map<bigint, import("@hapsland/native-observation/direct-event/selection").EligiblePath>} */
+  const selections = new Map()
+  /** @type {Map<import("@hapsland/native-observation/direct-event/capture").StableCapture, bigint>} */
+  const captureHandles = new Map()
   let nextSelection = 1n,
     nextCapture = 1n
+  /** @param {import("@hapsland/native-observation/direct-event/capture").StableCapture} capture */
   const registerCapture = (capture) => {
     let handle = captureHandles.get(capture)
     if (handle === undefined) {
@@ -69,15 +96,21 @@ export function createPreparationForeign({
     return handle
   }
   for (const capture of cache.values()) registerCapture(capture)
-  const current = (value) => (typeof value === "function" ? value() : value)
   const currentPolicy = () =>
     context.policy === undefined
       ? settings.configuration === undefined
         ? DEFAULT_DIRECT_FILE_POLICY
         : resolvedDirectFilePolicy(settings.configuration.policy)
-      : current(context.policy)
-  const none = { $: "None" },
-    some = (value) => ({ $: "Some", value })
+      : typeof context.policy === "function"
+        ? context.policy()
+        : context.policy
+  /** @type {{$: "None"}} */
+  const none = { $: "None" }
+  /** @template A @param {A} value @returns {{$: "Some", value: A}} */
+  const some = (value) => ({ $: "Some", value })
+  /** @param {import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation} value
+   * @returns {RootWire["declaration"]["location"]}
+   */
   const location = (value) => ({
     $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Location",
     start: {
@@ -91,6 +124,7 @@ export function createPreparationForeign({
       column: BigInt(value.end.column)
     }
   })
+  /** @returns {Extract<PreparationReply["response"], {$: "RootResolved"}>["captures"]} */
   const snapshotCaptures = () =>
     list(
       [...cache].map(([path, capture]) => ({
@@ -102,8 +136,10 @@ export function createPreparationForeign({
         bytes: BigInt(capture.byteLength)
       }))
     )
+  /** @type {PreparationPorts["performEffect"]} */
   const performEffect = async (request, options) => {
     const command = request.command
+    /** @type {PreparationReply["response"]} */
     let response
     switch (command.$) {
       case "InspectPath": {
@@ -161,10 +197,23 @@ export function createPreparationForeign({
         }
         break
       case "AdmitMaterialization": {
+        const preflight = fromProductValue(command.preflight)
+        if (
+          preflight != null &&
+          (typeof preflight !== "object" ||
+            !("declarations" in preflight) ||
+            typeof preflight.declarations !== "number" ||
+            !("expandedUnitBytes" in preflight) ||
+            typeof preflight.expandedUnitBytes !== "number" ||
+            ("hasImports" in preflight && typeof preflight.hasImports !== "boolean"))
+        )
+          throw new TypeError("Malformed analyzer materialization preflight")
         const bytes = analysisWorkspaceBytes(
           command.capture.path,
           Number(command.capture.bytes),
-          fromProductValue(command.preflight) ?? undefined,
+          /** @type {import("@hapsland/source-analysis/direct-event/analyzer").AnalyzerMaterializationPreflight | undefined} */ (
+            preflight ?? undefined
+          ),
           settings.rules
         )
         const result = Effect.runSync(
@@ -174,6 +223,7 @@ export function createPreparationForeign({
           ])
         ).value
         onMaterialization?.({ kind: "resize", bytes, status: result.status })
+        /** @type {Extract<PreparationReply["response"], {$: "MaterializationDone"}>["result"]} */
         let admission
         switch (result.status) {
           case "resized":
@@ -189,7 +239,7 @@ export function createPreparationForeign({
             admission = { $: "InvalidMeasurement" }
             break
           default:
-            throw new Error("Unknown materialization resize status " + result.status)
+            throw new Error("Unknown materialization resize status")
         }
         response = { $: "MaterializationDone", requested: BigInt(bytes), result: admission }
         break
@@ -243,6 +293,9 @@ export function createPreparationForeign({
         const facts = inspectGraphFile(command.capture.path, command.capture.text)
         const functions = analyzeFunctionFile(command.capture.path, command.capture.text),
           typeFile = analyzeTypeFile(command.capture.path, command.capture.text, true)
+        /** @param {{artifact: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewArtifact, location: import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation}} fact
+         * @returns {RootWire}
+         */
         const rootFact = ({ artifact, location: span }) => ({
           $: "PreparationSelection.Root",
           id: artifact.id,
@@ -294,9 +347,12 @@ export function createPreparationForeign({
         break
       }
       case "ResolveRoot": {
+        const capture = rootCaptures.get(command.capture.handle)
+        if (capture === undefined) throw new TypeError("Unknown preparation root capture")
+        /** @type {RootFacts} */
         const rootFacts = {
           path: command.capture.path,
-          capture: rootCaptures.get(command.capture.handle),
+          capture,
           name: command.root.name,
           context: {
             analysisConfiguration:
@@ -327,10 +383,12 @@ export function createPreparationForeign({
           }
         }
         onRoot?.(rootFacts)
+        /** @type {Awaited<ReturnType<typeof driver.drive>> | undefined} */
         let terminal
-        const parent = owner.find(request.invocation, driver.state.children).value
+        const child = owner.find(request.invocation, driver.state.children)
+        if (child.$ !== "Some") throw new TypeError("Missing preparation parent invocation")
+        const parent = child.value
         const resolver = createBendResolver({
-          registry,
           allocateInvocation: () =>
             driver.allocateInvocation({
               $: "Parent",
@@ -345,6 +403,7 @@ export function createPreparationForeign({
           }
         })
         const unit = await resolver(rootFacts.path, rootFacts.capture, rootFacts.name, rootFacts.context, options)
+        if (terminal === undefined) throw new TypeError("Resolver completed without an accepted terminal")
         response = {
           $: "RootResolved",
           unit: unit === undefined ? none : some(productValue(unit)),
@@ -354,7 +413,7 @@ export function createPreparationForeign({
         break
       }
       default:
-        throw new Error("Unexpected preparation provider " + command.$)
+        throw new Error("Unexpected preparation provider")
     }
     return { $: "Reply", invocation: request.invocation, id: request.id, response }
   }
@@ -370,12 +429,22 @@ export function createPreparationForeign({
       },
       get observePreparationOmission() {
         const observer = context.observePreparationOmission
-        return observer === undefined ? undefined : (...args) => observer.apply(context, args)
+        if (observer === undefined) return undefined
+        /** @type {NonNullable<PreparationPorts["context"]["observePreparationOmission"]>} */
+        const observe = (...args) => observer.apply(context, args)
+        return observe
       }
     },
     root,
     graphLimits,
     capturedSources: cache
   })
-  return { ...capability, snapshotCaptures, perform: (request, options) => capability.perform([request], options) }
+  return {
+    ...capability,
+    snapshotCaptures,
+    /** @param {Parameters<typeof capability.perform>[0][number]} request
+     * @param {Parameters<typeof capability.perform>[1]} options
+     */
+    perform: (request, options) => capability.perform([request], options)
+  }
 }

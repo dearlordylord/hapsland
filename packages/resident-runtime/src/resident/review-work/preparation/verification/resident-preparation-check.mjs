@@ -524,7 +524,6 @@ try {
           : connection,
       owner,
       driver,
-      registry,
       root,
       rootIdentity,
       context,
