@@ -316,11 +316,15 @@ One current obstacle list, in execution order:
    extra False-valued leaves; the complete focused has/get support passes
    hard5 in 4.419s on saved 17d75e3d after the earlier 5.042s / 5.029s
    timeouts. No source change was needed for that final isolated result.
-   Joining ready-frame support and child selectors into the original complete
-   transaction theorem remains open; ready-frame seen and final Included/Expanded
-   joins remain unqualified WIP. The latter's tuple-pattern syntax was corrected
-   but not rechecked before backup. No new runtime representation, law or
-   premise. A qualified support prefix is not full-theorem qualification.
+   The complete ready_attachment_selector_exact support now checks hard5 in
+   4.104s (99 reachable definitions / 28 imports), including arbitrary query,
+   identity and bundled/file kind. ready_frame_materialized_total checks in
+   4.073s: existing projected_unit_total yields exact actual/reference prepared
+   units, including fingerprint and product Some. ready_attachment_measurement
+   checks in 2.941s and establishes actual Await/EncodeProduct/stage witnesses
+   for original claims 1–3. The full original transaction remains open: join
+   parent witnesses and staged/reply claims 4–8. No new runtime representation,
+   law or premise. A qualified support prefix is not full-theorem qualification.
 
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    The existing frontend codec now preserves literal constructor, Maybe,
@@ -679,6 +683,19 @@ One current obstacle list, in execution order:
    the normal compiler and consuming that compiled entry (rather than source
    imports) is an explicit remaining production blocker. Do not claim packaged
    cores or public effect imports establish packaged host execution.
+   The owner's tsconfig.preparation-host.json now selects all ten authored
+   host/provider/driver .mjs modules with strict checkJs/noEmit and the existing
+   root options. First actual check reports 553 diagnostics; after annotating
+   Source dispatcher against its existing closed core ABI, it reports 544 and
+   zero in that dispatcher. Source runtime progression is unchanged; its complete
+   physical consumer passes 57/6502/32 after annotation, with syntax, addressed
+   lint and documentation links passing. Consumer log:
+   /tmp/hapsland-source-dispatcher-typed-consumer.log. Type diagnostics:
+   /tmp/hapsland-preparation-host-strict-{diagnostic,v2}.log.
+   This is an intentionally unqualified implementation prerequisite, not a
+   passing host gate; do not weaken strict settings or ship an unchecked public
+   entry. Finish typing the whole retained host path, emit it through the normal
+   compiler, then run the full consumer against compiled entrypoints.
    Canonical owner packaging/loading is qualified; whole production wiring
    remains open. Whole preparation connected: 0; replaced production TS removed: 0.
    Resolver artifact shipping and the complete production entrypoint

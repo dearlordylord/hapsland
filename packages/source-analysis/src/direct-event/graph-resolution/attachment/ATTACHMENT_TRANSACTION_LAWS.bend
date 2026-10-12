@@ -1,4 +1,7 @@
 import Base
+import ../Composition.bend as Compose
+import ../Root.bend as PreparedRoot
+import ../ForestAllowance.bend as Allowance
 import ../traversal/patricia-proof/PATRICIA_MEMBERSHIP_PROOF.bend as Membership
 import ../traversal/patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 import ../SignedLocalSpecification.bend as Signed
@@ -1659,6 +1662,85 @@ def ready_selector_fields(+actual: T.TentativeChild, +edge: Local.Pending, +refe
           Equal.sym(Bool, X.known_file(D.frame(reference_state), ready_reference_attempt(reference)),
             ready_seen_kind(ready_reference_kind(reference), ready_reference_visited(reference_state), ready_reference_identity(reference)),
             ready_reference_known_exact(reference_state, reference))))
+
+def ready_history_episode(history: V.History) -> Nat:
+  match history:
+    case V.History{_, _, _, _, _, _, episode}: episode
+
+def ready_attachment_selector_exact(+actual: T.TentativeChild, +edge: Local.Pending,
+    +reference: X.Child, +actual_frame: T.ResolverFrame, +reference_state: D.State,
+    +history: V.History, +child_history: Phase.ChildHistory, +frame_view: V.Frame, +child_view: Phase.Child,
+    actual_frame_ready: {ActualFrame.project(actual_frame, history) == Some{frame_view} : Maybe<&2, V.Frame>},
+    reference_frame_ready: {ReferenceFrame.project(reference_state, history) == Some{frame_view} : Maybe<&2, V.Frame>},
+    actual_child_ready: {ActualReady.child_project(actual, edge, child_history, S.frame_artifacts(actual_frame), ready_history_episode(history))
+      == Some{child_view} : Maybe<&2, Phase.Child>},
+    reference_child_ready: {ReferenceReady.child_project(reference, child_history) == Some{child_view} : Maybe<&2, Phase.Child>}) ->
+    {Bool.and(Bool.not(Attach.bundled_edge(edge)),
+      Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(actual_frame), ready_actual_identity(actual))))
+      == X.known_file(D.frame(reference_state), ready_reference_attempt(reference)) : Bool}:
+  ready_selector_fields(actual, edge, reference, actual_frame, reference_state, child_view,
+    ready_actual_shape_exact(actual, edge, child_history, S.frame_artifacts(actual_frame), ready_history_episode(history), child_view, actual_child_ready),
+    ready_reference_shape_exact(reference, child_history, child_view, reference_child_ready),
+    ready_frame_seen_exact(actual_frame, reference_state, history, frame_view, ready_child_identity(child_view), actual_frame_ready, reference_frame_ready))
+
+def ready_prepared_fingerprint(prepared: T.PreparedLanguage) -> Maybe<&2, String>:
+  match prepared:
+    case T.PreparedLanguage{_, _, fingerprint}: fingerprint
+
+def ready_frame_product(+frame: T.ResolverFrame, +prepared: T.PreparedLanguage,
+    +forest: F.Forest, +value: ArtifactValue.ProductValue,
+    evidence: Materialization.common_product(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame),
+      S.frame_artifacts(frame), forest, S.frame_dependencies(frame), ready_prepared_fingerprint(prepared), value)) ->
+    {PreparedRoot.prepared_unit(frame, prepared) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
+    {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(frame), ready_prepared_fingerprint(prepared))
+      == F.Materialized{value} : F.Materialization}:
+  match frame prepared:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      T.PreparedLanguage{_, _, _}: evidence
+
+def ready_frame_materialized_witness(+frame: T.ResolverFrame, +prepared: T.PreparedLanguage, +forest: F.Forest,
+    result: Exists(ArtifactValue.ProductValue, value => Materialization.common_product(S.frame_root(frame), S.frame_nodes(frame),
+      S.frame_references(frame), S.frame_artifacts(frame), forest, S.frame_dependencies(frame), ready_prepared_fingerprint(prepared), value))) ->
+    Exists(ArtifactValue.ProductValue, value =>
+      {PreparedRoot.prepared_unit(frame, prepared) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
+      {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(frame), ready_prepared_fingerprint(prepared))
+        == F.Materialized{value} : F.Materialization}):
+  match result:
+    case (+value, evidence): Tuple{value, ready_frame_product(frame, prepared, forest, value, evidence)}
+
+def ready_frame_materialized_total(+frame: T.ResolverFrame, +prepared: T.PreparedLanguage, +forest: F.Forest,
+    +addresses: List<&2, F.AddressEntry>, +episode: Nat,
+    projected: {P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses)
+      == Some{forest} : Maybe<&2, F.Forest>},
+    artifacts_valid: {ActualFrame.catalog_valid(S.frame_artifacts(frame)) == True{} : Bool},
+    forest_valid: {Relation.frame_forest(forest, episode) == True{} : Bool}) ->
+    Exists(ArtifactValue.ProductValue, value =>
+      {PreparedRoot.prepared_unit(frame, prepared) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
+      {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(frame), ready_prepared_fingerprint(prepared))
+        == F.Materialized{value} : F.Materialization}):
+  ready_frame_materialized_witness(frame, prepared, forest,
+    Materialization.projected_unit_total(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame),
+      S.frame_artifacts(frame), addresses, forest, episode, S.frame_dependencies(frame), ready_prepared_fingerprint(prepared),
+      projected, artifacts_valid, forest_valid))
+
+def ready_measurement_result(+continuation: Loop.Continuation, +product: ArtifactValue.ProductValue) -> Type:
+  Exists(T.ResolverState, measured => Exists(T.Request, request =>
+    {continuation == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation} &
+    {Contract.operation(request) == T.EncodeProduct{product} : T.Operation} &
+    {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage}))
+
+def ready_attachment_measurement(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    +child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +product: ArtifactValue.ProductValue,
+    available: {PreparedRoot.prepared_unit(Attach.attached_frame(attachment, frame), S.state_prepared(state))
+      == Some{product} : Maybe<&2, ArtifactValue.ProductValue>}) ->
+    ready_measurement_result(Attach.attachment(Some{attachment}, child, previous, state, frame), product):
+  match attachment:
+    case Compose.Attachment{_, _, _, _, _, _, +ids, _, _}:
+      %Equal.sym(Maybe<&2, ArtifactValue.ProductValue>,
+        PreparedRoot.prepared_unit(Attach.attached_frame(attachment, frame), S.state_prepared(state)), Some{product}, available):
+        ready_measurement_result(Attach.request_candidate(_, child, ids, previous,
+          S.with_state_frame(state, Some{Attach.attached_frame(attachment, frame)})), product)
+      candidate_request_exact(product, child, ids, previous, S.with_state_frame(state, Some{Attach.attached_frame(attachment, frame)}))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": [],
+  "files": [
+    "src/resident/review-work/composition/artifact-dispatcher.mjs",
+    "src/resident/review-work/composition/owned-artifact-driver.mjs",
+    "src/resident/review-work/composition/preparation-foreign.mjs",
+    "src/resident/review-work/evaluation/advice-tail-provider.mjs",
+    "src/resident/review-work/preparation/post-preparation-dispatcher.mjs",
+    "src/resident/review-work/preparation/post-preparation-host.mjs",
+    "src/resident/review-work/preparation/source-preparation-dispatcher.mjs",
+    "src/resident/review-work/preparation/source-preparation-provider.mjs",
+    "src/resident/state/resolver-custody/resident-owner-transaction.mjs",
+    "src/resident/state/resolver-custody/resident-provider-permit.mjs"
+  ]
+}
