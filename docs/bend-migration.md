@@ -484,7 +484,7 @@ One current obstacle list, in execution order:
    graph/language package policy and orchestration only with their qualified
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
-   Production artifact assembly now ships Source/Post/GenericArtifact through
+   Production artifact assembly now ships Source/Post/GenericArtifact/PythonArtifact through
    the resident review-work private recipe and closed authored ABIs. The normal precompile
    runner validates each core's declared entry methods, rather than imposing
    initial/advance/resume. Generated Turbo inputs include the recipe closure.
@@ -508,8 +508,15 @@ One current obstacle list, in execution order:
    Source/Post/GenericArtifact passes all 73 cases, 15702 requests and 855 Post
    requests (/tmp/hapsland-packaged-generic-resident-full.log), retaining full
    native differential and cancellation/cleanup branches. No source fixture is
-   filtered. Remaining temporary emissions are resident-owned
-   ArtifactComposition, PythonArtifact, GoArtifact and the
+   filtered. At frozen 51ad491d, the workspace build passes 46/46 tasks
+   (18 cached, 32.713 seconds), and the full resident consumer loads packaged
+   PythonArtifact with no temporary-emission fallback: all 73 cases, 15702
+   requests and 855 Post requests pass
+   (/tmp/hapsland-packaged-python-resident-full.log). Strict ABI typing,
+   explicit declaration/runner lint, recipe tests and check:fast pass.
+   Generic and Python declarations share the exact existing dispatcher namespace
+   relocation; no runtime command or policy changes. Remaining temporary
+   emissions are resident-owned ArtifactComposition, GoArtifact and the
    agent-flow-owned CanonicalResolverOwner. Their transport inputs must retain
    exact raw Bend payloads: semantic frontend types are not interchangeable with
    raw SourceFacts, and opaque command inputs would conceal this boundary.
