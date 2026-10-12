@@ -322,6 +322,13 @@ One current obstacle list, in execution order:
    with both changed authored sources selected
    (/tmp/hapsland-resolver-contract-{types,fast}.log). This enables real machine
    declarations to reuse the contract; their packaging is still open.
+   Existing source-analysis graph-resolver package entrypoint now exports the
+   six transport types (input/failure/outcome/request/reply/service outcome).
+   Generated graph-resolver.d.ts contains these exports after a real 46/46
+   workspace build (15 cached, 53.454s); explicit lint and check:fast pass with
+   the changed entrypoint selected. Resident declarations can consume this
+   existing package interface rather than source-analysis implementation paths.
+   Logs: /tmp/hapsland-resolver-public-contract-{types,fast,build}.log.
    A fresh origin/master fetch confirms no commits missing from this branch.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source

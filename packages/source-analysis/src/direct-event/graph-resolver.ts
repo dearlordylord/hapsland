@@ -814,3 +814,12 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   }
   return undefined
 })
+
+export type {
+  ResolverInput,
+  ResolverFailure,
+  ResolverOutcome,
+  Request,
+  Reply,
+  ServiceOutcome
+} from "./graph-resolution/service-contract.ts"
