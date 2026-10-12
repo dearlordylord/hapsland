@@ -1022,7 +1022,19 @@ One current obstacle list, in execution order:
    driver custody, narrow provider ports, and a closed request/session gateway.
    Structural review requires separate Post/Advice routing and the Graph-owned
    emitted reply type. These are addressed in source; current type/consumer
-   qualification remains pending. This is not production acceptance.
+   qualification passes: full Source consumer 57 cases/6502 requests and full
+   resident consumer 73 cases/15702 requests run sequentially against normal
+   workspace outputs (46/46, 18 cached, 35.833s). Source uses the closed registry
+   gateway for every native request; the duplicate Preparation machine lookup
+   map is removed and the machine stays on its original session. Addressed lint
+   covers ten code files and resident-runtime typecheck passes. Capacity focused
+   runner passes both preparation (7.91s) and tests (7.08s), 15.018s total, using
+   the exact declared producer environment and direct standard Node runner.
+   The prior cold preparation timeout is not counted as a test failure or pass.
+   check:fast passes 109 tests, root types, Canonical/preparation ABI and eleven
+   strict checked JavaScript owners, package graph and development imports.
+   Production factory/state binding remains pending; this is not production
+   acceptance.
 
    Original attachment proof progress: the complete pending witness now follows
    from one original ActualReady.project (qualified 7.973s under the ten-second
@@ -1069,8 +1081,14 @@ One current obstacle list, in execution order:
    30.983s): cold capacity-test preparation exhausted its 180s bound before
    tests, retained build custody was reconciled, then normal warm build passed
    46/46 (21 cached, 31.699s). No capacity-test pass is claimed.
-   Next starts due: execution 14:43:09.822846, build 14:44:44.939091 UTC.
-   Freeze/backup/warm by 14:36. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Follow-up c7c7ca93: execution starts 14:37:28.198985, qualified parity
+   0.540150766767691; build starts 14:38:08.238488, qualified but fails parity
+   1.1812694637897245. Both meet cadence; all 17 pairs have unchanged heads,
+   authored sources and artifacts, with 23/46 cached tasks in every build.
+   Normal warm build passes 46/46 (15 cached, 55.072s). Structural review
+   confirms separate Post/Advice refusal and the Graph-owned emitted reply ABI.
+   Next starts due: execution 15:07:28.198985, build 15:08:08.238488 UTC.
+   Freeze/backup/warm by 15:00. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

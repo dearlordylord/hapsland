@@ -26,9 +26,11 @@ import {
   snapshotReservationCustody
 } from "./native-source-reference.mjs"
 import { configuredRules, advicee } from "./preparation-fixtures.mjs"
-import { performGraphServiceRequest } from "@hapsland/source-analysis/direct-event/graph-resolution"
-import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
-import { hostNatural, list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
+import {
+  createPreparationSessionRegistry,
+  performPreparationSessionRequest
+} from "../../composition/native-preparation-sessions.ts"
+import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import { createSourcePreparationMachine } from "../source-preparation-dispatcher.mjs"
@@ -256,7 +258,6 @@ try {
       commands = [],
       caches = [],
       preparationIds = [],
-      preparationCapabilities = new Map(),
       sourceEffects = []
     const bridge = createResidentOwnerTransaction({
       owner,
@@ -265,23 +266,18 @@ try {
       onActions: (actions) => Effect.sync(() => driver.acceptActions(actions))
     })
     const connection = { transaction, bridge, control: bridge.control, partition, round, postCore }
-    const registry = createNativeSessionRegistry()
-    const performGraphRequest = async (request, options) => {
-      const session = registry.get(hostNatural(request.invocation))
-      if (!session) throw new TypeError("Unknown graph service invocation")
-      return performGraphServiceRequest(session, request, options)
-    }
+    const registry = createPreparationSessionRegistry()
     const driver = createOwnedArtifactDriver({
       owner,
       control: bridge.control,
       artifacts,
       registry,
       hooks: { canonicalOutputs: (items) => outputs.push(...items) },
-      selectMachine: (input) =>
+      selectMachine: (input, session) =>
         input.sourcePreparation
           ? machines.source
           : input.preparation
-            ? preparationCapabilities.get(input.invocation)?.machine
+            ? session.machine
             : input.postPreparation
               ? machines.post
               : input.adviceTail
@@ -289,7 +285,7 @@ try {
                 : undefined,
       foreign: async ([request], options) => {
         totalRequests++
-        if (request.operation) return await performGraphRequest(request, options)
+        if (request.operation) return await performPreparationSessionRequest(registry, request, options)
         const session = registry.get(Number(request.invocation))
         commands.push({
           invocation: request.invocation,
@@ -297,7 +293,7 @@ try {
           candidate: request.command.candidate
         })
         if (session.input?.sourcePreparation) {
-          return session.perform(request, {
+          return performPreparationSessionRequest(registry, request, {
             ...options,
             beforeCommand: (command) => {
               if (mode === "after-prepare-analytics-failure" && command.$ === "RecordPreparationFailureAnalytics")
@@ -337,7 +333,7 @@ try {
         )
           throw injectedPreparationError
         if (mode === "post-finalizer-cause" && session.input?.postPreparation)
-          return session.perform(request, {
+          return performPreparationSessionRequest(registry, request, {
             ...options,
             afterCommit: (command, publication) => {
               options.afterCommit?.(command, publication)
@@ -347,7 +343,7 @@ try {
               }
             }
           })
-        return session.perform(request, options)
+        return performPreparationSessionRequest(registry, request, options)
       }
     })
     connection.owned = { driver }
@@ -702,13 +698,11 @@ try {
               }
             : {})
         })
-        preparationCapabilities.set(BigInt(invocation), foreign)
         return {
           invocation,
           revoke() {},
-          close() {
-            preparationCapabilities.delete(BigInt(invocation))
-          },
+          close() {},
+          machine: foreign.machine,
           perform: foreign.perform,
           decode: foreign.decode,
           input: {
