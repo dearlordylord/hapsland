@@ -337,8 +337,8 @@ One current obstacle list, in execution order:
    pass; real emission passes in 3.143s under hard five seconds and its declared
    initial/resume/execute methods exist in the emitted core. Logs:
    /tmp/hapsland-generic-artifact-abi-{types,fast,emission}.log.
-   This declaration is not yet in a normal build recipe, and no packaged
-   GenericArtifact consumer or production adoption is claimed.
+   This declaration is in the normal resident build recipe; the full packaged
+   resident consumer passes. Production adoption remains open.
    The resident recipe is now owned by review-work/build-recipe.json, with
    preparation and composition paths retaining their local source/declaration
    owners. Reader accepts nested safe paths only, requires matching capability
@@ -346,20 +346,21 @@ One current obstacle list, in execution order:
    pass, including traversal/mismatched-owner/symlink refusals; explicit lint
    and check:fast pass with three authored sources selected. Full resident runner
    now loads packaged GenericArtifact and removes its temporary emission and
-   unused source-name map, retaining the remaining four temporary cores.
-   Both real workspace builds fail before GenericArtifact at the existing
+   unused source-name map. PythonArtifact and GoArtifact now also load packaged
+   cores; ArtifactComposition and CanonicalResolverOwner still emit temporarily.
+   Two earlier real workspace builds failed before GenericArtifact at the existing
    PreparationFinalization hard-five-second emission. Isolated CPU11/direct
    emission passes in 3.798s; it does not qualify workspace packaging. Logs:
    /tmp/hapsland-packaged-generic-{fast,build,build-v2,finalization-focus}.log.
-   Full packaged resident consumer remains unrun. Do not rerun the full build
-   without a distinguishing matched-producer diagnostic; next isolate the
-   actual precompile stage/toolchain/ABI producer rather than only bend CLI.
+   These failures required a distinguishing matched-producer diagnostic at the
+   actual precompile stage/toolchain/ABI boundary rather than only bend CLI.
    That matched isolated producer now passes review-execution and resident
    recipes (4.427/4.190s total, each emission still hard five seconds), including
    all three resident cores. A controlled complete Turbo graph at concurrency 1
    passes 46/46 in 53.024s with authored-input verification; the subsequent
    standard concurrency-2 workspace build passes 46/46, 23 cached, 4.081s.
-   This establishes packaging, not the unrun full resident consumer, and does
+   This diagnostic establishes packaging; the subsequent full resident consumer
+   qualification is recorded in obstacle 5. It does
    not prove a complete timeout cause. No deadline or default concurrency changed.
    Logs: /tmp/hapsland-{matched-precompile-producer,serial-producer-graph,post-serial-normal-warm}.log.
    Execution cadence deadline 00:34:26.226502 UTC was missed while resolving
@@ -484,7 +485,7 @@ One current obstacle list, in execution order:
    graph/language package policy and orchestration only with their qualified
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
-   Production artifact assembly now ships Source/Post/GenericArtifact/PythonArtifact through
+   Production artifact assembly now ships Source/Post/GenericArtifact/PythonArtifact/GoArtifact through
    the resident review-work private recipe and closed authored ABIs. The normal precompile
    runner validates each core's declared entry methods, rather than imposing
    initial/advance/resume. Generated Turbo inputs include the recipe closure.
@@ -516,10 +517,17 @@ One current obstacle list, in execution order:
    explicit declaration/runner lint, recipe tests and check:fast pass.
    Generic and Python declarations share the exact existing dispatcher namespace
    relocation; no runtime command or policy changes. Remaining temporary
-   emissions are resident-owned ArtifactComposition, GoArtifact and the
+   emissions are resident-owned ArtifactComposition and the
    agent-flow-owned CanonicalResolverOwner. Their transport inputs must retain
    exact raw Bend payloads: semantic frontend types are not interchangeable with
    raw SourceFacts, and opaque command inputs would conceal this boundary.
+   GoArtifact now also ships through the normal recipe, with explicit Prepare/
+   Inspect commands and all four view variants. Strict ABI, addressed lint,
+   three recipe tests and check:fast pass. Workspace build passes 46/46
+   (18 cached, 38.981s); the full resident consumer passes all 73 cases,
+   15702 requests and 855 Post requests without temporary Go emission
+   (/tmp/hapsland-packaged-go-resident-full.log). Retained Prepared/Step values
+   are Bend-created; input/configuration/reply payloads reuse actual contracts.
    Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 

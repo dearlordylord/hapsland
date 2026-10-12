@@ -18,5 +18,10 @@
     "source": "composition/PythonArtifact.bend",
     "output": "composition/python-artifact-core.js",
     "declaration": "composition/python-artifact-core.d.ts"
+  },
+  {
+    "source": "composition/GoArtifact.bend",
+    "output": "composition/go-artifact-core.js",
+    "declaration": "composition/go-artifact-core.d.ts"
   }
 ]

@@ -188,12 +188,14 @@ try {
       await import(
         new URL("../../../../../dist/resident/review-work/composition/python-artifact-core.js", import.meta.url)
       )
+    ).default,
+    go: (
+      await import(new URL("../../../../../dist/resident/review-work/composition/go-artifact-core.js", import.meta.url))
     ).default
   }
   let owner
   for (const [key, name, source] of [
     ["composition", "ArtifactComposition", "../../composition/ArtifactComposition.bend"],
-    ["go", "GoArtifact", "../../composition/GoArtifact.bend"],
     [
       "owner",
       "CanonicalResolverOwner",
