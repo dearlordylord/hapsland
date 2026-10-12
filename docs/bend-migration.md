@@ -447,13 +447,19 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 9c8f816a measurements are
+   connected candidate. Latest existing-production 8ca20f5e measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.6896013812358694 (start 23:37:08.639833 UTC); build fails at
-   1.1106982420946987 (start 23:37:45.396586 UTC). Both starts meet the previous
+   passes at 0.8073524178833368 (2026-10-12 00:04:26.226502 UTC); build fails at
+   1.1261360418796953 (00:06:59.653428 UTC). Both starts meet the previous
    cadence deadlines. These do not qualify unadopted whole preparation.
-   Frozen warm build passes 46/46 tasks, 15 cached, 48.511 seconds. Next start
-   deadlines on 2026-10-12 UTC: execution 00:07:08.639833, build 00:07:45.396586.
+   Frozen warm build passes 46/46 tasks, 15 cached, 48.629 seconds. Next start
+   deadlines on 2026-10-12 UTC: execution 00:34:26.226502, build 00:36:59.653428.
+   All 34 paired builds have 23/46 cached tasks and successful exit. Preserved
+   logs localize the measured difference: baseline total/Turbo/outside-Turbo
+   means are 5.863/2.578/3.285 seconds; candidate means are 6.602/3.163/3.439.
+   Most of this gap is inside Turbo. This is phase localization, not a causal
+   diagnosis or parity claim. Next diagnostic is per-task timing of the actual
+   uncached clean tasks while retaining the same baseline, commands and gates.
    The previous 6aad1787 warm-up first failed because PreparationFinalization emission exceeded hard
    five seconds. A same-CPU11/environment isolated emission passed at 2.846
    seconds, then the real frozen retry passed 46/46 tasks, 17 cached, 48.689
