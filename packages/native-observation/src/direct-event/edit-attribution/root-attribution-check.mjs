@@ -132,6 +132,12 @@ try {
       [hunk(spans[0])],
       [root("c", roots[0].location, { kind: "a:b" }), root("b:c", roots[0].location, { kind: "a" })]
     )
+  for (const longSource of ["x".repeat(22000), "😀".repeat(11000), "x\n".repeat(11000)]) {
+    const lines = longSource.split("\n")
+    const whole = span(1, 1, lines.length, lines.at(-1).length + 1)
+    for (const operation of ["add", "update"])
+      check({ path, operation, source: longSource }, [hunk(whole)], [root("Long", whole)])
+  }
   console.log(
     JSON.stringify({
       passed: true,

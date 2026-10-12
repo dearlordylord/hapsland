@@ -207,19 +207,52 @@ type NaturalReply<Value> = Value extends readonly (infer Item)[]
       }
     : Value
 
+// Mechanical graph ABI traversal preserves field order and sparse arrays while
+// avoiding the JavaScript call-stack limit for source-bearing ProductValue trees.
+export const mapGraphAbi = (value: unknown, field: (key: string, item: unknown) => unknown): unknown => {
+  const result: Record<string, unknown> = {}
+  type ValueTask = { value: unknown; target: object; key: string | number; field?: boolean }
+  const pending: Array<ValueTask | { children: Iterator<ValueTask> }> = [{ value, target: result, key: "value" }]
+  while (pending.length > 0) {
+    const next = pending.pop()!
+    if ("children" in next) {
+      const child = next.children.next()
+      if (!child.done) {
+        pending.push(next)
+        pending.push(child.value)
+      }
+      continue
+    }
+    const source = next.field ? field(String(next.key), next.value) : next.value
+    let converted = source
+    if (Array.isArray(source)) {
+      const items = new Array<unknown>(source.length)
+      converted = items
+      pending.push({
+        children: (function* () {
+          for (let key = 0; key < items.length; key++)
+            if (key in source) yield { value: source[key], target: items, key }
+        })()
+      })
+    } else if (source && typeof source === "object") {
+      const fields: Record<string, unknown> = {}
+      converted = fields
+      for (const [key, item] of Object.entries(source).reverse())
+        pending.push({ value: item, target: fields, key, field: true })
+    }
+    Object.defineProperty(next.target, next.key, {
+      value: converted,
+      enumerable: true,
+      writable: true,
+      configurable: true
+    })
+  }
+  return result.value
+}
+
 // Only the emitted Nat ABI is converted here; graph decisions remain in Bend.
 export function pureReply<Value>(value: Value): NaturalReply<Value> {
-  // Mechanical conversion of known emitted Naturals; no parser or graph decision.
-  const convert = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(convert)
-    if (value && typeof value === "object")
-      return Object.fromEntries(
-        Object.entries(value).map(([key, item]) => [
-          key,
-          ["invocation", "id", "bytes"].includes(key) && typeof item === "number" ? BigInt(item) : convert(item)
-        ])
-      )
-    return value
-  }
-  return convert(value) as NaturalReply<Value>
+  return mapGraphAbi(value, (key, item) =>
+    ["invocation", "id", "bytes"].includes(key) && typeof item === "number" ? BigInt(item) : item
+  ) as NaturalReply<Value>
 }

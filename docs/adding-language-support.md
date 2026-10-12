@@ -114,7 +114,7 @@ Test plausible-looking bindings as well as happy paths:
 | Coverage | Existing examples |
 | --- | --- |
 | Extraction, references, exact source/ranges, shadowing, syntax omissions | [TypeScript](../src/direct-event/analyzer.test.ts), [Rust](../src/direct-event/rust-analyzer.test.ts), [Bend](../src/direct-event/bend-analyzer.test.ts), [Go](../src/direct-event/go-analyzer.unit.test.ts) |
-| Attribution, rendering, rule admission, supporting captures and freshness | [TypeScript](../src/direct-event/pipeline.test.ts), [Rust](../src/direct-event/rust-pipeline.test.ts), [Bend](../src/direct-event/bend-pipeline.test.ts), [Go](../src/direct-event/go-pipeline.unit.test.ts) |
+| Attribution, rendering, rule admission, supporting captures and freshness | [TypeScript](../src/direct-event/pipeline.test.ts), [Rust](../src/direct-event/rust-pipeline.test.ts), [Bend](../src/direct-event/bend-pipeline.test.ts), [Go](../src/direct-event/go-pipeline.test.ts) |
 | Cohesive adapter ownership | [Architecture guard](../src/direct-event/language-boundary.test.ts) |
 | Shared graph authority and traversal | [Authority tests](../src/direct-event/graph-resolver-authority.test.ts), [resolver tests](../src/direct-event/graph-resolver.test.ts) |
 

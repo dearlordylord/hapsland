@@ -30,18 +30,25 @@ type Outcome is Data:
 def char_width(char: Char) -> Nat:
   Bool.pick(Nat, U32.is_ge(Char.to_u32(char), 65536), 2n, 1n)
 
-def utf16_length(text: String) -> Nat:
+def source_line_lengths_acc(text: String, +width: Nat, +reversed: List<&2, Nat>) -> List<&2, Nat>:
   match text:
-    case SNil{}: 0n
-    case SCon{char, rest}: Nat.add(char_width(char), utf16_length(rest))
+    case SNil{}: List.reverse(&2, Nat, width <> reversed)
+    case SCon{+char, rest}:
+      +newline = Char.is_eq(char, Char.from_u32(10))
+      source_line_lengths_acc(
+        rest,
+        Bool.pick(Nat, newline, 0n, Nat.add(width, char_width(char))),
+        Bool.pick(List<&2, Nat>, newline, width <> reversed, reversed)
+      )
 
-def line_lengths(lines: List<&2, String>) -> List<&2, Nat>:
-  match lines:
-    case Nil{}: Nil{}
-    case line <> rest: utf16_length(line) <> line_lengths(rest)
+def source_line_lengths(source: String) -> List<&2, Nat>:
+  source_line_lengths_acc(source, 0n, Nil{})
 
 def segment_valid(+segment: String) -> Bool:
-  Bool.and(Bool.not(String.is_empty(segment)), Bool.and(Bool.not(String.eq(segment, ".")), Bool.not(String.eq(segment, ".."))))
+  Bool.and(
+    Bool.not(String.is_empty(segment)),
+    Bool.and(Bool.not(String.eq(segment, ".")), Bool.not(String.eq(segment, "..")))
+  )
 
 def segments_valid(segments: List<&2, String>) -> Bool:
   match segments:
@@ -61,8 +68,17 @@ def offset(lines: List<&2, Nat>, line: Nat, +column: Nat, +acc: Nat) -> Maybe<&2
   match lines line:
     case _ 0n: None{}
     case Nil{} _: None{}
-    case length <> _ 1n: offset_column(Bool.and(Nat.is_ge(column, 1n), Nat.is_le(column, Nat.add(length, 1n))), column, acc)
-    case length <> rest 2n++line: offset(rest, Nat.add(line, 1n), column, Nat.add(acc, Nat.add(length, 1n)))
+    case length <> _ 1n: offset_column(
+      Bool.and(Nat.is_ge(column, 1n), Nat.is_le(column, Nat.add(length, 1n))),
+      column,
+      acc
+    )
+    case length <> rest 2n++line: offset(
+      rest,
+      Nat.add(line, 1n),
+      column,
+      Nat.add(acc, Nat.add(length, 1n))
+    )
 
 def range_ordered(valid: Bool, start: Nat, end: Nat) -> Maybe<&2, Bounds>:
   match valid:
@@ -77,7 +93,10 @@ def range_offsets(start: Maybe<&2, Nat>, end: Maybe<&2, Nat>) -> Maybe<&2, Bound
 def range(+lines: List<&2, Nat>, location: Location) -> Maybe<&2, Bounds>:
   match location:
     case Location{Position{start_line, start_column}, Position{end_line, end_column}}:
-      range_offsets(offset(lines, start_line, start_column, 0n), offset(lines, end_line, end_column, 0n))
+      range_offsets(
+        offset(lines, start_line, start_column, 0n),
+        offset(lines, end_line, end_column, 0n)
+      )
 
 def bounds_nonempty(bounds: Bounds) -> Bool:
   match bounds:
@@ -88,21 +107,41 @@ def declaration_valid(+path: String, declaration: Declaration) -> Bool:
     case Declaration{decl_path, _, name, _, _}: Bool.and(String.eq(path, decl_path),
       Bool.and(valid_path(path), Bool.not(String.is_empty(name))))
 
-def bounded_checked(valid: Bool, declaration: Declaration, bounds: Maybe<&2, Bounds>) -> Maybe<&2, Bounded>:
+def bounded_checked(
+  valid: Bool,
+  declaration: Declaration,
+  bounds: Maybe<&2, Bounds>
+) -> Maybe<&2, Bounded>:
   match valid bounds:
-    case True{} Some{+bounds}: Bool.pick(Maybe<&2, Bounded>, bounds_nonempty(bounds), Some{Bounded{declaration, bounds}}, None{})
+    case True{} Some{+bounds}: Bool.pick(
+      Maybe<&2, Bounded>,
+      bounds_nonempty(bounds),
+      Some{Bounded{declaration, bounds}},
+      None{}
+    )
     case _ _: None{}
 
 def bounded(+path: String, +lines: List<&2, Nat>, +declaration: Declaration) -> Maybe<&2, Bounded>:
   match declaration:
-    case Declaration{_, _, _, location, _}: bounded_checked(declaration_valid(path, declaration), declaration, range(lines, location))
+    case Declaration{_, _, _, location, _}: bounded_checked(
+      declaration_valid(path, declaration),
+      declaration,
+      range(lines, location)
+    )
 
-def bounded_join(head: Maybe<&2, Bounded>, tail: Maybe<&2, List<&2, Bounded>>) -> Maybe<&2, List<&2, Bounded>>:
+def bounded_join(
+  head: Maybe<&2, Bounded>,
+  tail: Maybe<&2, List<&2, Bounded>>
+) -> Maybe<&2, List<&2, Bounded>>:
   match head tail:
     case Some{head} Some{tail}: Some{head <> tail}
     case _ _: None{}
 
-def bounded_all(+path: String, +lines: List<&2, Nat>, declarations: List<&2, Declaration>) -> Maybe<&2, List<&2, Bounded>>:
+def bounded_all(
+  +path: String,
+  +lines: List<&2, Nat>,
+  declarations: List<&2, Declaration>
+) -> Maybe<&2, List<&2, Bounded>>:
   match declarations:
     case Nil{}: Some{Nil{}}
     case head <> rest: bounded_join(bounded(path, lines, head), bounded_all(path, lines, rest))
@@ -110,26 +149,48 @@ def bounded_all(+path: String, +lines: List<&2, Nat>, declarations: List<&2, Dec
 def same_identity(a: Declaration, b: Declaration) -> Bool:
   match a b:
     case Declaration{_, kind_a, name_a, _, _} Declaration{_, kind_b, name_b, _, _}:
-      String.eq(String.append(kind_a, String.append(":", name_a)), String.append(kind_b, String.append(":", name_b)))
+      String.eq(
+        String.append(kind_a, String.append(":", name_a)),
+        String.append(kind_b, String.append(":", name_b))
+      )
 
 def identity_count(+declaration: Declaration, roots: List<&2, Bounded>) -> Nat:
   match roots:
     case Nil{}: 0n
-    case Bounded{root, _} <> rest: Nat.add(Bool.pick(Nat, same_identity(declaration, root), 1n, 0n), identity_count(declaration, rest))
+    case Bounded{root, _} <> rest: Nat.add(
+      Bool.pick(Nat, same_identity(declaration, root), 1n, 0n),
+      identity_count(declaration, rest)
+    )
 
-def select_unique(hit: Bool, declaration: Declaration, selected: List<&2, Declaration>, location: Location, ambiguous: List<&2, Location>) -> Selection:
+def select_unique(
+  hit: Bool,
+  declaration: Declaration,
+  selected: List<&2, Declaration>,
+  location: Location,
+  ambiguous: List<&2, Location>
+) -> Selection:
   match hit:
     case True{}: Selection{declaration <> selected, ambiguous}
     case False{}: Selection{selected, location <> ambiguous}
 
 def add_join(unique: Bool, +declaration: Declaration, tail: Selection) -> Selection:
   match declaration tail:
-    case Declaration{_, _, _, location, _} Selection{selected, ambiguous}: select_unique(unique, declaration, selected, location, ambiguous)
+    case Declaration{_, _, _, location, _} Selection{selected, ambiguous}: select_unique(
+      unique,
+      declaration,
+      selected,
+      location,
+      ambiguous
+    )
 
 def additions(roots: List<&2, Bounded>, +all: List<&2, Bounded>) -> Selection:
   match roots:
     case Nil{}: Selection{Nil{}, Nil{}}
-    case Bounded{+declaration, _} <> rest: add_join(Nat.is_eq(identity_count(declaration, all), 1n), declaration, additions(rest, all))
+    case Bounded{+declaration, _} <> rest: add_join(
+      Nat.is_eq(identity_count(declaration, all), 1n),
+      declaration,
+      additions(rest, all)
+    )
 
 def width(bounds: Bounds) -> Nat:
   match bounds:
@@ -138,7 +199,10 @@ def width(bounds: Bounds) -> Nat:
 def encloses(root: Bounds, hunk: Bounds) -> Bool:
   match root hunk:
     case Bounds{start, end} Bounds{+hunk_start, +hunk_end}:
-      Bool.and(Nat.is_lt(hunk_start, hunk_end), Bool.and(Nat.is_le(start, hunk_start), Nat.is_le(hunk_end, end)))
+      Bool.and(
+        Nat.is_lt(hunk_start, hunk_end),
+        Bool.and(Nat.is_le(start, hunk_start), Nat.is_le(hunk_end, end))
+      )
 
 def smallest_pick(less: Bool, equal: Bool, root: Bounded, best: Bounded, ties: Nat) -> Enclosing:
   match less equal:
@@ -150,8 +214,13 @@ def compare_bounds(root: Bounded, best: Maybe<&2, Bounded>, ties: Nat) -> Enclos
   match root best:
     case +root None{}: Enclosing{Some{root}, 1n}
     case Bounded{+declaration, +bounds} Some{Bounded{+old, +old_bounds}}:
-      smallest_pick(Nat.is_lt(width(bounds), width(old_bounds)), Nat.is_eq(width(bounds), width(old_bounds)),
-        Bounded{declaration, bounds}, Bounded{old, old_bounds}, ties)
+      smallest_pick(
+        Nat.is_lt(width(bounds), width(old_bounds)),
+        Nat.is_eq(width(bounds), width(old_bounds)),
+        Bounded{declaration, bounds},
+        Bounded{old, old_bounds},
+        ties
+      )
 
 def enclosing_pick(hit: Bool, root: Bounded, best: Maybe<&2, Bounded>, ties: Nat) -> Enclosing:
   match hit:
@@ -162,22 +231,40 @@ def enclosing(roots: List<&2, Bounded>, +hunk: Bounds, accumulator: Enclosing) -
   match roots accumulator:
     case Nil{} _: accumulator
     case Con{Bounded{declaration, +bounds}, rest} Enclosing{best, ties}:
-      enclosing(rest, hunk, enclosing_pick(encloses(bounds, hunk), Bounded{declaration, bounds}, best, ties))
+      enclosing(
+        rest,
+        hunk,
+        enclosing_pick(encloses(bounds, hunk), Bounded{declaration, bounds}, best, ties)
+      )
 
 def trimmed(bounds: Bounds, location: Location) -> Bounds:
   match bounds location:
     case Bounds{+start, +end} Location{_, Position{line, column}}:
-      Bounds{start, Bool.pick(Nat, Bool.and(Nat.is_gt(end, start), Bool.and(Nat.is_gt(line, 1n), Nat.is_eq(column, 1n))), Nat.sub(end, 1n), end)}
+      Bounds{
+        start,
+        Bool.pick(
+          Nat,
+          Bool.and(Nat.is_gt(end, start), Bool.and(Nat.is_gt(line, 1n), Nat.is_eq(column, 1n))),
+          Nat.sub(end, 1n),
+          end
+        )
+      }
 
 def overlap(bounds: Maybe<&2, Bounds>, hunk: Bounds) -> Bool:
   match bounds hunk:
-    case Some{Bounds{start, end}} Bounds{hunk_start, hunk_end}: Bool.and(Nat.is_lt(start, hunk_end), Nat.is_lt(hunk_start, end))
+    case Some{Bounds{start, end}} Bounds{hunk_start, hunk_end}: Bool.and(
+      Nat.is_lt(start, hunk_end),
+      Nat.is_lt(hunk_start, end)
+    )
     case _ _: False{}
 
 def defining_overlap(+lines: List<&2, Nat>, spans: List<&2, Location>, +hunk: Bounds) -> Bool:
   match spans:
     case Nil{}: False{}
-    case span <> rest: Bool.or(overlap(range(lines, span), hunk), defining_overlap(lines, rest, hunk))
+    case span <> rest: Bool.or(
+      overlap(range(lines, span), hunk),
+      defining_overlap(lines, rest, hunk)
+    )
 
 def defining(+lines: List<&2, Nat>, declaration: Declaration, hunk: Bounds) -> Bool:
   match declaration:
@@ -187,62 +274,169 @@ def defining(+lines: List<&2, Nat>, declaration: Declaration, hunk: Bounds) -> B
 def contains_identity(+declaration: Declaration, selected: List<&2, Declaration>) -> Bool:
   match selected:
     case Nil{}: False{}
-    case head <> rest: Bool.or(same_identity(declaration, head), contains_identity(declaration, rest))
+    case head <> rest: Bool.or(
+      same_identity(declaration, head),
+      contains_identity(declaration, rest)
+    )
 
-def append_selected(already: Bool, selected: List<&2, Declaration>, declaration: Declaration) -> List<&2, Declaration>:
+def append_selected(
+  already: Bool,
+  selected: List<&2, Declaration>,
+  declaration: Declaration
+) -> List<&2, Declaration>:
   match already:
     case True{}: selected
     case False{}: List.append(&2, Declaration, selected, declaration <> Nil{})
 
 def chosen_defining(hit: Bool, selection: Selection, +declaration: Declaration) -> Selection:
   match hit selection:
-    case True{} Selection{+selected, ambiguous}: Selection{append_selected(contains_identity(declaration, selected), selected, declaration), ambiguous}
+    case True{} Selection{+selected, ambiguous}: Selection{
+      append_selected(contains_identity(declaration, selected), selected, declaration),
+      ambiguous
+    }
     case False{} _: selection
 
-def chosen_unique(unique: Bool, +lines: List<&2, Nat>, selection: Selection, +declaration: Declaration, hunk: Bounds, location: Location) -> Selection:
+def chosen_unique(
+  unique: Bool,
+  +lines: List<&2, Nat>,
+  selection: Selection,
+  +declaration: Declaration,
+  hunk: Bounds,
+  location: Location
+) -> Selection:
   match unique selection:
     case True{} _: chosen_defining(defining(lines, declaration, hunk), selection, declaration)
-    case False{} Selection{selected, ambiguous}: Selection{selected, List.append(&2, Location, ambiguous, location <> Nil{})}
+    case False{} Selection{selected, ambiguous}: Selection{
+      selected,
+      List.append(&2, Location, ambiguous, location <> Nil{})
+    }
 
-def chosen(best: Maybe<&2, Bounded>, ties: Nat, +roots: List<&2, Bounded>, +lines: List<&2, Nat>, selection: Selection, hunk: Bounds, +location: Location) -> Selection:
+def chosen(
+  best: Maybe<&2, Bounded>,
+  ties: Nat,
+  +roots: List<&2, Bounded>,
+  +lines: List<&2, Nat>,
+  selection: Selection,
+  hunk: Bounds,
+  +location: Location
+) -> Selection:
   match best:
-    case None{}: chosen_unique(False{}, lines, selection, Declaration{"", "", "", location, None{}}, hunk, location)
-    case Some{Bounded{+declaration, _}}: chosen_unique(Bool.and(Nat.is_eq(ties, 1n), Nat.is_eq(identity_count(declaration, roots), 1n)), lines, selection, declaration, hunk, location)
+    case None{}: chosen_unique(
+      False{},
+      lines,
+      selection,
+      Declaration{"", "", "", location, None{}},
+      hunk,
+      location
+    )
+    case Some{Bounded{+declaration, _}}: chosen_unique(
+      Bool.and(Nat.is_eq(ties, 1n), Nat.is_eq(identity_count(declaration, roots), 1n)),
+      lines,
+      selection,
+      declaration,
+      hunk,
+      location
+    )
 
-def chosen_enclosing(result: Enclosing, roots: List<&2, Bounded>, lines: List<&2, Nat>, selection: Selection, hunk: Bounds, location: Location) -> Outcome:
+def chosen_enclosing(
+  result: Enclosing,
+  roots: List<&2, Bounded>,
+  lines: List<&2, Nat>,
+  selection: Selection,
+  hunk: Bounds,
+  location: Location
+) -> Outcome:
   match result:
-    case Enclosing{best, ties}: Selected{chosen(best, ties, roots, lines, selection, hunk, location)}
+    case Enclosing{best, ties}: Selected{
+      chosen(best, ties, roots, lines, selection, hunk, location)
+    }
 
-def hunk_checked(valid: Bool, +path: String, +lines: List<&2, Nat>, +roots: List<&2, Bounded>, +location: Location, bounds: Maybe<&2, Bounds>, selection: Selection) -> Outcome:
+def hunk_checked(
+  valid: Bool,
+  +path: String,
+  +lines: List<&2, Nat>,
+  +roots: List<&2, Bounded>,
+  +location: Location,
+  bounds: Maybe<&2, Bounds>,
+  selection: Selection
+) -> Outcome:
   match valid bounds:
     case True{} Some{+bounds}:
-      chosen_enclosing(enclosing(roots, trimmed(bounds, location), Enclosing{None{}, 0n}), roots, lines, selection, bounds, location)
+      chosen_enclosing(
+        enclosing(roots, trimmed(bounds, location), Enclosing{None{}, 0n}),
+        roots,
+        lines,
+        selection,
+        bounds,
+        location
+      )
     case _ _: InvalidFacts{}
 
-def hunk(+path: String, +lines: List<&2, Nat>, +roots: List<&2, Bounded>, value: Hunk, selection: Selection) -> Outcome:
+def hunk(
+  +path: String,
+  +lines: List<&2, Nat>,
+  +roots: List<&2, Bounded>,
+  value: Hunk,
+  selection: Selection
+) -> Outcome:
   match value:
-    case Hunk{hunk_path, verified, +location}: hunk_checked(Bool.and(verified, String.eq(path, hunk_path)), path, lines, roots, location, range(lines, location), selection)
+    case Hunk{hunk_path, verified, +location}: hunk_checked(
+      Bool.and(verified, String.eq(path, hunk_path)),
+      path,
+      lines,
+      roots,
+      location,
+      range(lines, location),
+      selection
+    )
 
-def updates(+path: String, +lines: List<&2, Nat>, +roots: List<&2, Bounded>, hunks: List<&2, Hunk>, outcome: Outcome) -> Outcome:
+def updates(
+  +path: String,
+  +lines: List<&2, Nat>,
+  +roots: List<&2, Bounded>,
+  hunks: List<&2, Hunk>,
+  outcome: Outcome
+) -> Outcome:
   match hunks outcome:
     case Nil{} _: outcome
     case _ InvalidFacts{}: InvalidFacts{}
-    case Con{head, rest} Selected{selection}: updates(path, lines, roots, rest, hunk(path, lines, roots, head, selection))
+    case Con{head, rest} Selected{selection}: updates(
+      path,
+      lines,
+      roots,
+      rest,
+      hunk(path, lines, roots, head, selection)
+    )
 
-def attributed(addition: Bool, path: String, lines: List<&2, Nat>, roots: Maybe<&2, List<&2, Bounded>>, hunks: List<&2, Hunk>) -> Outcome:
+def attributed(
+  addition: Bool,
+  path: String,
+  lines: List<&2, Nat>,
+  roots: Maybe<&2, List<&2, Bounded>>,
+  hunks: List<&2, Hunk>
+) -> Outcome:
   match addition roots:
     case True{} Some{+roots}: Selected{additions(roots, roots)}
     case False{} Some{roots}: updates(path, lines, roots, hunks, Selected{Selection{Nil{}, Nil{}}})
     case _ None{}: InvalidFacts{}
 
-def select_valid(valid: Bool, snapshot: Snapshot, declarations: List<&2, Declaration>, hunks: List<&2, Hunk>) -> Outcome:
+def select_valid(
+  valid: Bool,
+  snapshot: Snapshot,
+  declarations: List<&2, Declaration>,
+  hunks: List<&2, Hunk>
+) -> Outcome:
   match valid snapshot:
     case True{} Snapshot{+path, addition, source}:
-      +lines = line_lengths(String.split(source, Char.from_u32(10)))
+      +lines = source_line_lengths(source)
       attributed(addition, path, lines, bounded_all(path, lines, declarations), hunks)
     case False{} _: InvalidFacts{}
 
-def select(+snapshot: Snapshot, declarations: List<&2, Declaration>, hunks: List<&2, Hunk>) -> Outcome:
+def select(
+  +snapshot: Snapshot,
+  declarations: List<&2, Declaration>,
+  hunks: List<&2, Hunk>
+) -> Outcome:
   match snapshot:
     case Snapshot{path, _, _}: select_valid(valid_path(path), snapshot, declarations, hunks)
 

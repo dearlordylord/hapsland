@@ -247,10 +247,10 @@ export function createPhysicalPreparationCapability({
             facts !== undefined ||
             (functions !== undefined && functions.functions.size > 0 && functions.types.size === 0),
           typeFile = analyzeTypeFile(command.capture.path, command.capture.text, hasCapturedGraph)
-        /** @param {{artifact: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewArtifact, location: import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation}} fact
+        /** @param {{artifact: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewArtifact, location: import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation, selectionLocations?: readonly import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation[]}} fact
          * @returns {RootWire}
          */
-        const rootFact = ({ artifact, location: span }) => ({
+        const rootFact = ({ artifact, location: span, selectionLocations }) => ({
           $: "PreparationSelection.Root",
           id: artifact.id,
           declaration: {
@@ -259,7 +259,7 @@ export function createPhysicalPreparationCapability({
             kind: artifact.kind,
             name: artifact.name,
             location: location(span),
-            selection_locations: none
+            selection_locations: selectionLocations === undefined ? none : some(list(selectionLocations.map(location)))
           }
         })
         response = {
