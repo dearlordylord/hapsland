@@ -750,7 +750,8 @@ export function createOwnedArtifactDriver({
       if ((!parent || preparation) && !issuedScope) throw new TypeError("Missing owned invocation scope")
       if (current().next_invocation < 1n || current().next_invocation > BigInt(Number.MAX_SAFE_INTEGER))
         throw new RangeError("Invocation exceeds exact native ID range")
-      const inputId = save(0n, { kind: "pending-input", value: undefined })
+      const invocation = current().next_invocation
+      const inputId = save(invocation, { kind: "input", value: undefined })
       try {
         apply(
           parent
@@ -767,11 +768,16 @@ export function createOwnedArtifactDriver({
                 inputId
               )
         )
-        const invocation = current().next_invocation - 1n
-        resources.set(inputId, { invocation, kind: "input", value: undefined })
         return Number(invocation)
       } catch (error) {
-        resources.delete(inputId)
+        const child = owner.find(invocation, current().children)
+        if (child.$ === "Some") {
+          try {
+            driver.constructionFailed(Number(invocation), { inputHandle: inputId })
+          } catch (cleanup) {
+            throw new AggregateError([error, cleanup], "Invocation publication and cleanup failed", { cause: error })
+          }
+        } else resources.delete(inputId)
         throw error
       }
     },
@@ -853,8 +859,8 @@ export function createOwnedArtifactDriver({
       }
     },
     drive: driveInvocation,
-    /** @param {number} invocation @param {{session?: Session | undefined, closePending?: boolean}} [cleanup] */
-    constructionFailed(invocation, { session, closePending = false } = {}) {
+    /** @param {number} invocation @param {{session?: Session | undefined, closePending?: boolean, inputHandle?: bigint}} [cleanup] */
+    constructionFailed(invocation, { session, closePending = false, inputHandle } = {}) {
       const ownerInvocation = BigInt(invocation)
       let cancelCommitted = false
       /** @type {Extract<Step, {$: "Advanced"}>["outputs"] | undefined} */
@@ -896,6 +902,9 @@ export function createOwnedArtifactDriver({
         }
         if (failures.length === 1) throw failures[0]
         if (failures.length) throw new AggregateError(failures, "Construction cleanup failed", { cause: failures[0] })
+        // A committed launch can fail before its action enters launches. Only
+        // release the allocator's exact input after cancellation has settled.
+        if (inputHandle !== undefined && resources.has(inputHandle)) release(inputHandle, ownerInvocation)
         cancellationCleanup.delete(ownerInvocation)
       }
       try {

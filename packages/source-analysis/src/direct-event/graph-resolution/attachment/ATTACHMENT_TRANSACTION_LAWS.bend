@@ -5176,6 +5176,13 @@ def ready_selected_frame_parent_fields(+child: T.TentativeChild, +history: V.His
             ready_registered_frame_forest_count(registration, plan, frame, references, ready_history_addresses(extended), forest, projected), forest_ready, pending_ready)))
 
 
+def ready_registration_history_equal(+frame: T.ResolverFrame, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    evidence: ready_registration_history_result(frame, history, child_history, phase)) ->
+    {History.measurement(phase, history) == ready_registration_history_value(frame, history, child_history, phase) : V.History}:
+  match child_history phase:
+    case Phase.ChildHistory{F.Created{_, _, _}, _, _, _, _}
+        Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}, _}: evidence
+
 def ready_selected_frame_from_parent(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
     +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending, +references: List<&2, Local.ReferenceSlot>, +forest: F.Forest,
     +ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
@@ -5188,13 +5195,103 @@ def ready_selected_frame_from_parent(+child: T.TentativeChild, +history: V.Histo
     dense: {ActualFrame.dense(S.frame_nodes(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)), 0n) == True{} : Bool}) ->
     ready_measured_frame_result(child, history, child_history, phase, frame, references, forest):
   ready_selected_frame_parent_fields(child, history, child_history, phase, state, frame, edge, references, forest,
-    ready_selected_registration_history(child, history, child_history, phase, state, frame, edge, ready),
+    ready_registration_history_equal(frame, history, child_history, phase, ready_selected_registration_history(child, history, child_history, phase, state, frame, edge, ready)),
     ready_selected_retained_budget(child, history, child_history, phase, state, frame, edge, ready, coherent),
     ready_selected_measured_pending(child, history, child_history, phase, state, frame, edge, references, ready),
     ready_selected_coverage(child, history, child_history, phase, state, frame, edge, references, ready),
     Pair.fst({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}, ready_selected_frame_observed(child, history, child_history, phase, state, frame, edge, ready)),
     Pair.snd({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}, ready_selected_frame_observed(child, history, child_history, phase, state, frame, edge, ready)),
     projection, valid, dense)
+
+def ready_attachment_projection(+attachment: Compose.Attachment, +frame: T.ResolverFrame, +addresses: List<&2, F.AddressEntry>, +forest: F.Forest,
+    projected: {P.project(S.frame_root(frame), Parent.attachment_nodes(attachment), Parent.attachment_slots(attachment), S.frame_artifacts(frame), addresses) == Some{forest} : Maybe<&2, F.Forest>}) ->
+    {P.project(S.frame_root(Attach.attached_frame(attachment, frame)), S.frame_nodes(Attach.attached_frame(attachment, frame)), S.frame_references(Attach.attached_frame(attachment, frame)), S.frame_artifacts(frame), addresses) == Some{forest} : Maybe<&2, F.Forest>}:
+  match attachment frame:
+    case Compose.Attachment{_, _, _, _, _, _, _, _, _} T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: projected
+
+def ready_attachment_dense(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    dense: {ActualFrame.dense(Parent.attachment_nodes(attachment), 0n) == True{} : Bool}) ->
+    {ActualFrame.dense(S.frame_nodes(Attach.attached_frame(attachment, frame)), 0n) == True{} : Bool}:
+  match attachment frame:
+    case Compose.Attachment{_, _, _, _, _, _, _, _, _} T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: dense
+
+def ready_parent_dense_to_frame(+child: T.TentativeChild, +frame: T.ResolverFrame, +references: List<&2, Local.ReferenceSlot>, +attachment: Compose.Attachment,
+    shape: {attachment == ready_actual_registration(child, frame, references) : Compose.Attachment},
+    dense: {ActualFrame.dense(Parent.attachment_nodes(attachment), 0n) == True{} : Bool}) ->
+    {ActualFrame.dense(S.frame_nodes(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)), 0n) == True{} : Bool}:
+  %shape: {ActualFrame.dense(S.frame_nodes(Attach.attached_frame(_, frame)), 0n) == True{} : Bool}
+  ready_attachment_dense(attachment, frame, dense)
+
+def ready_parent_forest_observation(history: V.History, child_history: Phase.ChildHistory,
+    +frame: T.ResolverFrame, +attachment: Compose.Attachment, +forest: F.Forest) -> Type:
+  match history child_history:
+    case V.History{+addresses, _, _, _, _, _, _} Phase.ChildHistory{F.Created{_, _, +children}, _, _, _, _}:
+      {P.project(S.frame_root(frame), Parent.attachment_nodes(attachment), Parent.attachment_slots(attachment), S.frame_artifacts(frame),
+        List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))))) == Some{forest} : Maybe<&2, F.Forest>}
+
+def ready_parent_projection_to_measured(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending, +references: List<&2, Local.ReferenceSlot>, +attachment: Compose.Attachment, +forest: F.Forest,
+    ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    shape: {attachment == ready_actual_registration(child, frame, references) : Compose.Attachment},
+    projected: ready_parent_forest_observation(history, child_history, frame, attachment, forest)) ->
+    {P.project(S.frame_root(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)),
+      S.frame_nodes(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)),
+      S.frame_references(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)), S.frame_artifacts(frame),
+      ready_history_addresses(History.measurement(phase, history))) == Some{forest} : Maybe<&2, F.Forest>}:
+  match history child_history phase:
+    case V.History{+addresses, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+        Phase.ChildHistory{F.Created{_, _, +children}, +source, +catalog, _, _}
+        Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, _, _, +payloads, _, _, _, _}, _}:
+      +extended: V.History = History.extend(history, children, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)), History.ids(payloads, S.frame_next_edge(frame)), source, catalog)
+      %shape: {P.project(S.frame_root(Attach.attached_frame(_, frame)), S.frame_nodes(Attach.attached_frame(_, frame)), S.frame_references(Attach.attached_frame(_, frame)), S.frame_artifacts(frame), ready_history_addresses(History.measurement(phase, history))) == Some{forest} : Maybe<&2, F.Forest>}
+      Equal.trans(Maybe<&2, F.Forest>, P.project(S.frame_root(Attach.attached_frame(attachment, frame)), S.frame_nodes(Attach.attached_frame(attachment, frame)), S.frame_references(Attach.attached_frame(attachment, frame)), S.frame_artifacts(frame), ready_history_addresses(History.measurement(phase, history))),
+        P.project(S.frame_root(Attach.attached_frame(attachment, frame)), S.frame_nodes(Attach.attached_frame(attachment, frame)), S.frame_references(Attach.attached_frame(attachment, frame)), S.frame_artifacts(frame), ready_history_addresses(extended)), Some{forest},
+        Equal.cong(V.History, Maybe<&2, F.Forest>, value => P.project(S.frame_root(Attach.attached_frame(attachment, frame)), S.frame_nodes(Attach.attached_frame(attachment, frame)), S.frame_references(Attach.attached_frame(attachment, frame)), S.frame_artifacts(frame), ready_history_addresses(value)), History.measurement(phase, history), extended,
+          ready_selected_registration_history(child, history, child_history, phase, state, frame, edge, ready)),
+        ready_attachment_projection(attachment, frame, List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)))), forest, projected))
+
+def ready_staged_parent_result(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +frame: T.ResolverFrame, +edge: Local.Pending, +known: Bool) -> Type:
+  match child history child_history phase edge:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+root, +nodes, +slots, +items, +visited, +budget}, _, _, _}
+        V.History{+addresses, _, _, _, _, _, +episode}
+        Phase.ChildHistory{F.Created{_, _, +child_addresses}, +source, +catalog, _, _}
+        Phase.Phase{V.Frame{_, _, _, _, _, +parent_forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
+          Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{+birth}, +semantic_nodes}, _, +payloads, _, _, _, _}, _}
+        Local.Pending{+owner, +index, _, +symbol, _, _, _, _}:
+      Exists(Compose.Attachment, attachment => Exists(F.Forest, forest =>
+        {Compose.tentative_attachment(Compose.remap(Local.Plan{root, nodes, slots, items, visited, budget}, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), S.frame_nodes(frame), S.frame_references(frame), owner, index,
+          Bool.pick(Maybe<&2, String>, known, Some{ready_actual_identity(child)}, None{}), S.frame_next_edge(frame), S.frame_pending(frame)) == Some{attachment} : Maybe<&2, Compose.Attachment>} &
+        {F.replace(F.append(parent_forest, F.Created{birth, semantic_nodes, child_addresses}), ready_payload_owner(ready_capsule_payload(ready_phase_capsule(phase))), index,
+          X.attachment_reference(known, F.Created{birth, semantic_nodes, child_addresses}, symbol, ready_actual_identity(child))) == F.Replaced{forest} : F.Replacement} &
+        {ActualFrame.project(Attach.attached_frame(attachment, frame), History.measurement(phase, history))
+          == Some{ready_staged_frame(ready_phase_frame(phase), forest, ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}
+      ))
+    case _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _} _: Empty
+
+def ready_selected_parent_staged(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending, +known: Bool,
+    +ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget},
+    evidence: ready_selected_parent_result(child, history, child_history, phase, frame, edge, known)) ->
+    ready_staged_parent_result(child, history, child_history, phase, frame, edge, known):
+  match child history child_history phase edge:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+root, +nodes, +slots, +items, +visited, +budget}, _, _, _}
+        V.History{+addresses, _, _, _, _, _, +episode}
+        Phase.ChildHistory{F.Created{_, _, +child_addresses}, +source, +catalog, _, _}
+        Phase.Phase{V.Frame{_, _, _, _, _, +parent_forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
+          Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{+birth}, +semantic_nodes}, _, +payloads, _, _, _, _}, _}
+        Local.Pending{+owner, +index, _, +symbol, _, _, _, _}:
+      match evidence:
+        case (references, (attachment, (forest, (replacement, (attached, (shape, (replaced, (projected, (valid, (node, dense)))))))))):
+          Tuple{attachment, Tuple{forest, Tuple{attached, Tuple{replaced,
+            %Equal.sym(Compose.Attachment, attachment, ready_actual_registration(child, frame, references), shape):
+              {ActualFrame.project(Attach.attached_frame(_, frame), History.measurement(phase, history))
+                == Some{ready_staged_frame(ready_phase_frame(phase), forest, ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(_, frame)))} : Maybe<&2, V.Frame>}
+            ready_selected_frame_from_parent(child, history, child_history, phase, state, frame, edge, references, forest, ready, coherent,
+              ready_parent_projection_to_measured(child, history, child_history, phase, state, frame, edge, references, attachment, forest, ready, shape, projected), valid,
+              ready_parent_dense_to_frame(child, frame, references, attachment, shape, dense))}}}}
+    case _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _} _: evidence
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

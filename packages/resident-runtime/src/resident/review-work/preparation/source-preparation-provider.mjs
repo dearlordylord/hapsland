@@ -376,12 +376,29 @@ export function createSourcePreparationProvider(
                 )
               )
             } catch (original) {
+              const originalCause = failureCause ?? Cause.die(original)
+              let combinedCause = originalCause
+              const failures = []
               try {
                 driver.constructionFailed(prepInvocation)
               } catch (cleanup) {
-                failureCause = Cause.combine(failureCause ?? Cause.die(original), Cause.die(cleanup))
+                failures.push(cleanup)
+                combinedCause = Cause.combine(combinedCause, Cause.die(cleanup))
+              }
+              // Match the native preparation onError finalizer: release this
+              // exact workspace before the outer Source panic diagnostic.
+              // Keep failed release custody for finish's existing retry.
+              try {
+                await scoped(ledger.release(receipt.preparation.reservation))
+                context.activeWorkspaces.delete(receipt.preparation.reservation)
+              } catch (cleanup) {
+                failures.push(cleanup)
+                combinedCause = Cause.combine(combinedCause, failureCause ?? Cause.die(cleanup))
+              }
+              failureCause = combinedCause
+              if (failures.length) {
                 failureKind = "Defect"
-                throw new AggregateError([original, cleanup], "Preparation construction and cleanup failed", {
+                throw new AggregateError([original, ...failures], "Preparation construction and cleanup failed", {
                   cause: original
                 })
               }

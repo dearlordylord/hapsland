@@ -1085,6 +1085,18 @@ One current obstacle list, in execution order:
    A pinned TypeScript version preflight timed out before checking code; CPU11
    rerun succeeds. No full-consumer or check:fast pass is claimed for this WIP.
 
+   Follow-up entry repairs preserve Canonical cancellation as a successful settled
+   product outcome, release the constructor's exact workspace before the panic
+   diagnostic, and keep failed releases for Source finish. Allocation assigns
+   its input to the saved exact invocation before launch; published-launch
+   failure cancels that invocation and retains failed cleanup rather than
+   deleting its input. Twelve cleanup tests pass, including post-commit control,
+   action, output and cleanup faults. Strict resident types and four actual-source
+   lint checks pass after formatting the new test. Structural review confirms
+   these changes for the production control; arbitrary cancel-after-commit throwing
+   controls remain outside this qualification. Physical Source repeats and
+   production entry/shutdown are still required; adoption/removal remain 0/0.
+
    Original attachment proof progress: the complete pending witness now follows
    from one original ActualReady.project (qualified 7.973s under the ten-second
    bound). The shared original-ready parent/pending witness passes in 6.068s;
@@ -1164,8 +1176,14 @@ One current obstacle list, in execution order:
    0.8985420994329361; build starts 15:27:35.803887, qualified but fails parity
    1.1303946679556114. Both meet cadence; all 17 pairs preserve heads, sources
    and artifacts. Logs: /tmp/hapsland-ceb21cfc-{execution-pair,build-pair}.log.
-   Next starts due: execution 15:56:29.312266, build 15:57:35.803887 UTC.
-   Freeze/backup/warm by 15:55. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Follow-up a24a2e5f: execution starts 15:56:50.498459, qualified parity
+   0.6290441872333401; build starts 16:01:54.860325, qualified but fails parity
+   1.1019465906947088. All 17 pairs preserve heads, sources and artifacts.
+   Execution misses its preceding deadline by 21.186193 seconds; build misses
+   by 259.056438 seconds. These cadence failures remain separate from parity.
+   Next starts due: execution 16:26:50.498459, build 16:31:54.860325 UTC.
+   Freeze/backup/warm by 16:19. Logs: /tmp/hapsland-a24a2e5f-{execution-pair,build-pair}.log.
+   Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

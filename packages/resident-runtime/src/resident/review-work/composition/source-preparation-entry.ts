@@ -89,7 +89,9 @@ export const runResidentSourcePreparation = Effect.fn("ResidentRuntime.sourcePre
   if (!("completed" in outcome) && !("failure" in outcome && outcome.failure.$ === "Types.InvocationCancelled"))
     throw new TypeError("Wrong Canonical Source terminal binding")
   ports.onTerminal?.(source, outcome)
-  if ("failure" in outcome) return yield* Effect.interrupt
+  // Canonical job cancellation is a settled product outcome. Fiber interruption
+  // is handled separately by acquireUseRelease and retains its original Cause.
+  if ("failure" in outcome) return outcome
   if (!outcome.recovered && outcome.reason && "token" in outcome.reason) {
     const cause = source.cause(outcome.reason.token)
     if (cause === undefined) throw new TypeError("Missing Source terminal Cause")

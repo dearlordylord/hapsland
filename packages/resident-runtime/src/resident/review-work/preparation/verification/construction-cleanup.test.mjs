@@ -220,3 +220,76 @@ test("resident owner refuses publications until resources are bound", () => {
   Effect.runSync(ledger.runtime.close())
   assert.equal(delivered, 2)
 })
+
+for (const phase of ["control", "action", "outputs", "cleanup"]) {
+  test(`failed allocated launch retains exact custody through ${phase}`, async () => {
+    const original = new Error("launch publication failed")
+    const cleanup = new Error("first disposal failed")
+    const registry = createServiceRegistry()
+    const state = { next_invocation: 1n, children: new Map() }
+    let disposals = 0,
+      cancellations = 0
+    const driver = createOwnedArtifactDriver({
+      registry,
+      scope: { $: "PreparationScope", partition: 1n, lifetime: 1n, round: 1n, preparation: 1n },
+      machine: {
+        retainedHandles: 0,
+        disposeInvocation() {
+          if (++disposals === 1 && phase === "cleanup") throw cleanup
+        }
+      },
+      owner: {
+        find: (id, children) => (children.has(id) ? { $: "Some", value: children.get(id) } : { $: "None" }),
+        child_active: (child) => child.active
+      },
+      hooks: {
+        afterAction({ command }) {
+          if (command.$ === "Launch" && phase === "action") throw original
+        },
+        canonicalOutputs(outputs) {
+          if (outputs.includes("launch") && ["outputs", "cleanup"].includes(phase)) throw original
+        }
+      },
+      control: {
+        readState: () => state,
+        invoke(method, args) {
+          if (method === "launch") {
+            const invocation = state.next_invocation++
+            state.children.set(invocation, { active: true })
+            if (phase === "control") throw original
+            return {
+              $: "Advanced",
+              actions: { $: "Con", head: { $: "Launch", invocation, input_handle: args[1] }, tail: { $: "Nil" } },
+              outputs: { $: "Con", head: "launch", tail: { $: "Nil" } }
+            }
+          }
+          assert.equal(method, "cancel")
+          cancellations++
+          state.children.get(args[0]).active = false
+          return {
+            $: "Advanced",
+            actions: { $: "Con", head: { $: "CancelChild", invocation: args[0] }, tail: { $: "Nil" } },
+            outputs: { $: "Nil" }
+          }
+        }
+      }
+    })
+    assert.throws(
+      () => driver.allocateInvocation(),
+      (error) => {
+        if (phase === "cleanup") {
+          assert.deepEqual(error.errors, [original, cleanup])
+          assert.equal(error.cause, original)
+        } else assert.equal(error, original)
+        return true
+      }
+    )
+    assert.equal(state.children.get(1n).active, false)
+    assert.equal(registry.pendingCleanup, phase === "cleanup" ? 1 : 0)
+    await registry.retryCleanup()
+    assert.equal(cancellations, 1)
+    assert.equal(disposals, phase === "cleanup" ? 2 : 1)
+    assert.equal(registry.pendingCleanup, 0)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+  })
+}
