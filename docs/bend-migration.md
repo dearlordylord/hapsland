@@ -928,26 +928,27 @@ One current obstacle list, in execution order:
    remain open.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 08ddc474 measurements are
+   connected candidate. Latest existing-production 135564d5 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.690568648809017 (2026-10-12 05:14:47.004884 UTC); build fails at
-   1.1428574247404586 (05:17:04.108860 UTC). The build start missed its preceding
-   05:16:54.530041 cadence deadline by 9.579 seconds; this is a cadence violation,
-   independent of parity. Execution meets its deadline. Measurement runner exit
-   zero and wrapper exit one identify an unmet build parity threshold, not a
-   compilation failure. test:status still reports the previous compiled consumer
-   on another commit and does not establish performance acceptance.
-   These existing-production results do not qualify unadopted whole preparation.
-   Both full physical consumers pass through the five-family private continuation
-   driver: Source 57 fixtures / 6502 checks / 32 branches; resident preparation
-   73 cases / 15702 checks / 855 branches. Whole preparation connected: 0;
-   replaced production TS removed: 0. Next starts due on 2026-10-12 UTC:
-   execution 05:44:47.004884, build 05:47:04.108860. Target starts five minutes
-   earlier; freeze/backup/warm by 05:36. Logs:
-   /tmp/hapsland-08ddc474-{execution-pair,build-pair}.log.
+   passes at 0.7009989252414653 (2026-10-12 05:36:54.051344 UTC); build fails at
+   1.1500243160250037 (05:37:29.209768 UTC). Both starts meet cadence with more
+   than seven minutes' margin. All 34 build launches succeed and each has 23/46
+   cached tasks. Runner exit zero and wrapper exit one identify unmet build
+   parity, not compilation failure. test:status still describes the previous
+   compiled consumer on another commit and does not establish this acceptance.
+   Existing-production results do not qualify unadopted whole preparation.
+   Frozen workspace preparation passes 46/46 tasks, 15 cached, 50.455s.
+   Whole preparation connected: 0; replaced production TS removed: 0.
+   Next starts due on 2026-10-12 UTC: execution 06:06:54.051344,
+   build 06:07:29.209768. Target starts five minutes earlier; freeze/backup/warm
+   by 05:58. Logs: /tmp/hapsland-135564d5-{warm,execution-pair,build-pair}.log.
    Qualifications: .test-runs/bend-migration/performance/
-   2026-10-12T05-14-47.004884+00-00/qualification.json and
-   2026-10-12T05-17-04.108860+00-00/qualification.json.
+   2026-10-12T05-36-54.051344+00-00/qualification.json and
+   2026-10-12T05-37-29.209768+00-00/qualification.json.
+   Previous 08ddc474 execution 0.690568648809017 passed and build
+   1.1428574247404586 failed, both qualified. Its build start at
+   05:17:04.108860 missed the preceding 05:16:54.530041 deadline by 9.579s;
+   that cadence violation remains recorded independently of parity.
    Previous e0aaf3c9 execution .5706596 passed and build 1.0952860 failed,
    both qualified. Its first workspace preparation hit GenericArtifact emission's
    unchanged five-second limit; isolated emission passed in 4.740s and the second
