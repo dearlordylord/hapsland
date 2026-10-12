@@ -471,11 +471,11 @@ try {
       directTranscript = []
     let ownedTerminal, directTerminal
     const ownedMachine = createArtifactMachine({ ...artifacts, retainPrefixes: false })
-    ownedMachine.accepted = (terminal) => {
-      ownedTerminal = terminal
-      return terminal.$ === "Types.FinishedResolver"
-        ? { result: terminal.result, finalFrame: terminal.final_frame }
-        : { failure: terminal.failure }
+    const ownedView = ownedMachine.view
+    ownedMachine.view = (step) => {
+      const terminal = ownedView(step)
+      if (terminal.$ !== "Types.AwaitService") ownedTerminal = structuredClone(terminal)
+      return terminal
     }
     try {
       expected = await Effect.runPromise(
