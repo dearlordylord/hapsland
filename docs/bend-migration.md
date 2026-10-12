@@ -788,22 +788,22 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 5cf5a93b measurements are
+   connected candidate. Latest existing-production 497915b5 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.5920944718016352 (2026-10-12 03:20:36.343591 UTC); build fails at
-   1.0581467667609699 (03:21:12.268558 UTC). Both starts meet the preceding
-   cadence deadlines. All 34 build samples succeed with identical 23/46 cached
-   task counts. The measurement runner succeeds; wrapper exit 1 records the
-   unmet parity threshold, not a build error. test:status reports the prior
-   compiled capacity/round consumer passing, not a performance acceptance verdict.
+   passes at 0.7427475280570104 (2026-10-12 03:48:04.537545 UTC); build fails at
+   1.10493068611741 (03:48:51.074418 UTC). Both starts meet the preceding cadence
+   deadlines. All 34 build samples succeed with identical 23/46 cached task
+   counts. The measurement runner succeeds; wrapper exit 1 records the unmet
+   parity threshold, not a build error. test:status reports the prior compiled
+   capacity/round consumer passing, not a performance acceptance verdict.
    Results do not qualify unadopted whole preparation; build parity remains an
-   acceptance obstacle. Frozen standard workspace preparation passes 46/46 tasks,
-   23 cached, 3.093s. Next starts due on 2026-10-12 UTC:
-   execution 03:50:36.343591, build 03:51:12.268558. Freeze/backup/warm by 03:46.
-   Logs: /tmp/hapsland-5cf5a93b-{warm,execution-pair,build-pair}.log.
+   acceptance obstacle. Frozen workspace preparation passes 46/46 tasks,
+   15 cached, 49.487s. Next starts due on 2026-10-12 UTC:
+   execution 04:18:04.537545, build 04:18:51.074418. Freeze/backup/warm by 04:14.
+   Logs: /tmp/hapsland-497915b5-{warm,execution-pair,build-pair}.log.
    Qualifications: .test-runs/bend-migration/performance/
-   2026-10-12T03-20-36.343591+00-00/qualification.json and
-   2026-10-12T03-21-12.268558+00-00/qualification.json.
+   2026-10-12T03-48-04.537545+00-00/qualification.json and
+   2026-10-12T03-48-51.074418+00-00/qualification.json.
    Previous 17d75e3d qualified execution .6552013 passed and build1.1799678
    failed. Both starts missed their cadence deadlines after frozen normal
    source-analysis/downstream compilation; that violation remains recorded
