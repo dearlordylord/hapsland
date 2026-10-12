@@ -14,7 +14,7 @@ try {
   execFileSync(
     "taskset",
     ["-c", "10", "bend", join(import.meta.dirname, "./CanonicalResolverOwner.bend"), "-o", emitted],
-    { timeout: 5000 }
+    { timeout: 10000 }
   )
   const m = (await import(pathToFileURL(emitted))).default
   const c = (name, fields = {}) => ({ $: "../Canonical." + name, ...fields })

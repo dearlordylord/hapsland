@@ -52,7 +52,7 @@ export async function createEntryReferenceDriver({ temporary, go, python, artifa
   const emissions = []
   const compile = async (name) => {
     const output = path.join(temporary, name + ".mjs")
-    execFileSync("bend", [path.join(import.meta.dirname, name + ".bend"), "-o", output], { timeout: 5000 })
+    execFileSync("bend", [path.join(import.meta.dirname, name + ".bend"), "-o", output], { timeout: 10000 })
     let source = await readFile(output, "utf8")
     const original = createHash("sha256").update(source).digest("hex")
     for (const kind of ["basename", "join", "dirname", "extension", "normalize", "relative"]) {

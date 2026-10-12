@@ -95,7 +95,7 @@ const sequences = [
 ]
 try {
   const compiled = join(temporary, "signed.mjs")
-  execFileSync("bend", [join(folder, "../SignedLocalSpecificationCheck.bend"), "-o", compiled], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../SignedLocalSpecificationCheck.bend"), "-o", compiled], { timeout: 10000 })
   const spec = (await import(pathToFileURL(compiled))).default
   const nativePath = join(folder, "../../../../dist/direct-event/graph-resolver.js")
   const source = readFileSync(nativePath, "utf8").replaceAll(

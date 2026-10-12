@@ -15,7 +15,7 @@ const temp = await mkdtemp("/tmp/hapsland-python-authority-")
 try {
   const emitted = join(temp, "child.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, "../../PythonModule.bend"), "-o", emitted], {
-    timeout: 5000
+    timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
   const source = await readFile(join(import.meta.dirname, "../../../languages/python.ts"), "utf8")

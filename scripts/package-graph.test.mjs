@@ -64,6 +64,30 @@ test("cyclic and unresolved workspace declarations fail before build scheduling"
   assert.throws(() => readPackageGraph(missing), /Unknown workspace dependency/)
 })
 
+test("checked JavaScript has one manifest selection for emission and strict source checks", (t) => {
+  const files = ["src/capability/entry.mjs"]
+  const root = fixture(t, { host: { hapsland: { checkedJavaScript: files } } })
+  const graph = generatePackageConfigs(root)
+  const emitted = packageTypeScriptConfig(graph, "@hapsland/host")
+  assert.equal(emitted.compilerOptions.checkJs, true)
+  assert.ok(emitted.include.includes(files[0]))
+  const strict = JSON.parse(readFileSync(join(root, "packages/host/tsconfig.checked-javascript.json"), "utf8"))
+  assert.deepEqual(strict.files, files)
+  assert.equal(strict.compilerOptions.checkJs, true)
+  assert.equal(strict.compilerOptions.noEmit, true)
+  generatePackageConfigs(root, true)
+  writeFileSync(
+    join(root, "packages/host/package.json"),
+    JSON.stringify({
+      name: "@hapsland/host",
+      private: true,
+      type: "module",
+      hapsland: { checkedJavaScript: ["src/../../other/entry.mjs"] }
+    })
+  )
+  assert.throws(() => generatePackageConfigs(root), /Invalid checked JavaScript sources/)
+})
+
 test("unsupported workspace and host branches cannot silently produce configurations", (t) => {
   const root = fixture(t, { pi: { hapsland: { host: "unknown" } } })
   assert.throws(() => generatePackageConfigs(root), /Unsupported compilation host/)

@@ -13,9 +13,9 @@ import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph
 const temporary = mkdtempSync("/tmp/hapsland-resolver-result-"),
   folder = import.meta.dirname
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
+  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
   const program = join(temporary, "core.mjs")
-  execFileSync("bend", [join(folder, "../Core.bend"), "-o", program], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Core.bend"), "-o", program], { timeout: 10000 })
   const source = readFileSync(program, "utf8")
   assert.ok(source.includes("traversal/core.PlannedNode"))
   const { default: core } = await import(pathToFileURL(program)),
@@ -127,7 +127,7 @@ try {
   const bundled = { origin, id: "base", kind: "datatype", name: "Nat", source: "type Nat", sourceHash: "h" }
   assert.deepEqual(fromProductValue(core.artifact_product(artifact(bundled)).value), bundled)
   const composedProgram = join(temporary, "composition.mjs")
-  execFileSync("bend", [join(folder, "../Composition.bend"), "-o", composedProgram], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Composition.bend"), "-o", composedProgram], { timeout: 10000 })
   const { default: composition } = await import(pathToFileURL(composedProgram))
   const emptyMap = { $: "MTip" },
     budget = local("Budget", {
@@ -217,7 +217,7 @@ try {
     "None"
   )
   const factsProgram = join(temporary, "facts.mjs")
-  execFileSync("bend", [join(folder, "../Facts.bend"), "-o", factsProgram], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Facts.bend"), "-o", factsProgram], { timeout: 10000 })
   const { default: factsCore } = await import(pathToFileURL(factsProgram))
   const rawFacts = {
     declarations: new Map([
@@ -256,7 +256,7 @@ try {
   const typedSource = sourceFacts({ ...rawFacts, kindAware: true })
   assert.equal(factsCore.prepare(typedSource, 0n).value.facts.kind_aware, true)
   const rootProgram = join(temporary, "root.mjs")
-  execFileSync("bend", [join(folder, "../Root.bend"), "-o", rootProgram], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Root.bend"), "-o", rootProgram], { timeout: 10000 })
   const { default: rootCore } = await import(pathToFileURL(rootProgram)),
     limits = {
       $: "../../../../agent-flow-bend/ImportGraph.Limits",
@@ -270,7 +270,7 @@ try {
       work: 100n
     }
   const planningProgram = join(temporary, "root-planning.mjs")
-  execFileSync("bend", [join(folder, "../RootPlanning.bend"), "-o", planningProgram], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../RootPlanning.bend"), "-o", planningProgram], { timeout: 10000 })
   const { default: rootPlanning } = await import(pathToFileURL(planningProgram))
   const rootKind = (value) => value.$
   const initialRoot = rootPlanning.prepare(syntax, "root.ts", "Root", typed("TypeBranch"), limits, 33n, list([]))

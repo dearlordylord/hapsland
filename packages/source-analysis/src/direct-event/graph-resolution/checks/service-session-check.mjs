@@ -30,17 +30,17 @@ const folder = join(import.meta.dirname, ".."),
   temporary = mkdtempSync("/tmp/hapsland-whole-resolver-services-")
 const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
+  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
   const program = join(temporary, "services.js")
-  execFileSync("bend", [join(folder, "Runtime.bend"), "-o", program], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "Runtime.bend"), "-o", program], { timeout: 10000 })
   const protocolPath = join(temporary, "protocol.mjs")
-  execFileSync("bend", [join(folder, "Protocol.bend"), "-o", protocolPath], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "Protocol.bend"), "-o", protocolPath], { timeout: 10000 })
   const protocol = (await import(pathToFileURL(protocolPath))).default
   const boundaryPath = join(temporary, "boundary-specification.mjs")
-  execFileSync("bend", [join(folder, "BoundaryValidationSpecification.bend"), "-o", boundaryPath], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "BoundaryValidationSpecification.bend"), "-o", boundaryPath], { timeout: 10000 })
   const boundary = (await import(pathToFileURL(boundaryPath))).default
   const goProbePath = join(temporary, "go-probe.mjs")
-  execFileSync("bend", [join(folder, "go-module/ABIProbe.bend"), "-o", goProbePath], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "go-module/ABIProbe.bend"), "-o", goProbePath], { timeout: 10000 })
   const goProbe = (await import(pathToFileURL(goProbePath))).default
   // Bend 2.0.36 uses the loading module's relative import in constructor tags.
   // Preserve all payload fields while projecting the probe's nominal namespace.

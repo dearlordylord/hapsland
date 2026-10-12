@@ -35,7 +35,7 @@ const membership = (value) => ({ Active: "active", Inactive: "inactive", Unknown
 const temp = mkdtempSync(join(tmpdir(), "hapsland-go-build-"))
 try {
   const output = join(temp, "build.mjs")
-  execFileSync("bend", [join(import.meta.dirname, "BuildContext.bend"), "-o", output], { timeout: 5000 })
+  execFileSync("bend", [join(import.meta.dirname, "BuildContext.bend"), "-o", output], { timeout: 10000 })
   const core = (await import(pathToFileURL(output))).default
   let configurationCases = 0,
     expressionCases = 0,

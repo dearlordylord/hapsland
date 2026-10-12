@@ -7,7 +7,7 @@ const temporary = await mkdtemp("/tmp/hapsland-preparation-machine-")
 try {
   const emitted = join(temporary, "preparation.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, "./Preparation.bend"), "-o", emitted], {
-    timeout: 5000
+    timeout: 10000
   })
   const machine = (await import(pathToFileURL(emitted))).default
   const list = (values) => values.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })

@@ -33,7 +33,7 @@ export async function emitBendPrecompile(root, node, stage, expected) {
       cwd: root,
       env,
       encoding: "utf8",
-      timeout: 5000,
+      timeout: 10000,
       maxBuffer: 16 * 1024 * 1024
     })
     if (result.error || result.status !== 0)

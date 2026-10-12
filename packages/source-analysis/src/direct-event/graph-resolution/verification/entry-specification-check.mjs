@@ -333,7 +333,7 @@ try {
     file = path.join(root, "packages/source-analysis/src/direct-event/graph-resolution", name + ".bend")
   ) {
     const output = path.join(temporary, name + ".mjs")
-    execFileSync("bend", [file, "-o", output], { timeout: 5000, maxBuffer: 2 ** 20 })
+    execFileSync("bend", [file, "-o", output], { timeout: 10000, maxBuffer: 2 ** 20 })
     return (await import(pathToFileURL(output))).default
   }
   const policy = await compile("GraphSpecification")

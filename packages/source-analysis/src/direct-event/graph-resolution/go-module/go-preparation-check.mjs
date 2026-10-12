@@ -282,7 +282,7 @@ try {
       "-o",
       emitted
     ],
-    { timeout: 5000 }
+    { timeout: 10000 }
   )
   const emittedCore = (await import(pathToFileURL(emitted))).default
   const project = (rawStep) => {
@@ -328,7 +328,7 @@ try {
       ["owner", "agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"]
     ]) {
       const output = join(emissionTemp, key + ".mjs")
-      execFileSync("bend", [join(import.meta.dirname, "../../../../../", source), "-o", output], { timeout: 5000 })
+      execFileSync("bend", [join(import.meta.dirname, "../../../../../", source), "-o", output], { timeout: 10000 })
       const artifact = (await import(pathToFileURL(output))).default
       if (key === "owner") owner = artifact
       else ownedArtifacts[key] = artifact

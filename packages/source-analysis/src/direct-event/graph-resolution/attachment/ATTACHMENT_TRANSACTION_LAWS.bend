@@ -768,39 +768,39 @@ def observed_pair_row(+head: String, +tail: List<&2, String>, keys: List<&2, Str
       pair_count_exchange(Bool.pick(Nat, String.eq(head, key), 1n, 0n), ActualFrame.string_count(tail, key),
         observed_key_count(rest, head), observed_pair_count(tail, rest))
 
-def observed_map_count(tree: Map<&2, Bool>, +query: String) -> Nat:
+def observed_map_count(-Value: Data, tree: Map<&2, Value>, +query: String) -> Nat:
   match tree:
     case MTip{}: 0n
     case MLeaf{name, _}: Bool.pick(Nat, String.eq(query, name), 1n, 0n)
-    case MNode{_, lo, hi}: (observed_map_count(lo, query) + observed_map_count(hi, query) : Nat)
+    case MNode{_, lo, hi}: (observed_map_count(Value, lo, query) + observed_map_count(Value, hi, query) : Nat)
 
-def observed_map_keys_go(tree: Map<&2, Bool>, +acc: List<&2, String>, +query: String) ->
-    {observed_key_count(Map.keys.go(&2, Bool, tree, acc), query)
-      == (observed_map_count(tree, query) + observed_key_count(acc, query) : Nat) : Nat}:
+def observed_map_keys_go(-Value: Data, tree: Map<&2, Value>, +acc: List<&2, String>, +query: String) ->
+    {observed_key_count(Map.keys.go(&2, Value, tree, acc), query)
+      == (observed_map_count(Value, tree, query) + observed_key_count(acc, query) : Nat) : Nat}:
   match tree:
     case MTip{}: {==}
     case MLeaf{_, _}: {==}
     case MNode{_, +lo, +hi}:
-      Equal.trans(Nat, observed_key_count(Map.keys.go(&2, Bool, lo, Map.keys.go(&2, Bool, hi, acc)), query),
-        (observed_map_count(lo, query) + observed_key_count(Map.keys.go(&2, Bool, hi, acc), query) : Nat),
-        ((observed_map_count(lo, query) + observed_map_count(hi, query) : Nat) + observed_key_count(acc, query) : Nat),
-        observed_map_keys_go(lo, Map.keys.go(&2, Bool, hi, acc), query),
-        Equal.trans(Nat, (observed_map_count(lo, query) + observed_key_count(Map.keys.go(&2, Bool, hi, acc), query) : Nat),
-          (observed_map_count(lo, query) + (observed_map_count(hi, query) + observed_key_count(acc, query) : Nat) : Nat),
-          ((observed_map_count(lo, query) + observed_map_count(hi, query) : Nat) + observed_key_count(acc, query) : Nat),
-          Equal.cong(Nat, Nat, value => (observed_map_count(lo, query) + value : Nat),
-            observed_key_count(Map.keys.go(&2, Bool, hi, acc), query),
-            (observed_map_count(hi, query) + observed_key_count(acc, query) : Nat),
-            observed_map_keys_go(hi, acc, query)),
-          Equal.sym(Nat, ((observed_map_count(lo, query) + observed_map_count(hi, query) : Nat) + observed_key_count(acc, query) : Nat),
-            (observed_map_count(lo, query) + (observed_map_count(hi, query) + observed_key_count(acc, query) : Nat) : Nat),
-            Arithmetic.add_assoc(observed_map_count(lo, query), observed_map_count(hi, query), observed_key_count(acc, query)))))
+      Equal.trans(Nat, observed_key_count(Map.keys.go(&2, Value, lo, Map.keys.go(&2, Value, hi, acc)), query),
+        (observed_map_count(Value, lo, query) + observed_key_count(Map.keys.go(&2, Value, hi, acc), query) : Nat),
+        ((observed_map_count(Value, lo, query) + observed_map_count(Value, hi, query) : Nat) + observed_key_count(acc, query) : Nat),
+        observed_map_keys_go(Value, lo, Map.keys.go(&2, Value, hi, acc), query),
+        Equal.trans(Nat, (observed_map_count(Value, lo, query) + observed_key_count(Map.keys.go(&2, Value, hi, acc), query) : Nat),
+          (observed_map_count(Value, lo, query) + (observed_map_count(Value, hi, query) + observed_key_count(acc, query) : Nat) : Nat),
+          ((observed_map_count(Value, lo, query) + observed_map_count(Value, hi, query) : Nat) + observed_key_count(acc, query) : Nat),
+          Equal.cong(Nat, Nat, value => (observed_map_count(Value, lo, query) + value : Nat),
+            observed_key_count(Map.keys.go(&2, Value, hi, acc), query),
+            (observed_map_count(Value, hi, query) + observed_key_count(acc, query) : Nat),
+            observed_map_keys_go(Value, hi, acc, query)),
+          Equal.sym(Nat, ((observed_map_count(Value, lo, query) + observed_map_count(Value, hi, query) : Nat) + observed_key_count(acc, query) : Nat),
+            (observed_map_count(Value, lo, query) + (observed_map_count(Value, hi, query) + observed_key_count(acc, query) : Nat) : Nat),
+            Arithmetic.add_assoc(observed_map_count(Value, lo, query), observed_map_count(Value, hi, query), observed_key_count(acc, query)))))
 
-def observed_map_keys(+tree: Map<&2, Bool>, +query: String) ->
-    {observed_key_count(Map.keys(&2, Bool, tree), query) == observed_map_count(tree, query) : Nat}:
-  Equal.trans(Nat, observed_key_count(Map.keys(&2, Bool, tree), query),
-    (observed_map_count(tree, query) + 0n : Nat), observed_map_count(tree, query),
-    observed_map_keys_go(tree, [], query), NatFacts.add_zero(observed_map_count(tree, query)))
+def observed_map_keys(-Value: Data, +tree: Map<&2, Value>, +query: String) ->
+    {observed_key_count(Map.keys(&2, Value, tree), query) == observed_map_count(Value, tree, query) : Nat}:
+  Equal.trans(Nat, observed_key_count(Map.keys(&2, Value, tree), query),
+    (observed_map_count(Value, tree, query) + 0n : Nat), observed_map_count(Value, tree, query),
+    observed_map_keys_go(Value, tree, [], query), NatFacts.add_zero(observed_map_count(Value, tree, query)))
 
 def observed_leaf_positive(same: Bool, +value: Bool,
     ready: {Bool.pick(Bool, same, value, False{}) == True{} : Bool}) ->
@@ -826,7 +826,7 @@ def observed_node_positive(side: Bool, +left: Bool, +right: Bool, +left_count: N
 
 def observed_routed_positive(tree: Map<&2, Bool>, +query: String,
     ready: {Payload.routed_value(Bool, False{}, tree, query) == True{} : Bool}) ->
-    NatFacts.le(1n, observed_map_count(tree, query)):
+    NatFacts.le(1n, observed_map_count(Bool, tree, query)):
   match tree:
     case MTip{}:
       Empty.absurd(NatFacts.le(1n, 0n), StringFacts.internal_false_ne_true(ready))
@@ -839,14 +839,14 @@ def observed_routed_positive(tree: Map<&2, Bool>, +query: String,
             Payload.leaf_read_exact(Bool, False{}, name, value, query)), ready))
     case MNode{+position, +lo, +hi}:
       observed_node_positive(Patricia.route(query, position), Payload.routed_value(Bool, False{}, lo, query),
-        Payload.routed_value(Bool, False{}, hi, query), observed_map_count(lo, query), observed_map_count(hi, query),
+        Payload.routed_value(Bool, False{}, hi, query), observed_map_count(Bool, lo, query), observed_map_count(Bool, hi, query),
         ready, proof => observed_routed_positive(lo, query, proof), proof => observed_routed_positive(hi, query, proof))
 
 def observed_lookup_positive(+tree: Map<&2, Bool>, +query: String,
     ready: {Local.map_result(Bool, Map.get(Bool, False{}, tree, query)) == True{} : Bool}) ->
     NatFacts.le(1n, observed_key_count(Map.keys(&2, Bool, tree), query)):
-  %Equal.sym(Nat, observed_key_count(Map.keys(&2, Bool, tree), query), observed_map_count(tree, query),
-    observed_map_keys(tree, query)): NatFacts.le(1n, _)
+  %Equal.sym(Nat, observed_key_count(Map.keys(&2, Bool, tree), query), observed_map_count(Bool, tree, query),
+    observed_map_keys(Bool, tree, query)): NatFacts.le(1n, _)
   observed_routed_positive(tree, query,
     Equal.trans(Bool, Payload.routed_value(Bool, False{}, tree, query),
       Local.map_result(Bool, Map.get(Bool, False{}, tree, query)), True{},
@@ -1288,7 +1288,7 @@ def observed_selected_choice(side: Bool, +left: Maybe<&2, String>, +right: Maybe
 
 def observed_selected_positive(tree: Map<&2, Bool>, +query: String,
     ready: {Membership.selected_equal(Insert.selected(Bool, tree, query), query) == True{} : Bool}) ->
-    NatFacts.le(1n, observed_map_count(tree, query)):
+    NatFacts.le(1n, observed_map_count(Bool, tree, query)):
   match tree:
     case MTip{}:
       Empty.absurd(NatFacts.le(1n, 0n), StringFacts.internal_false_ne_true(ready))
@@ -1300,7 +1300,7 @@ def observed_selected_positive(tree: Map<&2, Bool>, +query: String,
       observed_node_positive(Patricia.route(query, position),
         Membership.selected_equal(Insert.selected(Bool, lo, query), query),
         Membership.selected_equal(Insert.selected(Bool, hi, query), query),
-        observed_map_count(lo, query), observed_map_count(hi, query),
+        observed_map_count(Bool, lo, query), observed_map_count(Bool, hi, query),
         Equal.trans(Bool,
           Bool.pick(Bool, Patricia.route(query, position),
             Membership.selected_equal(Insert.selected(Bool, hi, query), query),
@@ -1318,8 +1318,8 @@ def observed_selected_positive(tree: Map<&2, Bool>, +query: String,
 def observed_presence_positive(+tree: Map<&2, Bool>, +query: String,
     ready: {Recursive.value(Bool, Map.has(&2, Bool, tree, query)) == True{} : Bool}) ->
     NatFacts.le(1n, observed_key_count(Map.keys(&2, Bool, tree), query)):
-  %Equal.sym(Nat, observed_key_count(Map.keys(&2, Bool, tree), query), observed_map_count(tree, query),
-    observed_map_keys(tree, query)): NatFacts.le(1n, _)
+  %Equal.sym(Nat, observed_key_count(Map.keys(&2, Bool, tree), query), observed_map_count(Bool, tree, query),
+    observed_map_keys(Bool, tree, query)): NatFacts.le(1n, _)
   observed_selected_positive(tree, query,
     Equal.trans(Bool, Membership.selected_equal(Insert.selected(Bool, tree, query), query),
       Recursive.value(Bool, Map.has(&2, Bool, tree, query)), True{},
@@ -3564,6 +3564,270 @@ def ready_map_set_fresh_count(-Value: Data, +tree: Map<&2, Value>, +key: String,
       Equal.sym(Bool, Membership.has_value(Value, Map.has(&2, Value, tree, key)), Membership.selected_equal(Insert.selected(Value, tree, key), key),
         Equal.cong(Map<&2, Value> & Bool, Bool, pair => Membership.has_value(Value, pair),
           Map.has(&2, Value, tree, key), Tuple{tree, Membership.selected_equal(Insert.selected(Value, tree, key), key)}, Membership.has_exact(Value, tree, key))), absent))
+
+def pending_leaf_positive(same: Bool, ready: {same == True{} : Bool}) -> NatFacts.le(1n, Bool.pick(Nat, same, 1n, 0n)):
+  match same:
+    case True{}: {==}
+    case False{}: Empty.absurd(NatFacts.le(1n, 0n), NatFacts.internal_false_ne_true(ready))
+
+def pending_union_positive(+left: Bool, +right: Bool, +left_count: Nat, +right_count: Nat,
+    ready: {Bool.or(left, right) == True{} : Bool},
+    left_positive: {left == True{} : Bool} -> NatFacts.le(1n, left_count),
+    right_positive: {right == True{} : Bool} -> NatFacts.le(1n, right_count)) ->
+    NatFacts.le(1n, (left_count + right_count : Nat)):
+  match left:
+    case True{}:
+      NatFacts.le_trans(1n, left_count, (left_count + right_count : Nat), left_positive({==}), Arithmetic.le_add_right(left_count, right_count))
+    case False{}:
+      NatFacts.le_trans(1n, right_count, (left_count + right_count : Nat), right_positive(ready),
+        NatFacts.add_le_add(0n, right_count, left_count, right_count, Arithmetic.zero_le(left_count), NatFacts.le_refl(right_count)))
+
+def pending_map_leaf_positive(-Value: Data, +tree: Map<&2, Value>, +query: String,
+    ready: {Insert.leaf_exists(Value, tree, query) == True{} : Bool}) ->
+    NatFacts.le(1n, observed_map_count(Value, tree, query)):
+  match tree:
+    case MTip{}: Empty.absurd(NatFacts.le(1n, 0n), NatFacts.internal_false_ne_true(ready))
+    case MLeaf{name, _}: pending_leaf_positive(String.eq(query, name), ready)
+    case MNode{_, +left, +right}:
+      pending_union_positive(Insert.leaf_exists(Value, left, query), Insert.leaf_exists(Value, right, query),
+        observed_map_count(Value, left, query), observed_map_count(Value, right, query), ready,
+        found => pending_map_leaf_positive(Value, left, query, found), found => pending_map_leaf_positive(Value, right, query, found))
+
+def pending_map_keys_positive(-Value: Data, +tree: Map<&2, Value>, +query: String,
+    ready: {Insert.leaf_exists(Value, tree, query) == True{} : Bool}) ->
+    NatFacts.le(1n, observed_key_count(Map.keys(&2, Value, tree), query)):
+  Equal.trans(Bool, Nat.is_le(1n, observed_key_count(Map.keys(&2, Value, tree), query)),
+    Nat.is_le(1n, observed_map_count(Value, tree, query)), True{},
+    Equal.cong(Nat, Bool, count => Nat.is_le(1n, count), observed_key_count(Map.keys(&2, Value, tree), query),
+      observed_map_count(Value, tree, query), observed_map_keys(Value, tree, query)), pending_map_leaf_positive(Value, tree, query, ready))
+
+def pending_lookup_present(+tree: Map<&2, Maybe<&2, Local.Pending>>, +query: String, +value: Local.Pending, +present: Bool,
+    test: {Insert.leaf_exists(Maybe<&2, Local.Pending>, tree, query) == present : Bool},
+    ready: {Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, tree, query)) == Some{value} : Maybe<&2, Local.Pending>}) ->
+    {Insert.leaf_exists(Maybe<&2, Local.Pending>, tree, query) == True{} : Bool}:
+  match present:
+    case True{}: test
+    case False{}:
+      Empty.absurd({Insert.leaf_exists(Maybe<&2, Local.Pending>, tree, query) == True{} : Bool},
+        Contents.none_some(Local.Pending, value,
+          Equal.trans(Maybe<&2, Local.Pending>, None{},
+            Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, tree, query)), Some{value},
+            Equal.sym(Maybe<&2, Local.Pending>,
+              Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, tree, query)), None{},
+              Payload.lookup_absent(Maybe<&2, Local.Pending>, None{}, tree, query, test)), ready)))
+
+def pending_key_order(items: List<&2, Nat>) -> List<&2, String>:
+  match items:
+    case []: []
+    case head <> tail: Nat.show(head) <> pending_key_order(tail)
+
+def pending_key_length(+items: List<&2, Nat>) ->
+    {List.length(&2, String, pending_key_order(items)) == List.length(&2, Nat, items) : Nat}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      Equal.cong(Nat, Nat, count => (1n + count : Nat), List.length(&2, String, pending_key_order(tail)),
+        List.length(&2, Nat, tail), pending_key_length(tail))
+
+def pending_key_count(+items: List<&2, Nat>, +query: Nat) ->
+    {ActualFrame.string_count(pending_key_order(items), Nat.show(query)) == ActualFrame.nat_count(items, query) : Nat}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      Equal.trans(Nat, ActualFrame.string_count(pending_key_order(head <> tail), Nat.show(query)),
+        (Bool.pick(Nat, Nat.is_eq(head, query), 1n, 0n) + ActualFrame.string_count(pending_key_order(tail), Nat.show(query)) : Nat),
+        ActualFrame.nat_count(head <> tail, query),
+        Equal.cong(Bool, Nat, same => (Bool.pick(Nat, same, 1n, 0n) + ActualFrame.string_count(pending_key_order(tail), Nat.show(query)) : Nat),
+          String.eq(Nat.show(head), Nat.show(query)), Nat.is_eq(head, query), NaturalKeys.natural_key_equality(head, query)),
+        Equal.cong(Nat, Nat, count => (Bool.pick(Nat, Nat.is_eq(head, query), 1n, 0n) + count : Nat),
+          ActualFrame.string_count(pending_key_order(tail), Nat.show(query)), ActualFrame.nat_count(tail, query), pending_key_count(tail, query)))
+
+def pending_key_unique(+items: List<&2, Nat>, +all: List<&2, Nat>,
+    +unique: {ActualFrame.nats_unique(items, all) == True{} : Bool}) ->
+    {ActualFrame.strings_unique(pending_key_order(items), pending_key_order(all)) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      BoolFacts.and_eq_true(Nat.is_eq(ActualFrame.string_count(pending_key_order(all), Nat.show(head)), 1n),
+        ActualFrame.strings_unique(pending_key_order(tail), pending_key_order(all)),
+        Equal.trans(Bool, Nat.is_eq(ActualFrame.string_count(pending_key_order(all), Nat.show(head)), 1n),
+          Nat.is_eq(ActualFrame.nat_count(all, head), 1n), True{},
+          Equal.cong(Nat, Bool, count => Nat.is_eq(count, 1n), ActualFrame.string_count(pending_key_order(all), Nat.show(head)),
+            ActualFrame.nat_count(all, head), pending_key_count(all, head)),
+          BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.nat_count(all, head), 1n), ActualFrame.nats_unique(tail, all), unique)),
+        pending_key_unique(tail, all,
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.nat_count(all, head), 1n), ActualFrame.nats_unique(tail, all), unique)))
+
+def pending_key_absent(+items: List<&2, Nat>, +next: Nat, +query: Nat,
+    +before: {ActualReady.pending_ids_before(items, next) == True{} : Bool},
+    +above: {Nat.is_le(next, query) == True{} : Bool}) ->
+    {List.contains(String, String.eq, pending_key_order(items), Nat.show(query)) == False{} : Bool}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      Equal.trans(Bool, List.contains(String, String.eq, pending_key_order(head <> tail), Nat.show(query)),
+        List.contains(String, String.eq, pending_key_order(tail), Nat.show(query)), False{},
+        Equal.cong(Bool, Bool, same => Bool.or(same, List.contains(String, String.eq, pending_key_order(tail), Nat.show(query))),
+          String.eq(Nat.show(head), Nat.show(query)), False{},
+          Equal.trans(Bool, String.eq(Nat.show(head), Nat.show(query)), Nat.is_eq(head, query), False{},
+            NaturalKeys.natural_key_equality(head, query), ready_before_distinct(head, query,
+              Arithmetic.lt_of_lt_of_le(head, next, query,
+                BoolFacts.eq_true_of_and_left(Nat.is_lt(head, next), ActualReady.pending_ids_before(tail, next), before), above)))),
+        pending_key_absent(tail, next, query,
+          BoolFacts.eq_true_of_and_right(Nat.is_lt(head, next), ActualReady.pending_ids_before(tail, next), before), above))
+
+def pending_raw_positive(+raw: Maybe<&2, Local.Pending>, +tree: Map<&2, Maybe<&2, Local.Pending>>, +id: Nat,
+    +addresses: List<&2, F.AddressEntry>, +source: Maybe<&2, V.EdgeSource>, +entry: V.PendingEntry,
+    lookup: {Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, tree, Nat.show(id))) == raw : Maybe<&2, Local.Pending>},
+    ready: {ActualFrame.pending_entry(id, ActualFrame.pending_value(raw, addresses), source) == Some{entry} : Maybe<&2, V.PendingEntry>}) ->
+    NatFacts.le(1n, observed_key_count(Map.keys(&2, Maybe<&2, Local.Pending>, tree), Nat.show(id))):
+  match raw:
+    case Some{value}:
+      pending_map_keys_positive(Maybe<&2, Local.Pending>, tree, Nat.show(id),
+        pending_lookup_present(tree, Nat.show(id), value, Insert.leaf_exists(Maybe<&2, Local.Pending>, tree, Nat.show(id)), {==}, lookup))
+    case None{}:
+      Empty.absurd(NatFacts.le(1n, observed_key_count(Map.keys(&2, Maybe<&2, Local.Pending>, tree), Nat.show(id))),
+        Contents.none_some(V.PendingEntry, entry, ready))
+
+def pending_positive_step(+head: Maybe<&2, V.PendingEntry>, +rest: Maybe<&2, List<&2, V.PendingEntry>>,
+    +id: Nat, +tail: List<&2, Nat>, +keys: List<&2, String>, +rows: List<&2, V.PendingEntry>,
+    ready: {ActualFrame.pending_prefix(head, rest) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>},
+    head_positive: @entry: V.PendingEntry -> {head == Some{entry} : Maybe<&2, V.PendingEntry>} -> NatFacts.le(1n, observed_key_count(keys, Nat.show(id))),
+    tail_positive: @values: List<&2, V.PendingEntry> -> {rest == Some{values} : Maybe<&2, List<&2, V.PendingEntry>>} ->
+      {observed_positive(pending_key_order(tail), keys) == True{} : Bool}) ->
+    {observed_positive(pending_key_order(id <> tail), keys) == True{} : Bool}:
+  match head rest:
+    case Some{entry} Some{values}:
+      BoolFacts.and_eq_true(Nat.is_le(1n, observed_key_count(keys, Nat.show(id))), observed_positive(pending_key_order(tail), keys),
+        head_positive(entry, {==}), tail_positive(values, {==}))
+    case None{} _:
+      Empty.absurd({observed_positive(pending_key_order(id <> tail), keys) == True{} : Bool}, Contents.none_some(List<&2, V.PendingEntry>, rows, ready))
+    case Some{_} None{}:
+      Empty.absurd({observed_positive(pending_key_order(id <> tail), keys) == True{} : Bool}, Contents.none_some(List<&2, V.PendingEntry>, rows, ready))
+
+def pending_positive(+order: List<&2, Nat>, +tree: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>,
+    +addresses: List<&2, F.AddressEntry>, +rows: List<&2, V.PendingEntry>,
+    ready: {ActualFrame.pending(order, tree, sources, addresses) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>}) ->
+    {observed_positive(pending_key_order(order), Map.keys(&2, Maybe<&2, Local.Pending>, tree)) == True{} : Bool}:
+  match order:
+    case []: {==}
+    case +id <> +tail:
+      +raw: Maybe<&2, Local.Pending> = Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, tree, Nat.show(id)))
+      pending_positive_step(ActualFrame.pending_entry(id, ActualFrame.pending_value(raw, addresses), V.edge_at(sources, id)),
+        ActualFrame.pending(tail, tree, sources, addresses), id, tail, Map.keys(&2, Maybe<&2, Local.Pending>, tree), rows, ready,
+        entry => found => pending_raw_positive(raw, tree, id, addresses, V.edge_at(sources, id), entry, {==}, found),
+        values => found => pending_positive(tail, tree, sources, addresses, values, found))
+
+def pending_fresh_selected(+present: Bool, +order: List<&2, Nat>, +tree: Map<&2, Maybe<&2, Local.Pending>>,
+    +sources: List<&2, V.EdgeSource>, +addresses: List<&2, F.AddressEntry>, +rows: List<&2, V.PendingEntry>, +next: Nat, +query: Nat,
+    lookup: {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))) == present : Bool},
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
+    unique: {ActualFrame.nats_unique(order, order) == True{} : Bool},
+    size: {Nat.is_eq(List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))) == True{} : Bool},
+    before: {ActualReady.pending_ids_before(order, next) == True{} : Bool},
+    above: {Nat.is_le(next, query) == True{} : Bool},
+    ready: {ActualFrame.pending(order, tree, sources, addresses) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>}) ->
+    {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))) == False{} : Bool}:
+  match present:
+    case False{}: lookup
+    case True{}:
+      Empty.absurd({Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))) == False{} : Bool},
+        observed_extra_impossible(pending_key_order(order), Map.keys(&2, Maybe<&2, Local.Pending>, tree), Nat.show(query),
+          pending_key_unique(order, order, unique),
+          Equal.trans(Bool,
+            Nat.is_eq(List.length(&2, String, pending_key_order(order)), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))),
+            Nat.is_eq(List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))), True{},
+            Equal.cong(Nat, Bool, count => Nat.is_eq(count, List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))),
+              List.length(&2, String, pending_key_order(order)), List.length(&2, Nat, order), pending_key_length(order)), size),
+          pending_key_absent(order, next, query, before, above), pending_positive(order, tree, sources, addresses, rows, ready),
+          pending_map_keys_positive(Maybe<&2, Local.Pending>, tree, Nat.show(query),
+            Equal.trans(Bool, Insert.leaf_exists(Maybe<&2, Local.Pending>, tree, Nat.show(query)),
+              Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))), True{},
+              Equal.sym(Bool, Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))),
+                Insert.leaf_exists(Maybe<&2, Local.Pending>, tree, Nat.show(query)),
+                Membership.has_leaf_membership(Maybe<&2, Local.Pending>, tree, Nat.show(query), valid)), lookup))))
+
+def pending_ready_fresh(+order: List<&2, Nat>, +tree: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>,
+    +addresses: List<&2, F.AddressEntry>, +rows: List<&2, V.PendingEntry>, +next: Nat, +query: Nat,
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
+    unique: {ActualFrame.nats_unique(order, order) == True{} : Bool},
+    size: {Nat.is_eq(List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))) == True{} : Bool},
+    before: {ActualReady.pending_ids_before(order, next) == True{} : Bool},
+    above: {Nat.is_le(next, query) == True{} : Bool},
+    ready: {ActualFrame.pending(order, tree, sources, addresses) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>}) ->
+    {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))) == False{} : Bool}:
+  pending_fresh_selected(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))),
+    order, tree, sources, addresses, rows, next, query, {==}, valid, unique, size, before, above, ready)
+
+def pending_set_later_fresh(+tree: Map<&2, Maybe<&2, Local.Pending>>, +next: Nat, +head: Local.Pending, +query: Nat,
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
+    above: {Nat.is_le((next + 1n : Nat), query) == True{} : Bool},
+    fresh: @id: Nat -> {Nat.is_le(next, id) == True{} : Bool} ->
+      {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(id))) == False{} : Bool}) ->
+    {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>,
+      Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}), Nat.show(query))) == False{} : Bool}:
+  +later: {Nat.is_lt(next, query) == True{} : Bool} = Arithmetic.lt_of_lt_of_le(next, (next + 1n : Nat), query, ready_next_greater(next), above)
+  Equal.trans(Bool, Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>,
+      Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}), Nat.show(query))),
+    Bool.or(String.eq(Nat.show(query), Nat.show(next)), Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query)))), False{},
+    Membership.set_has_membership(Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}, Nat.show(query), valid),
+    Equal.trans(Bool,
+      Bool.or(String.eq(Nat.show(query), Nat.show(next)), Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query)))),
+      Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))), False{},
+      Equal.cong(Bool, Bool, same => Bool.or(same, Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query)))),
+        String.eq(Nat.show(query), Nat.show(next)), False{},
+        Equal.trans(Bool, String.eq(Nat.show(query), Nat.show(next)), Nat.is_eq(query, next), False{},
+          NaturalKeys.natural_key_equality(query, next), ready_before_reverse_distinct(next, query, later))),
+      fresh(query, NatFacts.le_of_lt(next, query, later))))
+
+def pending_registration_count(+items: List<&2, Local.Pending>, +next: Nat, +tree: Map<&2, Maybe<&2, Local.Pending>>,
+    +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
+    fresh: @id: Nat -> {Nat.is_le(next, id) == True{} : Bool} ->
+      {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(id))) == False{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(Compose.register_pending(items, next, tree))))
+      == (List.length(&2, Local.Pending, items) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat) : Nat}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      +updated: Map<&2, Maybe<&2, Local.Pending>> = Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head})
+      +registration: Compose.RegisteredPending = Compose.register_pending(tail, (next + 1n : Nat), updated)
+      Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(Compose.register_pending(head <> tail, next, tree)))),
+        List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(registration))),
+        (List.length(&2, Local.Pending, head <> tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
+        Equal.cong(Map<&2, Maybe<&2, Local.Pending>>, Nat, map => List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, map)),
+          ready_registered_pending(Compose.registered_prefix(registration, next)), ready_registered_pending(registration), ready_registered_prefix_map(registration, next)),
+        Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(registration))),
+          (List.length(&2, Local.Pending, tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, updated)) : Nat),
+          (List.length(&2, Local.Pending, head <> tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
+          pending_registration_count(tail, (next + 1n : Nat), updated, Insert.set_preserves_canonical(Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}, valid),
+            id => above => pending_set_later_fresh(tree, next, head, id, valid, above, fresh)),
+          Equal.trans(Nat, (List.length(&2, Local.Pending, tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, updated)) : Nat),
+            (List.length(&2, Local.Pending, tail) + (1n + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat) : Nat),
+            (List.length(&2, Local.Pending, head <> tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
+            Equal.cong(Nat, Nat, count => (List.length(&2, Local.Pending, tail) + count : Nat),
+              List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, updated)),
+              (1n + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
+              ready_map_set_fresh_count(Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}, valid, fresh(next, NatFacts.le_refl(next)))),
+            pair_count_exchange(0n, List.length(&2, Local.Pending, tail), 1n, List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))))))
+
+def pending_ready_registration_count(+items: List<&2, Local.Pending>, +order: List<&2, Nat>, +tree: Map<&2, Maybe<&2, Local.Pending>>,
+    +sources: List<&2, V.EdgeSource>, +addresses: List<&2, F.AddressEntry>, +rows: List<&2, V.PendingEntry>, +next: Nat,
+    +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
+    +unique: {ActualFrame.nats_unique(order, order) == True{} : Bool},
+    +size: {Nat.is_eq(List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))) == True{} : Bool},
+    +before: {ActualReady.pending_ids_before(order, next) == True{} : Bool},
+    +ready: {ActualFrame.pending(order, tree, sources, addresses) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>}) ->
+    {List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(Compose.register_pending(items, next, tree))))
+      == (List.length(&2, Local.Pending, items) + List.length(&2, Nat, order) : Nat) : Nat}:
+  Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(Compose.register_pending(items, next, tree)))),
+    (List.length(&2, Local.Pending, items) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
+    (List.length(&2, Local.Pending, items) + List.length(&2, Nat, order) : Nat),
+    pending_registration_count(items, next, tree, valid,
+      id => above => pending_ready_fresh(order, tree, sources, addresses, rows, next, id, valid, unique, size, before, above, ready)),
+    Equal.cong(Nat, Nat, count => (List.length(&2, Local.Pending, items) + count : Nat),
+      List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)), List.length(&2, Nat, order),
+      Equal.sym(Nat, List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)),
+        NatFacts.eq_of_is_eq(List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)), size))))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

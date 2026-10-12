@@ -21,7 +21,7 @@ for name, before, after, law in mutants:
   temporary = Path(temporary)
   for source in ['LAWS.bend', 'PROOF.bend']: shutil.copyfile(owner / source, temporary / source)
   (temporary / 'core.bend').write_text(core.replace(before, after))
-  result = subprocess.run(['bend', str(temporary / 'PROOF.bend'), '--verdict'], capture_output=True, text=True, timeout=5)
+  result = subprocess.run(['bend', str(temporary / 'PROOF.bend'), '--verdict'], capture_output=True, text=True, timeout=10)
   output = result.stdout + result.stderr
   record = {'name': name, 'law': law, 'exitCode': result.returncode, 'detected': result.returncode == 1 and 'SOME PROOFS FAIL' in output and 'Location: Laws.' + law in output, 'output': output}
   records.append(record)

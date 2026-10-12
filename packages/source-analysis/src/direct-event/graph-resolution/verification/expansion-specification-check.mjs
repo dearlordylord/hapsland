@@ -56,13 +56,13 @@ const omissions = {
   ReferenceLimit: "reference-limit"
 }
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
+  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
   async function compile(name) {
     const path = join(temporary, name + ".mjs")
     execFileSync(
       "bend",
       [join(root, "packages/source-analysis/src/direct-event/graph-resolution", name + ".bend"), "-o", path],
-      { timeout: 5000 }
+      { timeout: 10000 }
     )
     return (await import(pathToFileURL(path))).default
   }

@@ -42,7 +42,7 @@ record = {"passed": False, "cases": 0,
 def check(path, name):
     try:
         result = subprocess.run(["taskset", "-c", "10", "bend", str(path), "--verdict"],
-                                capture_output=True, text=True, timeout=5)
+                                capture_output=True, text=True, timeout=10)
         output = result.stdout + result.stderr
         (RESULTS / (name + ".log")).write_text(output)
         return result.returncode, output

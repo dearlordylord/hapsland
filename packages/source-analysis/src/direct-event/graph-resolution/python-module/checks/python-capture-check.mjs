@@ -15,7 +15,7 @@ const failure = { stage: "capture", code: "capture-unavailable", args: { reason:
 try {
   const emitted = join(temp, "child.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(folder, "../../PythonModule.bend"), "-o", emitted], {
-    timeout: 5000
+    timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
   await writeFile(join(temp, "child.py"), source.text)

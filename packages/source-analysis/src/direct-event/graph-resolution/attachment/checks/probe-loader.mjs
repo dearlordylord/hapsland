@@ -13,7 +13,7 @@ export async function loadProbe(name) {
   if (!/^[A-Za-z]+$/u.test(name)) throw new Error("Invalid attachment probe name")
   if (loaded.has(name)) return loaded.get(name)
   const output = join(temporary, name + ".mjs")
-  execFileSync("bend", [join(owner, name + ".bend"), "-o", output], { timeout: 5000 })
+  execFileSync("bend", [join(owner, name + ".bend"), "-o", output], { timeout: 10000 })
   const module = (await import(pathToFileURL(output))).default
   loaded.set(name, module)
   return module

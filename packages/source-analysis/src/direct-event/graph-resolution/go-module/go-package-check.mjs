@@ -81,7 +81,7 @@ const cases = [
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-go-package-"))
 try {
   const output = join(temporary, "package.mjs")
-  execFileSync("bend", [join(import.meta.dirname, "Package.bend"), "-o", output], { timeout: 5000 })
+  execFileSync("bend", [join(import.meta.dirname, "Package.bend"), "-o", output], { timeout: 10000 })
   const core = (await import(pathToFileURL(output))).default
   const missingFacts = [goFileFacts(inspectGoFile("missing.go", "package p\ntype Root int\nconst A Root = 1\n"))]
   assert.equal(core.run(list(missingFacts.map(transport)), 100000n, list([])).$, "Refused")

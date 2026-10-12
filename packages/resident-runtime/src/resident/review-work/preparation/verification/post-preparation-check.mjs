@@ -19,7 +19,7 @@ const some = (value) => ({ $: "Some", value }),
 try {
   const output = join(temporary, "postflow.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, "../PostPreparation.bend"), "-o", output], {
-    timeout: 5000
+    timeout: 10000
   })
   const core = (await import(pathToFileURL(output))).default
   const routes = ["Owner", "CachedClear", "CachedFinding", "JoinedAdvice", "JoinedPending", "JoinedClaimed"]

@@ -49,7 +49,7 @@ try {
   }
   let resolver
   if (lane === "wholeBend") {
-    assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
+    assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
     const runtimePath = join(temporary, "runtime.mjs")
     if (process.env.HAPSLAND_WHOLE_RUNTIME_ARTIFACT) {
       const artifact = readFileSync(process.env.HAPSLAND_WHOLE_RUNTIME_ARTIFACT)
@@ -59,7 +59,7 @@ try {
         "frozen artifact hash in worker"
       )
       writeFileSync(runtimePath, artifact)
-    } else execFileSync("bend", [join(import.meta.dirname, "./Runtime.bend"), "-o", runtimePath], { timeout: 5000 })
+    } else execFileSync("bend", [join(import.meta.dirname, "./Runtime.bend"), "-o", runtimePath], { timeout: 10000 })
     let source = readFileSync(runtimePath, "utf8")
     if (timingEnabled) {
       const body = source.match(/function \$perform\$\([^)]*\) \{\n([^\n]+)\n\}/)?.[1]

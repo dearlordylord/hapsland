@@ -45,7 +45,7 @@ const normalize = (value) =>
         : value
 try {
   const emitted = join(temporary, "spec.mjs")
-  execFileSync("bend", [join(folder, "../RustSpecification.bend"), "-o", emitted], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../RustSpecification.bend"), "-o", emitted], { timeout: 10000 })
   const spec = (await import(pathToFileURL(emitted))).default
   let source = readFileSync(native, "utf8").replaceAll(
     /from "(\.{1,2}\/[^"]+)"/g,

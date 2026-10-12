@@ -43,7 +43,7 @@ try {
           "-o",
           emitted
         ],
-        { timeout: 5000 }
+        { timeout: 10000 }
       )
       artifacts[key] = (await import(pathToFileURL(emitted))).default
     }
@@ -62,7 +62,7 @@ try {
         "-o",
         shadowPath
       ],
-      { timeout: 5000 }
+      { timeout: 10000 }
     )
     const shadow = (await import(pathToFileURL(shadowPath))).default
     const observation = (step) => (step.$ === "Types.AwaitService" ? { kind: step.$, request: step.request } : step)
@@ -98,7 +98,7 @@ try {
       "-o",
       ownerPath
     ],
-    { timeout: 5000 }
+    { timeout: 10000 }
   )
   const owner = (await import(pathToFileURL(ownerPath))).default
   let ownerState = owner.initial_limits(100n, 100000000n, 100n, 100000000n)

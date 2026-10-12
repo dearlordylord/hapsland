@@ -24,12 +24,12 @@ const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),
   tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
+  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
   const machinePath = join(temp, "machine.mjs")
-  execFileSync("bend", [join(folder, "../Machine.bend"), "-o", machinePath], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Machine.bend"), "-o", machinePath], { timeout: 10000 })
   const { default: machine } = await import(pathToFileURL(machinePath))
   const clockPath = join(temp, "clock.mjs")
-  execFileSync("bend", [join(folder, "../Clock.bend"), "-o", clockPath], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Clock.bend"), "-o", clockPath], { timeout: 10000 })
   const { default: clock } = await import(pathToFileURL(clockPath))
   const numbers = [
     0,
@@ -46,7 +46,7 @@ try {
   ]
   for (const n of numbers) assert.equal(clock.expired(binary64(n)), n >= 5000)
   const runtimePath = join(temp, "runtime.js")
-  execFileSync("bend", [join(folder, "../Runtime.bend"), "-o", runtimePath], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Runtime.bend"), "-o", runtimePath], { timeout: 10000 })
   const source = readFileSync(runtimePath, "utf8"),
     footer = "\ncli(process.argv.slice(1));\nio_exit($main$, null);"
   assert.ok(source.endsWith(footer))
@@ -63,7 +63,7 @@ try {
   const { start, handlers } = await import(pathToFileURL(embedded)),
     foreign = createDispatcher(start, handlers)
   const fullRuntime = join(temp, "full-runtime.mjs")
-  execFileSync("bend", [join(folder, "../Runtime.bend"), "-o", fullRuntime], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Runtime.bend"), "-o", fullRuntime], { timeout: 10000 })
   writeFileSync(
     fullRuntime,
     readFileSync(fullRuntime, "utf8") + "\nexport const handlers=Object.freeze({perform:$0eff.perform});\n"

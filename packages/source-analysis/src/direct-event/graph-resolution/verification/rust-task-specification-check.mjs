@@ -319,7 +319,7 @@ try {
       moduleFile = path.join(temporary, fixture.name + ".mjs")
     generatedWrappers.push(bendFile)
     writeFileSync(bendFile, wrapper(tables))
-    execFileSync("bend", [bendFile, "-o", moduleFile], { timeout: 5000, maxBuffer: 2 ** 20 })
+    execFileSync("bend", [bendFile, "-o", moduleFile], { timeout: 10000, maxBuffer: 2 ** 20 })
     let js = readFileSync(moduleFile, "utf8")
     for (const kind of ["dirname", "base", "stem", "extension", "normalize", "join", "relative"]) {
       const pattern = new RegExp("function \\$" + kind + "\\$\\(([^)]*)\\) \\{")

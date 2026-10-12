@@ -85,7 +85,7 @@ try {
       ])
     )
   const emitted = join(temporary, "core.mjs")
-  execFileSync("bend", [resolve(import.meta.dirname, "../traversal/Traversal.bend"), "-o", emitted], { timeout: 5000 })
+  execFileSync("bend", [resolve(import.meta.dirname, "../traversal/Traversal.bend"), "-o", emitted], { timeout: 10000 })
   const runtime = (await import(pathToFileURL(emitted))).default
   const coreTags = new Set([
     "PlannedNode",
@@ -128,11 +128,11 @@ try {
   }
   const core = callable(runtime, true)
   const specEmitted = join(temporary, "spec.mjs")
-  execFileSync("bend", [resolve(import.meta.dirname, "../traversal/SPEC.bend"), "-o", specEmitted], { timeout: 5000 })
+  execFileSync("bend", [resolve(import.meta.dirname, "../traversal/SPEC.bend"), "-o", specEmitted], { timeout: 10000 })
   const spec = callable((await import(pathToFileURL(specEmitted))).default)
   const relationEmitted = join(temporary, "relation.mjs")
   execFileSync("bend", [resolve(import.meta.dirname, "../traversal/RELATION.bend"), "-o", relationEmitted], {
-    timeout: 5000
+    timeout: 10000
   })
   const relation = callable((await import(pathToFileURL(relationEmitted))).default)
   function candidate(file, name, expected, visited, budget, depth) {

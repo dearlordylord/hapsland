@@ -27,6 +27,13 @@ algorithms and product orchestration. Completion means connected Bend, deleted
 superseded TypeScript and passing local checks of the composed flow. Counts of
 migrated decisions, helpers or proofs are intermediate evidence.
 
+## Bend check and emission deadline
+
+The owner raised the per-process migration Bend proof/check and emission deadline
+to ten seconds on 2026-10-12. Earlier five-second measurements remain evidence
+under their original declared bounds; do not rewrite their timings or qualify
+previous timeouts retrospectively. The performance-parity requirement is unchanged.
+
 ## Preserve the candidate on the remote branch
 
 Keep all retained migration sources, tests, specifications, proofs, runners and
@@ -677,13 +684,12 @@ One current obstacle list, in execution order:
    imports. Final check:fast passes (109 unit tests, strict root/ABI types and
    three actual authored files in lint). Logs:
    /tmp/hapsland-source-provider-public-{lint,consumer,fast}.log.
-   Normal resident tsconfig includes src/**/*.ts and JSON, not the candidate
-   host .mjs modules; the compiled resident dist currently has no preparation
-   effect provider. Shipping the complete host/provider/driver entry through
-   the normal compiler and consuming that compiled entry (rather than source
-   imports) is an explicit remaining production blocker. Do not claim packaged
-   cores or public effect imports establish packaged host execution.
-   The owner's tsconfig.preparation-host.json now selects all ten authored
+   Normal resident compilation now selects the eleven host .mjs implementations
+   through its manifest, emits checked JavaScript and declarations, and records
+   their compiler inputs/outputs. Both full Source/resident consumers have run
+   those compiled modules; production composition and original proofs remain
+   acceptance blockers. Packaged host execution alone does not establish adoption.
+   The owner's tsconfig.checked-javascript.json now selects all ten authored
    host/provider/driver .mjs modules with strict checkJs/noEmit and the existing
    root options. First actual check reports 553 diagnostics; after annotating
    Source dispatcher against its existing closed core ABI, it reports 544 and
@@ -938,28 +944,47 @@ One current obstacle list, in execution order:
    protocol mismatching the selected machine are rejected before engine initial;
    the focused negative test passes and architectural review has no remaining
    findings on this change. Logs: /tmp/hapsland-host-declaration-focused.log and
-   /tmp/hapsland-owned-input-negative.log. Actual compiled-host consumer loading,
-   a single source selection authority, final fast checks, production adoption and
-   replaced TS deletion remain open. These passes do not close original proofs.
+   /tmp/hapsland-owned-input-negative.log. Manifest selection now also generates
+   tsconfig.checked-javascript.json; the duplicate handwritten selector is deleted.
+   Generator tests pass 22/22 and strict host checking passes. Source/resident
+   physical consumers pass through the owner verification loader and assert
+   actual dist imports, including one shared compiled resident state identity:
+   Source 57/6502/32 with all eleven host modules loaded; resident 73/15702/855
+   with its nine consumed host modules loaded. Logs:
+   /tmp/hapsland-compiled-host-{source-preparation-consumer.mjs,
+   resident-preparation-check.mjs}.log. Architectural review has no structural
+   findings. The ordinary consumer runner now uses compiled host loading by
+   default for both physical consumers. Final default-runner checks, production
+   adoption and replaced TS deletion remain open. These passes do not close
+   original proofs. An ensuing cold workspace build hit PreparationFinalization's
+   old five-second emission timeout; matching CPU11/environment isolated emission
+   passed at 4.553s. The owner subsequently raised migration Bend check/emission
+   limits to ten seconds, retaining original recorded results and parity rules.
+   Addressed lint selects 56 authored files; documentation links pass.
+   Original attachment freshness from existing ready premises is qualified at
+   4.270s under the new ten-second bound. No original premises were added.
+   The subsequent actual registration-count join is WIP with a linear callback
+   used twice; full attachment_transaction_exact still needs its original body.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 135564d5 measurements are
+   connected candidate. Latest existing-production 7355553b measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.7009989252414653 (2026-10-12 05:36:54.051344 UTC); build fails at
-   1.1500243160250037 (05:37:29.209768 UTC). Both starts meet cadence with more
-   than seven minutes' margin. All 34 build launches succeed and each has 23/46
-   cached tasks. Runner exit zero and wrapper exit one identify unmet build
-   parity, not compilation failure. test:status still describes the previous
-   compiled consumer on another commit and does not establish this acceptance.
-   Existing-production results do not qualify unadopted whole preparation.
-   Frozen workspace preparation passes 46/46 tasks, 15 cached, 50.455s.
-   Whole preparation connected: 0; replaced production TS removed: 0.
-   Next starts due on 2026-10-12 UTC: execution 06:06:54.051344,
-   build 06:07:29.209768. Target starts five minutes earlier; freeze/backup/warm
-   by 05:58. Logs: /tmp/hapsland-135564d5-{warm,execution-pair,build-pair}.log.
-   Qualifications: .test-runs/bend-migration/performance/
-   2026-10-12T05-36-54.051344+00-00/qualification.json and
-   2026-10-12T05-37-29.209768+00-00/qualification.json.
+   passes at 0.7288884988364855 (2026-10-12 06:34:51.462037 UTC); build fails at
+   1.2796044437180987 (06:35:31.988150 UTC). Both starts meet the preceding
+   06:36:01 / 06:36:39 deadlines. All 34 build launches succeed with 23/46 cached
+   tasks each; runner exit zero and wrapper exit one identify unmet build parity,
+   not compilation failure. Existing-production results do not qualify unadopted
+   whole preparation. The preceding pair on the same head also qualifies:
+   execution 0.6305970447544569 at 06:06:01.209959; build 1.1366466917311742 at
+   06:06:39.445377, both before the preceding deadlines. Whole preparation
+   connected: 0; replaced production TS removed: 0.
+   Next starts due on 2026-10-12 UTC: execution 07:04:51.462037,
+   build 07:05:31.988150. Target starts five minutes earlier; freeze/backup/warm
+   by 06:56. Logs: /tmp/hapsland-7355553b-{second-execution-pair,
+   second-build-pair,execution-pair,build-pair}.log.
+   Latest qualifications: .test-runs/bend-migration/performance/
+   2026-10-12T06-34-51.462037+00-00/qualification.json and
+   2026-10-12T06-35-31.988150+00-00/qualification.json.
    Previous 08ddc474 execution 0.690568648809017 passed and build
    1.1428574247404586 failed, both qualified. Its build start at
    05:17:04.108860 missed the preceding 05:16:54.530041 deadline by 9.579s;

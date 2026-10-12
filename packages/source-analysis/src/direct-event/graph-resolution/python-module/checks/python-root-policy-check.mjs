@@ -10,7 +10,7 @@ const temp = await mkdtemp("/tmp/hapsland-python-root-policy-")
 try {
   const emitted = join(temp, "child.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, "../../PythonModule.bend"), "-o", emitted], {
-    timeout: 5000
+    timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
   // Execute the current production function itself after erasing only its annotations.

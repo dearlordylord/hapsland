@@ -26,7 +26,7 @@ const sources = Object.fromEntries(inputs.map((path) => [path, hash(isAbsolute(p
 try {
   assert.equal(sep, "/", "this check qualifies Linux path algebra only")
   const emitted = join(temporary, "spec.mjs")
-  execFileSync("bend", [join(folder, "../CargoSpecificationCheck.bend"), "-o", emitted], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../CargoSpecificationCheck.bend"), "-o", emitted], { timeout: 10000 })
   const spec = (await import(pathToFileURL(emitted))).default
   const nativeCopy = join(temporary, "native.mjs")
   writeFileSync(

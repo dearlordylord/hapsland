@@ -8,7 +8,7 @@ const temp = await mkdtemp("/tmp/hapsland-root-attribution-")
 try {
   const emitted = join(temp, "selection.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, "./RootAttribution.bend"), "-o", emitted], {
-    timeout: 5000
+    timeout: 10000
   })
   const m = (await import(pathToFileURL(emitted))).default
   const list = (items) => items.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })

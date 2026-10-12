@@ -408,7 +408,10 @@ export function createPreparationForeign({
         response = {
           $: "RootResolved",
           unit: unit === undefined ? none : some(productValue(unit)),
-          references: "finalFrame" in terminal && terminal.finalFrame.$ === "Some" ? terminal.finalFrame.value.references : list([]),
+          references:
+            "finalFrame" in terminal && terminal.finalFrame.$ === "Some"
+              ? terminal.finalFrame.value.references
+              : list([]),
           captures: snapshotCaptures()
         }
         break

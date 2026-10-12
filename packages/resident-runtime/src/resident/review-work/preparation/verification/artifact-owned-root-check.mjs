@@ -198,7 +198,7 @@ try {
         "-o",
         emitted
       ],
-      { timeout: 5000 }
+      { timeout: 10000 }
     )
     const loaded = (await import(pathToFileURL(emitted))).default
     if (key === "owner") owner = loaded

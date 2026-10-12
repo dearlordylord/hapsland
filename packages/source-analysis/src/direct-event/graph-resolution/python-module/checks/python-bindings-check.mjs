@@ -10,7 +10,7 @@ const temp = await mkdtemp("/tmp/hapsland-python-bindings-")
 try {
   const file = join(import.meta.dirname, "../../PythonModule.bend"),
     emitted = join(temp, "bindings.mjs")
-  execFileSync("taskset", ["-c", "10", "bend", file, "-o", emitted], { timeout: 5000 })
+  execFileSync("taskset", ["-c", "10", "bend", file, "-o", emitted], { timeout: 10000 })
   const { default: child } = await import(pathToFileURL(emitted))
   const source = await readFile(join(import.meta.dirname, "../../../languages/python.ts"), "utf8")
   const fragments =

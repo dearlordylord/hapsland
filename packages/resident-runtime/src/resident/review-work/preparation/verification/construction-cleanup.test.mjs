@@ -7,7 +7,12 @@ import { initial } from "../../composition/owned-machine.mjs"
 
 test("owned engine rejects ambiguous and mismatched protocols before initialization", () => {
   let initialized = 0
-  const machine = { kind: "preparation", initial() { initialized++ } }
+  const machine = {
+    kind: "preparation",
+    initial() {
+      initialized++
+    }
+  }
   assert.throws(() => initial(machine, { preparation: {}, adviceTail: {} }), /Ambiguous owned input binding/)
   assert.throws(() => initial(machine, { sourcePreparation: {} }), /Wrong preparation input binding/)
   assert.equal(initialized, 0)

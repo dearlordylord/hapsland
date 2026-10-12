@@ -317,6 +317,17 @@ export const generatePackageConfigs = (root, check = false) => {
       packageTypeScriptConfig(graph, name)
     ])
   )
+  for (const name of graph.typeScriptOrder) {
+    const node = graph.packages.get(name)
+    const files = node.manifest.hapsland?.checkedJavaScript ?? []
+    if (files.length)
+      outputs.set(resolve(node.path, "tsconfig.checked-javascript.json"), {
+        extends: "../../tsconfig.json",
+        compilerOptions: { allowJs: true, checkJs: true, noEmit: true, incremental: false },
+        include: [],
+        files
+      })
+  }
   outputs.set(resolve(root, "tsconfig.packages.json"), {
     files: [],
     references: graph.typeScriptOrder.map((name) => ({ path: `${graph.packages.get(name).directory}/tsconfig.json` }))

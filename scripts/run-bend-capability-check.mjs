@@ -129,6 +129,15 @@ for (const file of selected) {
       "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-consumer.mjs",
       "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-preparation-check.mjs"
     ].includes(file)
+  if (fixtureConsumer) {
+    options.unshift(
+      "--import",
+      resolve(
+        root,
+        "packages/resident-runtime/src/resident/review-work/preparation/verification/compiled-host-loader.mjs"
+      )
+    )
+  }
   let executionEnv = env
   if (file.endsWith("/artifact-owned-root-check.mjs") && !syntax) {
     const fixtures = spawnSync(
@@ -157,7 +166,7 @@ for (const file of selected) {
     stdio: ["inherit", "pipe", "inherit"],
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
-    timeout: Math.min(deadline - Date.now(), isProof || syntax ? 5000 : 120000)
+    timeout: Math.min(deadline - Date.now(), isProof ? 10000 : syntax ? 5000 : 120000)
   })
   if (runtimeOutput) rmSync(runtimeOutput, { recursive: true, force: true })
   process.stdout.write(result.stdout ?? "")

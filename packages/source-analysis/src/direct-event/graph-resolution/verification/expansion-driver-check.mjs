@@ -247,7 +247,7 @@ try {
     cases = []
   async function compile(name, file = path.join(sourceOwner, name + ".bend")) {
     const output = path.join(temporary, name + ".mjs")
-    execFileSync("bend", [file, "-o", output], { timeout: 5000, maxBuffer: 2 ** 20 })
+    execFileSync("bend", [file, "-o", output], { timeout: 10000, maxBuffer: 2 ** 20 })
     if (name === "PythonArtifact") {
       // Rebase nominal owners mechanically across independently emitted artifacts.
       const emitted = readFileSync(output, "utf8")

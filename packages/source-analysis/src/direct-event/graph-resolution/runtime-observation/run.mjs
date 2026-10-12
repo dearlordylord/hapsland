@@ -8,11 +8,11 @@ const folder = import.meta.dirname,
   root = resolve(folder, "../../../../../.."),
   temp = mkdtempSync("/tmp/hapsland-whole-resolver-foreign-")
 try {
-  const compiler = execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim()
+  const compiler = execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim()
   assert.equal(compiler, "bend 2.0.36")
   const program = join(temp, "program.js"),
     bootstrap = join(temp, "bootstrap.mjs")
-  execFileSync("bend", [join(folder, "./Runtime.bend"), "-o", program], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "./Runtime.bend"), "-o", program], { timeout: 10000 })
   writeFileSync(
     bootstrap,
     `import {Parser,TypeScript} from ${JSON.stringify(pathToFileURL(join(root, "packages/source-analysis/dist/direct-event/languages/native-parser.js")).href)};

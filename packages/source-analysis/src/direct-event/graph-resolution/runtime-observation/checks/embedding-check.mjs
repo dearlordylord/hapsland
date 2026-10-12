@@ -9,10 +9,10 @@ import { Parser, TypeScript } from "@hapsland/source-analysis/direct-event/langu
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-embedding-")
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5000 }).trim(), "bend 2.0.36")
+  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
   const program = join(temp, "program.js"),
     embedded = join(temp, "embedded.mjs")
-  execFileSync("bend", [join(folder, "../Embedding.bend"), "-o", program], { timeout: 5000 })
+  execFileSync("bend", [join(folder, "../Embedding.bend"), "-o", program], { timeout: 10000 })
   const source = readFileSync(program, "utf8")
   assert.throws(() => embedProgram(source + "\nunknown-layout"), TransportFailure)
   writeFileSync(embedded, embedProgram(source))

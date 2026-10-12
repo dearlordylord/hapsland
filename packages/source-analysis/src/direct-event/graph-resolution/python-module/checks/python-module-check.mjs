@@ -12,7 +12,7 @@ const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name
 try {
   const emitted = join(temp, "child.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(folder, "../../PythonModule.bend"), "-o", emitted], {
-    timeout: 5000
+    timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
   await writeFile(join(temp, "root.py"), "class Root: pass\n")
