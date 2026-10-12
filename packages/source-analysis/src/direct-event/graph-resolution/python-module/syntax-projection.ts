@@ -3,9 +3,9 @@ import { list, type List } from "@hapsland/source-artifacts/direct-event/value/c
 
 // Exact native node identity is projected to call-local stable row IDs.
 // All data here is parser syntax; no binding, authority or import decision.
-type SyntaxField = { readonly $: string; readonly name: string; readonly child: number }
-type SyntaxRow = {
-  readonly $: string
+export type SyntaxField = { readonly $: "Types.SyntaxField"; readonly name: string; readonly child: number }
+export type SyntaxRow = {
+  readonly $: "Types.PythonSyntaxNode"
   readonly id: number
   readonly kind: string
   readonly text: string
@@ -14,7 +14,13 @@ type SyntaxRow = {
   readonly children: List<number>
   readonly fields: List<SyntaxField>
 }
-export function projectPythonSyntax(rootNode: Parser.SyntaxNode) {
+export type PythonSyntax = {
+  readonly $: "Types.PythonSyntax"
+  readonly has_error: boolean
+  readonly root: number
+  readonly nodes: List<SyntaxRow>
+}
+export function projectPythonSyntax(rootNode: Parser.SyntaxNode): PythonSyntax {
   const rows: (SyntaxRow | null)[] = [],
     ids = new Map<number, number>(),
     fieldNames = [

@@ -3,14 +3,14 @@ import ./core.bend as Core
 import ./Traversal.bend as CoreTraversal
 import ./RANK.bend as Rank
 import ./patricia-proof/PATRICIA_RELATION.bend as Patricia
-import ./patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
+import ./patricia-proof/PATRICIA_MEMBERSHIP_PROOF.bend as InsertMembership
 import ./INTERPRETER_COMPLETION_NAT_FACTS.bend as NatFacts
 import ./INTERPRETER_STRING_FACTS.bend as StringFacts
 import ./INTERPRETER_BOOL_FACTS.bend as BoolFacts
 
 # Exact tuple projection, independent of the boundary-history qualification closure.
 def identity_projection_exact(pair: Map<&2, Bool> & Bool) -> {
-  Core.map_result(Bool, pair) == Insert.has_value(Bool, pair) : Bool
+  Core.map_result(Bool, pair) == InsertMembership.has_value(Bool, pair) : Bool
 }:
   match pair:
     case Tuple{_, value}: {==}
@@ -26,28 +26,28 @@ def membership_union(+visited: Map<&2, Bool>, +identity: String, +query: String,
   Equal.trans(
     Bool,
     CoreTraversal.has_identity(updated, query),
-    Insert.has_value(Bool, Map.has(&2, Bool, updated, query)),
+    InsertMembership.has_value(Bool, Map.has(&2, Bool, updated, query)),
     Bool.or(String.eq(query, identity), CoreTraversal.has_identity(visited, query)),
     identity_projection_exact(Map.has(&2, Bool, updated, query)),
     Equal.trans(
       Bool,
-      Insert.has_value(Bool, Map.has(&2, Bool, updated, query)),
+      InsertMembership.has_value(Bool, Map.has(&2, Bool, updated, query)),
       Bool.or(
         String.eq(query, identity),
-        Insert.has_value(Bool, Map.has(&2, Bool, visited, query))
+        InsertMembership.has_value(Bool, Map.has(&2, Bool, visited, query))
       ),
       Bool.or(String.eq(query, identity), CoreTraversal.has_identity(visited, query)),
-      Insert.set_has_membership(Bool, visited, identity, True{}, query, valid),
+      InsertMembership.set_has_membership(Bool, visited, identity, True{}, query, valid),
       Equal.cong(
         Bool,
         Bool,
         append,
-        Insert.has_value(Bool, Map.has(&2, Bool, visited, query)),
+        InsertMembership.has_value(Bool, Map.has(&2, Bool, visited, query)),
         CoreTraversal.has_identity(visited, query),
         Equal.sym(
           Bool,
           CoreTraversal.has_identity(visited, query),
-          Insert.has_value(Bool, Map.has(&2, Bool, visited, query)),
+          InsertMembership.has_value(Bool, Map.has(&2, Bool, visited, query)),
           identity_projection_exact(Map.has(&2, Bool, visited, query))
         )
       )

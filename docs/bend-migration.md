@@ -227,6 +227,14 @@ One current obstacle list, in execution order:
    boundary closure without those imports passes in 3.095 seconds. The full
    prefix also times out at 5.024. Removing local provisional proof bodies
    cannot close this baseline dependency cost. Original premises are unchanged.
+   A single-authority Patricia proof cut moves 24 existing membership-only
+   definitions out of the canonical insertion owner into PATRICIA_MEMBERSHIP_PROOF;
+   VISITED, INTERPRETER_INSERT_INVENTORY and CHILD_INVENTORY import the membership
+   owner for those facts. Canonical insertion and the original laws remain in
+   their owners. Both proof owners and all three affected original roots pass
+   under hard five seconds (3.211/3.082/2.727/2.478/2.819 seconds). The combined
+   transaction prefix still times out at 5.025 seconds: this cut preserves proof
+   consumers but does not close the whole deadline barrier.
    No faster complete proof is claimed. Physical probes also require updating constructor
    namespaces and the four reference fixtures' existing mandatory python=None
    field; the first incomplete-fixture failure is retained.
@@ -286,6 +294,12 @@ One current obstacle list, in execution order:
    than arbitrary string tags. Encoder behavior is unchanged. Full independent
    entry again passes 78/55; explicit lint, root types and check:fast pass
    (/tmp/hapsland-closed-toml-{entry,types,fast}.log).
+   Python's complete parser-syntax projection now also exposes literal field,
+   node and root record tags with a named PythonSyntax result type, preserving
+   the existing projection. Root types, explicit lint and check:fast pass; full
+   independent entry passes all 78 cases/55 native comparisons on these inputs
+   (/tmp/hapsland-python-closed-abi-{types,fast,entry}.log).
+   A fresh origin/master fetch confirms no commits missing from this branch.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
    consumer now passes 56 cases/6348 commands and 31 native comparisons across
