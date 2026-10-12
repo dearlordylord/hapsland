@@ -49,6 +49,7 @@ import ../Protocol.bend as Protocol
 import ../GraphSpecification.bend as GraphReference
 import ./AttachmentReplacementStructureProof.bend as ReplacementStructure
 import ./AttachmentNodeReplacementTransport.bend as NodeReplacement
+import ./ForestRollbackProof.bend as Rollback
 import ../Attach.bend as Attach
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
@@ -7369,6 +7370,49 @@ def ready_rollback_exact(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
     ready_rollback_owner_count(root, nodes, slots, catalog, addresses, birth, retained, owner, address, original, dense, present),
     NodeReplacement.node_replacement_exact(root, nodes, slots, catalog, addresses, birth, retained, owner, index, symbol, address,
       Local.Omitted{Local.ReferenceLimit{}, name}, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}, original, selected, present, {==}))
+
+# The selected rollback already supplies a checked semantic replacement.  Carry
+# the original frame invariant through that same replacement, so the actual
+# projection cannot discard the resulting forest at forest_valid.
+def ready_rollback_forest_valid(+forest: F.Forest, +changed: F.Forest,
+    +episode: Nat, +owner: O.NodeAddress, +index: Nat, +symbol: String, +name: String,
+    before: {Relation.frame_forest(forest, episode) == True{} : Bool},
+    replaced: {F.replace(forest, owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{changed} : F.Replacement}) ->
+    {Relation.frame_forest(changed, episode) == True{} : Bool}:
+  Equal.sym(Bool, True{}, Relation.frame_forest(changed, episode),
+    Equal.trans(Bool, True{}, Rollback.replacement_valid(F.replace(forest, owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}), episode), Relation.frame_forest(changed, episode),
+      Rollback.omitted_replacement_valid(forest, episode, owner, index, F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}, Equal.sym(Bool, Relation.frame_forest(forest, episode), True{}, before)),
+      Equal.cong(F.Replacement, Bool, result => Rollback.replacement_valid(result, episode), F.replace(forest, owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}), F.Replaced{changed}, replaced)))
+
+def ready_rollback_observed(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +forest: F.Forest, +changed: F.Forest,
+    +episode: Nat, +owner: O.NodeAddress, +index: Nat, +symbol: String, +name: String,
+    projected: {P.project(root, nodes, slots, catalog, addresses) == Some{changed} : Maybe<&2, F.Forest>},
+    before: {Relation.frame_forest(forest, episode) == True{} : Bool},
+    replaced: {F.replace(forest, owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{changed} : F.Replacement}) ->
+    {ActualFrame.forest_valid(P.project(root, nodes, slots, catalog, addresses), episode) == Some{changed} : Maybe<&2, F.Forest>}:
+  Equal.trans(Maybe<&2, F.Forest>, ActualFrame.forest_valid(P.project(root, nodes, slots, catalog, addresses), episode), ActualFrame.forest_valid(Some{changed}, episode), Some{changed},
+    Equal.cong(Maybe<&2, F.Forest>, Maybe<&2, F.Forest>, value => ActualFrame.forest_valid(value, episode), P.project(root, nodes, slots, catalog, addresses), Some{changed}, projected),
+    Equal.cong(Bool, Maybe<&2, F.Forest>, valid => Bool.pick(Maybe<&2, F.Forest>, valid, Some{changed}, None{}), Relation.frame_forest(changed, episode), True{},
+      ready_rollback_forest_valid(forest, changed, episode, owner, index, symbol, name, before, replaced)))
+
+def ready_rollback_valid_witness(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +catalog: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>,
+    +birth: O.NodeAddress, +retained: List<&2, F.Node>, +episode: Nat,
+    +slots: List<&2, Local.ReferenceSlot>, +owner: Nat, +index: Nat,
+    +symbol: String, +name: String, +address: O.NodeAddress,
+    before: {Relation.frame_forest(F.Forest{Some{birth}, retained}, episode) == True{} : Bool},
+    evidence: ready_rollback_result(root, nodes, slots, catalog, addresses, birth, retained, owner, index, symbol, name, address)) ->
+    Exists(List<&2, Local.ReferenceSlot>, changed => Exists(List<&2, F.Node>, values =>
+      {Compose.replacement(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+      {ActualFrame.forest_valid(P.project(root, nodes, changed, catalog, addresses), episode) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>} &
+      {F.replace(F.Forest{Some{birth}, retained}, address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{F.Forest{Some{birth}, values}} : F.Replacement})):
+  match evidence:
+    case (+changed, (+values, (replaced, (projected, semantic)))):
+      +semantic: {F.replace(F.Forest{Some{birth}, retained}, address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{F.Forest{Some{birth}, values}} : F.Replacement} = semantic
+      Tuple{changed, Tuple{values, Tuple{replaced, Tuple{
+        ready_rollback_observed(root, nodes, changed, catalog, addresses, F.Forest{Some{birth}, retained}, F.Forest{Some{birth}, values}, episode, address, index, symbol, name, projected, before, semantic), semantic}}}}
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

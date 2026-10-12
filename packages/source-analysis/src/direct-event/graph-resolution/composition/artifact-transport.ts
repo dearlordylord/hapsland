@@ -18,15 +18,24 @@ const artifactNamespaces: readonly (readonly [string, string])[] = [
   ["python-module/ArtifactProtocol.", "../python-module/ArtifactProtocol."],
   ["../../../../agent-flow-bend/ImportGraph.", "../../../../../agent-flow-bend/ImportGraph."]
 ]
-const artifactAbi = (value: unknown, intoArtifact: boolean): unknown =>
-  mapGraphAbi(value, (key, item) => {
-    if (key === "$" && typeof item === "string")
-      for (const [resolver, artifact] of artifactNamespaces) {
-        const from = intoArtifact ? resolver : artifact
-        if (item.startsWith(from)) return (intoArtifact ? artifact : resolver) + item.slice(from.length)
+const artifactAbi = (value: unknown, intoArtifact: boolean): unknown => {
+  const tags = new Map<string, string>()
+  return mapGraphAbi(value, (key, item) => {
+    if (key !== "$" || typeof item !== "string") return item
+    const known = tags.get(item)
+    if (known !== undefined) return known
+    for (const [resolver, artifact] of artifactNamespaces) {
+      const from = intoArtifact ? resolver : artifact
+      if (item.startsWith(from)) {
+        const converted = (intoArtifact ? artifact : resolver) + item.slice(from.length)
+        tags.set(item, converted)
+        return converted
       }
+    }
+    tags.set(item, item)
     return item
   })
+}
 
 // Structural assertions are limited to the exact declared namespace relocation.
 export const intoArtifact = <Value>(value: Value): ArtifactAbi<Value> => artifactAbi(value, true) as ArtifactAbi<Value>

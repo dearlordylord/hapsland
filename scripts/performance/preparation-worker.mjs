@@ -3,10 +3,15 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { performance } from "node:perf_hooks"
 import { pathToFileURL } from "node:url"
 
-const [root, mode, fixturePath, goldenPath] = process.argv.slice(2)
+const [root, mode, fixturePath, goldenPath, implementation = "public"] = process.argv.slice(2)
 assert.ok(root && fixturePath && goldenPath)
 const load = (path) => import(pathToFileURL(root + path).href)
-const { prepareObservation } = await load("/packages/review-execution/dist/direct-event/pipeline.js")
+assert.ok(implementation === "public" || implementation === "native-oracle")
+const prepareObservation =
+  implementation === "native-oracle"
+    ? (await load("/packages/review-execution/dist/direct-event/preparation/verification/native-preparation.js"))
+        .prepareNativeObservation
+    : (await load("/packages/review-execution/dist/direct-event/pipeline.js")).prepareObservation
 const { discoverPhysicalWorkingTreeRoot } = await load("/packages/native-observation/dist/repository/root.js")
 const { configuredRules } = await load("/scripts/test-support/default-rules.ts")
 const { advicee } = await load("/scripts/test-support/test-fixtures.ts")
@@ -91,6 +96,7 @@ console.log(
     warmups,
     rounds,
     definedAndEqual: true,
+    implementation,
     runtime: Bun.version
   })
 )

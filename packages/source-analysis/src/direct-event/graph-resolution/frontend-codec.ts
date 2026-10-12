@@ -253,6 +253,6 @@ export const mapGraphAbi = (value: unknown, field: (key: string, item: unknown) 
 // Only the emitted Nat ABI is converted here; graph decisions remain in Bend.
 export function pureReply<Value>(value: Value): NaturalReply<Value> {
   return mapGraphAbi(value, (key, item) =>
-    ["invocation", "id", "bytes"].includes(key) && typeof item === "number" ? BigInt(item) : item
+    (key === "invocation" || key === "id" || key === "bytes") && typeof item === "number" ? BigInt(item) : item
   ) as NaturalReply<Value>
 }
