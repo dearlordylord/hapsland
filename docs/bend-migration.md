@@ -1097,6 +1097,18 @@ One current obstacle list, in execution order:
    controls remain outside this qualification. Physical Source repeats and
    production entry/shutdown are still required; adoption/removal remain 0/0.
 
+   The repaired entry now qualifies on 8a905233: normal workspace build passes
+   46/46 (15 cached, 57.937s); original construction-defect and cancellation
+   counterexamples pass with unchanged expectations (17 and 154 requests).
+   Full Source passes 58 cases/6519 requests/33 native whole comparisons;
+   resident preparation passes 73/15702/855 post requests. Updated-build cleanup
+   tests pass 12/12. check:fast passes 109 tests, strict source/ABI/JS checks and
+   dependency gates. Its post-checkpoint changed lint selects zero; the explicit
+   four-source lint passes separately and supplies candidate lint evidence.
+   Logs: /tmp/hapsland-source-entry-custody-{warm,construction,cancel,full-source,
+   full-resident,cleanup-final,lint-final,fast}.log. Production lifetime composition,
+   actual Effect fiber interruption/late cleanup and shutdown remain open.
+
    Original attachment proof progress: the complete pending witness now follows
    from one original ActualReady.project (qualified 7.973s under the ten-second
    bound). The shared original-ready parent/pending witness passes in 6.068s;
@@ -1115,6 +1127,10 @@ One current obstacle list, in execution order:
    The direct wrapper reports a typing seam at 3.960s: eliminate the existing
    match-valued history result into its explicit equality witness. This wrapper
    and the whole original theorem remain unqualified.
+   The original-history direct staged-frame wrapper then passes hard ten seconds
+   in 8.906s. Eliminating its existing parent existential witness remains WIP:
+   the new join fails before its body at 2.830s because the dependent result needs
+   the existing V.Order constructor exposed. No premise or law change is made.
    Exact staged/history assembly, claims 5–8 and the whole original theorem remain open; original
    law and premises are unchanged. This unfinished source is retained on the branch
    for backup and is not proof acceptance.
