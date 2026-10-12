@@ -3,14 +3,21 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "tsBuildInfoFile": "dist/.tsbuildinfo"
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "allowJs": true,
+    "checkJs": true
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.json"
+    "src/**/*.json",
+    "src/canonical/child-execution/driver.mjs"
   ],
   "exclude": [
     "src/**/*.test.ts"
   ],
-  "references": []
+  "references": [
+    {
+      "path": "../runtime-environment/tsconfig.json"
+    }
+  ]
 }

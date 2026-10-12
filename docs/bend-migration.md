@@ -1250,6 +1250,17 @@ One current obstacle list, in execution order:
    replay and revalidation consumers must pass before their replaced TS
    algorithms and the native verification copies are deleted. No driver move
    or public TS deletion is claimed yet.
+   The single action/custody implementation is now moved to ordinary checked
+   CanonicalPolicy child-execution sources; resident owns its concrete protocol
+   facade. The generic core passes strict checkJs. Consumer qualification is
+   pending: the new export requires normal compilation, and standalone package
+   compilation correctly refuses the old authored task stamp. No exclusion,
+   unchecked cast, second action loop or business-state mirror is added.
+   Current direct original-ready measured wrapper now checks ALL PROOFS CHECK
+   at 9.751s under hard10/CPU10; its same-parent product/replacement witness
+   checks at 8.413s. It retains original ready/budget premises and derives actual
+   claims 1–3/5. Reference claims 4/6 and arbitrary-reply claims 7/8 still block
+   the whole original attachment transaction; its statement remains unchanged.
 
 
    The repaired entry now qualifies on 8a905233: normal workspace build passes
@@ -1408,6 +1419,18 @@ One current obstacle list, in execution order:
    violations remain separate from validity and parity. Next starts due:
    execution 19:20:07.604821, build 19:21:38.882675 UTC; freeze/backup target 19:13.
    Logs: /tmp/hapsland-50747c10-{warm,execution-pair,build-pair}.log.
+   Follow-up frozen 797fcffb: execution starts 19:13:14.669861 UTC and
+   qualifies all 17 pairs with parity 0.9923716222792482. Build starts
+   19:14:27.784582 UTC but is UNQUALIFIED: baseline round 5 parser-entry
+   clean:compiler fails its existing owned-lock acquisition deadline. Sources
+   and heads remain frozen, partial cleanup changes artifacts, and no ratio is
+   accepted. Both starts meet cadence. Native custody inspection finds no
+   retained owner, lease, groups or admission lock; normal baseline recovery
+   passes 46/46 tasks with 23 cached. The initial recovery command incorrectly
+   passes --summarize to the older baseline runner and fails argument parsing;
+   the corrected command succeeds. No deadline or lock guard is weakened.
+   Next starts due: execution 19:43:14.669861, build 19:44:27.784582 UTC.
+   Logs: /tmp/hapsland-797fcffb-{execution-pair,build-pair,baseline-recovery-warm-2}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

@@ -115,11 +115,16 @@
     "./canonical/import-adapter": {
       "types": "./dist/canonical/import-adapter.d.ts",
       "default": "./dist/canonical/import-adapter.js"
+    },
+    "./canonical/child-execution": {
+      "types": "./dist/canonical/child-execution/index.d.ts",
+      "default": "./dist/canonical/child-execution/index.js"
     }
   },
   "dependencies": {
     "effect": "catalog:",
-    "@hapsland/agent-flow-bend": "workspace:*"
+    "@hapsland/agent-flow-bend": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*"
   },
   "scripts": {
     "build": "node ../../scripts/compile-package.mjs",
@@ -128,6 +133,9 @@
   "hapsland": {
     "domain": "canonical-policy",
     "host": "bun",
-    "capabilities": []
+    "capabilities": [],
+    "checkedJavaScript": [
+      "src/canonical/child-execution/driver.mjs"
+    ]
   }
 }

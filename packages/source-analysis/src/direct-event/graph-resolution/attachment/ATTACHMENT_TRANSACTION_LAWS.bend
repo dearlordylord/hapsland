@@ -5939,6 +5939,101 @@ def ready_original_measured_parent(+state: T.ResolverState, +frame: T.ResolverFr
     case _ _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _}:
       Empty.absurd(ready_original_measured_result(state, history, phase, previous), evidence)
 
+def ready_parent_materialized(+attachment: Compose.Attachment, +frame: T.ResolverFrame, +prepared: T.PreparedLanguage,
+    +forest: F.Forest, +addresses: List<&2, F.AddressEntry>, +episode: Nat,
+    projected: {P.project(S.frame_root(frame), Parent.attachment_nodes(attachment), Parent.attachment_slots(attachment), S.frame_artifacts(frame), addresses) == Some{forest} : Maybe<&2, F.Forest>},
+    catalog: {ActualFrame.catalog_valid(S.frame_artifacts(Attach.attached_frame(attachment, frame))) == True{} : Bool},
+    valid: {Relation.frame_forest(forest, episode) == True{} : Bool}) ->
+    Exists(ArtifactValue.ProductValue, value =>
+      {PreparedRoot.prepared_unit(Attach.attached_frame(attachment, frame), prepared) == Some{value} : Maybe<&2, ArtifactValue.ProductValue>} &
+      {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(prepared)) == F.Materialized{value} : F.Materialization}):
+  match attachment frame:
+    case Compose.Attachment{_, _, _, _, _, _, _, _, _} T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
+      ready_frame_materialized_total(Attach.attached_frame(attachment, frame), prepared, forest, addresses, episode, projected, catalog, valid)
+
+def ready_parent_measured_result(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +frame: T.ResolverFrame, +edge: Local.Pending, +known: Bool, +state: T.ResolverState, +previous: Nat) -> Type:
+  match child history child_history phase edge:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+root, +nodes, +slots, +items, +visited, +budget}, _, _, _}
+        V.History{+addresses, _, _, _, _, _, +episode}
+        Phase.ChildHistory{F.Created{_, _, +child_addresses}, +source, +catalog, _, _}
+        Phase.Phase{V.Frame{_, _, _, _, _, +parent_forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
+          Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{+birth}, +semantic_nodes}, _, +payloads, _, _, _, _}, _}
+        Local.Pending{+owner, +index, _, +symbol, _, _, _, _}:
+      Exists(Compose.Attachment, attachment => Exists(F.Forest, forest =>
+        {Compose.tentative_attachment(Compose.remap(Local.Plan{root, nodes, slots, items, visited, budget}, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), S.frame_nodes(frame), S.frame_references(frame), owner, index,
+          Bool.pick(Maybe<&2, String>, known, Some{ready_actual_identity(child)}, None{}), S.frame_next_edge(frame), S.frame_pending(frame)) == Some{attachment} : Maybe<&2, Compose.Attachment>} &
+        {F.replace(F.append(parent_forest, F.Created{birth, semantic_nodes, child_addresses}), ready_payload_owner(ready_capsule_payload(ready_phase_capsule(phase))), index,
+          X.attachment_reference(known, F.Created{birth, semantic_nodes, child_addresses}, symbol, ready_actual_identity(child))) == F.Replaced{forest} : F.Replacement} &
+        ready_attachment_staged_total_result(attachment, frame, child, state, previous, History.measurement(phase, history),
+          ready_staged_frame(ready_phase_frame(phase), forest, ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(attachment, frame))))
+      ))
+    case _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _} _: Empty
+
+def ready_selected_parent_measured(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat, +known: Bool,
+    +selected: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget},
+    evidence: ready_selected_parent_result(child, history, child_history, phase, frame, edge, known)) ->
+    ready_parent_measured_result(child, history, child_history, phase, frame, edge, known, state, previous):
+  match child edge history child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
+      Local.Pending{_, _, _, _, _, _, _, _}
+      V.History{+addresses, V.Order{_, _, _, _, _, _}, _, _, _, _, +episode}
+      Phase.ChildHistory{F.Created{_, _, +children}, +source, +catalog, _, _}
+      Phase.Phase{V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
+        Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{_}, _}, _, +payloads, _, _, _, _}, _}:
+      match evidence:
+        case (+references, (+attachment, (+forest, (replacement, (attached, (+shape, (replaced, (projected, (valid, (node, dense)))))))))):
+          +projected: {P.project(S.frame_root(frame), Parent.attachment_nodes(attachment), Parent.attachment_slots(attachment), S.frame_artifacts(frame), List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))))) == Some{forest} : Maybe<&2, F.Forest>} = projected
+          +valid: {Relation.frame_forest(forest, (episode + 1n : Nat)) == True{} : Bool} = valid
+          +view: V.Frame = ready_staged_frame(ready_phase_frame(phase), forest,
+            ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(attachment, frame)))
+          observed: {ActualFrame.project(Attach.attached_frame(attachment, frame), History.measurement(phase, history)) == Some{view} : Maybe<&2, V.Frame>} =
+            %Equal.sym(Compose.Attachment, attachment, ready_actual_registration(child, frame, references), shape):
+              {ActualFrame.project(Attach.attached_frame(_, frame), History.measurement(phase, history))
+                == Some{ready_staged_frame(ready_phase_frame(phase), forest, ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(_, frame)))} : Maybe<&2, V.Frame>}
+            ready_selected_frame_from_parent(child, history, child_history, phase, state, frame, edge, references, forest, selected, coherent,
+              ready_parent_projection_to_measured(child, history, child_history, phase, state, frame, edge, references, attachment, forest, selected, shape, projected), valid,
+              ready_parent_dense_to_frame(child, frame, references, attachment, shape, dense))
+          materialized: ready_frame_view_materialization_result(Attach.attached_frame(attachment, frame), S.state_prepared(state), view) =
+            ready_parent_materialized(attachment, frame, S.state_prepared(state), forest,
+              List.append(&2, F.AddressEntry, addresses, Mapping.shifted(children, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)))), (episode + 1n : Nat), projected,
+              ready_updated_catalog_valid(attachment, frame, history,
+                Pair.fst({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}, ready_selected_frame_observed(child, history, child_history, phase, state, frame, edge, selected))), valid)
+          Tuple{attachment, Tuple{forest, Tuple{attached, Tuple{replaced,
+            ready_attachment_staged_total_witness(attachment, frame, child, state, previous, History.measurement(phase, history), view, observed, materialized)}}}}
+
+    case _ _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _}:
+      Empty.absurd(ready_parent_measured_result(child, history, child_history, phase, frame, edge, known, state, previous), evidence)
+
+def ready_original_measured_from_parent(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat,
+    +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    +frame_present: {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>},
+    +child_present: {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>},
+    +edge_present: {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>},
+    evidence: ready_parent_measured_result(child, history, child_history, phase, frame, edge,
+      Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), ready_actual_identity(child)))), state, previous)) ->
+    ready_original_measured_result(state, history, phase, previous):
+  match child edge history child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
+      Local.Pending{_, _, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, _}, +source, +catalog, _, _}
+      Phase.Phase{V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
+        Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{_}, _}, _, +payloads, _, _, _, _}, _}:
+      match evidence:
+        case (+attachment, (+forest, (attached, (_, materialized)))):
+          +view: V.Frame = ready_staged_frame(ready_phase_frame(phase), forest,
+            ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(attachment, frame)))
+          continued: {Attach.previous(previous, state) == Attach.attachment(Some{attachment}, child, previous, state, frame) : Loop.Continuation} =
+            ready_previous_attached(state, frame, child, edge, history, child_history, phase, previous, attachment,
+              ready, frame_present, child_present, edge_present, attached)
+          ready_original_measured_product(attachment, frame, child, state, previous, history, phase, view, continued, materialized)
+    case _ _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _}:
+      Empty.absurd(ready_original_measured_result(state, history, phase, previous), evidence)
+
 def ready_original_measured_inputs(+state: T.ResolverState, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat,
     ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
     evidence: ready_original_staged_result(state, history, child_history, phase)) -> ready_original_measured_result(state, history, phase, previous):
@@ -5946,13 +6041,30 @@ def ready_original_measured_inputs(+state: T.ResolverState, +history: V.History,
     case (+frame, (+child, (+edge, (frame_present, (child_present, (edge_present, staged)))))):
       ready_original_measured_parent(state, frame, child, edge, history, child_history, phase, previous, ready, frame_present, child_present, edge_present, staged)
 
+def ready_original_measured_parts(+state: T.ResolverState, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat,
+    +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget},
+    evidence: actual_parts_result(S.state_frame(state), S.scratch_tentative(S.state_scratch(state)), S.scratch_pending_edge(S.state_scratch(state)))) ->
+    ready_original_measured_result(state, history, phase, previous):
+  match evidence:
+    case (+frame, (+child, (+edge, (frame_present, (child_present, edge_present))))):
+      +frame_present: {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>} = frame_present
+      +child_present: {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} = child_present
+      +edge_present: {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>} = edge_present
+      +selected: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>} =
+        ready_actual_parts_installed(state, history, child_history, phase, frame, child, edge, frame_present, child_present, edge_present, ready)
+      +known: Bool = Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), ready_actual_identity(child))))
+      ready_original_measured_from_parent(state, frame, child, edge, history, child_history, phase, previous, ready,
+        frame_present, child_present, edge_present,
+        ready_selected_parent_measured(state, frame, child, edge, history, child_history, phase, previous, known, selected, coherent,
+          ready_selected_parent(child, history, child_history, phase, state, frame, edge, known, selected)))
+
 def ready_original_measured(+state: T.ResolverState, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat,
     +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
     coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
     ready_original_measured_result(state, history, phase, previous):
-  witness: ready_original_staged_result(state, history, child_history, phase) =
-    ready_original_staged(state, history, child_history, phase, ready, coherent)
-  ready_original_measured_inputs(state, history, child_history, phase, previous, ready, witness)
+  ready_original_measured_parts(state, history, child_history, phase, previous, ready, coherent,
+    actual_ready_parts(state, history, child_history, phase, ready))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
