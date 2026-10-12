@@ -460,6 +460,17 @@ One current obstacle list, in execution order:
    Most of this gap is inside Turbo. This is phase localization, not a causal
    diagnosis or parity claim. Next diagnostic is per-task timing of the actual
    uncached clean tasks while retaining the same baseline, commands and gates.
+   A real --summarize build passes 46/46 with 23 cached (Turbo 2.863s), showing
+   that cached restoration also contributes: administration HIT 291ms and
+   resident-runtime HIT 242ms exceed the largest observed clean MISS (220ms).
+   Candidate/baseline dist inventories differ: administration 582/302 files,
+   resident-runtime 487/82, source-analysis 135/87. None of the inspected
+   administration/resident outputs are .bend or verification-path files.
+   These are diagnostic observations, not a cause or parity claim. Inspect
+   product artifact contents/receipt ownership before optimizing cleanup;
+   do not omit required outputs or weaken the build gates.
+   Log: /tmp/hapsland-clean-task-summary.log; Turbo summary:
+   .turbo/runs/3KZT88YNRFrYVigu1gGcO36nTe9.json.
    The previous 6aad1787 warm-up first failed because PreparationFinalization emission exceeded hard
    five seconds. A same-CPU11/environment isolated emission passed at 2.846
    seconds, then the real frozen retry passed 46/46 tasks, 17 cached, 48.689
