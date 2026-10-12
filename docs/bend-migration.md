@@ -235,6 +235,17 @@ One current obstacle list, in execution order:
    under hard five seconds (3.211/3.082/2.727/2.478/2.819 seconds). The combined
    transaction prefix still times out at 5.025 seconds: this cut preserves proof
    consumers but does not close the whole deadline barrier.
+   A second single-authority cut moves 13 existing lower remap facts to
+   AttachmentRemapFacts; original complete remap/pending laws remain in
+   AttachmentRemapProjectionProof, with three real importers using the lower
+   owner. Moved statements/bodies match modulo whitespace. Lower/original
+   remap roots pass in 1.567/1.719s; Parent/Materialization pass in 2.779/4.094s.
+   Union still times out in 5.022s and full prefix in 5.047s, so the barrier is
+   not closed. The formatter rejects both split declaration headers; untouched
+   original HEAD reproduces the same limitation. No formatter exemption is
+   claimed. Subsequent timing reversal (Parent header-only 4.232s vs prior
+   full Parent 2.779s) prevents reliable body-cost attribution from this batch;
+   pair identical closures with CPU measurements before further cuts.
    No faster complete proof is claimed. Physical probes also require updating constructor
    namespaces and the four reference fixtures' existing mandatory python=None
    field; the first incomplete-fixture failure is retained.
@@ -304,6 +315,13 @@ One current obstacle list, in execution order:
    and parser dispatch remain the same. Explicit lint, root types, check:fast
    and full entry 78 cases/55 native comparisons pass
    (/tmp/hapsland-frontend-context-{types,fast,entry}.log).
+   Existing ResolverInput, ResolverFailure and ResolverOutcome transport types
+   now have one exported authority in service-contract.ts instead of being
+   private to consumer.ts. Field definitions are unchanged; the consumer uses
+   type-only imports. Root typecheck and explicit lint pass; check:fast passes
+   with both changed authored sources selected
+   (/tmp/hapsland-resolver-contract-{types,fast}.log). This enables real machine
+   declarations to reuse the contract; their packaging is still open.
    A fresh origin/master fetch confirms no commits missing from this branch.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source

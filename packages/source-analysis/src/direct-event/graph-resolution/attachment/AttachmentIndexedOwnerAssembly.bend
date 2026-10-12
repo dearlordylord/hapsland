@@ -1,6 +1,6 @@
 import Base
 import ./AttachmentReplacementStructureProof.bend as Structure
-import ./AttachmentRemapProjectionProof.bend as Remap
+import ./AttachmentRemapFacts.bend as Remap
 import ./RetainedForestProjection.bend as P
 import ./ActualAttachmentPhaseProjection.bend as Ready
 import ../Composition.bend as Compose

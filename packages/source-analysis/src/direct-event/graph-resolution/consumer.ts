@@ -5,7 +5,7 @@ import type {
 } from "@hapsland/native-observation/direct-event/capture"
 import type { ReviewUnit } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import type { LanguageGraphHost } from "../languages/contracts.ts"
-import type { ServiceSession, PerformOptions, Token, Maybe, Variant, Natural } from "./service-contract.ts"
+import type { ServiceSession, PerformOptions, Variant, ResolverInput, ResolverOutcome } from "./service-contract.ts"
 
 import { fromProductValue, type ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import * as Effect from "effect/Effect"
@@ -20,40 +20,6 @@ import {
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 
-type ResolverInput = Variant<
-  "ResolverInput",
-  {
-    readonly invocation: bigint
-    readonly root_path: string
-    readonly root_capture: Token<"CaptureToken">
-    readonly root_bytes: bigint
-    readonly root_name: string
-    readonly root_source: string
-    readonly branch: Variant<"FunctionBranch" | "TypeBranch">
-    readonly caller_cache: Maybe<Token<"CacheToken">>
-    readonly limits: {
-      readonly $: "../../../../agent-flow-bend/ImportGraph.Limits"
-      readonly version: bigint
-      readonly source_bytes: bigint
-      readonly tree_bytes: bigint
-      readonly files: bigint
-      readonly read_bytes: bigint
-      readonly outgoing_edges: bigint
-      readonly depth: bigint
-      readonly work: bigint
-    }
-  }
->
-type ResolverFailure =
-  | Variant<"WrongInvocation" | "WrongCorrelation", { readonly expected: Natural; readonly actual: Natural }>
-  | Variant<"NegativeGraphWork", { readonly magnitude: Natural }>
-  | Variant<"ForeignProviderFailure" | "RuntimeFailure", { readonly exception: Token<"ExceptionToken"> }>
-  | Variant<
-      "WrongReplyKind" | "MalformedReply" | "LocalTraversalFailure" | "InvocationCancelled" | "ReplyAfterTerminal"
-    >
-type ResolverOutcome =
-  | { readonly failure: ResolverFailure }
-  | { readonly result: Variant<"NoReviewUnit"> | Variant<"ReviewUnitResult", { readonly value: ProductValue }> }
 type ResolverPorts = {
   readonly observeProduct?: (value: ProductValue) => void
   readonly drive: (session: ServiceSession, input: ResolverInput, options: PerformOptions) => Promise<ResolverOutcome>

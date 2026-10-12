@@ -3,7 +3,7 @@ import ./RetainedForestProjection.bend as P
 import ./AttachmentMapping.bend as Mapping
 import ./AttachmentNaturalArithmeticFacts.bend as Arithmetic
 import ./AttachmentUnaffectedNodesProof.bend as Unaffected
-import ./AttachmentRemapProjectionProof.bend as Remap
+import ./AttachmentRemapFacts.bend as Remap
 import ./AttachmentNodeReplacementTransport.bend as Replacement
 import ./AttachmentRootSelectionProof.bend as RootSelection
 import ./AttachmentProjectionAllowanceProof.bend as Count

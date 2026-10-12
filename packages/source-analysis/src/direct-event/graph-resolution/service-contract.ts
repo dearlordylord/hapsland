@@ -238,6 +238,41 @@ export type Reply = Variant<
   "Reply",
   { readonly invocation: Natural; readonly id: Natural; readonly outcome: ServiceOutcome }
 >
+export type ResolverInput = Variant<
+  "ResolverInput",
+  {
+    readonly invocation: bigint
+    readonly root_path: string
+    readonly root_capture: Token<"CaptureToken">
+    readonly root_bytes: bigint
+    readonly root_name: string
+    readonly root_source: string
+    readonly branch: Variant<"FunctionBranch" | "TypeBranch">
+    readonly caller_cache: Maybe<Token<"CacheToken">>
+    readonly limits: {
+      readonly $: "../../../../agent-flow-bend/ImportGraph.Limits"
+      readonly version: bigint
+      readonly source_bytes: bigint
+      readonly tree_bytes: bigint
+      readonly files: bigint
+      readonly read_bytes: bigint
+      readonly outgoing_edges: bigint
+      readonly depth: bigint
+      readonly work: bigint
+    }
+  }
+>
+export type ResolverFailure =
+  | Variant<"WrongInvocation" | "WrongCorrelation", { readonly expected: Natural; readonly actual: Natural }>
+  | Variant<"NegativeGraphWork", { readonly magnitude: Natural }>
+  | Variant<"ForeignProviderFailure" | "RuntimeFailure", { readonly exception: Token<"ExceptionToken"> }>
+  | Variant<
+      "WrongReplyKind" | "MalformedReply" | "LocalTraversalFailure" | "InvocationCancelled" | "ReplyAfterTerminal"
+    >
+export type ResolverOutcome =
+  | { readonly failure: ResolverFailure }
+  | { readonly result: Variant<"NoReviewUnit"> | Variant<"ReviewUnitResult", { readonly value: ProductValue }> }
+
 export type PerformOptions = { readonly signal?: AbortSignal | undefined }
 export type SessionPorts = {
   readonly readGoConfiguration?:

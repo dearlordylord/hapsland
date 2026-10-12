@@ -1,6 +1,6 @@
 import Base
 import ./ActualAttachmentFrameProjection.bend as Frame
-import ./AttachmentRemapProjectionProof.bend as Remap
+import ./AttachmentRemapFacts.bend as Remap
 import ../Composition.bend as Compose
 import ../traversal/core.bend as Local
 import ../traversal/INTERPRETER_NAT_FACTS.bend as N
