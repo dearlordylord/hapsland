@@ -932,4 +932,4 @@ export const prepareNativeSourceLine = Effect.fn("DirectEvent.prepareSourceLine"
   }
 })
 
-export { prepareReadyUnits as nativePrepareReadyUnits }
+export { prepareReadyUnits as nativePrepareReadyUnits, selectCapturedCandidate as nativeSelectCapturedCandidate }

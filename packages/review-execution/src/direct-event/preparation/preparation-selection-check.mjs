@@ -1,39 +1,10 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFile, mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { stripTypeScriptTypes } from "node:module"
-import { selectEditedRoots } from "../../../../native-observation/src/direct-event/edit-attribution.ts"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "../../../../review-definition/src/rules/targets.ts"
-const source = await readFile(join(import.meta.dirname, "../pipeline.ts"), "utf8")
-const section = (start, end) =>
-  source.slice(source.indexOf("const " + start + " ="), source.indexOf("const " + end + " ="))
-const referenceCode = [
-  section("analysisRoot", "extractionFailures"),
-  section("candidatePostEditHunks", "capturedCandidateFiles"),
-  section("isGraphInputContract", "hasVerifiedClaudeSpan"),
-  section("selectCapturedCandidate", "positionBefore")
-].join("\n")
-// Extract current private selection owners rather than copying their algorithm.
-// Native patch verification and Go ambiguity-reason classification remain outside
-// this declared selection-stage comparison and are still migration obligations.
-const reference = new Function(
-  "selectEditedRoots",
-  "TYPE_INPUT_CONTRACT",
-  "FUNCTION_INPUT_CONTRACT",
-  "verifyCodexPostEditHunks",
-  "languageForPath",
-  stripTypeScriptTypes(referenceCode, { mode: "transform" }) + "\nreturn selectCapturedCandidate;"
-)(
-  selectEditedRoots,
-  TYPE_INPUT_CONTRACT,
-  FUNCTION_INPUT_CONTRACT,
-  () => {
-    throw new Error("undeclared native patch fixture")
-  },
-  () => undefined
-)
+import { nativeSelectCapturedCandidate as reference } from "./verification/native-preparation.ts"
 const temp = await mkdtemp("/tmp/hapsland-preparation-selection-")
 try {
   const emitted = join(temp, "selection.mjs")

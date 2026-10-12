@@ -142,11 +142,14 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
         }
       })
       const captureSource = facts.context.captureSource
-      const graphContext = captureSource === undefined ? facts.context : {
-        ...facts.context,
-        captureSource: (...args: Parameters<typeof captureSource>) =>
-          Effect.promise(signal => runEffect(captureSource(...args), { signal }))
-      }
+      const graphContext =
+        captureSource === undefined
+          ? facts.context
+          : {
+              ...facts.context,
+              captureSource: (...args: Parameters<typeof captureSource>) =>
+                Effect.promise((signal) => runEffect(captureSource(...args), { signal }))
+            }
       const unit = await resolve(facts.path, facts.capture, facts.name, graphContext, execution)
       if (terminalFrame === undefined) throw new TypeError("Resolver completed without an accepted terminal")
       return {

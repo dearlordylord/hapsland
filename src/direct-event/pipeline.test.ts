@@ -1054,7 +1054,10 @@ describe("direct-event vertical slice", () => {
         if (observed?.status === "observed") {
           expect(observed.analysis.status).toBe("incomplete")
           if (observed.analysis.status === "incomplete") {
-            expect(observed.analysis.failures.some((failure) => failure.reason === reason)).toBe(true)
+            expect(
+              observed.analysis.failures.some((failure) => failure.reason === reason),
+              JSON.stringify({ source, reason, failures: observed.analysis.failures })
+            ).toBe(true)
           }
         }
         if (source.startsWith("interface Good") && prepared.observation.status === "incomplete") {

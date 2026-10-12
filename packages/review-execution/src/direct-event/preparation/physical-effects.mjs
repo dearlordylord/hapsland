@@ -243,7 +243,10 @@ export function createPhysicalPreparationCapability({
       case "ExtractSource": {
         const facts = inspectGraphFile(command.capture.path, command.capture.text)
         const functions = analyzeFunctionFile(command.capture.path, command.capture.text),
-          typeFile = analyzeTypeFile(command.capture.path, command.capture.text, true)
+          hasCapturedGraph =
+            facts !== undefined ||
+            (functions !== undefined && functions.functions.size > 0 && functions.types.size === 0),
+          typeFile = analyzeTypeFile(command.capture.path, command.capture.text, hasCapturedGraph)
         /** @param {{artifact: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewArtifact, location: import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation}} fact
          * @returns {RootWire}
          */
