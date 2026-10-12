@@ -14,24 +14,31 @@ import {
 } from "../../state/resolver-custody/resident-provider-permit.mjs"
 import { MAX_IPC_FRAME_BYTES } from "@hapsland/resident-transport/resident/protocol"
 import { logicalBytes } from "../../state/encoded-size.ts"
+import { list, unlist as array } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { sourcePartition } from "../../recipient/identity.ts"
 import { evaluationSourcePartition } from "../../work-ownership/identity.ts"
 import { observePlannedEvaluation } from "./retention.ts"
 import { residentUnitWorstOutcomeBytes, residentUnitReservationBytes } from "../../work-ownership/reservation.ts"
-// Canonical-owned prototype effect dispatcher. Reuse progression belongs to Bend;
+// Canonical-owned effect dispatcher. Reuse progression belongs to Bend;
 // Host handlers expose semantic owner effects and resource receipts.
-const list = (values) => values.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
-const array = (value) => {
-  const result = []
-  while (value.$ === "Con") {
-    result.push(value.head)
-    value = value.tail
-  }
-  if (value.$ !== "Nil") throw new Error("Invalid postflow list")
-  return result
-}
-const some = (value) => ({ $: "Some", value }),
-  none = { $: "None" }
+/**
+ * @typedef {import("./context.ts").PlannedPreparationItem | (Omit<Extract<import("./context.ts").PlannedPreparationItem, {kind: "cached"}>, "cached"> & {cached?: import("../../state/evaluation-reuse.ts").CachedEvaluation})} NativePlan
+ * @typedef {import("./context.ts").PreparationContext & { deps: import("./context.ts").Dependencies & Pick<import("../evaluation/context.ts").Dependencies, "residentNow" | "residentReviewControls"> & Pick<import("../../advice-delivery/handoff/context.ts").Dependencies, "residentAdviceExpired">, ownedAdvice?: {core: typeof import("./post-preparation-core.js").default, bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, driver: ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver>} }} PostContext
+ * @typedef {{owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner, driver: ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver>, sourceInvocation: bigint, operation: bigint, capability: import("../../state/capacity/model.ts").CapacityReservation, handoff: {handoff: bigint, scope: Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").Scope, {$: "RetainingScope"}>}, parent: {invocation: bigint, generation: bigint, request: bigint}}} SourceWorkspace
+ */
+/** @template A @param {A} value @returns {{$: "Some", value: A}} */
+const some = (value) => ({ $: "Some", value })
+/** @type {{$: "None"}} */
+const none = { $: "None" }
+/**
+ * @param {bigint} invocation
+ * @param {PostContext} context
+ * @param {import("@hapsland/review-execution/direct-event/pipeline").PreparedObservation} prepared
+ * @param {Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>} preparation
+ * @param {import("@hapsland/native-observation/direct-event/observation").DirectObservation} pathObservation
+ * @param {boolean} analyticsEnabled
+ * @param {SourceWorkspace} [sourceWorkspace]
+ */
 export function createPostPreparationProvider(
   invocation,
   context,
@@ -41,23 +48,36 @@ export function createPostPreparationProvider(
   analyticsEnabled,
   sourceWorkspace
 ) {
-  const ledger = context.deps.residentLedger,
-    plans = new Map(),
-    reservations = new Map(),
-    revisions = new Map(),
-    units = new Map(),
-    errors = new Map(),
-    errorCauses = new Map(),
-    pendingOwners = new Map(),
-    adviceOwners = new Map(),
-    publications = new Map(),
-    tails = new Map()
+  const ledger = context.deps.residentLedger
+  /** @type {Map<bigint, NativePlan>} */
+  const plans = new Map()
+  /** @type {Map<bigint, import("../../state/capacity/model.ts").CapacityReservation>} */
+  const reservations = new Map()
+  /** @type {Map<bigint, import("../../state/revision.ts").WorkRevision>} */
+  const revisions = new Map()
+  /** @type {Map<bigint, import("../../work-ownership/jobs.ts").UnitJob>} */
+  const units = new Map()
+  /** @type {Map<bigint, unknown>} */
+  const errors = new Map()
+  /** @type {Map<bigint, Cause.Cause<unknown>>} */
+  const errorCauses = new Map()
+  /** @type {Map<bigint, import("../../state/resolver-custody/provider-authority.ts").PendingRestore>} */
+  const pendingOwners = new Map()
+  /** @type {Map<bigint, import("../../state/advice-records.ts").Advice>} */
+  const adviceOwners = new Map()
+  /** @type {Map<bigint, readonly import("../../state/joined-reviews.ts").JoinedReviewOutcome[]>} */
+  const publications = new Map()
+  /** @type {Map<bigint, {receipt: import("../../state/resolver-custody/provider-authority.ts").AdviceReceipt, provider: ReturnType<typeof createAdviceTailProvider>, unit: import("../../work-ownership/jobs.ts").UnitJob, evaluation: import("@hapsland/review-execution/direct-event/pipeline").EvaluatedUnit, started: boolean, preserved?: boolean}>} */
+  const tails = new Map()
   let revoked = false,
     closed = false,
-    finished = false,
-    primaryFailure,
-    primaryCause,
-    finalizationCause
+    finished = false
+  /** @type {unknown} */
+  let primaryFailure
+  /** @type {Cause.Cause<unknown> | undefined} */
+  let primaryCause
+  /** @type {Cause.Cause<unknown> | undefined} */
+  let finalizationCause
   if (sourceWorkspace) {
     const { owner, driver, sourceInvocation, operation, capability, handoff, parent } = sourceWorkspace
     driver.handoffResult(handoff)
@@ -86,17 +106,29 @@ export function createPostPreparationProvider(
     )
       throw new Error("Source workspace lifetime lacks its Canonical handoff")
   }
-  const transferred = new Set(),
-    dischargedReservations = new Set(),
-    ownedClaims = new Set(),
-    acquiredRevisions = new Map(),
-    revisionReservations = new Map()
+  /** @type {Set<import("../../work-ownership/jobs.ts").Job>} */
+  const transferred = new Set()
+  /** @type {Set<bigint>} */
+  const dischargedReservations = new Set()
+  /** @type {Set<string>} */
+  const ownedClaims = new Set()
+  /** @type {Map<bigint, import("../../state/revision.ts").WorkRevision>} */
+  const acquiredRevisions = new Map()
+  /** @type {Map<bigint, bigint>} */
+  const revisionReservations = new Map()
+  /** @param {bigint} handle */
   const transferredReservation = (handle) => [...transferred].some((value) => BigInt(value.reservation.id) === handle)
-  const transferredAcquisition = (handle) =>
-    revisionReservations.has(handle) && transferredReservation(revisionReservations.get(handle))
-  const transferredClaim = (key) => [...transferred].some((value) => value.evaluationKey === key)
+  /** @param {bigint} handle */
+  const transferredAcquisition = (handle) => {
+    const reservation = revisionReservations.get(handle)
+    return reservation !== undefined && transferredReservation(reservation)
+  }
+  /** @param {string} key */
+  const transferredClaim = (key) =>
+    [...transferred].some((value) => value.kind === "unit" && value.evaluationKey === key)
   const rawRun = Effect.runPromise
   const outcomes = new Map(prepared.outcomes.map((outcome, index) => [BigInt(index + 1), outcome]))
+  /** @type {import("./post-preparation-core.js").Outcome[]} */
   const facts = [...outcomes].map(([handle, outcome]) => ({
     $: "Outcome",
     handle,
@@ -107,30 +139,52 @@ export function createPostPreparationProvider(
         ? BigInt(residentUnitReservationBytes(pathObservation, context.job.dispatch, outcome.prepared))
         : 0n
   }))
+  /** @param {import("./post-preparation-core.js").Planned} fact */
   const item = (fact) => {
     const value = plans.get(fact.key)
     if (!value) throw new Error("Unknown native plan")
     return value
   }
+  /** @param {import("./post-preparation-core.js").Planned} fact @returns {import("./context.ts").PlannedPreparationItem} */
+  const completeItem = (fact) => {
+    const value = item(fact)
+    if (value.kind === "cached" && value.cached === undefined) throw new Error("Cached plan lacks its native receipt")
+    return /** @type {import("./context.ts").PlannedPreparationItem} */ (value)
+  }
+  const adviceBinding = () => {
+    const binding = context.ownedAdvice
+    if (!binding) throw new Error("Advice resource lacks its Canonical composition")
+    return binding
+  }
+  /** @param {import("./post-preparation-core.js").Slot} slot */
   const reservation = (slot) => {
     const value = reservations.get(slot.reservation)
     if (!value) throw new Error("Unknown native reservation")
     return value
   }
+  /** @param {bigint} token */
   const revision = (token) => {
     const value = revisions.get(token)
     if (!value) throw new Error("Unknown native revision")
     return value
   }
+  /**
+   * @param {import("./post-preparation-core.js").Slot} slot
+   * @param {bigint} revisionToken
+   * @param {{$: "None"} | {$: "Some", value: bigint}} work
+   * @returns {import("../../work-ownership/jobs.ts").UnitJob}
+   */
   const unit = (slot, revisionToken, work) => {
     const existing = units.get(slot.reservation)
     if (existing) return existing
     const planned = item(slot.item),
       job = context.job,
-      sourceHash = prepared.observation.outcomes.find(
+      observed = prepared.observation.outcomes.find(
         (outcome) => outcome.status === "observed" && outcome.path === planned.outcome.path
-      )?.snapshot.sourceHash
+      ),
+      sourceHash = observed?.status === "observed" ? observed.snapshot.sourceHash : undefined
     const inspectionEvaluationId = context.deps.residentInspection.evaluationId(planned.evaluationKey)
+    /** @type {import("../../work-ownership/jobs.ts").UnitJob} */
     const value = {
       kind: "unit",
       ...(inspectionEvaluationId === undefined ? {} : { inspectionEvaluationId }),
@@ -163,7 +217,9 @@ export function createPostPreparationProvider(
         outcomes: list(facts)
       }
     },
+    /** @param {bigint} token */
     error: (token) => errors.get(token),
+    /** @param {bigint} token */
     cause: (token) => errorCauses.get(token),
     get terminationCause() {
       return primaryCause
@@ -187,30 +243,32 @@ export function createPostPreparationProvider(
     },
     async finish() {
       if (finished) return
-      const failures = [],
-        attempt = async (effect, receipt) => {
-          const exit = await Effect.runPromiseExit(
-            Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt, receipt))
-          )
-          if (Exit.isFailure(exit)) {
-            finalizationCause =
-              finalizationCause === undefined ? exit.cause : Cause.combine(finalizationCause, exit.cause)
-            try {
-              await rawRun(Effect.failCause(exit.cause))
-            } catch (error) {
-              failures.push(error)
-            }
-            return false
+      /** @type {unknown[]} */
+      const failures = []
+      /** @template A, E @param {Effect.Effect<A, E>} effect @param {() => unknown} [receipt] */
+      const attempt = async (effect, receipt) => {
+        const exit = await Effect.runPromiseExit(
+          Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt, receipt))
+        )
+        if (Exit.isFailure(exit)) {
+          finalizationCause =
+            finalizationCause === undefined ? exit.cause : Cause.combine(finalizationCause, exit.cause)
+          try {
+            await rawRun(Effect.failCause(exit.cause))
+          } catch (error) {
+            failures.push(error)
           }
-          return true
+          return false
         }
+        return true
+      }
       for (const tail of tails.values())
         if (!tail.started) {
           tail.started = true
           let rejected
           try {
-            await context.ownedAdvice.driver.driveAdvice(
-              context.ownedAdvice.driver.adviceHandoff(tail.receipt.invocation),
+            await adviceBinding().driver.driveAdvice(
+              adviceBinding().driver.adviceHandoff(tail.receipt.invocation),
               tail.provider,
               { signal: context.deps.residentLifetimeController.signal }
             )
@@ -234,18 +292,20 @@ export function createPostPreparationProvider(
                 ? Cause.die(rejected)
                 : Cause.combine(finalizationCause, Cause.die(rejected))
         }
-      for (const value of units.values())
+      for (const value of units.values()) {
+        const workUnitId = value.workUnitId
         if (
           [...plans.values()].some((plan) => plan.evaluationKey === value.evaluationKey && plan.kind === "cached") &&
           !value.completed &&
           value.round !== undefined &&
-          value.workUnitId !== undefined
+          workUnitId !== undefined
         )
-          await attempt(
-            ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(value.workUnitId)))
-          )
+          await attempt(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
+      }
       const transferredReservations = new Set([...transferred].map((value) => BigInt(value.reservation.id)))
-      const transferredKeys = new Set([...transferred].map((value) => value.evaluationKey))
+      const transferredKeys = new Set(
+        [...transferred].filter((value) => value.kind === "unit").map((value) => value.evaluationKey)
+      )
       for (const [handle, value] of reservations)
         if (!transferredReservations.has(handle)) await attempt(ledger.release(value))
       for (const [handle, value] of acquiredRevisions)
@@ -267,15 +327,22 @@ export function createPostPreparationProvider(
         )
       finished = true
     },
+    /**
+     * @param {import("./post-preparation-core.js").Request} request
+     * @param {{signal?: AbortSignal | undefined, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, beforeCommand?: (command: import("./post-preparation-core.js").Command) => void, afterCommit?: (command: import("./post-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>) => void, afterPendingRestore?: (receipt: NonNullable<import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>["restoredPending"]>) => void}} [options]
+     * @returns {Promise<import("./post-preparation-core.js").Reply>}
+     */
     async perform(request, options = {}) {
       if (revoked || closed || options.signal?.aborted) throw new Error("Revoked post-preparation session")
       if (request.invocation !== invocation) throw new Error("Wrong postflow provider invocation")
       const command = request.command
+      /** @type {import("./post-preparation-core.js").Response} */
       let response = { $: "Ack" }
       const acquisitionHandle = ["RegisterClear", "RegisterRevision"].includes(command.$)
         ? BigInt(revisions.size + 1)
         : undefined
       const cleanup = ["Cleanup", "ReleaseUnspawned", "ReleaseAttached", "FinalizeCachedUnit"].includes(command.$)
+      /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown> & {releasedAcquisition?: bigint | undefined}} publication */
       const committed = (publication) => {
         if (publication.restoredPending) {
           publication.restoredPending.pendingOwnerIdentity.revision = publication.restoredPending.revision
@@ -284,20 +351,68 @@ export function createPostPreparationProvider(
         if (command.$ === "ReleaseClear") acquiredRevisions.delete(command.revision)
         for (const key of publication.claimedKeys) ownedClaims.add(key)
         for (const value of publication.transferredUnits) transferred.add(value)
-        if (command.$ === "CompletePreparation" && Array.isArray(publication.value))
-          for (const allocation of publication.value)
-            if (allocation) reservations.set(BigInt(allocation.reservation.id), allocation.reservation)
-        if (["RegisterRevision", "RegisterClear"].includes(command.$) && publication.value?.revision) {
-          const value = publication.value.revision
-          revisions.set(acquisitionHandle, value)
-          acquiredRevisions.set(acquisitionHandle, value)
-          if (command.slot) revisionReservations.set(acquisitionHandle, command.slot.reservation)
+        if (command.$ === "CompletePreparation" && Array.isArray(publication.value)) {
+          for (const allocation of /** @type {unknown[]} */ (publication.value)) {
+            if (!allocation) continue
+            if (typeof allocation !== "object" || !("reservation" in allocation))
+              throw new Error("Invalid allocation receipt")
+            const reservation = allocation.reservation
+            if (
+              typeof reservation !== "object" ||
+              reservation === null ||
+              !("id" in reservation) ||
+              typeof reservation.id !== "number" ||
+              !("partition" in reservation) ||
+              typeof reservation.partition !== "string"
+            )
+              throw new Error("Invalid reservation receipt")
+            reservations.set(
+              BigInt(reservation.id),
+              /** @type {import("../../state/capacity/model.ts").CapacityReservation} */ (reservation)
+            )
+          }
+        }
+        const result = publication.value
+        if (
+          (command.$ === "RegisterRevision" || command.$ === "RegisterClear") &&
+          typeof result === "object" &&
+          result !== null &&
+          "revision" in result &&
+          result.revision
+        ) {
+          const value = result.revision
+          if (
+            typeof value !== "object" ||
+            !("subject" in value) ||
+            typeof value.subject !== "string" ||
+            !("token" in value) ||
+            typeof value.token !== "string" ||
+            !("generation" in value) ||
+            typeof value.generation !== "number"
+          )
+            throw new Error("Invalid revision receipt")
+          if (acquisitionHandle === undefined) throw new Error("Missing revision acquisition handle")
+          // Retain the exact native object after checking all WorkRevision fields.
+          const revision = /** @type {import("../../state/revision.ts").WorkRevision} */ (value)
+          revisions.set(acquisitionHandle, revision)
+          acquiredRevisions.set(acquisitionHandle, revision)
+          if (command.$ === "RegisterRevision") revisionReservations.set(acquisitionHandle, command.slot.reservation)
         }
         options.afterCommit?.(command, publication)
       }
-      let failureKind = "Failed",
-        failureCause
+      /** @type {"Failed" | "Defect" | "Cancelled"} */
+      let failureKind = "Failed"
+      /** @type {Cause.Cause<unknown> | undefined} */
+      let failureCause
+      /**
+       * @template A, E
+       * @param {Effect.Effect<A, E>} effect
+       * @param {bigint | undefined} [releasedAcquisition]
+       * @param {string | undefined} [releasedClaim]
+       * @returns {Promise<A>}
+       */
       const run = async (effect, releasedAcquisition, releasedClaim) => {
+        /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>} publication */
         const receipt = (publication) => {
           if (releasedAcquisition !== undefined) acquiredRevisions.delete(releasedAcquisition)
           if (releasedClaim !== undefined) {
@@ -328,6 +443,7 @@ export function createPostPreparationProvider(
         }
         return exit.value
       }
+      /** @param {bigint} handle */
       const releaseAcquisition = async (handle) => {
         if (!acquiredRevisions.has(handle) || transferredAcquisition(handle)) return
         await run(context.deps.residentReleaseCurrentWork(revision(handle)), handle)
@@ -378,6 +494,7 @@ export function createPostPreparationProvider(
             break
           case "LookupReuse": {
             const outcome = outcomes.get(command.outcome.handle)
+            if (!outcome || outcome.status !== "ready") throw new Error("Reuse requires its ready outcome receipt")
             const generationPartition = evaluationSourcePartition(
               context.job.observation,
               context.job.work?.id ?? "standalone",
@@ -390,6 +507,7 @@ export function createPostPreparationProvider(
             )
             const route = await run(context.deps.residentReuse.route(evaluationKey, liveAdvice))
             const key = command.outcome.handle
+            /** @type {Record<typeof route, Exclude<import("./post-preparation-core.js").Route["$"], "CachedFinding">>} */
             const routeFacts = {
               owner: "Owner",
               cached: "CachedEntry",
@@ -397,13 +515,13 @@ export function createPostPreparationProvider(
               joinedPending: "JoinedPending",
               joinedClaimed: "JoinedClaimed"
             }
-            const kind = route === "owner" ? "owner" : route === "cached" ? "cached" : "joined"
-            plans.set(key, {
-              kind,
-              outcome,
-              evaluationKey,
-              ...(kind === "joined" ? { join: route.slice("joined".length).toLowerCase() } : {})
-            })
+            if (route === "owner") plans.set(key, { kind: "owner", outcome, evaluationKey })
+            else if (route === "cached") plans.set(key, { kind: "cached", outcome, evaluationKey })
+            else if (route === "joinedAdvice")
+              plans.set(key, { kind: "joined", join: "advice", outcome, evaluationKey })
+            else if (route === "joinedPending")
+              plans.set(key, { kind: "joined", join: "pending", outcome, evaluationKey })
+            else plans.set(key, { kind: "joined", join: "claimed", outcome, evaluationKey })
             if (route === "owner") {
               ownedClaims.add(evaluationKey)
               context.unassignedClaims.add(evaluationKey)
@@ -455,7 +573,7 @@ export function createPostPreparationProvider(
             break
           }
           case "ObservePlans":
-            for (const fact of array(command.planned)) observePlannedEvaluation(context, item(fact))
+            for (const fact of array(command.planned)) observePlannedEvaluation(context, completeItem(fact))
             break
           case "OwnerBarrier":
             await run(
@@ -468,7 +586,7 @@ export function createPostPreparationProvider(
             )
             break
           case "RecordReuseAnalytics": {
-            const planned = item(command.item)
+            const planned = completeItem(command.item)
             if (planned.kind === "cached")
               await run(
                 context.deps.residentRecordAnalytics(context.job, "cache-hit", planned.cached.evaluation.findings)
@@ -521,6 +639,7 @@ export function createPostPreparationProvider(
               )
             )
             const handle = acquisitionHandle
+            if (handle === undefined) throw new Error("Missing revision acquisition handle")
             revisions.set(handle, value)
             acquiredRevisions.set(handle, value)
             response = { $: "Revision", token: handle }
@@ -548,9 +667,10 @@ export function createPostPreparationProvider(
             break
           }
           case "RecordJoinedOutcomes": {
-            const existing = adviceOwners.get(command.advice)
-            if (!existing || !publications.has(command.publication)) throw new Error("Unknown joined publication")
-            await run(context.deps.residentRecordJoinedOutcomes(publications.get(command.publication), existing.id))
+            const existing = adviceOwners.get(command.advice),
+              publication = publications.get(command.publication)
+            if (!existing || !publication) throw new Error("Unknown joined publication")
+            await run(context.deps.residentRecordJoinedOutcomes(publication, existing.id))
             break
           }
           case "ReadCurrentAdvice": {
@@ -618,6 +738,7 @@ export function createPostPreparationProvider(
               )
             )
             const handle = acquisitionHandle
+            if (handle === undefined) throw new Error("Missing revision acquisition handle")
             revisions.set(handle, token)
             acquiredRevisions.set(handle, token)
             revisionReservations.set(handle, command.slot.reservation)
@@ -629,19 +750,20 @@ export function createPostPreparationProvider(
                 context.job.round === undefined || context.job.workObservationId === undefined
                   ? undefined
                   : await run(ledger.rounds.policyWork(context.job.round)),
-              planned = item(command.slot.item),
+              planned = completeItem(command.slot.item),
               operation = Number(command.slot.operation)
+            const observation = context.job.workObservationId
             const work =
-              policy === undefined
+              policy === undefined || observation === undefined
                 ? undefined
                 : planned.kind === "cached"
                   ? policy.cachedFinding(
-                      context.job.workObservationId,
+                      observation,
                       planned.cached.evaluation.findings.length,
                       logicalBytes(planned.cached.evaluation.findings),
                       operation
                     )
-                  : policy.spawn(context.job.workObservationId, operation)
+                  : policy.spawn(observation, operation)
             response = { $: "Work", token: work === undefined ? none : some(BigInt(work)) }
             break
           }
@@ -728,7 +850,8 @@ export function createPostPreparationProvider(
             }
             break
           case "RecordCachedActivity": {
-            const planned = item(command.slot.item)
+            const planned = completeItem(command.slot.item)
+            if (planned.kind !== "cached") throw new Error("Cached activity requires its cached plan")
             recordActivity({
               statePath: context.job.dispatch.activityPath,
               root: context.job.observation.root,
@@ -757,10 +880,9 @@ export function createPostPreparationProvider(
           }
           case "RetireCachedWork": {
             const value = unit(command.slot, command.revision, command.work)
-            if (value.round !== undefined && value.workUnitId !== undefined)
-              await run(
-                ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(value.workUnitId)))
-              )
+            const workUnitId = value.workUnitId
+            if (value.round !== undefined && workUnitId !== undefined)
+              await run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
             break
           }
           case "ReleaseCachedUnit": {
@@ -776,9 +898,10 @@ export function createPostPreparationProvider(
             if (!context.ownedAdvice || !options.ownerLease)
               throw new Error("Cached advice requires Canonical composition")
             const value = unit(command.slot, command.revision, command.work),
-              planned = item(command.slot.item),
+              planned = completeItem(command.slot.item),
               credential = value.dispatch.credential,
               required = value.dispatch.controlled === null || value.dispatch.controlled.requireCredential === true
+            if (planned.kind !== "cached") throw new Error("Cached advice requires its cached plan")
             const evaluation = { prepared: value.prepared, findings: planned.cached.evaluation.findings }
             const initial = {
               analyticsPath: value.dispatch.activityPath,
@@ -814,6 +937,7 @@ export function createPostPreparationProvider(
                 binding.bridge.adviceInsertAndHandoff(options.ownerLease, initial, handle, (publication) => {
                   transferred.add(value)
                   const receipt = publication.adviceReceipt
+                  if (!receipt) throw new Error("Advice insert lacks its Canonical handoff receipt")
                   const provider = createAdviceTailProvider(
                     receipt.invocation,
                     binding.bridge,
@@ -865,8 +989,8 @@ export function createPostPreparationProvider(
             tail.preserved = true
             tail.started = true
             tail.provider.preserve()
-            await context.ownedAdvice.driver.driveAdvice(
-              context.ownedAdvice.driver.adviceHandoff(command.tail),
+            await adviceBinding().driver.driveAdvice(
+              adviceBinding().driver.adviceHandoff(command.tail),
               tail.provider,
               { signal: context.deps.residentLifetimeController.signal }
             )
@@ -878,8 +1002,8 @@ export function createPostPreparationProvider(
             tail.started = true
             let accepted
             try {
-              accepted = await context.ownedAdvice.driver.driveAdvice(
-                context.ownedAdvice.driver.adviceHandoff(command.tail),
+              accepted = await adviceBinding().driver.driveAdvice(
+                adviceBinding().driver.adviceHandoff(command.tail),
                 tail.provider,
                 { signal: context.deps.residentLifetimeController.signal }
               )
@@ -897,10 +1021,9 @@ export function createPostPreparationProvider(
           }
           case "FinalizeCachedUnit": {
             const value = unit(command.slot, command.revision, command.work)
-            if (!value.completed && value.round !== undefined && value.workUnitId !== undefined) {
-              await run(
-                ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(value.workUnitId)))
-              )
+            const workUnitId = value.workUnitId
+            if (!value.completed && value.round !== undefined && workUnitId !== undefined) {
+              await run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
               if (!value.released) {
                 await run(ledger.release(value.reservation))
                 await run(context.deps.residentReleaseCurrentWork(value.revision))
@@ -939,7 +1062,7 @@ export function createPostPreparationProvider(
       } catch (error) {
         const cause = failureCause ?? (failureKind === "Defect" ? Cause.die(error) : Cause.fail(error))
         if (primaryFailure === undefined) primaryCause = cause
-        else if (cleanup) primaryCause = Cause.combine(primaryCause, cause)
+        else if (cleanup) primaryCause = primaryCause === undefined ? cause : Cause.combine(primaryCause, cause)
         primaryFailure ??= error
         const token = BigInt(errors.size + 1)
         errors.set(token, error)
@@ -951,8 +1074,17 @@ export function createPostPreparationProvider(
   }
 }
 // Intermediate direct runner retained until the owned physical handoff qualifies.
+/**
+ * @param {typeof import("./post-preparation-core.js").default} core
+ * @param {PostContext} context
+ * @param {import("@hapsland/review-execution/direct-event/pipeline").PreparedObservation} prepared
+ * @param {Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>} preparation
+ * @param {import("@hapsland/native-observation/direct-event/observation").DirectObservation} pathObservation
+ * @param {boolean} analyticsEnabled
+ */
 export function bendPostPreparation(core, context, prepared, preparation, pathObservation, analyticsEnabled) {
   const provider = createPostPreparationProvider(1n, context, prepared, preparation, pathObservation, analyticsEnabled)
+  /** @type {Cause.Cause<unknown> | undefined} */
   let terminalCause
   return Effect.tryPromise({
     try: async () => {
@@ -969,7 +1101,7 @@ export function bendPostPreparation(core, context, prepared, preparation, pathOb
         }
         if (step.$ === "Finished") return true
         if (step.$ === "Stopped") {
-          if (["TechnicalFailure", "DefectFailure"].includes(step.reason.$)) {
+          if (step.reason.$ === "TechnicalFailure" || step.reason.$ === "DefectFailure") {
             terminalCause = provider.terminationCause ?? provider.cause(step.reason.token)
             throw provider.error(step.reason.token) ?? new Error("Postflow refused native attachment")
           }

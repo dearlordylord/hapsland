@@ -789,6 +789,26 @@ One current obstacle list, in execution order:
    check:fast passes 109 tests, root and strict ABI/dependency gates and lint
    selecting three actual authored files (/tmp/hapsland-advice-provider-fast.log).
    None of this enables public production Preparation or deletes replaced TS.
+   The complete PostPreparation provider now checks strictly against the existing
+   native PreparationContext/ledger, prepared outcomes, reservations, revisions,
+   unit jobs, reuse plans and advice capabilities, and the closed packaged Bend
+   protocol. Receipt callbacks validate and retain original acquired objects
+   before effect return, including acknowledgment-loss paths. Static staged-plan
+   typing describes the existing mutable cached receipt; it adds no runtime
+   state model. Closed native route to Bend tag conversion replaces string
+   slicing with the same five mappings. Existing shared value-codec list/unlist
+   removes the duplicate local converter. Both complete consumers pass with
+   this provider: Source 57/6502/32 and resident Preparation 73/15702/855.
+   check:fast passes 109 tests, source/ABI/dependency gates and lint selecting
+   the actual changed provider. Full strict host remains unqualified with 204
+   diagnostics in driver, preparation foreign binding and Source provider;
+   PostPreparation has none. Logs: /tmp/hapsland-post-provider-{strict-v3,
+   source-preparation-consumer,resident-preparation-check,fast}.log.
+   Whole compiled host, production adoption and replaced TS deletion remain open.
+   Additional original attachment support preserves all old pending rows through
+   actual registration and both appended history lists (4.449s, hard five seconds).
+   The original transaction law/premises are byte-identical; its whole staged,
+   coverage and arbitrary-reply join remains unqualified.
    Original attachment support additionally checks actual newly allocated
    pending rows against exact History.ids/provenance (4.315s), and reference
    registration rows (2.140s), within hard five seconds. The combined actual to
