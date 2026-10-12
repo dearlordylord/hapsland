@@ -3163,6 +3163,96 @@ def ready_staged_next_exact(+items: List<&2, Local.Pending>, +reference: List<&2
       Equal.sym(Nat, ready_registration_next(X.register(reference, source, catalog, next)), (next + reference_length : Nat),
         ready_reference_next_exact(reference, source, catalog, next))))
 
+def ready_nat_count_append(+left: List<&2, Nat>, +right: List<&2, Nat>, +query: Nat) ->
+    {ActualFrame.nat_count(List.append(&2, Nat, left, right), query)
+      == (ActualFrame.nat_count(left, query) + ActualFrame.nat_count(right, query) : Nat) : Nat}:
+  match left:
+    case []: {==}
+    case +head <> +tail:
+      Equal.trans(Nat, ActualFrame.nat_count(List.append(&2, Nat, head <> tail, right), query),
+        (Bool.pick(Nat, Nat.is_eq(head, query), 1n, 0n) + (ActualFrame.nat_count(tail, query) + ActualFrame.nat_count(right, query) : Nat) : Nat),
+        (ActualFrame.nat_count(head <> tail, query) + ActualFrame.nat_count(right, query) : Nat),
+        Equal.cong(Nat, Nat, count => (Bool.pick(Nat, Nat.is_eq(head, query), 1n, 0n) + count : Nat),
+          ActualFrame.nat_count(List.append(&2, Nat, tail, right), query),
+          (ActualFrame.nat_count(tail, query) + ActualFrame.nat_count(right, query) : Nat), ready_nat_count_append(tail, right, query)),
+        Equal.sym(Nat,
+          ((Bool.pick(Nat, Nat.is_eq(head, query), 1n, 0n) + ActualFrame.nat_count(tail, query) : Nat) + ActualFrame.nat_count(right, query) : Nat),
+          (Bool.pick(Nat, Nat.is_eq(head, query), 1n, 0n) + (ActualFrame.nat_count(tail, query) + ActualFrame.nat_count(right, query) : Nat) : Nat),
+          Arithmetic.add_assoc(Bool.pick(Nat, Nat.is_eq(head, query), 1n, 0n), ActualFrame.nat_count(tail, query), ActualFrame.nat_count(right, query))))
+
+def ready_old_count_above(+items: List<&2, Nat>, +next: Nat, +query: Nat,
+    +before: {ActualReady.pending_ids_before(items, next) == True{} : Bool},
+    +above: {Nat.is_le(next, query) == True{} : Bool}) ->
+    {ActualFrame.nat_count(items, query) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      Equal.trans(Nat, ActualFrame.nat_count(head <> tail, query), ActualFrame.nat_count(tail, query), 0n,
+        Equal.cong(Bool, Nat, same => (Bool.pick(Nat, same, 1n, 0n) + ActualFrame.nat_count(tail, query) : Nat),
+          Nat.is_eq(head, query), False{}, ready_before_distinct(head, query,
+            Arithmetic.lt_of_lt_of_le(head, next, query,
+              BoolFacts.eq_true_of_and_left(Nat.is_lt(head, next), ActualReady.pending_ids_before(tail, next), before), above))),
+        ready_old_count_above(tail, next, query,
+          BoolFacts.eq_true_of_and_right(Nat.is_lt(head, next), ActualReady.pending_ids_before(tail, next), before), above))
+
+
+def ready_before_reverse_distinct(+left: Nat, +right: Nat,
+    before: {Nat.is_lt(left, right) == True{} : Bool}) -> {Nat.is_eq(right, left) == False{} : Bool}:
+  match left right:
+    case 0n 0n: Empty.absurd({Nat.is_eq(0n, 0n) == False{} : Bool}, NatFacts.internal_false_ne_true(before))
+    case 0n 1n+_: {==}
+    case 1n+_ 0n: Empty.absurd({Nat.is_eq(0n, left) == False{} : Bool}, NatFacts.internal_false_ne_true(before))
+    case 1n+a 1n+b: ready_before_reverse_distinct(a, b, before)
+
+def ready_new_count_below(+items: List<&2, V.PendingPayload>, +next: Nat, +query: Nat,
+    +below: {Nat.is_lt(query, next) == True{} : Bool}) ->
+    {ActualFrame.nat_count(History.ids(items, next), query) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      Equal.trans(Nat, ActualFrame.nat_count(History.ids(items, next), query),
+        ActualFrame.nat_count(History.ids(tail, (next + 1n : Nat)), query), 0n,
+        Equal.cong(Bool, Nat, same => (Bool.pick(Nat, same, 1n, 0n) + ActualFrame.nat_count(History.ids(tail, (next + 1n : Nat)), query) : Nat),
+          Nat.is_eq(next, query), False{}, ready_before_reverse_distinct(query, next, below)),
+        ready_new_count_below(tail, (next + 1n : Nat), query,
+          NatFacts.lt_trans(query, next, (next + 1n : Nat), below,
+            Equal.trans(Bool, Nat.is_lt(next, (next + 1n : Nat)), Nat.is_lt(next, (1n + next : Nat)), True{},
+              Equal.cong(Nat, Bool, bound => Nat.is_lt(next, bound), (next + 1n : Nat), (1n + next : Nat), Arithmetic.add_comm(next, 1n)),
+              NatFacts.lt_succ_self(next)))))
+
+
+def ready_old_count_retained(+old: List<&2, Nat>, +payloads: List<&2, V.PendingPayload>, +next: Nat, +query: Nat,
+    before: {ActualReady.pending_ids_before(old, next) == True{} : Bool},
+    +count: {ActualFrame.nat_count(old, query) == 1n : Nat}) ->
+    {ActualFrame.nat_count(List.append(&2, Nat, old, History.ids(payloads, next)), query) == 1n : Nat}:
+  Equal.trans(Nat, ActualFrame.nat_count(List.append(&2, Nat, old, History.ids(payloads, next)), query),
+    (ActualFrame.nat_count(old, query) + ActualFrame.nat_count(History.ids(payloads, next), query) : Nat), 1n,
+    ready_nat_count_append(old, History.ids(payloads, next), query),
+    Equal.trans(Nat, (ActualFrame.nat_count(old, query) + ActualFrame.nat_count(History.ids(payloads, next), query) : Nat),
+      ActualFrame.nat_count(old, query), 1n,
+      Equal.trans(Nat, (ActualFrame.nat_count(old, query) + ActualFrame.nat_count(History.ids(payloads, next), query) : Nat),
+        (ActualFrame.nat_count(old, query) + 0n : Nat), ActualFrame.nat_count(old, query),
+        Equal.cong(Nat, Nat, size => (ActualFrame.nat_count(old, query) + size : Nat),
+          ActualFrame.nat_count(History.ids(payloads, next), query), 0n,
+          ready_new_count_below(payloads, next, query, ready_count_before(old, next, query, before, count))),
+        Arithmetic.add_zero(ActualFrame.nat_count(old, query))), count))
+
+def ready_old_unique_extended(+items: List<&2, Nat>, +all: List<&2, Nat>, +payloads: List<&2, V.PendingPayload>, +next: Nat,
+    +before: {ActualReady.pending_ids_before(all, next) == True{} : Bool},
+    +unique: {ActualFrame.nats_unique(items, all) == True{} : Bool}) ->
+    {ActualFrame.nats_unique(items, List.append(&2, Nat, all, History.ids(payloads, next))) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      BoolFacts.and_eq_true(Nat.is_eq(ActualFrame.nat_count(List.append(&2, Nat, all, History.ids(payloads, next)), head), 1n),
+        ActualFrame.nats_unique(tail, List.append(&2, Nat, all, History.ids(payloads, next))),
+        NaturalKeys.nat_true_of_same(ActualFrame.nat_count(List.append(&2, Nat, all, History.ids(payloads, next)), head), 1n,
+          ready_old_count_retained(all, payloads, next, head, before,
+            NatFacts.eq_of_is_eq(ActualFrame.nat_count(all, head), 1n,
+              BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.nat_count(all, head), 1n), ActualFrame.nats_unique(tail, all), unique)))),
+        ready_old_unique_extended(tail, all, payloads, next, before,
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.nat_count(all, head), 1n), ActualFrame.nats_unique(tail, all), unique)))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

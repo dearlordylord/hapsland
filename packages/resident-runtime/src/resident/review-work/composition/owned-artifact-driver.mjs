@@ -1,8 +1,38 @@
 import * as ownedMachine from "./owned-machine.mjs"
 import { createArtifactMachine } from "./artifact-dispatcher.mjs"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
+/**
+ * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner} Owner
+ * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").State} State
+ * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Step} OwnerStep
+ * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action} Action
+ * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Scope} Scope
+ * @typedef {ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>["control"]} Control
+ * @typedef {Parameters<Control["invoke"]>[0]} Method
+ * @typedef {import("../../state/resolver-custody/provider-authority.ts").ControlledStep | OwnerStep} Step
+ * @typedef {{phase: string, error: unknown, command?: Action, operation?: number}} Failure
+ * @typedef {{failures: Failure[], rejection: Failure | undefined}} ActionOutcome
+ * @typedef {import("@hapsland/runtime-environment/runtime/native-session-registry").NativeSession & {revoke(): unknown, finish?: () => unknown | Promise<unknown>, exception?: (token: Parameters<Parameters<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").createBendResolver>[0]["drive"]>[0] extends {exception: (token: infer T) => unknown} ? T : never) => unknown, forceCleanup?: (error: unknown) => unknown}} NativeSession
+ * @typedef {Extract<ownedMachine.Projection["view"], {$: "Types.AwaitService"}>["request"]} Request
+ * @typedef {{signal?: AbortSignal, ownerLease?: {invocation: bigint, generation: bigint, lease: bigint, request: bigint}}} ForeignOptions
+ * @typedef {{beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, afterAction?: (event: {command: Action, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, canonicalOutputs?: (outputs: readonly import("@hapsland/agent-flow-bend/canonical-resolver-owner").OwnerTransport<import("@hapsland/canonical-policy/canonical/adapter").CanonicalOutput>[]) => unknown, beforeProvider?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown}} Hooks
+ * @typedef {{command: Extract<Action, {$: "CancelChild"}>, completed: Set<number>}} CancellationCleanup
+ */
+/**
+ * @template {Method} M
+ * @typedef {Parameters<Owner[M]> extends [State, ...infer A] ? A : never} Arguments
+ */
+/** @typedef {{[K in Method]: (state: State, ...args: Arguments<K>) => OwnerStep}} EntryTable */
+/** @template A @param {A | undefined} value @returns {A} */
+const required = (value) => {
+  if (value === undefined) throw new TypeError("Missing owned invocation resource")
+  return value
+}
 // Effect/lifetime adapter for actual Canonical owner actions. Root selection and
 // resident retention are not implemented here: this is a composed intermediate.
+/**
+ * @param {{owner: Owner, initialState?: State, scope: Scope, artifacts?: Parameters<typeof createArtifactMachine>[0], registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<NativeSession>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks, control?: Control, machine?: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input) => ownedMachine.Machine | undefined}} options
+ */
 export function createOwnedArtifactDriver({
   owner,
   initialState,
@@ -15,19 +45,66 @@ export function createOwnedArtifactDriver({
   machine: providedMachine,
   selectMachine
 }) {
-  const machine = providedMachine ?? createArtifactMachine({ ...artifacts, retainPrefixes: false })
-  const machines = new Map(),
-    engine = (invocation) => machines.get(invocation) ?? machine
+  if (!providedMachine && !artifacts) throw new TypeError("Missing owned machine artifacts")
+  const machine = providedMachine ?? createArtifactMachine({ ...required(artifacts), retainPrefixes: false })
+  /** @type {Map<bigint, ownedMachine.Machine>} */
+  const machines = new Map()
+  /** @param {bigint} invocation */
+  const engine = (invocation) => machines.get(invocation) ?? machine
   let state = control ? undefined : initialState,
     nextHandle = 1n
-  const current = () => (control ? control.readState() : state)
-  const invoke = (method, ...args) => (control ? control.invoke(method, args) : owner[method](state, ...args))
+  /** @type {EntryTable} */
+  const entries = owner
+  const current = () => (control ? control.readState() : required(state))
+  /**
+   * @template {Method} M
+   * @param {M} method
+   * @param {Arguments<M>} args
+   * @returns {Step}
+   */
+  const invoke = (method, ...args) => {
+    if (control) {
+      const invokeControlled =
+        /** @type {(method: M, args: Arguments<M>) => import("../../state/resolver-custody/provider-authority.ts").ControlledStep} */ (
+          control.invoke
+        )
+      return invokeControlled(method, args)
+    }
+    const call = /** @type {(state: State, ...args: Arguments<M>) => OwnerStep} */ (entries[method])
+    return call(current(), ...args)
+  }
+  /** @param {bigint} invocation */
+  const findChild = (invocation) => {
+    const child = owner.find(invocation, current().children)
+    if (child.$ !== "Some") throw new Error("Missing Canonical invocation")
+    return child.value
+  }
+  /** @param {ownedMachine.Projection} projected */
+  const advicePermission = (projected) => {
+    if (projected.kind !== "advice" || projected.view.$ !== "Types.AwaitService")
+      throw new TypeError("Wrong advice permission binding")
+    return projected.machine.permission(projected.view.request)
+  }
+  /** @param {ownedMachine.Projection} projected */
+  const sourcePermission = (projected) => {
+    if (projected.kind !== "source" || projected.view.$ !== "Types.AwaitService")
+      throw new TypeError("Wrong source permission binding")
+    return projected.machine.permission(projected.view.request)
+  }
+  /** @param {ownedMachine.Projection} projected */
+  const afterPermission = (projected) => {
+    if (projected.kind !== "source" || projected.view.$ !== "Types.AwaitService")
+      throw new TypeError("Wrong after-source permission binding")
+    return projected.machine.afterPermission(projected.view.request)
+  }
   const resources = new Map(),
     leases = new Map(),
     launches = new Map(),
     sessions = new Map(),
     finished = new Map()
+  /** @type {WeakSet<NativeSession>} */
   const finalizedSessions = new WeakSet()
+  /** @param {NativeSession} session */
   const finishSession = async (session) => {
     if (finalizedSessions.has(session)) return
     try {
@@ -41,6 +118,7 @@ export function createOwnedArtifactDriver({
       throw error
     }
   }
+  /** @param {NativeSession} session */
   const closeUnregistered = async (session) => {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session) return
     try {
@@ -58,6 +136,7 @@ export function createOwnedArtifactDriver({
     revoked: 0,
     discarded: 0
   }
+  /** @template A @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").List<A>} value @returns {A[]} */
   const list = (value) => {
     const out = []
     while (value.$ === "Con") {
@@ -78,6 +157,7 @@ export function createOwnedArtifactDriver({
       throw new Error("Wrong opaque resource ownership")
     return held.value
   }
+  /** @param {bigint} id @param {bigint} invocation */
   const release = (id, invocation) => {
     const held = resources.get(id)
     if (held && held.invocation === invocation) {
@@ -86,6 +166,7 @@ export function createOwnedArtifactDriver({
     }
   }
   const failed = () => ({ failure: { $: "Types.InvocationCancelled" } })
+  /** @param {bigint} invocation @param {bigint} generation @param {ownedMachine.Continuation} raw @returns {ActionOutcome} */
   const settleOutcome = (invocation, generation, raw) => {
     const projected = ownedMachine.view(raw)
     const projection = projected.view
@@ -95,36 +176,16 @@ export function createOwnedArtifactDriver({
       let transferred = false
       try {
         hooks.beforeInstall?.({ invocation, generation, handle: id, request: projection.request, driver })
-        const child = owner.find(invocation, current().children).value
+        const child = findChild(invocation)
+        const requestId = BigInt(projection.request.id)
         const step =
           child.scope.$ === "AdviceTailScope"
-            ? invoke(
-                "install_advice",
-                invocation,
-                generation,
-                id,
-                projection.request.id,
-                engine(invocation).permission(projection.request)
-              )
+            ? invoke("install_advice", invocation, generation, id, requestId, advicePermission(projected))
             : child.scope.$ === "SourceScope"
-              ? invoke(
-                  "install_source",
-                  invocation,
-                  generation,
-                  id,
-                  projection.request.id,
-                  engine(invocation).permission(projection.request)
-                )
+              ? invoke("install_source", invocation, generation, id, requestId, sourcePermission(projected))
               : child.scope.$ === "AfterSourceScope"
-                ? invoke(
-                    "install_after_source",
-                    invocation,
-                    generation,
-                    id,
-                    projection.request.id,
-                    engine(invocation).afterPermission(projection.request)
-                  )
-                : invoke("install", invocation, generation, id, projection.request.id)
+                ? invoke("install_after_source", invocation, generation, id, requestId, afterPermission(projected))
+                : invoke("install", invocation, generation, id, requestId)
         const outcome = applyOutcome(step)
         transferred = !outcome.rejection
         return outcome
@@ -135,7 +196,7 @@ export function createOwnedArtifactDriver({
       const id = save(invocation, "result", projected)
       try {
         hooks.beforeTerminal?.({ invocation, generation, handle: id, driver })
-        const child = owner.find(invocation, current().children).value
+        const child = findChild(invocation)
         const method =
           projection.$ === "AdviceTailPreserved"
             ? "terminal_advice_preserved"
@@ -154,7 +215,9 @@ export function createOwnedArtifactDriver({
   }
   // Cancellation commits in Canonical before these resource operations run.
   // Keep successful suboperations so a later cleanup retry cannot replay them.
+  /** @type {Map<bigint, CancellationCleanup>} */
   const cancellationCleanup = new Map()
+  /** @param {CancellationCleanup} obligation @returns {ActionOutcome} */
   const runCancellationCleanup = (obligation) => {
     const { command, completed } = obligation
     const invocation = command.invocation
@@ -176,6 +239,7 @@ export function createOwnedArtifactDriver({
         stats.revoked++
       }
     ]
+    /** @type {Failure[]} */
     const failures = []
     for (let index = 0; index < operations.length; index++) {
       if (completed.has(index)) continue
@@ -188,6 +252,7 @@ export function createOwnedArtifactDriver({
     }
     return { failures, rejection: failures[0] }
   }
+  /** @param {Action} command @returns {ActionOutcome | undefined} */
   const actionOutcome = (command) => {
     const invocation = command.invocation
     switch (command.$) {
@@ -283,10 +348,12 @@ export function createOwnedArtifactDriver({
         break
       }
       default:
-        throw new Error("Unknown owner action " + command.$)
+        throw new Error("Unknown owner action")
     }
   }
+  /** @param {readonly Action[]} commands @returns {ActionOutcome} */
   const executeActionsOutcome = (commands) => {
+    /** @type {Failure[]} */
     const failures = []
     for (const command of commands) {
       if (failures.length && !["RetireHandle", "CleanupProvider", "CancelChild"].includes(command.$)) continue
@@ -300,16 +367,18 @@ export function createOwnedArtifactDriver({
     }
     return { failures, rejection: failures[0] }
   }
+  /** @param {Step} step @returns {ActionOutcome} */
   const applyOutcome = (step) => {
     // External control has already committed through resident Ref.modify.
-    if (!control) state = step.state
+    if (!control) {
+      if (!("state" in step)) throw new TypeError("Uncommitted owner step lacks its state")
+      state = step.state
+    }
     if (step.$ !== "Advanced") {
-      const receipt = {
-        phase: "owner",
-        error: new Error(step.$ === "Rejected" ? "Canonical resolver refused: " + step.refusal.$ : "Unknown owner step")
-      }
+      const receipt = { phase: "owner", error: new Error("Canonical resolver refused: " + step.refusal.$) }
       return { failures: [receipt], rejection: receipt }
     }
+    /** @type {Failure[]} */
     const failures = []
     try {
       failures.push(...executeActionsOutcome(list(step.actions)).failures)
@@ -323,9 +392,11 @@ export function createOwnedArtifactDriver({
     }
     return { failures, rejection: failures[0] }
   }
+  /** @param {ActionOutcome} outcome */
   const unwrap = (outcome) => {
     if (outcome.rejection) throw outcome.rejection.error
   }
+  /** @param {Step} step */
   const apply = (step) => unwrap(applyOutcome(step))
   const driver = {
     allocateInvocation(parent, preparation = false, issuedScope = scope) {
@@ -508,7 +579,7 @@ export function createOwnedArtifactDriver({
             }
             while (!finished.has(invocation)) {
               applyInInvocation(invoke("provider_start", invocation))
-              const child = owner.find(invocation, current().children).value,
+              const child = findChild(invocation),
                 lease = leases.get(child.lease.value.id),
                 leaseId = child.lease.value.id
               let payload

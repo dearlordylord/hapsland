@@ -882,6 +882,29 @@ One current obstacle list, in execution order:
    Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 
+   The actual driver now checks its native resource custody interface, exact
+   Canonical method table and state/control publication distinction, failure
+   occurrence envelopes, cancellation obligations, matching Source/Advice
+   permission projections and missing-child ownership. The table is checked
+   against existing Owner entry signatures before generic name/argument dispatch;
+   no opaque product payload or Effect result is cast. Source permissions retain
+   the same closed numeric mapping and reject its existing unused slot.
+   Strict eleven-file host diagnostic now reports 62 errors, all in the driver;
+   the other ten files remain clean. Opaque handle storage, launch receipts and
+   terminal results are the next typing obstacle. This is not full host typing
+   or normal compiled driver shipping. Actual Source (57 / 6502 / 32), resident
+   (73 / 15702 / 855), all six cleanup tests and check:fast (109 tests, source/ABI
+   gates, two actual authored lint files) pass on these changes. Logs:
+   /tmp/hapsland-driver-authority-{consumers,source-preparation-consumer.mjs,
+   resident-preparation-check.mjs,cleanup,fast}.log; strict diagnostic:
+   /tmp/hapsland-driver-typed-fourth.log. Fresh origin/master fetch at 05:34:39 UTC
+   is fully included (HEAD..origin/master = 0), with master unchanged.
+   Coverage support additionally preserves uniqueness of all old order IDs after
+   History.ids append under the original bound/unique premises (1.562s, hard five
+   seconds); count append and disjoint old/new ranges check at 1.239 / 1.601 /
+   1.272s. Original laws/premises are unchanged. New-ID uniqueness, exact Map.keys
+   cardinality, full frame/reply and the original transaction remain open.
+
    Native invocation resource custody now belongs to runtime-environment's
    `runtime/native-session-registry.ts`: one existing registration/finalization/
    retained-cleanup algorithm, with synchronous `close(): void`. Source Analysis's

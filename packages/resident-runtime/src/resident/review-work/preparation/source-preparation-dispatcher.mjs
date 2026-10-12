@@ -31,9 +31,10 @@ export function createSourcePreparationMachine(core) {
       const resumed = core.resume(step, event.reply)
       return resumed.$ === "Rejected" ? step : resumed
     },
-    /** @param {import("./source-preparation-core.js").Request} request */
-    permission: (request) => ({
-      $: [
+    /** @param {import("./source-preparation-core.js").Request} request @returns {import("@hapsland/agent-flow-bend/canonical-resolver-owner").SourcePermission} */
+    permission: (request) => {
+      /** @type {readonly (import("@hapsland/agent-flow-bend/canonical-resolver-owner").SourcePermission["$"] | undefined)[]} */
+      const permissions = [
         "SourceNew",
         "SourceCandidate",
         "SourceActivity",
@@ -44,11 +45,14 @@ export function createSourcePreparationMachine(core) {
         "SourceStartObservation",
         "SourceGate",
         "SourceEarlyRelease"
-      ][Number(core.permission(request.command))]
-    }),
+      ]
+      const permission = permissions[Number(core.permission(request.command))]
+      if (!permission) throw new Error("Invalid source command permission")
+      return { $: permission }
+    },
     /** @param {import("./source-preparation-core.js").Request} request */
     afterPermission: (request) => {
-      /** @type {Partial<Record<import("./source-preparation-core.js").Command["$"], string>>} */
+      /** @type {Partial<Record<import("./source-preparation-core.js").Command["$"], import("@hapsland/agent-flow-bend/canonical-resolver-owner").AfterSourcePermission["$"]>>} */
       const permissions = {
         AfterPrepare: "AfterBarrier",
         RecordPreparationFailureAnalytics: "AfterRecoveryAnalytics",
