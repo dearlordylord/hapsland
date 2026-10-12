@@ -307,8 +307,17 @@ One current obstacle list, in execution order:
    into the same view/history now imply equality for every query. Unique/key-count
    guards are extracted from existing ActualFrame.coverage rather than added
    as premises. The full focused support checks hard5 in 2.942s
-   (/tmp/astra-transaction-visited-focused.log). The full original theorem
-   remains open; no new runtime representation, law or premise.
+   (/tmp/astra-transaction-visited-focused.log). Actual and reference child
+   identity/kind selectors also check hard5 (3.946s / 4.571s). The reference
+   selector reads Map.has while actual attachment reads Map.get(False).
+   The original uniqueness, full observations and key cardinality now yield
+   visited_presence_exact for arbitrary queries, including the absence of
+   extra False-valued leaves; the complete focused has/get support passes
+   hard5 in 4.419s on saved 17d75e3d after the earlier 5.042s / 5.029s
+   timeouts. No source change was needed for that final isolated result.
+   Joining ready-frame support and child selectors into the original complete
+   transaction theorem remains open; no new runtime representation, law or
+   premise. A qualified support prefix is not full-theorem qualification.
 
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    The existing frontend codec now preserves literal constructor, Maybe,
@@ -645,15 +654,27 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production c102a2fc measurements are
+   connected candidate. Latest existing-production 17d75e3d measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.7622585795793573 (2026-10-12 01:55:29.041425 UTC); build fails at
-   1.141850255771185 (01:56:15.936963 UTC). Both starts are within their
-   preceding cadence deadlines. Results do not qualify unadopted whole
-   preparation; build parity remains an acceptance obstacle.
-   Normal warm build passes 46/46, 23 cached, 4.530s. Next starts due on
-   2026-10-12 UTC: execution 02:25:29.041425, build 02:26:15.936963.
-   Logs: /tmp/hapsland-c102a2-{execution,build}-pair.log.
+   passes at 0.6552013281745416 (2026-10-12 02:26:15.223745 UTC); build fails at
+   1.1799677748929405 (02:27:07.837922 UTC). Both starts missed the preceding
+   cadence deadlines (02:25:29.041425 / 02:26:15.936963) after the frozen
+   candidate required normal source-analysis and downstream compilation.
+   This cadence violation remains recorded independently of qualification.
+   Results do not qualify unadopted whole preparation; build parity remains
+   an acceptance obstacle. Standard workspace preparation passes 46/46 tasks,
+   15 cached, 84.512s. Next starts due on 2026-10-12 UTC:
+   execution 02:56:15.223745, build 02:57:07.837922.
+   Logs: /tmp/hapsland-17d75-{warm,execution-pair,build-pair}.log.
+   A single read-only CPU profile per checkout localizes current UI preflight:
+   baseline total 3.031s / walk self 1.077s, candidate 3.995s / walk self .697s.
+   These isolated profiles do not establish a build-gap cause or justify another
+   walker optimization. Both return the same registry counts. Raw diagnostics:
+   /tmp/hapsland-ui-{baseline,candidate}.cpuprofile. Preserve the current
+   required scan and product outputs; return to whole production connection
+   and original proofs rather than optimizing an unestablished cause.
+   Previous c102a2fc qualified execution .7622586 passed and build1.1418503
+   failed; both starts were within their preceding cadence deadlines.
    Previous 59838815 qualified execution .5198552 passed and build1.1118466
    failed; both began within their cadence deadlines.
    Previous 89ff0da2 execution .7281511 passed and build1.1747319 failed;
