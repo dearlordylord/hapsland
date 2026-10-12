@@ -1520,6 +1520,46 @@ def visited_presence_exact(+order: List<&2, String>, +entries: Map<&2, Bool>,
   visited_presence_selected(List.contains(String, String.eq, order, query), order, entries, observed, query,
     {==}, ready, unique, same_size)
 
+def ready_frame_seen_observed(+frame: T.ResolverFrame, +reference: D.State,
+    +history: V.History, +view: V.Frame, +query: String,
+    +checks: {frame_checks(frame, history) == True{} : Bool},
+    actual_ready: {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), query))
+      == Recursive.value(Bool, Map.has(&2, Bool, ready_reference_visited(reference), query)) : Bool}:
+  match history:
+    case V.History{_, +order, _, _, _, _, _}:
+      Equal.trans(Bool, Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), query)),
+        Local.map_result(Bool, Map.get(Bool, False{}, ready_reference_visited(reference), query)),
+        Recursive.value(Bool, Map.has(&2, Bool, ready_reference_visited(reference), query)),
+        ready_lookup_observed(frame, reference, history, view, query, checks, actual_ready, reference_ready),
+        visited_presence_exact(ready_visited_order(order), ready_reference_visited(reference), ready_view_visited(view), query,
+          reference_visited_contents(ready_visited_order(order), ready_reference_visited(reference), ready_view_visited(view),
+            ready_reference_projected(reference, history, view, reference_ready)),
+          ready_visited_unique(order, ready_coverage_order(order, frame, ready_frame_coverage(frame, history, checks))),
+          reference_visited_cardinality(ready_visited_order(order), ready_reference_visited(reference), ready_view_visited(view),
+            ready_reference_projected(reference, history, view, reference_ready))))
+
+def ready_frame_seen_parts(+frame: T.ResolverFrame, +reference: D.State,
+    +history: V.History, +view: V.Frame, +query: String,
+    evidence: {frame_checks(frame, history) == True{} : Bool} &
+      {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), query))
+      == Recursive.value(Bool, Map.has(&2, Bool, ready_reference_visited(reference), query)) : Bool}:
+  match evidence:
+    case (checks, actual_ready):
+      ready_frame_seen_observed(frame, reference, history, view, query, checks, actual_ready, reference_ready)
+
+def ready_frame_seen_exact(+frame: T.ResolverFrame, +reference: D.State,
+    +history: V.History, +view: V.Frame, +query: String,
+    actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), query))
+      == Recursive.value(Bool, Map.has(&2, Bool, ready_reference_visited(reference), query)) : Bool}:
+  ready_frame_seen_parts(frame, reference, history, view, query,
+    actual_frame_contents(frame, history, view, actual_ready), reference_ready)
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
