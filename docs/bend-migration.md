@@ -714,6 +714,18 @@ One current obstacle list, in execution order:
    passing host gate; do not weaken strict settings or ship an unchecked public
    entry. Finish typing the whole retained host path, emit it through the normal
    compiler, then run the full consumer against compiled entrypoints.
+   Resolver custody is now a required field of the existing CapacityState and
+   is initialized by the normal resident constructor from the already-packaged
+   Canonical owner. draftCapacity carries it in the same resident transaction;
+   there is no second store. The owner dependency moves from verification-only
+   to runtime dependencies, with the lockfile updated. This removes the missing
+   shared-state model/initializer seam; it does not enable the Preparation driver
+   or replace native progression. Source typing, graph validation and addressed
+   two-source lint pass; full compiled consumer qualification follows.
+   The proof owner additionally checks ready_selected_requests_exact (1.829s)
+   and ready_joint_measurement_witness (2.807s) under hard five seconds, joining
+   original transaction measurement claims 1–4 without changed law/premises.
+   Actual materialization-total and the full transaction remain unqualified.
    Canonical owner packaging/loading is qualified; whole production wiring
    remains open. Whole preparation connected: 0; replaced production TS removed: 0.
    Resolver artifact shipping and the complete production entrypoint

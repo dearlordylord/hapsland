@@ -1,3 +1,4 @@
+import resolverOwner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { residentCapacity } from "./capacity.ts"
 import { residentLifecycle } from "./lifecycle.ts"
 
@@ -47,6 +48,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       residentLifetime,
       limits,
       canonical: initialCanonical(limits),
+      resolverCustody: resolverOwner.initial_custody(),
       reservations: new Map(),
       partitionIds: new Map(),
       partitionIdentityBytes: 0,

@@ -71,6 +71,7 @@
   },
   "dependencies": {
     "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/agent-flow-bend": "workspace:*",
     "@hapsland/canonical-policy": "workspace:*",
     "@hapsland/credential-storage": "workspace:*",
     "@hapsland/delivery-output": "workspace:*",
@@ -96,8 +97,5 @@
       "review-orchestration"
     ],
     "bendPrecompile": "src/resident/review-work/build-recipe.json"
-  },
-  "devDependencies": {
-    "@hapsland/agent-flow-bend": "workspace:*"
   }
 }

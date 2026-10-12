@@ -1,3 +1,4 @@
+import type { Custody } from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import {
   type CanonicalEvent,
   type CapacityPurpose,
@@ -185,6 +186,7 @@ export type CapacityState = {
   readonly residentLifetime: string
   readonly limits: CapacityLimits
   readonly canonical: unknown
+  readonly resolverCustody: Custody
   readonly reservations: ReadonlyMap<number, ReservationRecord>
   readonly partitionIds: ReadonlyMap<string, number>
   readonly partitionIdentityBytes: number

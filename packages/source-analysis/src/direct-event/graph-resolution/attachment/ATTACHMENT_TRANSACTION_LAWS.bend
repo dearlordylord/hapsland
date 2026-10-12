@@ -1920,6 +1920,51 @@ def ready_reference_enter_request(+state: D.State, +child: X.Child, +previous: N
       ready_reference_replaced_measurement(state, child, previous, forest, product, replaced, materialized)),
     ready_reference_selected_request(state, X.attached(F.Replaced{forest}, D.frame(state), child, previous), product))
 
+def ready_selected_requests_exact(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    +actual_child: T.TentativeChild, +actual: T.ResolverState, +reference: D.State, +child: X.Child,
+    +previous: Nat, +forest: F.Forest, +product: ArtifactValue.ProductValue,
+    +clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>, +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>,
+    +capsule: Phase.Capsule,
+    actual_ready: {ActualReady.capsule(clock, language, active, edge, actual) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+    reference_ready: {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>},
+    available: {PreparedRoot.prepared_unit(Attach.attached_frame(attachment, frame), S.state_prepared(actual))
+      == Some{product} : Maybe<&2, ArtifactValue.ProductValue>},
+    replaced: {X.attachment(D.frame(reference), child) == F.Replaced{forest} : F.Replacement},
+    materialized: {F.prepared_unit(Allowance.materialization(forest), forest,
+      ready_reference_dependencies(D.frame(reference)), ready_reference_fingerprint(D.frame(reference)))
+      == F.Materialized{product} : F.Materialization}) ->
+    {ready_loop_request(Attach.attachment(Some{attachment}, actual_child, previous, actual, frame))
+      == ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) : Maybe<&2, T.Request>}:
+  Equal.trans(Maybe<&2, T.Request>,
+    ready_loop_request(Attach.attachment(Some{attachment}, actual_child, previous, actual, frame)),
+    Some{ready_actual_request(actual, product)},
+    ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)),
+    ready_attachment_request_identity(attachment, frame, actual_child, actual, previous, product, available),
+    Equal.trans(Maybe<&2, T.Request>, Some{ready_actual_request(actual, product)}, Some{ready_reference_request(reference, product)},
+      ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)),
+      Equal.cong(T.Request, Maybe<&2, T.Request>, request => Some{request},
+        ready_actual_request(actual, product), ready_reference_request(reference, product),
+        ready_request_identity_exact(actual, reference, child, clock, language, active, edge, capsule, product, actual_ready, reference_ready)),
+      Equal.sym(Maybe<&2, T.Request>, ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)),
+        Some{ready_reference_request(reference, product)}, ready_reference_enter_request(reference, child, previous, forest, product, replaced, materialized))))
+
+def ready_joint_measurement_witness(+continuation: Loop.Continuation, +selection: D.Selection,
+    +product: ArtifactValue.ProductValue,
+    selected: {ready_loop_request(continuation) == ReferenceBoundary.selected_request(selection) : Maybe<&2, T.Request>},
+    measured: ready_measurement_result(continuation, product)) ->
+    Exists(T.ResolverState, state => Exists(T.Request, request =>
+      {continuation == Loop.ServiceStep{T.AwaitService{state, request}} : Loop.Continuation} &
+      {Contract.operation(request) == T.EncodeProduct{product} : T.Operation} &
+      {S.state_stage(state) == T.MeasuringCandidateTree{} : T.ResolverStage} &
+      {ReferenceBoundary.selected_request(selection) == Some{request} : Maybe<&2, T.Request>})):
+  match measured:
+    case (+state, (+request, (+awaiting, (operation, stage)))):
+      Tuple{state, Tuple{request, Tuple{awaiting, Tuple{operation, Tuple{stage,
+        Equal.trans(Maybe<&2, T.Request>, ReferenceBoundary.selected_request(selection), ready_loop_request(continuation), Some{request},
+          Equal.sym(Maybe<&2, T.Request>, ready_loop_request(continuation), ReferenceBoundary.selected_request(selection), selected),
+          Equal.cong(Loop.Continuation, Maybe<&2, T.Request>, value => ready_loop_request(value),
+            continuation, Loop.ServiceStep{T.AwaitService{state, request}}, awaiting))}}}}}
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

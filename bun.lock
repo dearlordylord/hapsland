@@ -242,6 +242,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/agent-flow-bend": "workspace:*",
         "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/credential-storage": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",
@@ -255,9 +256,6 @@
         "@hapsland/source-analysis": "workspace:*",
         "@hapsland/source-artifacts": "workspace:*",
         "effect": "catalog:",
-      },
-      "devDependencies": {
-        "@hapsland/agent-flow-bend": "workspace:*",
       },
     },
     "packages/resident-transport": {
