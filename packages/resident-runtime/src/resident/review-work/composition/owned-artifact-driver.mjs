@@ -1,3 +1,4 @@
+import * as ownedMachine from "./owned-machine.mjs"
 import { createArtifactMachine } from "./artifact-dispatcher.mjs"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 // Effect/lifetime adapter for actual Canonical owner actions. Root selection and
@@ -86,7 +87,8 @@ export function createOwnedArtifactDriver({
   }
   const failed = () => ({ failure: { $: "Types.InvocationCancelled" } })
   const settleOutcome = (invocation, generation, raw) => {
-    const projection = engine(invocation).view(raw)
+    const projected = ownedMachine.view(raw)
+    const projection = projected.view
     if (projection.$ === "Types.AwaitService") {
       if (projection.request.invocation !== invocation) throw new Error("Artifact request owner mismatch")
       const id = save(invocation, "state", raw)
@@ -130,7 +132,7 @@ export function createOwnedArtifactDriver({
         if (!transferred) release(id, invocation)
       }
     } else {
-      const id = save(invocation, "result", projection)
+      const id = save(invocation, "result", projected)
       try {
         hooks.beforeTerminal?.({ invocation, generation, handle: id, driver })
         const child = owner.find(invocation, current().children).value
@@ -208,10 +210,11 @@ export function createOwnedArtifactDriver({
       }
       case "LaunchPostPreparation": {
         try {
-          const result = load(command.result_handle, command.preparation_invocation, "result")
+          const projected = load(command.result_handle, command.preparation_invocation, "result")
+          const result = projected.view
           if (result.$ !== "PreparationFinished") throw new Error("Invalid preparation handoff payload")
           const receipt = Object.freeze({ handoff: invocation, scope: command.scope })
-          resources.set(command.result_handle, { invocation, kind: "input", value: result })
+          resources.set(command.result_handle, { invocation, kind: "input", value: projected })
           launches.set(invocation, { ...command, input_handle: command.result_handle, receipt })
           finished.set(command.preparation_invocation, receipt)
           stats.launches++
@@ -232,7 +235,7 @@ export function createOwnedArtifactDriver({
       }
       case "ExecuteProvider": {
         const raw = load(command.state_handle, invocation, "state"),
-          request = engine(invocation).view(raw).request
+          request = ownedMachine.view(raw).view.request
         if (request.invocation !== invocation || request.id !== command.request)
           throw new Error("Provider Await binding mismatch")
         if (leases.has(command.lease)) throw new Error("Duplicate provider lease")
@@ -245,11 +248,7 @@ export function createOwnedArtifactDriver({
           reply = load(command.reply_handle, invocation, "reply")
         if (Object.hasOwn(reply, "error")) throw reply.error
         stats.resumes++
-        return settleOutcome(
-          invocation,
-          command.generation,
-          engine(invocation).resume(raw, { $: "Types.ServiceReply", reply: reply.value })
-        )
+        return settleOutcome(invocation, command.generation, ownedMachine.resume(raw, reply.value))
       }
       case "RetireHandle":
         release(command.state_handle, invocation)
@@ -271,16 +270,13 @@ export function createOwnedArtifactDriver({
       }
       case "AcceptResult": {
         // Synchronous handoff in this serialized turn; no queued acceptance permit.
-        const result = load(command.result_handle, invocation, "result")
+        const projected = load(command.result_handle, invocation, "result")
+        const result = projected.view
         finished.set(
           invocation,
           result.$ === "AdviceTailStopped"
             ? { adviceRetained: false, reason: result.reason, cleanupPending: result.cleanupPending }
-            : engine(invocation).accepted
-              ? engine(invocation).accepted(result)
-              : result.$ === "Types.FinishedResolver"
-                ? { result: result.result, finalFrame: result.final_frame }
-                : { failure: result.failure }
+            : ownedMachine.accepted(projected)
         )
         release(command.result_handle, invocation)
         stats.accepted++
@@ -393,7 +389,7 @@ export function createOwnedArtifactDriver({
     handoffResult(receipt) {
       const launch = launches.get(receipt.handoff)
       if (!launch || launch.receipt !== receipt) throw new Error("Unknown preparation handoff capability")
-      return { preparation: load(launch.input_handle, receipt.handoff, "input").result }
+      return { preparation: load(launch.input_handle, receipt.handoff, "input").view.result }
     },
     async driveHandoff(receipt, session, buildInput, options = {}) {
       const invocation = receipt.handoff
@@ -505,7 +501,7 @@ export function createOwnedArtifactDriver({
               settleInInvocation(
                 invocation,
                 0n,
-                engine(invocation).initial(load(launch.input_handle, invocation, "input"))
+                ownedMachine.initial(engine(invocation), load(launch.input_handle, invocation, "input"))
               )
             } finally {
               release(launch.input_handle, invocation)
@@ -637,9 +633,9 @@ export function createOwnedArtifactDriver({
           }
           if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
             const id = save(invocation, "result", {
-              $: "AdviceTailStopped",
-              reason: constructionError.error,
-              cleanupPending: false
+              kind: "advice",
+              machine: engine(invocation),
+              view: { $: "AdviceTailStopped", reason: constructionError.error, cleanupPending: false }
             })
             try {
               if (applyAttempt(invoke("terminal", invocation, child.value.generation, id)))

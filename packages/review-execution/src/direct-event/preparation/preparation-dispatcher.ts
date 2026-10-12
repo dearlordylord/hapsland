@@ -53,6 +53,7 @@ export function createPreparationMachine(core: typeof import("./preparation-core
     throw new Error("Preparation internal dispatch did not settle")
   }
   return {
+    kind: "preparation" as const,
     initial: (input: PreparationInvocation) =>
       pump(core.initial(input.invocation, preparationAbi(input.preparation, true) as Input)),
     resume: (step: SettledStep, event: PreparationEvent) => {

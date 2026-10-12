@@ -168,6 +168,8 @@ export function createArtifactMachine({ composition, parent, python, go, retainP
     }
   }
   return {
+    /** @type {"artifact"} */
+    kind: "artifact",
     /** @param {import("@hapsland/source-analysis/direct-event/graph-resolver").ResolverInput} input */
     initial: (input) => pump(composition.initial(intoArtifact(input))),
     /**

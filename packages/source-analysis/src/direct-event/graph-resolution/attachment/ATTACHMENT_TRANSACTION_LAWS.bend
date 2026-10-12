@@ -3050,6 +3050,119 @@ def ready_actual_staged_pending(+order: List<&2, Nat>, +items: List<&2, Local.Pe
     ready_registered_new_rows_exact(shifted, next, pending, sources, List.append(&2, F.AddressEntry, addresses, new_addresses), source, catalog,
       payloads, valid, source_before, ready_shifted_pending_projected(items, parents, addresses, child_addresses, payloads, aligned, dense, child_ready)))
 
+def ready_registered_next(registration: Compose.RegisteredPending) -> Nat:
+  match registration:
+    case Compose.RegisteredPending{next, _, _}: next
+
+def ready_registered_next_prefix(+registration: Compose.RegisteredPending, +id: Nat) ->
+    {ready_registered_next(Compose.registered_prefix(registration, id)) == ready_registered_next(registration) : Nat}:
+  match registration:
+    case Compose.RegisteredPending{_, _, _}: {==}
+
+def ready_registered_next_exact(+items: List<&2, Local.Pending>, +next: Nat, +entries: Map<&2, Maybe<&2, Local.Pending>>) ->
+    {ready_registered_next(Compose.register_pending(items, next, entries)) == (next + List.length(&2, Local.Pending, items) : Nat) : Nat}:
+  match items:
+    case []: Equal.sym(Nat, (next + 0n : Nat), next, Arithmetic.add_zero(next))
+    case +head <> +tail:
+      Equal.trans(Nat, ready_registered_next(Compose.register_pending(head <> tail, next, entries)),
+        ready_registered_next(Compose.register_pending(tail, (next + 1n : Nat), Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}))),
+        (next + List.length(&2, Local.Pending, head <> tail) : Nat),
+        ready_registered_next_prefix(Compose.register_pending(tail, (next + 1n : Nat), Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head})), next),
+        Equal.trans(Nat, ready_registered_next(Compose.register_pending(tail, (next + 1n : Nat), Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}))),
+          ((next + 1n : Nat) + List.length(&2, Local.Pending, tail) : Nat), (next + List.length(&2, Local.Pending, head <> tail) : Nat),
+          ready_registered_next_exact(tail, (next + 1n : Nat), Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head})),
+          Arithmetic.add_assoc(next, 1n, List.length(&2, Local.Pending, tail))))
+
+def ready_reference_next_prefix(+registration: X.Registration, +head: F.Pending,
+    +source: T.SourceFacts, +catalog: RootSpec.Source, +next: Nat) ->
+    {ready_registration_next(X.registered(registration, head, source, catalog, next)) == ready_registration_next(registration) : Nat}:
+  match registration:
+    case X.Registration{_, _, _}: {==}
+
+def ready_reference_next_exact(+items: List<&2, F.Pending>, +source: T.SourceFacts, +catalog: RootSpec.Source, +next: Nat) ->
+    {ready_registration_next(X.register(items, source, catalog, next)) == (next + List.length(&2, F.Pending, items) : Nat) : Nat}:
+  match items:
+    case []: Equal.sym(Nat, (next + 0n : Nat), next, Arithmetic.add_zero(next))
+    case +head <> +tail:
+      Equal.trans(Nat, ready_registration_next(X.register(head <> tail, source, catalog, next)),
+        ready_registration_next(X.register(tail, source, catalog, (next + 1n : Nat))), (next + List.length(&2, F.Pending, head <> tail) : Nat),
+        ready_reference_next_prefix(X.register(tail, source, catalog, (next + 1n : Nat)), head, source, catalog, next),
+        Equal.trans(Nat, ready_registration_next(X.register(tail, source, catalog, (next + 1n : Nat))),
+          ((next + 1n : Nat) + List.length(&2, F.Pending, tail) : Nat), (next + List.length(&2, F.Pending, head <> tail) : Nat),
+          ready_reference_next_exact(tail, source, catalog, (next + 1n : Nat)),
+          Arithmetic.add_assoc(next, 1n, List.length(&2, F.Pending, tail))))
+
+def ready_payload_length_step(+head: Maybe<&2, V.PendingPayload>, +tail: Maybe<&2, List<&2, V.PendingPayload>>,
+    +length: Nat, +payloads: List<&2, V.PendingPayload>,
+    projected: {ActualReady.pending_prefix(head, tail) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>},
+    tail_length: @rest: List<&2, V.PendingPayload> -> {tail == Some{rest} : Maybe<&2, List<&2, V.PendingPayload>>} ->
+      {length == List.length(&2, V.PendingPayload, rest) : Nat}) ->
+    {(1n + length : Nat) == List.length(&2, V.PendingPayload, payloads) : Nat}:
+  match head tail:
+    case Some{+value} Some{+rest}:
+      %Count.some_equal(List<&2, V.PendingPayload>, value <> rest, payloads, projected):
+        {(1n + length : Nat) == List.length(&2, V.PendingPayload, _) : Nat}
+      Equal.cong(Nat, Nat, size => (1n + size : Nat), length, List.length(&2, V.PendingPayload, rest), tail_length(rest, {==}))
+    case None{} _:
+      Empty.absurd({(1n + length : Nat) == List.length(&2, V.PendingPayload, payloads) : Nat},
+        Contents.none_some(List<&2, V.PendingPayload>, payloads, projected))
+    case Some{_} None{}:
+      Empty.absurd({(1n + length : Nat) == List.length(&2, V.PendingPayload, payloads) : Nat},
+        Contents.none_some(List<&2, V.PendingPayload>, payloads, projected))
+
+def ready_payload_length(+items: List<&2, Local.Pending>, +addresses: List<&2, F.AddressEntry>, +payloads: List<&2, V.PendingPayload>,
+    projected: {ActualReady.pending(items, addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}) ->
+    {List.length(&2, Local.Pending, items) == List.length(&2, V.PendingPayload, payloads) : Nat}:
+  match items:
+    case []:
+      %Count.some_equal(List<&2, V.PendingPayload>, [], payloads, projected):
+        {0n == List.length(&2, V.PendingPayload, _) : Nat}
+      {==}
+    case +head <> +tail:
+      ready_payload_length_step(V.pending_payload(head, addresses), ActualReady.pending(tail, addresses),
+        List.length(&2, Local.Pending, tail), payloads, projected,
+        rest => found => ready_payload_length(tail, addresses, rest, found))
+
+def ready_reference_payload_length(+items: List<&2, F.Pending>) ->
+    {List.length(&2, F.Pending, items) == List.length(&2, V.PendingPayload, ReferenceReady.pending(items)) : Nat}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      Equal.cong(Nat, Nat, size => (1n + size : Nat), List.length(&2, F.Pending, tail),
+        List.length(&2, V.PendingPayload, ReferenceReady.pending(tail)), ready_reference_payload_length(tail))
+
+def ready_shifted_pending_length(+items: List<&2, Local.Pending>, +offset: Nat) ->
+    {List.length(&2, Local.Pending, Compose.shift_pending(items, offset)) == List.length(&2, Local.Pending, items) : Nat}:
+  match items:
+    case []: {==}
+    case Local.Pending{_, _, _, _, _, _, _, _} <> +tail:
+      Equal.cong(Nat, Nat, size => (1n + size : Nat), List.length(&2, Local.Pending, Compose.shift_pending(tail, offset)),
+        List.length(&2, Local.Pending, tail), ready_shifted_pending_length(tail, offset))
+
+def ready_staged_next_exact(+items: List<&2, Local.Pending>, +reference: List<&2, F.Pending>, +offset: Nat, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +addresses: List<&2, F.AddressEntry>, +source: T.SourceFacts, +catalog: RootSpec.Source,
+    +payloads: List<&2, V.PendingPayload>,
+    actual_projected: {ActualReady.pending(items, addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>},
+    reference_projected: {ReferenceReady.pending(reference) == payloads : List<&2, V.PendingPayload>}) ->
+    {ready_registered_next(Compose.register_pending(Compose.shift_pending(items, offset), next, entries))
+      == ready_registration_next(X.register(reference, source, catalog, next)) : Nat}:
+  +actual_length: Nat = List.length(&2, Local.Pending, Compose.shift_pending(items, offset))
+  +reference_length: Nat = List.length(&2, F.Pending, reference)
+  Equal.trans(Nat, ready_registered_next(Compose.register_pending(Compose.shift_pending(items, offset), next, entries)),
+    (next + actual_length : Nat), ready_registration_next(X.register(reference, source, catalog, next)),
+    ready_registered_next_exact(Compose.shift_pending(items, offset), next, entries),
+    Equal.trans(Nat, (next + actual_length : Nat), (next + reference_length : Nat), ready_registration_next(X.register(reference, source, catalog, next)),
+      Equal.cong(Nat, Nat, size => (next + size : Nat), actual_length, reference_length,
+        Equal.trans(Nat, actual_length, List.length(&2, V.PendingPayload, payloads), reference_length,
+          Equal.trans(Nat, actual_length, List.length(&2, Local.Pending, items), List.length(&2, V.PendingPayload, payloads),
+            ready_shifted_pending_length(items, offset), ready_payload_length(items, addresses, payloads, actual_projected)),
+          Equal.sym(Nat, reference_length, List.length(&2, V.PendingPayload, payloads),
+            Equal.trans(Nat, reference_length, List.length(&2, V.PendingPayload, ReferenceReady.pending(reference)), List.length(&2, V.PendingPayload, payloads),
+              ready_reference_payload_length(reference),
+              Equal.cong(List<&2, V.PendingPayload>, Nat, values => List.length(&2, V.PendingPayload, values), ReferenceReady.pending(reference), payloads, reference_projected))))),
+      Equal.sym(Nat, ready_registration_next(X.register(reference, source, catalog, next)), (next + reference_length : Nat),
+        ready_reference_next_exact(reference, source, catalog, next))))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

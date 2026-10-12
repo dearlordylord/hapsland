@@ -10,6 +10,7 @@
   "files": [
     "src/resident/review-work/composition/artifact-dispatcher.mjs",
     "src/resident/review-work/composition/owned-artifact-driver.mjs",
+    "src/resident/review-work/composition/owned-machine.mjs",
     "src/resident/review-work/composition/preparation-foreign.mjs",
     "src/resident/review-work/evaluation/advice-tail-provider.mjs",
     "src/resident/review-work/preparation/post-preparation-dispatcher.mjs",

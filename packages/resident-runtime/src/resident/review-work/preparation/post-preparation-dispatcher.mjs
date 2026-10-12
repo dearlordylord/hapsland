@@ -20,6 +20,8 @@ export function createPostPreparationMachine(core) {
     throw new Error("Post-preparation internal dispatch did not settle")
   }
   return {
+    /** @type {"post"} */
+    kind: "post",
     /** @param {{ invocation: bigint, postPreparation: { roundBound: boolean, outcomes: import("@hapsland/source-artifacts/direct-event/value/codec").List<import("./post-preparation-core.js").Outcome>, incomplete: boolean } }} input */
     initial: (input) =>
       pump(
@@ -73,6 +75,8 @@ export function createAdviceTailMachine(core) {
     AdviceRemove: "TailRemove"
   }
   return {
+    /** @type {"advice"} */
+    kind: "advice",
     /** @param {import("./post-preparation-core.js").Request} request */
     permission: (request) => {
       const permission = permissions[request.command.$]

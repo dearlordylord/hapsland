@@ -824,6 +824,20 @@ One current obstacle list, in execution order:
    /tmp/hapsland-preparation-foreign-{workspace,lint-final}.log and
    /tmp/hapsland-source-foreign-{source-preparation-consumer,
    resident-preparation-check}.log.
+   Driver WIP now retains a private machine/step correlation at its existing
+   opaque handles. Its five closed families validate input/reply binding, retain
+   the original Bend step and dispatch initial/resume/accepted projections.
+   This representation adds no product state or progression; it is needed to
+   compile the heterogeneous driver without opaque business-command casts.
+   The actual driver now uses that correlation for initial/resume/result handoff
+   and acceptance. The new module is explicitly selected in the strict host
+   configuration; a passing whole host is not claimed. Normal workspace build
+   passes 46/46 tasks, 15 cached, 54.75s; syntax and addressed lint pass.
+   Runtime consumers and complete driver typing remain unqualified for this WIP.
+   Logs: /tmp/hapsland-owned-machine-{workspace,lint,driver-lint,strict-v1}.log.
+   Additional original transaction support proves the exact staged next_edge
+   counter (2.060s, hard five seconds), with unchanged law/premises. Whole
+   coverage/frame/arbitrary-reply claims remain open.
    The actual ordered staged pending proof now joins old rows, shifted child
    rows, registration and both history lists under hard five seconds (4.393s).
    Original law/premises remain unchanged; whole frame/coverage/arbitrary reply
