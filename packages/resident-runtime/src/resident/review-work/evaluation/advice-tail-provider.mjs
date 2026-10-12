@@ -9,22 +9,39 @@ import { withinWork } from "../../work-ownership/cancellation.ts"
 import { ResidentAdapterError } from "../../adapter-error.ts"
 // Exact-capability IO binding for the independent Bend advice tail. No host flow
 // loop, source completion, policy branch or arbitrary transaction callback.
+/**
+ * @param {bigint} invocation
+ * @param {ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>} bridge
+ * @param {import("../../state/advice-records.ts").Advice} capability
+ * @param {import("../../work-ownership/jobs.ts").UnitJob} unit
+ * @param {{ deps: Pick<import("./context.ts").Dependencies, "residentAdvice" | "residentNow" | "residentInspection" | "residentReviewControls" | "residentLifetimeController" | "residentJobActive" | "residentRecordJoinedOutcomes"> & Pick<import("../../advice-delivery/handoff/context.ts").Dependencies, "residentAdviceExpired">, retirementForExpired: typeof import("../preparation/post-preparation-core.js").default.advice_retirement }} context
+ */
 export function createAdviceTailProvider(invocation, bridge, capability, unit, context) {
-  const advice = 1n,
-    errors = new Map(),
-    errorCauses = new Map(),
-    publications = new Map()
+  const advice = 1n
+  /** @type {Map<bigint, unknown>} */
+  const errors = new Map()
+  /** @type {Map<bigint, Cause.Cause<unknown>>} */
+  const errorCauses = new Map()
+  /** @type {Map<bigint, readonly import("../../state/joined-reviews.ts").JoinedReviewOutcome[]>} */
+  const publications = new Map()
   let revoked = false,
     closed = false,
     finished = false,
     accepted = false,
-    cleanupDischarged = false,
-    primaryFailure,
-    primaryCause,
-    addedCause,
-    finalizationCause,
-    lastCause,
-    pendingFate
+    cleanupDischarged = false
+  /** @type {unknown} */
+  let primaryFailure
+  /** @type {Cause.Cause<unknown> | undefined} */
+  let primaryCause
+  /** @type {Cause.Cause<unknown> | undefined} */
+  let addedCause
+  /** @type {Cause.Cause<unknown> | undefined} */
+  let finalizationCause
+  /** @type {Cause.Cause<unknown> | undefined} */
+  let lastCause
+  /** @type {import("../../state/resolver-custody/provider-authority.ts").AdviceOwnership | undefined} */
+  let pendingFate
+  /** @template A, E @param {Effect.Effect<A, E>} effect @returns {Promise<A>} */
   const run = async (effect) => {
     const exit = await Effect.runPromiseExit(
       Effect.uninterruptible(effect).pipe(
@@ -38,6 +55,7 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
     }
     return exit.value
   }
+  /** @param {Cause.Cause<unknown>} cause */
   const kind = (cause) =>
     Cause.hasDies(cause)
       ? "Defect"
@@ -55,15 +73,23 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
   }
   const publishFate = () => {
     if (!pendingFate) return
-    const fields = {
+    if (!pendingFate.retirement) throw new Error("Advice removal lacks its retirement receipt")
+    /** @type {Record<import("../preparation/post-preparation-core.js").AdviceRetirement["$"], readonly ["expired" | "discarded", "retention-expired" | "retention-failed"]>} */
+    const fates = {
       ExpiredRetirement: ["expired", "retention-expired"],
       RetentionFailureRetirement: ["discarded", "retention-failed"]
-    }[pendingFate.retirement.$]
+    }
+    const fields = fates[pendingFate.retirement.$]
     if (!fields) throw new Error("Unknown Bend advice fate")
     const fate = pendingFate
+    if (!fate.findings) throw new Error("Advice removal lacks its findings receipt")
     context.deps.residentInspection.observeAdviceFate(fate.capability, fate.findings, ...fields)
     pendingFate = undefined
   }
+  /**
+   * @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>} publication
+   * @param {import("../../state/resolver-custody/provider-authority.ts").CommitReceipt} [after]
+   */
   const committedRemoval = (publication, after) => {
     const receipt = publication.adviceOwnership
     if (receipt?.presentAfter === false) cleanupDischarged = true
@@ -71,10 +97,14 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
     publishFate()
     after?.(publication)
   }
+  /** @type {{ invocation: bigint, adviceTail: { advice: bigint, failure?: import("../preparation/post-preparation-core.js").Termination, preserved?: boolean } }} */
+  const input = { invocation, adviceTail: { advice } }
   return {
-    input: { invocation, adviceTail: { advice } },
+    input,
     invocation: Number(invocation),
+    /** @param {bigint} token */
     error: (token) => errors.get(token),
+    /** @param {bigint} token */
     cause: (token) => errorCauses.get(token),
     get terminationCause() {
       return primaryCause
@@ -93,6 +123,7 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
           ? finalizationCause
           : Cause.combine(primaryCause, finalizationCause)
     },
+    /** @param {unknown} error @param {Cause.Cause<unknown>} [cause] */
     forceCleanup(error, cause = Cause.die(error)) {
       primaryFailure ??= error
       primaryCause ??= cause
@@ -143,10 +174,16 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
         )
       }
     },
+    /**
+     * @param {import("../preparation/post-preparation-core.js").Request} request
+     * @param {{ signal?: AbortSignal, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, afterCommit?: (command: import("../preparation/post-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>) => void }} [options]
+     * @returns {Promise<import("../preparation/post-preparation-core.js").Reply>}
+     */
     async perform(request, options = {}) {
-      if (request.invocation !== invocation || request.command.advice !== advice)
+      if (request.invocation !== invocation || !("advice" in request.command) || request.command.advice !== advice)
         throw new Error("Wrong advice tail capability")
       const command = request.command
+      /** @type {import("../preparation/post-preparation-core.js").Response} */
       let response = { $: "Ack" }
       lastCause = undefined
       try {
@@ -173,6 +210,7 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
             break
           }
           case "AdvicePublish": {
+            if (!options.ownerLease) throw new Error("Advice publication lacks its Canonical lease")
             const published = await run(
               bridge.adviceTailPublish(options.ownerLease, capability, (publication) =>
                 options.afterCommit?.(command, publication)
@@ -183,15 +221,18 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
             response = { $: "Published", publication: handle }
             break
           }
-          case "AdviceRecordPublished":
-            if (!publications.has(command.publication)) throw new Error("Unknown advice publication")
-            await run(context.deps.residentRecordJoinedOutcomes(publications.get(command.publication), capability.id))
+          case "AdviceRecordPublished": {
+            const publication = publications.get(command.publication)
+            if (!publication) throw new Error("Unknown advice publication")
+            await run(context.deps.residentRecordJoinedOutcomes(publication, capability.id))
             accepted = true
             break
+          }
           case "AdviceCheckExpired":
             response = { $: "Expired", value: await expired() }
             break
           case "AdviceRemove": {
+            if (!options.ownerLease) throw new Error("Advice removal lacks its Canonical lease")
             const result = await run(
               bridge.adviceTailRemove(
                 options.ownerLease,

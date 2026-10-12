@@ -149,6 +149,7 @@ declare const core: {
   advice_initial(invocation: bigint, advice: bigint): AdviceTailStep
   advice_initial_cleanup(invocation: bigint, advice: bigint, reason: Termination): AdviceTailStep
   advice_initial_preserved(): AdviceTailStep
+  advice_retirement(expired: boolean): AdviceRetirement
   advice_resume(step: AdviceTailStep, reply: Reply): AdviceTailStep
 }
 export default core

@@ -2,10 +2,7 @@ import assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
 import * as Ref from "effect/Ref"
-import { execFileSync } from "node:child_process"
-import { mkdtemp, rm } from "node:fs/promises"
-import { join } from "node:path"
-import { pathToFileURL } from "node:url"
+import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 import { residentTransaction } from "../../../state/resident/transaction.ts"
 import { residentCapacity } from "../../../state/resident/capacity.ts"
@@ -22,30 +19,13 @@ import { createAdviceTailMachine } from "../post-preparation-dispatcher.mjs"
 import { createAdviceTailProvider } from "../../evaluation/advice-tail-provider.mjs"
 import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
-const temp = await mkdtemp("/tmp/hapsland-resident-owner-")
-try {
-  const emitted = join(temp, "owner.mjs")
-  execFileSync(
-    "taskset",
-    [
-      "-c",
-      "10",
-      "bend",
-      join(import.meta.dirname, "../../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"),
-      "-o",
-      emitted
-    ],
-    { timeout: 5000 }
+const postCore = (
+  await import(
+    new URL("../../../../../dist/resident/review-work/preparation/post-preparation-core.js", import.meta.url)
   )
-  const owner = (await import(pathToFileURL(emitted))).default
-  const postEmission = join(temp, "post.mjs")
-  execFileSync(
-    "taskset",
-    ["-c", "10", "bend", join(import.meta.dirname, "../PostPreparation.bend"), "-o", postEmission],
-    { timeout: 5000 }
-  )
-  const postCore = (await import(pathToFileURL(postEmission))).default,
-    tailMachine = createAdviceTailMachine(postCore)
+).default
+{
+  const tailMachine = createAdviceTailMachine(postCore)
   const run = Effect.runSync,
     limits = { globalItems: 100, globalBytes: 10000, partitionItems: 16, partitionBytes: 10000 }
   let cases = 0
@@ -1102,6 +1082,4 @@ try {
         "actual resident Ref/capacity/revision/advice owners; atomic insertion and independent Canonical advice-tail driver; revoked and duplicate birth rollback, insertion/removal ack loss, parent cancellation, expiry fate, absent publication and replacement identity, persistent resource/observer cleanup obligations; controlled source handles, full cached settlement and production adoption remain open"
     })
   )
-} finally {
-  await rm(temp, { recursive: true, force: true })
 }

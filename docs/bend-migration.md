@@ -773,6 +773,27 @@ One current obstacle list, in execution order:
    of earlier pending rows 1.337s, source/catalog provenance 1.853s and exact
    allocation IDs against History.ids 2.431s. Original law/premises are unchanged;
    the complete actual staged/coverage/reply transaction remains open.
+   The entire AdviceTail effect provider now preserves exact Advice/UnitJob
+   identities, the Canonical transaction bridge, typed native publications,
+   closed PostPreparation requests/replies and generic Effect result/cause types.
+   Publication/removal reject a missing lease; removal fate requires the existing
+   retirement/findings receipt. The actual PostPreparation advice_retirement
+   export is now included in its strict ABI declaration. Strict full host reports
+   305 diagnostics, none in this provider; complete host qualification remains
+   open. The existing owner consumer now loads the packaged Canonical owner and
+   PostPreparation core, deleting both temporary Bend emissions. Its 23 scenarios
+   pass, including birth/removal acknowledgment loss, parent cancellation,
+   expiry, replacement capability and retained cleanup obligations. The complete
+   resident consumer also passes 73/15702/855. Logs:
+   /tmp/hapsland-advice-provider-resident-{owner,preparation}-check.log.
+   check:fast passes 109 tests, root and strict ABI/dependency gates and lint
+   selecting three actual authored files (/tmp/hapsland-advice-provider-fast.log).
+   None of this enables public production Preparation or deletes replaced TS.
+   Original attachment support additionally checks actual newly allocated
+   pending rows against exact History.ids/provenance (4.315s), and reference
+   registration rows (2.140s), within hard five seconds. The combined actual to
+   reference pending join times out and remains unqualified; a failed witness
+   simplification was reverted. Original transaction law/premises are unchanged.
    The original ordered pending projection join now checks in full at 3.420s
    under hard five seconds, retaining old rows and exact newly allocated rows.
    Original law/premises unchanged; full actual staged witness and transaction

@@ -1,6 +1,7 @@
 import Base
 import ../Composition.bend as Compose
 import ../SPEC.bend as RootSpec
+import ../WholeObservation.bend as O
 import ./AttachmentNaturalKeyEqualityProof.bend as NaturalKeys
 import ../Root.bend as PreparedRoot
 import ../ForestAllowance.bend as Allowance
@@ -2688,6 +2689,144 @@ def ready_pending_ids_exact(+items: List<&2, Local.Pending>, +addresses: List<&2
       ready_pending_ids_step(V.pending_payload(head, addresses), ActualReady.pending(tail, addresses),
         ready_pending_ids(tail, (next + 1n : Nat)), next, payloads, projected,
         rest => observed => ready_pending_ids_exact(tail, addresses, (next + 1n : Nat), rest, observed))
+
+def ready_registered_new_rows_exact(+items: List<&2, Local.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>,
+    +addresses: List<&2, F.AddressEntry>, +source: T.SourceFacts, +catalog: RootSpec.Source,
+    +payloads: List<&2, V.PendingPayload>,
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool},
+    before: {ActualReady.pending_ids_before(ActualReady.provenance_ids(sources), next) == True{} : Bool},
+    +projected: {ActualReady.pending(items, addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}) ->
+    {ActualFrame.pending(History.ids(payloads, next), ready_registered_pending(Compose.register_pending(items, next, entries)),
+        List.append(&2, V.EdgeSource, sources, History.provenance(History.ids(payloads, next), source, catalog)), addresses)
+      == Some{ready_payload_rows(payloads, next, source, catalog)} : Maybe<&2, List<&2, V.PendingEntry>>}:
+  +values: Map<&2, Maybe<&2, Local.Pending>> = ready_registered_pending(Compose.register_pending(items, next, entries))
+  +ids: List<&2, Nat> = ready_pending_ids(items, next)
+  +provenance: List<&2, V.EdgeSource> = History.provenance(ids, source, catalog)
+  Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+    ActualFrame.pending(History.ids(payloads, next), values,
+      List.append(&2, V.EdgeSource, sources, History.provenance(History.ids(payloads, next), source, catalog)), addresses),
+    ActualFrame.pending(ids, values, List.append(&2, V.EdgeSource, sources, provenance), addresses),
+    Some{ready_payload_rows(payloads, next, source, catalog)},
+    Equal.cong(List<&2, Nat>, Maybe<&2, List<&2, V.PendingEntry>>, order =>
+      ActualFrame.pending(order, values, List.append(&2, V.EdgeSource, sources, History.provenance(order, source, catalog)), addresses),
+      History.ids(payloads, next), ids,
+      Equal.sym(List<&2, Nat>, ids, History.ids(payloads, next), ready_pending_ids_exact(items, addresses, next, payloads, projected))),
+    Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+      ActualFrame.pending(ids, values, List.append(&2, V.EdgeSource, sources, provenance), addresses),
+      ready_pending_rows(items, next, List.append(&2, V.EdgeSource, sources, provenance), addresses),
+      Some{ready_payload_rows(payloads, next, source, catalog)},
+      ready_registered_pending_rows(items, next, entries, List.append(&2, V.EdgeSource, sources, provenance), addresses, valid),
+      Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+        ready_pending_rows(items, next, List.append(&2, V.EdgeSource, sources, provenance), addresses),
+        ready_pending_rows(items, next, provenance, addresses), Some{ready_payload_rows(payloads, next, source, catalog)},
+        ready_pending_rows_skip_before(items, next, sources, provenance, addresses, before),
+        Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>, ready_pending_rows(items, next, provenance, addresses),
+          ready_payload_observation(ActualReady.pending(items, addresses), next, source, catalog),
+          Some{ready_payload_rows(payloads, next, source, catalog)},
+          ready_pending_rows_provenance(items, next, source, catalog, addresses),
+          Equal.cong(Maybe<&2, List<&2, V.PendingPayload>>, Maybe<&2, List<&2, V.PendingEntry>>, observed =>
+            ready_payload_observation(observed, next, source, catalog), ActualReady.pending(items, addresses), Some{payloads}, projected)))))
+
+def ready_reference_pending_registered_prefix(+registration: X.Registration, +head: F.Pending,
+    +source: T.SourceFacts, +catalog: RootSpec.Source, +next: Nat) ->
+    {ReferenceFrame.pending(ready_registration_more(X.registered(registration, head, source, catalog, next)))
+      == V.PendingEntry{next, ReferenceFrame.payload(head), source, catalog} <>
+        ReferenceFrame.pending(ready_registration_more(registration)) : List<&2, V.PendingEntry>}:
+  match registration:
+    case X.Registration{_, _, _}: {==}
+
+def ready_reference_pending_registered(+items: List<&2, F.Pending>, +source: T.SourceFacts,
+    +catalog: RootSpec.Source, +next: Nat) ->
+    {ReferenceFrame.pending(ready_registration_more(X.register(items, source, catalog, next)))
+      == ready_payload_rows(ReferenceReady.pending(items), next, source, catalog) : List<&2, V.PendingEntry>}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      Equal.trans(List<&2, V.PendingEntry>,
+        ReferenceFrame.pending(ready_registration_more(X.register(head <> tail, source, catalog, next))),
+        V.PendingEntry{next, ReferenceFrame.payload(head), source, catalog} <>
+          ReferenceFrame.pending(ready_registration_more(X.register(tail, source, catalog, (next + 1n : Nat)))),
+        ready_payload_rows(ReferenceReady.pending(head <> tail), next, source, catalog),
+        ready_reference_pending_registered_prefix(X.register(tail, source, catalog, (next + 1n : Nat)), head, source, catalog, next),
+        Equal.cong(List<&2, V.PendingEntry>, List<&2, V.PendingEntry>, rest => V.PendingEntry{next, ReferenceFrame.payload(head), source, catalog} <> rest,
+          ReferenceFrame.pending(ready_registration_more(X.register(tail, source, catalog, (next + 1n : Nat)))),
+          ready_payload_rows(ReferenceReady.pending(tail), (next + 1n : Nat), source, catalog),
+          ready_reference_pending_registered(tail, source, catalog, (next + 1n : Nat))))
+
+def ready_new_pending_correspondence(+items: List<&2, Local.Pending>, +reference: List<&2, F.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>,
+    +addresses: List<&2, F.AddressEntry>, +source: T.SourceFacts, +catalog: RootSpec.Source,
+    +payloads: List<&2, V.PendingPayload>,
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool},
+    before: {ActualReady.pending_ids_before(ActualReady.provenance_ids(sources), next) == True{} : Bool},
+    actual_projected: {ActualReady.pending(items, addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>},
+    reference_projected: {ReferenceReady.pending(reference) == payloads : List<&2, V.PendingPayload>}) ->
+    {ActualFrame.pending(History.ids(payloads, next), ready_registered_pending(Compose.register_pending(items, next, entries)),
+        List.append(&2, V.EdgeSource, sources, History.provenance(History.ids(payloads, next), source, catalog)), addresses)
+      == Some{ReferenceFrame.pending(ready_registration_more(X.register(reference, source, catalog, next)))} : Maybe<&2, List<&2, V.PendingEntry>>}:
+  Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+    ActualFrame.pending(History.ids(payloads, next), ready_registered_pending(Compose.register_pending(items, next, entries)),
+      List.append(&2, V.EdgeSource, sources, History.provenance(History.ids(payloads, next), source, catalog)), addresses),
+    Some{ready_payload_rows(payloads, next, source, catalog)},
+    Some{ReferenceFrame.pending(ready_registration_more(X.register(reference, source, catalog, next)))},
+    ready_registered_new_rows_exact(items, next, entries, sources, addresses, source, catalog, payloads, valid, before, actual_projected),
+    Equal.cong(List<&2, V.PendingEntry>, Maybe<&2, List<&2, V.PendingEntry>>, rows => Some{rows},
+      ready_payload_rows(payloads, next, source, catalog), ReferenceFrame.pending(ready_registration_more(X.register(reference, source, catalog, next))),
+      Equal.sym(List<&2, V.PendingEntry>, ReferenceFrame.pending(ready_registration_more(X.register(reference, source, catalog, next))),
+        ready_payload_rows(payloads, next, source, catalog),
+        Equal.trans(List<&2, V.PendingEntry>, ReferenceFrame.pending(ready_registration_more(X.register(reference, source, catalog, next))),
+          ready_payload_rows(ReferenceReady.pending(reference), next, source, catalog), ready_payload_rows(payloads, next, source, catalog),
+          ready_reference_pending_registered(reference, source, catalog, next),
+          Equal.cong(List<&2, V.PendingPayload>, List<&2, V.PendingEntry>, values => ready_payload_rows(values, next, source, catalog),
+            ReferenceReady.pending(reference), payloads, reference_projected)))))
+
+def ready_payload_address_extended(+edge: Local.Pending, +addresses: List<&2, F.AddressEntry>,
+    +more: List<&2, F.AddressEntry>, +owner: Nat, +address: Maybe<&2, O.NodeAddress>, +payload: V.PendingPayload,
+    address_found: {F.address_at(addresses, owner) == address : Maybe<&2, O.NodeAddress>},
+    ready: {V.payload_at(address, edge) == Some{payload} : Maybe<&2, V.PendingPayload>}) ->
+    {V.payload_at(F.address_at(List.append(&2, F.AddressEntry, addresses, more), owner), edge)
+      == Some{payload} : Maybe<&2, V.PendingPayload>}:
+  match address:
+    case Some{birth}:
+      Equal.trans(Maybe<&2, V.PendingPayload>, V.payload_at(F.address_at(List.append(&2, F.AddressEntry, addresses, more), owner), edge),
+        V.payload_at(Some{birth}, edge), Some{payload},
+        Equal.cong(Maybe<&2, O.NodeAddress>, Maybe<&2, V.PendingPayload>, found => V.payload_at(found, edge),
+          F.address_at(List.append(&2, F.AddressEntry, addresses, more), owner), Some{birth},
+          Parent.address_append_present(addresses, more, owner, birth, address_found)), ready)
+    case None{}:
+      Empty.absurd({V.payload_at(F.address_at(List.append(&2, F.AddressEntry, addresses, more), owner), edge)
+        == Some{payload} : Maybe<&2, V.PendingPayload>}, Contents.none_some(V.PendingPayload, payload, ready))
+
+def ready_pending_payload_extended(+edge: Local.Pending, +addresses: List<&2, F.AddressEntry>,
+    +more: List<&2, F.AddressEntry>, +payload: V.PendingPayload,
+    ready: {V.pending_payload(edge, addresses) == Some{payload} : Maybe<&2, V.PendingPayload>}) ->
+    {V.pending_payload(edge, List.append(&2, F.AddressEntry, addresses, more)) == Some{payload} : Maybe<&2, V.PendingPayload>}:
+  match edge:
+    case Local.Pending{owner, _, _, _, _, _, _, _}:
+      ready_payload_address_extended(edge, addresses, more, owner, F.address_at(addresses, owner), payload, {==}, ready)
+
+def ready_edge_append_choice(+same: Bool, +head: V.EdgeSource, +tail: List<&2, V.EdgeSource>,
+    +more: List<&2, V.EdgeSource>, +query: Nat, +value: V.EdgeSource,
+    ready: {Bool.pick(Maybe<&2, V.EdgeSource>, same, Some{head}, V.edge_at(tail, query)) == Some{value} : Maybe<&2, V.EdgeSource>},
+    continue: {V.edge_at(tail, query) == Some{value} : Maybe<&2, V.EdgeSource>} ->
+      {V.edge_at(List.append(&2, V.EdgeSource, tail, more), query) == Some{value} : Maybe<&2, V.EdgeSource>}) ->
+    {Bool.pick(Maybe<&2, V.EdgeSource>, same, Some{head}, V.edge_at(List.append(&2, V.EdgeSource, tail, more), query))
+      == Some{value} : Maybe<&2, V.EdgeSource>}:
+  match same:
+    case True{}: ready
+    case False{}: continue(ready)
+
+def ready_edge_append_retained(+sources: List<&2, V.EdgeSource>, +more: List<&2, V.EdgeSource>,
+    +query: Nat, +value: V.EdgeSource,
+    ready: {V.edge_at(sources, query) == Some{value} : Maybe<&2, V.EdgeSource>}) ->
+    {V.edge_at(List.append(&2, V.EdgeSource, sources, more), query) == Some{value} : Maybe<&2, V.EdgeSource>}:
+  match sources:
+    case []:
+      Empty.absurd({V.edge_at(more, query) == Some{value} : Maybe<&2, V.EdgeSource>}, Contents.none_some(V.EdgeSource, value, ready))
+    case V.EdgeSource{+id, +source, +catalog} <> +tail:
+      ready_edge_append_choice(Nat.is_eq(query, id), V.EdgeSource{id, source, catalog}, tail, more, query, value, ready,
+        found => ready_edge_append_retained(tail, more, query, value, found))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
