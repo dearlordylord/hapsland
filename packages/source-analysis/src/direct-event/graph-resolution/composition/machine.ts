@@ -7,8 +7,12 @@ import { createArtifactMachine } from "./artifact-dispatcher.mjs"
 /** One actual Graph composition with packaged Generic/Python/Go engines.
  * Canonical owns the outer invocation; this machine owns graph continuations.
  */
-export function createGraphMachine({ retainPrefixes = false }: { readonly retainPrefixes?: boolean } = {}) {
-  return createArtifactMachine({ composition, parent, python, go, retainPrefixes })
+type GraphCores = Omit<Parameters<typeof createArtifactMachine>[0], "retainPrefixes">
+export function createGraphMachine({
+  cores = { composition, parent, python, go },
+  retainPrefixes = false
+}: { readonly cores?: GraphCores; readonly retainPrefixes?: boolean } = {}) {
+  return createArtifactMachine({ ...cores, retainPrefixes })
 }
 export type { ReferenceSlot, PlannedReference, ReferenceOmission } from "../traversal/reference.ts"
 

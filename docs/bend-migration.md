@@ -2174,3 +2174,9 @@ prefix now checks in an isolated hard5 run (3.551 wall/3.153 CPU). Exact
 projected row count transport also checks hard5 (2.818 wall/2.609 CPU).
 Recursive count transport and full semantic alignment remain open under the
 unchanged original parent law. All checked/WIP source remains at its owner.
+
+### Graph public binding qualification — 2026-10-12
+
+The normal Source consumer passed all 59 cases after the Graph ownership move. The subsequent `check:fast` failed at the development-import gate because the cross-capability resident verification imported the private Graph dispatcher. The fixture now consumes the public Graph machine factory, including explicit emitted-core bindings for fault injection. The resident Preparation consumer no longer loads four private compiled Graph cores directly. Focused development-import, source-linked strict typecheck, and lint of all three changed code files pass. Ordinary workspace build and affected physical consumers remain required; this is not whole-subsystem acceptance.
+
+The next execution/build cadence deadlines (20:13:46/20:15:43 UTC) were missed while completing the ownership move and repairing the actual gate failure. The previous qualified build ratio remains 1.1982786931735012, above the required parity threshold; no acceptance criterion or baseline changed.

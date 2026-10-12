@@ -1,4 +1,4 @@
-import { createArtifactMachine } from "../../../../../../source-analysis/src/direct-event/graph-resolution/composition/artifact-dispatcher.mjs"
+import { createGraphMachine } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
@@ -205,7 +205,7 @@ try {
       owner,
       control: connection.control,
       scope,
-      machine: createArtifactMachine({ ...wrapped, retainPrefixes: false }),
+      machine: createGraphMachine({ cores: wrapped, retainPrefixes: false }),
       registry,
       hooks,
       foreign: async ([request], options) => {

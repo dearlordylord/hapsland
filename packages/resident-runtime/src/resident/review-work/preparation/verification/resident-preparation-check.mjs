@@ -1,3 +1,4 @@
+import { createGraphMachine } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
 import assert from "node:assert/strict"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { execFileSync } from "node:child_process"
@@ -179,40 +180,6 @@ const selectedScenarios = scenarios.filter(
 assert.ok(selectedScenarios.length, "Unknown preparation scenario: " + process.env.HAPSLAND_POSTFLOW_CASE)
 const temp = await mkdtemp("/tmp/hapsland-owned-root-")
 try {
-  const artifacts = {
-    composition: (
-      await import(
-        new URL(
-          "../../../../../../source-analysis/dist/direct-event/graph-resolution/composition/artifact-composition-core.js",
-          import.meta.url
-        )
-      )
-    ).default,
-    parent: (
-      await import(
-        new URL(
-          "../../../../../../source-analysis/dist/direct-event/graph-resolution/composition/generic-artifact-core.js",
-          import.meta.url
-        )
-      )
-    ).default,
-    python: (
-      await import(
-        new URL(
-          "../../../../../../source-analysis/dist/direct-event/graph-resolution/composition/python-artifact-core.js",
-          import.meta.url
-        )
-      )
-    ).default,
-    go: (
-      await import(
-        new URL(
-          "../../../../../../source-analysis/dist/direct-event/graph-resolution/composition/go-artifact-core.js",
-          import.meta.url
-        )
-      )
-    ).default
-  }
   const root = join(temp, "fixture")
   await mkdir(root)
   execFileSync("git", ["init", "-q", root], { timeout: 5000 })
@@ -406,7 +373,7 @@ try {
       owner,
       control: connection.control,
       scope,
-      artifacts,
+      machine: createGraphMachine(),
       registry,
       hooks: {
         beforeInstall: ({ invocation }) => {
