@@ -12,6 +12,7 @@ import { intoArtifact, intoResolver } from "./artifact-transport.ts"
  * parent: typeof import("./generic-artifact-core.js").default,
  * python: typeof import("./python-artifact-core.js").default,
  * go: typeof import("./go-artifact-core.js").default, retainPrefixes?: boolean }} options
+ * @returns {{kind: "artifact", initial(input: import("@hapsland/source-analysis/direct-event/graph-resolver").ResolverInput): import("./artifact-composition-core.js").Step, resume(step: import("./artifact-composition-core.js").Step, event: import("./artifact-abi.d.ts").ResolverAbi<import("./generic-artifact-core.js").ResolverEvent>): import("./artifact-composition-core.js").Step, view(step: import("./artifact-composition-core.js").Step): import("./artifact-abi.d.ts").ResolverAbi<import("./generic-artifact-core.js").ResolverStep>, dispose(): void, disposeInvocation(invocation: bigint): void, readonly retainedHandles: number}}
  */
 export function createArtifactMachine({ composition, parent, python, go, retainPrefixes = true }) {
   /** @type {Map<bigint, { invocation: bigint, artifact: "parent" | "python" | "go", state: import("./generic-artifact-core.js").Continuation | import("./python-artifact-core.js").Step | import("./go-artifact-core.js").Step }>} */

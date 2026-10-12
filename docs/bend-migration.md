@@ -927,6 +927,21 @@ One current obstacle list, in execution order:
    driver typing, compiled host shipping, production adoption and TS deletion
    remain open.
 
+   The complete eleven-file resident host now passes strict checking and ordinary
+   workspace compilation with checked JavaScript selected in its package manifest.
+   TypeScript emits the host `.mjs` and `.d.mts`; no unchecked source-copy path was
+   added. Explicit returned types retain their named contract owners and exported
+   opaque ResolverFrame. The focused declaration reproduction passes after fixing
+   fourteen inferred-type portability errors and two terminal-union accesses.
+   Ordinary build passes 46/46 tasks, 18 cached, 37.502s; log:
+   /tmp/hapsland-checked-host-workspace-fixed.log. Ambiguous input protocols and a
+   protocol mismatching the selected machine are rejected before engine initial;
+   the focused negative test passes and architectural review has no remaining
+   findings on this change. Logs: /tmp/hapsland-host-declaration-focused.log and
+   /tmp/hapsland-owned-input-negative.log. Actual compiled-host consumer loading,
+   a single source selection authority, final fast checks, production adoption and
+   replaced TS deletion remain open. These passes do not close original proofs.
+
 6. Pass all selected local acceptance gates and strict paired performance on the
    connected candidate. Latest existing-production 135564d5 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution

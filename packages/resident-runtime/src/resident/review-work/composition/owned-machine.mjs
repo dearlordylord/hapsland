@@ -15,6 +15,14 @@
 
 /** @param {Machine} machine @param {Input} input @returns {Continuation} */
 export function initial(machine, input) {
+  const protocols = [
+    "$" in input && input.$ === "Types.ResolverInput",
+    "preparation" in input,
+    "sourcePreparation" in input,
+    "postPreparation" in input,
+    "adviceTail" in input
+  ]
+  if (protocols.filter(Boolean).length !== 1) throw new TypeError("Ambiguous owned input binding")
   switch (machine.kind) {
     case "artifact":
       if (!("$" in input) || input.$ !== "Types.ResolverInput") throw new TypeError("Wrong artifact input binding")
@@ -167,7 +175,9 @@ export function resume(held, reply) {
   }
 }
 
-/** @param {Projection} projected */
+/** @param {Projection} projected
+ * @returns {{result: import("./artifact-abi.d.ts").ResolverAbi<Extract<import("./generic-artifact-core.js").ResolverStep, {$: "../../../../../source-analysis/src/direct-event/graph-resolution/Types.FinishedResolver"}>["result"]>, finalFrame: import("./artifact-abi.d.ts").ResolverAbi<import("./artifact-abi.d.ts").Maybe<import("./generic-artifact-core.js").ResolverFrame>>} | {failure: import("./artifact-abi.d.ts").ResolverAbi<import("@hapsland/source-analysis/direct-event/graph-resolver").ResolverFailure>} | ReturnType<PreparationMachine["accepted"]> | ReturnType<SourceMachine["accepted"]> | ReturnType<PostMachine["accepted"]> | ReturnType<AdviceMachine["accepted"]>}
+ */
 export function accepted(projected) {
   switch (projected.kind) {
     case "artifact":

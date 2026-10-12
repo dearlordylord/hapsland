@@ -46,6 +46,7 @@ import { createPreparationCapability } from "@hapsland/review-execution/direct-e
  * onMaterialization?: (event: {kind: "resize", bytes: number, status: ReturnType<typeof resize>["status"]}) => void,
  * residentContext?: import("../preparation/context.ts").PreparationContext
  * }} options
+ * @returns {Omit<ReturnType<typeof createPreparationCapability>, "perform"> & {snapshotCaptures(): Extract<PreparationReply["response"], {$: "RootResolved"}>["captures"], perform(request: Parameters<ReturnType<typeof createPreparationCapability>["perform"]>[0][number], options: Parameters<ReturnType<typeof createPreparationCapability>["perform"]>[1]): ReturnType<ReturnType<typeof createPreparationCapability>["perform"]>}}
  */
 export function createPreparationForeign({
   connection,
@@ -407,7 +408,7 @@ export function createPreparationForeign({
         response = {
           $: "RootResolved",
           unit: unit === undefined ? none : some(productValue(unit)),
-          references: terminal.finalFrame?.$ === "Some" ? terminal.finalFrame.value.references : list([]),
+          references: "finalFrame" in terminal && terminal.finalFrame.$ === "Some" ? terminal.finalFrame.value.references : list([]),
           captures: snapshotCaptures()
         }
         break

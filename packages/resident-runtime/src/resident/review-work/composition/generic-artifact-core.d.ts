@@ -19,7 +19,7 @@ export type ResolverState = { readonly [resolverState]: true }
 type PreparationReply = Awaited<
   ReturnType<import("@hapsland/review-execution/direct-event/preparation").PreparationPorts["performEffect"]>
 >
-type ResolverFrame = {
+export type ResolverFrame = {
   readonly [resolverFrame]: true
   readonly references: Extract<PreparationReply["response"], { $: "RootResolved" }>["references"]
 }

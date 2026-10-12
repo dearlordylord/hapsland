@@ -3,6 +3,15 @@ import test from "node:test"
 import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createBendResolver } from "../../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
+import { initial } from "../../composition/owned-machine.mjs"
+
+test("owned engine rejects ambiguous and mismatched protocols before initialization", () => {
+  let initialized = 0
+  const machine = { kind: "preparation", initial() { initialized++ } }
+  assert.throws(() => initial(machine, { preparation: {}, adviceTail: {} }), /Ambiguous owned input binding/)
+  assert.throws(() => initial(machine, { sourcePreparation: {} }), /Wrong preparation input binding/)
+  assert.equal(initialized, 0)
+})
 
 const rejected = async (task) => {
   try {
