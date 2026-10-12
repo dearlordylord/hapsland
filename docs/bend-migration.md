@@ -354,6 +354,17 @@ One current obstacle list, in execution order:
    Full packaged resident consumer remains unrun. Do not rerun the full build
    without a distinguishing matched-producer diagnostic; next isolate the
    actual precompile stage/toolchain/ABI producer rather than only bend CLI.
+   That matched isolated producer now passes review-execution and resident
+   recipes (4.427/4.190s total, each emission still hard five seconds), including
+   all three resident cores. A controlled complete Turbo graph at concurrency 1
+   passes 46/46 in 53.024s with authored-input verification; the subsequent
+   standard concurrency-2 workspace build passes 46/46, 23 cached, 4.081s.
+   This establishes packaging, not the unrun full resident consumer, and does
+   not prove a complete timeout cause. No deadline or default concurrency changed.
+   Logs: /tmp/hapsland-{matched-precompile-producer,serial-producer-graph,post-serial-normal-warm}.log.
+   Execution cadence deadline 00:34:26.226502 UTC was missed while resolving
+   the failed build prerequisite. Record this as a cadence violation; the next
+   measurement is delayed, not an on-time claim.
    A fresh origin/master fetch confirms no commits missing from this branch.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
