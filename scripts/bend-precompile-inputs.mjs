@@ -50,10 +50,11 @@ export function readBendPrecompile(root, node) {
     const { source, output, declaration } = entry
     if (
       typeof source !== "string" ||
-      !/^[\w-]+\.bend$/.test(source) ||
+      !/^(?:[\w-]+\/)*[\w-]+\.bend$/.test(source) ||
       typeof output !== "string" ||
-      !/^[\w-]+-core\.js$/.test(output) ||
+      !/^(?:[\w-]+\/)*[\w-]+-core\.js$/.test(output) ||
       declaration !== output.replace(/\.js$/, ".d.ts") ||
+      dirname(source) !== dirname(output) ||
       outputs.has(output)
     )
       throw new Error("Invalid or duplicate Bend precompile output")

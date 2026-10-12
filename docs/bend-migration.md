@@ -338,8 +338,22 @@ One current obstacle list, in execution order:
    initial/resume/execute methods exist in the emitted core. Logs:
    /tmp/hapsland-generic-artifact-abi-{types,fast,emission}.log.
    This declaration is not yet in a normal build recipe, and no packaged
-   GenericArtifact consumer or production adoption is claimed. Recipe ownership
-   must cover composition and preparation owners without source duplication.
+   GenericArtifact consumer or production adoption is claimed.
+   The resident recipe is now owned by review-work/build-recipe.json, with
+   preparation and composition paths retaining their local source/declaration
+   owners. Reader accepts nested safe paths only, requires matching capability
+   directories and preserves symlink/private-output checks. Three reader tests
+   pass, including traversal/mismatched-owner/symlink refusals; explicit lint
+   and check:fast pass with three authored sources selected. Full resident runner
+   now loads packaged GenericArtifact and removes its temporary emission and
+   unused source-name map, retaining the remaining four temporary cores.
+   Both real workspace builds fail before GenericArtifact at the existing
+   PreparationFinalization hard-five-second emission. Isolated CPU11/direct
+   emission passes in 3.798s; it does not qualify workspace packaging. Logs:
+   /tmp/hapsland-packaged-generic-{fast,build,build-v2,finalization-focus}.log.
+   Full packaged resident consumer remains unrun. Do not rerun the full build
+   without a distinguishing matched-producer diagnostic; next isolate the
+   actual precompile stage/toolchain/ABI producer rather than only bend CLI.
    A fresh origin/master fetch confirms no commits missing from this branch.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
