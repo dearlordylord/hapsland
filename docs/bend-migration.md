@@ -193,13 +193,13 @@ The pinned formatter now accepts UnitEvidence, Glob and PostPreparation after
 local binding of three existing lambdas; declaration-header limitations in the
 attachment proof owners remain open. Formatter passes do not establish proofs.
 
-One current obstacle list (updated 2026-10-12 21:03 UTC):
+One current obstacle list (updated 2026-10-12 22:15 UTC):
 
-1. Complete the original attachment transaction proof: qualify the shared six-claim wrapper and arbitrary reply claims 7/8, retaining all original premises and the hard 10-second deadline.
-2. Connect public observation, source-line, frozen replay and revalidation through the single Canonical driver. The common physical binding and whole-input encoder are now owned, packaged and qualified; actual issued scope/IDs, exact Effect Cause, optional hooks, and Bend-owned line ambiguity remain to connect.
-3. Qualify the complete public consumers and original observable contracts, then delete replaced `pipeline.ts` preparation algorithms and maintained native verification copies. Accepted whole units and replaced production TS algorithms removed remain zero.
+1. Complete original attachment ProductEncoded admission/publication/rollback and final whole-law assembly under the hard 10-second deadline. The original six-claim wrapper and ProviderRejected/incompatible-reply conclusions have passed; original premises remain unchanged.
+2. Qualify the remaining public and packaged lifecycle consumers and acceptance gates on the connected candidate. Public observation/source-line/frozen/revalidation now run through the single Canonical driver; 90 affected public tests, 13 full correspondence/nested Graph Cause/cancellation tests, and the physical Source consumer (59 cases, 6673 requests, 34 independent native comparisons) pass. Complete resident consumers and final gates remain.
+3. Delete the maintained native preparation oracle and its testing export after whole qualification. About 900 preparation lines have left production pipeline.ts; one tracked static verification oracle remains. Source slicing and generated-function reconstruction are deleted. Accepted whole slices remain zero; relocation to an oracle is not final TS deletion.
 4. Close the attachment formatter prerequisite without exclusions and qualify the complete correspondence/mutant boundary.
-5. Meet the unchanged paired build parity criterion and measure the connected whole preparation consumer. The latest existing-production execution ratio is 0.7007993427279104 (pass); build is 1.2296288180887809 (fail). Both 17-pair runs qualified on frozen sources/artifacts; all build samples retained 23/46 cached tasks. Starts were 20:57:26.606132/20:58:14.759732 UTC, within the latest cadence; next due 21:27:26/21:28:14 UTC.
+5. Meet unchanged paired build parity and measure the connected whole preparation consumer. Latest qualified 17-pair execution is 0.7109426593 (pass), build 1.2049313112 (fail), all build samples 23/46 cached. Existing execution covers the file analyzer. The 22:00/22:01 cadence window was missed and does not qualify; a whole preparation measurement remains required.
 
 ### Recorded diagnostic history
 

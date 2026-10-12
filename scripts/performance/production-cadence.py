@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 
 parser = argparse.ArgumentParser()
-parser.add_argument("lane", choices=["build", "execution"])
+parser.add_argument("lane", choices=["build", "execution", "preparation"])
 parser.add_argument("--baseline", required=True, type=Path)
 parser.add_argument("--environment", type=Path)
 args = parser.parse_args()
@@ -68,7 +68,7 @@ output = root / ".test-runs/bend-migration/performance" / started.replace(":", "
 output.mkdir(parents=True)
 measurement_path = output / "measurement.json"
 env["HAPSLAND_PERFORMANCE_OUTPUT"] = str(measurement_path)
-runner = root / ("scripts/performance/build-performance.mjs" if args.lane == "build" else "packages/source-analysis/src/direct-event/analysis-checks/reference-isolated-performance.mjs")
+runner = root / {"build": "scripts/performance/build-performance.mjs", "execution": "packages/source-analysis/src/direct-event/analysis-checks/reference-isolated-performance.mjs", "preparation": "scripts/performance/preparation-performance.mjs"}[args.lane]
 deadline = 610 if args.lane == "build" else 190
 with (output / "run.log").open("w") as log:
     result = subprocess.run(["timeout", "--signal=KILL", str(deadline) + "s", "node", str(runner)], cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT)
@@ -79,7 +79,7 @@ artifacts_unchanged = artifacts() == frozen_artifacts
 complete = measurement is not None and all(len(measurement.get("samples", {}).get(lane, [])) == 17 for lane in ["typescript", "integratedBend"])
 qualified = result.returncode == 0 and heads_unchanged and sources_unchanged and artifacts_unchanged and complete
 parity = qualified and bool(measurement.get(args.lane + "Parity"))
-record = {"startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "existing production after master integration and source relocation; not unadopted whole preparation", "measurement": measurement}
+record = {"startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
 (output / "qualification.json").write_text(json.dumps(record, indent=2) + "\n")
 print(json.dumps({"evidence": str(output / "qualification.json"), "exitCode": result.returncode, "qualified": qualified, "parity": parity, "ratio": measurement.get("meanRatio") if measurement else None}), flush=True)
 raise SystemExit(0 if parity else 1)

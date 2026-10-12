@@ -146,7 +146,7 @@ try {
       passed: true,
       cases,
       scope:
-        "actual private pipeline source differential for line/frozen/graph/edit precedence, verified path/hash, constants, analysis order and line-root accumulation; native patch verification, Go reason classification, full preparation progression and universal proof remain open"
+        "static native selection oracle differential for line/frozen/graph/edit precedence, verified path/hash, constants, analysis order and line-root accumulation; native patch verification, Go reason classification, full preparation progression and universal proof remain open"
     })
   )
 } finally {

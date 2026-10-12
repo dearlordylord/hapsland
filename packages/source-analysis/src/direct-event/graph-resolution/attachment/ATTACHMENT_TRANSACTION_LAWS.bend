@@ -7172,6 +7172,44 @@ def ready_original_incompatible(-World: Data, +actual: T.ResolverState, +referen
 # Accepted ProductEncoded uses these same source/contribution/work/ID values
 # on both sides of the original transaction. This compares the independent
 # admission directly, before transporting publication or rollback fields.
+def ready_capture_edges(+ids: List<&2, Nat>, +depth: Nat) ->
+    {G.with_depth(ids, depth) == GraphReference.edges(ids, depth) : List<&2, G.Edge>}:
+  match ids:
+    case []: {==}
+    case +head <> +tail:
+      Equal.cong(List<&2, G.Edge>, List<&2, G.Edge>, rest => G.Edge{head, depth} <> rest,
+        G.with_depth(tail, depth), GraphReference.edges(tail, depth), ready_capture_edges(tail, depth))
+
+def ready_capture_formula(+read_bad: Bool, +work_bad: Bool, +overflow: Bool,
+    +limits: G.Limits, +edge_id: Nat, +depth: Nat, +target: Nat,
+    +source: Nat, +contribution: Nat, +local_work: Nat, +ids: List<&2, Nat>,
+    +pending: List<&2, G.Edge>, +visited: List<&2, Nat>, +files: Nat, +read: Nat,
+    +tree: Nat, +work: Nat, +skipped: Bool, +excluded: Bool, +other: Bool) ->
+    {Bool.pick(G.Step, read_bad, G.fail(limits, pending, visited, files, read, tree, work, skipped, excluded, other, G.ReadLimit{}), Bool.pick(G.Step, work_bad, G.fail(limits, pending, visited, files, read, tree, work, skipped, excluded, other, G.WorkLimit{}), Bool.pick(G.Step, overflow, G.Step{G.Graph{G.GraphReady{}, pending, target <> visited, (files + 1n : Nat), (read + source : Nat), tree, (work + local_work : Nat), True{}, excluded, other, limits}, G.SkipImport{target, G.TreeLimit{}}}, G.Step{G.Graph{G.GraphReady{}, List.append(&2, G.Edge, pending, G.with_depth(ids, (depth + 1n : Nat))), target <> visited, (files + 1n : Nat), (read + source : Nat), Bool.pick(Nat, overflow, tree, (tree + contribution : Nat)), (work + local_work : Nat), skipped, excluded, other, limits}, G.NoCommand{}}))) == GraphReference.admission(GraphReference.failure_check(read_bad, G.ReadLimit{}, GraphReference.failure_check(work_bad, G.WorkLimit{}, None{})), G.Graph{G.Capturing{G.Edge{edge_id, depth}, target}, pending, visited, files, read, tree, work, skipped, excluded, other, limits}, _ => GraphReference.accept_capture(overflow, G.Graph{G.Capturing{G.Edge{edge_id, depth}, target}, pending, visited, files, read, tree, work, skipped, excluded, other, limits}, G.Edge{edge_id, depth}, target, source, contribution, local_work, ids)) : G.Step}:
+  match read_bad work_bad overflow skipped:
+    case False{} False{} False{} False{}:
+      %Equal.sym(List<&2, G.Edge>, G.with_depth(ids, (depth + 1n : Nat)), GraphReference.edges(ids, (depth + 1n : Nat)), ready_capture_edges(ids, (depth + 1n : Nat))):
+        {Bool.pick(G.Step, False{}, G.fail(limits, pending, visited, files, read, tree, work, False{}, excluded, other, G.ReadLimit{}), Bool.pick(G.Step, False{}, G.fail(limits, pending, visited, files, read, tree, work, False{}, excluded, other, G.WorkLimit{}), Bool.pick(G.Step, False{}, G.Step{G.Graph{G.GraphReady{}, pending, target <> visited, (files + 1n : Nat), (read + source : Nat), tree, (work + local_work : Nat), True{}, excluded, other, limits}, G.SkipImport{target, G.TreeLimit{}}}, G.Step{G.Graph{G.GraphReady{}, List.append(&2, G.Edge, pending, _), target <> visited, (files + 1n : Nat), (read + source : Nat), Bool.pick(Nat, False{}, tree, (tree + contribution : Nat)), (work + local_work : Nat), False{}, excluded, other, limits}, G.NoCommand{}}))) == GraphReference.admission(GraphReference.failure_check(False{}, G.ReadLimit{}, GraphReference.failure_check(False{}, G.WorkLimit{}, None{})), G.Graph{G.Capturing{G.Edge{edge_id, depth}, target}, pending, visited, files, read, tree, work, False{}, excluded, other, limits}, _ => GraphReference.accept_capture(False{}, G.Graph{G.Capturing{G.Edge{edge_id, depth}, target}, pending, visited, files, read, tree, work, False{}, excluded, other, limits}, G.Edge{edge_id, depth}, target, source, contribution, local_work, ids)) : G.Step}
+      {==}
+    case False{} False{} False{} True{}:
+      %Equal.sym(List<&2, G.Edge>, G.with_depth(ids, (depth + 1n : Nat)), GraphReference.edges(ids, (depth + 1n : Nat)), ready_capture_edges(ids, (depth + 1n : Nat))):
+        {Bool.pick(G.Step, False{}, G.fail(limits, pending, visited, files, read, tree, work, True{}, excluded, other, G.ReadLimit{}), Bool.pick(G.Step, False{}, G.fail(limits, pending, visited, files, read, tree, work, True{}, excluded, other, G.WorkLimit{}), Bool.pick(G.Step, False{}, G.Step{G.Graph{G.GraphReady{}, pending, target <> visited, (files + 1n : Nat), (read + source : Nat), tree, (work + local_work : Nat), True{}, excluded, other, limits}, G.SkipImport{target, G.TreeLimit{}}}, G.Step{G.Graph{G.GraphReady{}, List.append(&2, G.Edge, pending, _), target <> visited, (files + 1n : Nat), (read + source : Nat), Bool.pick(Nat, False{}, tree, (tree + contribution : Nat)), (work + local_work : Nat), True{}, excluded, other, limits}, G.NoCommand{}}))) == GraphReference.admission(GraphReference.failure_check(False{}, G.ReadLimit{}, GraphReference.failure_check(False{}, G.WorkLimit{}, None{})), G.Graph{G.Capturing{G.Edge{edge_id, depth}, target}, pending, visited, files, read, tree, work, True{}, excluded, other, limits}, _ => GraphReference.accept_capture(False{}, G.Graph{G.Capturing{G.Edge{edge_id, depth}, target}, pending, visited, files, read, tree, work, True{}, excluded, other, limits}, G.Edge{edge_id, depth}, target, source, contribution, local_work, ids)) : G.Step}
+      {==}
+    case False{} False{} True{} False{}: {==}
+    case False{} False{} True{} True{}: {==}
+    case False{} True{} False{} False{}: {==}
+    case False{} True{} False{} True{}: {==}
+    case False{} True{} True{} False{}: {==}
+    case False{} True{} True{} True{}: {==}
+    case True{} False{} False{} False{}: {==}
+    case True{} False{} False{} True{}: {==}
+    case True{} False{} True{} False{}: {==}
+    case True{} False{} True{} True{}: {==}
+    case True{} True{} False{} False{}: {==}
+    case True{} True{} False{} True{}: {==}
+    case True{} True{} True{} False{}: {==}
+    case True{} True{} True{} True{}: {==}
+
 def ready_captured_transition(+limits: G.Limits, +edge: G.Edge, +target: Nat,
     +source: Nat, +contribution: Nat, +local_work: Nat, +ids: List<&2, Nat>,
     +pending: List<&2, G.Edge>, +visited: List<&2, Nat>, +files: Nat, +read: Nat,
@@ -7179,8 +7217,45 @@ def ready_captured_transition(+limits: G.Limits, +edge: G.Edge, +target: Nat,
     {G.captured(limits, edge, target, source, contribution, local_work, ids, pending, visited, files, read, tree, work, skipped, excluded, other) ==
       GraphReference.captured(G.Graph{G.Capturing{edge, target}, pending, visited, files, read, tree, work, skipped, excluded, other, limits}, edge, target, source, contribution, local_work, ids) : G.Step}:
   match limits edge:
-    case G.Limits{_, _, _, _, _, _, _, _} G.Edge{_, _}:
-      {==}
+    case G.Limits{_, +source_cap, +tree_cap, _, +read_cap, +edge_cap, _, +work_cap} G.Edge{+edge_id, +depth}:
+      ready_capture_formula(
+        Bool.or(Nat.is_gt(source, source_cap), Nat.is_gt((read + source : Nat), read_cap)),
+        Bool.or(Nat.is_gt(List.length(&2, Nat, ids), edge_cap), Nat.is_gt((work + local_work : Nat), work_cap)),
+        Nat.is_gt((tree + contribution : Nat), tree_cap), limits, edge_id, depth, target,
+        source, contribution, local_work, ids, pending, visited, files, read, tree, work, skipped, excluded, other)
+
+def ready_captured_graph(+graph: G.Graph, +source: Nat, +contribution: Nat,
+    +local_work: Nat, +ids: List<&2, Nat>) ->
+    {G.step(graph, G.Captured{source, contribution, local_work, ids}) ==
+      GraphReference.transition(graph, G.Captured{source, contribution, local_work, ids}) : G.Step}:
+  match graph:
+    case G.Graph{+phase, +pending, +visited, +files, +read, +tree, +work, +skipped, +excluded, +other, +limits}:
+      match phase:
+        case G.Capturing{edge, target}:
+          ready_captured_transition(limits, edge, target, source, contribution, local_work, ids, pending, visited, files, read, tree, work, skipped, excluded, other)
+        case G.Idle{}: {==}
+        case G.GraphReady{}: {==}
+        case G.Resolving{_}: {==}
+        case G.Checking{_, _}: {==}
+        case G.Complete{}: {==}
+        case G.Incomplete{_}: {==}
+
+def ready_captured_allowance(+graph: G.Graph, +source: Nat, +contribution: Nat,
+    +local_work: Nat, +ids: List<&2, Nat>, +remaining: Nat,
+    positive: {Nat.is_gt(remaining, 0n) == True{} : Bool}) ->
+    {GraphReference.bounded_transition(G.Bounded{graph, remaining}, G.Captured{source, contribution, local_work, ids}) ==
+      GraphReference.bounded_result(G.step(graph, G.Captured{source, contribution, local_work, ids}), Nat.sub(remaining, 1n)) : G.BoundedStep}:
+  match remaining:
+    case 0n:
+      Empty.absurd({GraphReference.bounded_transition(G.Bounded{graph, remaining}, G.Captured{source, contribution, local_work, ids}) ==
+        GraphReference.bounded_result(G.step(graph, G.Captured{source, contribution, local_work, ids}), Nat.sub(remaining, 1n)) : G.BoundedStep},
+        BoolFacts.internal_false_ne_true(positive))
+    case 1n++rest:
+      %Equal.sym(Nat, Nat.sub(rest, 0n), rest, NatFacts.sub_zero(rest)):
+        {GraphReference.bounded_result(GraphReference.transition(graph, G.Captured{source, contribution, local_work, ids}), rest) == GraphReference.bounded_result(G.step(graph, G.Captured{source, contribution, local_work, ids}), _) : G.BoundedStep}
+      Equal.cong(G.Step, G.BoundedStep, step => GraphReference.bounded_result(step, rest),
+        GraphReference.transition(graph, G.Captured{source, contribution, local_work, ids}), G.step(graph, G.Captured{source, contribution, local_work, ids}),
+        Equal.sym(G.Step, G.step(graph, G.Captured{source, contribution, local_work, ids}), GraphReference.transition(graph, G.Captured{source, contribution, local_work, ids}), ready_captured_graph(graph, source, contribution, local_work, ids)))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

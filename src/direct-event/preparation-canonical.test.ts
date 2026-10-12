@@ -5,6 +5,7 @@ import * as Cause from "effect/Cause"
 import { rm } from "node:fs/promises"
 import { makeGitFixture, put, advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
@@ -166,6 +167,71 @@ describe("Canonical-owned public preparation correspondence", () => {
         first,
         second
       ])
+  })
+  it("preserves the complete Cause from a nested Graph capture", async () => {
+    const { observation } = await fixture(
+      {
+        "root.ts": "import type { Support } from './support'; export interface Root { value: Support }\n",
+        "support.ts": "export interface Support { value: string }\n"
+      },
+      ["root.ts"]
+    )
+    const first = new Error("nested capture first defect"),
+      second = new Error("nested capture second defect")
+    const cause = Cause.combine(Cause.die(first), Cause.die(second))
+    let captures = 0
+    const ctx: SourcePreparationContext = {
+      ...context,
+      captureSource: () => {
+        captures += 1
+        return Effect.failCause(cause)
+      }
+    }
+    const exit = await Effect.runPromiseExit(prepareSource(observation, ctx))
+    expect(captures).toBe(1)
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit))
+      expect(exit.cause.reasons.map((reason) => (reason._tag === "Die" ? reason.defect : reason))).toEqual([
+        first,
+        second
+      ])
+  })
+  it("cancels and awaits an active nested Graph capture", async () => {
+    const { observation } = await fixture(
+      {
+        "root.ts": "import type { Support } from './support'; export interface Root { value: Support }\n",
+        "support.ts": "export interface Support { value: string }\n"
+      },
+      ["root.ts"]
+    )
+    let entered!: () => void
+    const started = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    let settled = 0
+    const ctx: SourcePreparationContext = {
+      ...context,
+      captureSource: (...args) =>
+        Effect.gen(function* () {
+          entered()
+          return yield* captureStable(...args).pipe(
+            Effect.andThen(Effect.never),
+            Effect.ensuring(
+              Effect.sync(() => {
+                settled += 1
+              })
+            )
+          )
+        })
+    }
+    const controller = new AbortController()
+    const completion = Effect.runPromiseExit(prepareSource(observation, ctx), { signal: controller.signal })
+    await started
+    controller.abort()
+    const exit = await completion
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) expect(Cause.hasInterrupts(exit.cause)).toBe(true)
+    expect(settled).toBe(1)
   })
   it("keeps the function contract distinct from the type contract", async () => {
     const { observation } = await fixture({
