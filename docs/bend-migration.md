@@ -737,6 +737,30 @@ One current obstacle list, in execution order:
    arbitrary-query pending registration lookup 2.937s and old-ID preservation
    3.628s, all hard-five-second checks. Original law/premises remain unchanged;
    actual staged join and the complete transaction remain open proof WIP.
+   The complete artifact dispatcher now checks against the existing closed
+   parent/Python/Go/composition ABIs, with engine-specific save/load signatures
+   over the same invocation-owned handle table. Exact namespace relocation and
+   its static inverse live at the ordinary artifact transport owner; Bend states
+   remain retained values, not host policy. Cleanup still follows the identical
+   owner/command handle fields. Strict full host now reports 377 diagnostics,
+   zero in artifact-dispatcher/artifact-transport; source and strict core ABI
+   checks pass. Complete Source consumer passes 57/6502/32 and complete resident
+   Preparation consumer passes 73 cases / 15702 Preparation requests / 855
+   post-preparation requests across native Go/Rust/Bend/Python/TypeScript IO.
+   These are finite source-host consumers, not compiled production adoption.
+   A two-file runner invocation failed its one-file-or-suite argument precondition
+   before any consumer ran; the corrected independent invocations pass.
+   Logs: /tmp/hapsland-artifact-dispatch-{source-types,abi-types,
+   source-preparation-consumer,resident-preparation-check}.log;
+   typing: /tmp/hapsland-artifact-dispatch-typing-v2-strict.log.
+   check:fast passes 109 tests, source/ABI/dependency gates and lint selecting
+   all three actual changed authored files (/tmp/hapsland-artifact-dispatch-fast.log).
+   Documentation links and diff whitespace checks pass.
+   The original ordered pending projection join now checks in full at 3.420s
+   under hard five seconds, retaining old rows and exact newly allocated rows.
+   Original law/premises unchanged; full actual staged witness and transaction
+   remain open. A canonical-result timeout despite printed verdict remains
+   unqualified (exit 124), never a passing proof.
    Resolver custody is now a required field of the existing CapacityState and
    is initialized by the normal resident constructor from the already-packaged
    Canonical owner. draftCapacity carries it in the same resident transaction;

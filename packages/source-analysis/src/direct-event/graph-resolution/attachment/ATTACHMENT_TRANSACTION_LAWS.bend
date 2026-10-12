@@ -2293,6 +2293,203 @@ def ready_registered_old_lookup(+items: List<&2, Local.Pending>, +next: Nat,
     ready_registered_old_value(items, next, id,
       Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(id))), before))
 
+def ready_registered_canonical(+items: List<&2, Local.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>,
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool}) ->
+    {Patricia.canonical(Maybe<&2, Local.Pending>, ready_registered_pending(Compose.register_pending(items, next, entries))) == True{} : Bool}:
+  match items:
+    case []: valid
+    case +head <> +tail:
+      %Equal.sym(Map<&2, Maybe<&2, Local.Pending>>,
+        ready_registered_pending(Compose.registered_prefix(Compose.register_pending(tail, (next + 1n : Nat),
+          Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head})), next)),
+        ready_registered_pending(Compose.register_pending(tail, (next + 1n : Nat),
+          Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}))),
+        ready_registered_prefix_map(Compose.register_pending(tail, (next + 1n : Nat),
+          Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head})), next)):
+        {Patricia.canonical(Maybe<&2, Local.Pending>, _) == True{} : Bool}
+      ready_registered_canonical(tail, (next + 1n : Nat),
+        Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}),
+        Insert.set_preserves_canonical(Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}, valid))
+
+def ready_registered_head_value(+head: Local.Pending, +tail: List<&2, Local.Pending>, +next: Nat,
+    +previous: Maybe<&2, Local.Pending>) ->
+    {ready_registered_value(head <> tail, next, Nat.show(next), previous) == Some{head} : Maybe<&2, Local.Pending>}:
+  Equal.trans(Maybe<&2, Local.Pending>, ready_registered_value(head <> tail, next, Nat.show(next), previous),
+    ready_registered_value(tail, (next + 1n : Nat), Nat.show(next), Some{head}), Some{head},
+    Equal.cong(Bool, Maybe<&2, Local.Pending>, same =>
+      ready_registered_value(tail, (next + 1n : Nat), Nat.show(next), Bool.pick(Maybe<&2, Local.Pending>, same, Some{head}, previous)),
+      String.eq(Nat.show(next), Nat.show(next)), True{}, StringFacts.eq_refl(Nat.show(next))),
+    ready_registered_old_value(tail, (next + 1n : Nat), next, Some{head},
+      Equal.trans(Bool, Nat.is_lt(next, (next + 1n : Nat)), Nat.is_lt(next, (1n + next : Nat)), True{},
+        Equal.cong(Nat, Bool, bound => Nat.is_lt(next, bound), (next + 1n : Nat), (1n + next : Nat), Arithmetic.add_comm(next, 1n)),
+        NatFacts.lt_succ_self(next))))
+
+def ready_registered_head_lookup(+head: Local.Pending, +tail: List<&2, Local.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>,
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool}) ->
+    {Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{},
+        ready_registered_pending(Compose.register_pending(head <> tail, next, entries)), Nat.show(next)))
+      == Some{head} : Maybe<&2, Local.Pending>}:
+  Equal.trans(Maybe<&2, Local.Pending>,
+    Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{},
+      ready_registered_pending(Compose.register_pending(head <> tail, next, entries)), Nat.show(next))),
+    ready_registered_value(head <> tail, next, Nat.show(next),
+      Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(next)))), Some{head},
+    ready_registered_lookup(head <> tail, next, entries, Nat.show(next), valid),
+    ready_registered_head_value(head, tail, next,
+      Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(next)))))
+
+def ready_pending_ids(items: List<&2, Local.Pending>, +next: Nat) -> List<&2, Nat>:
+  match items:
+    case []: []
+    case _ <> tail: next <> ready_pending_ids(tail, (next + 1n : Nat))
+
+def ready_pending_rows(items: List<&2, Local.Pending>, +next: Nat,
+    +sources: List<&2, V.EdgeSource>, +addresses: List<&2, F.AddressEntry>) -> Maybe<&2, List<&2, V.PendingEntry>>:
+  match items:
+    case []: Some{[]}
+    case head <> tail:
+      ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), V.edge_at(sources, next)),
+        ready_pending_rows(tail, (next + 1n : Nat), sources, addresses))
+
+def ready_registered_pending_rows(+items: List<&2, Local.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>,
+    +addresses: List<&2, F.AddressEntry>,
+    +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool}) ->
+    {ActualFrame.pending(ready_pending_ids(items, next), ready_registered_pending(Compose.register_pending(items, next, entries)), sources, addresses)
+      == ready_pending_rows(items, next, sources, addresses) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      +registered: Compose.RegisteredPending = Compose.register_pending(tail, (next + 1n : Nat),
+        Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}))
+      +values: Map<&2, Maybe<&2, Local.Pending>> = ready_registered_pending(Compose.registered_prefix(registered, next))
+      Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+        ActualFrame.pending(next <> ready_pending_ids(tail, (next + 1n : Nat)), values, sources, addresses),
+        ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), V.edge_at(sources, next)),
+          ActualFrame.pending(ready_pending_ids(tail, (next + 1n : Nat)), values, sources, addresses)),
+        ready_pending_rows(head <> tail, next, sources, addresses),
+        Equal.cong(Maybe<&2, Local.Pending>, Maybe<&2, List<&2, V.PendingEntry>>, found =>
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(next, ActualFrame.pending_value(found, addresses), V.edge_at(sources, next)),
+            ActualFrame.pending(ready_pending_ids(tail, (next + 1n : Nat)), values, sources, addresses)),
+          Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, values, Nat.show(next))), Some{head},
+          ready_registered_head_lookup(head, tail, next, entries, valid)),
+        Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, rest =>
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), V.edge_at(sources, next)), rest),
+          ActualFrame.pending(ready_pending_ids(tail, (next + 1n : Nat)), values, sources, addresses),
+          ready_pending_rows(tail, (next + 1n : Nat), sources, addresses),
+          Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+            ActualFrame.pending(ready_pending_ids(tail, (next + 1n : Nat)), values, sources, addresses),
+            ActualFrame.pending(ready_pending_ids(tail, (next + 1n : Nat)), ready_registered_pending(registered), sources, addresses),
+            ready_pending_rows(tail, (next + 1n : Nat), sources, addresses),
+            Equal.cong(Map<&2, Maybe<&2, Local.Pending>>, Maybe<&2, List<&2, V.PendingEntry>>, map =>
+              ActualFrame.pending(ready_pending_ids(tail, (next + 1n : Nat)), map, sources, addresses),
+              values, ready_registered_pending(registered), ready_registered_prefix_map(registered, next)),
+            ready_registered_pending_rows(tail, (next + 1n : Nat),
+              Map.set(&2, Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}), sources, addresses,
+              Insert.set_preserves_canonical(Maybe<&2, Local.Pending>, entries, Nat.show(next), Some{head}, valid)))))
+
+def ready_registered_old_rows(+order: List<&2, Nat>, +items: List<&2, Local.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>,
+    +addresses: List<&2, F.AddressEntry>,
+    +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool},
+    +before: {ActualReady.pending_ids_before(order, next) == True{} : Bool}) ->
+    {ActualFrame.pending(order, ready_registered_pending(Compose.register_pending(items, next, entries)), sources, addresses)
+      == ActualFrame.pending(order, entries, sources, addresses) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  match order:
+    case []: {==}
+    case +head <> +tail:
+      +values: Map<&2, Maybe<&2, Local.Pending>> = ready_registered_pending(Compose.register_pending(items, next, entries))
+      Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+        ActualFrame.pending(head <> tail, values, sources, addresses),
+        ActualFrame.pending_prefix(ActualFrame.pending_entry(head,
+          ActualFrame.pending_value(Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(head))), addresses),
+          V.edge_at(sources, head)), ActualFrame.pending(tail, values, sources, addresses)),
+        ActualFrame.pending(head <> tail, entries, sources, addresses),
+        Equal.cong(Maybe<&2, Local.Pending>, Maybe<&2, List<&2, V.PendingEntry>>, found =>
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(head, ActualFrame.pending_value(found, addresses), V.edge_at(sources, head)),
+            ActualFrame.pending(tail, values, sources, addresses)),
+          Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, values, Nat.show(head))),
+          Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(head))),
+          ready_registered_old_lookup(items, next, entries, head, valid,
+            BoolFacts.eq_true_of_and_left(Nat.is_lt(head, next), ActualReady.pending_ids_before(tail, next), before))),
+        Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, rest =>
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(head,
+            ActualFrame.pending_value(Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(head))), addresses),
+            V.edge_at(sources, head)), rest),
+          ActualFrame.pending(tail, values, sources, addresses), ActualFrame.pending(tail, entries, sources, addresses),
+          ready_registered_old_rows(tail, items, next, entries, sources, addresses, valid,
+            BoolFacts.eq_true_of_and_right(Nat.is_lt(head, next), ActualReady.pending_ids_before(tail, next), before))))
+
+def ready_pending_join(left: Maybe<&2, List<&2, V.PendingEntry>>,
+    right: Maybe<&2, List<&2, V.PendingEntry>>) -> Maybe<&2, List<&2, V.PendingEntry>>:
+  match left right:
+    case Some{left} Some{right}: Some{List.append(&2, V.PendingEntry, left, right)}
+    case _ _: None{}
+
+def ready_pending_join_prefix(+head: Maybe<&2, V.PendingEntry>, +rest: Maybe<&2, List<&2, V.PendingEntry>>,
+    +tail: Maybe<&2, List<&2, V.PendingEntry>>) ->
+    {ActualFrame.pending_prefix(head, ready_pending_join(rest, tail))
+      == ready_pending_join(ActualFrame.pending_prefix(head, rest), tail) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  match head rest tail:
+    case Some{_} Some{_} Some{_}: {==}
+    case None{} _ _: {==}
+    case Some{_} None{} _: {==}
+    case Some{_} Some{_} None{}: {==}
+
+def ready_pending_join_nil(+value: Maybe<&2, List<&2, V.PendingEntry>>) ->
+    {value == ready_pending_join(Some{[]}, value) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  match value:
+    case Some{_}: {==}
+    case None{}: {==}
+
+def ready_pending_split(+order: List<&2, Nat>, +more: List<&2, Nat>,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>, +addresses: List<&2, F.AddressEntry>) ->
+    {ActualFrame.pending(List.append(&2, Nat, order, more), entries, sources, addresses)
+      == ready_pending_join(ActualFrame.pending(order, entries, sources, addresses), ActualFrame.pending(more, entries, sources, addresses)) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  match order:
+    case []: ready_pending_join_nil(ActualFrame.pending(more, entries, sources, addresses))
+    case +head <> +tail:
+      +item: Maybe<&2, V.PendingEntry> = ActualFrame.pending_entry(head,
+        ActualFrame.pending_value(Local.map_result(Maybe<&2, Local.Pending>, Map.get(Maybe<&2, Local.Pending>, None{}, entries, Nat.show(head))), addresses),
+        V.edge_at(sources, head))
+      Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+        ActualFrame.pending(List.append(&2, Nat, head <> tail, more), entries, sources, addresses),
+        ActualFrame.pending_prefix(item, ready_pending_join(ActualFrame.pending(tail, entries, sources, addresses), ActualFrame.pending(more, entries, sources, addresses))),
+        ready_pending_join(ActualFrame.pending(head <> tail, entries, sources, addresses), ActualFrame.pending(more, entries, sources, addresses)),
+        Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, rest => ActualFrame.pending_prefix(item, rest),
+          ActualFrame.pending(List.append(&2, Nat, tail, more), entries, sources, addresses),
+          ready_pending_join(ActualFrame.pending(tail, entries, sources, addresses), ActualFrame.pending(more, entries, sources, addresses)),
+          ready_pending_split(tail, more, entries, sources, addresses)),
+        ready_pending_join_prefix(item, ActualFrame.pending(tail, entries, sources, addresses), ActualFrame.pending(more, entries, sources, addresses)))
+
+def ready_registered_all_rows(+order: List<&2, Nat>, +items: List<&2, Local.Pending>, +next: Nat,
+    +entries: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>, +addresses: List<&2, F.AddressEntry>,
+    +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, entries) == True{} : Bool},
+    before: {ActualReady.pending_ids_before(order, next) == True{} : Bool}) ->
+    {ActualFrame.pending(List.append(&2, Nat, order, ready_pending_ids(items, next)),
+        ready_registered_pending(Compose.register_pending(items, next, entries)), sources, addresses)
+      == ready_pending_join(ActualFrame.pending(order, entries, sources, addresses), ready_pending_rows(items, next, sources, addresses)) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  +values: Map<&2, Maybe<&2, Local.Pending>> = ready_registered_pending(Compose.register_pending(items, next, entries))
+  Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+    ActualFrame.pending(List.append(&2, Nat, order, ready_pending_ids(items, next)), values, sources, addresses),
+    ready_pending_join(ActualFrame.pending(order, values, sources, addresses), ActualFrame.pending(ready_pending_ids(items, next), values, sources, addresses)),
+    ready_pending_join(ActualFrame.pending(order, entries, sources, addresses), ready_pending_rows(items, next, sources, addresses)),
+    ready_pending_split(order, ready_pending_ids(items, next), values, sources, addresses),
+    Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+      ready_pending_join(ActualFrame.pending(order, values, sources, addresses), ActualFrame.pending(ready_pending_ids(items, next), values, sources, addresses)),
+      ready_pending_join(ActualFrame.pending(order, entries, sources, addresses), ActualFrame.pending(ready_pending_ids(items, next), values, sources, addresses)),
+      ready_pending_join(ActualFrame.pending(order, entries, sources, addresses), ready_pending_rows(items, next, sources, addresses)),
+      Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, rows =>
+        ready_pending_join(rows, ActualFrame.pending(ready_pending_ids(items, next), values, sources, addresses)),
+        ActualFrame.pending(order, values, sources, addresses), ActualFrame.pending(order, entries, sources, addresses),
+        ready_registered_old_rows(order, items, next, entries, sources, addresses, valid, before)),
+      Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, rows =>
+        ready_pending_join(ActualFrame.pending(order, entries, sources, addresses), rows),
+        ActualFrame.pending(ready_pending_ids(items, next), values, sources, addresses), ready_pending_rows(items, next, sources, addresses),
+        ready_registered_pending_rows(items, next, entries, sources, addresses, valid))))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

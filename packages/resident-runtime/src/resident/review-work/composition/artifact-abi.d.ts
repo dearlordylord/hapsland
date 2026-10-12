@@ -26,6 +26,19 @@ export type ArtifactAbi<Value> = Value extends object
         : ArtifactAbi<Value[Key]>
     }
   : Value
+type Restored<Tag extends string> = {
+  [Module in keyof NamespaceMap]: Tag extends `${NamespaceMap[Module]}${infer Name}` ? `${Module}.${Name}` : never
+}[keyof NamespaceMap]
+type ResolverTag<Tag extends string> = [Restored<Tag>] extends [never] ? Tag : Restored<Tag>
+export type ResolverAbi<Value> = Value extends object
+  ? {
+      readonly [Key in keyof Value]: Key extends "$"
+        ? Value[Key] extends string
+          ? ResolverTag<Value[Key]>
+          : Value[Key]
+        : ResolverAbi<Value[Key]>
+    }
+  : Value
 export type Tagged<Name extends string, Fields = object> = { readonly $: Name } & Fields
 export type Maybe<Value> = Tagged<"None"> | Tagged<"Some", { readonly value: Value }>
 export type Token<Name extends "CaptureToken" | "ClockToken" | "CacheToken"> = Tagged<
