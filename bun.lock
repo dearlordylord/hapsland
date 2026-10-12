@@ -114,6 +114,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@hapsland/agent-flow-bend": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
         "effect": "catalog:",
       },
     },
@@ -322,6 +323,7 @@
       "name": "@hapsland/source-analysis",
       "version": "0.1.0",
       "dependencies": {
+        "@hapsland/agent-flow-bend": "workspace:*",
         "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/native-observation": "workspace:*",
         "@hapsland/runtime-environment": "workspace:*",
@@ -334,6 +336,9 @@
         "tree-sitter-python": "catalog:",
         "tree-sitter-rust": "catalog:",
         "tree-sitter-typescript": "catalog:",
+      },
+      "devDependencies": {
+        "fast-check": "catalog:",
       },
     },
     "packages/source-artifacts": {

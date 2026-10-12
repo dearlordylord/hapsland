@@ -21,7 +21,12 @@ def insert(+items: List<&2, String>, +value: String) -> List<&2, String>:
   match items:
     case []: [value]
     case +head <> +tail:
-      Bool.pick(List<&2, String>, Raw.string_le(value, head), value <> head <> tail, head <> insert(tail, value))
+      Bool.pick(
+        List<&2, String>,
+        Raw.string_le(value, head),
+        value <> head <> tail,
+        head <> insert(tail, value)
+      )
 
 def sorted(items: List<&2, String>) -> List<&2, String>:
   match items:
@@ -33,7 +38,12 @@ def captured(+items: List<&2, M.Captured>, +path: String) -> Maybe<&2, M.Capture
     case []: None{}
     case +head <> +tail:
       match head:
-        case M.Captured{key, _, _}: Bool.pick(Maybe<&2, M.Captured>, String.eq(key, path), Some{head}, captured(tail, path))
+        case M.Captured{key, _, _}: Bool.pick(
+          Maybe<&2, M.Captured>,
+          String.eq(key, path),
+          Some{head},
+          captured(tail, path)
+        )
 
 def capture_present(value: Maybe<&2, M.Captured>) -> Bool:
   match value:
@@ -43,27 +53,47 @@ def capture_present(value: Maybe<&2, M.Captured>) -> Bool:
 def uncaptured(items: List<&2, String>, +captures: List<&2, M.Captured>) -> Nat:
   match items:
     case []: 0n
-    case path <> tail: Nat.add(Bool.pick(Nat, capture_present(captured(captures, path)), 0n, 1n), uncaptured(tail, captures))
+    case path <> tail: Nat.add(
+      Bool.pick(Nat, capture_present(captured(captures, path)), 0n, 1n),
+      uncaptured(tail, captures)
+    )
 
-def package_entry(+items: List<&2, M.PackageEntry>, +directory: String) -> Maybe<&2, M.PackageEntry>:
+def package_entry(
+  +items: List<&2, M.PackageEntry>,
+  +directory: String
+) -> Maybe<&2, M.PackageEntry>:
   match items:
     case []: None{}
     case +head <> +tail:
       match head:
-        case M.PackageEntry{key, _}: Bool.pick(Maybe<&2, M.PackageEntry>, String.eq(key, directory), Some{head}, package_entry(tail, directory))
+        case M.PackageEntry{key, _}: Bool.pick(
+          Maybe<&2, M.PackageEntry>,
+          String.eq(key, directory),
+          Some{head},
+          package_entry(tail, directory)
+        )
 
 def loaded(entry: Maybe<&2, M.PackageEntry>) -> Maybe<&2, M.LoadedPackage>:
   match entry:
     case None{}: None{}
     case Some{M.PackageEntry{_, value}}: value
 
-def set_package(+items: List<&2, M.PackageEntry>, +directory: String, +loaded: Maybe<&2, M.LoadedPackage>) -> List<&2, M.PackageEntry>:
+def set_package(
+  +items: List<&2, M.PackageEntry>,
+  +directory: String,
+  +loaded: Maybe<&2, M.LoadedPackage>
+) -> List<&2, M.PackageEntry>:
   match items:
     case []: [M.PackageEntry{directory, loaded}]
     case +head <> +tail:
       match head:
         case M.PackageEntry{key, _}:
-          Bool.pick(List<&2, M.PackageEntry>, String.eq(key, directory), M.PackageEntry{directory, loaded} <> tail, head <> set_package(tail, directory, loaded))
+          Bool.pick(
+            List<&2, M.PackageEntry>,
+            String.eq(key, directory),
+            M.PackageEntry{directory, loaded} <> tail,
+            head <> set_package(tail, directory, loaded)
+          )
 
 def identity(+runtime: M.Runtime, value: V.ProductValue) -> M.Runtime:
   M.with_identities(runtime, List.append(&2, V.ProductValue, M.identities(runtime), [value]))
@@ -92,16 +122,31 @@ def charge(+runtime: M.Runtime) -> M.Runtime:
   M.with_work(runtime, Nat.add(M.work(runtime), 1n))
 
 def reserve_allowed(+runtime: M.Runtime) -> Bool:
-  Bool.and(Nat.is_lt(M.files_spent(runtime), M.files_limit(M.input(runtime))),
-    Nat.is_le(Nat.add(M.read_bytes(runtime), M.source_limit(M.input(runtime))), M.read_limit(M.input(runtime))))
+  Bool.and(
+    Nat.is_lt(M.files_spent(runtime), M.files_limit(M.input(runtime))),
+    Nat.is_le(
+      Nat.add(M.read_bytes(runtime), M.source_limit(M.input(runtime))),
+      M.read_limit(M.input(runtime))
+    )
+  )
 
 def adopt(+runtime: M.Runtime, +path: String, capture: T.CaptureToken, +bytes: Nat) -> M.Runtime:
-  M.with_captures(M.with_dependencies(M.with_files_spent(M.with_read_bytes(runtime,
-    Nat.add(M.read_bytes(runtime), bytes)), Nat.add(M.files_spent(runtime), 1n)), add(M.dependencies(runtime), path)),
-    List.append(&2, M.Captured, M.captures(runtime), [M.Captured{path, capture, bytes}]))
+  M.with_captures(
+    M.with_dependencies(
+      M.with_files_spent(
+        M.with_read_bytes(runtime, Nat.add(M.read_bytes(runtime), bytes)),
+        Nat.add(M.files_spent(runtime), 1n)
+      ),
+      add(M.dependencies(runtime), path)
+    ),
+    List.append(&2, M.Captured, M.captures(runtime), [M.Captured{path, capture, bytes}])
+  )
 
 def accepted_bytes(+runtime: M.Runtime, bytes: Nat) -> Bool:
-  Bool.and(Nat.is_le(bytes, M.source_limit(M.input(runtime))), Nat.is_le(M.read_bytes(runtime), M.read_limit(M.input(runtime))))
+  Bool.and(
+    Nat.is_le(bytes, M.source_limit(M.input(runtime))),
+    Nat.is_le(M.read_bytes(runtime), M.read_limit(M.input(runtime)))
+  )
 
 def file_name(file: T.GoFileSyntax) -> String:
   match file:
@@ -119,7 +164,12 @@ def same_package(items: List<&2, T.GoFileSyntax>, +name: String) -> Bool:
 def names(items: List<&2, T.GoFileSyntax>) -> Maybe<&2, String>:
   match items:
     case []: None{}
-    case +head <> +tail: Bool.pick(Maybe<&2, String>, same_package(tail, file_name(head)), Some{file_name(head)}, None{})
+    case +head <> +tail: Bool.pick(
+      Maybe<&2, String>,
+      same_package(tail, file_name(head)),
+      Some{file_name(head)},
+      None{}
+    )
 
 def main() -> Unit:
   Unit{}
@@ -138,7 +188,12 @@ def members_text(items: List<&2, T.GoConstantMember>) -> List<&2, String>:
 def groups_text(items: List<&2, T.GoConstantFacts>) -> List<&2, String>:
   match items:
     case []: []
-    case T.GoConstantFacts{_, _, members} <> tail: List.append(&2, String, members_text(members), groups_text(tail))
+    case T.GoConstantFacts{_, _, members} <> tail: List.append(
+      &2,
+      String,
+      members_text(members),
+      groups_text(tail)
+    )
 
 def rows_text(items: List<&2, T.GoSyntaxNode>) -> List<&2, String>:
   match items:
@@ -149,22 +204,53 @@ def file_texts(items: List<&2, T.GoFileSyntax>) -> List<&2, String>:
   match items:
     case []: []
     case T.GoFileSyntax{_, _, _, _, _, _, aliases, groups, _, _, _, _, rows} <> tail:
-      List.append(&2, String, aliases_text(aliases), List.append(&2, String, groups_text(groups), List.append(&2, String, rows_text(rows), file_texts(tail))))
+      List.append(
+        &2,
+        String,
+        aliases_text(aliases),
+        List.append(
+          &2,
+          String,
+          groups_text(groups),
+          List.append(&2, String, rows_text(rows), file_texts(tail))
+        )
+      )
 
 def file_imports(file: T.GoFileSyntax) -> List<&2, T.GoImport>:
   match file:
     case T.GoFileSyntax{_, _, _, _, _, imports, _, _, _, _, _, _, _}: imports
 
 def generated_line(+line: String) -> Bool:
-  Bool.and(Nat.is_ge(String.length(line), 31n), Bool.and(String.starts_with(line, "// Code generated "), String.ends_with(line, " DO NOT EDIT.")))
+  Bool.and(
+    Nat.is_ge(String.length(line), 31n),
+    Bool.and(
+      String.starts_with(line, "// Code generated "),
+      String.ends_with(line, " DO NOT EDIT.")
+    )
+  )
 
-def generated_scan(items: List<&2, Raw.Character>, +line: String) -> Bool:
+def generated_at_newline(newline: Bool, line: String) -> Bool:
+  match newline:
+    case True{}: generated_line(line)
+    case False{}: False{}
+
+def generated_scan_acc(items: List<&2, Raw.Character>, +line: String, found: Bool) -> Bool:
   match items:
-    case []: generated_line(line)
+    case []: Bool.or(found, generated_line(line))
     case head <> tail:
       +code = Raw.code(head)
-      +newline = Bool.or(Nat.is_eq(code, 10n), Bool.or(Nat.is_eq(code, 13n), Bool.or(Nat.is_eq(code, 8232n), Nat.is_eq(code, 8233n))))
-      Bool.or(Bool.and(newline, generated_line(line)), generated_scan(tail, Bool.pick(String, newline, "", String.append(line, Raw.ascii(code)))))
+      +newline = Bool.or(
+        Nat.is_eq(code, 10n),
+        Bool.or(Nat.is_eq(code, 13n), Bool.or(Nat.is_eq(code, 8232n), Nat.is_eq(code, 8233n)))
+      )
+      generated_scan_acc(
+        tail,
+        Bool.pick(String, newline, "", String.append(line, Raw.ascii(code))),
+        Bool.or(found, generated_at_newline(newline, line))
+      )
+
+def generated_scan(items: List<&2, Raw.Character>, line: String) -> Bool:
+  generated_scan_acc(items, line, False{})
 
 def generated(source: Raw.Text) -> Bool:
   generated_scan(Raw.chars(source), "")
@@ -183,12 +269,38 @@ def import_parts(items: List<&2, String>) -> Bool:
   match items:
     case []: True{}
     case +head <> +tail:
-      Bool.and(Bool.not(Bool.or(String.eq(head, ""), Bool.or(String.eq(head, "."), Bool.or(String.eq(head, ".."), Bool.or(String.eq(head, "vendor"), String.contains(head, "\\")))))), import_parts(tail))
+      Bool.and(
+        Bool.not(
+          Bool.or(
+            String.eq(head, ""),
+            Bool.or(
+              String.eq(head, "."),
+              Bool.or(
+                String.eq(head, ".."),
+                Bool.or(String.eq(head, "vendor"), String.contains(head, "\\"))
+              )
+            )
+          )
+        ),
+        import_parts(tail)
+      )
 
 def import_tail(+module: String, +path: String) -> Maybe<&2, String>:
   +tail = String.drop(path, Nat.add(String.length(module), 1n))
-  Bool.pick(Maybe<&2, String>, String.eq(path, module), Some{""},
-    Bool.pick(Maybe<&2, String>, Bool.and(String.starts_with(path, String.append(module, "/")), import_parts(String.split(tail, '/'))), Some{tail}, None{}))
+  Bool.pick(
+    Maybe<&2, String>,
+    String.eq(path, module),
+    Some{""},
+    Bool.pick(
+      Maybe<&2, String>,
+      Bool.and(
+        String.starts_with(path, String.append(module, "/")),
+        import_parts(String.split(tail, '/'))
+      ),
+      Some{tail},
+      None{}
+    )
+  )
 
 def within_tail(+tail: String) -> Bool:
   Bool.not(Bool.or(String.eq(tail, ".."), String.starts_with(tail, "../")))
@@ -203,5 +315,15 @@ def internal_bases(items: List<&2, String>, +prefix: String) -> List<&2, String>
     case []: []
     case +head <> +tail:
       +base = Bool.pick(String, String.eq(prefix, ""), ".", prefix)
-      +next = Bool.pick(String, String.eq(prefix, ""), head, String.append(prefix, String.append("/", head)))
-      Bool.pick(List<&2, String>, String.eq(head, "internal"), base <> internal_bases(tail, next), internal_bases(tail, next))
+      +next = Bool.pick(
+        String,
+        String.eq(prefix, ""),
+        head,
+        String.append(prefix, String.append("/", head))
+      )
+      Bool.pick(
+        List<&2, String>,
+        String.eq(head, "internal"),
+        base <> internal_bases(tail, next),
+        internal_bases(tail, next)
+      )

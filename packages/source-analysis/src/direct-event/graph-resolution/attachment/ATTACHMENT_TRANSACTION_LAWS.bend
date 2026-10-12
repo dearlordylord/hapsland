@@ -47,6 +47,8 @@ import ../Loop.bend as Loop
 import ../Machine.bend as Machine
 import ../Protocol.bend as Protocol
 import ../GraphSpecification.bend as GraphReference
+import ./AttachmentReplacementStructureProof.bend as ReplacementStructure
+import ./AttachmentNodeReplacementTransport.bend as NodeReplacement
 import ../Attach.bend as Attach
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
@@ -7256,6 +7258,45 @@ def ready_captured_allowance(+graph: G.Graph, +source: Nat, +contribution: Nat,
       Equal.cong(G.Step, G.BoundedStep, step => GraphReference.bounded_result(step, rest),
         GraphReference.transition(graph, G.Captured{source, contribution, local_work, ids}), G.step(graph, G.Captured{source, contribution, local_work, ids}),
         Equal.sym(G.Step, G.step(graph, G.Captured{source, contribution, local_work, ids}), GraphReference.transition(graph, G.Captured{source, contribution, local_work, ids}), ready_captured_graph(graph, source, contribution, local_work, ids)))
+
+def ready_rollback_forward(+nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +owner: Nat, +index: Nat, +name: String,
+    +forward: {P.forward_nodes(nodes, slots) == True{} : Bool}) ->
+    {P.forward_nodes(nodes, ReplacementStructure.slots(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name}))) == True{} : Bool}:
+  match nodes:
+    case []: {==}
+    case Local.PlannedNode{+id, _} <> +tail:
+      BoolFacts.and_eq_true(
+        P.indexed(P.owner_slots(ReplacementStructure.slots(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name})), id), 0n, tail),
+        P.forward_nodes(tail, ReplacementStructure.slots(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name}))),
+        ReplacementStructure.replacement_owner_indexed(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name}, id, 0n, tail,
+          BoolFacts.eq_true_of_and_left(P.indexed(P.owner_slots(slots, id), 0n, tail), P.forward_nodes(tail, slots), forward), {==}),
+        ready_rollback_forward(tail, slots, owner, index, name,
+          BoolFacts.eq_true_of_and_right(P.indexed(P.owner_slots(slots, id), 0n, tail), P.forward_nodes(tail, slots), forward)))
+
+def ready_rollback_project_parts(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>,
+    +owner: Nat, +index: Nat, +name: String, +changed: List<&2, Local.ReferenceSlot>, +values: List<&2, F.Node>,
+    +guard: {Bool.and(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)))) == True{} : Bool},
+    old_forest: {P.forest(F.address_at(addresses, root), P.nodes(nodes, slots, catalog, addresses)) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>},
+    replaced: {Compose.replacement(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>},
+    projected: {P.nodes(nodes, changed, catalog, addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.project(root, nodes, changed, catalog, addresses) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>}:
+  +rest: {Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots))) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_right(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots))), guard)
+  +structure: {Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_right(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)), rest)
+  +payload: {ReplacementStructure.slots(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == changed : List<&2, Local.ReferenceSlot>} =
+    NodeReplacement.replacement_payload(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name}), changed, replaced)
+  Contents.project_from_parts(root, nodes, changed, catalog, addresses, birth, values,
+    BoolFacts.eq_true_of_and_left(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots))), guard),
+    BoolFacts.eq_true_of_and_left(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)), rest),
+    %payload: {P.slots_owned(_, nodes) == True{} : Bool}
+      ReplacementStructure.replacement_owned(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name}, nodes, BoolFacts.eq_true_of_and_left(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots), structure)),
+    %payload: {P.forward_nodes(nodes, _) == True{} : Bool}
+      ready_rollback_forward(nodes, slots, owner, index, name, BoolFacts.eq_true_of_and_right(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots), structure)),
+    Contents.projected_forest_root(F.address_at(addresses, root), P.nodes(nodes, slots, catalog, addresses), birth, retained, old_forest), projected)
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

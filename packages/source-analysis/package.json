@@ -217,5 +217,8 @@
     "checkedJavaScript": [
       "src/direct-event/graph-resolution/composition/artifact-dispatcher.mjs"
     ]
+  },
+  "devDependencies": {
+    "fast-check": "catalog:"
   }
 }

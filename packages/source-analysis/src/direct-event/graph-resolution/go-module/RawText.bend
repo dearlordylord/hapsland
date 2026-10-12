@@ -22,45 +22,46 @@ def space( +value: Character) -> Bool:
   match value:
     case Character{_, +space}: space
 
-def utf16( +items: List<&2, Character>) -> Nat:
+def utf16_acc(items: List<&2, Character>, width: Nat) -> Nat:
   match items:
-    case []: 0n
-    case Character{ +code, _} <> tail: Nat.add(
-      Bool.pick(Nat, Nat.is_gt(code, 65535n), 2n, 1n),
-      utf16(tail)
-    )
+    case []: width
+    case Character{code, _} <> tail:
+      utf16_acc(tail, Nat.add(width, Bool.pick(Nat, Nat.is_gt(code, 65535n), 2n, 1n)))
 
-def bytes( +items: List<&2, Character>) -> Nat:
+def utf16(items: List<&2, Character>) -> Nat:
+  utf16_acc(items, 0n)
+
+def byte_width(+code: Nat) -> Nat:
+  Bool.pick(Nat, Nat.is_le(code, 127n), 1n,
+    Bool.pick(Nat, Nat.is_le(code, 2047n), 2n,
+      Bool.pick(Nat, Nat.is_le(code, 65535n), 3n, 4n)))
+
+def bytes_acc(items: List<&2, Character>, width: Nat) -> Nat:
   match items:
-    case []: 0n
-    case Character{+code, _} <> tail:
-      Nat.add(
-        Bool.pick(
-          Nat,
-          Nat.is_le(code, 127n),
-          1n,
-          Bool.pick(
-            Nat,
-            Nat.is_le(code, 2047n),
-            2n,
-            Bool.pick(Nat, Nat.is_le(code, 65535n), 3n, 4n)
-          )
-        ),
-        bytes(tail)
-      )
+    case []: width
+    case Character{code, _} <> tail: bytes_acc(tail, Nat.add(width, byte_width(code)))
+
+def bytes(items: List<&2, Character>) -> Nat:
+  bytes_acc(items, 0n)
 
 def ascii( +code: Nat) -> String:
   SCon{Chr{U32.from_nat(code)}, SNil{}}
 
-def ascii_text( +items: List<&2, Character>) -> String:
+def ascii_text_acc(items: List<&2, Character>, prefix: String) -> String:
   match items:
-    case []: ""
-    case Character{ +code, _} <> tail: String.append(ascii(code), ascii_text(tail))
+    case []: prefix
+    case Character{code, _} <> tail: ascii_text_acc(tail, String.append(prefix, ascii(code)))
 
-def skip_space( +items: List<&2, Character>) -> List<&2, Character>:
+def ascii_text(items: List<&2, Character>) -> String:
+  ascii_text_acc(items, "")
+
+def skip_space(items: List<&2, Character>) -> List<&2, Character>:
   match items:
     case []: []
-    case +head <> +tail: Bool.pick(List<&2, Character>, space(head), skip_space(tail), head <> tail)
+    case +head <> +tail:
+      match head:
+        case Character{_, True{}}: skip_space(tail)
+        case _: head <> tail
 
 def trim( +items: List<&2, Character>) -> List<&2, Character>:
   List.reverse(&2, Character, skip_space(List.reverse(&2, Character, skip_space(items))))

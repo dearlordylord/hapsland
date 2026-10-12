@@ -1,4 +1,3 @@
-import { createArtifactMachine } from "../composition/artifact-dispatcher.mjs"
 import { artifactTransport } from "./artifact-check-codec.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
@@ -22,7 +21,10 @@ import { createEntryReferenceDriver } from "../entry-driver-check.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { resolveGraphUnit } from "../../graph-resolver.ts"
 import { createBendResolver } from "../consumer.ts"
-import { createOwnedArtifactDriver } from "../../../../../source-analysis/src/direct-event/graph-resolution/composition/owned-artifact-driver.mjs"
+import {
+  createGraphDriver,
+  createGraphMachine
+} from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
 const entryMode = process.argv.includes("--entry")
 const ownedMode = process.argv.includes("--owned") || entryMode
 const artifactMode = process.argv.includes("--artifact")
@@ -600,11 +602,11 @@ try {
           state = result.state
         }
         const registry = createServiceRegistry()
-        const driver = createOwnedArtifactDriver({
+        const driver = createGraphDriver({
           owner,
           initialState: state,
           scope: { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },
-          machine: createArtifactMachine({ ...ownedArtifacts, retainPrefixes: false }),
+          machine: createGraphMachine({ cores: ownedArtifacts, retainPrefixes: false }),
           registry,
           foreign: async ([request], options) => {
             ownedRequests++
