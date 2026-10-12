@@ -587,15 +587,18 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 89ff0da2 measurements are
+   connected candidate. Latest existing-production 59838815 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.7281510630463482 (2026-10-12 01:00:38.607483 UTC); build fails at
-   1.1747318992548823 (01:01:09.207416 UTC). Both starts are within their
+   passes at 0.5198552403926731 (2026-10-12 01:29:51.276574 UTC); build fails at
+   1.1118466294546057 (01:30:23.951888 UTC). Both starts are within their
    preceding cadence deadlines. Results do not qualify unadopted whole
    preparation; build parity remains an acceptance obstacle.
-   Normal warm build passes 46/46, 23 cached, 2.811s. Next starts due on
-   2026-10-12 UTC: execution 01:30:38.607483, build 01:31:09.207416.
-   Logs: /tmp/hapsland-89ff-{execution,build}-pair.log.
+   Normal warm build passes 46/46, 23 cached, 3.132s. Next starts due on
+   2026-10-12 UTC: execution 01:59:51.276574, build 02:00:23.951888.
+   Logs: /tmp/hapsland-598388-{execution,build}-pair.log.
+   Previous 89ff0da2 execution .7281511 passed and build1.1747319 failed;
+   both qualified runs started on time. Timing changes are not causal evidence
+   for the type-only ABI change, whose erased runtime AST is unchanged.
    Previous 0ab17560 execution .8222442 passed and build1.1940596 failed;
    those starts missed their deadlines after two failed packaging builds and
    matched-producer/serial diagnosis. Those cadence violations remain recorded.
