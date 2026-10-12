@@ -702,18 +702,19 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 17d75e3d measurements are
+   connected candidate. Latest existing-production 520b3074 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.6552013281745416 (2026-10-12 02:26:15.223745 UTC); build fails at
-   1.1799677748929405 (02:27:07.837922 UTC). Both starts missed the preceding
-   cadence deadlines (02:25:29.041425 / 02:26:15.936963) after the frozen
-   candidate required normal source-analysis and downstream compilation.
-   This cadence violation remains recorded independently of qualification.
-   Results do not qualify unadopted whole preparation; build parity remains
-   an acceptance obstacle. Standard workspace preparation passes 46/46 tasks,
-   15 cached, 84.512s. Next starts due on 2026-10-12 UTC:
-   execution 02:56:15.223745, build 02:57:07.837922.
-   Logs: /tmp/hapsland-17d75-{warm,execution-pair,build-pair}.log.
+   passes at 0.7304863518137152 (2026-10-12 02:54:43.374945 UTC); build fails at
+   1.1509246821378714 (02:55:40.835636 UTC). Both starts meet the preceding
+   cadence deadlines. Results do not qualify unadopted whole preparation;
+   build parity remains an acceptance obstacle. Standard workspace preparation
+   passes 46/46 tasks, 15 cached, 46.140s. Next starts due on 2026-10-12 UTC:
+   execution 03:24:43.374945, build 03:25:40.835636.
+   Logs: /tmp/hapsland-520b307-{warm,execution-pair,build-pair}.log.
+   Previous 17d75e3d qualified execution .6552013 passed and build1.1799678
+   failed. Both starts missed their cadence deadlines after frozen normal
+   source-analysis/downstream compilation; that violation remains recorded
+   independently of qualification (/tmp/hapsland-17d75-*-pair.log).
    A single read-only CPU profile per checkout localizes current UI preflight:
    baseline total 3.031s / walk self 1.077s, candidate 3.995s / walk self .697s.
    These isolated profiles do not establish a build-gap cause or justify another
