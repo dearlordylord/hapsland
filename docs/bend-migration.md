@@ -173,7 +173,7 @@ Current finite evidence, with commands at the testing matrix:
 | Boundary | Observed coverage | Limit |
 | --- | --- | --- |
 | Whole finalization machine | 66 ordered scenarios and ten actual binding vectors, 9947 requests, 194 real Canonical gates, 93 omissions, 127 current-rule reads, 75190 wrong replies | Actual native ready consumer, full JSON outcomes and chronology; universal proof remains open. |
-| Real Source composition | 56 cases, 6348 requests, 31 independent whole native comparisons | Ordered physical effects, inputs/identities, activity publication and pre-teardown custody; full error/cancellation correspondence remains open. |
+| Real Source composition | 57 cases, 6502 requests, 32 independent whole native comparisons | Ordered physical effects, inputs/identities, activity publication and pre-teardown custody; full error/cancellation correspondence remains open. |
 | Real Preparation → Post composition | 73 cases, 15702 requests, 855 Post requests | Native result differential, parent cancellation/late replies, retained advice, post-admission barriers and cleanup; whole proof and public adoption remain open. |
 | Frozen input/identity | 60 cases, 5960 engine requests, 17880 wrong replies | All five languages, partial units, three providers; full field order and ordinary JSON checked. |
 | Configuration/provider | 91 cases, including 44 through actual settings decoder; 62 URI requests, 2385 wrong replies | Other 47 cases are explicitly raw-shape extensions, not validated producer claims. |
@@ -916,8 +916,19 @@ One current obstacle list, in execution order:
    retained-cleanup algorithm, with synchronous `close(): void`. Source Analysis's
    Graph registry composes that interface for Graph sessions and retains its
    existing structural session contract and Graph request adapter. Resident's
-   five-family driver is the second intended consumer of this lower interface;
-   replacing its incorrectly Graph-typed registry remains open. Dependency
+   five-family driver now consumes this lower interface. Both full physical
+   Source/resident consumers use its native registry for all session families;
+   Graph execution/encoded reply stays at Source Analysis through
+   performGraphServiceRequest. Missing invocation retains its prior TypeError,
+   lookups retain hostNatural validation, and wrong-family requests are rejected
+   before perform. The public Graph registry delegates the same adapter; no second
+   Map, session wrapper, factory brand or orchestration was added. Structural
+   review is clean. On 37e2ce8c ordinary build passes 46/46 (15 cached,75.379s),
+   both compiled consumers pass 57/6502/32 and73/15702/855, source owner typing and
+   five actual authored lint files pass, and Graph service check passes195 requests
+   plus wrong-family/unknown-invocation negatives. Logs:
+   /tmp/hapsland-native-five-family-{build,typecheck,lint,consumers,service-check}.log.
+   Public production factory integration still remains open. Dependency
    direction is Source Analysis / resident → runtime-environment, already declared
    by both packages. Architectural review accepted the extraction and identified
    synchronous close, preserved Graph lookup and structural session admission as
@@ -975,7 +986,12 @@ One current obstacle list, in execution order:
    join subsequently passes unchanged at 5.714s under hard10 on CPU10;
    the prior timeout 10.034s (6.688s CPU) did not reproduce. Direct actual
    staged pending coverage then passes at 7.880s, using unchanged original
-   ready premises. Full attachment_transaction_exact still needs its original body.
+   ready premises. The full six coverage guards pass3.933s; all target rows
+   retain address projection2.291s; full20-field frame transport and History.extend
+   projected join pass1.362s/1.558s/2.703s, validated reconstruction1.000s.
+   These frame joins still require supplying forest/pending observations from
+   the single original ready witness; claims5–6 are not yet closed. Arbitrary
+   replies7–8 and full attachment_transaction_exact remain open.
    The proof-file formatter also reports Incomplete declaration header
    (/tmp/hapsland-50777b2c-proof-format.log); neither proof nor format acceptance
    is claimed. Normal compilation initially rejected source drift because the

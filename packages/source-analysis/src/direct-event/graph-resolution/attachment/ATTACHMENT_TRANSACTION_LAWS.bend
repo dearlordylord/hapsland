@@ -3940,6 +3940,344 @@ def ready_staged_pending_coverage(+items: List<&2, Local.Pending>, +offset: Nat,
             Equal.cong(Nat, Nat, count => (old_count + count : Nat), List.length(&2, Nat, History.ids(payloads, next)), payload_count,
               ready_history_ids_length(payloads, next)))))))
 
+def ready_pending_order(order: V.Order, pending: List<&2, Nat>) -> V.Order:
+  match order:
+    case V.Order{_, targets, ids, captured, identities, visited}:
+      V.Order{pending, targets, ids, captured, identities, visited}
+
+def ready_attached_coverage(+order: V.Order, +attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    +new_order: List<&2, Nat>,
+    +covered: {ActualFrame.coverage(order, frame) == True{} : Bool},
+    new_unique: {ActualFrame.nats_unique(new_order, new_order) == True{} : Bool},
+    new_size: {List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, S.frame_pending(Attach.attached_frame(attachment, frame))))
+      == List.length(&2, Nat, new_order) : Nat}) ->
+    {ActualFrame.coverage(ready_pending_order(order, new_order), Attach.attached_frame(attachment, frame)) == True{} : Bool}:
+  match order attachment frame:
+    case V.Order{+pending_order, +targets, +ids, +captured_order, +identities, +visited_order}
+        Compose.Attachment{_, _, _, _, _, +new_pending, _, _, _}
+        T.ResolverFrame{_, _, _, _, _, _, _, _, +visited, _, _, _, _, _, +pending, +target_paths, +target_ids, +target_artifacts, +captured, _}:
+      BoolFacts.and_eq_true(Bool.and(ActualFrame.nats_unique(new_order, new_order), Bool.and(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured_order, captured_order), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited_order, visited_order)))))), Bool.and(Nat.is_eq(List.length(&2, Nat, new_order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, new_pending))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, target_paths))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, target_ids))), Bool.and(Nat.is_eq(List.length(&2, String, captured_order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, captured))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, target_artifacts))), Nat.is_eq(List.length(&2, String, visited_order), List.length(&2, String, Map.keys(&2, Bool, visited)))))))),
+        BoolFacts.and_eq_true(ActualFrame.nats_unique(new_order, new_order), Bool.and(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured_order, captured_order), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited_order, visited_order))))), new_unique,
+          BoolFacts.eq_true_of_and_right(ActualFrame.nats_unique(pending_order, pending_order), Bool.and(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured_order, captured_order), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited_order, visited_order))))),
+            BoolFacts.eq_true_of_and_left(Bool.and(ActualFrame.nats_unique(pending_order, pending_order), Bool.and(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured_order, captured_order), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited_order, visited_order)))))), Bool.and(Nat.is_eq(List.length(&2, Nat, pending_order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, pending))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, target_paths))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, target_ids))), Bool.and(Nat.is_eq(List.length(&2, String, captured_order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, captured))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, target_artifacts))), Nat.is_eq(List.length(&2, String, visited_order), List.length(&2, String, Map.keys(&2, Bool, visited)))))))), covered))),
+        BoolFacts.and_eq_true(Nat.is_eq(List.length(&2, Nat, new_order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, new_pending))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, target_paths))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, target_ids))), Bool.and(Nat.is_eq(List.length(&2, String, captured_order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, captured))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, target_artifacts))), Nat.is_eq(List.length(&2, String, visited_order), List.length(&2, String, Map.keys(&2, Bool, visited))))))),
+          Equal.trans(Bool, Nat.is_eq(List.length(&2, Nat, new_order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, new_pending))), Nat.is_eq(List.length(&2, Nat, new_order), List.length(&2, Nat, new_order)), True{},
+            Equal.cong(Nat, Bool, count => Nat.is_eq(List.length(&2, Nat, new_order), count),
+              List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, new_pending)), List.length(&2, Nat, new_order), new_size),
+            Arithmetic.is_eq_refl(List.length(&2, Nat, new_order))),
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(List.length(&2, Nat, pending_order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, pending))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, target_paths))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, target_ids))), Bool.and(Nat.is_eq(List.length(&2, String, captured_order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, captured))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, target_artifacts))), Nat.is_eq(List.length(&2, String, visited_order), List.length(&2, String, Map.keys(&2, Bool, visited))))))),
+            BoolFacts.eq_true_of_and_right(Bool.and(ActualFrame.nats_unique(pending_order, pending_order), Bool.and(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured_order, captured_order), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited_order, visited_order)))))), Bool.and(Nat.is_eq(List.length(&2, Nat, pending_order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, pending))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, target_paths))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, target_ids))), Bool.and(Nat.is_eq(List.length(&2, String, captured_order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, captured))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, target_artifacts))), Nat.is_eq(List.length(&2, String, visited_order), List.length(&2, String, Map.keys(&2, Bool, visited)))))))), covered))))
+
+def ready_registered_attachment_pending(+registration: Compose.RegisteredPending, +child: Compose.RemappedPlan,
+    +frame: T.ResolverFrame, +references: List<&2, Local.ReferenceSlot>) ->
+    {S.frame_pending(Attach.attached_frame(Compose.attachment_registered(registration, child, S.frame_nodes(frame), references), frame))
+      == ready_registered_pending(registration) : Map<&2, Maybe<&2, Local.Pending>>}:
+  match registration child frame:
+    case Compose.RegisteredPending{_, _, _} Compose.RemappedPlan{_, _, _, _, _, _, _}
+        T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: {==}
+
+def ready_registered_attachment_coverage(+frame: T.ResolverFrame, +child: Compose.RemappedPlan,
+    +references: List<&2, Local.ReferenceSlot>, +items: List<&2, Local.Pending>, +offset: Nat,
+    +pending_order: List<&2, Nat>, +targets: List<&2, Nat>, +ids: List<&2, String>, +captures: List<&2, String>,
+    +identities: List<&2, Nat>, +visited: List<&2, String>, +sources: List<&2, V.EdgeSource>,
+    +addresses: List<&2, F.AddressEntry>, +rows: List<&2, V.PendingEntry>, +next: Nat,
+    +child_addresses: List<&2, F.AddressEntry>, +payloads: List<&2, V.PendingPayload>,
+    +covered: {ActualFrame.coverage(V.Order{pending_order, targets, ids, captures, identities, visited}, frame) == True{} : Bool},
+    valid: {Patricia.canonical(Maybe<&2, Local.Pending>, S.frame_pending(frame)) == True{} : Bool},
+    +before: {ActualReady.pending_ids_before(pending_order, next) == True{} : Bool},
+    ready: {ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>},
+    child_ready: {ActualReady.pending(items, child_addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}) ->
+    {ActualFrame.coverage(ready_pending_order(V.Order{pending_order, targets, ids, captures, identities, visited}, List.append(&2, Nat, pending_order, History.ids(payloads, next))),
+      Attach.attached_frame(Compose.attachment_registered(Compose.register_pending(Compose.shift_pending(items, offset), next, S.frame_pending(frame)),
+        child, S.frame_nodes(frame), references), frame)) == True{} : Bool}:
+  +order: V.Order = V.Order{pending_order, targets, ids, captures, identities, visited}
+  +new_order: List<&2, Nat> = List.append(&2, Nat, pending_order, History.ids(payloads, next))
+  +registration: Compose.RegisteredPending = Compose.register_pending(Compose.shift_pending(items, offset), next, S.frame_pending(frame))
+  +attachment: Compose.Attachment = Compose.attachment_registered(registration, child, S.frame_nodes(frame), references)
+  +unique: {ActualFrame.nats_unique(pending_order, pending_order) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_left(ActualFrame.nats_unique(pending_order, pending_order), Bool.and(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captures, captures), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited))))), ready_coverage_order(order, frame, covered))
+  ready_attached_coverage(order, attachment, frame, new_order, covered,
+    ready_staged_order_unique(pending_order, payloads, next, before, unique),
+    Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, S.frame_pending(Attach.attached_frame(attachment, frame)))),
+      List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(registration))), List.length(&2, Nat, new_order),
+      Equal.cong(Map<&2, Maybe<&2, Local.Pending>>, Nat, entries => List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, entries)),
+        S.frame_pending(Attach.attached_frame(attachment, frame)), ready_registered_pending(registration),
+        ready_registered_attachment_pending(registration, child, frame, references)),
+      ready_staged_pending_coverage(items, offset, pending_order, S.frame_pending(frame), sources, addresses, rows, next, child_addresses, payloads,
+        valid, unique,
+        BoolFacts.eq_true_of_and_left(Nat.is_eq(List.length(&2, Nat, pending_order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, S.frame_pending(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, S.frame_target_paths(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, S.frame_target_ids(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, captures), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame)))))))),
+          BoolFacts.eq_true_of_and_right(ActualFrame.order_valid(order), Bool.and(Nat.is_eq(List.length(&2, Nat, pending_order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, S.frame_pending(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, S.frame_target_paths(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, S.frame_target_ids(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, captures), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame))))))))), covered)),
+        before, ready, child_ready)))
+
+def ready_target_payload_retained(+value: Maybe<&2, V.PendingPayload>, +updated: Maybe<&2, V.PendingPayload>,
+    +target: T.Target, +payload: V.TargetPayload,
+    ready: {ActualFrame.target_payload(value, target) == Some{payload} : Maybe<&2, V.TargetPayload>},
+    retain: @edge: V.PendingPayload -> {value == Some{edge} : Maybe<&2, V.PendingPayload>} ->
+      {updated == Some{edge} : Maybe<&2, V.PendingPayload>}) ->
+    {ActualFrame.target_payload(updated, target) == Some{payload} : Maybe<&2, V.TargetPayload>}:
+  match value:
+    case Some{+edge}:
+      Equal.trans(Maybe<&2, V.TargetPayload>, ActualFrame.target_payload(updated, target),
+        ActualFrame.target_payload(Some{edge}, target), Some{payload},
+        Equal.cong(Maybe<&2, V.PendingPayload>, Maybe<&2, V.TargetPayload>, found => ActualFrame.target_payload(found, target),
+          updated, Some{edge}, retain(edge, {==})), ready)
+    case None{}:
+      match target:
+        case T.FileTarget{_, _, _}:
+          Empty.absurd({ActualFrame.target_payload(updated, target) == Some{payload} : Maybe<&2, V.TargetPayload>},
+            Contents.none_some(V.TargetPayload, payload, ready))
+        case T.BundledTarget{_, _, _}:
+          Empty.absurd({ActualFrame.target_payload(updated, target) == Some{payload} : Maybe<&2, V.TargetPayload>},
+            Contents.none_some(V.TargetPayload, payload, ready))
+
+def ready_target_value_retained(+value: Maybe<&2, T.Target>, +addresses: List<&2, F.AddressEntry>,
+    +more: List<&2, F.AddressEntry>, +payload: V.TargetPayload,
+    ready: {ActualFrame.target_value(value, addresses) == Some{payload} : Maybe<&2, V.TargetPayload>}) ->
+    {ActualFrame.target_value(value, List.append(&2, F.AddressEntry, addresses, more)) == Some{payload} : Maybe<&2, V.TargetPayload>}:
+  match value:
+    case Some{+target}:
+      match target:
+        case T.FileTarget{_, _, +edge}:
+          ready_target_payload_retained(V.pending_payload(edge, addresses), V.pending_payload(edge, List.append(&2, F.AddressEntry, addresses, more)),
+            target, payload, ready, found => observed => ready_pending_payload_extended(edge, addresses, more, found, observed))
+        case T.BundledTarget{_, _, +edge}:
+          ready_target_payload_retained(V.pending_payload(edge, addresses), V.pending_payload(edge, List.append(&2, F.AddressEntry, addresses, more)),
+            target, payload, ready, found => observed => ready_pending_payload_extended(edge, addresses, more, found, observed))
+    case None{}:
+      Empty.absurd({ActualFrame.target_value(value, List.append(&2, F.AddressEntry, addresses, more)) == Some{payload} : Maybe<&2, V.TargetPayload>},
+        Contents.none_some(V.TargetPayload, payload, ready))
+
+def ready_target_entry_retained(+value: Maybe<&2, V.TargetPayload>, +updated: Maybe<&2, V.TargetPayload>, +id: Nat, +entry: V.TargetEntry,
+    ready: {ActualFrame.target_entry(id, value) == Some{entry} : Maybe<&2, V.TargetEntry>},
+    retain: @payload: V.TargetPayload -> {value == Some{payload} : Maybe<&2, V.TargetPayload>} ->
+      {updated == Some{payload} : Maybe<&2, V.TargetPayload>}) ->
+    {ActualFrame.target_entry(id, updated) == Some{entry} : Maybe<&2, V.TargetEntry>}:
+  match value:
+    case Some{+payload}:
+      Equal.trans(Maybe<&2, V.TargetEntry>, ActualFrame.target_entry(id, updated), ActualFrame.target_entry(id, Some{payload}), Some{entry},
+        Equal.cong(Maybe<&2, V.TargetPayload>, Maybe<&2, V.TargetEntry>, found => ActualFrame.target_entry(id, found),
+          updated, Some{payload}, retain(payload, {==})), ready)
+    case None{}:
+      Empty.absurd({ActualFrame.target_entry(id, updated) == Some{entry} : Maybe<&2, V.TargetEntry>}, Contents.none_some(V.TargetEntry, entry, ready))
+
+def ready_target_prefix_retained(+head: Maybe<&2, V.TargetEntry>, +tail: Maybe<&2, List<&2, V.TargetEntry>>,
+    +updated_head: Maybe<&2, V.TargetEntry>, +updated_tail: Maybe<&2, List<&2, V.TargetEntry>>, +rows: List<&2, V.TargetEntry>,
+    ready: {ActualFrame.targets_prefix(head, tail) == Some{rows} : Maybe<&2, List<&2, V.TargetEntry>>},
+    retain_head: @value: V.TargetEntry -> {head == Some{value} : Maybe<&2, V.TargetEntry>} ->
+      {updated_head == Some{value} : Maybe<&2, V.TargetEntry>},
+    retain_tail: @value: List<&2, V.TargetEntry> -> {tail == Some{value} : Maybe<&2, List<&2, V.TargetEntry>>} ->
+      {updated_tail == Some{value} : Maybe<&2, List<&2, V.TargetEntry>>}) ->
+    {ActualFrame.targets_prefix(updated_head, updated_tail) == Some{rows} : Maybe<&2, List<&2, V.TargetEntry>>}:
+  match head tail:
+    case Some{+value} Some{+rest}:
+      Equal.trans(Maybe<&2, List<&2, V.TargetEntry>>, ActualFrame.targets_prefix(updated_head, updated_tail),
+        ActualFrame.targets_prefix(Some{value}, Some{rest}), Some{rows},
+        Equal.trans(Maybe<&2, List<&2, V.TargetEntry>>, ActualFrame.targets_prefix(updated_head, updated_tail),
+          ActualFrame.targets_prefix(Some{value}, updated_tail), ActualFrame.targets_prefix(Some{value}, Some{rest}),
+          Equal.cong(Maybe<&2, V.TargetEntry>, Maybe<&2, List<&2, V.TargetEntry>>, found => ActualFrame.targets_prefix(found, updated_tail),
+            updated_head, Some{value}, retain_head(value, {==})),
+          Equal.cong(Maybe<&2, List<&2, V.TargetEntry>>, Maybe<&2, List<&2, V.TargetEntry>>, found => ActualFrame.targets_prefix(Some{value}, found),
+            updated_tail, Some{rest}, retain_tail(rest, {==}))), ready)
+    case None{} _:
+      Empty.absurd({ActualFrame.targets_prefix(updated_head, updated_tail) == Some{rows} : Maybe<&2, List<&2, V.TargetEntry>>},
+        Contents.none_some(List<&2, V.TargetEntry>, rows, ready))
+    case Some{_} None{}:
+      Empty.absurd({ActualFrame.targets_prefix(updated_head, updated_tail) == Some{rows} : Maybe<&2, List<&2, V.TargetEntry>>},
+        Contents.none_some(List<&2, V.TargetEntry>, rows, ready))
+
+def ready_targets_address_retained(+order: List<&2, Nat>, +entries: Map<&2, Maybe<&2, T.Target>>,
+    +addresses: List<&2, F.AddressEntry>, +more: List<&2, F.AddressEntry>, +rows: List<&2, V.TargetEntry>,
+    ready: {ActualFrame.targets(order, entries, addresses) == Some{rows} : Maybe<&2, List<&2, V.TargetEntry>>}) ->
+    {ActualFrame.targets(order, entries, List.append(&2, F.AddressEntry, addresses, more)) == Some{rows} : Maybe<&2, List<&2, V.TargetEntry>>}:
+  match order:
+    case []: ready
+    case +id <> +tail:
+      +raw: Maybe<&2, T.Target> = Local.map_result(Maybe<&2, T.Target>, Map.get(Maybe<&2, T.Target>, None{}, entries, Nat.show(id)))
+      +new_addresses: List<&2, F.AddressEntry> = List.append(&2, F.AddressEntry, addresses, more)
+      ready_target_prefix_retained(ActualFrame.target_entry(id, ActualFrame.target_value(raw, addresses)),
+        ActualFrame.targets(tail, entries, addresses), ActualFrame.target_entry(id, ActualFrame.target_value(raw, new_addresses)),
+        ActualFrame.targets(tail, entries, new_addresses), rows, ready,
+        entry => found => ready_target_entry_retained(ActualFrame.target_value(raw, addresses), ActualFrame.target_value(raw, new_addresses), id, entry, found,
+          payload => observed => ready_target_value_retained(raw, addresses, more, payload, observed)),
+        rest => found => ready_targets_address_retained(tail, entries, addresses, more, rest, found))
+
+def ready_actual_staged_assembled(+old_forest: Maybe<&2, F.Forest>,
+    +pending: Maybe<&2, List<&2, V.PendingEntry>>,
+    +targets: Maybe<&2, List<&2, V.TargetEntry>>,
+    +ids: Maybe<&2, List<&2, V.TargetId>>,
+    +captures: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +identities: Maybe<&2, List<&2, V.TargetArtifact>>,
+    +visited: Maybe<&2, List<&2, String>>,
+    +attachment: Compose.Attachment, +frame: T.ResolverFrame, +remaining: Nat, +episode: Nat, +view: V.Frame,
+    +forest: F.Forest, +more: List<&2, V.PendingEntry>,
+    ready: {ActualFrame.frame_view(old_forest, pending, targets, ids, captures, identities, visited, frame, remaining, episode) == Some{view} : Maybe<&2, V.Frame>},
+    budget: {V.actual_budget(S.frame_budget(Attach.attached_frame(attachment, frame))) == V.actual_budget(S.frame_budget(frame)) : V.Budget},
+    node: {S.frame_next_node(Attach.attached_frame(attachment, frame)) == ReferenceFrame.node_count(forest) : Nat}) ->
+    {ActualFrame.frame_view(Some{forest}, ready_pending_join(pending, Some{more}), targets, ids, captures, identities, visited,
+      Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}:
+  match old_forest pending targets ids captures identities visited attachment frame:
+    case Some{+forest_value} Some{+pending_value} Some{+targets_value} Some{+ids_value} Some{+captures_value} Some{+identities_value} Some{+visited_value}
+        Compose.Attachment{_, +next_node, +next_edge, _, _, _, _, _, +new_budget}
+        T.ResolverFrame{+branch, +limits, +graph, +command, +deps, _, _, _, _, +old_budget,
+          +old_node, +old_edge, +target, +artifact, _, _, _, _, _, +artifacts}:
+      %Count.some_equal(V.Frame,
+        V.Frame{branch, limits, graph, command, deps, forest_value, pending_value, targets_value, ids_value, captures_value,
+          identities_value, visited_value, V.actual_budget(old_budget), old_node, old_edge, target, artifact, artifacts, remaining, episode}, view, ready):
+        {ActualFrame.frame_view(Some{forest}, Some{List.append(&2, V.PendingEntry, pending_value, more)}, Some{targets_value}, Some{ids_value},
+          Some{captures_value}, Some{identities_value}, Some{visited_value}, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+          == Some{ready_staged_frame(_, forest, more, next_edge)} : Maybe<&2, V.Frame>}
+      Equal.trans(Maybe<&2, V.Frame>, Some{V.Frame{branch, limits, graph, command, deps, forest, List.append(&2, V.PendingEntry, pending_value, more), targets_value, ids_value, captures_value, identities_value, visited_value, V.actual_budget(new_budget), next_node, next_edge, target, artifact, artifacts, remaining, (episode + 1n : Nat)}},
+        Some{V.Frame{branch, limits, graph, command, deps, forest, List.append(&2, V.PendingEntry, pending_value, more), targets_value, ids_value, captures_value, identities_value, visited_value, V.actual_budget(old_budget), next_node, next_edge, target, artifact, artifacts, remaining, (episode + 1n : Nat)}},
+        Some{V.Frame{branch, limits, graph, command, deps, forest, List.append(&2, V.PendingEntry, pending_value, more), targets_value, ids_value, captures_value, identities_value, visited_value, V.actual_budget(old_budget), ReferenceFrame.node_count(forest), next_edge, target, artifact, artifacts, remaining, (episode + 1n : Nat)}},
+        Equal.cong(V.Budget, Maybe<&2, V.Frame>, value => Some{V.Frame{branch, limits, graph, command, deps, forest, List.append(&2, V.PendingEntry, pending_value, more), targets_value, ids_value, captures_value, identities_value, visited_value, value, next_node, next_edge, target, artifact, artifacts, remaining, (episode + 1n : Nat)}},
+          V.actual_budget(new_budget), V.actual_budget(old_budget), budget),
+      Equal.cong(Nat, Maybe<&2, V.Frame>, count => Some{V.Frame{branch, limits, graph, command, deps, forest,
+        List.append(&2, V.PendingEntry, pending_value, more), targets_value, ids_value, captures_value, identities_value, visited_value,
+        V.actual_budget(old_budget), count, next_edge, target, artifact, artifacts, remaining, (episode + 1n : Nat)}},
+        next_node, ReferenceFrame.node_count(forest), node))
+    case None{} _ _ _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, ready_pending_join(pending, Some{more}), targets, ids, captures, identities, visited,
+      Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} None{} _ _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, ready_pending_join(pending, Some{more}), targets, ids, captures, identities, visited,
+      Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} None{} _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, ready_pending_join(pending, Some{more}), targets, ids, captures, identities, visited,
+      Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} None{} _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, ready_pending_join(pending, Some{more}), targets, ids, captures, identities, visited,
+      Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} None{} _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, ready_pending_join(pending, Some{more}), targets, ids, captures, identities, visited,
+      Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} None{} _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, ready_pending_join(pending, Some{more}), targets, ids, captures, identities, visited,
+      Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} Some{_} None{} _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, ready_pending_join(pending, Some{more}), targets, ids, captures, identities, visited,
+      Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_actual_staged_rows(+old_forest: Maybe<&2, F.Forest>,
+    +pending: Maybe<&2, List<&2, V.PendingEntry>>,
+    +targets: Maybe<&2, List<&2, V.TargetEntry>>,
+    +ids: Maybe<&2, List<&2, V.TargetId>>,
+    +captures: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +identities: Maybe<&2, List<&2, V.TargetArtifact>>,
+    +visited: Maybe<&2, List<&2, String>>,
+    +attachment: Compose.Attachment, +frame: T.ResolverFrame, +remaining: Nat, +episode: Nat, +view: V.Frame,
+    +forest: F.Forest, +more: List<&2, V.PendingEntry>,
+    +updated_pending: Maybe<&2, List<&2, V.PendingEntry>>, +updated_targets: Maybe<&2, List<&2, V.TargetEntry>>,
+    ready: {ActualFrame.frame_view(old_forest, pending, targets, ids, captures, identities, visited, frame, remaining, episode) == Some{view} : Maybe<&2, V.Frame>},
+    budget: {V.actual_budget(S.frame_budget(Attach.attached_frame(attachment, frame))) == V.actual_budget(S.frame_budget(frame)) : V.Budget},
+    node: {S.frame_next_node(Attach.attached_frame(attachment, frame)) == ReferenceFrame.node_count(forest) : Nat},
+    pending_kept: @rows: List<&2, V.PendingEntry> -> {pending == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>} ->
+      {updated_pending == Some{List.append(&2, V.PendingEntry, rows, more)} : Maybe<&2, List<&2, V.PendingEntry>>},
+    targets_kept: @rows: List<&2, V.TargetEntry> -> {targets == Some{rows} : Maybe<&2, List<&2, V.TargetEntry>>} ->
+      {updated_targets == Some{rows} : Maybe<&2, List<&2, V.TargetEntry>>}) ->
+    {ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)) == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}:
+  match old_forest pending targets ids captures identities visited:
+    case Some{+fv} Some{+pv} Some{+tv} Some{+iv} Some{+cv} Some{+av} Some{+vv}:
+      Equal.trans(Maybe<&2, V.Frame>, ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)),
+        ActualFrame.frame_view(Some{forest}, Some{List.append(&2, V.PendingEntry, pv, more)}, Some{tv}, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)), Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))},
+        Equal.trans(Maybe<&2, V.Frame>, ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)),
+          ActualFrame.frame_view(Some{forest}, Some{List.append(&2, V.PendingEntry, pv, more)}, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)),
+          ActualFrame.frame_view(Some{forest}, Some{List.append(&2, V.PendingEntry, pv, more)}, Some{tv}, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)),
+          Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, V.Frame>, rows => ActualFrame.frame_view(Some{forest}, rows, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)),
+            updated_pending, Some{List.append(&2, V.PendingEntry, pv, more)}, pending_kept(pv, {==})),
+          Equal.cong(Maybe<&2, List<&2, V.TargetEntry>>, Maybe<&2, V.Frame>, rows => ActualFrame.frame_view(Some{forest}, Some{List.append(&2, V.PendingEntry, pv, more)}, rows, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)),
+            updated_targets, Some{tv}, targets_kept(tv, {==}))),
+        ready_actual_staged_assembled(old_forest, pending, targets, ids, captures, identities, visited, attachment, frame, remaining, episode, view, forest, more, ready, budget, node))
+    case None{} _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)) == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} None{} _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)) == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} None{} _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)) == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} None{} _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)) == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} None{} _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)) == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)) == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} Some{_} None{}:
+      Empty.absurd({ActualFrame.frame_view(Some{forest}, updated_pending, updated_targets, ids, captures, identities, visited, Attach.attached_frame(attachment, frame), remaining, (episode + 1n : Nat)) == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_history_addresses(history: V.History) -> List<&2, F.AddressEntry>:
+  match history:
+    case V.History{addresses, _, _, _, _, _, _}: addresses
+
+def ready_projected_pending(+frame: T.ResolverFrame, history: V.History) -> Maybe<&2, List<&2, V.PendingEntry>>:
+  match history:
+    case V.History{addresses, V.Order{pending, _, _, _, _, _}, sources, _, _, _, _}:
+      ActualFrame.pending(pending, S.frame_pending(frame), sources, addresses)
+
+def ready_actual_staged_projected(+attachment: Compose.Attachment, +frame: T.ResolverFrame, +history: V.History,
+    +view: V.Frame, +forest: F.Forest, +more: List<&2, V.PendingEntry>, +child_addresses: List<&2, F.AddressEntry>,
+    +offset: Nat, +new_ids: List<&2, Nat>, +source: T.SourceFacts, +catalog: RootSpec.Source,
+    ready: {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    budget: {V.actual_budget(S.frame_budget(Attach.attached_frame(attachment, frame))) == V.actual_budget(S.frame_budget(frame)) : V.Budget},
+    node: {S.frame_next_node(Attach.attached_frame(attachment, frame)) == ReferenceFrame.node_count(forest) : Nat},
+    forest_ready: {ActualFrame.forest_valid(P.project(S.frame_root(Attach.attached_frame(attachment, frame)),
+      S.frame_nodes(Attach.attached_frame(attachment, frame)), S.frame_references(Attach.attached_frame(attachment, frame)),
+      S.frame_artifacts(Attach.attached_frame(attachment, frame)), ready_history_addresses(History.extend(history, child_addresses, offset, new_ids, source, catalog))),
+      ready_history_episode(History.extend(history, child_addresses, offset, new_ids, source, catalog))) == Some{forest} : Maybe<&2, F.Forest>},
+    pending_kept: @rows: List<&2, V.PendingEntry> -> {ready_projected_pending(frame, history) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>} ->
+      {ready_projected_pending(Attach.attached_frame(attachment, frame), History.extend(history, child_addresses, offset, new_ids, source, catalog))
+        == Some{List.append(&2, V.PendingEntry, rows, more)} : Maybe<&2, List<&2, V.PendingEntry>>}) ->
+    {ActualFrame.projected(Attach.attached_frame(attachment, frame), History.extend(history, child_addresses, offset, new_ids, source, catalog))
+      == Some{ready_staged_frame(view, forest, more, S.frame_next_edge(Attach.attached_frame(attachment, frame)))} : Maybe<&2, V.Frame>}:
+  match attachment frame history:
+    case Compose.Attachment{_, _, _, _, _, _, _, _, _}
+        T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+        V.History{+addresses, V.Order{+pending_order, +targets, +ids, +captures, +identities, +visited}, +sources, +capture_sources, _, +remaining, +episode}:
+      +updated: T.ResolverFrame = Attach.attached_frame(attachment, frame)
+      +added_addresses: List<&2, F.AddressEntry> = Mapping.shifted(child_addresses, offset)
+      +all_addresses: List<&2, F.AddressEntry> = List.append(&2, F.AddressEntry, addresses, added_addresses)
+      +new_forest: Maybe<&2, F.Forest> = ActualFrame.forest_valid(P.project(S.frame_root(updated), S.frame_nodes(updated),
+        S.frame_references(updated), S.frame_artifacts(updated), all_addresses), (episode + 1n : Nat))
+      +new_pending: Maybe<&2, List<&2, V.PendingEntry>> = ActualFrame.pending(List.append(&2, Nat, pending_order, new_ids), S.frame_pending(updated),
+        List.append(&2, V.EdgeSource, sources, History.provenance(new_ids, source, catalog)), all_addresses)
+      +new_targets: Maybe<&2, List<&2, V.TargetEntry>> = ActualFrame.targets(targets, S.frame_target_paths(frame), all_addresses)
+      +id_rows: Maybe<&2, List<&2, V.TargetId>> = ActualFrame.ids(ids, S.frame_target_ids(frame))
+      +capture_rows: Maybe<&2, List<&2, V.CapturedEntry>> = ActualFrame.captured(captures, S.frame_captured(frame), capture_sources)
+      +identity_rows: Maybe<&2, List<&2, V.TargetArtifact>> = ActualFrame.identities(identities, S.frame_target_artifacts(frame))
+      +visited_rows: Maybe<&2, List<&2, String>> = ActualFrame.visited(visited, S.frame_visited(frame))
+      Equal.trans(Maybe<&2, V.Frame>, ActualFrame.projected(updated, History.extend(history, child_addresses, offset, new_ids, source, catalog)),
+        ActualFrame.frame_view(Some{forest}, new_pending, new_targets, id_rows, capture_rows, identity_rows, visited_rows, updated, remaining, (episode + 1n : Nat)),
+        Some{ready_staged_frame(view, forest, more, S.frame_next_edge(updated))},
+        Equal.cong(Maybe<&2, F.Forest>, Maybe<&2, V.Frame>, value => ActualFrame.frame_view(value, new_pending, new_targets,
+          id_rows, capture_rows, identity_rows, visited_rows, updated, remaining, (episode + 1n : Nat)), new_forest, Some{forest}, forest_ready),
+        ready_actual_staged_rows(ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode),
+          ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(targets, S.frame_target_paths(frame), addresses),
+          id_rows, capture_rows, identity_rows, visited_rows, attachment, frame, remaining, episode, view, forest, more,
+          new_pending, new_targets, ready, budget, node, pending_kept,
+          rows => found => ready_targets_address_retained(targets, S.frame_target_paths(frame), addresses, added_addresses, rows, found)))
+
+def ready_frame_project_complete(+frame: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    covered: {ActualFrame.coverage(ready_history_order(history), frame) == True{} : Bool},
+    dense: {ActualFrame.dense(S.frame_nodes(frame), 0n) == True{} : Bool},
+    node: {Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))) == True{} : Bool},
+    catalog: {ActualFrame.catalog_valid(S.frame_artifacts(frame)) == True{} : Bool},
+    projected: {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>}:
+  match history:
+    case V.History{_, +order, _, _, _, _, _}:
+      Equal.trans(Maybe<&2, V.Frame>, ActualFrame.project(frame, history), ActualFrame.projected(frame, history), Some{view},
+        Equal.cong(Bool, Maybe<&2, V.Frame>, valid => ActualFrame.validated(valid, frame, history), frame_checks(frame, history), True{},
+          BoolFacts.and_eq_true(ActualFrame.coverage(order, frame),
+            Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)))), covered,
+            BoolFacts.and_eq_true(ActualFrame.dense(S.frame_nodes(frame), 0n),
+              Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame))), dense,
+              BoolFacts.and_eq_true(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)), node, catalog)))), projected)
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
