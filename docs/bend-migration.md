@@ -532,16 +532,18 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 0ab17560 measurements are
+   connected candidate. Latest existing-production 89ff0da2 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.8222442164078239 (2026-10-12 00:36:51.464695 UTC); build fails at
-   1.1940595650833445 (00:37:49.877591 UTC). Both starts miss their preceding
-   cadence deadlines because packaging preparation failed twice and required
-   matched-producer/serial diagnosis. These are cadence violations, not on-time
-   qualification; results do not qualify unadopted whole preparation.
-   Normal post-diagnostic warm build passes 46/46, 23 cached, 4.081s. Next starts
-   due on 2026-10-12 UTC: execution 01:06:51.464695, build 01:07:49.877591.
-   Logs: /tmp/hapsland-0ab175-{execution,build}-pair.log.
+   passes at 0.7281510630463482 (2026-10-12 01:00:38.607483 UTC); build fails at
+   1.1747318992548823 (01:01:09.207416 UTC). Both starts are within their
+   preceding cadence deadlines. Results do not qualify unadopted whole
+   preparation; build parity remains an acceptance obstacle.
+   Normal warm build passes 46/46, 23 cached, 2.811s. Next starts due on
+   2026-10-12 UTC: execution 01:30:38.607483, build 01:31:09.207416.
+   Logs: /tmp/hapsland-89ff-{execution,build}-pair.log.
+   Previous 0ab17560 execution .8222442 passed and build1.1940596 failed;
+   those starts missed their deadlines after two failed packaging builds and
+   matched-producer/serial diagnosis. Those cadence violations remain recorded.
    Prior 8ca20f5e results were execution .8073524 and build1.1261360; its
    phase diagnostics below describe those earlier inputs, not the current run.
    All 34 paired builds have 23/46 cached tasks and successful exit. Preserved
