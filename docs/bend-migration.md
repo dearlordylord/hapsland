@@ -756,6 +756,23 @@ One current obstacle list, in execution order:
    check:fast passes 109 tests, source/ABI/dependency gates and lint selecting
    all three actual changed authored files (/tmp/hapsland-artifact-dispatch-fast.log).
    Documentation links and diff whitespace checks pass.
+   PostPreparation and AdviceTail adapters now declare their complete existing
+   input, step, reply, terminal and permission types against the packaged ABI.
+   Strict ten-file host diagnostic reports 362 errors, none in these adapters;
+   the remaining host is still unqualified. Addressed lint selects the changed
+   adapter. The complete resident consumer passes 73 cases / 15702 Preparation
+   requests / 855 PostPreparation requests with the same native IO and cleanup
+   boundaries (/tmp/hapsland-post-adapters-consumer.log). This closes an adapter
+   typing prerequisite, not compiled host shipping or production adoption.
+   Ordinary source organization, transport and build work is owned directly by
+   the implementer; Astra is reserved for complex original attachment proofs.
+   check:fast passes 109 tests, source/ABI/dependency gates and lint selecting
+   the one changed authored adapter (/tmp/hapsland-post-adapters-fast.log).
+   Documentation links and diff whitespace pass. Additional original staged
+   support checks qualify under hard five seconds: provenance 1.343s, preservation
+   of earlier pending rows 1.337s, source/catalog provenance 1.853s and exact
+   allocation IDs against History.ids 2.431s. Original law/premises are unchanged;
+   the complete actual staged/coverage/reply transaction remains open.
    The original ordered pending projection join now checks in full at 3.420s
    under hard five seconds, retaining old rows and exact newly allocated rows.
    Original law/premises unchanged; full actual staged witness and transaction

@@ -2490,6 +2490,205 @@ def ready_registered_all_rows(+order: List<&2, Nat>, +items: List<&2, Local.Pend
         ActualFrame.pending(ready_pending_ids(items, next), values, sources, addresses), ready_pending_rows(items, next, sources, addresses),
         ready_registered_pending_rows(items, next, entries, sources, addresses, valid))))
 
+def ready_count_before_choice(+head: Nat, +tail: List<&2, Nat>, +next: Nat, +query: Nat,
+    +same: Bool, test: {Nat.is_eq(head, query) == same : Bool},
+    head_before: {Nat.is_lt(head, next) == True{} : Bool},
+    count: {(Bool.pick(Nat, same, 1n, 0n) + ActualFrame.nat_count(tail, query) : Nat) == 1n : Nat},
+    continue: {ActualFrame.nat_count(tail, query) == 1n : Nat} -> {Nat.is_lt(query, next) == True{} : Bool}) ->
+    {Nat.is_lt(query, next) == True{} : Bool}:
+  match same:
+    case True{}:
+      %NatFacts.eq_of_is_eq(head, query, test): {Nat.is_lt(_, next) == True{} : Bool}
+      head_before
+    case False{}: continue(count)
+
+def ready_count_before(+items: List<&2, Nat>, +next: Nat, +query: Nat,
+    +before: {ActualReady.pending_ids_before(items, next) == True{} : Bool},
+    count: {ActualFrame.nat_count(items, query) == 1n : Nat}) -> {Nat.is_lt(query, next) == True{} : Bool}:
+  match items:
+    case []:
+      Empty.absurd({Nat.is_lt(query, next) == True{} : Bool},
+        Arithmetic.internal_succ_ne_zero(0n, Equal.sym(Nat, 0n, 1n, count)))
+    case +head <> +tail:
+      ready_count_before_choice(head, tail, next, query, Nat.is_eq(head, query), {==},
+        BoolFacts.eq_true_of_and_left(Nat.is_lt(head, next), ActualReady.pending_ids_before(tail, next), before), count,
+        rest => ready_count_before(tail, next, query,
+          BoolFacts.eq_true_of_and_right(Nat.is_lt(head, next), ActualReady.pending_ids_before(tail, next), before), rest))
+
+def ready_provenance_before(+sources: List<&2, V.EdgeSource>, +order: List<&2, Nat>, +next: Nat,
+    +before: {ActualReady.pending_ids_before(order, next) == True{} : Bool},
+    +members: {ActualReady.provenance_members(ActualReady.provenance_ids(sources), order) == True{} : Bool}) ->
+    {ActualReady.pending_ids_before(ActualReady.provenance_ids(sources), next) == True{} : Bool}:
+  match sources:
+    case []: {==}
+    case V.EdgeSource{+id, _, _} <> +tail:
+      BoolFacts.and_eq_true(Nat.is_lt(id, next), ActualReady.pending_ids_before(ActualReady.provenance_ids(tail), next),
+        ready_count_before(order, next, id, before,
+          NatFacts.eq_of_is_eq(ActualFrame.nat_count(order, id), 1n,
+            BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.nat_count(order, id), 1n),
+              ActualReady.provenance_members(ActualReady.provenance_ids(tail), order), members))),
+        ready_provenance_before(tail, order, next, before,
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.nat_count(order, id), 1n),
+            ActualReady.provenance_members(ActualReady.provenance_ids(tail), order), members)))
+
+def ready_sources_raise(+sources: List<&2, V.EdgeSource>, +lower: Nat, +upper: Nat,
+    +before: {ActualReady.pending_ids_before(ActualReady.provenance_ids(sources), lower) == True{} : Bool},
+    +raised: {Nat.is_le(lower, upper) == True{} : Bool}) ->
+    {ActualReady.pending_ids_before(ActualReady.provenance_ids(sources), upper) == True{} : Bool}:
+  match sources:
+    case []: {==}
+    case V.EdgeSource{+id, _, _} <> +tail:
+      BoolFacts.and_eq_true(Nat.is_lt(id, upper), ActualReady.pending_ids_before(ActualReady.provenance_ids(tail), upper),
+        Arithmetic.lt_of_lt_of_le(id, lower, upper,
+          BoolFacts.eq_true_of_and_left(Nat.is_lt(id, lower), ActualReady.pending_ids_before(ActualReady.provenance_ids(tail), lower), before), raised),
+        ready_sources_raise(tail, lower, upper,
+          BoolFacts.eq_true_of_and_right(Nat.is_lt(id, lower), ActualReady.pending_ids_before(ActualReady.provenance_ids(tail), lower), before), raised))
+
+def ready_edge_skip_before(+sources: List<&2, V.EdgeSource>, +rest: List<&2, V.EdgeSource>, +next: Nat, +query: Nat,
+    +before: {ActualReady.pending_ids_before(ActualReady.provenance_ids(sources), next) == True{} : Bool},
+    +after: {Nat.is_le(next, query) == True{} : Bool}) ->
+    {V.edge_at(List.append(&2, V.EdgeSource, sources, rest), query) == V.edge_at(rest, query) : Maybe<&2, V.EdgeSource>}:
+  match sources:
+    case []: {==}
+    case V.EdgeSource{+id, +source, +catalog} <> +tail:
+      Equal.trans(Maybe<&2, V.EdgeSource>, V.edge_at(List.append(&2, V.EdgeSource, V.EdgeSource{id, source, catalog} <> tail, rest), query),
+        V.edge_at(List.append(&2, V.EdgeSource, tail, rest), query), V.edge_at(rest, query),
+        Equal.cong(Bool, Maybe<&2, V.EdgeSource>, same => Bool.pick(Maybe<&2, V.EdgeSource>, same,
+          Some{V.EdgeSource{id, source, catalog}}, V.edge_at(List.append(&2, V.EdgeSource, tail, rest), query)),
+          Nat.is_eq(query, id), False{},
+          Equal.trans(Bool, Nat.is_eq(query, id), Nat.is_eq(id, query), False{}, Arithmetic.is_eq_comm(query, id),
+            ready_before_distinct(id, query, Arithmetic.lt_of_lt_of_le(id, next, query,
+              BoolFacts.eq_true_of_and_left(Nat.is_lt(id, next), ActualReady.pending_ids_before(ActualReady.provenance_ids(tail), next), before), after)))),
+        ready_edge_skip_before(tail, rest, next, query,
+          BoolFacts.eq_true_of_and_right(Nat.is_lt(id, next), ActualReady.pending_ids_before(ActualReady.provenance_ids(tail), next), before), after))
+
+def ready_pending_rows_skip_before(+items: List<&2, Local.Pending>, +next: Nat,
+    +sources: List<&2, V.EdgeSource>, +rest: List<&2, V.EdgeSource>, +addresses: List<&2, F.AddressEntry>,
+    +before: {ActualReady.pending_ids_before(ActualReady.provenance_ids(sources), next) == True{} : Bool}) ->
+    {ready_pending_rows(items, next, List.append(&2, V.EdgeSource, sources, rest), addresses)
+      == ready_pending_rows(items, next, rest, addresses) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+        ready_pending_rows(head <> tail, next, List.append(&2, V.EdgeSource, sources, rest), addresses),
+        ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), V.edge_at(rest, next)),
+          ready_pending_rows(tail, (next + 1n : Nat), List.append(&2, V.EdgeSource, sources, rest), addresses)),
+        ready_pending_rows(head <> tail, next, rest, addresses),
+        Equal.cong(Maybe<&2, V.EdgeSource>, Maybe<&2, List<&2, V.PendingEntry>>, found =>
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), found),
+            ready_pending_rows(tail, (next + 1n : Nat), List.append(&2, V.EdgeSource, sources, rest), addresses)),
+          V.edge_at(List.append(&2, V.EdgeSource, sources, rest), next), V.edge_at(rest, next),
+          ready_edge_skip_before(sources, rest, next, next, before, NatFacts.le_refl(next))),
+        Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, rows =>
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), V.edge_at(rest, next)), rows),
+          ready_pending_rows(tail, (next + 1n : Nat), List.append(&2, V.EdgeSource, sources, rest), addresses),
+          ready_pending_rows(tail, (next + 1n : Nat), rest, addresses),
+          ready_pending_rows_skip_before(tail, (next + 1n : Nat), sources, rest, addresses,
+            ready_sources_raise(sources, next, (next + 1n : Nat), before, Arithmetic.le_add_right(next, 1n)))))
+
+def ready_payload_rows(items: List<&2, V.PendingPayload>, +next: Nat,
+    +source: T.SourceFacts, +catalog: RootSpec.Source) -> List<&2, V.PendingEntry>:
+  match items:
+    case []: []
+    case head <> tail: V.PendingEntry{next, head, source, catalog} <> ready_payload_rows(tail, (next + 1n : Nat), source, catalog)
+
+def ready_payload_observation(value: Maybe<&2, List<&2, V.PendingPayload>>, +next: Nat,
+    +source: T.SourceFacts, +catalog: RootSpec.Source) -> Maybe<&2, List<&2, V.PendingEntry>>:
+  match value:
+    case None{}: None{}
+    case Some{items}: Some{ready_payload_rows(items, next, source, catalog)}
+
+def ready_payload_prefix(+head: Maybe<&2, V.PendingPayload>, +tail: Maybe<&2, List<&2, V.PendingPayload>>,
+    +next: Nat, +source: T.SourceFacts, +catalog: RootSpec.Source) ->
+    {ActualFrame.pending_prefix(ActualFrame.pending_entry(next, head, Some{V.EdgeSource{next, source, catalog}}),
+        ready_payload_observation(tail, (next + 1n : Nat), source, catalog))
+      == ready_payload_observation(ActualReady.pending_prefix(head, tail), next, source, catalog) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  match head tail:
+    case Some{_} Some{_}: {==}
+    case None{} _: {==}
+    case Some{_} None{}: {==}
+
+def ready_provenance_head(+ids: List<&2, Nat>, +next: Nat, +source: T.SourceFacts, +catalog: RootSpec.Source) ->
+    {V.edge_at(History.provenance(next <> ids, source, catalog), next) == Some{V.EdgeSource{next, source, catalog}} : Maybe<&2, V.EdgeSource>}:
+  Equal.cong(Bool, Maybe<&2, V.EdgeSource>, same => Bool.pick(Maybe<&2, V.EdgeSource>, same,
+    Some{V.EdgeSource{next, source, catalog}}, V.edge_at(History.provenance(ids, source, catalog), next)),
+    Nat.is_eq(next, next), True{}, Arithmetic.is_eq_refl(next))
+
+def ready_pending_rows_provenance(+items: List<&2, Local.Pending>, +next: Nat,
+    +source: T.SourceFacts, +catalog: RootSpec.Source, +addresses: List<&2, F.AddressEntry>) ->
+    {ready_pending_rows(items, next, History.provenance(ready_pending_ids(items, next), source, catalog), addresses)
+      == ready_payload_observation(ActualReady.pending(items, addresses), next, source, catalog) : Maybe<&2, List<&2, V.PendingEntry>>}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      +provenance: List<&2, V.EdgeSource> = History.provenance(ready_pending_ids(tail, (next + 1n : Nat)), source, catalog)
+      +edge: V.EdgeSource = V.EdgeSource{next, source, catalog}
+      Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+        ready_pending_rows(head <> tail, next, edge <> provenance, addresses),
+        ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), Some{edge}),
+          ready_pending_rows(tail, (next + 1n : Nat), edge <> provenance, addresses)),
+        ready_payload_observation(ActualReady.pending(head <> tail, addresses), next, source, catalog),
+        Equal.cong(Maybe<&2, V.EdgeSource>, Maybe<&2, List<&2, V.PendingEntry>>, found =>
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), found),
+            ready_pending_rows(tail, (next + 1n : Nat), edge <> provenance, addresses)),
+          V.edge_at(edge <> provenance, next), Some{edge},
+          ready_provenance_head(ready_pending_ids(tail, (next + 1n : Nat)), next, source, catalog)),
+        Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), Some{edge}),
+            ready_pending_rows(tail, (next + 1n : Nat), edge <> provenance, addresses)),
+          ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), Some{edge}),
+            ready_payload_observation(ActualReady.pending(tail, addresses), (next + 1n : Nat), source, catalog)),
+          ready_payload_observation(ActualReady.pending(head <> tail, addresses), next, source, catalog),
+          Equal.cong(Maybe<&2, List<&2, V.PendingEntry>>, Maybe<&2, List<&2, V.PendingEntry>>, rows =>
+            ActualFrame.pending_prefix(ActualFrame.pending_entry(next, V.pending_payload(head, addresses), Some{edge}), rows),
+            ready_pending_rows(tail, (next + 1n : Nat), edge <> provenance, addresses),
+            ready_payload_observation(ActualReady.pending(tail, addresses), (next + 1n : Nat), source, catalog),
+            Equal.trans(Maybe<&2, List<&2, V.PendingEntry>>,
+              ready_pending_rows(tail, (next + 1n : Nat), edge <> provenance, addresses),
+              ready_pending_rows(tail, (next + 1n : Nat), provenance, addresses),
+              ready_payload_observation(ActualReady.pending(tail, addresses), (next + 1n : Nat), source, catalog),
+              ready_pending_rows_skip_before(tail, (next + 1n : Nat), [edge], provenance, addresses,
+                BoolFacts.and_eq_true(Nat.is_lt(next, (next + 1n : Nat)), True{},
+                  Equal.trans(Bool, Nat.is_lt(next, (next + 1n : Nat)), Nat.is_lt(next, (1n + next : Nat)), True{},
+                    Equal.cong(Nat, Bool, bound => Nat.is_lt(next, bound), (next + 1n : Nat), (1n + next : Nat), Arithmetic.add_comm(next, 1n)),
+                    NatFacts.lt_succ_self(next)), {==})),
+              ready_pending_rows_provenance(tail, (next + 1n : Nat), source, catalog, addresses))),
+          ready_payload_prefix(V.pending_payload(head, addresses), ActualReady.pending(tail, addresses), next, source, catalog)))
+
+def ready_pending_ids_step(+head: Maybe<&2, V.PendingPayload>, +tail: Maybe<&2, List<&2, V.PendingPayload>>,
+    +rest_ids: List<&2, Nat>, +next: Nat, +items: List<&2, V.PendingPayload>,
+    projected: {ActualReady.pending_prefix(head, tail) == Some{items} : Maybe<&2, List<&2, V.PendingPayload>>},
+    tail_ids: @rest: List<&2, V.PendingPayload> -> {tail == Some{rest} : Maybe<&2, List<&2, V.PendingPayload>>} ->
+      {rest_ids == History.ids(rest, (next + 1n : Nat)) : List<&2, Nat>}) ->
+    {next <> rest_ids == History.ids(items, next) : List<&2, Nat>}:
+  match head tail:
+    case Some{+head_value} Some{+rest}:
+      %Count.some_equal(List<&2, V.PendingPayload>, head_value <> rest, items, projected):
+        {next <> rest_ids == History.ids(_, next) : List<&2, Nat>}
+      Equal.cong(List<&2, Nat>, List<&2, Nat>, values => next <> values,
+        rest_ids, History.ids(rest, (next + 1n : Nat)), tail_ids(rest, {==}))
+    case None{} _:
+      Empty.absurd({next <> rest_ids == History.ids(items, next) : List<&2, Nat>},
+        Contents.none_some(List<&2, V.PendingPayload>, items, projected))
+    case Some{_} None{}:
+      Empty.absurd({next <> rest_ids == History.ids(items, next) : List<&2, Nat>},
+        Contents.none_some(List<&2, V.PendingPayload>, items, projected))
+
+def ready_pending_ids_exact(+items: List<&2, Local.Pending>, +addresses: List<&2, F.AddressEntry>,
+    +next: Nat, +payloads: List<&2, V.PendingPayload>,
+    projected: {ActualReady.pending(items, addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}) ->
+    {ready_pending_ids(items, next) == History.ids(payloads, next) : List<&2, Nat>}:
+  match items:
+    case []:
+      %Count.some_equal(List<&2, V.PendingPayload>, [], payloads, projected):
+        {[] == History.ids(_, next) : List<&2, Nat>}
+      {==}
+    case +head <> +tail:
+      ready_pending_ids_step(V.pending_payload(head, addresses), ActualReady.pending(tail, addresses),
+        ready_pending_ids(tail, (next + 1n : Nat)), next, payloads, projected,
+        rest => observed => ready_pending_ids_exact(tail, addresses, (next + 1n : Nat), rest, observed))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
