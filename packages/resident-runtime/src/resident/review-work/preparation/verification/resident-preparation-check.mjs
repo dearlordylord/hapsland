@@ -179,6 +179,11 @@ let emissionTemp
 try {
   emissionTemp = await mkdtemp(join(existsSync("/dev/shm") ? "/dev/shm" : "/tmp", "hapsland-resident-emission-"))
   const artifacts = {
+    composition: (
+      await import(
+        new URL("../../../../../dist/resident/review-work/composition/artifact-composition-core.js", import.meta.url)
+      )
+    ).default,
     parent: (
       await import(
         new URL("../../../../../dist/resident/review-work/composition/generic-artifact-core.js", import.meta.url)
@@ -195,7 +200,6 @@ try {
   }
   let owner
   for (const [key, name, source] of [
-    ["composition", "ArtifactComposition", "../../composition/ArtifactComposition.bend"],
     [
       "owner",
       "CanonicalResolverOwner",

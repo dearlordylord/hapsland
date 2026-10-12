@@ -26,7 +26,7 @@ type ProductResult =
       "../../../../../source-analysis/src/direct-event/graph-resolution/Types.ReviewUnitResult",
       { readonly value: ArtifactAbi<ProductValue> }
     >
-type ResolverStep =
+export type ResolverStep =
   | Tagged<
       "../../../../../source-analysis/src/direct-event/graph-resolution/Types.FinishedResolver",
       { readonly result: ProductResult; readonly final_frame: Maybe<ResolverFrame> }

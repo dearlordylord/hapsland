@@ -347,7 +347,8 @@ One current obstacle list, in execution order:
    and check:fast pass with three authored sources selected. Full resident runner
    now loads packaged GenericArtifact and removes its temporary emission and
    unused source-name map. PythonArtifact and GoArtifact now also load packaged
-   cores; ArtifactComposition and CanonicalResolverOwner still emit temporarily.
+   cores; ArtifactComposition now loads packaged output; only CanonicalResolverOwner
+   still emits temporarily in the full resident consumer.
    Two earlier real workspace builds failed before GenericArtifact at the existing
    PreparationFinalization hard-five-second emission. Isolated CPU11/direct
    emission passes in 3.798s; it does not qualify workspace packaging. Logs:
@@ -485,7 +486,7 @@ One current obstacle list, in execution order:
    graph/language package policy and orchestration only with their qualified
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
-   Production artifact assembly now ships Source/Post/GenericArtifact/PythonArtifact/GoArtifact through
+   Production artifact assembly now ships Source/Post/GenericArtifact/PythonArtifact/GoArtifact/ArtifactComposition through
    the resident review-work private recipe and closed authored ABIs. The normal precompile
    runner validates each core's declared entry methods, rather than imposing
    initial/advance/resume. Generated Turbo inputs include the recipe closure.
@@ -517,8 +518,7 @@ One current obstacle list, in execution order:
    explicit declaration/runner lint, recipe tests and check:fast pass.
    Generic and Python declarations share the exact existing dispatcher namespace
    relocation; no runtime command or policy changes. Remaining temporary
-   emissions are resident-owned ArtifactComposition and the
-   agent-flow-owned CanonicalResolverOwner. Their transport inputs must retain
+   emission is the agent-flow-owned CanonicalResolverOwner. Their transport inputs must retain
    exact raw Bend payloads: semantic frontend types are not interchangeable with
    raw SourceFacts, and opaque command inputs would conceal this boundary.
    GoArtifact now also ships through the normal recipe, with explicit Prepare/
@@ -528,6 +528,14 @@ One current obstacle list, in execution order:
    15702 requests and 855 Post requests without temporary Go emission
    (/tmp/hapsland-packaged-go-resident-full.log). Retained Prepared/Step values
    are Bend-created; input/configuration/reply payloads reuse actual contracts.
+   ArtifactComposition now also ships through this recipe. Its declaration covers
+   all five dispatch states, three closed command families, four await owners
+   and the actual receive/view methods. Bend-retained return/census values are
+   opaque; host-built handles and command payloads remain explicit. Strict ABI,
+   addressed lint, recipe tests and check:fast pass. Workspace build passes
+   46/46 tasks (18 cached, 43.211s); full resident consumer passes 73 cases,
+   15702 preparation requests and 855 Post requests without temporary composition
+   emission (/tmp/hapsland-packaged-composition-resident-full.log).
    Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 
