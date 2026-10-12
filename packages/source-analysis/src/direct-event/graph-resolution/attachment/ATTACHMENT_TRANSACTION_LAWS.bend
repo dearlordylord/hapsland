@@ -1,4 +1,5 @@
 import Base
+import ../traversal/INTERPRETER_STRING_FACTS.bend as StringFacts
 import ./AttachmentParentAppendTransport.bend as Parent
 import ./AttachmentMaterializationTransport.bend as Materialization
 import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
@@ -507,6 +508,73 @@ def boundary_world(-World: Data, +selection: D.Selection, +reply: T.Reply,
     case D.EvaluationExhausted{_}: normalized_consumed_world(World, selection, world)
     case D.InvariantFailed{_}: normalized_consumed_world(World, selection, world)
     case D.Rejected{_, _}: normalized_consumed_world(World, selection, world)
+
+# The ready views observe every listed visited identity through a True lookup.
+# These inversions preserve the whole ordered observation; no canonical-map
+# assumption is added to the original transaction relation.
+def visited_cons_contents(+head: String, +present: Bool,
+    +rest: Maybe<&2, List<&2, String>>, +observed: List<&2, String>,
+    ready: {ActualFrame.visited_prefix(ActualFrame.visited_entry(head, present), rest)
+      == Some{observed} : Maybe<&2, List<&2, String>>}) ->
+    {present == True{} : Bool} & Exists(List<&2, String>, tail =>
+      {rest == Some{tail} : Maybe<&2, List<&2, String>>}):
+  match present rest:
+    case True{} Some{tail}: Tuple{{==}, Tuple{tail, {==}}}
+    case True{} None{}:
+      Empty.absurd({True{} == True{} : Bool} & Exists(List<&2, String>, tail =>
+        {None{} == Some{tail} : Maybe<&2, List<&2, String>>}),
+        Contents.none_some(List<&2, String>, observed, ready))
+    case False{} _:
+      Empty.absurd({False{} == True{} : Bool} & Exists(List<&2, String>, tail =>
+        {rest == Some{tail} : Maybe<&2, List<&2, String>>}),
+        Contents.none_some(List<&2, String>, observed, ready))
+
+def visited_member_selected(+same: Bool, +head: String, +tail: List<&2, String>,
+    +entries: Map<&2, Bool>, +observed: List<&2, String>, +query: String,
+    same_key: {String.eq(head, query) == same : Bool},
+    head_true: {Local.map_result(Bool, Map.get(Bool, False{}, entries, head)) == True{} : Bool},
+    ready: {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+    member: {Bool.or(same, List.contains(String, String.eq, tail, query)) == True{} : Bool},
+    recurse: {List.contains(String, String.eq, tail, query) == True{} : Bool} ->
+      {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}:
+  match same:
+    case True{}:
+      %StringFacts.eq_of_eq_true(head, query, same_key):
+        {Local.map_result(Bool, Map.get(Bool, False{}, entries, _)) == True{} : Bool}
+      head_true
+    case False{}: recurse(member)
+
+def visited_member_cons(+head: String, +tail: List<&2, String>, +entries: Map<&2, Bool>,
+    +query: String,
+    evidence: {Local.map_result(Bool, Map.get(Bool, False{}, entries, head)) == True{} : Bool} &
+      Exists(List<&2, String>, observed =>
+        {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>}),
+    member: {List.contains(String, String.eq, head <> tail, query) == True{} : Bool},
+    recurse: @observed: List<&2, String> ->
+      {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>} ->
+      {List.contains(String, String.eq, tail, query) == True{} : Bool} ->
+      {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}:
+  match evidence:
+    case Tuple{head_true, Tuple{+observed, +ready}}:
+      visited_member_selected(String.eq(head, query), head, tail, entries, observed, query,
+        {==}, head_true, ready, member, recurse(observed, ready))
+
+def visited_member_sound(order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>, +query: String,
+    ready: {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+    member: {List.contains(String, String.eq, order, query) == True{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}:
+  match order:
+    case []:
+      Empty.absurd({Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool},
+        StringFacts.internal_false_ne_true(member))
+    case +head <> +tail:
+      visited_member_cons(head, tail, entries, query,
+        visited_cons_contents(head, Local.map_result(Bool, Map.get(Bool, False{}, entries, head)),
+          ActualFrame.visited(tail, entries), observed, ready), member,
+        value => tail_ready => tail_member => visited_member_sound(tail, entries, value, query, tail_ready, tail_member))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

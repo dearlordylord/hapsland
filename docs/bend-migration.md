@@ -290,6 +290,12 @@ One current obstacle list, in execution order:
    Parent-law closure does not close this
    transaction or whole flow correspondence and does not qualify adoption.
    No new or weakened acceptance premise is authorized.
+   Current proof-support WIP derives ready visited observation membership to a
+   True map lookup, then needs the reverse unique-order/cardinality direction
+   to establish actual/reference lookup equality for Included/Expanded. It adds
+   no law or premise and leaves attachment_transaction_exact unchanged. The
+   current dependent existential elimination fails typing; it is unqualified
+   (/tmp/astra-transaction-visited-semantic.log), not a counterexample or proof.
 
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    The existing frontend codec now preserves literal constructor, Maybe,
@@ -550,6 +556,13 @@ One current obstacle list, in execution order:
    conversion, then extend the normal producer inventory/receipt and package
    interface. Qualify its actual resident transaction and complete consumer;
    no further temporary resident compilation or alternate Canonical authority.
+   The raw event transport is now authored under agent-flow-bend/abi as
+   raw-canonical-event.d.ts: complete CanonicalEvent and its reachable payloads,
+   18 types/187 constructors, ordered List/Maybe and existing immediate Nat.
+   Strict owner ABI checking (skipLibCheck=false) and explicit lint pass;
+   typecheck:source/check:fast now select all authored Bend ABI declarations and
+   pass. Encoder return typing, public producer output/receipt and owner loading
+   remain open; this declaration alone does not qualify runtime correspondence.
    Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 
