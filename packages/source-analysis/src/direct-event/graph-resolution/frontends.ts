@@ -9,14 +9,18 @@ import { parse } from "smol-toml"
 import { sourceFacts, tomlValue } from "./frontend-codec.ts"
 import { projectPythonSyntax } from "./python-module/syntax-projection.ts"
 type Maybe<Value> = { readonly $: "None" } | { readonly $: "Some"; readonly value: Value }
-type Branch = { readonly $: string }
-type RustContext = {
-  readonly $: string
+export type Branch = { readonly $: "Types.TypeBranch" } | { readonly $: "Types.FunctionBranch" }
+export type RustContext = {
+  readonly $: "Types.RustContext"
   readonly crate_root: Maybe<boolean>
   readonly external_module: Maybe<boolean>
   readonly modules: Maybe<List<OrderedField<string>>>
 }
-type FrontendContext = { readonly $: string; readonly branch: Branch; readonly context: RustContext }
+export type FrontendContext =
+  | { readonly $: "Types.TypeScriptContext"; readonly branch: Branch }
+  | { readonly $: "Types.RustSourceContext"; readonly branch: Branch; readonly context: RustContext }
+  | { readonly $: "Types.PythonSourceContext"; readonly branch: Branch }
+  | { readonly $: "Types.BendSourceContext"; readonly branch: Branch }
 const tag = (name: string) => artifactValueTag(name) ?? "Types." + name
 const optional = <Value>(value: Maybe<Value>): Value | undefined => {
   if (value?.$ === "None") return undefined
@@ -62,20 +66,20 @@ function rustContext(value: RustContext) {
 export function inspectSourceFrontend(path: string, source: string, context: FrontendContext) {
   let facts: GraphFacts | undefined
   switch (context?.$) {
-    case tag("TypeScriptContext"):
+    case "Types.TypeScriptContext":
       facts =
         branch(context.branch) === "function"
           ? inspectTypeScriptFunctions(path, source)
           : inspectTypeScript(path, source)
       break
-    case tag("RustSourceContext"):
+    case "Types.RustSourceContext":
       facts =
         branch(context.branch) === "function" ? undefined : inspectRust(path, source, rustContext(context.context))
       break
-    case tag("PythonSourceContext"):
+    case "Types.PythonSourceContext":
       facts = branch(context.branch) === "function" ? undefined : pythonAdapter.inspect(path, source)
       break
-    case tag("BendSourceContext"):
+    case "Types.BendSourceContext":
       facts = branch(context.branch) === "function" ? undefined : bendAdapter.inspect(path, source)
       break
     default:

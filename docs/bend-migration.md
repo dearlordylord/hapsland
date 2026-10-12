@@ -299,6 +299,11 @@ One current obstacle list, in execution order:
    the existing projection. Root types, explicit lint and check:fast pass; full
    independent entry passes all 78 cases/55 native comparisons on these inputs
    (/tmp/hapsland-python-closed-abi-{types,fast,entry}.log).
+   Frontend inputs now also expose the complete closed language-context union,
+   literal Type/Function branch and RustContext records. Runtime language tags
+   and parser dispatch remain the same. Explicit lint, root types, check:fast
+   and full entry 78 cases/55 native comparisons pass
+   (/tmp/hapsland-frontend-context-{types,fast,entry}.log).
    A fresh origin/master fetch confirms no commits missing from this branch.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
@@ -469,6 +474,9 @@ One current obstacle list, in execution order:
    These are diagnostic observations, not a cause or parity claim. Inspect
    product artifact contents/receipt ownership before optimizing cleanup;
    do not omit required outputs or weaken the build gates.
+   Extra administration/resident files are normal product JS/declarations/maps,
+   including modules introduced by current owner organization; no removable
+   verification/Bend output surplus was established. Preserve these outputs.
    Log: /tmp/hapsland-clean-task-summary.log; Turbo summary:
    .turbo/runs/3KZT88YNRFrYVigu1gGcO36nTe9.json.
    The previous 6aad1787 warm-up first failed because PreparationFinalization emission exceeded hard
