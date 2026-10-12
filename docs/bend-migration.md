@@ -1233,6 +1233,23 @@ One current obstacle list, in execution order:
    system). No wrapper or whole-law pass is claimed. Next: qualify that direct
    elimination, join the same reference replacement/product/next for claims4/6,
    then arbitrary replies7/8; no statement/premise/runtime-representation change.
+   Current proof-only alias/product refactor qualifies staged materialization
+   at 8.703s, product extraction at 6.418s and parent wrapper at 9.708s under
+   hard10/CPU10. Full original-ready wrapper still times out at 10.041s.
+   The unsuccessful single-conjunction materialization experiment is reverted;
+   only the qualified alias/product changes are retained. The next direct join
+   reuses projection/forest facts from the same parent witness before reduction.
+
+   The agreed public adoption route moves the single existing mechanical child
+   execution driver to CanonicalPolicy, with strict typed ports for unchanged
+   machine protocols. Resident Source/Post/Advice adapters keep their owned
+   effects and concrete protocols. This removes the dependency-cycle obstacle
+   to connecting public ReviewExecution preparation without another controller.
+   Canonical retains ordered actions, handles, leases, receipt identity, native
+   cleanup retry and exception projection before close. The public line, frozen
+   replay and revalidation consumers must pass before their replaced TS
+   algorithms and the native verification copies are deleted. No driver move
+   or public TS deletion is claimed yet.
 
 
    The repaired entry now qualifies on 8a905233: normal workspace build passes
@@ -1383,6 +1400,14 @@ One current obstacle list, in execution order:
    Next starts due: execution 18:49:46.591588, build 18:50:36.665267 UTC.
    These execution pairs remain the existing analyzer scope; connected whole
    preparation measurements and build parity remain required.
+   Follow-up frozen 50747c10: execution starts 18:50:07.604821 UTC and fails
+   parity 1.0697216973217452; build starts 18:51:38.882675 UTC and fails
+   parity 1.2424759052699876. Both are qualified 17-pair measurements with frozen
+   heads/sources/artifacts, and all 34 builds preserve 23/46 cached tasks. Execution
+   misses its preceding deadline by 21.013233s; build by 62.217408s. These cadence
+   violations remain separate from validity and parity. Next starts due:
+   execution 19:20:07.604821, build 19:21:38.882675 UTC; freeze/backup target 19:13.
+   Logs: /tmp/hapsland-50747c10-{warm,execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

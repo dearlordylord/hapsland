@@ -5387,13 +5387,15 @@ def ready_frame_view_materialized(+frame: T.ResolverFrame, +prepared: T.Prepared
             BoolFacts.eq_true_of_and_right(ActualFrame.coverage(order, frame), Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)))), checks))),
         Pair.snd({P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{forest} : Maybe<&2, F.Forest>}, {Relation.frame_forest(forest, episode) == True{} : Bool}, projected_frame_semantics(frame, history, view, projected)))
 
+def ready_staged_forest(view: V.Frame) -> F.Forest:
+  match view:
+    case V.Frame{_, _, _, _, _, forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: forest
+
 def ready_attachment_staged_total_result(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
     +child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +history: V.History, +view: V.Frame) -> Type:
-  match view:
-    case V.Frame{_, _, _, _, _, +forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
-      Exists(ArtifactValue.ProductValue, product =>
-        {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state))) == F.Materialized{product} : F.Materialization} &
-        ready_measurement_staged_result(Attach.attachment(Some{attachment}, child, previous, state, frame), product, history, view))
+  Exists(ArtifactValue.ProductValue, product =>
+    {F.prepared_unit(Allowance.materialization(ready_staged_forest(view)), ready_staged_forest(view), S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state))) == F.Materialized{product} : F.Materialization} &
+    ready_measurement_staged_result(Attach.attachment(Some{attachment}, child, previous, state, frame), product, history, view))
 
 def ready_attachment_staged_total_witness(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
     +child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +history: V.History, +view: V.Frame,
@@ -5902,13 +5904,11 @@ def ready_original_measured_product(+attachment: Compose.Attachment, +frame: T.R
     continued: {Attach.previous(previous, state) == Attach.attachment(Some{attachment}, child, previous, state, frame) : Loop.Continuation},
     evidence: ready_attachment_staged_total_result(attachment, frame, child, state, previous, History.measurement(phase, history), view)) ->
     ready_original_measured_result(state, history, phase, previous):
-  match view:
-    case V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
-      match evidence:
-        case (+product, (_, (+measured, (+request, (awaited, (operation, (stage, observed))))))):
-          Tuple{measured, Tuple{request, Tuple{product, Tuple{view, Tuple{
-            Equal.trans(Loop.Continuation, Attach.previous(previous, state), Attach.attachment(Some{attachment}, child, previous, state, frame),
-              Loop.ServiceStep{T.AwaitService{measured, request}}, continued, awaited), Tuple{operation, Tuple{stage, observed}}}}}}}
+  match evidence:
+    case (+product, (_, (+measured, (+request, (awaited, (operation, (stage, observed))))))):
+      Tuple{measured, Tuple{request, Tuple{product, Tuple{view, Tuple{
+        Equal.trans(Loop.Continuation, Attach.previous(previous, state), Attach.attachment(Some{attachment}, child, previous, state, frame),
+          Loop.ServiceStep{T.AwaitService{measured, request}}, continued, awaited), Tuple{operation, Tuple{stage, observed}}}}}}}
 
 def ready_original_measured_parent(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending,
     +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat,
