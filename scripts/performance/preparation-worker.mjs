@@ -37,10 +37,10 @@ const run = async () => {
 const actual = await run()
 const controls = JSON.stringify(cases.map(({ context }) => context))
 const results = actual.map((value) => JSON.parse(value))
-for (const result of results.slice(0, 6)) {
+for (const [index, result] of results.slice(0, 6).entries()) {
   assert.ok(
     result.outcomes.some((outcome) => outcome.status === "ready"),
-    "fixture must prepare actual review work"
+    "fixture must prepare actual review work: " + JSON.stringify({ index, paths: fixtures[index].paths, result })
   )
   assert.equal(result.observation.units.length, 1)
   assert.equal(result.observation.units[0].root.artifact.name, "Root")

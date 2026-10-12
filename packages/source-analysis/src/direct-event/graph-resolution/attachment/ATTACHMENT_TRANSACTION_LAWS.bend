@@ -7298,6 +7298,78 @@ def ready_rollback_project_parts(+root: Nat, +nodes: List<&2, Local.PlannedNode>
       ready_rollback_forward(nodes, slots, owner, index, name, BoolFacts.eq_true_of_and_right(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots), structure)),
     Contents.projected_forest_root(F.address_at(addresses, root), P.nodes(nodes, slots, catalog, addresses), birth, retained, old_forest), projected)
 
+def ready_rollback_project(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>,
+    +owner: Nat, +index: Nat, +name: String, +changed: List<&2, Local.ReferenceSlot>, +values: List<&2, F.Node>,
+    original: {P.project(root, nodes, slots, catalog, addresses) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>},
+    replaced: {Compose.replacement(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>},
+    projected: {P.nodes(nodes, changed, catalog, addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>}) ->
+    {P.project(root, nodes, changed, catalog, addresses) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>}:
+  Parent.eliminate_pair(
+    {Bool.and(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)))) == True{} : Bool},
+    {P.forest(F.address_at(addresses, root), P.nodes(nodes, slots, catalog, addresses)) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>},
+    {P.project(root, nodes, changed, catalog, addresses) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>},
+    Contents.project_contents(root, nodes, slots, catalog, addresses, F.Forest{Some{birth}, retained}, original),
+    guard => forest => ready_rollback_project_parts(root, nodes, slots, catalog, addresses, birth, retained, owner, index, name, changed, values, guard, forest, replaced, projected))
+
+def ready_rollback_owner_count(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>, +owner: Nat, +address: O.NodeAddress,
+    original: {P.project(root, nodes, slots, catalog, addresses) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>},
+    dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    present: {F.address_at(addresses, owner) == Some{address} : Maybe<&2, O.NodeAddress>}) ->
+    {F.count_address(retained, address) == 1n : Nat}:
+  Parent.eliminate_pair(
+    {Bool.and(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)))) == True{} : Bool},
+    {P.forest(F.address_at(addresses, root), P.nodes(nodes, slots, catalog, addresses)) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>},
+    {F.count_address(retained, address) == 1n : Nat},
+    Contents.project_contents(root, nodes, slots, catalog, addresses, F.Forest{Some{birth}, retained}, original),
+    guard => forest => Parent.projected_lookup_count(nodes, addresses, slots, catalog, retained, owner, address,
+      BoolFacts.eq_true_of_and_left(P.aligned(nodes, addresses, nodes, addresses), Bool.and(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots))), guard),
+      dense, NodeReplacement.projected_forest_nodes(F.address_at(addresses, root), P.nodes(nodes, slots, catalog, addresses), birth, retained, forest), present))
+
+def ready_rollback_result(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>,
+    +owner: Nat, +index: Nat, +symbol: String, +name: String, +address: O.NodeAddress) -> Type:
+  Exists(List<&2, Local.ReferenceSlot>, changed => Exists(List<&2, F.Node>, values =>
+    {Compose.replacement(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {P.project(root, nodes, changed, catalog, addresses) == Some{F.Forest{Some{birth}, values}} : Maybe<&2, F.Forest>} &
+    {F.replace(F.Forest{Some{birth}, retained}, address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{F.Forest{Some{birth}, values}} : F.Replacement}))
+
+def ready_rollback_witness(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>,
+    +owner: Nat, +index: Nat, +symbol: String, +name: String, +address: O.NodeAddress,
+    original: {P.project(root, nodes, slots, catalog, addresses) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>},
+    counted: {F.count_address(retained, address) == 1n : Nat},
+    evidence: Exists(List<&2, Local.ReferenceSlot>, changed => Exists(List<&2, F.Node>, values =>
+      {Compose.replacement(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+      {P.nodes(nodes, changed, catalog, addresses) == Some{values} : Maybe<&2, List<&2, F.Node>>} &
+      {F.replace_nodes(retained, address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Nodes{values, 1n} : F.Nodes}))) ->
+    ready_rollback_result(root, nodes, slots, catalog, addresses, birth, retained, owner, index, symbol, name, address):
+  match evidence:
+    case (+changed, (+values, (replaced, (projected, semantic)))):
+      +replaced: {Compose.replacement(Compose.replace_slot(slots, owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{changed} : Maybe<&2, List<&2, Local.ReferenceSlot>>} = replaced
+      Tuple{changed, Tuple{values, Tuple{replaced, Tuple{
+        ready_rollback_project(root, nodes, slots, catalog, addresses, birth, retained, owner, index, name, changed, values, original, replaced, projected),
+        Parent.forest_replacement_completed(birth, retained, address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}, values, counted, {==}, semantic)}}}}
+
+def ready_rollback_exact(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>,
+    +addresses: List<&2, F.AddressEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>,
+    +owner: Nat, +index: Nat, +symbol: String, +name: String, +address: O.NodeAddress,
+    +original: {P.project(root, nodes, slots, catalog, addresses) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>},
+    dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    selected: {ActualReady.slot_count(slots, owner, index, symbol) == 1n : Nat},
+    +present: {F.address_at(addresses, owner) == Some{address} : Maybe<&2, O.NodeAddress>}) ->
+    ready_rollback_result(root, nodes, slots, catalog, addresses, birth, retained, owner, index, symbol, name, address):
+  ready_rollback_witness(root, nodes, slots, catalog, addresses, birth, retained, owner, index, symbol, name, address, original,
+    ready_rollback_owner_count(root, nodes, slots, catalog, addresses, birth, retained, owner, address, original, dense, present),
+    NodeReplacement.node_replacement_exact(root, nodes, slots, catalog, addresses, birth, retained, owner, index, symbol, address,
+      Local.Omitted{Local.ReferenceLimit{}, name}, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}, original, selected, present, {==}))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
