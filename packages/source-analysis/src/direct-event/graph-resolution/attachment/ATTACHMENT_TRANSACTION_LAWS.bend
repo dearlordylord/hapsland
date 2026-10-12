@@ -46,6 +46,7 @@ import ../State.bend as S
 import ../Loop.bend as Loop
 import ../Machine.bend as Machine
 import ../Protocol.bend as Protocol
+import ../GraphSpecification.bend as GraphReference
 import ../Attach.bend as Attach
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
@@ -7167,6 +7168,19 @@ def ready_original_incompatible(-World: Data, +actual: T.ResolverState, +referen
     Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world):
   ready_incompatible_joined(World, actual, reference, child, phase, history, previous, reply, world, incompatible,
     ready_original_joined(actual, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent))
+
+# Accepted ProductEncoded uses these same source/contribution/work/ID values
+# on both sides of the original transaction. This compares the independent
+# admission directly, before transporting publication or rollback fields.
+def ready_captured_transition(+limits: G.Limits, +edge: G.Edge, +target: Nat,
+    +source: Nat, +contribution: Nat, +local_work: Nat, +ids: List<&2, Nat>,
+    +pending: List<&2, G.Edge>, +visited: List<&2, Nat>, +files: Nat, +read: Nat,
+    +tree: Nat, +work: Nat, +skipped: Bool, +excluded: Bool, +other: Bool) ->
+    {G.captured(limits, edge, target, source, contribution, local_work, ids, pending, visited, files, read, tree, work, skipped, excluded, other) ==
+      GraphReference.captured(G.Graph{G.Capturing{edge, target}, pending, visited, files, read, tree, work, skipped, excluded, other, limits}, edge, target, source, contribution, local_work, ids) : G.Step}:
+  match limits edge:
+    case G.Limits{_, _, _, _, _, _, _, _} G.Edge{_, _}:
+      {==}
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

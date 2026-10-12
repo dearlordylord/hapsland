@@ -12,7 +12,7 @@ import { registeredLanguages } from "@hapsland/source-analysis/direct-event/lang
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { initialCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 import { createPreparationFinalizationConsumer } from "../../../dist/direct-event/preparation/preparation-finalization.js"
-import { nativePrepareReadyUnits } from "./native-preparation-reference.mjs"
+import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import {
   productValue,
   fromProductValue,

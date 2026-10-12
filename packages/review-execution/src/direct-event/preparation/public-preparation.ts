@@ -141,7 +141,13 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
           throw new TypeError("Canonical did not accept a Graph result")
         }
       })
-      const unit = await resolve(facts.path, facts.capture, facts.name, facts.context, execution)
+      const captureSource = facts.context.captureSource
+      const graphContext = captureSource === undefined ? facts.context : {
+        ...facts.context,
+        captureSource: (...args: Parameters<typeof captureSource>) =>
+          Effect.promise(signal => runEffect(captureSource(...args), { signal }))
+      }
+      const unit = await resolve(facts.path, facts.capture, facts.name, graphContext, execution)
       if (terminalFrame === undefined) throw new TypeError("Resolver completed without an accepted terminal")
       return {
         unit,

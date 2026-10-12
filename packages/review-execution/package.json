@@ -79,6 +79,10 @@
     "./direct-event/preparation/physical-effects": {
       "types": "./dist/direct-event/preparation/physical-capability.d.ts",
       "default": "./dist/direct-event/preparation/physical-capability.js"
+    },
+    "./testing/preparation": {
+      "types": "./dist/direct-event/preparation/verification/native-preparation.d.ts",
+      "default": "./dist/direct-event/preparation/verification/native-preparation.js"
     }
   },
   "dependencies": {

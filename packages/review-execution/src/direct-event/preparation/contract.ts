@@ -62,3 +62,8 @@ export type PreparationInput = {
   readonly context: DirectReviewContext
   readonly frozenNames?: ReadonlyMap<string, ReadonlySet<string>>
 }
+
+export type SourceLineRequest = Pick<DirectObservation, "root" | "rootIdentity"> & {
+  readonly path: string
+  readonly line: number
+}

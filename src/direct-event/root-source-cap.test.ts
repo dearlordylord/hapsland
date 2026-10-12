@@ -1,3 +1,4 @@
+import { initialImportGraph, stepImportGraph } from "@hapsland/canonical-policy/canonical/graph-adapter"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { resolveConfiguration, effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/resolve"
@@ -7,11 +8,7 @@ import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import {
-  measuredRootSourceDecision,
-  prepareObservation,
-  reviewObservation
-} from "@hapsland/review-execution/direct-event/pipeline"
+import { prepareObservation, reviewObservation } from "@hapsland/review-execution/direct-event/pipeline"
 import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const rules = [
@@ -58,10 +55,15 @@ describe("configured root source cap", () => {
           )
         }
         const limits = effectiveGraphLimits(configuration.policy)
-        expect(measuredRootSourceDecision(measuredBytes, limits)).toEqual({
-          kind: "unitIncomplete",
-          reason: "ReadLimit"
-        })
+        expect(
+          stepImportGraph(initialImportGraph(limits), {
+            kind: "root",
+            target: 1,
+            sourceBytes: measuredBytes,
+            treeBytes: 0,
+            edges: []
+          }).command
+        ).toEqual({ kind: "unitIncomplete", reason: "ReadLimit" })
         let preflightCalls = 0
         const reads: string[] = []
         const context = {

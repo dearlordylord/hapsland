@@ -10,7 +10,10 @@ import type { DirectObservation } from "@hapsland/native-observation/direct-even
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { prepareSource, type SourcePreparationContext } from "@hapsland/review-execution/direct-event/preparation"
-import { prepareObservation, prepareSourceLine } from "@hapsland/review-execution/direct-event/pipeline"
+import {
+  prepareNativeObservation as prepareObservation,
+  prepareNativeSourceLine as prepareSourceLine
+} from "@hapsland/review-execution/testing/preparation"
 
 const roots: string[] = []
 afterEach(async () => {

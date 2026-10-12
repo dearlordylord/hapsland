@@ -11,7 +11,7 @@ import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { initialCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
-import { nativePrepareReadyUnits } from "./native-preparation-reference.mjs"
+import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import {
   productValue,
   fromProductValue,

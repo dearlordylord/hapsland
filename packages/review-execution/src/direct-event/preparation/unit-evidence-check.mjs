@@ -8,7 +8,7 @@ import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { nativePrepareReadyUnits } from "./native-preparation-reference.mjs"
+import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-unit-evidence-"))
