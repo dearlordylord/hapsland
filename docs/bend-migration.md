@@ -1198,12 +1198,24 @@ One current obstacle list, in execution order:
    has released workspace and fixed accepted reservations. The machine retains
    allocated slots/plans across this notice for exact failed-command cleanup.
    Post source check, strict private ABI, format and addressed three-file lint
-   pass; normal rebuilding and original large-result fixture remain pending.
+   pass. The first ordinary rebuild exposes two missing cases in the exhaustive
+   Post session dispatcher (TS2322); these now route through the existing Post
+   session with its issued lease. Full resident source typing passes before
+   retry. The second ordinary build passes 46/46 (18 cached, 44.701s), and the
+   original large-result fixture passes through normal compilation/Vitest in
+   17.167s. The full affected server/capacity/runtime selection passes all153
+   tests; protocol251cases/8835requests and full resident73/15702/855 pass.
+   check:fast passes109 source tests, strict source/private ABI/checked Host and
+   dependency checks, and lint selects the one changed dispatcher source; the
+   earlier separate lint covers the three other changed code files.
    Protocol checks additionally pin per-refusal counts, one post-reservation
    notice and exclusion of refused offers from reuse lookup. Diagnostic temporary
    compiled instrumentation is restored and supplies no qualification claim.
    Logs: /tmp/hapsland-47027a19-{production-owners,source-consumer,
    resident-consumer}.log and /tmp/hapsland-post-tail-focused.log.
+   Final deliverability evidence: /tmp/hapsland-deliverability-{warm-2,
+   large-focused,production-owners,protocol,resident-consumer,check-fast}.log.
+   Whole proof, public TypeScript deletion and build parity remain open.
    Glob/UnitEvidence formatting uses typed local bindings for existing lambdas;
    the initial unannotated binding fails source checking and is not a pass.
    Diagnostic logs: /tmp/hapsland-production-server-verbose-selected.log,

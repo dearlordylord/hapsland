@@ -81,6 +81,8 @@ export async function performPreparationSessionRequest(
     case "CheckActive":
     case "ReleaseWorkspace":
     case "Offer":
+    case "ReportDeliverabilityCapacity":
+    case "ReportDeliverabilityNotice":
     case "ReportEmptyAnalytics":
     case "ReportEmptyActivity":
     case "ObserveReady":
