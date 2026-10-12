@@ -193,7 +193,18 @@ The pinned formatter now accepts UnitEvidence, Glob and PostPreparation after
 local binding of three existing lambdas; declaration-header limitations in the
 attachment proof owners remain open. Formatter passes do not establish proofs.
 
-One current obstacle list, in execution order:
+One current obstacle list (updated 2026-10-12 21:03 UTC):
+
+1. Complete the original attachment transaction proof: qualify the shared six-claim wrapper and arbitrary reply claims 7/8, retaining all original premises and the hard 10-second deadline.
+2. Connect public observation, source-line, frozen replay and revalidation through the single Canonical driver. The common physical binding and whole-input encoder are now owned, packaged and qualified; actual issued scope/IDs, exact Effect Cause, optional hooks, and Bend-owned line ambiguity remain to connect.
+3. Qualify the complete public consumers and original observable contracts, then delete replaced `pipeline.ts` preparation algorithms and maintained native verification copies. Accepted whole units and replaced production TS algorithms removed remain zero.
+4. Close the attachment formatter prerequisite without exclusions and qualify the complete correspondence/mutant boundary.
+5. Meet the unchanged paired build parity criterion and measure the connected whole preparation consumer. The latest existing-production execution ratio is 0.7007993427279104 (pass); build is 1.2296288180887809 (fail). Both 17-pair runs qualified on frozen sources/artifacts; all build samples retained 23/46 cached tasks. Starts were 20:57:26.606132/20:58:14.759732 UTC, within the latest cadence; next due 21:27:26/21:28:14 UTC.
+
+### Recorded diagnostic history
+
+The records below preserve outcomes and declarations made at the time. Their former next-step descriptions are historical; the list above is the current acceptance route.
+
 
 1. Close the original attachment transaction and whole correspondence obligations:
    arbitrary retained Worlds/replies, completion and Cause/custody. Original
@@ -2192,3 +2203,5 @@ The next whole-public-preparation obstacle is addressed by moving the single com
 The common physical binding and whole-input encoder pass explicit lint (seven changed code files), strict Review Execution checked-JS, source-linked strict resident checking, and development-import enforcement. Astra reports `ready_original_shared` passes at 8.229s with the full original-ready prefix: actual/reference request identity and both staged projections now use the same frame, including ordered rows and exact next. Original transaction law and premises are unchanged; extraction of the original conjunctions and arbitrary reply claims remain open.
 
 At the 20:52 HOLD, the selected staged rows/next equality passes at 2.980s and the six-conjunct extraction body at 3.182s. The final thin `ready_original_joined` wrapper timed out at 10.063s and is retained WIP, not a pass. Original law/premises tail remains byte-identical; reply claims 7/8 and the complete transaction theorem remain open.
+
+After the common physical binding moved, the packaged resident consumer again passed 73 cases, the real resident server/capacity/runtime suite passed 153 tests (93.316s including workspace build), the packaged Source consumer passed 59 cases/6673 requests/34 native whole comparisons, and `check:fast` passed. The compiled-host records explicitly include Review Execution physical effects. Public cutover/deletion and whole proof remain pending.
