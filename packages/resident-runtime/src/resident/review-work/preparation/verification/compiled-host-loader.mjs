@@ -24,6 +24,11 @@ for (const file of graphManifest.hapsland.checkedJavaScript)
   checked.set(new URL(file, graphRoot).href, new URL(file.replace(/^src\//u, "dist/"), graphRoot).href)
 const graphDispatcher = new URL("dist/direct-event/graph-resolution/composition/artifact-dispatcher.mjs", graphRoot)
   .href
+const preparationRoot = new URL("../review-execution/", packageRoot)
+const preparationManifest = JSON.parse(readFileSync(new URL("package.json", preparationRoot), "utf8"))
+for (const file of preparationManifest.hapsland.checkedJavaScript)
+  checked.set(new URL(file, preparationRoot).href, new URL(file.replace(/^src\//u, "dist/"), preparationRoot).href)
+const preparationEffects = new URL("dist/direct-event/preparation/physical-effects.mjs", preparationRoot).href
 const canonicalDriver = new URL("dist/canonical/child-execution/driver.mjs", canonicalRoot).href
 const loaded = new Set()
 registerHooks({
@@ -52,6 +57,7 @@ process.once("beforeExit", () => {
     "src/resident/state/resolver-custody/resident-owner-transaction.mjs"
   ])
     assert.ok(loaded.has(checked.get(new URL(file, packageRoot).href)), `Compiled host was not loaded: ${file}`)
+  assert.ok(loaded.has(preparationEffects), "Compiled physical Preparation effects were not loaded")
   assert.ok(loaded.has(graphDispatcher), "Compiled Graph composition dispatcher was not loaded")
   assert.ok(loaded.has(canonicalDriver), "Compiled Canonical child-execution driver was not loaded")
   console.log(JSON.stringify({ compiledHost: true, modules: [...loaded].sort() }))

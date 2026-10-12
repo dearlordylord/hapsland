@@ -117,3 +117,6 @@ export type {
   PreparedSource,
   PrepareOutcome
 } from "./contract.ts"
+
+export { encodePreparationInput } from "./input.ts"
+export type { PreparationObservation } from "./input.ts"

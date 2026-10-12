@@ -5395,6 +5395,7 @@ def ready_attachment_staged_total_result(+attachment: Compose.Attachment, +frame
     +child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +history: V.History, +view: V.Frame) -> Type:
   Exists(ArtifactValue.ProductValue, product =>
     {F.prepared_unit(Allowance.materialization(ready_staged_forest(view)), ready_staged_forest(view), S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state))) == F.Materialized{product} : F.Materialization} &
+    {ready_loop_request(Attach.attachment(Some{attachment}, child, previous, state, frame)) == Some{ready_actual_request(state, product)} : Maybe<&2, T.Request>} &
     ready_measurement_staged_result(Attach.attachment(Some{attachment}, child, previous, state, frame), product, history, view))
 
 def ready_attachment_staged_total_witness(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
@@ -5406,7 +5407,9 @@ def ready_attachment_staged_total_witness(+attachment: Compose.Attachment, +fram
     case V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
       match materialized:
         case (+product, (actual, reference)):
-          Tuple{product, Tuple{reference, ready_attachment_staged_measurement(attachment, frame, child, state, previous, product, history, view, actual, projected)}}
+          +actual: {PreparedRoot.prepared_unit(Attach.attached_frame(attachment, frame), S.state_prepared(state)) == Some{product} : Maybe<&2, ArtifactValue.ProductValue>} = actual
+          Tuple{product, Tuple{reference, Tuple{ready_attachment_request_identity(attachment, frame, child, state, previous, product, actual),
+            ready_attachment_staged_measurement(attachment, frame, child, state, previous, product, history, view, actual, projected)}}}
 
 def ready_attachment_staged_total(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
     +child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +history: V.History, +view: V.Frame,
@@ -5905,7 +5908,7 @@ def ready_original_measured_product(+attachment: Compose.Attachment, +frame: T.R
     evidence: ready_attachment_staged_total_result(attachment, frame, child, state, previous, History.measurement(phase, history), view)) ->
     ready_original_measured_result(state, history, phase, previous):
   match evidence:
-    case (+product, (_, (+measured, (+request, (awaited, (operation, (stage, observed))))))):
+    case (+product, (_, (_, (+measured, (+request, (awaited, (operation, (stage, observed)))))))):
       Tuple{measured, Tuple{request, Tuple{product, Tuple{view, Tuple{
         Equal.trans(Loop.Continuation, Attach.previous(previous, state), Attach.attachment(Some{attachment}, child, previous, state, frame),
           Loop.ServiceStep{T.AwaitService{measured, request}}, continued, awaited), Tuple{operation, Tuple{stage, observed}}}}}}}
@@ -6436,13 +6439,167 @@ def ready_same_parent_reference_observations(+state: T.ResolverState, +frame: T.
     ready_reference_staged_common(reference, child, previous, forest, product, history, child_history, phase, reference_ready, reference_replaced, reference_product)}
 
 
+def ready_selected_request_identity(+state: T.ResolverState, +frame: T.ResolverFrame, +actual_child: T.TentativeChild, +edge: Local.Pending,
+    +reference: D.State, +child: X.Child, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +product: ArtifactValue.ProductValue,
+    selected: {ActualReady.parts(state, Some{frame}, Some{actual_child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {ready_actual_request(state, product) == ready_reference_request(reference, product) : T.Request}:
+  match history phase:
+    case V.History{+addresses, _, _, _, _, +remaining, +episode} Phase.Phase{+view, +child_view, +capsule}:
+      Parent.eliminate_pair({ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+        {ActualReady.child_project(actual_child, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>} &
+        {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+        {ready_actual_request(state, product) == ready_reference_request(reference, product) : T.Request},
+        Pair.snd({Bool.and(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))) == True{} : Bool},
+          assembled_result(ActualFrame.project(frame, history), ActualReady.child_project(actual_child, edge, child_history, S.frame_artifacts(frame), episode), ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state), phase),
+          selected_phase_contents(state, frame, actual_child, edge, history, child_history, phase, selected)),
+        frame_ready => rest =>
+        ready_request_identity_exact(state, reference, child,
+          S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), capsule, product,
+          Pair.snd({ActualReady.child_project(actual_child, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>},
+            {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>}, rest),
+          Pair.snd({ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>}, {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>},
+            Pair.snd({ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}, {ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>} & {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, reference_ready_contents(reference, child, history, child_history, phase, reference_ready)))))
+
+
+def ready_shared_request_exact(+continuation: Loop.Continuation, +selection: D.Selection,
+    +actual: T.Request, +reference: T.Request,
+    emitted: {ready_loop_request(continuation) == Some{actual} : Maybe<&2, T.Request>},
+    expected: {ReferenceBoundary.selected_request(selection) == Some{reference} : Maybe<&2, T.Request>},
+    identity: {actual == reference : T.Request}) ->
+    {ready_loop_request(continuation) == ReferenceBoundary.selected_request(selection) : Maybe<&2, T.Request>}:
+  Equal.trans(Maybe<&2, T.Request>, ready_loop_request(continuation), Some{actual}, ReferenceBoundary.selected_request(selection), emitted,
+    Equal.trans(Maybe<&2, T.Request>, Some{actual}, Some{reference}, ReferenceBoundary.selected_request(selection),
+      Equal.cong(T.Request, Maybe<&2, T.Request>, request => Some{request}, actual, reference, identity),
+      Equal.sym(Maybe<&2, T.Request>, ReferenceBoundary.selected_request(selection), Some{reference}, expected)))
+
+
+def ready_child_addresses(history: Phase.ChildHistory) -> List<&2, F.AddressEntry>:
+  match history:
+    case Phase.ChildHistory{F.Created{_, _, addresses}, _, _, _, _}: addresses
+
+
+def ready_child_payloads(view: Phase.Child) -> List<&2, V.PendingPayload>:
+  match view:
+    case Phase.Child{_, _, _, _, _, _, _, _, _, _, _, payloads, _, _, _, _}: payloads
+
+def ready_child_pending_exact(+child: T.TentativeChild, +edge: Local.Pending, +history: Phase.ChildHistory,
+    +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child,
+    ready: {ActualReady.child_project(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ActualReady.pending(ready_plan_pending(ready_actual_child_plan(child)), ready_child_addresses(history)) == Some{ready_child_payloads(view)} : Maybe<&2, List<&2, V.PendingPayload>>}:
+  match child history view:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+root, +nodes, +slots, +items, +visited, _}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, +addresses}, _, _, _, +order}
+      Phase.Child{_, _, _, _, _, _, _, _, _, +forest, _, +payloads, +seen, _, _, _}:
+      Pair.fst({ActualReady.pending(items, addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}, {ActualReady.visited_complete(order, visited) == Some{seen} : Maybe<&2, List<&2, String>>},
+        Pair.snd({ActualReady.valid_forest(P.project(root, nodes, slots, artifacts, addresses), episode) == Some{forest} : Maybe<&2, F.Forest>}, {ActualReady.pending(items, addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>} & {ActualReady.visited_complete(order, visited) == Some{seen} : Maybe<&2, List<&2, String>>},
+          child_view_contents(ActualReady.valid_forest(P.project(root, nodes, slots, artifacts, addresses), episode), ActualReady.pending(items, addresses), ActualReady.visited_complete(order, visited), child, edge, history, view,
+            Pair.snd({child_checks(child) == True{} : Bool}, {ActualReady.child_projected(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}, actual_child_contents(child, edge, history, artifacts, episode, view, ready)))))
+
+def ready_staged_rows_next(+view: V.Frame, +forest: F.Forest, +payloads: List<&2, V.PendingPayload>,
+    +next: Nat, +observed_next: Nat, +source: T.SourceFacts, +observed_source: T.SourceFacts, +catalog: RootSpec.Source, +observed_catalog: RootSpec.Source, +attached_next: Nat,
+    next_equal: {next == observed_next : Nat}, source_equal: {source == observed_source : T.SourceFacts}, catalog_equal: {catalog == observed_catalog : RootSpec.Source},
+    count: {attached_next == (next + List.length(&2, V.PendingPayload, payloads) : Nat) : Nat}) ->
+    {ready_staged_frame(view, forest, ready_payload_rows(payloads, next, source, catalog), attached_next)
+      == ready_staged_frame(view, forest, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog),
+        (observed_next + List.length(&2, V.PendingEntry, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog)) : Nat)) : V.Frame}:
+  %Equal.sym(Nat, attached_next, (next + List.length(&2, V.PendingPayload, payloads) : Nat), count):
+    {ready_staged_frame(view, forest, ready_payload_rows(payloads, next, source, catalog), _) == ready_staged_frame(view, forest, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog), (observed_next + List.length(&2, V.PendingEntry, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog)) : Nat)) : V.Frame}
+  %Equal.sym(Nat, next, observed_next, next_equal):
+    {ready_staged_frame(view, forest, ready_payload_rows(payloads, _, source, catalog), (_ + List.length(&2, V.PendingPayload, payloads) : Nat)) == ready_staged_frame(view, forest, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog), (observed_next + List.length(&2, V.PendingEntry, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog)) : Nat)) : V.Frame}
+  %Equal.sym(T.SourceFacts, source, observed_source, source_equal):
+    {ready_staged_frame(view, forest, ready_payload_rows(payloads, observed_next, _, catalog), (observed_next + List.length(&2, V.PendingPayload, payloads) : Nat)) == ready_staged_frame(view, forest, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog), (observed_next + List.length(&2, V.PendingEntry, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog)) : Nat)) : V.Frame}
+  %Equal.sym(RootSpec.Source, catalog, observed_catalog, catalog_equal):
+    {ready_staged_frame(view, forest, ready_payload_rows(payloads, observed_next, observed_source, _), (observed_next + List.length(&2, V.PendingPayload, payloads) : Nat)) == ready_staged_frame(view, forest, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog), (observed_next + List.length(&2, V.PendingEntry, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog)) : Nat)) : V.Frame}
+  Equal.cong(Nat, V.Frame, size => ready_staged_frame(view, forest, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog), (observed_next + size : Nat)), List.length(&2, V.PendingPayload, payloads), List.length(&2, V.PendingEntry, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog)),
+    Equal.sym(Nat, List.length(&2, V.PendingEntry, ready_payload_rows(payloads, observed_next, observed_source, observed_catalog)), List.length(&2, V.PendingPayload, payloads), ready_payload_rows_length(payloads, observed_next, observed_source, observed_catalog)))
+
+
+def ready_selected_staged_equality_result(child_history: Phase.ChildHistory, +phase: Phase.Phase, +frame: T.ResolverFrame, +attachment: Compose.Attachment, +forest: F.Forest) -> Type:
+  match child_history phase:
+    case Phase.ChildHistory{_, +source, +catalog, _, _} Phase.Phase{+view, Phase.Child{_, _, _, _, _, _, _, _, _, _, _, +payloads, _, _, _, _}, _}:
+      {ready_staged_frame(view, forest, ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(attachment, frame)))
+        == ready_staged_frame(view, forest, ready_child_rows(ready_phase_child(phase), ready_view_edge(view)),
+          (ready_view_edge(view) + List.length(&2, V.PendingEntry, ready_child_rows(ready_phase_child(phase), ready_view_edge(view))) : Nat)) : V.Frame}
+
+def ready_selected_staged_equality_coordinates(+child: T.TentativeChild, +edge: Local.Pending, +frame: T.ResolverFrame, +attachment: Compose.Attachment,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase, +forest: F.Forest,
+    attached: ready_selected_attachment_result(child, frame, edge, attachment),
+    pending: {ActualReady.pending(ready_plan_pending(ready_actual_child_plan(child)), ready_child_addresses(child_history)) == Some{ready_child_payloads(ready_phase_child(phase))} : Maybe<&2, List<&2, V.PendingPayload>>},
+    coordinates: ready_frame_coordinates(frame, ready_phase_frame(phase)) & ready_child_coordinates(child, child_history, ready_phase_child(phase))) ->
+    ready_selected_staged_equality_result(child_history, phase, frame, attachment, forest):
+  match child child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, +addresses}, +source, +catalog, _, _}
+      Phase.Phase{V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, +next, _, _, _, _, _},
+        Phase.Child{_, _, _, _, _, _, _, _, _, _, _, +payloads, _, _, +observed_source, +observed_catalog}, _}:
+      match coordinates:
+        case ((_, (_, edge_equal)), (_, (_, (source_equal, catalog_equal)))):
+          ready_staged_rows_next(ready_phase_frame(phase), forest, payloads, S.frame_next_edge(frame), next, source, observed_source, catalog, observed_catalog,
+            S.frame_next_edge(Attach.attached_frame(attachment, frame)), edge_equal, source_equal, catalog_equal,
+            ready_selected_attachment_count(child, frame, edge, attachment, addresses, payloads, attached, pending))
+
+def ready_selected_staged_equality(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +attachment: Compose.Attachment, +forest: F.Forest,
+    +selected: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    attached: ready_selected_attachment_result(child, frame, edge, attachment)) ->
+    ready_selected_staged_equality_result(child_history, phase, frame, attachment, forest):
+  match history phase:
+    case V.History{+addresses, _, _, _, _, +remaining, +episode} Phase.Phase{+view, +child_view, +capsule}:
+      ready_selected_staged_equality_coordinates(child, edge, frame, attachment, child_history, phase, forest, attached,
+        ready_child_pending_exact(child, edge, child_history, S.frame_artifacts(frame), episode, child_view,
+          Pair.fst({ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>},
+            {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+            Pair.snd({ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+              {ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>} & {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+              Pair.snd({Bool.and(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))) == True{} : Bool}, assembled_result(ActualFrame.project(frame, history), ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode), ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state), phase), selected_phase_contents(state, frame, child, edge, history, child_history, phase, selected))))),
+        ready_selected_coordinates(child, history, child_history, phase, state, frame, edge, selected))
+
+
+def ready_reference_product_at(+reference: D.State, +child: X.Child, +history: V.History, +phase: Phase.Phase,
+    +previous: Nat, +product: ArtifactValue.ProductValue, +view: V.Frame) -> Type:
+  {ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) == Some{ready_reference_request(reference, product)} : Maybe<&2, T.Request>} &
+  {Staged.project(ReferenceBoundary.enter(reference, child, previous), History.measurement(phase, history)) == Some{view} : Maybe<&2, V.Frame>}
+
+def ready_reference_product_aligned(+reference: D.State, +child: X.Child, +history: V.History, +phase: Phase.Phase,
+    +previous: Nat, +forest: F.Forest, +product: ArtifactValue.ProductValue, +view: V.Frame,
+    aligned: {view == ready_staged_frame(ready_phase_frame(phase), forest, ready_child_rows(ready_phase_child(phase), ready_view_edge(ready_phase_frame(phase))),
+      (ready_view_edge(ready_phase_frame(phase)) + List.length(&2, V.PendingEntry, ready_child_rows(ready_phase_child(phase), ready_view_edge(ready_phase_frame(phase)))) : Nat)) : V.Frame},
+    observations: ready_reference_product_observations(reference, child, history, phase, previous, forest, product)) ->
+    ready_reference_product_at(reference, child, history, phase, previous, product, view):
+  match observations:
+    case (requested, staged):
+      Tuple{requested,
+        %Equal.sym(V.Frame, view, ready_staged_frame(ready_phase_frame(phase), forest, ready_child_rows(ready_phase_child(phase), ready_view_edge(ready_phase_frame(phase))),
+          (ready_view_edge(ready_phase_frame(phase)) + List.length(&2, V.PendingEntry, ready_child_rows(ready_phase_child(phase), ready_view_edge(ready_phase_frame(phase)))) : Nat)), aligned):
+          {Staged.project(ReferenceBoundary.enter(reference, child, previous), History.measurement(phase, history)) == Some{_} : Maybe<&2, V.Frame>}
+        staged}
+
 def ready_shared_staged_total_result(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
     +actual_child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +history: V.History, +phase: Phase.Phase, +view: V.Frame,
     +reference: D.State, +child: X.Child) -> Type:
   Exists(ArtifactValue.ProductValue, product =>
     {F.prepared_unit(Allowance.materialization(ready_staged_forest(view)), ready_staged_forest(view), S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state))) == F.Materialized{product} : F.Materialization} &
+    {ready_loop_request(Attach.attachment(Some{attachment}, actual_child, previous, state, frame)) == ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) : Maybe<&2, T.Request>} &
     ready_measurement_staged_result(Attach.attachment(Some{attachment}, actual_child, previous, state, frame), product, History.measurement(phase, history), view) &
-    ready_reference_product_observations(reference, child, history, phase, previous, ready_staged_forest(view), product))
+    ready_reference_product_at(reference, child, history, phase, previous, product, view))
+
+def ready_shared_staged_product(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    +actual_child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +history: V.History, +phase: Phase.Phase, +view: V.Frame,
+    +reference: D.State, +child: X.Child, +product: ArtifactValue.ProductValue,
+    materialized: {F.prepared_unit(Allowance.materialization(ready_staged_forest(view)), ready_staged_forest(view), S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state))) == F.Materialized{product} : F.Materialization},
+    emitted: {ready_loop_request(Attach.attachment(Some{attachment}, actual_child, previous, state, frame)) == Some{ready_actual_request(state, product)} : Maybe<&2, T.Request>},
+    measured: ready_measurement_staged_result(Attach.attachment(Some{attachment}, actual_child, previous, state, frame), product, History.measurement(phase, history), view),
+    identity: {ready_actual_request(state, product) == ready_reference_request(reference, product) : T.Request},
+    observations: ready_reference_product_at(reference, child, history, phase, previous, product, view)) ->
+    ready_shared_staged_total_result(attachment, frame, actual_child, state, previous, history, phase, view, reference, child):
+  match observations:
+    case (requested, staged):
+      +requested: {ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) == Some{ready_reference_request(reference, product)} : Maybe<&2, T.Request>} = requested
+      Tuple{product, Tuple{materialized, Tuple{
+        ready_shared_request_exact(Attach.attachment(Some{attachment}, actual_child, previous, state, frame), ReferenceBoundary.enter(reference, child, previous), ready_actual_request(state, product), ready_reference_request(reference, product), emitted, requested, identity),
+        Tuple{measured, Tuple{requested, staged}}}}}
 
 def ready_shared_parent_result(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
     +phase: Phase.Phase, +frame: T.ResolverFrame, +edge: Local.Pending, +known: Bool, +state: T.ResolverState, +previous: Nat, +reference: D.State, +reference_child: X.Child) -> Type:
@@ -6465,8 +6622,8 @@ def ready_shared_parent_result(+child: T.TentativeChild, +history: V.History, +c
 
 def ready_same_parent_reference_witness(+state: T.ResolverState, +frame: T.ResolverFrame, +actual_child: T.TentativeChild, +edge: Local.Pending,
     +reference: D.State, +child: X.Child, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat,
-    selected: {ActualReady.parts(state, Some{frame}, Some{actual_child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
-    reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    +selected: {ActualReady.parts(state, Some{frame}, Some{actual_child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    +reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
     evidence: ready_parent_measured_result(actual_child, history, child_history, phase, frame, edge,
       Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), ready_actual_identity(actual_child)))), state, previous)) ->
     ready_shared_parent_result(actual_child, history, child_history, phase, frame, edge,
@@ -6475,15 +6632,25 @@ def ready_same_parent_reference_witness(+state: T.ResolverState, +frame: T.Resol
     case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
       Local.Pending{_, _, _, _, _, _, _, _}
       V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
-      Phase.ChildHistory{F.Created{_, _, _}, _, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, _}, +source, +catalog, _, _}
       Phase.Phase{V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
-        Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{_}, _}, _, _, _, _, _, _}, _}:
+        Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{_}, _}, _, +payloads, _, _, _, _}, _}:
       match evidence:
-        case (+attachment, (+forest, (attached, (replaced, (+product, (materialized, measured)))))):
+        case (+attachment, (+forest, (attached, (replaced, (+product, (materialized, (request_identity, measured))))))):
+          +attached: {Compose.tentative_attachment(Compose.remap(ready_actual_child_plan(actual_child), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), S.frame_nodes(frame), S.frame_references(frame), Attach.edge_owner(edge), Attach.edge_index(edge),
+            Bool.pick(Maybe<&2, String>, Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), ready_actual_identity(actual_child)))), Some{ready_actual_identity(actual_child)}, None{}), S.frame_next_edge(frame), S.frame_pending(frame)) == Some{attachment} : Maybe<&2, Compose.Attachment>} = attached
           +replaced: {ready_phase_parent_replace(actual_child, edge, child_history, phase, Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), ready_actual_identity(actual_child))))) == F.Replaced{forest} : F.Replacement} = replaced
           +materialized: {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state))) == F.Materialized{product} : F.Materialization} = materialized
-          Tuple{attachment, Tuple{forest, Tuple{attached, Tuple{replaced, Tuple{product, Tuple{materialized, Tuple{measured,
-            ready_same_parent_reference_observations(state, frame, actual_child, edge, reference, child, history, child_history, phase, previous, attachment, forest, product, selected, reference_ready, replaced, materialized)}}}}}}}
+          Tuple{attachment, Tuple{forest, Tuple{attached, Tuple{replaced,
+            ready_shared_staged_product(attachment, frame, actual_child, state, previous, history, phase,
+              ready_staged_frame(ready_phase_frame(phase), forest, ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(attachment, frame))),
+              reference, child, product, materialized, request_identity, measured,
+              ready_selected_request_identity(state, frame, actual_child, edge, reference, child, history, child_history, phase, product, selected, reference_ready),
+              ready_reference_product_aligned(reference, child, history, phase, previous, forest, product,
+                ready_staged_frame(ready_phase_frame(phase), forest, ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(attachment, frame))),
+                ready_selected_staged_equality(state, frame, actual_child, edge, history, child_history, phase, attachment, forest, selected, attached),
+                ready_same_parent_reference_observations(state, frame, actual_child, edge, reference, child, history, child_history, phase, previous, attachment, forest, product, selected, reference_ready, replaced, materialized)))}}}}
+
     case _ _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _}:
       Empty.absurd(ready_shared_parent_result(actual_child, history, child_history, phase, frame, edge, Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), ready_actual_identity(actual_child)))), state, previous, reference, child), evidence)
 
@@ -6525,6 +6692,80 @@ def ready_original_shared(+state: T.ResolverState, +reference: D.State, +child: 
     ready_original_shared_result(state, reference, child, history, child_history, phase, previous):
   ready_original_shared_parts(state, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent,
     actual_ready_parts(state, history, child_history, phase, ready))
+
+
+def ready_joined_measurement_result(+state: T.ResolverState, +reference: D.State, +child: X.Child, +history: V.History, +phase: Phase.Phase, +previous: Nat) -> Type:
+  Exists(T.ResolverState, measured => Exists(T.Request, request => Exists(ArtifactValue.ProductValue, product => Exists(V.Frame, staged =>
+    {Attach.previous(previous, state) == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation} &
+    {Contract.operation(request) == T.EncodeProduct{product} : T.Operation} &
+    {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage} &
+    {ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) == Some{request} : Maybe<&2, T.Request>} &
+    {Contract.actual_frame(S.state_frame(measured), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>} &
+    {Staged.project(ReferenceBoundary.enter(reference, child, previous), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>}))))
+
+def ready_shared_measurement_extract(+attachment: Compose.Attachment, +frame: T.ResolverFrame,
+    +actual_child: T.TentativeChild, +state: T.ResolverState, +previous: Nat, +history: V.History, +phase: Phase.Phase, +view: V.Frame,
+    +reference: D.State, +child: X.Child, +product: ArtifactValue.ProductValue,
+    continued: {Attach.previous(previous, state) == Attach.attachment(Some{attachment}, actual_child, previous, state, frame) : Loop.Continuation},
+    request_equal: {ready_loop_request(Attach.attachment(Some{attachment}, actual_child, previous, state, frame)) == ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) : Maybe<&2, T.Request>},
+    measured: ready_measurement_staged_result(Attach.attachment(Some{attachment}, actual_child, previous, state, frame), product, History.measurement(phase, history), view),
+    observations: ready_reference_product_at(reference, child, history, phase, previous, product, view)) ->
+    ready_joined_measurement_result(state, reference, child, history, phase, previous):
+  match measured observations:
+    case Tuple{+result, Tuple{+request, Tuple{awaited, Tuple{operation, Tuple{stage, projected}}}}} Tuple{_, staged}:
+      +awaited: {Attach.attachment(Some{attachment}, actual_child, previous, state, frame) == Loop.ServiceStep{T.AwaitService{result, request}} : Loop.Continuation} = awaited
+      Tuple{result, Tuple{request, Tuple{product, Tuple{view, Tuple{
+        Equal.trans(Loop.Continuation, Attach.previous(previous, state), Attach.attachment(Some{attachment}, actual_child, previous, state, frame), Loop.ServiceStep{T.AwaitService{result, request}}, continued, awaited),
+        Tuple{operation, Tuple{stage, Tuple{
+          Equal.trans(Maybe<&2, T.Request>, ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)), ready_loop_request(Attach.attachment(Some{attachment}, actual_child, previous, state, frame)), Some{request},
+            Equal.sym(Maybe<&2, T.Request>, ready_loop_request(Attach.attachment(Some{attachment}, actual_child, previous, state, frame)), ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)), request_equal),
+            Equal.cong(Loop.Continuation, Maybe<&2, T.Request>, value => ready_loop_request(value), Attach.attachment(Some{attachment}, actual_child, previous, state, frame), Loop.ServiceStep{T.AwaitService{result, request}}, awaited)),
+          Tuple{projected, staged}}}}}}}}}
+
+def ready_joined_parent(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat, +reference: D.State, +reference_child: X.Child,
+    +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    +frame_present: {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>},
+    +child_present: {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>},
+    +edge_present: {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>},
+    evidence: ready_shared_parent_result(child, history, child_history, phase, frame, edge,
+      Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), ready_actual_identity(child)))), state, previous, reference, reference_child)) ->
+    ready_joined_measurement_result(state, reference, reference_child, history, phase, previous):
+  match child edge history child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
+      Local.Pending{_, _, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, _}, +source, +catalog, _, _}
+      Phase.Phase{V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
+        Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{_}, _}, _, +payloads, _, _, _, _}, _}:
+      match evidence:
+        case (+attachment, (+forest, (attached, (_, (+product, (_, (request_equal, (measured, observations)))))))):
+          +view: V.Frame = ready_staged_frame(ready_phase_frame(phase), forest,
+            ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog), S.frame_next_edge(Attach.attached_frame(attachment, frame)))
+          continued: {Attach.previous(previous, state) == Attach.attachment(Some{attachment}, child, previous, state, frame) : Loop.Continuation} =
+            ready_previous_attached(state, frame, child, edge, history, child_history, phase, previous, attachment,
+              ready, frame_present, child_present, edge_present, attached)
+          ready_shared_measurement_extract(attachment, frame, child, state, previous, history, phase, view, reference, reference_child, product, continued, request_equal, measured, observations)
+    case _ _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _}:
+      Empty.absurd(ready_joined_measurement_result(state, reference, reference_child, history, phase, previous), evidence)
+
+def ready_original_joined_witness(+state: T.ResolverState, +reference: D.State, +child: X.Child,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat,
+    ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    evidence: ready_original_shared_result(state, reference, child, history, child_history, phase, previous)) ->
+    ready_joined_measurement_result(state, reference, child, history, phase, previous):
+  match evidence:
+    case (+frame, (+actual_child, (+edge, (frame_present, (child_present, (edge_present, shared)))))):
+      ready_joined_parent(state, frame, actual_child, edge, history, child_history, phase, previous, reference, child, ready, frame_present, child_present, edge_present, shared)
+
+def ready_original_joined(+state: T.ResolverState, +reference: D.State, +child: X.Child,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +previous: Nat,
+    +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
+    ready_joined_measurement_result(state, reference, child, history, phase, previous):
+  ready_original_joined_witness(state, reference, child, history, child_history, phase, previous, ready,
+    ready_original_shared(state, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent))
 
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
