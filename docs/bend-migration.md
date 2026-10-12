@@ -484,8 +484,8 @@ One current obstacle list, in execution order:
    graph/language package policy and orchestration only with their qualified
    complete Bend replacement. Public preparation still uses TS: connected whole
    preparation Bend **0**, removed replaced production TS **0**.
-   Production artifact assembly now ships Source/Post through the resident
-   preparation private recipe and closed authored ABIs. The normal precompile
+   Production artifact assembly now ships Source/Post/GenericArtifact through
+   the resident review-work private recipe and closed authored ABIs. The normal precompile
    runner validates each core's declared entry methods, rather than imposing
    initial/advance/resume. Generated Turbo inputs include the recipe closure.
    Actual frozen workspace build passes 46/46 tasks (15 cached, 46.206 seconds);
@@ -504,8 +504,12 @@ One current obstacle list, in execution order:
    requests and 855 Post requests pass through the Node capability runner
    (/tmp/hapsland-2239-packaged-resident-full.log). Its actual workspace build
    passes 46/46 tasks, 15 cached, 48.518 seconds; explicit lint selects and
-   passes the changed runner. Remaining temporary emissions are resident-owned
-   ArtifactComposition, GenericArtifact, PythonArtifact, GoArtifact and the
+   passes the changed runner. The current full resident consumer with packaged
+   Source/Post/GenericArtifact passes all 73 cases, 15702 requests and 855 Post
+   requests (/tmp/hapsland-packaged-generic-resident-full.log), retaining full
+   native differential and cancellation/cleanup branches. No source fixture is
+   filtered. Remaining temporary emissions are resident-owned
+   ArtifactComposition, PythonArtifact, GoArtifact and the
    agent-flow-owned CanonicalResolverOwner. Their transport inputs must retain
    exact raw Bend payloads: semantic frontend types are not interchangeable with
    raw SourceFacts, and opaque command inputs would conceal this boundary.
@@ -513,13 +517,18 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 8ca20f5e measurements are
+   connected candidate. Latest existing-production 0ab17560 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.8073524178833368 (2026-10-12 00:04:26.226502 UTC); build fails at
-   1.1261360418796953 (00:06:59.653428 UTC). Both starts meet the previous
-   cadence deadlines. These do not qualify unadopted whole preparation.
-   Frozen warm build passes 46/46 tasks, 15 cached, 48.629 seconds. Next start
-   deadlines on 2026-10-12 UTC: execution 00:34:26.226502, build 00:36:59.653428.
+   passes at 0.8222442164078239 (2026-10-12 00:36:51.464695 UTC); build fails at
+   1.1940595650833445 (00:37:49.877591 UTC). Both starts miss their preceding
+   cadence deadlines because packaging preparation failed twice and required
+   matched-producer/serial diagnosis. These are cadence violations, not on-time
+   qualification; results do not qualify unadopted whole preparation.
+   Normal post-diagnostic warm build passes 46/46, 23 cached, 4.081s. Next starts
+   due on 2026-10-12 UTC: execution 01:06:51.464695, build 01:07:49.877591.
+   Logs: /tmp/hapsland-0ab175-{execution,build}-pair.log.
+   Prior 8ca20f5e results were execution .8073524 and build1.1261360; its
+   phase diagnostics below describe those earlier inputs, not the current run.
    All 34 paired builds have 23/46 cached tasks and successful exit. Preserved
    logs localize the measured difference: baseline total/Turbo/outside-Turbo
    means are 5.863/2.578/3.285 seconds; candidate means are 6.602/3.163/3.439.
