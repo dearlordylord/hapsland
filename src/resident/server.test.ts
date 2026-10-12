@@ -1495,6 +1495,12 @@ describe("resident delivery lease", () => {
     const dispatch = { ...findingDispatch(statePath), activityPath }
     expect((await Effect.runPromise(server.admit(observation, dispatch, true))).status).toBe("accepted")
     await started.promise
+    // Evaluation may start before asynchronous Source completion. Close the
+    // round with exactly the one held evaluation this scenario measures.
+    await vi.waitFor(() => expect(Effect.runSync(server.stats())).toMatchObject({ queued: 0, running: 1 }), {
+      timeout: 2_000,
+      interval: 10
+    })
     expect(
       await Effect.runPromise(
         server.handle({

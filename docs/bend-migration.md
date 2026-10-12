@@ -189,8 +189,9 @@ Current finite evidence, with commands at the testing matrix:
 
 The current-source stages and real consumers above are not whole acceptance.
 New provider/input/whole machine files pass source, runner lint and pinned format.
-The pinned formatter still rejects UnitEvidence and Glob with `Unsupported block
-expression in list`; this is an open gate, not an exemption.
+The pinned formatter now accepts UnitEvidence, Glob and PostPreparation after
+local binding of three existing lambdas; declaration-header limitations in the
+attachment proof owners remain open. Formatter passes do not establish proofs.
 
 One current obstacle list, in execution order:
 
@@ -502,8 +503,9 @@ One current obstacle list, in execution order:
    oracle; native outcomes/effects and generic pure-chain/Cause checks remain.
    The replacement IO boundary is qualified as above; whole resident progression
    and universal correspondence remain open.
-   Unsupported formatter roots remain failures, including
-   attachment declaration headers and UnitEvidence/Glob/list blocks.
+   Attachment declaration-header formatter roots remain failures. UnitEvidence
+   and Glob list-block failures are repaired by local typed bindings of their
+   three existing lambdas, without new representations or helper laws.
    Astra's structural review found no blocking ownership/dependency issue in
    the composed-consumer move and tooling fixture boundary. Its two cleanups
    remove obsolete emission paths and ignored resolver ports; changed-source
@@ -545,7 +547,8 @@ One current obstacle list, in execution order:
    cancellation, acceptance and progression. Delete replaced TS preparation,
    graph/language package policy and orchestration only with their qualified
    complete Bend replacement. Public preparation still uses TS: connected whole
-   preparation Bend **0**, removed replaced production TS **0**.
+   preparation is connected in the default resident candidate; accepted whole
+   units **0**, removed replaced production TS algorithms **0**.
    Production artifact assembly now ships Source/Post/GenericArtifact/PythonArtifact/GoArtifact/ArtifactComposition through
    the resident review-work private recipe and closed authored ABIs. The normal precompile
    runner validates each core's declared entry methods, rather than imposing
@@ -1170,6 +1173,31 @@ One current obstacle list, in execution order:
    /tmp/hapsland-close-interruption-{red,green,warm,types,lint}.log.
    The original universal proofs, full affected production owner suites, removal
    of superseded TypeScript and connected-candidate build parity remain open.
+   The full current server/capacity/runtime gate at 945e5463 is not qualified:
+   workspace compilation passes 7.71s, but one round-closure fixture expects
+   discarded.running=1 while Source preparation and evaluation both remain
+   active (actual 2), and the test stage reaches its 345s bound. The fixture now
+   waits through public stats for exactly one held evaluation before closing;
+   its original closure count, fencing and cleanup assertions remain unchanged.
+   A selected verbose diagnostic localizes the synchronous stall to the original
+   16-path/64-unit production preparation fixture. Its actual three-second CPU
+   profile spends 3320ms in emitted PostPreparation.remove_plan: eager Bool.pick
+   arguments duplicate recursive tail evaluation, causing exponential work.
+   The existing recursive result is now locally shared; no state, selection,
+   error or result representation changes. Three Bend source roots pass hard10
+   and addressed fixture lint passes; normal rebuilding, the actual batch/closure
+   scenarios and full affected consumers remain required before qualification.
+   Glob/UnitEvidence formatting uses typed local bindings for existing lambdas;
+   the initial unannotated binding fails source checking and is not a pass.
+   Diagnostic logs: /tmp/hapsland-production-server-verbose-selected.log,
+   /tmp/hapsland-production-batch-profile-diagnostic.log and
+   /tmp/hapsland-production-batch.cpuprofile. Source checks:
+   /tmp/hapsland-batch-repair-bend-checks-2.log.
+   Astra's reference staged/history/pending/common-next join now passes 4.062s;
+   exact actual attachment edge/count inversion passes 3.070s under hard10 CPU10.
+   Parent/materialization witness and arbitrary-reply joins still leave the
+   original transaction open; its original law and premises remain byte-identical.
+
 
    The repaired entry now qualifies on 8a905233: normal workspace build passes
    46/46 (15 cached, 57.937s); original construction-defect and cancellation
@@ -1303,6 +1331,14 @@ One current obstacle list, in execution order:
    /tmp/hapsland-c822bf4a-{warm,execution-pair,build-pair}.log. Next starts due:
    execution 17:51:15.160826, build 17:52:36.079246 UTC; prepare/freeze/backup
    target 17:44. The earlier failed owned-lock measurement remains unqualified.
+   Follow-up frozen 945e5463: execution starts 17:50:37.422305 UTC,
+   qualified parity 0.8000725069070499; build starts 17:51:54.982554 UTC,
+   qualified but fails parity 1.2195235308712986. Both meet cadence; all 17 pairs
+   preserve heads/sources/artifacts and all build launches succeed, 23/46 cached.
+   Logs: /tmp/hapsland-945e5463-{execution-pair,build-pair}.log. Next starts due:
+   execution 18:20:37.422305, build 18:21:54.982554 UTC. These execution pairs
+   cover the existing analyzer consumer, not the newly connected whole Source
+   production preparation batch. Its discovered Post stall is separate.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.
