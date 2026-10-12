@@ -39,8 +39,11 @@ try {
         `Guided step ${total === 59 && (step === 40 || step === 43) ? step + 1 : step} of ${total}`
       )
       if (total === 59 && step === 16) {
-        assert.match(await canonical.locator(".preparation-mini-counts").textContent(), /7\/8 files read.*20 KiB/)
-        assert.match(await canonical.locator(".preparation-mini-status").textContent(), /Preparation #2.*incomplete/)
+        assert.match(
+          await canonical.locator(".preparation-mini-status").textContent(),
+          /Artifact building · no facts yet/
+        )
+        assert.equal(await canonical.locator(".preparation-mini-node.active").count(), 0)
         await canonical.getByLabel("Inspect square").selectOption("preparation")
         await waitForText(".preparation-reference-details", "Preparation #2/operation 5 · Branching tree budget")
         const details = canonical.locator(".preparation-reference-details")

@@ -228,6 +228,14 @@ try {
     }
     assert.deepEqual(step.event, event)
     assert.equal(step.rejection, undefined, `showcase step ${index + 1} must be accepted`)
+    if (event.kind === "preparationCompleted") {
+      assert.equal(
+        elements(showcase, "preparation-mini-node").filter((node) => node.data.class.active).length,
+        0,
+        "leaving preparation resets the miniature instead of highlighting its retained result"
+      )
+      assert.match(labels(elements(showcase, "preparation-mini")[0]), /Artifact building · no facts yet/)
+    }
     const active = elements(showcase, "topology-route").filter((node) => node.data.class.active)
     for (const route of active) showcasedRoutes.add(labels(route))
     if (index === 0) {
