@@ -329,6 +329,17 @@ One current obstacle list, in execution order:
    the changed entrypoint selected. Resident declarations can consume this
    existing package interface rather than source-analysis implementation paths.
    Logs: /tmp/hapsland-resolver-public-contract-{types,fast,build}.log.
+   GenericArtifact's authored declaration now covers all 13 ParentAction
+   variants, exact source/cache/capture payloads, pending edges and resolver
+   input/reply/cancellation. Only retained Bend state/continuation/frame are
+   opaque; command payloads remain explicit. The existing strict preparation
+   ABI config selects this declaration. Explicit lint, strict ABI and check:fast
+   pass; real emission passes in 3.143s under hard five seconds and its declared
+   initial/resume/execute methods exist in the emitted core. Logs:
+   /tmp/hapsland-generic-artifact-abi-{types,fast,emission}.log.
+   This declaration is not yet in a normal build recipe, and no packaged
+   GenericArtifact consumer or production adoption is claimed. Recipe ownership
+   must cover composition and preparation owners without source duplication.
    A fresh origin/master fetch confirms no commits missing from this branch.
    Full independent entry passes 78 cases/55 native comparisons; full Go passes
    58 entry, 55 artifact and 58 Canonical-owned cases. The physical whole Source
