@@ -39,10 +39,15 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
   const inspection = residentInspection.recorder
   const residentJoined = residentLedger.joinedReviews(logicalBytes)
   const residentRuntimeScope = yield* Scope.Scope
+  let lifecycleOwnsScopes = false
   const residentIpcScope = yield* Scope.make()
-  yield* Effect.addFinalizer(() => Scope.close(residentIpcScope, Exit.void))
+  yield* Effect.addFinalizer(() =>
+    Effect.suspend(() => (lifecycleOwnsScopes ? Effect.void : Scope.close(residentIpcScope, Exit.void)))
+  )
   const residentDispatchScope = yield* Scope.make()
-  yield* Effect.addFinalizer(() => Scope.close(residentDispatchScope, Exit.void))
+  yield* Effect.addFinalizer(() =>
+    Effect.suspend(() => (lifecycleOwnsScopes ? Effect.void : Scope.close(residentDispatchScope, Exit.void)))
+  )
   const residentStopExpiries = new Map<string, Fiber.Fiber<void>>()
   const residentComposedDelivery = residentLedger.delivery((diagnostic) => {
     recordRepeatEditDiagnostic(paths.directory, diagnostic)
@@ -65,7 +70,9 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
   )
   const residentCaptureSource = options.captureSource
   const residentControlScope = yield* Scope.make()
-  yield* Effect.addFinalizer(() => Scope.close(residentControlScope, Exit.void))
+  yield* Effect.addFinalizer(() =>
+    Effect.suspend(() => (lifecycleOwnsScopes ? Effect.void : Scope.close(residentControlScope, Exit.void)))
+  )
   const residentPreparationControls = Context.get(
     yield* Layer.buildWithScope(options.preparationControls ?? preparationControlsLayer, residentControlScope),
     ResidentPreparationControls
@@ -118,7 +125,19 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     residentJevRequestObserver,
     residentOfflineHttpClient,
     residentControlledRequestEffect,
-    residentReuse
+    residentReuse,
+    // Acquisition fallback owns children until the actual lifecycle finalizer
+    // is installed. Failed close then retains their services for explicit retry.
+    residentOwnLifecycleScopes: (close: Effect.Effect<void, unknown>) =>
+      Effect.uninterruptible(
+        Effect.addFinalizer(() => close.pipe(Effect.orDie)).pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              lifecycleOwnsScopes = true
+            })
+          )
+        )
+      )
   }
 })
 

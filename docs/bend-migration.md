@@ -1135,6 +1135,19 @@ One current obstacle list, in execution order:
    ownership atomically after composition, and qualify fail-once cleanup through
    both explicit close and enclosing Scope closure. Preserve exact original Cause
    and retained resource custody; structural review is advisory, not validation.
+   Static review then identifies the exact unit-settlement mismatch: production
+   makeDispatcher omitted existing dispatchExecutionBoundary, so Post Enqueue's
+   child job inherited a subsequently revoked parent provider permit/receipt.
+   Production now supplies the boundary around execute and settlement. Close is
+   serialized and records success only; composition atomically installs its
+   actual close finalizer and transfers child-scope ownership. Construction
+   fallback remains active before that transfer. The ordinary endpoint-lifecycle
+   cleanup fixture uses normal compiled resources/lifecycle and is selected by
+   the preparation consumer gate. Strict resident types pass after correcting
+   the internal transfer method's existing ResidentAdapterError channel; addressed
+   lint selects all five changed code files including the new fixture. Structural
+   review approves ownership and test route. This checkpoint is unqualified:
+   actual fixtures and whole source/resident consumers must run after rebuilding.
 
    The repaired entry now qualifies on 8a905233: normal workspace build passes
    46/46 (15 cached, 57.937s); original construction-defect and cancellation
@@ -1261,6 +1274,13 @@ One current obstacle list, in execution order:
    46/46 tasks, 23 cached, 5.803s. Logs: /tmp/hapsland-f78305e6-{execution-pair,
    build-pair,recovery-warm}.log. Next starts due: execution 17:21:48.535439,
    build 17:22:45.974063 UTC; freeze/backup preparation target 17:14.
+   Follow-up c822bf4a: execution starts 17:21:15.160826, qualified parity
+   0.5074293437109846; build starts 17:22:36.079246, qualified but fails parity
+   1.1388332542811583. Both meet cadence. All 17 pairs preserve heads/sources/
+   artifacts; all 34 build launches succeed with 23/46 cached tasks. Logs:
+   /tmp/hapsland-c822bf4a-{warm,execution-pair,build-pair}.log. Next starts due:
+   execution 17:51:15.160826, build 17:52:36.079246 UTC; prepare/freeze/backup
+   target 17:44. The earlier failed owned-lock measurement remains unqualified.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

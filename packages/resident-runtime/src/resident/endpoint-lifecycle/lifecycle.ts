@@ -6,6 +6,7 @@ import { type Socket, createServer, type Server } from "node:net"
 import type { ResidentPaths } from "@hapsland/resident-transport/resident/paths"
 import * as Effect from "effect/Effect"
 import * as Deferred from "effect/Deferred"
+import * as Semaphore from "effect/Semaphore"
 import { chmod, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { prepareResidentDirectory, verifyRemovableSocket } from "@hapsland/resident-transport/resident/paths"
@@ -281,8 +282,14 @@ export const makeResidentLifecycle = Effect.fn("ResidentRuntime.lifecycle")(func
       })
     )
   })
-  const disposeOnce = yield* Effect.cached(Effect.suspend(() => residentDispose()))
-  const close = disposeOnce.pipe(Effect.tap(() => Deferred.succeed(closed, undefined)))
+  const closeLock = yield* Semaphore.make(1)
+  const close = closeLock.withPermit(
+    Effect.gen(function* () {
+      if (yield* Deferred.isDone(closed)) return
+      yield* residentDispose()
+      yield* Deferred.succeed(closed, undefined)
+    })
+  )
   return {
     listen,
     close,

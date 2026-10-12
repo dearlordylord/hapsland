@@ -13,6 +13,7 @@ import { logicalBytes } from "./state/encoded-size.ts"
 import { makeResidentResources } from "./composition/resources.ts"
 import { makeResidentWorkflows } from "./composition/workflows.ts"
 import { makeResidentLifecycle } from "./endpoint-lifecycle/lifecycle.ts"
+import { dispatchExecutionBoundary } from "./state/resolver-custody/resident-provider-permit.mjs"
 
 export class ResidentRuntimeService extends Context.Service<ResidentRuntimeService, ResidentRuntimeOperations>()(
   "@hapsland/ResidentRuntime"
@@ -110,7 +111,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       operation: job.kind === "ingress" ? job.canonicalObservationId : job.canonicalOperationId,
       round: job.canonicalRound
     }),
-    (entry) => residentRun(entry.value, entry.sequence)
+    (entry) => residentRun(entry.value, entry.sequence),
+    dispatchExecutionBoundary
   ).pipe(Effect.provideService(Scope.Scope, residentDispatchScope))
   const operations = Object.freeze(
     ResidentRuntimeService.of({
@@ -145,7 +147,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     listen,
     close
   })
-  yield* Effect.addFinalizer(() => close.pipe(Effect.orDie))
+  yield* resources.residentOwnLifecycleScopes(close)
   return runtime
 })
 

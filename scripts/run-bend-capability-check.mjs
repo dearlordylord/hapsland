@@ -70,6 +70,7 @@ const suites = {
     "packages/agent-flow-bend/preparation-lifecycle/canonical-owner-check.mjs"
   ],
   "preparation-consumer": () => [
+    "packages/resident-runtime/src/resident/endpoint-lifecycle/verification/cleanup.test.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-consumer.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-preparation-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owned-root-check.mjs",
