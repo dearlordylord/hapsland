@@ -12,7 +12,7 @@ import {
 } from "../packages/administration/src/interaction/flow-registry.ts"
 
 const root = resolve(import.meta.dirname, "..")
-const ast = (source) => parse(source, { sourceType: "module", plugins: ["typescript"] })
+const ast = (source) => parse(source, { sourceType: "module", plugins: ["typescript"], attachComment: false })
 const walk = (node, visit, parent) => {
   if (!node || typeof node !== "object") return
   if (Array.isArray(node)) {
@@ -90,13 +90,18 @@ export function checkUiFlows(
   const observedJourneys = new Set()
   const observedCompositions = new Set()
   const trees = new Map()
+  const requiredTrees = new Set([
+    ...owners.keys(),
+    ...Object.values(registry.directUiExceptions).map((definition) => definition.owner),
+    ...Object.values(registry.uiJourneys ?? {}).map((journey) => journey.owner)
+  ])
   const files = readdirSync(resolve(candidateRoot, "packages"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .flatMap((entry) => sourceFiles(resolve(candidateRoot, "packages", entry.name, "src")))
   for (const file of files) {
     const path = relative(candidateRoot, file)
     const tree = ast(readFileSync(file, "utf8"))
-    trees.set(path, tree)
+    if (requiredTrees.has(path)) trees.set(path, tree)
     const parents = new WeakMap()
     const owner = owners.get(path)
     let registered = false

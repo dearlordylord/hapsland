@@ -51,6 +51,8 @@ import ./AttachmentReplacementStructureProof.bend as ReplacementStructure
 import ./AttachmentNodeReplacementTransport.bend as NodeReplacement
 import ./ForestRollbackProof.bend as Rollback
 import ../Attach.bend as Attach
+import ../AttachPlanning.bend as Admission
+import ../Resolve.bend as Resolve
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
 import ../ExpansionDriverState.bend as D
@@ -7413,6 +7415,364 @@ def ready_rollback_valid_witness(+root: Nat, +nodes: List<&2, Local.PlannedNode>
       +semantic: {F.replace(F.Forest{Some{birth}, retained}, address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{F.Forest{Some{birth}, values}} : F.Replacement} = semantic
       Tuple{changed, Tuple{values, Tuple{replaced, Tuple{
         ready_rollback_observed(root, nodes, changed, catalog, addresses, F.Forest{Some{birth}, retained}, F.Forest{Some{birth}, values}, episode, address, index, symbol, name, projected, before, semantic), semantic}}}}
+
+def ready_replaced_view(view: V.Frame, forest: F.Forest) -> V.Frame:
+  match view:
+    case V.Frame{branch, limits, graph, command, deps, _, pending, targets, ids, captured, identities, visited, budget, node, edge, target, artifact, catalog, remaining, episode}:
+      V.Frame{branch, limits, graph, command, deps, forest, pending, targets, ids, captured, identities, visited, budget, node, edge, target, artifact, catalog, remaining, episode}
+
+def ready_rollback_frame_rows(+forest: Maybe<&2, F.Forest>,
+    +pending: Maybe<&2, List<&2, V.PendingEntry>>, +targets: Maybe<&2, List<&2, V.TargetEntry>>,
+    +ids: Maybe<&2, List<&2, V.TargetId>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +identities: Maybe<&2, List<&2, V.TargetArtifact>>, +visited: Maybe<&2, List<&2, String>>,
+    +actual: T.ResolverFrame, +remaining: Nat, +episode: Nat, +view: V.Frame,
+    +changed: F.Forest, +slots: List<&2, Local.ReferenceSlot>,
+    ready: {ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, actual, remaining, episode) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ActualFrame.frame_view(Some{changed}, pending, targets, ids, captured, identities, visited, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}:
+  match forest pending targets ids captured identities visited actual:
+    case Some{+old} Some{+pending_value} Some{+targets_value} Some{+ids_value} Some{+captured_value} Some{+identities_value} Some{+visited_value}
+      T.ResolverFrame{branch, limits, graph, command, deps, _, _, _, _, budget, node, edge, target, artifact, _, _, _, _, _, artifacts}:
+      %Count.some_equal(V.Frame, V.Frame{branch, limits, graph, command, deps, old, pending_value, targets_value, ids_value, captured_value, identities_value, visited_value, V.actual_budget(budget), node, edge, target, artifact, artifacts, remaining, episode}, view, ready):
+        {ActualFrame.frame_view(Some{changed}, Some{pending_value}, Some{targets_value}, Some{ids_value}, Some{captured_value}, Some{identities_value}, Some{visited_value}, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(_, changed)} : Maybe<&2, V.Frame>}
+      {==}
+    case None{} _ _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{changed}, pending, targets, ids, captured, identities, visited, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} None{} _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{changed}, pending, targets, ids, captured, identities, visited, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} None{} _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{changed}, pending, targets, ids, captured, identities, visited, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} None{} _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{changed}, pending, targets, ids, captured, identities, visited, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} None{} _ _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{changed}, pending, targets, ids, captured, identities, visited, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} None{} _ _:
+      Empty.absurd({ActualFrame.frame_view(Some{changed}, pending, targets, ids, captured, identities, visited, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd({ActualFrame.frame_view(Some{changed}, pending, targets, ids, captured, identities, visited, S.with_frame_references(actual, slots), remaining, episode) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_rollback_projected_frame(+actual: T.ResolverFrame, +history: V.History,
+    +view: V.Frame, +changed: F.Forest, +slots: List<&2, Local.ReferenceSlot>,
+    ready: {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    observed: {ActualFrame.forest_valid(P.project(S.frame_root(actual), S.frame_nodes(actual), slots, S.frame_artifacts(actual), ready_history_addresses(history)), ready_history_episode(history)) == Some{changed} : Maybe<&2, F.Forest>}) ->
+    {ActualFrame.projected(S.with_frame_references(actual, slots), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}:
+  match actual history:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      V.History{+addresses, V.Order{+pending_order, +target_order, +id_order, +capture_order, +identity_order, +visited_order}, +sources, +captures, _, +remaining, +episode}:
+      Equal.trans(Maybe<&2, V.Frame>, ActualFrame.projected(S.with_frame_references(actual, slots), history), ActualFrame.frame_view(Some{changed}, ActualFrame.pending(pending_order, S.frame_pending(actual), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(actual), addresses), ActualFrame.ids(id_order, S.frame_target_ids(actual)), ActualFrame.captured(capture_order, S.frame_captured(actual), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(actual)), ActualFrame.visited(visited_order, S.frame_visited(actual)), S.with_frame_references(actual, slots), remaining, episode), Some{ready_replaced_view(view, changed)},
+        Equal.cong(Maybe<&2, F.Forest>, Maybe<&2, V.Frame>, forest => ActualFrame.frame_view(forest, ActualFrame.pending(pending_order, S.frame_pending(actual), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(actual), addresses), ActualFrame.ids(id_order, S.frame_target_ids(actual)), ActualFrame.captured(capture_order, S.frame_captured(actual), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(actual)), ActualFrame.visited(visited_order, S.frame_visited(actual)), S.with_frame_references(actual, slots), remaining, episode), ActualFrame.forest_valid(P.project(S.frame_root(actual), S.frame_nodes(actual), slots, S.frame_artifacts(actual), addresses), episode), Some{changed}, observed),
+        ready_rollback_frame_rows(ActualFrame.forest_valid(P.project(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses), episode), ActualFrame.pending(pending_order, S.frame_pending(actual), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(actual), addresses), ActualFrame.ids(id_order, S.frame_target_ids(actual)), ActualFrame.captured(capture_order, S.frame_captured(actual), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(actual)), ActualFrame.visited(visited_order, S.frame_visited(actual)), actual, remaining, episode, view, changed, slots, ready))
+
+def ready_rollback_frame_complete(+actual: T.ResolverFrame, +history: V.History,
+    +view: V.Frame, +changed: F.Forest, +slots: List<&2, Local.ReferenceSlot>,
+    ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    observed: {ActualFrame.forest_valid(P.project(S.frame_root(actual), S.frame_nodes(actual), slots, S.frame_artifacts(actual), ready_history_addresses(history)), ready_history_episode(history)) == Some{changed} : Maybe<&2, F.Forest>}) ->
+    {ActualFrame.project(S.with_frame_references(actual, slots), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}:
+  match actual history:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}:
+      Parent.eliminate_pair({frame_checks(actual, history) == True{} : Bool},
+        {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+        {ActualFrame.project(S.with_frame_references(actual, slots), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>},
+        actual_frame_contents(actual, history, view, ready), checks => projected =>
+          Equal.trans(Maybe<&2, V.Frame>, ActualFrame.project(S.with_frame_references(actual, slots), history), ActualFrame.projected(S.with_frame_references(actual, slots), history), Some{ready_replaced_view(view, changed)},
+            Equal.cong(Bool, Maybe<&2, V.Frame>, valid => ActualFrame.validated(valid, S.with_frame_references(actual, slots), history), frame_checks(actual, history), True{}, checks),
+            ready_rollback_projected_frame(actual, history, view, changed, slots, projected, observed)))
+
+def ready_graph_view(view: V.Frame, step: G.Step, remaining: Nat) -> V.Frame:
+  match view step:
+    case V.Frame{branch, limits, _, _, deps, forest, pending, targets, ids, captured, identities, visited, budget, node, edge, target, artifact, catalog, _, episode} G.Step{graph, command}:
+      V.Frame{branch, limits, graph, command, deps, forest, pending, targets, ids, captured, identities, visited, budget, node, edge, target, artifact, catalog, remaining, episode}
+
+def ready_graph_frame_rows(+forest: Maybe<&2, F.Forest>,
+    +pending: Maybe<&2, List<&2, V.PendingEntry>>, +targets: Maybe<&2, List<&2, V.TargetEntry>>,
+    +ids: Maybe<&2, List<&2, V.TargetId>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +identities: Maybe<&2, List<&2, V.TargetArtifact>>, +visited: Maybe<&2, List<&2, String>>,
+    +actual: T.ResolverFrame, +remaining: Nat, +episode: Nat, +view: V.Frame,
+    +step: G.Step, +after: Nat,
+    ready: {ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, actual, remaining, episode) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}:
+  match forest pending targets ids captured identities visited actual step:
+    case Some{+old} Some{+pending_value} Some{+targets_value} Some{+ids_value} Some{+captured_value} Some{+identities_value} Some{+visited_value}
+      T.ResolverFrame{branch, limits, graph, command, deps, _, _, _, _, budget, node, edge, target, artifact, _, _, _, _, _, artifacts} G.Step{_, _}:
+      %Count.some_equal(V.Frame, V.Frame{branch, limits, graph, command, deps, old, pending_value, targets_value, ids_value, captured_value, identities_value, visited_value, V.actual_budget(budget), node, edge, target, artifact, artifacts, remaining, episode}, view, ready):
+        {ActualFrame.frame_view(Some{old}, Some{pending_value}, Some{targets_value}, Some{ids_value}, Some{captured_value}, Some{identities_value}, Some{visited_value}, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(_, step, after)} : Maybe<&2, V.Frame>}
+      {==}
+    case None{} _ _ _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} None{} _ _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} None{} _ _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} None{} _ _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} None{} _ _ _ _:
+      Empty.absurd({ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} None{} _ _ _:
+      Empty.absurd({ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} Some{_} None{} _ _:
+      Empty.absurd({ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, PreparedRoot.frame_transition(actual, step), after, episode) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+
+
+def ready_graph_projected_frame(+actual: T.ResolverFrame, +history: V.History,
+    +view: V.Frame, +step: G.Step, +after: Nat,
+    ready: {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ActualFrame.projected(PreparedRoot.frame_transition(actual, step), History.allowance(history, after)) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}:
+  match actual history step:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      V.History{+addresses, V.Order{+pending_order, +target_order, +id_order, +capture_order, +identity_order, +visited_order}, +sources, +captures, _, +remaining, +episode} G.Step{_, _}:
+      ready_graph_frame_rows(ActualFrame.forest_valid(P.project(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses), episode), ActualFrame.pending(pending_order, S.frame_pending(actual), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(actual), addresses), ActualFrame.ids(id_order, S.frame_target_ids(actual)), ActualFrame.captured(capture_order, S.frame_captured(actual), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(actual)), ActualFrame.visited(visited_order, S.frame_visited(actual)), actual, remaining, episode, view, step, after, ready)
+
+def ready_graph_frame_complete(+actual: T.ResolverFrame, +history: V.History,
+    +view: V.Frame, +step: G.Step, +after: Nat,
+    ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ActualFrame.project(PreparedRoot.frame_transition(actual, step), History.allowance(history, after)) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}:
+  match actual history step:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _} G.Step{_, _}:
+      Parent.eliminate_pair({frame_checks(actual, history) == True{} : Bool},
+        {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+        {ActualFrame.project(PreparedRoot.frame_transition(actual, step), History.allowance(history, after)) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>},
+        actual_frame_contents(actual, history, view, ready), checks => projected =>
+          Equal.trans(Maybe<&2, V.Frame>, ActualFrame.project(PreparedRoot.frame_transition(actual, step), History.allowance(history, after)), ActualFrame.projected(PreparedRoot.frame_transition(actual, step), History.allowance(history, after)), Some{ready_graph_view(view, step, after)},
+            Equal.cong(Bool, Maybe<&2, V.Frame>, valid => ActualFrame.validated(valid, PreparedRoot.frame_transition(actual, step), History.allowance(history, after)), frame_checks(actual, history), True{}, checks),
+            ready_graph_projected_frame(actual, history, view, step, after, projected)))
+
+def ready_rollback_full_result(+actual: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    +forest: F.Forest, +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress) -> Type:
+  Exists(List<&2, Local.ReferenceSlot>, slots => Exists(F.Forest, changed =>
+    {Compose.replacement(Compose.replace_slot(S.frame_references(actual), owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {ActualFrame.project(S.with_frame_references(actual, slots), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>} &
+    {F.replace(forest, address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{changed} : F.Replacement}))
+
+def ready_rollback_full_witness(+actual: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    +birth: O.NodeAddress, +retained: List<&2, F.Node>, +owner: Nat, +index: Nat,
+    +name: String, +symbol: String, +address: O.NodeAddress,
+    +ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    +before: {Relation.frame_forest(F.Forest{Some{birth}, retained}, ready_history_episode(history)) == True{} : Bool},
+    evidence: ready_rollback_result(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), ready_history_addresses(history), birth, retained, owner, index, symbol, name, address)) ->
+    ready_rollback_full_result(actual, history, view, F.Forest{Some{birth}, retained}, owner, index, name, symbol, address):
+  match evidence:
+    case (+slots, (+values, (replaced, (projected, semantic)))):
+      +semantic: {F.replace(F.Forest{Some{birth}, retained}, address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{F.Forest{Some{birth}, values}} : F.Replacement} = semantic
+      Tuple{slots, Tuple{F.Forest{Some{birth}, values}, Tuple{replaced, Tuple{
+        ready_rollback_frame_complete(actual, history, view, F.Forest{Some{birth}, values}, slots, ready,
+          ready_rollback_observed(S.frame_root(actual), S.frame_nodes(actual), slots, S.frame_artifacts(actual), ready_history_addresses(history), F.Forest{Some{birth}, retained}, F.Forest{Some{birth}, values}, ready_history_episode(history), address, index, symbol, name, projected, before, semantic)), semantic}}}}
+
+def ready_rollback_root_type(value: Maybe<&2, F.Forest>) -> Type:
+  match value:
+    case Some{F.Forest{None{}, _}}: Empty
+    case _: Unit
+
+def ready_rollback_root_missing(+root: Maybe<&2, O.NodeAddress>, +items: Maybe<&2, List<&2, F.Node>>, +retained: List<&2, F.Node>,
+    impossible: {P.forest(root, items) == Some{F.Forest{None{}, retained}} : Maybe<&2, F.Forest>}) -> Empty:
+  match root items:
+    case Some{birth} Some{values}: %impossible: ready_rollback_root_type(_)
+      Unit{}
+    case None{} _: Contents.none_some(F.Forest, F.Forest{None{}, retained}, impossible)
+    case Some{_} None{}: Contents.none_some(F.Forest, F.Forest{None{}, retained}, impossible)
+
+def ready_rollback_frame_total(+actual: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress,
+    +ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    selected: {ActualReady.slot_count(S.frame_references(actual), owner, index, symbol) == 1n : Nat},
+    present: {F.address_at(ready_history_addresses(history), owner) == Some{address} : Maybe<&2, O.NodeAddress>}) ->
+    ready_rollback_full_result(actual, history, view, ready_staged_forest(view), owner, index, name, symbol, address):
+  match history view:
+    case V.History{+addresses, +order, _, _, _, _, +episode}
+      V.Frame{_, _, _, _, _, F.Forest{Some{+birth}, +retained}, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
+      +projected: {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>} = Pair.snd({frame_checks(actual, history) == True{} : Bool}, {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(actual, history, view, ready))
+      checks = Pair.fst({frame_checks(actual, history) == True{} : Bool}, {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(actual, history, view, ready))
+      +original: {P.project(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>} = Pair.fst({P.project(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>}, {Relation.frame_forest(F.Forest{Some{birth}, retained}, episode) == True{} : Bool}, projected_frame_semantics(actual, history, view, projected))
+      ready_rollback_full_witness(actual, history, view, birth, retained, owner, index, name, symbol, address, ready,
+        Pair.snd({P.project(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses) == Some{F.Forest{Some{birth}, retained}} : Maybe<&2, F.Forest>}, {Relation.frame_forest(F.Forest{Some{birth}, retained}, episode) == True{} : Bool}, projected_frame_semantics(actual, history, view, projected)),
+        ready_rollback_exact(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses, birth, retained, owner, index, symbol, name, address, original,
+          BoolFacts.eq_true_of_and_left(ActualFrame.dense(S.frame_nodes(actual), 0n), Bool.and(Nat.is_eq(S.frame_next_node(actual), List.length(&2, Local.PlannedNode, S.frame_nodes(actual))), ActualFrame.catalog_valid(S.frame_artifacts(actual))), BoolFacts.eq_true_of_and_right(ActualFrame.coverage(order, actual), Bool.and(ActualFrame.dense(S.frame_nodes(actual), 0n), Bool.and(Nat.is_eq(S.frame_next_node(actual), List.length(&2, Local.PlannedNode, S.frame_nodes(actual))), ActualFrame.catalog_valid(S.frame_artifacts(actual)))), checks)), selected, present))
+    case V.History{+addresses, _, _, _, _, _, +episode}
+      V.Frame{_, _, _, _, _, F.Forest{None{}, +retained}, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
+      projected = Pair.snd({frame_checks(actual, history) == True{} : Bool}, {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(actual, history, view, ready))
+      original = Pair.fst({P.project(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses) == Some{F.Forest{None{}, retained}} : Maybe<&2, F.Forest>}, {Relation.frame_forest(F.Forest{None{}, retained}, episode) == True{} : Bool}, projected_frame_semantics(actual, history, view, projected))
+      Empty.absurd(ready_rollback_full_result(actual, history, view, ready_staged_forest(view), owner, index, name, symbol, address),
+        ready_rollback_root_missing(F.address_at(addresses, S.frame_root(actual)), P.nodes(S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses), retained,
+          Pair.snd({Bool.and(P.aligned(S.frame_nodes(actual), addresses, S.frame_nodes(actual), addresses), Bool.and(P.catalog_unique(S.frame_artifacts(actual), S.frame_artifacts(actual)), Bool.and(P.slots_owned(S.frame_references(actual), S.frame_nodes(actual)), P.forward_nodes(S.frame_nodes(actual), S.frame_references(actual))))) == True{} : Bool},
+            {P.forest(F.address_at(addresses, S.frame_root(actual)), P.nodes(S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses)) == Some{F.Forest{None{}, retained}} : Maybe<&2, F.Forest>},
+            Contents.project_contents(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses, F.Forest{None{}, retained}, original))))
+
+def ready_rollback_after_graph(+actual: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    +step: G.Step, +after: Nat, +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress,
+    ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    selected: {ActualReady.slot_count(S.frame_references(actual), owner, index, symbol) == 1n : Nat},
+    present: {F.address_at(ready_history_addresses(history), owner) == Some{address} : Maybe<&2, O.NodeAddress>}) ->
+    ready_rollback_full_result(PreparedRoot.frame_transition(actual, step), History.allowance(history, after), ready_graph_view(view, step, after), ready_staged_forest(ready_graph_view(view, step, after)), owner, index, name, symbol, address):
+  match actual history step:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      V.History{_, _, _, _, _, _, _} G.Step{_, _}:
+      ready_rollback_frame_total(PreparedRoot.frame_transition(actual, step), History.allowance(history, after), ready_graph_view(view, step, after), owner, index, name, symbol, address,
+        ready_graph_frame_complete(actual, history, view, step, after, ready), selected, present)
+
+def ready_reference_replaced(+state: D.State, forest: F.Forest) -> D.State:
+  match state:
+    case D.State{config, X.Frame{graph, command, _, local, pending, captured, identities, edge, episode, artifact, dependencies, fingerprint}, targets, ids, next, request, stage, frame_history, python}:
+      D.State{config, X.Frame{graph, command, forest, local, pending, captured, identities, edge, episode, artifact, dependencies, fingerprint}, targets, ids, next, request, stage, frame_history, python}
+
+def ready_reference_rollback_rows(+state: D.State, +history: V.History,
+    +targets_value: Maybe<&2, List<&2, V.TargetEntry>>, +captured_value: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited_value: Maybe<&2, List<&2, String>>, +view: V.Frame, +changed: F.Forest,
+    ready: {ReferenceFrame.assembled(state, history, targets_value, captured_value, visited_value) == Some{view} : Maybe<&2, V.Frame>},
+    counted: {ReferenceFrame.node_count(changed) == ReferenceFrame.node_count(ready_reference_forest(D.frame(state))) : Nat}) ->
+    {ReferenceFrame.assembled(ready_reference_replaced(state, changed), history, targets_value, captured_value, visited_value) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}:
+  match state history targets_value captured_value visited_value:
+    case D.State{D.Config{_, _, _, +context, _, _}, X.Frame{G.Bounded{+graph, +remaining}, +command, +forest, Signed.State{Recursive.State{_, +budget, _, _}, +signed}, +edges, _, +artifacts_by_target, +next_edge, +episode, +next_artifact, +dependencies, _}, _, +target_ids, +next_target, _, _, _, _} V.History{_, _, _, _, +artifacts, _, _}
+      Some{+targets} Some{+captures} Some{+seen}:
+      %Count.some_equal(V.Frame, V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, ready):
+        {ReferenceFrame.assembled(ready_reference_replaced(state, changed), history, targets_value, captured_value, visited_value) == Some{ready_replaced_view(_, changed)} : Maybe<&2, V.Frame>}
+      Equal.cong(Nat, Maybe<&2, V.Frame>, count => Some{V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, changed, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), count, next_edge, next_target, next_artifact, artifacts, remaining, episode}}, ReferenceFrame.node_count(changed), ReferenceFrame.node_count(forest), counted)
+    case _ _ None{} _ _:
+      Empty.absurd({ReferenceFrame.assembled(ready_reference_replaced(state, changed), history, targets_value, captured_value, visited_value) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} None{} _:
+      Empty.absurd({ReferenceFrame.assembled(ready_reference_replaced(state, changed), history, targets_value, captured_value, visited_value) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} Some{_} None{}:
+      Empty.absurd({ReferenceFrame.assembled(ready_reference_replaced(state, changed), history, targets_value, captured_value, visited_value) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_reference_rollback_project(+state: D.State, +history: V.History, +view: V.Frame, +changed: F.Forest,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>},
+    counted: {ReferenceFrame.node_count(changed) == ReferenceFrame.node_count(ready_reference_forest(D.frame(state))) : Nat}) ->
+    {ReferenceFrame.project(ready_reference_replaced(state, changed), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +target_values, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
+      ready_reference_rollback_rows(state, history, ReferenceFrame.targets(target_values), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, changed, ready, counted)
+
+# The reference node count is derived from the same actual nodes on both sides
+# of replacement; it is not an extra frame-correspondence premise.
+def ready_rollback_node_count(+root: Nat, +nodes: List<&2, Local.PlannedNode>,
+    +before: List<&2, Local.ReferenceSlot>, +after: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +addresses: List<&2, F.AddressEntry>,
+    +forest: F.Forest, +changed: F.Forest,
+    original: {P.project(root, nodes, before, catalog, addresses) == Some{forest} : Maybe<&2, F.Forest>},
+    updated: {P.project(root, nodes, after, catalog, addresses) == Some{changed} : Maybe<&2, F.Forest>}) ->
+    {ReferenceFrame.node_count(changed) == ReferenceFrame.node_count(forest) : Nat}:
+  Equal.trans(Nat, ReferenceFrame.node_count(changed), List.length(&2, Local.PlannedNode, nodes), ReferenceFrame.node_count(forest),
+    Equal.sym(Nat, List.length(&2, Local.PlannedNode, nodes), ReferenceFrame.node_count(changed), ready_projected_node_count(root, nodes, after, catalog, addresses, changed, updated)),
+    ready_projected_node_count(root, nodes, before, catalog, addresses, forest, original))
+
+def ready_reference_forest_rows(+state: D.State, +history: V.History,
+    +targets_value: Maybe<&2, List<&2, V.TargetEntry>>, +captured_value: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited_value: Maybe<&2, List<&2, String>>, +view: V.Frame,
+    ready: {ReferenceFrame.assembled(state, history, targets_value, captured_value, visited_value) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ready_reference_forest(D.frame(state)) == ready_staged_forest(view) : F.Forest}:
+  match state history targets_value captured_value visited_value:
+    case D.State{D.Config{_, _, _, +context, _, _}, X.Frame{G.Bounded{+graph, +remaining}, +command, +forest, Signed.State{Recursive.State{_, +budget, _, _}, +signed}, +edges, _, +artifacts_by_target, +next_edge, +episode, +next_artifact, +dependencies, _}, _, +target_ids, +next_target, _, _, _, _} V.History{_, _, _, _, +artifacts, _, _}
+      Some{+targets} Some{+captures} Some{+seen}:
+      Equal.cong(V.Frame, F.Forest, value => ready_staged_forest(value), V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, Count.some_equal(V.Frame, V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, ready))
+    case _ _ None{} _ _:
+      Empty.absurd({ready_reference_forest(D.frame(state)) == ready_staged_forest(view) : F.Forest}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} None{} _:
+      Empty.absurd({ready_reference_forest(D.frame(state)) == ready_staged_forest(view) : F.Forest}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} Some{_} None{}:
+      Empty.absurd({ready_reference_forest(D.frame(state)) == ready_staged_forest(view) : F.Forest}, Contents.none_some(V.Frame, view, ready))
+
+def ready_reference_forest_project(+state: D.State, +history: V.History, +view: V.Frame,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ready_reference_forest(D.frame(state)) == ready_staged_forest(view) : F.Forest}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +target_values, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
+      ready_reference_forest_rows(state, history, ReferenceFrame.targets(target_values), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, ready)
+
+def ready_full_projection_forest(+actual: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {P.project(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), ready_history_addresses(history)) == Some{ready_staged_forest(view)} : Maybe<&2, F.Forest>}:
+  match history view:
+    case V.History{+addresses, _, _, _, _, _, +episode} V.Frame{_, _, _, _, _, +forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
+      Pair.fst({P.project(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), S.frame_artifacts(actual), addresses) == Some{forest} : Maybe<&2, F.Forest>},
+        {Relation.frame_forest(forest, episode) == True{} : Bool},
+        projected_frame_semantics(actual, history, view,
+          Pair.snd({frame_checks(actual, history) == True{} : Bool}, {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(actual, history, view, ready))))
+
+def ready_rollback_both_result(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress) -> Type:
+  Exists(List<&2, Local.ReferenceSlot>, slots => Exists(F.Forest, changed =>
+    {Compose.replacement(Compose.replace_slot(S.frame_references(actual), owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {ActualFrame.project(S.with_frame_references(actual, slots), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>} &
+    {ReferenceFrame.project(ready_reference_replaced(reference, changed), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>} &
+    {F.replace(ready_staged_forest(view), address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{changed} : F.Replacement}))
+
+def ready_rollback_both_witness(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress,
+    +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    evidence: ready_rollback_full_result(actual, history, view, ready_staged_forest(view), owner, index, name, symbol, address)) ->
+    ready_rollback_both_result(actual, reference, history, view, owner, index, name, symbol, address):
+  match actual view evidence:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      (+slots, (+changed, (replaced, (projected, semantic)))):
+      +projected: {ActualFrame.project(S.with_frame_references(actual, slots), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>} = projected
+      Tuple{slots, Tuple{changed, Tuple{replaced, Tuple{projected, Tuple{
+        ready_reference_rollback_project(reference, history, view, changed, reference_ready,
+          Equal.trans(Nat, ReferenceFrame.node_count(changed), ReferenceFrame.node_count(ready_staged_forest(view)), ReferenceFrame.node_count(ready_reference_forest(D.frame(reference))),
+            ready_rollback_node_count(S.frame_root(actual), S.frame_nodes(actual), S.frame_references(actual), slots, S.frame_artifacts(actual), ready_history_addresses(history), ready_staged_forest(view), changed,
+              ready_full_projection_forest(actual, history, view, actual_ready),
+              ready_full_projection_forest(S.with_frame_references(actual, slots), history, ready_replaced_view(view, changed), projected)),
+            Equal.cong(F.Forest, Nat, forest => ReferenceFrame.node_count(forest), ready_staged_forest(view), ready_reference_forest(D.frame(reference)),
+              Equal.sym(F.Forest, ready_reference_forest(D.frame(reference)), ready_staged_forest(view), ready_reference_forest_project(reference, history, view, reference_ready))))), semantic}}}}}
+
+def ready_rollback_both_total(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress,
+    +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    selected: {ActualReady.slot_count(S.frame_references(actual), owner, index, symbol) == 1n : Nat},
+    present: {F.address_at(ready_history_addresses(history), owner) == Some{address} : Maybe<&2, O.NodeAddress>}) ->
+    ready_rollback_both_result(actual, reference, history, view, owner, index, name, symbol, address):
+  ready_rollback_both_witness(actual, reference, history, view, owner, index, name, symbol, address, actual_ready, reference_ready,
+    ready_rollback_frame_total(actual, history, view, owner, index, name, symbol, address, actual_ready, selected, present))
+
+def ready_reference_rollback_applied(+state: D.State, +history: V.History, +view: V.Frame,
+    +owner: O.NodeAddress, +index: Nat, +symbol: String, +name: String, +changed: F.Forest,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>},
+    semantic: {F.replace(ready_staged_forest(view), owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}) == F.Replaced{changed} : F.Replacement}) ->
+    {X.rolled_back(D.frame(state), F.replace(ready_reference_forest(D.frame(state)), owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}})) == X.TransactionFinished{D.frame(ready_reference_replaced(state, changed))} : X.Transaction}:
+  match state:
+    case D.State{_, X.Frame{_, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}:
+      Equal.cong(F.Replacement, X.Transaction, replacement => X.rolled_back(D.frame(state), replacement),
+        F.replace(ready_reference_forest(D.frame(state)), owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}), F.Replaced{changed},
+        Equal.trans(F.Replacement, F.replace(ready_reference_forest(D.frame(state)), owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}), F.replace(ready_staged_forest(view), owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}), F.Replaced{changed},
+          Equal.cong(F.Forest, F.Replacement, forest => F.replace(forest, owner, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}}), ready_reference_forest(D.frame(state)), ready_staged_forest(view), ready_reference_forest_project(state, history, view, ready)), semantic))
+
+def ready_rollback_transaction_result(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress) -> Type:
+  Exists(List<&2, Local.ReferenceSlot>, slots => Exists(F.Forest, changed =>
+    {Compose.replacement(Compose.replace_slot(S.frame_references(actual), owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>} &
+    {ActualFrame.project(S.with_frame_references(actual, slots), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>} &
+    {ReferenceFrame.project(ready_reference_replaced(reference, changed), history) == Some{ready_replaced_view(view, changed)} : Maybe<&2, V.Frame>} &
+    {X.rolled_back(D.frame(reference), F.replace(ready_reference_forest(D.frame(reference)), address, index, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{name}, Local.ReferenceLimit{}})) == X.TransactionFinished{D.frame(ready_reference_replaced(reference, changed))} : X.Transaction}))
+
+def ready_rollback_transaction_witness(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress,
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    evidence: ready_rollback_both_result(actual, reference, history, view, owner, index, name, symbol, address)) ->
+    ready_rollback_transaction_result(actual, reference, history, view, owner, index, name, symbol, address):
+  match evidence:
+    case (+slots, (+changed, (replaced, (actual_projected, (reference_projected, semantic))))):
+      Tuple{slots, Tuple{changed, Tuple{replaced, Tuple{actual_projected, Tuple{reference_projected,
+        ready_reference_rollback_applied(reference, history, view, address, index, symbol, name, changed, reference_ready, semantic)}}}}}
+
+def ready_rollback_transaction_total(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress,
+    actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    selected: {ActualReady.slot_count(S.frame_references(actual), owner, index, symbol) == 1n : Nat},
+    present: {F.address_at(ready_history_addresses(history), owner) == Some{address} : Maybe<&2, O.NodeAddress>}) ->
+    ready_rollback_transaction_result(actual, reference, history, view, owner, index, name, symbol, address):
+  ready_rollback_transaction_witness(actual, reference, history, view, owner, index, name, symbol, address, reference_ready,
+    ready_rollback_both_total(actual, reference, history, view, owner, index, name, symbol, address, actual_ready, reference_ready, selected, present))
+
+def ready_actual_rollback_applied(+state: T.ResolverState, +frame: T.ResolverFrame,
+    +owner: Nat, +index: Nat, +name: String, +slots: List<&2, Local.ReferenceSlot>,
+    replaced: {Compose.replacement(Compose.replace_slot(S.frame_references(frame), owner, index, Local.Omitted{Local.ReferenceLimit{}, name})) == Some{slots} : Maybe<&2, List<&2, Local.ReferenceSlot>>}) ->
+    {Admission.rejected_slots(Compose.replacement(Compose.replace_slot(S.frame_references(frame), owner, index, Local.Omitted{Local.ReferenceLimit{}, name})), frame, state) == Resolve.progressed(False{}, state, S.with_frame_references(frame, slots)) : Loop.Continuation}:
+  Equal.cong(Maybe<&2, List<&2, Local.ReferenceSlot>>, Loop.Continuation, result => Admission.rejected_slots(result, frame, state),
+    Compose.replacement(Compose.replace_slot(S.frame_references(frame), owner, index, Local.Omitted{Local.ReferenceLimit{}, name})), Some{slots}, replaced)
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
