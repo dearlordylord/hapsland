@@ -168,7 +168,44 @@ try {
   )
   assert.equal(success.commands.filter((command) => command.$ === "OwnerBarrier").length, 1)
   assert.equal(success.commands.filter((command) => command.$ === "JoinedBarrier").length, 1)
+  assert.equal(
+    success.commands.some((command) => command.$ === "ReportDeliverabilityNotice"),
+    false
+  )
   cases++
+  for (const refused of [[1n], [1n, 3n]]) {
+    const result = run({
+      outcomes: outcomes.map((outcome) => ({ ...outcome, fits: !refused.includes(outcome.handle) }))
+    })
+    assert.equal(result.step.$, "Finished")
+    assert.equal(
+      result.commands.filter((command) => command.$ === "ReportDeliverabilityCapacity").length,
+      refused.length
+    )
+    assert.equal(result.commands.filter((command) => command.$ === "ReportDeliverabilityNotice").length, 1)
+    assert.ok(
+      result.commands.findIndex((command) => command.$ === "ReportDeliverabilityNotice") >
+        result.commands.findIndex((command) => command.$ === "CompletePreparation")
+    )
+    assert.deepEqual(
+      result.commands.filter((command) => command.$ === "LookupReuse").map((command) => command.outcome.handle),
+      outcomes.filter((outcome) => !refused.includes(outcome.handle)).map((outcome) => outcome.handle)
+    )
+    cases++
+    for (const kind of ["failAt", "cancelAt", "defectAt"]) {
+      const failed = run({
+        outcomes: outcomes.map((outcome) => ({ ...outcome, fits: !refused.includes(outcome.handle) })),
+        [kind]: result.commands.findIndex((command) => command.$ === "ReportDeliverabilityNotice") + 1
+      })
+      assert.equal(failed.step.$, "Stopped")
+      assert.equal(failed.cleanup.length, 1)
+      assert.deepEqual(
+        array(failed.cleanup[0].remaining).map((slot) => slot.item.key),
+        refused.includes(3n) ? [] : [3n]
+      )
+      cases++
+    }
+  }
   for (const [options, check] of [
     [
       { capacityRefused: true },

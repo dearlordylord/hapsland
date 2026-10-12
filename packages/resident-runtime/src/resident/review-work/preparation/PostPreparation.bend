@@ -2,7 +2,7 @@ import Base
 
 # Whole post-preparation control protocol. Source-bearing values stay behind handles.
 # Every response is a result of an existing semantic owner or an external effect.
-# Canonical-owned prototype composition; no universal proof or production adoption claim.
+# Canonical-owned composition candidate; whole correspondence and acceptance remain open.
 type Outcome is Data:
   Outcome{handle: Nat, ready: Bool, fits: Bool, reservation_bytes: Nat}
 type Route is Data:
@@ -69,6 +69,8 @@ type Command is Data:
   CheckActive{}
   ReleaseWorkspace{}
   Offer{outcome: Outcome, deliverability: Bool}
+  ReportDeliverabilityCapacity{}
+  ReportDeliverabilityNotice{}
   ReportEmptyAnalytics{incomplete: Bool}
   ReportEmptyActivity{incomplete: Bool}
   ObserveReady{ready: List<&2, Outcome>}
@@ -145,6 +147,8 @@ type Phase is Data:
   ReadyObserved{ready: List<&2, Outcome>}
   Deliver{rest: List<&2, Outcome>, accepted: List<&2, Outcome>}
   Delivering{outcome: Outcome, rest: List<&2, Outcome>, accepted: List<&2, Outcome>}
+  DeliverabilityRefused{rest: List<&2, Outcome>, accepted: List<&2, Outcome>}
+  DeliverabilityNoticed{continuation: Phase}
   Routes{rest: List<&2, Outcome>, planned: List<&2, Planned>}
   Routing{outcome: Outcome, rest: List<&2, Outcome>, planned: List<&2, Planned>}
   CachedRead{item: Planned, rest: List<&2, Outcome>, planned: List<&2, Planned>}
@@ -204,7 +208,14 @@ type Termination is Data:
   TechnicalFailure{token: Nat}
   DefectFailure{token: Nat}
 type State is Data:
-  State{invocation: Nat, next: Nat, round_bound: Bool, incomplete: Bool, phase: Phase}
+  State{
+    invocation: Nat,
+    next: Nat,
+    round_bound: Bool,
+    incomplete: Bool,
+    delivery_refused: Bool,
+    phase: Phase
+  }
 type Request is Data:
   Request{invocation: Nat, id: Nat, command: Command}
 type Reply is Data:
@@ -367,6 +378,7 @@ def installed(slots: List<&2, Maybe<&2, Slot>>) -> List<&2, Slot>:
 
 def held_slots(phase: Phase) -> List<&2, Slot>:
   match phase:
+    case DeliverabilityNoticed{continuation}: held_slots(continuation)
     case ReuseNext{_, continuation}: held_slots(continuation)
     case ReuseAwait{_, _, continuation}: held_slots(continuation)
     case ReuseObserved{_, _, slots}: installed(slots)
@@ -398,6 +410,7 @@ def held_plans(phase: Phase) -> List<&2, Planned>:
     case LiveChecked{planned}: planned
     case InactiveWorkspace{planned}: planned
     case ReservedUnits{planned, _}: planned
+    case DeliverabilityNoticed{continuation}: held_plans(continuation)
     case ReuseNext{_, continuation}: held_plans(continuation)
     case ReuseAwait{_, _, continuation}: held_plans(continuation)
     case ReuseObserved{planned, _, _}: planned
@@ -453,11 +466,12 @@ def slot_item(slot: Slot) -> Planned:
 
 def moved(state: State, phase: Phase) -> State:
   match state:
-    case State{invocation, next, bound, incomplete, _}: State{
+    case State{invocation, next, bound, incomplete, refused, _}: State{
       invocation,
       next,
       bound,
       incomplete,
+      refused,
       phase
     }
 
@@ -466,9 +480,9 @@ def inside(state: State, phase: Phase) -> Step:
 
 def await_command(state: State, phase: Phase, command: Command) -> Step:
   match state:
-    case State{+invocation, +next, bound, incomplete, _}:
+    case State{+invocation, +next, bound, incomplete, refused, _}:
       Await{
-        State{invocation, Nat.add(next, 1n), bound, incomplete, phase},
+        State{invocation, Nat.add(next, 1n), bound, incomplete, refused, phase},
         Request{invocation, next, command}
       }
 
@@ -486,7 +500,7 @@ def cleanup(+state: State, +phase: Phase, reason: Termination) -> Step:
 
 def observation_incomplete(state: State) -> Bool:
   match state:
-    case State{_, _, _, incomplete, _}: incomplete
+    case State{_, _, _, incomplete, _, _}: incomplete
 
 def ready_observation(+state: State, ready: List<&2, Outcome>) -> Step:
   match ready:
@@ -496,6 +510,22 @@ def ready_observation(+state: State, ready: List<&2, Outcome>) -> Step:
       ReportEmptyAnalytics{observation_incomplete(state)}
     )
     case +ready: await_command(state, ReadyObserved{ready}, ObserveReady{ready})
+
+def delivery_refused(state: State) -> Bool:
+  match state:
+    case State{_, _, _, _, refused, _}: refused
+
+def mark_delivery_refused(state: State) -> State:
+  match state:
+    case State{invocation, next, bound, incomplete, _, phase}:
+      State{invocation, next, bound, incomplete, True{}, phase}
+
+def refuse_delivery(state: State, rest: List<&2, Outcome>, accepted: List<&2, Outcome>) -> Step:
+  await_command(
+    mark_delivery_refused(state),
+    DeliverabilityRefused{rest, accepted},
+    ReportDeliverabilityCapacity{}
+  )
 
 def admission_next(state: State, rest: List<&2, Outcome>, +ready: List<&2, Outcome>) -> Step:
   match rest:
@@ -637,7 +667,7 @@ def advance_phase(state: State, phase: Phase) -> Step:
 
 def advance(+state: State) -> Step:
   match state:
-    case State{_, _, _, _, phase}: advance_phase(state, phase)
+    case State{_, _, _, _, _, phase}: advance_phase(state, phase)
 
 def initial(
   invocation: Nat,
@@ -646,7 +676,7 @@ def initial(
   incomplete: Bool
 ) -> Step:
   await_command(
-    State{invocation, 0n, round_bound, incomplete, PreparedObserved{outcomes}},
+    State{invocation, 0n, round_bound, incomplete, False{}, PreparedObserved{outcomes}},
     PreparedObserved{outcomes},
     ObservePreparation{}
   )
@@ -701,7 +731,7 @@ def unit_observed(
 
 def round_bound(state: State) -> Bool:
   match state:
-    case State{_, _, bound, _, _}: bound
+    case State{_, _, bound, _, _, _}: bound
 
 def missing_work(
   bound: Bool,
@@ -758,14 +788,27 @@ def assign_slots(
     )
     case _ _: None{}
 
+def report_delivery_notice(state: State, refused: Bool, continuation: Phase) -> Step:
+  match refused:
+    case True{}: await_command(
+      state,
+      DeliverabilityNoticed{continuation},
+      ReportDeliverabilityNotice{}
+    )
+    case False{}: inside(state, continuation)
+
 def reserved_reply(
-  state: State,
+  +state: State,
   +planned: List<&2, Planned>,
   retained: List<&2, Planned>,
   slots: Maybe<&2, List<&2, Maybe<&2, Slot>>>
 ) -> Step:
   match slots:
-    case Some{slots}: inside(state, ReuseNext{planned, ReuseObserved{planned, retained, slots}})
+    case Some{slots}: report_delivery_notice(
+      state,
+      delivery_refused(state),
+      ReuseNext{planned, ReuseObserved{planned, retained, slots}}
+    )
     case None{}: Rejected{}
 
 def absent_join(state: State, +item: Planned, continuation: Phase) -> Step:
@@ -1071,10 +1114,12 @@ def resume_phase(+state: State, +phase: Phase, response: Response) -> Step:
     )
     case EmptyActivity{} Ack{}: await_command(state, ReadyObserved{Nil{}}, ObserveReady{Nil{}})
     case ReadyObserved{ready} Ack{}: inside(state, Deliver{ready, Nil{}})
-    case Delivering{outcome, rest, accepted} Offered{yes}: inside(
-      state,
-      Deliver{rest, accept_outcome(yes, outcome, accepted)}
+    case Delivering{outcome, rest, accepted} Offered{True{}}: inside(
+      state, Deliver{rest, outcome <> accepted}
     )
+    case Delivering{_, rest, accepted} Offered{False{}}: refuse_delivery(state, rest, accepted)
+    case DeliverabilityRefused{rest, accepted} Ack{}: inside(state, Deliver{rest, accepted})
+    case DeliverabilityNoticed{continuation} Ack{}: inside(state, continuation)
     case Routing{outcome, rest, planned} Routed{key, route}: routed(
       state,
       Planned{outcome, key, route},
@@ -1196,7 +1241,7 @@ def correlated(ok: Bool, state: State, phase: Phase, response: Response) -> Step
 
 def resume_state(ok: Bool, +state: State, response: Response) -> Step:
   match state:
-    case State{_, _, _, _, phase}: correlated(ok, state, phase, response)
+    case State{_, _, _, _, _, phase}: correlated(ok, state, phase, response)
 
 def resume(step: Step, reply: Reply) -> Step:
   match step reply:

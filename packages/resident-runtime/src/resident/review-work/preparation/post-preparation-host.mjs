@@ -474,6 +474,20 @@ export function createPostPreparationProvider(
           case "ObservePreparation":
             context.deps.residentInspection.observePreparation(context.job, prepared)
             break
+          case "ReportDeliverabilityCapacity":
+            await run(ledger.runtime.rejectCapacity())
+            await run(context.deps.residentRecordAnalytics(context.job, "capacity-rejected"))
+            break
+          case "ReportDeliverabilityNotice":
+            await run(context.deps.residentRecordOperationalFailure(context.job.observation, "capacity"))
+            recordActivity({
+              statePath: context.job.dispatch.activityPath,
+              root: context.job.observation.root,
+              advicee: context.job.observation.advicee,
+              lifetime: context.deps.lifetime,
+              stage: "unavailable"
+            })
+            break
           case "ReportEmptyAnalytics":
             await run(
               context.deps.residentRecordAnalytics(

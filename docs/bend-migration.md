@@ -1185,8 +1185,25 @@ One current obstacle list, in execution order:
    arguments duplicate recursive tail evaluation, causing exponential work.
    The existing recursive result is now locally shared; no state, selection,
    error or result representation changes. Three Bend source roots pass hard10
-   and addressed fixture lint passes; normal rebuilding, the actual batch/closure
-   scenarios and full affected consumers remain required before qualification.
+   and addressed fixture lint passes. Frozen 47027a19 normal rebuilding passes
+   46/46 tasks (six cached, 117.234s). The original batch/closure scenarios pass
+   through the normal focused runner, retaining their original assertions:
+   33.622s including compilation, 11.318s batch and 1.147s closure. The full
+   server/capacity/runtime selection terminates in 115.8s with 152/153 passing;
+   its sole failure is missing capacity rejection for a two-MiB result, not a
+   timeout. Source 59/6673/34 and resident 73/15702/855 physical consumers pass.
+   The missing native deliverability branch is now restored in Post: each
+   refused offer issues capacity/analytics effects, while one retained refusal
+   fact schedules the operational notice/activity only after CompletePreparation
+   has released workspace and fixed accepted reservations. The machine retains
+   allocated slots/plans across this notice for exact failed-command cleanup.
+   Post source check, strict private ABI, format and addressed three-file lint
+   pass; normal rebuilding and original large-result fixture remain pending.
+   Protocol checks additionally pin per-refusal counts, one post-reservation
+   notice and exclusion of refused offers from reuse lookup. Diagnostic temporary
+   compiled instrumentation is restored and supplies no qualification claim.
+   Logs: /tmp/hapsland-47027a19-{production-owners,source-consumer,
+   resident-consumer}.log and /tmp/hapsland-post-tail-focused.log.
    Glob/UnitEvidence formatting uses typed local bindings for existing lambdas;
    the initial unannotated binding fails source checking and is not a pass.
    Diagnostic logs: /tmp/hapsland-production-server-verbose-selected.log,
@@ -1197,6 +1214,13 @@ One current obstacle list, in execution order:
    exact actual attachment edge/count inversion passes 3.070s under hard10 CPU10.
    Parent/materialization witness and arbitrary-reply joins still leave the
    original transaction open; its original law and premises remain byte-identical.
+   Next original-ready batch retains 127 ordinary proof-owner lines. Exact
+   reference replacement inversion passes 2.399s; measured product passes 6.901s
+   and measured parent passes 9.443s under hard10 CPU10. The full original-ready
+   witness wrapper still times out (10.128s; then 10.035s with 8.993 user/.687
+   system). No wrapper or whole-law pass is claimed. Next: qualify that direct
+   elimination, join the same reference replacement/product/next for claims4/6,
+   then arbitrary replies7/8; no statement/premise/runtime-representation change.
 
 
    The repaired entry now qualifies on 8a905233: normal workspace build passes
@@ -1339,6 +1363,14 @@ One current obstacle list, in execution order:
    execution 18:20:37.422305, build 18:21:54.982554 UTC. These execution pairs
    cover the existing analyzer consumer, not the newly connected whole Source
    production preparation batch. Its discovered Post stall is separate.
+   Follow-up frozen 47027a19: execution starts 18:19:46.591588 UTC,
+   qualified parity 0.7970041572965266; build starts 18:20:36.665267 UTC,
+   qualified but fails parity 1.1611867917949867. Both meet cadence; all 17
+   pairs preserve heads/sources/artifacts and all build launches succeed,
+   23/46 cached. Logs: /tmp/hapsland-47027a19-{execution-pair,build-pair}.log.
+   Next starts due: execution 18:49:46.591588, build 18:50:36.665267 UTC.
+   These execution pairs remain the existing analyzer scope; connected whole
+   preparation measurements and build parity remain required.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

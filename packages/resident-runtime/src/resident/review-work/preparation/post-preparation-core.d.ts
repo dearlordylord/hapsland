@@ -41,6 +41,8 @@ export type Command =
   | Tagged<"CheckActive">
   | Tagged<"ReleaseWorkspace">
   | Tagged<"Offer", { readonly outcome: Outcome; readonly deliverability: boolean }>
+  | Tagged<"ReportDeliverabilityCapacity">
+  | Tagged<"ReportDeliverabilityNotice">
   | Tagged<"ReportEmptyAnalytics", { readonly incomplete: boolean }>
   | Tagged<"ReportEmptyActivity", { readonly incomplete: boolean }>
   | Tagged<"ObserveReady", { readonly ready: List<Outcome> }>
