@@ -969,8 +969,11 @@ One current obstacle list, in execution order:
    Addressed lint selects 56 authored files; documentation links pass.
    Original attachment freshness from existing ready premises is qualified at
    4.270s under the new ten-second bound. No original premises were added.
-   The subsequent actual registration-count join is WIP with a linear callback
-   used twice; full attachment_transaction_exact still needs its original body.
+   The linear callback reuse is resolved by a proof-only finite conjunction over
+   the existing allocation-key list, without new original premises. Actual
+   registration-count induction passes at 3.053s. Its complete original-ready
+   join remains unqualified: timeout 10.034s (6.688s CPU). Full
+   attachment_transaction_exact still needs its original body.
    The proof-file formatter also reports Incomplete declaration header
    (/tmp/hapsland-50777b2c-proof-format.log); neither proof nor format acceptance
    is claimed. Normal compilation initially rejected source drift because the

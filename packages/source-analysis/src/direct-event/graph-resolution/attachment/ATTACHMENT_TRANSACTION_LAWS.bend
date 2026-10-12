@@ -3759,31 +3759,84 @@ def pending_ready_fresh(+order: List<&2, Nat>, +tree: Map<&2, Maybe<&2, Local.Pe
   pending_fresh_selected(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))),
     order, tree, sources, addresses, rows, next, query, {==}, valid, unique, size, before, above, ready)
 
-def pending_set_later_fresh(+tree: Map<&2, Maybe<&2, Local.Pending>>, +next: Nat, +head: Local.Pending, +query: Nat,
+# Proof-only finite conjunction of the exact Map.has facts consumed by registration.
+def pending_fresh_keys(items: List<&2, Local.Pending>, +next: Nat, +tree: Map<&2, Maybe<&2, Local.Pending>>) -> Bool:
+  match items:
+    case []: True{}
+    case _ <> tail:
+      Bool.and(Bool.not(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next)))),
+        pending_fresh_keys(tail, (next + 1n : Nat), tree))
+
+def pending_not_false(value: Bool, ready: {Bool.not(value) == True{} : Bool}) -> {value == False{} : Bool}:
+  match value:
+    case False{}: {==}
+    case True{}: Empty.absurd({True{} == False{} : Bool}, NatFacts.internal_false_ne_true(ready))
+
+def pending_not_true(+value: Bool, absent: {value == False{} : Bool}) -> {Bool.not(value) == True{} : Bool}:
+  Equal.cong(Bool, Bool, Bool.not, value, False{}, absent)
+
+def pending_fresh_keys_ready(+items: List<&2, Local.Pending>, +start: Nat, +base: Nat,
+    +order: List<&2, Nat>, +tree: Map<&2, Maybe<&2, Local.Pending>>, +sources: List<&2, V.EdgeSource>,
+    +addresses: List<&2, F.AddressEntry>, +rows: List<&2, V.PendingEntry>,
+    +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
+    +unique: {ActualFrame.nats_unique(order, order) == True{} : Bool},
+    +size: {Nat.is_eq(List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))) == True{} : Bool},
+    +before: {ActualReady.pending_ids_before(order, base) == True{} : Bool},
+    +above: {Nat.is_le(base, start) == True{} : Bool},
+    +ready: {ActualFrame.pending(order, tree, sources, addresses) == Some{rows} : Maybe<&2, List<&2, V.PendingEntry>>}) ->
+    {pending_fresh_keys(items, start, tree) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      BoolFacts.and_eq_true(Bool.not(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(start)))),
+        pending_fresh_keys(tail, (start + 1n : Nat), tree),
+        pending_not_true(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(start))),
+          pending_ready_fresh(order, tree, sources, addresses, rows, base, start, valid, unique, size, before, above, ready)),
+        pending_fresh_keys_ready(tail, (start + 1n : Nat), base, order, tree, sources, addresses, rows, valid, unique, size, before,
+          NatFacts.le_trans(base, start, (start + 1n : Nat), above, NatFacts.le_of_lt(start, (start + 1n : Nat), ready_next_greater(start))), ready))
+
+def pending_set_key_later(+tree: Map<&2, Maybe<&2, Local.Pending>>, +prior: Nat, +head: Local.Pending, +query: Nat,
     valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
-    above: {Nat.is_le((next + 1n : Nat), query) == True{} : Bool},
-    fresh: @id: Nat -> {Nat.is_le(next, id) == True{} : Bool} ->
-      {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(id))) == False{} : Bool}) ->
+    below: {Nat.is_lt(prior, query) == True{} : Bool},
+    fresh: {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))) == False{} : Bool}) ->
     {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>,
-      Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}), Nat.show(query))) == False{} : Bool}:
-  +later: {Nat.is_lt(next, query) == True{} : Bool} = Arithmetic.lt_of_lt_of_le(next, (next + 1n : Nat), query, ready_next_greater(next), above)
+      Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(prior), Some{head}), Nat.show(query))) == False{} : Bool}:
   Equal.trans(Bool, Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>,
-      Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}), Nat.show(query))),
-    Bool.or(String.eq(Nat.show(query), Nat.show(next)), Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query)))), False{},
-    Membership.set_has_membership(Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}, Nat.show(query), valid),
+      Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(prior), Some{head}), Nat.show(query))),
+    Bool.or(String.eq(Nat.show(query), Nat.show(prior)), Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query)))), False{},
+    Membership.set_has_membership(Maybe<&2, Local.Pending>, tree, Nat.show(prior), Some{head}, Nat.show(query), valid),
     Equal.trans(Bool,
-      Bool.or(String.eq(Nat.show(query), Nat.show(next)), Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query)))),
+      Bool.or(String.eq(Nat.show(query), Nat.show(prior)), Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query)))),
       Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query))), False{},
       Equal.cong(Bool, Bool, same => Bool.or(same, Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(query)))),
-        String.eq(Nat.show(query), Nat.show(next)), False{},
-        Equal.trans(Bool, String.eq(Nat.show(query), Nat.show(next)), Nat.is_eq(query, next), False{},
-          NaturalKeys.natural_key_equality(query, next), ready_before_reverse_distinct(next, query, later))),
-      fresh(query, NatFacts.le_of_lt(next, query, later))))
+        String.eq(Nat.show(query), Nat.show(prior)), False{},
+        Equal.trans(Bool, String.eq(Nat.show(query), Nat.show(prior)), Nat.is_eq(query, prior), False{},
+          NaturalKeys.natural_key_equality(query, prior), ready_before_reverse_distinct(prior, query, below))), fresh))
+
+def pending_fresh_keys_after_set(+items: List<&2, Local.Pending>, +start: Nat, +tree: Map<&2, Maybe<&2, Local.Pending>>,
+    +prior: Nat, +head: Local.Pending, +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
+    +below: {Nat.is_lt(prior, start) == True{} : Bool}, +fresh: {pending_fresh_keys(items, start, tree) == True{} : Bool}) ->
+    {pending_fresh_keys(items, start, Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(prior), Some{head})) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      BoolFacts.and_eq_true(Bool.not(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>,
+          Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(prior), Some{head}), Nat.show(start)))),
+        pending_fresh_keys(tail, (start + 1n : Nat), Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(prior), Some{head})),
+        pending_not_true(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>,
+          Map.set(&2, Maybe<&2, Local.Pending>, tree, Nat.show(prior), Some{head}), Nat.show(start))),
+          pending_set_key_later(tree, prior, head, start, valid, below,
+            pending_not_false(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(start))),
+              BoolFacts.eq_true_of_and_left(Bool.not(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(start)))),
+                pending_fresh_keys(tail, (start + 1n : Nat), tree), fresh)))),
+        pending_fresh_keys_after_set(tail, (start + 1n : Nat), tree, prior, head, valid,
+          NatFacts.lt_trans(prior, start, (start + 1n : Nat), below, ready_next_greater(start)),
+          BoolFacts.eq_true_of_and_right(Bool.not(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(start)))),
+            pending_fresh_keys(tail, (start + 1n : Nat), tree), fresh)))
 
 def pending_registration_count(+items: List<&2, Local.Pending>, +next: Nat, +tree: Map<&2, Maybe<&2, Local.Pending>>,
     +valid: {Patricia.canonical(Maybe<&2, Local.Pending>, tree) == True{} : Bool},
-    fresh: @id: Nat -> {Nat.is_le(next, id) == True{} : Bool} ->
-      {Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(id))) == False{} : Bool}) ->
+    +fresh: {pending_fresh_keys(items, next, tree) == True{} : Bool}) ->
     {List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, ready_registered_pending(Compose.register_pending(items, next, tree))))
       == (List.length(&2, Local.Pending, items) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat) : Nat}:
   match items:
@@ -3800,14 +3853,18 @@ def pending_registration_count(+items: List<&2, Local.Pending>, +next: Nat, +tre
           (List.length(&2, Local.Pending, tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, updated)) : Nat),
           (List.length(&2, Local.Pending, head <> tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
           pending_registration_count(tail, (next + 1n : Nat), updated, Insert.set_preserves_canonical(Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}, valid),
-            id => above => pending_set_later_fresh(tree, next, head, id, valid, above, fresh)),
+            pending_fresh_keys_after_set(tail, (next + 1n : Nat), tree, next, head, valid, ready_next_greater(next),
+              BoolFacts.eq_true_of_and_right(Bool.not(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next)))),
+                pending_fresh_keys(tail, (next + 1n : Nat), tree), fresh))),
           Equal.trans(Nat, (List.length(&2, Local.Pending, tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, updated)) : Nat),
             (List.length(&2, Local.Pending, tail) + (1n + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat) : Nat),
             (List.length(&2, Local.Pending, head <> tail) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
             Equal.cong(Nat, Nat, count => (List.length(&2, Local.Pending, tail) + count : Nat),
               List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, updated)),
               (1n + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
-              ready_map_set_fresh_count(Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}, valid, fresh(next, NatFacts.le_refl(next)))),
+              ready_map_set_fresh_count(Maybe<&2, Local.Pending>, tree, Nat.show(next), Some{head}, valid, pending_not_false(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next))),
+                BoolFacts.eq_true_of_and_left(Bool.not(Membership.has_value(Maybe<&2, Local.Pending>, Map.has(&2, Maybe<&2, Local.Pending>, tree, Nat.show(next)))),
+                  pending_fresh_keys(tail, (next + 1n : Nat), tree), fresh)))),
             pair_count_exchange(0n, List.length(&2, Local.Pending, tail), 1n, List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree))))))
 
 def pending_ready_registration_count(+items: List<&2, Local.Pending>, +order: List<&2, Nat>, +tree: Map<&2, Maybe<&2, Local.Pending>>,
@@ -3823,7 +3880,7 @@ def pending_ready_registration_count(+items: List<&2, Local.Pending>, +order: Li
     (List.length(&2, Local.Pending, items) + List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)) : Nat),
     (List.length(&2, Local.Pending, items) + List.length(&2, Nat, order) : Nat),
     pending_registration_count(items, next, tree, valid,
-      id => above => pending_ready_fresh(order, tree, sources, addresses, rows, next, id, valid, unique, size, before, above, ready)),
+      pending_fresh_keys_ready(items, next, next, order, tree, sources, addresses, rows, valid, unique, size, before, NatFacts.le_refl(next), ready)),
     Equal.cong(Nat, Nat, count => (List.length(&2, Local.Pending, items) + count : Nat),
       List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)), List.length(&2, Nat, order),
       Equal.sym(Nat, List.length(&2, Nat, order), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, tree)),
