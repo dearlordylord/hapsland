@@ -13,5 +13,10 @@
     "source": "composition/GenericArtifact.bend",
     "output": "composition/generic-artifact-core.js",
     "declaration": "composition/generic-artifact-core.d.ts"
+  },
+  {
+    "source": "composition/PythonArtifact.bend",
+    "output": "composition/python-artifact-core.js",
+    "declaration": "composition/python-artifact-core.d.ts"
   }
 ]

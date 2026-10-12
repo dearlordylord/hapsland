@@ -7,28 +7,8 @@ import type {
   ServiceOutcome
 } from "@hapsland/source-analysis/direct-event/graph-resolver"
 
-// Mechanical namespace relocation performed by artifact-dispatcher; no policy.
-type ArtifactTag<Tag extends string> = Tag extends `Types.${infer Name}`
-  ? `../../../../../source-analysis/src/direct-event/graph-resolution/Types.${Name}`
-  : Tag extends `traversal/core.${infer Name}`
-    ? `../../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.${Name}`
-    : Tag extends `../../../../source-artifacts/src/direct-event/value/Value.${infer Name}`
-      ? `../../../../../source-artifacts/src/direct-event/value/Value.${Name}`
-      : Tag extends `../../../../agent-flow-bend/ImportGraph.${infer Name}`
-        ? `../../../../../agent-flow-bend/ImportGraph.${Name}`
-        : Tag
-export type ArtifactAbi<Value> = Value extends object
-  ? {
-      readonly [Key in keyof Value]: Key extends "$"
-        ? Value[Key] extends string
-          ? ArtifactTag<Value[Key]>
-          : Value[Key]
-        : ArtifactAbi<Value[Key]>
-    }
-  : Value
+import type { ArtifactAbi, Tagged, Maybe } from "./artifact-abi.d.ts"
 
-type Tagged<Name extends string, Fields = object> = { readonly $: Name } & Fields
-type Maybe<Value> = Tagged<"None"> | Tagged<"Some", { readonly value: Value }>
 // These values are produced, retained and consumed by Bend. The host never
 // constructs or interprets resolver state or an internal continuation.
 declare const resolverState: unique symbol
