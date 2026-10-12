@@ -672,14 +672,14 @@ export function createResidentOwnerTransaction({
     /**
      * @template {keyof typeof methods} Method
      * @param {Method} method
-     * @param {Parameters<(typeof methods)[Method]>} args
+     * @param {import("@hapsland/canonical-policy/canonical/child-execution").Arguments<Method>} args
      */
     invoke(method, args) {
       if (!Object.hasOwn(methods, method)) throw new Error("Unknown resident owner entry")
       // The checked method table correlates each name with its exact event fields.
       // Preserve that generic correlation where indexed union call inference loses it.
       const makeEvent =
-        /** @type {(...args: Parameters<(typeof methods)[Method]>) => import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent} */ (
+        /** @type {(...args: import("@hapsland/canonical-policy/canonical/child-execution").Arguments<Method>) => import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent} */ (
           methods[method]
         )
       return ownerStep(Effect.runSync(committedEvent(makeEvent(...args))))

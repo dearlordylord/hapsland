@@ -1248,19 +1248,45 @@ One current obstacle list, in execution order:
    Canonical retains ordered actions, handles, leases, receipt identity, native
    cleanup retry and exception projection before close. The public line, frozen
    replay and revalidation consumers must pass before their replaced TS
-   algorithms and the native verification copies are deleted. No driver move
-   or public TS deletion is claimed yet.
+   algorithms and the native verification copies are deleted. Public TS deletion
+   and whole-unit acceptance are not yet claimed.
    The single action/custody implementation is now moved to ordinary checked
    CanonicalPolicy child-execution sources; resident owns its concrete protocol
    facade. The generic core passes strict checkJs. Consumer qualification is
    pending: the new export requires normal compilation, and standalone package
    compilation correctly refuses the old authored task stamp. No exclusion,
    unchecked cast, second action loop or business-state mirror is added.
+   Normal workspace integration initially refuses stale generated Turbo config;
+   regeneration passes its check. The next compilation exposes actual type
+   integration failures: original Nat ABI width, dependent argument correlation,
+   exact optional fields, portable export names and facade overloads. Current
+   source-linked strict checkJs resolves them, and normal workspace build passes
+   46/46 (5 cached, 1m49.314s). The facade mutates the same shared object, preserving
+   live getters/hook identity and capturing original methods before overrides.
+   Structural review closes duplicate family classification: common driver no
+   longer names five concrete families; its protocol owns payload validation.
+   Review then identifies a private construction-kind collision and numeric
+   request type mismatch. Current fixes use a private Symbol discriminator and
+   the actual bigint request ABI, with a checked type guard returning the same
+   request object. Strict source-linked checkJs and explicit five-file lint/format
+   pass for these fixes; normal compiled consumers remain to be requalified.
+   Obsolete facade payload/resource/control-table type copies are removed.
+   Diagnostic logs: /tmp/hapsland-shared-child-{driver-warm-3,facade-source-types-final,
+   private-boundary-types-final,driver-lint-final}.log. Generated Turbo config is
+   tracked alongside its manifest change; no guard or check is bypassed for this
+   integration. Checkpoint pushes do not qualify whole migration acceptance.
    Current direct original-ready measured wrapper now checks ALL PROOFS CHECK
    at 9.751s under hard10/CPU10; its same-parent product/replacement witness
    checks at 8.413s. It retains original ready/budget premises and derives actual
    claims 1–3/5. Reference claims 4/6 and arbitrary-reply claims 7/8 still block
    the whole original attachment transaction; its statement remains unchanged.
+   Same-product reference transport now checks in 1.772s under hard10/CPU10,
+   deriving reference materialization from the actual product and the original
+   frame/capsule observations. Dependency transport checks at 1.602s and
+   fingerprint/materialization transport at 1.933s; exact order and None versus
+   Some(empty) are preserved, with no assumed metadata-equality premise.
+   The original parent replacement still must join reference claims 4/6,
+   followed by arbitrary replies 7/8 and the complete theorem.
 
 
    The repaired entry now qualifies on 8a905233: normal workspace build passes

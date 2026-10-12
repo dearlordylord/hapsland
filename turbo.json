@@ -208,7 +208,8 @@
     "@hapsland/canonical-policy#build": {
       "dependsOn": [
         "@hapsland/agent-flow-bend#build",
-        "@hapsland/canonical-policy#clean:compiler"
+        "@hapsland/canonical-policy#clean:compiler",
+        "@hapsland/runtime-environment#build"
       ],
       "inputs": [
         "src/**",

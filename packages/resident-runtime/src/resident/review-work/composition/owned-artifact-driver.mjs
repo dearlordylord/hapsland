@@ -9,41 +9,26 @@ import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
  * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action} Action
  * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Scope} Scope
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").Control} Control
- * @typedef {Parameters<Control["invoke"]>[0]} Method
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").ControlledStep | OwnerStep} Step
- * @typedef {{phase: string, error: unknown, command?: Action, operation?: number}} Failure
- * @typedef {{failures: Failure[], rejection: Failure | undefined}} ActionOutcome
  * @typedef {import("@hapsland/runtime-environment/runtime/native-session-registry").NativeSession & {revoke(): unknown, finish?: () => unknown | Promise<unknown>, exception?: (token: Parameters<Parameters<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").createBendResolver>[0]["drive"]>[0] extends {exception: (token: infer T) => unknown} ? T : never) => unknown, forceCleanup?: (error: unknown) => unknown}} NativeSession
- * @typedef {Extract<ownedMachine.Projection["view"], {$: "Types.AwaitService"}>["request"]} Request
- * @typedef {{signal?: AbortSignal | undefined, ownerLease?: {invocation: bigint, generation: bigint, lease: bigint, request: bigint}}} ForeignOptions
+ * @typedef {Extract<ownedMachine.Projection["view"], {$: "Types.AwaitService"}>["request"]} RawRequest
+ * @typedef {RawRequest & {readonly invocation: bigint, readonly id: bigint}} Request
+ * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").ForeignOptions} ForeignOptions
 
- * @typedef {{kind: "construction-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} ConstructionFailure
- * @typedef {ownedMachine.Projection | ConstructionFailure} ResultPayload
- * @typedef {{origin: bigint, value: unknown}} AdviceInput
- * @typedef {{value: ownedMachine.Reply} | {error: unknown}} ReplyPayload
- * @typedef {{kind: "state", value: ownedMachine.Continuation} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: ownedMachine.Input | ownedMachine.Projection | AdviceInput | undefined} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined}} Payload
- * @typedef {Payload & {invocation: bigint}} HeldResource
- * @typedef {{handoff: bigint, scope: Extract<Scope, {$: "RetainingScope"}>}} PreparationHandoff
- * @typedef {{handoff: bigint, scope: Extract<Scope, {$: "AdviceTailScope"}>}} AdviceHandoff
- * @typedef {Extract<Action, {$: "Launch"}> | (Extract<Action, {$: "LaunchPostPreparation"}> & {input_handle: bigint, receipt: PreparationHandoff}) | (Extract<Action, {$: "LaunchAdviceTail"}> & {receipt: AdviceHandoff})} Launch
+ * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").PreparationHandoff} PreparationHandoff
+ * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").AdviceHandoff} AdviceHandoff
  * @typedef {ReturnType<typeof ownedMachine.accepted> | PreparationHandoff | {adviceRetained: false, reason: unknown, cleanupPending: boolean}} TerminalOutcome
- * @typedef {{failure: {$: "Types.InvocationCancelled"}}} CancellationOutcome
+ * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").CancellationOutcome} CancellationOutcome
  * @typedef {Extract<TerminalOutcome, {result: object}> | Extract<TerminalOutcome, {failure: {$: string}}>} GraphOutcome
  * @typedef {PreparationHandoff | ReturnType<ownedMachine.PreparationMachine["accepted"]> | CancellationOutcome} PreparationOutcome
  * @typedef {ReturnType<ownedMachine.SourceMachine["accepted"]> | CancellationOutcome} SourceOutcome
  * @typedef {ReturnType<ownedMachine.PostMachine["accepted"]> | CancellationOutcome} PostOutcome
  * @typedef {ReturnType<ownedMachine.AdviceMachine["accepted"]> | CancellationOutcome} AdviceOutcome
- * @typedef {{command: Extract<Action, {$: "CancelChild"}>, completed: Set<number>}} CancellationCleanup
  */
 /**
  * @template {NativeSession} [Session=NativeSession]
- * @typedef {{beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: Request, driver: SharedDriver<Session>}) => unknown, beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: SharedDriver<Session>}) => unknown, afterAction?: (event: {command: Action, driver: SharedDriver<Session>}) => unknown, canonicalOutputs?: (outputs: readonly (Extract<Step, {$: "Advanced"}>["outputs"] extends import("@hapsland/agent-flow-bend/canonical-resolver-owner").List<infer O> ? O : never)[]) => unknown, beforeProvider?: (event: {invocation: bigint, lease: bigint, request: Request, driver: SharedDriver<Session>}) => unknown, beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: Request, driver: SharedDriver<Session>}) => unknown}} Hooks
+ * @typedef {NonNullable<Parameters<typeof createChildExecutionDriver<ownedMachine.Input, ownedMachine.Machine, ownedMachine.Continuation, ownedMachine.Projection, Request, ownedMachine.Reply, ReturnType<typeof ownedMachine.accepted>, PreparationResult, Session>>[0]["hooks"]>} Hooks
  */
-/**
- * @template {Method} M
- * @typedef {Parameters<Owner[M]> extends [State, ...infer A] ? A : never} Arguments
- */
-/** @typedef {{[K in Method]: (state: State, ...args: Arguments<K>) => OwnerStep}} EntryTable */
 /** @template A @param {A | undefined} value @returns {A} */
 const required = (value) => {
   if (value === undefined) throw new TypeError("Missing owned invocation resource")
@@ -51,48 +36,86 @@ const required = (value) => {
 }
 /** @typedef {Extract<ReturnType<ownedMachine.PreparationMachine["view"]>, {$: "PreparationFinished"}>["result"]} PreparationResult */
 /** @template {NativeSession} Session @typedef {ReturnType<typeof createChildExecutionDriver<ownedMachine.Input, ownedMachine.Machine, ownedMachine.Continuation, ownedMachine.Projection, Request, ownedMachine.Reply, ReturnType<typeof ownedMachine.accepted>, PreparationResult, Session>>} SharedDriver */
+/**
+ * @template {NativeSession} Session
+ * @typedef {{
+ * (session: Session, input: Parameters<ownedMachine.ArtifactMachine["initial"]>[0], options?: ForeignOptions): Promise<GraphOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.PreparationMachine["initial"]>[0], options?: ForeignOptions): Promise<PreparationOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0], options?: ForeignOptions): Promise<SourceOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions): Promise<PostOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.AdviceMachine["initial"]>[0], options?: ForeignOptions): Promise<AdviceOutcome>;
+ * }} Drive
+ */
+/**
+ * @template {NativeSession} Session
+ * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice"> & {
+ * drive: Drive<Session>,
+ * driveHandoff: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => Promise<PostOutcome>,
+ * driveAdvice: (receipt: AdviceHandoff, session: Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}, options?: ForeignOptions) => Promise<AdviceOutcome>
+ * }} Driver
+ */
+/** @param {RawRequest} request @returns {request is Request} */
+const exactRequest = (request) => typeof request.invocation === "bigint" && typeof request.id === "bigint"
 // Concrete machine protocols remain at this composition owner. CanonicalPolicy
 // executes their single shared action/custody implementation.
 /**
  * @template {NativeSession} [Session=NativeSession]
  * @param {{owner: Owner, initialState?: State, scope?: Scope, artifacts?: Parameters<typeof createArtifactMachine>[0], registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks<Session>, control?: Control, machine?: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
+ * @returns {Driver<Session>}
  */
-export function createOwnedArtifactDriver({owner, initialState, scope, artifacts, registry, foreign, hooks = {}, control, machine: providedMachine, selectMachine}) {
+export function createOwnedArtifactDriver({
+  owner,
+  initialState,
+  scope,
+  artifacts,
+  registry,
+  foreign,
+  hooks = {},
+  control,
+  machine: providedMachine,
+  selectMachine
+}) {
   if (!providedMachine && !artifacts) throw new TypeError("Missing owned machine artifacts")
-  const machine = providedMachine ?? createArtifactMachine({...required(artifacts), retainPrefixes: false})
+  const machine = providedMachine ?? createArtifactMachine({ ...required(artifacts), retainPrefixes: false })
   /** @type {import("@hapsland/canonical-policy/canonical/child-execution").Protocol<ownedMachine.Input, ownedMachine.Machine, ownedMachine.Continuation, ownedMachine.Projection, Request, ownedMachine.Reply, ReturnType<typeof ownedMachine.accepted>, PreparationResult, Session>} */
   const protocol = {
     initial: ownedMachine.initial,
     view: ownedMachine.view,
     resume: ownedMachine.resume,
     awaitRequest(projected) {
-      return projected.view.$ === "Types.AwaitService" ? projected.view.request : undefined
+      if (projected.view.$ !== "Types.AwaitService") return undefined
+      const request = projected.view.request
+      if (!exactRequest(request)) throw new TypeError("Provider request requires exact Bend Nat identifiers")
+      return request
     },
     installation(projected, scope) {
       if (scope.$ === "AdviceTailScope") {
         if (projected.kind !== "advice" || projected.view.$ !== "Types.AwaitService")
           throw new TypeError("Wrong advice permission binding")
-        return {method: "install_advice", permission: projected.machine.permission(projected.view.request)}
+        return { method: "install_advice", permission: projected.machine.permission(projected.view.request) }
       }
       if (scope.$ === "SourceScope") {
         if (projected.kind !== "source" || projected.view.$ !== "Types.AwaitService")
           throw new TypeError("Wrong source permission binding")
-        return {method: "install_source", permission: projected.machine.permission(projected.view.request)}
+        return { method: "install_source", permission: projected.machine.permission(projected.view.request) }
       }
       if (scope.$ === "AfterSourceScope") {
         if (projected.kind !== "source" || projected.view.$ !== "Types.AwaitService")
           throw new TypeError("Wrong after-source permission binding")
-        return {method: "install_after_source", permission: projected.machine.afterPermission(projected.view.request)}
+        return { method: "install_after_source", permission: projected.machine.afterPermission(projected.view.request) }
       }
-      return {method: "install"}
+      return { method: "install" }
     },
     terminal(projected, scope) {
       return projected.view.$ === "AdviceTailPreserved"
         ? "terminal_advice_preserved"
         : scope.$ === "PreparationScope"
-          ? projected.view.$ === "PreparationFinished" ? "terminal_preparation" : "terminal_preparation_failed"
+          ? projected.view.$ === "PreparationFinished"
+            ? "terminal_preparation"
+            : "terminal_preparation_failed"
           : scope.$ === "SourceScope" && projected.view.$ === "SourcePreparationStopped"
-            ? "terminal_source_failed" : "terminal"
+            ? "terminal_source_failed"
+            : "terminal"
     },
     preparation(projected) {
       if (projected.kind !== "preparation" || projected.view.$ !== "PreparationFinished")
@@ -101,32 +124,55 @@ export function createOwnedArtifactDriver({owner, initialState, scope, artifacts
     },
     accepted(projected) {
       return projected.view.$ === "AdviceTailStopped"
-        ? {adviceRetained: false, reason: projected.view.reason, cleanupPending: projected.view.cleanupPending}
+        ? { adviceRetained: false, reason: projected.view.reason, cleanupPending: projected.view.cleanupPending }
         : ownedMachine.accepted(projected)
     },
     projectTerminal(outcome, session) {
-      if ("failure" in outcome && "$" in outcome.failure &&
-          (outcome.failure.$ === "Types.ForeignProviderFailure" || outcome.failure.$ === "Types.RuntimeFailure"))
+      if (
+        "failure" in outcome &&
+        "$" in outcome.failure &&
+        (outcome.failure.$ === "Types.ForeignProviderFailure" || outcome.failure.$ === "Types.RuntimeFailure")
+      )
         throw required(session.exception)(outcome.failure.exception)
       if ("failure" in outcome && "$" in outcome.failure && outcome.failure.$ === "Types.NegativeGraphWork")
         readNat(-Number(outcome.failure.magnitude))
       return outcome
     }
   }
-  const shared = createChildExecutionDriver({owner, initialState, scope, registry, foreign, hooks, control, machine, selectMachine, protocol})
-  const sharedDrive = shared.drive, sharedHandoff = shared.driveHandoff, sharedAdvice = shared.driveAdvice
+  /** @type {SharedDriver<Session>} */
+  const shared = createChildExecutionDriver({
+    owner,
+    registry,
+    foreign,
+    hooks,
+    machine,
+    protocol,
+    ...(initialState === undefined ? {} : { initialState }),
+    ...(scope === undefined ? {} : { scope }),
+    ...(control === undefined ? {} : { control }),
+    ...(selectMachine === undefined ? {} : { selectMachine })
+  })
+  const sharedDrive = shared.drive,
+    sharedHandoff = shared.driveHandoff,
+    sharedAdvice = shared.driveAdvice
   /** @overload @param {Session} session @param {Parameters<ownedMachine.ArtifactMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<GraphOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.PreparationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PreparationOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.SourceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<SourceOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.PostMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.AdviceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
   /** @param {Session} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
-  function drive(session, input, options) { return sharedDrive(session, input, options) }
+  function drive(session, input, options) {
+    return sharedDrive(session, input, options)
+  }
   /** @overload @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
   /** @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
-  function driveHandoff(receipt, session, buildInput, options) { return sharedHandoff(receipt, session, buildInput, options) }
+  function driveHandoff(receipt, session, buildInput, options) {
+    return sharedHandoff(receipt, session, buildInput, options)
+  }
   /** @overload @param {AdviceHandoff} receipt @param {Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}} session @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
   /** @param {AdviceHandoff} receipt @param {Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}} session @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
-  function driveAdvice(receipt, session, options) { return sharedAdvice(receipt, session, options) }
-  return Object.assign(shared, {drive, driveHandoff, driveAdvice})
+  function driveAdvice(receipt, session, options) {
+    return sharedAdvice(receipt, session, options)
+  }
+  return Object.assign(shared, { drive, driveHandoff, driveAdvice })
 }

@@ -6066,6 +6066,195 @@ def ready_original_measured(+state: T.ResolverState, +history: V.History, +child
   ready_original_measured_parts(state, history, child_history, phase, previous, ready, coherent,
     actual_ready_parts(state, history, child_history, phase, ready))
 
+def ready_capsule_fingerprint_value(capsule: Phase.Capsule) -> Maybe<&2, String>:
+  match capsule:
+    case Phase.Capsule{_, _, _, _, _, _, _, _, _, _, fingerprint}: fingerprint
+
+def ready_capsule_fingerprint(+clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>,
+    +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>, +state: T.ResolverState,
+    +capsule: Phase.Capsule,
+    ready: {ActualReady.capsule(clock, language, active, edge, state) == Some{capsule} : Maybe<&2, Phase.Capsule>}) ->
+    {ActualReady.fingerprint(S.state_prepared(state)) == ready_capsule_fingerprint_value(capsule) : Maybe<&2, String>}:
+  match clock language active edge state:
+    case Some{clock_value} Some{+language_value} Some{active_value} Some{edge_value}
+      T.ResolverState{T.ResolverInput{+invocation, path, _, _, _, _, branch, cache, _}, _, _, +next, iterations, _, _, rust, _, _, _, _, _}:
+      %Count.some_equal(Phase.Capsule,
+        Phase.Capsule{invocation, path, language_value, ActualReady.context(language_value, branch, rust),
+          clock_value, cache, next, iterations, active_value, edge_value, ActualReady.fingerprint(S.state_prepared(state))}, capsule, ready):
+        {ActualReady.fingerprint(S.state_prepared(state)) == ready_capsule_fingerprint_value(_) : Maybe<&2, String>}
+      {==}
+    case None{} _ _ _ _:
+      Empty.absurd({ActualReady.fingerprint(S.state_prepared(state)) == ready_capsule_fingerprint_value(capsule) : Maybe<&2, String>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} None{} _ _ _:
+      Empty.absurd({ActualReady.fingerprint(S.state_prepared(state)) == ready_capsule_fingerprint_value(capsule) : Maybe<&2, String>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} Some{_} None{} _ _:
+      Empty.absurd({ActualReady.fingerprint(S.state_prepared(state)) == ready_capsule_fingerprint_value(capsule) : Maybe<&2, String>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd({ActualReady.fingerprint(S.state_prepared(state)) == ready_capsule_fingerprint_value(capsule) : Maybe<&2, String>}, Contents.none_some(Phase.Capsule, capsule, ready))
+
+def ready_reference_capsule_fingerprint(+state: D.State, +child: X.Child) ->
+    {ready_reference_fingerprint(D.frame(state)) == ready_capsule_fingerprint_value(ReferenceReady.capsule(state, child)) : Maybe<&2, String>}:
+  match state child:
+    case D.State{D.Config{_, _, _, _, _, _}, X.Frame{_, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _}: {==}
+
+def ready_product_fingerprint(+prepared: T.PreparedLanguage) ->
+    {ready_prepared_fingerprint(prepared) == ActualReady.fingerprint(prepared) : Maybe<&2, String>}:
+  match prepared:
+    case T.PreparedLanguage{_, _, _}: {==}
+
+def ready_common_product_fingerprint(+state: T.ResolverState, +reference: D.State, +child: X.Child,
+    +clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>, +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>, +capsule: Phase.Capsule,
+    actual: {ActualReady.capsule(clock, language, active, edge, state) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+    reference_ready: {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}) ->
+    {ready_prepared_fingerprint(S.state_prepared(state)) == ready_reference_fingerprint(D.frame(reference)) : Maybe<&2, String>}:
+  Equal.trans(Maybe<&2, String>, ready_prepared_fingerprint(S.state_prepared(state)), ActualReady.fingerprint(S.state_prepared(state)), ready_reference_fingerprint(D.frame(reference)),
+    ready_product_fingerprint(S.state_prepared(state)),
+    Equal.trans(Maybe<&2, String>, ActualReady.fingerprint(S.state_prepared(state)), ready_capsule_fingerprint_value(capsule), ready_reference_fingerprint(D.frame(reference)),
+      ready_capsule_fingerprint(clock, language, active, edge, state, capsule, actual),
+      Equal.sym(Maybe<&2, String>, ready_reference_fingerprint(D.frame(reference)), ready_capsule_fingerprint_value(capsule),
+        Equal.trans(Maybe<&2, String>, ready_reference_fingerprint(D.frame(reference)), ready_capsule_fingerprint_value(ReferenceReady.capsule(reference, child)), ready_capsule_fingerprint_value(capsule),
+          ready_reference_capsule_fingerprint(reference, child),
+          Equal.cong(Phase.Capsule, Maybe<&2, String>, value => ready_capsule_fingerprint_value(value), ReferenceReady.capsule(reference, child), capsule,
+            Count.some_equal(Phase.Capsule, ReferenceReady.capsule(reference, child), capsule, reference_ready))))))
+
+def ready_common_materialization(+state: T.ResolverState, +reference: D.State, +child: X.Child,
+    +attachment: Compose.Attachment, +frame: T.ResolverFrame, +forest: F.Forest, +product: ArtifactValue.ProductValue,
+    +clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>, +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>, +capsule: Phase.Capsule,
+    actual: {ActualReady.capsule(clock, language, active, edge, state) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+    reference_ready: {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>},
+    dependencies: {S.frame_dependencies(Attach.attached_frame(attachment, frame)) == ready_reference_dependencies(D.frame(reference)) : List<&2, String>},
+    materialized: {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state))) == F.Materialized{product} : F.Materialization}) ->
+    {F.prepared_unit(Allowance.materialization(forest), forest, ready_reference_dependencies(D.frame(reference)), ready_reference_fingerprint(D.frame(reference))) == F.Materialized{product} : F.Materialization}:
+  %dependencies:
+    {F.prepared_unit(Allowance.materialization(forest), forest, _, ready_reference_fingerprint(D.frame(reference))) == F.Materialized{product} : F.Materialization}
+  %ready_common_product_fingerprint(state, reference, child, clock, language, active, edge, capsule, actual, reference_ready):
+    {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), _) == F.Materialized{product} : F.Materialization}
+  materialized
+
+
+def ready_view_dependencies(view: V.Frame) -> List<&2, String>:
+  match view:
+    case V.Frame{_, _, _, _, dependencies, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: dependencies
+
+def ready_frame_view_dependencies(+forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingEntry>>, +targets: Maybe<&2, List<&2, V.TargetEntry>>, +ids: Maybe<&2, List<&2, V.TargetId>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>, +identities: Maybe<&2, List<&2, V.TargetArtifact>>, +visited: Maybe<&2, List<&2, String>>, +actual: T.ResolverFrame, +remaining: Nat, +episode: Nat, +view: V.Frame,
+    ready: {ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, actual, remaining, episode) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {S.frame_dependencies(actual) == ready_view_dependencies(view) : List<&2, String>}:
+  match forest pending targets ids captured identities visited actual:
+    case Some{+forest_value} Some{+pending_value} Some{+targets_value} Some{+ids_value} Some{+captured_value} Some{+identities_value} Some{+visited_value}
+      T.ResolverFrame{branch, limits, graph, command, deps, _, _, _, _, budget, node, edge, target, artifact, _, _, _, _, _, artifacts}:
+      %Count.some_equal(V.Frame, V.Frame{branch, limits, graph, command, deps, forest_value, pending_value, targets_value, ids_value, captured_value, identities_value, visited_value, V.actual_budget(budget), node, edge, target, artifact, artifacts, remaining, episode}, view, ready):
+        {S.frame_dependencies(actual) == ready_view_dependencies(_) : List<&2, String>}
+      {==}
+    case None{} _ _ _ _ _ _ _:
+      Empty.absurd({S.frame_dependencies(actual) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} None{} _ _ _ _ _ _:
+      Empty.absurd({S.frame_dependencies(actual) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} None{} _ _ _ _ _:
+      Empty.absurd({S.frame_dependencies(actual) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} None{} _ _ _ _:
+      Empty.absurd({S.frame_dependencies(actual) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} None{} _ _ _:
+      Empty.absurd({S.frame_dependencies(actual) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} None{} _ _:
+      Empty.absurd({S.frame_dependencies(actual) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd({S.frame_dependencies(actual) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_projected_frame_dependencies(+frame: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    ready: {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {S.frame_dependencies(frame) == ready_view_dependencies(view) : List<&2, String>}:
+  match history:
+    case V.History{+addresses, V.Order{+pending_order, +target_order, +id_order, +capture_order, +identity_order, +visited_order}, +sources, +captures, _, +remaining, +episode}:
+      ready_frame_view_dependencies(ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode), ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(frame), addresses), ActualFrame.ids(id_order, S.frame_target_ids(frame)), ActualFrame.captured(capture_order, S.frame_captured(frame), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(frame)), ActualFrame.visited(visited_order, S.frame_visited(frame)), frame, remaining, episode, view, ready)
+
+def ready_reference_dependencies_assembled(+state: D.State, +child: X.Child, +history: V.History,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase, +known: Bool,
+    +targets: Maybe<&2, List<&2, V.TargetEntry>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited: Maybe<&2, List<&2, String>>, +child_visited: Maybe<&2, List<&2, String>>,
+    ready: {ReferenceReady.assembled(ReferenceFrame.assembled(state, history, targets, captured, visited),
+      ReferenceReady.child_view(child, child_history, child_visited), ReferenceReady.capsule(state, child))
+      == Some{phase} : Maybe<&2, Phase.Phase>}) -> {ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(ready_phase_frame(phase)) : List<&2, String>}:
+  match state child history child_history targets captured visited child_visited:
+    case D.State{D.Config{+invocation, +path, +language, +context, +clock, +cache},
+      X.Frame{G.Bounded{+graph, +remaining}, +command, +forest,
+        Signed.State{Recursive.State{_, +budget, _, _}, +signed}, +edges, _, +identities,
+        +next_edge, +episode, +next_artifact, +dependencies, +fingerprint}, _, +target_ids, +next_target, +next, +iterations, _, _}
+      X.Child{X.Attempt{+target,
+        X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, _, _, _, _}}, _, _},
+        +kind, +source, +bytes, +name, +expected, Local.Declaration{+handle, +identity, +function, +bundled, +references, +source_path}, +catalog, +before},
+        F.Created{+root, +nodes, +addresses}, Signed.State{Recursive.State{_, +child_budget, _, _}, +child_signed}, +pending}
+      V.History{_, _, _, _, +artifacts, _, _}
+      Phase.ChildHistory{_, _, _, +capture, _}
+      Some{+target_rows} Some{+capture_rows} Some{+seen} Some{+child_seen}:
+      %Count.some_equal(Phase.Phase,
+        Phase.Phase{
+          V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest,
+            ReferenceFrame.pending(edges), target_rows, ReferenceFrame.ids(target_ids), capture_rows, ReferenceFrame.identities(identities), seen,
+            V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode},
+          Phase.Child{target, X.attempt_path(ready_reference_attempt(child)), kind, capture, bytes,
+            T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceReady.file_exports(kind, source), bytes}, handle, identity, before,
+            F.Forest{Some{root}, nodes}, addresses, ReferenceReady.pending(pending), child_seen, V.budget(child_budget, child_signed), source, catalog},
+          ReferenceReady.capsule(state, child)}, phase, ready):
+        {ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(ready_phase_frame(_)) : List<&2, String>}
+      {==}
+    case _ _ _ _ None{} _ _ _:
+      Empty.absurd({ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(ready_phase_frame(phase)) : List<&2, String>}, Contents.none_some(Phase.Phase, phase, ready))
+    case _ _ _ _ Some{_} None{} _ _:
+      Empty.absurd({ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(ready_phase_frame(phase)) : List<&2, String>}, Contents.none_some(Phase.Phase, phase, ready))
+    case _ _ _ _ Some{_} Some{_} None{} _:
+      Empty.absurd({ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(ready_phase_frame(phase)) : List<&2, String>}, Contents.none_some(Phase.Phase, phase, ready))
+    case _ _ _ _ Some{_} Some{_} Some{_} None{}:
+      Empty.absurd({ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(ready_phase_frame(phase)) : List<&2, String>}, Contents.none_some(Phase.Phase, phase, ready))
+
+def ready_reference_dependencies_phase(+state: D.State, +child: X.Child, +history: V.History,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase, +known: Bool,
+    ready: {ReferenceReady.project(state, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(ready_phase_frame(phase)) : List<&2, String>}:
+  match state child history child_history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +targets, _, _, _, _, _, _}
+      X.Child{_, _, Signed.State{Recursive.State{+child_values, _, _, _}, _}, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}
+      Phase.ChildHistory{_, _, _, _, +child_seen}:
+      ready_reference_dependencies_assembled(state, child, history, child_history, phase, known,
+        ReferenceFrame.targets(targets), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), ReferenceFrame.visited(child_seen, child_values), ready)
+
+def ready_attached_dependencies(+attachment: Compose.Attachment, +frame: T.ResolverFrame) ->
+    {S.frame_dependencies(Attach.attached_frame(attachment, frame)) == S.frame_dependencies(frame) : List<&2, String>}:
+  match attachment frame:
+    case Compose.Attachment{_, _, _, _, _, _, _, _, _} T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: {==}
+
+def ready_common_dependencies(+attachment: Compose.Attachment, +frame: T.ResolverFrame, +reference: D.State, +child: X.Child,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    actual: {ActualFrame.project(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {S.frame_dependencies(Attach.attached_frame(attachment, frame)) == ready_reference_dependencies(D.frame(reference)) : List<&2, String>}:
+  Equal.trans(List<&2, String>, S.frame_dependencies(Attach.attached_frame(attachment, frame)), S.frame_dependencies(frame), ready_reference_dependencies(D.frame(reference)),
+    ready_attached_dependencies(attachment, frame),
+    Equal.trans(List<&2, String>, S.frame_dependencies(frame), ready_view_dependencies(ready_phase_frame(phase)), ready_reference_dependencies(D.frame(reference)),
+      ready_projected_frame_dependencies(frame, history, ready_phase_frame(phase),
+        Pair.snd({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}, actual_frame_contents(frame, history, ready_phase_frame(phase), actual))),
+      Equal.sym(List<&2, String>, ready_reference_dependencies(D.frame(reference)), ready_view_dependencies(ready_phase_frame(phase)),
+        ready_reference_dependencies_phase(reference, child, history, child_history, phase, False{}, reference_ready))))
+
+
+def ready_reference_same_product(+state: T.ResolverState, +reference: D.State, +child: X.Child,
+    +attachment: Compose.Attachment, +frame: T.ResolverFrame, +forest: F.Forest, +product: ArtifactValue.ProductValue,
+    +clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>, +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    actual_frame: {ActualFrame.project(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>},
+    actual_capsule: {ActualReady.capsule(clock, language, active, edge, state) == Some{ready_phase_capsule(phase)} : Maybe<&2, Phase.Capsule>},
+    +reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    materialized: {F.prepared_unit(Allowance.materialization(forest), forest, S.frame_dependencies(Attach.attached_frame(attachment, frame)), ready_prepared_fingerprint(S.state_prepared(state))) == F.Materialized{product} : F.Materialization}) ->
+    {F.prepared_unit(Allowance.materialization(forest), forest, ready_reference_dependencies(D.frame(reference)), ready_reference_fingerprint(D.frame(reference))) == F.Materialized{product} : F.Materialization}:
+  match phase:
+    case Phase.Phase{+view, +child_view, +capsule}:
+      ready_common_materialization(state, reference, child, attachment, frame, forest, product, clock, language, active, edge, capsule, actual_capsule,
+        Pair.snd({ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>}, {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>},
+          Pair.snd({ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}, {ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>} & {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, reference_ready_contents(reference, child, history, child_history, phase, reference_ready))),
+        ready_common_dependencies(attachment, frame, reference, child, history, child_history, phase, actual_frame, reference_ready), materialized)
+
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

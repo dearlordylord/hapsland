@@ -1,3 +1,4 @@
+const constructionFailureTag = Symbol("CanonicalConstructionFailure")
 /**
  * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner} Owner
  * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").State} State
@@ -10,8 +11,8 @@
  * @typedef {{phase: string, error: unknown, command?: Action, operation?: number}} Failure
  * @typedef {{failures: Failure[], rejection: Failure | undefined}} ActionOutcome
  * @typedef {{signal?: AbortSignal | undefined, ownerLease?: {invocation: bigint, generation: bigint, lease: bigint, request: bigint}}} ForeignOptions
- * @typedef {{kind: "construction-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} ConstructionFailure
- * @typedef {{origin: bigint, value: unknown}} AdviceInput
+ * @typedef {{[constructionFailureTag]: true, kind: "construction-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} ConstructionFailure
+ * @typedef {{origin: bigint, value: unknown, kind?: never}} AdviceInput
  * @typedef {import("./contract.ts").PreparationHandoff} PreparationHandoff
  * @typedef {{handoff: bigint, scope: Extract<Scope, {$: "AdviceTailScope"}>}} AdviceHandoff
  * @typedef {Extract<Action, {$: "Launch"}> | (Extract<Action, {$: "LaunchPostPreparation"}> & {input_handle: bigint, receipt: PreparationHandoff}) | (Extract<Action, {$: "LaunchAdviceTail"}> & {receipt: AdviceHandoff})} Launch
@@ -24,6 +25,12 @@ const required = (value) => {
   if (value === undefined) throw new TypeError("Missing owned invocation resource")
   return value
 }
+/**
+ * @template {import("./contract.ts").Projection} P
+ * @param {P | ConstructionFailure} value
+ * @returns {value is ConstructionFailure}
+ */
+const constructionFailure = (value) => constructionFailureTag in value
 /**
  * @template {import("./contract.ts").Input} I
  * @template {import("./contract.ts").Machine} M
@@ -41,7 +48,18 @@ const required = (value) => {
  * beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown
  * }}} options
  */
-export function createChildExecutionDriver({owner, initialState, scope, registry, foreign, hooks = {}, control, machine, selectMachine, protocol}) {
+export function createChildExecutionDriver({
+  owner,
+  initialState,
+  scope,
+  registry,
+  foreign,
+  hooks = {},
+  control,
+  machine,
+  selectMachine,
+  protocol
+}) {
   /**
    * @typedef {P | ConstructionFailure} ResultPayload
    * @typedef {{value: Reply} | {error: unknown}} ReplyPayload
@@ -67,9 +85,7 @@ export function createChildExecutionDriver({owner, initialState, scope, registry
   const invoke = (method, ...args) => {
     if (control) {
       const invokeControlled =
-        /** @type {(method: M, args: Arguments<M>) => import("./contract.ts").ControlledStep} */ (
-          control.invoke
-        )
+        /** @type {(method: M, args: Arguments<M>) => import("./contract.ts").ControlledStep} */ (control.invoke)
       return invokeControlled(method, args)
     }
     const call = /** @type {(state: State, ...args: Arguments<M>) => OwnerStep} */ (entries[method])
@@ -175,13 +191,14 @@ export function createChildExecutionDriver({owner, initialState, scope, registry
         const child = findChild(invocation)
         const requestId = BigInt(request.id)
         const installation = protocol.installation(projected, child.scope)
-        const step = installation.method === "install"
-          ? invoke("install", invocation, generation, id, requestId)
-          : installation.method === "install_source"
-            ? invoke("install_source", invocation, generation, id, requestId, installation.permission)
-            : installation.method === "install_after_source"
-              ? invoke("install_after_source", invocation, generation, id, requestId, installation.permission)
-              : invoke("install_advice", invocation, generation, id, requestId, installation.permission)
+        const step =
+          installation.method === "install"
+            ? invoke("install", invocation, generation, id, requestId)
+            : installation.method === "install_source"
+              ? invoke("install_source", invocation, generation, id, requestId, installation.permission)
+              : installation.method === "install_after_source"
+                ? invoke("install_after_source", invocation, generation, id, requestId, installation.permission)
+                : invoke("install_advice", invocation, generation, id, requestId, installation.permission)
         const outcome = applyOutcome(step)
         transferred = !outcome.rejection
         return outcome
@@ -263,7 +280,7 @@ export function createChildExecutionDriver({owner, initialState, scope, registry
       case "LaunchPostPreparation": {
         try {
           const projected = load(command.result_handle, command.preparation_invocation, "result")
-          if (projected.kind === "construction-failure") throw new Error("Invalid preparation handoff payload")
+          if (constructionFailure(projected)) throw new Error("Invalid preparation handoff payload")
           protocol.preparation(projected)
           if (command.scope.$ !== "RetainingScope") throw new Error("Invalid preparation handoff scope")
           const receipt = Object.freeze({ handoff: invocation, scope: command.scope })
@@ -325,7 +342,7 @@ export function createChildExecutionDriver({owner, initialState, scope, registry
       case "AcceptResult": {
         // Synchronous handoff in this serialized turn; no queued acceptance permit.
         const projected = load(command.result_handle, invocation, "result")
-        if (projected.kind === "construction-failure") {
+        if (constructionFailure(projected)) {
           finished.set(invocation, {
             adviceRetained: false,
             reason: projected.view.reason,
@@ -619,6 +636,7 @@ export function createChildExecutionDriver({owner, initialState, scope, registry
           const id = save(invocation, {
             kind: "result",
             value: {
+              [constructionFailureTag]: true,
               kind: "construction-failure",
               view: { $: "AdviceTailStopped", reason: constructionError.error, cleanupPending: false }
             }
@@ -758,7 +776,7 @@ export function createChildExecutionDriver({owner, initialState, scope, registry
       if (!launch || launch.$ !== "LaunchPostPreparation" || launch.receipt !== receipt)
         throw new Error("Unknown preparation handoff capability")
       const projected = required(load(launch.input_handle, receipt.handoff, "input"))
-      if (!("kind" in projected) || projected.kind !== "preparation")
+      if (!("kind" in projected) || typeof projected.kind !== "string")
         throw new Error("Wrong accepted preparation handoff")
       return { preparation: protocol.preparation(projected) }
     },
