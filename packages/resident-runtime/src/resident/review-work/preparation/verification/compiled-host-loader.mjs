@@ -14,6 +14,11 @@ const checked = new Map(
     new URL(file.replace(/^src\//u, "dist/"), packageRoot).href
   ])
 )
+const canonicalRoot = new URL("../canonical-policy/", packageRoot)
+const canonicalManifest = JSON.parse(readFileSync(new URL("package.json", canonicalRoot), "utf8"))
+for (const file of canonicalManifest.hapsland.checkedJavaScript)
+  checked.set(new URL(file, canonicalRoot).href, new URL(file.replace(/^src\//u, "dist/"), canonicalRoot).href)
+const canonicalDriver = new URL("dist/canonical/child-execution/driver.mjs", canonicalRoot).href
 const loaded = new Set()
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -41,5 +46,6 @@ process.once("beforeExit", () => {
     "src/resident/state/resolver-custody/resident-owner-transaction.mjs"
   ])
     assert.ok(loaded.has(checked.get(new URL(file, packageRoot).href)), `Compiled host was not loaded: ${file}`)
+  assert.ok(loaded.has(canonicalDriver), "Compiled Canonical child-execution driver was not loaded")
   console.log(JSON.stringify({ compiledHost: true, modules: [...loaded].sort() }))
 })
