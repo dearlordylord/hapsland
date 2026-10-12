@@ -15,7 +15,14 @@ declare const resolverState: unique symbol
 declare const resolverFrame: unique symbol
 declare const continuation: unique symbol
 export type ResolverState = { readonly [resolverState]: true }
-type ResolverFrame = { readonly [resolverFrame]: true }
+// The accepted final frame exposes only the references passed to Preparation.
+type PreparationReply = Awaited<
+  ReturnType<import("@hapsland/review-execution/direct-event/preparation").PreparationPorts["performEffect"]>
+>
+type ResolverFrame = {
+  readonly [resolverFrame]: true
+  readonly references: Extract<PreparationReply["response"], { $: "RootResolved" }>["references"]
+}
 export type Continuation = { readonly [continuation]: true }
 type SourceOutcome = ArtifactAbi<Extract<ServiceOutcome, { readonly $: "Types.FrontendResult" }>["outcome"]>
 type CacheOutcome = ArtifactAbi<Extract<ServiceOutcome, { readonly $: "Types.CacheResult" }>["outcome"]>

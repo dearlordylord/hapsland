@@ -3253,6 +3253,318 @@ def ready_old_unique_extended(+items: List<&2, Nat>, +all: List<&2, Nat>, +paylo
         ready_old_unique_extended(tail, all, payloads, next, before,
           BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.nat_count(all, head), 1n), ActualFrame.nats_unique(tail, all), unique)))
 
+def ready_next_greater(+next: Nat) -> {Nat.is_lt(next, (next + 1n : Nat)) == True{} : Bool}:
+  Equal.trans(Bool, Nat.is_lt(next, (next + 1n : Nat)), Nat.is_lt(next, (1n + next : Nat)), True{},
+    Equal.cong(Nat, Bool, bound => Nat.is_lt(next, bound), (next + 1n : Nat), (1n + next : Nat), Arithmetic.add_comm(next, 1n)),
+    NatFacts.lt_succ_self(next))
+
+def ready_new_head_count(+tail: List<&2, V.PendingPayload>, +next: Nat) ->
+    {ActualFrame.nat_count(next <> History.ids(tail, (next + 1n : Nat)), next) == 1n : Nat}:
+  Equal.trans(Nat, ActualFrame.nat_count(next <> History.ids(tail, (next + 1n : Nat)), next),
+    (1n + ActualFrame.nat_count(History.ids(tail, (next + 1n : Nat)), next) : Nat), 1n,
+    Equal.cong(Bool, Nat, same => (Bool.pick(Nat, same, 1n, 0n) + ActualFrame.nat_count(History.ids(tail, (next + 1n : Nat)), next) : Nat),
+      Nat.is_eq(next, next), True{}, NaturalKeys.nat_true_of_same(next, next, {==})),
+    Equal.cong(Nat, Nat, count => (1n + count : Nat), ActualFrame.nat_count(History.ids(tail, (next + 1n : Nat)), next), 0n,
+      ready_new_count_below(tail, (next + 1n : Nat), next, ready_next_greater(next))))
+
+def ready_new_unique_prepend(+items: List<&2, V.PendingPayload>, +next: Nat, +all: List<&2, Nat>, +prior: Nat,
+    +below: {Nat.is_lt(prior, next) == True{} : Bool},
+    +unique: {ActualFrame.nats_unique(History.ids(items, next), all) == True{} : Bool}) ->
+    {ActualFrame.nats_unique(History.ids(items, next), prior <> all) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      BoolFacts.and_eq_true(Nat.is_eq(ActualFrame.nat_count(prior <> all, next), 1n),
+        ActualFrame.nats_unique(History.ids(tail, (next + 1n : Nat)), prior <> all),
+        Equal.trans(Bool, Nat.is_eq(ActualFrame.nat_count(prior <> all, next), 1n), Nat.is_eq(ActualFrame.nat_count(all, next), 1n), True{},
+          Equal.cong(Bool, Bool, same => Nat.is_eq((Bool.pick(Nat, same, 1n, 0n) + ActualFrame.nat_count(all, next) : Nat), 1n),
+            Nat.is_eq(prior, next), False{}, ready_before_distinct(prior, next, below)),
+          BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.nat_count(all, next), 1n),
+            ActualFrame.nats_unique(History.ids(tail, (next + 1n : Nat)), all), unique)),
+        ready_new_unique_prepend(tail, (next + 1n : Nat), all, prior,
+          NatFacts.lt_trans(prior, next, (next + 1n : Nat), below, ready_next_greater(next)),
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.nat_count(all, next), 1n),
+            ActualFrame.nats_unique(History.ids(tail, (next + 1n : Nat)), all), unique)))
+
+def ready_new_ids_unique(+items: List<&2, V.PendingPayload>, +next: Nat) ->
+    {ActualFrame.nats_unique(History.ids(items, next), History.ids(items, next)) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      BoolFacts.and_eq_true(Nat.is_eq(ActualFrame.nat_count(next <> History.ids(tail, (next + 1n : Nat)), next), 1n),
+        ActualFrame.nats_unique(History.ids(tail, (next + 1n : Nat)), next <> History.ids(tail, (next + 1n : Nat))),
+        NaturalKeys.nat_true_of_same(ActualFrame.nat_count(next <> History.ids(tail, (next + 1n : Nat)), next), 1n,
+          ready_new_head_count(tail, next)),
+        ready_new_unique_prepend(tail, (next + 1n : Nat), History.ids(tail, (next + 1n : Nat)), next,
+          ready_next_greater(next), ready_new_ids_unique(tail, (next + 1n : Nat))))
+
+def ready_pending_before_raise(+items: List<&2, Nat>, +lower: Nat, +upper: Nat,
+    +before: {ActualReady.pending_ids_before(items, lower) == True{} : Bool},
+    +raised: {Nat.is_le(lower, upper) == True{} : Bool}) ->
+    {ActualReady.pending_ids_before(items, upper) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      BoolFacts.and_eq_true(Nat.is_lt(head, upper), ActualReady.pending_ids_before(tail, upper),
+        Arithmetic.lt_of_lt_of_le(head, lower, upper,
+          BoolFacts.eq_true_of_and_left(Nat.is_lt(head, lower), ActualReady.pending_ids_before(tail, lower), before), raised),
+        ready_pending_before_raise(tail, lower, upper,
+          BoolFacts.eq_true_of_and_right(Nat.is_lt(head, lower), ActualReady.pending_ids_before(tail, lower), before), raised))
+
+def ready_new_unique_extended(+items: List<&2, V.PendingPayload>, +next: Nat, +all: List<&2, Nat>, +old: List<&2, Nat>,
+    +before: {ActualReady.pending_ids_before(old, next) == True{} : Bool},
+    +unique: {ActualFrame.nats_unique(History.ids(items, next), all) == True{} : Bool}) ->
+    {ActualFrame.nats_unique(History.ids(items, next), List.append(&2, Nat, old, all)) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case _ <> +tail:
+      BoolFacts.and_eq_true(Nat.is_eq(ActualFrame.nat_count(List.append(&2, Nat, old, all), next), 1n),
+        ActualFrame.nats_unique(History.ids(tail, (next + 1n : Nat)), List.append(&2, Nat, old, all)),
+        Equal.trans(Bool, Nat.is_eq(ActualFrame.nat_count(List.append(&2, Nat, old, all), next), 1n),
+          Nat.is_eq(ActualFrame.nat_count(all, next), 1n), True{},
+          Equal.cong(Nat, Bool, count => Nat.is_eq(count, 1n), ActualFrame.nat_count(List.append(&2, Nat, old, all), next),
+            ActualFrame.nat_count(all, next),
+            Equal.trans(Nat, ActualFrame.nat_count(List.append(&2, Nat, old, all), next),
+              (ActualFrame.nat_count(old, next) + ActualFrame.nat_count(all, next) : Nat), ActualFrame.nat_count(all, next),
+              ready_nat_count_append(old, all, next),
+              Equal.cong(Nat, Nat, count => (count + ActualFrame.nat_count(all, next) : Nat), ActualFrame.nat_count(old, next), 0n,
+                ready_old_count_above(old, next, next, before, NatFacts.le_refl(next))))),
+          BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.nat_count(all, next), 1n),
+            ActualFrame.nats_unique(History.ids(tail, (next + 1n : Nat)), all), unique)),
+        ready_new_unique_extended(tail, (next + 1n : Nat), all, old,
+          ready_pending_before_raise(old, next, (next + 1n : Nat), before, NatFacts.le_of_lt(next, (next + 1n : Nat), ready_next_greater(next))),
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.nat_count(all, next), 1n),
+            ActualFrame.nats_unique(History.ids(tail, (next + 1n : Nat)), all), unique)))
+
+def ready_unique_join(+left: List<&2, Nat>, +right: List<&2, Nat>, +all: List<&2, Nat>,
+    +left_unique: {ActualFrame.nats_unique(left, all) == True{} : Bool},
+    +right_unique: {ActualFrame.nats_unique(right, all) == True{} : Bool}) ->
+    {ActualFrame.nats_unique(List.append(&2, Nat, left, right), all) == True{} : Bool}:
+  match left:
+    case []: right_unique
+    case +head <> +tail:
+      BoolFacts.and_eq_true(Nat.is_eq(ActualFrame.nat_count(all, head), 1n), ActualFrame.nats_unique(List.append(&2, Nat, tail, right), all),
+        BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.nat_count(all, head), 1n), ActualFrame.nats_unique(tail, all), left_unique),
+        ready_unique_join(tail, right, all,
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.nat_count(all, head), 1n), ActualFrame.nats_unique(tail, all), left_unique), right_unique))
+
+def ready_staged_order_unique(+old: List<&2, Nat>, +payloads: List<&2, V.PendingPayload>, +next: Nat,
+    +before: {ActualReady.pending_ids_before(old, next) == True{} : Bool},
+    unique: {ActualFrame.nats_unique(old, old) == True{} : Bool}) ->
+    {ActualFrame.nats_unique(List.append(&2, Nat, old, History.ids(payloads, next)),
+      List.append(&2, Nat, old, History.ids(payloads, next))) == True{} : Bool}:
+  ready_unique_join(old, History.ids(payloads, next), List.append(&2, Nat, old, History.ids(payloads, next)),
+    ready_old_unique_extended(old, old, payloads, next, before, unique),
+    ready_new_unique_extended(payloads, next, History.ids(payloads, next), old, before, ready_new_ids_unique(payloads, next)))
+
+def ready_map_keys_acc(-Value: Data, +tree: Map<&2, Value>, +acc: List<&2, String>) ->
+    {List.length(&2, String, Map.keys.go(&2, Value, tree, acc))
+      == (List.length(&2, String, Map.keys(&2, Value, tree)) + List.length(&2, String, acc) : Nat) : Nat}:
+  match tree:
+    case MTip{}: {==}
+    case MLeaf{_, _}: {==}
+    case MNode{_, +left, +right}:
+      Equal.trans(Nat, List.length(&2, String, Map.keys.go(&2, Value, left, Map.keys.go(&2, Value, right, acc))),
+        (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys.go(&2, Value, right, acc)) : Nat),
+        (List.length(&2, String, Map.keys(&2, Value, tree)) + List.length(&2, String, acc) : Nat),
+        ready_map_keys_acc(Value, left, Map.keys.go(&2, Value, right, acc)),
+        Equal.trans(Nat, (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys.go(&2, Value, right, acc)) : Nat),
+          ((List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) + List.length(&2, String, acc) : Nat),
+          (List.length(&2, String, Map.keys(&2, Value, tree)) + List.length(&2, String, acc) : Nat),
+          Equal.trans(Nat, (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys.go(&2, Value, right, acc)) : Nat),
+            (List.length(&2, String, Map.keys(&2, Value, left)) + (List.length(&2, String, Map.keys(&2, Value, right)) + List.length(&2, String, acc) : Nat) : Nat),
+            ((List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) + List.length(&2, String, acc) : Nat),
+            Equal.cong(Nat, Nat, count => (List.length(&2, String, Map.keys(&2, Value, left)) + count : Nat),
+              List.length(&2, String, Map.keys.go(&2, Value, right, acc)),
+              (List.length(&2, String, Map.keys(&2, Value, right)) + List.length(&2, String, acc) : Nat), ready_map_keys_acc(Value, right, acc)),
+            Equal.sym(Nat,
+              ((List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) + List.length(&2, String, acc) : Nat),
+              (List.length(&2, String, Map.keys(&2, Value, left)) + (List.length(&2, String, Map.keys(&2, Value, right)) + List.length(&2, String, acc) : Nat) : Nat),
+              Arithmetic.add_assoc(List.length(&2, String, Map.keys(&2, Value, left)), List.length(&2, String, Map.keys(&2, Value, right)), List.length(&2, String, acc)))),
+          Equal.cong(Nat, Nat, count => (count + List.length(&2, String, acc) : Nat),
+            (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+            List.length(&2, String, Map.keys(&2, Value, tree)),
+            Equal.sym(Nat, List.length(&2, String, Map.keys(&2, Value, tree)),
+              (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+              ready_map_keys_acc(Value, left, Map.keys(&2, Value, right))))))
+
+def ready_map_keys_node(-Value: Data, +position: Nat, +left: Map<&2, Value>, +right: Map<&2, Value>) ->
+    {List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right}))
+      == (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) : Nat}:
+  ready_map_keys_acc(Value, left, Map.keys(&2, Value, right))
+
+def ready_map_splice_count(-Value: Data, +value: Value, +rest: Map<&2, Value>, +position: Nat, key_bit: String & Bool) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.ins.splice.bit(&2, Value, value, rest, position, key_bit)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, rest)) : Nat) : Nat}:
+  match key_bit:
+    case Tuple{key, False{}}: ready_map_keys_node(Value, position, MLeaf{key, value}, rest)
+    case Tuple{key, True{}}:
+      Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, rest, MLeaf{key, value}})),
+        (List.length(&2, String, Map.keys(&2, Value, rest)) + 1n : Nat),
+        (1n + List.length(&2, String, Map.keys(&2, Value, rest)) : Nat),
+        ready_map_keys_node(Value, position, rest, MLeaf{key, value}), Arithmetic.add_comm(List.length(&2, String, Map.keys(&2, Value, rest)), 1n))
+
+def ready_map_left_growth(-Value: Data, +position: Nat, +left: Map<&2, Value>, +right: Map<&2, Value>, +updated: Map<&2, Value>,
+    grows: {List.length(&2, String, Map.keys(&2, Value, updated)) == (1n + List.length(&2, String, Map.keys(&2, Value, left)) : Nat) : Nat}) ->
+    {List.length(&2, String, Map.keys(&2, Value, MNode{position, updated, right}))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat) : Nat}:
+  Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, updated, right})),
+    (List.length(&2, String, Map.keys(&2, Value, updated)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+    (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat),
+    ready_map_keys_node(Value, position, updated, right),
+    Equal.trans(Nat, (List.length(&2, String, Map.keys(&2, Value, updated)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+      (1n + (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) : Nat),
+      (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat),
+      Equal.cong(Nat, Nat, count => (count + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+        List.length(&2, String, Map.keys(&2, Value, updated)), (1n + List.length(&2, String, Map.keys(&2, Value, left)) : Nat), grows),
+      Equal.cong(Nat, Nat, count => (1n + count : Nat),
+        (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+        List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})),
+        Equal.sym(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})),
+          (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+          ready_map_keys_node(Value, position, left, right)))))
+
+def ready_map_right_growth(-Value: Data, +position: Nat, +left: Map<&2, Value>, +right: Map<&2, Value>, +updated: Map<&2, Value>,
+    grows: {List.length(&2, String, Map.keys(&2, Value, updated)) == (1n + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) : Nat}) ->
+    {List.length(&2, String, Map.keys(&2, Value, MNode{position, left, updated}))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat) : Nat}:
+  Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, left, updated})),
+    (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, updated)) : Nat),
+    (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat),
+    ready_map_keys_node(Value, position, left, updated),
+    Equal.trans(Nat, (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, updated)) : Nat),
+      (1n + (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) : Nat),
+      (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat),
+      Equal.trans(Nat, (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, updated)) : Nat),
+        (List.length(&2, String, Map.keys(&2, Value, left)) + (1n + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) : Nat),
+        (1n + (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) : Nat),
+        Equal.cong(Nat, Nat, count => (List.length(&2, String, Map.keys(&2, Value, left)) + count : Nat),
+          List.length(&2, String, Map.keys(&2, Value, updated)), (1n + List.length(&2, String, Map.keys(&2, Value, right)) : Nat), grows),
+        pair_count_exchange(0n, List.length(&2, String, Map.keys(&2, Value, left)), 1n, List.length(&2, String, Map.keys(&2, Value, right)))),
+      Equal.cong(Nat, Nat, count => (1n + count : Nat),
+        (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+        List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})),
+        Equal.sym(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})),
+          (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat),
+          ready_map_keys_node(Value, position, left, right)))))
+
+def ready_map_ins_node_count(-Value: Data, +position: Nat, +left: Map<&2, Value>, +right: Map<&2, Value>, +value: Value,
+    +pivot: Nat, key_bit: String & Bool, +deep: Bool,
+    left_count: @key: String -> {List.length(&2, String, Map.keys(&2, Value, Map.ins(&2, Value, left, key, value, pivot)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, left)) : Nat) : Nat},
+    right_count: @key: String -> {List.length(&2, String, Map.keys(&2, Value, Map.ins(&2, Value, right, key, value, pivot)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, right)) : Nat) : Nat}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.ins.go(&2, Value, MNode{position, left, right}, value, pivot, key_bit, deep)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat) : Nat}:
+  match key_bit deep:
+    case Tuple{+key, +side} False{}:
+      Equal.trans(Nat,
+        List.length(&2, String, Map.keys(&2, Value, Map.ins.go(&2, Value, MNode{position, left, right}, value, pivot, Tuple{key, side}, False{}))),
+        List.length(&2, String, Map.keys(&2, Value, Map.ins.splice(&2, Value, pivot, key, value, MNode{position, left, right}))),
+        (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat),
+        Equal.cong(Map<&2, Value>, Nat, tree => List.length(&2, String, Map.keys(&2, Value, tree)),
+          Map.ins.go(&2, Value, MNode{position, left, right}, value, pivot, Tuple{key, side}, False{}),
+          Map.ins.splice(&2, Value, pivot, key, value, MNode{position, left, right}),
+          Payload.ins_above_split(Value, position, left, right, key, value, pivot, side)),
+        ready_map_splice_count(Value, value, MNode{position, left, right}, pivot, Map.bit(key, pivot)))
+    case Tuple{+key, False{}} True{}:
+      Equal.trans(Nat,
+        List.length(&2, String, Map.keys(&2, Value, Map.ins.go(&2, Value, MNode{position, left, right}, value, pivot, Tuple{key, False{}}, True{}))),
+        List.length(&2, String, Map.keys(&2, Value, MNode{position, Map.ins(&2, Value, left, key, value, pivot), right})),
+        (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat),
+        Equal.cong(Map<&2, Value>, Nat, tree => List.length(&2, String, Map.keys(&2, Value, tree)),
+          Map.ins.go(&2, Value, MNode{position, left, right}, value, pivot, Tuple{key, False{}}, True{}),
+          MNode{position, Map.ins(&2, Value, left, key, value, pivot), right}, Payload.ins_node_split(Value, position, left, right, key, value, pivot, False{})),
+        ready_map_left_growth(Value, position, left, right, Map.ins(&2, Value, left, key, value, pivot), left_count(key)))
+    case Tuple{+key, True{}} True{}:
+      Equal.trans(Nat,
+        List.length(&2, String, Map.keys(&2, Value, Map.ins.go(&2, Value, MNode{position, left, right}, value, pivot, Tuple{key, True{}}, True{}))),
+        List.length(&2, String, Map.keys(&2, Value, MNode{position, left, Map.ins(&2, Value, right, key, value, pivot)})),
+        (1n + List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat),
+        Equal.cong(Map<&2, Value>, Nat, tree => List.length(&2, String, Map.keys(&2, Value, tree)),
+          Map.ins.go(&2, Value, MNode{position, left, right}, value, pivot, Tuple{key, True{}}, True{}),
+          MNode{position, left, Map.ins(&2, Value, right, key, value, pivot)}, Payload.ins_node_split(Value, position, left, right, key, value, pivot, True{})),
+        ready_map_right_growth(Value, position, left, right, Map.ins(&2, Value, right, key, value, pivot), right_count(key)))
+
+def ready_map_ins_count(-Value: Data, +tree: Map<&2, Value>, +key: String, +value: Value, +pivot: Nat) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.ins(&2, Value, tree, key, value, pivot)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, tree)) : Nat) : Nat}:
+  match tree:
+    case MTip{}: {==}
+    case MLeaf{_, _}: ready_map_splice_count(Value, value, tree, pivot, Map.bit(key, pivot))
+    case MNode{+position, +left, +right}:
+      ready_map_ins_node_count(Value, position, left, right, value, pivot, Map.bit(key, position), Nat.is_lt(position, pivot),
+        query => ready_map_ins_count(Value, left, query, value, pivot), query => ready_map_ins_count(Value, right, query, value, pivot))
+
+def ready_map_empty_count(-Value: Data, +tree: Map<&2, Value>,
+    empty: {Patricia.nonempty(Value, tree) == False{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Value, tree)) == 0n : Nat}:
+  match tree:
+    case MTip{}: {==}
+    case MLeaf{_, _}:
+      Empty.absurd({List.length(&2, String, Map.keys(&2, Value, tree)) == 0n : Nat},
+        NatFacts.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, empty)))
+    case MNode{_, _, _}:
+      Empty.absurd({List.length(&2, String, Map.keys(&2, Value, tree)) == 0n : Nat},
+        NatFacts.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, empty)))
+
+def ready_map_set_order_count(-Value: Data, +tree: Map<&2, Value>, +key: String, +value: Value, +old: String, +order: Cmp,
+    test: {Insert.comparison_order(String.cmp(key, old)) == order : Cmp},
+    absent: {String.eq(key, old) == False{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.set.fin.go(&2, Value, tree, key, value, Tuple{Tuple{key, old}, order})))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, tree)) : Nat) : Nat}:
+  match order:
+    case EQ{}:
+      Empty.absurd({List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, tree, key, value)))
+        == (1n + List.length(&2, String, Map.keys(&2, Value, tree)) : Nat) : Nat},
+        NatFacts.internal_false_ne_true(Equal.trans(Bool, False{}, String.eq(key, old), True{},
+          Equal.sym(Bool, String.eq(key, old), False{}, absent), Payload.comparison_at(key, old, EQ{}, test))))
+    case LT{}: ready_map_ins_count(Value, tree, key, value, Map.diff(key, old))
+    case GT{}: ready_map_ins_count(Value, tree, key, value, Map.diff(key, old))
+
+def ready_map_set_fin_count(-Value: Data, +tree: Map<&2, Value>, +key: String, +value: Value, +old: String,
+    absent: {String.eq(key, old) == False{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.set.fin(&2, Value, tree, key, value, key, old)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, tree)) : Nat) : Nat}:
+  %Equal.sym((String & String) & Cmp, String.cmp(key, old),
+    Tuple{Tuple{key, old}, Insert.comparison_order(String.cmp(key, old))}, Insert.comparison_preserves_keys(key, old)):
+    {List.length(&2, String, Map.keys(&2, Value, Map.set.fin.go(&2, Value, tree, key, value, _)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, tree)) : Nat) : Nat}
+  ready_map_set_order_count(Value, tree, key, value, old, Insert.comparison_order(String.cmp(key, old)), {==}, absent)
+
+def ready_map_set_found_count(-Value: Data, +found: Maybe<&2, String>, +tree: Map<&2, Value>, +key: String, +value: Value,
+    witness: {Insert.selected(Value, tree, key) == found : Maybe<&2, String>},
+    valid: {Patricia.canonical(Value, tree) == True{} : Bool},
+    absent: {Membership.selected_equal(found, key) == False{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.set.go(&2, Value, value, Tuple{tree, Tuple{key, found}})))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, tree)) : Nat) : Nat}:
+  match found:
+    case None{}:
+      Equal.cong(Nat, Nat, count => (1n + count : Nat), 0n, List.length(&2, String, Map.keys(&2, Value, tree)),
+        Equal.sym(Nat, List.length(&2, String, Map.keys(&2, Value, tree)), 0n,
+          ready_map_empty_count(Value, tree,
+            Equal.trans(Bool, Patricia.nonempty(Value, tree), Patricia.first_leaf_some(Insert.selected(Value, tree, key)), False{},
+              Equal.sym(Bool, Patricia.first_leaf_some(Insert.selected(Value, tree, key)), Patricia.nonempty(Value, tree),
+                Insert.selected_present(Value, tree, key, valid)),
+              Equal.cong(Maybe<&2, String>, Bool, Patricia.first_leaf_some, Insert.selected(Value, tree, key), None{}, witness)))))
+    case Some{old}: ready_map_set_fin_count(Value, tree, key, value, old, absent)
+
+def ready_map_set_fresh_count(-Value: Data, +tree: Map<&2, Value>, +key: String, +value: Value,
+    valid: {Patricia.canonical(Value, tree) == True{} : Bool},
+    absent: {Membership.has_value(Value, Map.has(&2, Value, tree, key)) == False{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.set(&2, Value, tree, key, value)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, tree)) : Nat) : Nat}:
+  %Equal.sym(Map<&2, Value> & String & Maybe<&2, String>, Map.seek(&2, Value, tree, key),
+    Tuple{tree, Tuple{key, Insert.selected(Value, tree, key)}}, Insert.seek_exact(Value, tree, key)):
+    {List.length(&2, String, Map.keys(&2, Value, Map.set.go(&2, Value, value, _)))
+      == (1n + List.length(&2, String, Map.keys(&2, Value, tree)) : Nat) : Nat}
+  ready_map_set_found_count(Value, Insert.selected(Value, tree, key), tree, key, value, {==}, valid,
+    Equal.trans(Bool, Membership.selected_equal(Insert.selected(Value, tree, key), key),
+      Membership.has_value(Value, Map.has(&2, Value, tree, key)), False{},
+      Equal.sym(Bool, Membership.has_value(Value, Map.has(&2, Value, tree, key)), Membership.selected_equal(Insert.selected(Value, tree, key), key),
+        Equal.cong(Map<&2, Value> & Bool, Bool, pair => Membership.has_value(Value, pair),
+          Map.has(&2, Value, tree, key), Tuple{tree, Membership.selected_equal(Insert.selected(Value, tree, key), key)}, Membership.has_exact(Value, tree, key))), absent))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

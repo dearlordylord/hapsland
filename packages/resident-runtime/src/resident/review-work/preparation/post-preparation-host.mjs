@@ -1012,10 +1012,13 @@ export function createPostPreparationProvider(
               if (cause !== undefined) await run(Effect.failCause(cause))
               throw error
             }
-            if (!accepted.adviceRetained) {
-              const cause = tail.provider.terminationCause ?? tail.provider.cause(accepted.reason?.token)
+            if (!("adviceRetained" in accepted) || !accepted.adviceRetained) {
+              const reason = "reason" in accepted ? accepted.reason : undefined
+              const token = reason && "token" in reason ? reason.token : undefined
+              const cause =
+                tail.provider.terminationCause ?? (token === undefined ? undefined : tail.provider.cause(token))
               if (cause !== undefined) await run(Effect.failCause(cause))
-              throw tail.provider.error(accepted.reason?.token) ?? new Error("Advice tail failed")
+              throw (token === undefined ? undefined : tail.provider.error(token)) ?? new Error("Advice tail failed")
             }
             break
           }

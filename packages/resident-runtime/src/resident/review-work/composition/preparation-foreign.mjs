@@ -383,7 +383,7 @@ export function createPreparationForeign({
           }
         }
         onRoot?.(rootFacts)
-        /** @type {Awaited<ReturnType<typeof driver.drive>> | undefined} */
+        /** @type {import("./owned-artifact-driver.mjs").GraphOutcome | undefined} */
         let terminal
         const child = owner.find(request.invocation, driver.state.children)
         if (child.$ !== "Some") throw new TypeError("Missing preparation parent invocation")

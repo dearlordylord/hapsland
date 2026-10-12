@@ -14,8 +14,24 @@ import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
  * @typedef {{failures: Failure[], rejection: Failure | undefined}} ActionOutcome
  * @typedef {import("@hapsland/runtime-environment/runtime/native-session-registry").NativeSession & {revoke(): unknown, finish?: () => unknown | Promise<unknown>, exception?: (token: Parameters<Parameters<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").createBendResolver>[0]["drive"]>[0] extends {exception: (token: infer T) => unknown} ? T : never) => unknown, forceCleanup?: (error: unknown) => unknown}} NativeSession
  * @typedef {Extract<ownedMachine.Projection["view"], {$: "Types.AwaitService"}>["request"]} Request
- * @typedef {{signal?: AbortSignal, ownerLease?: {invocation: bigint, generation: bigint, lease: bigint, request: bigint}}} ForeignOptions
- * @typedef {{beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, afterAction?: (event: {command: Action, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, canonicalOutputs?: (outputs: readonly import("@hapsland/agent-flow-bend/canonical-resolver-owner").OwnerTransport<import("@hapsland/canonical-policy/canonical/adapter").CanonicalOutput>[]) => unknown, beforeProvider?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown}} Hooks
+ * @typedef {{signal?: AbortSignal | undefined, ownerLease?: {invocation: bigint, generation: bigint, lease: bigint, request: bigint}}} ForeignOptions
+ * @typedef {{beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, afterAction?: (event: {command: Action, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, canonicalOutputs?: (outputs: readonly (Extract<Step, {$: "Advanced"}>["outputs"] extends import("@hapsland/agent-flow-bend/canonical-resolver-owner").List<infer O> ? O : never)[]) => unknown, beforeProvider?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown, beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: Request, driver: ReturnType<typeof createOwnedArtifactDriver>}) => unknown}} Hooks
+ * @typedef {{kind: "construction-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} ConstructionFailure
+ * @typedef {ownedMachine.Projection | ConstructionFailure} ResultPayload
+ * @typedef {{origin: bigint, value: unknown}} AdviceInput
+ * @typedef {{value: ownedMachine.Reply} | {error: unknown}} ReplyPayload
+ * @typedef {{kind: "state", value: ownedMachine.Continuation} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: ownedMachine.Input | ownedMachine.Projection | AdviceInput | undefined} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined}} Payload
+ * @typedef {Payload & {invocation: bigint}} HeldResource
+ * @typedef {{handoff: bigint, scope: Extract<Scope, {$: "RetainingScope"}>}} PreparationHandoff
+ * @typedef {{handoff: bigint, scope: Extract<Scope, {$: "AdviceTailScope"}>}} AdviceHandoff
+ * @typedef {Extract<Action, {$: "Launch"}> | (Extract<Action, {$: "LaunchPostPreparation"}> & {input_handle: bigint, receipt: PreparationHandoff}) | (Extract<Action, {$: "LaunchAdviceTail"}> & {receipt: AdviceHandoff})} Launch
+ * @typedef {ReturnType<typeof ownedMachine.accepted> | PreparationHandoff | {adviceRetained: false, reason: unknown, cleanupPending: boolean}} TerminalOutcome
+ * @typedef {{failure: {$: "Types.InvocationCancelled"}}} CancellationOutcome
+ * @typedef {Extract<TerminalOutcome, {result: object}> | Extract<TerminalOutcome, {failure: {$: string}}>} GraphOutcome
+ * @typedef {PreparationHandoff | ReturnType<ownedMachine.PreparationMachine["accepted"]> | CancellationOutcome} PreparationOutcome
+ * @typedef {ReturnType<ownedMachine.SourceMachine["accepted"]> | CancellationOutcome} SourceOutcome
+ * @typedef {ReturnType<ownedMachine.PostMachine["accepted"]> | CancellationOutcome} PostOutcome
+ * @typedef {ReturnType<ownedMachine.AdviceMachine["accepted"]> | CancellationOutcome} AdviceOutcome
  * @typedef {{command: Extract<Action, {$: "CancelChild"}>, completed: Set<number>}} CancellationCleanup
  */
 /**
@@ -97,11 +113,16 @@ export function createOwnedArtifactDriver({
       throw new TypeError("Wrong after-source permission binding")
     return projected.machine.afterPermission(projected.view.request)
   }
-  const resources = new Map(),
-    leases = new Map(),
-    launches = new Map(),
-    sessions = new Map(),
-    finished = new Map()
+  /** @type {Map<bigint, HeldResource>} */
+  const resources = new Map()
+  /** @type {Map<bigint, {invocation: bigint, request: Request, controller: AbortController}>} */
+  const leases = new Map()
+  /** @type {Map<bigint, Launch>} */
+  const launches = new Map()
+  /** @type {Map<bigint, NativeSession>} */
+  const sessions = new Map()
+  /** @type {Map<bigint, TerminalOutcome>} */
+  const finished = new Map()
   /** @type {WeakSet<NativeSession>} */
   const finalizedSessions = new WeakSet()
   /** @param {NativeSession} session */
@@ -146,12 +167,18 @@ export function createOwnedArtifactDriver({
     if (value.$ !== "Nil") throw new Error("Malformed owner action list")
     return out
   }
-  const save = (invocation, kind, value) => {
+  /** @param {bigint} invocation @param {Payload} payload */
+  const save = (invocation, payload) => {
     const id = nextHandle++
-    resources.set(id, { invocation, kind, value })
+    resources.set(id, { invocation, ...payload })
     return id
   }
-  const load = (id, invocation, kind) => {
+  /** @overload @param {bigint} id @param {bigint} invocation @param {"state"} kind @returns {ownedMachine.Continuation} */
+  /** @overload @param {bigint} id @param {bigint} invocation @param {"result"} kind @returns {ResultPayload} */
+  /** @overload @param {bigint} id @param {bigint} invocation @param {"reply"} kind @returns {ReplyPayload} */
+  /** @overload @param {bigint} id @param {bigint} invocation @param {"input"} kind @returns {ownedMachine.Input | ownedMachine.Projection | AdviceInput | undefined} */
+  /** @param {bigint} id @param {bigint} invocation @param {Payload["kind"]} kind @returns {Payload["value"]} */
+  function load(id, invocation, kind) {
     const held = resources.get(id)
     if (!held || held.invocation !== invocation || held.kind !== kind)
       throw new Error("Wrong opaque resource ownership")
@@ -165,6 +192,7 @@ export function createOwnedArtifactDriver({
       stats.discarded++
     }
   }
+  /** @returns {Extract<TerminalOutcome, {failure: object}>} */
   const failed = () => ({ failure: { $: "Types.InvocationCancelled" } })
   /** @param {bigint} invocation @param {bigint} generation @param {ownedMachine.Continuation} raw @returns {ActionOutcome} */
   const settleOutcome = (invocation, generation, raw) => {
@@ -172,7 +200,7 @@ export function createOwnedArtifactDriver({
     const projection = projected.view
     if (projection.$ === "Types.AwaitService") {
       if (projection.request.invocation !== invocation) throw new Error("Artifact request owner mismatch")
-      const id = save(invocation, "state", raw)
+      const id = save(invocation, { kind: "state", value: raw })
       let transferred = false
       try {
         hooks.beforeInstall?.({ invocation, generation, handle: id, request: projection.request, driver })
@@ -193,7 +221,7 @@ export function createOwnedArtifactDriver({
         if (!transferred) release(id, invocation)
       }
     } else {
-      const id = save(invocation, "result", projected)
+      const id = save(invocation, { kind: "result", value: projected })
       try {
         hooks.beforeTerminal?.({ invocation, generation, handle: id, driver })
         const child = findChild(invocation)
@@ -244,7 +272,7 @@ export function createOwnedArtifactDriver({
     for (let index = 0; index < operations.length; index++) {
       if (completed.has(index)) continue
       try {
-        operations[index]()
+        required(operations[index])()
         completed.add(index)
       } catch (error) {
         failures.push({ phase: "action", command, operation: index, error })
@@ -277,7 +305,9 @@ export function createOwnedArtifactDriver({
         try {
           const projected = load(command.result_handle, command.preparation_invocation, "result")
           const result = projected.view
-          if (result.$ !== "PreparationFinished") throw new Error("Invalid preparation handoff payload")
+          if (projected.kind !== "preparation" || result.$ !== "PreparationFinished")
+            throw new Error("Invalid preparation handoff payload")
+          if (command.scope.$ !== "RetainingScope") throw new Error("Invalid preparation handoff scope")
           const receipt = Object.freeze({ handoff: invocation, scope: command.scope })
           resources.set(command.result_handle, { invocation, kind: "input", value: projected })
           launches.set(invocation, { ...command, input_handle: command.result_handle, receipt })
@@ -299,8 +329,10 @@ export function createOwnedArtifactDriver({
         break
       }
       case "ExecuteProvider": {
-        const raw = load(command.state_handle, invocation, "state"),
-          request = ownedMachine.view(raw).view.request
+        const raw = load(command.state_handle, invocation, "state")
+        const projected = ownedMachine.view(raw).view
+        if (projected.$ !== "Types.AwaitService") throw new Error("Provider requires its Await")
+        const request = projected.request
         if (request.invocation !== invocation || request.id !== command.request)
           throw new Error("Provider Await binding mismatch")
         if (leases.has(command.lease)) throw new Error("Duplicate provider lease")
@@ -311,7 +343,7 @@ export function createOwnedArtifactDriver({
       case "Resume": {
         const raw = load(command.state_handle, invocation, "state"),
           reply = load(command.reply_handle, invocation, "reply")
-        if (Object.hasOwn(reply, "error")) throw reply.error
+        if ("error" in reply) throw reply.error
         stats.resumes++
         return settleOutcome(invocation, command.generation, ownedMachine.resume(raw, reply.value))
       }
@@ -337,6 +369,16 @@ export function createOwnedArtifactDriver({
         // Synchronous handoff in this serialized turn; no queued acceptance permit.
         const projected = load(command.result_handle, invocation, "result")
         const result = projected.view
+        if (projected.kind === "construction-failure") {
+          finished.set(invocation, {
+            adviceRetained: false,
+            reason: projected.view.reason,
+            cleanupPending: projected.view.cleanupPending
+          })
+          release(command.result_handle, invocation)
+          stats.accepted++
+          break
+        }
         finished.set(
           invocation,
           result.$ === "AdviceTailStopped"
@@ -398,11 +440,311 @@ export function createOwnedArtifactDriver({
   }
   /** @param {Step} step */
   const apply = (step) => unwrap(applyOutcome(step))
+  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.ArtifactMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<GraphOutcome>} */
+  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.PreparationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PreparationOutcome>} */
+  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.SourceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<SourceOutcome>} */
+  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.PostMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
+  /** @overload @param {NativeSession} session @param {Parameters<ownedMachine.AdviceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
+  /** @param {NativeSession} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
+  async function driveInvocation(session, input, options = {}) {
+    if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
+      throw new Error("Session already owned by an active invocation")
+    const invocation = BigInt(input.invocation),
+      launch = launches.get(invocation)
+    if (!launch)
+      return registry.run(session, async () => {
+        throw new Error("Missing Canonical Launch")
+      })
+    let taskEntered = false,
+      registryRejected = false
+    /** @type {Failure | undefined} */
+    let constructionError
+    /** @type {TerminalOutcome | undefined} */
+    let outcome
+    /** @type {Failure | undefined} */
+    let taskFailure
+    /** @type {Failure[]} */
+    const failures = []
+    /** @param {unknown} error */
+    const rememberFailure = (error) => {
+      const receipt = { phase: "boundary", error }
+      failures.push(receipt)
+      return receipt
+    }
+    // Only synchronous, known outcome-to-throw edges use this local slot.
+    // Arbitrary foreign callbacks remain observable failures at their boundary.
+    /** @type {Failure | undefined} */
+    let forwardedReceipt
+    /** @param {ActionOutcome} result */
+    const requireOutcome = (result) => {
+      failures.push(...result.failures)
+      if (result.rejection) {
+        forwardedReceipt = result.rejection
+        throw result.rejection.error
+      }
+    }
+    /** @param {unknown} error */
+    const takeFailure = (error) => {
+      const receipt = forwardedReceipt ?? rememberFailure(error)
+      forwardedReceipt = undefined
+      return receipt
+    }
+    // Project opaque terminal exceptions while this invocation still owns its
+    // session. Registry cleanup clears the token table after the task settles.
+    const terminalOutcome = () => {
+      const outcome = required(finished.get(invocation))
+      if (
+        "failure" in outcome &&
+        "$" in outcome.failure &&
+        (outcome.failure.$ === "Types.ForeignProviderFailure" || outcome.failure.$ === "Types.RuntimeFailure")
+      )
+        throw required(session.exception)(outcome.failure.exception)
+      if ("failure" in outcome && "$" in outcome.failure && outcome.failure.$ === "Types.NegativeGraphWork")
+        readNat(-Number(outcome.failure.magnitude))
+      return outcome
+    }
+    /** @param {Step} step */
+    const applyInInvocation = (step) => requireOutcome(applyOutcome(step))
+    /** @param {Parameters<typeof settleOutcome>} args */
+    const settleInInvocation = (...args) => requireOutcome(settleOutcome(...args))
+    try {
+      launches.delete(invocation)
+      sessions.set(invocation, session)
+      machines.set(invocation, (selectMachine ? selectMachine(input) : undefined) ?? machine)
+      resources.set(launch.input_handle, { invocation, kind: "input", value: input })
+      const registryOutcome = await registry.runOutcome(session, async () => {
+        taskEntered = true
+        /** @type {Failure | undefined} */
+        let abortFailure
+        const abort = () => {
+          try {
+            const child = owner.find(invocation, current().children)
+            if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
+          } catch (error) {
+            const receipt = takeFailure(error)
+            abortFailure ??= receipt
+          }
+        }
+        options.signal?.addEventListener("abort", abort, { once: true })
+        const finishTaskSession = async () => {
+          try {
+            await finishSession(session)
+          } catch (error) {
+            taskFailure = rememberFailure(error)
+            throw error
+          }
+        }
+        try {
+          if (options.signal?.aborted) abort()
+          if (finished.has(invocation)) {
+            if (abortFailure) {
+              taskFailure = abortFailure
+              throw abortFailure.error
+            }
+            return terminalOutcome()
+          }
+          try {
+            settleInInvocation(invocation, 0n, ownedMachine.initial(engine(invocation), input))
+          } finally {
+            release(launch.input_handle, invocation)
+          }
+          while (!finished.has(invocation)) {
+            applyInInvocation(invoke("provider_start", invocation))
+            const child = findChild(invocation)
+            if (child.lease.$ !== "Some") throw new Error("Provider start lacks its Canonical lease")
+            const leaseId = child.lease.value.id
+            const lease = required(leases.get(leaseId))
+            /** @type {ReplyPayload} */
+            let payload
+            try {
+              const signal = options.signal
+                ? AbortSignal.any([options.signal, lease.controller.signal])
+                : lease.controller.signal
+              hooks.beforeProvider?.({ invocation, lease: leaseId, request: lease.request, driver })
+              payload = {
+                value: await foreign([lease.request], {
+                  ...options,
+                  signal,
+                  ownerLease: Object.freeze({
+                    invocation,
+                    generation: child.generation,
+                    lease: leaseId,
+                    request: BigInt(lease.request.id)
+                  })
+                })
+              }
+            } catch (error) {
+              payload = { error }
+            }
+            const replyId = save(invocation, { kind: "reply", value: payload })
+            try {
+              hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
+              applyInInvocation(invoke("provider_completed", invocation, leaseId, BigInt(lease.request.id), replyId))
+            } catch (error) {
+              taskFailure = takeFailure(error)
+              try {
+                const child = owner.find(invocation, current().children)
+                if (child.$ === "Some" && owner.child_active(child.value))
+                  applyInInvocation(invoke("cancel", invocation))
+              } catch (cleanupError) {
+                takeFailure(cleanupError)
+              }
+              if (leases.has(leaseId)) {
+                try {
+                  applyInInvocation(
+                    invoke("provider_completed", invocation, leaseId, BigInt(lease.request.id), replyId)
+                  )
+                } catch (cleanupError) {
+                  takeFailure(cleanupError)
+                }
+              }
+              throw error
+            } finally {
+              release(replyId, invocation)
+            }
+          }
+          if (abortFailure) {
+            taskFailure = abortFailure
+            throw abortFailure.error
+          }
+          return terminalOutcome()
+        } catch (error) {
+          taskFailure ??= takeFailure(error)
+          try {
+            const child = owner.find(invocation, current().children)
+            if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
+          } catch (cleanupError) {
+            taskFailure = takeFailure(cleanupError)
+            throw cleanupError
+          }
+          throw error
+        } finally {
+          options.signal?.removeEventListener("abort", abort)
+          // Provider await has settled before registry.run closes native resources.
+          await finishTaskSession()
+        }
+      })
+      for (const receipt of registryOutcome.failures)
+        if (receipt.phase !== "task" || !taskFailure) rememberFailure(receipt.error)
+      if (registryOutcome.rejection) {
+        registryRejected = true
+        throw registryOutcome.rejection.error
+      }
+      if (registryOutcome.task.status !== "success") throw new Error("Unsettled invocation task")
+      outcome = registryOutcome.task.value
+    } catch (error) {
+      if (!registryRejected) takeFailure(error)
+      try {
+        const child = owner.find(invocation, current().children)
+        if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
+        if (!taskEntered && child.$ === "Some" && child.value.scope.$ === "AdviceTailScope") {
+          constructionError = required(failures[0])
+          session.forceCleanup?.(constructionError.error)
+        }
+      } catch (cleanupError) {
+        takeFailure(cleanupError)
+      }
+    }
+    const releaseInvocation = () => {
+      // Keep the selected engine/session reachable if native close fails.
+      if (!taskEntered && registry.get(Number(invocation)) !== session) session.close?.()
+      if (!cancellationCleanup.get(invocation)?.completed.has(1)) engine(invocation).disposeInvocation(invocation)
+      cancellationCleanup.delete(invocation)
+      machines.delete(invocation)
+      sessions.delete(invocation)
+      finished.delete(invocation)
+      for (const [id, held] of resources) if (held.invocation === invocation) release(id, invocation)
+    }
+    const completeInvocationOutcome = async () => {
+      /** @type {Failure[]} */
+      const attemptFailures = []
+      /** @param {Step} step */
+      const applyAttempt = (step) => {
+        const result = applyOutcome(step)
+        attemptFailures.push(...result.failures)
+        return result.rejection
+      }
+      try {
+        const pendingCancellation = cancellationCleanup.get(invocation)
+        if (pendingCancellation) {
+          const cleanup = runCancellationCleanup(pendingCancellation)
+          attemptFailures.push(...cleanup.failures)
+          if (cleanup.rejection) return { failures: attemptFailures, rejection: attemptFailures[0] }
+        }
+        let child = owner.find(invocation, current().children)
+        if (child.$ === "Some" && child.value.lease.$ !== "None")
+          throw new Error("Finalization still owns a provider lease")
+        // Call finish directly here: a failing retry must not replace its registry
+        // obligation, or a subsequent successful retry cannot discharge that owner.
+        if (!finalizedSessions.has(session)) {
+          await session.finish?.()
+          finalizedSessions.add(session)
+        }
+        if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
+          const id = save(invocation, {
+            kind: "result",
+            value: {
+              kind: "construction-failure",
+              view: { $: "AdviceTailStopped", reason: constructionError.error, cleanupPending: false }
+            }
+          })
+          try {
+            if (applyAttempt(invoke("terminal", invocation, child.value.generation, id)))
+              return { failures: attemptFailures, rejection: attemptFailures[0] }
+          } finally {
+            release(id, invocation)
+          }
+        }
+        child = owner.find(invocation, current().children)
+        if (child.$ === "Some" && owner.child_active(child.value)) {
+          if (applyAttempt(invoke("cancel", invocation)))
+            return { failures: attemptFailures, rejection: attemptFailures[0] }
+          child = owner.find(invocation, current().children)
+          if (child.$ === "Some" && owner.child_active(child.value))
+            throw new Error("Finalization has no closed Canonical owner")
+        }
+        releaseInvocation()
+      } catch (error) {
+        attemptFailures.push({ phase: "finalization", error })
+      }
+      return { failures: attemptFailures, rejection: attemptFailures[0] }
+    }
+    const completeInvocation = async () => {
+      const attempt = await completeInvocationOutcome()
+      if (attempt.failures.length > 1)
+        throw new AggregateError(
+          attempt.failures.map((receipt) => receipt.error),
+          "Finalization attempt failed",
+          { cause: required(attempt.rejection).error }
+        )
+      unwrap(attempt)
+    }
+    const finalization = await completeInvocationOutcome()
+    failures.push(...finalization.failures)
+    if (finalization.rejection) registry.retainCleanup(session, completeInvocation)
+    if (failures.length === 1) throw required(failures[0]).error
+    if (failures.length > 1) {
+      /** @type {unknown} */
+      let primary = required(failures[0]).error
+      const seen = new Set()
+      while (primary instanceof AggregateError && Object.hasOwn(primary, "cause") && !seen.has(primary.cause)) {
+        seen.add(primary)
+        primary = primary.cause
+      }
+      throw new AggregateError(
+        failures.map((receipt) => receipt.error),
+        "Invocation and finalization failed",
+        { cause: primary }
+      )
+    }
+    return required(outcome)
+  }
   const driver = {
+    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent | undefined} [parent] @param {boolean} [preparation] @param {Scope} [issuedScope] @returns {number} */
     allocateInvocation(parent, preparation = false, issuedScope = scope) {
       if (current().next_invocation < 1n || current().next_invocation > BigInt(Number.MAX_SAFE_INTEGER))
         throw new RangeError("Invocation exceeds exact native ID range")
-      const inputId = save(0n, "pending-input", undefined)
+      const inputId = save(0n, { kind: "pending-input", value: undefined })
       try {
         apply(
           parent
@@ -423,28 +765,35 @@ export function createOwnedArtifactDriver({
         throw error
       }
     },
+    /** @param {Scope} [issuedScope] @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent | undefined} [parent] @returns {number} */
     allocatePreparationInvocation(issuedScope = scope, parent) {
       return driver.allocateInvocation(parent, true, issuedScope)
     },
+    /** @param {Scope} issuedScope @returns {number} */
     allocateSourceInvocation(issuedScope) {
       return driver.allocateInvocation(undefined, false, issuedScope)
     },
+    /** @param {bigint} origin @param {unknown} value */
     prepareAdviceInput(origin, value) {
       if (typeof origin !== "bigint" || origin < 1n) throw new Error("Advice input requires its origin")
-      return save(0n, "advice-input", { origin, value })
+      return save(0n, { kind: "advice-input", value: { origin, value } })
     },
+    /** @param {bigint} origin @param {bigint} handle */
     validateAdviceInput(origin, handle) {
       const held = resources.get(handle)
       return !!held && held.invocation === 0n && held.kind === "advice-input" && held.value.origin === origin
     },
+    /** @param {bigint} handle */
     releaseAdviceInput(handle) {
       release(handle, 0n)
     },
+    /** @param {bigint} invocation @returns {AdviceHandoff} */
     adviceHandoff(invocation) {
       const launch = launches.get(invocation)
       if (launch?.$ !== "LaunchAdviceTail") throw new Error("Missing advice launch")
       return launch.receipt
     },
+    /** @param {AdviceHandoff} receipt @param {NativeSession & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}} session @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
     async driveAdvice(receipt, session, options = {}) {
       const launch = launches.get(receipt.handoff)
       if (!launch || launch.$ !== "LaunchAdviceTail" || launch.receipt !== receipt) {
@@ -457,18 +806,24 @@ export function createOwnedArtifactDriver({
       }
       return await driver.drive(session, session.input, options)
     },
+    /** @param {PreparationHandoff} receipt @returns {{preparation: Extract<ReturnType<ownedMachine.PreparationMachine["view"]>, {$: "PreparationFinished"}>["result"]}} */
     handoffResult(receipt) {
       const launch = launches.get(receipt.handoff)
-      if (!launch || launch.receipt !== receipt) throw new Error("Unknown preparation handoff capability")
-      return { preparation: load(launch.input_handle, receipt.handoff, "input").view.result }
+      if (!launch || launch.$ !== "LaunchPostPreparation" || launch.receipt !== receipt)
+        throw new Error("Unknown preparation handoff capability")
+      const projected = required(load(launch.input_handle, receipt.handoff, "input"))
+      if (!("kind" in projected) || projected.kind !== "preparation" || projected.view.$ !== "PreparationFinished")
+        throw new Error("Wrong accepted preparation handoff")
+      return { preparation: projected.view.result }
     },
+    /** @param {PreparationHandoff} receipt @param {NativeSession} session @param {(result: {preparation: Extract<ReturnType<ownedMachine.PreparationMachine["view"]>, {$: "PreparationFinished"}>["result"]}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
     async driveHandoff(receipt, session, buildInput, options = {}) {
       const invocation = receipt.handoff
       if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
         throw new Error("Session already owned by an active invocation")
       // Refuse a consumed capability without cancelling its already-running child.
       const launch = launches.get(invocation)
-      if (!launch || launch.receipt !== receipt) {
+      if (!launch || launch.$ !== "LaunchPostPreparation" || launch.receipt !== receipt) {
         await closeUnregistered(session)
         throw new Error("Unknown or consumed preparation handoff capability")
       }
@@ -487,286 +842,18 @@ export function createOwnedArtifactDriver({
         if (!entered) await closeUnregistered(session)
       }
     },
-    async drive(session, input, options = {}) {
-      if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
-        throw new Error("Session already owned by an active invocation")
-      const invocation = input.invocation,
-        launch = launches.get(invocation)
-      if (!launch)
-        return registry.run(session, async () => {
-          throw new Error("Missing Canonical Launch")
-        })
-      let taskEntered = false,
-        constructionError,
-        outcome,
-        registryRejected = false,
-        taskFailure
-      const failures = []
-      const rememberFailure = (error) => {
-        const receipt = { phase: "boundary", error }
-        failures.push(receipt)
-        return receipt
-      }
-      // Only synchronous, known outcome-to-throw edges use this local slot.
-      // Arbitrary foreign callbacks remain observable failures at their boundary.
-      let forwardedReceipt
-      const requireOutcome = (result) => {
-        failures.push(...result.failures)
-        if (result.rejection) {
-          forwardedReceipt = result.rejection
-          throw result.rejection.error
-        }
-      }
-      const takeFailure = (error) => {
-        const receipt = forwardedReceipt ?? rememberFailure(error)
-        forwardedReceipt = undefined
-        return receipt
-      }
-      // Project opaque terminal exceptions while this invocation still owns its
-      // session. Registry cleanup clears the token table after the task settles.
-      const terminalOutcome = () => {
-        const outcome = finished.get(invocation)
-        if (outcome?.failure?.$ === "Types.ForeignProviderFailure" || outcome?.failure?.$ === "Types.RuntimeFailure")
-          throw session.exception(outcome.failure.exception)
-        if (outcome?.failure?.$ === "Types.NegativeGraphWork") readNat(-Number(outcome.failure.magnitude))
-        return outcome
-      }
-      const applyInInvocation = (step) => requireOutcome(applyOutcome(step))
-      const settleInInvocation = (...args) => requireOutcome(settleOutcome(...args))
-      try {
-        launches.delete(invocation)
-        sessions.set(invocation, session)
-        machines.set(invocation, (selectMachine ? selectMachine(input) : undefined) ?? machine)
-        resources.set(launch.input_handle, { invocation, kind: "input", value: input })
-        const registryOutcome = await registry.runOutcome(session, async () => {
-          taskEntered = true
-          let abortFailure
-          const abort = () => {
-            try {
-              const child = owner.find(invocation, current().children)
-              if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
-            } catch (error) {
-              const receipt = takeFailure(error)
-              abortFailure ??= receipt
-            }
-          }
-          options.signal?.addEventListener("abort", abort, { once: true })
-          const finishTaskSession = async () => {
-            try {
-              await finishSession(session)
-            } catch (error) {
-              taskFailure = rememberFailure(error)
-              throw error
-            }
-          }
-          try {
-            if (options.signal?.aborted) abort()
-            if (finished.has(invocation)) {
-              if (abortFailure) {
-                taskFailure = abortFailure
-                throw abortFailure.error
-              }
-              return terminalOutcome()
-            }
-            try {
-              settleInInvocation(
-                invocation,
-                0n,
-                ownedMachine.initial(engine(invocation), load(launch.input_handle, invocation, "input"))
-              )
-            } finally {
-              release(launch.input_handle, invocation)
-            }
-            while (!finished.has(invocation)) {
-              applyInInvocation(invoke("provider_start", invocation))
-              const child = findChild(invocation),
-                lease = leases.get(child.lease.value.id),
-                leaseId = child.lease.value.id
-              let payload
-              try {
-                const signal = options.signal
-                  ? AbortSignal.any([options.signal, lease.controller.signal])
-                  : lease.controller.signal
-                hooks.beforeProvider?.({ invocation, lease: leaseId, request: lease.request, driver })
-                payload = {
-                  value: await foreign([lease.request], {
-                    ...options,
-                    signal,
-                    ownerLease: Object.freeze({
-                      invocation,
-                      generation: child.generation,
-                      lease: leaseId,
-                      request: lease.request.id
-                    })
-                  })
-                }
-              } catch (error) {
-                payload = { error }
-              }
-              const replyId = save(invocation, "reply", payload)
-              try {
-                hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
-                applyInInvocation(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
-              } catch (error) {
-                taskFailure = takeFailure(error)
-                try {
-                  const child = owner.find(invocation, current().children)
-                  if (child.$ === "Some" && owner.child_active(child.value))
-                    applyInInvocation(invoke("cancel", invocation))
-                } catch (cleanupError) {
-                  takeFailure(cleanupError)
-                }
-                if (leases.has(leaseId)) {
-                  try {
-                    applyInInvocation(invoke("provider_completed", invocation, leaseId, lease.request.id, replyId))
-                  } catch (cleanupError) {
-                    takeFailure(cleanupError)
-                  }
-                }
-                throw error
-              } finally {
-                release(replyId, invocation)
-              }
-            }
-            if (abortFailure) {
-              taskFailure = abortFailure
-              throw abortFailure.error
-            }
-            return terminalOutcome()
-          } catch (error) {
-            taskFailure ??= takeFailure(error)
-            try {
-              const child = owner.find(invocation, current().children)
-              if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
-            } catch (cleanupError) {
-              taskFailure = takeFailure(cleanupError)
-              throw cleanupError
-            }
-            throw error
-          } finally {
-            options.signal?.removeEventListener("abort", abort)
-            // Provider await has settled before registry.run closes native resources.
-            await finishTaskSession()
-          }
-        })
-        for (const receipt of registryOutcome.failures)
-          if (receipt.phase !== "task" || !taskFailure) rememberFailure(receipt.error)
-        if (registryOutcome.rejection) {
-          registryRejected = true
-          throw registryOutcome.rejection.error
-        }
-        outcome = registryOutcome.task.value
-      } catch (error) {
-        if (!registryRejected) takeFailure(error)
-        try {
-          const child = owner.find(invocation, current().children)
-          if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
-          if (!taskEntered && child.$ === "Some" && child.value.scope.$ === "AdviceTailScope") {
-            constructionError = failures[0]
-            session.forceCleanup?.(constructionError.error)
-          }
-        } catch (cleanupError) {
-          takeFailure(cleanupError)
-        }
-      }
-      const releaseInvocation = () => {
-        // Keep the selected engine/session reachable if native close fails.
-        if (!taskEntered && registry.get(Number(invocation)) !== session) session.close?.()
-        if (!cancellationCleanup.get(invocation)?.completed.has(1)) engine(invocation).disposeInvocation(invocation)
-        cancellationCleanup.delete(invocation)
-        machines.delete(invocation)
-        sessions.delete(invocation)
-        finished.delete(invocation)
-        for (const [id, held] of resources) if (held.invocation === invocation) release(id, invocation)
-      }
-      const completeInvocationOutcome = async () => {
-        const attemptFailures = []
-        const applyAttempt = (step) => {
-          const result = applyOutcome(step)
-          attemptFailures.push(...result.failures)
-          return result.rejection
-        }
-        try {
-          const pendingCancellation = cancellationCleanup.get(invocation)
-          if (pendingCancellation) {
-            const cleanup = runCancellationCleanup(pendingCancellation)
-            attemptFailures.push(...cleanup.failures)
-            if (cleanup.rejection) return { failures: attemptFailures, rejection: attemptFailures[0] }
-          }
-          let child = owner.find(invocation, current().children)
-          if (child.$ === "Some" && child.value.lease.$ !== "None")
-            throw new Error("Finalization still owns a provider lease")
-          // Call finish directly here: a failing retry must not replace its registry
-          // obligation, or a subsequent successful retry cannot discharge that owner.
-          if (!finalizedSessions.has(session)) {
-            await session.finish?.()
-            finalizedSessions.add(session)
-          }
-          if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
-            const id = save(invocation, "result", {
-              kind: "advice",
-              machine: engine(invocation),
-              view: { $: "AdviceTailStopped", reason: constructionError.error, cleanupPending: false }
-            })
-            try {
-              if (applyAttempt(invoke("terminal", invocation, child.value.generation, id)))
-                return { failures: attemptFailures, rejection: attemptFailures[0] }
-            } finally {
-              release(id, invocation)
-            }
-          }
-          child = owner.find(invocation, current().children)
-          if (child.$ === "Some" && owner.child_active(child.value)) {
-            if (applyAttempt(invoke("cancel", invocation)))
-              return { failures: attemptFailures, rejection: attemptFailures[0] }
-            child = owner.find(invocation, current().children)
-            if (child.$ === "Some" && owner.child_active(child.value))
-              throw new Error("Finalization has no closed Canonical owner")
-          }
-          releaseInvocation()
-        } catch (error) {
-          attemptFailures.push({ phase: "finalization", error })
-        }
-        return { failures: attemptFailures, rejection: attemptFailures[0] }
-      }
-      const completeInvocation = async () => {
-        const attempt = await completeInvocationOutcome()
-        if (attempt.failures.length > 1)
-          throw new AggregateError(
-            attempt.failures.map((receipt) => receipt.error),
-            "Finalization attempt failed",
-            { cause: attempt.rejection.error }
-          )
-        unwrap(attempt)
-      }
-      const finalization = await completeInvocationOutcome()
-      failures.push(...finalization.failures)
-      if (finalization.rejection) registry.retainCleanup(session, completeInvocation)
-      if (failures.length === 1) throw failures[0].error
-      if (failures.length > 1) {
-        let primary = failures[0].error
-        const seen = new Set()
-        while (primary instanceof AggregateError && Object.hasOwn(primary, "cause") && !seen.has(primary.cause)) {
-          seen.add(primary)
-          primary = primary.cause
-        }
-        throw new AggregateError(
-          failures.map((receipt) => receipt.error),
-          "Invocation and finalization failed",
-          { cause: primary }
-        )
-      }
-      return outcome
-    },
+    drive: driveInvocation,
+    /** @param {number} invocation @param {{session?: NativeSession | undefined, closePending?: boolean}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false } = {}) {
       const ownerInvocation = BigInt(invocation)
-      let cancelCommitted = false,
-        pendingOutputs
+      let cancelCommitted = false
+      /** @type {Extract<Step, {$: "Advanced"}>["outputs"] | undefined} */
+      let pendingOutputs
       const attempt = () => {
         const failures = []
         if (closePending) {
           try {
-            session.close()
+            required(session).close()
             closePending = false
           } catch (error) {
             failures.push(error)
@@ -779,7 +866,8 @@ export function createOwnedArtifactDriver({
             // A committed cancel may still have unfinished actual resource actions.
             const child = owner.find(ownerInvocation, current().children)
             cancelCommitted = step.$ === "Advanced" && (child.$ === "None" || !owner.child_active(child.value))
-            if (outcome.failures.some((receipt) => receipt.phase === "outputs")) pendingOutputs = step.outputs
+            if (step.$ === "Advanced" && outcome.failures.some((receipt) => receipt.phase === "outputs"))
+              pendingOutputs = step.outputs
             failures.push(...outcome.failures.map((receipt) => receipt.error))
           } else {
             const pending = cancellationCleanup.get(ownerInvocation)
@@ -807,18 +895,23 @@ export function createOwnedArtifactDriver({
         throw error
       }
     },
+    /** @param {number | bigint} invocation */
     cancel(invocation) {
       apply(invoke("cancel", BigInt(invocation)))
     },
+    /** @param {readonly Action[]} commands */
     acceptActions(commands) {
       unwrap(executeActionsOutcome(commands))
     },
+    /** @param {Step} step */
     acceptPublication(step) {
       apply(step)
     },
+    /** @param {Step} step */
     acceptPublicationOutcome(step) {
       return applyOutcome(step)
     },
+    /** @param {Parameters<Owner["canonical_event"]>[1]} event */
     canonicalEvent(event) {
       apply(invoke("canonical_event", event))
     },

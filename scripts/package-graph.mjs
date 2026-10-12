@@ -216,17 +216,29 @@ export const packageTypeScriptConfig = (graph, name) => {
   if (node.compiler === "bend") throw new Error(`Bend owner has no TypeScript configuration: ${name}`)
   const host = node.manifest.hapsland?.host ?? "bun"
   if (!["bun", "node"].includes(host)) throw new Error(`Unsupported compilation host: ${host}`)
+  const checkedJavaScript = node.manifest.hapsland?.checkedJavaScript ?? []
+  if (
+    !Array.isArray(checkedJavaScript) ||
+    checkedJavaScript.some(
+      (file) =>
+        typeof file !== "string" ||
+        !/^src\/.*\.mjs$/u.test(file) ||
+        !inside(resolve(node.path, "src"), resolve(node.path, file))
+    )
+  )
+    throw new Error(`Invalid checked JavaScript sources: ${name}`)
   return {
     extends: "../../tsconfig.package.json",
     compilerOptions: {
       rootDir: "src",
       outDir: "dist",
       tsBuildInfoFile: "dist/.tsbuildinfo",
+      ...(checkedJavaScript.length ? { allowJs: true, checkJs: true } : {}),
       ...(host === "node"
         ? { module: "NodeNext", moduleResolution: "NodeNext", customConditions: ["node"], types: ["node"] }
         : {})
     },
-    include: ["src/**/*.ts", "src/**/*.json"],
+    include: ["src/**/*.ts", "src/**/*.json", ...checkedJavaScript],
     exclude: ["src/**/*.test.ts"],
     references: node.dependencies
       .filter((dependency) => graph.packages.get(dependency).compiler !== "bend")

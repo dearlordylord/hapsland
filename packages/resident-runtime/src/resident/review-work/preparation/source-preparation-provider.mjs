@@ -352,6 +352,7 @@ export function createSourcePreparationProvider(
             if (held.$ !== "Some" || held.value.scope.$ !== "SourceScope")
               throw new TypeError("Missing Canonical Source parent")
             const child = held.value
+            /** @type {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent} */
             const parent = { $: "Parent", invocation, generation: child.generation, request: request.id }
             const prepInvocation = driver.allocatePreparationInvocation(
               {
@@ -369,14 +370,12 @@ export function createSourcePreparationProvider(
               receipt.preparation
             )
             const handoff = await driver.drive(session, session.input, { signal: options.signal })
-            if (!handoff.handoff)
-              throw (
-                session.error?.(handoff.failure?.reason?.token) ??
-                Object.assign(
-                  new Error("Preparation child failed: " + String(handoff.failure?.reason ?? handoff.failure?.$)),
-                  { cause: handoff.failure }
-                )
-              )
+            if (!("handoff" in handoff)) {
+              const failure = "failure" in handoff ? handoff.failure : undefined
+              const reason = failure && "reason" in failure ? failure.reason : undefined
+              const tag = failure && "$" in failure ? failure.$ : undefined
+              throw Object.assign(new Error("Preparation child failed: " + String(reason ?? tag)), { cause: failure })
+            }
             const result = driver.handoffResult(handoff).preparation
             const prepared = session.decode(result, job.observation.advicee)
             const pathObservation = { ...job.observation, candidates: [candidate(command.candidate)] }
@@ -416,8 +415,9 @@ export function createSourcePreparationProvider(
               }
               throw error
             }
-            if (["DefectFailure", "TechnicalFailure", "InvocationCancelled"].includes(accepted.reason?.$)) {
-              failureCause = post.terminationCause ?? post.cause(accepted.reason.token)
+            const reason = "reason" in accepted ? accepted.reason : undefined
+            if (reason && (reason.$ === "DefectFailure" || reason.$ === "TechnicalFailure")) {
+              failureCause = post.terminationCause ?? post.cause(reason.token)
               if (failureCause !== undefined) {
                 failureKind = Cause.hasDies(failureCause)
                   ? "Defect"
@@ -429,14 +429,14 @@ export function createSourcePreparationProvider(
                 if (failureKind === "Defect") pendingDefectCause = failureCause
                 await run(Effect.failCause(failureCause))
               }
-              throw post.error(accepted.reason.token) ?? new Error("Post-preparation failed: " + accepted.reason.$)
+              throw post.error(reason.token) ?? new Error("Post-preparation failed: " + reason.$)
             }
-            if (accepted.failure)
+            if ("failure" in accepted)
               throw (
                 options.signal?.reason ??
                 Object.assign(new Error("Post-preparation invocation cancelled"), { cause: accepted.failure })
               )
-            response = { $: "CandidateContinued", value: accepted.continued === true }
+            response = { $: "CandidateContinued", value: "continued" in accepted && accepted.continued === true }
             break
           }
           case "ObserveCandidateDiagnostic": {
