@@ -26,6 +26,8 @@ import * as Ref from "effect/Ref"
 import { initialCanonical, projectCanonical as __projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 import { residentTransaction } from "../../../state/resident/transaction.ts"
 import { residentCapacity } from "../../../state/resident/capacity.ts"
+import { residentRuntime } from "../../../state/resident/runtime.ts"
+import { providerTransaction } from "../../../state/resolver-custody/resident-provider-permit.mjs"
 import { retireRound as __retireRound } from "../../../state/capacity/rounds.ts"
 import { completePreparation } from "../../../state/capacity/preparation.ts"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
@@ -262,6 +264,7 @@ try {
       control: bridge.control,
       bridge,
       transaction,
+      runtime: residentRuntime(providerTransaction(transaction, bridge)),
       preparation,
       round,
       partition,

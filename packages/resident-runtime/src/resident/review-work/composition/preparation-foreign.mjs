@@ -1,7 +1,6 @@
 import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-event/codex-patch-hunks"
 import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
-import { residentRuntime } from "../../state/resident/runtime.ts"
-import { providerTransaction, ResidentProviderPermit } from "../../state/resolver-custody/resident-provider-permit.mjs"
+import { ResidentProviderPermit } from "../../state/resolver-custody/resident-provider-permit.mjs"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import {
@@ -33,7 +32,7 @@ import { createPreparationCapability } from "@hapsland/review-execution/direct-e
 // Candidate/contract/root progression stays in the checked Preparation machine.
 /**
  * @param {{
- * connection: {bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, transaction: import("../../state/resolver-custody/provider-authority.ts").NativeTransaction, preparation: Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>},
+ * connection: {bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, runtime: Pick<ReturnType<typeof import("../../state/resident/runtime.ts").residentRuntime>, "rejectCapacity">, preparation: Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>},
  * owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner,
  * driver: ReturnType<typeof import("./owned-artifact-driver.mjs").createOwnedArtifactDriver>,
  * root: string,
@@ -247,7 +246,7 @@ export function createPreparationForeign({
       }
       case "RejectMaterializationCapacity":
         await Effect.runPromise(
-          residentRuntime(providerTransaction(connection.transaction, connection.bridge))
+          connection.runtime
             .rejectCapacity()
             .pipe(Effect.provideService(ResidentProviderPermit, { credential: options.ownerLease }))
         )

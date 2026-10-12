@@ -426,6 +426,7 @@ try {
       })
     }
     const { context, ledger, lifecycle, scope, hold } = shared
+    connection.runtime = ledger.runtime
     if (mode === "full-cancel-after-enqueue") cancelSourceAfterFirstEnqueue(context, sourceEffects)
     if (mode.startsWith("full-"))
       context.job.settings = {

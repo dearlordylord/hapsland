@@ -1025,8 +1025,13 @@ One current obstacle list, in execution order:
    build starts 13:17:24.458724, qualified but fails parity 1.2031293299981762.
    All 17 pairs complete with unchanged inputs/artifacts, all build runs succeed
    with 23/46 cached tasks. Logs: /tmp/hapsland-700c958b-resume-{execution,build}.log.
-   Next starts due: execution 13:45:57.374451, build 13:47:24.458724 UTC.
-   Freeze/backup/warm by 13:39. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Follow-up 2bc46d92: execution starts 13:41:51.079041, qualified parity
+   0.6843999266564899; build starts 13:44:13.956083, qualified but fails parity
+   1.199986523322553. Both meet the preceding cadence; unchanged heads, sources,
+   artifact trees and all 17 pairs, 23/46 cached build tasks. Logs:
+   /tmp/hapsland-2bc46d92-{execution-pair,build-pair}.log.
+   Next starts due: execution 14:11:51.079041, build 14:14:13.956083 UTC.
+   Freeze/backup/warm by 14:05. Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.
@@ -1717,3 +1722,21 @@ prefix now checks in an isolated hard5 run (3.551 wall/3.153 CPU). Exact
 projected row count transport also checks hard5 (2.818 wall/2.609 CPU).
 Recursive count transport and full semantic alignment remain open under the
 unchanged original parent law. All checked/WIP source remains at its owner.
+
+The current internal resident construction candidate uses one private transaction
+initializer and one facade assembly. The public generic state interface retains
+its existing contract. The specialized review constructor is internal to
+resolver custody; it gives its binding callback provider-wrapped facades and the
+owner bridge, and refuses every publication until the command-resource sink is
+bound. This closes the state-composition prerequisite without exposing the raw
+transaction, adding another Ref, or adopting the preparation candidate in
+production. Structural review corrected a type-only cycle and accidental public
+export before dependent integration. Its construction boundary and actual full
+consumers still require local qualification on the compiled candidate.
+
+Original attachment proof progress: the complete pending witness now follows
+from one original ActualReady.project (qualified 7.973s under the ten-second
+bound). Parent witness joining remains unqualified: a nested elimination has a
+parse error. Claims 5–8 and the whole original theorem remain open; original
+law and premises are unchanged. This unfinished source is retained on the branch
+for backup and is not proof acceptance.

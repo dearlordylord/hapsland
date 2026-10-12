@@ -4278,6 +4278,317 @@ def ready_frame_project_complete(+frame: T.ResolverFrame, +history: V.History, +
               Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame))), dense,
               BoolFacts.and_eq_true(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)), node, catalog)))), projected)
 
+def ready_actual_parts_installed(+state: T.ResolverState, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending,
+    frame_present: {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>},
+    child_present: {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>},
+    edge_present: {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>},
+    ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}:
+  Equal.trans(Maybe<&2, Phase.Phase>, ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history),
+    ActualReady.project(state, history, child_history), Some{phase},
+    Equal.sym(Maybe<&2, Phase.Phase>, ActualReady.project(state, history, child_history), ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history),
+      Equal.trans(Maybe<&2, Phase.Phase>, ActualReady.project(state, history, child_history),
+        ActualReady.parts(state, Some{frame}, S.scratch_tentative(S.state_scratch(state)), S.scratch_pending_edge(S.state_scratch(state)), history, child_history),
+        ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history),
+        Equal.cong(Maybe<&2, T.ResolverFrame>, Maybe<&2, Phase.Phase>, value => ActualReady.parts(state, value,
+          S.scratch_tentative(S.state_scratch(state)), S.scratch_pending_edge(S.state_scratch(state)), history, child_history),
+          S.state_frame(state), Some{frame}, frame_present),
+        Equal.trans(Maybe<&2, Phase.Phase>, ActualReady.parts(state, Some{frame}, S.scratch_tentative(S.state_scratch(state)), S.scratch_pending_edge(S.state_scratch(state)), history, child_history),
+          ActualReady.parts(state, Some{frame}, Some{child}, S.scratch_pending_edge(S.state_scratch(state)), history, child_history),
+          ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history),
+          Equal.cong(Maybe<&2, T.TentativeChild>, Maybe<&2, Phase.Phase>, value => ActualReady.parts(state, Some{frame}, value,
+            S.scratch_pending_edge(S.state_scratch(state)), history, child_history), S.scratch_tentative(S.state_scratch(state)), Some{child}, child_present),
+          Equal.cong(Maybe<&2, Local.Pending>, Maybe<&2, Phase.Phase>, value => ActualReady.parts(state, Some{frame}, Some{child}, value, history, child_history),
+            S.scratch_pending_edge(S.state_scratch(state)), Some{edge}, edge_present)))), ready)
+
+def ready_actual_inputs_eliminate(-Result: Type, +state: T.ResolverState, +history: V.History,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    witness: actual_parts_result(S.state_frame(state), S.scratch_tentative(S.state_scratch(state)), S.scratch_pending_edge(S.state_scratch(state))),
+    ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    continue: @frame: T.ResolverFrame -> @child: T.TentativeChild -> @edge: Local.Pending ->
+      {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>} ->
+      {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} ->
+      {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>} ->
+      selected_phase_result(state, frame, child, edge, history, child_history, phase) -> Result) -> Result:
+  Parent.eliminate_witness(T.ResolverFrame, frame => Exists(T.TentativeChild, child => Exists(Local.Pending, edge => {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>} & {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} & {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>})), Result, witness,
+    frame => child_witness =>
+    +frame = frame
+    Parent.eliminate_witness(T.TentativeChild, child => Exists(Local.Pending, edge => {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>} & {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} & {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>}), Result, child_witness,
+      child => edge_witness =>
+      +child = child
+      Parent.eliminate_witness(Local.Pending, edge => {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>} & {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} & {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>}, Result, edge_witness,
+        edge => evidence =>
+        +edge = edge
+        Parent.eliminate_pair({S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>}, {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} & {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>}, Result, evidence,
+          frame_present => rest =>
+          +frame_present = frame_present
+          Parent.eliminate_pair({S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>}, {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>}, Result, rest,
+            child_present => edge_present =>
+            +child_present = child_present
+            +edge_present = edge_present
+            continue(frame)(child)(edge)(frame_present)(child_present)(edge_present)(
+              selected_phase_contents(state, frame, child, edge, history, child_history, phase,
+                ready_actual_parts_installed(state, history, child_history, phase, frame, child, edge,
+                  frame_present, child_present, edge_present, ready))))))))
+
+def ready_actual_inputs(-Result: Type, +state: T.ResolverState, +history: V.History,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    continue: @frame: T.ResolverFrame -> @child: T.TentativeChild -> @edge: Local.Pending ->
+      {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>} ->
+      {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} ->
+      {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>} ->
+      selected_phase_result(state, frame, child, edge, history, child_history, phase) -> Result) -> Result:
+  ready_actual_inputs_eliminate(Result, state, history, child_history, phase,
+    actual_ready_parts(state, history, child_history, phase, ready), ready, continue)
+
+def ready_child_visited(child: Phase.Child) -> List<&2, String>:
+  match child:
+    case Phase.Child{_, _, _, _, _, _, _, _, _, _, _, _, visited, _, _, _}: visited
+
+def ready_phase_capsule(phase: Phase.Phase) -> Phase.Capsule:
+  match phase:
+    case Phase.Phase{_, _, capsule}: capsule
+
+def ready_phase_frame(phase: Phase.Phase) -> V.Frame:
+  match phase:
+    case Phase.Phase{frame, _, _}: frame
+
+def ready_phase_child(phase: Phase.Phase) -> Phase.Child:
+  match phase:
+    case Phase.Phase{_, child, _}: child
+
+def ready_selected_pending_result(child: T.TentativeChild, history: V.History,
+    child_history: Phase.ChildHistory, phase: Phase.Phase, +frame: T.ResolverFrame) -> Type:
+  match child history child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+child_root, +child_nodes, +child_slots, +items, +child_visited, _}, _, _, _} V.History{+addresses, V.Order{+order, +targets, +ids, +captures, +identities, +visited}, +sources, +capture_sources, _, +remaining, +episode} Phase.ChildHistory{F.Created{_, _, +child_addresses}, +source, +catalog, _, +child_order} Phase.Phase{V.Frame{_, _, _, _, _, +parent_forest, +old_rows, +target_rows, +id_rows, +captured_rows, +identity_rows, +visited_rows, _, _, _, _, _, _, _, _}, Phase.Child{_, _, _, _, _, _, _, _, _, +child_forest, _, +payloads, _, _, _, _}, _}:
+      {ActualFrame.pending(List.append(&2, Nat, order, History.ids(payloads, S.frame_next_edge(frame))),
+      ready_registered_pending(Compose.register_pending(Compose.shift_pending(items, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), S.frame_next_edge(frame), S.frame_pending(frame))),
+      List.append(&2, V.EdgeSource, sources, History.provenance(History.ids(payloads, S.frame_next_edge(frame)), source, catalog)),
+      List.append(&2, F.AddressEntry, addresses, Mapping.shifted(child_addresses, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)))))
+      == Some{List.append(&2, V.PendingEntry, old_rows, ready_payload_rows(payloads, S.frame_next_edge(frame), source, catalog))} : Maybe<&2, List<&2, V.PendingEntry>>}
+
+def ready_selected_pending(+child: T.TentativeChild, +history: V.History,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending,
+    ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    ready_selected_pending_result(child, history, child_history, phase, frame):
+  match child history child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+child_root, +child_nodes, +child_slots, +items, +child_visited, _}, _, _, _} V.History{+addresses, V.Order{+order, +targets, +ids, +captures, +identities, +visited}, +sources, +capture_sources, _, +remaining, +episode} Phase.ChildHistory{F.Created{_, _, +child_addresses}, +source, +catalog, _, +child_order} Phase.Phase{V.Frame{_, _, _, _, _, +parent_forest, +old_rows, +target_rows, +id_rows, +captured_rows, +identity_rows, +visited_rows, _, _, _, _, _, _, _, _}, Phase.Child{_, _, _, _, _, _, _, _, _, +child_forest, _, +payloads, _, _, _, _}, _}:
+      Parent.eliminate_pair({Bool.and(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))) == True{} : Bool}, {ActualFrame.project(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>} & {ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{ready_phase_child(phase)} : Maybe<&2, Phase.Child>} & {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{ready_phase_capsule(phase)} : Maybe<&2, Phase.Capsule>}, ready_selected_pending_result(child, history, child_history, phase, frame),
+        selected_phase_contents(state, frame, child, edge, history, child_history, phase, ready),
+        valid => observations =>
+        +valid = valid
+        Parent.eliminate_pair({ActualFrame.project(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}, {ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{ready_phase_child(phase)} : Maybe<&2, Phase.Child>} & {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{ready_phase_capsule(phase)} : Maybe<&2, Phase.Capsule>}, ready_selected_pending_result(child, history, child_history, phase, frame), observations,
+          frame_ready => child_observations =>
+          Parent.eliminate_pair({ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{ready_phase_child(phase)} : Maybe<&2, Phase.Child>}, {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{ready_phase_capsule(phase)} : Maybe<&2, Phase.Capsule>}, ready_selected_pending_result(child, history, child_history, phase, frame), child_observations,
+            child_ready => capsule_ready =>
+            Parent.eliminate_pair({frame_checks(frame, history) == True{} : Bool},
+              {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}, ready_selected_pending_result(child, history, child_history, phase, frame),
+              actual_frame_contents(frame, history, ready_phase_frame(phase), frame_ready),
+              checks => frame_projected =>
+              +checks = checks
+              +frame_projected = frame_projected
+              Parent.eliminate_pair({child_checks(child) == True{} : Bool},
+                {ActualReady.child_projected(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{ready_phase_child(phase)} : Maybe<&2, Phase.Child>}, ready_selected_pending_result(child, history, child_history, phase, frame),
+                actual_child_contents(child, edge, child_history, S.frame_artifacts(frame), episode, ready_phase_child(phase), child_ready),
+                child_checks => child_projected =>
+                +pending_found: {ActualFrame.pending(order, S.frame_pending(frame), sources, addresses) == Some{old_rows} : Maybe<&2, List<&2, V.PendingEntry>>} = Pair.fst({ActualFrame.pending(order, S.frame_pending(frame), sources, addresses) == Some{old_rows} : Maybe<&2, List<&2, V.PendingEntry>>}, {ActualFrame.targets(targets, S.frame_target_paths(frame), addresses) == Some{target_rows} : Maybe<&2, List<&2, V.TargetEntry>>} & {ActualFrame.ids(ids, S.frame_target_ids(frame)) == Some{id_rows} : Maybe<&2, List<&2, V.TargetId>>} & {ActualFrame.captured(captures, S.frame_captured(frame), capture_sources) == Some{captured_rows} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ActualFrame.identities(identities, S.frame_target_artifacts(frame)) == Some{identity_rows} : Maybe<&2, List<&2, V.TargetArtifact>>} & {ActualFrame.visited(visited, S.frame_visited(frame)) == Some{visited_rows} : Maybe<&2, List<&2, String>>},
+                  Pair.snd({ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode) == Some{parent_forest} : Maybe<&2, F.Forest>}, {ActualFrame.pending(order, S.frame_pending(frame), sources, addresses) == Some{old_rows} : Maybe<&2, List<&2, V.PendingEntry>>} & {ActualFrame.targets(targets, S.frame_target_paths(frame), addresses) == Some{target_rows} : Maybe<&2, List<&2, V.TargetEntry>>} & {ActualFrame.ids(ids, S.frame_target_ids(frame)) == Some{id_rows} : Maybe<&2, List<&2, V.TargetId>>} & {ActualFrame.captured(captures, S.frame_captured(frame), capture_sources) == Some{captured_rows} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ActualFrame.identities(identities, S.frame_target_artifacts(frame)) == Some{identity_rows} : Maybe<&2, List<&2, V.TargetArtifact>>} & {ActualFrame.visited(visited, S.frame_visited(frame)) == Some{visited_rows} : Maybe<&2, List<&2, String>>},
+                    frame_view_contents(ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode), ActualFrame.pending(order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(targets, S.frame_target_paths(frame), addresses), ActualFrame.ids(ids, S.frame_target_ids(frame)), ActualFrame.captured(captures, S.frame_captured(frame), capture_sources), ActualFrame.identities(identities, S.frame_target_artifacts(frame)), ActualFrame.visited(visited, S.frame_visited(frame)), frame, remaining, episode, ready_phase_frame(phase), frame_projected)))
+                +payloads_found: {ActualReady.pending(items, child_addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>} =
+                  Pair.fst({ActualReady.pending(items, child_addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>}, {ActualReady.visited_complete(child_order, child_visited) == Some{ready_child_visited(ready_phase_child(phase))} : Maybe<&2, List<&2, String>>},
+                    Pair.snd({ActualReady.valid_forest(P.project(child_root, child_nodes, child_slots, S.frame_artifacts(frame), child_addresses), episode) == Some{child_forest} : Maybe<&2, F.Forest>},
+                      {ActualReady.pending(items, child_addresses) == Some{payloads} : Maybe<&2, List<&2, V.PendingPayload>>} & {ActualReady.visited_complete(child_order, child_visited) == Some{ready_child_visited(ready_phase_child(phase))} : Maybe<&2, List<&2, String>>},
+                      child_view_contents(ActualReady.valid_forest(P.project(child_root, child_nodes, child_slots, S.frame_artifacts(frame), child_addresses), episode), ActualReady.pending(items, child_addresses), ActualReady.visited_complete(child_order, child_visited), child, edge, child_history, ready_phase_child(phase), child_projected)))
+                +parent_projected: {P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{parent_forest} : Maybe<&2, F.Forest>} =
+                  Pair.fst({P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{parent_forest} : Maybe<&2, F.Forest>}, {Relation.frame_forest(parent_forest, episode) == True{} : Bool},
+                    projected_frame_semantics(frame, history, ready_phase_frame(phase), frame_projected))
+                +aligned: {P.aligned(S.frame_nodes(frame), addresses, S.frame_nodes(frame), addresses) == True{} : Bool} = BoolFacts.eq_true_of_and_left(P.aligned(S.frame_nodes(frame), addresses, S.frame_nodes(frame), addresses), Bool.and(P.catalog_unique(S.frame_artifacts(frame), S.frame_artifacts(frame)), Bool.and(P.slots_owned(S.frame_references(frame), S.frame_nodes(frame)), P.forward_nodes(S.frame_nodes(frame), S.frame_references(frame)))),
+                  Pair.fst({Bool.and(P.aligned(S.frame_nodes(frame), addresses, S.frame_nodes(frame), addresses), Bool.and(P.catalog_unique(S.frame_artifacts(frame), S.frame_artifacts(frame)), Bool.and(P.slots_owned(S.frame_references(frame), S.frame_nodes(frame)), P.forward_nodes(S.frame_nodes(frame), S.frame_references(frame))))) == True{} : Bool}, {P.forest(F.address_at(addresses, S.frame_root(frame)), P.nodes(S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses)) == Some{parent_forest} : Maybe<&2, F.Forest>},
+                    Contents.project_contents(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses, parent_forest, parent_projected)))
+                +fresh: {ActualReady.fresh_registration(history, frame) == True{} : Bool} = BoolFacts.eq_true_of_and_left(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))),
+                  BoolFacts.eq_true_of_and_right(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)))), valid))
+                +before: {ActualReady.pending_ids_before(order, S.frame_next_edge(frame)) == True{} : Bool} =
+                  BoolFacts.eq_true_of_and_left(ActualReady.pending_ids_before(order, S.frame_next_edge(frame)), ActualReady.provenance_complete(ActualReady.provenance_ids(sources), order), fresh)
+                ready_actual_staged_pending(order, items, S.frame_next_edge(frame), S.frame_pending(frame), sources, S.frame_nodes(frame), addresses, child_addresses,
+                  source, catalog, old_rows, payloads,
+                  BoolFacts.eq_true_of_and_left(Patricia.canonical(Maybe<&2, Local.Pending>, S.frame_pending(frame)),
+                    Bool.and(Patricia.canonical(Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)), Patricia.canonical(Maybe<&2, String>, S.frame_target_artifacts(frame))),
+                    BoolFacts.eq_true_of_and_left(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)))), valid)), before,
+                  ready_provenance_before(sources, order, S.frame_next_edge(frame), before,
+                    BoolFacts.eq_true_of_and_right(Nat.is_eq(List.length(&2, Nat, ActualReady.provenance_ids(sources)), List.length(&2, Nat, order)), ActualReady.provenance_members(ActualReady.provenance_ids(sources), order),
+                      BoolFacts.eq_true_of_and_right(ActualFrame.nats_unique(ActualReady.provenance_ids(sources), ActualReady.provenance_ids(sources)),
+                        Bool.and(Nat.is_eq(List.length(&2, Nat, ActualReady.provenance_ids(sources)), List.length(&2, Nat, order)), ActualReady.provenance_members(ActualReady.provenance_ids(sources), order)),
+                        BoolFacts.eq_true_of_and_right(ActualReady.pending_ids_before(order, S.frame_next_edge(frame)), ActualReady.provenance_complete(ActualReady.provenance_ids(sources), order), fresh)))), aligned,
+                  BoolFacts.eq_true_of_and_left(ActualFrame.dense(S.frame_nodes(frame), 0n),
+                    Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame))),
+                    BoolFacts.eq_true_of_and_right(ActualFrame.coverage(ready_history_order(history), frame),
+                      Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)))), checks)),
+                  pending_found, payloads_found))))))
+
+def ready_pending_witness(+state: T.ResolverState, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase) -> Type:
+  Exists(T.ResolverFrame, frame => Exists(T.TentativeChild, child => Exists(Local.Pending, edge =>
+    {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>} &
+    {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} &
+    {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>} &
+    ready_selected_pending_result(child, history, child_history, phase, frame))))
+
+def ready_pending_from_original(+state: T.ResolverState, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    ready_pending_witness(state, history, child_history, phase):
+  ready_actual_inputs(ready_pending_witness(state, history, child_history, phase), state, history, child_history, phase, ready,
+    frame => child => edge => frame_present => child_present => edge_present => selected =>
+    +frame = frame
+    +child = child
+    +edge = edge
+    +frame_present = frame_present
+    +child_present = child_present
+    +edge_present = edge_present
+    Tuple{frame, Tuple{child, Tuple{edge, Tuple{frame_present, Tuple{child_present, Tuple{edge_present,
+      ready_selected_pending(child, history, child_history, phase, state, frame, edge,
+        ready_actual_parts_installed(state, history, child_history, phase, frame, child, edge, frame_present, child_present, edge_present, ready))}}}}}})
+
+def ready_capsule_payload(capsule: Phase.Capsule) -> V.PendingPayload:
+  match capsule:
+    case Phase.Capsule{_, _, _, _, _, _, _, _, _, edge, _}: edge
+
+def ready_payload_owner(payload: V.PendingPayload) -> O.NodeAddress:
+  match payload:
+    case V.PendingPayload{owner, _, _, _, _, _, _, _}: owner
+
+def ready_capsule_pending(+clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>,
+    +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>, +state: T.ResolverState,
+    +capsule: Phase.Capsule,
+    ready: {ActualReady.capsule(clock, language, active, edge, state) == Some{capsule} : Maybe<&2, Phase.Capsule>}) ->
+    {edge == Some{ready_capsule_payload(capsule)} : Maybe<&2, V.PendingPayload>}:
+  match clock language active edge state:
+    case Some{clock_value} Some{+language_value} Some{active_value} Some{edge_value}
+      T.ResolverState{T.ResolverInput{+invocation, path, _, _, _, _, branch, cache, _}, _, _, +next, iterations, _, _, rust, _, _, _, _, _}:
+      %Count.some_equal(Phase.Capsule,
+        Phase.Capsule{invocation, path, language_value, ActualReady.context(language_value, branch, rust),
+          clock_value, cache, next, iterations, active_value, edge_value, ActualReady.fingerprint(S.state_prepared(state))}, capsule, ready):
+        {edge == Some{ready_capsule_payload(_)} : Maybe<&2, V.PendingPayload>}
+      {==}
+    case None{} _ _ _ _:
+      Empty.absurd({edge == Some{ready_capsule_payload(capsule)} : Maybe<&2, V.PendingPayload>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} None{} _ _ _:
+      Empty.absurd({edge == Some{ready_capsule_payload(capsule)} : Maybe<&2, V.PendingPayload>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} Some{_} None{} _ _:
+      Empty.absurd({edge == Some{ready_capsule_payload(capsule)} : Maybe<&2, V.PendingPayload>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd({edge == Some{ready_capsule_payload(capsule)} : Maybe<&2, V.PendingPayload>}, Contents.none_some(Phase.Capsule, capsule, ready))
+
+def ready_payload_address_observed(+address: Maybe<&2, O.NodeAddress>, +edge: Local.Pending, +payload: V.PendingPayload,
+    ready: {V.payload_at(address, edge) == Some{payload} : Maybe<&2, V.PendingPayload>}) ->
+    {address == Some{ready_payload_owner(payload)} : Maybe<&2, O.NodeAddress>}:
+  match address edge:
+    case Some{+birth} Local.Pending{_, +index, +from, +symbol, +name, +depth, +expected, +target}:
+      Equal.cong(V.PendingPayload, Maybe<&2, O.NodeAddress>, value => Some{ready_payload_owner(value)},
+        V.PendingPayload{birth, index, from, symbol, name, depth, expected, target}, payload,
+        Count.some_equal(V.PendingPayload, V.PendingPayload{birth, index, from, symbol, name, depth, expected, target}, payload, ready))
+    case None{} Local.Pending{_, _, _, _, _, _, _, _}:
+      Empty.absurd({None{} == Some{ready_payload_owner(payload)} : Maybe<&2, O.NodeAddress>}, Contents.none_some(V.PendingPayload, payload, ready))
+
+def ready_pending_address_observed(+edge: Local.Pending, +addresses: List<&2, F.AddressEntry>, +payload: V.PendingPayload,
+    ready: {V.pending_payload(edge, addresses) == Some{payload} : Maybe<&2, V.PendingPayload>}) ->
+    {F.address_at(addresses, Attach.edge_owner(edge)) == Some{ready_payload_owner(payload)} : Maybe<&2, O.NodeAddress>}:
+  match edge:
+    case Local.Pending{+owner, _, _, _, _, _, _, _}:
+      ready_payload_address_observed(F.address_at(addresses, owner), edge, payload, ready)
+
+def ready_selected_owner(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {F.address_at(ready_history_addresses(history), Attach.edge_owner(edge))
+      == Some{ready_payload_owner(ready_capsule_payload(ready_phase_capsule(phase)))} : Maybe<&2, O.NodeAddress>}:
+  match history phase:
+    case V.History{+addresses, _, _, _, _, +remaining, +episode} Phase.Phase{+frame_view, +child_view, +capsule}:
+      ready_pending_address_observed(edge, addresses, ready_capsule_payload(capsule),
+        ready_capsule_pending(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state, capsule,
+          Pair.snd({ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>},
+            {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+            Pair.snd({ActualFrame.project(frame, history) == Some{frame_view} : Maybe<&2, V.Frame>},
+              {ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>} &
+              {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>},
+              Pair.snd({Bool.and(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))) == True{} : Bool},
+                assembled_result(ActualFrame.project(frame, history), ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode),
+                  ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state), phase),
+                selected_phase_contents(state, frame, child, edge, history, child_history, phase, ready))))))
+
+def ready_parent_projected_result(+child_forest: F.Forest, +edge: Local.Pending, +frame: T.ResolverFrame, +addresses: List<&2, F.AddressEntry>, +parent_forest: F.Forest, +child_root: Nat, +child_nodes: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>, +items: List<&2, Local.Pending>, +child_visited: Map<&2, Bool>, +child_budget: Local.Budget, +child_addresses: List<&2, F.AddressEntry>, +episode: Nat, +owner_address: O.NodeAddress, +known: Bool, +identity: String) -> Type:
+  match child_forest edge:
+    case F.Forest{Some{birth}, nodes} Local.Pending{owner, index, _, symbol, _, _, _, _}:
+      Parent.parent_result(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), addresses, parent_forest, child_root, child_nodes, child_slots, items, child_visited, child_budget, birth, nodes, child_addresses, S.frame_artifacts(frame), episode, owner, index, symbol, owner_address, known, identity, S.frame_next_edge(frame), S.frame_pending(frame))
+    case F.Forest{None{}, _} _: Empty
+
+def ready_parent_projected(+child_forest: F.Forest, +edge: Local.Pending, +frame: T.ResolverFrame, +addresses: List<&2, F.AddressEntry>, +parent_forest: F.Forest, +child_root: Nat, +child_nodes: List<&2, Local.PlannedNode>, +child_slots: List<&2, Local.ReferenceSlot>, +items: List<&2, Local.Pending>, +child_visited: Map<&2, Bool>, +child_budget: Local.Budget, +child_addresses: List<&2, F.AddressEntry>, +episode: Nat, +owner_address: O.NodeAddress, +known: Bool, +identity: String,
+    parent_projection: {P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{parent_forest} : Maybe<&2, F.Forest>},
+    parent_dense: {ActualFrame.dense(S.frame_nodes(frame), 0n) == True{} : Bool},
+    parent_valid: {Relation.frame_forest(parent_forest, episode) == True{} : Bool},
+    child_projection: {P.project(child_root, child_nodes, child_slots, S.frame_artifacts(frame), child_addresses) == Some{child_forest} : Maybe<&2, F.Forest>},
+    child_dense: {ActualFrame.dense(child_nodes, 0n) == True{} : Bool},
+    child_fresh: {ActualReady.fresh_forest(child_forest, episode) == True{} : Bool},
+    selected: {ActualReady.selected_slot(edge, S.frame_references(frame)) == True{} : Bool},
+    owner_present: {F.address_at(addresses, Attach.edge_owner(edge)) == Some{owner_address} : Maybe<&2, O.NodeAddress>}) ->
+    ready_parent_projected_result(child_forest, edge, frame, addresses, parent_forest, child_root, child_nodes, child_slots, items, child_visited, child_budget, child_addresses, episode, owner_address, known, identity):
+  match child_forest edge:
+    case F.Forest{Some{+birth}, +nodes} Local.Pending{+owner, +index, _, +symbol, _, _, _, _}:
+      Parent.parent_attachment_exact(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), addresses, parent_forest, child_root, child_nodes, child_slots, items, child_visited, child_budget, birth, nodes, child_addresses, S.frame_artifacts(frame), episode, owner, index, symbol, owner_address, known, identity, S.frame_next_edge(frame), S.frame_pending(frame), parent_projection, parent_dense, parent_valid,
+        child_projection, child_dense, child_fresh, selected, owner_present)
+    case F.Forest{None{}, _} _:
+      BoolFacts.internal_false_ne_true(child_fresh)
+
+def ready_selected_parent_result(child: T.TentativeChild, history: V.History,
+    child_history: Phase.ChildHistory, phase: Phase.Phase, +frame: T.ResolverFrame, +edge: Local.Pending, +known: Bool) -> Type:
+  match child history child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+child_root, +child_nodes, +child_slots, +items, +child_visited, +child_budget}, _, _, _} V.History{+addresses, V.Order{+order, +targets, +ids, +captures, +identities, +visited}, +sources, +capture_sources, _, +remaining, +episode} Phase.ChildHistory{F.Created{_, _, +child_addresses}, +source, +catalog, _, +child_order} Phase.Phase{V.Frame{_, _, _, _, _, +parent_forest, +old_rows, +target_rows, +id_rows, +captured_rows, +identity_rows, +visited_rows, _, _, _, _, _, _, _, _}, Phase.Child{_, _, _, _, _, _, _, _, _, +child_forest, _, +payloads, _, _, _, _}, _}:
+      ready_parent_projected_result(child_forest, edge, frame, addresses, parent_forest, child_root, child_nodes, child_slots, items, child_visited, child_budget, child_addresses, episode, ready_payload_owner(ready_capsule_payload(ready_phase_capsule(phase))), known, ready_actual_identity(child))
+
+def ready_selected_parent(+child: T.TentativeChild, +history: V.History,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending, +known: Bool,
+    +ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    ready_selected_parent_result(child, history, child_history, phase, frame, edge, known):
+  match child history child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+child_root, +child_nodes, +child_slots, +items, +child_visited, +child_budget}, _, _, _} V.History{+addresses, V.Order{+order, +targets, +ids, +captures, +identities, +visited}, +sources, +capture_sources, _, +remaining, +episode} Phase.ChildHistory{F.Created{_, _, +child_addresses}, +source, +catalog, _, +child_order} Phase.Phase{V.Frame{_, _, _, _, _, +parent_forest, +old_rows, +target_rows, +id_rows, +captured_rows, +identity_rows, +visited_rows, _, _, _, _, _, _, _, _}, Phase.Child{_, _, _, _, _, _, _, _, _, +child_forest, _, +payloads, _, _, _, _}, _}:
+      Parent.eliminate_pair({Bool.and(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))) == True{} : Bool}, {ActualFrame.project(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>} & {ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{ready_phase_child(phase)} : Maybe<&2, Phase.Child>} & {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{ready_phase_capsule(phase)} : Maybe<&2, Phase.Capsule>}, ready_selected_parent_result(child, history, child_history, phase, frame, edge, known),
+        selected_phase_contents(state, frame, child, edge, history, child_history, phase, ready),
+        valid => observations =>
+        +valid = valid
+        Parent.eliminate_pair({ActualFrame.project(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}, {ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{ready_phase_child(phase)} : Maybe<&2, Phase.Child>} & {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{ready_phase_capsule(phase)} : Maybe<&2, Phase.Capsule>}, ready_selected_parent_result(child, history, child_history, phase, frame, edge, known), observations,
+          frame_ready => child_observations =>
+          Parent.eliminate_pair({ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{ready_phase_child(phase)} : Maybe<&2, Phase.Child>}, {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{ready_phase_capsule(phase)} : Maybe<&2, Phase.Capsule>}, ready_selected_parent_result(child, history, child_history, phase, frame, edge, known), child_observations,
+            child_ready => capsule_ready =>
+            Parent.eliminate_pair({frame_checks(frame, history) == True{} : Bool},
+              {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}, ready_selected_parent_result(child, history, child_history, phase, frame, edge, known),
+              actual_frame_contents(frame, history, ready_phase_frame(phase), frame_ready),
+              checks => frame_projected =>
+              +checks = checks
+              +frame_projected = frame_projected
+              Parent.eliminate_pair({child_checks(child) == True{} : Bool},
+                {ActualReady.child_projected(child, edge, child_history, S.frame_artifacts(frame), episode) == Some{ready_phase_child(phase)} : Maybe<&2, Phase.Child>}, ready_selected_parent_result(child, history, child_history, phase, frame, edge, known),
+                actual_child_contents(child, edge, child_history, S.frame_artifacts(frame), episode, ready_phase_child(phase), child_ready),
+                child_checks => child_projected =>
+                +child_checks = child_checks
+                +child_projected = child_projected
+                +parent_projection: {P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{parent_forest} : Maybe<&2, F.Forest>} = Pair.fst({P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{parent_forest} : Maybe<&2, F.Forest>}, {Relation.frame_forest(parent_forest, episode) == True{} : Bool}, projected_frame_semantics(frame, history, ready_phase_frame(phase), frame_projected))
+                +parent_valid: {Relation.frame_forest(parent_forest, episode) == True{} : Bool} = Pair.snd({P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{parent_forest} : Maybe<&2, F.Forest>}, {Relation.frame_forest(parent_forest, episode) == True{} : Bool}, projected_frame_semantics(frame, history, ready_phase_frame(phase), frame_projected))
+                +child_projection: {P.project(child_root, child_nodes, child_slots, S.frame_artifacts(frame), child_addresses) == Some{child_forest} : Maybe<&2, F.Forest>} = Pair.fst({P.project(child_root, child_nodes, child_slots, S.frame_artifacts(frame), child_addresses) == Some{child_forest} : Maybe<&2, F.Forest>}, {ActualReady.fresh_forest(child_forest, episode) == True{} : Bool}, child_projected_semantics(child, edge, child_history, S.frame_artifacts(frame), episode, ready_phase_child(phase), child_projected))
+                +child_fresh: {ActualReady.fresh_forest(child_forest, episode) == True{} : Bool} = Pair.snd({P.project(child_root, child_nodes, child_slots, S.frame_artifacts(frame), child_addresses) == Some{child_forest} : Maybe<&2, F.Forest>}, {ActualReady.fresh_forest(child_forest, episode) == True{} : Bool}, child_projected_semantics(child, edge, child_history, S.frame_artifacts(frame), episode, ready_phase_child(phase), child_projected))
+                ready_parent_projected(child_forest, edge, frame, addresses, parent_forest, child_root, child_nodes, child_slots, items, child_visited,
+                  child_budget, child_addresses, episode, ready_payload_owner(ready_capsule_payload(ready_phase_capsule(phase))), known, ready_actual_identity(child),
+                  parent_projection,
+                  BoolFacts.eq_true_of_and_left(ActualFrame.dense(S.frame_nodes(frame), 0n),
+                    Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame))),
+                    BoolFacts.eq_true_of_and_right(ActualFrame.coverage(ready_history_order(history), frame),
+                      Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)))), checks)),
+                  parent_valid, child_projection,
+                  BoolFacts.eq_true_of_and_left(ActualFrame.dense(child_nodes, 0n), ActualReady.pending_slots(items, child_slots), child_checks), child_fresh,
+                  BoolFacts.eq_true_of_and_right(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)),
+                    BoolFacts.eq_true_of_and_right(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))),
+                      BoolFacts.eq_true_of_and_right(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)))), valid))),
+                  ready_selected_owner(state, frame, child, edge, history, child_history, phase, ready))))))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

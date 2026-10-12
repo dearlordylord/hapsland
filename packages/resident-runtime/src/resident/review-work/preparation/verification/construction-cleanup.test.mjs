@@ -1,5 +1,8 @@
 import assert from "node:assert/strict"
 import test from "node:test"
+import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
+import { makeResidentReviewState } from "../../../state/resolver-custody/review-state.ts"
 import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createBendResolver } from "../../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
@@ -191,4 +194,26 @@ test("failed cancellation outputs remain pending after the Canonical transition 
   assert.equal(publications, 2)
   assert.deepEqual(counts(), { disposals: 2, cancelCalls: 1 })
   assert.equal(driver.stats.accepted, 0)
+})
+
+test("resident owner refuses publications until resources are bound", () => {
+  let premature
+  let delivered = 0
+  const ledger = Effect.runSync(
+    makeResidentReviewState((facades) => {
+      premature = Effect.runSyncExit(facades.partitionId("agent"))
+      return {
+        acceptActions: () => {
+          delivered++
+        },
+        validateAdviceInput: () => false
+      }
+    })
+  )
+  assert.ok(premature && Exit.isFailure(premature))
+  assert.equal(delivered, 0)
+  assert.equal(Effect.runSync(ledger.partitionId("agent")), 1)
+  assert.equal(delivered, 1)
+  Effect.runSync(ledger.runtime.close())
+  assert.equal(delivered, 2)
 })
