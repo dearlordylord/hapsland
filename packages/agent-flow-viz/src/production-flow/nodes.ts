@@ -151,7 +151,19 @@ export const flowNodesView = <Message>(
             ]
           : []),
         ...stageAdmissionView(context, node, point),
-        ...(node.id === "preparation" ? [preparationMini(h, point.x, point.y, preparation, numbers)] : []),
+        ...(node.id === "preparation"
+          ? [
+              preparationMini(
+                h,
+                point.x,
+                point.y,
+                projection.work.some((work) => work.kind === "preparing" && work.operation === preparation.operation)
+                  ? preparation
+                  : {},
+                numbers
+              )
+            ]
+          : []),
         ...(node.id === "preparation" && sourceLabel !== undefined
           ? [
               h.text(
