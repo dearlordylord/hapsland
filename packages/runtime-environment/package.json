@@ -67,6 +67,10 @@
     "./runtime/effect-transport": {
       "types": "./dist/runtime/effect-transport.d.ts",
       "default": "./dist/runtime/effect-transport.js"
+    },
+    "./runtime/native-session-registry": {
+      "types": "./dist/runtime/native-session-registry.d.ts",
+      "default": "./dist/runtime/native-session-registry.js"
     }
   },
   "dependencies": {

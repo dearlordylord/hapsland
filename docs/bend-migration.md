@@ -882,22 +882,49 @@ One current obstacle list, in execution order:
    Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 
+   Native invocation resource custody now belongs to runtime-environment's
+   `runtime/native-session-registry.ts`: one existing registration/finalization/
+   retained-cleanup algorithm, with synchronous `close(): void`. Source Analysis's
+   Graph registry composes that interface for Graph sessions and retains its
+   existing structural session contract and Graph request adapter. Resident's
+   five-family driver is the second intended consumer of this lower interface;
+   replacing its incorrectly Graph-typed registry remains open. Dependency
+   direction is Source Analysis / resident → runtime-environment, already declared
+   by both packages. Architectural review accepted the extraction and identified
+   synchronous close, preserved Graph lookup and structural session admission as
+   required boundaries; those are retained rather than adding a factory-only brand.
+   The revised extraction passes architectural review with no remaining structural
+   findings, ordinary workspace build (46/46, 4 cached, 84.608s), check:fast with
+   two actual changed authored files selected, addressed lint across eight authored
+   files since e1f8899b, all six construction/cleanup tests against refreshed
+   compiled artifacts, and the actual resident consumer (73 / 15702 / 855).
+   Logs: /tmp/hapsland-native-registry-{build,fast,addressed-lint,
+   cleanup-final,resident}.log. The prior pre-build cleanup pass is not used as
+   evidence for refreshed Graph artifacts. This closes shared custody ownership;
+   driver typing, compiled host shipping, production adoption and TS deletion
+   remain open.
+
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production d5371d4d measurements are
+   connected candidate. Latest existing-production 08ddc474 measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.7320293280323669 (2026-10-12 04:45:57.252898 UTC); build fails at
-   1.1589742229378936 (04:46:54.530041 UTC). Both starts meet the preceding cadence
-   deadlines. The measurement runner succeeds; wrapper exit 1 records the unmet
-   parity threshold, not a build error. test:status reports the prior compiled
-   capacity/round consumer passing on a different commit, not a performance
-   acceptance verdict. Results do not qualify unadopted whole preparation;
-   build parity remains an acceptance obstacle. Frozen workspace preparation
-   passes 46/46 tasks, 15 cached, 48.355s. Next starts due on 2026-10-12 UTC:
-   execution 05:15:57.252898, build 05:16:54.530041. Freeze/backup/warm by 05:12.
-   Logs: /tmp/hapsland-d5371d4d-{warm,execution-pair,build-pair}.log.
+   passes at 0.690568648809017 (2026-10-12 05:14:47.004884 UTC); build fails at
+   1.1428574247404586 (05:17:04.108860 UTC). The build start missed its preceding
+   05:16:54.530041 cadence deadline by 9.579 seconds; this is a cadence violation,
+   independent of parity. Execution meets its deadline. Measurement runner exit
+   zero and wrapper exit one identify an unmet build parity threshold, not a
+   compilation failure. test:status still reports the previous compiled consumer
+   on another commit and does not establish performance acceptance.
+   These existing-production results do not qualify unadopted whole preparation.
+   Both full physical consumers pass through the five-family private continuation
+   driver: Source 57 fixtures / 6502 checks / 32 branches; resident preparation
+   73 cases / 15702 checks / 855 branches. Whole preparation connected: 0;
+   replaced production TS removed: 0. Next starts due on 2026-10-12 UTC:
+   execution 05:44:47.004884, build 05:47:04.108860. Target starts five minutes
+   earlier; freeze/backup/warm by 05:36. Logs:
+   /tmp/hapsland-08ddc474-{execution-pair,build-pair}.log.
    Qualifications: .test-runs/bend-migration/performance/
-   2026-10-12T04-45-57.252898+00-00/qualification.json and
-   2026-10-12T04-46-54.530041+00-00/qualification.json.
+   2026-10-12T05-14-47.004884+00-00/qualification.json and
+   2026-10-12T05-17-04.108860+00-00/qualification.json.
    Previous e0aaf3c9 execution .5706596 passed and build 1.0952860 failed,
    both qualified. Its first workspace preparation hit GenericArtifact emission's
    unchanged five-second limit; isolated emission passed in 4.740s and the second
