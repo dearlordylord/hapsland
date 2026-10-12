@@ -1,4 +1,6 @@
 import Base
+import ../traversal/patricia-proof/PATRICIA_MEMBERSHIP_PROOF.bend as Membership
+import ../traversal/patricia-proof/PATRICIA_INSERT_PROOF.bend as Insert
 import ../SignedLocalSpecification.bend as Signed
 import ../traversal/SPEC.bend as Recursive
 import ../../../../../agent-flow-bend/ImportGraph.bend as G
@@ -1289,6 +1291,234 @@ def ready_actual_child_known(+entries: Map<&2, Bool>, +forest: Maybe<&2, F.Fores
       Empty.absurd({Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child)))) == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
     case Some{_} Some{_} None{} _ _:
       Empty.absurd({Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child)))) == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
+
+def ready_reference_kind(child: X.Child) -> X.ChildKind:
+  match child:
+    case X.Child{X.Attempt{_, _, kind, _, _, _, _, _, _, _}, _, _, _}: kind
+
+def ready_reference_identity(child: X.Child) -> String:
+  match child:
+    case X.Child{X.Attempt{_, _, _, _, _, _, _, declaration, _, _}, _, _, _}: X.identity(declaration)
+
+def ready_reference_child_known(+entries: Map<&2, Bool>, +child: X.Child,
+    +history: Phase.ChildHistory, +visited: Maybe<&2, List<&2, String>>, +view: Phase.Child,
+    ready: {ReferenceReady.child_view(child, history, visited) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ready_known_kind(ready_reference_kind(child), entries, ready_reference_identity(child))
+      == ready_known_child(entries, view) : Bool}:
+  match child history visited:
+    case X.Child{
+      X.Attempt{
+        +target,
+        edge,
+        +kind,
+        +source,
+        +bytes,
+        name,
+        expected,
+        Local.Declaration{+handle, +identity, function, bundled, references, +source_path},
+        +catalog,
+        +before
+      },
+      F.Created{root, nodes, addresses},
+      Signed.State{Recursive.State{_, budget, _, _}, signed},
+      edges
+    }
+      Phase.ChildHistory{_, _, _, capture, _} Some{+visited}:
+      %Count.some_equal(Phase.Child,
+        Phase.Child{
+          target,
+          X.attempt_path(
+            X.Attempt{
+              target,
+              edge,
+              kind,
+              source,
+              bytes,
+              name,
+              expected,
+              Local.Declaration{handle, identity, function, bundled, references, source_path},
+              catalog,
+              before
+            }
+          ),
+          kind,
+          capture,
+          bytes,
+          T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceReady.file_exports(kind, source), bytes},
+          handle,
+          identity,
+          before,
+          F.Forest{Some{root}, nodes},
+          addresses,
+          ReferenceReady.pending(edges),
+          visited,
+          V.budget(budget, signed),
+          source,
+          catalog
+        }, view, ready):
+        {ready_known_kind(kind, entries, identity) == ready_known_child(entries, _) : Bool}
+      {==}
+    case _ _ None{}:
+      Empty.absurd({ready_known_kind(ready_reference_kind(child), entries, ready_reference_identity(child))
+        == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
+
+def observed_selected_choice(side: Bool, +left: Maybe<&2, String>, +right: Maybe<&2, String>, +query: String) ->
+    {Membership.selected_equal(Insert.selected_choice(side, left, right), query)
+      == Bool.pick(Bool, side, Membership.selected_equal(right, query), Membership.selected_equal(left, query)) : Bool}:
+  match side:
+    case False{}: {==}
+    case True{}: {==}
+
+def observed_selected_positive(tree: Map<&2, Bool>, +query: String,
+    ready: {Membership.selected_equal(Insert.selected(Bool, tree, query), query) == True{} : Bool}) ->
+    NatFacts.le(1n, observed_map_count(tree, query)):
+  match tree:
+    case MTip{}:
+      Empty.absurd(NatFacts.le(1n, 0n), StringFacts.internal_false_ne_true(ready))
+    case MLeaf{+name, _}:
+      %Equal.sym(Bool, String.eq(query, name), True{}, ready):
+        NatFacts.le(1n, Bool.pick(Nat, _, 1n, 0n))
+      {==}
+    case MNode{+position, +lo, +hi}:
+      observed_node_positive(Patricia.route(query, position),
+        Membership.selected_equal(Insert.selected(Bool, lo, query), query),
+        Membership.selected_equal(Insert.selected(Bool, hi, query), query),
+        observed_map_count(lo, query), observed_map_count(hi, query),
+        Equal.trans(Bool,
+          Bool.pick(Bool, Patricia.route(query, position),
+            Membership.selected_equal(Insert.selected(Bool, hi, query), query),
+            Membership.selected_equal(Insert.selected(Bool, lo, query), query)),
+          Membership.selected_equal(Insert.selected(Bool, MNode{position, lo, hi}, query), query), True{},
+          Equal.sym(Bool,
+            Membership.selected_equal(Insert.selected(Bool, MNode{position, lo, hi}, query), query),
+            Bool.pick(Bool, Patricia.route(query, position),
+              Membership.selected_equal(Insert.selected(Bool, hi, query), query),
+              Membership.selected_equal(Insert.selected(Bool, lo, query), query)),
+            observed_selected_choice(Patricia.route(query, position), Insert.selected(Bool, lo, query), Insert.selected(Bool, hi, query), query)), ready),
+        proof => observed_selected_positive(lo, query, proof),
+        proof => observed_selected_positive(hi, query, proof))
+
+def observed_presence_positive(+tree: Map<&2, Bool>, +query: String,
+    ready: {Recursive.value(Bool, Map.has(&2, Bool, tree, query)) == True{} : Bool}) ->
+    NatFacts.le(1n, observed_key_count(Map.keys(&2, Bool, tree), query)):
+  %Equal.sym(Nat, observed_key_count(Map.keys(&2, Bool, tree), query), observed_map_count(tree, query),
+    observed_map_keys(tree, query)): NatFacts.le(1n, _)
+  observed_selected_positive(tree, query,
+    Equal.trans(Bool, Membership.selected_equal(Insert.selected(Bool, tree, query), query),
+      Recursive.value(Bool, Map.has(&2, Bool, tree, query)), True{},
+      Equal.sym(Bool, Recursive.value(Bool, Map.has(&2, Bool, tree, query)),
+        Membership.selected_equal(Insert.selected(Bool, tree, query), query),
+        Equal.cong(Map<&2, Bool> & Bool, Bool, result => Recursive.value(Bool, result),
+          Map.has(&2, Bool, tree, query), Tuple{tree, Membership.selected_equal(Insert.selected(Bool, tree, query), query)},
+          Membership.has_exact(Bool, tree, query))), ready))
+
+def observed_value_present(same: Bool, value: Bool,
+    ready: {Bool.pick(Bool, same, value, False{}) == True{} : Bool}) -> {same == True{} : Bool}:
+  match same:
+    case True{}: {==}
+    case False{}: Empty.absurd({False{} == True{} : Bool}, StringFacts.internal_false_ne_true(ready))
+
+def observed_presence_route(side: Bool, +left: Bool, +right: Bool, +left_seen: Bool, +right_seen: Bool,
+    ready: {Bool.pick(Bool, side, right, left) == True{} : Bool},
+    left_proof: {left == True{} : Bool} -> {left_seen == True{} : Bool},
+    right_proof: {right == True{} : Bool} -> {right_seen == True{} : Bool}) ->
+    {Bool.pick(Bool, side, right_seen, left_seen) == True{} : Bool}:
+  match side:
+    case False{}: left_proof(ready)
+    case True{}: right_proof(ready)
+
+def observed_routed_presence(tree: Map<&2, Bool>, +query: String,
+    ready: {Payload.routed_value(Bool, False{}, tree, query) == True{} : Bool}) ->
+    {Membership.selected_equal(Insert.selected(Bool, tree, query), query) == True{} : Bool}:
+  match tree:
+    case MTip{}: Empty.absurd({False{} == True{} : Bool}, StringFacts.internal_false_ne_true(ready))
+    case MLeaf{+name, +value}:
+      observed_value_present(String.eq(query, name), value,
+        Equal.trans(Bool, Bool.pick(Bool, String.eq(query, name), value, False{}),
+          Local.map_result(Bool, Map.get(Bool, False{}, MLeaf{name, value}, query)), True{},
+          Equal.sym(Bool, Local.map_result(Bool, Map.get(Bool, False{}, MLeaf{name, value}, query)),
+            Bool.pick(Bool, String.eq(query, name), value, False{}),
+            Payload.leaf_read_exact(Bool, False{}, name, value, query)), ready))
+    case MNode{+position, +lo, +hi}:
+      Equal.trans(Bool, Membership.selected_equal(Insert.selected(Bool, MNode{position, lo, hi}, query), query),
+        Bool.pick(Bool, Patricia.route(query, position),
+          Membership.selected_equal(Insert.selected(Bool, hi, query), query),
+          Membership.selected_equal(Insert.selected(Bool, lo, query), query)), True{},
+        observed_selected_choice(Patricia.route(query, position), Insert.selected(Bool, lo, query), Insert.selected(Bool, hi, query), query),
+        observed_presence_route(Patricia.route(query, position), Payload.routed_value(Bool, False{}, lo, query), Payload.routed_value(Bool, False{}, hi, query),
+          Membership.selected_equal(Insert.selected(Bool, lo, query), query), Membership.selected_equal(Insert.selected(Bool, hi, query), query), ready,
+          proof => observed_routed_presence(lo, query, proof), proof => observed_routed_presence(hi, query, proof)))
+
+def observed_lookup_presence(+tree: Map<&2, Bool>, +query: String,
+    ready: {Local.map_result(Bool, Map.get(Bool, False{}, tree, query)) == True{} : Bool}) ->
+    {Recursive.value(Bool, Map.has(&2, Bool, tree, query)) == True{} : Bool}:
+  Equal.trans(Bool, Recursive.value(Bool, Map.has(&2, Bool, tree, query)),
+    Membership.selected_equal(Insert.selected(Bool, tree, query), query), True{},
+    Equal.cong(Map<&2, Bool> & Bool, Bool, result => Recursive.value(Bool, result),
+      Map.has(&2, Bool, tree, query), Tuple{tree, Membership.selected_equal(Insert.selected(Bool, tree, query), query)},
+      Membership.has_exact(Bool, tree, query)),
+    observed_routed_presence(tree, query,
+      Equal.trans(Bool, Payload.routed_value(Bool, False{}, tree, query),
+        Local.map_result(Bool, Map.get(Bool, False{}, tree, query)), True{},
+        Equal.sym(Bool, Local.map_result(Bool, Map.get(Bool, False{}, tree, query)),
+          Payload.routed_value(Bool, False{}, tree, query), Payload.lookup_routed(Bool, False{}, tree, query)), ready)))
+
+def visited_absent_presence_selected(+present: Bool, +order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>, +query: String,
+    lookup: {Recursive.value(Bool, Map.has(&2, Bool, entries, query)) == present : Bool},
+    ready: {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    same_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries))) == True{} : Bool},
+    absent: {List.contains(String, String.eq, order, query) == False{} : Bool}) ->
+    {Recursive.value(Bool, Map.has(&2, Bool, entries, query)) == False{} : Bool}:
+  match present:
+    case False{}: lookup
+    case True{}:
+      Empty.absurd({Recursive.value(Bool, Map.has(&2, Bool, entries, query)) == False{} : Bool},
+        observed_extra_impossible(order, Map.keys(&2, Bool, entries), query, unique, same_size, absent,
+          visited_positive(order, entries, observed, ready), observed_presence_positive(entries, query, lookup)))
+
+def visited_absent_presence(+order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>, +query: String,
+    ready: {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    same_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries))) == True{} : Bool},
+    absent: {List.contains(String, String.eq, order, query) == False{} : Bool}) ->
+    {Recursive.value(Bool, Map.has(&2, Bool, entries, query)) == False{} : Bool}:
+  visited_absent_presence_selected(Recursive.value(Bool, Map.has(&2, Bool, entries, query)), order, entries, observed, query,
+    {==}, ready, unique, same_size, absent)
+
+def visited_presence_selected(+member: Bool, +order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>, +query: String,
+    +belongs: {List.contains(String, String.eq, order, query) == member : Bool},
+    +ready: {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+    +unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    +same_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries))) == True{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query))
+      == Recursive.value(Bool, Map.has(&2, Bool, entries, query)) : Bool}:
+  match member:
+    case True{}:
+      Equal.trans(Bool, Local.map_result(Bool, Map.get(Bool, False{}, entries, query)), True{},
+        Recursive.value(Bool, Map.has(&2, Bool, entries, query)),
+        visited_member_sound(order, entries, observed, query, ready, belongs),
+        Equal.sym(Bool, Recursive.value(Bool, Map.has(&2, Bool, entries, query)), True{},
+          observed_lookup_presence(entries, query, visited_member_sound(order, entries, observed, query, ready, belongs))))
+    case False{}:
+      Equal.trans(Bool, Local.map_result(Bool, Map.get(Bool, False{}, entries, query)), False{},
+        Recursive.value(Bool, Map.has(&2, Bool, entries, query)),
+        visited_absent_lookup(order, entries, observed, query, ready, unique, same_size, belongs),
+        Equal.sym(Bool, Recursive.value(Bool, Map.has(&2, Bool, entries, query)), False{},
+          visited_absent_presence(order, entries, observed, query, ready, unique, same_size, belongs)))
+
+def visited_presence_exact(+order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>, +query: String,
+    ready: {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    same_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries))) == True{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query))
+      == Recursive.value(Bool, Map.has(&2, Bool, entries, query)) : Bool}:
+  visited_presence_selected(List.contains(String, String.eq, order, query), order, entries, observed, query,
+    {==}, ready, unique, same_size)
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
