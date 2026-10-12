@@ -1231,6 +1231,65 @@ def ready_frame_lookup_exact(+frame: T.ResolverFrame, +reference: D.State,
   ready_lookup_parts(frame, reference, history, view, query,
     actual_frame_contents(frame, history, view, actual_ready), reference_ready)
 
+def ready_known_kind(kind: X.ChildKind, entries: Map<&2, Bool>, identity: String) -> Bool:
+  match kind:
+    case X.FileChild{_}: Local.map_result(Bool, Map.get(Bool, False{}, entries, identity))
+    case X.BundledChild{}: False{}
+
+def ready_known_child(+entries: Map<&2, Bool>, child: Phase.Child) -> Bool:
+  match child:
+    case Phase.Child{_, _, kind, _, _, _, _, identity, _, _, _, _, _, _, _, _}:
+      ready_known_kind(kind, entries, identity)
+
+def ready_actual_identity(child: T.TentativeChild) -> String:
+  match child:
+    case T.TentativeChild{_, _, _, _, _, _, identity, _, _, _, _, _}: identity
+
+def ready_actual_path(child: T.TentativeChild) -> String:
+  match child:
+    case T.TentativeChild{_, path, _, _, _, _, _, _, _, _, _, _}: path
+
+def ready_edge_known_target(target: Local.PendingTarget, path: String,
+    +entries: Map<&2, Bool>, +identity: String) ->
+    {Bool.and(Bool.not(Attach.bundled_target(target)),
+      Local.map_result(Bool, Map.get(Bool, False{}, entries, identity)))
+      == ready_known_kind(ActualReady.kind(target, path), entries, identity) : Bool}:
+  match target:
+    case Local.BundledTarget{_}: {==}
+    case Local.Imported{_, _}: {==}
+
+def ready_edge_known(edge: Local.Pending, +path: String,
+    +entries: Map<&2, Bool>, +identity: String) ->
+    {Bool.and(Bool.not(Attach.bundled_edge(edge)),
+      Local.map_result(Bool, Map.get(Bool, False{}, entries, identity)))
+      == ready_known_kind(ActualReady.edge_kind(edge, path), entries, identity) : Bool}:
+  match edge:
+    case Local.Pending{_, _, _, _, _, _, _, target}:
+      ready_edge_known_target(target, path, entries, identity)
+
+def ready_actual_child_known(+entries: Map<&2, Bool>, +forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingPayload>>,
+    +visited: Maybe<&2, List<&2, String>>, +child: T.TentativeChild, +edge: Local.Pending,
+    +history: Phase.ChildHistory, +view: Phase.Child,
+    ready: {ActualReady.child_view(forest, pending, visited, child, edge, history)
+      == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {Bool.and(Bool.not(Attach.bundled_edge(edge)),
+      Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child))))
+      == ready_known_child(entries, view) : Bool}:
+  match forest pending visited child history:
+    case Some{+forest_value} Some{+pending_value} Some{+visited_value}
+      T.TentativeChild{target, +path, capture, bytes, file, artifact, +identity, before, Local.Plan{_, _, _, _, _, budget}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, addresses}, source, catalog, _, _}:
+      %Count.some_equal(Phase.Child, Phase.Child{target, path, ActualReady.edge_kind(edge, path), capture, bytes, file,
+          artifact, identity, before, forest_value, addresses, pending_value, visited_value, V.actual_budget(budget), source, catalog}, view, ready):
+        {Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, identity))) == ready_known_child(entries, _) : Bool}
+      ready_edge_known(edge, path, entries, identity)
+    case None{} _ _ _ _:
+      Empty.absurd({Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child)))) == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
+    case Some{_} None{} _ _ _:
+      Empty.absurd({Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child)))) == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
+    case Some{_} Some{_} None{} _ _:
+      Empty.absurd({Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, entries, ready_actual_identity(child)))) == ready_known_child(entries, view) : Bool}, Contents.none_some(Phase.Child, view, ready))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

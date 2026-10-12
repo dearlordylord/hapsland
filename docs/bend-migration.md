@@ -628,6 +628,17 @@ One current obstacle list, in execution order:
    3.663s). No deadline or default concurrency changed. Logs:
    /tmp/hapsland-canonical-owner-{declared-build,fast-v2,serial-graph,normal-warm}.log
    and /tmp/hapsland-packaged-canonical-owner-resident-full-v2.log.
+   The full outer Source consumer now also loads all seven packaged cores
+   (six resident recipe outputs plus the normal Canonical owner export).
+   Its five temporary emissions and obsolete source-name inventory are deleted.
+   The actual changed runner passes lint, syntax and development imports;
+   check:fast passes with this authored file selected. Complete physical Source
+   consumer passes 56 cases / 6348 commands / 31 independent actual native
+   workflow comparisons, retaining all scenarios. Logs:
+   /tmp/hapsland-packaged-source-consumer-{full,fast,lint-v2}.log.
+   This closes packaged loading of the complete Source/Preparation/resolver/Post
+   chain; full error/cancellation differential and universal correspondence
+   remain distinct open obligations, not implied by these finite comparisons.
    Canonical owner packaging/loading is qualified; whole production wiring
    remains open. Whole preparation connected: 0; replaced production TS removed: 0.
    Resolver artifact shipping and the complete production entrypoint
