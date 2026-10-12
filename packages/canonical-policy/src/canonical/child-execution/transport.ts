@@ -1,6 +1,17 @@
 import type * as Owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
-import { projectTrustedCanonical } from "@hapsland/canonical-policy/canonical/canonical-boundary"
-import type { HostTransport } from "./provider-authority.ts"
+import { projectTrustedCanonical } from "../canonical-boundary.ts"
+// Inverse of the already-declared owner Nat/tag conversion for Canonical outputs.
+export type HostTransport<Value> = Value extends bigint
+  ? number
+  : Value extends object
+    ? {
+        readonly [Key in keyof Value]: Key extends "$"
+          ? Value[Key] extends `../${infer Tag}`
+            ? Tag
+            : Value[Key]
+          : HostTransport<Value[Key]>
+      }
+    : Value
 
 // The existing Canonical ABI changes only Nat representation and imported tags.
 const prefix = "../"

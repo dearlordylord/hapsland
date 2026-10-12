@@ -5,7 +5,13 @@ import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/adapt
 import { projectTrustedCanonical } from "@hapsland/canonical-policy/canonical/canonical-boundary"
 import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 
-import { toOwner, fromOwner, toOwnerCanonical, ownerList, ownerSequence } from "./resolver-transport.ts"
+import {
+  toOwner,
+  fromOwner,
+  toOwnerCanonical,
+  ownerList,
+  ownerSequence
+} from "@hapsland/canonical-policy/canonical/child-execution"
 
 /**
  * @param {{ owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner,

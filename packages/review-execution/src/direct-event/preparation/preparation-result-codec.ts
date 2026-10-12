@@ -1,3 +1,4 @@
+import { freezeInput } from "@hapsland/review-definition/direct-event/model"
 import { fromProductValue, unlist, hostNatural } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { List, ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
@@ -59,6 +60,7 @@ export type PreparationResult = {
   readonly units: List<ProductValue>
   readonly line_roots: List<string>
   readonly selected: bigint
+  readonly ambiguous_line: boolean
 }
 type SourceOutcome =
   | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedSource }
@@ -149,7 +151,8 @@ export function decodePreparationResult(
   const outcomes = unlist(result.outcomes).map((outcome): PrepareOutcome | SourceOutcome => {
     if (outcome.$ === "OutcomeSkipped") return { status: "skipped", path: outcome.path }
     if (outcome.$ !== "OutcomeReady") throw new TypeError("Unknown preparation outcome")
-    const prepared = fromProductValue(outcome.prepared) as PreparedSource
+    const encodedPrepared = fromProductValue(outcome.prepared) as PreparedSource
+    const prepared = { ...encodedPrepared, input: freezeInput(encodedPrepared.input) }
     if (advicee === undefined) return { status: "ready", path: outcome.path, prepared }
     const ready: Extract<PrepareOutcome, { status: "ready" }> = {
       status: "ready",

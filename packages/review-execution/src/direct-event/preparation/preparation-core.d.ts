@@ -147,6 +147,7 @@ export type Response =
         readonly result:
           | Tagged<"Resized">
           | Tagged<"CapacityRefused", { readonly constraint: string }>
+          | Tagged<"MaterializationDenied", { readonly diagnostic: ProductValue }>
           | Tagged<"InvalidReservation">
           | Tagged<"InvalidMeasurement">
         readonly requested: bigint

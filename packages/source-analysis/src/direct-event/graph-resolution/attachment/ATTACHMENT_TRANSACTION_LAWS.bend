@@ -45,6 +45,7 @@ import ../Types.bend as T
 import ../State.bend as S
 import ../Loop.bend as Loop
 import ../Machine.bend as Machine
+import ../Protocol.bend as Protocol
 import ../Attach.bend as Attach
 import ../Environment.bend as E
 import ../ExpansionSpecification.bend as X
@@ -6767,6 +6768,405 @@ def ready_original_joined(+state: T.ResolverState, +reference: D.State, +child: 
   ready_original_joined_witness(state, reference, child, history, child_history, phase, previous, ready,
     ready_original_shared(state, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent))
 
+
+def ready_reply_outcome(reply: T.Reply) -> T.ServiceOutcome:
+  match reply:
+    case T.Reply{_, _, outcome}: outcome
+
+# The arbitrary-reply part of the original transaction compares the actual
+# validator with the independent boundary validator at its proved EncodeProduct.
+def ready_checked_boundary(failure: Maybe<&2, T.TechnicalFailure>, outcome: T.ServiceOutcome) -> Protocol.CheckedReply:
+  match failure:
+    case None{}: Protocol.CheckedOutcome{outcome}
+    case Some{failure}: Protocol.RejectedReply{failure}
+
+def ready_provider_validation(+same: Bool, +owner: Nat, +actual: Nat, +outcome: T.ServiceOutcome) ->
+    {Protocol.token_owner(same, owner, actual, outcome) == ready_checked_boundary(
+      Bool.pick(Maybe<&2, T.TechnicalFailure>, same, None{}, Some{T.WrongInvocation{owner, actual}}), outcome) : Protocol.CheckedReply}:
+  match same:
+    case False{}: {==}
+    case True{}: {==}
+
+def ready_encode_variant(+product: ArtifactValue.ProductValue, +owner: Nat, +outcome: T.ServiceOutcome) ->
+    {Protocol.check_matching(Protocol.matching(T.EncodeProduct{product}, outcome), outcome, owner) ==
+      ready_checked_boundary(Boundary.variant(Boundary.compatible(T.EncodeProduct{product}, outcome), owner, outcome), outcome) : Protocol.CheckedReply}:
+  match outcome:
+    case T.GoConfigurationRead{_}: {==}
+    case T.AnalysisConfigurationIdentityRead{_}: {==}
+    case T.ClockStarted{_}: {==}
+    case T.ClockRead{_}: {==}
+    case T.DirnameResult{_}: {==}
+    case T.BasenameResult{_}: {==}
+    case T.PathSeparatorResult{_}: {==}
+    case T.JoinedResult{_}: {==}
+    case T.NormalizedResult{_}: {==}
+    case T.RelativeResult{_}: {==}
+    case T.ExtensionResult{_}: {==}
+    case T.AbsoluteResult{_}: {==}
+    case T.JoinedPathFactsResult{_, _, _, _, _}: {==}
+    case T.StatusResult{_}: {==}
+    case T.MembershipResult{_}: {==}
+    case T.DirectoryEntriesObserved{_, _}: {==}
+    case T.DirectoryEntriesUnavailable{}: {==}
+    case T.ContextSelectionResult{_}: {==}
+    case T.PythonSyntaxResult{_}: {==}
+    case T.IdentifierCharactersResult{_}: {==}
+    case T.AccessResult{_}: {==}
+    case T.InvocationCacheCreated{_}: {==}
+    case T.CacheResult{_}: {==}
+    case T.CacheSnapshot{_}: {==}
+    case T.CacheStored{}: {==}
+    case T.RootCacheInserted{}: {==}
+    case T.CaptureResult{_}: {==}
+    case T.FrontendResult{_}: {==}
+    case T.CargoResult{_}: {==}
+    case T.CapturedText{_, _}: {==}
+    case T.GoCharactersResult{_}: {==}
+    case T.GoBuildTextResult{_}: {==}
+    case T.JsonProductHashed{_}: {==}
+    case T.GoFileResult{_}: {==}
+    case T.RustModulesResult{_}: {==}
+    case T.DiagnosticObserved{}: {==}
+    case T.ProductEncoded{_}: {==}
+    case T.SourceTextEncoded{_}: {==}
+    case T.ProviderRejected{T.ExceptionToken{+actual, _}}:
+      ready_provider_validation(Nat.is_eq(owner, actual), owner, actual, outcome)
+
+def ready_encode_correlation(+same: Bool, +expected: Nat, +actual: Nat, +owner: Nat,
+    +product: ArtifactValue.ProductValue, +outcome: T.ServiceOutcome) ->
+    {Protocol.check_correlation(same, expected, actual, T.EncodeProduct{product}, outcome, owner) ==
+      ready_checked_boundary(Boundary.correlation(same, expected, actual, owner, T.EncodeProduct{product}, outcome), outcome) : Protocol.CheckedReply}:
+  match same:
+    case False{}: {==}
+    case True{}: ready_encode_variant(product, owner, outcome)
+
+def ready_encode_header(+same: Bool, +owner: Nat, +actual: Nat, +id: Nat, +reply_id: Nat,
+    +product: ArtifactValue.ProductValue, +outcome: T.ServiceOutcome) ->
+    {Protocol.check_owner(same, owner, actual, id, reply_id, T.EncodeProduct{product}, outcome) ==
+      ready_checked_boundary(Boundary.header(same, owner, actual, id, reply_id, T.EncodeProduct{product}, outcome), outcome) : Protocol.CheckedReply}:
+  match same:
+    case False{}: {==}
+    case True{}: ready_encode_correlation(Nat.is_eq(id, reply_id), id, reply_id, owner, product, outcome)
+
+def ready_encode_validation(+owner: Nat, +id: Nat, +product: ArtifactValue.ProductValue, +reply: T.Reply) ->
+    {Protocol.check(T.Request{owner, id, T.EncodeProduct{product}}, reply) ==
+      ready_checked_boundary(Boundary.check(T.Request{owner, id, T.EncodeProduct{product}}, reply), ready_reply_outcome(reply)) : Protocol.CheckedReply}:
+  match reply:
+    case T.Reply{+actual, +reply_id, +outcome}:
+      ready_encode_header(Nat.is_eq(owner, actual), owner, actual, id, reply_id, product, outcome)
+
+def ready_request_validation(+request: T.Request, +product: ArtifactValue.ProductValue, +reply: T.Reply,
+    encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation}) ->
+    {Protocol.check(request, reply) == ready_checked_boundary(Boundary.check(request, reply), ready_reply_outcome(reply)) : Protocol.CheckedReply}:
+  match request:
+    case T.Request{+owner, +id, +operation}:
+      %Equal.sym(T.Operation, operation, T.EncodeProduct{product}, encoded):
+        {Protocol.check(T.Request{owner, id, _}, reply) == ready_checked_boundary(Boundary.check(T.Request{owner, id, _}, reply), ready_reply_outcome(reply)) : Protocol.CheckedReply}
+      ready_encode_validation(owner, id, product, reply)
+
+def ready_actual_rejected(+continuation: Loop.Continuation, +measured: T.ResolverState,
+    +request: T.Request, +product: ArtifactValue.ProductValue, +reply: T.Reply, +history: V.History, +failure: T.TechnicalFailure,
+    awaited: {continuation == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation},
+    encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation},
+    rejected: {Boundary.check(request, reply) == Some{failure} : Maybe<&2, T.TechnicalFailure>}) ->
+    {ActualBoundary.project(Machine.resume(continuation, T.ServiceReply{reply}), history) == Some{B.Failed{failure}} : Maybe<&2, B.Boundary>}:
+  %Equal.sym(Loop.Continuation, continuation, Loop.ServiceStep{T.AwaitService{measured, request}}, awaited):
+    {ActualBoundary.project(Machine.resume(_, T.ServiceReply{reply}), history) == Some{B.Failed{failure}} : Maybe<&2, B.Boundary>}
+  %Equal.sym(Protocol.CheckedReply, Protocol.check(request, reply), ready_checked_boundary(Boundary.check(request, reply), ready_reply_outcome(reply)), ready_request_validation(request, product, reply, encoded)):
+    {ActualBoundary.project(Machine.checked(_, measured), history) == Some{B.Failed{failure}} : Maybe<&2, B.Boundary>}
+  %Equal.sym(Maybe<&2, T.TechnicalFailure>, Boundary.check(request, reply), Some{failure}, rejected):
+    {ActualBoundary.project(Machine.checked(ready_checked_boundary(_, ready_reply_outcome(reply)), measured), history) == Some{B.Failed{failure}} : Maybe<&2, B.Boundary>}
+  {==}
+
+def ready_rejected_delivered(-World: Data, +request: T.Request, +state: D.State,
+    +reply: T.Reply, +world: E.WorldState<World>, +child: X.Child, +history: V.History, +failure: T.TechnicalFailure,
+    rejected: {Boundary.check(request, reply) == Some{failure} : Maybe<&2, T.TechnicalFailure>}) ->
+    {ReferenceBoundaryView.project(World, ReferenceBoundary.normalize_progress(World,
+      D.delivered(ReferenceBoundary.consume, World, request, state, reply, world)), child, history) == Some{B.Failed{failure}} : Maybe<&2, B.Boundary>}:
+  match reply:
+    case T.Reply{_, _, +outcome}:
+      %Equal.sym(Maybe<&2, T.TechnicalFailure>, Boundary.check(request, reply), Some{failure}, rejected):
+        {ReferenceBoundaryView.project(World, ReferenceBoundary.normalize_progress(World,
+          D.validated(ReferenceBoundary.consume, World, _, state, outcome, world)), child, history) == Some{B.Failed{failure}} : Maybe<&2, B.Boundary>}
+      {==}
+
+def ready_rejected_selection_result(-World: Data, +selection: D.Selection, +reply: T.Reply,
+    +world: E.WorldState<World>, +child: X.Child, +history: V.History, +failure: T.TechnicalFailure) -> Type:
+  {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, selection, reply, world), child, history) == Some{B.Failed{failure}} : Maybe<&2, B.Boundary>}
+
+def ready_reference_rejected(-World: Data, +selection: D.Selection, +request: T.Request, +reply: T.Reply,
+    +world: E.WorldState<World>, +child: X.Child, +history: V.History, +failure: T.TechnicalFailure,
+    selected: {ReferenceBoundary.selected_request(selection) == Some{request} : Maybe<&2, T.Request>},
+    rejected: {Boundary.check(request, reply) == Some{failure} : Maybe<&2, T.TechnicalFailure>}) ->
+    ready_rejected_selection_result(World, selection, reply, world, child, history, failure):
+  match selection:
+    case D.Selected{D.State{+config, +frame, +targets, +ids, +target, +next, +iterations, +stage, +python}, +operation}:
+      ready_rejected_delivered(World, T.Request{D.invocation(config), next, operation},
+        D.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python}, reply, world, child, history, failure,
+        %Equal.sym(T.Request, T.Request{D.invocation(config), next, operation}, request, Count.some_equal(T.Request, T.Request{D.invocation(config), next, operation}, request, selected)):
+          {Boundary.check(_, reply) == Some{failure} : Maybe<&2, T.TechnicalFailure>}
+        rejected)
+    case D.Internal{_}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, reply, world, child, history, failure), Contents.none_some(T.Request, request, selected))
+    case D.ChildBegin{_, _}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, reply, world, child, history, failure), Contents.none_some(T.Request, request, selected))
+    case D.ChildResume{_, _, _}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, reply, world, child, history, failure), Contents.none_some(T.Request, request, selected))
+    case D.Success{_, _}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, reply, world, child, history, failure), Contents.none_some(T.Request, request, selected))
+    case D.EvaluationExhausted{_}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, reply, world, child, history, failure), Contents.none_some(T.Request, request, selected))
+    case D.InvariantFailed{_}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, reply, world, child, history, failure), Contents.none_some(T.Request, request, selected))
+    case D.Rejected{_, _}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, reply, world, child, history, failure), Contents.none_some(T.Request, request, selected))
+
+# This is the rejected-envelope branch of the unchanged nine-field conclusion.
+# The rejection equality is obtained by case analysis of the actual arbitrary
+# reply, after the original-ready common witness has supplied claims one to six.
+def ready_rejected_transaction(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat,
+    +reply: T.Reply, +world: E.WorldState<World>, +measured: T.ResolverState,
+    +request: T.Request, +product: ArtifactValue.ProductValue, +staged: V.Frame, +failure: T.TechnicalFailure,
+    +awaited: {Attach.previous(previous, actual) == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation},
+    +encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation},
+    stage: {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage},
+    +selected: {ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) == Some{request} : Maybe<&2, T.Request>},
+    projected: {Contract.actual_frame(S.state_frame(measured), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>},
+    reference_projected: {Staged.project(ReferenceBoundary.enter(reference, child, previous), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>},
+    +rejected: {Boundary.check(request, reply) == Some{failure} : Maybe<&2, T.TechnicalFailure>}) ->
+    Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world):
+  Tuple{Contract.Witness{measured, request, product, staged, B.Failed{failure}},
+    Tuple{awaited, Tuple{encoded, Tuple{stage, Tuple{selected, Tuple{projected, Tuple{reference_projected,
+      Tuple{ready_actual_rejected(Attach.previous(previous, actual), measured, request, product, reply,
+        History.reply(phase, History.measurement(phase, history), previous, request, reply), failure, awaited, encoded, rejected),
+      Tuple{ready_reference_rejected(World, ReferenceBoundary.enter(reference, child, previous), request, reply, world, child,
+        History.reply(phase, History.measurement(phase, history), previous, request, reply), failure, selected, rejected),
+        boundary_world(World, ReferenceBoundary.enter(reference, child, previous), reply, world)}}}}}}}}}
+
+def ready_actual_provider_rejected(+continuation: Loop.Continuation, +measured: T.ResolverState,
+    +request: T.Request, +product: ArtifactValue.ProductValue, +owner: Nat, +id: Nat,
+    +exception: T.ExceptionToken, +history: V.History,
+    awaited: {continuation == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation},
+    encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation},
+    stage: {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage},
+    accepted: {Boundary.check(request, T.Reply{owner, id, T.ProviderRejected{exception}}) == None{} : Maybe<&2, T.TechnicalFailure>}) ->
+    {ActualBoundary.project(Machine.resume(continuation, T.ServiceReply{T.Reply{owner, id, T.ProviderRejected{exception}}}), history) == Some{B.Failed{T.ForeignProviderFailure{exception}}} : Maybe<&2, B.Boundary>}:
+  +reply: T.Reply = T.Reply{owner, id, T.ProviderRejected{exception}}
+  %Equal.sym(Loop.Continuation, continuation, Loop.ServiceStep{T.AwaitService{measured, request}}, awaited):
+    {ActualBoundary.project(Machine.resume(_, T.ServiceReply{reply}), history) == Some{B.Failed{T.ForeignProviderFailure{exception}}} : Maybe<&2, B.Boundary>}
+  %Equal.sym(Protocol.CheckedReply, Protocol.check(request, reply), ready_checked_boundary(Boundary.check(request, reply), ready_reply_outcome(reply)), ready_request_validation(request, product, reply, encoded)):
+    {ActualBoundary.project(Machine.checked(_, measured), history) == Some{B.Failed{T.ForeignProviderFailure{exception}}} : Maybe<&2, B.Boundary>}
+  %Equal.sym(Maybe<&2, T.TechnicalFailure>, Boundary.check(request, reply), None{}, accepted):
+    {ActualBoundary.project(Machine.checked(ready_checked_boundary(_, T.ProviderRejected{exception}), measured), history) == Some{B.Failed{T.ForeignProviderFailure{exception}}} : Maybe<&2, B.Boundary>}
+  %Equal.sym(T.ResolverStage, S.state_stage(measured), T.MeasuringCandidateTree{}, stage):
+    {ActualBoundary.project(Machine.continue_action(Machine.stage_reply(_, T.ProviderRejected{exception}, measured)), history) == Some{B.Failed{T.ForeignProviderFailure{exception}}} : Maybe<&2, B.Boundary>}
+  {==}
+
+def ready_provider_consumed(+state: D.State, +exception: T.ExceptionToken) ->
+    {ReferenceBoundary.consume(state, T.ProviderRejected{exception}) == D.Rejected{state, T.ForeignProviderFailure{exception}} : D.Selection}:
+  match state:
+    case D.State{_, _, _, _, _, _, _, D.Iteration{}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.Command{}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AfterCommand{_}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.Resolve{_}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.Scan{_, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitStatus{_, _, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.Check{_, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitChecked{_, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.Read{_, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitAuthorized{_, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitSnapshot{_, _, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitLookup{_, _, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitCapture{_, _, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitStored{_, _, _, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitDiagnostic{}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitFrontend{_, _, _, _, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitBundleBytes{_, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.Transaction{_}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.Completion{_}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitCompletion{_}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.PythonImporting{_, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.PythonInspectStart{_, _, _, _, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.PythonInspecting{_, _, _, _, _, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.PythonValidationStart{_}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.PythonValidating{_, _}, _}: {==}
+    case D.State{_, _, _, _, _, _, _, D.AwaitFinalDeadline{_}, _}: {==}
+
+def ready_provider_delivered(-World: Data, +request: T.Request, +state: D.State,
+    +owner: Nat, +id: Nat, +exception: T.ExceptionToken, +world: E.WorldState<World>, +child: X.Child, +history: V.History,
+    accepted: {Boundary.check(request, T.Reply{owner, id, T.ProviderRejected{exception}}) == None{} : Maybe<&2, T.TechnicalFailure>}) ->
+    {ReferenceBoundaryView.project(World, ReferenceBoundary.normalize_progress(World,
+      D.delivered(ReferenceBoundary.consume, World, request, state, T.Reply{owner, id, T.ProviderRejected{exception}}, world)), child, history) == Some{B.Failed{T.ForeignProviderFailure{exception}}} : Maybe<&2, B.Boundary>}:
+  %Equal.sym(Maybe<&2, T.TechnicalFailure>, Boundary.check(request, T.Reply{owner, id, T.ProviderRejected{exception}}), None{}, accepted):
+    {ReferenceBoundaryView.project(World, ReferenceBoundary.normalize_progress(World,
+      D.validated(ReferenceBoundary.consume, World, _, state, T.ProviderRejected{exception}, world)), child, history) == Some{B.Failed{T.ForeignProviderFailure{exception}}} : Maybe<&2, B.Boundary>}
+  %Equal.sym(D.Selection, ReferenceBoundary.consume(state, T.ProviderRejected{exception}), D.Rejected{state, T.ForeignProviderFailure{exception}}, ready_provider_consumed(state, exception)):
+    {ReferenceBoundaryView.project(World, ReferenceBoundary.normalize_progress(World,
+      D.consumed(World, _, world)), child, history) == Some{B.Failed{T.ForeignProviderFailure{exception}}} : Maybe<&2, B.Boundary>}
+  {==}
+
+def ready_reference_provider_rejected(-World: Data, +selection: D.Selection, +request: T.Request,
+    +owner: Nat, +id: Nat, +exception: T.ExceptionToken, +world: E.WorldState<World>, +child: X.Child, +history: V.History,
+    selected: {ReferenceBoundary.selected_request(selection) == Some{request} : Maybe<&2, T.Request>},
+    accepted: {Boundary.check(request, T.Reply{owner, id, T.ProviderRejected{exception}}) == None{} : Maybe<&2, T.TechnicalFailure>}) ->
+    ready_rejected_selection_result(World, selection, T.Reply{owner, id, T.ProviderRejected{exception}}, world, child, history, T.ForeignProviderFailure{exception}):
+  match selection:
+    case D.Selected{D.State{+config, +frame, +targets, +ids, +target, +next, +iterations, +stage, +python}, +operation}:
+      ready_provider_delivered(World, T.Request{D.invocation(config), next, operation},
+        D.State{config, frame, targets, ids, target, (next + 1n : Nat), iterations, stage, python}, owner, id, exception, world, child, history,
+        %Equal.sym(T.Request, T.Request{D.invocation(config), next, operation}, request, Count.some_equal(T.Request, T.Request{D.invocation(config), next, operation}, request, selected)):
+          {Boundary.check(_, T.Reply{owner, id, T.ProviderRejected{exception}}) == None{} : Maybe<&2, T.TechnicalFailure>}
+        accepted)
+    case D.Internal{_}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, T.Reply{owner, id, T.ProviderRejected{exception}}, world, child, history, T.ForeignProviderFailure{exception}), Contents.none_some(T.Request, request, selected))
+    case D.ChildBegin{_, _}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, T.Reply{owner, id, T.ProviderRejected{exception}}, world, child, history, T.ForeignProviderFailure{exception}), Contents.none_some(T.Request, request, selected))
+    case D.ChildResume{_, _, _}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, T.Reply{owner, id, T.ProviderRejected{exception}}, world, child, history, T.ForeignProviderFailure{exception}), Contents.none_some(T.Request, request, selected))
+    case D.Success{_, _}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, T.Reply{owner, id, T.ProviderRejected{exception}}, world, child, history, T.ForeignProviderFailure{exception}), Contents.none_some(T.Request, request, selected))
+    case D.EvaluationExhausted{_}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, T.Reply{owner, id, T.ProviderRejected{exception}}, world, child, history, T.ForeignProviderFailure{exception}), Contents.none_some(T.Request, request, selected))
+    case D.InvariantFailed{_}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, T.Reply{owner, id, T.ProviderRejected{exception}}, world, child, history, T.ForeignProviderFailure{exception}), Contents.none_some(T.Request, request, selected))
+    case D.Rejected{_, _}:
+      Empty.absurd(ready_rejected_selection_result(World, selection, T.Reply{owner, id, T.ProviderRejected{exception}}, world, child, history, T.ForeignProviderFailure{exception}), Contents.none_some(T.Request, request, selected))
+
+def ready_provider_transaction(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat,
+    +owner: Nat, +id: Nat, +exception: T.ExceptionToken, +world: E.WorldState<World>, +measured: T.ResolverState,
+    +request: T.Request, +product: ArtifactValue.ProductValue, +staged: V.Frame,
+    +awaited: {Attach.previous(previous, actual) == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation},
+    +encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation},
+    +stage: {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage},
+    +selected: {ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) == Some{request} : Maybe<&2, T.Request>},
+    projected: {Contract.actual_frame(S.state_frame(measured), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>},
+    reference_projected: {Staged.project(ReferenceBoundary.enter(reference, child, previous), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>},
+    +accepted: {Boundary.check(request, T.Reply{owner, id, T.ProviderRejected{exception}}) == None{} : Maybe<&2, T.TechnicalFailure>}) ->
+    Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProviderRejected{exception}}, world):
+  +reply: T.Reply = T.Reply{owner, id, T.ProviderRejected{exception}}
+  Tuple{Contract.Witness{measured, request, product, staged, B.Failed{T.ForeignProviderFailure{exception}}},
+    Tuple{awaited, Tuple{encoded, Tuple{stage, Tuple{selected, Tuple{projected, Tuple{reference_projected,
+      Tuple{ready_actual_provider_rejected(Attach.previous(previous, actual), measured, request, product, owner, id, exception,
+        History.reply(phase, History.measurement(phase, history), previous, request, reply), awaited, encoded, stage, accepted),
+      Tuple{ready_reference_provider_rejected(World, ReferenceBoundary.enter(reference, child, previous), request, owner, id, exception, world, child,
+        History.reply(phase, History.measurement(phase, history), previous, request, reply), selected, accepted),
+        boundary_world(World, ReferenceBoundary.enter(reference, child, previous), reply, world)}}}}}}}}}
+
+def ready_provider_decision(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat,
+    +owner: Nat, +id: Nat, +exception: T.ExceptionToken, +world: E.WorldState<World>, +measured: T.ResolverState,
+    +request: T.Request, +product: ArtifactValue.ProductValue, +staged: V.Frame,
+    +awaited: {Attach.previous(previous, actual) == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation},
+    +encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation},
+    +stage: {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage},
+    +selected: {ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) == Some{request} : Maybe<&2, T.Request>},
+    projected: {Contract.actual_frame(S.state_frame(measured), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>},
+    reference_projected: {Staged.project(ReferenceBoundary.enter(reference, child, previous), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>},
+    +validation: Maybe<&2, T.TechnicalFailure>,
+    accepted: {Boundary.check(request, T.Reply{owner, id, T.ProviderRejected{exception}}) == validation : Maybe<&2, T.TechnicalFailure>}) ->
+    Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProviderRejected{exception}}, world):
+  match validation:
+    case None{}:
+      ready_provider_transaction(World, actual, reference, child, phase, history, previous, owner, id, exception, world, measured, request, product, staged,
+        awaited, encoded, stage, selected, projected, reference_projected, accepted)
+    case Some{failure}:
+      ready_rejected_transaction(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProviderRejected{exception}}, world, measured, request, product, staged, failure,
+        awaited, encoded, stage, selected, projected, reference_projected, accepted)
+
+def ready_provider_joined(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat,
+    +owner: Nat, +id: Nat, +exception: T.ExceptionToken, +world: E.WorldState<World>,
+    evidence: ready_joined_measurement_result(actual, reference, child, history, phase, previous)) ->
+    Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProviderRejected{exception}}, world):
+  match evidence:
+    case (+measured, (+request, (+product, (+staged, (awaited, (encoded, (stage, (selected, (projected, reference_projected))))))))):
+      ready_provider_decision(World, actual, reference, child, phase, history, previous, owner, id, exception, world, measured, request, product, staged,
+        awaited, encoded, stage, selected, projected, reference_projected,
+        Boundary.check(request, T.Reply{owner, id, T.ProviderRejected{exception}}), {==})
+
+def ready_original_provider(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +phase: Phase.Phase, +history: V.History, +child_history: Phase.ChildHistory, +previous: Nat,
+    +owner: Nat, +id: Nat, +exception: T.ExceptionToken, +world: E.WorldState<World>,
+    ready: {ActualReady.project(actual, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
+    Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProviderRejected{exception}}, world):
+  ready_provider_joined(World, actual, reference, child, phase, history, previous, owner, id, exception, world,
+    ready_original_joined(actual, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent))
+
+def ready_invalid_correlation(+same: Bool, +expected: Nat, +actual: Nat, +owner: Nat,
+    +product: ArtifactValue.ProductValue, +outcome: T.ServiceOutcome,
+    incompatible: {Boundary.compatible(T.EncodeProduct{product}, outcome) == False{} : Bool}) ->
+    Exists(T.TechnicalFailure, failure => {Boundary.correlation(same, expected, actual, owner, T.EncodeProduct{product}, outcome) == Some{failure} : Maybe<&2, T.TechnicalFailure>}):
+  match same:
+    case False{}: Tuple{T.WrongCorrelation{expected, actual}, {==}}
+    case True{}:
+      Tuple{T.WrongReplyKind{},
+        %Equal.sym(Bool, Boundary.compatible(T.EncodeProduct{product}, outcome), False{}, incompatible):
+          {Boundary.variant(_, owner, outcome) == Some{T.WrongReplyKind{}} : Maybe<&2, T.TechnicalFailure>}
+        {==}}
+
+def ready_invalid_header(+same: Bool, +owner: Nat, +actual: Nat, +id: Nat, +reply_id: Nat,
+    +product: ArtifactValue.ProductValue, +outcome: T.ServiceOutcome,
+    incompatible: {Boundary.compatible(T.EncodeProduct{product}, outcome) == False{} : Bool}) ->
+    Exists(T.TechnicalFailure, failure => {Boundary.header(same, owner, actual, id, reply_id, T.EncodeProduct{product}, outcome) == Some{failure} : Maybe<&2, T.TechnicalFailure>}):
+  match same:
+    case False{}: Tuple{T.WrongInvocation{owner, actual}, {==}}
+    case True{}: ready_invalid_correlation(Nat.is_eq(id, reply_id), id, reply_id, owner, product, outcome, incompatible)
+
+def ready_invalid_request(+request: T.Request, +product: ArtifactValue.ProductValue, +reply: T.Reply,
+    encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation},
+    incompatible: {Boundary.compatible(T.EncodeProduct{product}, ready_reply_outcome(reply)) == False{} : Bool}) ->
+    Exists(T.TechnicalFailure, failure => {Boundary.check(request, reply) == Some{failure} : Maybe<&2, T.TechnicalFailure>}):
+  match request reply:
+    case T.Request{+owner, +id, +operation} T.Reply{+actual, +reply_id, +outcome}:
+      %Equal.sym(T.Operation, operation, T.EncodeProduct{product}, encoded):
+        Exists(T.TechnicalFailure, failure => {Boundary.check(T.Request{owner, id, _}, reply) == Some{failure} : Maybe<&2, T.TechnicalFailure>})
+      ready_invalid_header(Nat.is_eq(owner, actual), owner, actual, id, reply_id, product, outcome, incompatible)
+
+def ready_invalid_witness(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat,
+    +reply: T.Reply, +world: E.WorldState<World>, +measured: T.ResolverState,
+    +request: T.Request, +product: ArtifactValue.ProductValue, +staged: V.Frame,
+    +awaited: {Attach.previous(previous, actual) == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation},
+    +encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation},
+    stage: {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage},
+    +selected: {ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) == Some{request} : Maybe<&2, T.Request>},
+    projected: {Contract.actual_frame(S.state_frame(measured), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>},
+    reference_projected: {Staged.project(ReferenceBoundary.enter(reference, child, previous), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>},
+    evidence: Exists(T.TechnicalFailure, failure => {Boundary.check(request, reply) == Some{failure} : Maybe<&2, T.TechnicalFailure>})) ->
+    Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world):
+  match evidence:
+    case (+failure, rejected):
+      ready_rejected_transaction(World, actual, reference, child, phase, history, previous, reply, world, measured, request, product, staged, failure,
+        awaited, encoded, stage, selected, projected, reference_projected, rejected)
+
+def ready_incompatible_joined(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat,
+    +reply: T.Reply, +world: E.WorldState<World>,
+    incompatible: @product: ArtifactValue.ProductValue -> {Boundary.compatible(T.EncodeProduct{product}, ready_reply_outcome(reply)) == False{} : Bool},
+    evidence: ready_joined_measurement_result(actual, reference, child, history, phase, previous)) ->
+    Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world):
+  match evidence:
+    case (+measured, (+request, (+product, (+staged, (awaited, (encoded, (stage, (selected, (projected, reference_projected))))))))):
+      +encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation} = encoded
+      ready_invalid_witness(World, actual, reference, child, phase, history, previous, reply, world, measured, request, product, staged,
+        awaited, encoded, stage, selected, projected, reference_projected,
+        ready_invalid_request(request, product, reply, encoded, incompatible(product)))
+
+def ready_original_incompatible(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +phase: Phase.Phase, +history: V.History, +child_history: Phase.ChildHistory, +previous: Nat,
+    +reply: T.Reply, +world: E.WorldState<World>,
+    incompatible: @product: ArtifactValue.ProductValue -> {Boundary.compatible(T.EncodeProduct{product}, ready_reply_outcome(reply)) == False{} : Bool},
+    ready: {ActualReady.project(actual, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
+    Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world):
+  ready_incompatible_joined(World, actual, reference, child, phase, history, previous, reply, world, incompatible,
+    ready_original_joined(actual, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

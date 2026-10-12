@@ -1,3 +1,4 @@
+import { preparationProtocol } from "@hapsland/review-execution/direct-event/preparation"
 import {
   acceptGraphProjection,
   graphProtocol
@@ -33,7 +34,7 @@ export function initial(machine, input) {
       return graphProtocol.initial(machine, input)
     case "preparation":
       if (!("preparation" in input)) throw new TypeError("Wrong preparation input binding")
-      return { kind: "preparation", machine, step: machine.initial(input) }
+      return preparationProtocol.initial(machine, input)
     case "source":
       if (!("sourcePreparation" in input)) throw new TypeError("Wrong source input binding")
       return { kind: "source", machine, step: machine.initial(input) }
@@ -54,7 +55,7 @@ export function view(held) {
     case "artifact":
       return graphProtocol.view(held)
     case "preparation":
-      return { kind: "preparation", machine: held.machine, view: held.machine.view(held.step) }
+      return preparationProtocol.view(held)
     case "source":
       return { kind: "source", machine: held.machine, view: held.machine.view(held.step) }
     case "post":
@@ -164,10 +165,7 @@ export function resume(held, reply) {
   if (reply.$ === "Types.Reply") throw new TypeError("Wrong workflow reply binding")
   switch (held.kind) {
     case "preparation":
-      return {
-        ...held,
-        step: held.machine.resume(held.step, { $: "Types.ServiceReply", reply: preparationReply(reply) })
-      }
+      return preparationProtocol.resume(held, preparationReply(reply))
     case "source":
       return { ...held, step: held.machine.resume(held.step, { $: "Types.ServiceReply", reply: sourceReply(reply) }) }
     case "post":
@@ -187,7 +185,7 @@ export function accepted(projected) {
     case "artifact":
       return acceptGraphProjection(projected.view)
     case "preparation":
-      if (projected.view.$ !== "Types.AwaitService") return projected.machine.accepted(projected.view)
+      if (projected.view.$ !== "Types.AwaitService") return preparationProtocol.accepted(projected)
       break
     case "source":
       if (projected.view.$ !== "Types.AwaitService") return projected.machine.accepted(projected.view)

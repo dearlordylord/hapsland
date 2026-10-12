@@ -15,10 +15,10 @@ import {
   analyzeTypeFile
 } from "@hapsland/source-analysis/direct-event/analyzer"
 import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
-import { createPreparationCapability } from "./capability.ts"
+import { createPreparationCapability } from "./machine.ts"
 
 /**
- * @typedef {import("@hapsland/review-execution/direct-event/preparation").PreparationPorts} PreparationPorts
+ * @typedef {import("./machine.ts").PreparationPorts} PreparationPorts
  * @typedef {Parameters<ReturnType<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").createBendResolver>>} RootArguments
  * @typedef {{path: RootArguments[0], capture: RootArguments[1], name: RootArguments[2], context: RootArguments[3]}} RootFacts
  * @typedef {Awaited<ReturnType<PreparationPorts["performEffect"]>>} PreparationReply
@@ -29,8 +29,8 @@ import { createPreparationCapability } from "./capability.ts"
 /**
  * @typedef {Extract<PreparationReply["response"], {$: "MaterializationDone"}>} MaterializationReply
  * @typedef {Extract<PreparationEffectRequest["command"], {$: "AdmitMaterialization"}>["capture"]} CaptureWire
- * @typedef {import("./capability.ts").PreparationEffectRequest} PreparationEffectRequest
- * @typedef {import("./capability.ts").PreparationExecution} PreparationExecution
+ * @typedef {import("./machine.ts").PreparationEffectRequest} PreparationEffectRequest
+ * @typedef {import("./machine.ts").PreparationExecution} PreparationExecution
  * @typedef {{
  * root: string,
  * rootIdentity: import("@hapsland/native-observation/direct-event/observation").PhysicalRootIdentity,
@@ -40,6 +40,7 @@ import { createPreparationCapability } from "./capability.ts"
  * settings: PreparationPorts["context"]["settings"],
  * graphLimits?: import("@hapsland/canonical-policy/canonical/graph-limits").GraphLimits,
  * canonicalGate: PreparationPorts["canonicalGate"],
+ * runEffect?: <A>(effect: Effect.Effect<A>, options?: {signal?: AbortSignal | undefined}) => Promise<A>,
  * admitMaterialization: (capture: CaptureWire, preflight: import("@hapsland/source-analysis/direct-event/analyzer").AnalyzerMaterializationPreflight | undefined, execution: PreparationExecution) => Promise<MaterializationReply>,
  * rejectMaterializationCapacity: (execution: PreparationExecution) => Promise<void>,
  * recordMaterializationCapacity: () => Promise<void>,
@@ -56,6 +57,7 @@ export function createPhysicalPreparationCapability({
   settings,
   graphLimits = GRAPH_LIMIT_CEILINGS,
   canonicalGate,
+  runEffect = Effect.runPromise,
   admitMaterialization,
   rejectMaterializationCapacity,
   recordMaterializationCapacity,
@@ -127,7 +129,7 @@ export function createPhysicalPreparationCapability({
     let response
     switch (command.$) {
       case "InspectPath": {
-        const admission = await Effect.runPromise(
+        const admission = await runEffect(
           inspectNamedPath(root, command.candidate.path, currentPolicy(), rootIdentity),
           { signal: options.signal }
         )
@@ -143,7 +145,7 @@ export function createPhysicalPreparationCapability({
       case "CaptureSource": {
         const selected = selections.get(command.selection)
         if (!selected) throw new TypeError("Unknown preparation selection handle")
-        const capture = await Effect.runPromise(
+        const capture = await runEffect(
           (context.captureSource ?? captureStable)(
             root,
             selected,

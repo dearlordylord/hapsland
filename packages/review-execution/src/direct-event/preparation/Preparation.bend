@@ -54,6 +54,7 @@ type Extraction is Data:
 type CapacityResult is Data:
   Resized{}
   CapacityRefused{constraint: String}
+  MaterializationDenied{diagnostic: ArtifactValue.ProductValue}
   InvalidReservation{}
   InvalidMeasurement{}
 type Outcome is Data:
@@ -179,7 +180,8 @@ type PreparationResult is Data:
     outcomes: List<&2, Outcome>,
     units: List<&2, ArtifactValue.ProductValue>,
     line_roots: List<&2, String>,
-    selected: Nat
+    selected: Nat,
+    ambiguous_line: Bool
   }
 type Step is Data:
   Internal{state: State}
@@ -1718,18 +1720,44 @@ def paths_complete(paths: List<&2, PathOutcome>) -> Bool:
       paths_complete(rest)
     )
 
-def finish_branch(branch: Branch, shared: Shared) -> Step:
+def multiple_line_roots(roots: List<&2, String>) -> Bool:
+  match roots:
+    case _ <> _ <> _: True{}
+    case _: False{}
+
+def line_ambiguous(line: Maybe<&2, Nat>, roots: List<&2, String>) -> Bool:
+  match line:
+    case Some{_}: multiple_line_roots(roots)
+    case None{}: False{}
+
+def skipped_candidates(candidates: List<&2, Candidate>) -> List<&2, Outcome>:
+  match candidates:
+    case Nil{}: Nil{}
+    case candidate <> rest: OutcomeSkipped{candidate_path(candidate)} <> skipped_candidates(rest)
+
+def line_outcomes(
+  ambiguous: Bool,
+  candidates: List<&2, Candidate>,
+  outcomes: List<&2, Outcome>
+) -> List<&2, Outcome>:
+  Bool.pick(List<&2, Outcome>, ambiguous, skipped_candidates(candidates), outcomes)
+
+def finish_branch(branch: Branch, shared: Shared, +input: Input) -> Step:
   match branch shared:
-    case Branch{+paths, outcomes, units} Shared{_, _, _, selected, line_roots}:
+    case Branch{+paths, outcomes, units} Shared{_, _, _, selected, +line_roots}:
+      +ambiguous = line_ambiguous(input_line(input), line_roots)
       Finished{
-        PreparationResult{paths_complete(paths), paths, outcomes, units, line_roots, selected}
+        PreparationResult{paths_complete(paths), paths,
+          line_outcomes(ambiguous, input_candidates(input), outcomes),
+          units, line_roots, selected, ambiguous}
       }
 
 def finish(state: State) -> Step:
   match state:
-    case State{_, _, _, _, shared, branches, _, _}: finish_branch(
+    case State{_, _, input, _, shared, branches, _, _}: finish_branch(
       normalized_branches(branches),
-      shared
+      shared,
+      input
     )
 
 def append_active(active: Maybe<&2, Selection.Contract>, +state: State) -> State:
@@ -1878,6 +1906,19 @@ def admitted(result: CapacityResult, +requested: Nat, +state: State, +context: C
       ),
       context_path(context),
       MaterializationRefused{requested, constraint}
+    )
+    case MaterializationDenied{+diagnostic}: refuse_candidate(
+      with_state_shared(
+        state,
+        with_shared_refused(
+          state_shared(state),
+          RefusedPath{context_path(context), ProviderDiagnostic{diagnostic}} <> shared_refused(
+            state_shared(state)
+          )
+        )
+      ),
+      context_path(context),
+      ProviderDiagnostic{diagnostic}
     )
     case _: refuse_candidate(
       with_state_shared(

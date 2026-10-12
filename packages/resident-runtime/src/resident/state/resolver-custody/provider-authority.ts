@@ -1,3 +1,4 @@
+import type { HostTransport } from "@hapsland/canonical-policy/canonical/child-execution"
 import type * as Effect from "effect/Effect"
 import type * as Owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import type { ResidentTransaction } from "../resident/transaction.ts"
@@ -9,18 +10,6 @@ import type { UnitJob, Job } from "../../work-ownership/jobs.ts"
 export type ProviderLease = Omit<Extract<Owner.ResidentEvent, { readonly $: "StartSourceObservationEvent" }>, "$">
 export type PendingRestore = { readonly key: string; readonly owner: UnitJob }
 
-// Inverse of the already-declared owner Nat/tag conversion for Canonical outputs.
-export type HostTransport<Value> = Value extends bigint
-  ? number
-  : Value extends object
-    ? {
-        readonly [Key in keyof Value]: Key extends "$"
-          ? Value[Key] extends `../${infer Tag}`
-            ? Tag
-            : Value[Key]
-          : HostTransport<Value[Key]>
-      }
-    : Value
 type ListHead<Value> = Value extends { readonly $: "Con"; readonly head: infer Head } ? Head : never
 type Published = Extract<Owner.Publication, { readonly $: "Published" }>
 export type OwnerOutput = HostTransport<ListHead<Published["outputs"]>>
