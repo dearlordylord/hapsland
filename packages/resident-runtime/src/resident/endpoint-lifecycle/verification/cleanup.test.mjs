@@ -120,6 +120,35 @@ test("concurrent close performs cleanup once and remembers only successful teard
   }
 })
 
+test("interrupted successful close records completion before releasing ownership", async () => {
+  const entered = Deferred.makeUnsafe()
+  const released = Deferred.makeUnsafe()
+  let attempts = 0
+  const owned = await fixture(
+    Effect.gen(function* () {
+      attempts++
+      yield* Deferred.succeed(entered, undefined)
+      yield* Deferred.await(released)
+    })
+  )
+  const controller = new AbortController()
+  try {
+    const closing = Effect.runPromiseExit(owned.lifecycle.close, { signal: controller.signal })
+    await Effect.runPromise(Deferred.await(entered))
+    controller.abort()
+    await Effect.runPromise(Deferred.succeed(released, undefined))
+    await closing
+    assert.equal(attempts, 1)
+    assert.equal(owned.retired.length, 3)
+    assert.equal(await Effect.runPromise(Deferred.isDone(owned.resources.closed)), true)
+    await Effect.runPromise(owned.lifecycle.close)
+    assert.equal(attempts, 1)
+  } finally {
+    await Effect.runPromise(Deferred.succeed(released, undefined))
+    await owned.dispose()
+  }
+})
+
 test("construction failure before lifecycle ownership transfer closes child services", async () => {
   let cleanupCalls = 0
   const owned = await fixture(

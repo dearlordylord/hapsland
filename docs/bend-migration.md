@@ -165,15 +165,19 @@ The production-binding `native-preparation-children.mjs` is removed. The renamed
 `native-preparation-reference.mjs` reads the current TS owner only for verification;
 it is never a product engine. Delete it with the replaced TS implementation on
 whole acceptance, preserving the independent correspondence contract at its owner.
-Public production `pipeline.ts` still runs TS preparation. New production Bend
-connected for this whole candidate: **0**; replaced production TS removed: **0**.
+The default resident entry now connects the whole Source → preparation/graph →
+Post candidate through its lifetime-owned Canonical binding. Actual production
+preparation ownership fixtures and full finite Source/resident consumers pass.
+Public review-execution `pipeline.ts` still retains TS preparation algorithms.
+Accepted whole units: **0**; replaced production TS algorithms removed: **0**.
+The connected candidate is qualification progress, not whole-unit acceptance.
 
 Current finite evidence, with commands at the testing matrix:
 
 | Boundary | Observed coverage | Limit |
 | --- | --- | --- |
 | Whole finalization machine | 66 ordered scenarios and ten actual binding vectors, 9947 requests, 194 real Canonical gates, 93 omissions, 127 current-rule reads, 75190 wrong replies | Actual native ready consumer, full JSON outcomes and chronology; universal proof remains open. |
-| Real Source composition | 57 cases, 6502 requests, 32 independent whole native comparisons | Ordered physical effects, inputs/identities, activity publication and pre-teardown custody; full error/cancellation correspondence remains open. |
+| Real Source composition | 59 cases, 6673 requests, 34 independent whole native comparisons | Ordered physical effects, inputs/identities, activity publication and pre-teardown custody; full error/cancellation correspondence remains open. |
 | Real Preparation → Post composition | 73 cases, 15702 requests, 855 Post requests | Native result differential, parent cancellation/late replies, retained advice, post-admission barriers and cleanup; whole proof and public adoption remain open. |
 | Frozen input/identity | 60 cases, 5960 engine requests, 17880 wrong replies | All five languages, partial units, three providers; full field order and ordinary JSON checked. |
 | Configuration/provider | 91 cases, including 44 through actual settings decoder; 62 URI requests, 2385 wrong replies | Other 47 cases are explicitly raw-shape extensions, not validated producer claims. |
@@ -1146,8 +1150,26 @@ One current obstacle list, in execution order:
    the preparation consumer gate. Strict resident types pass after correcting
    the internal transfer method's existing ResidentAdapterError channel; addressed
    lint selects all five changed code files including the new fixture. Structural
-   review approves ownership and test route. This checkpoint is unqualified:
-   actual fixtures and whole source/resident consumers must run after rebuilding.
+   review approves ownership and test route. At 43f17bb1, the normal workspace
+   build passes 46/46 (18 cached, 54.052s). Actual production preparation
+   ownership passes all four fixtures under their original deadlines; ordinary
+   cleanup fixtures pass four, full Source passes 59/6673/34 native comparisons,
+   and resident Preparation → Post passes 73/15702/855. check:fast passes 109
+   tests and strict source/ABI/JS/dependency checks; separate addressed lint
+   covers all five changed source files, rather than its zero-file checkpoint
+   lint. Logs: /tmp/hapsland-lifecycle-retry-{warm,production-lifetime,cleanup,
+   source-consumer,resident-consumer}.log and /tmp/hapsland-43f17bb1-check-fast.log.
+   Final structural review identifies an interruption window between successful
+   disposal and recording closed. A physical AbortController/Deferred fixture
+   reproduces it against the previous normal compiled owner: child services
+   retire but closed remains false. The check/dispose/success-record section
+   inside the permit is now uninterruptible; semaphore acquisition remains
+   interruptible. Normal workspace build passes 46/46 (18 cached, 87.855s),
+   strict resident source types and addressed two-file lint pass, and all five
+   ordinary cleanup tests pass against the new compiled owner. Logs:
+   /tmp/hapsland-close-interruption-{red,green,warm,types,lint}.log.
+   The original universal proofs, full affected production owner suites, removal
+   of superseded TypeScript and connected-candidate build parity remain open.
 
    The repaired entry now qualifies on 8a905233: normal workspace build passes
    46/46 (15 cached, 57.937s); original construction-defect and cancellation

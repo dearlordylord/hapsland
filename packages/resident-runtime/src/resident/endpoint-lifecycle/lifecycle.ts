@@ -284,11 +284,13 @@ export const makeResidentLifecycle = Effect.fn("ResidentRuntime.lifecycle")(func
   })
   const closeLock = yield* Semaphore.make(1)
   const close = closeLock.withPermit(
-    Effect.gen(function* () {
-      if (yield* Deferred.isDone(closed)) return
-      yield* residentDispose()
-      yield* Deferred.succeed(closed, undefined)
-    })
+    Effect.uninterruptible(
+      Effect.gen(function* () {
+        if (yield* Deferred.isDone(closed)) return
+        yield* residentDispose()
+        yield* Deferred.succeed(closed, undefined)
+      })
+    )
   )
   return {
     listen,
