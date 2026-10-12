@@ -87,8 +87,11 @@ def declaration_nonincreasing(+visited: Map<&2, Bool>, +identity: String,
           == True{}
           : Bool
         }
-      union_weight_nonincreasing(CoreTraversal.has_identity(visited, name), String.eq(name, identity),
-        List.length(&2, Core.Reference, references))
+      union_weight_nonincreasing(
+        CoreTraversal.has_identity(visited, name),
+        String.eq(name, identity),
+        List.length(&2, Core.Reference, references)
+      )
 
 def catalog_nonincreasing(catalog: Map<&2, Maybe<&2, Core.Declaration>>,
   +visited: Map<&2, Bool>, +identity: String,

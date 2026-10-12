@@ -82,7 +82,10 @@ def has_node_exact(
     Map.has.go(&2, V, MNode{position, lo, hi}, Tuple{key, side})
     == Tuple{
       MNode{position, lo, hi},
-      selected_equal(Insert.selected_choice(side, Insert.selected(V, lo, key), Insert.selected(V, hi, key)), key)
+      selected_equal(
+        Insert.selected_choice(side, Insert.selected(V, lo, key), Insert.selected(V, hi, key)),
+        key
+      )
     }
     : Map<&2, V> & Bool
   }:
@@ -108,7 +111,10 @@ def has_node_exact(
       %Equal.sym(
         Map<&2, V> & Bool,
         Map.has(&2, V, MNode{branch, a, b}, key),
-        Tuple{MNode{branch, a, b}, selected_equal(Insert.selected(V, MNode{branch, a, b}, key), key)},
+        Tuple{
+          MNode{branch, a, b},
+          selected_equal(Insert.selected(V, MNode{branch, a, b}, key), key)
+        },
         left
       ):
         {
@@ -141,7 +147,10 @@ def has_node_exact(
       %Equal.sym(
         Map<&2, V> & Bool,
         Map.has(&2, V, MNode{branch, a, b}, key),
-        Tuple{MNode{branch, a, b}, selected_equal(Insert.selected(V, MNode{branch, a, b}, key), key)},
+        Tuple{
+          MNode{branch, a, b},
+          selected_equal(Insert.selected(V, MNode{branch, a, b}, key), key)
+        },
         right
       ):
         {
@@ -198,11 +207,23 @@ def canonical_selected_node_membership(
   side: Bool,
   test: {Patricia.route(query, position) == side : Bool},
   valid: {Patricia.canonical(V, MNode{position, lo, hi}) == True{} : Bool},
-  left: {selected_equal(Insert.selected(V, lo, query), query) == Insert.leaf_exists(V, lo, query) : Bool},
-  right: {selected_equal(Insert.selected(V, hi, query), query) == Insert.leaf_exists(V, hi, query) : Bool}
+  left: {
+    selected_equal(Insert.selected(V, lo, query), query)
+    == Insert.leaf_exists(V, lo, query)
+    : Bool
+  },
+  right: {
+    selected_equal(Insert.selected(V, hi, query), query)
+    == Insert.leaf_exists(V, hi, query)
+    : Bool
+  }
 ) -> {
-  selected_equal(Insert.selected_choice(side, Insert.selected(V, lo, query), Insert.selected(V, hi, query)), query)
-    == Bool.or(Insert.leaf_exists(V, lo, query), Insert.leaf_exists(V, hi, query)) : Bool
+  selected_equal(
+    Insert.selected_choice(side, Insert.selected(V, lo, query), Insert.selected(V, hi, query)),
+    query
+  )
+  == Bool.or(Insert.leaf_exists(V, lo, query), Insert.leaf_exists(V, hi, query))
+  : Bool
 }:
   match side:
     case False{}:
@@ -262,8 +283,10 @@ def canonical_selected_node_membership(
 
 def canonical_selected_membership(-V: Data, tree: Map<&2, V>, +query: String,
   +valid: {Patricia.canonical(V, tree) == True{} : Bool}) -> {
-  selected_equal(Insert.selected(V, tree, query), query) == Insert.leaf_exists(V, tree, query) : Bool
-}:
+    selected_equal(Insert.selected(V, tree, query), query)
+    == Insert.leaf_exists(V, tree, query)
+    : Bool
+  }:
   match tree:
     case MTip{}: {==}
     case MLeaf{name, value}: {==}
@@ -406,7 +429,10 @@ def insertion_leaf_union_node(
           Bool.or(_, Insert.leaf_exists(V, hi, query))
           == Bool.or(
             String.eq(query, key),
-            Bool.or(Insert.leaf_exists(V, MLeaf{name, previous}, query), Insert.leaf_exists(V, hi, query))
+            Bool.or(
+              Insert.leaf_exists(V, MLeaf{name, previous}, query),
+              Insert.leaf_exists(V, hi, query)
+            )
           )
           : Bool
         }
@@ -466,7 +492,10 @@ def insertion_leaf_union_node(
           Bool.or(Insert.leaf_exists(V, lo, query), _)
           == Bool.or(
             String.eq(query, key),
-            Bool.or(Insert.leaf_exists(V, lo, query), Insert.leaf_exists(V, MLeaf{name, previous}, query))
+            Bool.or(
+              Insert.leaf_exists(V, lo, query),
+              Insert.leaf_exists(V, MLeaf{name, previous}, query)
+            )
           )
           : Bool
         }
@@ -568,8 +597,16 @@ def put_leaf_membership_node(
   side: Bool,
   left_present: {Patricia.nonempty(V, lo) == True{} : Bool},
   right_present: {Patricia.nonempty(V, hi) == True{} : Bool},
-  left: {Insert.leaf_exists(V, Map.put(&2, V, lo, key, value), query) == Insert.leaf_exists(V, lo, query) : Bool},
-  right: {Insert.leaf_exists(V, Map.put(&2, V, hi, key, value), query) == Insert.leaf_exists(V, hi, query) : Bool}
+  left: {
+    Insert.leaf_exists(V, Map.put(&2, V, lo, key, value), query)
+    == Insert.leaf_exists(V, lo, query)
+    : Bool
+  },
+  right: {
+    Insert.leaf_exists(V, Map.put(&2, V, hi, key, value), query)
+    == Insert.leaf_exists(V, hi, query)
+    : Bool
+  }
 ) -> {
   Insert.leaf_exists(V, Map.put.go(&2, V, MNode{position, lo, hi}, value, Tuple{key, side}), query)
     == Insert.leaf_exists(V, MNode{position, lo, hi}, query) : Bool
@@ -598,7 +635,10 @@ def put_leaf_membership_node(
       ):
         {
           Bool.or(_, Insert.leaf_exists(V, hi, query))
-          == Bool.or(Insert.leaf_exists(V, MNode{branch, a, b}, query), Insert.leaf_exists(V, hi, query))
+          == Bool.or(
+            Insert.leaf_exists(V, MNode{branch, a, b}, query),
+            Insert.leaf_exists(V, hi, query)
+          )
           : Bool
         }
       {==}
@@ -625,7 +665,10 @@ def put_leaf_membership_node(
       ):
         {
           Bool.or(Insert.leaf_exists(V, lo, query), _)
-          == Bool.or(Insert.leaf_exists(V, lo, query), Insert.leaf_exists(V, MNode{branch, a, b}, query))
+          == Bool.or(
+            Insert.leaf_exists(V, lo, query),
+            Insert.leaf_exists(V, MNode{branch, a, b}, query)
+          )
           : Bool
         }
       {==}
@@ -633,8 +676,10 @@ def put_leaf_membership_node(
 def put_leaf_membership(-V: Data, tree: Map<&2, V>, +key: String, +value: V, +query: String,
   +valid: {Patricia.canonical(V, tree) == True{} : Bool},
   present: {Patricia.nonempty(V, tree) == True{} : Bool}) -> {
-  Insert.leaf_exists(V, Map.put(&2, V, tree, key, value), query) == Insert.leaf_exists(V, tree, query) : Bool
-}:
+    Insert.leaf_exists(V, Map.put(&2, V, tree, key, value), query)
+    == Insert.leaf_exists(V, tree, query)
+    : Bool
+  }:
   match tree:
     case MTip{}:
       Empty.absurd({String.eq(query, key) == False{} : Bool}, Insert.false_true_impossible(present))
@@ -689,7 +734,10 @@ def selected_nonempty(-V: Data, tree: Map<&2, V>, +key: String, +old: String,
   Patricia.nonempty(V, tree) == True{} : Bool
 }:
   match tree:
-    case MTip{}: Empty.absurd({False{} == True{} : Bool}, Insert.selected_none_impossible(old, witness))
+    case MTip{}: Empty.absurd(
+      {False{} == True{} : Bool},
+      Insert.selected_none_impossible(old, witness)
+    )
     case MLeaf{name, previous}: {==}
     case MNode{position, lo, hi}: {==}
 
@@ -717,7 +765,14 @@ def selected_key_present(-V: Data, +tree: Map<&2, V>, +key: String, +old: String
       selected_equal(Insert.selected(V, tree, key), key),
       String.eq(key, old),
       True{},
-      Equal.cong(Maybe<&2, String>, Bool, projection, Insert.selected(V, tree, key), Some{old}, witness),
+      Equal.cong(
+        Maybe<&2, String>,
+        Bool,
+        projection,
+        Insert.selected(V, tree, key),
+        Some{old},
+        witness
+      ),
       equal
     )
   )
@@ -759,8 +814,13 @@ def set_fin_leaf_union(
   +witness: {Insert.selected(V, tree, key) == Some{old} : Maybe<&2, String>},
   +valid: {Patricia.canonical(V, tree) == True{} : Bool}
 ) -> {
-  Insert.leaf_exists(V, Map.set.fin.go(&2, V, tree, key, value, Tuple{Tuple{key, old}, order}), query)
-    == Bool.or(String.eq(query, key), Insert.leaf_exists(V, tree, query)) : Bool
+  Insert.leaf_exists(
+    V,
+    Map.set.fin.go(&2, V, tree, key, value, Tuple{Tuple{key, old}, order}),
+    query
+  )
+  == Bool.or(String.eq(query, key), Insert.leaf_exists(V, tree, query))
+  : Bool
 }:
   match order:
     case LT{}: insertion_leaf_union(V, tree, key, value, Map.diff(key, old), query)

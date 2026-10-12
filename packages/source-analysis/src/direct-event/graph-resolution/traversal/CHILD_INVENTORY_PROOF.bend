@@ -88,8 +88,11 @@ def declaration_nonincreasing(+visited: Map<&2, Bool>, +identity: String,
           == True{}
           : Bool
         }
-      union_weight_nonincreasing(CoreTraversal.has_identity(visited, name), String.eq(name, identity),
-        List.length(&2, Core.Reference, references))
+      union_weight_nonincreasing(
+        CoreTraversal.has_identity(visited, name),
+        String.eq(name, identity),
+        List.length(&2, Core.Reference, references)
+      )
 
 def catalog_nonincreasing(catalog: Map<&2, Maybe<&2, Core.Declaration>>,
   +visited: Map<&2, Bool>, +identity: String,
@@ -132,7 +135,11 @@ def inserted_zero(+visited: Map<&2, Bool>, declaration: Core.Declaration,
 def absent_full(
   +visited: Map<&2, Bool>,
   declaration: Core.Declaration,
-  absent: {CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration)) == False{} : Bool}
+  absent: {
+    CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration))
+    == False{}
+    : Bool
+  }
 ) -> {
   Rank.unseen_declaration(visited, Some{declaration})
   == CoreTraversal.declaration_reference_count(Some{declaration}) : Nat
@@ -171,7 +178,11 @@ def leaf_child_bound(
   +declaration: Core.Declaration,
   valid: {Patricia.canonical(Bool, visited) == True{} : Bool},
   +selected: {value == Some{declaration} : Maybe<&2, Core.Declaration>},
-  absent: {CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration)) == False{} : Bool}
+  absent: {
+    CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration))
+    == False{}
+    : Bool
+  }
 ) -> {
   child_claim(MLeaf{name, value}, visited, declaration) == True{} : Bool
 }:
@@ -210,7 +221,11 @@ def leaf_lookup_child(
     == Some{declaration}
     : Maybe<&2, Core.Declaration>
   },
-  absent: {CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration)) == False{} : Bool}
+  absent: {
+    CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration))
+    == False{}
+    : Bool
+  }
 ) -> {
   child_claim(MLeaf{name, value}, visited, declaration) == True{} : Bool
 }:
@@ -476,7 +491,11 @@ def routed_child(
     == Some{declaration}
     : Maybe<&2, Core.Declaration>
   },
-  +absent: {CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration)) == False{} : Bool}
+  +absent: {
+    CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration))
+    == False{}
+    : Bool
+  }
 ) -> {
   child_claim(catalog, visited, declaration) == True{} : Bool
 }:
@@ -610,19 +629,26 @@ def routed_child(
         )
       )
 
-def selected_child_inventory_decrease(+catalog: Map<&2, Maybe<&2, Core.Declaration>>,
+def selected_child_inventory_decrease(
+  +catalog: Map<&2, Maybe<&2, Core.Declaration>>,
   +visited: Map<&2, Bool>,
   +key: String,
   +declaration: Core.Declaration,
   valid: {Patricia.canonical(Bool, visited) == True{} : Bool},
   selected: {
-  Core.map_result(Maybe<&2, Core.Declaration>,
-    Map.get(Maybe<&2, Core.Declaration>, None{}, catalog, key))
-  == Some{declaration} : Maybe<&2, Core.Declaration>
-},
+    Core.map_result(
+      Maybe<&2, Core.Declaration>,
+      Map.get(Maybe<&2, Core.Declaration>, None{}, catalog, key)
+    )
+    == Some{declaration}
+    : Maybe<&2, Core.Declaration>
+  },
   absent: {
-  CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration)) == False{} : Bool
-}) -> {
+    CoreTraversal.has_identity(visited, CoreTraversal.declaration_identity(declaration))
+    == False{}
+    : Bool
+  }
+) -> {
   Nat.is_le(
     (Rank.unseen_catalog(
       Map.set(&2, Bool, visited, CoreTraversal.declaration_identity(declaration), True{}), catalog
