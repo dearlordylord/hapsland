@@ -15,7 +15,7 @@ try {
   const emitted = join(temporary, "canonical-resolver-owner.mjs")
   execFileSync("bend", [join(root, "preparation-lifecycle/CanonicalResolverOwner.bend"), "-o", emitted], {
     stdio: "pipe",
-    timeout: 5000
+    timeout: 10000
   })
   const source = readFileSync(emitted, "utf8")
   const loaders = bendGeneratedLoaderEvidence(source, emitted)

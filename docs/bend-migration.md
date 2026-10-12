@@ -1000,6 +1000,31 @@ One current obstacle list, in execution order:
    /tmp/hapsland-50777b2c-frozen-build.log. Source drift was corrected by freezing
    inputs, without weakening the stamp verifier. A fresh origin/master fetch is entirely included (HEAD..origin/master = 0); master is untouched.
 
+   The current internal resident construction candidate uses one private transaction
+   initializer and one facade assembly. The public generic state interface retains
+   its existing contract. The specialized review constructor is internal to
+   resolver custody; it gives its binding callback provider-wrapped facades and the
+   owner bridge, and refuses every publication until the command-resource sink is
+   bound. This closes the state-composition prerequisite without exposing the raw
+   transaction, adding another Ref, or adopting the preparation candidate in
+   production. Structural review corrected a type-only cycle and accidental public
+   export before dependent integration. Its construction boundary passes all eight existing cleanup tests, including
+   the readiness refusal. Workspace build passes 46/46 (15 cached, 58.68s),
+   check:fast passes, and addressed lint checks seven authored files. Both full
+   consumers pass (57 Source/73 resident cases), but their artifact freeze was
+   violated by a concurrent focused-test preparation; repeat them sequentially
+   before qualification. Capacity-test preparation failed before any tests:
+   CanonicalResolverOwner emission retained an obsolete five-second bound. The
+   owner-authorized ten-second migration emission bound is now applied to this
+   runner only; focused reproduction and normal consumer checks remain required.
+
+   Original attachment proof progress: the complete pending witness now follows
+   from one original ActualReady.project (qualified 7.973s under the ten-second
+   bound). Parent witness joining remains unqualified: a nested elimination has a
+   parse error. Claims 5–8 and the whole original theorem remain open; original
+   law and premises are unchanged. This unfinished source is retained on the branch
+   for backup and is not proof acceptance.
+
 6. Pass all selected local acceptance gates and strict paired performance on the
    connected candidate. Latest existing-production 50777b2c measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
@@ -1722,21 +1747,3 @@ prefix now checks in an isolated hard5 run (3.551 wall/3.153 CPU). Exact
 projected row count transport also checks hard5 (2.818 wall/2.609 CPU).
 Recursive count transport and full semantic alignment remain open under the
 unchanged original parent law. All checked/WIP source remains at its owner.
-
-The current internal resident construction candidate uses one private transaction
-initializer and one facade assembly. The public generic state interface retains
-its existing contract. The specialized review constructor is internal to
-resolver custody; it gives its binding callback provider-wrapped facades and the
-owner bridge, and refuses every publication until the command-resource sink is
-bound. This closes the state-composition prerequisite without exposing the raw
-transaction, adding another Ref, or adopting the preparation candidate in
-production. Structural review corrected a type-only cycle and accidental public
-export before dependent integration. Its construction boundary and actual full
-consumers still require local qualification on the compiled candidate.
-
-Original attachment proof progress: the complete pending witness now follows
-from one original ActualReady.project (qualified 7.973s under the ten-second
-bound). Parent witness joining remains unqualified: a nested elimination has a
-parse error. Claims 5–8 and the whole original theorem remain open; original
-law and premises are unchanged. This unfinished source is retained on the branch
-for backup and is not proof acceptance.
