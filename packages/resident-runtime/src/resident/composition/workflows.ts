@@ -185,43 +185,49 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
     lifetime,
     residentJevRequestObserver
   })
-  const preparation = makeResidentPreparation({
-    lifetime,
-    residentLifetimeController,
-    residentLedger,
-    get residentAwaitBackendGate() {
-      return () => residentAwaitBackendGate(residentLifetimeController)
+  const preparation = makeResidentPreparation(
+    {
+      lifetime,
+      residentLifetimeController,
+      residentLedger,
+      get residentAwaitBackendGate() {
+        return () => residentAwaitBackendGate(residentLifetimeController)
+      },
+      residentCredentialRequired,
+      residentCredentialShapeMatches,
+      residentCredentialGenerationCurrent,
+      residentJobActive: workLifecycle.residentJobActive,
+      residentRecordAnalytics: reviewObservation.residentRecordAnalytics,
+      residentInspection,
+      residentCaptureSource,
+      residentReuse,
+      get residentAdvice() {
+        return ports.residentAdvice
+      },
+      residentRestoreCurrentWork: workLifecycle.residentRestoreCurrentWork,
+      inspection,
+      residentPreparationControls,
+      residentRecordOperationalFailure: workLifecycle.residentRecordOperationalFailure,
+      residentRegisterCurrentWork: workLifecycle.residentRegisterCurrentWork,
+      residentReleaseCurrentWork: workLifecycle.residentReleaseCurrentWork,
+      residentRecordJoinedOutcomes: workLifecycle.residentRecordJoinedOutcomes,
+      residentJoined,
+      residentReleaseReuseClaim: workLifecycle.residentReleaseReuseClaim,
+      get residentRetainAdvice() {
+        return evaluation.residentRetainAdvice
+      },
+      residentRetireCachedUnit: workLifecycle.residentRetireCachedUnit,
+      get residentDispatcher() {
+        return ports.residentDispatcher
+      },
+      residentReleaseUnit: workLifecycle.residentReleaseUnit,
+      runtimeConfiguration,
+      residentNow,
+      residentReviewControls,
+      residentAdviceExpired: adviceCollection.residentAdviceExpired
     },
-    residentCredentialRequired,
-    residentCredentialShapeMatches,
-    residentCredentialGenerationCurrent,
-    residentJobActive: workLifecycle.residentJobActive,
-    residentRecordAnalytics: reviewObservation.residentRecordAnalytics,
-    residentInspection,
-    residentCaptureSource,
-    residentReuse,
-    get residentAdvice() {
-      return ports.residentAdvice
-    },
-    residentRestoreCurrentWork: workLifecycle.residentRestoreCurrentWork,
-    inspection,
-    residentPreparationControls,
-    residentRecordOperationalFailure: workLifecycle.residentRecordOperationalFailure,
-    residentRegisterCurrentWork: workLifecycle.residentRegisterCurrentWork,
-    residentReleaseCurrentWork: workLifecycle.residentReleaseCurrentWork,
-    residentRecordJoinedOutcomes: workLifecycle.residentRecordJoinedOutcomes,
-    residentJoined,
-    residentReleaseReuseClaim: workLifecycle.residentReleaseReuseClaim,
-    get residentRetainAdvice() {
-      return evaluation.residentRetainAdvice
-    },
-    residentRetireCachedUnit: workLifecycle.residentRetireCachedUnit,
-    get residentDispatcher() {
-      return ports.residentDispatcher
-    },
-    residentReleaseUnit: workLifecycle.residentReleaseUnit,
-    runtimeConfiguration
-  })
+    residentLedger.reviewPreparation
+  )
   const evaluation = makeResidentEvaluation({
     lifetime,
     residentRecordAnalytics: reviewObservation.residentRecordAnalytics,

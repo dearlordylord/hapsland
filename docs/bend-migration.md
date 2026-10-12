@@ -1097,6 +1097,24 @@ One current obstacle list, in execution order:
    controls remain outside this qualification. Physical Source repeats and
    production entry/shutdown are still required; adoption/removal remain 0/0.
 
+   Production composition now wires the private whole preparation binding into
+   makeResidentReviewState, supplies actual late-bound Post services, and invokes
+   whole Source from the per-job workflow. Shutdown retries retained native cleanup
+   after dispatcher settlement and before controls or ledger teardown. This is an
+   UNQUALIFIED production candidate: current integration strict types and lint
+   pass after correcting moved imports, exact cached-receipt typing and the narrow
+   lifecycle cleanup port; real production consumers, full regressions, original
+   proof and parity remain required. Original TS workflow/capture/planning/retention
+   now belong solely to ordinary verification/native-* owners. The original Post
+   body has one tracked TypeScript implementation called by both native references;
+   source slicing, stripping and new Function reconstruction are deleted. Product
+   inspection observation remains its normal preparation effect owner. Moving the
+   native oracle does not count as deleting the TypeScript algorithm.
+   Physical external Effect interruption after actual enqueue passes 154 requests,
+   exact original exit/Cause, transferred unit and terminal resource custody.
+   The new lifetime binding passes types and structural review; late cleanup-failure
+   qualification and final production composition review remain required.
+
    The repaired entry now qualifies on 8a905233: normal workspace build passes
    46/46 (15 cached, 57.937s); original construction-defect and cancellation
    counterexamples pass with unchanged expectations (17 and 154 requests).
@@ -1131,6 +1149,11 @@ One current obstacle list, in execution order:
    in 8.906s. Eliminating its existing parent existential witness remains WIP:
    the new join fails before its body at 2.830s because the dependent result needs
    the existing V.Order constructor exposed. No premise or law change is made.
+   Exposing that constructor closes the original-ready staged-frame join (7.675s),
+   same-frame measurement preservation (3.084s), full staged materialization and
+   measured-frame witness (9.702s), and actual Attach.previous connection (4.028s).
+   The original theorem remains open at shared existential/reference staged and
+   arbitrary-reply joins; original premises and law remain byte-identical.
    Exact staged/history assembly, claims 5–8 and the whole original theorem remain open; original
    law and premises are unchanged. This unfinished source is retained on the branch
    for backup and is not proof acceptance.
@@ -1200,6 +1223,12 @@ One current obstacle list, in execution order:
    Next starts due: execution 16:26:50.498459, build 16:31:54.860325 UTC.
    Freeze/backup/warm by 16:19. Logs: /tmp/hapsland-a24a2e5f-{execution-pair,build-pair}.log.
    Previous logs: /tmp/hapsland-50777b2c-{execution-pair,build-pair}.log.
+   Follow-up cf9e361b: execution starts 16:22:38.067245, qualified parity
+   0.5432330175356522; build starts 16:24:00.598885, qualified but fails parity
+   1.3332854267184107. All 17 pairs preserve heads, sources and artifacts; both
+   starts meet cadence. Next starts due: execution 16:52:38.067245, build
+   16:54:00.598885 UTC. Prepare/freeze/backup by 16:45. Logs:
+   /tmp/hapsland-cf9e361b-{execution-pair,build-pair}.log.
    Latest qualifications: .test-runs/bend-migration/performance/
    2026-10-12T07-00-11.113773+00-00/qualification.json and
    2026-10-12T07-00-58.869261+00-00/qualification.json.

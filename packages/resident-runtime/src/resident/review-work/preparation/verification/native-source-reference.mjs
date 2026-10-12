@@ -11,7 +11,7 @@ import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/c
 import { residentTransaction } from "../../../state/resident/transaction.ts"
 import { residentCapacity } from "../../../state/resident/capacity.ts"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { makeResidentPreparation } from "../workflow.ts"
+import { makeResidentPreparation } from "./native-source-workflow.ts"
 import * as credentials from "../../../authorization/credentials.ts"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
@@ -91,7 +91,12 @@ export function snapshotSourceOwnership(snapshot) {
 
 // Cancel the real work signal only after the dispatcher has accepted a unit.
 // This observes the same physical boundary in each independent workflow world.
-export function cancelSourceAfterFirstEnqueue(context, trace) {
+export function cancelSourceAfterFirstEnqueue(
+  context,
+  trace,
+  controller = context.job.work.controller,
+  event = "source-work-aborted"
+) {
   const dispatcher = context.deps.residentDispatcher
   let cancelled = false
   context.deps.residentDispatcher = {
@@ -102,8 +107,8 @@ export function cancelSourceAfterFirstEnqueue(context, trace) {
           Effect.sync(() => {
             if (accepted && !cancelled) {
               cancelled = true
-              trace.push({ kind: "source-work-aborted" })
-              context.job.work.controller.abort()
+              trace.push({ kind: event })
+              controller.abort()
             }
           })
         )
@@ -138,7 +143,8 @@ export async function nativeSourceReference({
   registerWorkError,
   cleanupError,
   activityRefused = false,
-  cancelAfterFirstEnqueue = false
+  cancelAfterFirstEnqueue = false,
+  interruptAfterFirstEnqueue = false
 }) {
   const run = Effect.runSync
   const initial = {
@@ -175,6 +181,9 @@ export async function nativeSourceReference({
   const { context, scope, hold, lifecycle } = shared,
     trace = []
   if (cancelAfterFirstEnqueue) cancelSourceAfterFirstEnqueue(context, trace)
+  const effectController = new AbortController()
+  if (interruptAfterFirstEnqueue)
+    cancelSourceAfterFirstEnqueue(context, trace, effectController, "source-fiber-interrupted")
   context.job.canonicalObservationId = observationId
   context.job.settings = settings
   context.job.dispatch.controlled = {}
@@ -333,7 +342,8 @@ export async function nativeSourceReference({
     let exit
     try {
       exit = await Effect.runPromiseExit(
-        makeResidentPreparation(context.deps).residentPrepare(context.job, context.sequence)
+        makeResidentPreparation(context.deps).residentPrepare(context.job, context.sequence),
+        { signal: effectController.signal }
       )
     } finally {
       activity.close()

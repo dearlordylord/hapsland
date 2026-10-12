@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect"
-import { sourcePartition } from "../../recipient/identity.ts"
-import { evaluationSourcePartition } from "../../work-ownership/identity.ts"
-import { type PreparationContext, type ReadyPreparedOutcome } from "./context.ts"
+import { sourcePartition } from "../../../recipient/identity.ts"
+import { evaluationSourcePartition } from "../../../work-ownership/identity.ts"
+import { type PreparationContext, type ReadyPreparedOutcome } from "../context.ts"
 
 export const planPreparedUnits = Effect.fn("ResidentRuntime.planPreparedUnits")(function* (
   context: PreparationContext<"residentAdvice" | "residentRestoreCurrentWork" | "residentReuse">,

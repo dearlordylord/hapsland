@@ -1,58 +1,21 @@
 import { type DirectObservation } from "@hapsland/native-observation/direct-event/observation"
-import type { JoinedReview } from "../../state/joined-reviews.ts"
+import type { JoinedReview } from "../../../state/joined-reviews.ts"
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import * as Effect from "effect/Effect"
 import { type PreparedObservation } from "@hapsland/review-execution/direct-event/pipeline"
-import { type CapacityReservation } from "../../state/resident/state.ts"
-import { type UnitJob } from "../../work-ownership/jobs.ts"
-import { ResidentAdapterError } from "../../adapter-error.ts"
-import { withinWork } from "../../work-ownership/cancellation.ts"
-import { sourcePartition } from "../../recipient/identity.ts"
-import { logicalBytes } from "../../state/encoded-size.ts"
+import { type CapacityReservation } from "../../../state/resident/state.ts"
+import { type UnitJob } from "../../../work-ownership/jobs.ts"
+import { ResidentAdapterError } from "../../../adapter-error.ts"
+import { withinWork } from "../../../work-ownership/cancellation.ts"
+import { sourcePartition } from "../../../recipient/identity.ts"
+import { logicalBytes } from "../../../state/encoded-size.ts"
 import {
   type PreparationContext,
   type PlannedPreparationItem,
   type RetainedPreparationItem,
   type PreparationReservation,
   type PreparedUnitFacts
-} from "./context.ts"
-
-export const observePlannedEvaluation = (
-  context: PreparationContext<"inspection" | "residentInspection">,
-  item: PlannedPreparationItem
-): void => {
-  const inspectionEvaluationRouteFact = (
-    item: PlannedPreparationItem,
-    evaluationId: string | undefined
-  ): Parameters<typeof context.deps.inspection.offer>[2] => ({
-    kind: "evaluation-route",
-    route:
-      item.kind === "owner"
-        ? "fresh"
-        : item.kind === "cached"
-          ? "cached"
-          : item.join === "advice"
-            ? "existing-advice"
-            : item.join === "pending"
-              ? "joined-pending"
-              : "joined-claimed",
-    semanticIdentity: item.outcome.prepared.identity,
-    path: item.outcome.path,
-    declaration: item.outcome.prepared.input.declaration.name,
-    original:
-      evaluationId === undefined ? { status: "missing", reason: "not-captured" } : { status: "linked", evaluationId }
-  })
-  const receipt = context.job.inspectionReceipt
-  if (item.kind === "owner") context.deps.residentInspection.forgetOrigin(item.evaluationKey)
-  if (receipt === undefined || !context.deps.inspection.isEnabled(receipt.scope.root)) return
-  if (item.kind === "owner") context.deps.residentInspection.registerOrigin(item.evaluationKey)
-  const evaluationId = context.deps.residentInspection.evaluationId(item.evaluationKey)
-  context.deps.inspection.offer(
-    receipt.scope,
-    { ...receipt.correlation, ...(evaluationId === undefined ? {} : { evaluationId }) },
-    inspectionEvaluationRouteFact(item, evaluationId)
-  )
-}
+} from "../context.ts"
 
 export const recordReuseObservation = Effect.fn("ResidentRuntime.recordReuseObservation")(function* (
   context: PreparationContext<

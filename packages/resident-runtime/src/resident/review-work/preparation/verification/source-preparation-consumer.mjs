@@ -131,6 +131,7 @@ try {
     "post-finalizer-cause",
     "full-workflow",
     "full-cancel-after-enqueue",
+    "full-fiber-interrupt",
     ...Object.keys(languageCandidates).map((language) => "full-language-" + language),
     "full-repeat",
     "full-refused-second",
@@ -399,6 +400,9 @@ try {
     const { context, ledger, lifecycle, scope, hold } = shared
     connection.runtime = ledger.runtime
     if (mode === "full-cancel-after-enqueue") cancelSourceAfterFirstEnqueue(context, sourceEffects)
+    const effectController = new AbortController()
+    if (mode === "full-fiber-interrupt")
+      cancelSourceAfterFirstEnqueue(context, sourceEffects, effectController, "source-fiber-interrupted")
     if (mode.startsWith("full-"))
       context.job.settings = {
         ...(await Effect.runPromise(
@@ -607,6 +611,16 @@ try {
       )
     }
     let invocation, source, sourceExit, resultFromSource
+    if (mode === "full-fiber-interrupt") {
+      const drive = driver.drive
+      driver.drive = async (session, input, options) => {
+        const outcome = await drive(session, input, options)
+        // Observe completion even when the interrupted use effect cannot call
+        // onTerminal. The original driver and its finalization still own it.
+        if ("sourcePreparation" in input) resultFromSource = outcome
+        return outcome
+      }
+    }
     const executeSource = runResidentSourcePreparation(context, {
       bridge,
       driver,
@@ -723,7 +737,7 @@ try {
         ? captureActivityPublications(context.job.dispatch.activityPath, sourceEffects)
         : undefined
       try {
-        sourceExit = await Effect.runPromiseExit(executeSource)
+        sourceExit = await Effect.runPromiseExit(executeSource, { signal: effectController.signal })
         if (resultFromSource === undefined) {
           if (Exit.isFailure(sourceExit)) throw Cause.squash(sourceExit.cause)
           assert.fail("Source entry must expose its terminal observation")
@@ -819,6 +833,7 @@ try {
                 "admission-ack-loss",
                 "cancel-between-candidates",
                 "full-cancel-after-enqueue",
+                "full-fiber-interrupt",
                 "repeat-candidate",
                 "full-repeat",
                 "second-preparation-failure",
@@ -864,6 +879,7 @@ try {
               mode === "source-cleanup-pending" ||
               mode === "cancel-between-candidates" ||
               mode === "full-cancel-after-enqueue" ||
+              mode === "full-fiber-interrupt" ||
               mode === "first-preparation-failure" ||
               mode === "full-owner-barrier-failure" ||
               mode === "full-capture-failure" ||
@@ -1054,7 +1070,7 @@ try {
         assert.match(String(source.error(result.reason.token)), /admission acknowledgement loss/)
         assert.equal(interrupted.length, 1)
         assert.equal(completed.length, 0)
-      } else if (["cancel-between-candidates", "full-cancel-after-enqueue"].includes(mode)) {
+      } else if (["cancel-between-candidates", "full-cancel-after-enqueue", "full-fiber-interrupt"].includes(mode)) {
         assert.ok(result.failure)
         assert.equal(context.job.completed, undefined)
         assert.equal(interrupted.length, 1)
@@ -1109,12 +1125,18 @@ try {
           registerWorkError,
           cleanupError,
           activityRefused: mode === "full-activity-refused",
-          cancelAfterFirstEnqueue: mode === "full-cancel-after-enqueue"
+          cancelAfterFirstEnqueue: mode === "full-cancel-after-enqueue",
+          interruptAfterFirstEnqueue: mode === "full-fiber-interrupt"
         })
         if (mode === "full-cancel-after-enqueue") {
           assert.equal(context.preparationSignal.aborted, true)
           assert.equal(native.completed, false)
           assert.equal(sourceEffects.filter((event) => event.kind === "source-work-aborted").length, 1)
+        } else if (mode === "full-fiber-interrupt") {
+          assert.equal(effectController.signal.aborted, true)
+          assert.equal(context.preparationSignal.aborted, false)
+          assert.equal(native.completed, false)
+          assert.ok(native.exitCause && Cause.hasInterrupts(native.exitCause))
         } else assert.equal(native.completed, result.completed)
         if (
           credentialCause ||
@@ -1156,7 +1178,7 @@ try {
             native.exitCause.reasons.length,
             mode === "full-inspection-diagnostic-failure" || registerWorkFailure === "defect" ? 2 : 1
           )
-        } else assert.equal(native.exitCause, undefined)
+        } else if (mode !== "full-fiber-interrupt") assert.equal(native.exitCause, undefined)
         assert.deepEqual(
           (native.exitCause?.reasons ?? []).map((reason) => ({
             kind: reason._tag,
@@ -1177,6 +1199,7 @@ try {
           (backendCause && !Cause.hasFails(backendCause)) ||
           mode === "full-activity-refused" ||
           mode === "full-cancel-after-enqueue" ||
+          mode === "full-fiber-interrupt" ||
           mode.startsWith("full-inspection-") ||
           mode === "full-construction-defect" ||
           registerWorkFailure === "defect"

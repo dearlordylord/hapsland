@@ -10,13 +10,13 @@ import * as Deferred from "effect/Deferred"
 import * as Semaphore from "effect/Semaphore"
 import { makeReviewSettings } from "@hapsland/review-definition/runtime/review-settings"
 import { type ResidentPaths } from "@hapsland/resident-transport/resident/paths"
-import { makeResidentState } from "../state/resident/state.ts"
+import { makeResidentReviewState } from "../state/resolver-custody/review-state.ts"
+import { createResidentPreparationBinding } from "../review-work/composition/preparation-binding.ts"
 import { Context, Exit, Layer, Ref, Scope } from "effect"
 import type * as Fiber from "effect/Fiber"
 import * as FiberHandle from "effect/FiberHandle"
 import { PENDING_ADVICE_EXPIRY_MS } from "../advice-delivery/collection.ts"
 import { ResidentAdapterError } from "../adapter-error.ts"
-import { type UnitJob, type Job } from "../work-ownership/jobs.ts"
 import { type ResidentRuntimeOptions } from "../runtime-options.ts"
 import { OPERATIONAL_NOTICE_COOLDOWN_MS, validatedOperationalNoticeKeys } from "../advice-delivery/notices.ts"
 import { logicalBytes } from "../state/encoded-size.ts"
@@ -31,7 +31,7 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     Effect.mapError(() => new ResidentAdapterError({ operation: "resident runtime configuration" }))
   )
   const reviewSettings = yield* makeReviewSettings()
-  const residentLedger = yield* makeResidentState<UnitJob, string, Job>()
+  const residentLedger = yield* makeResidentReviewState((_ledger, bridge) => createResidentPreparationBinding(bridge))
   const admissionLock = yield* Semaphore.make(1)
   const updateNoticeBudgets = yield* Ref.make<ReadonlyMap<string, number>>(new Map())
   const lifetime = residentLedger.residentLifetime
@@ -90,6 +90,7 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     runtimeConfiguration,
     reviewSettings,
     residentLedger,
+    residentPreparationCleanup: residentLedger.reviewPreparation.cleanup,
     admissionLock,
     updateNoticeBudgets,
     lifetime,

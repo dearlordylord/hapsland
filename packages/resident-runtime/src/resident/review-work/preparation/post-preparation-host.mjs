@@ -17,7 +17,7 @@ import { logicalBytes } from "../../state/encoded-size.ts"
 import { list, unlist as array } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { sourcePartition } from "../../recipient/identity.ts"
 import { evaluationSourcePartition } from "../../work-ownership/identity.ts"
-import { observePlannedEvaluation } from "./retention.ts"
+import { observePlannedEvaluation } from "./evaluation-observation.ts"
 import { residentUnitWorstOutcomeBytes, residentUnitReservationBytes } from "../../work-ownership/reservation.ts"
 // Canonical-owned effect dispatcher. Reuse progression belongs to Bend;
 // Host handlers expose semantic owner effects and resource receipts.

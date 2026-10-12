@@ -24,7 +24,7 @@ import { type OperationalNoticeKind } from "../../state/collection-facts.ts"
 import type { PreparationControls } from "../../execution-controls/preparation-controls.ts"
 import { type ResidentLedger, type IngressJob, type UnitJob, type Job } from "../../work-ownership/jobs.ts"
 import type { ResidentAdapterError } from "../../adapter-error.ts"
-import type { planPreparedUnits } from "./planning.ts"
+import type { CachedEvaluation } from "../../state/evaluation-reuse.ts"
 
 export type Dependencies = {
   readonly lifetime: string
@@ -118,7 +118,17 @@ export type PreparationContext<Needs extends keyof Dependencies = keyof Dependen
 
 export type ReadyPreparedOutcome = Extract<PreparedObservation["outcomes"][number], { status: "ready" }>
 
-export type PlannedPreparationItem = Effect.Success<ReturnType<typeof planPreparedUnits>>[number]
+/** Native receipts for the Bend-owned plan; no TypeScript planner dependency. */
+export type PlannedPreparationItem =
+  | { kind: "owner"; outcome: ReadyPreparedOutcome; evaluationKey: string; cached?: never; join?: never }
+  | { kind: "cached"; outcome: ReadyPreparedOutcome; evaluationKey: string; cached: CachedEvaluation; join?: never }
+  | {
+      kind: "joined"
+      join: "advice" | "claimed" | "pending"
+      outcome: ReadyPreparedOutcome
+      evaluationKey: string
+      cached?: never
+    }
 
 export type RetainedPreparationItem = Extract<PlannedPreparationItem, { kind: "owner" | "cached" }>
 

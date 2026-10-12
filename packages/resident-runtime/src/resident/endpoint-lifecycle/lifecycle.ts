@@ -22,6 +22,7 @@ type LifecycleResources = {
   readonly lifetime: string
   readonly closed: Deferred.Deferred<void>
   readonly residentLedger: ResidentLedger
+  readonly residentPreparationCleanup: () => Effect.Effect<void>
   readonly residentRuntimeScope: Scope.Scope
   readonly residentIpcScope: Scope.Closeable
   readonly residentDispatchScope: Scope.Closeable
@@ -248,8 +249,11 @@ export const makeResidentLifecycle = Effect.fn("ResidentRuntime.lifecycle")(func
         // Running work may be interrupted by process exit or finish later. Clear
         // its logical ownership after native effects settle. Issued Jev permits
         // remain reserved through an interruption attempt.
-        yield* residentReuse.clear()
         yield* ports.residentDispatcher.whenIdle()
+        // Keep the binding, ledger and controls available until every retained
+        // native finalizer settles. A failed retry must not clear their custody.
+        yield* resources.residentPreparationCleanup()
+        yield* residentReuse.clear()
         yield* Scope.close(residentDispatchScope, Exit.void)
         yield* Scope.close(residentControlScope, Exit.void)
         const server = residentServer
