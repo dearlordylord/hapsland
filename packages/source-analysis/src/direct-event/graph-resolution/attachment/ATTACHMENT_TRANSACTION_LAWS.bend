@@ -1,4 +1,7 @@
 import Base
+import ../SignedLocalSpecification.bend as Signed
+import ../traversal/SPEC.bend as Recursive
+import ../../../../../agent-flow-bend/ImportGraph.bend as G
 import ./AttachmentMapPayloadTransport.bend as Payload
 import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
 import ./AttachmentNaturalArithmeticFacts.bend as Arithmetic
@@ -1051,6 +1054,182 @@ def visited_lookup_exact(+order: List<&2, String>, +actual: Map<&2, Bool>,
       == Local.map_result(Bool, Map.get(Bool, False{}, reference, query)) : Bool}:
   visited_lookup_selected(List.contains(String, String.eq, order, query), order, actual, reference, observed, query,
     {==}, actual_ready, reference_ready, unique, actual_size)
+
+# Extract the existing coverage guard; no extra visited-map assumption is used.
+def ready_visited_order(order: V.Order) -> List<&2, String>:
+  match order:
+    case V.Order{_, _, _, _, _, visited}: visited
+
+def ready_visited_unique(+order: V.Order,
+    valid: {ActualFrame.order_valid(order) == True{} : Bool}) ->
+    {ActualFrame.strings_unique(ready_visited_order(order), ready_visited_order(order)) == True{} : Bool}:
+  match order:
+    case V.Order{+pending, +targets, +ids, +captured, +identities, +visited}:
+      BoolFacts.eq_true_of_and_right(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited), BoolFacts.eq_true_of_and_right(ActualFrame.strings_unique(captured, captured), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited)), BoolFacts.eq_true_of_and_right(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured, captured), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited))), BoolFacts.eq_true_of_and_right(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured, captured), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited)))), BoolFacts.eq_true_of_and_right(ActualFrame.nats_unique(pending, pending), Bool.and(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured, captured), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited))))), valid)))))
+
+def ready_visited_size(+order: V.Order, +frame: T.ResolverFrame,
+    valid: {ActualFrame.coverage(order, frame) == True{} : Bool}) ->
+    {Nat.is_eq(List.length(&2, String, ready_visited_order(order)),
+      List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame)))) == True{} : Bool}:
+  match order:
+    case V.Order{+pending, +targets, +ids, +captured, +identities, +visited}:
+      BoolFacts.eq_true_of_and_right(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame)))), BoolFacts.eq_true_of_and_right(Nat.is_eq(List.length(&2, String, captured), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame))))), BoolFacts.eq_true_of_and_right(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, S.frame_target_ids(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, captured), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame)))))), BoolFacts.eq_true_of_and_right(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, S.frame_target_paths(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, S.frame_target_ids(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, captured), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame))))))), BoolFacts.eq_true_of_and_right(Nat.is_eq(List.length(&2, Nat, pending), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, S.frame_pending(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, S.frame_target_paths(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, S.frame_target_ids(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, captured), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame)))))))), BoolFacts.eq_true_of_and_right(ActualFrame.order_valid(order), Bool.and(Nat.is_eq(List.length(&2, Nat, pending), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, S.frame_pending(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, S.frame_target_paths(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, S.frame_target_ids(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, captured), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame))))))))), valid))))))
+
+def ready_visited_coverage(+order: V.Order, +frame: T.ResolverFrame,
+    +valid: {ActualFrame.coverage(order, frame) == True{} : Bool}) ->
+    {ActualFrame.strings_unique(ready_visited_order(order), ready_visited_order(order)) == True{} : Bool} &
+    {Nat.is_eq(List.length(&2, String, ready_visited_order(order)),
+      List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame)))) == True{} : Bool}:
+  match order:
+    case V.Order{+pending, +targets, +ids, +captured, +identities, +visited}:
+      Tuple{ready_visited_unique(order,
+        BoolFacts.eq_true_of_and_left(ActualFrame.order_valid(order),
+          Bool.and(Nat.is_eq(List.length(&2, Nat, pending), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, S.frame_pending(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, S.frame_target_paths(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, S.frame_target_ids(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, captured), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame))))))))), valid)),
+        ready_visited_size(order, frame, valid)}
+
+def ready_view_visited(view: V.Frame) -> List<&2, String>:
+  match view:
+    case V.Frame{_, _, _, _, _, _, _, _, _, _, _, visited, _, _, _, _, _, _, _, _}: visited
+
+def ready_history_visited(history: V.History) -> List<&2, String>:
+  match history:
+    case V.History{_, order, _, _, _, _, _}: ready_visited_order(order)
+
+def ready_view_visited_contents(+forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingEntry>>, +targets: Maybe<&2, List<&2, V.TargetEntry>>, +ids: Maybe<&2, List<&2, V.TargetId>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>, +identities: Maybe<&2, List<&2, V.TargetArtifact>>, +visited: Maybe<&2, List<&2, String>>, +actual: T.ResolverFrame, +remaining: Nat, +episode: Nat, +view: V.Frame,
+    ready: {ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, actual, remaining, episode) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}:
+  match forest pending targets ids captured identities visited actual:
+    case Some{+forest_value} Some{+pending_value} Some{+targets_value} Some{+ids_value} Some{+captured_value} Some{+identities_value} Some{+visited_value}
+      T.ResolverFrame{branch, limits, graph, command, deps, _, _, _, _, budget, node, edge, target, artifact, _, _, _, _, _, artifacts}:
+      %Count.some_equal(V.Frame, V.Frame{branch, limits, graph, command, deps, forest_value, pending_value, targets_value, ids_value, captured_value, identities_value, visited_value, V.actual_budget(budget), node, edge, target, artifact, artifacts, remaining, episode}, view, ready):
+        {Some{visited_value} == Some{ready_view_visited(_)} : Maybe<&2, List<&2, String>>}
+      {==}
+    case None{} _ _ _ _ _ _ _:
+      Empty.absurd({visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} None{} _ _ _ _ _ _:
+      Empty.absurd({visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} None{} _ _ _ _ _:
+      Empty.absurd({visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} None{} _ _ _ _:
+      Empty.absurd({visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} None{} _ _ _:
+      Empty.absurd({visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} None{} _ _:
+      Empty.absurd({visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd({visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_projected_visited(+frame: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    ready: {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ActualFrame.visited(ready_history_visited(history), S.frame_visited(frame))
+      == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}:
+  match history:
+    case V.History{+addresses, V.Order{+pending_order, +target_order, +id_order, +capture_order, +identity_order, +visited_order}, +sources, +captures, _, +remaining, +episode}:
+      ready_view_visited_contents(ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode), ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(frame), addresses), ActualFrame.ids(id_order, S.frame_target_ids(frame)), ActualFrame.captured(capture_order, S.frame_captured(frame), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(frame)), ActualFrame.visited(visited_order, S.frame_visited(frame)), frame, remaining, episode, view, ready)
+
+def ready_reference_visited(state: D.State) -> Map<&2, Bool>:
+  match state:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{values, _, _, _}, _},
+      _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}: values
+
+def ready_reference_assembled(+state: D.State, +history: V.History,
+    +projected_targets: Maybe<&2, List<&2, V.TargetEntry>>,
+    +projected_captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +projected_visited: Maybe<&2, List<&2, String>>, +view: V.Frame,
+    ready: {ReferenceFrame.assembled(state, history, projected_targets,
+      projected_captured, projected_visited) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {projected_visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}:
+  match state history projected_targets projected_captured projected_visited:
+    case D.State{D.Config{_, _, _, context, _, _},
+      X.Frame{G.Bounded{+graph, remaining}, command, +forest,
+        Signed.State{Recursive.State{_, budget, _, _}, signed}, edges, _, artifacts_by_target,
+        next_edge, episode, next_artifact, dependencies, _}, _, target_ids, next_target, _, _, _, _}
+      V.History{_, _, _, _, artifacts, _, _}
+      Some{targets} Some{captures} Some{+seen}:
+      %Count.some_equal(V.Frame,
+        V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest,
+          ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target),
+          seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge,
+          next_target, next_artifact, artifacts, remaining, episode}, view, ready):
+        {Some{seen} == Some{ready_view_visited(_)} : Maybe<&2, List<&2, String>>}
+      {==}
+    case _ _ None{} _ _:
+      Empty.absurd({projected_visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} None{} _:
+      Empty.absurd({projected_visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} Some{_} None{}:
+      Empty.absurd({projected_visited == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_reference_projected(+state: D.State, +history: V.History, +view: V.Frame,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ReferenceFrame.visited(ready_history_visited(history), ready_reference_visited(state))
+      == Some{ready_view_visited(view)} : Maybe<&2, List<&2, String>>}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _},
+      _, +captures, _, _, _, _, _, _}, +target_values, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
+      ready_reference_assembled(state, history, ReferenceFrame.targets(target_values),
+        ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, ready)
+
+def ready_coverage_order(+order: V.Order, +frame: T.ResolverFrame,
+    +valid: {ActualFrame.coverage(order, frame) == True{} : Bool}) ->
+    {ActualFrame.order_valid(order) == True{} : Bool}:
+  match order:
+    case V.Order{+pending, +targets, +ids, +captured, +identities, +visited}:
+      BoolFacts.eq_true_of_and_left(ActualFrame.order_valid(order),
+          Bool.and(Nat.is_eq(List.length(&2, Nat, pending), List.length(&2, String, Map.keys(&2, Maybe<&2, Local.Pending>, S.frame_pending(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, targets), List.length(&2, String, Map.keys(&2, Maybe<&2, T.Target>, S.frame_target_paths(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, ids), List.length(&2, String, Map.keys(&2, Maybe<&2, Nat>, S.frame_target_ids(frame)))), Bool.and(Nat.is_eq(List.length(&2, String, captured), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)))), Bool.and(Nat.is_eq(List.length(&2, Nat, identities), List.length(&2, String, Map.keys(&2, Maybe<&2, String>, S.frame_target_artifacts(frame)))), Nat.is_eq(List.length(&2, String, visited), List.length(&2, String, Map.keys(&2, Bool, S.frame_visited(frame))))))))), valid)
+
+def ready_history_order(history: V.History) -> V.Order:
+  match history:
+    case V.History{_, order, _, _, _, _, _}: order
+
+def ready_frame_coverage(+frame: T.ResolverFrame, +history: V.History,
+    checks: {frame_checks(frame, history) == True{} : Bool}) ->
+    {ActualFrame.coverage(ready_history_order(history), frame) == True{} : Bool}:
+  match history:
+    case V.History{_, +order, _, _, _, _, _}:
+      BoolFacts.eq_true_of_and_left(ActualFrame.coverage(order, frame),
+        Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n),
+          Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))),
+            ActualFrame.catalog_valid(S.frame_artifacts(frame)))), checks)
+
+def ready_lookup_observed(+frame: T.ResolverFrame, +reference: D.State,
+    +history: V.History, +view: V.Frame, +query: String,
+    +checks: {frame_checks(frame, history) == True{} : Bool},
+    actual_ready: {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), query))
+      == Local.map_result(Bool, Map.get(Bool, False{}, ready_reference_visited(reference), query)) : Bool}:
+  match history:
+    case V.History{_, +order, _, _, _, _, _}:
+      visited_lookup_exact(ready_visited_order(order), S.frame_visited(frame), ready_reference_visited(reference),
+        ready_view_visited(view), query,
+        ready_projected_visited(frame, history, view, actual_ready),
+        ready_reference_projected(reference, history, view, reference_ready),
+        ready_visited_unique(order,
+          ready_coverage_order(order, frame,
+            ready_frame_coverage(frame, history, checks))),
+        ready_visited_size(order, frame, ready_frame_coverage(frame, history, checks)))
+
+def ready_lookup_parts(+frame: T.ResolverFrame, +reference: D.State,
+    +history: V.History, +view: V.Frame, +query: String,
+    evidence: {frame_checks(frame, history) == True{} : Bool} &
+      {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), query))
+      == Local.map_result(Bool, Map.get(Bool, False{}, ready_reference_visited(reference), query)) : Bool}:
+  match evidence:
+    case (checks, actual_ready):
+      ready_lookup_observed(frame, reference, history, view, query, checks, actual_ready, reference_ready)
+
+def ready_frame_lookup_exact(+frame: T.ResolverFrame, +reference: D.State,
+    +history: V.History, +view: V.Frame, +query: String,
+    actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), query))
+      == Local.map_result(Bool, Map.get(Bool, False{}, ready_reference_visited(reference), query)) : Bool}:
+  ready_lookup_parts(frame, reference, history, view, query,
+    actual_frame_contents(frame, history, view, actual_ready), reference_ready)
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

@@ -300,9 +300,15 @@ One current obstacle list, in execution order:
    actual/reference lookup results. A subsequent exact absent-identity support
    slice passes hard5 in 2.770s (/tmp/astra-visited-absent-cardinality.log),
    using only the original uniqueness/key-count guards and proof-local Nat
-   pair counts over existing lists. The joined arbitrary-query proof body and
-   its direct Bool/Maybe factoring are saved WIP, not qualified. The full
-   original theorem remains open; no new runtime representation or premise.
+   pair counts over existing lists. The complete semantic lookup support,
+   including direct Bool/Maybe elimination and arbitrary-query actual/reference
+   equality, checks hard5 in 4.048s. The next coherent support batch adds
+   ready_frame_lookup_exact: two original successful actual/reference projections
+   into the same view/history now imply equality for every query. Unique/key-count
+   guards are extracted from existing ActualFrame.coverage rather than added
+   as premises. The full focused support checks hard5 in 2.942s
+   (/tmp/astra-transaction-visited-focused.log). The full original theorem
+   remains open; no new runtime representation, law or premise.
 
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    The existing frontend codec now preserves literal constructor, Maybe,
@@ -394,8 +400,21 @@ One current obstacle list, in execution order:
    remain failures, not fixture verdicts (current pass:
    /tmp/hapsland-go-boundary-entry-current-v4.log).
    Full physical cancellation/late cleanup and universal correspondence remain
-   distinct. Negative/fractional raw Go profile ABI is still unqualified; resolve
-   its accepted supported-input boundary before claiming complete replacement.
+   distinct. The accepted Go profile domain is the existing positive-integer
+   configuration contract (docs/configuration.md, graphLimits field table and
+   invalid-profile-before-egress requirement). Production pipeline obtains
+   effectiveGraphLimits from the resolved policy or built-in ceilings; the
+   former invokes validateGraphLimits before candidate capture/Go preparation.
+   All seven fields use the same Schema.Int/range boundary. Real public decoder,
+   configuration resolver and frozen effective-profile checks reject 42 invalid
+   negative/zero/fractional/over-ceiling profiles and accept 14 boundary profiles.
+   Existing configuration/Canonical consumers pass 66 tests. Logs:
+   /tmp/hapsland-go-profile-{public-decoder,configuration-tests}.log. No new
+   validation or Bend premise was added. Negative/fractional raw internal
+   prepareGoGraph helper correspondence remains unmeasured; it is outside the
+   accepted product profile domain, not a whole-production acceptance requirement.
+   Existing broader Nat fixtures, including zero boundaries, remain unchanged.
+   Complete valid-profile/native Go flow correspondence is still required.
 3. Complete remaining ordinary Bend/source gates. The six current driver and
    completion boundary/probe files pass the pinned formatter after whitespace-only
    formatting of ExpansionDriverSpecification and AttachmentCompletionProbe;
@@ -615,15 +634,17 @@ One current obstacle list, in execution order:
    remain open. No whole preparation adoption or TS deletion is claimed.
 
 6. Pass all selected local acceptance gates and strict paired performance on the
-   connected candidate. Latest existing-production 59838815 measurements are
+   connected candidate. Latest existing-production c102a2fc measurements are
    qualified with unchanged heads/sources/artifacts and all 17 pairs: execution
-   passes at 0.5198552403926731 (2026-10-12 01:29:51.276574 UTC); build fails at
-   1.1118466294546057 (01:30:23.951888 UTC). Both starts are within their
+   passes at 0.7622585795793573 (2026-10-12 01:55:29.041425 UTC); build fails at
+   1.141850255771185 (01:56:15.936963 UTC). Both starts are within their
    preceding cadence deadlines. Results do not qualify unadopted whole
    preparation; build parity remains an acceptance obstacle.
-   Normal warm build passes 46/46, 23 cached, 3.132s. Next starts due on
-   2026-10-12 UTC: execution 01:59:51.276574, build 02:00:23.951888.
-   Logs: /tmp/hapsland-598388-{execution,build}-pair.log.
+   Normal warm build passes 46/46, 23 cached, 4.530s. Next starts due on
+   2026-10-12 UTC: execution 02:25:29.041425, build 02:26:15.936963.
+   Logs: /tmp/hapsland-c102a2-{execution,build}-pair.log.
+   Previous 59838815 qualified execution .5198552 passed and build1.1118466
+   failed; both began within their cadence deadlines.
    Previous 89ff0da2 execution .7281511 passed and build1.1747319 failed;
    both qualified runs started on time. Timing changes are not causal evidence
    for the type-only ABI change, whose erased runtime AST is unchanged.
