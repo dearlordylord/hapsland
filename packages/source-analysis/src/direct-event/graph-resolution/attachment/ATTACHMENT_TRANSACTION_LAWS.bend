@@ -4851,6 +4851,136 @@ def ready_selected_coordinates(+child: T.TentativeChild, +history: V.History,
                 Tuple{ready_projected_frame_coordinates(frame, history, ready_phase_frame(phase), frame_projected),
                   ready_projected_child_coordinates(child, edge, child_history, S.frame_artifacts(frame), episode, ready_phase_child(phase), child_projected)})))))
 
+def ready_history_coordinate_transport(+history: V.History, +addresses: List<&2, F.AddressEntry>, +observed_addresses: List<&2, F.AddressEntry>,
+    +node: Nat, +observed_node: Nat, +edge: Nat, +observed_edge: Nat, +pending: List<&2, V.PendingPayload>,
+    +source: T.SourceFacts, +observed_source: T.SourceFacts, +catalog: RootSpec.Source, +observed_catalog: RootSpec.Source,
+    addresses_equal: {addresses == observed_addresses : List<&2, F.AddressEntry>},
+    node_equal: {node == observed_node : Nat}, edge_equal: {edge == observed_edge : Nat},
+    source_equal: {source == observed_source : T.SourceFacts}, catalog_equal: {catalog == observed_catalog : RootSpec.Source}) ->
+    {History.extend(history, observed_addresses, observed_node, History.ids(pending, observed_edge), observed_source, observed_catalog)
+      == History.extend(history, addresses, node, History.ids(pending, edge), source, catalog) : V.History}:
+  %addresses_equal: {History.extend(history, _, observed_node, History.ids(pending, observed_edge), observed_source, observed_catalog) == History.extend(history, addresses, node, History.ids(pending, edge), source, catalog) : V.History}
+  %node_equal: {History.extend(history, addresses, _, History.ids(pending, observed_edge), observed_source, observed_catalog) == History.extend(history, addresses, node, History.ids(pending, edge), source, catalog) : V.History}
+  %edge_equal: {History.extend(history, addresses, node, History.ids(pending, _), observed_source, observed_catalog) == History.extend(history, addresses, node, History.ids(pending, edge), source, catalog) : V.History}
+  %source_equal: {History.extend(history, addresses, node, History.ids(pending, edge), _, observed_catalog) == History.extend(history, addresses, node, History.ids(pending, edge), source, catalog) : V.History}
+  %catalog_equal: {History.extend(history, addresses, node, History.ids(pending, edge), source, _) == History.extend(history, addresses, node, History.ids(pending, edge), source, catalog) : V.History}
+  {==}
+
+def ready_measurement_history_result(+frame: T.ResolverFrame, +history: V.History, child_history: Phase.ChildHistory, +phase: Phase.Phase) -> Type:
+  match child_history phase:
+    case Phase.ChildHistory{F.Created{_, _, addresses}, source, catalog, _, _}
+        Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, _, _, pending, _, _, _, _}, _}:
+      {History.measurement(phase, history) == History.extend(history, addresses, S.frame_next_node(frame), History.ids(pending, S.frame_next_edge(frame)), source, catalog) : V.History}
+
+def ready_measurement_history_coordinates(+frame: T.ResolverFrame, +child: T.TentativeChild, +history: V.History,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    coordinates: ready_frame_coordinates(frame, ready_phase_frame(phase)) & ready_child_coordinates(child, child_history, ready_phase_child(phase))) ->
+    ready_measurement_history_result(frame, history, child_history, phase):
+  match child child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, +budget}, _, _, _}
+        Phase.ChildHistory{F.Created{_, _, +addresses}, +source, +catalog, _, _}
+        Phase.Phase{V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, +frame_budget, +node, +edge, _, _, _, _, _},
+          Phase.Child{_, _, _, _, _, _, _, _, _, _, +observed_addresses, +pending, _, +child_budget, +observed_source, +observed_catalog}, _}:
+      match coordinates:
+        case ((_, (node_equal, edge_equal)), (_, (addresses_equal, (source_equal, catalog_equal)))):
+          ready_history_coordinate_transport(history, addresses, observed_addresses, S.frame_next_node(frame), node, S.frame_next_edge(frame), edge,
+            pending, source, observed_source, catalog, observed_catalog, addresses_equal, node_equal, edge_equal, source_equal, catalog_equal)
+
+def ready_selected_measurement_history(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending,
+    ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    ready_measurement_history_result(frame, history, child_history, phase):
+  ready_measurement_history_coordinates(frame, child, history, child_history, phase,
+    ready_selected_coordinates(child, history, child_history, phase, state, frame, edge, ready))
+
+def ready_retained_budget_result(+frame: T.ResolverFrame, child: T.TentativeChild) -> Type:
+  match child:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, budget}, _, _, _}:
+      {V.actual_budget(budget) == V.actual_budget(S.frame_budget(frame)) : V.Budget}
+
+def ready_retained_budget_coordinates(+frame: T.ResolverFrame, +child: T.TentativeChild,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    coordinates: ready_frame_coordinates(frame, ready_phase_frame(phase)) & ready_child_coordinates(child, child_history, ready_phase_child(phase)),
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
+    ready_retained_budget_result(frame, child):
+  match child child_history phase:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, +budget}, _, _, _}
+        Phase.ChildHistory{F.Created{_, _, _}, _, _, _, _}
+        Phase.Phase{V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, +frame_budget, _, _, _, _, _, _, _},
+          Phase.Child{_, _, _, _, _, _, _, _, _, _, _, _, _, +child_budget, _, _}, _}:
+      match coordinates:
+        case ((frame_equal, _), (child_equal, _)):
+          Equal.trans(V.Budget, V.actual_budget(budget), child_budget, V.actual_budget(S.frame_budget(frame)), child_equal,
+            Equal.trans(V.Budget, child_budget, frame_budget, V.actual_budget(S.frame_budget(frame)),
+              Equal.sym(V.Budget, frame_budget, child_budget, coherent),
+              Equal.sym(V.Budget, V.actual_budget(S.frame_budget(frame)), frame_budget, frame_equal)))
+
+def ready_selected_retained_budget(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending,
+    ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
+    ready_retained_budget_result(frame, child):
+  ready_retained_budget_coordinates(frame, child, child_history, phase,
+    ready_selected_coordinates(child, history, child_history, phase, state, frame, edge, ready), coherent)
+
+def ready_selected_frame_contents(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending,
+    evidence: selected_phase_result(state, frame, child, edge, history, child_history, phase)) ->
+    {frame_checks(frame, history) == True{} : Bool} &
+    {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}:
+  match history phase:
+    case V.History{_, _, _, _, _, _, _} Phase.Phase{_, _, _}:
+      match evidence:
+        case (_, (frame_ready, _)):
+          actual_frame_contents(frame, history, ready_phase_frame(phase), frame_ready)
+
+def ready_selected_frame_observed(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending,
+    ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {frame_checks(frame, history) == True{} : Bool} &
+    {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>}:
+  ready_selected_frame_contents(child, history, child_history, phase, state, frame, edge,
+    selected_phase_contents(state, frame, child, edge, history, child_history, phase, ready))
+
+def ready_frame_checked_offset(+frame: T.ResolverFrame, +history: V.History,
+    checks: {frame_checks(frame, history) == True{} : Bool}) ->
+    {S.frame_next_node(frame) == List.length(&2, Local.PlannedNode, S.frame_nodes(frame)) : Nat}:
+  match history:
+    case V.History{_, +order, _, _, _, _, _}:
+      NatFacts.eq_of_is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame)),
+        BoolFacts.eq_true_of_and_left(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)),
+          BoolFacts.eq_true_of_and_right(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame))),
+            BoolFacts.eq_true_of_and_right(ActualFrame.coverage(order, frame), Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)))), checks))))
+
+def ready_selected_offset(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending,
+    ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {S.frame_next_node(frame) == List.length(&2, Local.PlannedNode, S.frame_nodes(frame)) : Nat}:
+  ready_frame_checked_offset(frame, history,
+    Pair.fst({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{ready_phase_frame(phase)} : Maybe<&2, V.Frame>},
+      ready_selected_frame_observed(child, history, child_history, phase, state, frame, edge, ready)))
+
+def ready_registration_history_result(+frame: T.ResolverFrame, +history: V.History, child_history: Phase.ChildHistory, +phase: Phase.Phase) -> Type:
+  match child_history phase:
+    case Phase.ChildHistory{F.Created{_, _, addresses}, source, catalog, _, _}
+        Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, _, _, pending, _, _, _, _}, _}:
+      {History.measurement(phase, history) == History.extend(history, addresses, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)), History.ids(pending, S.frame_next_edge(frame)), source, catalog) : V.History}
+
+def ready_selected_registration_history(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory,
+    +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending,
+    +ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    ready_registration_history_result(frame, history, child_history, phase):
+  match child_history phase:
+    case Phase.ChildHistory{F.Created{_, _, +addresses}, +source, +catalog, _, _}
+        Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, _, _, +pending, _, _, _, _}, _}:
+      Equal.trans(V.History, History.measurement(phase, history),
+        History.extend(history, addresses, S.frame_next_node(frame), History.ids(pending, S.frame_next_edge(frame)), source, catalog),
+        History.extend(history, addresses, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)), History.ids(pending, S.frame_next_edge(frame)), source, catalog),
+        ready_selected_measurement_history(child, history, child_history, phase, state, frame, edge, ready),
+        Equal.cong(Nat, V.History, offset => History.extend(history, addresses, offset, History.ids(pending, S.frame_next_edge(frame)), source, catalog),
+          S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame)),
+          ready_selected_offset(child, history, child_history, phase, state, frame, edge, ready)))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

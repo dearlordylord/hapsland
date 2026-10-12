@@ -1033,13 +1033,25 @@ One current obstacle list, in execution order:
    The prior cold preparation timeout is not counted as a test failure or pass.
    check:fast passes 109 tests, root types, Canonical/preparation ABI and eleven
    strict checked JavaScript owners, package graph and development imports.
-   Production factory/state binding remains pending; this is not production
-   acceptance.
+   The actual resident composition factory now binds the five emitted engines
+   to the existing bridge and one supplied registry. It captures no job/settings/
+   cache/scope, checks input/session families and validates a launch scope before
+   allocating a handle. Structural review passes. The construction owner binds
+   this compiled factory through makeResidentReviewState and all eight cases
+   pass; the full Source consumer uses this factory rather than fixture machine
+   assembly (57/6502), followed sequentially by resident 73/15702. Normal workspace
+   build passes 46/46 (15 cached, 70.385s); check:fast passes 109 tests, ABI and
+   strict JavaScript/type gates; lint selects five changed code files. Production
+   resource/workflow entry wiring, full original proof and build parity remain
+   open. This establishes the factory binding path, not production acceptance.
 
    Original attachment proof progress: the complete pending witness now follows
    from one original ActualReady.project (qualified 7.973s under the ten-second
    bound). The shared original-ready parent/pending witness passes in 6.068s;
-   selected frame/child coordinates pass in 3.251s. Exact staged/history assembly,
+   selected frame/child coordinates pass in 3.251s. Original measurement/history
+   coordinates pass in 3.183s, retained budget in 5.659s, exact registration
+   history in 3.552s (node-length offset 2.684s). Original tail is byte-identical.
+   Exact staged/history assembly,
    claims 5–8 and the whole original theorem remain open; original
    law and premises are unchanged. This unfinished source is retained on the branch
    for backup and is not proof acceptance.

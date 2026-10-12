@@ -1,0 +1,74 @@
+import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
+import composition from "./artifact-composition-core.js"
+import parent from "./generic-artifact-core.js"
+import python from "./python-artifact-core.js"
+import go from "./go-artifact-core.js"
+import source from "../preparation/source-preparation-core.js"
+import post from "../preparation/post-preparation-core.js"
+import { createArtifactMachine } from "./artifact-dispatcher.mjs"
+import { createSourcePreparationMachine } from "../preparation/source-preparation-dispatcher.mjs"
+import { createPostPreparationMachine, createAdviceTailMachine } from "../preparation/post-preparation-dispatcher.mjs"
+import { createOwnedArtifactDriver } from "./owned-artifact-driver.mjs"
+import { performPreparationSessionRequest } from "./native-preparation-sessions.ts"
+import type { createPreparationSessionRegistry, PreparationNativeSession } from "./native-preparation-sessions.ts"
+import type { createResidentOwnerTransaction } from "../../state/resolver-custody/resident-owner-transaction.mjs"
+import type { ForeignOptions, Hooks, Request } from "./owned-artifact-driver.mjs"
+import type { Reply } from "./owned-machine.mjs"
+
+type PreparationDriverPorts = {
+  readonly bridge: ReturnType<typeof createResidentOwnerTransaction>
+  readonly registry: ReturnType<typeof createPreparationSessionRegistry>
+  readonly hooks?: Hooks<PreparationNativeSession>
+  /** Verification effect interception; production uses the native gateway. */
+  readonly foreign?: (requests: readonly Request[], options: ForeignOptions) => Promise<Reply>
+}
+
+/** Internal resident composition. One supplied custody registry and Canonical
+ * commit bridge bind all engines before state publications become available.
+ * This lifetime resource captures no job, settings, cache, or invocation scope.
+ * Engine mismatch fails inside existing construction cleanup; a missing launch
+ * scope fails before input allocation or publication. Host effects retain their
+ * existing providers and original native sessions.
+ */
+export function createResidentPreparationDriver({ bridge, registry, hooks, foreign }: PreparationDriverPorts) {
+  const artifact = createArtifactMachine({ composition, parent, python, go, retainPrefixes: false })
+  const sourceMachine = createSourcePreparationMachine(source)
+  const postMachine = createPostPreparationMachine(post)
+  const adviceMachine = createAdviceTailMachine(post)
+  return createOwnedArtifactDriver<PreparationNativeSession>({
+    owner,
+    control: bridge.control,
+    registry,
+    machine: artifact,
+    ...(hooks === undefined ? {} : { hooks }),
+    foreign:
+      foreign ??
+      (async (requests, options) => {
+        if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
+        return performPreparationSessionRequest(registry, requests[0]!, options)
+      }),
+    selectMachine: (input, session) => {
+      if ("sourcePreparation" in input) {
+        if (!("input" in session && "sourcePreparation" in session.input))
+          throw new TypeError("Wrong source engine session")
+        return sourceMachine
+      }
+      if ("preparation" in input) {
+        if (!("input" in session && "preparation" in session.input && "machine" in session && session.machine))
+          throw new TypeError("Wrong preparation engine session")
+        return session.machine
+      }
+      if ("postPreparation" in input) {
+        if (!("input" in session && "postPreparation" in session.input))
+          throw new TypeError("Wrong post-preparation engine session")
+        return postMachine
+      }
+      if ("adviceTail" in input) {
+        if (!("input" in session && "adviceTail" in session.input)) throw new TypeError("Wrong advice engine session")
+        return adviceMachine
+      }
+      if ("input" in session) throw new TypeError("Wrong graph engine session")
+      return artifact
+    }
+  })
+}

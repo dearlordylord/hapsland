@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
+import postCore from "../../../../../dist/resident/review-work/preparation/post-preparation-core.js"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
 import { join } from "node:path"
@@ -32,31 +33,13 @@ import {
 } from "../../composition/native-preparation-sessions.ts"
 import { list, unlist as __unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
-import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
-import { createSourcePreparationMachine } from "../source-preparation-dispatcher.mjs"
-import { createPostPreparationMachine, createAdviceTailMachine } from "../post-preparation-dispatcher.mjs"
+import { createResidentPreparationDriver } from "../../composition/preparation-driver.ts"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
 import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
 import { createSourcePreparationProvider } from "../source-preparation-provider.mjs"
 const run = Effect.runSync,
   temp = await mkdtemp("/tmp/hapsland-source-composition-")
 try {
-  const load = async (capability, stem) =>
-    (await import(new URL(`../../../../../dist/resident/review-work/${capability}/${stem}-core.js`, import.meta.url)))
-      .default
-  const sourceCore = await load("preparation", "source-preparation")
-  const postCore = await load("preparation", "post-preparation")
-  const artifacts = {
-    composition: await load("composition", "artifact-composition"),
-    parent: await load("composition", "generic-artifact"),
-    python: await load("composition", "python-artifact"),
-    go: await load("composition", "go-artifact")
-  }
-  const machines = {
-    source: createSourcePreparationMachine(sourceCore),
-    post: createPostPreparationMachine(postCore),
-    tail: createAdviceTailMachine(postCore)
-  }
   const root = join(temp, "fixture")
   await mkdir(root)
   execFileSync("git", ["init", "-q", root], { timeout: 5000 })
@@ -267,22 +250,10 @@ try {
     })
     const connection = { transaction, bridge, control: bridge.control, partition, round, postCore }
     const registry = createPreparationSessionRegistry()
-    const driver = createOwnedArtifactDriver({
-      owner,
-      control: bridge.control,
-      artifacts,
+    const driver = createResidentPreparationDriver({
+      bridge,
       registry,
       hooks: { canonicalOutputs: (items) => outputs.push(...items) },
-      selectMachine: (input, session) =>
-        input.sourcePreparation
-          ? machines.source
-          : input.preparation
-            ? session.machine
-            : input.postPreparation
-              ? machines.post
-              : input.adviceTail
-                ? machines.tail
-                : undefined,
       foreign: async ([request], options) => {
         totalRequests++
         if (request.operation) return await performPreparationSessionRequest(registry, request, options)

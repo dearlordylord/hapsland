@@ -7,6 +7,8 @@ import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/s
 import { createBendResolver } from "../../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import { initial } from "../../composition/owned-machine.mjs"
+import { createResidentPreparationDriver } from "../../../../../dist/resident/review-work/composition/preparation-driver.js"
+import { createPreparationSessionRegistry } from "../../../../../dist/resident/review-work/composition/native-preparation-sessions.js"
 
 test("owned engine rejects ambiguous and mismatched protocols before initialization", () => {
   let initialized = 0
@@ -200,14 +202,15 @@ test("resident owner refuses publications until resources are bound", () => {
   let premature
   let delivered = 0
   const ledger = Effect.runSync(
-    makeResidentReviewState((facades) => {
+    makeResidentReviewState((facades, bridge) => {
       premature = Effect.runSyncExit(facades.partitionId("agent"))
-      return {
-        acceptActions: () => {
-          delivered++
-        },
-        validateAdviceInput: () => false
+      const driver = createResidentPreparationDriver({ bridge, registry: createPreparationSessionRegistry() })
+      const accept = driver.acceptActions
+      driver.acceptActions = (actions) => {
+        delivered++
+        accept(actions)
       }
+      return driver
     })
   )
   assert.ok(premature && Exit.isFailure(premature))

@@ -52,7 +52,7 @@ const required = (value) => {
 // resident retention are not implemented here: this is a composed intermediate.
 /**
  * @template {NativeSession} [Session=NativeSession]
- * @param {{owner: Owner, initialState?: State, scope: Scope, artifacts?: Parameters<typeof createArtifactMachine>[0], registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks<Session>, control?: Control, machine?: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
+ * @param {{owner: Owner, initialState?: State, scope?: Scope, artifacts?: Parameters<typeof createArtifactMachine>[0], registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks<Session>, control?: Control, machine?: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
  */
 export function createOwnedArtifactDriver({
   owner,
@@ -747,6 +747,7 @@ export function createOwnedArtifactDriver({
   const driver = {
     /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent | undefined} [parent] @param {boolean} [preparation] @param {Scope} [issuedScope] @returns {number} */
     allocateInvocation(parent, preparation = false, issuedScope = scope) {
+      if ((!parent || preparation) && !issuedScope) throw new TypeError("Missing owned invocation scope")
       if (current().next_invocation < 1n || current().next_invocation > BigInt(Number.MAX_SAFE_INTEGER))
         throw new RangeError("Invocation exceeds exact native ID range")
       const inputId = save(0n, { kind: "pending-input", value: undefined })
@@ -754,11 +755,15 @@ export function createOwnedArtifactDriver({
         apply(
           parent
             ? preparation
-              ? invoke("launch_source_preparation", parent, issuedScope, inputId)
+              ? invoke("launch_source_preparation", parent, required(issuedScope), inputId)
               : invoke("launch_nested", parent, inputId)
             : invoke(
-                issuedScope.$ === "SourceScope" ? "launch_source" : preparation ? "launch_preparation" : "launch",
-                issuedScope,
+                required(issuedScope).$ === "SourceScope"
+                  ? "launch_source"
+                  : preparation
+                    ? "launch_preparation"
+                    : "launch",
+                required(issuedScope),
                 inputId
               )
         )
