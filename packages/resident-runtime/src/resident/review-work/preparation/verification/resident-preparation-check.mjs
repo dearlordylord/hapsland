@@ -1,9 +1,8 @@
 import assert from "node:assert/strict"
+import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { execFileSync } from "node:child_process"
-import { existsSync } from "node:fs"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
 import { join } from "node:path"
-import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { resolveGraphUnit as __resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
@@ -175,9 +174,7 @@ const selectedScenarios = scenarios.filter(
 )
 assert.ok(selectedScenarios.length, "Unknown preparation scenario: " + process.env.HAPSLAND_POSTFLOW_CASE)
 const temp = await mkdtemp("/tmp/hapsland-owned-root-")
-let emissionTemp
 try {
-  emissionTemp = await mkdtemp(join(existsSync("/dev/shm") ? "/dev/shm" : "/tmp", "hapsland-resident-emission-"))
   const artifacts = {
     composition: (
       await import(
@@ -197,22 +194,6 @@ try {
     go: (
       await import(new URL("../../../../../dist/resident/review-work/composition/go-artifact-core.js", import.meta.url))
     ).default
-  }
-  let owner
-  for (const [key, name, source] of [
-    [
-      "owner",
-      "CanonicalResolverOwner",
-      "../../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"
-    ]
-  ]) {
-    const emitted = join(emissionTemp, name + ".mjs")
-    execFileSync("taskset", ["-c", "10", "bend", new URL(source, import.meta.url).pathname, "-o", emitted], {
-      timeout: 5000
-    })
-    const loaded = (await import(pathToFileURL(emitted))).default
-    if (key === "owner") owner = loaded
-    else artifacts[key] = loaded
   }
   const root = join(temp, "fixture")
   await mkdir(root)
@@ -728,8 +709,5 @@ try {
     })
   )
 } finally {
-  await Promise.all([
-    rm(temp, { recursive: true, force: true }),
-    ...(emissionTemp ? [rm(emissionTemp, { recursive: true, force: true })] : [])
-  ])
+  await rm(temp, { recursive: true, force: true })
 }

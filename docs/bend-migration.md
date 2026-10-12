@@ -297,8 +297,12 @@ One current obstacle list, in execution order:
    dependent elimination was fixed using existing witness eliminators. The
    exact semantic support/dependency slice passes hard5 in 4.272s
    (/tmp/astra-transaction-visited-focused.log): listed identities have equal
-   actual/reference lookup results. Absent identities still need the original
-   unique-order/cardinality guards. The full original theorem remains open.
+   actual/reference lookup results. A subsequent exact absent-identity support
+   slice passes hard5 in 2.770s (/tmp/astra-visited-absent-cardinality.log),
+   using only the original uniqueness/key-count guards and proof-local Nat
+   pair counts over existing lists. The joined arbitrary-query proof body and
+   its direct Bool/Maybe factoring are saved WIP, not qualified. The full
+   original theorem remains open; no new runtime representation or premise.
 
 2. Qualify the remaining complete consumer boundaries and supported input scope.
    The existing frontend codec now preserves literal constructor, Maybe,
@@ -356,8 +360,9 @@ One current obstacle list, in execution order:
    and check:fast pass with three authored sources selected. Full resident runner
    now loads packaged GenericArtifact and removes its temporary emission and
    unused source-name map. PythonArtifact and GoArtifact now also load packaged
-   cores; ArtifactComposition now loads packaged output; only CanonicalResolverOwner
-   still emits temporarily in the full resident consumer.
+   cores; ArtifactComposition now loads packaged output. CanonicalResolverOwner
+   also now loads its normal agent-flow-bend export; this full resident consumer
+   has no remaining temporary core emission.
    Two earlier real workspace builds failed before GenericArtifact at the existing
    PreparationFinalization hard-five-second emission. Isolated CPU11/direct
    emission passes in 3.798s; it does not qualify workspace packaging. Logs:
@@ -527,7 +532,8 @@ One current obstacle list, in execution order:
    explicit declaration/runner lint, recipe tests and check:fast pass.
    Generic and Python declarations share the exact existing dispatcher namespace
    relocation; no runtime command or policy changes. Remaining temporary
-   emission is the agent-flow-owned CanonicalResolverOwner. Their transport inputs must retain
+   emission at that stage was the agent-flow-owned CanonicalResolverOwner, now
+   resolved by the normal owner export below. Their transport inputs must retain
    exact raw Bend payloads: semantic frontend types are not interchangeable with
    raw SourceFacts, and opaque command inputs would conceal this boundary.
    GoArtifact now also ships through the normal recipe, with explicit Prepare/
@@ -582,7 +588,29 @@ One current obstacle list, in execution order:
    No deadline/default concurrency changed; this does not establish timeout
    cause or build parity. Logs: /tmp/hapsland-raw-canonical-{wire-build,
    serial-graph,normal-warm,boundary-tests-v2,wire-fast-v2}.log. Complete
-   CanonicalResolverOwner declaration/export and owner loading remain open.
+   CanonicalResolverOwner now has a complete closed declaration (34 public
+   lifecycle methods, 15 local types), plus source-free raw Canonical state/output
+   transport (51 types reusing existing event payload owners). OwnerTransport
+   declares the existing bigint and ../ namespace conversion; it creates no
+   runtime representation. The normal agent-flow producer exports the library,
+   enforces hard5 emission, checks all declared methods and zero foreign loaders,
+   and binds 44 exact outputs/declarations in receipts. All 80 producer tests
+   pass, including omissions of the three new outputs. Strict ABI and addressed
+   lint pass. The full resident consumer imports the package export and deletes
+   its final temporary emission loop/directory. Its direct development dependency
+   is declared in resident-runtime and bun.lock. On the final declared candidate,
+   standard workspace build passes 46/46 tasks (18 cached, 41.553s), check:fast
+   passes with six actual authored files selected, and the complete physical
+   consumer passes all 73 cases, 15702 preparation requests and 855 Post requests.
+   Initial build input drift was rejected while proof edits were live; after
+   freeze an existing PreparationFinalization hard5 timeout was reproduced
+   separately as a passing isolated emission. Controlled serial graph passes
+   46/46 (14 cached, 69.132s), followed by the standard warm graph (23 cached,
+   3.663s). No deadline or default concurrency changed. Logs:
+   /tmp/hapsland-canonical-owner-{declared-build,fast-v2,serial-graph,normal-warm}.log
+   and /tmp/hapsland-packaged-canonical-owner-resident-full-v2.log.
+   Canonical owner packaging/loading is qualified; whole production wiring
+   remains open. Whole preparation connected: 0; replaced production TS removed: 0.
    Resolver artifact shipping and the complete production entrypoint
    remain open. No whole preparation adoption or TS deletion is claimed.
 

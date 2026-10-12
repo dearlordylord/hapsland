@@ -1,4 +1,9 @@
 import Base
+import ./AttachmentMapPayloadTransport.bend as Payload
+import ../traversal/patricia-proof/PATRICIA_RELATION.bend as Patricia
+import ./AttachmentNaturalArithmeticFacts.bend as Arithmetic
+import ../traversal/INTERPRETER_BOOL_FACTS.bend as BoolFacts
+import ../traversal/INTERPRETER_NAT_FACTS.bend as NatFacts
 import ../traversal/INTERPRETER_STRING_FACTS.bend as StringFacts
 import ./AttachmentParentAppendTransport.bend as Parent
 import ./AttachmentMaterializationTransport.bend as Materialization
@@ -512,28 +517,10 @@ def boundary_world(-World: Data, +selection: D.Selection, +reply: T.Reply,
 # The ready views observe every listed visited identity through a True lookup.
 # These inversions preserve the whole ordered observation; no canonical-map
 # assumption is added to the original transaction relation.
-def visited_cons_contents(+head: String, +present: Bool,
-    +rest: Maybe<&2, List<&2, String>>, +observed: List<&2, String>,
-    ready: {ActualFrame.visited_prefix(ActualFrame.visited_entry(head, present), rest)
-      == Some{observed} : Maybe<&2, List<&2, String>>}) ->
-    {present == True{} : Bool} & Exists(List<&2, String>, tail =>
-      {rest == Some{tail} : Maybe<&2, List<&2, String>>}):
-  match present rest:
-    case True{} Some{tail}: Tuple{{==}, Tuple{tail, {==}}}
-    case True{} None{}:
-      Empty.absurd({True{} == True{} : Bool} & Exists(List<&2, String>, tail =>
-        {None{} == Some{tail} : Maybe<&2, List<&2, String>>}),
-        Contents.none_some(List<&2, String>, observed, ready))
-    case False{} _:
-      Empty.absurd({False{} == True{} : Bool} & Exists(List<&2, String>, tail =>
-        {rest == Some{tail} : Maybe<&2, List<&2, String>>}),
-        Contents.none_some(List<&2, String>, observed, ready))
-
 def visited_member_selected(+same: Bool, +head: String, +tail: List<&2, String>,
-    +entries: Map<&2, Bool>, +observed: List<&2, String>, +query: String,
+    +entries: Map<&2, Bool>, +query: String,
     same_key: {String.eq(head, query) == same : Bool},
     head_true: {Local.map_result(Bool, Map.get(Bool, False{}, entries, head)) == True{} : Bool},
-    ready: {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
     member: {Bool.or(same, List.contains(String, String.eq, tail, query)) == True{} : Bool},
     recurse: {List.contains(String, String.eq, tail, query) == True{} : Bool} ->
       {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}) ->
@@ -545,25 +532,28 @@ def visited_member_selected(+same: Bool, +head: String, +tail: List<&2, String>,
       head_true
     case False{}: recurse(member)
 
-def visited_member_cons(+head: String, +tail: List<&2, String>, +entries: Map<&2, Bool>,
-    +query: String,
-    evidence: {Local.map_result(Bool, Map.get(Bool, False{}, entries, head)) == True{} : Bool} &
-      Exists(List<&2, String>, observed =>
-        {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>}),
+def visited_member_cons(+present: Bool, +rest: Maybe<&2, List<&2, String>>,
+    +head: String, +tail: List<&2, String>, +entries: Map<&2, Bool>, +observed: List<&2, String>, +query: String,
+    lookup: {Local.map_result(Bool, Map.get(Bool, False{}, entries, head)) == present : Bool},
+    tail_projection: {ActualFrame.visited(tail, entries) == rest : Maybe<&2, List<&2, String>>},
+    ready: {ActualFrame.visited_prefix(ActualFrame.visited_entry(head, present), rest)
+      == Some{observed} : Maybe<&2, List<&2, String>>},
     member: {List.contains(String, String.eq, head <> tail, query) == True{} : Bool},
-    recurse: @observed: List<&2, String> ->
-      {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>} ->
+    recurse: @value: List<&2, String> ->
+      {ActualFrame.visited(tail, entries) == Some{value} : Maybe<&2, List<&2, String>>} ->
       {List.contains(String, String.eq, tail, query) == True{} : Bool} ->
       {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}) ->
     {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}:
-  Parent.eliminate_pair({Local.map_result(Bool, Map.get(Bool, False{}, entries, head)) == True{} : Bool},
-    Exists(List<&2, String>, observed => {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>}),
-    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}, evidence,
-    head_true => tail_witness => Parent.eliminate_witness(List<&2, String>,
-      observed => {ActualFrame.visited(tail, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
-      {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool}, tail_witness,
-      +observed => +ready => visited_member_selected(String.eq(head, query), head, tail, entries,
-        observed, query, {==}, head_true, ready, member, recurse(observed, ready))))
+  match present rest:
+    case True{} Some{value}:
+      visited_member_selected(String.eq(head, query), head, tail, entries, query,
+        {==}, lookup, member, recurse(value, tail_projection))
+    case True{} None{}:
+      Empty.absurd({Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool},
+        Contents.none_some(List<&2, String>, observed, ready))
+    case False{} _:
+      Empty.absurd({Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool},
+        Contents.none_some(List<&2, String>, observed, ready))
 
 def visited_member_sound(order: List<&2, String>, +entries: Map<&2, Bool>,
     +observed: List<&2, String>, +query: String,
@@ -575,9 +565,8 @@ def visited_member_sound(order: List<&2, String>, +entries: Map<&2, Bool>,
       Empty.absurd({Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == True{} : Bool},
         StringFacts.internal_false_ne_true(member))
     case +head <> +tail:
-      visited_member_cons(head, tail, entries, query,
-        visited_cons_contents(head, Local.map_result(Bool, Map.get(Bool, False{}, entries, head)),
-          ActualFrame.visited(tail, entries), observed, ready), member,
+      visited_member_cons(Local.map_result(Bool, Map.get(Bool, False{}, entries, head)),
+        ActualFrame.visited(tail, entries), head, tail, entries, observed, query, {==}, {==}, ready, member,
         value => tail_ready => tail_member => visited_member_sound(tail, entries, value, query, tail_ready, tail_member))
 
 def visited_prefix_correspondence(+head: String, +present: Bool,
@@ -639,6 +628,429 @@ def visited_present_correspondence(+order: List<&2, String>, +actual: Map<&2, Bo
     Equal.sym(Bool, Local.map_result(Bool, Map.get(Bool, False{}, reference, query)), True{},
       visited_member_sound(order, reference, observed, query,
         reference_visited_contents(order, reference, observed, reference_ready), member)))
+
+# Cardinality is derived from the ready view's existing unique-key guard.
+# These counters are proof-local sums over the existing lists, not new state.
+def unique_member_selected(+same: Bool, +head: String, +tail: List<&2, String>,
+    +all: List<&2, String>, +query: String,
+    same_key: {String.eq(head, query) == same : Bool},
+    head_count: {ActualFrame.string_count(all, head) == 1n : Nat},
+    member: {Bool.or(same, List.contains(String, String.eq, tail, query)) == True{} : Bool},
+    recurse: {List.contains(String, String.eq, tail, query) == True{} : Bool} ->
+      {ActualFrame.string_count(all, query) == 1n : Nat}) ->
+    {ActualFrame.string_count(all, query) == 1n : Nat}:
+  match same:
+    case True{}:
+      %StringFacts.eq_of_eq_true(head, query, same_key):
+        {ActualFrame.string_count(all, _) == 1n : Nat}
+      head_count
+    case False{}: recurse(member)
+
+def unique_member_count(items: List<&2, String>, +all: List<&2, String>, +query: String,
+    +unique: {ActualFrame.strings_unique(items, all) == True{} : Bool},
+    member: {List.contains(String, String.eq, items, query) == True{} : Bool}) ->
+    {ActualFrame.string_count(all, query) == 1n : Nat}:
+  match items:
+    case []:
+      Empty.absurd({ActualFrame.string_count(all, query) == 1n : Nat},
+        StringFacts.internal_false_ne_true(member))
+    case +head <> +tail:
+      unique_member_selected(String.eq(head, query), head, tail, all, query, {==},
+        NatFacts.eq_of_is_eq(ActualFrame.string_count(all, head), 1n,
+          BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.string_count(all, head), 1n),
+            ActualFrame.strings_unique(tail, all), unique)), member,
+        tail_member => unique_member_count(tail, all, query,
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.string_count(all, head), 1n),
+            ActualFrame.strings_unique(tail, all), unique), tail_member))
+
+def absent_count_selected(+same: Bool, +count: Nat, +present: Bool,
+    absent: {Bool.or(same, present) == False{} : Bool},
+    recurse: {present == False{} : Bool} -> {count == 0n : Nat}) ->
+    {(Bool.pick(Nat, same, 1n, 0n) + count : Nat) == 0n : Nat}:
+  match same:
+    case True{}:
+      Empty.absurd({(1n + count : Nat) == 0n : Nat},
+        StringFacts.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, absent)))
+    case False{}: recurse(absent)
+
+def absent_count(items: List<&2, String>, +query: String,
+    absent: {List.contains(String, String.eq, items, query) == False{} : Bool}) ->
+    {ActualFrame.string_count(items, query) == 0n : Nat}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      absent_count_selected(String.eq(head, query), ActualFrame.string_count(tail, query),
+        List.contains(String, String.eq, tail, query), absent,
+        tail_absent => absent_count(tail, query, tail_absent))
+
+def unique_query_selected(+present: Bool, +items: List<&2, String>, +query: String,
+    present_key: {List.contains(String, String.eq, items, query) == present : Bool},
+    unique: {ActualFrame.strings_unique(items, items) == True{} : Bool}) ->
+    NatFacts.le(ActualFrame.string_count(items, query), 1n):
+  match present:
+    case False{}:
+      %Equal.sym(Nat, ActualFrame.string_count(items, query), 0n,
+        absent_count(items, query, present_key)): NatFacts.le(_, 1n)
+      {==}
+    case True{}:
+      %Equal.sym(Nat, ActualFrame.string_count(items, query), 1n,
+        unique_member_count(items, items, query, unique, present_key)): NatFacts.le(_, 1n)
+      {==}
+
+def unique_query_bound(+items: List<&2, String>, +query: String,
+    unique: {ActualFrame.strings_unique(items, items) == True{} : Bool}) ->
+    NatFacts.le(ActualFrame.string_count(items, query), 1n):
+  unique_query_selected(List.contains(String, String.eq, items, query), items, query, {==}, unique)
+
+def observed_key_count(keys: List<&2, String>, +query: String) -> Nat:
+  match keys:
+    case []: 0n
+    case head <> tail:
+      (Bool.pick(Nat, String.eq(query, head), 1n, 0n) + observed_key_count(tail, query) : Nat)
+
+def observed_pair_count(+order: List<&2, String>, keys: List<&2, String>) -> Nat:
+  match keys:
+    case []: 0n
+    case head <> tail: (ActualFrame.string_count(order, head) + observed_pair_count(order, tail) : Nat)
+
+def observed_pair_upper(+order: List<&2, String>, keys: List<&2, String>,
+    +unique: {ActualFrame.strings_unique(order, order) == True{} : Bool}) ->
+    NatFacts.le(observed_pair_count(order, keys), List.length(&2, String, keys)):
+  match keys:
+    case []: {==}
+    case +head <> +tail:
+      NatFacts.add_le_add(ActualFrame.string_count(order, head), observed_pair_count(order, tail),
+        1n, List.length(&2, String, tail), unique_query_bound(order, head, unique),
+        observed_pair_upper(order, tail, unique))
+
+def pair_count_exchange(+a: Nat, +b: Nat, +c: Nat, +d: Nat) ->
+    {((a + b : Nat) + (c + d : Nat) : Nat) == ((a + c : Nat) + (b + d : Nat) : Nat) : Nat}:
+  Equal.trans(Nat, ((a + b : Nat) + (c + d : Nat) : Nat),
+    (a + (b + (c + d : Nat) : Nat) : Nat), ((a + c : Nat) + (b + d : Nat) : Nat),
+    Arithmetic.add_assoc(a, b, (c + d : Nat)),
+    Equal.trans(Nat, (a + (b + (c + d : Nat) : Nat) : Nat),
+      (a + (c + (b + d : Nat) : Nat) : Nat), ((a + c : Nat) + (b + d : Nat) : Nat),
+      Equal.cong(Nat, Nat, value => (a + value : Nat),
+        (b + (c + d : Nat) : Nat), (c + (b + d : Nat) : Nat),
+        Equal.trans(Nat, (b + (c + d : Nat) : Nat), ((b + c : Nat) + d : Nat),
+          (c + (b + d : Nat) : Nat),
+          Equal.sym(Nat, ((b + c : Nat) + d : Nat), (b + (c + d : Nat) : Nat), Arithmetic.add_assoc(b, c, d)),
+          Equal.trans(Nat, ((b + c : Nat) + d : Nat), ((c + b : Nat) + d : Nat),
+            (c + (b + d : Nat) : Nat),
+            Equal.cong(Nat, Nat, value => (value + d : Nat), (b + c : Nat), (c + b : Nat), NatFacts.add_comm(b, c)),
+            Arithmetic.add_assoc(c, b, d)))),
+      Equal.sym(Nat, ((a + c : Nat) + (b + d : Nat) : Nat),
+        (a + (c + (b + d : Nat) : Nat) : Nat), Arithmetic.add_assoc(a, c, (b + d : Nat)))))
+
+def observed_pair_row(+head: String, +tail: List<&2, String>, keys: List<&2, String>) ->
+    {observed_pair_count(head <> tail, keys)
+      == (observed_key_count(keys, head) + observed_pair_count(tail, keys) : Nat) : Nat}:
+  match keys:
+    case []: {==}
+    case +key <> +rest:
+      %Equal.sym(Nat, observed_pair_count(head <> tail, rest),
+        (observed_key_count(rest, head) + observed_pair_count(tail, rest) : Nat),
+        observed_pair_row(head, tail, rest)):
+        {((Bool.pick(Nat, String.eq(head, key), 1n, 0n) + ActualFrame.string_count(tail, key) : Nat) + _ : Nat)
+          == (observed_key_count(key <> rest, head) + observed_pair_count(tail, key <> rest) : Nat) : Nat}
+      pair_count_exchange(Bool.pick(Nat, String.eq(head, key), 1n, 0n), ActualFrame.string_count(tail, key),
+        observed_key_count(rest, head), observed_pair_count(tail, rest))
+
+def observed_map_count(tree: Map<&2, Bool>, +query: String) -> Nat:
+  match tree:
+    case MTip{}: 0n
+    case MLeaf{name, _}: Bool.pick(Nat, String.eq(query, name), 1n, 0n)
+    case MNode{_, lo, hi}: (observed_map_count(lo, query) + observed_map_count(hi, query) : Nat)
+
+def observed_map_keys_go(tree: Map<&2, Bool>, +acc: List<&2, String>, +query: String) ->
+    {observed_key_count(Map.keys.go(&2, Bool, tree, acc), query)
+      == (observed_map_count(tree, query) + observed_key_count(acc, query) : Nat) : Nat}:
+  match tree:
+    case MTip{}: {==}
+    case MLeaf{_, _}: {==}
+    case MNode{_, +lo, +hi}:
+      Equal.trans(Nat, observed_key_count(Map.keys.go(&2, Bool, lo, Map.keys.go(&2, Bool, hi, acc)), query),
+        (observed_map_count(lo, query) + observed_key_count(Map.keys.go(&2, Bool, hi, acc), query) : Nat),
+        ((observed_map_count(lo, query) + observed_map_count(hi, query) : Nat) + observed_key_count(acc, query) : Nat),
+        observed_map_keys_go(lo, Map.keys.go(&2, Bool, hi, acc), query),
+        Equal.trans(Nat, (observed_map_count(lo, query) + observed_key_count(Map.keys.go(&2, Bool, hi, acc), query) : Nat),
+          (observed_map_count(lo, query) + (observed_map_count(hi, query) + observed_key_count(acc, query) : Nat) : Nat),
+          ((observed_map_count(lo, query) + observed_map_count(hi, query) : Nat) + observed_key_count(acc, query) : Nat),
+          Equal.cong(Nat, Nat, value => (observed_map_count(lo, query) + value : Nat),
+            observed_key_count(Map.keys.go(&2, Bool, hi, acc), query),
+            (observed_map_count(hi, query) + observed_key_count(acc, query) : Nat),
+            observed_map_keys_go(hi, acc, query)),
+          Equal.sym(Nat, ((observed_map_count(lo, query) + observed_map_count(hi, query) : Nat) + observed_key_count(acc, query) : Nat),
+            (observed_map_count(lo, query) + (observed_map_count(hi, query) + observed_key_count(acc, query) : Nat) : Nat),
+            Arithmetic.add_assoc(observed_map_count(lo, query), observed_map_count(hi, query), observed_key_count(acc, query)))))
+
+def observed_map_keys(+tree: Map<&2, Bool>, +query: String) ->
+    {observed_key_count(Map.keys(&2, Bool, tree), query) == observed_map_count(tree, query) : Nat}:
+  Equal.trans(Nat, observed_key_count(Map.keys(&2, Bool, tree), query),
+    (observed_map_count(tree, query) + 0n : Nat), observed_map_count(tree, query),
+    observed_map_keys_go(tree, [], query), NatFacts.add_zero(observed_map_count(tree, query)))
+
+def observed_leaf_positive(same: Bool, +value: Bool,
+    ready: {Bool.pick(Bool, same, value, False{}) == True{} : Bool}) ->
+    NatFacts.le(1n, Bool.pick(Nat, same, 1n, 0n)):
+  match same:
+    case True{}: {==}
+    case False{}:
+      Empty.absurd(NatFacts.le(1n, 0n), StringFacts.internal_false_ne_true(ready))
+
+def observed_node_positive(side: Bool, +left: Bool, +right: Bool, +left_count: Nat, +right_count: Nat,
+    ready: {Bool.pick(Bool, side, right, left) == True{} : Bool},
+    left_positive: {left == True{} : Bool} -> NatFacts.le(1n, left_count),
+    right_positive: {right == True{} : Bool} -> NatFacts.le(1n, right_count)) ->
+    NatFacts.le(1n, (left_count + right_count : Nat)):
+  match side:
+    case False{}:
+      NatFacts.le_trans(1n, left_count, (left_count + right_count : Nat), left_positive(ready),
+        Arithmetic.le_add_right(left_count, right_count))
+    case True{}:
+      NatFacts.le_trans(1n, right_count, (left_count + right_count : Nat), right_positive(ready),
+        NatFacts.add_le_add(0n, right_count, left_count, right_count,
+          Arithmetic.zero_le(left_count), NatFacts.le_refl(right_count)))
+
+def observed_routed_positive(tree: Map<&2, Bool>, +query: String,
+    ready: {Payload.routed_value(Bool, False{}, tree, query) == True{} : Bool}) ->
+    NatFacts.le(1n, observed_map_count(tree, query)):
+  match tree:
+    case MTip{}:
+      Empty.absurd(NatFacts.le(1n, 0n), StringFacts.internal_false_ne_true(ready))
+    case MLeaf{+name, +value}:
+      observed_leaf_positive(String.eq(query, name), value,
+        Equal.trans(Bool, Bool.pick(Bool, String.eq(query, name), value, False{}),
+          Local.map_result(Bool, Map.get(Bool, False{}, MLeaf{name, value}, query)), True{},
+          Equal.sym(Bool, Local.map_result(Bool, Map.get(Bool, False{}, MLeaf{name, value}, query)),
+            Bool.pick(Bool, String.eq(query, name), value, False{}),
+            Payload.leaf_read_exact(Bool, False{}, name, value, query)), ready))
+    case MNode{+position, +lo, +hi}:
+      observed_node_positive(Patricia.route(query, position), Payload.routed_value(Bool, False{}, lo, query),
+        Payload.routed_value(Bool, False{}, hi, query), observed_map_count(lo, query), observed_map_count(hi, query),
+        ready, proof => observed_routed_positive(lo, query, proof), proof => observed_routed_positive(hi, query, proof))
+
+def observed_lookup_positive(+tree: Map<&2, Bool>, +query: String,
+    ready: {Local.map_result(Bool, Map.get(Bool, False{}, tree, query)) == True{} : Bool}) ->
+    NatFacts.le(1n, observed_key_count(Map.keys(&2, Bool, tree), query)):
+  %Equal.sym(Nat, observed_key_count(Map.keys(&2, Bool, tree), query), observed_map_count(tree, query),
+    observed_map_keys(tree, query)): NatFacts.le(1n, _)
+  observed_routed_positive(tree, query,
+    Equal.trans(Bool, Payload.routed_value(Bool, False{}, tree, query),
+      Local.map_result(Bool, Map.get(Bool, False{}, tree, query)), True{},
+      Equal.sym(Bool, Local.map_result(Bool, Map.get(Bool, False{}, tree, query)),
+        Payload.routed_value(Bool, False{}, tree, query), Payload.lookup_routed(Bool, False{}, tree, query)), ready))
+
+def observed_positive(order: List<&2, String>, +keys: List<&2, String>) -> Bool:
+  match order:
+    case []: True{}
+    case head <> tail:
+      Bool.and(Nat.is_le(1n, observed_key_count(keys, head)), observed_positive(tail, keys))
+
+def observed_pair_lower(order: List<&2, String>, +keys: List<&2, String>,
+    +positive: {observed_positive(order, keys) == True{} : Bool}) ->
+    NatFacts.le(List.length(&2, String, order), observed_pair_count(order, keys)):
+  match order:
+    case []: Arithmetic.zero_le(observed_pair_count([], keys))
+    case +head <> +tail:
+      %Equal.sym(Nat, observed_pair_count(head <> tail, keys),
+        (observed_key_count(keys, head) + observed_pair_count(tail, keys) : Nat),
+        observed_pair_row(head, tail, keys)): NatFacts.le(1n+List.length(&2, String, tail), _)
+      NatFacts.add_le_add(1n, List.length(&2, String, tail), observed_key_count(keys, head),
+        observed_pair_count(tail, keys),
+        BoolFacts.eq_true_of_and_left(Nat.is_le(1n, observed_key_count(keys, head)), observed_positive(tail, keys), positive),
+        observed_pair_lower(tail, keys,
+          BoolFacts.eq_true_of_and_right(Nat.is_le(1n, observed_key_count(keys, head)), observed_positive(tail, keys), positive)))
+
+def observed_cardinality_bound(+order: List<&2, String>, +keys: List<&2, String>,
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    positive: {observed_positive(order, keys) == True{} : Bool}) ->
+    NatFacts.le(List.length(&2, String, order), List.length(&2, String, keys)):
+  NatFacts.le_trans(List.length(&2, String, order), observed_pair_count(order, keys), List.length(&2, String, keys),
+    observed_pair_lower(order, keys, positive), observed_pair_upper(order, keys, unique))
+
+def visited_positive_selected(+head: String, +present: Bool, +rest: Maybe<&2, List<&2, String>>,
+    +observed: List<&2, String>, +tail: List<&2, String>, +keys: List<&2, String>,
+    ready: {ActualFrame.visited_prefix(ActualFrame.visited_entry(head, present), rest)
+      == Some{observed} : Maybe<&2, List<&2, String>>},
+    head_positive: {present == True{} : Bool} -> NatFacts.le(1n, observed_key_count(keys, head)),
+    recurse: @value: List<&2, String> -> {rest == Some{value} : Maybe<&2, List<&2, String>>} ->
+      {observed_positive(tail, keys) == True{} : Bool}) ->
+    {observed_positive(head <> tail, keys) == True{} : Bool}:
+  match present rest:
+    case True{} Some{value}:
+      BoolFacts.and_eq_true(Nat.is_le(1n, observed_key_count(keys, head)), observed_positive(tail, keys),
+        head_positive({==}), recurse(value, {==}))
+    case True{} None{}:
+      Empty.absurd({observed_positive(head <> tail, keys) == True{} : Bool},
+        Contents.none_some(List<&2, String>, observed, ready))
+    case False{} _:
+      Empty.absurd({observed_positive(head <> tail, keys) == True{} : Bool},
+        Contents.none_some(List<&2, String>, observed, ready))
+
+def visited_positive(order: List<&2, String>, +entries: Map<&2, Bool>, +observed: List<&2, String>,
+    ready: {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>}) ->
+    {observed_positive(order, Map.keys(&2, Bool, entries)) == True{} : Bool}:
+  match order:
+    case []: {==}
+    case +head <> +tail:
+      visited_positive_selected(head, Local.map_result(Bool, Map.get(Bool, False{}, entries, head)),
+        ActualFrame.visited(tail, entries), observed, tail, Map.keys(&2, Bool, entries), ready,
+        present => observed_lookup_positive(entries, head, present),
+        value => tail_ready => visited_positive(tail, entries, value, tail_ready))
+
+def observed_added_count(+same: Bool, +query: String, +head: String, +all: List<&2, String>,
+    same_key: {String.eq(query, head) == same : Bool},
+    head_count: {ActualFrame.string_count(all, head) == 1n : Nat},
+    absent: {ActualFrame.string_count(all, query) == 0n : Nat}) ->
+    {Nat.is_eq((Bool.pick(Nat, same, 1n, 0n) + ActualFrame.string_count(all, head) : Nat), 1n) == True{} : Bool}:
+  match same:
+    case False{}:
+      Equal.trans(Bool, Nat.is_eq(ActualFrame.string_count(all, head), 1n), Nat.is_eq(1n, 1n), True{},
+        Equal.cong(Nat, Bool, value => Nat.is_eq(value, 1n), ActualFrame.string_count(all, head), 1n, head_count), {==})
+    case True{}:
+      Empty.absurd({Nat.is_eq(1n+ActualFrame.string_count(all, head), 1n) == True{} : Bool},
+        Arithmetic.internal_succ_ne_zero(0n,
+          Equal.trans(Nat, 1n, ActualFrame.string_count(all, head), 0n,
+            Equal.sym(Nat, ActualFrame.string_count(all, head), 1n, head_count),
+            Equal.trans(Nat, ActualFrame.string_count(all, head), ActualFrame.string_count(all, query), 0n,
+              Equal.sym(Nat, ActualFrame.string_count(all, query), ActualFrame.string_count(all, head),
+                Equal.cong(String, Nat, value => ActualFrame.string_count(all, value), query, head,
+                  StringFacts.eq_of_eq_true(query, head, same_key))), absent))))
+
+def observed_extend_unique(items: List<&2, String>, +all: List<&2, String>, +query: String,
+    +unique: {ActualFrame.strings_unique(items, all) == True{} : Bool},
+    +absent: {ActualFrame.string_count(all, query) == 0n : Nat}) ->
+    {ActualFrame.strings_unique(items, query <> all) == True{} : Bool}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      BoolFacts.and_eq_true(Nat.is_eq(ActualFrame.string_count(query <> all, head), 1n),
+        ActualFrame.strings_unique(tail, query <> all),
+        observed_added_count(String.eq(query, head), query, head, all, {==},
+          NatFacts.eq_of_is_eq(ActualFrame.string_count(all, head), 1n,
+            BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.string_count(all, head), 1n),
+              ActualFrame.strings_unique(tail, all), unique)), absent),
+        observed_extend_unique(tail, all, query,
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(ActualFrame.string_count(all, head), 1n),
+            ActualFrame.strings_unique(tail, all), unique), absent))
+
+def observed_prepend_count(+order: List<&2, String>, +query: String,
+    absent: {ActualFrame.string_count(order, query) == 0n : Nat}) ->
+    {ActualFrame.string_count(query <> order, query) == 1n : Nat}:
+  Equal.trans(Nat, ActualFrame.string_count(query <> order, query),
+    (1n + ActualFrame.string_count(order, query) : Nat), 1n,
+    Equal.cong(Bool, Nat, same => (Bool.pick(Nat, same, 1n, 0n) + ActualFrame.string_count(order, query) : Nat),
+      String.eq(query, query), True{}, StringFacts.eq_refl(query)),
+    Equal.cong(Nat, Nat, value => 1n+value, ActualFrame.string_count(order, query), 0n, absent))
+
+def observed_prepend_unique(+order: List<&2, String>, +query: String,
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    absent: {List.contains(String, String.eq, order, query) == False{} : Bool}) ->
+    {ActualFrame.strings_unique(query <> order, query <> order) == True{} : Bool}:
+  +zero = absent_count(order, query, absent)
+  BoolFacts.and_eq_true(Nat.is_eq(ActualFrame.string_count(query <> order, query), 1n),
+    ActualFrame.strings_unique(order, query <> order),
+    Equal.trans(Bool, Nat.is_eq(ActualFrame.string_count(query <> order, query), 1n), Nat.is_eq(1n, 1n), True{},
+      Equal.cong(Nat, Bool, value => Nat.is_eq(value, 1n), ActualFrame.string_count(query <> order, query), 1n,
+        observed_prepend_count(order, query, zero)), {==}),
+    observed_extend_unique(order, order, query, unique, zero))
+
+def observed_successor_impossible(size: Nat, proof: NatFacts.le(1n+size, size)) -> Empty:
+  match size:
+    case 0n: StringFacts.internal_false_ne_true(proof)
+    case 1n+rest: observed_successor_impossible(rest, proof)
+
+def observed_extra_impossible(+order: List<&2, String>, +keys: List<&2, String>, +query: String,
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    same_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, keys)) == True{} : Bool},
+    absent: {List.contains(String, String.eq, order, query) == False{} : Bool},
+    positive: {observed_positive(order, keys) == True{} : Bool},
+    extra: NatFacts.le(1n, observed_key_count(keys, query))) -> Empty:
+  observed_successor_impossible(List.length(&2, String, order),
+    Equal.trans(Bool, Nat.is_le(1n+List.length(&2, String, order), List.length(&2, String, order)),
+      Nat.is_le(1n+List.length(&2, String, order), List.length(&2, String, keys)), True{},
+      Equal.cong(Nat, Bool, size => Nat.is_le(1n+List.length(&2, String, order), size),
+        List.length(&2, String, order), List.length(&2, String, keys),
+        NatFacts.eq_of_is_eq(List.length(&2, String, order), List.length(&2, String, keys), same_size)),
+      observed_cardinality_bound(query <> order, keys, observed_prepend_unique(order, query, unique, absent),
+        BoolFacts.and_eq_true(Nat.is_le(1n, observed_key_count(keys, query)), observed_positive(order, keys), extra, positive))))
+
+def visited_absent_selected(+present: Bool, +order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>, +query: String,
+    lookup: {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == present : Bool},
+    ready: {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    same_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries))) == True{} : Bool},
+    absent: {List.contains(String, String.eq, order, query) == False{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == False{} : Bool}:
+  match present:
+    case False{}: lookup
+    case True{}:
+      Empty.absurd({Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == False{} : Bool},
+        observed_extra_impossible(order, Map.keys(&2, Bool, entries), query, unique, same_size, absent,
+          visited_positive(order, entries, observed, ready), observed_lookup_positive(entries, query, lookup)))
+
+def visited_absent_lookup(+order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>, +query: String,
+    ready: {ActualFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    same_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries))) == True{} : Bool},
+    absent: {List.contains(String, String.eq, order, query) == False{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, entries, query)) == False{} : Bool}:
+  visited_absent_selected(Local.map_result(Bool, Map.get(Bool, False{}, entries, query)), order, entries, observed, query,
+    {==}, ready, unique, same_size, absent)
+
+def reference_visited_guard_true(+guard: Bool, +value: Maybe<&2, List<&2, String>>,
+    +observed: List<&2, String>,
+    ready: {Bool.pick(Maybe<&2, List<&2, String>>, guard, value, None{}) == Some{observed}
+      : Maybe<&2, List<&2, String>>}) -> {guard == True{} : Bool}:
+  match guard:
+    case True{}: {==}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool}, Contents.none_some(List<&2, String>, observed, ready))
+
+def reference_visited_cardinality(+order: List<&2, String>, +entries: Map<&2, Bool>,
+    +observed: List<&2, String>,
+    ready: {ReferenceFrame.visited(order, entries) == Some{observed} : Maybe<&2, List<&2, String>>}) ->
+    {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries))) == True{} : Bool}:
+  BoolFacts.eq_true_of_and_right(ReferenceFrame.unique_strings(order, order),
+    Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries))),
+    reference_visited_guard_true(
+      Bool.and(ReferenceFrame.unique_strings(order, order),
+        Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, entries)))),
+      ReferenceFrame.visited_entries(order, entries), observed, ready))
+
+def visited_lookup_selected(+present: Bool, +order: List<&2, String>, +actual: Map<&2, Bool>,
+    +reference: Map<&2, Bool>, +observed: List<&2, String>, +query: String,
+    +member: {List.contains(String, String.eq, order, query) == present : Bool},
+    actual_ready: {ActualFrame.visited(order, actual) == Some{observed} : Maybe<&2, List<&2, String>>},
+    +reference_ready: {ReferenceFrame.visited(order, reference) == Some{observed} : Maybe<&2, List<&2, String>>},
+    +unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    actual_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, actual))) == True{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, actual, query))
+      == Local.map_result(Bool, Map.get(Bool, False{}, reference, query)) : Bool}:
+  match present:
+    case True{}: visited_present_correspondence(order, actual, reference, observed, query, actual_ready, reference_ready, member)
+    case False{}:
+      Equal.trans(Bool, Local.map_result(Bool, Map.get(Bool, False{}, actual, query)), False{},
+        Local.map_result(Bool, Map.get(Bool, False{}, reference, query)),
+        visited_absent_lookup(order, actual, observed, query, actual_ready, unique, actual_size, member),
+        Equal.sym(Bool, Local.map_result(Bool, Map.get(Bool, False{}, reference, query)), False{},
+          visited_absent_lookup(order, reference, observed, query,
+            reference_visited_contents(order, reference, observed, reference_ready), unique,
+            reference_visited_cardinality(order, reference, observed, reference_ready), member)))
+
+def visited_lookup_exact(+order: List<&2, String>, +actual: Map<&2, Bool>,
+    +reference: Map<&2, Bool>, +observed: List<&2, String>, +query: String,
+    actual_ready: {ActualFrame.visited(order, actual) == Some{observed} : Maybe<&2, List<&2, String>>},
+    reference_ready: {ReferenceFrame.visited(order, reference) == Some{observed} : Maybe<&2, List<&2, String>>},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    actual_size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Bool, actual))) == True{} : Bool}) ->
+    {Local.map_result(Bool, Map.get(Bool, False{}, actual, query))
+      == Local.map_result(Bool, Map.get(Bool, False{}, reference, query)) : Bool}:
+  visited_lookup_selected(List.contains(String, String.eq, order, query), order, actual, reference, observed, query,
+    {==}, actual_ready, reference_ready, unique, actual_size)
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

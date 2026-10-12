@@ -256,6 +256,9 @@
         "@hapsland/source-artifacts": "workspace:*",
         "effect": "catalog:",
       },
+      "devDependencies": {
+        "@hapsland/agent-flow-bend": "workspace:*",
+      },
     },
     "packages/resident-transport": {
       "name": "@hapsland/resident-transport",

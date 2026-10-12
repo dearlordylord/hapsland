@@ -96,5 +96,8 @@
       "review-orchestration"
     ],
     "bendPrecompile": "src/resident/review-work/build-recipe.json"
+  },
+  "devDependencies": {
+    "@hapsland/agent-flow-bend": "workspace:*"
   }
 }

@@ -92,6 +92,10 @@
     "./import-policy": {
       "types": "./dist/import-policy.generated.d.ts",
       "default": "./dist/import-policy.generated.js"
+    },
+    "./canonical-resolver-owner": {
+      "types": "./dist/canonical-resolver-owner.generated.d.ts",
+      "default": "./dist/canonical-resolver-owner.generated.js"
     }
   },
   "hapsland": {
@@ -120,7 +124,8 @@
       "./reference-policy": "./abi/reference-policy.generated.d.ts",
       "./binding-policy": "./abi/binding-policy.generated.d.ts",
       "./declaration-policy": "./abi/declaration-policy.generated.d.ts",
-      "./import-policy": "./abi/import-policy.generated.d.ts"
+      "./import-policy": "./abi/import-policy.generated.d.ts",
+      "./canonical-resolver-owner": "./abi/canonical-resolver-owner.generated.d.ts"
     },
     "loaderPolicies": {
       "dist/canonical.generated.js": "bend-system-ffi",
@@ -142,7 +147,8 @@
       "dist/reference-policy.generated.js": "bend-system-ffi",
       "dist/binding-policy.generated.js": "bend-system-ffi",
       "dist/declaration-policy.generated.js": "bend-system-ffi",
-      "dist/import-policy.generated.js": "bend-system-ffi"
+      "dist/import-policy.generated.js": "bend-system-ffi",
+      "dist/canonical-resolver-owner.generated.js": "bend-system-ffi"
     },
     "toolchain": {
       "bend": {

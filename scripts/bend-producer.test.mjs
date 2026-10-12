@@ -124,12 +124,15 @@ async function fixture(t) {
   mkdirSync(resolve(directory, "credential-policy"), { recursive: true })
   writeFileSync(resolve(directory, "credential-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "credential-policy/core.bend"), "// Credential policy fixture\n")
+  mkdirSync(resolve(directory, "preparation-lifecycle"), { recursive: true })
+  writeFileSync(resolve(directory, "preparation-lifecycle/CanonicalResolverOwner.bend"), "import Base\n")
   for (const name of ["CanonicalRuntime.bend", "ImportGraphRuntime.bend", "request-content/Runtime.bend"])
     writeFileSync(resolve(directory, name), "import Base\n")
   writeFileSync(resolve(directory, "request-content/Runtime.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "request-content/core.bend"), "// Actual projector input fixture\n")
   for (const name of [
     "build-canonical.mjs",
+    "build-canonical-resolver-owner.mjs",
     "build-import-graph.mjs",
     "build-request-content.mjs",
     "build-credential-policy.mjs",
@@ -154,6 +157,8 @@ async function fixture(t) {
   for (const name of [
     "canonical.generated.d.ts",
     "raw-canonical-event.d.ts",
+    "raw-canonical-state.d.ts",
+    "canonical-resolver-owner.generated.d.ts",
     "import-graph.generated.d.ts",
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
@@ -179,6 +184,7 @@ async function fixture(t) {
   }
   for (const name of [
     "canonical.generated.js",
+    "canonical-resolver-owner.generated.js",
     "import-graph.generated.js",
     "request-content.generated.js",
     "credential-policy.generated.js",
@@ -259,7 +265,7 @@ test("valid receipt binds actual compiler/support/input bytes and exact forty-on
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 41)
+  assert.equal(f.receipt.outputs.length, 44)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
@@ -443,8 +449,12 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   const manifest = JSON.parse(readFileSync(resolve(f.directory, "package.json"), "utf8"))
   const owner = { path: f.directory, directory: "packages/agent-flow-bend", compiler: "bend", manifest }
   const generator = (name) =>
-    `import {writeFileSync,copyFileSync,mkdirSync} from 'node:fs';import {resolve} from 'node:path';const output=resolve(process.argv[2]);mkdirSync(output,{recursive:true});writeFileSync(resolve(output,'${name}.generated.js'),'export const fixture=1;\\n');copyFileSync(resolve(import.meta.dirname,'../abi/${name}.generated.d.ts'),resolve(output,'${name}.generated.d.ts'));${name === "canonical" ? "copyFileSync(resolve(import.meta.dirname,'../abi/raw-canonical-event.d.ts'),resolve(output,'raw-canonical-event.d.ts'));" : ""}`
+    `import {writeFileSync,copyFileSync,mkdirSync} from 'node:fs';import {resolve} from 'node:path';const output=resolve(process.argv[2]);mkdirSync(output,{recursive:true});writeFileSync(resolve(output,'${name}.generated.js'),'export const fixture=1;\\n');copyFileSync(resolve(import.meta.dirname,'../abi/${name}.generated.d.ts'),resolve(output,'${name}.generated.d.ts'));${name === "canonical" ? "copyFileSync(resolve(import.meta.dirname,'../abi/raw-canonical-event.d.ts'),resolve(output,'raw-canonical-event.d.ts'));copyFileSync(resolve(import.meta.dirname,'../abi/raw-canonical-state.d.ts'),resolve(output,'raw-canonical-state.d.ts'));" : ""}`
   writeFileSync(resolve(f.directory, "scripts/build-canonical.mjs"), generator("canonical"))
+  writeFileSync(
+    resolve(f.directory, "scripts/build-canonical-resolver-owner.mjs"),
+    generator("canonical-resolver-owner")
+  )
   writeFileSync(resolve(f.directory, "scripts/build-import-graph.mjs"), generator("import-graph"))
   writeFileSync(resolve(f.directory, "scripts/build-request-content.mjs"), generator("request-content"))
   writeFileSync(resolve(f.directory, "scripts/build-credential-policy.mjs"), generator("credential-policy"))
@@ -485,6 +495,9 @@ test("request-content core and authored ABI remain producer receipt authority", 
   assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
 })
 for (const file of [
+  "canonical-resolver-owner.generated.js",
+  "canonical-resolver-owner.generated.d.ts",
+  "raw-canonical-state.d.ts",
   "request-content.generated.js",
   "request-content.generated.d.ts",
   "credential-policy.generated.js",

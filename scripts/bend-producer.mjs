@@ -32,6 +32,8 @@ export const bendProducerOutputs = Object.freeze([
   "binding-policy.generated.js",
   "callable-policy.generated.d.ts",
   "callable-policy.generated.js",
+  "canonical-resolver-owner.generated.d.ts",
+  "canonical-resolver-owner.generated.js",
   "canonical.generated.d.ts",
   "canonical.generated.js",
   "credential-policy.generated.d.ts",
@@ -49,6 +51,7 @@ export const bendProducerOutputs = Object.freeze([
   "maintenance-policy.generated.d.ts",
   "maintenance-policy.generated.js",
   "raw-canonical-event.d.ts",
+  "raw-canonical-state.d.ts",
   "reference-policy.generated.d.ts",
   "reference-policy.generated.js",
   "request-content.generated.d.ts",
@@ -252,6 +255,7 @@ function contextInputs(root, node, toolchain) {
   const directory = packagePath(root, node)
   const generators = [
     "build-canonical.mjs",
+    "build-canonical-resolver-owner.mjs",
     "build-import-graph.mjs",
     "build-request-content.mjs",
     "build-credential-policy.mjs",
@@ -274,7 +278,9 @@ function contextInputs(root, node, toolchain) {
   ].map((name) => resolve(directory, "scripts", name))
   const declarations = [
     "canonical.generated.d.ts",
+    "canonical-resolver-owner.generated.d.ts",
     "raw-canonical-event.d.ts",
+    "raw-canonical-state.d.ts",
     "import-graph.generated.d.ts",
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
@@ -299,6 +305,7 @@ function contextInputs(root, node, toolchain) {
     root,
     [
       resolve(directory, "CanonicalRuntime.bend"),
+      resolve(directory, "preparation-lifecycle/CanonicalResolverOwner.bend"),
       resolve(directory, "ImportGraphRuntime.bend"),
       resolve(directory, "request-content/Runtime.bend"),
       resolve(directory, "credential-policy/PROOF.bend"),
@@ -534,7 +541,9 @@ export function checkBendProducerReceipt(root, node, currentContext) {
     throw new Error("Incomplete or changed Bend producer output inventory")
   for (const name of [
     "canonical.generated.d.ts",
+    "canonical-resolver-owner.generated.d.ts",
     "raw-canonical-event.d.ts",
+    "raw-canonical-state.d.ts",
     "import-graph.generated.d.ts",
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
@@ -584,6 +593,7 @@ export async function buildBendProducer(root, node) {
       const authored = verifyAuthoredInputStamp(root, node, undefined, { bendToolchain: before.toolchain })
       for (const generator of [
         "build-canonical.mjs",
+        "build-canonical-resolver-owner.mjs",
         "build-import-graph.mjs",
         "build-request-content.mjs",
         "build-credential-policy.mjs",
@@ -619,7 +629,9 @@ export async function buildBendProducer(root, node) {
         throw new Error("Bend generator output inventory differs from the declared ABI")
       for (const name of [
         "canonical.generated.d.ts",
+        "canonical-resolver-owner.generated.d.ts",
         "raw-canonical-event.d.ts",
+        "raw-canonical-state.d.ts",
         "import-graph.generated.d.ts",
         "request-content.generated.d.ts",
         "credential-policy.generated.d.ts",
