@@ -12104,6 +12104,218 @@ def ready_actual_omission_suffix_stable(nodes: List<&2, Local.PlannedNode>, +lef
           NatFacts.le_trans((List.length(&2, Local.PlannedNode, tail) + 1n : Nat), 1n+(List.length(&2, Local.PlannedNode, tail) + 1n : Nat), right,
             NatFacts.le_succ((List.length(&2, Local.PlannedNode, tail) + 1n : Nat)), right_bound)))
 
+# Proof-only observation of the existing address correspondence. The value
+# inspected is the actual omission predicate at the fixed adequate fuel.
+def ready_actual_address_omission(entries: List<&2, F.AddressEntry>, +fuel: Nat,
+    +slots: List<&2, Local.ReferenceSlot>, +query: O.NodeAddress) -> Bool:
+  match entries:
+    case []: False{}
+    case F.AddressEntry{id, address} <> tail:
+      Bool.or(Bool.and(F.same_address(query, address), LoopPolicy.has_omission(fuel, slots, id, slots)),
+        ready_actual_address_omission(tail, fuel, slots, query))
+
+def ready_actual_address_absent_step(same: Bool, +value: Bool, +rest: Bool, +count: Nat,
+    zero: {(Bool.pick(Nat, same, 1n, 0n) + count : Nat) == 0n : Nat},
+    continue: {count == 0n : Nat} -> {rest == False{} : Bool}) ->
+    {Bool.or(Bool.and(same, value), rest) == False{} : Bool}:
+  match same:
+    case False{}: continue(zero)
+    case True{}:
+      Empty.absurd({Bool.or(value, rest) == False{} : Bool}, Arithmetic.internal_succ_ne_zero(count, zero))
+
+def ready_actual_address_absent(entries: List<&2, F.AddressEntry>, +fuel: Nat,
+    +slots: List<&2, Local.ReferenceSlot>, +query: O.NodeAddress,
+    zero: {P.address_count(entries, query) == 0n : Nat}) ->
+    {ready_actual_address_omission(entries, fuel, slots, query) == False{} : Bool}:
+  match entries:
+    case []: {==}
+    case F.AddressEntry{+id, +address} <> +tail:
+      ready_actual_address_absent_step(F.same_address(query, address), LoopPolicy.has_omission(fuel, slots, id, slots),
+        ready_actual_address_omission(tail, fuel, slots, query), P.address_count(tail, query), zero,
+        tail_zero => ready_actual_address_absent(tail, fuel, slots, query, tail_zero))
+
+def ready_actual_address_found(+address: O.NodeAddress, +query: O.NodeAddress, +tail_count: Nat,
+    found: {Some{address} == Some{query} : Maybe<&2, O.NodeAddress>}) ->
+    NatFacts.le(1n, (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + tail_count : Nat)):
+  %Count.some_equal(O.NodeAddress, address, query, found):
+    NatFacts.le(1n, (Bool.pick(Nat, F.same_address(_, address), 1n, 0n) + tail_count : Nat))
+  %Equal.sym(Bool, F.same_address(address, address), True{}, ForestLookup.address_refl(address)):
+    NatFacts.le(1n, (Bool.pick(Nat, _, 1n, 0n) + tail_count : Nat))
+  NatFacts.zero_le(tail_count)
+
+def ready_actual_address_present_step(same: Bool, +address: O.NodeAddress, +query: O.NodeAddress,
+    +tail_count: Nat, +tail_lookup: Maybe<&2, O.NodeAddress>,
+    found: {Bool.pick(Maybe<&2, O.NodeAddress>, same, Some{address}, tail_lookup) == Some{query} : Maybe<&2, O.NodeAddress>},
+    continue: {tail_lookup == Some{query} : Maybe<&2, O.NodeAddress>} -> NatFacts.le(1n, tail_count)) ->
+    NatFacts.le(1n, (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + tail_count : Nat)):
+  match same:
+    case True{}: ready_actual_address_found(address, query, tail_count, found)
+    case False{}:
+      NatFacts.le_trans(1n, tail_count, (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + tail_count : Nat),
+        continue(found), NatFacts.add_le_add_right(0n, Bool.pick(Nat, F.same_address(query, address), 1n, 0n), tail_count,
+          NatFacts.zero_le(Bool.pick(Nat, F.same_address(query, address), 1n, 0n))))
+
+def ready_actual_address_present(entries: List<&2, F.AddressEntry>, +id: Nat, +query: O.NodeAddress,
+    found: {F.address_at(entries, id) == Some{query} : Maybe<&2, O.NodeAddress>}) -> NatFacts.le(1n, P.address_count(entries, query)):
+  match entries:
+    case []:
+      Empty.absurd(NatFacts.le(1n, 0n), Contents.none_some(O.NodeAddress, query, found))
+    case F.AddressEntry{+other, +address} <> +tail:
+      ready_actual_address_present_step(Nat.is_eq(other, id), address, query, P.address_count(tail, query), F.address_at(tail, id), found,
+        tail_found => ready_actual_address_present(tail, id, query, tail_found))
+
+def ready_actual_address_head(+id: Nat, +address: O.NodeAddress, +tail: List<&2, F.AddressEntry>,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    unique: NatFacts.le(P.address_count(F.AddressEntry{id, address} <> tail, address), 1n)) ->
+    {ready_actual_address_omission(F.AddressEntry{id, address} <> tail, fuel, slots, address)
+      == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}:
+  tail_zero: {P.address_count(tail, address) == 0n : Nat} = ready_capture_tail_zero(P.address_count(tail, address),
+    %ForestLookup.address_refl(address):
+      NatFacts.le((Bool.pick(Nat, _, 1n, 0n) + P.address_count(tail, address) : Nat), 1n)
+    unique)
+  %Equal.sym(Bool, F.same_address(address, address), True{}, ForestLookup.address_refl(address)):
+    {Bool.or(Bool.and(_, LoopPolicy.has_omission(fuel, slots, id, slots)), ready_actual_address_omission(tail, fuel, slots, address))
+      == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}
+  Equal.trans(Bool,
+    Bool.or(LoopPolicy.has_omission(fuel, slots, id, slots), ready_actual_address_omission(tail, fuel, slots, address)),
+    Bool.or(LoopPolicy.has_omission(fuel, slots, id, slots), False{}), LoopPolicy.has_omission(fuel, slots, id, slots),
+    Equal.cong(Bool, Bool, rest => Bool.or(LoopPolicy.has_omission(fuel, slots, id, slots), rest),
+      ready_actual_address_omission(tail, fuel, slots, address), False{}, ready_actual_address_absent(tail, fuel, slots, address, tail_zero)),
+    BoolFacts.or_false(LoopPolicy.has_omission(fuel, slots, id, slots)))
+
+def ready_actual_address_selected(+other: Nat, +id: Nat, +address: O.NodeAddress, +query: O.NodeAddress,
+    +tail: List<&2, F.AddressEntry>, +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    same: {Nat.is_eq(other, id) == True{} : Bool}, found: {Some{address} == Some{query} : Maybe<&2, O.NodeAddress>},
+    unique: NatFacts.le(P.address_count(F.AddressEntry{other, address} <> tail, query), 1n)) ->
+    {ready_actual_address_omission(F.AddressEntry{other, address} <> tail, fuel, slots, query)
+      == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}:
+  +address_equal: {address == query : O.NodeAddress} = Count.some_equal(O.NodeAddress, address, query, found)
+  Equal.trans(Bool,
+    ready_actual_address_omission(F.AddressEntry{other, address} <> tail, fuel, slots, query),
+    ready_actual_address_omission(F.AddressEntry{other, address} <> tail, fuel, slots, address),
+    LoopPolicy.has_omission(fuel, slots, id, slots),
+    Equal.cong(O.NodeAddress, Bool, value => ready_actual_address_omission(F.AddressEntry{other, address} <> tail, fuel, slots, value),
+      query, address, Equal.sym(O.NodeAddress, address, query, address_equal)),
+    Equal.trans(Bool, ready_actual_address_omission(F.AddressEntry{other, address} <> tail, fuel, slots, address),
+      LoopPolicy.has_omission(fuel, slots, other, slots), LoopPolicy.has_omission(fuel, slots, id, slots),
+      ready_actual_address_head(other, address, tail, fuel, slots,
+        %Equal.sym(O.NodeAddress, address, query, address_equal):
+          NatFacts.le(P.address_count(F.AddressEntry{other, address} <> tail, _), 1n)
+        unique),
+      Equal.cong(Nat, Bool, value => LoopPolicy.has_omission(fuel, slots, value, slots), other, id,
+        NatFacts.eq_of_is_eq(other, id, same))))
+
+def ready_actual_address_skipped(same: Bool, +head: Bool, +tail: Bool, +value: Bool, +count: Nat,
+    unique: NatFacts.le((Bool.pick(Nat, same, 1n, 0n) + count : Nat), 1n),
+    positive: NatFacts.le(1n, count), continue: NatFacts.le(count, 1n) -> {tail == value : Bool}) ->
+    {Bool.or(Bool.and(same, head), tail) == value : Bool}:
+  match same:
+    case False{}: continue(unique)
+    case True{}:
+      Empty.absurd({Bool.or(head, tail) == value : Bool}, BoolFacts.internal_false_ne_true(
+        %ready_capture_tail_zero(count, unique): NatFacts.le(1n, _)
+        positive))
+
+def ready_actual_address_lookup_step(same: Bool, +other: Nat, +id: Nat,
+    +address: O.NodeAddress, +query: O.NodeAddress, +tail: List<&2, F.AddressEntry>,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    selected: {Nat.is_eq(other, id) == same : Bool},
+    +found: {Bool.pick(Maybe<&2, O.NodeAddress>, same, Some{address}, F.address_at(tail, id)) == Some{query} : Maybe<&2, O.NodeAddress>},
+    unique: NatFacts.le(P.address_count(F.AddressEntry{other, address} <> tail, query), 1n),
+    continue: {F.address_at(tail, id) == Some{query} : Maybe<&2, O.NodeAddress>} ->
+      NatFacts.le(P.address_count(tail, query), 1n) ->
+      {ready_actual_address_omission(tail, fuel, slots, query) == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}) ->
+    {ready_actual_address_omission(F.AddressEntry{other, address} <> tail, fuel, slots, query)
+      == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}:
+  match same:
+    case True{}: ready_actual_address_selected(other, id, address, query, tail, fuel, slots, selected, found, unique)
+    case False{}:
+      ready_actual_address_skipped(F.same_address(query, address), LoopPolicy.has_omission(fuel, slots, other, slots),
+        ready_actual_address_omission(tail, fuel, slots, query), LoopPolicy.has_omission(fuel, slots, id, slots),
+        P.address_count(tail, query), unique, ready_actual_address_present(tail, id, query, found), continue(found))
+
+def ready_actual_address_lookup(entries: List<&2, F.AddressEntry>, +id: Nat, +query: O.NodeAddress,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    found: {F.address_at(entries, id) == Some{query} : Maybe<&2, O.NodeAddress>},
+    unique: NatFacts.le(P.address_count(entries, query), 1n)) ->
+    {ready_actual_address_omission(entries, fuel, slots, query) == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}:
+  match entries:
+    case []:
+      Empty.absurd({False{} == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}, Contents.none_some(O.NodeAddress, query, found))
+    case F.AddressEntry{+other, +address} <> +tail:
+      ready_actual_address_lookup_step(Nat.is_eq(other, id), other, id, address, query, tail, fuel, slots, {==}, found, unique,
+        tail_found => tail_unique => ready_actual_address_lookup(tail, id, query, fuel, slots, tail_found, tail_unique))
+
+def ready_actual_reference_omission(references: List<&2, F.Reference>, +entries: List<&2, F.AddressEntry>,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>) -> Bool:
+  match references:
+    case []: False{}
+    case F.Included{_, _} <> tail: ready_actual_reference_omission(tail, entries, fuel, slots)
+    case F.Omitted{_, _, _} <> _: True{}
+    case F.Expanded{_, child} <> tail:
+      Bool.or(ready_actual_address_omission(entries, fuel, slots, child), ready_actual_reference_omission(tail, entries, fuel, slots))
+
+def ready_actual_work_item_omission(item: D.OmissionWork, +entries: List<&2, F.AddressEntry>,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>) -> Bool:
+  match item:
+    case D.OmissionAddress{address}: ready_actual_address_omission(entries, fuel, slots, address)
+    case D.OmissionReferences{references}: ready_actual_reference_omission(references, entries, fuel, slots)
+
+def ready_actual_work_omission(work: List<&2, D.OmissionWork>, +entries: List<&2, F.AddressEntry>,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>) -> Bool:
+  match work:
+    case []: False{}
+    case head <> tail:
+      Bool.or(ready_actual_work_item_omission(head, entries, fuel, slots), ready_actual_work_omission(tail, entries, fuel, slots))
+
+def ready_actual_work_reference_step(references: List<&2, F.Reference>, +rest: List<&2, D.OmissionWork>,
+    +all: List<&2, F.Node>, +entries: List<&2, F.AddressEntry>, +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    clear: {D.omission_found(D.OmissionReferences{references}) == False{} : Bool}) ->
+    Exists(List<&2, D.OmissionWork>, next =>
+      {D.omission_step(D.OmissionReferences{references}, rest, all) == Some{next} : Maybe<&2, List<&2, D.OmissionWork>>} &
+      {ready_actual_work_omission(D.OmissionReferences{references} <> rest, entries, fuel, slots)
+        == ready_actual_work_omission(next, entries, fuel, slots) : Bool}):
+  match references:
+    case []: Tuple{rest, Tuple{{==}, {==}}}
+    case F.Included{_, _} <> tail: Tuple{D.OmissionReferences{tail} <> rest, Tuple{{==}, {==}}}
+    case F.Expanded{_, +child} <> +tail:
+      Tuple{D.OmissionAddress{child} <> D.OmissionReferences{tail} <> rest, Tuple{{==},
+        BoolFacts.or_assoc(ready_actual_address_omission(entries, fuel, slots, child), ready_actual_reference_omission(tail, entries, fuel, slots),
+          ready_actual_work_omission(rest, entries, fuel, slots))}}
+    case F.Omitted{symbol, target, reason} <> tail:
+      Empty.absurd(Exists(List<&2, D.OmissionWork>, next =>
+        {D.omission_step(D.OmissionReferences{F.Omitted{symbol, target, reason} <> tail}, rest, all) == Some{next} : Maybe<&2, List<&2, D.OmissionWork>>} &
+        {ready_actual_work_omission(D.OmissionReferences{F.Omitted{symbol, target, reason} <> tail} <> rest, entries, fuel, slots)
+          == ready_actual_work_omission(next, entries, fuel, slots) : Bool}),
+        BoolFacts.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, clear)))
+
+def ready_projected_address_observation(+nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>,
+    +id: Nat, +address: O.NodeAddress, +fuel: Nat,
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool},
+    dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    found: {F.address_at(entries, id) == Some{address} : Maybe<&2, O.NodeAddress>},
+    unique: {F.count_address(retained, address) == 1n : Nat}) ->
+    {ready_actual_address_omission(entries, fuel, slots, address) == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}:
+  ready_actual_address_lookup(entries, id, address, fuel, slots, found,
+    %Equal.sym(Nat, P.address_count(entries, address), 1n,
+      Equal.trans(Nat, P.address_count(entries, address), F.count_address(retained, address), 1n,
+        Parent.projected_address_count(nodes, entries, slots, catalog, retained, address, aligned, dense, projected), unique)):
+      NatFacts.le(_, 1n)
+    NatFacts.le_refl(1n))
+
+def ready_actual_omission_fixed(+nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>, +id: Nat,
+    forward: {P.forward_nodes(nodes, slots) == True{} : Bool}, present: NatFacts.le(1n, P.node_count(nodes, id))) ->
+    {LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, id, slots)
+      == LoopPolicy.has_omission(1n+(List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, id, slots) : Bool}:
+  ready_actual_omission_query(nodes, id, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat),
+    1n+(List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots,
+    ready_actual_omission_suffix_stable(nodes, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat),
+      1n+(List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, forward,
+      NatFacts.le_refl((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat)),
+      NatFacts.le_succ((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat))), present)
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
