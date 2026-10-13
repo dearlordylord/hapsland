@@ -10877,6 +10877,66 @@ def ready_selected_actual_publication_pair(+state: T.ResolverState, +actual: T.R
   ready_selected_publication_pair(state, actual, tentative, edge, reference, child, history, child_history, phase,
     selected_phase_contents(state, actual, tentative, edge, history, child_history, phase, actual_ready), reference_ready, coherent)
 
+def ready_original_publication_result(+state: T.ResolverState, +reference: D.State, +reference_child: X.Child, +history: V.History, +phase: Phase.Phase) -> Type:
+  Exists(T.ResolverFrame, frame => Exists(T.TentativeChild, child => Exists(Local.Pending, edge =>
+    {S.state_frame(state) == Some{frame} : Maybe<&2, T.ResolverFrame>} &
+    {S.scratch_tentative(S.state_scratch(state)) == Some{child} : Maybe<&2, T.TentativeChild>} &
+    {S.scratch_pending_edge(S.state_scratch(state)) == Some{edge} : Maybe<&2, Local.Pending>} &
+    ready_actual_publication_pair_result(frame, child, edge, reference, history, reference_child, ready_child_visited(ready_phase_child(phase))))))
+
+def ready_original_publication(+state: T.ResolverState, +reference: D.State, +child: X.Child,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +actual_ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    +reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
+    ready_original_publication_result(state, reference, child, history, phase):
+  ready_actual_inputs(ready_original_publication_result(state, reference, child, history, phase), state, history, child_history, phase, actual_ready,
+    frame => tentative => edge => frame_present => child_present => edge_present => selected =>
+    +frame = frame
+    +tentative = tentative
+    +edge = edge
+    +frame_present = frame_present
+    +child_present = child_present
+    +edge_present = edge_present
+    Tuple{frame, Tuple{tentative, Tuple{edge, Tuple{frame_present, Tuple{child_present, Tuple{edge_present,
+      ready_selected_actual_publication_pair(state, frame, tentative, edge, reference, child, history, child_history, phase,
+        ready_actual_parts_installed(state, history, child_history, phase, frame, tentative, edge, frame_present, child_present, edge_present, actual_ready), reference_ready, coherent)}}}}}})
+
+def ready_actual_publication_transition(+frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending, +step: G.Step) ->
+    {ready_tentative_publication(PreparedRoot.frame_transition(frame, step), child, edge) == PreparedRoot.frame_transition(ready_tentative_publication(frame, child, edge), step) : T.ResolverFrame}:
+  match frame child edge step:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
+      Local.Pending{_, _, _, _, _, _, _, Local.Imported{_, _}} G.Step{_, _}: {==}
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
+      Local.Pending{_, _, _, _, _, _, _, Local.BundledTarget{_}} G.Step{_, _}: {==}
+
+def ready_reference_publication_transition(+state: D.State, +child: X.Child, +next: Recursive.State, +step: G.BoundedStep) ->
+    {ready_reference_published(D.with_frame(state, X.event_result(D.frame(state), step)), child, next) == D.with_frame(ready_reference_published(state, child, next), X.event_result(D.frame(ready_reference_published(state, child, next)), step)) : D.State}:
+  match state child next step:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _} Recursive.State{_, _, _, _} G.BoundedStep{_, _}: {==}
+
+def ready_actual_publication_captured(+frame: T.ResolverFrame, +child: T.TentativeChild, +edge: Local.Pending, +event: G.GraphEvent) ->
+    {ready_tentative_publication(S.advance(frame, event), child, edge) == S.advance(ready_tentative_publication(frame, child, edge), event) : T.ResolverFrame}:
+  match frame child edge:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
+      Local.Pending{_, _, _, _, _, _, _, Local.Imported{_, _}}:
+      ready_actual_publication_transition(frame, child, edge, G.step(S.frame_graph(frame), event))
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}
+      T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}
+      Local.Pending{_, _, _, _, _, _, _, Local.BundledTarget{_}}:
+      ready_actual_publication_transition(frame, child, edge, G.step(S.frame_graph(frame), event))
+
+def ready_reference_publication_captured(+state: D.State, +child: X.Child, +next: Recursive.State, +event: G.GraphEvent) ->
+    {ready_reference_published(D.with_frame(state, X.event(D.frame(state), event)), child, next) == D.with_frame(ready_reference_published(state, child, next), X.event(D.frame(ready_reference_published(state, child, next)), event)) : D.State}:
+  match state child next:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _} Recursive.State{_, _, _, _}:
+      ready_reference_publication_transition(state, child, next, GraphReference.bounded_transition(X.frame_graph(D.frame(state)), event))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
