@@ -11,7 +11,8 @@ import {
 } from "@hapsland/canonical-policy/canonical/graph-adapter"
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { languageForPath } from "./native-language-registry.ts"
-import type { PreparedGraph } from "./native-language-contract.ts"
+import type { PreparedGraph, GraphSession } from "./native-language-contract.ts"
+import type { NativeIoPorts } from "./native-io-ports.ts"
 import type { GraphFacts, LanguageGraphHost } from "../../languages/contracts.ts"
 import { captureStable, type StableCapture } from "@hapsland/native-observation/direct-event/capture"
 import type {
@@ -240,7 +241,32 @@ export const buildLocal = (
   return { node, pending }
 }
 
-export type GraphResolveContext = LanguageGraphHost
+/** Native oracle ports only; defaults retain the original owners and IO boundaries. */
+type NativeGraphPorts = NativeIoPorts & {
+  readonly languageForPath?: typeof languageForPath
+  readonly inspect?: (
+    session: GraphSession,
+    path: string,
+    source: string,
+    branch: "type" | "function"
+  ) => GraphFacts | undefined
+  readonly observeEvent?: (event: ImportGraphEvent) => void
+  readonly observeBirth?: (node: ReviewNode) => void
+  readonly observeFrame?: (frame: GraphFrameObservation) => void
+  readonly observeEdge?: (id: number, edge: Readonly<Pending>) => void
+  readonly observeRenamedEdge?: (previous: Readonly<Pending>, renamed: Readonly<Pending>) => void
+  readonly observeRefusal?: (refusal: GraphRefusal) => void
+}
+export type GraphResolveContext = LanguageGraphHost & { readonly verification?: NativeGraphPorts }
+type GraphRefusal = {
+  readonly reason: "language" | "binding" | "root-admission" | "frontend" | "declaration" | "local-admission"
+  readonly binding?: Readonly<PreparedGraph>
+  readonly rootFile?: GraphFacts
+  readonly rootDeclaration?: FactDeclaration
+  readonly visited?: readonly string[]
+  readonly budget?: Readonly<LocalBudget>
+  readonly built?: Built | undefined
+}
 
 type GraphBinding = PreparedGraph & {
   readonly context: GraphResolveContext
@@ -269,6 +295,33 @@ type GraphFrame = GraphBinding & {
   state: unknown
   command: ImportGraphCommand
 }
+/** Original identities are observed without copying; callbacks must not mutate them. */
+type GraphFrameObservation = Readonly<
+  Omit<
+    GraphFrame,
+    | "visited"
+    | "pending"
+    | "pathForTarget"
+    | "targetIds"
+    | "artifactsByTarget"
+    | "captured"
+    | "sourceCaptures"
+    | "failedCaptures"
+  >
+> & {
+  readonly visited: ReadonlySet<string>
+  readonly pending: ReadonlyMap<number, Pending>
+  readonly pathForTarget: ReadonlyMap<number, GraphTarget>
+  readonly targetIds: ReadonlyMap<string, number>
+  readonly artifactsByTarget: ReadonlyMap<number, string>
+  readonly captured: ReadonlyMap<string, { readonly file: FactFile; readonly sourceBytes: number }>
+  readonly sourceCaptures: ReadonlyMap<string, StableCapture>
+  readonly failedCaptures: ReadonlySet<string>
+}
+const inspectGraphSource = (binding: GraphBinding, path: string, source: string) =>
+  binding.context.verification?.inspect === undefined
+    ? binding.session.inspect(path, source, binding.branch)
+    : binding.context.verification.inspect(binding.session, path, source, binding.branch)
 type GraphIteration = { readonly done: false } | { readonly done: true; readonly unit: ReviewUnit | undefined }
 type GraphCommandResult = "next" | "continue" | "invalid"
 const graphClock = (context: GraphResolveContext) => {
@@ -285,11 +338,20 @@ const prepareGraphBinding = Effect.fn("DirectEvent.prepareGraphBinding")(functio
   context: GraphResolveContext
 ) {
   const clock = graphClock(context)
-  const language = languageForPath(rootPath)
-  if (language === undefined) return undefined
+  const language = (context.verification?.languageForPath ?? languageForPath)(rootPath)
+  if (language === undefined) {
+    context.verification?.observeRefusal?.({ reason: "language" })
+    return undefined
+  }
   const binding = yield* language.prepareGraph(rootPath, rootCapture, context, clock.limits, clock.expired)
-  if (binding === undefined) return undefined
-  if (!rootGraphBudgetAvailable(binding.limits, rootCapture, clock.expired)) return undefined
+  if (binding === undefined) {
+    context.verification?.observeRefusal?.({ reason: "binding" })
+    return undefined
+  }
+  if (!rootGraphBudgetAvailable(binding.limits, rootCapture, clock.expired)) {
+    context.verification?.observeRefusal?.({ reason: "root-admission", binding })
+    return undefined
+  }
   return { ...binding, context, branch: context.branch ?? "type", expired: clock.expired } satisfies GraphBinding
 })
 const rootExpectedKind = (context: GraphResolveContext): "function" | undefined =>
@@ -303,6 +365,7 @@ const addGraphEdges = (frame: GraphFrame, edges: readonly Pending[]): number[] =
   edges.map((edge) => {
     const id = frame.nextId++
     frame.pending.set(id, edge)
+    frame.context.verification?.observeEdge?.(id, edge)
     return id
   })
 const advanceGraph = (frame: GraphFrame, event: ImportGraphEvent): void => {
@@ -321,10 +384,16 @@ export const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(func
 ) {
   const binding = yield* prepareGraphBinding(rootPath, rootCapture, context)
   if (binding === undefined) return undefined
-  const rootFile = binding.session.inspect(rootPath, rootCapture.text, binding.branch)
-  if (rootFile === undefined) return undefined
+  const rootFile = inspectGraphSource(binding, rootPath, rootCapture.text)
+  if (rootFile === undefined) {
+    context.verification?.observeRefusal?.({ reason: "frontend", binding })
+    return undefined
+  }
   const rootDeclaration = declarationFor(rootFile, name, rootExpectedKind(context))
-  if (rootDeclaration === undefined) return undefined
+  if (rootDeclaration === undefined) {
+    context.verification?.observeRefusal?.({ reason: "declaration", binding, rootFile })
+    return undefined
+  }
   const visited = new Set([rootDeclaration.artifact.id])
   const budget: LocalBudget = {
     limits: binding.limits,
@@ -338,8 +407,19 @@ export const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(func
   if (
     built === undefined ||
     !permitLocalGraphFacts(binding.limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 0)
-  )
+  ) {
+    context.verification?.observeRefusal?.({
+      reason: "local-admission",
+      binding,
+      rootDeclaration,
+      visited: [...visited],
+      budget,
+      built
+    })
     return undefined
+  }
+  observeEvent ??= context.verification?.observeEvent
+  observeBirth ??= context.verification?.observeBirth
   const unit = rootReviewUnit(built, binding.dependencies, binding.bindingFingerprint)
   const frame: GraphFrame = {
     ...binding,
@@ -368,6 +448,7 @@ export const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(func
     localWork: budget.work,
     edges: addGraphEdges(frame, built.pending)
   })
+  context.verification?.observeFrame?.(frame)
   return frame
 })
 const hasOmissions = (node: ReviewNode): boolean =>
@@ -405,7 +486,9 @@ const existingImportChoices = Effect.fn("DirectEvent.existingImportChoices")(fun
   const existing: string[] = []
   for (const choice of choices) {
     if (outsideImportPath(choice)) continue
-    const status = yield* Effect.promise(() => lstat(join(frame.context.root, choice)).catch(() => undefined))
+    const status = yield* Effect.promise(() =>
+      (frame.context.verification?.readStatus ?? lstat)(join(frame.context.root, choice)).catch(() => undefined)
+    )
     if (status?.isFile()) existing.push(choice)
   }
   return existing
@@ -465,7 +548,9 @@ const resolveGraphEdge = Effect.fn("DirectEvent.resolveGraphEdge")(function* (
       advanceGraph(frame, { kind: "resolved", target: frame.nextTargetId++, result: "unsupported" })
       return "next"
     }
-    resolveKnownTarget(frame, resolved.path, { ...edge, name: resolved.name })
+    const renamed = { ...edge, name: resolved.name }
+    frame.context.verification?.observeRenamedEdge?.(edge, renamed)
+    resolveKnownTarget(frame, resolved.path, renamed)
     return "next"
   }
   const base = normalize(join(dirname(edge.from), edge.importPath))
@@ -502,7 +587,7 @@ const checkGraphPath = Effect.fn("DirectEvent.checkGraphPath")(function* (
     advanceGraph(frame, { kind: "pathChecked", allowed: true })
     return "next"
   }
-  const selected = yield* eligibleNamedPath(
+  const selected = yield* (frame.context.verification?.selectPath ?? eligibleNamedPath)(
     frame.context.root,
     target.path,
     contextDirectFilePolicy(frame.context.policy),
@@ -530,6 +615,8 @@ const captureGraphSource = Effect.fn("DirectEvent.captureGraphSource")(function*
     }
     source = result.capture
     frame.context.captureCache?.set(selected.relativePath, source)
+    if (frame.context.captureCache !== undefined)
+      frame.context.verification?.cacheStore?.("caller", selected.relativePath, source)
   }
   return source
 })
@@ -596,7 +683,7 @@ export const inspectCapturedSource = (
 ): void => {
   const localWorkBefore = frame.budget.work
   frame.budget.graphWork = projectImportGraph(frame.state).work - frame.budget.work
-  const file = frame.session.inspect(path, source.text, frame.branch)
+  const file = inspectGraphSource(frame, path, source.text)
   const declaration = sourceFileDeclaration(file, target)
   if (file === undefined || declaration === undefined) {
     advanceGraph(frame, { kind: "captureFailed" })
@@ -676,7 +763,7 @@ const readSelectedGraphSource = Effect.fn("DirectEvent.readSelectedGraphSource")
   targetId: number,
   target: Extract<GraphTarget, { kind: "file" }>
 ): Effect.fn.Return<GraphCommandResult> {
-  const selected = yield* eligibleNamedPath(
+  const selected = yield* (frame.context.verification?.selectPath ?? eligibleNamedPath)(
     frame.context.root,
     target.path,
     contextDirectFilePolicy(frame.context.policy),

@@ -37,13 +37,15 @@ const goNominal = (tag, toChild) => {
     .replace(nestedGraph, graph)
     .replace(nestedValueOwner, valueOwner)
 }
-const pythonOwner = "../../../../../source-analysis/src/direct-event/graph-resolution/"
 const pythonNominal = (tag, toChild) => {
   if (toChild) {
-    if (/^(?:Types|python-module\/|traversal\/)/u.test(tag)) return pythonOwner + tag
+    if (/^(?:Types|python-module\/|traversal\/)/u.test(tag)) return "../" + tag
     return tag.replace(valueOwner, nestedValueOwner).replace(graph, nestedGraph)
   }
-  return tag.replace(pythonOwner, "").replace(nestedValueOwner, valueOwner).replace(nestedGraph, graph)
+  return tag
+    .replace(/^\.\.\//u, "")
+    .replace(nestedValueOwner, valueOwner)
+    .replace(nestedGraph, graph)
 }
 
 // Existing entry/expansion and specialized child continuations are separately emitted under

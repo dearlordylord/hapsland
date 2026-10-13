@@ -10,6 +10,7 @@ import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync, statSync } from "node:fs"
 import * as path from "node:path"
+import { lstat } from "node:fs/promises"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import { parse } from "smol-toml"
@@ -21,7 +22,6 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { createGraphFixtures } from "./fixtures.mjs"
 import { sourceFacts, artifact, tomlValue } from "../frontend-codec.ts"
 import { createEntryReferenceDriver } from "../entry-driver-check.mjs"
@@ -301,7 +301,11 @@ try {
     "../../../../../../bun.lock",
     "../../../../dist/direct-event/languages/rust.js",
     "../../../../dist/direct-event/graph-resolution/verification/native-rust-module-context.js",
-    "../../../../dist/direct-event/languages/rust-adapter.js",
+    "../../../../dist/direct-event/graph-resolution/verification/native-rust-preparation.js",
+    "../../../../dist/direct-event/graph-resolution/verification/native-language-registry.js",
+    "../../../../dist/direct-event/graph-resolution/go-module/verification/native-preparation.js",
+    "../../../../dist/direct-event/graph-resolution/python-module/verification/native-preparation.js",
+    "../../../../dist/direct-event/graph-resolution/python-module/verification/native-module-resolution.js",
     "../../../../dist/direct-event/languages/registry.js",
     "../../../../dist/direct-event/languages/python.js",
     nativePath
@@ -340,224 +344,181 @@ try {
     return (await import(pathToFileURL(output))).default
   }
   const policy = await compile("GraphSpecification")
-  const portCopy = path.join(temporary, "observed-ports.mjs")
-  writeFileSync(
-    portCopy,
-    `import {sourceFacts} from '${pathToFileURL(path.join(folder, "../frontend-codec.ts"))}';import {lstat as realLstat} from 'node:fs/promises';import * as Effect from 'effect/Effect';import {eligibleNamedPath as realAccess} from '${pathToFileURL(path.join(root, "packages/native-observation/dist/direct-event/selection.js"))}';export const events=[];export function observedInspect(session,file,source,branch){const facts=session.inspect(file,source,branch);events.push({kind:'frontend',path:file,text:source,branch,facts:facts===undefined?undefined:JSON.parse(JSON.stringify(sourceFacts(facts),(_key,value)=>typeof value==='bigint'?Number(value):value))});return facts}export function reset(){events.length=0}export async function lstat(file){try{const value=await realLstat(file);events.push({kind:'status',path:file,status:value.isFile()?'ExistingFile':'ExistingOther'});return value}catch(error){events.push({kind:'status',path:file,status:'FileAbsent'});throw error}}export function eligibleNamedPath(...args){return Effect.map(realAccess(...args),value=>{events.push({kind:'access',path:args[1],allowed:value!==undefined,relativePath:value?.relativePath});return value})}`
+  const nativeModule = await import(pathToFileURL(nativePath))
+  const compiled = path.join(root, "packages/source-analysis/dist/direct-event/graph-resolution")
+  const { createNativeLanguageRegistry, languageForPath } = await import(
+    pathToFileURL(path.join(compiled, "verification/native-language-registry.js"))
   )
-  const nativePorts = await import(pathToFileURL(portCopy))
-  const nativeCopy = path.join(temporary, "native.mjs"),
-    nativeSource = readFileSync(nativePath, "utf8").replaceAll(
-      /from "(\.{1,2}\/[^"]+)"/g,
-      (_all, n) => `from "${pathToFileURL(path.join(path.dirname(nativePath), n))}"`
-    )
-  const instrument = (text, needle, replacement) => {
-    assert.equal(text.split(needle).length, 2, "unique native observer anchor " + needle)
-    return text.replace(needle, replacement)
+  const { createNativeRustPreparation } = await import(
+    pathToFileURL(path.join(compiled, "verification/native-rust-preparation.js"))
+  )
+  const { prepareGoGraph } = await import(
+    pathToFileURL(path.join(compiled, "go-module/verification/native-preparation.js"))
+  )
+  const { createPythonGraphPreparation } = await import(
+    pathToFileURL(path.join(compiled, "python-module/verification/native-preparation.js"))
+  )
+  const { inspectPython, pythonModuleAuthority } = await import(
+    pathToFileURL(path.join(compiled, "../languages/python.js"))
+  )
+  const canonicalFacts = (value) =>
+    JSON.parse(JSON.stringify(value, (_key, value) => (typeof value === "bigint" ? Number(value) : value)))
+  const nativePorts = {
+    events: [],
+    reset() {
+      this.events.length = 0
+    }
   }
-  const rewrite = (file) =>
-    readFileSync(file, "utf8").replaceAll(
-      /from "(\.{1,2}\/[^"]+)"/g,
-      (_all, n) => `from "${pathToFileURL(path.join(path.dirname(file), n))}"`
-    )
-  const languageDirectory = path.join(path.dirname(nativePath), "languages"),
-    moduleOwner = path.join(languageDirectory, "rust-module-context.js"),
-    adapterOwner = path.join(languageDirectory, "rust-adapter.js"),
-    registryOwner = path.join(languageDirectory, "registry.js")
-  const moduleCopy = path.join(temporary, "rust-context.mjs"),
-    adapterCopy = path.join(temporary, "rust-adapter.mjs"),
-    registryCopy = path.join(temporary, "registry.mjs")
-  const finalMarker =
-    "return { options: uniqueModuleRole(invalid, command.kind, roles), dependencies: [...dependencies].sort(), remaining };"
-  const observePorts = (text) =>
-    instrument(
-      instrument(
-        text,
-        'import { lstat } from "node:fs/promises";',
-        `import {lstat} from "${pathToFileURL(portCopy)}";`
-      ),
-      'import { contextDirectFilePolicy, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection";',
-      `import {contextDirectFilePolicy} from "@hapsland/native-observation/direct-event/selection";import {eligibleNamedPath} from "${pathToFileURL(portCopy)}";`
-    )
-  let moduleSource = instrument(
-    observePorts(rewrite(moduleOwner)),
-    finalMarker,
-    "preparationObservation={state,command,tasks:[...tasks],targets:[...targets],nextEdge,nextTarget,active,invalid,accumulatedDependencies:[...dependencies],roles,captures:[...captures],options:uniqueModuleRole(invalid,command.kind,roles),dependencies:[...dependencies].sort(),remaining}; " +
-      finalMarker
+  const nativeEvents = [],
+    frontendCalls = []
+  let preparationObservation, preparationCaptureCache, preFrameObservation, preFrameReason, nativeFrame
+  let birth = new WeakMap(),
+    edgeIds = new WeakMap(),
+    episode = 0
+  function resetBirth() {
+    preFrameObservation = undefined
+    preFrameReason = undefined
+    nativeFrame = undefined
+    birth = new WeakMap()
+    edgeIds = new WeakMap()
+    episode = 0
+  }
+  function registerBirth(root) {
+    const current = ++episode
+    function visit(node, route) {
+      if (birth.has(node)) throw Error("node birth was renamed")
+      birth.set(node, [current, route])
+      for (const [index, reference] of node.references.entries())
+        if (reference.kind === "expanded") visit(reference.node, [...route, index])
+    }
+    visit(root, [])
+  }
+  function birthAddress(node) {
+    const value = birth.get(node)
+    if (value === undefined) throw Error("unobserved node construction")
+    return value
+  }
+  function edgeId(edge) {
+    const id = edgeIds.get(edge)
+    if (id === undefined) throw Error("unobserved edge registration")
+    return id
+  }
+  const ioPorts = {
+    async readStatus(file) {
+      try {
+        const value = await lstat(file)
+        nativePorts.events.push({
+          kind: "status",
+          path: file,
+          status: value.isFile() ? "ExistingFile" : "ExistingOther"
+        })
+        return value
+      } catch (error) {
+        nativePorts.events.push({ kind: "status", path: file, status: "FileAbsent" })
+        throw error
+      }
+    },
+    selectPath(...args) {
+      return Effect.map(eligibleNamedPath(...args), (value) => {
+        nativePorts.events.push({
+          kind: "access",
+          path: args[1],
+          allowed: value !== undefined,
+          relativePath: value?.relativePath
+        })
+        return value
+      })
+    },
+    cacheStore(role, path, capture) {
+      nativePorts.events.push({ kind: "cacheStore", role, path, capture })
+    }
+  }
+  const rustPreparation = createNativeRustPreparation(
+    {
+      ...ioPorts,
+      cacheCreated(cache) {
+        preparationCaptureCache = cache
+      },
+      observe(snapshot) {
+        preparationObservation = snapshot
+      },
+      parseCargo(source) {
+        try {
+          const syntax = parse(source)
+          nativePorts.events.push({ kind: "cargo", text: source, syntax: canonicalFacts(tomlValue(syntax)) })
+          return syntax
+        } catch (error) {
+          nativePorts.events.push({ kind: "cargo", text: source, syntax: undefined })
+          throw error
+        }
+      },
+      inspectModules(source) {
+        const facts = inspectRustModules(source)
+        nativePorts.events.push({ kind: "modules", text: source, facts })
+        return facts
+      }
+    },
+    (file, source, options) => {
+      frontendCalls.push({ path: file, text: source, options: options ?? {} })
+      return inspectRust(file, source, options)
+    }
   )
-  moduleSource = instrument(
-    moduleSource,
-    "captures.set(path, rootCapture);",
-    'captures.set(path, rootCapture);events.push({kind:"cacheStore",role:context.captureCache===undefined?"private":"caller",path,capture:rootCapture});'
+  const registry = createNativeLanguageRegistry(
+    new Map([
+      ["rust", rustPreparation],
+      ["go", (...args) => prepareGoGraph(...args, ioPorts)],
+      [
+        "python",
+        createPythonGraphPreparation(
+          inspectPython,
+          pythonModuleAuthority.package,
+          pythonModuleAuthority.binding,
+          pythonModuleAuthority.imports,
+          ioPorts
+        )
+      ]
+    ])
   )
-  moduleSource = instrument(
-    moduleSource,
-    "captures.set(selected.relativePath, capture);",
-    'captures.set(selected.relativePath, capture);events.push({kind:"cacheStore",role:context.captureCache===undefined?"private":"caller",path:selected.relativePath,capture});'
-  )
-  moduleSource = instrument(moduleSource, "return record(parse(source));", "return record(observedCargoParse(source));")
-  moduleSource = instrument(moduleSource, "inspectRustModules(source));", "observedModules(source));")
-  moduleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';import {tomlValue} from '${pathToFileURL(path.join(folder, "../frontend-codec.ts"))}';const canonicalFacts=value=>JSON.parse(JSON.stringify(value,(_key,value)=>typeof value==='bigint'?Number(value):value));function observedCargoParse(source){try{const syntax=parse(source);events.push({kind:'cargo',text:source,syntax:canonicalFacts(tomlValue(syntax))});return syntax}catch(error){events.push({kind:'cargo',text:source,syntax:undefined});throw error}}function observedModules(source){const facts=inspectRustModules(source);events.push({kind:'modules',text:source,facts});return facts}\n`
-  moduleSource = instrument(
-    moduleSource,
-    "const captures = context.captureCache ?? new Map();",
-    "const captures = context.captureCache ?? new Map();preparationCaptureCache=captures;"
-  )
-  moduleSource +=
-    "\nexport let preparationObservation,preparationCaptureCache;export function resetPreparationObservation(){preparationObservation=undefined;preparationCaptureCache=undefined}\n"
-  writeFileSync(moduleCopy, moduleSource)
-  let adapterSource = instrument(rewrite(adapterOwner), pathToFileURL(moduleOwner).href, pathToFileURL(moduleCopy).href)
-  adapterSource = instrument(adapterSource, "rust.inspectRust(file, source,", "observedRustInspect(file, source,")
-  adapterSource +=
-    "\nexport let frontendCalls=[];export function resetFrontendCalls(){frontendCalls=[]}function observedRustInspect(file,source,options){frontendCalls.push({path:file,text:source,options:options??{}});return rust.inspectRust(file,source,options)}\n"
-  writeFileSync(adapterCopy, adapterSource)
-  const goModuleOwner = path.join(languageDirectory, "go-module-context.js"),
-    goAdapterOwner = path.join(languageDirectory, "go-adapter.js"),
-    goModuleCopy = path.join(temporary, "go-context.mjs"),
-    goAdapterCopy = path.join(temporary, "go-adapter.mjs")
-  let goModuleSource = instrument(
-    rewrite(goModuleOwner),
-    'import { contextDirectFilePolicy, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection";',
-    `import {contextDirectFilePolicy} from "@hapsland/native-observation/direct-event/selection";import {eligibleNamedPath} from "${pathToFileURL(portCopy)}";`
-  )
-  goModuleSource = instrument(
-    goModuleSource,
-    'import { lstat, opendir } from "node:fs/promises";',
-    `import {opendir} from "node:fs/promises";import {lstat} from "${pathToFileURL(portCopy)}";`
-  )
-  goModuleSource = instrument(
-    goModuleSource,
-    "host.captureCache?.set(candidate, found);",
-    'host.captureCache?.set(candidate, found);if(host.captureCache!==undefined)events.push({kind:"cacheStore",role:"caller",path:candidate,capture:found});'
-  )
-  goModuleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';\n`
-  writeFileSync(goModuleCopy, goModuleSource)
-  const goAdapterSource = rewrite(goAdapterOwner),
-    goModuleUrl = pathToFileURL(goModuleOwner).href
-  assert.equal(goAdapterSource.split(goModuleUrl).length, 3, "Go module import and public constant reexport")
-  writeFileSync(goAdapterCopy, goAdapterSource.replaceAll(goModuleUrl, pathToFileURL(goModuleCopy).href))
-  const pythonModuleOwner = path.join(languageDirectory, "python-module-context.js"),
-    pythonAdapterOwner = path.join(languageDirectory, "python.js"),
-    pythonModuleCopy = path.join(temporary, "python-context.mjs"),
-    pythonAdapterCopy = path.join(temporary, "python-adapter.mjs")
-  let pythonModuleSource = instrument(
-    rewrite(pythonModuleOwner),
-    'import { lstat } from "node:fs/promises";',
-    `import {lstat} from "${pathToFileURL(portCopy)}";`
-  )
-  pythonModuleSource = instrument(
-    pythonModuleSource,
-    'import { contextDirectFilePolicy, eligibleNamedPath, selectedByDirectFilePolicy } from "@hapsland/native-observation/direct-event/selection";',
-    `import {contextDirectFilePolicy,selectedByDirectFilePolicy} from "@hapsland/native-observation/direct-event/selection";import {eligibleNamedPath} from "${pathToFileURL(portCopy)}";`
-  )
-  for (const [needle, selectedPath, capture] of [
-    ["captures.set(rootPath, rootCapture);", "rootPath", "rootCapture"],
-    ["captures.set(path, capture);", "path", "capture"]
-  ])
-    pythonModuleSource = instrument(
-      pythonModuleSource,
-      needle,
-      needle +
-        `events.push({kind:"cacheStore",role:host.captureCache===undefined?"private":"caller",path:${selectedPath},capture:${capture}});`
-    )
-  pythonModuleSource += `\nimport {events} from '${pathToFileURL(portCopy)}';\n`
-  writeFileSync(pythonModuleCopy, pythonModuleSource)
-  writeFileSync(
-    pythonAdapterCopy,
-    instrument(rewrite(pythonAdapterOwner), pathToFileURL(pythonModuleOwner).href, pathToFileURL(pythonModuleCopy).href)
-  )
-  writeFileSync(
-    registryCopy,
-    instrument(
-      instrument(rewrite(registryOwner), pathToFileURL(adapterOwner).href, pathToFileURL(adapterCopy).href),
-      pathToFileURL(goAdapterOwner).href,
-      pathToFileURL(goAdapterCopy).href
-    ).replace(pathToFileURL(pythonAdapterOwner).href, pathToFileURL(pythonAdapterCopy).href)
-  )
-  const nativePreparation = await import(pathToFileURL(moduleCopy)),
-    nativeRust = await import(pathToFileURL(adapterCopy))
-  let observed = instrument(
-    instrument(observePorts(nativeSource), pathToFileURL(registryOwner).href, pathToFileURL(registryCopy).href),
-    "const transition = stepImportGraph(frame.state, event)",
-    "nativeEvents.push(event); const transition = stepImportGraph(frame.state, event)"
-  )
-  observed = instrument(
-    observed,
-    "binding.session.inspect(rootPath, rootCapture.text, binding.branch)",
-    "observedInspect(binding.session,rootPath,rootCapture.text,binding.branch)"
-  )
-  observed = instrument(
-    observed,
-    "frame.session.inspect(path, source.text, frame.branch)",
-    "observedInspect(frame.session,path,source.text,frame.branch)"
-  )
-  observed = instrument(
-    observed,
-    "frame.context.captureCache?.set(selected.relativePath, source);",
-    'frame.context.captureCache?.set(selected.relativePath, source);if(frame.context.captureCache!==undefined)events.push({kind:"cacheStore",role:"caller",path:selected.relativePath,capture:source});'
-  )
-  observed += `\nimport {observedInspect,events} from '${pathToFileURL(portCopy)}';\n`
-  for (const [needle, replacement] of [
-    [
-      "if (language === undefined)\n        return undefined;",
-      'if (language === undefined){preFrameReason={reason:"language"};return undefined;}'
-    ],
-    [
-      "const binding = yield* language.prepareGraph(rootPath, rootCapture, context, clock.limits, clock.expired);\n    if (binding === undefined)\n        return undefined;",
-      'const binding = yield* language.prepareGraph(rootPath, rootCapture, context, clock.limits, clock.expired);\n    if (binding === undefined){preFrameReason={reason:"binding"};return undefined;}'
-    ],
-    [
-      "if (!rootGraphBudgetAvailable(binding.limits, rootCapture, clock.expired))\n        return undefined;",
-      'if (!rootGraphBudgetAvailable(binding.limits, rootCapture, clock.expired)){preFrameReason={reason:"root-admission",binding};return undefined;}'
-    ],
-    [
-      "if (rootFile === undefined)\n        return undefined;",
-      'if (rootFile === undefined){preFrameReason={reason:"frontend",binding};return undefined;}'
-    ],
-    [
-      "if (rootDeclaration === undefined)\n        return undefined;",
-      'if (rootDeclaration === undefined){preFrameReason={reason:"declaration",binding,rootFile};return undefined;}'
-    ]
-  ])
-    observed = instrument(observed, needle, replacement)
-  observed = instrument(
-    observed,
-    "!permitLocalGraphFacts(binding.limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 0))\n        return undefined;",
-    '!permitLocalGraphFacts(binding.limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 0)){preFrameReason={reason:"local-admission",binding};preFrameObservation={reason:"local-admission",binding,rootDeclaration,visited:[...visited],budget,built};return undefined;}'
-  )
-  observed = instrument(
-    observed,
-    "const attachCapturedChild = (frame, targetId, target, path, source, file, declaration, child, localWorkBefore, visited) => {",
-    "const attachCapturedChild = (frame, targetId, target, path, source, file, declaration, child, localWorkBefore, visited) => { registerBirth(child.node);"
-  )
-  observed = instrument(
-    observed,
-    'target.edge.owner.references[target.edge.index] = {\n        kind: "expanded",',
-    'registerBirth(child.node); target.edge.owner.references[target.edge.index] = {\n        kind: "expanded",'
-  )
-  observed = instrument(observed, "frame.pending.set(id, edge);", "frame.pending.set(id, edge);edgeIds.set(edge,id);")
-  observed = instrument(observed, "{ ...edge, name: resolved.name }", "observedRenamedEdge(edge,resolved.name)")
-  observed = instrument(observed, "return frame;", "nativeFrame=frame;registerBirth(frame.unit.root);return frame;")
-  writeFileSync(
-    nativeCopy,
-    observed +
-      `\nconst nativeEvents=[]; let preFrameObservation,preFrameReason,nativeFrame;let birth=new WeakMap(),edgeIds=new WeakMap(),episode=0;
- function resetBirth(){preFrameObservation=undefined;preFrameReason=undefined;nativeFrame=undefined;birth=new WeakMap();edgeIds=new WeakMap();episode=0}
- function registerBirth(root){const current=++episode;function visit(node,route){if(birth.has(node))throw Error('node birth was renamed');birth.set(node,[current,route]);for(const [index,reference]of node.references.entries())if(reference.kind==='expanded')visit(reference.node,[...route,index])}visit(root,[])}
- function observedRenamedEdge(edge,name){const renamed={...edge,name};edgeIds.set(renamed,edgeId(edge));return renamed}
- function edgeId(edge){const id=edgeIds.get(edge);if(id===undefined)throw Error("unobserved edge registration");return id}
- function birthAddress(node){const value=birth.get(node);if(value===undefined)throw Error('unobserved node construction');return value}
- export {prepareGraphFrame,graphIteration,nativeEvents,resetBirth,registerBirth,birthAddress,preFrameObservation,preFrameReason,nativeFrame,edgeId};\n`
-  )
-  const nativeModule = await import(pathToFileURL(nativeCopy))
-  const { nativeEvents, resetBirth, birthAddress } = nativeModule
+  const graphPorts = {
+    ...ioPorts,
+    languageForPath: registry.languageForPath,
+    inspect(session, file, source, branch) {
+      const facts = session.inspect(file, source, branch)
+      nativePorts.events.push({
+        kind: "frontend",
+        path: file,
+        text: source,
+        branch,
+        facts: facts === undefined ? undefined : canonicalFacts(sourceFacts(facts))
+      })
+      return facts
+    },
+    observeEvent(event) {
+      nativeEvents.push(event)
+    },
+    observeBirth: registerBirth,
+    observeFrame(frame) {
+      nativeFrame = frame
+      registerBirth(frame.unit.root)
+    },
+    observeEdge(id, edge) {
+      edgeIds.set(edge, id)
+    },
+    observeRenamedEdge(previous, renamed) {
+      edgeIds.set(renamed, edgeId(previous))
+    },
+    observeRefusal(refusal) {
+      preFrameReason = refusal
+      if (refusal.reason === "local-admission") preFrameObservation = refusal
+    }
+  }
   const pythonArtifact = await compile(
     "PythonArtifact",
-    path.join(root, "packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend")
+    path.join(root, "packages/source-analysis/src/direct-event/graph-resolution/composition/PythonArtifact.bend")
   )
   const goArtifact = await compile(
     "GoArtifact",
-    path.join(root, "packages/resident-runtime/src/resident/review-work/composition/GoArtifact.bend")
+    path.join(root, "packages/source-analysis/src/direct-event/graph-resolution/composition/GoArtifact.bend")
   )
   const reference = await createEntryReferenceDriver({ temporary, python: pythonArtifact, go: goArtifact })
   emissionHashes.push(...reference.emissions)
@@ -642,22 +603,22 @@ try {
     }
     nativeEvents.length = 0
     resetBirth()
-    nativePreparation.resetPreparationObservation()
-    nativeRust.resetFrontendCalls()
+    preparationObservation = undefined
+    preparationCaptureCache = undefined
+    frontendCalls.length = 0
     let native, expected, failed
     try {
-      expected = await Effect.runPromise(nativeModule.resolveGraphUnit(selected, stable(selected), "Root", context))
-      native = nativeModule.nativeFrame
+      expected = await Effect.runPromise(
+        nativeModule.resolveGraphUnit(selected, stable(selected), "Root", { ...context, verification: graphPorts })
+      )
+      native = nativeFrame
     } catch (error) {
-      native ??= nativeModule.nativeFrame
+      native ??= nativeFrame
       failed = error
     }
     const nativeCallerCache = cache === undefined ? undefined : [...cache],
       nativePublishedPrefix = structuredClone(nativePorts.events),
-      nativePreparationCache =
-        nativePreparation.preparationCaptureCache === undefined
-          ? undefined
-          : [...nativePreparation.preparationCaptureCache]
+      nativePreparationCache = preparationCaptureCache === undefined ? undefined : [...preparationCaptureCache]
     const language = languageForPath(selected)
     const rust = selected.endsWith(".rs"),
       parserBinding =
@@ -1114,7 +1075,7 @@ try {
       continue
     }
     if (rust) {
-      const snapshot = nativePreparation.preparationObservation,
+      const snapshot = preparationObservation,
         entryState = entry.state
       assert.equal(
         label(entryState.preparation),
@@ -1185,7 +1146,7 @@ try {
       }
       assert.deepEqual(
         actualRustCalls,
-        nativeRust.frontendCalls,
+        frontendCalls,
         fixture.name + " exact requested root/imported Rust contexts and raw parser calls"
       )
       if (context.branch === "function")
@@ -1193,7 +1154,7 @@ try {
     }
     if (!native) {
       assert.equal(label(progress), "EntryFinished", fixture.name + " independent pre-frame result")
-      const reason = nativeModule.preFrameReason
+      const reason = preFrameReason
       assert.ok(reason, fixture.name + " normal return reason observed")
       if (fixture.expectedReason)
         assert.equal(reason.reason, fixture.expectedReason, fixture.name + " native selected return branch")
@@ -1230,7 +1191,7 @@ try {
           fixture.name + " preframe prepared dependencies"
         )
       }
-      const snapshot = nativeModule.preFrameObservation
+      const snapshot = preFrameObservation
       if (snapshot === undefined)
         assert.equal(label(entry.retained), "None", fixture.name + " no invented constructed tree")
       assert.equal(
@@ -1563,7 +1524,7 @@ try {
     }))
     const nativeTargets = [...native.pathForTarget].map(([id, x]) => ({
       id,
-      edge: nativePending(nativeModule.edgeId(x.edge), x.edge),
+      edge: nativePending(edgeId(x.edge), x.edge),
       ...(x.kind === "file"
         ? { kind: "file", path: x.path, name: x.name }
         : {
