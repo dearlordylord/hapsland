@@ -1,5 +1,5 @@
 // Mechanical nominal ABI conversion for the actual Go artifact check consumers.
-const artifactOwner = "../../../../../source-analysis/src/direct-event/graph-resolution/"
+const artifactOwner = "../"
 export const artifactTransport = (value, incoming = true) => {
   if (Array.isArray(value)) return value.map((item) => artifactTransport(item, incoming))
   if (value && typeof value === "object")

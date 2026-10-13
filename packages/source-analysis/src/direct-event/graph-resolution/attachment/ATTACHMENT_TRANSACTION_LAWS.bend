@@ -7821,6 +7821,124 @@ def ready_product_history(+phase: Phase.Phase, +history: V.History, +previous: N
             Equal.cong(Maybe<&2, T.TechnicalFailure>, V.History, validation => History.accepted(validation, phase, history, previous, T.Reply{invocation, id, T.ProductEncoded{bytes}}), Boundary.check(request, T.Reply{invocation, id, T.ProductEncoded{bytes}}), None{}, checked),
             ready_captured_history(child, history, graph, remaining, next_edge, previous, bytes, positive))
 
+def ready_selected_allowance(+state: T.ResolverState, +frame: T.ResolverFrame, +child: T.TentativeChild,
+    +edge: Local.Pending, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    evidence: selected_phase_result(state, frame, child, edge, history, child_history, phase)) -> ready_history_positive(history):
+  match history:
+    case V.History{+addresses, _, _, _, _, +remaining, +episode}:
+      BoolFacts.eq_true_of_and_left(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)),
+        BoolFacts.eq_true_of_and_right(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))),
+          BoolFacts.eq_true_of_and_right(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)))),
+            Pair.fst({Bool.and(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))) == True{} : Bool},
+              assembled_result(ActualFrame.project(frame, history), ActualReady.child_project(child, edge, child_history, S.frame_artifacts(frame), episode), ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state), phase), evidence))))
+
+def ready_original_allowance(+state: T.ResolverState, +history: V.History,
+    +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) -> ready_history_positive(history):
+  ready_actual_inputs(ready_history_positive(history), state, history, child_history, phase, ready,
+    frame => child => edge => frame_present => child_present => edge_present => evidence =>
+      ready_selected_allowance(state, frame, child, edge, history, child_history, phase, evidence))
+
+def ready_original_product_history(+state: T.ResolverState, +phase: Phase.Phase,
+    +history: V.History, +child_history: Phase.ChildHistory, +previous: Nat,
+    +request: T.Request, +invocation: Nat, +id: Nat, +bytes: Nat,
+    +ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    checked: {Boundary.check(request, T.Reply{invocation, id, T.ProductEncoded{bytes}}) == None{} : Maybe<&2, T.TechnicalFailure>}) ->
+    ready_product_history_result(phase, history, previous, request, invocation, id, bytes):
+  ready_product_history(phase, history, previous, request, invocation, id, bytes,
+    ready_original_allowance(state, history, child_history, phase, ready), checked)
+
+# Captured changes graph accounting/phase, never the configured limits used
+# by the independent frame projection.  Derive this for the actual step.
+def ready_capture_admission_limits(+result: Maybe<&2, G.Reason>, +state: G.Graph,
+    +edge: G.Edge, +target: Nat, +source: Nat, +contribution: Nat,
+    +work: Nat, +ids: List<&2, Nat>, +overflow: Bool) ->
+    {ReferenceFrame.graph_limits(G.step_graph(GraphReference.admission(result, state,
+      unused => GraphReference.accept_capture(overflow, state, edge, target, source, contribution, work, ids)))) == ReferenceFrame.graph_limits(state) : G.Limits}:
+  match result state edge:
+    case Some{_} G.Graph{_, _, _, _, _, _, _, _, _, _, _} _: {==}
+    case None{} G.Graph{_, _, _, _, _, _, _, _, _, _, _} G.Edge{_, _}: {==}
+
+def ready_reference_capture_limits(+state: G.Graph, +edge: G.Edge, +target: Nat,
+    +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>) ->
+    {ReferenceFrame.graph_limits(G.step_graph(GraphReference.captured(state, edge, target, source, contribution, work, ids))) == ReferenceFrame.graph_limits(state) : G.Limits}:
+  match state:
+    case G.Graph{_, _, _, _, +read, +tree, +old_work, _, _, _, +limits}:
+      match limits:
+        case G.Limits{_, _, +tree_cap, _, _, _, _, _}:
+          ready_capture_admission_limits(GraphReference.capture_budget(limits, source, work, List.length(&2, Nat, ids), read, old_work), state, edge, target, source, contribution, work, ids, Nat.is_gt((tree + contribution : Nat), tree_cap))
+
+def ready_reference_captured_limits(+state: G.Graph, +source: Nat, +contribution: Nat,
+    +work: Nat, +ids: List<&2, Nat>) ->
+    {ReferenceFrame.graph_limits(G.step_graph(GraphReference.transition(state, G.Captured{source, contribution, work, ids}))) == ReferenceFrame.graph_limits(state) : G.Limits}:
+  match state:
+    case G.Graph{+phase, _, _, _, _, _, _, _, _, _, _}:
+      match phase:
+        case G.Capturing{+edge, +target}: ready_reference_capture_limits(state, edge, target, source, contribution, work, ids)
+        case G.Idle{}: {==}
+        case G.GraphReady{}: {==}
+        case G.Resolving{_}: {==}
+        case G.Checking{_, _}: {==}
+        case G.Complete{}: {==}
+        case G.Incomplete{_}: {==}
+
+def ready_captured_limits(+state: G.Graph, +source: Nat, +contribution: Nat,
+    +work: Nat, +ids: List<&2, Nat>) ->
+    {ReferenceFrame.graph_limits(G.step_graph(G.step(state, G.Captured{source, contribution, work, ids}))) == ReferenceFrame.graph_limits(state) : G.Limits}:
+  Equal.trans(G.Limits, ReferenceFrame.graph_limits(G.step_graph(G.step(state, G.Captured{source, contribution, work, ids}))), ReferenceFrame.graph_limits(G.step_graph(GraphReference.transition(state, G.Captured{source, contribution, work, ids}))), ReferenceFrame.graph_limits(state),
+    Equal.cong(G.Step, G.Limits, step => ReferenceFrame.graph_limits(G.step_graph(step)), G.step(state, G.Captured{source, contribution, work, ids}), GraphReference.transition(state, G.Captured{source, contribution, work, ids}), ready_captured_graph(state, source, contribution, work, ids)),
+    ready_reference_captured_limits(state, source, contribution, work, ids))
+
+def ready_reference_graph(frame: X.Frame) -> G.Graph:
+  match frame:
+    case X.Frame{G.Bounded{graph, _}, _, _, _, _, _, _, _, _, _, _, _}: graph
+
+def ready_reference_graph_rows(+state: D.State, +history: V.History,
+    +targets_value: Maybe<&2, List<&2, V.TargetEntry>>, +captured_value: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited_value: Maybe<&2, List<&2, String>>, +view: V.Frame, +step: G.Step, +after: Nat,
+    ready: {ReferenceFrame.assembled(state, history, targets_value, captured_value, visited_value) == Some{view} : Maybe<&2, V.Frame>},
+    limits: {ReferenceFrame.graph_limits(G.step_graph(step)) == ReferenceFrame.graph_limits(ready_reference_graph(D.frame(state))) : G.Limits}) ->
+    {ReferenceFrame.assembled(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(step, after))), History.allowance(history, after), targets_value, captured_value, visited_value) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}:
+  match state history targets_value captured_value visited_value step:
+    case D.State{D.Config{_, _, _, +context, _, _}, X.Frame{G.Bounded{+graph, +remaining}, +command, +forest, Signed.State{Recursive.State{_, +budget, _, _}, +signed}, +edges, _, +artifacts_by_target, +next_edge, +episode, +next_artifact, +dependencies, _}, _, +target_ids, +next_target, _, _, _, _} V.History{_, _, _, _, +artifacts, _, _}
+      Some{+targets} Some{+captures} Some{+seen} G.Step{+new_graph, +new_command}:
+      %Count.some_equal(V.Frame, V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, ready):
+        {ReferenceFrame.assembled(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(step, after))), History.allowance(history, after), targets_value, captured_value, visited_value) == Some{ready_graph_view(_, step, after)} : Maybe<&2, V.Frame>}
+      Equal.cong(G.Limits, Maybe<&2, V.Frame>, selected_limits => Some{V.Frame{ReferenceFrame.branch(context), selected_limits, new_graph, new_command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, after, episode}}, ReferenceFrame.graph_limits(new_graph), ReferenceFrame.graph_limits(graph), limits)
+    case _ _ None{} _ _ _:
+      Empty.absurd({ReferenceFrame.assembled(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(step, after))), History.allowance(history, after), targets_value, captured_value, visited_value) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} None{} _ _:
+      Empty.absurd({ReferenceFrame.assembled(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(step, after))), History.allowance(history, after), targets_value, captured_value, visited_value) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} Some{_} None{} _:
+      Empty.absurd({ReferenceFrame.assembled(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(step, after))), History.allowance(history, after), targets_value, captured_value, visited_value) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_reference_graph_complete(+state: D.State, +history: V.History, +view: V.Frame,
+    +step: G.Step, +after: Nat,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>},
+    limits: {ReferenceFrame.graph_limits(G.step_graph(step)) == ReferenceFrame.graph_limits(ready_reference_graph(D.frame(state))) : G.Limits}) ->
+    {ReferenceFrame.project(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(step, after))), History.allowance(history, after)) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}:
+  match state history step:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +target_values, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _} G.Step{_, _}:
+      ready_reference_graph_rows(state, history, ReferenceFrame.targets(target_values), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, step, after, ready, limits)
+
+def ready_reference_remaining(frame: X.Frame) -> Nat:
+  match frame:
+    case X.Frame{G.Bounded{_, remaining}, _, _, _, _, _, _, _, _, _, _, _}: remaining
+
+def ready_reference_captured_frame(+state: D.State, +history: V.History, +view: V.Frame,
+    +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>},
+    positive: {Nat.is_gt(ready_reference_remaining(D.frame(state)), 0n) == True{} : Bool}) ->
+    {ReferenceFrame.project(D.with_frame(state, X.event(D.frame(state), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_reference_remaining(D.frame(state)), 1n))) == Some{ready_graph_view(view, G.step(ready_reference_graph(D.frame(state)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_reference_remaining(D.frame(state)), 1n))} : Maybe<&2, V.Frame>}:
+  match state:
+    case D.State{_, X.Frame{G.Bounded{+graph, +remaining}, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}:
+      Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.with_frame(state, X.event(D.frame(state), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(remaining, 1n))),
+        ReferenceFrame.project(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n)))), History.allowance(history, Nat.sub(remaining, 1n))),
+        Some{ready_graph_view(view, G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n))},
+        Equal.cong(G.BoundedStep, Maybe<&2, V.Frame>, result => ReferenceFrame.project(D.with_frame(state, X.event_result(D.frame(state), result)), History.allowance(history, Nat.sub(remaining, 1n))), GraphReference.bounded_transition(G.Bounded{graph, remaining}, G.Captured{source, contribution, work, ids}), GraphReference.bounded_result(G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n)), ready_captured_allowance(graph, source, contribution, work, ids, remaining, positive)),
+        ready_reference_graph_complete(state, history, view, G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n), ready, ready_captured_limits(graph, source, contribution, work, ids)))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
