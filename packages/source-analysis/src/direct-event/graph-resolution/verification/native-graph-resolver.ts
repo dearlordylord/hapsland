@@ -219,7 +219,7 @@ const materializeLocalReference = (frame: LocalFrame, reference: FactReference):
   else queueImportedReference(frame, reference, imported)
 }
 /** Materialize bounded supporting evidence without turning imports into edited roots. */
-const buildLocal = (
+export const buildLocal = (
   file: FactFile,
   path: string,
   name: string,
@@ -307,7 +307,7 @@ const advanceGraph = (frame: GraphFrame, event: ImportGraphEvent): void => {
   frame.state = transition.state
   frame.command = transition.command
 }
-const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(function* (
+export const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(function* (
   rootPath: string,
   rootCapture: StableCapture,
   name: string,

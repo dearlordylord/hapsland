@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "nod
 import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
-import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
+import { languageForPath } from "./native-language-registry.ts"
 import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { createGraphFixtures } from "./fixtures.mjs"
@@ -62,13 +62,7 @@ try {
     folder,
     "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
   )
-  const nativeSource = readFileSync(nativePath, "utf8").replaceAll(
-    /from "(\.\/[^"]+)"/g,
-    (_all, path) => `from "${pathToFileURL(join(dirname(nativePath), path))}"`
-  )
-  const nativeCopy = join(temporary, "native-root.mjs")
-  writeFileSync(nativeCopy, nativeSource + "\nexport {prepareGraphFrame};\n")
-  const { prepareGraphFrame } = await import(pathToFileURL(nativeCopy))
+  const { prepareGraphFrame } = await import(pathToFileURL(nativePath))
   const cases = []
   let forestGuardCases = 0
   for (const fixture of createGraphFixtures()) {

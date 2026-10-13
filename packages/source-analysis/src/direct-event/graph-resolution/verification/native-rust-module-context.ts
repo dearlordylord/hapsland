@@ -83,7 +83,12 @@ const cargoManifest = (source: string): CargoFields | undefined => {
     return undefined
   }
 }
-const cargoTargetRoots = (taskPath: string, source: string, path: string, fileLimit: number): string[] | undefined => {
+export const cargoTargetRoots = (
+  taskPath: string,
+  source: string,
+  path: string,
+  fileLimit: number
+): string[] | undefined => {
   const manifest = cargoManifest(source)
   const pkg = record(manifest?.package)
   if (manifest === undefined || !supportedCargoPackage(pkg)) return undefined

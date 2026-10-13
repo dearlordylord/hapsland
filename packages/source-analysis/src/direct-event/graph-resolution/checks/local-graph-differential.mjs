@@ -1,11 +1,10 @@
 import assert from "node:assert/strict"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from "node:fs"
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve, join, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
-import { createRequire } from "node:module"
 const _root = resolve(import.meta.dirname, "../../../../../.."),
   temporary = mkdtempSync(join(tmpdir(), "hapsland-local-graph-diff-"))
 const empty = () => ({ $: "MTip" }),
@@ -57,15 +56,7 @@ try {
     import.meta.dirname,
     "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
   )
-  const nativeRequire = createRequire(nativePath)
-  const nativeSource = readFileSync(nativePath, "utf8").replaceAll(/from "([^"]+)"/g, (_all, path) =>
-    path.startsWith("node:")
-      ? `from "${path}"`
-      : `from "${pathToFileURL(path.startsWith(".") ? resolve(dirname(nativePath), path) : nativeRequire.resolve(path))}"`
-  )
-  const nativeCopy = join(temporary, "native.mjs")
-  writeFileSync(nativeCopy, nativeSource + "\nexport {buildLocal};\n")
-  const { buildLocal } = await import(pathToFileURL(nativeCopy))
+  const { buildLocal } = await import(pathToFileURL(nativePath))
   const natural = (value, outgoing = false) => {
     if (typeof value === "number") return BigInt(value)
     if (typeof value === "bigint") return outgoing ? Number(value) : value

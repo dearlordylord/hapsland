@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { sourceFacts } from "../frontend-codec.ts"
@@ -101,13 +101,7 @@ try {
     folder,
     "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
   )
-  const source = readFileSync(nativePath, "utf8").replaceAll(
-    /from "(\.\/[^"]+)"/g,
-    (_all, path) => `from "${pathToFileURL(join(dirname(nativePath), path))}"`
-  )
-  const nativeCopy = join(temporary, "native.mjs")
-  writeFileSync(nativeCopy, source + "\nexport {buildLocal};\n")
-  const { buildLocal } = await import(pathToFileURL(nativeCopy))
+  const { buildLocal } = await import(pathToFileURL(nativePath))
   let compared = 0,
     negativeFailures = 0,
     negativeCompletions = 0,

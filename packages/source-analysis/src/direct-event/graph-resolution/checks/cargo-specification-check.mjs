@@ -31,15 +31,7 @@ try {
   const emitted = join(temporary, "spec.mjs")
   execFileSync("bend", [join(folder, "../CargoSpecificationCheck.bend"), "-o", emitted], { timeout: 10000 })
   const spec = (await import(pathToFileURL(emitted))).default
-  const nativeCopy = join(temporary, "native.mjs")
-  writeFileSync(
-    nativeCopy,
-    readFileSync(native, "utf8").replaceAll(
-      /from "(\.{1,2}\/[^"]+)"/g,
-      (_all, path) => `from "${pathToFileURL(join(dirname(native), path))}"`
-    ) + "\nexport {cargoTargetRoots};\n"
-  )
-  const { cargoTargetRoots } = await import(pathToFileURL(nativeCopy))
+  const { cargoTargetRoots } = await import(pathToFileURL(native))
   const within = (path) => path !== ".." && !path.startsWith("../") && !isAbsolute(path)
   // Mechanical path realization of the returned ordered raw plan. The full
   // Bend roots/path driver is not qualified by this selection-only check.
