@@ -177,9 +177,6 @@ export type Step =
   | Tagged<"Finished", { readonly result: PreparationResult }>
   | Tagged<"Failed", { readonly reason: string }>
 declare const core: {
-  initial(invocation: bigint, input: Input): Step
-  advance(state: State): Step
-  resume(step: Step, reply: Reply): Step
   initial_settled(invocation: bigint, input: Input): Maybe<Step>
   resume_settled(step: Step, reply: Reply): Maybe<Step>
 }

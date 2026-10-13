@@ -1,8 +1,11 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises"
+import { rmSync } from "node:fs"
+import { randomUUID } from "node:crypto"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
+import { createPreparationMachine } from "./preparation-dispatcher.ts"
 const temporary = await mkdtemp("/tmp/hapsland-preparation-machine-")
 try {
   const emitted = join(temporary, "preparation.mjs")
@@ -98,6 +101,34 @@ try {
   checkPump(emptyStart)
   checkPump(machine.advance(emptyStart.state))
   checkPump({ $: "Failed", reason: "retained-failure" })
+  let longPumpBoundaries = 0
+  const dispatcher = createPreparationMachine(machine)
+  for (const contracts of [4999, 5000]) {
+    const configuration = input([], { contracts: list(Array(contracts).fill(contract)) })
+    const start = machine.initial(1n, configuration)
+    const bounded = machine.initial_settled(1n, configuration)
+    assert.equal(bounded.$, contracts === 4999 ? "Some" : "None")
+    longPumpBoundaries++
+    if (contracts === 4999) {
+      assert.equal(dispatcher.initial({ invocation: 1n, preparation: configuration }).$, "Finished")
+      assert.equal(machine.settle(9999n, start).$, "None")
+      assert.equal(bounded.value.$, "Finished")
+      assert.equal(bounded.value.result.selected, 0n)
+      assert.deepEqual(array(bounded.value.result.units), [])
+      longPumpBoundaries++
+    } else {
+      assert.throws(() => dispatcher.initial({ invocation: 1n, preparation: configuration }), {
+        message: "Preparation internal dispatch did not settle"
+      })
+      const afterFirst = machine.advance(start.state)
+      assert.equal(machine.settle(10000n, afterFirst).$, "None")
+      const accepted = machine.settle(10001n, afterFirst)
+      assert.equal(accepted.$, "Some")
+      assert.equal(accepted.value.$, "Finished")
+      assert.deepEqual(array(accepted.value.result.units), [])
+      longPumpBoundaries += 2
+    }
+  }
   let cases = 0,
     totalRequests = 0
   function run(configuration, options = {}) {
@@ -336,12 +367,79 @@ try {
   finished(check)
   assert.equal(count(check, "Preflight"), 0)
   assert.equal(count(check, "AdmitMaterialization"), 0)
+  const proofPath = join(import.meta.dirname, "PreparationPumpProof.bend")
+  const sourcePath = join(import.meta.dirname, "Preparation.bend")
+  const source = await readFile(sourcePath, "utf8")
+  const proof = await readFile(proofPath, "utf8")
+  const verdict = (path, mode) =>
+    execFileSync("taskset", ["-c", "11", "bend", path, mode], { timeout: 10000, encoding: "utf8" })
+  assert.match(verdict(proofPath, "--verdict"), /ALL PROOFS CHECK/u)
+  const mutations = [
+    ["exhausted", "    case 0n: None{}", "    case 0n: Some{step}"],
+    [
+      "internal_step",
+      "case Internal{state}: settle(rest, advance(state))",
+      'case Internal{state}: settle(rest, Failed{"mutant-skipped-advance"})'
+    ],
+    ["first_external", "case _: Some{step}", "case _: None{}"],
+    ["initial_allowance", "settle(10000n, initial(invocation, input))", "settle(9999n, initial(invocation, input))"],
+    ["resume_allowance", "settle(10000n, resume(step, reply))", "settle(9999n, resume(step, reply))"]
+  ]
+  const temporarySources = new Set()
+  const cleanupSources = () => {
+    for (const path of temporarySources) rmSync(path, { force: true })
+  }
+  const stopSources = () => {
+    cleanupSources()
+    process.exit(143)
+  }
+  process.once("exit", cleanupSources)
+  process.once("SIGTERM", stopSources)
+  let proofMutants = 0
+  try {
+    const pumpStart = source.indexOf("def settle(")
+    assert.ok(pumpStart >= 0)
+    const pump = source.slice(pumpStart)
+    for (const [location, before, after] of mutations) {
+      assert.equal(pump.split(before).length, 2, "unique existing pump mutation anchor")
+      const identity = randomUUID()
+      const mutatedName = "PreparationPumpMutant-" + identity + ".bend"
+      const mutatedPath = join(import.meta.dirname, mutatedName)
+      const mutatedProof = join(import.meta.dirname, "PreparationPumpMutantProof-" + identity + ".bend")
+      temporarySources.add(mutatedPath)
+      temporarySources.add(mutatedProof)
+      await writeFile(mutatedPath, source.slice(0, pumpStart) + pump.replace(before, after))
+      await writeFile(mutatedProof, proof.replace("./Preparation.bend", "./" + mutatedName))
+      assert.match(verdict(mutatedPath, "--check-only"), /ALL PROOFS CHECK/u)
+      let rejection
+      try {
+        verdict(mutatedProof, "--verdict")
+      } catch (error) {
+        rejection = error
+      }
+      assert.equal(rejection?.status, 1, "mathematical rejection; timeout is not qualification")
+      const output = String(rejection.stdout) + String(rejection.stderr)
+      assert.ok(output.includes("Location: " + location), "mutation must fail in its own obligation")
+      assert.match(output, /expected/u)
+      proofMutants++
+      cleanupSources()
+      temporarySources.clear()
+    }
+  } finally {
+    cleanupSources()
+    process.removeListener("exit", cleanupSources)
+    process.removeListener("SIGTERM", stopSources)
+  }
+  assert.equal(await readFile(sourcePath, "utf8"), source)
+  assert.equal(await readFile(proofPath, "utf8"), proof)
   console.log(
     JSON.stringify({
       passed: true,
       cases,
       requests: totalRequests,
       pumpComparisons,
+      longPumpBoundaries,
+      proofMutants,
       scope:
         "finite emitted whole preparation progression, contract/candidate order, shared cache/materialization refusal, quota-before-launch including refused root, fresh outer instances, cancellation/technical errors and frozen-path distinctions; simulated intermediate providers, no resident adoption or universal proof"
     })

@@ -55,9 +55,7 @@ test("each private core uses its authored entry ABI", () => {
     )
     assert.deepEqual(
       bendPrecompileEntryMethods(declaration),
-      name === "preparation"
-        ? ["initial", "advance", "resume", "initial_settled", "resume_settled"]
-        : ["initial", "advance", "resume"]
+      name === "preparation" ? ["initial_settled", "resume_settled"] : ["initial", "advance", "resume"]
     )
   }
   assert.deepEqual(
