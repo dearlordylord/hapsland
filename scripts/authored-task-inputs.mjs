@@ -23,7 +23,14 @@ export const authoredTaskToolingFiles = (node) => [
           "compiler-context",
           "pinned-typescript",
           ...(hasBendPrecompile(node)
-            ? ["bend-precompile", "bend-producer", "bend-toolchain", "source-loader-policy", "native-toolchain-inputs"]
+            ? [
+                "bend-precompile",
+                "bend-precompile-entry",
+                "bend-producer",
+                "bend-toolchain",
+                "source-loader-policy",
+                "native-toolchain-inputs"
+              ]
             : [])
         ])
   ].map((name) => `scripts/${name}.mjs`),

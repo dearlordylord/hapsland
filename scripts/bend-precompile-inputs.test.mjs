@@ -4,6 +4,48 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
 import { bendPrecompileEntryMethods, readBendPrecompile } from "./bend-precompile-inputs.mjs"
+import { selectBendPrecompileEntries } from "./bend-precompile-entry.mjs"
+
+const library = `function run_lib(f, n) {
+  return (...a) => a.length < n ? run_lib((...b) => f(...a, ...b), n - a.length)
+    : f(...a);
+}
+function helper(x) { return x + 1 }
+export default {
+  "initial": run_lib((x) => helper(x), 1),
+  "unused": run_lib(() => helper(100), 0),
+  "resume": run_lib((x, y) => x + y, 2)
+};
+const sentinel = 17;
+`
+
+test("private ABI selection preserves bodies, retained expressions and currying", async () => {
+  const selected = selectBendPrecompileEntries(library, ["initial", "resume"])
+  assert.equal(
+    selected.slice(0, selected.indexOf("export default")),
+    library.slice(0, library.indexOf("export default"))
+  )
+  assert.ok(selected.endsWith(";\nconst sentinel = 17;\n"))
+  assert.ok(selected.includes('"initial": run_lib((x) => helper(x), 1)'))
+  assert.ok(selected.includes('"resume": run_lib((x, y) => x + y, 2)'))
+  const { default: core } = await import("data:text/javascript," + encodeURIComponent(selected))
+  assert.deepEqual(Object.keys(core), ["initial", "resume"])
+  assert.equal(core.initial(3), 4)
+  assert.equal(core.resume(3)(4), 7)
+})
+
+test("unknown, effectful, missing and duplicate export layouts fail before publication", () => {
+  for (const source of [
+    library.replace('"initial":', '["initial"]:'),
+    library.replace('"unused":', '"initial":'),
+    library.replace("run_lib((x) => helper(x), 1)", "effect()"),
+    library.replace("function run_lib(f, n) {", "function run_lib(f, n) { effect();"),
+    library + "\nexport const other = 1;"
+  ])
+    assert.throws(() => selectBendPrecompileEntries(source, ["initial", "resume"]))
+  for (const methods of [[], ["initial", "initial"], ["missing"]])
+    assert.throws(() => selectBendPrecompileEntries(library, methods))
+})
 
 test("each private core uses its authored entry ABI", () => {
   for (const name of ["preparation", "preparation-finalization"]) {

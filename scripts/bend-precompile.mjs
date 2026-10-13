@@ -1,9 +1,10 @@
-import { copyFileSync, mkdirSync, readFileSync, renameSync } from "node:fs"
+import { copyFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 import { dirname, resolve, relative } from "node:path"
 import { spawnSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { bendProducerToolchain, bendProducerEnvironment, bendGeneratedLoaderEvidence } from "./bend-producer.mjs"
 import { readBendPrecompile } from "./bend-precompile-inputs.mjs"
+import { selectBendPrecompileEntries } from "./bend-precompile-entry.mjs"
 
 /** Emit into caller-owned staging, inside the existing package build lease. */
 export async function emitBendPrecompile(root, node, stage, expected) {
@@ -41,8 +42,15 @@ export async function emitBendPrecompile(root, node, stage, expected) {
     const loaders = bendGeneratedLoaderEvidence(readFileSync(libraryOutput, "utf8"), artifact.output)
     if (loaders.modules.length || loaders.libraries.length || loaders.symbols.length)
       throw new Error("Preparation precompile must remain a pure artifact")
+    writeFileSync(
+      libraryOutput,
+      selectBendPrecompileEntries(readFileSync(libraryOutput, "utf8"), artifact.entryMethods)
+    )
     const core = (await import(pathToFileURL(libraryOutput))).default
-    if (!artifact.entryMethods.every((name) => typeof core?.[name] === "function"))
+    if (
+      Object.keys(core).sort().join("\n") !== [...artifact.entryMethods].sort().join("\n") ||
+      !artifact.entryMethods.every((name) => Object.hasOwn(core, name) && typeof core[name] === "function")
+    )
       throw new Error("Bend precompile entry ABI changed")
     renameSync(libraryOutput, output)
     copyFileSync(artifact.declaration, output.replace(/\.js$/, ".d.ts"))

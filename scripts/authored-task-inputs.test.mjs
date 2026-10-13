@@ -126,6 +126,10 @@ test("hybrid stamps include cross-owner Bend closure, authored ABI and Bend iden
   put("packages/owner/src/preparation-core.d.ts", "declare const core: { initial(): string }; export default core")
   assert.throws(() => verifyAuthoredInputStamp(root, node, stamp, options), /Authored task inputs changed/)
   put("packages/owner/src/preparation-core.d.ts", "declare const core: { initial(): number }; export default core")
+  const entrySelector = readFileSync(resolve(root, "scripts/bend-precompile-entry.mjs"), "utf8")
+  put("scripts/bend-precompile-entry.mjs", entrySelector + "\n// changed packaging selection\n")
+  assert.throws(() => verifyAuthoredInputStamp(root, node, stamp, options), /Authored task inputs changed/)
+  put("scripts/bend-precompile-entry.mjs", entrySelector)
   options.bendToolchain.environment.PATH = "different selection"
   assert.throws(() => verifyAuthoredInputStamp(root, node, stamp, options), /Authored task inputs changed/)
 })
