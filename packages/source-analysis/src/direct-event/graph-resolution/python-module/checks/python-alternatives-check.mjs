@@ -14,7 +14,7 @@ try {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  const native = await readFile(join(import.meta.dirname, "../../../languages/python-module-context.ts"), "utf8")
+  const native = await readFile(join(import.meta.dirname, "../verification/native-preparation.ts"), "utf8")
   // Current production algorithm, retaining its generator/short circuit structure.
   const body = native
     .slice(native.indexOf("    const candidates ="), native.indexOf("    const packageParents ="))

@@ -1,7 +1,7 @@
 import { LANGUAGE_EXTENSIONS } from "@hapsland/native-observation/direct-event/languages/path-language"
 import { descendants, sameSyntaxNode, typeScriptRoot, type SyntaxNode } from "./native-parser.ts"
 import { createHash } from "node:crypto"
-import { extname, dirname, join, normalize } from "node:path"
+import { extname } from "node:path"
 import type { TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import {
   MAX_TYPE_DECLARATIONS,
@@ -11,7 +11,6 @@ import {
   type LanguageAdapter,
   type GraphFacts
 } from "./contracts.ts"
-import * as Effect from "effect/Effect"
 import { analyzeFunctionFile, functionDeclarationNodes } from "./typescript-functions.ts"
 
 type ParsedDeclaration = {
@@ -370,7 +369,6 @@ export const inspectTypeScriptFunctions = (path: string, source: string): GraphF
     kindAware: true
   }
 }
-const extensions = [".ts", ".tsx", ".mts", ".cts"]
 export const tsAdapter: LanguageAdapter = {
   id: "typescript",
   extensions: [...supported],
@@ -380,29 +378,5 @@ export const tsAdapter: LanguageAdapter = {
   parseTypes,
   inspect: inspectTypeScript,
   hasImports: (source) => /\bimport\b/u.test(source),
-  combinedPreflight,
-  prepareGraph: (_path, _capture, _host, limits) =>
-    Effect.succeed({
-      dependencies: [],
-      limits,
-      session: {
-        inspect: (path, source, branch) =>
-          branch === "function" ? inspectTypeScriptFunctions(path, source) : inspectTypeScript(path, source),
-        importCandidates: (from, importPath) => {
-          const base = normalize(join(dirname(from), importPath))
-          const extension = extname(base).toLowerCase()
-          return extension === ""
-            ? extensions.map((candidate) => `${base}${candidate}`)
-            : extension === ".js"
-              ? [base.slice(0, -3) + ".ts", base.slice(0, -3) + ".tsx"]
-              : extension === ".mjs"
-                ? [base.slice(0, -4) + ".mts"]
-                : extension === ".cjs"
-                  ? [base.slice(0, -4) + ".cts"]
-                  : extensions.includes(extension)
-                    ? [base]
-                    : []
-        }
-      }
-    })
+  combinedPreflight
 }

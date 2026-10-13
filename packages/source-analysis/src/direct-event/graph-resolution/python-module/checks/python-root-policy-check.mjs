@@ -14,7 +14,7 @@ try {
   })
   const { default: child } = await import(pathToFileURL(emitted))
   // Execute the current production function itself after erasing only its annotations.
-  const native = await readFile(join(import.meta.dirname, "../../../languages/python-module-context.ts"), "utf8")
+  const native = await readFile(join(import.meta.dirname, "../verification/native-preparation.ts"), "utf8")
   const fragment = native
     .slice(native.indexOf("const staticRoot ="), native.indexOf("\ntype Remaining"))
     .replace("(source: string): string | undefined", "(source)")

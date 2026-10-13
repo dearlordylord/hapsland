@@ -12,10 +12,6 @@
       "types": "./dist/direct-event/function-analyzer.d.ts",
       "default": "./dist/direct-event/function-analyzer.js"
     },
-    "./direct-event/graph-resolver": {
-      "types": "./dist/direct-event/graph-resolver.d.ts",
-      "default": "./dist/direct-event/graph-resolver.js"
-    },
     "./direct-event/languages/bend/adapter": {
       "types": "./dist/direct-event/languages/bend/adapter.d.ts",
       "default": "./dist/direct-event/languages/bend/adapter.js"
@@ -43,10 +39,6 @@
     "./direct-event/languages/rust-adapter": {
       "types": "./dist/direct-event/languages/rust-adapter.d.ts",
       "default": "./dist/direct-event/languages/rust-adapter.js"
-    },
-    "./direct-event/languages/rust-module-context": {
-      "types": "./dist/direct-event/languages/rust-module-context.d.ts",
-      "default": "./dist/direct-event/languages/rust-module-context.js"
     },
     "./direct-event/languages/rust": {
       "types": "./dist/direct-event/languages/rust.d.ts",
@@ -99,6 +91,10 @@
     "./direct-event/graph-resolution/composition": {
       "types": "./dist/direct-event/graph-resolution/composition/capability.d.ts",
       "default": "./dist/direct-event/graph-resolution/composition/capability.js"
+    },
+    "./testing/native-graph": {
+      "types": "./dist/direct-event/graph-resolution/verification/native-graph-entry.d.ts",
+      "default": "./dist/direct-event/graph-resolution/verification/native-graph-entry.js"
     }
   },
   "dependencies": {

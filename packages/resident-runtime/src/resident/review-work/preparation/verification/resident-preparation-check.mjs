@@ -6,7 +6,7 @@ import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { resolveGraphUnit as __resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { resolveGraphUnit as __resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import {
   eligibleNamedPath as __eligibleNamedPath,
   DEFAULT_DIRECT_FILE_POLICY

@@ -10,8 +10,9 @@ import {
   type ImportGraphEvent
 } from "@hapsland/canonical-policy/canonical/graph-adapter"
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { languageForPath } from "./languages/registry.ts"
-import type { GraphFacts, LanguageGraphHost, PreparedGraph } from "./languages/contracts.ts"
+import { languageForPath } from "./native-language-registry.ts"
+import type { PreparedGraph } from "./native-language-contract.ts"
+import type { GraphFacts, LanguageGraphHost } from "../../languages/contracts.ts"
 import { captureStable, type StableCapture } from "@hapsland/native-observation/direct-event/capture"
 import type {
   ArtifactReference,
@@ -20,12 +21,12 @@ import type {
   ReviewUnit
 } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { contextDirectFilePolicy, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
-import { observationCaptureBudgetRefusal, observeCaptureDiagnostic } from "./capture-budget.ts"
+import { observationCaptureBudgetRefusal, observeCaptureDiagnostic } from "../../capture-budget.ts"
 export {
   MAX_OBSERVATION_GRAPH_FILES,
   MAX_OBSERVATION_GRAPH_READ_BYTES,
   observationCaptureBudgetRefusal
-} from "./capture-budget.ts"
+} from "../../capture-budget.ts"
 
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] }
 type Pending = {
@@ -822,4 +823,4 @@ export type {
   Request,
   Reply,
   ServiceOutcome
-} from "./graph-resolution/service-contract.ts"
+} from "../service-contract.ts"

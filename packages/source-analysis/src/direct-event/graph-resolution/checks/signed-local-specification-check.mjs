@@ -23,7 +23,7 @@ const inputs = [
   "../traversal/core.bend",
   "../traversal/Traversal.bend",
   "../../../../../../bun.lock",
-  "../../../../dist/direct-event/graph-resolver.js",
+  "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js",
   "../../../../../canonical-policy/dist/canonical/graph-adapter.js"
 ]
 const hash = (path) =>
@@ -97,7 +97,10 @@ try {
   const compiled = join(temporary, "signed.mjs")
   execFileSync("bend", [join(folder, "../SignedLocalSpecificationCheck.bend"), "-o", compiled], { timeout: 10000 })
   const spec = (await import(pathToFileURL(compiled))).default
-  const nativePath = join(folder, "../../../../dist/direct-event/graph-resolver.js")
+  const nativePath = join(
+    folder,
+    "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
+  )
   const source = readFileSync(nativePath, "utf8").replaceAll(
     /from "(\.\/[^"]+)"/g,
     (_all, path) => `from "${pathToFileURL(join(dirname(nativePath), path))}"`

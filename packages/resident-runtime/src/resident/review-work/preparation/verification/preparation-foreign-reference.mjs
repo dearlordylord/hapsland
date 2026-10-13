@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
-import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { fromProductValue, list } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { resize } from "../../../state/capacity/reservations.ts"
 import { createPreparationForeign } from "../../composition/preparation-foreign.mjs"

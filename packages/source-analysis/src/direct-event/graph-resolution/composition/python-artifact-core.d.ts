@@ -1,9 +1,4 @@
-import type {
-  Request,
-  Reply,
-  ServiceOutcome,
-  ResolverFailure
-} from "@hapsland/source-analysis/direct-event/graph-resolver"
+import type { Request, Reply, ServiceOutcome, ResolverFailure } from "../service-contract.ts"
 import type { ArtifactAbi, Tagged, Maybe, Token } from "./artifact-abi.d.ts"
 
 declare const session: unique symbol

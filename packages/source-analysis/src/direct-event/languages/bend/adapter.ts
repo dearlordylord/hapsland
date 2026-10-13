@@ -1,7 +1,5 @@
 import { LANGUAGE_EXTENSIONS } from "@hapsland/native-observation/direct-event/languages/path-language"
 import { createHash } from "node:crypto"
-import { dirname, extname, join, normalize } from "node:path"
-import * as Effect from "effect/Effect"
 import { MAX_TYPE_DECLARATIONS, type GraphFile, type LanguageAdapter } from "../contracts.ts"
 import { bundledBendArtifact, bundledBendDeclarations, isBundledBendArtifact } from "./bundled-evidence.ts"
 import { extractBendDeclarations } from "./extractor.ts"
@@ -37,12 +35,7 @@ export const parseBendDeclarations = (path: string, source: string, limit: numbe
 }
 
 /** Candidate spelling is language-owned; shared traversal validates and captures it. */
-export const bendImportCandidates = (from: string, imported: string): ReadonlyArray<string> =>
-  /^(?:\.\/|\.\.\/)/u.test(imported) && extname(imported).toLowerCase() === ".bend"
-    ? [normalize(join(dirname(from), imported))]
-    : []
-
-const inspectBend = (path: string, source: string): GraphFile | undefined => {
+export const inspectBend = (path: string, source: string): GraphFile | undefined => {
   const parsed = parseBendDeclarations(path, source, MAX_TYPE_DECLARATIONS)
   if ("reason" in parsed) return undefined
   return {
@@ -70,14 +63,5 @@ export const bendAdapter: LanguageAdapter = {
   inspect: inspectBend,
   supportingTypes: () => bundledBendDeclarations(),
   hasImports: (source) => /\bimport\b/u.test(source),
-  combinedPreflight: (_path, _source, typeBound) => typeBound,
-  prepareGraph: (_path, _capture, _host, limits) =>
-    Effect.succeed({
-      session: {
-        inspect: (path, source, branch) => (branch === "type" ? inspectBend(path, source) : undefined),
-        importCandidates: bendImportCandidates
-      },
-      dependencies: [],
-      limits
-    })
+  combinedPreflight: (_path, _source, typeBound) => typeBound
 }

@@ -31,8 +31,8 @@ const inputs = [
   "../traversal/Traversal.bend",
   "./fixtures.mjs",
   "../frontend-codec.ts",
-  "../../../../dist/direct-event/graph-resolver.js",
-  "../../../../dist/direct-event/languages/rust-module-context.js"
+  "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js",
+  "../../../../dist/direct-event/graph-resolution/verification/native-rust-module-context.js"
 ]
 const sources = Object.fromEntries(inputs.map((path) => [path, hash(join(folder, path))]))
 const tag = (module, name, fields = {}) => ({
@@ -58,7 +58,10 @@ try {
     environment = await compile("Environment"),
     observation = await compile("WholeObservation"),
     forest = await compile("ForestSpecification")
-  const nativePath = join(folder, "../../../../dist/direct-event/graph-resolver.js")
+  const nativePath = join(
+    folder,
+    "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
+  )
   const nativeSource = readFileSync(nativePath, "utf8").replaceAll(
     /from "(\.\/[^"]+)"/g,
     (_all, path) => `from "${pathToFileURL(join(dirname(nativePath), path))}"`

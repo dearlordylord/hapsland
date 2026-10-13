@@ -31,7 +31,10 @@ mkdirSync(cache, { recursive: true })
 const environmentCheck = process.env.HAPSLAND_PREPARATION_ENVIRONMENT_CHECK === "1"
 const temporary = mkdtempSync(path.join(cache, "rust-task-specification-")),
   generatedWrappers = []
-const native = path.join(root, "packages/source-analysis/dist/direct-event/languages/rust-module-context.js")
+const native = path.join(
+  root,
+  "packages/source-analysis/dist/direct-event/graph-resolution/verification/native-rust-module-context.js"
+)
 const inputs = [
   "../../../../../../bun.lock",
   "../../../../dist/direct-event/languages/rust.js",

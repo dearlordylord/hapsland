@@ -29,7 +29,7 @@ import {
   observationCaptureBudgetRefusal,
   MAX_OBSERVATION_GRAPH_UNITS,
   resolveGraphUnit
-} from "@hapsland/source-analysis/direct-event/graph-resolver"
+} from "@hapsland/source-analysis/testing/native-graph"
 import {
   captureStable,
   type CaptureResult,

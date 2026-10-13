@@ -19,7 +19,10 @@ const folder = import.meta.dirname,
   cache = join(root, "node_modules/.cache")
 mkdirSync(cache, { recursive: true })
 const temporary = mkdtempSync(join(cache, "rust-specification-"))
-const native = join(root, "packages/source-analysis/dist/direct-event/languages/rust-module-context.js")
+const native = join(
+  root,
+  "packages/source-analysis/dist/direct-event/graph-resolution/verification/native-rust-module-context.js"
+)
 const inputs = [
   "../RustSpecification.bend",
   "../GraphSpecification.bend",

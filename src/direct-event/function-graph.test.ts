@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect"
 import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
 
 describe("bounded function graph candidate", () => {

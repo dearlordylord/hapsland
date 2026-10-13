@@ -13,13 +13,13 @@ import {
   eligibleNamedPath
 } from "@hapsland/native-observation/direct-event/selection"
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { prepareGoGraph } from "../../languages/go-module-context.ts"
+import { prepareGoGraph } from "./verification/native-preparation.ts"
 import { createServiceRegistry, createServiceSession } from "../service-session.ts"
 import { factDeclaration, pureReply } from "../frontend-codec.ts"
 import { createEntryReferenceDriver } from "../entry-driver-check.mjs"
 
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { resolveGraphUnit } from "../../graph-resolver.ts"
+import { resolveGraphUnit } from "../verification/native-graph-resolver.ts"
 import { createBendResolver } from "../consumer.ts"
 import {
   createGraphDriver,

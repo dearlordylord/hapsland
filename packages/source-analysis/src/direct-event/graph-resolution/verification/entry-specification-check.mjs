@@ -267,7 +267,10 @@ function mapKeys(value) {
 }
 try {
   const emissionHashes = []
-  const nativePath = path.join(root, "packages/source-analysis/dist/direct-event/graph-resolver.js")
+  const nativePath = path.join(
+    root,
+    "packages/source-analysis/dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
+  )
   const dependencies = [
     "../SourceValidationSpecification.bend",
     "../DeadlineSpecification.bend",
@@ -297,7 +300,7 @@ try {
     "../traversal/Traversal.bend",
     "../../../../../../bun.lock",
     "../../../../dist/direct-event/languages/rust.js",
-    "../../../../dist/direct-event/languages/rust-module-context.js",
+    "../../../../dist/direct-event/graph-resolution/verification/native-rust-module-context.js",
     "../../../../dist/direct-event/languages/rust-adapter.js",
     "../../../../dist/direct-event/languages/registry.js",
     "../../../../dist/direct-event/languages/python.js",

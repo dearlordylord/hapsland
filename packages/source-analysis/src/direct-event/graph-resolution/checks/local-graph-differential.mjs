@@ -53,7 +53,10 @@ const normalize = (built, visited, budget) => {
   }
 }
 try {
-  const nativePath = resolve(import.meta.dirname, "../../../../dist/direct-event/graph-resolver.js")
+  const nativePath = resolve(
+    import.meta.dirname,
+    "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
+  )
   const nativeRequire = createRequire(nativePath)
   const nativeSource = readFileSync(nativePath, "utf8").replaceAll(/from "([^"]+)"/g, (_all, path) =>
     path.startsWith("node:")

@@ -1,8 +1,7 @@
 import { LANGUAGE_EXTENSIONS } from "@hapsland/native-observation/direct-event/languages/path-language"
 import { goGraphFacts, inspectGoFile, parseGoTypes, goUnselectedTypeEditReason } from "./go.ts"
-import { prepareGoGraph } from "./go-module-context.ts"
 import type { LanguageAdapter } from "./contracts.ts"
-export { MAX_GO_DIRECTORY_ENTRIES } from "./go-module-context.ts"
+export { MAX_GO_DIRECTORY_ENTRIES } from "./go-directory-policy.ts"
 export const goAdapter: LanguageAdapter = {
   id: "go",
   extensions: LANGUAGE_EXTENSIONS.go,
@@ -22,6 +21,5 @@ export const goAdapter: LanguageAdapter = {
     bound ??
     (inspectGoFile("preflight.go", source) === undefined
       ? undefined
-      : { declarations: 0, expandedUnitBytes: 0, hasImports: true }),
-  prepareGraph: prepareGoGraph
+      : { declarations: 0, expandedUnitBytes: 0, hasImports: true })
 }

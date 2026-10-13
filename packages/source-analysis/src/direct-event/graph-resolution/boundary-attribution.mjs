@@ -6,7 +6,7 @@ import { join, dirname, resolve, basename } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createHash } from "node:crypto"
 import * as Effect from "effect/Effect"
-import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolver.js"
+import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../../native-observation/dist/direct-event/selection.js"
 import { createDispatcher as __createDispatcher } from "./runtime-observation/transport.mjs"
 import { createServiceRegistry } from "./service-session.ts"
@@ -96,7 +96,7 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
   )
   // Effect starts at interpretation, and records on every success/failure exit.
   globalThis.__hapslandAttribution.effectSpan = span
-  const graph = resolve(folder, "../../../dist/direct-event/graph-resolver.js")
+  const graph = resolve(folder, "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js")
   const originals = [
     graph,
     join(dirname(graph), "languages/registry.js"),

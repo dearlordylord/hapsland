@@ -22,7 +22,7 @@ import {
   type CaptureDiagnostic,
   type StableCapture
 } from "@hapsland/native-observation/direct-event/capture"
-import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"

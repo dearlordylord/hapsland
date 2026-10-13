@@ -5,7 +5,7 @@ import { join, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createHash } from "node:crypto"
 import * as Effect from "effect/Effect"
-import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolver.js"
+import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
   eligibleNamedPath
@@ -148,12 +148,15 @@ $Resolve$058known_target$=((original)=>(existing,frame,...args)=>{const previous
     })
     resolver = (...args) => Effect.runPromise(effectResolver(...args))
   } else if (timingEnabled) {
-    const original = new URL("../../../dist/direct-event/graph-resolver.js", import.meta.url)
+    const original = new URL(
+      "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js",
+      import.meta.url
+    )
     const originals = [
       original,
       new URL("./languages/registry.js", original),
       new URL("./languages/rust-adapter.js", original),
-      new URL("./languages/rust-module-context.js", original)
+      new URL("./native-rust-module-context.js", original)
     ]
     const copies = new Map(
       originals.map((url, index) => [url.href, join(temporary, "native-access-" + index + ".mjs")])

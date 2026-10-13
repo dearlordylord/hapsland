@@ -4,7 +4,7 @@ import { vi } from "vitest"
 import { makeGitFixture, put, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 

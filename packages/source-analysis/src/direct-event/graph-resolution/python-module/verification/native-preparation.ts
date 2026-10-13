@@ -8,8 +8,9 @@ import {
   eligibleNamedPath,
   selectedByDirectFilePolicy
 } from "@hapsland/native-observation/direct-event/selection"
-import { observationCaptureBudgetRefusal, observeCaptureDiagnostic } from "../capture-budget.ts"
-import type { GraphSession, LanguageAdapter } from "./contracts.ts"
+import { observationCaptureBudgetRefusal, observeCaptureDiagnostic } from "../../../capture-budget.ts"
+import type { LanguageAdapter } from "../../../languages/contracts.ts"
+import type { GraphSession, NativeLanguageAdapter } from "../../verification/native-language-contract.ts"
 
 const within = (path: string): boolean => !isAbsolute(path) && path !== ".." && !path.startsWith(`..${sep}`)
 const record = (value: unknown): Record<string, unknown> | undefined =>
@@ -57,7 +58,7 @@ export const createPythonGraphPreparation = (
   staticPackageAuthority: (source: string) => boolean,
   hasPackageBinding: (source: string, name: string) => boolean,
   staticModuleAuthority: (source: string) => boolean
-): LanguageAdapter["prepareGraph"] =>
+): NativeLanguageAdapter["prepareGraph"] =>
   Effect.fn("Python.prepareGraph")(function* (rootPath, rootCapture, host, limits, expired) {
     if (expired() || limits.files < 1 || limits.work < 1) return undefined
     const captures = host.captureCache ?? new Map<string, StableCapture>()

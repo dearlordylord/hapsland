@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto"
-import { createPythonGraphPreparation } from "./python-module-context.ts"
 import { LANGUAGE_EXTENSIONS } from "@hapsland/native-observation/direct-event/languages/path-language"
 import { Parser, Python, type SyntaxNode, descendants, sameSyntaxNode } from "./native-parser.ts"
 import {
@@ -732,6 +731,13 @@ export const inspectPython: LanguageAdapter["inspect"] = (path, source) => {
     imports: graphImports
   }
 }
+// Parser-owned module authority observations; no graph orchestration.
+export const pythonModuleAuthority = {
+  package: staticPackageAuthority,
+  binding: (source: string, name: string) => moduleScope(rootFor(source)).facts.some((fact) => fact.name === name),
+  imports: (source: string) => pythonImports(source) !== undefined
+}
+
 export const pythonAdapter: LanguageAdapter = {
   id: "python",
   extensions: LANGUAGE_EXTENSIONS.python,
@@ -740,11 +746,5 @@ export const pythonAdapter: LanguageAdapter = {
   parseTypes,
   inspect: inspectPython,
   hasImports: (source) => (pythonImports(source)?.size ?? 0) > 0,
-  combinedPreflight: (_path, _source, bound) => bound,
-  prepareGraph: createPythonGraphPreparation(
-    inspectPython,
-    staticPackageAuthority,
-    (source, name) => moduleScope(rootFor(source)).facts.some((fact) => fact.name === name),
-    (source) => pythonImports(source) !== undefined
-  )
+  combinedPreflight: (_path, _source, bound) => bound
 }

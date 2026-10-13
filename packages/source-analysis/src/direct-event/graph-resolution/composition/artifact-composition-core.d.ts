@@ -1,4 +1,4 @@
-import type { ResolverInput, Reply, Request } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import type { ResolverInput, Reply, Request } from "../service-contract.ts"
 import type { ArtifactAbi, Tagged, Maybe, Token } from "./artifact-abi.d.ts"
 import type {
   ResolverState,

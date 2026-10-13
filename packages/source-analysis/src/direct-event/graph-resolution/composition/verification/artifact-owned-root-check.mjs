@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url"
 import { deserialize } from "node:v8"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import {

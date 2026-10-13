@@ -5,12 +5,13 @@ import * as Effect from "effect/Effect"
 import { captureStable, type StableCapture } from "@hapsland/native-observation/direct-event/capture"
 import { contextDirectFilePolicy, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { observationCaptureBudgetRefusal } from "../capture-budget.ts"
-import { freezeGoBuildSnapshot, goFileMembership, goFilenameMembership } from "./go-build-context.ts"
-import { goGraphFacts, inspectGoFile, type GoFile } from "./go.ts"
-import type { GraphFacts, GraphReference, LanguageGraphHost, PreparedGraph } from "./contracts.ts"
+import { observationCaptureBudgetRefusal } from "../../../capture-budget.ts"
+import { freezeGoBuildSnapshot, goFileMembership, goFilenameMembership } from "../../../languages/go-build-context.ts"
+import { goGraphFacts, inspectGoFile, type GoFile } from "../../../languages/go.ts"
+import type { PreparedGraph } from "../../verification/native-language-contract.ts"
+import type { GraphFacts, GraphReference, LanguageGraphHost } from "../../../languages/contracts.ts"
 
-export const MAX_GO_DIRECTORY_ENTRIES = 128
+import { MAX_GO_DIRECTORY_ENTRIES } from "../../../languages/go-directory-policy.ts"
 const inventory = async (root: string, directory: string): Promise<readonly string[] | undefined> => {
   try {
     let current = root

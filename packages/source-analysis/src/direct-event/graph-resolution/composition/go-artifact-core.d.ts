@@ -1,10 +1,4 @@
-import type {
-  ResolverInput,
-  ResolverFailure,
-  Request,
-  Reply,
-  ServiceOutcome
-} from "@hapsland/source-analysis/direct-event/graph-resolver"
+import type { ResolverInput, ResolverFailure, Request, Reply, ServiceOutcome } from "../service-contract.ts"
 import type { ArtifactAbi, Tagged, Maybe, Token } from "./artifact-abi.d.ts"
 
 // Prepared and Step are retained Bend values, never host-constructed inputs.

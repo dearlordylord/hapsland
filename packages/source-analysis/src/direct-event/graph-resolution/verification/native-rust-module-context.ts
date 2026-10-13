@@ -8,11 +8,11 @@ import {
   stepImportGraph
 } from "@hapsland/canonical-policy/canonical/graph-adapter"
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { inspectRustModules, type GraphInspectionOptions } from "./rust.ts"
+import { inspectRustModules, type GraphInspectionOptions } from "../../languages/rust.ts"
 import { captureStable, type StableCapture } from "@hapsland/native-observation/direct-event/capture"
 import { contextDirectFilePolicy, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
-import type { LanguageGraphHost } from "./contracts.ts"
-import { observationCaptureBudgetRefusal, observeCaptureDiagnostic } from "../capture-budget.ts"
+import type { LanguageGraphHost } from "../../languages/contracts.ts"
+import { observationCaptureBudgetRefusal, observeCaptureDiagnostic } from "../../capture-budget.ts"
 
 type Route = {
   readonly path: string

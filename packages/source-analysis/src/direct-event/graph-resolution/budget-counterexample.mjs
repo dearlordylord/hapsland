@@ -4,11 +4,14 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
-import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolver.js"
+import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../../native-observation/dist/direct-event/selection.js"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
 const root = mkdtempSync("/tmp/hapsland-whole-budget-"),
-  original = new URL("../../../dist/direct-event/graph-resolver.js", import.meta.url),
+  original = new URL(
+    "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js",
+    import.meta.url
+  ),
   probe = join(dirname(original.pathname), "whole-resolver-budget-probe.mjs")
 try {
   execFileSync("git", ["init", "-q", root])

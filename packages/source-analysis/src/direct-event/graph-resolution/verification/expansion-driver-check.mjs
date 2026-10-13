@@ -194,7 +194,10 @@ function mapKeys(value) {
 try {
   const tables = pathTables()
   writeFileSync(wrapperPath, wrapper(tables))
-  const nativePath = path.join(root, "packages/source-analysis/dist/direct-event/graph-resolver.js")
+  const nativePath = path.join(
+    root,
+    "packages/source-analysis/dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
+  )
   const dependencies = [
     "../ExpansionDriverSpecification.bend",
     "../ExpansionDriverState.bend",
