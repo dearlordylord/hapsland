@@ -8,6 +8,7 @@ import ../State.bend as State
 import ../LoopPolicy.bend as LoopPolicy
 import ../Loop.bend as Loop
 import ../Root.bend as Root
+import ../ForestSpecification.bend as F
 import ../Environment.bend as E
 import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
@@ -2444,3 +2445,36 @@ def completion_partial_actual_selected(+actual: T.ResolverState, +frame: T.Resol
     {LoopPolicy.completion_product(_, actual)
       == LoopPolicy.completion_product(Some{product}, actual) : Loop.Continuation}
   {==}
+
+# Observe the existing reference prepared-product witness without a new frame.
+def completion_materialized_claim(+frame: X.Frame, +fuel: Nat,
+    +product: ArtifactValue.ProductValue) -> Type:
+  match frame:
+    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, +dependencies, +fingerprint}:
+      {
+        F.prepared_unit(fuel, forest, dependencies, fingerprint)
+        == F.Materialized{product}
+        : F.Materialization
+      }
+
+def completion_reference_materialized(
+  +frame: X.Frame,
+  +fuel: Nat,
+  +state: D.State,
+  +product: ArtifactValue.ProductValue,
+  prepared: completion_materialized_claim(frame, fuel, product)
+) -> {
+  D.materialize_unit(fuel, state, frame)
+  == D.completion_selected(state, product, True{})
+  : D.Selection
+}:
+  match frame:
+    case X.Frame{_, _, +forest, _, _, _, _, _, _, _, +dependencies, +fingerprint}:
+      %Equal.sym(F.Materialization, F.prepared_unit(fuel, forest, dependencies, fingerprint),
+        F.Materialized{product}, prepared):
+        {
+          D.completion_product(state, _)
+          == D.completion_selected(state, product, True{})
+          : D.Selection
+        }
+      {==}

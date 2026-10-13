@@ -12874,6 +12874,21 @@ def ready_projected_omissions(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +
   ready_projected_omissions_parts(root, nodes, slots, catalog, entries, forest, episode, dense, valid,
     Contents.project_contents(root, nodes, slots, catalog, entries, forest, projected))
 
+def ready_frame_view_omissions(+frame: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    +ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {D.forest_omissions(Allowance.materialization(ready_staged_forest(view)), ready_staged_forest(view))
+      == D.OmissionsObserved{LoopPolicy.frame_has_omission(frame)} : D.OmissionResult}:
+  match history view:
+    case V.History{+addresses, +order, _, _, _, _, +episode}
+        V.Frame{_, _, _, _, _, +forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
+      +checks: {frame_checks(frame, history) == True{} : Bool} = Pair.fst({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(frame, history, view, ready))
+      +projected: {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>} = Pair.snd({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(frame, history, view, ready))
+      ready_projected_omissions(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses, forest, episode,
+        Pair.fst({P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{forest} : Maybe<&2, F.Forest>}, {Relation.frame_forest(forest, episode) == True{} : Bool}, projected_frame_semantics(frame, history, view, projected)),
+        BoolFacts.eq_true_of_and_left(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame))),
+          BoolFacts.eq_true_of_and_right(ActualFrame.coverage(order, frame), Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)))), checks)),
+        Pair.snd({P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses) == Some{forest} : Maybe<&2, F.Forest>}, {Relation.frame_forest(forest, episode) == True{} : Bool}, projected_frame_semantics(frame, history, view, projected)))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
