@@ -1,8 +1,10 @@
+import * as Effect from "effect/Effect"
+import { referenceIo } from "./native-reference-io.mjs"
 import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFile, mkdtemp, mkdir, writeFile, symlink, lstat, rm } from "node:fs/promises"
-import { join, dirname, normalize, isAbsolute, sep } from "node:path"
+import { mkdtemp, mkdir, writeFile, symlink, lstat, rm } from "node:fs/promises"
+import { join, dirname, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createServiceSession } from "../../service-session.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
@@ -14,24 +16,13 @@ try {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  const native = await readFile(join(import.meta.dirname, "../verification/native-preparation.ts"), "utf8")
-  // Current production algorithm, retaining its generator/short circuit structure.
-  const body = native
-    .slice(native.indexOf("    const candidates ="), native.indexOf("    const packageParents ="))
-    .replace(
-      'const candidates = Effect.fn("Python.moduleAlternatives")(function* (base: string)',
-      "const candidates = function* (base)"
+  const { createPythonModuleResolution } = await import(
+    pathToFileURL(
+      join(
+        import.meta.dirname,
+        "../../../../../dist/direct-event/graph-resolution/python-module/verification/native-module-resolution.js"
+      )
     )
-    .replace("const found: string[]", "const found")
-    .replace(/\}\)\s*$/, "}")
-  const makeReference = Function(
-    "within",
-    "normalize",
-    "stat",
-    "selectedByDirectFilePolicy",
-    "policyFor",
-    "isAvailable",
-    body.replaceAll("!available", "!isAvailable()") + "\nreturn candidates"
   )
   const fixtures = [
     { name: "none", files: [], expected: [] },
@@ -138,21 +129,16 @@ try {
       }
       return yield observe(path)
     }
-    const reference = makeReference(
-      within,
-      normalize,
-      stat,
-      (path) => {
+    const { candidates: reference } = createPythonModuleResolution({
+      stat: referenceIo(stat),
+      isAvailable: () => available,
+      isSelected: (path) => {
         expectedEvents.push("select:" + path)
         return selected(path)
-      },
-      () => undefined,
-      () => available
-    )
-    const generator = reference(fixture.base ?? "pkg")
-    let iteration = generator.next()
-    while (!iteration.done) iteration = generator.next(await iteration.value)
-    assert.deepEqual(iteration.value, fixture.expected, fixture.name + " native fixture")
+      }
+    })
+    const result = await Effect.runPromise(reference(fixture.base ?? "pkg"))
+    assert.deepEqual(result, fixture.expected, fixture.name + " native fixture")
     const io = createServiceSession({
       invocation: index + 1,
       root,

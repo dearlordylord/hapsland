@@ -1,8 +1,10 @@
+import * as Effect from "effect/Effect"
+import { referenceIo } from "./native-reference-io.mjs"
 import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, readFile, lstat, rm, symlink } from "node:fs/promises"
-import { join, dirname, relative, isAbsolute, sep, normalize } from "node:path"
+import { join, dirname, isAbsolute, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createServiceSession } from "../../service-session.ts"
 import { inspectSourceFrontend, parsePythonSyntax } from "../../frontends.ts"
@@ -19,40 +21,13 @@ try {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  const native = await readFile(join(import.meta.dirname, "../verification/native-preparation.ts"), "utf8")
-  const body = native
-    .slice(native.indexOf("    const candidates ="), native.indexOf("    const validateAuthority:"))
-    .replaceAll(/Effect.fn\("Python\.(?:moduleAlternatives|packageParents|moduleTarget)"\)\(function\*/g, "(function*")
-    .replace('Effect.fn("Python.resolveImport")(', "(")
-    .replaceAll("!available", "!isAvailable()")
-  const js = execFileSync(
-    "bun",
-    ["-e", 'process.stdout.write(new Bun.Transpiler({loader:"ts"}).transformSync(await Bun.stdin.text()))'],
-    { input: body, encoding: "utf8", timeout: 5000 }
-  )
-  const referenceFactory = Function(
-    "dirname",
-    "relative",
-    "within",
-    "limits",
-    "join",
-    "normalize",
-    "sep",
-    "stat",
-    "readAuthority",
-    "staticPackageAuthority",
-    "isAvailable",
-    "absoluteRoots",
-    "rootPath",
-    "host",
-    "selectedByDirectFilePolicy",
-    "policyFor",
-    "permit",
-    "inspectPython",
-    "hasPackageBinding",
-    "authority",
-    "canonicalCaptures",
-    "let remaining;" + js + "\nreturn resolveImport"
+  const { createPythonModuleResolution } = await import(
+    pathToFileURL(
+      join(
+        import.meta.dirname,
+        "../../../../../dist/direct-event/graph-resolution/python-module/verification/native-module-resolution.js"
+      )
+    )
   )
   const fixtures = [
     { name: "ordinary-module", import: "foo", member: "Foo", files: { "foo.py": "" }, target: "foo.py", result: "Foo" },
@@ -321,40 +296,27 @@ try {
         parser.reset()
       }
     }
-    const reference = referenceFactory(
-      dirname,
-      relative,
-      within,
-      { depth },
-      join,
-      normalize,
-      sep,
-      stat,
-      readAuthority,
+    const { resolveImport: reference } = createPythonModuleResolution({
+      limits: { depth },
+      stat: referenceIo(stat),
+      readAuthority: referenceIo(readAuthority),
       staticPackageAuthority,
-      () => available,
-      function* () {
-        return fixture.roots ?? [".", "src"]
-      },
-      fixture.rootPath ?? "root.py",
-      {
-        *selectContextPath(path) {
-          return selected(path) ? { relativePath: path } : undefined
-        }
-      },
-      (path) => {
+      isAvailable: () => available,
+      absoluteRoots: () => Effect.succeed(fixture.roots ?? [".", "src"]),
+      rootPath: fixture.rootPath ?? "root.py",
+      isSelected: (path) => {
         expected.push("select:" + path)
         return selected(path)
       },
-      () => undefined,
       permit,
-      (path, text) => {
+      setRemaining: () => {},
+      inspectPython: (path, text) => {
         expected.push("inspect:" + path)
         const facts = pythonAdapter.inspect(path, text)
         expectedFacts.push(facts === undefined ? undefined : sourceFacts(facts))
         return facts
       },
-      (text, name) => {
+      hasPackageBinding: (text, name) => {
         const parser = new Parser()
         try {
           parser.setLanguage(Python)
@@ -363,24 +325,20 @@ try {
           parser.reset()
         }
       },
-      authority,
-      canonical
-    )
-    const gen = reference(fixture.from ?? "root.py", fixture.import, fixture.member, {
-      files: filesBudget,
-      readBytes: readBudget,
-      work: workBudget
-    })
-    let it = gen.next()
-    while (!it.done) {
-      try {
-        it = gen.next(await it.value)
-      } catch (error) {
-        it = gen.throw(error)
+      transferAuthority: (target) => {
+        authority.delete(target)
+        canonical.add(target)
       }
-    }
+    })
+    const result = await Effect.runPromise(
+      reference(fixture.from ?? "root.py", fixture.import, fixture.member, {
+        files: filesBudget,
+        readBytes: readBudget,
+        work: workBudget
+      })
+    )
     assert.deepEqual(
-      it.value,
+      result,
       fixture.target === undefined ? undefined : { path: fixture.target, name: fixture.result },
       fixture.name + " fixture"
     )

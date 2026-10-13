@@ -9119,6 +9119,82 @@ def ready_capture_paths_exact(+order: List<&2, String>, +items: List<&2, X.Captu
     ready_capture_actual_paths(order, entries, sources, rows, actual),
     Equal.sym(List<&2, String>, ready_capture_reference_paths(items), ready_capture_row_paths(rows), ready_capture_reference_paths_exact(items, sources, rows, reference)))
 
+def ready_capture_publication_aligned(+order: List<&2, String>, +items: List<&2, X.Captured>, +entries: Map<&2, Maybe<&2, T.CapturedFacts>>,
+    +sources: List<&2, V.CaptureSource>, +path: String, +source: T.SourceFacts, +catalog: RootSpec.Source, +bytes: Nat, +rows: List<&2, V.CapturedEntry>,
+    valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, entries) == True{} : Bool},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    +aligned: {order == ready_capture_reference_paths(items) : List<&2, String>},
+    actual: {ActualFrame.captured(order, entries, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    reference: {ReferenceFrame.captured(items, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ActualFrame.captured(History.retain_string(order, path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(items, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  %Equal.sym(List<&2, String>, order, ready_capture_reference_paths(items), aligned):
+    {ActualFrame.captured(History.retain_string(_, path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(items, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}
+  ready_capture_publication_recursive(items, entries, sources, path, source, catalog, bytes, rows, valid,
+    Equal.trans(Bool, Nat.is_le(ActualFrame.string_count(ready_capture_reference_paths(items), path), 1n), Nat.is_le(ActualFrame.string_count(order, path), 1n), True{},
+      Equal.cong(List<&2, String>, Bool, keys => Nat.is_le(ActualFrame.string_count(keys, path), 1n), ready_capture_reference_paths(items), order,
+        Equal.sym(List<&2, String>, order, ready_capture_reference_paths(items), aligned)), unique_query_bound(order, path, unique)),
+    Equal.trans(Maybe<&2, List<&2, V.CapturedEntry>>, ActualFrame.captured(ready_capture_reference_paths(items), entries, sources), ActualFrame.captured(order, entries, sources), Some{rows},
+      Equal.cong(List<&2, String>, Maybe<&2, List<&2, V.CapturedEntry>>, keys => ActualFrame.captured(keys, entries, sources), ready_capture_reference_paths(items), order,
+        Equal.sym(List<&2, String>, order, ready_capture_reference_paths(items), aligned)), actual), reference)
+
+def ready_capture_publication(+order: List<&2, String>, +items: List<&2, X.Captured>, +entries: Map<&2, Maybe<&2, T.CapturedFacts>>,
+    +sources: List<&2, V.CaptureSource>, +path: String, +source: T.SourceFacts, +catalog: RootSpec.Source, +bytes: Nat, +rows: List<&2, V.CapturedEntry>,
+    valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, entries) == True{} : Bool},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    +actual: {ActualFrame.captured(order, entries, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    +reference: {ReferenceFrame.captured(items, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ActualFrame.captured(History.retain_string(order, path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(items, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  ready_capture_publication_aligned(order, items, entries, sources, path, source, catalog, bytes, rows, valid, unique,
+    ready_capture_paths_exact(order, items, entries, sources, rows, actual, reference), actual, reference)
+
+def ready_capture_order(order: V.Order) -> List<&2, String>:
+  match order:
+    case V.Order{_, _, _, captured, _, _}: captured
+
+def ready_capture_unique_order(+order: V.Order, valid: {ActualFrame.order_valid(order) == True{} : Bool}) ->
+    {ActualFrame.strings_unique(ready_capture_order(order), ready_capture_order(order)) == True{} : Bool}:
+  match order:
+    case V.Order{+pending, +targets, +ids, +captured, +identities, +visited}:
+      BoolFacts.eq_true_of_and_left(ActualFrame.strings_unique(captured, captured), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited)), BoolFacts.eq_true_of_and_right(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured, captured), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited))), BoolFacts.eq_true_of_and_right(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured, captured), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited)))), BoolFacts.eq_true_of_and_right(ActualFrame.nats_unique(pending, pending), Bool.and(ActualFrame.nats_unique(targets, targets), Bool.and(ActualFrame.strings_unique(ids, ids), Bool.and(ActualFrame.strings_unique(captured, captured), Bool.and(ActualFrame.nats_unique(identities, identities), ActualFrame.strings_unique(visited, visited))))), valid))))
+
+def ready_capture_canonical(+frame: T.ResolverFrame,
+    valid: {ActualReady.mutable_maps_canonical(frame) == True{} : Bool}) ->
+    {Patricia.canonical(Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)) == True{} : Bool}:
+  BoolFacts.eq_true_of_and_left(Patricia.canonical(Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)),
+    Patricia.canonical(Maybe<&2, String>, S.frame_target_artifacts(frame)),
+    BoolFacts.eq_true_of_and_right(Patricia.canonical(Maybe<&2, Local.Pending>, S.frame_pending(frame)),
+      Bool.and(Patricia.canonical(Maybe<&2, T.CapturedFacts>, S.frame_captured(frame)),
+        Patricia.canonical(Maybe<&2, String>, S.frame_target_artifacts(frame))), valid))
+
+def ready_capture_publication_guarded(+frame: T.ResolverFrame, +order: V.Order, +items: List<&2, X.Captured>,
+    +sources: List<&2, V.CaptureSource>, +path: String, +source: T.SourceFacts, +catalog: RootSpec.Source, +bytes: Nat, +rows: List<&2, V.CapturedEntry>,
+    canonical: {ActualReady.mutable_maps_canonical(frame) == True{} : Bool},
+    coverage: {ActualFrame.coverage(order, frame) == True{} : Bool},
+    actual: {ActualFrame.captured(ready_capture_order(order), S.frame_captured(frame), sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    reference: {ReferenceFrame.captured(items, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ActualFrame.captured(History.retain_string(ready_capture_order(order), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame), path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.publish_capture(X.FileChild{path}, items, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  ready_capture_publication(ready_capture_order(order), items, S.frame_captured(frame), sources, path, source, catalog, bytes, rows,
+    ready_capture_canonical(frame, canonical), ready_capture_unique_order(order, ready_coverage_order(order, frame, coverage)), actual, reference)
+
+def ready_capture_published_map(+frame: T.ResolverFrame, +target: Nat, +path: String, +file: T.CapturedFacts, +identity: String, +plan: Local.Plan) ->
+    {S.frame_captured(Admission.publish_child(False{}, frame, target, path, file, identity, plan))
+      == Map.set(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame), path, Some{file}) : Map<&2, Maybe<&2, T.CapturedFacts>>}:
+  match frame:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: {==}
+
+def ready_capture_published_actual(+frame: T.ResolverFrame, +order: V.Order, +items: List<&2, X.Captured>,
+    +sources: List<&2, V.CaptureSource>, +path: String, +source: T.SourceFacts, +catalog: RootSpec.Source, +bytes: Nat,
+    +target: Nat, +identity: String, +plan: Local.Plan, +rows: List<&2, V.CapturedEntry>,
+    canonical: {ActualReady.mutable_maps_canonical(frame) == True{} : Bool},
+    coverage: {ActualFrame.coverage(order, frame) == True{} : Bool},
+    actual: {ActualFrame.captured(ready_capture_order(order), S.frame_captured(frame), sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    reference: {ReferenceFrame.captured(items, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ActualFrame.captured(History.retain_string(ready_capture_order(order), path), S.frame_captured(Admission.publish_child(False{}, frame, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan)), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.publish_capture(X.FileChild{path}, items, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  Equal.trans(Maybe<&2, List<&2, V.CapturedEntry>>, ActualFrame.captured(History.retain_string(ready_capture_order(order), path), S.frame_captured(Admission.publish_child(False{}, frame, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan)), History.store_capture(sources, path, source, catalog)), ActualFrame.captured(History.retain_string(ready_capture_order(order), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame), path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)), ReferenceFrame.captured(X.publish_capture(X.FileChild{path}, items, source, bytes), History.store_capture(sources, path, source, catalog)),
+    Equal.cong(Map<&2, Maybe<&2, T.CapturedFacts>>, Maybe<&2, List<&2, V.CapturedEntry>>, entries => ActualFrame.captured(History.retain_string(ready_capture_order(order), path), entries, History.store_capture(sources, path, source, catalog)),
+      S.frame_captured(Admission.publish_child(False{}, frame, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan)), Map.set(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame), path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), ready_capture_published_map(frame, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan)),
+    ready_capture_publication_guarded(frame, order, items, sources, path, source, catalog, bytes, rows, canonical, coverage, actual, reference))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
