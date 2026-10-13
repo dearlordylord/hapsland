@@ -45,6 +45,7 @@ import ./AttachmentHistory.bend as History
 import ../Types.bend as T
 import ../State.bend as S
 import ../Loop.bend as Loop
+import ../LoopPolicy.bend as LoopPolicy
 import ../Machine.bend as Machine
 import ../Protocol.bend as Protocol
 import ../GraphSpecification.bend as GraphReference
@@ -11091,6 +11092,97 @@ def ready_reference_iteration_boundary(-World: Data, +state: D.State, +child: X.
       Equal.cong(Maybe<&2, V.Frame>, Maybe<&2, B.Boundary>, value => ReferenceBoundaryView.selected(Some{T.Request{invocation, next, T.ReadClock{clock}}}, value, B.CheckingIteration{ReferenceBoundaryView.allocated(ReferenceReady.capsule(ready_reference_iteration_state(state, remaining), child))}),
         ReferenceFrame.project(ready_reference_iteration_state(state, remaining), history), Some{view},
         Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(ready_reference_iteration_state(state, remaining), history), ReferenceFrame.project(state, history), Some{view}, ready_reference_iteration_project(state, history, remaining), ready))
+
+def ready_actual_iteration_parts(+state: T.ResolverState, +history: V.History,
+    +clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>,
+    +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>) -> Maybe<&2, B.Boundary>:
+  match state:
+    case T.ResolverState{_, _, _, _, 0n, _, _, _, _, _, _, _, _}:
+      ActualBoundary.finished(None{}, ActualBoundary.frame(S.state_frame(state), history))
+    case T.ResolverState{T.ResolverInput{invocation, _, _, _, _, _, _, _, _}, _, _, +next, 1n++remaining, _, _, _, _, _, _, _, _}:
+      match clock:
+        case None{}: Some{B.Failed{T.MalformedReply{}}}
+        case Some{+value}:
+          ActualBoundary.selected(T.Request{invocation, next, T.ReadClock{value}},
+            ActualBoundary.frame(S.state_frame(state), history),
+            ActualBoundary.iteration(ActualReady.capsule(clock, language, active, edge,
+              S.with_state_next_request(S.with_state_stage(S.with_state_iteration_fuel(state, remaining), T.CheckingIterationDeadline{}), (next + 1n : Nat)))))
+
+def ready_actual_iteration_parts_exact(+state: T.ResolverState, +history: V.History) ->
+    {ActualBoundary.project(LoopPolicy.start(state), history) == ready_actual_iteration_parts(state, history,
+      S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)),
+      ActualBoundary.ready_edge(S.scratch_pending_edge(S.state_scratch(state)), ready_history_addresses(history))) : Maybe<&2, B.Boundary>}:
+  match state history:
+    case T.ResolverState{_, _, _, _, 0n, _, _, _, _, _, _, _, _} V.History{_, _, _, _, _, _, _}: {==}
+    case T.ResolverState{T.ResolverInput{_, _, _, _, _, _, _, _, _}, _, None{}, _, 1n++_, _, _, _, _, _, _, _, _} V.History{_, _, _, _, _, _, _}: {==}
+    case T.ResolverState{T.ResolverInput{_, _, _, _, _, _, _, _, _}, _, Some{_}, _, 1n++_, _, _, _, _, _, _, _, _} V.History{_, _, _, _, _, _, _}: {==}
+
+def ready_iteration_observed(frame: Maybe<&2, V.Frame>, capsule: Phase.Capsule) -> Maybe<&2, B.Boundary>:
+  match capsule:
+    case Phase.Capsule{_, _, _, _, _, _, _, 0n, _, _, _}: ActualBoundary.finished(None{}, frame)
+    case Phase.Capsule{+invocation, path, language, context, +clock, cache, +next, 1n++remaining, target, edge, fingerprint}:
+      ActualBoundary.selected(T.Request{invocation, next, T.ReadClock{clock}}, frame,
+        Some{B.CheckingIteration{Phase.Capsule{invocation, path, language, context, clock, cache, (next + 1n : Nat), remaining, target, edge, fingerprint}}})
+
+def ready_actual_iteration_capsule(+clock: Maybe<&2, T.ClockToken>, +language: Maybe<&2, T.Language>,
+    +active: Maybe<&2, Nat>, +edge: Maybe<&2, V.PendingPayload>, +state: T.ResolverState, +history: V.History, +capsule: Phase.Capsule,
+    ready: {ActualReady.capsule(clock, language, active, edge, state) == Some{capsule} : Maybe<&2, Phase.Capsule>}) ->
+    {ready_actual_iteration_parts(state, history, clock, language, active, edge) == ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), capsule) : Maybe<&2, B.Boundary>}:
+  match clock language active edge state:
+    case Some{clock_value} Some{+language_value} Some{active_value} Some{edge_value}
+      T.ResolverState{T.ResolverInput{+invocation, path, _, _, _, _, branch, cache, _}, _, _, +next, 0n, _, _, rust, _, _, _, _, _}:
+      %Count.some_equal(Phase.Capsule,
+        Phase.Capsule{invocation, path, language_value, ActualReady.context(language_value, branch, rust), clock_value, cache, next, 0n, active_value, edge_value, ActualReady.fingerprint(S.state_prepared(state))}, capsule, ready):
+        {ready_actual_iteration_parts(state, history, clock, language, active, edge) == ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), _) : Maybe<&2, B.Boundary>}
+      {==}
+    case Some{clock_value} Some{+language_value} Some{active_value} Some{edge_value}
+      T.ResolverState{T.ResolverInput{+invocation, path, _, _, _, _, branch, cache, _}, _, _, +next, 1n+++remaining, _, _, rust, _, _, _, _, _}:
+      %Count.some_equal(Phase.Capsule,
+        Phase.Capsule{invocation, path, language_value, ActualReady.context(language_value, branch, rust), clock_value, cache, next, S.state_iteration_fuel(state), active_value, edge_value, ActualReady.fingerprint(S.state_prepared(state))}, capsule, ready):
+        {ready_actual_iteration_parts(state, history, clock, language, active, edge) == ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), _) : Maybe<&2, B.Boundary>}
+      {==}
+    case None{} _ _ _ _:
+      Empty.absurd({ready_actual_iteration_parts(state, history, clock, language, active, edge) == ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), capsule) : Maybe<&2, B.Boundary>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} None{} _ _ _:
+      Empty.absurd({ready_actual_iteration_parts(state, history, clock, language, active, edge) == ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), capsule) : Maybe<&2, B.Boundary>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} Some{_} None{} _ _:
+      Empty.absurd({ready_actual_iteration_parts(state, history, clock, language, active, edge) == ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), capsule) : Maybe<&2, B.Boundary>}, Contents.none_some(Phase.Capsule, capsule, ready))
+    case Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd({ready_actual_iteration_parts(state, history, clock, language, active, edge) == ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), capsule) : Maybe<&2, B.Boundary>}, Contents.none_some(Phase.Capsule, capsule, ready))
+
+def ready_iteration_observed_some(+view: V.Frame, +capsule: Phase.Capsule) ->
+    {ready_iteration_observed(Some{view}, capsule) == Some{ready_iteration_boundary(view, capsule)} : Maybe<&2, B.Boundary>}:
+  match capsule:
+    case Phase.Capsule{_, _, _, _, _, _, _, 0n, _, _, _}: {==}
+    case Phase.Capsule{_, _, _, _, _, _, _, 1n++_, _, _, _}: {==}
+
+def ready_actual_iteration_boundary(+state: T.ResolverState, +history: V.History, +view: V.Frame, +capsule: Phase.Capsule,
+    frame: {ActualBoundary.frame(S.state_frame(state), history) == Some{view} : Maybe<&2, V.Frame>},
+    ready: {ActualBoundary.capsule(state, history) == Some{capsule} : Maybe<&2, Phase.Capsule>}) ->
+    {ActualBoundary.project(LoopPolicy.start(state), history) == Some{ready_iteration_boundary(view, capsule)} : Maybe<&2, B.Boundary>}:
+  match history:
+    case V.History{+addresses, _, _, _, _, _, _}:
+      Equal.trans(Maybe<&2, B.Boundary>, ActualBoundary.project(LoopPolicy.start(state), history),
+        ready_actual_iteration_parts(state, history, S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), ActualBoundary.ready_edge(S.scratch_pending_edge(S.state_scratch(state)), addresses)),
+        Some{ready_iteration_boundary(view, capsule)}, ready_actual_iteration_parts_exact(state, history),
+        Equal.trans(Maybe<&2, B.Boundary>,
+          ready_actual_iteration_parts(state, history, S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), ActualBoundary.ready_edge(S.scratch_pending_edge(S.state_scratch(state)), addresses)),
+          ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), capsule),
+          Some{ready_iteration_boundary(view, capsule)},
+          ready_actual_iteration_capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), ActualBoundary.ready_edge(S.scratch_pending_edge(S.state_scratch(state)), addresses), state, history, capsule, ready),
+          Equal.trans(Maybe<&2, B.Boundary>, ready_iteration_observed(ActualBoundary.frame(S.state_frame(state), history), capsule), ready_iteration_observed(Some{view}, capsule), Some{ready_iteration_boundary(view, capsule)},
+            Equal.cong(Maybe<&2, V.Frame>, Maybe<&2, B.Boundary>, value => ready_iteration_observed(value, capsule), ActualBoundary.frame(S.state_frame(state), history), Some{view}, frame),
+            ready_iteration_observed_some(view, capsule))))
+
+def ready_common_iteration_boundary(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +history: V.History, +view: V.Frame, +world: E.WorldState<World>,
+    actual_frame: {ActualBoundary.frame(S.state_frame(actual), history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_frame: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>}) ->
+    {ActualBoundary.project(LoopPolicy.start(actual), history) == Some{ready_iteration_boundary(view, ReferenceReady.capsule(reference, child))} : Maybe<&2, B.Boundary>} &
+    {ReferenceBoundaryView.project(World, D.consumed(World, D.iteration(reference), world), child, history) == Some{ready_iteration_boundary(view, ReferenceReady.capsule(reference, child))} : Maybe<&2, B.Boundary>}:
+  Tuple{ready_actual_iteration_boundary(actual, history, view, ReferenceReady.capsule(reference, child), actual_frame, capsule),
+    ready_reference_iteration_boundary(World, reference, child, history, view, world, reference_frame)}
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
