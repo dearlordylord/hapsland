@@ -2,7 +2,7 @@ import Base
 import ../Canonical.bend as C
 import ../Ledger.bend as Ledger
 
-# Prototype composition with the actual Canonical state. No source/session types.
+# Child execution composition with the actual Canonical state. No source/session types.
 # A preparation operation owns multiple independently fenced resolver invocations.
 type AdvicePermission is Data:
   TailNew{}
@@ -29,12 +29,34 @@ type AfterSourcePermission is Data:
   AfterRecoveryRuntime{}
   AfterRecoveryActivity{}
 type Scope is Data:
+  SettingsScope{operation: Nat}
   Scope{partition: Nat, lifetime: Nat, round: Nat, preparation: Nat}
-  SourceScope{partition: Nat, lifetime: Nat, round: Nat, observation: Nat, permission: SourcePermission}
-  AfterSourceScope{partition: Nat, lifetime: Nat, round: Nat, observation: Nat, barrier_request: Nat, barrier_generation: Nat, permission: AfterSourcePermission}
+  SourceScope{
+    partition: Nat,
+    lifetime: Nat,
+    round: Nat,
+    observation: Nat,
+    permission: SourcePermission
+  }
+  AfterSourceScope{
+    partition: Nat,
+    lifetime: Nat,
+    round: Nat,
+    observation: Nat,
+    barrier_request: Nat,
+    barrier_generation: Nat,
+    permission: AfterSourcePermission
+  }
   PreparationScope{partition: Nat, lifetime: Nat, round: Nat, preparation: Nat}
   RetainingScope{partition: Nat, lifetime: Nat, round: Nat, observation: Nat, origin: Nat}
-  AdviceTailScope{partition: Nat, lifetime: Nat, round: Nat, operation: Nat, origin: Nat, permission: AdvicePermission}
+  AdviceTailScope{
+    partition: Nat,
+    lifetime: Nat,
+    round: Nat,
+    operation: Nat,
+    origin: Nat,
+    permission: AdvicePermission
+  }
 type Phase is Data:
   ChildInstalling{}
   ChildReady{}
@@ -53,7 +75,12 @@ type State is Data:
   State{canonical: C.State, next_invocation: Nat, next_lease: Nat, children: List<&2, Child>}
 type Action is Data:
   Launch{invocation: Nat, input_handle: Nat}
-  LaunchPostPreparation{invocation: Nat, preparation_invocation: Nat, result_handle: Nat, scope: Scope}
+  LaunchPostPreparation{
+    invocation: Nat,
+    preparation_invocation: Nat,
+    result_handle: Nat,
+    scope: Scope
+  }
   LaunchAdviceTail{invocation: Nat, origin: Nat, operation: Nat, input_handle: Nat}
   ExecuteProvider{invocation: Nat, lease: Nat, request: Nat, state_handle: Nat}
   Resume{invocation: Nat, generation: Nat, state_handle: Nat, reply_handle: Nat}
@@ -80,7 +107,12 @@ def observation_live(found: Maybe<&2, C.Work>) -> Bool:
     case Some{C.Work{_, _, _, _, _, C.SourceReading{}, _}}: True{}
     case _: False{}
 
-def preparing_live(canonical: C.State, +scope: Scope, found: Maybe<&2, C.Work>, current: Maybe<&2, C.Round>) -> Bool:
+def preparing_live(
+  canonical: C.State,
+  +scope: Scope,
+  found: Maybe<&2, C.Work>,
+  current: Maybe<&2, C.Round>
+) -> Bool:
   match canonical scope found current:
     case C.State{_, _, work, _, _, _, _, _, _} Scope{+partition, +lifetime, +round, _}
         Some{C.Work{_, _, _, _, _, C.Preparing{}, observation}} Some{current}:
@@ -90,22 +122,57 @@ def preparing_live(canonical: C.State, +scope: Scope, found: Maybe<&2, C.Work>, 
 
 def resolver_scope(scope: Scope) -> Scope:
   match scope:
-    case Scope{partition, lifetime, round, preparation}: Scope{partition, lifetime, round, preparation}
-    case PreparationScope{partition, lifetime, round, preparation}: Scope{partition, lifetime, round, preparation}
+    case SettingsScope{operation}: SettingsScope{operation}
+    case Scope{partition, lifetime, round, preparation}: Scope{
+      partition,
+      lifetime,
+      round,
+      preparation
+    }
+    case PreparationScope{partition, lifetime, round, preparation}: Scope{
+      partition,
+      lifetime,
+      round,
+      preparation
+    }
     case RetainingScope{partition, lifetime, round, _, _}: Scope{partition, lifetime, round, 0n}
     case SourceScope{partition, lifetime, round, _, _}: Scope{partition, lifetime, round, 0n}
-    case AfterSourceScope{partition, lifetime, round, _, _, _, _}: Scope{partition, lifetime, round, 0n}
+    case AfterSourceScope{partition, lifetime, round, _, _, _, _}: Scope{
+      partition,
+      lifetime,
+      round,
+      0n
+    }
     case AdviceTailScope{partition, lifetime, round, _, _, _}: Scope{partition, lifetime, round, 0n}
 
-def source_live(current: Maybe<&2, C.Round>, partition: Nat, lifetime: Nat, round: Nat, found: Maybe<&2, C.Work>) -> Bool:
+def source_live(
+  current: Maybe<&2, C.Round>,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  found: Maybe<&2, C.Work>
+) -> Bool:
   match current:
-    case Some{value}: Bool.and(C.same_round(partition, lifetime, round, value), observation_live(found))
+    case Some{value}: Bool.and(
+      C.same_round(partition, lifetime, round, value),
+      observation_live(found)
+    )
     case None{}: False{}
 
 def live_preparing(+canonical: C.State, +scope: Scope) -> Bool:
   match canonical scope:
-    case C.State{_, rounds, work, _, _, _, _, _, _} Scope{+partition, +lifetime, +round, preparation}:
-      preparing_live(canonical, scope, C.find_work(partition, lifetime, round, preparation, work), C.find_round(partition, rounds))
+    case C.State{_, rounds, work, _, _, _, _, _, _} Scope{
+      +partition,
+      +lifetime,
+      +round,
+      preparation
+    }:
+      preparing_live(
+        canonical,
+        scope,
+        C.find_work(partition, lifetime, round, preparation, work),
+        C.find_round(partition, rounds)
+      )
     case _ _: False{}
 
 def source_pending_permission(permission: SourcePermission) -> Bool:
@@ -118,23 +185,58 @@ def source_pending_permission(permission: SourcePermission) -> Bool:
 
 def source_stage_live(permission: SourcePermission, found: Maybe<&2, C.Work>) -> Bool:
   match found:
-    case Some{C.Work{_, _, _, _, 0n, C.AwaitingSourceRead{}, _}}: source_pending_permission(permission)
+    case Some{C.Work{_, _, _, _, 0n, C.AwaitingSourceRead{}, _}}: source_pending_permission(
+      permission
+    )
     case Some{C.Work{_, _, _, _, 0n, C.SourceReading{}, _}}: True{}
     case _: False{}
 
-def source_scope_live(current: Maybe<&2, C.Round>, p: Nat, l: Nat, r: Nat, permission: SourcePermission, found: Maybe<&2, C.Work>) -> Bool:
+def source_scope_live(
+  current: Maybe<&2, C.Round>,
+  p: Nat,
+  l: Nat,
+  r: Nat,
+  permission: SourcePermission,
+  found: Maybe<&2, C.Work>
+) -> Bool:
   match current:
     case Some{value}: Bool.and(C.same_round(p, l, r, value), source_stage_live(permission, found))
     case None{}: False{}
 
 def live(+canonical: C.State, scope: Scope) -> Bool:
   match canonical scope:
+    case _ SettingsScope{_}: False{}
     case _ AdviceTailScope{_, _, _, _, _, _}: True{}
     case _ AfterSourceScope{_, _, _, _, _, _, _}: True{}
-    case C.State{_, rounds, work, _, _, _, _, _, _} SourceScope{+partition, +lifetime, +round, observation, permission}:
-      source_scope_live(C.find_round(partition, rounds), partition, lifetime, round, permission, C.find_work(partition, lifetime, round, observation, work))
-    case C.State{_, rounds, work, _, _, _, _, _, _} RetainingScope{+partition, +lifetime, +round, observation, _}:
-      source_live(C.find_round(partition, rounds), partition, lifetime, round, C.find_work(partition, lifetime, round, observation, work))
+    case C.State{_, rounds, work, _, _, _, _, _, _} SourceScope{
+      +partition,
+      +lifetime,
+      +round,
+      observation,
+      permission
+    }:
+      source_scope_live(
+        C.find_round(partition, rounds),
+        partition,
+        lifetime,
+        round,
+        permission,
+        C.find_work(partition, lifetime, round, observation, work)
+      )
+    case C.State{_, rounds, work, _, _, _, _, _, _} RetainingScope{
+      +partition,
+      +lifetime,
+      +round,
+      observation,
+      _
+    }:
+      source_live(
+        C.find_round(partition, rounds),
+        partition,
+        lifetime,
+        round,
+        C.find_work(partition, lifetime, round, observation, work)
+      )
     case _ other: live_preparing(canonical, resolver_scope(other))
 
 def active(phase: Phase) -> Bool:
@@ -199,8 +301,16 @@ def child_scope_value(child: Child) -> Scope:
 
 def parent_matches(parent: Parent, found: Maybe<&2, Child>) -> Bool:
   match parent found:
-    case Parent{invocation, generation, request} Some{Child{_, actual, current, _, ChildAwaiting{}, Some{+pending}, Some{Lease{_, leased}}, _}}:
-      Bool.and(Nat.is_eq(invocation, actual), Bool.and(Nat.is_eq(generation, current), Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))))
+    case Parent{invocation, generation, request} Some{
+      Child{_, actual, current, _, ChildAwaiting{}, Some{+pending}, Some{Lease{_, leased}}, _}
+    }:
+      Bool.and(
+        Nat.is_eq(invocation, actual),
+        Bool.and(
+          Nat.is_eq(generation, current),
+          Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))
+        )
+      )
     case _ _: False{}
 
 def found_parent(found: Maybe<&2, Child>) -> Maybe<&2, Parent>:
@@ -211,7 +321,11 @@ def found_parent(found: Maybe<&2, Child>) -> Maybe<&2, Parent>:
 # Walk the closed ancestor chain with a structural child-list bound. A malformed
 # cyclic ancestry never yields authority, and cancellation reaches every depth
 # in the same reconciliation rather than one generation of parents per commit.
-def parent_chain_live(fuel: List<&2, Child>, parent: Maybe<&2, Parent>, +children: List<&2, Child>) -> Bool:
+def parent_chain_live(
+  fuel: List<&2, Child>,
+  parent: Maybe<&2, Parent>,
+  +children: List<&2, Child>
+) -> Bool:
   match fuel parent:
     case _ None{}: True{}
     case Nil{} Some{_}: False{}
@@ -226,27 +340,94 @@ def child_parent(child: Child) -> Maybe<&2, Parent>:
   match child:
     case Child{_, _, _, _, _, _, _, parent}: parent
 
+# Settings operations are issued with their child by launch_settings. A supplied
+# Scope alone is not authority; only the matching current active child is live.
+def settings_current(
+  +operation: Nat,
+  +invocation: Nat,
+  generation: Nat,
+  found: Maybe<&2, Child>
+) -> Bool:
+  match found:
+    case Some{Child{SettingsScope{actual}, current, epoch, _, phase, _, _, None{}}}:
+      Bool.and(
+        Nat.is_eq(operation, invocation),
+        Bool.and(
+          Nat.is_eq(operation, actual),
+          Bool.and(
+            Nat.is_eq(invocation, current),
+            Bool.and(Nat.is_eq(generation, epoch), active(phase))
+          )
+        )
+      )
+    case _: False{}
+
+def child_scope_live(+canonical: C.State, +children: List<&2, Child>, child: Child) -> Bool:
+  match child:
+    case Child{SettingsScope{operation}, +invocation, generation, _, _, _, _, _}:
+      settings_current(operation, invocation, generation, find(invocation, children))
+    case other: live(canonical, child_scope_value(other))
+
 def child_live(+canonical: C.State, +children: List<&2, Child>, +child: Child) -> Bool:
-  Bool.and(live(canonical, child_scope_value(child)), parent_live(child_parent(child), children))
+  Bool.and(child_scope_live(canonical, children, child), parent_live(child_parent(child), children))
 
 # A provider permit authorizes only its exact current await and generation.
 # This predicate is evaluated against the resident draft inside its mutation commit.
-def provider_permit_matches(invocation: Nat, generation: Nat, lease: Nat, request: Nat, child: Child) -> Bool:
+def provider_permit_matches(
+  invocation: Nat,
+  generation: Nat,
+  lease: Nat,
+  request: Nat,
+  child: Child
+) -> Bool:
   match child:
     case Child{_, actual, current, _, ChildAwaiting{}, Some{+pending}, Some{Lease{id, leased}}, _}:
-      Bool.and(Nat.is_eq(invocation, actual), Bool.and(Nat.is_eq(generation, current),
-        Bool.and(Nat.is_eq(lease, id), Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased)))))
+      Bool.and(
+        Nat.is_eq(invocation, actual),
+        Bool.and(
+          Nat.is_eq(generation, current),
+          Bool.and(
+            Nat.is_eq(lease, id),
+            Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))
+          )
+        )
+      )
     case _: False{}
 
-def provider_permit_found(+canonical: C.State, +children: List<&2, Child>, invocation: Nat, generation: Nat, lease: Nat, request: Nat, found: Maybe<&2, Child>) -> Bool:
+def provider_permit_found(
+  +canonical: C.State,
+  +children: List<&2, Child>,
+  invocation: Nat,
+  generation: Nat,
+  lease: Nat,
+  request: Nat,
+  found: Maybe<&2, Child>
+) -> Bool:
   match found:
-    case Some{+child}: Bool.and(provider_permit_matches(invocation, generation, lease, request, child), child_live(canonical, children, child))
+    case Some{+child}: Bool.and(
+      provider_permit_matches(invocation, generation, lease, request, child),
+      child_live(canonical, children, child)
+    )
     case None{}: False{}
 
-def provider_live(+state: State, +invocation: Nat, generation: Nat, lease: Nat, request: Nat) -> Bool:
+def provider_live(
+  +state: State,
+  +invocation: Nat,
+  generation: Nat,
+  lease: Nat,
+  request: Nat
+) -> Bool:
   match state:
     case State{canonical, _, _, +children}:
-      provider_permit_found(canonical, children, invocation, generation, lease, request, find(invocation, children))
+      provider_permit_found(
+        canonical,
+        children,
+        invocation,
+        generation,
+        lease,
+        request,
+        find(invocation, children)
+      )
 
 def preparation_scope_kind(scope: Scope) -> Bool:
   match scope:
@@ -261,7 +442,9 @@ def validity_needed(phase: Phase, scope: Scope) -> Bool:
 def invalidate(+canonical: C.State, +children: List<&2, Child>, +child: Child) -> ChildUpdate:
   match child:
     case Child{scope, _, _, _, +phase, _, _, _}: invalidate_live(
-      Bool.or(Bool.not(validity_needed(phase, scope)), child_live(canonical, children, child)), child)
+      Bool.or(Bool.not(validity_needed(phase, scope)), child_live(canonical, children, child)),
+      child
+    )
 
 type Invalidated is Data:
   Invalidated{children: List<&2, Child>, actions: List<&2, Action>}
@@ -271,10 +454,17 @@ def invalidate_join(head: ChildUpdate, tail: Invalidated) -> Invalidated:
     case ChildUpdate{child, actions} Invalidated{children, remaining}:
       Invalidated{child <> children, List.append(&2, Action, actions, remaining)}
 
-def invalidate_scan(+canonical: C.State, +all: List<&2, Child>, children: List<&2, Child>) -> Invalidated:
+def invalidate_scan(
+  +canonical: C.State,
+  +all: List<&2, Child>,
+  children: List<&2, Child>
+) -> Invalidated:
   match children:
     case Nil{}: Invalidated{Nil{}, Nil{}}
-    case child <> rest: invalidate_join(invalidate(canonical, all, child), invalidate_scan(canonical, all, rest))
+    case child <> rest: invalidate_join(
+      invalidate(canonical, all, child),
+      invalidate_scan(canonical, all, rest)
+    )
 
 def invalidate_all(canonical: C.State, +children: List<&2, Child>) -> Invalidated:
   invalidate_scan(canonical, children, children)
@@ -287,7 +477,12 @@ def state_canonical(state: State) -> C.State:
   match state:
     case State{canonical, _, _, _}: canonical
 
-def installed_canonical(state: State, canonical: C.State, outputs: List<&2, C.Output>, invalidated: Invalidated) -> Step:
+def installed_canonical(
+  state: State,
+  canonical: C.State,
+  outputs: List<&2, C.Output>,
+  invalidated: Invalidated
+) -> Step:
   match state invalidated:
     case State{_, next_invocation, next_lease, _} Invalidated{children, actions}:
       Advanced{State{canonical, next_invocation, next_lease, children}, outputs, actions}
@@ -303,16 +498,55 @@ def canonical_event(+state: State, event: C.CanonicalEvent) -> Step:
 
 def source_completed_result(+state: State, child: Child, result: C.Step) -> Step:
   match state child result:
-    case State{_, next_invocation, next_lease, children} Child{SourceScope{p, l, r, o, SourceObservation{}}, +invocation, +generation, handle, phase, Some{+request}, lease, parent} C.Advanced{+canonical, outputs}:
-      +continued = replace(invocation, children, Child{AfterSourceScope{p, l, r, o, Nat.add(request, 1n), Nat.add(generation, 1n), AfterNewBarrier{}}, invocation, generation, handle, phase, Some{request}, lease, parent})
-      installed_canonical(State{canonical, next_invocation, next_lease, continued}, canonical, outputs, invalidate_all(canonical, continued))
+    case State{_, next_invocation, next_lease, children} Child{
+      SourceScope{p, l, r, o, SourceObservation{}},
+      +invocation,
+      +generation,
+      handle,
+      phase,
+      Some{+request},
+      lease,
+      parent
+    } C.Advanced{+canonical, outputs}:
+      +continued = replace(
+        invocation,
+        children,
+        Child{
+          AfterSourceScope{
+            p,
+            l,
+            r,
+            o,
+            Nat.add(request, 1n),
+            Nat.add(generation, 1n),
+            AfterNewBarrier{}
+          },
+          invocation,
+          generation,
+          handle,
+          phase,
+          Some{request},
+          lease,
+          parent
+        }
+      )
+      installed_canonical(
+        State{canonical, next_invocation, next_lease, continued},
+        canonical,
+        outputs,
+        invalidate_all(canonical, continued)
+      )
     case _ _ C.Rejected{_, reason}: Rejected{state, CanonicalRejected{reason}}
     case _ _ _: Rejected{state, WrongPhase{}}
 
 def source_completed_allowed(valid: Bool, +state: State, +child: Child) -> Step:
   match valid child:
     case True{} Child{SourceScope{p, l, r, o, SourceObservation{}}, _, _, _, _, _, _, _}:
-      source_completed_result(state, child, C.step(state_canonical(state), C.CompleteObservation{p, l, r, o}))
+      source_completed_result(
+        state,
+        child,
+        C.step(state_canonical(state), C.CompleteObservation{p, l, r, o})
+      )
     case _ _: Rejected{state, WrongPhase{}}
 
 def source_completed_found(valid: Bool, state: State, found: Maybe<&2, Child>) -> Step:
@@ -320,21 +554,62 @@ def source_completed_found(valid: Bool, state: State, found: Maybe<&2, Child>) -
     case Some{child}: source_completed_allowed(valid, state, child)
     case None{}: Rejected{state, UnknownInvocation{}}
 
-def complete_source_observation(+state: State, +invocation: Nat, generation: Nat, lease: Nat, request: Nat) -> Step:
-  source_completed_found(provider_live(state, invocation, generation, lease, request), state, find(invocation, state_children(state)))
+def complete_source_observation(
+  +state: State,
+  +invocation: Nat,
+  generation: Nat,
+  lease: Nat,
+  request: Nat
+) -> Step:
+  source_completed_found(
+    provider_live(state, invocation, generation, lease, request),
+    state,
+    find(invocation, state_children(state))
+  )
 
 def source_started_result(+state: State, child: Child, result: C.Step) -> Step:
   match state child result:
-    case State{_, next_invocation, next_lease, children} Child{SourceScope{p, l, r, o, SourceStartObservation{}}, +invocation, generation, handle, phase, request, lease, parent} C.Advanced{+canonical, outputs}:
-      +continued = replace(invocation, children, Child{SourceScope{p, l, r, o, SourceGate{}}, invocation, generation, handle, phase, request, lease, parent})
-      installed_canonical(State{canonical, next_invocation, next_lease, continued}, canonical, outputs, invalidate_all(canonical, continued))
+    case State{_, next_invocation, next_lease, children} Child{
+      SourceScope{p, l, r, o, SourceStartObservation{}},
+      +invocation,
+      generation,
+      handle,
+      phase,
+      request,
+      lease,
+      parent
+    } C.Advanced{+canonical, outputs}:
+      +continued = replace(
+        invocation,
+        children,
+        Child{
+          SourceScope{p, l, r, o, SourceGate{}},
+          invocation,
+          generation,
+          handle,
+          phase,
+          request,
+          lease,
+          parent
+        }
+      )
+      installed_canonical(
+        State{canonical, next_invocation, next_lease, continued},
+        canonical,
+        outputs,
+        invalidate_all(canonical, continued)
+      )
     case _ _ C.Rejected{_, reason}: Rejected{state, CanonicalRejected{reason}}
     case _ _ _: Rejected{state, WrongPhase{}}
 
 def source_started_allowed(valid: Bool, +state: State, +child: Child) -> Step:
   match valid child:
     case True{} Child{SourceScope{p, l, r, o, SourceStartObservation{}}, _, _, _, _, _, _, _}:
-      source_started_result(state, child, C.step(state_canonical(state), C.StartObservation{p, l, r, o}))
+      source_started_result(
+        state,
+        child,
+        C.step(state_canonical(state), C.StartObservation{p, l, r, o})
+      )
     case _ _: Rejected{state, WrongPhase{}}
 
 def source_started_found(valid: Bool, state: State, found: Maybe<&2, Child>) -> Step:
@@ -342,26 +617,74 @@ def source_started_found(valid: Bool, state: State, found: Maybe<&2, Child>) -> 
     case Some{child}: source_started_allowed(valid, state, child)
     case None{}: Rejected{state, UnknownInvocation{}}
 
-def start_source_observation(+state: State, +invocation: Nat, generation: Nat, lease: Nat, request: Nat) -> Step:
-  source_started_found(provider_live(state, invocation, generation, lease, request), state, find(invocation, state_children(state)))
+def start_source_observation(
+  +state: State,
+  +invocation: Nat,
+  generation: Nat,
+  lease: Nat,
+  request: Nat
+) -> Step:
+  source_started_found(
+    provider_live(state, invocation, generation, lease, request),
+    state,
+    find(invocation, state_children(state))
+  )
 
 def launched(valid: Bool, state: State, scope: Scope, input_handle: Nat) -> Step:
   match valid state:
     case True{} State{canonical, +next_invocation, next_lease, children}:
-      Advanced{State{canonical, Nat.add(next_invocation, 1n), next_lease,
-        Child{scope, next_invocation, 0n, 0n, ChildInstalling{}, None{}, None{}, None{}} <> children},
-        Nil{}, Launch{next_invocation, input_handle} <> Nil{}}
+      Advanced{
+        State{
+          canonical,
+          Nat.add(next_invocation, 1n),
+          next_lease,
+          Child{
+            scope,
+            next_invocation,
+            0n,
+            0n,
+            ChildInstalling{},
+            None{},
+            None{},
+            None{}
+          } <> children
+        },
+        Nil{},
+        Launch{next_invocation, input_handle} <> Nil{}
+      }
     case False{} _: Rejected{state, NotPreparing{}}
+
+def settings_next_free(next: Nat, found: Maybe<&2, Child>) -> Bool:
+  match next found:
+    case 0n _: False{}
+    case _ None{}: True{}
+    case _ Some{_}: False{}
+
+# One transition issues both operation and invocation. No host-supplied operation
+# ID and no observation/preparation work is manufactured for settings resolution.
+def launch_settings(+state: State, input_handle: Nat) -> Step:
+  match state:
+    case State{_, +next_invocation, _, +children}:
+      launched(settings_next_free(next_invocation, find(next_invocation, children)), state,
+        SettingsScope{next_invocation}, input_handle)
 
 def launch(+state: State, +scope: Scope, input_handle: Nat) -> Step:
   match scope:
-    case Scope{_, _, _, _}: launched(live(state_canonical(state), scope), state, scope, input_handle)
+    case Scope{_, _, _, _}: launched(
+      live(state_canonical(state), scope),
+      state,
+      scope,
+      input_handle
+    )
     case _: Rejected{state, NotPreparing{}}
 
 def same_preparation(left: Scope, right: Scope) -> Bool:
   match left right:
     case PreparationScope{p, l, r, operation} PreparationScope{q, m, s, other}:
-      Bool.and(Nat.is_eq(p, q), Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(operation, other))))
+      Bool.and(
+        Nat.is_eq(p, q),
+        Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(operation, other)))
+      )
     case _ _: False{}
 
 def preparation_claimed(phase: Phase) -> Bool:
@@ -370,7 +693,10 @@ def preparation_claimed(phase: Phase) -> Bool:
 
 def claimed_child(+scope: Scope, child: Child) -> Bool:
   match child:
-    case Child{other, _, _, _, phase, _, _, _}: Bool.and(same_preparation(scope, other), preparation_claimed(phase))
+    case Child{other, _, _, _, phase, _, _, _}: Bool.and(
+      same_preparation(scope, other),
+      preparation_claimed(phase)
+    )
 
 def claimed_preparation(+scope: Scope, children: List<&2, Child>) -> Bool:
   match children:
@@ -378,19 +704,37 @@ def claimed_preparation(+scope: Scope, children: List<&2, Child>) -> Bool:
     case child <> rest: Bool.or(claimed_child(scope, child), claimed_preparation(scope, rest))
 
 def launch_preparation_scope(+state: State, +scope: Scope, input_handle: Nat) -> Step:
-  launched(Bool.and(live(state_canonical(state), scope), Bool.not(claimed_preparation(scope, state_children(state)))), state, scope, input_handle)
+  launched(
+    Bool.and(
+      live(state_canonical(state), scope),
+      Bool.not(claimed_preparation(scope, state_children(state)))
+    ),
+    state,
+    scope,
+    input_handle
+  )
 
 def launch_preparation(+state: State, scope: Scope, input_handle: Nat) -> Step:
   match scope:
-    case Scope{partition, lifetime, round, preparation}: launch_preparation_scope(state, PreparationScope{partition, lifetime, round, preparation}, input_handle)
+    case Scope{partition, lifetime, round, preparation}: launch_preparation_scope(
+      state,
+      PreparationScope{partition, lifetime, round, preparation},
+      input_handle
+    )
     case _: Rejected{state, NotPreparing{}}
 
 def same_source(left: Scope, right: Scope) -> Bool:
   match left right:
     case SourceScope{p, l, r, o, _} SourceScope{q, m, s, other, _}:
-      Bool.and(Nat.is_eq(p, q), Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(o, other))))
+      Bool.and(
+        Nat.is_eq(p, q),
+        Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(o, other)))
+      )
     case SourceScope{p, l, r, o, _} AfterSourceScope{q, m, s, other, _, _, _}:
-      Bool.and(Nat.is_eq(p, q), Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(o, other))))
+      Bool.and(
+        Nat.is_eq(p, q),
+        Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(o, other)))
+      )
     case _ _: False{}
 
 def source_claimed_child(scope: Scope, child: Child) -> Bool:
@@ -404,21 +748,54 @@ def source_claimed(+scope: Scope, children: List<&2, Child>) -> Bool:
 
 def launch_source(+state: State, +scope: Scope, input_handle: Nat) -> Step:
   match scope:
-    case SourceScope{_, _, _, _, SourceNew{}}: launched(Bool.and(live(state_canonical(state), scope), Bool.not(source_claimed(scope, state_children(state)))), state, scope, input_handle)
+    case SourceScope{_, _, _, _, SourceNew{}}: launched(
+      Bool.and(
+        live(state_canonical(state), scope),
+        Bool.not(source_claimed(scope, state_children(state)))
+      ),
+      state,
+      scope,
+      input_handle
+    )
     case _: Rejected{state, NotPreparing{}}
 
-def launched_nested(valid: Bool, state: State, parent: Parent, scope: Scope, input_handle: Nat) -> Step:
+def launched_nested(
+  valid: Bool,
+  state: State,
+  parent: Parent,
+  scope: Scope,
+  input_handle: Nat
+) -> Step:
   match valid state:
     case True{} State{canonical, +next_invocation, next_lease, children}:
-      Advanced{State{canonical, Nat.add(next_invocation, 1n), next_lease,
-        Child{scope, next_invocation, 0n, 0n, ChildInstalling{}, None{}, None{}, Some{parent}} <> children},
-        Nil{}, Launch{next_invocation, input_handle} <> Nil{}}
+      Advanced{
+        State{
+          canonical,
+          Nat.add(next_invocation, 1n),
+          next_lease,
+          Child{
+            scope,
+            next_invocation,
+            0n,
+            0n,
+            ChildInstalling{},
+            None{},
+            None{},
+            Some{parent}
+          } <> children
+        },
+        Nil{},
+        Launch{next_invocation, input_handle} <> Nil{}
+      }
     case False{} _: Rejected{state, WrongPhase{}}
 
 def parent_equal(left: Parent, right: Parent) -> Bool:
   match left right:
     case Parent{invocation, generation, request} Parent{other, current, pending}:
-      Bool.and(Nat.is_eq(invocation, other), Bool.and(Nat.is_eq(generation, current), Nat.is_eq(request, pending)))
+      Bool.and(
+        Nat.is_eq(invocation, other),
+        Bool.and(Nat.is_eq(generation, current), Nat.is_eq(request, pending))
+      )
 
 def owns_parent(parent: Parent, child: Child) -> Bool:
   match child:
@@ -436,10 +813,30 @@ def resolver_parent_role(child: Child) -> Bool:
     case Child{Scope{_, _, _, _}, _, _, _, _, _, _, None{}}: True{}
     case _: False{}
 
-def nested_found(+state: State, +parent: Parent, found: Maybe<&2, Child>, input_handle: Nat) -> Step:
+def nested_found(
+  +state: State,
+  +parent: Parent,
+  found: Maybe<&2, Child>,
+  input_handle: Nat
+) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: launched_nested(Bool.and(Bool.not(parent_used(parent, state_children(state))), Bool.and(Bool.and(resolver_parent_role(child), parent_matches(parent, Some{child})), Bool.and(live_preparing(state_canonical(state), resolver_scope(child_scope_value(child))), child_live(state_canonical(state), state_children(state), child)))), state, parent, resolver_scope(child_scope_value(child)), input_handle)
+    case Some{+child}: launched_nested(
+      Bool.and(
+        Bool.not(parent_used(parent, state_children(state))),
+        Bool.and(
+          Bool.and(resolver_parent_role(child), parent_matches(parent, Some{child})),
+          Bool.and(
+            live_preparing(state_canonical(state), resolver_scope(child_scope_value(child))),
+            child_live(state_canonical(state), state_children(state), child)
+          )
+        )
+      ),
+      state,
+      parent,
+      resolver_scope(child_scope_value(child)),
+      input_handle
+    )
 
 def launch_nested(+state: State, +parent: Parent, input_handle: Nat) -> Step:
   nested_found(state, parent, find(parent_invocation(parent), state_children(state)), input_handle)
@@ -453,7 +850,13 @@ def installing(phase: Phase) -> Bool:
 def install_allowed(valid: Bool, state: State, child: Child, handle: Nat, request: Nat) -> Step:
   match valid child:
     case True{} Child{scope, invocation, generation, _, _, _, _, parent}:
-      updated(state, ChildUpdate{Child{scope, invocation, generation, handle, ChildReady{}, Some{request}, None{}, parent}, Nil{}})
+      updated(
+        state,
+        ChildUpdate{
+          Child{scope, invocation, generation, handle, ChildReady{}, Some{request}, None{}, parent},
+          Nil{}
+        }
+      )
     case False{} _: Rejected{state, WrongGeneration{}}
 
 def child_scope(child: Child) -> Scope:
@@ -462,7 +865,10 @@ def child_scope(child: Child) -> Scope:
 
 def install_matches(child: Child, generation: Nat) -> Bool:
   match child:
-    case Child{_, _, current, _, phase, _, None{}, _}: Bool.and(Nat.is_eq(current, generation), installing(phase))
+    case Child{_, _, current, _, phase, _, None{}, _}: Bool.and(
+      Nat.is_eq(current, generation),
+      installing(phase)
+    )
     case _: False{}
 
 def ordinary_scope(scope: Scope) -> Bool:
@@ -474,14 +880,34 @@ def ordinary_scope(scope: Scope) -> Bool:
 
 def scope_request(scope: Scope, generation: Nat, request: Nat) -> Bool:
   match scope:
-    case AfterSourceScope{_, _, _, _, expected, current, _}: Bool.and(Nat.is_eq(expected, request), Nat.is_eq(current, generation))
+    case AfterSourceScope{_, _, _, _, expected, current, _}: Bool.and(
+      Nat.is_eq(expected, request),
+      Nat.is_eq(current, generation)
+    )
     case _: True{}
 
-def install_found(+state: State, found: Maybe<&2, Child>, +generation: Nat, +handle: Nat, +request: Nat) -> Step:
+def install_found(
+  +state: State,
+  found: Maybe<&2, Child>,
+  +generation: Nat,
+  +handle: Nat,
+  +request: Nat
+) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: install_allowed(Bool.and(child_live(state_canonical(state), state_children(state), child),
-      Bool.and(scope_request(child_scope_value(child), generation, request), Bool.and(ordinary_scope(child_scope_value(child)), install_matches(child, generation)))), state, child, handle, request)
+    case Some{+child}: install_allowed(
+      Bool.and(
+        child_live(state_canonical(state), state_children(state), child),
+        Bool.and(
+          scope_request(child_scope_value(child), generation, request),
+          Bool.and(ordinary_scope(child_scope_value(child)), install_matches(child, generation))
+        )
+      ),
+      state,
+      child,
+      handle,
+      request
+    )
 
 def install(+state: State, invocation: Nat, generation: Nat, handle: Nat, request: Nat) -> Step:
   install_found(state, find(invocation, state_children(state)), generation, handle, request)
@@ -514,23 +940,79 @@ def source_permission_transition(old: SourcePermission, next: SourcePermission) 
     case SourcePolicy{} SourceObservation{}: True{}
     case _ _: False{}
 
-def source_install_allowed(valid: Bool, state: State, child: Child, handle: Nat, request: Nat, permission: SourcePermission) -> Step:
+def source_install_allowed(
+  valid: Bool,
+  state: State,
+  child: Child,
+  handle: Nat,
+  request: Nat,
+  permission: SourcePermission
+) -> Step:
   match valid child:
     case True{} Child{SourceScope{p, l, r, o, _}, invocation, generation, _, _, _, _, parent}:
-      updated(state, ChildUpdate{Child{SourceScope{p, l, r, o, permission}, invocation, generation, handle, ChildReady{}, Some{request}, None{}, parent}, Nil{}})
+      updated(
+        state,
+        ChildUpdate{
+          Child{
+            SourceScope{p, l, r, o, permission},
+            invocation,
+            generation,
+            handle,
+            ChildReady{},
+            Some{request},
+            None{},
+            parent
+          },
+          Nil{}
+        }
+      )
     case _ _: Rejected{state, WrongPhase{}}
 
-def source_install_found(+state: State, found: Maybe<&2, Child>, +generation: Nat, handle: Nat, request: Nat, +permission: SourcePermission) -> Step:
+def source_install_found(
+  +state: State,
+  found: Maybe<&2, Child>,
+  +generation: Nat,
+  handle: Nat,
+  request: Nat,
+  +permission: SourcePermission
+) -> Step:
   match found:
     case Some{+child}:
       match child:
         case Child{SourceScope{_, _, _, _, old}, _, _, _, _, _, _, _}:
-          source_install_allowed(Bool.and(child_live(state_canonical(state), state_children(state), child), Bool.and(install_matches(child, generation), source_permission_transition(old, permission))), state, child, handle, request, permission)
+          source_install_allowed(
+            Bool.and(
+              child_live(state_canonical(state), state_children(state), child),
+              Bool.and(
+                install_matches(child, generation),
+                source_permission_transition(old, permission)
+              )
+            ),
+            state,
+            child,
+            handle,
+            request,
+            permission
+          )
         case _: Rejected{state, WrongPhase{}}
     case None{}: Rejected{state, UnknownInvocation{}}
 
-def install_source(+state: State, invocation: Nat, generation: Nat, handle: Nat, request: Nat, permission: SourcePermission) -> Step:
-  source_install_found(state, find(invocation, state_children(state)), generation, handle, request, permission)
+def install_source(
+  +state: State,
+  invocation: Nat,
+  generation: Nat,
+  handle: Nat,
+  request: Nat,
+  permission: SourcePermission
+) -> Step:
+  source_install_found(
+    state,
+    find(invocation, state_children(state)),
+    generation,
+    handle,
+    request,
+    permission
+  )
 
 def after_source_transition(old: AfterSourcePermission, next: AfterSourcePermission) -> Bool:
   match old next:
@@ -542,30 +1024,104 @@ def after_source_transition(old: AfterSourcePermission, next: AfterSourcePermiss
     case AfterRecoveryRuntime{} AfterRecoveryActivity{}: True{}
     case _ _: False{}
 
-def after_source_install_allowed(valid: Bool, state: State, child: Child, handle: Nat, +request: Nat, permission: AfterSourcePermission) -> Step:
+def after_source_install_allowed(
+  valid: Bool,
+  state: State,
+  child: Child,
+  handle: Nat,
+  +request: Nat,
+  permission: AfterSourcePermission
+) -> Step:
   match valid child:
-    case True{} Child{AfterSourceScope{p, l, r, o, _, _, _}, invocation, +generation, _, _, _, _, parent}:
-      updated(state, ChildUpdate{Child{AfterSourceScope{p, l, r, o, Nat.add(request, 1n), Nat.add(generation, 1n), permission}, invocation, generation, handle, ChildReady{}, Some{request}, None{}, parent}, Nil{}})
+    case True{} Child{
+      AfterSourceScope{p, l, r, o, _, _, _},
+      invocation,
+      +generation,
+      _,
+      _,
+      _,
+      _,
+      parent
+    }:
+      updated(
+        state,
+        ChildUpdate{
+          Child{
+            AfterSourceScope{p, l, r, o, Nat.add(request, 1n), Nat.add(generation, 1n), permission},
+            invocation,
+            generation,
+            handle,
+            ChildReady{},
+            Some{request},
+            None{},
+            parent
+          },
+          Nil{}
+        }
+      )
     case _ _: Rejected{state, WrongPhase{}}
 
-def after_source_install_found(+state: State, found: Maybe<&2, Child>, +generation: Nat, handle: Nat, +request: Nat, +permission: AfterSourcePermission) -> Step:
+def after_source_install_found(
+  +state: State,
+  found: Maybe<&2, Child>,
+  +generation: Nat,
+  handle: Nat,
+  +request: Nat,
+  +permission: AfterSourcePermission
+) -> Step:
   match found:
     case Some{+child}:
       match child:
         case Child{+scope, _, _, _, _, _, _, _}:
           match scope:
             case AfterSourceScope{_, _, _, _, _, _, old}:
-              after_source_install_allowed(Bool.and(scope_request(scope, generation, request), Bool.and(install_matches(child, generation), after_source_transition(old, permission))), state, child, handle, request, permission)
+              after_source_install_allowed(
+                Bool.and(
+                  scope_request(scope, generation, request),
+                  Bool.and(
+                    install_matches(child, generation),
+                    after_source_transition(old, permission)
+                  )
+                ),
+                state,
+                child,
+                handle,
+                request,
+                permission
+              )
             case _: Rejected{state, WrongPhase{}}
     case None{}: Rejected{state, UnknownInvocation{}}
 
-def install_after_source(+state: State, invocation: Nat, generation: Nat, handle: Nat, request: Nat, permission: AfterSourcePermission) -> Step:
-  after_source_install_found(state, find(invocation, state_children(state)), generation, handle, request, permission)
+def install_after_source(
+  +state: State,
+  invocation: Nat,
+  generation: Nat,
+  handle: Nat,
+  request: Nat,
+  permission: AfterSourcePermission
+) -> Step:
+  after_source_install_found(
+    state,
+    find(invocation, state_children(state)),
+    generation,
+    handle,
+    request,
+    permission
+  )
 
 def provider_allowed(valid: Bool, state: State, child: Child) -> Step:
   match valid state child:
     case True{} State{canonical, next_invocation, +next_lease, children}
-        Child{scope, +invocation, generation, +handle, ChildReady{}, Some{+request}, None{}, parent}:
+        Child{
+          scope,
+          +invocation,
+          generation,
+          +handle,
+          ChildReady{},
+          Some{+request},
+          None{},
+          parent
+        }:
       Advanced{State{canonical, next_invocation, Nat.add(next_lease, 1n),
         replace(invocation, children, Child{scope, invocation, generation, handle, ChildAwaiting{},
           Some{request}, Some{Lease{next_lease, request}}, parent})}, Nil{},
@@ -575,31 +1131,77 @@ def provider_allowed(valid: Bool, state: State, child: Child) -> Step:
 def provider_found(+state: State, found: Maybe<&2, Child>) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: provider_allowed(child_live(state_canonical(state), state_children(state), child), state, child)
+    case Some{+child}: provider_allowed(
+      child_live(state_canonical(state), state_children(state), child),
+      state,
+      child
+    )
 
 def provider_start(+state: State, invocation: Nat) -> Step:
   provider_found(state, find(invocation, state_children(state)))
 
-def reconcile_cancel_join(state: State, outputs: List<&2, C.Output>, actions: List<&2, Action>, invalidated: Invalidated) -> Step:
+def reconcile_cancel_join(
+  state: State,
+  outputs: List<&2, C.Output>,
+  actions: List<&2, Action>,
+  invalidated: Invalidated
+) -> Step:
   match state invalidated:
     case State{canonical, next_invocation, next_lease, _} Invalidated{children, additional}:
-      Advanced{State{canonical, next_invocation, next_lease, children}, outputs, List.append(&2, Action, actions, additional)}
+      Advanced{
+        State{canonical, next_invocation, next_lease, children},
+        outputs,
+        List.append(&2, Action, actions, additional)
+      }
 
 def reconcile_cancel(step: Step) -> Step:
   match step:
-    case Advanced{+state, outputs, actions}: reconcile_cancel_join(state, outputs, actions, invalidate_all(state_canonical(state), state_children(state)))
+    case Advanced{+state, outputs, actions}: reconcile_cancel_join(
+      state,
+      outputs,
+      actions,
+      invalidate_all(state_canonical(state), state_children(state))
+    )
     case _: step
 
 def completion_active(valid: Bool, state: State, child: Child, reply_handle: Nat) -> Step:
   match valid child:
-    case True{} Child{scope, +invocation, generation, +handle, ChildAwaiting{}, _, Some{Lease{lease, _}}, parent}:
+    case True{} Child{
+      scope,
+      +invocation,
+      generation,
+      +handle,
+      ChildAwaiting{},
+      _,
+      Some{Lease{lease, _}},
+      parent
+    }:
       +next = Nat.add(generation, 1n)
-      updated(state, ChildUpdate{Child{scope, invocation, next, 0n, ChildResuming{}, None{}, None{}, parent},
-        Resume{invocation, next, handle, reply_handle} <> List.append(&2, Action,
-          retire(invocation, handle), CleanupProvider{invocation, lease} <> Nil{})})
+      updated(
+        state,
+        ChildUpdate{
+          Child{scope, invocation, next, 0n, ChildResuming{}, None{}, None{}, parent},
+          Resume{
+            invocation,
+            next,
+            handle,
+            reply_handle
+          } <> List.append(
+            &2,
+            Action,
+            retire(invocation, handle),
+            CleanupProvider{invocation, lease} <> Nil{}
+          )
+        }
+      )
     case _ Child{scope, +invocation, generation, +handle, _, _, Some{Lease{lease, _}}, parent}:
-      updated(state, ChildUpdate{Child{scope, invocation, generation, 0n, ChildCancelled{}, None{}, None{}, parent},
-        CleanupProvider{invocation, lease} <> retire(invocation, handle)})
+      updated(
+        state,
+        ChildUpdate{
+          Child{scope, invocation, generation, 0n, ChildCancelled{}, None{}, None{}, parent},
+          CleanupProvider{invocation, lease} <> retire(invocation, handle)
+        }
+      )
     case _ _: Rejected{state, WrongLease{}}
 
 def lease_matches(child: Child, lease: Nat, request: Nat) -> Bool:
@@ -611,31 +1213,67 @@ def lease_matches(child: Child, lease: Nat, request: Nat) -> Bool:
 def completion_matched(matches: Bool, +state: State, +child: Child, reply_handle: Nat) -> Step:
   match matches:
     case False{}: Rejected{state, WrongLease{}}
-    case True{}: reconcile_cancel(completion_active(child_live(state_canonical(state), state_children(state), child), state, child, reply_handle))
+    case True{}: reconcile_cancel(
+      completion_active(
+        child_live(state_canonical(state), state_children(state), child),
+        state,
+        child,
+        reply_handle
+      )
+    )
 
-def completion_found(state: State, found: Maybe<&2, Child>, lease: Nat, request: Nat, reply_handle: Nat) -> Step:
+def completion_found(
+  state: State,
+  found: Maybe<&2, Child>,
+  lease: Nat,
+  request: Nat,
+  reply_handle: Nat
+) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: completion_matched(lease_matches(child, lease, request), state, child, reply_handle)
+    case Some{+child}: completion_matched(
+      lease_matches(child, lease, request),
+      state,
+      child,
+      reply_handle
+    )
 
-def provider_completed(+state: State, invocation: Nat, lease: Nat, request: Nat, reply_handle: Nat) -> Step:
+def provider_completed(
+  +state: State,
+  invocation: Nat,
+  lease: Nat,
+  request: Nat,
+  reply_handle: Nat
+) -> Step:
   completion_found(state, find(invocation, state_children(state)), lease, request, reply_handle)
 
 # Source interruption and its custody transition share one Canonical publication.
 # Absence discharges only this custody; it does not fabricate an interrupt event.
 def source_interrupt_result(original: State, transition: Step, result: C.Step) -> Step:
   match transition result:
-    case Advanced{State{_, next_invocation, next_lease, children}, prior_outputs, actions} C.Advanced{canonical, outputs}:
+    case Advanced{State{_, next_invocation, next_lease, children}, prior_outputs, actions} C.Advanced{
+      canonical,
+      outputs
+    }:
       reconcile_cancel(Advanced{State{canonical, next_invocation, next_lease, children},
         List.append(&2, C.Output, prior_outputs, outputs), actions})
     case _ C.Rejected{_, reason}: Rejected{original, CanonicalRejected{reason}}
     case _ _: transition
 
-def source_interrupt_found(+state: State, transition: Step, scope: Scope, found: Maybe<&2, C.Work>) -> Step:
+def source_interrupt_found(
+  +state: State,
+  transition: Step,
+  scope: Scope,
+  found: Maybe<&2, C.Work>
+) -> Step:
   match scope found:
     case SourceScope{_, _, _, _, _} None{}: reconcile_cancel(transition)
     case SourceScope{p, l, r, o, _} Some{_}:
-      source_interrupt_result(state, transition, C.step(state_canonical(state), C.InterruptObservation{p, l, r, o}))
+      source_interrupt_result(
+        state,
+        transition,
+        C.step(state_canonical(state), C.InterruptObservation{p, l, r, o})
+      )
     case _ _: Rejected{state, WrongPhase{}}
 
 def source_canonical_work(canonical: C.State) -> List<&2, C.Work>:
@@ -645,12 +1283,21 @@ def source_canonical_work(canonical: C.State) -> List<&2, C.Work>:
 def source_interrupt(+state: State, transition: Step, +scope: Scope) -> Step:
   match scope:
     case SourceScope{+p, +l, +r, o, _}:
-      source_interrupt_found(state, transition, scope, C.find_work(p, l, r, o, source_canonical_work(state_canonical(state))))
+      source_interrupt_found(
+        state,
+        transition,
+        scope,
+        C.find_work(p, l, r, o, source_canonical_work(state_canonical(state)))
+      )
     case _: Rejected{state, WrongPhase{}}
 
 def source_cancel_allowed(valid: Bool, +state: State, +child: Child) -> Step:
   match valid:
-    case True{}: source_interrupt(state, updated(state, cancel_child(child)), child_scope_value(child))
+    case True{}: source_interrupt(
+      state,
+      updated(state, cancel_child(child)),
+      child_scope_value(child)
+    )
     case False{}: Rejected{state, WrongPhase{}}
 
 def cancel_allowed(valid: Bool, state: State, child: Child) -> Step:
@@ -664,13 +1311,41 @@ def child_active(child: Child) -> Bool:
 
 def advice_cleanup_allowed(valid: Bool, state: State, child: Child) -> Step:
   match valid child:
-    case True{} Child{AdviceTailScope{p, l, r, operation, origin, _}, invocation, generation, handle, phase, pending, lease, parent}:
-      updated(state, ChildUpdate{Child{AdviceTailScope{p, l, r, operation, origin, TailRemove{}}, invocation, generation, handle, phase, pending, lease, parent}, Nil{}})
+    case True{} Child{
+      AdviceTailScope{p, l, r, operation, origin, _},
+      invocation,
+      generation,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    }:
+      updated(
+        state,
+        ChildUpdate{
+          Child{
+            AdviceTailScope{p, l, r, operation, origin, TailRemove{}},
+            invocation,
+            generation,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          Nil{}
+        }
+      )
     case _ _: Rejected{state, WrongPhase{}}
 
 def cancel_scope(state: State, +child: Child, scope: Scope) -> Step:
   match scope:
-    case AdviceTailScope{_, _, _, _, _, _}: advice_cleanup_allowed(child_active(child), state, child)
+    case AdviceTailScope{_, _, _, _, _, _}: advice_cleanup_allowed(
+      child_active(child),
+      state,
+      child
+    )
     case SourceScope{_, _, _, _, _}: source_cancel_allowed(child_active(child), state, child)
     case _: cancel_allowed(child_active(child), state, child)
 
@@ -685,22 +1360,46 @@ def cancel(+state: State, invocation: Nat) -> Step:
 def terminal_allowed(valid: Bool, state: State, child: Child, result_handle: Nat) -> Step:
   match valid child:
     case True{} Child{+scope, +invocation, generation, handle, _, _, None{}, parent}:
-      updated(state, ChildUpdate{Child{scope, invocation, generation, 0n, ChildAccepted{}, None{}, None{}, parent},
-        AcceptResult{scope, invocation, result_handle} <> retire(invocation, handle)})
+      updated(
+        state,
+        ChildUpdate{
+          Child{scope, invocation, generation, 0n, ChildAccepted{}, None{}, None{}, parent},
+          AcceptResult{scope, invocation, result_handle} <> retire(invocation, handle)
+        }
+      )
     case _ _: Rejected{state, WrongPhase{}}
 
 def source_failure_allowed(valid: Bool, +state: State, +child: Child, result_handle: Nat) -> Step:
   match valid child:
     case True{} Child{SourceScope{_, _, _, _, _}, _, _, _, _, _, None{}, _}:
-      source_interrupt(state, terminal_allowed(True{}, state, child, result_handle), child_scope_value(child))
+      source_interrupt(
+        state,
+        terminal_allowed(True{}, state, child, result_handle),
+        child_scope_value(child)
+      )
     case _ _: Rejected{state, WrongPhase{}}
 
-def source_failure_found(+state: State, found: Maybe<&2, Child>, generation: Nat, result_handle: Nat) -> Step:
+def source_failure_found(
+  +state: State,
+  found: Maybe<&2, Child>,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
   match found:
-    case Some{+child}: source_failure_allowed(Bool.and(child_active(child), install_matches(child, generation)), state, child, result_handle)
+    case Some{+child}: source_failure_allowed(
+      Bool.and(child_active(child), install_matches(child, generation)),
+      state,
+      child,
+      result_handle
+    )
     case None{}: Rejected{state, UnknownInvocation{}}
 
-def terminal_source_failed(+state: State, invocation: Nat, generation: Nat, result_handle: Nat) -> Step:
+def terminal_source_failed(
+  +state: State,
+  invocation: Nat,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
   source_failure_found(state, find(invocation, state_children(state)), generation, result_handle)
 
 def terminal_scope(scope: Scope) -> Bool:
@@ -713,35 +1412,106 @@ def terminal_scope(scope: Scope) -> Bool:
     case AdviceTailScope{_, _, _, _, _, _}: False{}
     case _: True{}
 
-def terminal_found(+state: State, found: Maybe<&2, Child>, generation: Nat, result_handle: Nat) -> Step:
+def terminal_found(
+  +state: State,
+  found: Maybe<&2, Child>,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: terminal_allowed(Bool.and(terminal_scope(child_scope_value(child)), Bool.and(child_live(state_canonical(state), state_children(state), child),
-      install_matches(child, generation))), state, child, result_handle)
+    case Some{+child}: terminal_allowed(
+      Bool.and(
+        terminal_scope(child_scope_value(child)),
+        Bool.and(
+          child_live(state_canonical(state), state_children(state), child),
+          install_matches(child, generation)
+        )
+      ),
+      state,
+      child,
+      result_handle
+    )
 
 def unused_advice(child: Child) -> Bool:
   match child:
-    case Child{AdviceTailScope{_, _, _, _, _, TailNew{}}, _, _, _, ChildInstalling{}, None{}, None{}, None{}}: True{}
+    case Child{
+      AdviceTailScope{_, _, _, _, _, TailNew{}},
+      _,
+      _,
+      _,
+      ChildInstalling{},
+      None{},
+      None{},
+      None{}
+    }: True{}
     case _: False{}
 
-def preserved_advice_found(+state: State, found: Maybe<&2, Child>, generation: Nat, result_handle: Nat) -> Step:
+def preserved_advice_found(
+  +state: State,
+  found: Maybe<&2, Child>,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
   match found:
-    case Some{+child}: terminal_allowed(Bool.and(unused_advice(child), Bool.and(child_live(state_canonical(state), state_children(state), child), install_matches(child, generation))), state, child, result_handle)
+    case Some{+child}: terminal_allowed(
+      Bool.and(
+        unused_advice(child),
+        Bool.and(
+          child_live(state_canonical(state), state_children(state), child),
+          install_matches(child, generation)
+        )
+      ),
+      state,
+      child,
+      result_handle
+    )
     case None{}: Rejected{state, UnknownInvocation{}}
 
-def terminal_advice_preserved(+state: State, invocation: Nat, generation: Nat, result_handle: Nat) -> Step:
+def terminal_advice_preserved(
+  +state: State,
+  invocation: Nat,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
   preserved_advice_found(state, find(invocation, state_children(state)), generation, result_handle)
 
 def terminal(+state: State, invocation: Nat, generation: Nat, result_handle: Nat) -> Step:
   terminal_found(state, find(invocation, state_children(state)), generation, result_handle)
 
-def preparation_failure_found(+state: State, found: Maybe<&2, Child>, generation: Nat, result_handle: Nat) -> Step:
+def preparation_failure_found(
+  +state: State,
+  found: Maybe<&2, Child>,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: terminal_allowed(Bool.and(preparation_scope_kind(child_scope_value(child)), Bool.and(child_live(state_canonical(state), state_children(state), child), install_matches(child, generation))), state, child, result_handle)
+    case Some{+child}: terminal_allowed(
+      Bool.and(
+        preparation_scope_kind(child_scope_value(child)),
+        Bool.and(
+          child_live(state_canonical(state), state_children(state), child),
+          install_matches(child, generation)
+        )
+      ),
+      state,
+      child,
+      result_handle
+    )
 
-def terminal_preparation_failed(+state: State, invocation: Nat, generation: Nat, result_handle: Nat) -> Step:
-  preparation_failure_found(state, find(invocation, state_children(state)), generation, result_handle)
+def terminal_preparation_failed(
+  +state: State,
+  invocation: Nat,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
+  preparation_failure_found(
+    state,
+    find(invocation, state_children(state)),
+    generation,
+    result_handle
+  )
 
 def preparation_parent(found: Maybe<&2, C.Work>) -> Maybe<&2, Nat>:
   match found:
@@ -750,49 +1520,172 @@ def preparation_parent(found: Maybe<&2, C.Work>) -> Maybe<&2, Nat>:
 
 def preparation_observation(canonical: C.State, scope: Scope) -> Maybe<&2, Nat>:
   match canonical scope:
-    case C.State{_, _, work, _, _, _, _, _, _} PreparationScope{partition, lifetime, round, preparation}:
+    case C.State{_, _, work, _, _, _, _, _, _} PreparationScope{
+      partition,
+      lifetime,
+      round,
+      preparation
+    }:
       preparation_parent(C.find_work(partition, lifetime, round, preparation, work))
     case _ _: None{}
 
-def source_preparation_scope(source: Scope, preparation: Scope, observation: Maybe<&2, Nat>) -> Bool:
+def source_preparation_scope(
+  source: Scope,
+  preparation: Scope,
+  observation: Maybe<&2, Nat>
+) -> Bool:
   match source preparation observation:
     case SourceScope{p, l, r, o, SourceCandidate{}} PreparationScope{q, m, s, _} Some{other}:
-      Bool.and(Nat.is_eq(p, q), Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(o, other))))
+      Bool.and(
+        Nat.is_eq(p, q),
+        Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(o, other)))
+      )
     case _ _ _: False{}
 
-def source_preparation_found(+state: State, +parent: Parent, found: Maybe<&2, Child>, +scope: Scope, input_handle: Nat) -> Step:
+def source_preparation_found(
+  +state: State,
+  +parent: Parent,
+  found: Maybe<&2, Child>,
+  +scope: Scope,
+  input_handle: Nat
+) -> Step:
   match found:
-    case Some{+child}: launched_nested(Bool.and(parent_matches(parent, Some{child}),
-      Bool.and(child_live(state_canonical(state), state_children(state), child),
-      Bool.and(source_preparation_scope(child_scope_value(child), scope, preparation_observation(state_canonical(state), scope)),
-      Bool.and(Bool.not(parent_used(parent, state_children(state))), Bool.not(claimed_preparation(scope, state_children(state))))))), state, parent, scope, input_handle)
+    case Some{+child}: launched_nested(
+      Bool.and(
+        parent_matches(parent, Some{child}),
+        Bool.and(
+          child_live(state_canonical(state), state_children(state), child),
+          Bool.and(
+            source_preparation_scope(
+              child_scope_value(child),
+              scope,
+              preparation_observation(state_canonical(state), scope)
+            ),
+            Bool.and(
+              Bool.not(parent_used(parent, state_children(state))),
+              Bool.not(claimed_preparation(scope, state_children(state)))
+            )
+          )
+        )
+      ),
+      state,
+      parent,
+      scope,
+      input_handle
+    )
     case None{}: Rejected{state, UnknownInvocation{}}
 
-def launch_source_preparation(+state: State, +parent: Parent, scope: Scope, input_handle: Nat) -> Step:
-  source_preparation_found(state, parent, find(parent_invocation(parent), state_children(state)), scope, input_handle)
+def launch_source_preparation(
+  +state: State,
+  +parent: Parent,
+  scope: Scope,
+  input_handle: Nat
+) -> Step:
+  source_preparation_found(
+    state,
+    parent,
+    find(parent_invocation(parent), state_children(state)),
+    scope,
+    input_handle
+  )
 
 def handoff(state: State, child: Child, result_handle: Nat, observation: Maybe<&2, Nat>) -> Step:
   match state child observation:
     case State{canonical, +next_invocation, next_lease, children}
-        Child{PreparationScope{+partition, +lifetime, +round, +preparation}, +invocation, generation, handle, _, _, None{}, +parent} Some{+observation}:
-      Advanced{State{canonical, Nat.add(next_invocation, 1n), next_lease,
-        Child{RetainingScope{partition, lifetime, round, observation, invocation}, next_invocation, 0n, 0n, ChildInstalling{}, None{}, None{}, parent} <>
-        replace(invocation, children, Child{PreparationScope{partition, lifetime, round, preparation}, invocation, generation, 0n, ChildAccepted{}, None{}, None{}, parent})}, Nil{},
-        LaunchPostPreparation{next_invocation, invocation, result_handle, RetainingScope{partition, lifetime, round, observation, invocation}} <> retire(invocation, handle)}
+        Child{
+          PreparationScope{+partition, +lifetime, +round, +preparation},
+          +invocation,
+          generation,
+          handle,
+          _,
+          _,
+          None{},
+          +parent
+        } Some{+observation}:
+      Advanced{
+        State{
+          canonical,
+          Nat.add(next_invocation, 1n),
+          next_lease,
+          Child{
+            RetainingScope{partition, lifetime, round, observation, invocation},
+            next_invocation,
+            0n,
+            0n,
+            ChildInstalling{},
+            None{},
+            None{},
+            parent
+          } <> replace(
+            invocation,
+            children,
+            Child{
+              PreparationScope{partition, lifetime, round, preparation},
+              invocation,
+              generation,
+              0n,
+              ChildAccepted{},
+              None{},
+              None{},
+              parent
+            }
+          )
+        },
+        Nil{},
+        LaunchPostPreparation{
+          next_invocation,
+          invocation,
+          result_handle,
+          RetainingScope{partition, lifetime, round, observation, invocation}
+        } <> retire(invocation, handle)
+      }
     case _ _ _: Rejected{state, WrongPhase{}}
 
-def preparation_terminal_allowed(valid: Bool, +state: State, +child: Child, result_handle: Nat) -> Step:
+def preparation_terminal_allowed(
+  valid: Bool,
+  +state: State,
+  +child: Child,
+  result_handle: Nat
+) -> Step:
   match valid:
-    case True{}: handoff(state, child, result_handle, preparation_observation(state_canonical(state), child_scope_value(child)))
+    case True{}: handoff(
+      state,
+      child,
+      result_handle,
+      preparation_observation(state_canonical(state), child_scope_value(child))
+    )
     case False{}: Rejected{state, WrongPhase{}}
 
-def terminal_preparation_found(+state: State, found: Maybe<&2, Child>, generation: Nat, result_handle: Nat) -> Step:
+def terminal_preparation_found(
+  +state: State,
+  found: Maybe<&2, Child>,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
   match found:
     case None{}: Rejected{state, UnknownInvocation{}}
-    case Some{+child}: preparation_terminal_allowed(Bool.and(child_live(state_canonical(state), state_children(state), child), install_matches(child, generation)), state, child, result_handle)
+    case Some{+child}: preparation_terminal_allowed(
+      Bool.and(
+        child_live(state_canonical(state), state_children(state), child),
+        install_matches(child, generation)
+      ),
+      state,
+      child,
+      result_handle
+    )
 
-def terminal_preparation(+state: State, invocation: Nat, generation: Nat, result_handle: Nat) -> Step:
-  terminal_preparation_found(state, find(invocation, state_children(state)), generation, result_handle)
+def terminal_preparation(
+  +state: State,
+  invocation: Nat,
+  generation: Nat,
+  result_handle: Nat
+) -> Step:
+  terminal_preparation_found(
+    state,
+    find(invocation, state_children(state)),
+    generation,
+    result_handle
+  )
 
 # Advice-tail lifetime is issued only at a checked PendingFinding birth. It
 # survives source/round cutoff; explicit lifetime shutdown enters cleanup-only.
@@ -805,34 +1698,142 @@ def advice_birth(found: Maybe<&2, C.Work>) -> Bool:
 def advice_claimed(+operation: Nat, +origin_scope: Scope, children: List<&2, Child>) -> Bool:
   match origin_scope children:
     case _ Nil{}: False{}
-    case RetainingScope{+p, +l, +r, +o, +origin} Child{AdviceTailScope{q, m, s, other, _, _}, _, _, _, _, _, _, _} <> rest:
-      Bool.or(Bool.and(Nat.is_eq(p, q), Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(operation, other)))), advice_claimed(operation, RetainingScope{p, l, r, o, origin}, rest))
+    case RetainingScope{+p, +l, +r, +o, +origin} Child{
+      AdviceTailScope{q, m, s, other, _, _},
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    } <> rest:
+      Bool.or(
+        Bool.and(
+          Nat.is_eq(p, q),
+          Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(operation, other)))
+        ),
+        advice_claimed(operation, RetainingScope{p, l, r, o, origin}, rest)
+      )
     case +scope _ <> rest: advice_claimed(operation, scope, rest)
 
-def advice_operation_live(canonical: C.State, partition: Nat, lifetime: Nat, round: Nat, operation: Nat) -> Bool:
+def advice_operation_live(
+  canonical: C.State,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  operation: Nat
+) -> Bool:
   match canonical:
-    case C.State{_, _, work, _, _, _, _, _, _}: advice_birth(C.find_work(partition, lifetime, round, operation, work))
+    case C.State{_, _, work, _, _, _, _, _, _}: advice_birth(
+      C.find_work(partition, lifetime, round, operation, work)
+    )
 
-def advice_handoff_allowed(valid: Bool, state: State, partition: Nat, lifetime: Nat, round: Nat, +origin: Nat, +operation: Nat, input_handle: Nat) -> Step:
+def advice_handoff_allowed(
+  valid: Bool,
+  state: State,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  +origin: Nat,
+  +operation: Nat,
+  input_handle: Nat
+) -> Step:
   match valid state:
     case True{} State{canonical, +next_invocation, next_lease, children}:
-      Advanced{State{canonical, Nat.add(next_invocation, 1n), next_lease,
-        Child{AdviceTailScope{partition, lifetime, round, operation, origin, TailNew{}}, next_invocation, 0n, 0n, ChildInstalling{}, None{}, None{}, None{}} <> children}, Nil{}, LaunchAdviceTail{next_invocation, origin, operation, input_handle} <> Nil{}}
+      Advanced{
+        State{
+          canonical,
+          Nat.add(next_invocation, 1n),
+          next_lease,
+          Child{
+            AdviceTailScope{partition, lifetime, round, operation, origin, TailNew{}},
+            next_invocation,
+            0n,
+            0n,
+            ChildInstalling{},
+            None{},
+            None{},
+            None{}
+          } <> children
+        },
+        Nil{},
+        LaunchAdviceTail{next_invocation, origin, operation, input_handle} <> Nil{}
+      }
     case _ _: Rejected{state, WrongPhase{}}
 
-def advice_handoff_child(+state: State, child: Maybe<&2, Child>, +operation: Nat, input_handle: Nat) -> Step:
+def advice_handoff_child(
+  +state: State,
+  child: Maybe<&2, Child>,
+  +operation: Nat,
+  input_handle: Nat
+) -> Step:
   match child:
-    case Some{Child{RetainingScope{+p, +l, +r, observation, preparation_origin}, origin, _, _, ChildAwaiting{}, _, Some{_}, _}}:
-      advice_handoff_allowed(Bool.and(advice_operation_live(state_canonical(state), p, l, r, operation), Bool.not(advice_claimed(operation, RetainingScope{p, l, r, observation, preparation_origin}, state_children(state)))), state, p, l, r, origin, operation, input_handle)
+    case Some{
+      Child{
+        RetainingScope{+p, +l, +r, observation, preparation_origin},
+        origin,
+        _,
+        _,
+        ChildAwaiting{},
+        _,
+        Some{_},
+        _
+      }
+    }:
+      advice_handoff_allowed(
+        Bool.and(
+          advice_operation_live(state_canonical(state), p, l, r, operation),
+          Bool.not(
+            advice_claimed(
+              operation,
+              RetainingScope{p, l, r, observation, preparation_origin},
+              state_children(state)
+            )
+          )
+        ),
+        state,
+        p,
+        l,
+        r,
+        origin,
+        operation,
+        input_handle
+      )
     case _: Rejected{state, WrongPhase{}}
 
-def handoff_advice_checked(valid: Bool, +state: State, +invocation: Nat, operation: Nat, input_handle: Nat) -> Step:
+def handoff_advice_checked(
+  valid: Bool,
+  +state: State,
+  +invocation: Nat,
+  operation: Nat,
+  input_handle: Nat
+) -> Step:
   match valid:
-    case True{}: advice_handoff_child(state, find(invocation, state_children(state)), operation, input_handle)
+    case True{}: advice_handoff_child(
+      state,
+      find(invocation, state_children(state)),
+      operation,
+      input_handle
+    )
     case False{}: Rejected{state, WrongLease{}}
 
-def handoff_advice(+state: State, +invocation: Nat, generation: Nat, lease: Nat, request: Nat, operation: Nat, input_handle: Nat) -> Step:
-  handoff_advice_checked(provider_live(state, invocation, generation, lease, request), state, invocation, operation, input_handle)
+def handoff_advice(
+  +state: State,
+  +invocation: Nat,
+  generation: Nat,
+  lease: Nat,
+  request: Nat,
+  operation: Nat,
+  input_handle: Nat
+) -> Step:
+  handoff_advice_checked(
+    provider_live(state, invocation, generation, lease, request),
+    state,
+    invocation,
+    operation,
+    input_handle
+  )
 
 def advice_progress(previous: AdvicePermission, next: AdvicePermission) -> Bool:
   match previous next:
@@ -844,18 +1845,62 @@ def advice_progress(previous: AdvicePermission, next: AdvicePermission) -> Bool:
     case _ TailRemove{}: True{}
     case _ _: False{}
 
-def advice_install_child(+state: State, found: Maybe<&2, Child>, +generation: Nat, handle: Nat, request: Nat, +permission: AdvicePermission) -> Step:
+def advice_install_child(
+  +state: State,
+  found: Maybe<&2, Child>,
+  +generation: Nat,
+  handle: Nat,
+  request: Nat,
+  +permission: AdvicePermission
+) -> Step:
   match found:
     case Some{+child}:
       match child:
-        case Child{AdviceTailScope{p, l, r, operation, origin, previous}, invocation, current, _, phase, pending, lease, parent}:
-          install_allowed(Bool.and(install_matches(child, generation), advice_progress(previous, permission)), state,
-            Child{AdviceTailScope{p, l, r, operation, origin, permission}, invocation, current, 0n, phase, pending, lease, parent}, handle, request)
+        case Child{
+          AdviceTailScope{p, l, r, operation, origin, previous},
+          invocation,
+          current,
+          _,
+          phase,
+          pending,
+          lease,
+          parent
+        }:
+          install_allowed(
+            Bool.and(install_matches(child, generation), advice_progress(previous, permission)),
+            state,
+            Child{
+              AdviceTailScope{p, l, r, operation, origin, permission},
+              invocation,
+              current,
+              0n,
+              phase,
+              pending,
+              lease,
+              parent
+            },
+            handle,
+            request
+          )
         case _: Rejected{state, WrongPhase{}}
     case None{}: Rejected{state, UnknownInvocation{}}
 
-def install_advice(+state: State, invocation: Nat, generation: Nat, handle: Nat, request: Nat, permission: AdvicePermission) -> Step:
-  advice_install_child(state, find(invocation, state_children(state)), generation, handle, request, permission)
+def install_advice(
+  +state: State,
+  invocation: Nat,
+  generation: Nat,
+  handle: Nat,
+  request: Nat,
+  permission: AdvicePermission
+) -> Step:
+  advice_install_child(
+    state,
+    find(invocation, state_children(state)),
+    generation,
+    handle,
+    request,
+    permission
+  )
 
 def advice_cleanup_found(state: State, found: Maybe<&2, Child>) -> Step:
   match found:
@@ -876,13 +1921,29 @@ def advice_provider_found(valid: Bool, found: Maybe<&2, Child>, kind: AdvicePerm
     case Some{child}: Bool.and(valid, advice_mutation(child_scope_value(child), kind))
     case None{}: False{}
 
-def advice_provider_allowed(+state: State, +invocation: Nat, generation: Nat, lease: Nat, request: Nat, kind: AdvicePermission) -> Bool:
-  advice_provider_found(provider_live(state, invocation, generation, lease, request), find(invocation, state_children(state)), kind)
+def advice_provider_allowed(
+  +state: State,
+  +invocation: Nat,
+  generation: Nat,
+  lease: Nat,
+  request: Nat,
+  kind: AdvicePermission
+) -> Bool:
+  advice_provider_found(
+    provider_live(state, invocation, generation, lease, request),
+    find(invocation, state_children(state)),
+    kind
+  )
 
 def initial(canonical: C.State) -> State:
   State{canonical, 1n, 1n, Nil{}}
 
-def initial_limits(global_items: Nat, global_bytes: Nat, partition_items: Nat, partition_bytes: Nat) -> State:
+def initial_limits(
+  global_items: Nat,
+  global_bytes: Nat,
+  partition_items: Nat,
+  partition_bytes: Nat
+) -> State:
   initial(C.initial(Ledger.Limits{global_items, global_bytes, partition_items, partition_bytes}))
 
 # Resident stores only this custody beside its sole Canonical state. State above
@@ -891,6 +1952,7 @@ type Custody is Data:
   Custody{next_invocation: Nat, next_lease: Nat, children: List<&2, Child>}
 type ResidentEvent is Data:
   CanonicalEvent{event: C.CanonicalEvent}
+  LaunchSettingsEvent{input_handle: Nat}
   LaunchEvent{scope: Scope, input_handle: Nat}
   LaunchSourceEvent{scope: Scope, input_handle: Nat}
   LaunchSourcePreparationEvent{parent: Parent, scope: Scope, input_handle: Nat}
@@ -898,11 +1960,36 @@ type ResidentEvent is Data:
   CompleteSourceObservationEvent{invocation: Nat, generation: Nat, lease: Nat, request: Nat}
   LaunchPreparationEvent{scope: Scope, input_handle: Nat}
   LaunchNestedEvent{parent: Parent, input_handle: Nat}
-  HandoffAdviceEvent{invocation: Nat, generation: Nat, lease: Nat, request: Nat, operation: Nat, input_handle: Nat}
+  HandoffAdviceEvent{
+    invocation: Nat,
+    generation: Nat,
+    lease: Nat,
+    request: Nat,
+    operation: Nat,
+    input_handle: Nat
+  }
   AdviceCleanupOnlyEvent{invocation: Nat}
-  InstallAfterSourceEvent{invocation: Nat, generation: Nat, handle: Nat, request: Nat, permission: AfterSourcePermission}
-  InstallSourceEvent{invocation: Nat, generation: Nat, handle: Nat, request: Nat, permission: SourcePermission}
-  InstallAdviceEvent{invocation: Nat, generation: Nat, handle: Nat, request: Nat, permission: AdvicePermission}
+  InstallAfterSourceEvent{
+    invocation: Nat,
+    generation: Nat,
+    handle: Nat,
+    request: Nat,
+    permission: AfterSourcePermission
+  }
+  InstallSourceEvent{
+    invocation: Nat,
+    generation: Nat,
+    handle: Nat,
+    request: Nat,
+    permission: SourcePermission
+  }
+  InstallAdviceEvent{
+    invocation: Nat,
+    generation: Nat,
+    handle: Nat,
+    request: Nat,
+    permission: AdvicePermission
+  }
   InstallEvent{invocation: Nat, generation: Nat, handle: Nat, request: Nat}
   ProviderStartEvent{invocation: Nat}
   ProviderCompletedEvent{invocation: Nat, lease: Nat, request: Nat, reply_handle: Nat}
@@ -913,7 +2000,12 @@ type ResidentEvent is Data:
   TerminalAdvicePreservedEvent{invocation: Nat, generation: Nat, result_handle: Nat}
   TerminalEvent{invocation: Nat, generation: Nat, result_handle: Nat}
 type Publication is Data:
-  Published{canonical: C.State, custody: Custody, outputs: List<&2, C.Output>, actions: List<&2, Action>}
+  Published{
+    canonical: C.State,
+    custody: Custody,
+    outputs: List<&2, C.Output>,
+    actions: List<&2, Action>
+  }
   Refused{refusal: Refusal}
 
 def initial_custody() -> Custody:
@@ -933,28 +2025,106 @@ def publish(step: Step) -> Publication:
 def resident_event(state: State, event: ResidentEvent) -> Step:
   match event:
     case CanonicalEvent{event}: canonical_event(state, event)
+    case LaunchSettingsEvent{input_handle}: launch_settings(state, input_handle)
     case LaunchEvent{scope, input_handle}: launch(state, scope, input_handle)
     case LaunchSourceEvent{scope, input_handle}: launch_source(state, scope, input_handle)
-    case LaunchSourcePreparationEvent{parent, scope, input_handle}: launch_source_preparation(state, parent, scope, input_handle)
-    case StartSourceObservationEvent{invocation, generation, lease, request}: start_source_observation(state, invocation, generation, lease, request)
-    case CompleteSourceObservationEvent{invocation, generation, lease, request}: complete_source_observation(state, invocation, generation, lease, request)
+    case LaunchSourcePreparationEvent{parent, scope, input_handle}: launch_source_preparation(
+      state,
+      parent,
+      scope,
+      input_handle
+    )
+    case StartSourceObservationEvent{invocation, generation, lease, request}: start_source_observation(
+      state,
+      invocation,
+      generation,
+      lease,
+      request
+    )
+    case CompleteSourceObservationEvent{invocation, generation, lease, request}: complete_source_observation(
+      state,
+      invocation,
+      generation,
+      lease,
+      request
+    )
     case LaunchPreparationEvent{scope, input_handle}: launch_preparation(state, scope, input_handle)
     case LaunchNestedEvent{parent, input_handle}: launch_nested(state, parent, input_handle)
-    case HandoffAdviceEvent{invocation, generation, lease, request, operation, input_handle}: handoff_advice(state, invocation, generation, lease, request, operation, input_handle)
+    case HandoffAdviceEvent{invocation, generation, lease, request, operation, input_handle}: handoff_advice(
+      state,
+      invocation,
+      generation,
+      lease,
+      request,
+      operation,
+      input_handle
+    )
     case AdviceCleanupOnlyEvent{invocation}: advice_cleanup_only(state, invocation)
-    case InstallAfterSourceEvent{invocation, generation, handle, request, permission}: install_after_source(state, invocation, generation, handle, request, permission)
-    case InstallSourceEvent{invocation, generation, handle, request, permission}: install_source(state, invocation, generation, handle, request, permission)
-    case InstallAdviceEvent{invocation, generation, handle, request, permission}: install_advice(state, invocation, generation, handle, request, permission)
-    case InstallEvent{invocation, generation, handle, request}: install(state, invocation, generation, handle, request)
+    case InstallAfterSourceEvent{invocation, generation, handle, request, permission}: install_after_source(
+      state,
+      invocation,
+      generation,
+      handle,
+      request,
+      permission
+    )
+    case InstallSourceEvent{invocation, generation, handle, request, permission}: install_source(
+      state,
+      invocation,
+      generation,
+      handle,
+      request,
+      permission
+    )
+    case InstallAdviceEvent{invocation, generation, handle, request, permission}: install_advice(
+      state,
+      invocation,
+      generation,
+      handle,
+      request,
+      permission
+    )
+    case InstallEvent{invocation, generation, handle, request}: install(
+      state,
+      invocation,
+      generation,
+      handle,
+      request
+    )
     case ProviderStartEvent{invocation}: provider_start(state, invocation)
     case ProviderCompletedEvent{invocation, lease, request, reply_handle}:
       provider_completed(state, invocation, lease, request, reply_handle)
     case CancelEvent{invocation}: cancel(state, invocation)
-    case TerminalSourceFailedEvent{invocation, generation, result_handle}: terminal_source_failed(state, invocation, generation, result_handle)
-    case TerminalPreparationFailedEvent{invocation, generation, result_handle}: terminal_preparation_failed(state, invocation, generation, result_handle)
-    case TerminalPreparationEvent{invocation, generation, result_handle}: terminal_preparation(state, invocation, generation, result_handle)
-    case TerminalAdvicePreservedEvent{invocation, generation, result_handle}: terminal_advice_preserved(state, invocation, generation, result_handle)
-    case TerminalEvent{invocation, generation, result_handle}: terminal(state, invocation, generation, result_handle)
+    case TerminalSourceFailedEvent{invocation, generation, result_handle}: terminal_source_failed(
+      state,
+      invocation,
+      generation,
+      result_handle
+    )
+    case TerminalPreparationFailedEvent{invocation, generation, result_handle}: terminal_preparation_failed(
+      state,
+      invocation,
+      generation,
+      result_handle
+    )
+    case TerminalPreparationEvent{invocation, generation, result_handle}: terminal_preparation(
+      state,
+      invocation,
+      generation,
+      result_handle
+    )
+    case TerminalAdvicePreservedEvent{invocation, generation, result_handle}: terminal_advice_preserved(
+      state,
+      invocation,
+      generation,
+      result_handle
+    )
+    case TerminalEvent{invocation, generation, result_handle}: terminal(
+      state,
+      invocation,
+      generation,
+      result_handle
+    )
 
 def resident_step(canonical: C.State, custody: Custody, event: ResidentEvent) -> Publication:
   publish(resident_event(assembled(canonical, custody), event))

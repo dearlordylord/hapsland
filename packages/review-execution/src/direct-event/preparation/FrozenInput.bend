@@ -2,7 +2,7 @@ import ../../../../source-artifacts/src/direct-event/value/Value.bend as Artifac
 import Base
 import ../../../../runtime-environment/src/runtime/backend/Backend.bend as Backend
 import ../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend.bend as Configuration
-import ./ProviderFinalization.bend as Provider
+import ../../../../review-definition/src/review-providers/ProviderFinalization.bend as Provider
 import ./CanonicalJson.bend as Json
 import ./UnitEvidence.bend as Evidence
 

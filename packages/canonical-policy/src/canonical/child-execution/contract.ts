@@ -5,6 +5,7 @@ import type { NativeSession } from "@hapsland/runtime-environment/runtime/native
 // change their execution order. Parameters retain the owner ABI correlation.
 export type Method =
   | "launch"
+  | "launch_settings"
   | "launch_source"
   | "launch_source_preparation"
   | "launch_preparation"

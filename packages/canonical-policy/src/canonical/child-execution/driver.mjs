@@ -693,28 +693,31 @@ export function createChildExecutionDriver({
     return required(outcome)
   }
   const driver = {
-    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent | undefined} [parent] @param {boolean} [preparation] @param {Scope} [issuedScope] @returns {number} */
-    allocateInvocation(parent, preparation = false, issuedScope = scope) {
-      if ((!parent || preparation) && !issuedScope) throw new TypeError("Missing owned invocation scope")
+    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent | undefined} [parent] @param {boolean} [preparation] @param {Scope} [issuedScope] @param {boolean} [settings] @returns {number} */
+    allocateInvocation(parent, preparation = false, issuedScope = scope, settings = false) {
+      if (settings && (parent || preparation)) throw new TypeError("Settings requires a root invocation")
+      if (!settings && (!parent || preparation) && !issuedScope) throw new TypeError("Missing owned invocation scope")
       if (current().next_invocation < 1n || current().next_invocation > BigInt(Number.MAX_SAFE_INTEGER))
         throw new RangeError("Invocation exceeds exact native ID range")
       const invocation = current().next_invocation
       const inputId = save(invocation, { kind: "input", value: undefined })
       try {
         apply(
-          parent
-            ? preparation
-              ? invoke("launch_source_preparation", parent, required(issuedScope), inputId)
-              : invoke("launch_nested", parent, inputId)
-            : invoke(
-                required(issuedScope).$ === "SourceScope"
-                  ? "launch_source"
-                  : preparation
-                    ? "launch_preparation"
-                    : "launch",
-                required(issuedScope),
-                inputId
-              )
+          settings
+            ? invoke("launch_settings", inputId)
+            : parent
+              ? preparation
+                ? invoke("launch_source_preparation", parent, required(issuedScope), inputId)
+                : invoke("launch_nested", parent, inputId)
+              : invoke(
+                  required(issuedScope).$ === "SourceScope"
+                    ? "launch_source"
+                    : preparation
+                      ? "launch_preparation"
+                      : "launch",
+                  required(issuedScope),
+                  inputId
+                )
         )
         return Number(invocation)
       } catch (error) {
@@ -728,6 +731,10 @@ export function createChildExecutionDriver({
         } else resources.delete(inputId)
         throw error
       }
+    },
+    /** @returns {number} */
+    allocateSettingsInvocation() {
+      return driver.allocateInvocation(undefined, false, undefined, true)
     },
     /** @param {Scope} [issuedScope] @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent | undefined} [parent] @returns {number} */
     allocatePreparationInvocation(issuedScope = scope, parent) {

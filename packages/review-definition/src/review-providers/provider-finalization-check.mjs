@@ -13,8 +13,8 @@ import {
 import { effectiveReviewBackend } from "@hapsland/runtime-inputs/configuration/resolve"
 import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 
-const backend = "../../../../runtime-environment/src/runtime/backend/Backend."
-const configuration = "../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend."
+const backend = "../../../runtime-environment/src/runtime/backend/Backend."
+const configuration = "../../../runtime-inputs/src/configuration/review-backend/ReviewBackend."
 const list = (items) => items.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
 const selection = (value) => ({
@@ -60,7 +60,7 @@ try {
     { timeout: 6000 }
   )
   const core = (await import(pathToFileURL(output))).default
-  const identityNamespace = "../../../../review-definition/src/review-providers/ProviderIdentity."
+  const identityNamespace = "ProviderIdentity."
   const nativeTokens = (value, fuel) => {
     const result = []
     let remaining = value
@@ -142,7 +142,7 @@ try {
   let cases = 0
   let engineRequests = 0
   let rejectedReplies = 0
-  const check = (configurationLayers, suppliedIdentity, extension = false) => {
+  const check = (configurationLayers, suppliedIdentity, extension = false, direct = false) => {
     let expected
     try {
       expected = {
@@ -155,12 +155,18 @@ try {
     } catch (error) {
       expected = { status: error.name, ...(error instanceof TypeError ? { message: error.message } : {}) }
     }
-    let step = core.initial(
-      BigInt(cases + 1),
-      layers(configurationLayers),
-      maybe(suppliedIdentity === undefined ? undefined : { $: backend + "Identity", ...suppliedIdentity }),
-      catalog()
-    )
+    let step = direct
+      ? core.initial_selection(
+          BigInt(cases + 1),
+          selection(effectiveReviewBackend({ layers: configurationLayers })),
+          catalog()
+        )
+      : core.initial(
+          BigInt(cases + 1),
+          layers(configurationLayers),
+          maybe(suppliedIdentity === undefined ? undefined : { $: backend + "Identity", ...suppliedIdentity }),
+          catalog()
+        )
     let previousRequest = 0n
     for (let turns = 0; ["Continue", "EncodeComponent"].includes(label(step)); turns++) {
       assert.ok(turns < 10000)
@@ -208,6 +214,7 @@ try {
     }
     assert.deepEqual(actual, expected, JSON.stringify({ configurationLayers, suppliedIdentity, extension }))
     cases++
+    if (configurationLayers !== undefined && !direct) check(configurationLayers, suppliedIdentity, extension, true)
   }
   const selections = [DEFAULT_REVIEW_BACKEND]
   for (const provider of Object.values(REVIEW_PROVIDERS))

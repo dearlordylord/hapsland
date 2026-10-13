@@ -3,11 +3,39 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { createOwnedArtifactDriver } from "../../resident-runtime/src/resident/review-work/composition/owned-artifact-driver.mjs"
+import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
 import {
   createServiceRegistry,
   createServiceSession
 } from "../../source-analysis/src/direct-event/graph-resolution/service-session.ts"
+// These synthetic machines exercise the common driver's custody, not resident
+// input discrimination. Real resident protocol consumers have their own checks.
+const fixtureProtocol = {
+  initial: (machine, input) => ({ machine, step: machine.initial(input) }),
+  view: (held) => ({ machine: held.machine, view: held.machine.view(held.step) }),
+  resume: (held, reply) => ({ ...held, step: held.machine.resume(held.step, { $: "Types.ServiceReply", reply }) }),
+  awaitRequest: (projected) => (projected.view.$ === "Types.AwaitService" ? projected.view.request : undefined),
+  installation: () => ({ method: "install" }),
+  terminal: (projected, scope) =>
+    scope.$ === "PreparationScope"
+      ? projected.view.$ === "PreparationFinished"
+        ? "terminal_preparation"
+        : "terminal_preparation_failed"
+      : scope.$ === "SourceScope" && projected.view.$ === "SourcePreparationStopped"
+        ? "terminal_source_failed"
+        : "terminal",
+  preparation: (projected) => projected.view.result,
+  accepted: (projected) =>
+    projected.view.$ === "Types.FailedResolver"
+      ? { failure: projected.view.failure }
+      : { result: projected.view.result },
+  projectTerminal(outcome, session) {
+    if (outcome.failure?.$ === "Types.ForeignProviderFailure" || outcome.failure?.$ === "Types.RuntimeFailure")
+      throw session.exception(outcome.failure.exception)
+    return outcome
+  }
+}
+const createFixtureDriver = (options) => createChildExecutionDriver({ ...options, protocol: fixtureProtocol })
 const temp = await mkdtemp("/tmp/hapsland-canonical-owner-")
 try {
   const emitted = join(temp, "owner.mjs")
@@ -49,6 +77,63 @@ try {
     return s
   }
   let assertions = 0
+  // Settings have no fabricated observation: Canonical issues operation and child together.
+  let settings = m.initial_limits(100n, 100000n, 100n, 100000n)
+  const untouchedCanonical = settings.canonical
+  let settingsOut = m.launch_settings(settings, 500n)
+  assert.deepEqual(list(settingsOut.outputs), [])
+  settings = advanced(settingsOut)
+  assert.deepEqual(settings.canonical, untouchedCanonical)
+  const settingsChild = m.find(1n, settings.children).value
+  assert.deepEqual(settingsChild.scope, { $: "SettingsScope", operation: 1n })
+  assert.equal(m.live(settings.canonical, settingsChild.scope), false)
+  assert.equal(m.child_live(settings.canonical, settings.children, settingsChild), true)
+  assert.equal(
+    m.child_live(settings.canonical, settings.children, {
+      ...settingsChild,
+      scope: { $: "SettingsScope", operation: 2n }
+    }),
+    false
+  )
+  reject(m.launch(settings, settingsChild.scope, 501n), "NotPreparing")
+  settings = advanced(m.install(settings, 1n, 0n, 511n, 0n))
+  settings = advanced(m.provider_start(settings, 1n))
+  assert.equal(m.provider_live(settings, 1n, 0n, 1n, 0n), true)
+  for (const tuple of [
+    [2n, 0n, 1n, 0n],
+    [1n, 1n, 1n, 0n],
+    [1n, 0n, 2n, 0n],
+    [1n, 0n, 1n, 1n]
+  ])
+    assert.equal(m.provider_live(settings, ...tuple), false)
+  const settingsNested = m.launch_nested(settings, { $: "Parent", invocation: 1n, generation: 0n, request: 0n }, 516n)
+  reject(settingsNested, "WrongPhase")
+  assert.deepEqual(settingsNested.state, settings)
+  assert.deepEqual(
+    list(settings.children).map((child) => child.invocation),
+    [1n]
+  )
+  const cancelledSettings = advanced(m.cancel(settings, 1n))
+  assert.equal(m.provider_live(cancelledSettings, 1n, 0n, 1n, 0n), false)
+  const cancelledCompletion = m.provider_completed(cancelledSettings, 1n, 1n, 0n, 512n)
+  assert.equal(
+    list(cancelledCompletion.actions).some((action) => action.$ === "Resume" || action.$ === "AcceptResult"),
+    false
+  )
+  settings = advanced(m.provider_completed(settings, 1n, 1n, 0n, 512n))
+  settingsOut = m.terminal(settings, 1n, 1n, 513n)
+  assert.deepEqual(list(settingsOut.actions), [
+    { $: "AcceptResult", scope: settingsChild.scope, invocation: 1n, result_handle: 513n }
+  ])
+  settings = advanced(settingsOut)
+  assert.equal(m.child_live(settings.canonical, settings.children, m.find(1n, settings.children).value), false)
+  reject(m.terminal(settings, 1n, 1n, 513n), "WrongPhase")
+  settings = advanced(m.launch_settings(settings, 514n))
+  assert.deepEqual(m.find(2n, settings.children).value.scope, { $: "SettingsScope", operation: 2n })
+  assert.deepEqual(settings.canonical, untouchedCanonical)
+  reject(m.launch_settings({ ...settings, next_invocation: 0n }, 515n), "NotPreparing")
+  reject(m.launch_settings({ ...settings, next_invocation: 1n }, 515n), "NotPreparing")
+  assertions += 23
   let invalidSource = fresh()
   const wrongScope = {
     $: "SourceScope",
@@ -501,7 +586,7 @@ try {
           return 0
         }
       }
-    const driver = createOwnedArtifactDriver({
+    const driver = createFixtureDriver({
       owner: m,
       initialState: fresh(),
       scope,
@@ -575,7 +660,7 @@ try {
           return 0
         }
       }
-      const driver = createOwnedArtifactDriver({
+      const driver = createFixtureDriver({
         owner: m,
         initialState: fresh(),
         scope,
@@ -660,7 +745,7 @@ try {
         disposeInvocation() {},
         retainedHandles: 0
       }
-      const driver = createOwnedArtifactDriver({
+      const driver = createFixtureDriver({
         owner: m,
         initialState: fresh(),
         scope,
@@ -729,7 +814,7 @@ try {
         return 0
       }
     }
-    const driver = createOwnedArtifactDriver({
+    const driver = createFixtureDriver({
       owner: m,
       initialState: fresh(),
       scope,
@@ -811,7 +896,7 @@ try {
         return 0
       }
     }
-    const driver = createOwnedArtifactDriver({
+    const driver = createFixtureDriver({
       owner: m,
       initialState: fresh(),
       scope,
@@ -887,7 +972,7 @@ try {
         return 0
       }
     }
-    const driver = createOwnedArtifactDriver({
+    const driver = createFixtureDriver({
       owner: m,
       initialState: fresh(),
       scope,
@@ -963,7 +1048,7 @@ try {
         return 0
       }
     }
-    const driver = createOwnedArtifactDriver({
+    const driver = createFixtureDriver({
       owner: m,
       initialState: fresh(),
       scope,
@@ -1035,7 +1120,7 @@ try {
           return 0
         }
       }
-    const driver = createOwnedArtifactDriver({
+    const driver = createFixtureDriver({
       owner: m,
       control,
       registry,

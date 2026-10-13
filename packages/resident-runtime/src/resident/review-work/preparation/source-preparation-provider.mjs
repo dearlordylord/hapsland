@@ -353,14 +353,15 @@ export function createSourcePreparationProvider(
             if (held.$ !== "Some" || held.value.scope.$ !== "SourceScope")
               throw new TypeError("Missing Canonical Source parent")
             const child = held.value
+            const sourceScope = held.value.scope
             /** @type {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent} */
             const parent = { $: "Parent", invocation, generation: child.generation, request: request.id }
             const prepInvocation = driver.allocatePreparationInvocation(
               {
                 $: "PreparationScope",
-                partition: child.scope.partition,
-                lifetime: child.scope.lifetime,
-                round: child.scope.round,
+                partition: sourceScope.partition,
+                lifetime: sourceScope.lifetime,
+                round: sourceScope.round,
                 preparation: BigInt(receipt.preparation.operation)
               },
               parent

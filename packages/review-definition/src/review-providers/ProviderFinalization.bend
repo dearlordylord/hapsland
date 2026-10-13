@@ -1,7 +1,7 @@
 import Base
-import ../../../../runtime-environment/src/runtime/backend/Backend.bend as Backend
-import ../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend.bend as Configuration
-import ../../../../review-definition/src/review-providers/ProviderIdentity.bend as Provider
+import ../../../runtime-environment/src/runtime/backend/Backend.bend as Backend
+import ../../../runtime-inputs/src/configuration/review-backend/ReviewBackend.bend as Configuration
+import ./ProviderIdentity.bend as Provider
 
 type State is Data:
   State{invocation: Nat, request: Nat, provider: Provider.Step}
@@ -52,6 +52,14 @@ def initial(
   catalog: List<&2, Backend.Declaration>
 ) -> Step:
   expose(invocation, 0n, precedence(configuration, identity, catalog))
+
+# Direct settings selection uses the same kernel, without invented layers.
+def initial_selection(
+  invocation: Nat,
+  selection: Backend.Selection,
+  catalog: List<&2, Backend.Declaration>
+) -> Step:
+  expose(invocation, 0n, Provider.initial(selection, catalog))
 
 def advance(state: State) -> Step:
   match state:
