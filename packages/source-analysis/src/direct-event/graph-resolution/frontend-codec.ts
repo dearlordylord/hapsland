@@ -212,18 +212,14 @@ type NaturalReply<Value> = Value extends readonly (infer Item)[]
 export const mapGraphAbi = (value: unknown, field: (key: string, item: unknown) => unknown): unknown => {
   const result: Record<string, unknown> = {}
   type ValueTask = { value: unknown; target: object; key: string | number; field?: boolean }
-  type ArrayTask = { source: unknown[]; target: unknown[]; index: number }
-  const pending: Array<ValueTask | ArrayTask> = [{ value, target: result, key: "value" }]
+  const pending: Array<ValueTask | { children: Iterator<ValueTask> }> = [{ value, target: result, key: "value" }]
   while (pending.length > 0) {
     const next = pending.pop()!
-    if ("index" in next) {
-      while (next.index < next.target.length) {
-        const key = next.index++
-        if (!(key in next.source)) continue
-        const item = next.source[key]
+    if ("children" in next) {
+      const child = next.children.next()
+      if (!child.done) {
         pending.push(next)
-        pending.push({ value: item, target: next.target, key })
-        break
+        pending.push(child.value)
       }
       continue
     }
@@ -232,7 +228,12 @@ export const mapGraphAbi = (value: unknown, field: (key: string, item: unknown) 
     if (Array.isArray(source)) {
       const items = new Array<unknown>(source.length)
       converted = items
-      pending.push({ source, target: items, index: 0 })
+      pending.push({
+        children: (function* () {
+          for (let key = 0; key < items.length; key++)
+            if (key in source) yield { value: source[key], target: items, key }
+        })()
+      })
     } else if (source && typeof source === "object") {
       const fields: Record<string, unknown> = {}
       converted = fields
