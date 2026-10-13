@@ -12918,6 +12918,30 @@ def ready_common_frame_omissions(+actual: T.ResolverFrame, +reference: D.State, 
       ready_reference_forest_project(reference, history, view, reference_ready)),
     ready_frame_view_omissions(actual, history, view, actual_ready))
 
+def ready_reference_frame_dependencies_rows(+state: D.State, +history: V.History,
+    +targets_value: Maybe<&2, List<&2, V.TargetEntry>>, +captured_value: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited_value: Maybe<&2, List<&2, String>>, +view: V.Frame,
+    ready: {ReferenceFrame.assembled(state, history, targets_value, captured_value, visited_value) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(view) : List<&2, String>}:
+  match state history targets_value captured_value visited_value:
+    case D.State{D.Config{_, _, _, +context, _, _}, X.Frame{G.Bounded{+graph, +remaining}, +command, +forest, Signed.State{Recursive.State{_, +budget, _, _}, +signed}, +edges, _, +artifacts_by_target, +next_edge, +episode, +next_artifact, +dependencies, _}, _, +target_ids, +next_target, _, _, _, _} V.History{_, _, _, _, +artifacts, _, _}
+      Some{+targets} Some{+captures} Some{+seen}:
+      Equal.cong(V.Frame, List<&2, String>, value => ready_view_dependencies(value), V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, Count.some_equal(V.Frame, V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, ready))
+    case _ _ None{} _ _:
+      Empty.absurd({ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} None{} _:
+      Empty.absurd({ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} Some{_} None{}:
+      Empty.absurd({ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(view) : List<&2, String>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_reference_frame_dependencies(+state: D.State, +history: V.History, +view: V.Frame,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ready_reference_dependencies(D.frame(state)) == ready_view_dependencies(view) : List<&2, String>}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +target_values, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
+      ready_reference_frame_dependencies_rows(state, history, ReferenceFrame.targets(target_values), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, ready)
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
