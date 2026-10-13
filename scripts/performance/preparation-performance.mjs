@@ -65,6 +65,8 @@ try {
     )
   invoke("typescript", "prepare")
   const profileDirectory = process.env.HAPSLAND_PREPARATION_PROFILE_DIR
+  if (process.env.HAPSLAND_PREPARATION_PROFILE_PHASES === "1")
+    assert.ok(profileDirectory, "phase tracing requires diagnostic profiling; it cannot qualify parity")
   if (profileDirectory !== undefined) {
     assert.equal(reference, "current-native", "profiling requires the explicit supplemental native reference")
     const profileRuntime = process.env.HAPSLAND_PREPARATION_PROFILE_RUNTIME ?? "bun"

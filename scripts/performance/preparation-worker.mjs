@@ -5,6 +5,19 @@ import { pathToFileURL } from "node:url"
 
 const [root, mode, fixturePath, goldenPath, implementation = "public"] = process.argv.slice(2)
 assert.ok(root && fixturePath && goldenPath)
+const phaseStart = performance.now()
+const phase = (name) => {
+  if (process.env.HAPSLAND_PREPARATION_PROFILE_PHASES === "1")
+    process.stderr.write(
+      JSON.stringify({
+        diagnosticOnly: true,
+        implementation,
+        phase: name,
+        elapsedSeconds: (performance.now() - phaseStart) / 1000
+      }) + "\n"
+    )
+}
+phase("imports:start")
 const load = (path) => import(pathToFileURL(root + path).href)
 assert.ok(implementation === "public" || implementation === "native-oracle")
 const prepareObservation =
@@ -17,6 +30,7 @@ const { configuredRules } = await load("/scripts/test-support/default-rules.ts")
 const { advicee } = await load("/scripts/test-support/test-fixtures.ts")
 const { DEFAULT_BACKEND, DEFAULT_DESTINATION } = await load("/packages/review-definition/dist/runtime/review-config.js")
 const Effect = await load("/node_modules/effect/dist/Effect.js")
+phase("imports:complete")
 const fixtures = JSON.parse(readFileSync(fixturePath, "utf8"))
 const cases = await Promise.all(
   fixtures.map(async ({ root: fixtureRoot, paths }) => ({
@@ -33,6 +47,7 @@ const cases = await Promise.all(
     }
   }))
 )
+phase("fixtures:complete")
 const observeProcesses = process.env.HAPSLAND_PREPARATION_PROFILE_PROCESSES === "1" && typeof Bun === "undefined"
 let processStarts = 0
 const processCounts = []
@@ -56,7 +71,9 @@ const run = async () => {
   }
   return results
 }
+phase("first-flow:start")
 const actual = await run()
+phase("first-flow:complete")
 const controls = JSON.stringify(cases.map(({ context }) => context))
 const results = actual.map((value) => JSON.parse(value))
 for (const [index, result] of results.slice(0, 6).entries()) {
@@ -94,7 +111,10 @@ const expected = golden.results
 assert.deepEqual(actual, expected)
 const warmups = 3,
   rounds = 2
+phase("warmups:start")
 for (let index = 0; index < warmups; index++) assert.deepEqual(await run(), expected)
+phase("warmups:complete")
+phase("measurement:start")
 const started = performance.now(),
   cpu = process.cpuUsage()
 let checksum = 0
@@ -104,6 +124,7 @@ for (let index = 0; index < rounds; index++) {
   checksum += result.reduce((sum, value) => sum + value.length, 0)
 }
 const used = process.cpuUsage(cpu)
+phase("measurement:complete")
 processObserver?.disable()
 if (observeProcesses) assert.ok(processStarts > 0 && processCounts.length === cases.length * (1 + warmups + rounds))
 console.log(
