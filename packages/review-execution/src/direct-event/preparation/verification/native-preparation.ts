@@ -10,7 +10,7 @@ import { isBundledArtifact, languageForPath } from "@hapsland/source-analysis/di
 import * as Effect from "effect/Effect"
 import type { CompiledRule } from "@hapsland/review-definition/rules/compiler"
 import { applicableRules } from "../../../policy/rules.ts"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { nativeProviderIdentity as providerIdentity } from "@hapsland/review-definition/testing/native-provider-identity"
 import { effectiveReviewBackend, effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/resolve"
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { initialImportGraph, stepImportGraph } from "@hapsland/canonical-policy/canonical/graph-adapter"

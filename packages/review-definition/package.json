@@ -67,9 +67,18 @@
     "./rules/index": {
       "types": "./dist/rules/index.d.ts",
       "default": "./dist/rules/index.js"
+    },
+    "./testing/provider-identity": {
+      "types": "./dist/review-providers/verification/provider-identity.d.ts",
+      "default": "./dist/review-providers/verification/provider-identity.js"
+    },
+    "./testing/native-provider-identity": {
+      "types": "./dist/review-providers/verification/native-provider-identity.d.ts",
+      "default": "./dist/review-providers/verification/native-provider-identity.js"
     }
   },
   "dependencies": {
+    "@hapsland/agent-flow-bend": "workspace:*",
     "@hapsland/canonical-policy": "workspace:*",
     "@hapsland/native-observation": "workspace:*",
     "@hapsland/runtime-environment": "workspace:*",
@@ -91,6 +100,7 @@
         "destination": "rules/defaults",
         "extension": ".json"
       }
-    ]
+    ],
+    "bendPrecompile": "src/review-providers/build-recipe.json"
   }
 }

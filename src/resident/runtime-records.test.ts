@@ -11,6 +11,8 @@ import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 
+const defaultProviderIdentity = await Effect.runPromise(providerIdentity({ provider: "jev" }))
+
 it.effect("bounds connection leases and fences foreign and duplicate release", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState(undefined, "same-lifetime")
@@ -127,7 +129,7 @@ const cacheFixture = Effect.gen(function* () {
     sourceHash: "source"
   }
   const input = freezeInput({
-    providerIdentity: providerIdentity({ provider: "jev" }),
+    providerIdentity: defaultProviderIdentity,
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "count.ts",

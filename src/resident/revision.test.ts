@@ -13,6 +13,8 @@ import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 
+const defaultProviderIdentity = await Effect.runPromise(providerIdentity({ provider: "jev" }))
+
 const prepared = (source = "type Count = number"): PreparedUnit => {
   const declaration: TypeDeclaration = {
     id: "count.ts::Count",
@@ -22,7 +24,7 @@ const prepared = (source = "type Count = number"): PreparedUnit => {
     sourceHash: source
   }
   const input = freezeInput({
-    providerIdentity: providerIdentity({ provider: "jev" }),
+    providerIdentity: defaultProviderIdentity,
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "count.ts",

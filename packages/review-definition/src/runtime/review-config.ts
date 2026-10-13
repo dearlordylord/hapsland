@@ -40,9 +40,12 @@ const defaultCapture = (root: string): ConfigurationCapture => {
   return { policy }
 }
 
-const settingsFrom = (capture: ConfigurationCapture, rules: ReadonlyArray<CompiledRule> = []): ReviewSettings => {
+const settingsFrom = Effect.fn("ReviewConfig.assemble")(function* (
+  capture: ConfigurationCapture,
+  rules: ReadonlyArray<CompiledRule> = []
+) {
   const policy = capture.policy
-  const identity = providerIdentity(effectiveReviewBackend(policy))
+  const identity = yield* providerIdentity(effectiveReviewBackend(policy))
   return {
     backend: identity.provider,
     providerIdentity: identity,
@@ -52,7 +55,7 @@ const settingsFrom = (capture: ConfigurationCapture, rules: ReadonlyArray<Compil
     configuration: capture,
     rules
   }
-}
+})
 
 const compilationErrorField = (error: unknown, field: string, fallback: string): string =>
   typeof error === "object" && error !== null && field in error ? String(Reflect.get(error, field)) : fallback
@@ -82,14 +85,13 @@ export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
       })
   })
   return {
-    ...settingsFrom(capture, rules),
+    ...(yield* settingsFrom(capture, rules)),
     ruleDigests: loadedRules.map((rule) => `${rule.id}:${rule.definitionDigest}`)
   }
 })
 
-export const defaultReviewSettings = (root = "."): ReviewSettings => {
-  const configuration = defaultCapture(root)
-  return settingsFrom(configuration)
-}
+export const defaultReviewSettings = Effect.fn("ReviewConfig.default")(function* (root = ".") {
+  return yield* settingsFrom(defaultCapture(root))
+})
 
 export const isEnvironmentVariableName = (value: string): boolean => /^[A-Z_][A-Z0-9_]*$/.test(value)

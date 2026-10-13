@@ -16,6 +16,8 @@ import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import type { AdviceInitial } from "@hapsland/resident-runtime/resident/advice-records"
 
+const defaultProviderIdentity = await Effect.runPromise(providerIdentity({ provider: "jev" }))
+
 const observation: DirectObservation = {
   root: "/fixture",
   rootIdentity: { rootDevice: "1", rootInode: "1", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "2" },
@@ -23,7 +25,7 @@ const observation: DirectObservation = {
   candidates: [{ operation: "add", path: "count.ts", addedLines: [] }]
 }
 const input = freezeInput({
-  providerIdentity: providerIdentity({ provider: "jev" }),
+  providerIdentity: defaultProviderIdentity,
   contract: TYPE_INPUT_CONTRACT,
   completeness: "complete",
   path: "count.ts",
@@ -94,7 +96,7 @@ const fixture = (existing?: Owner) =>
     const revision = (yield* owner.revision.register("agent", prepared, true, "revision")).revision
     const initial: AdviceInitial = {
       settings: {
-        ...defaultReviewSettings(observation.root),
+        ...(yield* defaultReviewSettings(observation.root)),
         source: settingsSource(observation.root),
         rules: [],
         ruleDigests: []

@@ -20,6 +20,8 @@ import {
   residentEvaluationIdentity
 } from "@hapsland/resident-runtime/resident/evaluation-reuse"
 
+const defaultProviderIdentity = await Effect.runPromise(providerIdentity({ provider: "jev" }))
+
 const artifact = (source: string): TypeDeclaration => ({
   id: "type.ts::OrderCount",
   kind: "type-alias",
@@ -31,7 +33,7 @@ const artifact = (source: string): TypeDeclaration => ({
 const input = (overrides: Partial<ReviewInput> = {}): ReviewInput => {
   const declaration = artifact("type OrderCount = number")
   return freezeInput({
-    providerIdentity: providerIdentity({ provider: "jev" }),
+    providerIdentity: defaultProviderIdentity,
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "type.ts",

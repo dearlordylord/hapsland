@@ -11,7 +11,7 @@ import {
   DEFAULT_REVIEW_BACKEND
 } from "@hapsland/runtime-environment/runtime/backend"
 import { effectiveReviewBackend } from "@hapsland/runtime-inputs/configuration/resolve"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { nativeProviderIdentity as providerIdentity } from "@hapsland/review-definition/testing/native-provider-identity"
 
 const backend = "../../../runtime-environment/src/runtime/backend/Backend."
 const configuration = "../../../runtime-inputs/src/configuration/review-backend/ReviewBackend."

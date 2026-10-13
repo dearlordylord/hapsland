@@ -20,6 +20,8 @@ import {
   type EvaluationEvidence
 } from "@hapsland/review-execution/direct-event/pipeline"
 
+const defaultProviderIdentity = await Effect.runPromise(providerIdentity({ provider: "jev" }))
+
 const digest = (text: string) => createHash("sha256").update(text).digest("hex")
 const fixture = (kind: "type" | "function", secret: string): PreparedUnit => {
   const artifact: ReviewArtifact = {
@@ -69,7 +71,7 @@ const fixture = (kind: "type" | "function", secret: string): PreparedUnit => {
       subagentId: secret
     },
     input: {
-      providerIdentity: providerIdentity({ provider: "jev" }),
+      providerIdentity: defaultProviderIdentity,
       contract,
       candidateProjection: true,
       completeness: "complete",

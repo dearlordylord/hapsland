@@ -13,6 +13,8 @@ import type { PreparedUnit } from "@hapsland/review-definition/direct-event/mode
 import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
+const defaultProviderIdentity = await Effect.runPromise(providerIdentity({ provider: "jev" }))
+
 describe("complete Jev request measurement", () => {
   it("marks unsupported or invalid provider bodies as unmeasurable", () => {
     const decision = Decision.probability({ instructions: "Check", criteria: { false: "No", true: "Yes" } })
@@ -50,7 +52,7 @@ describe("complete Jev request measurement", () => {
         },
         identity: "fixture",
         input: {
-          providerIdentity: providerIdentity({ provider: "jev" }),
+          providerIdentity: defaultProviderIdentity,
           contract: TYPE_INPUT_CONTRACT,
           candidateProjection: true,
           completeness: "complete",

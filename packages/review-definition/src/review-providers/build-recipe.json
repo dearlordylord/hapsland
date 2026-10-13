@@ -1,0 +1,7 @@
+[
+  {
+    "source": "ProviderFinalization.bend",
+    "output": "provider-finalization-core.js",
+    "declaration": "provider-finalization-core.d.ts"
+  }
+]

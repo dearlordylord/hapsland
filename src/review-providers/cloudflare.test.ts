@@ -16,8 +16,13 @@ const decision = Decision.probability({
   criteria: { false: "All states have meaning", true: "An invalid state is representable" }
 })
 const tokenLayer = ConfigProvider.layer(ConfigProvider.fromUnknown({ CLOUDFLARE_API_TOKEN: "SECRET-SENTINEL" }))
-const identity = (model: "clef" | "clef-flash" = "clef") =>
-  providerIdentity({ provider: "cloudflare", model, accountId: "a".repeat(32) })
+const capturedIdentities = {
+  clef: await Effect.runPromise(providerIdentity({ provider: "cloudflare", model: "clef", accountId: "a".repeat(32) })),
+  "clef-flash": await Effect.runPromise(
+    providerIdentity({ provider: "cloudflare", model: "clef-flash", accountId: "a".repeat(32) })
+  )
+}
+const identity = (model: "clef" | "clef-flash" = "clef") => capturedIdentities[model]
 const envelope = (model = "clef", answers: unknown = { q0: { type: "noul", noul: 0.91 } }) => ({
   success: true,
   errors: [],

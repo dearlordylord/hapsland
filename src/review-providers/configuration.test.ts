@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect"
 import { describe, expect, it } from "vitest"
 import { decodeConfigurationDocument } from "@hapsland/runtime-inputs/configuration/decode"
 import {
@@ -45,16 +46,18 @@ describe("review provider configuration authority", () => {
     ])
       expect(() => decodeConfigurationDocument({ version: 1, reviewBackend }, "user")).toThrow()
   })
-  it("binds model and account changes into captured configuration identity", () => {
+  it("binds model and account changes into captured configuration identity", async () => {
     const policy = (
       reviewBackend: typeof cloudflare | { provider: "cloudflare"; model: "clef-flash"; accountId: string }
     ) => resolveConfiguration([{ name: "user", source: "user", document: { version: 1, reviewBackend } }])
     const first = policy(cloudflare)
     expect(policy({ ...cloudflare, model: "clef-flash" }).digest).not.toBe(first.digest)
     expect(policy({ ...cloudflare, accountId: "b".repeat(32) }).digest).not.toBe(first.digest)
-    expect(providerIdentity(effectiveReviewBackend(first)).destination).toContain(`/accounts/${cloudflare.accountId}/`)
+    expect((await Effect.runPromise(providerIdentity(effectiveReviewBackend(first)))).destination).toContain(
+      `/accounts/${cloudflare.accountId}/`
+    )
   })
-  it("binds OpenAI selection and its user-owned credential reference", () => {
+  it("binds OpenAI selection and its user-owned credential reference", async () => {
     const openai = { provider: "openai", model: "gpt-6-luna" } as const
     const policy = resolveConfiguration([
       { name: "user", source: "user", document: { version: 1, reviewBackend: openai } },
@@ -64,7 +67,7 @@ describe("review provider configuration authority", () => {
     expect(policy.credentialEnvVar.value).toBe("OPENAI_API_KEY")
     expect(policy.credentialEnvVar.origin.layer).toBe("user")
     expect(() => validateCapturedPolicy(policy)).not.toThrow()
-    expect(providerIdentity(openai)).toEqual({
+    expect(await Effect.runPromise(providerIdentity(openai))).toEqual({
       provider: "openai",
       model: "gpt-6-luna",
       destination: "https://api.openai.com/v1/decisions"

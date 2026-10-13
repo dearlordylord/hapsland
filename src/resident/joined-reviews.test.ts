@@ -13,6 +13,8 @@ import { Cause, Effect } from "effect"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 
+const defaultProviderIdentity = await Effect.runPromise(providerIdentity({ provider: "jev" }))
+
 const measure = (value: unknown) => Buffer.byteLength(JSON.stringify(value))
 const prepare = (source: string): PreparedUnit => {
   const declaration: TypeDeclaration = {
@@ -23,7 +25,7 @@ const prepare = (source: string): PreparedUnit => {
     sourceHash: source
   }
   const input = freezeInput({
-    providerIdentity: providerIdentity({ provider: "jev" }),
+    providerIdentity: defaultProviderIdentity,
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "type.ts",

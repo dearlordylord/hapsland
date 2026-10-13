@@ -20,7 +20,8 @@ const decision = Decision.probability({
   criteria: { false: "All states have meaning", true: "An invalid state is representable" }
 })
 const tokenLayer = ConfigProvider.layer(ConfigProvider.fromUnknown({ OPENAI_API_KEY: "SECRET-SENTINEL" }))
-const identity = () => providerIdentity({ provider: "openai", model: "gpt-6-luna" })
+const capturedIdentity = await Effect.runPromise(providerIdentity({ provider: "openai", model: "gpt-6-luna" }))
+const identity = () => capturedIdentity
 const envelope = (answers: unknown = [{ type: "predicate", name: "q0", probability: 0.91 }]) => ({
   model: "gpt-6-luna",
   answers,

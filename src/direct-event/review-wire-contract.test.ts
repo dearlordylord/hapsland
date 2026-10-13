@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect"
 import { bundledBendArtifact } from "@hapsland/source-analysis/direct-event/languages/bend/bundled-evidence"
 import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { createHash } from "node:crypto"
@@ -28,6 +29,8 @@ import {
   MAX_CANDIDATE_TREE_BYTES,
   renderCandidateReviewInput
 } from "@hapsland/review-execution/direct-event/review-renderer"
+
+const defaultProviderIdentity = await Effect.runPromise(providerIdentity({ provider: "jev" }))
 
 const hash = (source: string): string => createHash("sha256").update(source, "utf8").digest("hex")
 const artifact = (path: string, kind: ReviewArtifact["kind"], name: string, source: string): ReviewArtifact => ({
@@ -100,7 +103,7 @@ const prepared = (branch: "type" | "function"): PreparedUnit => {
       subagentId: null
     },
     input: {
-      providerIdentity: providerIdentity({ provider: "jev" }),
+      providerIdentity: defaultProviderIdentity,
       contract,
       candidateProjection: true,
       completeness: "complete",

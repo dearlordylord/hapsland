@@ -1864,6 +1864,7 @@
     },
     "@hapsland/review-definition#build": {
       "dependsOn": [
+        "@hapsland/agent-flow-bend#build",
         "@hapsland/canonical-policy#build",
         "@hapsland/native-observation#build",
         "@hapsland/review-definition#clean:compiler",
@@ -1890,6 +1891,11 @@
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/bend-precompile.mjs",
+        "$TURBO_ROOT$/scripts/bend-producer.mjs",
+        "$TURBO_ROOT$/scripts/bend-toolchain.mjs",
+        "$TURBO_ROOT$/scripts/source-loader-policy.mjs",
+        "$TURBO_ROOT$/scripts/native-toolchain-inputs.mjs",
         "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
@@ -1902,7 +1908,8 @@
       ],
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
-        "HAPSLAND_BUILD_PROCESS_GROUP"
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
       ]
     },
     "@hapsland/review-execution#clean:compiler": {
