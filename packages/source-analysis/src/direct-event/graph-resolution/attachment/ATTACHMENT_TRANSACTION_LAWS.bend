@@ -52,6 +52,7 @@ import ../GraphSpecification.bend as GraphReference
 import ./AttachmentReplacementStructureProof.bend as ReplacementStructure
 import ./AttachmentNodeReplacementTransport.bend as NodeReplacement
 import ./ForestRollbackProof.bend as Rollback
+import ./ConstructionForestProof.bend as Construction
 import ../Attach.bend as Attach
 import ../AttachPlanning.bend as Admission
 import ../Resolve.bend as Resolve
@@ -11377,6 +11378,32 @@ def ready_omission_address_demand(+prefix: List<&2, F.Node>, +address: O.NodeAdd
     %ready_omission_remove_count(prefix, address, artifact, references, suffix, query):
       NatFacts.le((ready_omission_work_demand(D.OmissionAddress{address} <> rest, query) + Relation.incoming(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), query) : Nat), _)
     available)
+
+def ready_omission_reference_step_result(+references: List<&2, F.Reference>, +rest: List<&2, D.OmissionWork>, +nodes: List<&2, F.Node>, +query: O.NodeAddress) -> Type:
+  Exists(List<&2, D.OmissionWork>, next =>
+    {D.omission_step(D.OmissionReferences{references}, rest, nodes) == Some{next} : Maybe<&2, List<&2, D.OmissionWork>>} &
+    {ready_omission_work_weight(D.OmissionReferences{references} <> rest) == 1n+ready_omission_work_weight(next) : Nat} &
+    {ready_omission_work_demand(D.OmissionReferences{references} <> rest, query) == ready_omission_work_demand(next, query) : Nat})
+
+def ready_omission_reference_step(+references: List<&2, F.Reference>, +rest: List<&2, D.OmissionWork>, +nodes: List<&2, F.Node>, +query: O.NodeAddress,
+    absent: {D.omission_found(D.OmissionReferences{references}) == False{} : Bool}) ->
+    ready_omission_reference_step_result(references, rest, nodes, query):
+  match references:
+    case []: Tuple{rest, Tuple{{==}, Tuple{{==}, {==}}}}
+    case F.Included{_, _} <> tail:
+      Tuple{D.OmissionReferences{tail} <> rest, Tuple{{==}, Tuple{{==}, {==}}}}
+    case F.Omitted{_, _, _} <> _:
+      Empty.absurd(ready_omission_reference_step_result(references, rest, nodes, query),
+        BoolFacts.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, absent)))
+    case F.Expanded{_, +child} <> +tail:
+      Tuple{D.OmissionAddress{child} <> D.OmissionReferences{tail} <> rest, Tuple{{==}, Tuple{{==},
+        Equal.trans(Nat,
+          ((Bool.pick(Nat, F.same_address(child, query), 1n, 0n) + Relation.incoming_references(tail, query) : Nat) + ready_omission_work_demand(rest, query) : Nat),
+          (Bool.pick(Nat, F.same_address(child, query), 1n, 0n) + (Relation.incoming_references(tail, query) + ready_omission_work_demand(rest, query) : Nat) : Nat),
+          (Bool.pick(Nat, F.same_address(query, child), 1n, 0n) + (Relation.incoming_references(tail, query) + ready_omission_work_demand(rest, query) : Nat) : Nat),
+          Arithmetic.add_assoc(Bool.pick(Nat, F.same_address(child, query), 1n, 0n), Relation.incoming_references(tail, query), ready_omission_work_demand(rest, query)),
+          Equal.cong(Bool, Nat, same => (Bool.pick(Nat, same, 1n, 0n) + (Relation.incoming_references(tail, query) + ready_omission_work_demand(rest, query) : Nat) : Nat),
+            F.same_address(child, query), F.same_address(query, child), Construction.same_address_symmetric(child, query)))}}}
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
