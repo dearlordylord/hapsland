@@ -7939,6 +7939,155 @@ def ready_reference_captured_frame(+state: D.State, +history: V.History, +view: 
         Equal.cong(G.BoundedStep, Maybe<&2, V.Frame>, result => ReferenceFrame.project(D.with_frame(state, X.event_result(D.frame(state), result)), History.allowance(history, Nat.sub(remaining, 1n))), GraphReference.bounded_transition(G.Bounded{graph, remaining}, G.Captured{source, contribution, work, ids}), GraphReference.bounded_result(G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n)), ready_captured_allowance(graph, source, contribution, work, ids, remaining, positive)),
         ready_reference_graph_complete(state, history, view, G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n), ready, ready_captured_limits(graph, source, contribution, work, ids)))
 
+def ready_view_graph(view: V.Frame) -> G.Graph:
+  match view:
+    case V.Frame{_, _, graph, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: graph
+
+def ready_view_remaining(view: V.Frame) -> Nat:
+  match view:
+    case V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, remaining, _}: remaining
+
+def ready_history_remaining(history: V.History) -> Nat:
+  match history:
+    case V.History{_, _, _, _, _, remaining, _}: remaining
+
+def ready_actual_graph_coordinates(+actual: T.ResolverFrame, +remaining: Nat, +view: V.Frame) -> Type:
+  {S.frame_graph(actual) == ready_view_graph(view) : G.Graph} & {remaining == ready_view_remaining(view) : Nat}
+
+def ready_actual_graph_rows(+forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingEntry>>, +targets: Maybe<&2, List<&2, V.TargetEntry>>, +ids: Maybe<&2, List<&2, V.TargetId>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>, +identities: Maybe<&2, List<&2, V.TargetArtifact>>, +visited: Maybe<&2, List<&2, String>>, +actual: T.ResolverFrame, +remaining: Nat, +episode: Nat, +view: V.Frame,
+    ready: {ActualFrame.frame_view(forest, pending, targets, ids, captured, identities, visited, actual, remaining, episode) == Some{view} : Maybe<&2, V.Frame>}) ->
+    ready_actual_graph_coordinates(actual, remaining, view):
+  match forest pending targets ids captured identities visited actual:
+    case Some{+forest_value} Some{+pending_value} Some{+targets_value} Some{+ids_value} Some{+captured_value} Some{+identities_value} Some{+visited_value}
+      T.ResolverFrame{branch, limits, graph, command, deps, _, _, _, _, budget, node, edge, target, artifact, _, _, _, _, _, artifacts}:
+      %Count.some_equal(V.Frame, V.Frame{branch, limits, graph, command, deps, forest_value, pending_value, targets_value, ids_value, captured_value, identities_value, visited_value, V.actual_budget(budget), node, edge, target, artifact, artifacts, remaining, episode}, view, ready):
+        ready_actual_graph_coordinates(actual, remaining, _)
+      Tuple{{==}, {==}}
+    case None{} _ _ _ _ _ _ _:
+      Empty.absurd(ready_actual_graph_coordinates(actual, remaining, view), Contents.none_some(V.Frame, view, ready))
+    case Some{_} None{} _ _ _ _ _ _:
+      Empty.absurd(ready_actual_graph_coordinates(actual, remaining, view), Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} None{} _ _ _ _ _:
+      Empty.absurd(ready_actual_graph_coordinates(actual, remaining, view), Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} None{} _ _ _ _:
+      Empty.absurd(ready_actual_graph_coordinates(actual, remaining, view), Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} None{} _ _ _:
+      Empty.absurd(ready_actual_graph_coordinates(actual, remaining, view), Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} None{} _ _:
+      Empty.absurd(ready_actual_graph_coordinates(actual, remaining, view), Contents.none_some(V.Frame, view, ready))
+    case Some{_} Some{_} Some{_} Some{_} Some{_} Some{_} None{} _:
+      Empty.absurd(ready_actual_graph_coordinates(actual, remaining, view), Contents.none_some(V.Frame, view, ready))
+
+def ready_actual_graph_projected(+frame: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    ready: {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    ready_actual_graph_coordinates(frame, ready_history_remaining(history), view):
+  match history:
+    case V.History{+addresses, V.Order{+pending_order, +target_order, +id_order, +capture_order, +identity_order, +visited_order}, +sources, +captures, _, +remaining, +episode}:
+      ready_actual_graph_rows(ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode), ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(frame), addresses), ActualFrame.ids(id_order, S.frame_target_ids(frame)), ActualFrame.captured(capture_order, S.frame_captured(frame), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(frame)), ActualFrame.visited(visited_order, S.frame_visited(frame)), frame, remaining, episode, view, ready)
+
+def ready_actual_graph_project(+actual: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    ready_actual_graph_coordinates(actual, ready_history_remaining(history), view):
+  ready_actual_graph_projected(actual, history, view,
+    Pair.snd({frame_checks(actual, history) == True{} : Bool}, {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(actual, history, view, ready)))
+
+def ready_reference_graph_coordinates(+state: D.State, +view: V.Frame) -> Type:
+  {ready_reference_graph(D.frame(state)) == ready_view_graph(view) : G.Graph} &
+  {ready_reference_remaining(D.frame(state)) == ready_view_remaining(view) : Nat}
+
+def ready_reference_graph_coordinate_rows(+state: D.State, +history: V.History,
+    +targets_value: Maybe<&2, List<&2, V.TargetEntry>>, +captured_value: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited_value: Maybe<&2, List<&2, String>>, +view: V.Frame,
+    ready: {ReferenceFrame.assembled(state, history, targets_value, captured_value, visited_value) == Some{view} : Maybe<&2, V.Frame>}) ->
+    ready_reference_graph_coordinates(state, view):
+  match state history targets_value captured_value visited_value:
+    case D.State{D.Config{_, _, _, +context, _, _}, X.Frame{G.Bounded{+graph, +remaining}, +command, +forest, Signed.State{Recursive.State{_, +budget, _, _}, +signed}, +edges, _, +artifacts_by_target, +next_edge, +episode, +next_artifact, +dependencies, _}, _, +target_ids, +next_target, _, _, _, _} V.History{_, _, _, _, +artifacts, _, _}
+      Some{+targets} Some{+captures} Some{+seen}:
+      %Count.some_equal(V.Frame, V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, ready): ready_reference_graph_coordinates(state, _)
+      Tuple{{==}, {==}}
+    case _ _ None{} _ _:
+      Empty.absurd(ready_reference_graph_coordinates(state, view), Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} None{} _:
+      Empty.absurd(ready_reference_graph_coordinates(state, view), Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} Some{_} None{}:
+      Empty.absurd(ready_reference_graph_coordinates(state, view), Contents.none_some(V.Frame, view, ready))
+
+def ready_reference_graph_project(+state: D.State, +history: V.History, +view: V.Frame,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    ready_reference_graph_coordinates(state, view):
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +target_values, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
+      ready_reference_graph_coordinate_rows(state, history, ReferenceFrame.targets(target_values), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, ready)
+
+def ready_captured_coordinates(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph} &
+    {ready_reference_remaining(D.frame(reference)) == ready_history_remaining(history) : Nat}:
+  Tuple{
+    Equal.trans(G.Graph, ready_reference_graph(D.frame(reference)), ready_view_graph(view), S.frame_graph(actual),
+      Pair.fst({ready_reference_graph(D.frame(reference)) == ready_view_graph(view) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == ready_view_remaining(view) : Nat}, ready_reference_graph_project(reference, history, view, reference_ready)),
+      Equal.sym(G.Graph, S.frame_graph(actual), ready_view_graph(view), Pair.fst({S.frame_graph(actual) == ready_view_graph(view) : G.Graph}, {ready_history_remaining(history) == ready_view_remaining(view) : Nat}, ready_actual_graph_project(actual, history, view, actual_ready)))),
+    Equal.trans(Nat, ready_reference_remaining(D.frame(reference)), ready_view_remaining(view), ready_history_remaining(history),
+      Pair.snd({ready_reference_graph(D.frame(reference)) == ready_view_graph(view) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == ready_view_remaining(view) : Nat}, ready_reference_graph_project(reference, history, view, reference_ready)),
+      Equal.sym(Nat, ready_history_remaining(history), ready_view_remaining(view), Pair.snd({S.frame_graph(actual) == ready_view_graph(view) : G.Graph}, {ready_history_remaining(history) == ready_view_remaining(view) : Nat}, ready_actual_graph_project(actual, history, view, actual_ready))))}
+
+def ready_reference_captured_at(+reference: D.State, +history: V.History, +view: V.Frame,
+    +graph: G.Graph, +remaining: Nat, +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
+    ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    positive: {Nat.is_gt(remaining, 0n) == True{} : Bool},
+    graph_equal: {ready_reference_graph(D.frame(reference)) == graph : G.Graph},
+    +remaining_equal: {ready_reference_remaining(D.frame(reference)) == remaining : Nat}) ->
+    {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(remaining, 1n))) == Some{ready_graph_view(view, G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n))} : Maybe<&2, V.Frame>}:
+  ref_positive = Equal.trans(Bool, Nat.is_gt(ready_reference_remaining(D.frame(reference)), 0n), Nat.is_gt(remaining, 0n), True{},
+    Equal.cong(Nat, Bool, value => Nat.is_gt(value, 0n), ready_reference_remaining(D.frame(reference)), remaining, remaining_equal), positive)
+  %remaining_equal:
+    {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(_, 1n))) == Some{ready_graph_view(view, G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(_, 1n))} : Maybe<&2, V.Frame>}
+  %graph_equal:
+    {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_reference_remaining(D.frame(reference)), 1n))) == Some{ready_graph_view(view, G.step(_, G.Captured{source, contribution, work, ids}), Nat.sub(ready_reference_remaining(D.frame(reference)), 1n))} : Maybe<&2, V.Frame>}
+  ready_reference_captured_frame(reference, history, view, source, contribution, work, ids, ready, ref_positive)
+
+def ready_captured_frames(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
+    +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    positive: ready_history_positive(history)) ->
+    {ActualFrame.project(S.advance(actual, G.Captured{source, contribution, work, ids}), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>} &
+    {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>}:
+  match history:
+    case V.History{_, _, _, _, _, +remaining, _}:
+      Tuple{
+        ready_graph_frame_complete(actual, history, view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n), actual_ready),
+        ready_reference_captured_at(reference, history, view, S.frame_graph(actual), remaining, source, contribution, work, ids, reference_ready, positive,
+          Pair.fst({ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == remaining : Nat}, ready_captured_coordinates(actual, reference, history, view, actual_ready, reference_ready)),
+          Pair.snd({ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == remaining : Nat}, ready_captured_coordinates(actual, reference, history, view, actual_ready, reference_ready)))}
+
+def ready_transition_selected(+actual: T.ResolverFrame, +step: G.Step,
+    +owner: Nat, +index: Nat, +symbol: String,
+    selected: {ActualReady.slot_count(S.frame_references(actual), owner, index, symbol) == 1n : Nat}) ->
+    {ActualReady.slot_count(S.frame_references(PreparedRoot.frame_transition(actual, step)), owner, index, symbol) == 1n : Nat}:
+  match actual step:
+    case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _} G.Step{_, _}: selected
+
+def ready_captured_rollback_total(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
+    +owner: Nat, +index: Nat, +name: String, +symbol: String, +address: O.NodeAddress,
+    actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    positive: ready_history_positive(history),
+    selected: {ActualReady.slot_count(S.frame_references(actual), owner, index, symbol) == 1n : Nat},
+    present: {F.address_at(ready_history_addresses(history), owner) == Some{address} : Maybe<&2, O.NodeAddress>}) ->
+    ready_rollback_transaction_result(S.advance(actual, G.Captured{source, contribution, work, ids}), D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n)), ready_graph_view(view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n)), owner, index, name, symbol, address):
+  match history:
+    case V.History{_, _, _, _, _, _, _}:
+      Parent.eliminate_pair({ActualFrame.project(S.advance(actual, G.Captured{source, contribution, work, ids}), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>}, {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>}, ready_rollback_transaction_result(S.advance(actual, G.Captured{source, contribution, work, ids}), D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n)), ready_graph_view(view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n)), owner, index, name, symbol, address),
+        ready_captured_frames(actual, reference, history, view, source, contribution, work, ids, actual_ready, reference_ready, positive),
+        actual_captured => reference_captured =>
+          ready_rollback_transaction_total(S.advance(actual, G.Captured{source, contribution, work, ids}), D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n)), ready_graph_view(view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n)), owner, index, name, symbol, address,
+            actual_captured, reference_captured,
+            ready_transition_selected(actual, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), owner, index, symbol, selected), present))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
