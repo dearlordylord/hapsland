@@ -9927,31 +9927,39 @@ def ready_encoded_decision(-World: Data, +actual: T.ResolverState, +reference: D
       match validation:
         case None{}:
           match shared:
-            case (+original_frame, (+original_child, (+original_edge, (frame_present, (child_present, (edge_present, parent_witness)))))):
-              match original_child original_edge:
-                case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _} Local.Pending{_, _, _, _, _, _, _, _}:
-                  match parent_witness:
-                    case (+attachment, (+forest, (attached, (replaced, (+shared_product, (materialized, (request_equal, (shared_measurement, reference_observations)))))))):
-                      +reply: T.Reply = T.Reply{owner, id, T.ProductEncoded{bytes}}
-                      +reply_history: V.History = History.reply(phase, History.measurement(phase, history), previous, request, reply)
-                      Parent.eliminate_witness(B.Boundary, boundary => {ActualBoundary.project(Machine.resume(Attach.previous(previous, actual), T.ServiceReply{reply}), reply_history) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, reply_history) == Some{boundary} : Maybe<&2, B.Boundary>},
-                        Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world),
-                        %Equal.sym(Loop.Continuation, Attach.previous(previous, actual), Loop.ServiceStep{T.AwaitService{measured, request}}, awaited):
-                          Exists(B.Boundary, boundary => {ActualBoundary.project(Machine.resume(_, T.ServiceReply{reply}), History.reply(phase, History.measurement(phase, history), previous, request, reply)) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, History.reply(phase, History.measurement(phase, history), previous, request, reply)) == Some{boundary} : Maybe<&2, B.Boundary>})
-                        %Equal.sym(Protocol.CheckedReply, Protocol.check(request, reply), ready_checked_boundary(Boundary.check(request, reply), T.ProductEncoded{bytes}), ready_request_validation(request, product, reply, encoded)):
-                          Exists(B.Boundary, boundary => {ActualBoundary.project(Machine.checked(_, measured), History.reply(phase, History.measurement(phase, history), previous, request, reply)) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, History.reply(phase, History.measurement(phase, history), previous, request, reply)) == Some{boundary} : Maybe<&2, B.Boundary>})
-                        %Equal.sym(Maybe<&2, T.TechnicalFailure>, Boundary.check(request, reply), None{}, accepted):
-                          Exists(B.Boundary, boundary => {ActualBoundary.project(Machine.checked(ready_checked_boundary(_, T.ProductEncoded{bytes}), measured), History.accepted(_, phase, History.measurement(phase, history), previous, reply)) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, History.accepted(_, phase, History.measurement(phase, history), previous, reply)) == Some{boundary} : Maybe<&2, B.Boundary>})
-                        %Equal.sym(T.ResolverStage, S.state_stage(measured), T.MeasuringCandidateTree{}, stage):
-                          Exists(B.Boundary, boundary => {ActualBoundary.project(Machine.continue_action(Machine.stage_reply(_, T.ProductEncoded{bytes}, measured)), History.encoded(phase, History.measurement(phase, history), previous, bytes)) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, History.encoded(phase, History.measurement(phase, history), previous, bytes)) == Some{boundary} : Maybe<&2, B.Boundary>})
-                        ?encoded_candidate_boundary,
-                        boundary => evidence => Parent.eliminate_pair({ActualBoundary.project(Machine.resume(Attach.previous(previous, actual), T.ServiceReply{reply}), reply_history) == Some{boundary} : Maybe<&2, B.Boundary>}, {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, reply_history) == Some{boundary} : Maybe<&2, B.Boundary>},
-                          Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world), evidence,
-                          actual_boundary => reference_boundary =>
-                            Tuple{Contract.Witness{measured, request, product, staged, boundary},
-                              Tuple{awaited, Tuple{encoded, Tuple{stage, Tuple{selected, Tuple{projected, Tuple{reference_projected,
-                                Tuple{actual_boundary, Tuple{reference_boundary,
-                                  boundary_world(World, ReferenceBoundary.enter(reference, child, previous), reply, world)}}}}}}}}}))
+            case (+original_frame, child_witness):
+              match child_witness:
+                case (+original_child, edge_witness):
+                  match original_child:
+                    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}:
+                      match edge_witness:
+                        case (+original_edge, original_evidence):
+                          match original_edge:
+                            case Local.Pending{_, _, _, _, _, _, _, _}:
+                              match original_evidence:
+                                case (frame_present, (child_present, (edge_present, parent_witness))):
+                                  match parent_witness:
+                                    case (+attachment, (+forest, (attached, (replaced, (+shared_product, (materialized, (request_equal, (shared_measurement, reference_observations)))))))):
+                                      +reply: T.Reply = T.Reply{owner, id, T.ProductEncoded{bytes}}
+                                      +reply_history: V.History = History.reply(phase, History.measurement(phase, history), previous, request, reply)
+                                      Parent.eliminate_witness(B.Boundary, boundary => {ActualBoundary.project(Machine.resume(Attach.previous(previous, actual), T.ServiceReply{reply}), reply_history) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, reply_history) == Some{boundary} : Maybe<&2, B.Boundary>},
+                                        Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world),
+                                        %Equal.sym(Loop.Continuation, Attach.previous(previous, actual), Loop.ServiceStep{T.AwaitService{measured, request}}, awaited):
+                                          Exists(B.Boundary, boundary => {ActualBoundary.project(Machine.resume(_, T.ServiceReply{reply}), History.reply(phase, History.measurement(phase, history), previous, request, reply)) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, History.reply(phase, History.measurement(phase, history), previous, request, reply)) == Some{boundary} : Maybe<&2, B.Boundary>})
+                                        %Equal.sym(Protocol.CheckedReply, Protocol.check(request, reply), ready_checked_boundary(Boundary.check(request, reply), T.ProductEncoded{bytes}), ready_request_validation(request, product, reply, encoded)):
+                                          Exists(B.Boundary, boundary => {ActualBoundary.project(Machine.checked(_, measured), History.reply(phase, History.measurement(phase, history), previous, request, reply)) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, History.reply(phase, History.measurement(phase, history), previous, request, reply)) == Some{boundary} : Maybe<&2, B.Boundary>})
+                                        %Equal.sym(Maybe<&2, T.TechnicalFailure>, Boundary.check(request, reply), None{}, accepted):
+                                          Exists(B.Boundary, boundary => {ActualBoundary.project(Machine.checked(ready_checked_boundary(_, T.ProductEncoded{bytes}), measured), History.accepted(_, phase, History.measurement(phase, history), previous, reply)) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, History.accepted(_, phase, History.measurement(phase, history), previous, reply)) == Some{boundary} : Maybe<&2, B.Boundary>})
+                                        %Equal.sym(T.ResolverStage, S.state_stage(measured), T.MeasuringCandidateTree{}, stage):
+                                          Exists(B.Boundary, boundary => {ActualBoundary.project(Machine.continue_action(Machine.stage_reply(_, T.ProductEncoded{bytes}, measured)), History.encoded(phase, History.measurement(phase, history), previous, bytes)) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, History.encoded(phase, History.measurement(phase, history), previous, bytes)) == Some{boundary} : Maybe<&2, B.Boundary>})
+                                        ?encoded_candidate_boundary,
+                                        boundary => evidence => Parent.eliminate_pair({ActualBoundary.project(Machine.resume(Attach.previous(previous, actual), T.ServiceReply{reply}), reply_history) == Some{boundary} : Maybe<&2, B.Boundary>}, {ReferenceBoundaryView.project(World, ReferenceBoundary.deliver_next(World, ReferenceBoundary.enter(reference, child, previous), reply, world), child, reply_history) == Some{boundary} : Maybe<&2, B.Boundary>},
+                                          Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world), evidence,
+                                          actual_boundary => reference_boundary =>
+                                            Tuple{Contract.Witness{measured, request, product, staged, boundary},
+                                              Tuple{awaited, Tuple{encoded, Tuple{stage, Tuple{selected, Tuple{projected, Tuple{reference_projected,
+                                                Tuple{actual_boundary, Tuple{reference_boundary,
+                                                  boundary_world(World, ReferenceBoundary.enter(reference, child, previous), reply, world)}}}}}}}}}))
         case Some{failure}:
           ready_rejected_transaction(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world, measured, request, product, staged, failure,
             awaited, encoded, stage, selected, projected, reference_projected, accepted)
