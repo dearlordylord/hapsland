@@ -2241,3 +2241,18 @@ def completion_empty_common(
 
 def main() -> Unit:
   Unit{}
+
+# Internal positive-file eligibility observation, derived by the original caller.
+# This reduces the original partial guard to its existing omission decision;
+# it does not add a premise to the transaction law.
+def completion_partial_allowed(+frame: T.ResolverFrame, +reason: G.Reason,
+    eligible: {LoopPolicy.eligible_reason(reason) == True{} : Bool},
+    positive: {Nat.is_gt(LoopPolicy.files(State.frame_graph(frame)), 0n) == True{} : Bool}
+) -> {LoopPolicy.partial_allowed(frame, reason) == LoopPolicy.frame_has_omission(frame) : Bool}:
+  %Equal.sym(Bool, LoopPolicy.eligible_reason(reason), True{}, eligible):
+    {Bool.and(_, Bool.and(Nat.is_gt(LoopPolicy.files(State.frame_graph(frame)), 0n),
+      LoopPolicy.frame_has_omission(frame))) == LoopPolicy.frame_has_omission(frame) : Bool}
+  %Equal.sym(Bool, Nat.is_gt(LoopPolicy.files(State.frame_graph(frame)), 0n), True{}, positive):
+    {Bool.and(True{}, Bool.and(_, LoopPolicy.frame_has_omission(frame)))
+      == LoopPolicy.frame_has_omission(frame) : Bool}
+  {==}
