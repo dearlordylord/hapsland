@@ -1,3 +1,4 @@
+import type { NativeIoPorts } from "../../verification/native-io-ports.ts"
 import { createHash } from "node:crypto"
 import { lstat, opendir } from "node:fs/promises"
 import { dirname, join, relative } from "node:path"
@@ -12,13 +13,17 @@ import type { PreparedGraph } from "../../verification/native-language-contract.
 import type { GraphFacts, GraphReference, LanguageGraphHost } from "../../../languages/contracts.ts"
 
 import { MAX_GO_DIRECTORY_ENTRIES } from "../../../languages/go-directory-policy.ts"
-const inventory = async (root: string, directory: string): Promise<readonly string[] | undefined> => {
+const inventory = async (
+  root: string,
+  directory: string,
+  readStatus: typeof lstat
+): Promise<readonly string[] | undefined> => {
   try {
     let current = root
     for (const part of directory.split("/")) {
       if (part === ".") continue
       current = join(current, part)
-      const status = await lstat(current)
+      const status = await readStatus(current)
       if (!status.isDirectory() || status.isSymbolicLink()) return undefined
     }
     const handle = await opendir(join(root, directory))
@@ -83,8 +88,11 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
   capture: StableCapture,
   host: LanguageGraphHost,
   limits: GraphLimits,
-  expired: () => boolean
+  expired: () => boolean,
+  ports?: NativeIoPorts
 ): Effect.fn.Return<PreparedGraph | undefined> {
+  const readStatus = ports?.readStatus ?? lstat
+  const selectPath = ports?.selectPath ?? eligibleNamedPath
   if (host.branch === "function") return undefined
   const snapshot =
     host.analysisConfiguration?.go === undefined ? undefined : freezeGoBuildSnapshot(host.analysisConfiguration.go)
@@ -104,12 +112,7 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
   }
   const source = Effect.fn("Go.captureAuthority")(function* (candidate: string) {
     if (expired()) return undefined
-    const selected = yield* eligibleNamedPath(
-      host.root,
-      candidate,
-      contextDirectFilePolicy(host.policy),
-      host.rootIdentity
-    )
+    const selected = yield* selectPath(host.root, candidate, contextDirectFilePolicy(host.policy), host.rootIdentity)
     if (selected === undefined) {
       identities.push([candidate, "ineligible"])
       return undefined
@@ -134,6 +137,7 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
         if (result.status !== "captured") return undefined
         found = result.capture
         host.captureCache?.set(candidate, found)
+        if (host.captureCache !== undefined) ports?.cacheStore?.("caller", candidate, found)
       }
       filesSpent++
       readBytes += found.byteLength
@@ -149,7 +153,7 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
   const exists = Effect.fn("Go.observeMetadataAlternative")(function* (candidate: string) {
     if (expired() || !chargeWork()) return true
     const state = yield* Effect.promise(() =>
-      lstat(join(host.root, candidate))
+      readStatus(join(host.root, candidate))
         .then((stat) => (stat.isFile() ? "file" : "unsafe"))
         .catch((error: unknown) =>
           typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT"
@@ -165,7 +169,7 @@ export const prepareGoGraph = Effect.fn("Go.prepareLocalModule")(function* (
     if (packages.has(directory)) return packages.get(directory)
     packages.set(directory, undefined)
     if (expired() || !chargeWork()) return undefined
-    const candidates = yield* Effect.promise(() => inventory(host.root, directory))
+    const candidates = yield* Effect.promise(() => inventory(host.root, directory, readStatus))
     identities.push([directory, candidates ?? "unavailable-inventory"])
     if (candidates === undefined) return undefined
     const possible = candidates.filter((name) => goFilenameMembership(name, snapshot) !== "inactive")

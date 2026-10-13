@@ -21,11 +21,20 @@ const preparations = new Map<string, NativeLanguageAdapter["prepareGraph"]>([
     )
   ]
 ])
-const nativeLanguages: readonly NativeLanguageAdapter[] = registeredLanguages.map((adapter) => {
-  const prepareGraph = preparations.get(adapter.id)
-  if (prepareGraph === undefined) throw new Error("Missing independent native graph reference for " + adapter.id)
-  return { ...adapter, prepareGraph }
-})
-export const languageForPath = (path: string) =>
-  nativeLanguages.find((adapter) => adapter.extensions.includes(extname(path).toLowerCase()))
-export const nativeRustAdapter = nativeLanguages.find((adapter) => adapter.id === "rust")!
+export const createNativeLanguageRegistry = (
+  overrides: ReadonlyMap<string, NativeLanguageAdapter["prepareGraph"]> = new Map()
+) => {
+  const nativeLanguages: readonly NativeLanguageAdapter[] = registeredLanguages.map((adapter) => {
+    const prepareGraph = overrides.get(adapter.id) ?? preparations.get(adapter.id)
+    if (prepareGraph === undefined) throw new Error("Missing independent native graph reference for " + adapter.id)
+    return { ...adapter, prepareGraph }
+  })
+  return {
+    languageForPath: (path: string) =>
+      nativeLanguages.find((adapter) => adapter.extensions.includes(extname(path).toLowerCase())),
+    nativeRustAdapter: nativeLanguages.find((adapter) => adapter.id === "rust")!
+  }
+}
+const defaultRegistry = createNativeLanguageRegistry()
+export const languageForPath = defaultRegistry.languageForPath
+export const nativeRustAdapter = defaultRegistry.nativeRustAdapter

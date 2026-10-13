@@ -1,3 +1,4 @@
+import type { NativeIoPorts } from "../../verification/native-io-ports.ts"
 import { lstat } from "node:fs/promises"
 import { dirname, join, normalize, sep } from "node:path"
 import * as Effect from "effect/Effect"
@@ -57,12 +58,17 @@ export const createPythonGraphPreparation = (
   inspectPython: LanguageAdapter["inspect"],
   staticPackageAuthority: (source: string) => boolean,
   hasPackageBinding: (source: string, name: string) => boolean,
-  staticModuleAuthority: (source: string) => boolean
+  staticModuleAuthority: (source: string) => boolean,
+  ports?: NativeIoPorts
 ): NativeLanguageAdapter["prepareGraph"] =>
   Effect.fn("Python.prepareGraph")(function* (rootPath, rootCapture, host, limits, expired) {
     if (expired() || limits.files < 1 || limits.work < 1) return undefined
+    const readStatus = ports?.readStatus ?? lstat
+    const selectPath = ports?.selectPath ?? eligibleNamedPath
     const captures = host.captureCache ?? new Map<string, StableCapture>()
+    ports?.cacheCreated?.(captures, host.captureCache === undefined ? "private" : "caller")
     captures.set(rootPath, rootCapture)
+    ports?.cacheStore?.(host.captureCache === undefined ? "private" : "caller", rootPath, rootCapture)
     const dependencies: string[] = []
     const authority = new Map<string, StableCapture>()
     const failedCaptures = new Set<string>()
@@ -102,7 +108,7 @@ export const createPythonGraphPreparation = (
       work++
       const result = yield* Effect.promise(async () => {
         try {
-          return { ok: true, status: await lstat(join(host.root, path)) }
+          return { ok: true, status: await readStatus(join(host.root, path)) }
         } catch (error) {
           return { ok: (error as NodeJS.ErrnoException).code === "ENOENT", status: undefined }
         }
@@ -148,7 +154,7 @@ export const createPythonGraphPreparation = (
       const cached = captures.get(path)
       if (canonicalCaptures.has(path)) return permit() ? cached : undefined
       if (!permit(1, cached?.byteLength ?? limits.sourceBytes)) return undefined
-      const selected = yield* eligibleNamedPath(host.root, path, policyFor(path), host.rootIdentity)
+      const selected = yield* selectPath(host.root, path, policyFor(path), host.rootIdentity)
       if (selected === undefined) return undefined
       const refusal = observationCaptureBudgetRefusal(captures, path, limits.sourceBytes)
       if (refusal !== undefined) {
@@ -172,6 +178,7 @@ export const createPythonGraphPreparation = (
         capture = result.capture
         failedCaptures.delete(path)
         captures.set(path, capture)
+        ports?.cacheStore?.(host.captureCache === undefined ? "private" : "caller", path, capture)
       }
       if (capture.byteLength > limits.sourceBytes || !permit(1, capture.byteLength)) return undefined
       authority.set(path, capture)

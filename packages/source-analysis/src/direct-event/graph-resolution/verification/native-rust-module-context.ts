@@ -1,3 +1,4 @@
+import type { NativeIoPorts } from "./native-io-ports.ts"
 import { lstat } from "node:fs/promises"
 import { basename, dirname, extname, isAbsolute, join, normalize, relative, sep } from "node:path"
 import * as Effect from "effect/Effect"
@@ -76,9 +77,9 @@ const cargoExplicitBinaryRoots = (manifest: CargoFields, base: string, fileLimit
   }
   return roots
 }
-const cargoManifest = (source: string): CargoFields | undefined => {
+const cargoManifest = (source: string, parseCargo: typeof parse): CargoFields | undefined => {
   try {
-    return record(parse(source))
+    return record(parseCargo(source))
   } catch {
     return undefined
   }
@@ -87,9 +88,10 @@ export const cargoTargetRoots = (
   taskPath: string,
   source: string,
   path: string,
-  fileLimit: number
+  fileLimit: number,
+  parseCargo: typeof parse = parse
 ): string[] | undefined => {
-  const manifest = cargoManifest(source)
+  const manifest = cargoManifest(source, parseCargo)
   const pkg = record(manifest?.package)
   if (manifest === undefined || !supportedCargoPackage(pkg)) return undefined
   const base = dirname(taskPath)
@@ -163,8 +165,9 @@ const uniqueModuleCandidate = (choices: readonly string[]): string | undefined =
 const inspectBoundedRustRoute = (
   route: Route,
   source: string,
-  maxDepth: number
-): ReturnType<typeof inspectRustModules> => (route.depth > maxDepth ? undefined : inspectRustModules(source))
+  maxDepth: number,
+  inspectModules: typeof inspectRustModules
+): ReturnType<typeof inspectRustModules> => (route.depth > maxDepth ? undefined : inspectModules(source))
 
 type NativeRustObservation = {
   readonly state: unknown
@@ -177,10 +180,14 @@ type NativeRustObservation = {
   readonly invalid: boolean
   readonly accumulatedDependencies: readonly string[]
   readonly roles: readonly GraphInspectionOptions[]
+  readonly captures: ReadonlyArray<readonly [string, StableCapture]>
+  readonly options: GraphInspectionOptions | undefined
+  readonly dependencies: readonly string[]
+  readonly remaining: GraphLimits
 }
-type NativeRustPorts = {
-  readonly readStatus?: typeof lstat
-  readonly selectPath?: typeof eligibleNamedPath
+export type NativeRustPorts = NativeIoPorts & {
+  readonly parseCargo?: typeof parse
+  readonly inspectModules?: typeof inspectRustModules
   /** Retain the final observation without mutation; failure propagates before returning. */
   readonly observe?: (snapshot: NativeRustObservation) => void
 }
@@ -197,7 +204,9 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
   const readStatus = ports?.readStatus ?? lstat
   const selectPath = ports?.selectPath ?? eligibleNamedPath
   const captures = context.captureCache ?? new Map<string, StableCapture>()
+  ports?.cacheCreated?.(captures, context.captureCache === undefined ? "private" : "caller")
   captures.set(path, rootCapture)
+  ports?.cacheStore?.(context.captureCache === undefined ? "private" : "caller", path, rootCapture)
   const dependencies = new Set<string>()
   const roles: GraphInspectionOptions[] = []
   const tasks = new Map<number, Task>()
@@ -237,7 +246,7 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     route: Route,
     source: string
   ): Effect.fn.Return<readonly Task[]> {
-    const modules = inspectBoundedRustRoute(route, source, limits.depth)
+    const modules = inspectBoundedRustRoute(route, source, limits.depth, ports?.inspectModules ?? inspectRustModules)
     if (modules === undefined) {
       invalid = true
       return []
@@ -265,7 +274,7 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     source: string
   ): Effect.fn.Return<readonly Task[]> {
     if (task.route !== undefined) return yield* follow(task.route, source)
-    const roots = cargoTargetRoots(task.path, source, path, limits.files)
+    const roots = cargoTargetRoots(task.path, source, path, limits.files, ports?.parseCargo ?? parse)
     if (roots === undefined) {
       invalid = true
       return []
@@ -322,6 +331,7 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
       }
       capture = result.capture
       captures.set(selected.relativePath, capture)
+      ports?.cacheStore?.(context.captureCache === undefined ? "private" : "caller", selected.relativePath, capture)
     }
     return capture
   })
@@ -404,6 +414,8 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     active,
     invalid,
     accumulatedDependencies: [...dependencies],
+    captures: [...captures],
+    ...result,
     roles
   })
   return result
