@@ -13,7 +13,7 @@ import {
   type GraphOutcome
 } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
 import { createBendResolver, performGraphServiceRequest } from "@hapsland/source-analysis/direct-event/graph-resolution"
-import { hostNatural, list, productValue } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { hostNatural, list, unlist, productValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { StableCapture } from "@hapsland/native-observation/direct-event/capture"
 import { createPhysicalPreparationCapability } from "./physical-effects.mjs"
 import {
@@ -205,32 +205,17 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
     }).pipe(Effect.ensuring(settle.pipe(Effect.ensuring(cleanup))))
   }
   const run = async (signal: AbortSignal) => {
-    driver.canonicalEvent({ $: "../Canonical.AdmitObservation", partition: 1n, lifetime: 1n, round })
-    const admitted = outputs.find(
-      (output) => output.$ === "../Canonical.EventEstablished" && output.event.$ === "../Canonical.ObservationAdmitted"
-    )
-    if (
-      !admitted ||
-      admitted.$ !== "../Canonical.EventEstablished" ||
-      admitted.event.$ !== "../Canonical.ObservationAdmitted"
-    )
+    const beginning = unlist(owner.begin_public_preparation(driver.state, 1n, 1n, round, BigInt(graphLimits.readBytes)))
+    for (const step of beginning) driver.acceptPublication(step)
+    const admission = beginning[0]
+    const admitted = admission?.$ === "Advanced"
+      ? unlist(admission.outputs).find(
+          (output) => output.$ === "../Canonical.EventEstablished" && output.event.$ === "../Canonical.ObservationAdmitted"
+        )
+      : undefined
+    if (!admitted || admitted.$ !== "../Canonical.EventEstablished" || admitted.event.$ !== "../Canonical.ObservationAdmitted")
       throw new TypeError("Canonical observation missing")
     const observationId = admitted.event.id
-    driver.canonicalEvent({
-      $: "../Canonical.StartObservation",
-      partition: 1n,
-      lifetime: 1n,
-      round,
-      observation: observationId
-    })
-    driver.canonicalEvent({
-      $: "../Canonical.BeginObservedPreparation",
-      partition: 1n,
-      lifetime: 1n,
-      round,
-      observation: observationId,
-      bytes: BigInt(graphLimits.readBytes)
-    })
     const requested = outputs.find(
       (output) => output.$ === "../Canonical.ActionRequested" && output.request.$ === "../Canonical.Prepare"
     )
@@ -265,21 +250,8 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
     const outcome = await task
     if (!("preparation" in outcome)) throw new Error("Canonical did not accept a preparation result")
     const result = physical.decode(outcome.preparation)
-    driver.canonicalEvent({
-      $: "../Canonical.PreparationCompleted",
-      partition: 1n,
-      lifetime: 1n,
-      round,
-      operation: preparation,
-      unit_bytes: list([])
-    })
-    driver.canonicalEvent({
-      $: "../Canonical.CompleteObservation",
-      partition: 1n,
-      lifetime: 1n,
-      round,
-      observation: observationId
-    })
+    for (const step of unlist(owner.complete_public_preparation(driver.state, 1n, 1n, round, preparation, observationId)))
+      driver.acceptPublication(step)
     return { ...result, ambiguousLine: outcome.preparation.ambiguous_line }
   }
   return { run, retire }

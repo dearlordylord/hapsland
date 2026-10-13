@@ -125,6 +125,8 @@ export interface CanonicalResolverOwner {
   live(canonical: OwnerTransport<Canonical_State>, scope: Scope): boolean
   provider_live(state: State, invocation: bigint, generation: bigint, lease: bigint, request: bigint): boolean
   advice_provider_allowed(state: State, invocation: bigint, generation: bigint, lease: bigint, request: bigint, kind: AdvicePermission): boolean
+  begin_public_preparation(state: State, partition: bigint, lifetime: bigint, round: bigint, bytes: bigint): List<Step>
+  complete_public_preparation(state: State, partition: bigint, lifetime: bigint, round: bigint, operation: bigint, observation: bigint): List<Step>
   canonical_event(state: State, event: OwnerTransport<Canonical_CanonicalEvent>): Step
   launch_settings(state: State, input_handle: bigint): Step
   launch(state: State, scope: Scope, input_handle: bigint): Step

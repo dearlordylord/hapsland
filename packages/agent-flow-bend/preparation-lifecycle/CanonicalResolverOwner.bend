@@ -1948,6 +1948,104 @@ def initial_limits(
 
 # Resident stores only this custody beside its sole Canonical state. State above
 # is an ephemeral call value, never a second mutable Canonical authority.
+# Public preparation uses the same event sequence as the former host workflow.
+# A refused suffix retains the already advanced state; no atomic rollback.
+def public_preparation_begin_started(
+  +result: Step,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  observation: Nat,
+  bytes: Nat
+) -> List<&2, Step>:
+  match result:
+    case Advanced{state, _, _}:
+      result <> canonical_event(
+        state,
+        C.BeginObservedPreparation{partition, lifetime, round, observation, bytes}
+      ) <> Nil{}
+    case _: result <> Nil{}
+
+def public_preparation_begin_observed(
+  state: State,
+  +partition: Nat,
+  +lifetime: Nat,
+  +round: Nat,
+  bytes: Nat,
+  outputs: List<&2, C.Output>
+) -> List<&2, Step>:
+  match outputs:
+    case C.EventEstablished{C.ObservationAdmitted{+observation}} <> _:
+      public_preparation_begin_started(
+        canonical_event(state, C.StartObservation{partition, lifetime, round, observation}),
+        partition,
+        lifetime,
+        round,
+        observation,
+        bytes
+      )
+    case _ <> rest:
+      public_preparation_begin_observed(state, partition, lifetime, round, bytes, rest)
+    case Nil{}: Rejected{state, WrongPhase{}} <> Nil{}
+
+def public_preparation_begin_admitted(
+  +result: Step,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  bytes: Nat
+) -> List<&2, Step>:
+  match result:
+    case Advanced{state, outputs, _}:
+      result <> public_preparation_begin_observed(state, partition, lifetime, round, bytes, outputs)
+    case _: result <> Nil{}
+
+def begin_public_preparation(
+  +state: State,
+  +partition: Nat,
+  +lifetime: Nat,
+  +round: Nat,
+  +bytes: Nat
+) -> List<&2, Step>:
+  public_preparation_begin_admitted(
+    canonical_event(state, C.AdmitObservation{partition, lifetime, round}),
+    partition,
+    lifetime,
+    round,
+    bytes
+  )
+
+def public_preparation_complete_prepared(
+  +result: Step,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  observation: Nat
+) -> List<&2, Step>:
+  match result:
+    case Advanced{state, _, _}:
+      result <> canonical_event(
+        state,
+        C.CompleteObservation{partition, lifetime, round, observation}
+      ) <> Nil{}
+    case _: result <> Nil{}
+
+def complete_public_preparation(
+  +state: State,
+  +partition: Nat,
+  +lifetime: Nat,
+  +round: Nat,
+  operation: Nat,
+  observation: Nat
+) -> List<&2, Step>:
+  public_preparation_complete_prepared(
+    canonical_event(state, C.PreparationCompleted{partition, lifetime, round, operation, Nil{}}),
+    partition,
+    lifetime,
+    round,
+    observation
+  )
+
 type Custody is Data:
   Custody{next_invocation: Nat, next_lease: Nat, children: List<&2, Child>}
 type ResidentEvent is Data:
