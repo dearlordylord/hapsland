@@ -60,7 +60,7 @@
     "id": "TS-006",
     "owners": [
       "@hapsland/source-analysis/direct-event/analyzer",
-      "@hapsland/source-analysis/direct-event/graph-resolver",
+      "@hapsland/source-analysis/direct-event/graph-resolution",
       "@hapsland/native-observation/direct-event/selection",
       "@hapsland/review-definition/rules/compiler",
       "@hapsland/review-definition/rules/decision"
