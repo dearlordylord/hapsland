@@ -4254,3 +4254,239 @@ def completion_partial_common_positive(
           request_ready
         )
       )
+
+
+def completion_actual_normal(
+  +actual: T.ResolverState,
+  +frame: T.ResolverFrame,
+  +product: ArtifactValue.ProductValue,
+  prepared: {
+    Root.prepared_unit(frame, State.state_prepared(actual))
+    == Some{product}
+    : Maybe<&2, ArtifactValue.ProductValue>
+  }
+) -> {
+  LoopPolicy.request_completion(True{}, actual, frame)
+  == LoopPolicy.completion_product(Some{product}, actual)
+  : Loop.Continuation
+}:
+  %Equal.sym(
+    Maybe<&2, ArtifactValue.ProductValue>,
+    Root.prepared_unit(frame, State.state_prepared(actual)),
+    Some{product},
+    prepared
+  ):
+    {
+      LoopPolicy.completion_product(_, actual)
+      == LoopPolicy.completion_product(Some{product}, actual)
+      : Loop.Continuation
+    }
+  {==}
+
+def completion_reference_normal_frame(
+  +observed: X.Frame,
+  +state: D.State,
+  +fuel: Nat,
+  +product: ArtifactValue.ProductValue,
+  prepared: completion_materialized_claim(observed, fuel, product)
+) -> {
+  D.completion_observed(observed, fuel, state, None{})
+  == D.completion_selected(state, product, True{})
+  : D.Selection
+}:
+  match observed:
+    case X.Frame{
+      G.Bounded{G.Graph{_, _, _, 0n, _, _, _, _, _, _, _}, _},
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }:
+      completion_reference_materialized(observed, fuel, state, product, prepared)
+    case X.Frame{
+      G.Bounded{G.Graph{_, _, _, 1n++_, _, _, _, _, _, _, _}, _},
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }:
+      completion_reference_materialized(observed, fuel, state, product, prepared)
+
+def completion_normal_claim(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +history: V.History, +frame: T.ResolverFrame, +fuel: Nat,
+    +world: E.WorldState<World>) -> @-boundary:B.Boundary -> Type:
+  boundary => {
+    ActualBoundary.project(LoopPolicy.request_completion(True{}, actual, frame), history)
+    == Some{boundary}
+    : Maybe<&2, B.Boundary>
+  } & {
+    project(World, D.consumed(World, D.completion(fuel, reference, None{}), world), child, history)
+      == Some{boundary} : Maybe<&2, B.Boundary>
+  }
+
+def completion_normal_transport(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  +world: E.WorldState<World>,
+  +product: ArtifactValue.ProductValue,
+  actual_choice: {
+    LoopPolicy.request_completion(True{}, actual, frame)
+    == LoopPolicy.completion_product(Some{product}, actual)
+    : Loop.Continuation
+  },
+  reference_choice: {
+    D.completion(fuel, reference, None{})
+    == D.completion_selected(reference, product, True{})
+    : D.Selection
+  },
+  common: Exists(
+    B.Boundary,
+    completion_common_claim(World, actual, reference, child, history, product, world)
+  )
+) -> Exists(
+  B.Boundary,
+  completion_normal_claim(World, actual, reference, child, history, frame, fuel, world)
+):
+  match common:
+    case (+boundary, (actual_boundary, reference_boundary)):
+      actual_observe: Loop.Continuation -> Maybe<&2, B.Boundary> = step => ActualBoundary.project(
+        step,
+        history
+      )
+      reference_observe: D.Selection -> Maybe<&2, B.Boundary> = selected => project(
+        World,
+        D.consumed(World, selected, world),
+        child,
+        history
+      )
+      Tuple{
+        boundary,
+        Tuple{
+          Equal.trans(
+            Maybe<&2, B.Boundary>,
+            actual_observe(LoopPolicy.request_completion(True{}, actual, frame)),
+            actual_observe(LoopPolicy.completion_product(Some{product}, actual)),
+            Some{boundary},
+            Equal.cong(
+              Loop.Continuation,
+              Maybe<&2, B.Boundary>,
+              actual_observe,
+              LoopPolicy.request_completion(True{}, actual, frame),
+              LoopPolicy.completion_product(Some{product}, actual),
+              actual_choice
+            ),
+            actual_boundary
+          ),
+          Equal.trans(
+            Maybe<&2, B.Boundary>,
+            reference_observe(D.completion(fuel, reference, None{})),
+            reference_observe(D.completion_selected(reference, product, True{})),
+            Some{boundary},
+            Equal.cong(
+              D.Selection,
+              Maybe<&2, B.Boundary>,
+              reference_observe,
+              D.completion(fuel, reference, None{}),
+              D.completion_selected(reference, product, True{}),
+              reference_choice
+            ),
+            reference_boundary
+          )
+        }
+      }
+
+def completion_common_normal(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +world: E.WorldState<World>,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  +product: ArtifactValue.ProductValue,
+  actual_frame: {
+    ActualBoundary.frame(State.state_frame(actual), history)
+    == Some{view}
+    : Maybe<&2, V.Frame>
+  },
+  reference_frame: {Frame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+  capsule_ready: {
+    ActualBoundary.capsule(actual, history)
+    == Some{Ready.capsule(reference, child)}
+    : Maybe<&2, Phase.Capsule>
+  },
+  request_ready: {
+    Some{
+      T.Request{
+        State.input_invocation(State.state_input(actual)),
+        State.state_next_request(actual),
+        T.EncodeProduct{product}
+      }
+    }
+    == Boundary.selected_request(D.completion_selected(reference, product, True{}))
+    : Maybe<&2, T.Request>
+  },
+  actual_prepared: {
+    Root.prepared_unit(frame, State.state_prepared(actual))
+    == Some{product}
+    : Maybe<&2, ArtifactValue.ProductValue>
+  },
+  reference_prepared: completion_materialized_claim(D.frame(reference), fuel, product)
+) -> Exists(
+  B.Boundary,
+  completion_normal_claim(World, actual, reference, child, history, frame, fuel, world)
+):
+  completion_normal_transport(
+    World,
+    actual,
+    reference,
+    child,
+    history,
+    frame,
+    fuel,
+    world,
+    product,
+    completion_actual_normal(actual, frame, product, actual_prepared),
+    completion_reference_normal_frame(
+      D.frame(reference),
+      reference,
+      fuel,
+      product,
+      reference_prepared
+    ),
+    completion_common_selected(
+      World,
+      actual,
+      reference,
+      child,
+      history,
+      view,
+      product,
+      world,
+      actual_frame,
+      reference_frame,
+      capsule_ready,
+      request_ready
+    )
+  )
