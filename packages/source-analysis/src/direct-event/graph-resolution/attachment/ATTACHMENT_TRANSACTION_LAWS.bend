@@ -11050,6 +11050,48 @@ def ready_selected_captured_publication(+state: T.ResolverState, +actual: T.Reso
         selected_phase_contents(state, actual, tentative, edge, history, child_history, phase, actual_ready), reference_ready)),
     ready_selected_actual_publication_pair(state, actual, tentative, edge, reference, child, history, child_history, phase, actual_ready, reference_ready, coherent))
 
+def ready_iteration_boundary(view: V.Frame, capsule: Phase.Capsule) -> B.Boundary:
+  match capsule:
+    case Phase.Capsule{_, _, _, _, _, _, _, 0n, _, _, _}: B.Finished{None{}, view}
+    case Phase.Capsule{+invocation, path, language, context, +clock, cache, +next, 1n++remaining, target, edge, fingerprint}:
+      B.Selected{T.Request{invocation, next, T.ReadClock{clock}}, view,
+        B.CheckingIteration{Phase.Capsule{invocation, path, language, context, clock, cache, (next + 1n : Nat), remaining, target, edge, fingerprint}}}
+
+def ready_reference_iteration_state(state: D.State, remaining: Nat) -> D.State:
+  match state:
+    case D.State{config, frame, targets, ids, target, next, _, _, python}:
+      D.State{config, frame, targets, ids, target, next, remaining, D.AwaitDeadline{}, python}
+
+def ready_reference_iteration_assembled(+state: D.State, +history: V.History, +remaining: Nat,
+    +targets: Maybe<&2, List<&2, V.TargetEntry>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>, +visited: Maybe<&2, List<&2, String>>) ->
+    {ReferenceFrame.assembled(ready_reference_iteration_state(state, remaining), history, targets, captured, visited) == ReferenceFrame.assembled(state, history, targets, captured, visited) : Maybe<&2, V.Frame>}:
+  match state history targets captured visited:
+    case D.State{D.Config{_, _, _, _, _, _}, X.Frame{G.Bounded{_, _}, _, _, Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      V.History{_, _, _, _, _, _, _} Some{_} Some{_} Some{_}: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ None{} _ _: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ Some{_} None{} _: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ Some{_} Some{_} None{}: {==}
+
+def ready_reference_iteration_project(+state: D.State, +history: V.History, +remaining: Nat) ->
+    {ReferenceFrame.project(ready_reference_iteration_state(state, remaining), history) == ReferenceFrame.project(state, history) : Maybe<&2, V.Frame>}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{values, _, _, _}, _}, _, captures, _, _, _, _, _, _}, targets, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, seen}, _, sources, _, _, _}:
+      ready_reference_iteration_assembled(state, history, remaining, ReferenceFrame.targets(targets), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values))
+
+def ready_reference_iteration_boundary(-World: Data, +state: D.State, +child: X.Child, +history: V.History, +view: V.Frame, +world: E.WorldState<World>,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ReferenceBoundaryView.project(World, D.consumed(World, D.iteration(state), world), child, history) == Some{ready_iteration_boundary(view, ReferenceReady.capsule(state, child))} : Maybe<&2, B.Boundary>}:
+  match state child:
+    case D.State{D.Config{_, _, _, _, _, _}, X.Frame{_, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, 0n, _, _}
+      X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _}:
+      Equal.cong(Maybe<&2, V.Frame>, Maybe<&2, B.Boundary>, value => ReferenceBoundaryView.finished(None{}, value), ReferenceFrame.project(state, history), Some{view}, ready)
+    case D.State{D.Config{+invocation, _, _, _, +clock, _}, X.Frame{_, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, +next, 1n+++remaining, _, _}
+      X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _}:
+      Equal.cong(Maybe<&2, V.Frame>, Maybe<&2, B.Boundary>, value => ReferenceBoundaryView.selected(Some{T.Request{invocation, next, T.ReadClock{clock}}}, value, B.CheckingIteration{ReferenceBoundaryView.allocated(ReferenceReady.capsule(ready_reference_iteration_state(state, remaining), child))}),
+        ReferenceFrame.project(ready_reference_iteration_state(state, remaining), history), Some{view},
+        Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(ready_reference_iteration_state(state, remaining), history), ReferenceFrame.project(state, history), Some{view}, ready_reference_iteration_project(state, history, remaining), ready))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
