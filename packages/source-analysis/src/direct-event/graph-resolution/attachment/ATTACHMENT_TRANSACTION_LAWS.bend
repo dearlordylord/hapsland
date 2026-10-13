@@ -12631,6 +12631,200 @@ def ready_actual_node_observation_contents(+nodes: List<&2, Local.PlannedNode>, 
                 BoolFacts.eq_true_of_and_right(Nat.is_eq(F.count_address(retained, address), 1n),
                   Bool.and(Nat.is_le(Relation.incoming(retained, address), 1n), Bool.and(Relation.references_valid(refs, address, retained), True{})), head_valid))))), {==})
 
+def ready_actual_node_observations_cons(+head: F.Node, +tail: List<&2, F.Node>, +entries: List<&2, F.AddressEntry>, +fuel: Nat,
+    +slots: List<&2, Local.ReferenceSlot>, first: {ready_actual_node_observations([head], entries, fuel, slots) == True{} : Bool},
+    rest: {ready_actual_node_observations(tail, entries, fuel, slots) == True{} : Bool}) ->
+    {ready_actual_node_observations(head <> tail, entries, fuel, slots) == True{} : Bool}:
+  match head:
+    case F.Node{+address, _, +references}:
+      BoolFacts.and_eq_true(Cmp.is_eq(Bool.cmp(ready_actual_address_omission(entries, fuel, slots, address),
+        ready_actual_reference_omission(references, entries, fuel, slots))), ready_actual_node_observations(tail, entries, fuel, slots),
+        BoolFacts.eq_true_of_and_left(Cmp.is_eq(Bool.cmp(ready_actual_address_omission(entries, fuel, slots, address),
+          ready_actual_reference_omission(references, entries, fuel, slots))), True{}, first), rest)
+
+def ready_actual_node_observations_parts(+id: Nat, +handle: Nat, +tail: List<&2, Local.PlannedNode>,
+    +nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>, +current: List<&2, F.Node>,
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    forward: {P.forward_nodes(nodes, slots) == True{} : Bool}, present: NatFacts.le(1n, P.node_count(nodes, id)),
+    valid: {Relation.nodes_valid(current, retained) == True{} : Bool},
+    recursive: @+rest: List<&2, F.Node> -> {P.nodes(tail, slots, catalog, entries) == Some{rest} : Maybe<&2, List<&2, F.Node>>} ->
+      {Relation.nodes_valid(rest, retained) == True{} : Bool} ->
+      {ready_actual_node_observations(rest, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool},
+    contents: Exists(F.Node, head => Exists(List<&2, F.Node>, rest =>
+      {P.projected_node(F.address_at(entries, id), F.artifact_at(catalog, handle), P.references(P.owner_slots(slots, id), entries)) == Some{head} : Maybe<&2, F.Node>} &
+      {P.nodes(tail, slots, catalog, entries) == Some{rest} : Maybe<&2, List<&2, F.Node>>} &
+      {Some{head <> rest} == Some{current} : Maybe<&2, List<&2, F.Node>>}))) ->
+    {ready_actual_node_observations(current, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}:
+  match contents:
+    case (+head, (+rest, (head_projected, (tail_projected, same)))):
+      +rows_equal: {head <> rest == current : List<&2, F.Node>} = Count.some_equal(List<&2, F.Node>, head <> rest, current, same)
+      +rows_valid: {Relation.nodes_valid(head <> rest, retained) == True{} : Bool} =
+        %Equal.sym(List<&2, F.Node>, head <> rest, current, rows_equal): {Relation.nodes_valid(_, retained) == True{} : Bool}
+        valid
+      %rows_equal:
+        {ready_actual_node_observations(_, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}
+      ready_actual_node_observations_cons(head, rest, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots,
+        ready_actual_node_observation_contents(nodes, entries, slots, catalog, retained, id, handle, head, aligned, dense, projected, forward, present,
+          ready_omission_keep_valid_head(head, rest, [], retained, rows_valid, {==}),
+          Contents.node_contents(F.address_at(entries, id), F.artifact_at(catalog, handle), P.references(P.owner_slots(slots, id), entries), head, head_projected)),
+        recursive(rest)(tail_projected)(Equal.sym(Bool, True{}, Relation.nodes_valid(rest, retained),
+          Rollback.nodes_tail(head, rest, retained, Equal.sym(Bool, Relation.nodes_valid(head <> rest, retained), True{}, rows_valid)))))
+
+def ready_actual_node_observations_cursor(items: List<&2, Local.PlannedNode>, cursor: List<&2, F.AddressEntry>,
+    +nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>, +current: List<&2, F.Node>,
+    +aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, +dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    +projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    +forward: {P.forward_nodes(nodes, slots) == True{} : Bool},
+    cursor_aligned: {P.aligned(items, cursor, nodes, entries) == True{} : Bool},
+    current_projected: {P.nodes(items, slots, catalog, entries) == Some{current} : Maybe<&2, List<&2, F.Node>>},
+    valid: {Relation.nodes_valid(current, retained) == True{} : Bool}) ->
+    {ready_actual_node_observations(current, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}:
+  match items cursor:
+    case Nil{} Nil{}:
+      %Count.some_equal(List<&2, F.Node>, [], current, current_projected):
+        {ready_actual_node_observations(_, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}
+      {==}
+    case Local.PlannedNode{+id, +handle} <> +tail F.AddressEntry{+other, +address} <> +rest:
+      +counts: {Bool.and(Nat.is_eq(P.node_count(nodes, id), 1n), Bool.and(Nat.is_eq(P.address_count(entries, address), 1n), P.aligned(tail, rest, nodes, entries))) == True{} : Bool} =
+        BoolFacts.eq_true_of_and_right(Nat.is_eq(id, other), Bool.and(Nat.is_eq(P.node_count(nodes, id), 1n), Bool.and(Nat.is_eq(P.address_count(entries, address), 1n), P.aligned(tail, rest, nodes, entries))), cursor_aligned)
+      ready_actual_node_observations_parts(id, handle, tail, nodes, entries, slots, catalog, retained, current, aligned, dense, projected, forward,
+        %Equal.sym(Nat, P.node_count(nodes, id), 1n, NatFacts.eq_of_is_eq(P.node_count(nodes, id), 1n,
+          BoolFacts.eq_true_of_and_left(Nat.is_eq(P.node_count(nodes, id), 1n), Bool.and(Nat.is_eq(P.address_count(entries, address), 1n), P.aligned(tail, rest, nodes, entries)), counts))):
+          NatFacts.le(1n, _)
+        NatFacts.le_refl(1n), valid,
+        next => next_projected => next_valid => ready_actual_node_observations_cursor(tail, rest, nodes, entries, slots, catalog, retained, next,
+          aligned, dense, projected, forward,
+          BoolFacts.eq_true_of_and_right(Nat.is_eq(P.address_count(entries, address), 1n), P.aligned(tail, rest, nodes, entries),
+            BoolFacts.eq_true_of_and_right(Nat.is_eq(P.node_count(nodes, id), 1n), Bool.and(Nat.is_eq(P.address_count(entries, address), 1n), P.aligned(tail, rest, nodes, entries)), counts)),
+          next_projected, next_valid),
+        Contents.prefix_contents(P.projected_node(F.address_at(entries, id), F.artifact_at(catalog, handle), P.references(P.owner_slots(slots, id), entries)),
+          P.nodes(tail, slots, catalog, entries), current, current_projected))
+    case Nil{} Con{_, _}:
+      Empty.absurd({ready_actual_node_observations(current, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}, BoolFacts.internal_false_ne_true(cursor_aligned))
+    case Con{_, _} Nil{}:
+      Empty.absurd({ready_actual_node_observations(current, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}, BoolFacts.internal_false_ne_true(cursor_aligned))
+
+def ready_projected_node_observations(+nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>,
+    +aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    +projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    forward: {P.forward_nodes(nodes, slots) == True{} : Bool}, valid: {Relation.nodes_valid(retained, retained) == True{} : Bool}) ->
+    {ready_actual_node_observations(retained, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}:
+  ready_actual_node_observations_cursor(nodes, entries, nodes, entries, slots, catalog, retained, retained,
+    aligned, dense, projected, forward, aligned, projected, valid)
+
+def ready_omission_result_value(result: D.OmissionResult) -> Maybe<&2, Bool>:
+  match result:
+    case D.OmissionsObserved{present}: Some{present}
+    case _: None{}
+
+def ready_omission_value_injective(+left: Bool, +right: Bool, equal: {D.OmissionsObserved{left} == D.OmissionsObserved{right} : D.OmissionResult}) ->
+    {left == right : Bool}:
+  Count.some_equal(Bool, left, right, Equal.cong(D.OmissionResult, Maybe<&2, Bool>, ready_omission_result_value,
+    D.OmissionsObserved{left}, D.OmissionsObserved{right}, equal))
+
+def ready_omission_value_address(+remaining: Nat, +query: O.NodeAddress, +rest: List<&2, D.OmissionWork>, +nodes: List<&2, F.Node>,
+    +entries: List<&2, F.AddressEntry>, +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>, +present: Bool, lookup: Maybe<&2, F.Node>,
+    +found: {F.node_at(nodes, query) == lookup : Maybe<&2, F.Node>},
+    valid: {ready_actual_node_observations(nodes, entries, fuel, slots) == True{} : Bool},
+    observed: {D.omissions(1n+remaining, D.OmissionAddress{query} <> rest, nodes) == D.OmissionsObserved{present} : D.OmissionResult},
+    recursive: @+next: List<&2, D.OmissionWork> -> {D.omissions(remaining, next, nodes) == D.OmissionsObserved{present} : D.OmissionResult} ->
+      {ready_actual_work_omission(next, entries, fuel, slots) == present : Bool}) ->
+    {ready_actual_work_omission(D.OmissionAddress{query} <> rest, entries, fuel, slots) == present : Bool}:
+  match lookup:
+    case None{}:
+      invalid: {D.OmissionInvalid{} == D.OmissionsObserved{present} : D.OmissionResult} =
+        %found:
+          {D.omission_next(D.omission_node(_, rest), items => D.omissions(remaining, items, nodes)) == D.OmissionsObserved{present} : D.OmissionResult}
+        observed
+      Empty.absurd({ready_actual_work_omission(D.OmissionAddress{query} <> rest, entries, fuel, slots) == present : Bool},
+        Contents.none_some(Bool, present, Equal.cong(D.OmissionResult, Maybe<&2, Bool>, ready_omission_result_value,
+          D.OmissionInvalid{}, D.OmissionsObserved{present}, invalid)))
+    case Some{F.Node{+address, +artifact, +references}}:
+      Equal.trans(Bool, ready_actual_work_omission(D.OmissionAddress{query} <> rest, entries, fuel, slots),
+        ready_actual_work_omission(D.OmissionReferences{references} <> rest, entries, fuel, slots), present,
+        Equal.cong(Bool, Bool, value => Bool.or(value, ready_actual_work_omission(rest, entries, fuel, slots)),
+          ready_actual_address_omission(entries, fuel, slots, query), ready_actual_reference_omission(references, entries, fuel, slots),
+          ready_actual_node_observation_lookup(nodes, query, F.Node{address, artifact, references}, entries, fuel, slots, valid, found)),
+        recursive(D.OmissionReferences{references} <> rest)(
+          %found:
+            {D.omission_next(D.omission_node(_, rest), items => D.omissions(remaining, items, nodes)) == D.OmissionsObserved{present} : D.OmissionResult}
+          observed))
+
+def ready_omission_value(remaining: Nat, work: List<&2, D.OmissionWork>, +nodes: List<&2, F.Node>,
+    +entries: List<&2, F.AddressEntry>, +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>, +present: Bool,
+    +valid: {ready_actual_node_observations(nodes, entries, fuel, slots) == True{} : Bool},
+    observed: {D.omissions(remaining, work, nodes) == D.OmissionsObserved{present} : D.OmissionResult}) ->
+    {ready_actual_work_omission(work, entries, fuel, slots) == present : Bool}:
+  match remaining work:
+    case _ Nil{}: ready_omission_value_injective(False{}, present, observed)
+    case 0n Con{+head, +tail}:
+      Empty.absurd({ready_actual_work_omission(head <> tail, entries, fuel, slots) == present : Bool},
+        Contents.none_some(Bool, present, Equal.cong(D.OmissionResult, Maybe<&2, Bool>, ready_omission_result_value,
+          D.OmissionExhausted{}, D.OmissionsObserved{present}, observed)))
+    case 1n++more D.OmissionAddress{+query} <> +rest:
+      ready_omission_value_address(more, query, rest, nodes, entries, fuel, slots, present, F.node_at(nodes, query), {==}, valid, observed,
+        next => next_observed => ready_omission_value(more, next, nodes, entries, fuel, slots, present, valid, next_observed))
+    case 1n++more D.OmissionReferences{[]} <> +rest:
+      ready_omission_value(more, rest, nodes, entries, fuel, slots, present, valid, observed)
+    case 1n++more D.OmissionReferences{F.Included{_, _} <> +tail} <> +rest:
+      ready_omission_value(more, D.OmissionReferences{tail} <> rest, nodes, entries, fuel, slots, present, valid, observed)
+    case 1n++more D.OmissionReferences{F.Expanded{_, +child} <> +tail} <> +rest:
+      Equal.trans(Bool, Bool.or(Bool.or(ready_actual_address_omission(entries, fuel, slots, child), ready_actual_reference_omission(tail, entries, fuel, slots)),
+        ready_actual_work_omission(rest, entries, fuel, slots)),
+        ready_actual_work_omission(D.OmissionAddress{child} <> D.OmissionReferences{tail} <> rest, entries, fuel, slots), present,
+        BoolFacts.or_assoc(ready_actual_address_omission(entries, fuel, slots, child), ready_actual_reference_omission(tail, entries, fuel, slots), ready_actual_work_omission(rest, entries, fuel, slots)),
+        ready_omission_value(more, D.OmissionAddress{child} <> D.OmissionReferences{tail} <> rest, nodes, entries, fuel, slots, present, valid, observed))
+    case 1n+_ D.OmissionReferences{F.Omitted{_, _, _} <> _} <> _:
+      ready_omission_value_injective(True{}, present, observed)
+
+def ready_omission_total_value(+root: O.NodeAddress, +retained: List<&2, F.Node>, +entries: List<&2, F.AddressEntry>,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>, +actual: Bool,
+    observations: {ready_actual_node_observations(retained, entries, fuel, slots) == True{} : Bool},
+    root_equal: {ready_actual_work_omission([D.OmissionAddress{root}], entries, fuel, slots) == actual : Bool},
+    total: Exists(Bool, present => {D.forest_omissions(Allowance.materialization(F.Forest{Some{root}, retained}), F.Forest{Some{root}, retained}) == D.OmissionsObserved{present} : D.OmissionResult})) ->
+    {D.forest_omissions(Allowance.materialization(F.Forest{Some{root}, retained}), F.Forest{Some{root}, retained}) == D.OmissionsObserved{actual} : D.OmissionResult}:
+  match total:
+    case (+present, observed):
+      +same_result: {D.forest_omissions(Allowance.materialization(F.Forest{Some{root}, retained}), F.Forest{Some{root}, retained}) == D.OmissionsObserved{present} : D.OmissionResult} = observed
+      Equal.trans(D.OmissionResult,
+        D.forest_omissions(Allowance.materialization(F.Forest{Some{root}, retained}), F.Forest{Some{root}, retained}),
+        D.OmissionsObserved{present}, D.OmissionsObserved{actual}, same_result,
+        Equal.cong(Bool, D.OmissionResult, value => D.OmissionsObserved{value}, present, actual,
+          Equal.trans(Bool, present, ready_actual_work_omission([D.OmissionAddress{root}], entries, fuel, slots), actual,
+            Equal.sym(Bool, ready_actual_work_omission([D.OmissionAddress{root}], entries, fuel, slots), present,
+              ready_omission_value(Allowance.materialization(F.Forest{Some{root}, retained}), [D.OmissionAddress{root}], retained,
+                entries, fuel, slots, present, observations, same_result)), root_equal)))
+
+def ready_projected_omissions_known(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>, +birth: O.NodeAddress, +retained: List<&2, F.Node>, +episode: Nat,
+    +aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, +dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    +projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    forward: {P.forward_nodes(nodes, slots) == True{} : Bool}, found: {F.address_at(entries, root) == Some{birth} : Maybe<&2, O.NodeAddress>},
+    +valid: {Relation.frame_forest(F.Forest{Some{birth}, retained}, episode) == True{} : Bool}) ->
+    {D.forest_omissions(Allowance.materialization(F.Forest{Some{birth}, retained}), F.Forest{Some{birth}, retained})
+      == D.OmissionsObserved{LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, root, slots)} : D.OmissionResult}:
+  +retained_valid: {Relation.retained(F.Forest{Some{birth}, retained}) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_left(Relation.retained(F.Forest{Some{birth}, retained}), Relation.episodes_before(retained, episode), valid)
+  root_valid: {Relation.root_valid(Some{birth}, retained) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_left(Relation.root_valid(Some{birth}, retained), Relation.nodes_valid(retained, retained), retained_valid)
+  ready_omission_total_value(birth, retained, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots,
+    LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, root, slots),
+    ready_projected_node_observations(nodes, entries, slots, catalog, retained, aligned, dense, projected, forward,
+      BoolFacts.eq_true_of_and_right(Relation.root_valid(Some{birth}, retained), Relation.nodes_valid(retained, retained), retained_valid)),
+    Equal.trans(Bool, ready_actual_work_omission([D.OmissionAddress{birth}], entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots),
+      ready_actual_address_omission(entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, birth),
+      LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, root, slots),
+      BoolFacts.or_false(ready_actual_address_omission(entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, birth)),
+      ready_projected_address_observation(nodes, entries, slots, catalog, retained, root, birth, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat),
+        aligned, dense, projected, found,
+        NatFacts.eq_of_is_eq(F.count_address(retained, birth), 1n,
+          BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(retained, birth), 1n), Nat.is_eq(Relation.incoming(retained, birth), 0n), root_valid)))),
+    ready_omission_forest_total(birth, retained, episode, valid))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
