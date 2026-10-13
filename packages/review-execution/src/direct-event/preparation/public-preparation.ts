@@ -208,12 +208,18 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
     const beginning = unlist(owner.begin_public_preparation(driver.state, 1n, 1n, round, BigInt(graphLimits.readBytes)))
     for (const step of beginning) driver.acceptPublication(step)
     const admission = beginning[0]
-    const admitted = admission?.$ === "Advanced"
-      ? unlist(admission.outputs).find(
-          (output) => output.$ === "../Canonical.EventEstablished" && output.event.$ === "../Canonical.ObservationAdmitted"
-        )
-      : undefined
-    if (!admitted || admitted.$ !== "../Canonical.EventEstablished" || admitted.event.$ !== "../Canonical.ObservationAdmitted")
+    const admitted =
+      admission?.$ === "Advanced"
+        ? unlist(admission.outputs).find(
+            (output) =>
+              output.$ === "../Canonical.EventEstablished" && output.event.$ === "../Canonical.ObservationAdmitted"
+          )
+        : undefined
+    if (
+      !admitted ||
+      admitted.$ !== "../Canonical.EventEstablished" ||
+      admitted.event.$ !== "../Canonical.ObservationAdmitted"
+    )
       throw new TypeError("Canonical observation missing")
     const observationId = admitted.event.id
     const requested = outputs.find(
@@ -250,7 +256,9 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
     const outcome = await task
     if (!("preparation" in outcome)) throw new Error("Canonical did not accept a preparation result")
     const result = physical.decode(outcome.preparation)
-    for (const step of unlist(owner.complete_public_preparation(driver.state, 1n, 1n, round, preparation, observationId)))
+    for (const step of unlist(
+      owner.complete_public_preparation(driver.state, 1n, 1n, round, preparation, observationId)
+    ))
       driver.acceptPublication(step)
     return { ...result, ambiguousLine: outcome.preparation.ambiguous_line }
   }

@@ -1166,6 +1166,55 @@ try {
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 8
   }
+  // Compare full publications, including refused prefixes, to the original
+  // public host's event sequence. These are private non-reentrant entries.
+  const unopened = m.initial_limits(1n, 100n, 1n, 100n)
+  const opened = advanced(m.canonical_event(unopened, c("OpenRound", { partition: 1n, lifetime: 1n })))
+  for (const state of [unopened, opened, fresh()])
+    for (const partition of [0n, 1n, 2n])
+      for (const round of [0n, 1n, 2n])
+        for (const bytes of [0n, 100n, 101n]) {
+          const admitted = m.canonical_event(state, c("AdmitObservation", { partition, lifetime: 1n, round }))
+          const expected = [admitted]
+          if (admitted.$ === "Advanced") {
+            const observation = list(admitted.outputs).find(
+              (output) =>
+                output.$ === "../Canonical.EventEstablished" && output.event.$ === "../Canonical.ObservationAdmitted"
+            ).event.id
+            const started = m.canonical_event(
+              admitted.state,
+              c("StartObservation", { partition, lifetime: 1n, round, observation })
+            )
+            expected.push(started)
+            if (started.$ === "Advanced")
+              expected.push(
+                m.canonical_event(
+                  started.state,
+                  c("BeginObservedPreparation", { partition, lifetime: 1n, round, observation, bytes })
+                )
+              )
+          }
+          assert.deepEqual(list(m.begin_public_preparation(state, partition, 1n, round, bytes)), expected)
+          assertions++
+        }
+  for (const state of [unopened, opened, fresh()])
+    for (const operation of [0n, 1n, 2n, 3n])
+      for (const observation of [0n, 1n, 2n]) {
+        const prepared = m.canonical_event(
+          state,
+          c("PreparationCompleted", { partition: 1n, lifetime: 1n, round: 1n, operation, unit_bytes: { $: "Nil" } })
+        )
+        const expected = [prepared]
+        if (prepared.$ === "Advanced")
+          expected.push(
+            m.canonical_event(
+              prepared.state,
+              c("CompleteObservation", { partition: 1n, lifetime: 1n, round: 1n, observation })
+            )
+          )
+        assert.deepEqual(list(m.complete_public_preparation(state, 1n, 1n, 1n, operation, observation)), expected)
+        assertions++
+      }
   console.log(
     JSON.stringify({
       passed: true,

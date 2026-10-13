@@ -1948,6 +1948,8 @@ def initial_limits(
 
 # Resident stores only this custody beside its sole Canonical state. State above
 # is an ephemeral call value, never a second mutable Canonical authority.
+# Private public-host entry: its publication hook only records outputs.
+# Reentrant publication hooks require interleaved owner continuation instead.
 # Public preparation uses the same event sequence as the former host workflow.
 # A refused suffix retains the already advanced state; no atomic rollback.
 def public_preparation_begin_started(
