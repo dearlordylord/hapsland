@@ -12346,6 +12346,181 @@ def ready_projected_expanded_observation(+nodes: List<&2, Local.PlannedNode>, +e
           NatFacts.eq_of_is_eq(F.count_address(retained, address), 1n,
             BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(retained, address), 1n), True{}, target_valid))))
 
+def ready_actual_reference_cons(+head: F.Reference, +tail: List<&2, F.Reference>,
+    +entries: List<&2, F.AddressEntry>, +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>) ->
+    {ready_actual_reference_omission(head <> tail, entries, fuel, slots)
+      == Bool.or(ready_actual_reference_omission([head], entries, fuel, slots), ready_actual_reference_omission(tail, entries, fuel, slots)) : Bool}:
+  match head:
+    case F.Included{_, _}: {==}
+    case F.Omitted{_, _, _}: {==}
+    case F.Expanded{_, +child}:
+      Equal.cong(Bool, Bool, value => Bool.or(value, ready_actual_reference_omission(tail, entries, fuel, slots)),
+        ready_actual_address_omission(entries, fuel, slots, child), Bool.or(ready_actual_address_omission(entries, fuel, slots, child), False{}),
+        BoolFacts.or_false_sym(ready_actual_address_omission(entries, fuel, slots, child)))
+
+def ready_actual_reference_targets_cons(head: F.Reference, +tail: List<&2, F.Reference>, +nodes: List<&2, F.Node>,
+    +valid: {ready_omission_reference_targets(head <> tail, nodes) == True{} : Bool}) ->
+    {ready_omission_reference_targets([head], nodes) == True{} : Bool} &
+    {ready_omission_reference_targets(tail, nodes) == True{} : Bool}:
+  match head:
+    case F.Included{_, _}: Tuple{{==}, valid}
+    case F.Omitted{_, _, _}: Tuple{{==}, valid}
+    case F.Expanded{_, +child}:
+      Tuple{BoolFacts.and_eq_true(Nat.is_eq(F.count_address(nodes, child), 1n), True{},
+        BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(nodes, child), 1n), ready_omission_reference_targets(tail, nodes), valid), {==}),
+        BoolFacts.eq_true_of_and_right(Nat.is_eq(F.count_address(nodes, child), 1n), ready_omission_reference_targets(tail, nodes), valid)}
+
+def ready_actual_omission_slot_or(+reference: Local.PlannedReference, +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>, +rest: Bool) ->
+    {Bool.or(LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => False{}), rest)
+      == LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => rest) : Bool}:
+  match reference:
+    case Local.Included{_}: {==}
+    case Local.Omitted{_, _}: {==}
+    case Local.Expanded{+child}:
+      Equal.cong(Bool, Bool, value => Bool.or(value, rest), Bool.or(LoopPolicy.has_omission(fuel, slots, child, slots), False{}),
+        LoopPolicy.has_omission(fuel, slots, child, slots), BoolFacts.or_false(LoopPolicy.has_omission(fuel, slots, child, slots)))
+
+def ready_actual_slot_observation(+reference: Local.PlannedReference, +owner: Nat, +index: Nat, +symbol: String,
+    +nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>, +head: F.Reference, +fuel: Nat,
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    observed: {P.reference(Local.ReferenceSlot{owner, index, symbol, reference}, entries) == Some{head} : Maybe<&2, F.Reference>},
+    valid: {ready_omission_reference_targets([head], retained) == True{} : Bool}) ->
+    {ready_actual_reference_omission([head], entries, fuel, slots)
+      == LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => False{}) : Bool}:
+  match reference:
+    case Local.Included{+identity}:
+      %Count.some_equal(F.Reference, F.Included{F.ReferenceSymbol{symbol}, F.ArtifactIdentity{identity}}, head, observed):
+        {ready_actual_reference_omission([_], entries, fuel, slots) == False{} : Bool}
+      {==}
+    case Local.Omitted{+reason, +target}:
+      %Count.some_equal(F.Reference, F.Omitted{F.ReferenceSymbol{symbol}, F.ReferenceSymbol{target}, reason}, head, observed):
+        {ready_actual_reference_omission([_], entries, fuel, slots) == True{} : Bool}
+      {==}
+    case Local.Expanded{+child}:
+      Equal.trans(Bool, ready_actual_reference_omission([head], entries, fuel, slots), LoopPolicy.has_omission(fuel, slots, child, slots),
+        Bool.or(LoopPolicy.has_omission(fuel, slots, child, slots), False{}),
+        ready_projected_expanded_observation(nodes, entries, slots, catalog, retained, child, symbol, head, fuel, F.address_at(entries, child),
+          {==}, aligned, dense, projected, observed, valid),
+        BoolFacts.or_false_sym(LoopPolicy.has_omission(fuel, slots, child, slots)))
+
+def ready_actual_reference_join(+head: F.Reference, +tail: List<&2, F.Reference>, +entries: List<&2, F.AddressEntry>,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>, +reference: Local.PlannedReference, +rest: Bool,
+    head_equal: {ready_actual_reference_omission([head], entries, fuel, slots)
+      == LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => False{}) : Bool},
+    tail_equal: {ready_actual_reference_omission(tail, entries, fuel, slots) == rest : Bool}) ->
+    {ready_actual_reference_omission(head <> tail, entries, fuel, slots)
+      == LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => rest) : Bool}:
+  Equal.trans(Bool, ready_actual_reference_omission(head <> tail, entries, fuel, slots),
+    Bool.or(ready_actual_reference_omission([head], entries, fuel, slots), ready_actual_reference_omission(tail, entries, fuel, slots)),
+    LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => rest),
+    ready_actual_reference_cons(head, tail, entries, fuel, slots),
+    Equal.trans(Bool,
+      Bool.or(ready_actual_reference_omission([head], entries, fuel, slots), ready_actual_reference_omission(tail, entries, fuel, slots)),
+      Bool.or(LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => False{}), rest),
+      LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => rest),
+      Equal.trans(Bool,
+        Bool.or(ready_actual_reference_omission([head], entries, fuel, slots), ready_actual_reference_omission(tail, entries, fuel, slots)),
+        Bool.or(LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => False{}), ready_actual_reference_omission(tail, entries, fuel, slots)),
+        Bool.or(LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => False{}), rest),
+        Equal.cong(Bool, Bool, value => Bool.or(value, ready_actual_reference_omission(tail, entries, fuel, slots)),
+          ready_actual_reference_omission([head], entries, fuel, slots),
+          LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => False{}), head_equal),
+        Equal.cong(Bool, Bool, value => Bool.or(LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => False{}), value),
+          ready_actual_reference_omission(tail, entries, fuel, slots), rest, tail_equal)),
+      ready_actual_omission_slot_or(reference, fuel, slots, rest)))
+
+def ready_actual_references_parts(+reference: Local.PlannedReference, +actual: Nat, +index: Nat, +symbol: String,
+    +tail: List<&2, Local.ReferenceSlot>, +owner: Nat,
+    +nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>, +refs: List<&2, F.Reference>, +fuel: Nat,
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    valid: {ready_omission_reference_targets(refs, retained) == True{} : Bool},
+    recursive: @+rest: List<&2, F.Reference> -> {P.references(P.owner_slots(tail, owner), entries) == Some{rest} : Maybe<&2, List<&2, F.Reference>>} ->
+      {ready_omission_reference_targets(rest, retained) == True{} : Bool} ->
+      {ready_actual_reference_omission(rest, entries, fuel, slots) == LoopPolicy.has_omission(1n+fuel, tail, owner, slots) : Bool},
+    contents: Exists(F.Reference, head => Exists(List<&2, F.Reference>, rest =>
+      {P.reference(Local.ReferenceSlot{actual, index, symbol, reference}, entries) == Some{head} : Maybe<&2, F.Reference>} &
+      {P.references(P.owner_slots(tail, owner), entries) == Some{rest} : Maybe<&2, List<&2, F.Reference>>} &
+      {Some{head <> rest} == Some{refs} : Maybe<&2, List<&2, F.Reference>>}))) ->
+    {ready_actual_reference_omission(refs, entries, fuel, slots)
+      == LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => LoopPolicy.has_omission(1n+fuel, tail, owner, slots)) : Bool}:
+  match contents:
+    case (+head, (+rest, (head_projected, (tail_projected, same)))):
+      +rows_equal: {head <> rest == refs : List<&2, F.Reference>} = Count.some_equal(List<&2, F.Reference>, head <> rest, refs, same)
+      +targets: {ready_omission_reference_targets(head <> rest, retained) == True{} : Bool} =
+        %Equal.sym(List<&2, F.Reference>, head <> rest, refs, rows_equal):
+          {ready_omission_reference_targets(_, retained) == True{} : Bool}
+        valid
+      %rows_equal:
+        {ready_actual_reference_omission(_, entries, fuel, slots)
+          == LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => LoopPolicy.has_omission(1n+fuel, tail, owner, slots)) : Bool}
+      Parent.eliminate_pair({ready_omission_reference_targets([head], retained) == True{} : Bool},
+        {ready_omission_reference_targets(rest, retained) == True{} : Bool},
+        {ready_actual_reference_omission(head <> rest, entries, fuel, slots)
+          == LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => LoopPolicy.has_omission(1n+fuel, tail, owner, slots)) : Bool},
+        ready_actual_reference_targets_cons(head, rest, retained, targets),
+        head_valid => tail_valid => ready_actual_reference_join(head, rest, entries, fuel, slots, reference, LoopPolicy.has_omission(1n+fuel, tail, owner, slots),
+          ready_actual_slot_observation(reference, actual, index, symbol, nodes, entries, slots, catalog, retained, head, fuel,
+            aligned, dense, projected, head_projected, head_valid), recursive(rest)(tail_projected)(tail_valid)))
+
+def ready_actual_references_step(same: Bool, +actual: Nat, +index: Nat, +symbol: String, +reference: Local.PlannedReference,
+    +tail: List<&2, Local.ReferenceSlot>, +owner: Nat,
+    +nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>, +refs: List<&2, F.Reference>, +fuel: Nat,
+    +selected: {Nat.is_eq(actual, owner) == same : Bool},
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    observed: {P.references(P.owner_slots(Local.ReferenceSlot{actual, index, symbol, reference} <> tail, owner), entries) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
+    valid: {ready_omission_reference_targets(refs, retained) == True{} : Bool},
+    recursive: @+rest: List<&2, F.Reference> -> {P.references(P.owner_slots(tail, owner), entries) == Some{rest} : Maybe<&2, List<&2, F.Reference>>} ->
+      {ready_omission_reference_targets(rest, retained) == True{} : Bool} ->
+      {ready_actual_reference_omission(rest, entries, fuel, slots) == LoopPolicy.has_omission(1n+fuel, tail, owner, slots) : Bool}) ->
+    {ready_actual_reference_omission(refs, entries, fuel, slots)
+      == LoopPolicy.has_omission(1n+fuel, Local.ReferenceSlot{actual, index, symbol, reference} <> tail, owner, slots) : Bool}:
+  match same:
+    case False{}:
+      %Equal.sym(Bool, Nat.is_eq(actual, owner), False{}, selected):
+        {ready_actual_reference_omission(refs, entries, fuel, slots)
+          == LoopPolicy.omission_slot(_, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => LoopPolicy.has_omission(1n+fuel, tail, owner, slots)) : Bool}
+      recursive(refs)(
+        %selected:
+          {P.references(Bool.pick(List<&2, Local.ReferenceSlot>, _, Local.ReferenceSlot{actual, index, symbol, reference} <> P.owner_slots(tail, owner), P.owner_slots(tail, owner)), entries)
+            == Some{refs} : Maybe<&2, List<&2, F.Reference>>}
+        observed)(valid)
+    case True{}:
+      %Equal.sym(Bool, Nat.is_eq(actual, owner), True{}, selected):
+        {ready_actual_reference_omission(refs, entries, fuel, slots)
+          == LoopPolicy.omission_slot(_, reference, child => LoopPolicy.has_omission(fuel, slots, child, slots), _ => LoopPolicy.has_omission(1n+fuel, tail, owner, slots)) : Bool}
+      ready_actual_references_parts(reference, actual, index, symbol, tail, owner, nodes, entries, slots, catalog, retained, refs, fuel,
+        aligned, dense, projected, valid, recursive,
+        Count.reference_prefix_contents(P.reference(Local.ReferenceSlot{actual, index, symbol, reference}, entries), P.references(P.owner_slots(tail, owner), entries), refs,
+          %selected:
+            {P.references(Bool.pick(List<&2, Local.ReferenceSlot>, _, Local.ReferenceSlot{actual, index, symbol, reference} <> P.owner_slots(tail, owner), P.owner_slots(tail, owner)), entries)
+              == Some{refs} : Maybe<&2, List<&2, F.Reference>>}
+          observed))
+
+def ready_actual_references_observation(items: List<&2, Local.ReferenceSlot>, +owner: Nat,
+    +nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>, +refs: List<&2, F.Reference>, +fuel: Nat,
+    +aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, +dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    +projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    observed: {P.references(P.owner_slots(items, owner), entries) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
+    valid: {ready_omission_reference_targets(refs, retained) == True{} : Bool}) ->
+    {ready_actual_reference_omission(refs, entries, fuel, slots) == LoopPolicy.has_omission(1n+fuel, items, owner, slots) : Bool}:
+  match items:
+    case []:
+      %Count.some_equal(List<&2, F.Reference>, [], refs, observed):
+        {ready_actual_reference_omission(_, entries, fuel, slots) == False{} : Bool}
+      {==}
+    case Local.ReferenceSlot{+actual, +index, +symbol, +reference} <> +tail:
+      ready_actual_references_step(Nat.is_eq(actual, owner), actual, index, symbol, reference, tail, owner, nodes, entries, slots, catalog, retained, refs, fuel,
+        {==}, aligned, dense, projected, observed, valid,
+        rest => tail_projected => tail_valid => ready_actual_references_observation(tail, owner, nodes, entries, slots, catalog, retained, rest, fuel,
+          aligned, dense, projected, tail_projected, tail_valid))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

@@ -805,5 +805,224 @@ def completion_common_selected(
     )
   )
 
+# Original refusal reasons bypass materialization and omission traversal.
+def completion_deadline(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +world: E.WorldState<World>,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  actual_frame: {
+    ActualBoundary.frame(State.state_frame(actual), history)
+    == Some{view}
+    : Maybe<&2, V.Frame>
+  },
+  reference_frame: {Frame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}
+) -> {
+  ActualBoundary.project(
+    LoopPolicy.request_completion(LoopPolicy.partial_allowed(frame, G.Deadline{}), actual, frame),
+    history
+  )
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+} & {
+  project(
+    World,
+    D.consumed(World, D.completion(fuel, reference, Some{G.Deadline{}}), world),
+    child,
+    history
+  )
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+}:
+  match reference:
+    case D.State{
+      _,
+      X.Frame{
+        G.Bounded{G.Graph{_, _, _, 0n, _, _, _, _, _, _, _}, _},
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      },
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }:
+      completion_denied(
+        World,
+        actual,
+        reference,
+        child,
+        history,
+        view,
+        world,
+        frame,
+        actual_frame,
+        reference_frame
+      )
+    case D.State{
+      _,
+      X.Frame{
+        G.Bounded{G.Graph{_, _, _, 1n+_, _, _, _, _, _, _, _}, _},
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      },
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }:
+      completion_denied(
+        World,
+        actual,
+        reference,
+        child,
+        history,
+        view,
+        world,
+        frame,
+        actual_frame,
+        reference_frame
+      )
+
+def completion_protocolviolation(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +world: E.WorldState<World>,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  actual_frame: {
+    ActualBoundary.frame(State.state_frame(actual), history)
+    == Some{view}
+    : Maybe<&2, V.Frame>
+  },
+  reference_frame: {Frame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}
+) -> {
+  ActualBoundary.project(
+    LoopPolicy.request_completion(
+      LoopPolicy.partial_allowed(frame, G.ProtocolViolation{}),
+      actual,
+      frame
+    ),
+    history
+  )
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+} & {
+  project(
+    World,
+    D.consumed(World, D.completion(fuel, reference, Some{G.ProtocolViolation{}}), world),
+    child,
+    history
+  )
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+}:
+  match reference:
+    case D.State{
+      _,
+      X.Frame{
+        G.Bounded{G.Graph{_, _, _, 0n, _, _, _, _, _, _, _}, _},
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      },
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }:
+      completion_denied(
+        World,
+        actual,
+        reference,
+        child,
+        history,
+        view,
+        world,
+        frame,
+        actual_frame,
+        reference_frame
+      )
+    case D.State{
+      _,
+      X.Frame{
+        G.Bounded{G.Graph{_, _, _, 1n+_, _, _, _, _, _, _, _}, _},
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      },
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }:
+      completion_denied(
+        World,
+        actual,
+        reference,
+        child,
+        history,
+        view,
+        world,
+        frame,
+        actual_frame,
+        reference_frame
+      )
+
 def main() -> Unit:
   Unit{}
