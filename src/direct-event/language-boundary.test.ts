@@ -4,13 +4,15 @@ import { describe, expect, it } from "vitest"
 const sharedModules = [
   "packages/source-analysis/src/direct-event/analyzer.ts",
   "packages/source-analysis/src/direct-event/function-analyzer.ts",
-  "packages/source-analysis/src/direct-event/graph-resolver.ts",
+  "packages/source-analysis/src/direct-event/graph-resolution/consumer.ts",
+  "packages/source-analysis/src/direct-event/graph-resolution/composition/capability.ts",
   "packages/review-execution/src/direct-event/pipeline.ts",
   "packages/review-execution/src/direct-event/review-renderer.ts"
 ]
 const publicLanguageModules = new Set([
   "./languages/registry.ts",
   "./languages/contracts.ts",
+  "../languages/contracts.ts",
   "./languages/function-facts.ts",
   "@hapsland/source-analysis/direct-event/languages/registry",
   "@hapsland/source-analysis/direct-event/languages/contracts"
