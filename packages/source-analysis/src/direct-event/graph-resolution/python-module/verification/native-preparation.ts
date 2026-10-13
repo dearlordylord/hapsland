@@ -15,7 +15,7 @@ import type { GraphSession, NativeLanguageAdapter } from "../../verification/nat
 const within = (path: string): boolean => !isAbsolute(path) && path !== ".." && !path.startsWith(`..${sep}`)
 const record = (value: unknown): Record<string, unknown> | undefined =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined
-const staticRoot = (source: string): string | undefined => {
+export const staticRoot = (source: string): string | undefined => {
   try {
     const data = parse(source)
     const tool = record(data.tool)

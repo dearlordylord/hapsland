@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFile, mkdtemp, rm } from "node:fs/promises"
-import { join, normalize, isAbsolute, sep } from "node:path"
+import { mkdtemp, rm } from "node:fs/promises"
+import { join, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { parse } from "smol-toml"
 import { tomlValue } from "../../frontend-codec.ts"
@@ -13,22 +13,14 @@ try {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  // Execute the current production function itself after erasing only its annotations.
-  const native = await readFile(join(import.meta.dirname, "../verification/native-preparation.ts"), "utf8")
-  const fragment = native
-    .slice(native.indexOf("const staticRoot ="), native.indexOf("\ntype Remaining"))
-    .replace("(source: string): string | undefined", "(source)")
-    .replace("where[0] as string", "where[0]")
-  const record = (value) => (typeof value === "object" && value !== null && !Array.isArray(value) ? value : undefined)
-  const within = (path) => !isAbsolute(path) && path !== ".." && !path.startsWith(`..${sep}`)
-  const reference = Function(
-    "parse",
-    "record",
-    "normalize",
-    "within",
-    "sep",
-    fragment + "\nreturn staticRoot"
-  )(parse, record, normalize, within, sep)
+  const { staticRoot: reference } = await import(
+    pathToFileURL(
+      join(
+        import.meta.dirname,
+        "../../../../../dist/direct-event/graph-resolution/python-module/verification/native-preparation.js"
+      )
+    )
+  )
   const fixtures = [
     "",
     '[project]\nname="x"',

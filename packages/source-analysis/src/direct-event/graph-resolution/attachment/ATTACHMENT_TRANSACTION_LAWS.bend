@@ -9044,6 +9044,81 @@ def ready_capture_publication_recursive(+items: List<&2, X.Captured>, +entries: 
             retained => remaining => actual_rest => reference_rest =>
               ready_capture_publication_recursive(tail, entries, sources, path, source, catalog, bytes, retained, valid, remaining, actual_rest, reference_rest)))
 
+def ready_capture_row_paths(items: List<&2, V.CapturedEntry>) -> List<&2, String>:
+  match items:
+    case []: []
+    case V.CapturedEntry{path, _, _} <> tail: path <> ready_capture_row_paths(tail)
+
+def ready_capture_observed_paths(items: Maybe<&2, List<&2, V.CapturedEntry>>) -> List<&2, String>:
+  match items:
+    case Some{rows}: ready_capture_row_paths(rows)
+    case None{}: []
+
+def ready_capture_actual_paths_prefix(+key: String, +tail: List<&2, String>, +file: Maybe<&2, T.CapturedFacts>,
+    +provenance: Maybe<&2, V.CaptureSource>, +rest: Maybe<&2, List<&2, V.CapturedEntry>>, +rows: List<&2, V.CapturedEntry>,
+    projected: {ActualFrame.captured_prefix(ActualFrame.captured_entry(key, file, provenance), rest) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    recurse: @retained: List<&2, V.CapturedEntry> -> {rest == Some{retained} : Maybe<&2, List<&2, V.CapturedEntry>>} ->
+      {tail == ready_capture_row_paths(retained) : List<&2, String>}) ->
+    {key <> tail == ready_capture_row_paths(rows) : List<&2, String>}:
+  match file provenance rest:
+    case Some{+facts} Some{V.CaptureSource{_, +original, _}} Some{+retained}:
+      Equal.trans(List<&2, String>, key <> tail, key <> ready_capture_row_paths(retained), ready_capture_row_paths(rows),
+        Equal.cong(List<&2, String>, List<&2, String>, paths => key <> paths, tail, ready_capture_row_paths(retained), recurse(retained, {==})),
+        Equal.cong(Maybe<&2, List<&2, V.CapturedEntry>>, List<&2, String>, ready_capture_observed_paths,
+          Some{V.CapturedEntry{key, facts, original} <> retained}, Some{rows}, projected))
+    case None{} _ _:
+      Empty.absurd({key <> tail == ready_capture_row_paths(rows) : List<&2, String>}, Contents.none_some(List<&2, V.CapturedEntry>, rows, projected))
+    case Some{_} None{} _:
+      Empty.absurd({key <> tail == ready_capture_row_paths(rows) : List<&2, String>}, Contents.none_some(List<&2, V.CapturedEntry>, rows, projected))
+    case Some{_} Some{_} None{}:
+      Empty.absurd({key <> tail == ready_capture_row_paths(rows) : List<&2, String>}, Contents.none_some(List<&2, V.CapturedEntry>, rows, projected))
+
+def ready_capture_actual_paths(+order: List<&2, String>, +entries: Map<&2, Maybe<&2, T.CapturedFacts>>, +sources: List<&2, V.CaptureSource>,
+    +rows: List<&2, V.CapturedEntry>, projected: {ActualFrame.captured(order, entries, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {order == ready_capture_row_paths(rows) : List<&2, String>}:
+  match order:
+    case []: Equal.cong(Maybe<&2, List<&2, V.CapturedEntry>>, List<&2, String>, ready_capture_observed_paths, Some{[]}, Some{rows}, projected)
+    case +head <> +tail:
+      ready_capture_actual_paths_prefix(head, tail, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, entries, head),
+        V.capture_at(sources, head), ActualFrame.captured(tail, entries, sources), rows, projected,
+        retained => witness => ready_capture_actual_paths(tail, entries, sources, retained, witness))
+
+def ready_capture_reference_paths_prefix(+key: String, +source: T.SourceFacts, +bytes: Nat, +tail: List<&2, String>,
+    +provenance: Maybe<&2, V.CaptureSource>, +rest: Maybe<&2, List<&2, V.CapturedEntry>>, +rows: List<&2, V.CapturedEntry>,
+    projected: {ReferenceFrame.prefix(V.CapturedEntry, ReferenceFrame.captured_entry(key, source, bytes, provenance), rest) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    recurse: @retained: List<&2, V.CapturedEntry> -> {rest == Some{retained} : Maybe<&2, List<&2, V.CapturedEntry>>} ->
+      {tail == ready_capture_row_paths(retained) : List<&2, String>}) ->
+    {key <> tail == ready_capture_row_paths(rows) : List<&2, String>}:
+  match provenance rest:
+    case Some{V.CaptureSource{_, _, +catalog}} Some{+retained}:
+      Equal.trans(List<&2, String>, key <> tail, key <> ready_capture_row_paths(retained), ready_capture_row_paths(rows),
+        Equal.cong(List<&2, String>, List<&2, String>, paths => key <> paths, tail, ready_capture_row_paths(retained), recurse(retained, {==})),
+        Equal.cong(Maybe<&2, List<&2, V.CapturedEntry>>, List<&2, String>, ready_capture_observed_paths,
+          Some{V.CapturedEntry{key, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, source} <> retained}, Some{rows}, projected))
+    case None{} _:
+      Empty.absurd({key <> tail == ready_capture_row_paths(rows) : List<&2, String>}, Contents.none_some(List<&2, V.CapturedEntry>, rows, projected))
+    case Some{_} None{}:
+      Empty.absurd({key <> tail == ready_capture_row_paths(rows) : List<&2, String>}, Contents.none_some(List<&2, V.CapturedEntry>, rows, projected))
+
+def ready_capture_reference_paths_exact(+items: List<&2, X.Captured>, +sources: List<&2, V.CaptureSource>, +rows: List<&2, V.CapturedEntry>,
+    projected: {ReferenceFrame.captured(items, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ready_capture_reference_paths(items) == ready_capture_row_paths(rows) : List<&2, String>}:
+  match items:
+    case []: Equal.cong(Maybe<&2, List<&2, V.CapturedEntry>>, List<&2, String>, ready_capture_observed_paths, Some{[]}, Some{rows}, projected)
+    case X.Captured{+key, +source, +bytes} <> +tail:
+      ready_capture_reference_paths_prefix(key, source, bytes, ready_capture_reference_paths(tail), V.capture_at(sources, key),
+        ReferenceFrame.captured(tail, sources), rows, projected,
+        retained => witness => ready_capture_reference_paths_exact(tail, sources, retained, witness))
+
+def ready_capture_paths_exact(+order: List<&2, String>, +items: List<&2, X.Captured>, +entries: Map<&2, Maybe<&2, T.CapturedFacts>>,
+    +sources: List<&2, V.CaptureSource>, +rows: List<&2, V.CapturedEntry>,
+    actual: {ActualFrame.captured(order, entries, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    reference: {ReferenceFrame.captured(items, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {order == ready_capture_reference_paths(items) : List<&2, String>}:
+  Equal.trans(List<&2, String>, order, ready_capture_row_paths(rows), ready_capture_reference_paths(items),
+    ready_capture_actual_paths(order, entries, sources, rows, actual),
+    Equal.sym(List<&2, String>, ready_capture_reference_paths(items), ready_capture_row_paths(rows), ready_capture_reference_paths_exact(items, sources, rows, reference)))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

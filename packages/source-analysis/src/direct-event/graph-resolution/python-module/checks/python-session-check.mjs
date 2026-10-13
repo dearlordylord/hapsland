@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, appendFile, readFile as __readFile, lstat, r
 import { join, dirname, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
-import { pythonAdapter } from "../../../../../dist/direct-event/languages/python.js"
+import { languageForPath } from "../../../../../dist/direct-event/graph-resolution/verification/native-language-registry.js"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import {
   eligibleNamedPath,
@@ -19,6 +19,8 @@ import { sourceFacts } from "../../frontend-codec.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields }),
   p = (name, fields = {}) => ({ $: "python-module/PreparationMachine." + name, ...fields })
+const pythonAdapter = languageForPath("root.py")
+assert.ok(pythonAdapter, "independent native Python preparation is registered")
 const temp = await mkdtemp("/tmp/hapsland-python-persistent-session-")
 const limits = {
   version: 1,
