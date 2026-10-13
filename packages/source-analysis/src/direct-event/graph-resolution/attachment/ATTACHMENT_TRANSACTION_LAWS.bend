@@ -13069,6 +13069,100 @@ def ready_completion_normal(-World: Data, +actual: T.ResolverState, +reference: 
     actual_observed, reference_ready, capsule,
     ready_common_completion_materialized(actual, reference, child, frame, history, view, actual_ready, reference_ready, capsule))
 
+def ready_completion_partial_files(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +frame: T.ResolverFrame, +history: V.History, +view: V.Frame, +world: E.WorldState<World>,
+    +reason: G.Reason, files: Nat,
+    actual_observed: {ActualBoundary.frame(S.state_frame(actual), history) == Some{view} : Maybe<&2, V.Frame>},
+    actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>},
+    eligible: {LoopPolicy.eligible_reason(reason) == True{} : Bool},
+    +files_equal: {LoopPolicy.files(S.frame_graph(frame)) == files : Nat},
+    graph_equal: {ReferenceFrame.graph(D.frame(reference)) == S.frame_graph(frame) : G.Graph}) ->
+    Exists(B.Boundary, ReferenceBoundaryView.completion_partial_claim(World, actual, reference, child, history, frame,
+      Allowance.materialization(ready_reference_forest(D.frame(reference))), reason, world)):
+  match files:
+    case 0n:
+      Tuple{B.Finished{None{}, view},
+        ReferenceBoundaryView.completion_empty_common(World, actual, reference, child, history, view, world, frame,
+          Allowance.materialization(ready_reference_forest(D.frame(reference))), reason, actual_observed, reference_ready, files_equal,
+          Equal.trans(Nat, LoopPolicy.files(ReferenceFrame.graph(D.frame(reference))), LoopPolicy.files(S.frame_graph(frame)), 0n,
+            Equal.cong(G.Graph, Nat, LoopPolicy.files, ReferenceFrame.graph(D.frame(reference)), S.frame_graph(frame), graph_equal), files_equal))}
+    case 1n+count:
+      ready_completion_positive(World, actual, reference, child, frame, history, view, world, reason, count,
+        actual_observed, actual_ready, reference_ready, capsule, eligible,
+        %Equal.sym(Nat, LoopPolicy.files(S.frame_graph(frame)), 1n+count, files_equal): {Nat.is_gt(_, 0n) == True{} : Bool} {==},
+        Equal.trans(Nat, LoopPolicy.files(ReferenceFrame.graph(D.frame(reference))), LoopPolicy.files(S.frame_graph(frame)), 1n+count,
+          Equal.cong(G.Graph, Nat, LoopPolicy.files, ReferenceFrame.graph(D.frame(reference)), S.frame_graph(frame), graph_equal), files_equal))
+
+def ready_completion_partial_reason(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +frame: T.ResolverFrame, +history: V.History, +view: V.Frame, +world: E.WorldState<World>,
+    reason: G.Reason,
+    actual_observed: {ActualBoundary.frame(S.state_frame(actual), history) == Some{view} : Maybe<&2, V.Frame>},
+    actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>},
+    graph_equal: {ReferenceFrame.graph(D.frame(reference)) == S.frame_graph(frame) : G.Graph}) ->
+    Exists(B.Boundary, ReferenceBoundaryView.completion_partial_claim(World, actual, reference, child, history, frame,
+      Allowance.materialization(ready_reference_forest(D.frame(reference))), reason, world)):
+  match reason:
+    case G.Missing{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.Missing{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.Ambiguous{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.Ambiguous{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.Unsupported{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.Unsupported{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.Omitted{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.Omitted{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.Excluded{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.Excluded{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.CaptureUnavailable{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.CaptureUnavailable{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.FileLimit{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.FileLimit{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.ReadLimit{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.ReadLimit{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.TreeLimit{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.TreeLimit{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.WorkLimit{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.WorkLimit{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.Deadline{}:
+      Tuple{B.Finished{None{}, view},
+        ReferenceBoundaryView.completion_deadline(World, actual, reference, child, history, view, world, frame,
+          Allowance.materialization(ready_reference_forest(D.frame(reference))), actual_observed, reference_ready)}
+    case G.DepthLimit{}:
+      ready_completion_partial_files(World, actual, reference, child, frame, history, view, world, G.DepthLimit{}, LoopPolicy.files(S.frame_graph(frame)),
+        actual_observed, actual_ready, reference_ready, capsule, {==}, {==}, graph_equal)
+    case G.ProtocolViolation{}:
+      Tuple{B.Finished{None{}, view},
+        ReferenceBoundaryView.completion_protocolviolation(World, actual, reference, child, history, view, world, frame,
+          Allowance.materialization(ready_reference_forest(D.frame(reference))), actual_observed, reference_ready)}
+
+def ready_completion_partial(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +frame: T.ResolverFrame, +history: V.History, +view: V.Frame, +world: E.WorldState<World>,
+    +reason: G.Reason,
+    actual_observed: {ActualBoundary.frame(S.state_frame(actual), history) == Some{view} : Maybe<&2, V.Frame>},
+    +actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>}) ->
+    Exists(B.Boundary, ReferenceBoundaryView.completion_partial_claim(World, actual, reference, child, history, frame,
+      Allowance.materialization(ready_reference_forest(D.frame(reference))), reason, world)):
+  ready_completion_partial_reason(World, actual, reference, child, frame, history, view, world, reason,
+    actual_observed, actual_ready, reference_ready, capsule,
+    Pair.fst({ReferenceFrame.graph(D.frame(reference)) == S.frame_graph(frame) : G.Graph},
+      {ready_reference_remaining(D.frame(reference)) == ready_history_remaining(history) : Nat},
+      ready_captured_coordinates(frame, reference, history, view, actual_ready, reference_ready)))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
