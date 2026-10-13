@@ -173,7 +173,7 @@ try {
         step = child.resume_alternatives(step, await io.perform(step.request))
       }
       assert.equal(step.$, "python-module/AlternativesMachine.Returned", fixture.name)
-      assert.deepEqual(step.paths.$ === "Some" ? unlist(step.paths.value) : undefined, iteration.value, fixture.name)
+      assert.deepEqual(step.paths.$ === "Some" ? unlist(step.paths.value) : undefined, result, fixture.name)
       assert.equal(step.session.available, available, fixture.name)
       assert.equal(step.session.work, BigInt(work), fixture.name)
       assert.deepEqual(

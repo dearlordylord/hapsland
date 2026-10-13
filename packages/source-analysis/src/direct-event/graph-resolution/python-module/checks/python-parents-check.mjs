@@ -242,7 +242,7 @@ try {
         step = child.resume_parents(step, await io.perform(step.request))
       }
       assert.equal(step.$, "python-module/PackageParentsMachine.Returned", fixture.name)
-      assert.equal(step.valid, it.value, fixture.name)
+      assert.equal(step.valid, result, fixture.name)
       assert.deepEqual(actual, expected, fixture.name + " ordered effects")
       assert.equal(step.session.available, available, fixture.name)
       assert.equal(step.session.work, BigInt(work), fixture.name)

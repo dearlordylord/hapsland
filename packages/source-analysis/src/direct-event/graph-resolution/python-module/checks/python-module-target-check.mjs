@@ -275,7 +275,7 @@ try {
         step = child.resume_target(step, await io.perform(step.request))
       }
       assert.equal(step.$, "python-module/ModuleTargetMachine.Returned", fixture.name)
-      assert.equal(step.path.$ === "None" ? undefined : step.path.value, it.value, fixture.name)
+      assert.equal(step.path.$ === "None" ? undefined : step.path.value, result, fixture.name)
       assert.deepEqual(actual, expected, fixture.name + " ordered effects")
       assert.equal(step.session.available, available, fixture.name)
       assert.equal(step.session.work, BigInt(work), fixture.name)

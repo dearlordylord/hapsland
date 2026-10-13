@@ -414,7 +414,7 @@ try {
         step.resolution.$ === "None"
           ? undefined
           : { path: step.resolution.value.path, name: step.resolution.value.name },
-        it.value,
+        result,
         fixture.name
       )
       assert.deepEqual(actual, expected, fixture.name + " ordered effects")
