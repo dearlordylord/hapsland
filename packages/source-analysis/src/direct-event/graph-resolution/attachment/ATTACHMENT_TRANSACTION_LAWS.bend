@@ -9898,7 +9898,7 @@ def ready_after_command_frame(+actual: T.ResolverState, +reference: D.State, +fr
 
 def ready_common_after_command(-World: Data, +actual: T.ResolverState, +reference: D.State, +child: X.Child, +frame: T.ResolverFrame, +history: V.History, +view: V.Frame, +world: E.WorldState<World>, skip: Bool, +present: {S.state_frame(actual) == Some{frame} : Maybe<&2, T.ResolverFrame>}, +actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>}, +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}, capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>}) -> Exists(B.Boundary, boundary => {ActualBoundary.project(LoopPolicy.after_command(skip, actual), history) == Some{boundary} : Maybe<&2, B.Boundary>} & {ReferenceBoundaryView.project(World, D.consumed(World, ReferenceBoundary.next_boundary(D.internal(reference, D.AfterCommand{skip})), world), child, history) == Some{boundary} : Maybe<&2, B.Boundary>}):
   match reference skip:
-    case D.State{_, _, _, _, _, _, _, _, _} True{}:
+    case D.State{_, X.Frame{G.Bounded{G.Graph{_, _, _, _, _, _, _, _, _, _, _}, _}, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _} True{}:
       Tuple{ready_iteration_boundary(view, ReferenceReady.capsule(D.stage(reference, D.Iteration{}), child)),
         ready_common_iteration_boundary(World, actual, D.stage(reference, D.Iteration{}), child, history, view, world,
           Equal.trans(Maybe<&2, V.Frame>, ActualBoundary.frame(S.state_frame(actual), history), ActualBoundary.frame(Some{frame}, history), Some{view},
