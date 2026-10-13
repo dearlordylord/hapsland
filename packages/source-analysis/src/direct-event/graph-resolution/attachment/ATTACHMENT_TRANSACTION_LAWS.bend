@@ -8912,7 +8912,7 @@ def ready_capture_common_cons(-Result: Type, +actual_head: Maybe<&2, V.CapturedE
 def ready_capture_tail_zero(+count: Nat, bound: NatFacts.le((1n + count : Nat), 1n)) -> {count == 0n : Nat}:
   match count:
     case 0n: {==}
-    case 1n + more: Empty.absurd({1n + more == 0n : Nat}, NatFacts.internal_false_ne_true(bound))
+    case 1n+more: Empty.absurd({(1n + more : Nat) == 0n : Nat}, NatFacts.internal_false_ne_true(bound))
 
 def ready_string_zero_absent(+items: List<&2, String>, +query: String,
     zero: {ActualFrame.string_count(items, query) == 0n : Nat}) -> {History.has_string(items, query) == False{} : Bool}:
@@ -8936,6 +8936,113 @@ def ready_capture_retain_false(+head: String, +tail: List<&2, String>, +path: St
     {Bool.pick(List<&2, String>, Bool.or(_, History.has_string(tail, path)), head <> tail, head <> List.append(&2, String, tail, [path]))
       == head <> Bool.pick(List<&2, String>, History.has_string(tail, path), tail, List.append(&2, String, tail, [path])) : List<&2, String>}
   ready_capture_retain_selected(head, tail, path, History.has_string(tail, path))
+
+def ready_capture_prefix_join(+actual: Maybe<&2, V.CapturedEntry>, +actual_tail: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +reference: Maybe<&2, V.CapturedEntry>, +reference_tail: Maybe<&2, List<&2, V.CapturedEntry>>,
+    head: {actual == reference : Maybe<&2, V.CapturedEntry>}, tail: {actual_tail == reference_tail : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ActualFrame.captured_prefix(actual, actual_tail) == ReferenceFrame.prefix(V.CapturedEntry, reference, reference_tail) : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  Equal.trans(Maybe<&2, List<&2, V.CapturedEntry>>, ActualFrame.captured_prefix(actual, actual_tail),
+    ActualFrame.captured_prefix(reference, reference_tail), ReferenceFrame.prefix(V.CapturedEntry, reference, reference_tail),
+    Equal.trans(Maybe<&2, List<&2, V.CapturedEntry>>, ActualFrame.captured_prefix(actual, actual_tail), ActualFrame.captured_prefix(reference, actual_tail),
+      ActualFrame.captured_prefix(reference, reference_tail),
+      Equal.cong(Maybe<&2, V.CapturedEntry>, Maybe<&2, List<&2, V.CapturedEntry>>, row => ActualFrame.captured_prefix(row, actual_tail), actual, reference, head),
+      Equal.cong(Maybe<&2, List<&2, V.CapturedEntry>>, Maybe<&2, List<&2, V.CapturedEntry>>, rest => ActualFrame.captured_prefix(reference, rest), actual_tail, reference_tail, tail)),
+    ready_capture_prefix_reference(reference, reference_tail))
+
+def ready_capture_other_correspondence(+entries: Map<&2, Maybe<&2, T.CapturedFacts>>, +sources: List<&2, V.CaptureSource>,
+    +path: String, +file: T.CapturedFacts, +source: T.SourceFacts, +catalog: RootSpec.Source, +query: String,
+    +old_source: T.SourceFacts, +old_bytes: Nat, +row: V.CapturedEntry,
+    valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, entries) == True{} : Bool}, +absent: {String.eq(query, path) == False{} : Bool},
+    actual: {ActualFrame.captured_entry(query, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, entries, query), V.capture_at(sources, query)) == Some{row} : Maybe<&2, V.CapturedEntry>},
+    reference: {ReferenceFrame.captured_entry(query, old_source, old_bytes, V.capture_at(sources, query)) == Some{row} : Maybe<&2, V.CapturedEntry>}) ->
+    {ActualFrame.captured_entry(query, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{file}), query),
+      V.capture_at(History.store_capture(sources, path, source, catalog), query))
+      == ReferenceFrame.captured_entry(query, old_source, old_bytes, V.capture_at(History.store_capture(sources, path, source, catalog), query)) : Maybe<&2, V.CapturedEntry>}:
+  Equal.trans(Maybe<&2, V.CapturedEntry>,
+    ActualFrame.captured_entry(query, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{file}), query), V.capture_at(History.store_capture(sources, path, source, catalog), query)),
+    ActualFrame.captured_entry(query, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, entries, query), V.capture_at(sources, query)),
+    ReferenceFrame.captured_entry(query, old_source, old_bytes, V.capture_at(History.store_capture(sources, path, source, catalog), query)),
+    ready_capture_actual_other_row(entries, sources, path, file, source, catalog, query, valid, absent),
+    Equal.trans(Maybe<&2, V.CapturedEntry>, ActualFrame.captured_entry(query, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, entries, query), V.capture_at(sources, query)),
+      ReferenceFrame.captured_entry(query, old_source, old_bytes, V.capture_at(sources, query)),
+      ReferenceFrame.captured_entry(query, old_source, old_bytes, V.capture_at(History.store_capture(sources, path, source, catalog), query)),
+      Equal.trans(Maybe<&2, V.CapturedEntry>, ActualFrame.captured_entry(query, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, entries, query), V.capture_at(sources, query)),
+        Some{row}, ReferenceFrame.captured_entry(query, old_source, old_bytes, V.capture_at(sources, query)), actual,
+        Equal.sym(Maybe<&2, V.CapturedEntry>, ReferenceFrame.captured_entry(query, old_source, old_bytes, V.capture_at(sources, query)), Some{row}, reference)),
+      Equal.cong(Maybe<&2, V.CaptureSource>, Maybe<&2, V.CapturedEntry>, provenance => ReferenceFrame.captured_entry(query, old_source, old_bytes, provenance),
+        V.capture_at(sources, query), V.capture_at(History.store_capture(sources, path, source, catalog), query),
+        Equal.sym(Maybe<&2, V.CaptureSource>, V.capture_at(History.store_capture(sources, path, source, catalog), query), V.capture_at(sources, query),
+          ready_capture_provenance_other(sources, path, source, catalog, query, absent)))))
+
+def ready_capture_tail_correspondence(+items: List<&2, X.Captured>, +entries: Map<&2, Maybe<&2, T.CapturedFacts>>, +sources: List<&2, V.CaptureSource>,
+    +path: String, +file: T.CapturedFacts, +source: T.SourceFacts, +catalog: RootSpec.Source, +rows: List<&2, V.CapturedEntry>,
+    valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, entries) == True{} : Bool},
+    +absent: {History.has_string(ready_capture_reference_paths(items), path) == False{} : Bool},
+    actual: {ActualFrame.captured(ready_capture_reference_paths(items), entries, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    reference: {ReferenceFrame.captured(items, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ActualFrame.captured(ready_capture_reference_paths(items), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{file}), History.store_capture(sources, path, source, catalog))
+      == ReferenceFrame.captured(items, History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  Equal.trans(Maybe<&2, List<&2, V.CapturedEntry>>,
+    ActualFrame.captured(ready_capture_reference_paths(items), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{file}), History.store_capture(sources, path, source, catalog)),
+    ActualFrame.captured(ready_capture_reference_paths(items), entries, sources), ReferenceFrame.captured(items, History.store_capture(sources, path, source, catalog)),
+    ready_capture_actual_unaffected(ready_capture_reference_paths(items), entries, sources, path, file, source, catalog, valid, absent),
+    Equal.trans(Maybe<&2, List<&2, V.CapturedEntry>>, ActualFrame.captured(ready_capture_reference_paths(items), entries, sources), ReferenceFrame.captured(items, sources),
+      ReferenceFrame.captured(items, History.store_capture(sources, path, source, catalog)),
+      Equal.trans(Maybe<&2, List<&2, V.CapturedEntry>>, ActualFrame.captured(ready_capture_reference_paths(items), entries, sources), Some{rows}, ReferenceFrame.captured(items, sources),
+        actual, Equal.sym(Maybe<&2, List<&2, V.CapturedEntry>>, ReferenceFrame.captured(items, sources), Some{rows}, reference)),
+      Equal.sym(Maybe<&2, List<&2, V.CapturedEntry>>, ReferenceFrame.captured(items, History.store_capture(sources, path, source, catalog)), ReferenceFrame.captured(items, sources),
+        ready_capture_reference_unaffected(items, sources, path, source, catalog, absent))))
+
+def ready_capture_publication_case(+key: String, +old: T.SourceFacts, +old_bytes: Nat, +tail: List<&2, X.Captured>,
+    +entries: Map<&2, Maybe<&2, T.CapturedFacts>>, +sources: List<&2, V.CaptureSource>,
+    +path: String, +source: T.SourceFacts, +catalog: RootSpec.Source, +bytes: Nat, +same: Bool,
+    +selected: {String.eq(key, path) == same : Bool}, +valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, entries) == True{} : Bool},
+    bound: NatFacts.le((Bool.pick(Nat, same, 1n, 0n) + ActualFrame.string_count(ready_capture_reference_paths(tail), path) : Nat), 1n),
+    +row: V.CapturedEntry, +rows: List<&2, V.CapturedEntry>,
+    actual_head: {ActualFrame.captured_entry(key, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, entries, key), V.capture_at(sources, key)) == Some{row} : Maybe<&2, V.CapturedEntry>},
+    actual_tail: {ActualFrame.captured(ready_capture_reference_paths(tail), entries, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    reference_head: {ReferenceFrame.captured_entry(key, old, old_bytes, V.capture_at(sources, key)) == Some{row} : Maybe<&2, V.CapturedEntry>},
+    reference_tail: {ReferenceFrame.captured(tail, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    recurse: @rest: List<&2, V.CapturedEntry> -> NatFacts.le(ActualFrame.string_count(ready_capture_reference_paths(tail), path), 1n) ->
+      {ActualFrame.captured(ready_capture_reference_paths(tail), entries, sources) == Some{rest} : Maybe<&2, List<&2, V.CapturedEntry>>} -> {ReferenceFrame.captured(tail, sources) == Some{rest} : Maybe<&2, List<&2, V.CapturedEntry>>} -> {ActualFrame.captured(History.retain_string(ready_capture_reference_paths(tail), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(tail, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ActualFrame.captured(History.retain_string(key <> ready_capture_reference_paths(tail), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(X.Captured{key, old, old_bytes} <> tail, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  match same:
+    case True{}:
+      %Equal.sym(String, key, path, StringFacts.eq_of_eq_true(key, path, selected)):
+        {ActualFrame.captured(History.retain_string(_ <> ready_capture_reference_paths(tail), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(X.Captured{_, old, old_bytes} <> tail, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}
+      %Equal.sym(Bool, String.eq(path, path), True{}, StringFacts.eq_refl(path)):
+        {ActualFrame.captured(Bool.pick(List<&2, String>, Bool.or(_, History.has_string(ready_capture_reference_paths(tail), path)), path <> ready_capture_reference_paths(tail), path <> List.append(&2, String, ready_capture_reference_paths(tail), [path])), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(Bool.pick(List<&2, X.Captured>, _, X.Captured{path, source, bytes} <> tail, X.Captured{path, old, old_bytes} <> X.store_capture(tail, path, source, bytes)), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}
+      ready_capture_prefix_join(ActualFrame.captured_entry(path, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), path), V.capture_at(History.store_capture(sources, path, source, catalog), path)), ActualFrame.captured(ready_capture_reference_paths(tail), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)), ReferenceFrame.captured_entry(path, source, bytes, V.capture_at(History.store_capture(sources, path, source, catalog), path)), ReferenceFrame.captured(tail, History.store_capture(sources, path, source, catalog)),
+        ready_capture_selected_correspondence(entries, sources, path, source, catalog, bytes, valid),
+        ready_capture_tail_correspondence(tail, entries, sources, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, source, catalog, rows, valid,
+          ready_string_zero_absent(ready_capture_reference_paths(tail), path, ready_capture_tail_zero(ActualFrame.string_count(ready_capture_reference_paths(tail), path), bound)), actual_tail, reference_tail))
+    case False{}:
+      %Equal.sym(List<&2, String>, History.retain_string(key <> ready_capture_reference_paths(tail), path), key <> History.retain_string(ready_capture_reference_paths(tail), path),
+        ready_capture_retain_false(key, ready_capture_reference_paths(tail), path, selected)):
+        {ActualFrame.captured(_, Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(X.Captured{key, old, old_bytes} <> tail, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}
+      %Equal.sym(Bool, String.eq(key, path), False{}, selected):
+        {ActualFrame.captured(key <> History.retain_string(ready_capture_reference_paths(tail), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(Bool.pick(List<&2, X.Captured>, _, X.Captured{path, source, bytes} <> tail, X.Captured{key, old, old_bytes} <> X.store_capture(tail, path, source, bytes)), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}
+      ready_capture_prefix_join(ActualFrame.captured_entry(key, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), key), V.capture_at(History.store_capture(sources, path, source, catalog), key)), ActualFrame.captured(History.retain_string(ready_capture_reference_paths(tail), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)), ReferenceFrame.captured_entry(key, old, old_bytes, V.capture_at(History.store_capture(sources, path, source, catalog), key)), ReferenceFrame.captured(X.store_capture(tail, path, source, bytes), History.store_capture(sources, path, source, catalog)),
+        ready_capture_other_correspondence(entries, sources, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, source, catalog, key, old, old_bytes, row, valid, selected, actual_head, reference_head),
+        recurse(rows)(bound)(actual_tail)(reference_tail))
+
+def ready_capture_publication_recursive(+items: List<&2, X.Captured>, +entries: Map<&2, Maybe<&2, T.CapturedFacts>>, +sources: List<&2, V.CaptureSource>,
+    +path: String, +source: T.SourceFacts, +catalog: RootSpec.Source, +bytes: Nat, +rows: List<&2, V.CapturedEntry>,
+    +valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, entries) == True{} : Bool},
+    bound: NatFacts.le(ActualFrame.string_count(ready_capture_reference_paths(items), path), 1n),
+    actual: {ActualFrame.captured(ready_capture_reference_paths(items), entries, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}, reference: {ReferenceFrame.captured(items, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {ActualFrame.captured(History.retain_string(ready_capture_reference_paths(items), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(items, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  match items:
+    case []:
+      ready_capture_prefix_join(ActualFrame.captured_entry(path, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), path), V.capture_at(History.store_capture(sources, path, source, catalog), path)), Some{[]}, ReferenceFrame.captured_entry(path, source, bytes, V.capture_at(History.store_capture(sources, path, source, catalog), path)), Some{[]},
+        ready_capture_selected_correspondence(entries, sources, path, source, catalog, bytes, valid), {==})
+    case X.Captured{+key, +old, +old_bytes} <> +tail:
+      ready_capture_common_cons({ActualFrame.captured(History.retain_string(key <> ready_capture_reference_paths(tail), path), Map.set(&2, Maybe<&2, T.CapturedFacts>, entries, path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), History.store_capture(sources, path, source, catalog)) == ReferenceFrame.captured(X.store_capture(X.Captured{key, old, old_bytes} <> tail, path, source, bytes), History.store_capture(sources, path, source, catalog)) : Maybe<&2, List<&2, V.CapturedEntry>>}, ActualFrame.captured_entry(key, ResolverCore.map_read(Maybe<&2, T.CapturedFacts>, None{}, entries, key), V.capture_at(sources, key)), ActualFrame.captured(ready_capture_reference_paths(tail), entries, sources), ReferenceFrame.captured_entry(key, old, old_bytes, V.capture_at(sources, key)), ReferenceFrame.captured(tail, sources), rows, actual, reference,
+        row => rest => head => tail_actual => head_reference => tail_reference =>
+          ready_capture_publication_case(key, old, old_bytes, tail, entries, sources, path, source, catalog, bytes, String.eq(key, path), {==}, valid, bound,
+            row, rest, head, tail_actual, head_reference, tail_reference,
+            retained => remaining => actual_rest => reference_rest =>
+              ready_capture_publication_recursive(tail, entries, sources, path, source, catalog, bytes, retained, valid, remaining, actual_rest, reference_rest)))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

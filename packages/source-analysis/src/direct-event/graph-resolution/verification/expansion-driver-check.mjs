@@ -254,12 +254,12 @@ try {
     if (name === "PythonArtifact") {
       // Rebase nominal owners mechanically across independently emitted artifacts.
       const emitted = readFileSync(output, "utf8")
-      const ownerPrefix = '"../../../../../source-analysis/src/direct-event/graph-resolution/'
-      assert.ok(emitted.includes(ownerPrefix), "Python artifact declaration owner")
+      assert.ok(emitted.includes('"../Types.'), "Python artifact declaration owner")
       writeFileSync(
         output,
         emitted
-          .replaceAll(ownerPrefix, '"')
+          .replaceAll('"../Types.', '"Types.')
+          .replaceAll('"../python-module/', '"python-module/')
           .replaceAll(
             '"../../../../../source-artifacts/src/direct-event/value/Value.',
             '"../../../../source-artifacts/src/direct-event/value/Value.'
@@ -287,46 +287,30 @@ try {
     policy = await compile("GraphSpecification"),
     python = await compile("PythonModule"),
     composedBudget = await compile("ComposedBudget"),
-    pythonArtifact = await compile(
-      "PythonArtifact",
-      path.join(root, "packages/resident-runtime/src/resident/review-work/composition/PythonArtifact.bend")
-    )
-  const nativeCopy = path.join(temporary, "native.mjs"),
-    nativeSource = readFileSync(nativePath, "utf8").replaceAll(
-      /from "(\.{1,2}\/[^"]+)"/g,
-      (_all, n) => `from "${pathToFileURL(path.join(path.dirname(nativePath), n))}"`
-    )
-  const instrument = (text, needle, replacement) => {
-    assert.equal(text.split(needle).length, 2, "unique native observer anchor " + needle)
-    return text.replace(needle, replacement)
+    pythonArtifact = await compile("PythonArtifact", path.join(sourceOwner, "composition/PythonArtifact.bend"))
+  const { prepareGraphFrame, graphIteration } = await import(pathToFileURL(nativePath))
+  const nativeEvents = []
+  let birth = new WeakMap(),
+    episode = 0
+  function resetBirth() {
+    birth = new WeakMap()
+    episode = 0
   }
-  let observed = instrument(
-    nativeSource,
-    "const transition = stepImportGraph(frame.state, event)",
-    "nativeEvents.push(event); const transition = stepImportGraph(frame.state, event)"
-  )
-  observed = instrument(
-    observed,
-    "const attachCapturedChild = (frame, targetId, target, path, source, file, declaration, child, localWorkBefore, visited) => {",
-    "const attachCapturedChild = (frame, targetId, target, path, source, file, declaration, child, localWorkBefore, visited) => { registerBirth(child.node);"
-  )
-  observed = instrument(
-    observed,
-    'target.edge.owner.references[target.edge.index] = {\n        kind: "expanded",',
-    'registerBirth(child.node); target.edge.owner.references[target.edge.index] = {\n        kind: "expanded",'
-  )
-  writeFileSync(
-    nativeCopy,
-    observed +
-      `\nconst nativeEvents=[]; let birth=new WeakMap(),episode=0;
- function resetBirth(){birth=new WeakMap();episode=0}
- function registerBirth(root){const current=++episode;function visit(node,route){if(birth.has(node))throw Error('node birth was renamed');birth.set(node,[current,route]);for(const [index,reference]of node.references.entries())if(reference.kind==='expanded')visit(reference.node,[...route,index])}visit(root,[])}
- function birthAddress(node){const value=birth.get(node);if(value===undefined)throw Error('unobserved node construction');return value}
- export {prepareGraphFrame,graphIteration,nativeEvents,resetBirth,registerBirth,birthAddress};\n`
-  )
-  const { prepareGraphFrame, graphIteration, nativeEvents, resetBirth, registerBirth, birthAddress } = await import(
-    pathToFileURL(nativeCopy)
-  )
+  function registerBirth(root) {
+    const current = ++episode
+    function visit(node, route) {
+      if (birth.has(node)) throw Error("node birth was renamed")
+      birth.set(node, [current, route])
+      for (const [index, reference] of node.references.entries())
+        if (reference.kind === "expanded") visit(reference.node, [...route, index])
+    }
+    visit(root, [])
+  }
+  function birthAddress(node) {
+    const value = birth.get(node)
+    if (value === undefined) throw Error("unobserved node construction")
+    return value
+  }
   for (const fixture of fixtures) {
     globalThis.__hapslandExpansionPathQueries = []
     const directory = path.join(temporary, fixture.name)
@@ -358,7 +342,9 @@ try {
     }
     nativeEvents.length = 0
     resetBirth()
-    const native = await Effect.runPromise(prepareGraphFrame(selected, stable(selected), "Root", context))
+    const native = await Effect.runPromise(
+      prepareGraphFrame(selected, stable(selected), "Root", context, (event) => nativeEvents.push(event), registerBirth)
+    )
     if (!native) {
       cases.push({ name: fixture.name, status: "pre-frame-excluded" })
       continue

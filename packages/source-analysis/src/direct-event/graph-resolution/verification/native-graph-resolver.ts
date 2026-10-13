@@ -253,6 +253,7 @@ type GraphTarget =
 type GraphFrame = GraphBinding & {
   /** Verification trace only: retain the original event without mutation; failures propagate before transition. */
   readonly observeEvent?: (event: ImportGraphEvent) => void
+  readonly observeBirth?: (node: ReviewNode) => void
   readonly unit: ReviewUnit
   readonly budget: LocalBudget
   readonly visited: Set<string>
@@ -315,7 +316,8 @@ export const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(func
   rootCapture: StableCapture,
   name: string,
   context: GraphResolveContext,
-  observeEvent?: (event: ImportGraphEvent) => void
+  observeEvent?: (event: ImportGraphEvent) => void,
+  observeBirth?: (node: ReviewNode) => void
 ) {
   const binding = yield* prepareGraphBinding(rootPath, rootCapture, context)
   if (binding === undefined) return undefined
@@ -342,6 +344,7 @@ export const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(func
   const frame: GraphFrame = {
     ...binding,
     ...(observeEvent === undefined ? {} : { observeEvent }),
+    ...(observeBirth === undefined ? {} : { observeBirth }),
     unit,
     visited,
     budget,
@@ -559,6 +562,7 @@ const attachCapturedChild = (
   localWorkBefore: number,
   visited: ReadonlySet<string>
 ): void => {
+  frame.observeBirth?.(child.node)
   const previous = bytes(frame.unit)
   target.edge.owner.references[target.edge.index] = frame.visited.has(declaration.artifact.id)
     ? { kind: "included", site: { symbol: target.edge.symbol }, target: declaration.artifact.id }
@@ -647,6 +651,7 @@ export const attachBundledSource = (
     advanceGraph(frame, { kind: "captureFailed" })
     return
   }
+  frame.observeBirth?.(child.node)
   target.edge.owner.references[target.edge.index] = {
     kind: "expanded",
     site: { symbol: target.edge.symbol },
@@ -783,7 +788,7 @@ const authorityBudgetAvailable = (frame: GraphFrame): boolean => {
     spent.work + usage.work <= frame.limits.work
   )
 }
-const graphIteration = Effect.fn("DirectEvent.graphIteration")(function* (
+export const graphIteration = Effect.fn("DirectEvent.graphIteration")(function* (
   frame: GraphFrame
 ): Effect.fn.Return<GraphIteration> {
   if (frame.expired() || !authorityBudgetAvailable(frame)) {
