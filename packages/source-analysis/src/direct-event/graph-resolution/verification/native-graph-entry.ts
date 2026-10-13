@@ -9,3 +9,5 @@ export {
 export type { GraphResolveContext } from "./native-graph-resolver.ts"
 export { nativeRustAdapter } from "./native-language-registry.ts"
 export { resolveRustModuleContext } from "./native-rust-module-context.ts"
+
+export { bendImportCandidates as nativeBendImportCandidates } from "./native-simple-preparation.ts"

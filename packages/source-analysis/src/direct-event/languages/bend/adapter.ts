@@ -34,8 +34,7 @@ export const parseBendDeclarations = (path: string, source: string, limit: numbe
   }
 }
 
-/** Candidate spelling is language-owned; shared traversal validates and captures it. */
-export const inspectBend = (path: string, source: string): GraphFile | undefined => {
+const inspectBend = (path: string, source: string): GraphFile | undefined => {
   const parsed = parseBendDeclarations(path, source, MAX_TYPE_DECLARATIONS)
   if ("reason" in parsed) return undefined
   return {

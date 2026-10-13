@@ -5,7 +5,7 @@ import { bendAdapter } from "../../languages/bend/adapter.ts"
 import type { NativeLanguageAdapter } from "./native-language-contract.ts"
 const extensions = [".ts", ".tsx", ".mts", ".cts"]
 const inspectBend = bendAdapter.inspect
-const bendImportCandidates = (from: string, imported: string): ReadonlyArray<string> =>
+export const bendImportCandidates = (from: string, imported: string): ReadonlyArray<string> =>
   /^(?:\.\/|\.\.\/)/u.test(imported) && extname(imported).toLowerCase() === ".bend"
     ? [normalize(join(dirname(from), imported))]
     : []
