@@ -53,7 +53,12 @@ test("each private core uses its authored entry ABI", () => {
       new URL(`../packages/review-execution/src/direct-event/preparation/${name}-core.d.ts`, import.meta.url),
       "utf8"
     )
-    assert.deepEqual(bendPrecompileEntryMethods(declaration), ["initial", "advance", "resume"])
+    assert.deepEqual(
+      bendPrecompileEntryMethods(declaration),
+      name === "preparation"
+        ? ["initial", "advance", "resume", "initial_settled", "resume_settled"]
+        : ["initial", "advance", "resume"]
+    )
   }
   assert.deepEqual(
     bendPrecompileEntryMethods(
