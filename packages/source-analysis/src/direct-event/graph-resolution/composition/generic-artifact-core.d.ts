@@ -1,7 +1,7 @@
 import type { GraphServiceReply } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import type { ReferenceSlot } from "../traversal/reference.ts"
 import type { List, ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
-import type { ResolverInput, ResolverFailure, Request, ServiceOutcome } from "../service-contract.ts"
+import type { ResolverInput, ResolverFailure, Request, ServiceOutcome } from "@hapsland/source-analysis/direct-event/graph-resolution"
 
 import type { ArtifactAbi, Tagged, Maybe } from "./artifact-abi.d.ts"
 

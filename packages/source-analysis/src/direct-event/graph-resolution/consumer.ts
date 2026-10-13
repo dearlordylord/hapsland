@@ -162,3 +162,13 @@ export function createBendEffectResolver(options: ResolverPorts) {
 export { createServiceRegistry as createGraphServiceRegistry, performGraphServiceRequest } from "./service-session.ts"
 
 export type { GraphServiceReply } from "./service-session.ts"
+
+// Public contract belongs to Graph; private compiled ABIs resolve its declaration closure.
+export type {
+  ResolverInput,
+  ResolverFailure,
+  ResolverOutcome,
+  Request,
+  Reply,
+  ServiceOutcome
+} from "./service-contract.ts"
