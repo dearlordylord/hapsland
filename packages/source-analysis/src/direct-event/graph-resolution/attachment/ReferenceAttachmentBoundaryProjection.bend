@@ -7,6 +7,7 @@ import ./ActualAttachmentBoundaryProjection.bend as ActualBoundary
 import ../State.bend as State
 import ../LoopPolicy.bend as LoopPolicy
 import ../Loop.bend as Loop
+import ../Root.bend as Root
 import ../Environment.bend as E
 import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
@@ -2422,3 +2423,24 @@ def completion_partial_denied(
       )
     )
   }
+
+# Original prepared-product witness supplies the selected partial transition.
+def completion_partial_actual_selected(+actual: T.ResolverState, +frame: T.ResolverFrame,
+    +reason: G.Reason, +product: ArtifactValue.ProductValue,
+    allowed: {LoopPolicy.partial_allowed(frame, reason) == True{} : Bool},
+    prepared: {Root.prepared_unit(frame, State.state_prepared(actual)) == Some{product}
+      : Maybe<&2, ArtifactValue.ProductValue>}
+) -> {LoopPolicy.request_completion(LoopPolicy.partial_allowed(frame, reason), actual, frame)
+    == LoopPolicy.completion_product(Some{product}, actual) : Loop.Continuation}:
+  %Equal.sym(Bool, LoopPolicy.partial_allowed(frame, reason), True{}, allowed):
+    {LoopPolicy.request_completion(_, actual, frame)
+      == LoopPolicy.completion_product(Some{product}, actual) : Loop.Continuation}
+  %Equal.sym(
+    Maybe<&2, ArtifactValue.ProductValue>,
+    Root.prepared_unit(frame, State.state_prepared(actual)),
+    Some{product},
+    prepared
+  ):
+    {LoopPolicy.completion_product(_, actual)
+      == LoopPolicy.completion_product(Some{product}, actual) : Loop.Continuation}
+  {==}
