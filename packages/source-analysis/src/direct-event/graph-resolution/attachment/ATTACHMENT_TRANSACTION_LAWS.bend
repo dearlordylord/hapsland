@@ -12521,6 +12521,36 @@ def ready_actual_references_observation(items: List<&2, Local.ReferenceSlot>, +o
         rest => tail_projected => tail_valid => ready_actual_references_observation(tail, owner, nodes, entries, slots, catalog, retained, rest, fuel,
           aligned, dense, projected, tail_projected, tail_valid))
 
+def ready_actual_node_fixed(+nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>,
+    +id: Nat, +address: O.NodeAddress, +refs: List<&2, F.Reference>,
+    +aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, +dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    +projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    forward: {P.forward_nodes(nodes, slots) == True{} : Bool}, present: NatFacts.le(1n, P.node_count(nodes, id)),
+    found: {F.address_at(entries, id) == Some{address} : Maybe<&2, O.NodeAddress>},
+    unique: {F.count_address(retained, address) == 1n : Nat},
+    references: {P.references(P.owner_slots(slots, id), entries) == Some{refs} : Maybe<&2, List<&2, F.Reference>>},
+    valid: {Relation.references_valid(refs, address, retained) == True{} : Bool}) ->
+    {ready_actual_address_omission(entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, address)
+      == ready_actual_reference_omission(refs, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) : Bool}:
+  Equal.trans(Bool,
+    ready_actual_address_omission(entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, address),
+    LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, id, slots),
+    ready_actual_reference_omission(refs, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots),
+    ready_projected_address_observation(nodes, entries, slots, catalog, retained, id, address,
+      (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), aligned, dense, projected, found, unique),
+    Equal.trans(Bool,
+      LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, id, slots),
+      LoopPolicy.has_omission(1n+(List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, id, slots),
+      ready_actual_reference_omission(refs, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots),
+      ready_actual_omission_fixed(nodes, slots, id, forward, present),
+      Equal.sym(Bool,
+        ready_actual_reference_omission(refs, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots),
+        LoopPolicy.has_omission(1n+(List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, id, slots),
+        ready_actual_references_observation(slots, id, nodes, entries, slots, catalog, retained, refs,
+          (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), aligned, dense, projected, references,
+          ready_omission_reference_targets_valid(refs, address, retained, valid)))))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

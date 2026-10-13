@@ -1024,5 +1024,156 @@ def completion_protocolviolation(
         reference_frame
       )
 
+# Original actual partial completion refuses an empty captured file set.
+def completion_empty_allowed(
+  +frame: T.ResolverFrame,
+  +reason: G.Reason,
+  empty: {LoopPolicy.files(State.frame_graph(frame)) == 0n : Nat}
+) -> {LoopPolicy.partial_allowed(frame, reason) == False{} : Bool}:
+  match reason:
+    case G.Missing{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.Ambiguous{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.Unsupported{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.Omitted{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.Excluded{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.CaptureUnavailable{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.FileLimit{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.ReadLimit{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.TreeLimit{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.WorkLimit{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.Deadline{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.DepthLimit{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+    case G.ProtocolViolation{}:
+      %Equal.sym(Nat, LoopPolicy.files(State.frame_graph(frame)), 0n, empty):
+        {
+          Bool.and(
+            LoopPolicy.eligible_reason(reason),
+            Bool.and(Nat.is_gt(_, 0n), LoopPolicy.frame_has_omission(frame))
+          )
+          == False{}
+          : Bool
+        }
+      {==}
+
 def main() -> Unit:
   Unit{}
