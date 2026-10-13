@@ -63,6 +63,7 @@ const suites = {
   },
   "preparation-protocol": () => [
     "packages/source-analysis/src/direct-event/graph-resolution/verification/frontend-codec-check.mjs",
+    "packages/source-analysis/src/direct-event/graph-resolution/composition/request-projection-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/construction-cleanup.test.mjs",
     "packages/source-artifacts/src/direct-event/value/codec-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-check.mjs",
