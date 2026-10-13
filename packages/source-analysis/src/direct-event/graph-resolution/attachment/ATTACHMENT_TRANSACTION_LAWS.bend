@@ -1,6 +1,7 @@
 import Base
 import ./AttachmentMapping.bend as Mapping
 import ../Composition.bend as Compose
+import ../Core.bend as ResolverCore
 import ../SPEC.bend as RootSpec
 import ../WholeObservation.bend as O
 import ./AttachmentNaturalKeyEqualityProof.bend as NaturalKeys
@@ -8087,6 +8088,149 @@ def ready_captured_rollback_total(+actual: T.ResolverFrame, +reference: D.State,
           ready_rollback_transaction_total(S.advance(actual, G.Captured{source, contribution, work, ids}), D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n)), ready_graph_view(view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n)), owner, index, name, symbol, address,
             actual_captured, reference_captured,
             ready_transition_selected(actual, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), owner, index, symbol, selected), present))
+
+# Publication writes one existing target key. These rows are the identity
+# component of the original successful captured-frame projection.
+def ready_identity_lookup_set(+entries: Map<&2, Maybe<&2, String>>, +target: Nat, +query: Nat, +identity: String,
+    valid: {Patricia.canonical(Maybe<&2, String>, entries) == True{} : Bool}) ->
+    {ResolverCore.map_read(Maybe<&2, String>, None{}, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}), Nat.show(query))
+      == Bool.pick(Maybe<&2, String>, Nat.is_eq(query, target), Some{identity},
+        ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(query))) : Maybe<&2, String>}:
+  Equal.trans(Maybe<&2, String>,
+    ResolverCore.map_read(Maybe<&2, String>, None{}, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}), Nat.show(query)),
+    Bool.pick(Maybe<&2, String>, String.eq(Nat.show(query), Nat.show(target)), Some{identity},
+      ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(query))),
+    Bool.pick(Maybe<&2, String>, Nat.is_eq(query, target), Some{identity},
+      ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(query))),
+    Payload.lookup_after_set(Maybe<&2, String>, entries, Nat.show(target), Nat.show(query), Some{identity}, None{}, valid),
+    Equal.cong(Bool, Maybe<&2, String>, same => Bool.pick(Maybe<&2, String>, same, Some{identity},
+      ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(query))),
+      String.eq(Nat.show(query), Nat.show(target)), Nat.is_eq(query, target), NaturalKeys.natural_key_equality(query, target)))
+
+def ready_identity_unaffected_case(+head: Nat, +tail: List<&2, Nat>, +entries: Map<&2, Maybe<&2, String>>,
+    +target: Nat, +identity: String, +same: Bool,
+    selected: {Nat.is_eq(head, target) == same : Bool},
+    absent: {Bool.or(same, History.has_nat(tail, target)) == False{} : Bool},
+    lookup: {ResolverCore.map_read(Maybe<&2, String>, None{}, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}), Nat.show(head))
+      == Bool.pick(Maybe<&2, String>, same, Some{identity}, ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(head))) : Maybe<&2, String>},
+    recurse: {History.has_nat(tail, target) == False{} : Bool} ->
+      {ActualFrame.identities(tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}))
+        == ActualFrame.identities(tail, entries) : Maybe<&2, List<&2, V.TargetArtifact>>}) ->
+    {ActualFrame.identities(head <> tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}))
+      == ActualFrame.identities(head <> tail, entries) : Maybe<&2, List<&2, V.TargetArtifact>>}:
+  match same:
+    case True{}:
+      Empty.absurd({ActualFrame.identities(head <> tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}))
+        == ActualFrame.identities(head <> tail, entries) : Maybe<&2, List<&2, V.TargetArtifact>>},
+        NatFacts.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, absent)))
+    case False{}:
+      %Equal.sym(Maybe<&2, String>, ResolverCore.map_read(Maybe<&2, String>, None{}, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}), Nat.show(head)),
+        ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(head)), lookup):
+        {ActualFrame.identities_prefix(ActualFrame.identity_entry(head, _),
+        ActualFrame.identities(tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity})))
+        == ActualFrame.identities(head <> tail, entries) : Maybe<&2, List<&2, V.TargetArtifact>>}
+      Equal.cong(Maybe<&2, List<&2, V.TargetArtifact>>, Maybe<&2, List<&2, V.TargetArtifact>>,
+        rest => ActualFrame.identities_prefix(ActualFrame.identity_entry(head, ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(head))), rest),
+        ActualFrame.identities(tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity})),
+        ActualFrame.identities(tail, entries), recurse(absent))
+
+def ready_identity_unaffected(+order: List<&2, Nat>, +entries: Map<&2, Maybe<&2, String>>, +target: Nat, +identity: String,
+    +valid: {Patricia.canonical(Maybe<&2, String>, entries) == True{} : Bool},
+    absent: {History.has_nat(order, target) == False{} : Bool}) ->
+    {ActualFrame.identities(order, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}))
+      == ActualFrame.identities(order, entries) : Maybe<&2, List<&2, V.TargetArtifact>>}:
+  match order:
+    case []: {==}
+    case +head <> +tail:
+      ready_identity_unaffected_case(head, tail, entries, target, identity, Nat.is_eq(head, target), {==}, absent,
+        ready_identity_lookup_set(entries, target, head, identity, valid),
+        tail_absent => ready_identity_unaffected(tail, entries, target, identity, valid, tail_absent))
+
+def ready_identity_selected_rows(+tail: List<&2, Nat>, +entries: Map<&2, Maybe<&2, String>>, +target: Nat, +identity: String,
+    +valid: {Patricia.canonical(Maybe<&2, String>, entries) == True{} : Bool},
+    absent: {History.has_nat(tail, target) == False{} : Bool}) ->
+    {ActualFrame.identities(target <> tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}))
+      == ActualFrame.identities_prefix(Some{V.TargetArtifact{target, identity}}, ActualFrame.identities(tail, entries))
+      : Maybe<&2, List<&2, V.TargetArtifact>>}:
+  %Equal.sym(Maybe<&2, String>,
+    ResolverCore.map_read(Maybe<&2, String>, None{}, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}), Nat.show(target)), Some{identity},
+    Equal.trans(Maybe<&2, String>,
+      ResolverCore.map_read(Maybe<&2, String>, None{}, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}), Nat.show(target)),
+      Bool.pick(Maybe<&2, String>, Nat.is_eq(target, target), Some{identity}, ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(target))), Some{identity},
+      ready_identity_lookup_set(entries, target, target, identity, valid),
+      Equal.cong(Bool, Maybe<&2, String>, same => Bool.pick(Maybe<&2, String>, same, Some{identity},
+        ResolverCore.map_read(Maybe<&2, String>, None{}, entries, Nat.show(target))),
+        Nat.is_eq(target, target), True{}, NaturalKeys.nat_true_of_same(target, target, {==})))):
+    {ActualFrame.identities_prefix(ActualFrame.identity_entry(target, _),
+      ActualFrame.identities(tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity})))
+      == ActualFrame.identities_prefix(Some{V.TargetArtifact{target, identity}}, ActualFrame.identities(tail, entries))
+      : Maybe<&2, List<&2, V.TargetArtifact>>}
+  Equal.cong(Maybe<&2, List<&2, V.TargetArtifact>>, Maybe<&2, List<&2, V.TargetArtifact>>,
+    rest => ActualFrame.identities_prefix(Some{V.TargetArtifact{target, identity}}, rest),
+    ActualFrame.identities(tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity})),
+    ActualFrame.identities(tail, entries), ready_identity_unaffected(tail, entries, target, identity, valid, absent))
+
+def ready_identity_selected_reference(+tail: List<&2, Nat>, +entries: Map<&2, Maybe<&2, String>>, +target: Nat, +identity: String,
+    +reference: List<&2, X.TargetArtifact>, +old: String,
+    valid: {Patricia.canonical(Maybe<&2, String>, entries) == True{} : Bool},
+    absent: {History.has_nat(tail, target) == False{} : Bool},
+    projected: {ActualFrame.identities(tail, entries) == Some{ReferenceFrame.identities(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}) ->
+    {ActualFrame.identities(target <> tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}))
+      == Some{ReferenceFrame.identities(X.store_identity(X.TargetArtifact{target, old} <> reference, target, identity))}
+      : Maybe<&2, List<&2, V.TargetArtifact>>}:
+  %Equal.sym(Bool, Nat.is_eq(target, target), True{}, NaturalKeys.nat_true_of_same(target, target, {==})):
+    {ActualFrame.identities(target <> tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}))
+      == Some{ReferenceFrame.identities(Bool.pick(List<&2, X.TargetArtifact>, _,
+        X.TargetArtifact{target, identity} <> reference,
+        X.TargetArtifact{target, old} <> X.store_identity(reference, target, identity)))} : Maybe<&2, List<&2, V.TargetArtifact>>}
+  Equal.trans(Maybe<&2, List<&2, V.TargetArtifact>>,
+    ActualFrame.identities(target <> tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity})),
+    ActualFrame.identities_prefix(Some{V.TargetArtifact{target, identity}}, ActualFrame.identities(tail, entries)),
+    Some{V.TargetArtifact{target, identity} <> ReferenceFrame.identities(reference)},
+    ready_identity_selected_rows(tail, entries, target, identity, valid, absent),
+    Equal.cong(Maybe<&2, List<&2, V.TargetArtifact>>, Maybe<&2, List<&2, V.TargetArtifact>>,
+      rest => ActualFrame.identities_prefix(Some{V.TargetArtifact{target, identity}}, rest),
+      ActualFrame.identities(tail, entries), Some{ReferenceFrame.identities(reference)}, projected))
+
+def ready_nat_zero_absent_case(+same: Bool, +count: Nat, +present: Bool,
+    zero: {(Bool.pick(Nat, same, 1n, 0n) + count : Nat) == 0n : Nat},
+    recurse: {count == 0n : Nat} -> {present == False{} : Bool}) ->
+    {Bool.or(same, present) == False{} : Bool}:
+  match same:
+    case True{}: Empty.absurd({True{} == False{} : Bool}, Arithmetic.internal_succ_ne_zero(count, zero))
+    case False{}: recurse(zero)
+
+def ready_nat_zero_absent(+items: List<&2, Nat>, +query: Nat,
+    zero: {ActualFrame.nat_count(items, query) == 0n : Nat}) ->
+    {History.has_nat(items, query) == False{} : Bool}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      ready_nat_zero_absent_case(Nat.is_eq(head, query), ActualFrame.nat_count(tail, query), History.has_nat(tail, query), zero,
+        rest => ready_nat_zero_absent(tail, query, rest))
+
+def ready_identity_unique_tail(+target: Nat, +tail: List<&2, Nat>,
+    unique: {ActualFrame.nats_unique(target <> tail, target <> tail) == True{} : Bool}) ->
+    {History.has_nat(tail, target) == False{} : Bool}:
+  ready_nat_zero_absent(tail, target,
+    Arithmetic.succ_inj(ActualFrame.nat_count(tail, target), 0n,
+      Equal.trans(Nat, (1n + ActualFrame.nat_count(tail, target) : Nat), ActualFrame.nat_count(target <> tail, target), 1n,
+        Equal.cong(Bool, Nat, same => (Bool.pick(Nat, same, 1n, 0n) + ActualFrame.nat_count(tail, target) : Nat),
+          True{}, Nat.is_eq(target, target), Equal.sym(Bool, Nat.is_eq(target, target), True{}, NaturalKeys.nat_true_of_same(target, target, {==}))),
+        NatFacts.eq_of_is_eq(ActualFrame.nat_count(target <> tail, target), 1n,
+          BoolFacts.eq_true_of_and_left(Nat.is_eq(ActualFrame.nat_count(target <> tail, target), 1n),
+            ActualFrame.nats_unique(tail, target <> tail), unique)))))
+
+def ready_identity_unique_reference(+tail: List<&2, Nat>, +entries: Map<&2, Maybe<&2, String>>, +target: Nat, +identity: String,
+    +reference: List<&2, X.TargetArtifact>, +old: String,
+    valid: {Patricia.canonical(Maybe<&2, String>, entries) == True{} : Bool},
+    unique: {ActualFrame.nats_unique(target <> tail, target <> tail) == True{} : Bool},
+    projected: {ActualFrame.identities(tail, entries) == Some{ReferenceFrame.identities(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}) ->
+    {ActualFrame.identities(target <> tail, Map.set(&2, Maybe<&2, String>, entries, Nat.show(target), Some{identity}))
+      == Some{ReferenceFrame.identities(X.store_identity(X.TargetArtifact{target, old} <> reference, target, identity))}
+      : Maybe<&2, List<&2, V.TargetArtifact>>}:
+  ready_identity_selected_reference(tail, entries, target, identity, reference, old, valid,
+    ready_identity_unique_tail(target, tail, unique), projected)
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
