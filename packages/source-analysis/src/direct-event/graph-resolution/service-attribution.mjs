@@ -2,10 +2,11 @@ import { createVerificationResolver } from "./verification/resolver-driver.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "node:fs"
-import { join, dirname, resolve, basename } from "node:path"
+import { join, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createHash } from "node:crypto"
 import * as Effect from "effect/Effect"
+import { createTimedNativeResolver } from "./verification/native-boundary-timing.mjs"
 import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../../native-observation/dist/direct-event/selection.js"
 import { createDispatcher } from "./runtime-observation/transport.mjs"
@@ -13,7 +14,7 @@ import { createServiceRegistry } from "./service-session.ts"
 import { createGraphFixtures } from "./verification/fixtures.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
 
-// Diagnostic only. Copies add timing wrappers to the current compiled consumer;
+// Diagnostic only. Ordinary native ports and dispatcher boundaries add timing;
 // every result is checked against its uninstrumented reference on the same files.
 const folder = import.meta.dirname,
   temporary = mkdtempSync(join(folder, ".service-attribution-"))
@@ -47,75 +48,17 @@ try {
     const path = join(folder, name)
     sourceHashes[path] = createHash("sha256").update(readFileSync(path)).digest("hex")
   }
-  const helper = join(temporary, "metrics.mjs")
-  writeFileSync(
-    helper,
-    `import * as Effect from 'effect/Effect';
-export const timedSync=(...args)=>globalThis.__hapslandAttribution.timedSync(...args);
-export const timedPromise=(...args)=>globalThis.__hapslandAttribution.timedPromise(...args);
-export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performance.now();return effect.pipe(Effect.onExit(()=>Effect.sync(()=>globalThis.__hapslandAttribution.effectSpan(name,start))))});
-`
-  )
   // Effect starts at interpretation, and records on every success/failure exit.
   globalThis.__hapslandAttribution.effectSpan = span
-  const graph = resolve(folder, "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js")
-  const originals = [
-    graph,
-    join(dirname(graph), "languages/registry.js"),
-    join(dirname(graph), "languages/rust-adapter.js"),
-    join(dirname(graph), "native-rust-module-context.js")
-  ]
-  const copies = new Map(originals.map((path, index) => [path, join(temporary, "native-" + index + ".mjs")]))
-  for (const original of originals) {
-    let source = readFileSync(original, "utf8")
-    sourceHashes[original] = createHash("sha256").update(source).digest("hex")
-    source = source.replace(
-      /from "(\.[^"]+)"/g,
-      (_all, specifier) =>
-        "from " +
-        JSON.stringify(
-          pathToFileURL(copies.get(resolve(dirname(original), specifier)) ?? resolve(dirname(original), specifier)).href
-        )
-    )
-    let wrappers = ""
-    for (const [name, label, kind] of [
-      ["lstat", "lstat", "promise"],
-      ["eligibleNamedPath", "access", "effect"],
-      ["inspectRustModules", "rust-modules", "sync"],
-      ["parse", "cargo-parser", "sync"]
-    ]) {
-      const re = new RegExp("(import \\{[^}]*?)\\b" + name + "\\b(?=[^}]*\\} from)", "g")
-      let found = false
-      source = source.replace(re, (_all, prefix) => {
-        assert.equal(found, false)
-        found = true
-        return prefix + name + " as original_" + name
+  const instrumentedNative = createTimedNativeResolver({
+    timedSync,
+    timedPromise,
+    timedEffect: (name, effect) =>
+      Effect.suspend(() => {
+        const start = performance.now()
+        return effect.pipe(Effect.onExit(() => Effect.sync(() => span(name, start))))
       })
-      if (found)
-        wrappers +=
-          "\nconst " +
-          name +
-          "=(...args)=>" +
-          (kind === "effect"
-            ? "timedEffect(" + JSON.stringify(label) + ",original_" + name + "(...args))"
-            : (kind === "promise" ? "timedPromise" : "timedSync") +
-              "(" +
-              JSON.stringify(label) +
-              ",()=>original_" +
-              name +
-              "(...args))") +
-          ";"
-    }
-    if (basename(original) === "registry.js")
-      wrappers += `\nfor(let i=0;i<registeredLanguages.length;i++){const adapter=registeredLanguages[i];registeredLanguages[i]={...adapter,prepareGraph:(...args)=>adapter.prepareGraph(...args).pipe(Effect.map(binding=>binding===undefined?undefined:{...binding,session:{...binding.session,inspect:(...args)=>timedSync('frontend',()=>binding.session.inspect(...args))}}))};}`
-    writeFileSync(
-      copies.get(original),
-      `import * as Effect from 'effect/Effect';\nimport {timedSync,timedPromise,timedEffect} from ${JSON.stringify(pathToFileURL(helper).href)};\n` +
-        source.replace('import * as Effect from "effect/Effect";', "") +
-        wrappers
-    )
-  }
-  const { resolveGraphUnit: instrumentedNative } = await import(pathToFileURL(copies.get(graph)))
+  })
   const native = (...args) => Effect.runPromise(instrumentedNative(...args))
   const runtime = join(temporary, "runtime.mjs")
   assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
@@ -152,35 +95,13 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
     operation?.kont
       ? { ...operation, kont: (reply) => timedSync("continuation", () => observe(operation.kont(reply))) }
       : operation
-  const consumerOriginal = join(folder, "./consumer.ts"),
-    consumerCopy = join(temporary, "./consumer.ts")
-  let consumerSource = readFileSync(consumerOriginal, "utf8")
-  sourceHashes[consumerOriginal] = createHash("sha256").update(consumerSource).digest("hex")
-  consumerSource = consumerSource.replace(/from '([^']+)'/g, (all, specifier) =>
-    specifier.startsWith(".") ? "from " + JSON.stringify(pathToFileURL(resolve(folder, specifier)).href) : all
-  )
-  assert.ok(consumerSource.includes("import { fromProductValue }"))
-  consumerSource = consumerSource.replace(
-    "import { fromProductValue }",
-    "import { fromProductValue as originalFromProductValue }"
-  )
-  writeFileSync(
-    consumerCopy,
-    `import {timedSync} from ${JSON.stringify(pathToFileURL(helper).href)};\n` +
-      consumerSource +
-      '\nconst fromProductValue=value=>timedSync("result-conversion",()=>originalFromProductValue(value));\n'
-  )
-  const { createBendResolver } = await import(pathToFileURL(consumerCopy))
-  const candidate = createVerificationResolver(
-    {
-      resolveIO: createDispatcher(
-        (input) => timedSync("continuation", () => observe(program.resolve(input)((value) => ({ $: "Emit", value })))),
-        handlers
-      ),
-      registry
-    },
-    createBendResolver
-  )
+  const candidate = createVerificationResolver({
+    resolveIO: createDispatcher(
+      (input) => timedSync("continuation", () => observe(program.resolve(input)((value) => ({ $: "Emit", value })))),
+      handlers
+    ),
+    registry
+  })
   const fixtures = createGraphFixtures()
     .filter((fixture) => selected.includes(fixture.name))
     .map((fixture) => {
@@ -285,10 +206,12 @@ export const timedEffect=(name,effect)=>Effect.suspend(()=>{const start=performa
     allResultsAndEffectsEqual: true,
     registryClosed: true,
     scope:
-      "Diagnostic only: four complete consumers on same physical fixtures with fixture capture provider, alternating orders, seven pairs after warmup; instrumented copies preserve complete original result/effects. Exclusive nested span subtraction avoids double counting. Candidate continuation includes state processing plus uninstrumented compiler glue; generated public ABI marshallers timed separately. Native lstat/access/Rust module/Cargo parsing and graph session frontend boundaries observed. Startup excluded. Instrumentation overhead, microtask scheduling and omitted native/internal conversion mean these are not parity qualification or proof."
+      "Diagnostic only: four complete consumers on same physical fixtures with fixture capture provider, alternating orders, seven pairs after warmup; ordinary native ports and real consumers preserve complete original result/effects. Exclusive nested span subtraction avoids double counting. Candidate continuation includes state processing plus uninstrumented compiler glue; generated public ABI marshallers timed separately; private result conversion and internal frontend/queue spans are not measured. Native lstat/access/Rust module/Cargo parsing and graph session frontend boundaries observed. Startup excluded. Instrumentation overhead, microtask scheduling and omitted native/internal conversion mean these are not parity qualification or proof."
   }
+  const evidence = new URL("../../../../../../.test-runs/bend-migration/diagnostics/", import.meta.url)
+  mkdirSync(evidence, { recursive: true })
   writeFileSync(
-    join(folder, "service-attribution-" + record.runtime + "-evidence.json"),
+    new URL("service-attribution-" + record.runtime + "-evidence.json", evidence),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(

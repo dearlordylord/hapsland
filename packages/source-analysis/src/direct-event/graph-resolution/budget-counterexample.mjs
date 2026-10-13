@@ -1,18 +1,13 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
-import { join, dirname } from "node:path"
-import { pathToFileURL } from "node:url"
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import { join } from "node:path"
 import * as Effect from "effect/Effect"
+import { projectImportGraph } from "@hapsland/canonical-policy/canonical/graph-adapter"
 import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../../native-observation/dist/direct-event/selection.js"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
-const root = mkdtempSync("/tmp/hapsland-whole-budget-"),
-  original = new URL(
-    "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js",
-    import.meta.url
-  ),
-  probe = join(dirname(original.pathname), "whole-resolver-budget-probe.mjs")
+const root = mkdtempSync("/tmp/hapsland-whole-budget-")
 try {
   execFileSync("git", ["init", "-q", root])
   const sources = new Map([
@@ -52,22 +47,27 @@ try {
     baselineCacheKeys = [...cache.keys()]
   reads.length = 0
   cache.clear()
-  const source = readFileSync(original, "utf8"),
-    needle = "frame.budget.graphWork = projectImportGraph(frame.state).work - frame.budget.work;"
-  assert.equal(source.split(needle).length - 1, 2)
-  writeFileSync(
-    probe,
-    source.replaceAll(
-      needle,
-      needle +
-        " globalThis.__hapslandBudgetProbe.push({localWork:frame.budget.work,graphWork:frame.budget.graphWork,graphSpent:projectImportGraph(frame.state).work});"
-    )
-  )
-  globalThis.__hapslandBudgetProbe = []
-  const { resolveGraphUnit: instrumented } = await import(pathToFileURL(probe))
+  const trace = []
+  let observedFrame
+  const verification = {
+    observeFrame(frame) {
+      observedFrame = frame
+    },
+    inspect(session, path, source, branch) {
+      // Root inspection precedes frame construction; child inspection follows
+      // the original graphWork assignment and retains the same session call.
+      if (observedFrame !== undefined)
+        trace.push({
+          localWork: observedFrame.budget.work,
+          graphWork: observedFrame.budget.graphWork,
+          graphSpent: projectImportGraph(observedFrame.state).work
+        })
+      return session.inspect(path, source, branch)
+    }
+  }
   let observedError
   try {
-    await Effect.runPromise(instrumented("root.ts", capture("root.ts"), "Root", context))
+    await Effect.runPromise(resolveGraphUnit("root.ts", capture("root.ts"), "Root", { ...context, verification }))
   } catch (error) {
     observedError = error
   }
@@ -75,7 +75,6 @@ try {
   assert.deepEqual(errorShape(observedError), errorShape(baselineError))
   assert.deepEqual(reads, baselineReads)
   assert.deepEqual([...cache.keys()], baselineCacheKeys)
-  const trace = globalThis.__hapslandBudgetProbe
   assert.ok(trace.some((x) => x.graphWork < 0))
   assert.deepEqual(
     trace.map((x) => x.graphWork),
@@ -95,13 +94,13 @@ try {
     scope:
       "actual native graph resolver and parsers with physical Git/path fixture and deterministic supplied captures; negative-budget native TypeError preserved as baseline; no native stable-capture or Bend composition parity claim"
   }
+  const evidence = new URL("../../../../../../.test-runs/bend-migration/diagnostics/", import.meta.url)
+  mkdirSync(evidence, { recursive: true })
   writeFileSync(
-    join(import.meta.dirname, "budget-counterexample-" + record.runtime + ".json"),
+    new URL("budget-counterexample-" + record.runtime + ".json", evidence),
     JSON.stringify(record, null, 2) + "\n"
   )
   console.log(JSON.stringify(record))
 } finally {
-  delete globalThis.__hapslandBudgetProbe
-  rmSync(probe, { force: true })
   rmSync(root, { recursive: true, force: true })
 }

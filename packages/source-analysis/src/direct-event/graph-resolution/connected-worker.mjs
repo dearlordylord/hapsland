@@ -5,6 +5,7 @@ import { join, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createHash } from "node:crypto"
 import * as Effect from "effect/Effect"
+import { createTimedNativeResolver } from "./verification/native-boundary-timing.mjs"
 import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
@@ -148,51 +149,20 @@ $Resolve$058known_target$=((original)=>(existing,frame,...args)=>{const previous
     })
     resolver = (...args) => Effect.runPromise(effectResolver(...args))
   } else if (timingEnabled) {
-    const original = new URL(
-      "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js",
-      import.meta.url
-    )
-    const originals = [
-      original,
-      new URL("./languages/registry.js", original),
-      new URL("./languages/rust-adapter.js", original),
-      new URL("./native-rust-module-context.js", original)
-    ]
-    const copies = new Map(
-      originals.map((url, index) => [url.href, join(temporary, "native-access-" + index + ".mjs")])
-    )
-    globalThis.__hapslandBoundaryTimingRecord = recordTiming
-    let instrumentedOwners = 0,
-      statusOwners = 0
-    for (const owner of originals) {
-      let nativeSource = readFileSync(owner, "utf8")
-      const anchor = "contextDirectFilePolicy, eligibleNamedPath }"
-      if (nativeSource.includes(anchor)) {
-        instrumentedOwners++
-        nativeSource = nativeSource.replace(
-          anchor,
-          "contextDirectFilePolicy, eligibleNamedPath as originalEligibleNamedPath }"
-        )
-        nativeSource +=
-          '\nconst eligibleNamedPath=(...args)=>Effect.suspend(()=>{const start=performance.now();return originalEligibleNamedPath(...args).pipe(Effect.onExit(()=>Effect.sync(()=>globalThis.__hapslandBoundaryTimingRecord("service:Types.AccessPath",performance.now()-start))))});\n'
-      }
-      const statusAnchor = 'import { lstat } from "node:fs/promises";'
-      if (nativeSource.includes(statusAnchor)) {
-        statusOwners++
-        nativeSource = nativeSource.replace(statusAnchor, 'import { lstat as originalLstat } from "node:fs/promises";')
-        nativeSource +=
-          '\nconst lstat=(...args)=>{const start=performance.now();return originalLstat(...args).finally(()=>globalThis.__hapslandBoundaryTimingRecord("service:Types.ReadFileStatus",performance.now()-start))};\n'
-      }
-      nativeSource = nativeSource.replace(/from "([^"]+)"/g, (_all, specifier) => {
-        const resolved = specifier.startsWith(".") ? new URL(specifier, owner).href : import.meta.resolve(specifier)
-        return "from " + JSON.stringify(copies.has(resolved) ? pathToFileURL(copies.get(resolved)).href : resolved)
-      })
-      writeFileSync(copies.get(owner.href), nativeSource)
-    }
-    assert.equal(instrumentedOwners, 2, "graph and Rust context access owners")
-    assert.equal(statusOwners, 2, "graph and Rust context file-status owners")
-    const { resolveGraphUnit: instrumentedNative } = await import(pathToFileURL(copies.get(original.href)))
-    resolver = (...args) => Effect.runPromise(instrumentedNative(...args))
+    const observed = createTimedNativeResolver({
+      status: "service:Types.ReadFileStatus",
+      access: "service:Types.AccessPath",
+      timedPromise: (name, task) => {
+        const start = performance.now()
+        return task().finally(() => recordTiming(name, performance.now() - start))
+      },
+      timedEffect: (name, effect) =>
+        Effect.suspend(() => {
+          const start = performance.now()
+          return effect.pipe(Effect.onExit(() => Effect.sync(() => recordTiming(name, performance.now() - start))))
+        })
+    })
+    resolver = (...args) => Effect.runPromise(observed(...args))
   } else resolver = (...args) => Effect.runPromise(resolveGraphUnit(...args))
 
   const diagnosticFixture = process.env.HAPSLAND_WHOLE_DIAGNOSTIC_FIXTURE
