@@ -321,7 +321,7 @@ try {
     cases,
     captureComparisons,
     scope:
-      "Independent Rust root-cache/ancestor-search/command/deadline preparation prefixes and terminal outcomes on six physical repository cases against instrumented actual native resolveRustModuleContext. Includes 32 aggregate-cache admission and capture/store-size cases, with aggregate refusals checked against actual native capture-budget owner. No successful Cargo syntax/module continuation, full whole resolver proof, cancellation or performance qualification."
+      "Independent Rust root-cache/ancestor-search/command/deadline preparation prefixes and terminal outcomes on six physical repository cases against the sole tracked native resolveRustModuleContext through ordinary verification observation ports. Includes 32 aggregate-cache admission and capture/store-size cases, with aggregate refusals checked against actual native capture-budget owner. No successful Cargo syntax/module continuation, full whole resolver proof, cancellation or performance qualification."
   }
   const evidenceDirectory = join(import.meta.dirname, "../../../../../../.test-runs/bend-migration")
   mkdirSync(evidenceDirectory, { recursive: true })
