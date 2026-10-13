@@ -10175,11 +10175,15 @@ def ready_reference_identity_rows(state: D.State) -> List<&2, V.TargetArtifact>:
   match state:
     case D.State{_, X.Frame{_, _, _, _, _, _, identities, _, _, _, _, _}, _, _, _, _, _, _, _}: ReferenceFrame.identities(identities)
 
+def ready_reference_budget(state: D.State) -> V.Budget:
+  match state:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{_, budget, _, _}, signed}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}: V.budget(budget, signed)
+
 def ready_reference_publication_rows(+state: D.State, +history: V.History, +child: X.Child, +next: Recursive.State,
     +targets_value: Maybe<&2, List<&2, V.TargetEntry>>, +captures_value: Maybe<&2, List<&2, V.CapturedEntry>>, +visited_value: Maybe<&2, List<&2, String>>,
     +view: V.Frame, +captures: List<&2, V.CapturedEntry>, +seen: List<&2, String>,
     ready: {ReferenceFrame.assembled(state, history, targets_value, captures_value, visited_value) == Some{view} : Maybe<&2, V.Frame>},
-    budget_equal: {Recursive.state_budget(next) == Recursive.state_budget(Signed.local(X.frame_local(D.frame(state)))) : Local.Budget}) ->
+    budget_equal: {ready_reference_budget(ready_reference_published(state, child, next)) == ready_reference_budget(state) : V.Budget}) ->
     {ReferenceFrame.assembled(ready_reference_published(state, child, next), history, targets_value, Some{captures}, Some{seen}) == Some{ready_publication_view(view, captures, ready_reference_identity_rows(ready_reference_published(state, child, next)), seen, ready_reference_remaining(D.frame(state)))} : Maybe<&2, V.Frame>}:
   match state history child next targets_value captures_value visited_value:
     case D.State{D.Config{_, _, _, +context, _, _}, X.Frame{G.Bounded{+graph, +remaining}, +command, +forest, Signed.State{Recursive.State{_, +old_budget, _, _}, +signed}, +edges, _, +identities, +next_edge, +episode, +next_artifact, +deps, _}, _, +target_ids, +next_target, _, _, _, _}
@@ -10189,7 +10193,7 @@ def ready_reference_publication_rows(+state: D.State, +history: V.History, +chil
       %Count.some_equal(V.Frame, V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, deps, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), old_captures, ReferenceFrame.identities(identities), old_seen, V.budget(old_budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, ready):
         {ReferenceFrame.assembled(ready_reference_published(state, child, next), history, Some{targets}, Some{captures}, Some{seen}) == Some{ready_publication_view(_, captures, ready_reference_identity_rows(ready_reference_published(state, child, next)), seen, remaining)} : Maybe<&2, V.Frame>}
       %budget_equal:
-        {ReferenceFrame.assembled(ready_reference_published(state, child, next), history, Some{targets}, Some{captures}, Some{seen}) == Some{V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, deps, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ready_reference_identity_rows(ready_reference_published(state, child, next)), seen, V.budget(_, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}} : Maybe<&2, V.Frame>}
+        {ReferenceFrame.assembled(ready_reference_published(state, child, next), history, Some{targets}, Some{captures}, Some{seen}) == Some{V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, deps, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ready_reference_identity_rows(ready_reference_published(state, child, next)), seen, _, ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}} : Maybe<&2, V.Frame>}
       {==}
     case _ _ _ _ None{} _ _:
       Empty.absurd({ReferenceFrame.assembled(ready_reference_published(state, child, next), history, targets_value, Some{captures}, Some{seen}) == Some{ready_publication_view(view, captures, ready_reference_identity_rows(ready_reference_published(state, child, next)), seen, ready_reference_remaining(D.frame(state)))} : Maybe<&2, V.Frame>}, Contents.none_some(V.Frame, view, ready))
@@ -10230,7 +10234,7 @@ def ready_reference_publication_history_rows(+state: D.State, +history: V.Histor
 def ready_reference_publication_project(+state: D.State, +history: V.History, +child: X.Child, +next: Recursive.State,
     +view: V.Frame, +captures: List<&2, V.CapturedEntry>, +seen: List<&2, String>,
     original: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>},
-    budget_equal: {Recursive.state_budget(next) == Recursive.state_budget(Signed.local(X.frame_local(D.frame(state)))) : Local.Budget},
+    budget_equal: {ready_reference_budget(ready_reference_published(state, child, next)) == ready_reference_budget(state) : V.Budget},
     captured: {ReferenceFrame.captured(ready_reference_capture_items(ready_reference_published(state, child, next)), ready_history_captures(ready_reference_publication_history(history, child, seen, ready_reference_remaining(D.frame(state))))) == Some{captures} : Maybe<&2, List<&2, V.CapturedEntry>>},
     visited: {ReferenceFrame.visited(seen, ready_reference_visited(ready_reference_published(state, child, next))) == Some{seen} : Maybe<&2, List<&2, String>>}) ->
     {ReferenceFrame.project(ready_reference_published(state, child, next), ready_reference_publication_history(history, child, seen, ready_reference_remaining(D.frame(state)))) == Some{ready_publication_view(view, captures, ready_reference_identity_rows(ready_reference_published(state, child, next)), seen, ready_reference_remaining(D.frame(state)))} : Maybe<&2, V.Frame>}:
@@ -10302,6 +10306,367 @@ def ready_bundled_publication_total(+frame: T.ResolverFrame, +history: V.History
             Pair.fst({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(frame, history, view, original)))
           ready_publication_frame_complete(frame, history, True{}, target, path, file, identity, plan, source, catalog, child_order, seen, remaining, view, captures, ReferenceFrame.identities(identities), captures, ReferenceFrame.identities(X.store_identity(identities, target, identity)), canonical, original, captured, identity_rows, captured,
             ready_identity_published_actual(True{}, frame, target, path, file, identity, plan, order, identities, canonical, ready_coverage_order(order, frame, coverage), identity_rows), complete)
+
+def ready_view_captures(view: V.Frame) -> List<&2, V.CapturedEntry>:
+  match view:
+    case V.Frame{_, _, _, _, _, _, _, _, _, captures, _, _, _, _, _, _, _, _, _, _}: captures
+
+def ready_view_identities(view: V.Frame) -> List<&2, V.TargetArtifact>:
+  match view:
+    case V.Frame{_, _, _, _, _, _, _, _, _, _, identities, _, _, _, _, _, _, _, _, _}: identities
+
+def ready_publication_fields(+forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingEntry>>, +targets: Maybe<&2, List<&2, V.TargetEntry>>, +ids: Maybe<&2, List<&2, V.TargetId>>, +captured: Maybe<&2, List<&2, V.CapturedEntry>>, +identities: Maybe<&2, List<&2, V.TargetArtifact>>, +visited: Maybe<&2, List<&2, String>>, +view: V.Frame,
+    evidence: frame_content_result(forest, pending, targets, ids, captured, identities, visited, view)) ->
+    {captured == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} &
+    {identities == Some{ready_view_identities(view)} : Maybe<&2, List<&2, V.TargetArtifact>>}:
+  match view:
+    case V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
+      match evidence:
+        case Tuple{_, Tuple{_, Tuple{_, Tuple{_, Tuple{captures, Tuple{identities, _}}}}}}: Tuple{captures, identities}
+
+def ready_actual_publication_rows(+frame: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ActualFrame.captured(ready_capture_order(ready_history_order(history)), S.frame_captured(frame), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} &
+    {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(frame)) == Some{ready_view_identities(view)} : Maybe<&2, List<&2, V.TargetArtifact>>}:
+  match history:
+    case V.History{+addresses, V.Order{+pending_order, +target_order, +id_order, +capture_order, +identity_order, +visited_order}, +sources, +captures, _, +remaining, +episode}:
+      ready_publication_fields(ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode), ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(frame), addresses), ActualFrame.ids(id_order, S.frame_target_ids(frame)), ActualFrame.captured(capture_order, S.frame_captured(frame), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(frame)), ActualFrame.visited(visited_order, S.frame_visited(frame)), view,
+        frame_view_contents(ActualFrame.forest_valid(P.project(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses), episode), ActualFrame.pending(pending_order, S.frame_pending(frame), sources, addresses), ActualFrame.targets(target_order, S.frame_target_paths(frame), addresses), ActualFrame.ids(id_order, S.frame_target_ids(frame)), ActualFrame.captured(capture_order, S.frame_captured(frame), captures), ActualFrame.identities(identity_order, S.frame_target_artifacts(frame)), ActualFrame.visited(visited_order, S.frame_visited(frame)), frame, remaining, episode, view, Pair.snd({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(frame, history, view, ready))))
+
+def ready_reference_publication_assembled(+state: D.State, +history: V.History,
+    +projected_targets: Maybe<&2, List<&2, V.TargetEntry>>,
+    +projected_captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +projected_visited: Maybe<&2, List<&2, String>>, +view: V.Frame,
+    ready: {ReferenceFrame.assembled(state, history, projected_targets,
+      projected_captured, projected_visited) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {projected_captured == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ready_reference_identity_rows(state) == ready_view_identities(view) : List<&2, V.TargetArtifact>}:
+  match state history projected_targets projected_captured projected_visited:
+    case D.State{D.Config{_, _, _, context, _, _},
+      X.Frame{G.Bounded{+graph, remaining}, command, +forest,
+        Signed.State{Recursive.State{_, budget, _, _}, signed}, edges, _, artifacts_by_target,
+        next_edge, episode, next_artifact, dependencies, _}, _, target_ids, next_target, _, _, _, _}
+      V.History{_, _, _, _, artifacts, _, _}
+      Some{targets} Some{+captures} Some{+seen}:
+      %Count.some_equal(V.Frame,
+        V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest,
+          ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target),
+          seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge,
+          next_target, next_artifact, artifacts, remaining, episode}, view, ready):
+        {Some{captures} == Some{ready_view_captures(_)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ready_reference_identity_rows(state) == ready_view_identities(_) : List<&2, V.TargetArtifact>}
+      Tuple{{==}, {==}}
+    case _ _ None{} _ _:
+      Empty.absurd({projected_captured == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ready_reference_identity_rows(state) == ready_view_identities(view) : List<&2, V.TargetArtifact>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} None{} _:
+      Empty.absurd({projected_captured == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ready_reference_identity_rows(state) == ready_view_identities(view) : List<&2, V.TargetArtifact>}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} Some{_} None{}:
+      Empty.absurd({projected_captured == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ready_reference_identity_rows(state) == ready_view_identities(view) : List<&2, V.TargetArtifact>}, Contents.none_some(V.Frame, view, ready))
+
+def ready_reference_publication_old_rows(+state: D.State, +history: V.History, +view: V.Frame,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ReferenceFrame.captured(ready_reference_capture_items(state), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ready_reference_identity_rows(state) == ready_view_identities(view) : List<&2, V.TargetArtifact>}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +targets, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
+      ready_reference_publication_assembled(state, history, ReferenceFrame.targets(targets), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, ready)
+
+def ready_common_publication_rows(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ActualFrame.captured(ready_capture_order(ready_history_order(history)), S.frame_captured(actual), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ReferenceFrame.captured(ready_reference_capture_items(reference), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)) == Some{ready_reference_identity_rows(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}:
+  Parent.eliminate_pair({ActualFrame.captured(ready_capture_order(ready_history_order(history)), S.frame_captured(actual), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>}, {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)) == Some{ready_view_identities(view)} : Maybe<&2, List<&2, V.TargetArtifact>>}, {ActualFrame.captured(ready_capture_order(ready_history_order(history)), S.frame_captured(actual), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ReferenceFrame.captured(ready_reference_capture_items(reference), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)) == Some{ready_reference_identity_rows(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}, ready_actual_publication_rows(actual, history, view, actual_ready), actual_capture => actual_identity =>
+    Parent.eliminate_pair({ReferenceFrame.captured(ready_reference_capture_items(reference), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>}, {ready_reference_identity_rows(reference) == ready_view_identities(view) : List<&2, V.TargetArtifact>}, {ActualFrame.captured(ready_capture_order(ready_history_order(history)), S.frame_captured(actual), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ReferenceFrame.captured(ready_reference_capture_items(reference), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)) == Some{ready_reference_identity_rows(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}, ready_reference_publication_old_rows(reference, history, view, reference_ready), reference_capture => reference_identity =>
+      Tuple{actual_capture, Tuple{reference_capture,
+        Equal.trans(Maybe<&2, List<&2, V.TargetArtifact>>, ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)), Some{ready_view_identities(view)}, Some{ready_reference_identity_rows(reference)}, actual_identity,
+          Equal.cong(List<&2, V.TargetArtifact>, Maybe<&2, List<&2, V.TargetArtifact>>, values => Some{values}, ready_view_identities(view), ready_reference_identity_rows(reference), Equal.sym(List<&2, V.TargetArtifact>, ready_reference_identity_rows(reference), ready_view_identities(view), reference_identity)))}}))
+
+def ready_reference_identity_items(state: D.State) -> List<&2, X.TargetArtifact>:
+  match state:
+    case D.State{_, X.Frame{_, _, _, _, _, _, identities, _, _, _, _, _}, _, _, _, _, _, _, _}: identities
+
+def ready_file_publication_from_frames(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +target: Nat, +path: String, +source: T.SourceFacts, +catalog: RootSpec.Source, +bytes: Nat, +identity: String, +plan: Local.Plan, +child_order: List<&2, String>, +seen: List<&2, String>, +remaining: Nat,
+    canonical: {ActualReady.mutable_maps_canonical(actual) == True{} : Bool},
+    +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    complete: {ActualReady.visited_complete(child_order, Admission.plan_visited(plan)) == Some{seen} : Maybe<&2, List<&2, String>>}) ->
+    Exists(List<&2, V.CapturedEntry>, rows => {ActualFrame.project(Admission.publish_child(False{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, remaining)) == Some{ready_publication_view(view, rows, ReferenceFrame.identities(X.store_identity(ready_reference_identity_items(reference), target, identity)), seen, remaining)} : Maybe<&2, V.Frame>} & {ReferenceFrame.captured(X.publish_capture(X.FileChild{path}, ready_reference_capture_items(reference), source, bytes), History.store_capture(ready_history_captures(history), path, source, catalog)) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}):
+  match reference:
+    case D.State{_, X.Frame{_, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}:
+      Parent.eliminate_pair({ActualFrame.captured(ready_capture_order(ready_history_order(history)), S.frame_captured(actual), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>}, {ReferenceFrame.captured(ready_reference_capture_items(reference), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)) == Some{ready_reference_identity_rows(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}, Exists(List<&2, V.CapturedEntry>, rows => {ActualFrame.project(Admission.publish_child(False{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, remaining)) == Some{ready_publication_view(view, rows, ReferenceFrame.identities(X.store_identity(ready_reference_identity_items(reference), target, identity)), seen, remaining)} : Maybe<&2, V.Frame>} & {ReferenceFrame.captured(X.publish_capture(X.FileChild{path}, ready_reference_capture_items(reference), source, bytes), History.store_capture(ready_history_captures(history), path, source, catalog)) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}), ready_common_publication_rows(actual, reference, history, view, actual_ready, reference_ready), captured => other =>
+        Parent.eliminate_pair({ReferenceFrame.captured(ready_reference_capture_items(reference), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>}, {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)) == Some{ready_reference_identity_rows(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}, Exists(List<&2, V.CapturedEntry>, rows => {ActualFrame.project(Admission.publish_child(False{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, remaining)) == Some{ready_publication_view(view, rows, ReferenceFrame.identities(X.store_identity(ready_reference_identity_items(reference), target, identity)), seen, remaining)} : Maybe<&2, V.Frame>} & {ReferenceFrame.captured(X.publish_capture(X.FileChild{path}, ready_reference_capture_items(reference), source, bytes), History.store_capture(ready_history_captures(history), path, source, catalog)) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}), other, reference_captured => identities =>
+          ready_file_publication_total(actual, history, target, path, source, catalog, bytes, identity, plan, ready_reference_capture_items(reference), ready_reference_identity_items(reference), ready_view_captures(view), view, child_order, seen, remaining, canonical, actual_ready, captured, reference_captured, identities, complete)))
+
+def ready_view_budget(view: V.Frame) -> V.Budget:
+  match view:
+    case V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, budget, _, _, _, _, _, _, _}: budget
+
+def ready_reference_child_local(child: X.Child) -> Recursive.State:
+  match child:
+    case X.Child{_, _, Signed.State{local, _}, _}: local
+
+def ready_reference_child_budget(child: X.Child) -> V.Budget:
+  match child:
+    case X.Child{_, _, Signed.State{Recursive.State{_, budget, _, _}, signed}, _}: V.budget(budget, signed)
+
+def ready_child_view_budget(view: Phase.Child) -> V.Budget:
+  match view:
+    case Phase.Child{_, _, _, _, _, _, _, _, _, _, _, _, _, budget, _, _}: budget
+
+def ready_reference_budget_rows(+state: D.State, +history: V.History,
+    +targets_value: Maybe<&2, List<&2, V.TargetEntry>>, +captured_value: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +visited_value: Maybe<&2, List<&2, String>>, +view: V.Frame,
+    ready: {ReferenceFrame.assembled(state, history, targets_value, captured_value, visited_value) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ready_reference_budget(state) == ready_view_budget(view) : V.Budget}:
+  match state history targets_value captured_value visited_value:
+    case D.State{D.Config{_, _, _, +context, _, _}, X.Frame{G.Bounded{+graph, +remaining}, +command, +forest, Signed.State{Recursive.State{_, +budget, _, _}, +signed}, +edges, _, +artifacts_by_target, +next_edge, +episode, +next_artifact, +dependencies, _}, _, +target_ids, +next_target, _, _, _, _} V.History{_, _, _, _, +artifacts, _, _}
+      Some{+targets} Some{+captures} Some{+seen}:
+      %Count.some_equal(V.Frame, V.Frame{ReferenceFrame.branch(context), ReferenceFrame.graph_limits(graph), graph, command, dependencies, forest, ReferenceFrame.pending(edges), targets, ReferenceFrame.ids(target_ids), captures, ReferenceFrame.identities(artifacts_by_target), seen, V.budget(budget, signed), ReferenceFrame.node_count(forest), next_edge, next_target, next_artifact, artifacts, remaining, episode}, view, ready): {ready_reference_budget(state) == ready_view_budget(_) : V.Budget}
+      {==}
+    case _ _ None{} _ _:
+      Empty.absurd({ready_reference_budget(state) == ready_view_budget(view) : V.Budget}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} None{} _:
+      Empty.absurd({ready_reference_budget(state) == ready_view_budget(view) : V.Budget}, Contents.none_some(V.Frame, view, ready))
+    case _ _ Some{_} Some{_} None{}:
+      Empty.absurd({ready_reference_budget(state) == ready_view_budget(view) : V.Budget}, Contents.none_some(V.Frame, view, ready))
+
+def ready_reference_budget_project(+state: D.State, +history: V.History, +view: V.Frame,
+    ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}) ->
+    {ready_reference_budget(state) == ready_view_budget(view) : V.Budget}:
+  match state history:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +target_values, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
+      ready_reference_budget_rows(state, history, ReferenceFrame.targets(target_values), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, ready)
+
+def ready_reference_child_budget_rows(+child: X.Child,
+    +history: Phase.ChildHistory, +visited: Maybe<&2, List<&2, String>>, +view: Phase.Child,
+    ready: {ReferenceReady.child_view(child, history, visited) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ready_reference_child_budget(child) == ready_child_view_budget(view) : V.Budget}:
+  match child history visited:
+    case X.Child{
+      X.Attempt{
+        +target,
+        edge,
+        +kind,
+        +source,
+        +bytes,
+        name,
+        expected,
+        Local.Declaration{+handle, +identity, function, bundled, references, +source_path},
+        +catalog,
+        +before
+      },
+      F.Created{root, nodes, addresses},
+      Signed.State{Recursive.State{_, budget, _, _}, signed},
+      edges
+    }
+      Phase.ChildHistory{_, _, _, capture, _} Some{+visited}:
+      %Count.some_equal(Phase.Child,
+        Phase.Child{
+          target,
+          X.attempt_path(
+            X.Attempt{
+              target,
+              edge,
+              kind,
+              source,
+              bytes,
+              name,
+              expected,
+              Local.Declaration{handle, identity, function, bundled, references, source_path},
+              catalog,
+              before
+            }
+          ),
+          kind,
+          capture,
+          bytes,
+          T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceReady.file_exports(kind, source), bytes},
+          handle,
+          identity,
+          before,
+          F.Forest{Some{root}, nodes},
+          addresses,
+          ReferenceReady.pending(edges),
+          visited,
+          V.budget(budget, signed),
+          source,
+          catalog
+        }, view, ready):
+        {ready_reference_child_budget(child) == ready_child_view_budget(_) : V.Budget}
+      {==}
+    case _ _ None{}:
+      Empty.absurd({ready_reference_child_budget(child) == ready_child_view_budget(view) : V.Budget}, Contents.none_some(Phase.Child, view, ready))
+
+def ready_reference_child_budget_project(+child: X.Child, +history: Phase.ChildHistory, +view: Phase.Child,
+    ready: {ReferenceReady.child_project(child, history) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ready_reference_child_budget(child) == ready_child_view_budget(view) : V.Budget}:
+  match child history:
+    case X.Child{_, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _} Phase.ChildHistory{_, _, _, _, +order}:
+      ready_reference_child_budget_rows(child, history, ReferenceFrame.visited(order, values), view, ready)
+
+def ready_budget_with_signed(value: V.Budget, signed: O.SignedNat) -> V.Budget:
+  match value:
+    case V.Budget{limits, targets, maximum, work, _, depth}: V.Budget{limits, targets, maximum, work, signed, depth}
+
+def ready_reference_budget_retain(+state: D.State, +child: X.Child,
+    same: {ready_reference_child_budget(child) == ready_reference_budget(state) : V.Budget}) ->
+    {ready_reference_budget(ready_reference_published(state, child, ready_reference_child_local(child))) == ready_reference_budget(state) : V.Budget}:
+  match state child:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{_, Local.Budget{_, _, _, _, _, _}, _, _}, +signed}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, Signed.State{Recursive.State{_, Local.Budget{_, _, _, _, _, _}, _, _}, _}, _}:
+      Equal.cong(V.Budget, V.Budget, value => ready_budget_with_signed(value, signed), ready_reference_child_budget(child), ready_reference_budget(state), same)
+
+def ready_original_reference_publication_budget(+state: D.State, +child: X.Child, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    ready: {ReferenceReady.project(state, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
+    {ready_reference_budget(ready_reference_published(state, child, ready_reference_child_local(child))) == ready_reference_budget(state) : V.Budget}:
+  match phase:
+    case Phase.Phase{+frame, +child_view, +capsule}:
+      match frame child_view:
+        case V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _} Phase.Child{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
+          Parent.eliminate_pair({ReferenceFrame.project(state, history) == Some{frame} : Maybe<&2, V.Frame>}, {ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>} & {Some{ReferenceReady.capsule(state, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, {ready_reference_budget(ready_reference_published(state, child, ready_reference_child_local(child))) == ready_reference_budget(state) : V.Budget}, reference_ready_contents(state, child, history, child_history, phase, ready), frame_ready => child_rest =>
+            ready_reference_budget_retain(state, child,
+              Equal.trans(V.Budget, ready_reference_child_budget(child), ready_child_view_budget(child_view), ready_reference_budget(state),
+                ready_reference_child_budget_project(child, child_history, child_view, Pair.fst({ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>}, {Some{ReferenceReady.capsule(state, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, child_rest)),
+                Equal.trans(V.Budget, ready_child_view_budget(child_view), ready_view_budget(frame), ready_reference_budget(state),
+                  Equal.sym(V.Budget, ready_view_budget(frame), ready_child_view_budget(child_view), coherent),
+                  Equal.sym(V.Budget, ready_reference_budget(state), ready_view_budget(frame), ready_reference_budget_project(state, history, frame, frame_ready))))))
+
+def ready_file_publication_pair(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +target: Nat, +edge: X.Edge, +path: String, +source: T.SourceFacts, +bytes: Nat, +name: String, +expected: Local.ExpectedKind, +declaration: Local.Declaration, +catalog: RootSpec.Source, +before: Nat,
+    +created: F.Created, +local: Signed.State, +pending: List<&2, F.Pending>, +plan: Local.Plan, +child_order: List<&2, String>, +seen: List<&2, String>,
+    canonical: {ActualReady.mutable_maps_canonical(actual) == True{} : Bool},
+    actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    complete: {ActualReady.visited_complete(child_order, Admission.plan_visited(plan)) == Some{seen} : Maybe<&2, List<&2, String>>},
+    budget_equal: {ready_reference_budget(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.FileChild{path}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local))) == ready_reference_budget(reference) : V.Budget},
+    visited: {ReferenceFrame.visited(seen, ready_reference_visited(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.FileChild{path}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local)))) == Some{seen} : Maybe<&2, List<&2, String>>}) ->
+    Exists(V.Frame, published => {ActualFrame.project(Admission.publish_child(False{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, X.identity(declaration), plan), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>} & {ReferenceFrame.project(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.FileChild{path}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local)), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>}):
+  match reference history edge local:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, _, _, _, _}}, _, _}
+      Signed.State{Recursive.State{_, _, _, _}, _}:
+      Parent.eliminate_witness(List<&2, V.CapturedEntry>, rows => {ActualFrame.project(Admission.publish_child(False{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, X.identity(declaration), plan), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{ready_publication_view(view, rows, ReferenceFrame.identities(X.store_identity(ready_reference_identity_items(reference), target, X.identity(declaration))), seen, ready_reference_remaining(D.frame(reference)))} : Maybe<&2, V.Frame>} & {ReferenceFrame.captured(X.publish_capture(X.FileChild{path}, ready_reference_capture_items(reference), source, bytes), History.store_capture(ready_history_captures(history), path, source, catalog)) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+        Exists(V.Frame, published => {ActualFrame.project(Admission.publish_child(False{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, X.identity(declaration), plan), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>} & {ReferenceFrame.project(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.FileChild{path}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local)), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>}), ready_file_publication_from_frames(actual, reference, history, view, target, path, source, catalog, bytes, X.identity(declaration), plan, child_order, seen, ready_reference_remaining(D.frame(reference)), canonical, actual_ready, reference_ready, complete),
+        +rows => evidence => Parent.eliminate_pair({ActualFrame.project(Admission.publish_child(False{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, X.identity(declaration), plan), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{ready_publication_view(view, rows, ReferenceFrame.identities(X.store_identity(ready_reference_identity_items(reference), target, X.identity(declaration))), seen, ready_reference_remaining(D.frame(reference)))} : Maybe<&2, V.Frame>}, {ReferenceFrame.captured(X.publish_capture(X.FileChild{path}, ready_reference_capture_items(reference), source, bytes), History.store_capture(ready_history_captures(history), path, source, catalog)) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}, Exists(V.Frame, published => {ActualFrame.project(Admission.publish_child(False{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, X.identity(declaration), plan), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>} & {ReferenceFrame.project(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.FileChild{path}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local)), History.published(history, X.FileChild{path}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>}), evidence, actual_published => reference_captures =>
+          Tuple{ready_publication_view(view, rows, ReferenceFrame.identities(X.store_identity(ready_reference_identity_items(reference), target, X.identity(declaration))), seen, ready_reference_remaining(D.frame(reference))), Tuple{actual_published,
+            ready_reference_publication_project(reference, history, X.Child{X.Attempt{target, edge, X.FileChild{path}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local), view, rows, seen, reference_ready, budget_equal, reference_captures, visited)}}))
+
+def ready_bundled_publication_pair(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    +target: Nat, +edge: X.Edge, +path: String, +source: T.SourceFacts, +bytes: Nat, +name: String, +expected: Local.ExpectedKind, +declaration: Local.Declaration, +catalog: RootSpec.Source, +before: Nat,
+    +created: F.Created, +local: Signed.State, +pending: List<&2, F.Pending>, +plan: Local.Plan, +child_order: List<&2, String>, +seen: List<&2, String>,
+    canonical: {ActualReady.mutable_maps_canonical(actual) == True{} : Bool},
+    +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    complete: {ActualReady.visited_complete(child_order, Admission.plan_visited(plan)) == Some{seen} : Maybe<&2, List<&2, String>>},
+    budget_equal: {ready_reference_budget(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.BundledChild{}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local))) == ready_reference_budget(reference) : V.Budget},
+    visited: {ReferenceFrame.visited(seen, ready_reference_visited(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.BundledChild{}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local)))) == Some{seen} : Maybe<&2, List<&2, String>>}) ->
+    Exists(V.Frame, published => {ActualFrame.project(Admission.publish_child(True{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), Map.new(&2, Bool), bytes}, X.identity(declaration), plan), History.published(history, X.BundledChild{}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>} & {ReferenceFrame.project(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.BundledChild{}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local)), History.published(history, X.BundledChild{}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>}):
+  match reference history edge local:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      X.Edge{_, F.Pending{_, Local.Pending{_, _, _, _, _, _, _, _}}, _, _}
+      Signed.State{Recursive.State{_, _, _, _}, _}:
+      Parent.eliminate_pair({ActualFrame.captured(ready_capture_order(ready_history_order(history)), S.frame_captured(actual), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>}, {ReferenceFrame.captured(ready_reference_capture_items(reference), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>} & {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)) == Some{ready_reference_identity_rows(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}, Exists(V.Frame, published => {ActualFrame.project(Admission.publish_child(True{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), Map.new(&2, Bool), bytes}, X.identity(declaration), plan), History.published(history, X.BundledChild{}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>} & {ReferenceFrame.project(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.BundledChild{}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local)), History.published(history, X.BundledChild{}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>}), ready_common_publication_rows(actual, reference, history, view, actual_ready, reference_ready), captured => rest =>
+        Parent.eliminate_pair({ReferenceFrame.captured(ready_reference_capture_items(reference), ready_history_captures(history)) == Some{ready_view_captures(view)} : Maybe<&2, List<&2, V.CapturedEntry>>}, {ActualFrame.identities(ready_identity_order(ready_history_order(history)), S.frame_target_artifacts(actual)) == Some{ready_reference_identity_rows(reference)} : Maybe<&2, List<&2, V.TargetArtifact>>}, Exists(V.Frame, published => {ActualFrame.project(Admission.publish_child(True{}, actual, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), Map.new(&2, Bool), bytes}, X.identity(declaration), plan), History.published(history, X.BundledChild{}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>} & {ReferenceFrame.project(ready_reference_published(reference, X.Child{X.Attempt{target, edge, X.BundledChild{}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local)), History.published(history, X.BundledChild{}, target, path, source, catalog, seen, ready_reference_remaining(D.frame(reference)))) == Some{published} : Maybe<&2, V.Frame>}), rest, reference_captured => identity_rows =>
+          Tuple{ready_publication_view(view, ready_view_captures(view), ReferenceFrame.identities(X.store_identity(ready_reference_identity_items(reference), target, X.identity(declaration))), seen, ready_reference_remaining(D.frame(reference))), Tuple{
+            ready_bundled_publication_total(actual, history, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), Map.new(&2, Bool), bytes}, source, catalog, X.identity(declaration), plan, ready_reference_identity_items(reference), ready_view_captures(view), view, child_order, seen, ready_reference_remaining(D.frame(reference)), canonical, actual_ready, captured, identity_rows, complete),
+            ready_reference_publication_project(reference, history, X.Child{X.Attempt{target, edge, X.BundledChild{}, source, bytes, name, expected, declaration, catalog, before}, created, local, pending}, Signed.local(local), view, ready_view_captures(view), seen, reference_ready, budget_equal, reference_captured, visited)}}))
+
+def ready_child_view_visited(view: Phase.Child) -> List<&2, String>:
+  match view:
+    case Phase.Child{_, _, _, _, _, _, _, _, _, _, _, _, visited, _, _, _}: visited
+
+def ready_reference_child_visited(child: X.Child) -> Map<&2, Bool>:
+  match child:
+    case X.Child{_, _, Signed.State{Recursive.State{values, _, _, _}, _}, _}: values
+
+def ready_reference_child_visited_rows(+child: X.Child,
+    +history: Phase.ChildHistory, +visited: Maybe<&2, List<&2, String>>, +view: Phase.Child,
+    ready: {ReferenceReady.child_view(child, history, visited) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {visited == Some{ready_child_view_visited(view)} : Maybe<&2, List<&2, String>>}:
+  match child history visited:
+    case X.Child{
+      X.Attempt{
+        +target,
+        edge,
+        +kind,
+        +source,
+        +bytes,
+        name,
+        expected,
+        Local.Declaration{+handle, +identity, function, bundled, references, +source_path},
+        +catalog,
+        +before
+      },
+      F.Created{root, nodes, addresses},
+      Signed.State{Recursive.State{_, budget, _, _}, signed},
+      edges
+    }
+      Phase.ChildHistory{_, _, _, capture, _} Some{+visited}:
+      %Count.some_equal(Phase.Child,
+        Phase.Child{
+          target,
+          X.attempt_path(
+            X.Attempt{
+              target,
+              edge,
+              kind,
+              source,
+              bytes,
+              name,
+              expected,
+              Local.Declaration{handle, identity, function, bundled, references, source_path},
+              catalog,
+              before
+            }
+          ),
+          kind,
+          capture,
+          bytes,
+          T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceReady.file_exports(kind, source), bytes},
+          handle,
+          identity,
+          before,
+          F.Forest{Some{root}, nodes},
+          addresses,
+          ReferenceReady.pending(edges),
+          visited,
+          V.budget(budget, signed),
+          source,
+          catalog
+        }, view, ready):
+        {Some{visited} == Some{ready_child_view_visited(_)} : Maybe<&2, List<&2, String>>}
+      {==}
+    case _ _ None{}:
+      Empty.absurd({visited == Some{ready_child_view_visited(view)} : Maybe<&2, List<&2, String>>}, Contents.none_some(Phase.Child, view, ready))
+
+def ready_reference_visited_self(+order: List<&2, String>, +values: Map<&2, Bool>, +rows: List<&2, String>,
+    +ready: {ReferenceFrame.visited(order, values) == Some{rows} : Maybe<&2, List<&2, String>>}) ->
+    {ReferenceFrame.visited(rows, values) == Some{rows} : Maybe<&2, List<&2, String>>}:
+  Equal.trans(Maybe<&2, List<&2, String>>, ReferenceFrame.visited(rows, values), ReferenceFrame.visited(order, values), Some{rows},
+    Equal.cong(List<&2, String>, Maybe<&2, List<&2, String>>, items => ReferenceFrame.visited(items, values), rows, order,
+      Equal.sym(List<&2, String>, order, rows, ready_visited_order_exact(order, values, rows, reference_visited_contents(order, values, rows, ready)))), ready)
+
+def ready_reference_child_visited_project(+child: X.Child, +history: Phase.ChildHistory, +view: Phase.Child,
+    ready: {ReferenceReady.child_project(child, history) == Some{view} : Maybe<&2, Phase.Child>}) ->
+    {ReferenceFrame.visited(ready_child_view_visited(view), ready_reference_child_visited(child)) == Some{ready_child_view_visited(view)} : Maybe<&2, List<&2, String>>}:
+  match child history:
+    case X.Child{_, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _} Phase.ChildHistory{_, _, _, _, +order}:
+      ready_reference_visited_self(order, values, ready_child_view_visited(view),
+        ready_reference_child_visited_rows(child, history, ReferenceFrame.visited(order, values), view, ready))
+
+def ready_original_reference_published_visited(+state: D.State, +child: X.Child, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    ready: {ReferenceReady.project(state, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {ReferenceFrame.visited(ready_child_view_visited(ready_phase_child(phase)), ready_reference_visited(ready_reference_published(state, child, ready_reference_child_local(child)))) == Some{ready_child_view_visited(ready_phase_child(phase))} : Maybe<&2, List<&2, String>>}:
+  match state child phase:
+    case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{_, _, _, _}, _}, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, Signed.State{Recursive.State{_, _, _, _}, _}, _}
+      Phase.Phase{+frame, +child_view, +capsule}:
+      ready_reference_child_visited_project(child, child_history, child_view,
+        Pair.fst({ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>}, {Some{ReferenceReady.capsule(state, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>},
+          Pair.snd({ReferenceFrame.project(state, history) == Some{frame} : Maybe<&2, V.Frame>}, {ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>} & {Some{ReferenceReady.capsule(state, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, reference_ready_contents(state, child, history, child_history, phase, ready))))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

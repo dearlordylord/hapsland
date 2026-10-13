@@ -1,15 +1,13 @@
-import { createVerificationResolver } from "./verification/resolver-driver.mjs"
+import { createCanonicalGraphConsumer } from "./verification/canonical-graph-consumer.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { join, dirname } from "node:path"
-import { pathToFileURL } from "node:url"
 import { createHash } from "node:crypto"
 import * as Effect from "effect/Effect"
 import { createTimedNativeResolver } from "./verification/native-boundary-timing.mjs"
 import { resolveGraphUnit } from "../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
 import { DEFAULT_DIRECT_FILE_POLICY } from "../../../../native-observation/dist/direct-event/selection.js"
-import { createDispatcher } from "./runtime-observation/transport.mjs"
 import { createServiceRegistry } from "./service-session.ts"
 import { createGraphFixtures } from "./verification/fixtures.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
@@ -42,14 +40,12 @@ const timedPromise = async (name, task) => {
     span(name, start)
   }
 }
-globalThis.__hapslandAttribution = { timedSync, timedPromise }
 try {
   for (const name of readdirSync(folder).filter((name) => /\.(bend|mjs|js)$/.test(name))) {
     const path = join(folder, name)
     sourceHashes[path] = createHash("sha256").update(readFileSync(path)).digest("hex")
   }
   // Effect starts at interpretation, and records on every success/failure exit.
-  globalThis.__hapslandAttribution.effectSpan = span
   const instrumentedNative = createTimedNativeResolver({
     timedSync,
     timedPromise,
@@ -60,48 +56,8 @@ try {
       })
   })
   const native = (...args) => Effect.runPromise(instrumentedNative(...args))
-  const runtime = join(temporary, "runtime.mjs")
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
-  execFileSync("bend", [join(folder, "./Runtime.bend"), "-o", runtime], { timeout: 10000 })
-  let emitted = readFileSync(runtime, "utf8")
-  const marshallers = [...emitted.matchAll(/function (\$0m\d+)\(/g)].map((match) => match[1])
-  assert.ok(marshallers.length > 0)
-  for (const name of marshallers)
-    emitted +=
-      "\n" +
-      name +
-      '=((original)=>(...args)=>globalThis.__hapslandAttribution.timedSync("abi-conversion",()=>original(...args)))(' +
-      name +
-      ");"
-  emitted += "\nexport const handlers=Object.freeze({perform:$0eff.perform});\n"
-  writeFileSync(runtime, emitted)
-  const { default: program, handlers } = await import(pathToFileURL(runtime))
   const registry = createServiceRegistry()
-  globalThis.__hapslandWholeResolverServices = {
-    get size() {
-      return registry.size
-    },
-    get(id) {
-      const session = registry.get(id)
-      return session === undefined
-        ? undefined
-        : {
-            perform: (request, options) =>
-              timedPromise("service:" + request.operation.$, () => session.perform(request, options))
-          }
-    }
-  }
-  const observe = (operation) =>
-    operation?.kont
-      ? { ...operation, kont: (reply) => timedSync("continuation", () => observe(operation.kont(reply))) }
-      : operation
-  const candidate = createVerificationResolver({
-    resolveIO: createDispatcher(
-      (input) => timedSync("continuation", () => observe(program.resolve(input)((value) => ({ $: "Emit", value })))),
-      handlers
-    ),
-    registry
-  })
+  const candidate = createCanonicalGraphConsumer({ registry, timedSync, timedPromise })
   const fixtures = createGraphFixtures()
     .filter((fixture) => selected.includes(fixture.name))
     .map((fixture) => {
@@ -126,10 +82,17 @@ try {
     const events = [],
       cache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
     let ticks = 0
-    const capture = (path) => ({
-      text: fixture.sources.get(path),
-      byteLength: Buffer.byteLength(fixture.sources.get(path))
-    })
+    const capture = (path) => {
+      const text = fixture.sources.get(path),
+        bytes = Buffer.from(text)
+      return {
+        text,
+        bytes,
+        byteLength: bytes.length,
+        contentHash: createHash("sha256").update(bytes).digest("hex"),
+        metadata: "fixture:" + path
+      }
+    }
     const context = {
       root: fixture.root,
       policy: fixture.policy ?? DEFAULT_DIRECT_FILE_POLICY,
@@ -206,7 +169,7 @@ try {
     allResultsAndEffectsEqual: true,
     registryClosed: true,
     scope:
-      "Diagnostic only: four complete consumers on same physical fixtures with fixture capture provider, alternating orders, seven pairs after warmup; ordinary native ports and real consumers preserve complete original result/effects. Exclusive nested span subtraction avoids double counting. Candidate continuation includes state processing plus uninstrumented compiler glue; generated public ABI marshallers timed separately; private result conversion and internal frontend/queue spans are not measured. Native lstat/access/Rust module/Cargo parsing and graph session frontend boundaries observed. Startup excluded. Instrumentation overhead, microtask scheduling and omitted native/internal conversion mean these are not parity qualification or proof."
+      "Diagnostic only: four complete consumers on same physical fixtures with fixture capture provider, alternating orders, seven pairs after warmup; ordinary native ports and real consumers preserve complete original result/effects. Exclusive nested span subtraction avoids double counting. Candidate continuation includes state processing plus uninstrumented compiler glue; packaged specialized Graph engines run through the actual Canonical driver; generated ABI conversion, private result conversion and internal frontend/queue spans are not measured. Native lstat/access/Rust module/Cargo parsing and graph session frontend boundaries observed. Startup excluded. Instrumentation overhead, microtask scheduling and omitted native/internal conversion mean these are not parity qualification or proof."
   }
   const evidence = new URL("../../../../../../.test-runs/bend-migration/diagnostics/", import.meta.url)
   mkdirSync(evidence, { recursive: true })
@@ -218,7 +181,5 @@ try {
     JSON.stringify({ runtime: record.runtime, pairs, records: records.length, allResultsAndEffectsEqual: true })
   )
 } finally {
-  delete globalThis.__hapslandWholeResolverServices
-  delete globalThis.__hapslandAttribution
   rmSync(temporary, { recursive: true, force: true })
 }

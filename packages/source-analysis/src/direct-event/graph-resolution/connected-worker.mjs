@@ -2,7 +2,6 @@ import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { join, dirname } from "node:path"
-import { pathToFileURL } from "node:url"
 import { createHash } from "node:crypto"
 import * as Effect from "effect/Effect"
 import { createTimedNativeResolver } from "./verification/native-boundary-timing.mjs"
@@ -13,11 +12,9 @@ import {
 } from "../../../../native-observation/dist/direct-event/selection.js"
 import { captureStable } from "../../../../native-observation/dist/direct-event/capture.js"
 import { discoverPhysicalWorkingTreeRoot } from "../../../../native-observation/dist/repository/root.js"
-import { createDispatcher } from "./runtime-observation/transport.mjs"
 import { createServiceRegistry } from "./service-session.ts"
-import { createVerificationEffectResolver as createBendEffectResolver } from "./verification/resolver-driver.mjs"
+import { createCanonicalGraphConsumer } from "./verification/canonical-graph-consumer.mjs"
 import { createGraphFixtures } from "./verification/fixtures.mjs"
-import { packageRuntime } from "./package-runtime.mjs"
 import { GRAPH_LIMIT_CEILINGS } from "../../../../canonical-policy/dist/canonical/graph-limits.js"
 
 const [lane, mode, goldenPath] = process.argv.slice(2)
@@ -48,106 +45,23 @@ try {
       recordTiming(name, performance.now() - start)
     }
   }
-  let resolver
+  let resolver, candidateRegistry
   if (lane === "wholeBend") {
-    assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
-    const runtimePath = join(temporary, "runtime.mjs")
-    if (process.env.HAPSLAND_WHOLE_RUNTIME_ARTIFACT) {
-      const artifact = readFileSync(process.env.HAPSLAND_WHOLE_RUNTIME_ARTIFACT)
-      assert.equal(
-        createHash("sha256").update(artifact).digest("hex"),
-        process.env.HAPSLAND_WHOLE_RUNTIME_SHA256,
-        "frozen artifact hash in worker"
-      )
-      writeFileSync(runtimePath, artifact)
-    } else execFileSync("bend", [join(import.meta.dirname, "./Runtime.bend"), "-o", runtimePath], { timeout: 10000 })
-    let source = readFileSync(runtimePath, "utf8")
-    if (timingEnabled) {
-      const body = source.match(/function \$perform\$\([^)]*\) \{\n([^\n]+)\n\}/)?.[1]
-      assert.ok(body, "actual foreign ABI body")
-      const encode = body.match(/args: \[(\$0m\d+)\(/)?.[1],
-        decode = body.match(/f\((\$0m\d+)\(x\)\)/)?.[1]
-      assert.ok(encode && decode && encode !== decode, "distinct actual request/reply marshallers")
-      globalThis.__hapslandBoundaryTiming = timedSync
-      for (const [name, label] of [
-        [encode, "abi:request"],
-        [decode, "abi:reply"]
-      ])
-        source +=
-          "\n" +
-          name +
-          "=((original)=>(...args)=>globalThis.__hapslandBoundaryTiming(" +
-          JSON.stringify(label) +
-          ",()=>original(...args)))(" +
-          name +
-          ");\n"
-    }
-    if (process.env.HAPSLAND_WHOLE_COMPLETION_PROFILE) {
-      assert.ok(source.includes("function $Loop$058partial_allowed$("))
-      source += `\nglobalThis.__hapslandCompletionSamples=[];\n$Loop$058partial_allowed$=((original)=>(frame,reason)=>{const start=performance.now();const result=original(frame,reason);globalThis.__hapslandCompletionSamples.push({frame,reason,result,milliseconds:performance.now()-start});return result;})($Loop$058partial_allowed$);\n`
-    }
-    if (process.env.HAPSLAND_WHOLE_TARGET_PROFILE) {
-      assert.ok(source.includes("function $Resolve$058known_target$("))
-      assert.ok(source.includes("function $Map$set$("))
-      source += `\nglobalThis.__hapslandTargetSamples=[];let targetRegistration;
-$Map$set$=((original)=>(map,key,value)=>{if(!targetRegistration||map!==targetRegistration.map)return original(map,key,value);const start=performance.now();try{return original(map,key,value)}finally{targetRegistration.setMilliseconds+=performance.now()-start;targetRegistration.setCalls++}})($Map$set$);
-$Resolve$058known_target$=((original)=>(existing,frame,...args)=>{const previous=targetRegistration;const sample={map:frame.target_ids,kind:existing.$,setMilliseconds:0,setCalls:0};targetRegistration=sample;try{return original(existing,frame,...args)}finally{targetRegistration=previous;delete sample.map;globalThis.__hapslandTargetSamples.push(sample)}})($Resolve$058known_target$);\n`
-    }
-    assert.ok(source.includes("export default {"))
-    assert.ok(!source.includes("cli(process.argv.slice(1))"))
-    assert.deepEqual(
-      [...source.matchAll(/io_eff\("([^"]+)",/g)].map((m) => m[1]),
-      ["perform"]
-    )
-    writeFileSync(runtimePath, source + "\nexport const handlers=Object.freeze({perform:$0eff.perform});\n")
-    const selectedRuntime =
-      process.env.HAPSLAND_WHOLE_PACKAGE_RUNTIME === "1" ? join(temporary, "packaged.mjs") : runtimePath
-    if (selectedRuntime !== runtimePath) {
-      writeFileSync(runtimePath, source)
-      packageRuntime(runtimePath, selectedRuntime)
-    }
-    const { default: program, handlers } = await import(pathToFileURL(selectedRuntime))
-    const registry = createServiceRegistry()
-    globalThis.__hapslandWholeResolverServices = registry
-    const dispatchHandlers = process.env.HAPSLAND_WHOLE_OPERATION_COUNTS
-      ? {
-          ...handlers,
-          perform: (request, ...args) => {
-            const key = request.operation.$
-            operationCounts[key] = (operationCounts[key] ?? 0) + 1
-            return handlers.perform(request, ...args)
-          }
-        }
-      : handlers
-    const selectedHandlers = timingEnabled
-      ? {
-          ...dispatchHandlers,
-          perform: async (request, ...args) => {
-            const start = performance.now()
-            try {
-              return await dispatchHandlers.perform(request, ...args)
-            } finally {
-              recordTiming("service:" + request.operation.$, performance.now() - start)
-            }
-          }
-        }
-      : dispatchHandlers
-    const observe = (operation) =>
-      operation?.kont
-        ? { ...operation, kont: (reply) => timedSync("continuation", () => observe(operation.kont(reply))) }
-        : operation
-    const effectResolver = createBendEffectResolver({
-      resolveIO: createDispatcher(
-        (input) =>
-          timingEnabled
-            ? timedSync("initial", () => observe(program.resolve(input)((value) => ({ $: "Emit", value }))))
-            : program.resolve(input)((value) => ({ $: "Emit", value })),
-        selectedHandlers
-      ),
+    const registry = (candidateRegistry = createServiceRegistry())
+    resolver = createCanonicalGraphConsumer({
       registry,
-      observeProduct: process.env.HAPSLAND_WHOLE_PRODUCT_VALUES ? (value) => observedProducts.push(value) : undefined
+      observeProduct: process.env.HAPSLAND_WHOLE_PRODUCT_VALUES ? (value) => observedProducts.push(value) : undefined,
+      timedSync: timingEnabled ? timedSync : undefined,
+      timedPromise: (name, task) => {
+        if (process.env.HAPSLAND_WHOLE_OPERATION_COUNTS) {
+          const operation = name.slice("service:".length)
+          operationCounts[operation] = (operationCounts[operation] ?? 0) + 1
+        }
+        if (!timingEnabled) return task()
+        const start = performance.now()
+        return task().finally(() => recordTiming(name, performance.now() - start))
+      }
     })
-    resolver = (...args) => Effect.runPromise(effectResolver(...args))
   } else if (timingEnabled) {
     const observed = createTimedNativeResolver({
       status: "service:Types.ReadFileStatus",
@@ -233,10 +147,17 @@ $Resolve$058known_target$=((original)=>(existing,frame,...args)=>{const previous
         cache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
       if (fixture.physicalFailure === "changed") writeFileSync(join(fixture.root, "a.ts"), fixture.sources.get("a.ts"))
       let ticks = 0
-      const stable = (path) => ({
-        text: fixture.sources.get(path),
-        byteLength: Buffer.byteLength(fixture.sources.get(path))
-      })
+      const stable = (path) => {
+        const text = fixture.sources.get(path),
+          bytes = Buffer.from(text)
+        return {
+          text,
+          bytes,
+          byteLength: bytes.length,
+          contentHash: createHash("sha256").update(bytes).digest("hex"),
+          metadata: "fixture:" + path
+        }
+      }
       const context = {
         root: fixture.root,
         rootIdentity: fixture.rootIdentity,
@@ -395,13 +316,11 @@ $Resolve$058known_target$=((original)=>(existing,frame,...args)=>{const previous
       writeFileSync(process.env.HAPSLAND_WHOLE_CASE_TIMINGS, JSON.stringify(caseTimings))
     for (const output of outputs) assert.equal(JSON.stringify(output), golden, "measured complete result/effects")
     const checksum = createHash("sha256").update(golden).digest("hex")
-    assert.equal(globalThis.__hapslandWholeResolverServices?.size ?? 0, 0)
+    if (candidateRegistry !== undefined)
+      assert.equal(candidateRegistry.size, 0, "actual Canonical Graph registry settled")
     const record = {
-      shell: "nested-run-promise",
+      shell: lane === "wholeBend" ? "canonical-graph-consumer" : "nested-run-promise",
       lane,
-      ...(lane === "wholeBend" && process.env.HAPSLAND_WHOLE_RUNTIME_ARTIFACT
-        ? { runtimeArtifactHash: process.env.HAPSLAND_WHOLE_RUNTIME_SHA256 }
-        : {}),
       seconds,
       cpuSeconds,
       cases: fixtures.length,
@@ -416,7 +335,7 @@ $Resolve$058known_target$=((original)=>(existing,frame,...args)=>{const previous
     if (timingEnabled) {
       record.boundaryTimings = boundaryTimings
       record.boundaryTimingScope =
-        "Diagnostic only: synchronous initial/continuation and ABI conversion; service wall includes asynchronous provider work. Continuation overlaps ABI timing; categories must not be summed."
+        "Diagnostic only: packaged Graph machine initial/view/resume and native IO/fact ports; service wall includes asynchronous provider work. Canonical owns candidate lifecycle and terminal acceptance. Generated ABI conversion and private internal spans are not separately measured."
       writeFileSync(process.env.HAPSLAND_WHOLE_BOUNDARY_TIMINGS, JSON.stringify(record, null, 2))
     }
     if (process.env.HAPSLAND_WHOLE_CASE_TIMINGS)
@@ -439,14 +358,16 @@ $Resolve$058known_target$=((original)=>(existing,frame,...args)=>{const previous
         fullCaptureCacheMetadataCompared: true,
         sourceReadEffectsCompared: true,
         physicalFailureCases: fixtures.filter((fixture) => fixture.physicalFailure).map((fixture) => fixture.name),
-        registryClosed: true,
+        ...(candidateRegistry === undefined ? {} : { registryClosed: true }),
         scope:
           "Unadopted whole resolver on actual stable filesystem capture; full result/error/clock/capture/source-read/cache/diagnostic comparison against native on same physical files, one warmup and " +
           rounds +
           " repeated sweeps; explicit root-identity mismatch and between-read source change refuse publication. Linux only; cancellation, descriptor-count leak audit, Windows/macOS, whole universal laws and performance parity not established."
       })
+      const evidence = new URL("../../../../../../.test-runs/bend-migration/diagnostics/", import.meta.url)
+      mkdirSync(evidence, { recursive: true })
       writeFileSync(
-        join(import.meta.dirname, "stable-capture-" + record.runtime + "-evidence.json"),
+        new URL("stable-capture-" + record.runtime + "-evidence.json", evidence),
         JSON.stringify(record, null, 2) + "\n"
       )
     }
@@ -455,20 +376,8 @@ $Resolve$058known_target$=((original)=>(existing,frame,...args)=>{const previous
         process.env.HAPSLAND_WHOLE_PRODUCT_VALUES,
         JSON.stringify(observedProducts, (_, value) => (typeof value === "bigint" ? Number(value) : value))
       )
-    if (process.env.HAPSLAND_WHOLE_COMPLETION_PROFILE)
-      writeFileSync(
-        process.env.HAPSLAND_WHOLE_COMPLETION_PROFILE,
-        JSON.stringify(globalThis.__hapslandCompletionSamples)
-      )
-    if (process.env.HAPSLAND_WHOLE_TARGET_PROFILE)
-      writeFileSync(process.env.HAPSLAND_WHOLE_TARGET_PROFILE, JSON.stringify(globalThis.__hapslandTargetSamples))
     console.log(JSON.stringify(record))
   }
 } finally {
-  delete globalThis.__hapslandWholeResolverServices
-  delete globalThis.__hapslandCompletionSamples
-  delete globalThis.__hapslandTargetSamples
-  delete globalThis.__hapslandBoundaryTiming
-  delete globalThis.__hapslandBoundaryTimingRecord
   rmSync(temporary, { recursive: true, force: true })
 }
