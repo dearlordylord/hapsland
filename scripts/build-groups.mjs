@@ -23,7 +23,12 @@ const processStart = (pid) => {
   }
 }
 export const buildProcessGroup = () => {
-  const group = Number(query(process.pid, "pgid"))
+  // Read the current kernel record on Linux rather than starting ps for every
+  // compiler cleanup admission. Never cache a group or cross a process boundary.
+  const encoded = process.platform === "linux" ? readFileSync("/proc/self/stat", "utf8") : undefined
+  const group = Number(
+    encoded === undefined ? query(process.pid, "pgid") : encoded.slice(encoded.lastIndexOf(")") + 2).split(" ")[2]
+  )
   if (!Number.isSafeInteger(group) || group <= 1) throw new Error("Cannot establish build process group")
   return group
 }
