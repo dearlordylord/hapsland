@@ -38,4 +38,3 @@ export const mapGraphAbi = (value: unknown, field: (key: string, item: unknown) 
   }
   return result.value
 }
-
