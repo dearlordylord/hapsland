@@ -12316,6 +12316,36 @@ def ready_actual_omission_fixed(+nodes: List<&2, Local.PlannedNode>, +slots: Lis
       NatFacts.le_refl((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat)),
       NatFacts.le_succ((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat))), present)
 
+def ready_projected_expanded_observation(+nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>,
+    +id: Nat, +symbol: String, +reference: F.Reference, +fuel: Nat, lookup: Maybe<&2, O.NodeAddress>,
+    +located: {F.address_at(entries, id) == lookup : Maybe<&2, O.NodeAddress>},
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool},
+    dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    observed: {P.expanded_reference(lookup, symbol) == Some{reference} : Maybe<&2, F.Reference>},
+    valid: {ready_omission_reference_targets([reference], retained) == True{} : Bool}) ->
+    {ready_actual_reference_omission([reference], entries, fuel, slots) == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}:
+  match lookup:
+    case None{}:
+      Empty.absurd({ready_actual_reference_omission([reference], entries, fuel, slots) == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool},
+        Contents.none_some(F.Reference, reference, observed))
+    case Some{+address}:
+      +same: {F.Expanded{F.ReferenceSymbol{symbol}, address} == reference : F.Reference} =
+        Count.some_equal(F.Reference, F.Expanded{F.ReferenceSymbol{symbol}, address}, reference, observed)
+      target_valid: {ready_omission_reference_targets([F.Expanded{F.ReferenceSymbol{symbol}, address}], retained) == True{} : Bool} =
+        %Equal.sym(F.Reference, F.Expanded{F.ReferenceSymbol{symbol}, address}, reference, same):
+          {ready_omission_reference_targets([_], retained) == True{} : Bool}
+        valid
+      %same:
+        {ready_actual_reference_omission([_], entries, fuel, slots) == LoopPolicy.has_omission(fuel, slots, id, slots) : Bool}
+      Equal.trans(Bool, Bool.or(ready_actual_address_omission(entries, fuel, slots, address), False{}),
+        ready_actual_address_omission(entries, fuel, slots, address), LoopPolicy.has_omission(fuel, slots, id, slots),
+        BoolFacts.or_false(ready_actual_address_omission(entries, fuel, slots, address)),
+        ready_projected_address_observation(nodes, entries, slots, catalog, retained, id, address, fuel, aligned, dense, projected, located,
+          NatFacts.eq_of_is_eq(F.count_address(retained, address), 1n,
+            BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(retained, address), 1n), True{}, target_valid))))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
