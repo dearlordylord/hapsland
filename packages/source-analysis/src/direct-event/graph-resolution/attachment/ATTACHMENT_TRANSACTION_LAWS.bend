@@ -10937,6 +10937,73 @@ def ready_reference_publication_captured(+state: D.State, +child: X.Child, +next
       X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _} Recursive.State{_, _, _, _}:
       ready_reference_publication_transition(state, child, next, GraphReference.bounded_transition(X.frame_graph(D.frame(state)), event))
 
+def ready_publication_captured_views(+actual: T.ResolverFrame, +tentative: T.TentativeChild, +edge: Local.Pending,
+    +reference: D.State, +child: X.Child, +next: Recursive.State, +history: V.History, +view: V.Frame,
+    +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
+    actual_ready: {ActualFrame.project(ready_tentative_publication(actual, tentative, edge), history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(ready_reference_published(reference, child, next), history) == Some{view} : Maybe<&2, V.Frame>},
+    positive: ready_history_positive(history)) ->
+    {ActualFrame.project(ready_tentative_publication(S.advance(actual, G.Captured{source, contribution, work, ids}), tentative, edge), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(ready_tentative_publication(actual, tentative, edge)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>} &
+    {ReferenceFrame.project(ready_reference_published(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), child, next), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(ready_tentative_publication(actual, tentative, edge)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>}:
+  %Equal.sym(T.ResolverFrame, ready_tentative_publication(S.advance(actual, G.Captured{source, contribution, work, ids}), tentative, edge), S.advance(ready_tentative_publication(actual, tentative, edge), G.Captured{source, contribution, work, ids}), ready_actual_publication_captured(actual, tentative, edge, G.Captured{source, contribution, work, ids})):
+    {ActualFrame.project(_, History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(ready_tentative_publication(actual, tentative, edge)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>} &
+    {ReferenceFrame.project(ready_reference_published(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), child, next), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(ready_tentative_publication(actual, tentative, edge)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>}
+  %Equal.sym(D.State, ready_reference_published(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), child, next), D.with_frame(ready_reference_published(reference, child, next), X.event(D.frame(ready_reference_published(reference, child, next)), G.Captured{source, contribution, work, ids})), ready_reference_publication_captured(reference, child, next, G.Captured{source, contribution, work, ids})):
+    {ActualFrame.project(S.advance(ready_tentative_publication(actual, tentative, edge), G.Captured{source, contribution, work, ids}), History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(ready_tentative_publication(actual, tentative, edge)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>} &
+    {ReferenceFrame.project(_, History.allowance(history, Nat.sub(ready_history_remaining(history), 1n))) == Some{ready_graph_view(view, G.step(S.frame_graph(ready_tentative_publication(actual, tentative, edge)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(history), 1n))} : Maybe<&2, V.Frame>}
+  ready_captured_frames(ready_tentative_publication(actual, tentative, edge), ready_reference_published(reference, child, next), history, view, source, contribution, work, ids, actual_ready, reference_ready, positive)
+
+def ready_publication_allowance(+history: V.History, +child: X.Child, +seen: List<&2, String>, +before: Nat, +after: Nat) ->
+    {History.allowance(ready_reference_publication_history(history, child, seen, before), after) == ready_reference_publication_history(history, child, seen, after) : V.History}:
+  match history child:
+    case V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, X.FileChild{_}, _, _, _, _, _, _, _}, _, _, _}: {==}
+    case V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, X.BundledChild{}, _, _, _, _, _, _, _}, _, _, _}: {==}
+
+def ready_publication_remaining(+history: V.History, +child: X.Child, +seen: List<&2, String>, +remaining: Nat) ->
+    {ready_history_remaining(ready_reference_publication_history(history, child, seen, remaining)) == remaining : Nat}:
+  match history child:
+    case V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, X.FileChild{_}, _, _, _, _, _, _, _}, _, _, _}: {==}
+    case V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, X.BundledChild{}, _, _, _, _, _, _, _}, _, _, _}: {==}
+
+def ready_selected_reference_allowance(+state: T.ResolverState, +frame: T.ResolverFrame, +tentative: T.TentativeChild, +edge: Local.Pending,
+    +reference: D.State, +child: X.Child, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    selected: selected_phase_result(state, frame, tentative, edge, history, child_history, phase),
+    reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {Nat.is_gt(ready_reference_remaining(D.frame(reference)), 0n) == True{} : Bool}:
+  match history phase:
+    case V.History{_, _, _, _, _, +remaining, _} Phase.Phase{+view, +child_view, +capsule}:
+      match selected:
+        case (valid, (frame_ready, _)):
+          Equal.trans(Bool, Nat.is_gt(ready_reference_remaining(D.frame(reference)), 0n), Nat.is_gt(remaining, 0n), True{},
+            Equal.cong(Nat, Bool, value => Nat.is_gt(value, 0n), ready_reference_remaining(D.frame(reference)), remaining,
+              Pair.snd({ready_reference_graph(D.frame(reference)) == S.frame_graph(frame) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == remaining : Nat}, ready_captured_coordinates(frame, reference, history, view, frame_ready,
+                Pair.fst({ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}, {ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>} & {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, reference_ready_contents(reference, child, history, child_history, phase, reference_ready))))),
+            BoolFacts.eq_true_of_and_left(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)),
+              BoolFacts.eq_true_of_and_right(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))),
+                BoolFacts.eq_true_of_and_right(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)))), valid))))
+
+def ready_original_reference_allowance(+state: T.ResolverState, +reference: D.State, +child: X.Child,
+    +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +actual_ready: {ActualReady.project(state, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    +reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) ->
+    {Nat.is_gt(ready_reference_remaining(D.frame(reference)), 0n) == True{} : Bool}:
+  ready_actual_inputs({Nat.is_gt(ready_reference_remaining(D.frame(reference)), 0n) == True{} : Bool}, state, history, child_history, phase, actual_ready,
+    frame => tentative => edge => frame_present => child_present => edge_present => selected =>
+      ready_selected_reference_allowance(state, frame, tentative, edge, reference, child, history, child_history, phase, selected, reference_ready))
+
+def ready_publication_positive(+history: V.History, +child: X.Child, +seen: List<&2, String>, +remaining: Nat,
+    positive: {Nat.is_gt(remaining, 0n) == True{} : Bool}) ->
+    ready_history_positive(ready_reference_publication_history(history, child, seen, remaining)):
+  match history child:
+    case V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, X.FileChild{_}, _, _, _, _, _, _, _}, _, _, _}: positive
+    case V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
+      X.Child{X.Attempt{_, _, X.BundledChild{}, _, _, _, _, _, _, _}, _, _, _}: positive
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
