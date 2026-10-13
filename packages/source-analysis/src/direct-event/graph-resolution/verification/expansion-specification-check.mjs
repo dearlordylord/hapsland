@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "nod
 import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
-import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
+import { languageForPath } from "./native-language-registry.ts"
 import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { createGraphFixtures } from "./fixtures.mjs"
@@ -78,21 +78,10 @@ try {
     folder,
     "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
   )
-  const nativeSource = readFileSync(nativePath, "utf8").replaceAll(
-    /from "(\.\/[^"]+)"/g,
-    (_all, path) => `from "${pathToFileURL(join(dirname(nativePath), path))}"`
+  const { prepareGraphFrame, executeGraphCommand, inspectCapturedSource, attachBundledSource } = await import(
+    pathToFileURL(nativePath)
   )
-  const nativeCopy = join(temporary, "native-root.mjs")
-  writeFileSync(
-    nativeCopy,
-    nativeSource.replace(
-      "const transition = stepImportGraph(frame.state, event)",
-      "nativeEvents.push(event); const transition = stepImportGraph(frame.state, event)"
-    ) +
-      "\nconst nativeEvents=[]; export {prepareGraphFrame,executeGraphCommand,inspectCapturedSource,attachBundledSource,nativeEvents};\n"
-  )
-  const { prepareGraphFrame, executeGraphCommand, inspectCapturedSource, attachBundledSource, nativeEvents } =
-    await import(pathToFileURL(nativeCopy))
+  const nativeEvents = []
   const cases = []
   let compared = 0
   const fixtures = createGraphFixtures()
@@ -138,7 +127,9 @@ try {
       }
     }
     nativeEvents.length = 0
-    const frame = await Effect.runPromise(prepareGraphFrame(path, stable(path), "Root", context()))
+    const frame = await Effect.runPromise(
+      prepareGraphFrame(path, stable(path), "Root", context(), (event) => nativeEvents.push(event))
+    )
     if (!frame) {
       cases.push({ name: fixture.name, status: "native-pre-frame-return", localComparison: false })
       continue

@@ -251,6 +251,8 @@ type GraphTarget =
   | { readonly kind: "file"; readonly path: string; readonly name: string; readonly edge: Pending }
   | { readonly kind: "bundled"; readonly declaration: FactDeclaration; readonly file: FactFile; readonly edge: Pending }
 type GraphFrame = GraphBinding & {
+  /** Verification trace only: retain the original event without mutation; failures propagate before transition. */
+  readonly observeEvent?: (event: ImportGraphEvent) => void
   readonly unit: ReviewUnit
   readonly budget: LocalBudget
   readonly visited: Set<string>
@@ -303,6 +305,7 @@ const addGraphEdges = (frame: GraphFrame, edges: readonly Pending[]): number[] =
     return id
   })
 const advanceGraph = (frame: GraphFrame, event: ImportGraphEvent): void => {
+  frame.observeEvent?.(event)
   const transition = stepImportGraph(frame.state, event)
   frame.state = transition.state
   frame.command = transition.command
@@ -311,7 +314,8 @@ export const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(func
   rootPath: string,
   rootCapture: StableCapture,
   name: string,
-  context: GraphResolveContext
+  context: GraphResolveContext,
+  observeEvent?: (event: ImportGraphEvent) => void
 ) {
   const binding = yield* prepareGraphBinding(rootPath, rootCapture, context)
   if (binding === undefined) return undefined
@@ -337,6 +341,7 @@ export const prepareGraphFrame = Effect.fn("DirectEvent.prepareGraphFrame")(func
   const unit = rootReviewUnit(built, binding.dependencies, binding.bindingFingerprint)
   const frame: GraphFrame = {
     ...binding,
+    ...(observeEvent === undefined ? {} : { observeEvent }),
     unit,
     visited,
     budget,
@@ -578,7 +583,7 @@ const attachCapturedChild = (
     frame.artifactsByTarget.set(targetId, declaration.artifact.id)
   }
 }
-const inspectCapturedSource = (
+export const inspectCapturedSource = (
   frame: GraphFrame,
   targetId: number,
   target: Extract<GraphTarget, { kind: "file" }>,
@@ -614,7 +619,7 @@ const inspectCapturedSource = (
   }
   attachCapturedChild(frame, targetId, target, path, source, file, declaration, child, localWorkBefore, visited)
 }
-const attachBundledSource = (
+export const attachBundledSource = (
   frame: GraphFrame,
   targetId: number,
   target: Extract<GraphTarget, { kind: "bundled" }>
@@ -730,7 +735,7 @@ const readGraphSource = Effect.fn("DirectEvent.readGraphSource")(function* (
   }
   return yield* readSelectedGraphSource(frame, targetId, target)
 })
-const executeGraphCommand = (frame: GraphFrame): Effect.Effect<GraphCommandResult> => {
+export const executeGraphCommand = (frame: GraphFrame): Effect.Effect<GraphCommandResult> => {
   const command = frame.command
   switch (command.kind) {
     case "none":

@@ -8864,6 +8864,79 @@ ready_capture_prefix_absent(String.eq(key, path), History.has_string(ready_captu
           ready_capture_provenance_other(sources, path, source, catalog, key, different)),
         rest => ready_capture_reference_unaffected(tail, sources, path, source, catalog, rest)))
 
+def ready_capture_observed_head(rows: Maybe<&2, List<&2, V.CapturedEntry>>) -> Maybe<&2, V.CapturedEntry>:
+  match rows:
+    case Some{head <> _}: Some{head}
+    case _: None{}
+
+def ready_capture_observed_tail(rows: Maybe<&2, List<&2, V.CapturedEntry>>) -> Maybe<&2, List<&2, V.CapturedEntry>>:
+  match rows:
+    case Some{_ <> tail}: Some{tail}
+    case _: None{}
+
+def ready_capture_prefix_parts(+head: Maybe<&2, V.CapturedEntry>, +tail: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +row: V.CapturedEntry, +rows: List<&2, V.CapturedEntry>,
+    +projected: {ReferenceFrame.prefix(V.CapturedEntry, head, tail) == Some{row <> rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {head == Some{row} : Maybe<&2, V.CapturedEntry>} & {tail == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}:
+  match head tail:
+    case Some{+value} Some{+rest}:
+      Tuple{Equal.cong(Maybe<&2, List<&2, V.CapturedEntry>>, Maybe<&2, V.CapturedEntry>, ready_capture_observed_head,
+        Some{value <> rest}, Some{row <> rows}, projected),
+        Equal.cong(Maybe<&2, List<&2, V.CapturedEntry>>, Maybe<&2, List<&2, V.CapturedEntry>>, ready_capture_observed_tail,
+          Some{value <> rest}, Some{row <> rows}, projected)}
+    case None{} _:
+      Empty.absurd({None{} == Some{row} : Maybe<&2, V.CapturedEntry>} & {tail == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+        Contents.none_some(List<&2, V.CapturedEntry>, row <> rows, projected))
+    case Some{_} None{}:
+      Empty.absurd({head == Some{row} : Maybe<&2, V.CapturedEntry>} & {None{} == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+        Contents.none_some(List<&2, V.CapturedEntry>, row <> rows, projected))
+
+def ready_capture_common_cons(-Result: Type, +actual_head: Maybe<&2, V.CapturedEntry>, +actual_tail: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +reference_head: Maybe<&2, V.CapturedEntry>, +reference_tail: Maybe<&2, List<&2, V.CapturedEntry>>, +rows: List<&2, V.CapturedEntry>,
+    actual: {ActualFrame.captured_prefix(actual_head, actual_tail) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    reference: {ReferenceFrame.prefix(V.CapturedEntry, reference_head, reference_tail) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    continue: @row: V.CapturedEntry -> @rest: List<&2, V.CapturedEntry> ->
+      {actual_head == Some{row} : Maybe<&2, V.CapturedEntry>} -> {actual_tail == Some{rest} : Maybe<&2, List<&2, V.CapturedEntry>>} ->
+      {reference_head == Some{row} : Maybe<&2, V.CapturedEntry>} -> {reference_tail == Some{rest} : Maybe<&2, List<&2, V.CapturedEntry>>} -> Result) -> Result:
+  match actual_head actual_tail:
+    case Some{+row} Some{+rest}:
+      Parent.eliminate_pair({reference_head == Some{row} : Maybe<&2, V.CapturedEntry>},
+        {reference_tail == Some{rest} : Maybe<&2, List<&2, V.CapturedEntry>>}, Result,
+        ready_capture_prefix_parts(reference_head, reference_tail, row, rest,
+          Equal.trans(Maybe<&2, List<&2, V.CapturedEntry>>, ReferenceFrame.prefix(V.CapturedEntry, reference_head, reference_tail), Some{rows}, Some{row <> rest},
+            reference, Equal.sym(Maybe<&2, List<&2, V.CapturedEntry>>, Some{row <> rest}, Some{rows}, actual))),
+        head => tail => continue(row)(rest)({==})({==})(head)(tail))
+    case None{} _: Empty.absurd(Result, Contents.none_some(List<&2, V.CapturedEntry>, rows, actual))
+    case Some{_} None{}: Empty.absurd(Result, Contents.none_some(List<&2, V.CapturedEntry>, rows, actual))
+
+def ready_capture_tail_zero(+count: Nat, bound: NatFacts.le((1n + count : Nat), 1n)) -> {count == 0n : Nat}:
+  match count:
+    case 0n: {==}
+    case 1n + more: Empty.absurd({1n + more == 0n : Nat}, NatFacts.internal_false_ne_true(bound))
+
+def ready_string_zero_absent(+items: List<&2, String>, +query: String,
+    zero: {ActualFrame.string_count(items, query) == 0n : Nat}) -> {History.has_string(items, query) == False{} : Bool}:
+  match items:
+    case []: {==}
+    case +head <> +tail:
+      ready_nat_zero_absent_case(String.eq(head, query), ActualFrame.string_count(tail, query), History.has_string(tail, query), zero,
+        rest => ready_string_zero_absent(tail, query, rest))
+
+def ready_capture_retain_selected(+head: String, +tail: List<&2, String>, +path: String, present: Bool) ->
+    {Bool.pick(List<&2, String>, present, head <> tail, head <> List.append(&2, String, tail, [path]))
+      == head <> Bool.pick(List<&2, String>, present, tail, List.append(&2, String, tail, [path])) : List<&2, String>}:
+  match present:
+    case True{}: {==}
+    case False{}: {==}
+
+def ready_capture_retain_false(+head: String, +tail: List<&2, String>, +path: String,
+    different: {String.eq(head, path) == False{} : Bool}) ->
+    {History.retain_string(head <> tail, path) == head <> History.retain_string(tail, path) : List<&2, String>}:
+  %Equal.sym(Bool, String.eq(head, path), False{}, different):
+    {Bool.pick(List<&2, String>, Bool.or(_, History.has_string(tail, path)), head <> tail, head <> List.append(&2, String, tail, [path]))
+      == head <> Bool.pick(List<&2, String>, History.has_string(tail, path), tail, List.append(&2, String, tail, [path])) : List<&2, String>}
+  ready_capture_retain_selected(head, tail, path, History.has_string(tail, path))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
