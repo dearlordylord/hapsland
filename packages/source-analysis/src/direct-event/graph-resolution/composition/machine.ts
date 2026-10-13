@@ -18,13 +18,16 @@ export type { ReferenceSlot, PlannedReference, ReferenceOmission } from "../trav
 
 // Closed Graph result projection after Canonical has accepted the invocation.
 type Projection = ReturnType<ReturnType<typeof createArtifactMachine>["view"]>
+export type GraphControlProjection =
+  | Exclude<Projection, { readonly $: "Types.AwaitService" }>
+  | Pick<Extract<Projection, { readonly $: "Types.AwaitService" }>, "$" | "request">
 export type GraphOutcome =
   | {
       readonly result: Extract<Projection, { $: "Types.FinishedResolver" }>["result"]
       readonly finalFrame: Extract<Projection, { $: "Types.FinishedResolver" }>["final_frame"]
     }
   | { readonly failure: Extract<Projection, { $: "Types.FailedResolver" }>["failure"] }
-export function acceptGraphProjection(view: Projection): GraphOutcome {
+export function acceptGraphProjection(view: GraphControlProjection): GraphOutcome {
   if (view.$ === "Types.FinishedResolver") return { result: view.result, finalFrame: view.final_frame }
   if (view.$ === "Types.FailedResolver") return { failure: view.failure }
   throw new TypeError("Unaccepted graph projection")

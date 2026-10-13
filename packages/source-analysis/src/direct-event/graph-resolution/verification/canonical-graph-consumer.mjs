@@ -49,9 +49,9 @@ export function createCanonicalGraphConsumer({
       const original = createGraphMachine()
       const machine = {
         ...original,
-        initial: (...args) => timedSync("continuation", () => original.initial(...args)),
-        view: (...args) => timedSync("continuation", () => original.view(...args)),
-        resume: (...args) => timedSync("continuation", () => original.resume(...args))
+        initial: (...args) => timedSync("graph:initial", () => original.initial(...args)),
+        view: (...args) => timedSync("graph:view", () => original.view(...args)),
+        resume: (...args) => timedSync("graph:resume", () => original.resume(...args))
       }
       const driver = createGraphDriver({
         owner,

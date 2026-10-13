@@ -655,6 +655,15 @@ def view(step: Step) -> T.ResolverStep:
     case Terminal{_, result}: result
     case _: T.FailedResolver{T.WrongReplyKind{}}
 
+# Mechanical projection of the existing full view; state stays in the owned step.
+def request_from_view(view: T.ResolverStep) -> Maybe<&2, T.Request>:
+  match view:
+    case T.AwaitService{_, request}: Some{request}
+    case _: None{}
+
+def awaiting_request(step: Step) -> Maybe<&2, T.Request>:
+  request_from_view(view(step))
+
 def initial(+input: T.ResolverInput) -> Step:
   ParentCall{Context{S.input_invocation(input), None{}, None{},
     Budget.initial(S.input_root_path(input), S.input_root_bytes(input)), None{}}, Initial{input}}

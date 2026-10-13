@@ -3,8 +3,12 @@ import type { Protocol, Outcome } from "@hapsland/canonical-policy/canonical/chi
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import type { ServiceSession } from "../service-contract.ts"
 import type { GraphServiceReply } from "../consumer.ts"
-import { acceptGraphProjection } from "./machine.ts"
-import type { createGraphMachine, GraphOutcome } from "./machine.ts"
+import {
+  acceptGraphProjection,
+  type GraphControlProjection,
+  type createGraphMachine,
+  type GraphOutcome
+} from "./machine.ts"
 
 type Machine = ReturnType<typeof createGraphMachine>
 type Input = Parameters<Machine["initial"]>[0]
@@ -16,7 +20,7 @@ export type GraphContinuation = {
 export type GraphProjection = {
   readonly kind: "artifact"
   readonly machine: Machine
-  readonly view: ReturnType<Machine["view"]>
+  readonly view: GraphControlProjection
 }
 type RawRequest = Extract<GraphProjection["view"], { $: "Types.AwaitService" }>["request"]
 type Request = RawRequest & { readonly invocation: bigint; readonly id: bigint }
@@ -37,7 +41,12 @@ export const graphProtocol: Protocol<
   ServiceSession
 > = {
   initial: (machine, input) => ({ kind: "artifact", machine, step: machine.initial(input) }),
-  view: (held) => ({ kind: "artifact", machine: held.machine, view: held.machine.view(held.step) }),
+  view: (held) => {
+    const request = held.machine.awaitingRequest(held.step)
+    const view: GraphControlProjection =
+      request === undefined ? held.machine.view(held.step) : { $: "Types.AwaitService", request }
+    return { kind: "artifact", machine: held.machine, view }
+  },
   resume: (held, reply) => ({ ...held, step: held.machine.resume(held.step, { $: "Types.ServiceReply", reply }) }),
   awaitRequest(projected) {
     if (projected.view.$ !== "Types.AwaitService") return undefined

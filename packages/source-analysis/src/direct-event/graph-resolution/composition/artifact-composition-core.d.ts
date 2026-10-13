@@ -54,5 +54,6 @@ declare const core: {
   receive_python(step: Step, handle: StateHandle, view: PythonView): Step
   receive_go(step: Step, handle: StateHandle, view: GoView): Step
   view(step: Step): ResolverStep
+  awaiting_request(step: Step): Maybe<ArtifactAbi<Request>>
 }
 export default core

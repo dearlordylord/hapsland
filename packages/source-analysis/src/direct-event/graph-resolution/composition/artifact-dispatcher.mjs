@@ -12,7 +12,7 @@ import { intoArtifact, intoResolver } from "./artifact-transport.ts"
  * parent: typeof import("./generic-artifact-core.js").default,
  * python: typeof import("./python-artifact-core.js").default,
  * go: typeof import("./go-artifact-core.js").default, retainPrefixes?: boolean }} options
- * @returns {{kind: "artifact", initial(input: import("../service-contract.ts").ResolverInput): import("./artifact-composition-core.js").Step, resume(step: import("./artifact-composition-core.js").Step, event: import("./artifact-abi.d.ts").ResolverAbi<import("./generic-artifact-core.js").ResolverEvent>): import("./artifact-composition-core.js").Step, view(step: import("./artifact-composition-core.js").Step): import("./artifact-abi.d.ts").ResolverAbi<import("./generic-artifact-core.js").ResolverStep>, dispose(): void, disposeInvocation(invocation: bigint): void, readonly retainedHandles: number}}
+ * @returns {{kind: "artifact", initial(input: import("../service-contract.ts").ResolverInput): import("./artifact-composition-core.js").Step, resume(step: import("./artifact-composition-core.js").Step, event: import("./artifact-abi.d.ts").ResolverAbi<import("./generic-artifact-core.js").ResolverEvent>): import("./artifact-composition-core.js").Step, awaitingRequest(step: import("./artifact-composition-core.js").Step): import("../service-contract.ts").Request | undefined, view(step: import("./artifact-composition-core.js").Step): import("./artifact-abi.d.ts").ResolverAbi<import("./generic-artifact-core.js").ResolverStep>, dispose(): void, disposeInvocation(invocation: bigint): void, readonly retainedHandles: number}}
  */
 export function createArtifactMachine({ composition, parent, python, go, retainPrefixes = true }) {
   /** @type {Map<bigint, { invocation: bigint, artifact: "parent" | "python" | "go", state: import("./generic-artifact-core.js").Continuation | import("./python-artifact-core.js").Step | import("./go-artifact-core.js").Step }>} */
@@ -180,6 +180,13 @@ export function createArtifactMachine({ composition, parent, python, go, retainP
     resume: (step, event) => pump(composition.resume(step, intoArtifact(event))),
     /** @param {import("./artifact-composition-core.js").Step} step */
     view: (step) => intoResolver(composition.view(step)),
+    /** @param {import("./artifact-composition-core.js").Step} step */
+    awaitingRequest: (step) => {
+      const projected = composition.awaiting_request(step)
+      if (projected.$ === "None") return undefined
+      if (projected.$ !== "Some") throw new TypeError("Invalid Graph request projection")
+      return intoResolver(projected.value)
+    },
     dispose: () => handles.clear(),
     /** @param {bigint} invocation */
     disposeInvocation: (invocation) => {
