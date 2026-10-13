@@ -7774,6 +7774,53 @@ def ready_actual_rollback_applied(+state: T.ResolverState, +frame: T.ResolverFra
   Equal.cong(Maybe<&2, List<&2, Local.ReferenceSlot>>, Loop.Continuation, result => Admission.rejected_slots(result, frame, state),
     Compose.replacement(Compose.replace_slot(S.frame_references(frame), owner, index, Local.Omitted{Local.ReferenceLimit{}, name})), Some{slots}, replaced)
 
+# The reply history uses the same captured transition as the actual frame,
+# including the full after_graph publication/rollback selector.
+def ready_captured_history_result(+child: Phase.Child, +history: V.History, +graph: G.Graph,
+    +remaining: Nat, +next_edge: Nat, +previous: Nat, +bytes: Nat) -> Type:
+  match child:
+    case Phase.Child{_, _, _, _, source_bytes, _, _, _, before, _, _, pending, _, V.Budget{_, _, _, work, _, _}, _, _}:
+      {History.encoded_child(child, history, graph, remaining, next_edge, previous, bytes) ==
+        History.after_graph(GraphReference.bounded_result(G.step(graph, G.Captured{source_bytes, Nat.sub(bytes, previous), Nat.sub(work, before), History.ids(pending, next_edge)}), Nat.sub(remaining, 1n)), child, history) : V.History}
+
+def ready_captured_history(+child: Phase.Child, +history: V.History, +graph: G.Graph,
+    +remaining: Nat, +next_edge: Nat, +previous: Nat, +bytes: Nat,
+    positive: {Nat.is_gt(remaining, 0n) == True{} : Bool}) ->
+    ready_captured_history_result(child, history, graph, remaining, next_edge, previous, bytes):
+  match child:
+    case Phase.Child{_, _, _, _, +source_bytes, _, _, _, +before, _, _, +pending, _, V.Budget{_, _, _, +work, _, _}, _, _}:
+      Equal.cong(G.BoundedStep, V.History, step => History.after_graph(step, child, history),
+        GraphReference.bounded_transition(G.Bounded{graph, remaining}, G.Captured{source_bytes, Nat.sub(bytes, previous), Nat.sub(work, before), History.ids(pending, next_edge)}),
+        GraphReference.bounded_result(G.step(graph, G.Captured{source_bytes, Nat.sub(bytes, previous), Nat.sub(work, before), History.ids(pending, next_edge)}), Nat.sub(remaining, 1n)),
+        ready_captured_allowance(graph, source_bytes, Nat.sub(bytes, previous), Nat.sub(work, before), History.ids(pending, next_edge), remaining, positive))
+
+def ready_history_positive(history: V.History) -> Type:
+  match history:
+    case V.History{_, _, _, _, _, remaining, _}: {Nat.is_gt(remaining, 0n) == True{} : Bool}
+
+def ready_product_history_result(+phase: Phase.Phase, +history: V.History, +previous: Nat,
+    +request: T.Request, +invocation: Nat, +id: Nat, +bytes: Nat) -> Type:
+  match phase:
+    case Phase.Phase{V.Frame{_, _, graph, _, _, _, _, _, _, _, _, _, _, _, next_edge, _, _, _, _, _},
+      +child, _}:
+      match child history:
+        case Phase.Child{_, _, _, _, source_bytes, _, _, _, before, _, _, pending, _, V.Budget{_, _, _, work, _, _}, _, _} V.History{_, _, _, _, _, remaining, _}:
+          {History.reply(phase, history, previous, request, T.Reply{invocation, id, T.ProductEncoded{bytes}}) == History.after_graph(GraphReference.bounded_result(G.step(graph, G.Captured{source_bytes, Nat.sub(bytes, previous), Nat.sub(work, before), History.ids(pending, next_edge)}), Nat.sub(remaining, 1n)), child, history) : V.History}
+
+def ready_product_history(+phase: Phase.Phase, +history: V.History, +previous: Nat,
+    +request: T.Request, +invocation: Nat, +id: Nat, +bytes: Nat,
+    positive: ready_history_positive(history),
+    checked: {Boundary.check(request, T.Reply{invocation, id, T.ProductEncoded{bytes}}) == None{} : Maybe<&2, T.TechnicalFailure>}) ->
+    ready_product_history_result(phase, history, previous, request, invocation, id, bytes):
+  match phase:
+    case Phase.Phase{V.Frame{_, _, +graph, _, _, _, _, _, _, _, _, _, _, _, +next_edge, _, _, _, _, _}, +child, _}:
+      match child history:
+        case Phase.Child{_, _, _, _, +source_bytes, _, _, _, +before, _, _, +pending, _, V.Budget{_, _, _, +work, _, _}, _, _} V.History{_, _, _, _, _, +remaining, _}:
+          Equal.trans(V.History, History.reply(phase, history, previous, request, T.Reply{invocation, id, T.ProductEncoded{bytes}}), History.encoded(phase, history, previous, bytes),
+            History.after_graph(GraphReference.bounded_result(G.step(graph, G.Captured{source_bytes, Nat.sub(bytes, previous), Nat.sub(work, before), History.ids(pending, next_edge)}), Nat.sub(remaining, 1n)), child, history),
+            Equal.cong(Maybe<&2, T.TechnicalFailure>, V.History, validation => History.accepted(validation, phase, history, previous, T.Reply{invocation, id, T.ProductEncoded{bytes}}), Boundary.check(request, T.Reply{invocation, id, T.ProductEncoded{bytes}}), None{}, checked),
+            ready_captured_history(child, history, graph, remaining, next_edge, previous, bytes, positive))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
