@@ -1,4 +1,4 @@
-import { mapGraphAbi } from "../frontend-codec.ts"
+import { mapGraphAbi } from "../abi-mapping.ts"
 import type { ArtifactAbi, ResolverAbi } from "./artifact-abi.d.ts"
 
 const artifactNamespaces: readonly (readonly [string, string])[] = [

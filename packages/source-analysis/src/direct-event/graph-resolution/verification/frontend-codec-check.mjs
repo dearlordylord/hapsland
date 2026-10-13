@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import fc from "fast-check"
-import { mapGraphAbi } from "../frontend-codec.ts"
+import { mapGraphAbi } from "../abi-mapping.ts"
 
 const convert = (key, value) => (key === "$" && typeof value === "string" ? "wire/" + value : value)
 // Bounded independent oracle; deep production inputs use the iterative owner.

@@ -1,3 +1,4 @@
+import { mapGraphAbi } from "@hapsland/source-analysis/direct-event/graph-resolution/abi-mapping"
 import type { Input, Step, Request, Reply } from "./preparation-core.js"
 
 type ResolverTag<Tag> = Tag extends `../../../../source-analysis/src/direct-event/graph-resolution/Types.${infer Name}`
@@ -24,22 +25,15 @@ const importedTags = [
   ["Types.", "../../../../source-analysis/src/direct-event/graph-resolution/Types."],
   ["traversal/core.", "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."]
 ] as const
-const preparationAbi = (value: unknown, intoPreparation: boolean): unknown => {
-  if (Array.isArray(value)) return value.map((item) => preparationAbi(item, intoPreparation))
-  if (!value || typeof value !== "object") return value
-  return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => {
-      if (key === "$" && typeof item === "string") {
-        for (const [resolver, preparation] of importedTags) {
-          const from = intoPreparation ? resolver : preparation
-          if (item.startsWith(from)) return [key, (intoPreparation ? preparation : resolver) + item.slice(from.length)]
-        }
-        return [key, item]
+const preparationAbi = (value: unknown, intoPreparation: boolean): unknown =>
+  mapGraphAbi(value, (key, item) => {
+    if (key === "$" && typeof item === "string")
+      for (const [resolver, preparation] of importedTags) {
+        const from = intoPreparation ? resolver : preparation
+        if (item.startsWith(from)) return (intoPreparation ? preparation : resolver) + item.slice(from.length)
       }
-      return [key, preparationAbi(item, intoPreparation)]
-    })
-  )
-}
+    return item
+  })
 
 // Mechanical dispatch only: Bend chooses each contract, candidate and root.
 // Canonical owns lifecycle through the same driver envelope as resolver children.

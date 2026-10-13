@@ -11004,6 +11004,34 @@ def ready_publication_positive(+history: V.History, +child: X.Child, +seen: List
     case V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
       X.Child{X.Attempt{_, _, X.BundledChild{}, _, _, _, _, _, _, _}, _, _, _}: positive
 
+def ready_selected_captured_publication_result(+actual: T.ResolverFrame, +tentative: T.TentativeChild, +edge: Local.Pending,
+    +reference: D.State, +child: X.Child, +history: V.History, +phase: Phase.Phase,
+    +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>) -> Type:
+  Exists(V.Frame, view => {ActualFrame.project(ready_tentative_publication(S.advance(actual, G.Captured{source, contribution, work, ids}), tentative, edge), History.allowance(ready_reference_publication_history(history, child, ready_child_visited(ready_phase_child(phase)), ready_reference_remaining(D.frame(reference))), Nat.sub(ready_history_remaining(ready_reference_publication_history(history, child, ready_child_visited(ready_phase_child(phase)), ready_reference_remaining(D.frame(reference)))), 1n))) == Some{view} : Maybe<&2, V.Frame>} & {ReferenceFrame.project(ready_reference_published(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), child, ready_reference_child_local(child)), History.allowance(ready_reference_publication_history(history, child, ready_child_visited(ready_phase_child(phase)), ready_reference_remaining(D.frame(reference))), Nat.sub(ready_history_remaining(ready_reference_publication_history(history, child, ready_child_visited(ready_phase_child(phase)), ready_reference_remaining(D.frame(reference)))), 1n))) == Some{view} : Maybe<&2, V.Frame>})
+
+def ready_captured_publication_pair(+actual: T.ResolverFrame, +tentative: T.TentativeChild, +edge: Local.Pending,
+    +reference: D.State, +child: X.Child, +history: V.History, +phase: Phase.Phase,
+    +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
+    positive: ready_history_positive(ready_reference_publication_history(history, child, ready_child_visited(ready_phase_child(phase)), ready_reference_remaining(D.frame(reference)))),
+    evidence: ready_actual_publication_pair_result(actual, tentative, edge, reference, history, child, ready_child_visited(ready_phase_child(phase)))) ->
+    ready_selected_captured_publication_result(actual, tentative, edge, reference, child, history, phase, source, contribution, work, ids):
+  match evidence:
+    case (+view, (actual_published, reference_published)):
+      Tuple{ready_graph_view(view, G.step(S.frame_graph(ready_tentative_publication(actual, tentative, edge)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_history_remaining(ready_reference_publication_history(history, child, ready_child_visited(ready_phase_child(phase)), ready_reference_remaining(D.frame(reference)))), 1n)), ready_publication_captured_views(actual, tentative, edge, reference, child, ready_reference_child_local(child), ready_reference_publication_history(history, child, ready_child_visited(ready_phase_child(phase)), ready_reference_remaining(D.frame(reference))), view, source, contribution, work, ids, actual_published, reference_published, positive)}
+
+def ready_selected_captured_publication(+state: T.ResolverState, +actual: T.ResolverFrame, +tentative: T.TentativeChild, +edge: Local.Pending,
+    +reference: D.State, +child: X.Child, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase,
+    +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
+    +actual_ready: {ActualReady.parts(state, Some{actual}, Some{tentative}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    +reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>},
+    coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) ->
+    ready_selected_captured_publication_result(actual, tentative, edge, reference, child, history, phase, source, contribution, work, ids):
+  ready_captured_publication_pair(actual, tentative, edge, reference, child, history, phase, source, contribution, work, ids,
+    ready_publication_positive(history, child, ready_child_visited(ready_phase_child(phase)), ready_reference_remaining(D.frame(reference)),
+      ready_selected_reference_allowance(state, actual, tentative, edge, reference, child, history, child_history, phase,
+        selected_phase_contents(state, actual, tentative, edge, history, child_history, phase, actual_ready), reference_ready)),
+    ready_selected_actual_publication_pair(state, actual, tentative, edge, reference, child, history, child_history, phase, actual_ready, reference_ready, coherent))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
