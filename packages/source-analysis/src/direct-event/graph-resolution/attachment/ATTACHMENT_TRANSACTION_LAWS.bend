@@ -13163,6 +13163,111 @@ def ready_completion_partial(-World: Data, +actual: T.ResolverState, +reference:
       {ready_reference_remaining(D.frame(reference)) == ready_history_remaining(history) : Nat},
       ready_captured_coordinates(frame, reference, history, view, actual_ready, reference_ready)))
 
+def ready_reference_stage_capsule(+state: D.State, +child: X.Child, +stage: D.Stage) ->
+    {ReferenceReady.capsule(D.stage(state, stage), child) == ReferenceReady.capsule(state, child) : Phase.Capsule}:
+  match state child:
+    case D.State{D.Config{_, _, _, _, _, _}, X.Frame{_, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+        X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _}: {==}
+
+def ready_staged_capsule_observed(+actual: T.ResolverState, +reference: D.State, +child: X.Child, +history: V.History, +stage: D.Stage,
+    capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>}) ->
+    {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(D.stage(reference, stage), child)} : Maybe<&2, Phase.Capsule>}:
+  %Equal.sym(Phase.Capsule, ReferenceReady.capsule(D.stage(reference, stage), child), ReferenceReady.capsule(reference, child), ready_reference_stage_capsule(reference, child, stage)):
+    {ActualBoundary.capsule(actual, history) == Some{_} : Maybe<&2, Phase.Capsule>}
+  capsule
+
+def ready_common_after_phase(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +frame: T.ResolverFrame, +history: V.History, +view: V.Frame, +world: E.WorldState<World>,
+    actual_observed: {ActualBoundary.frame(S.state_frame(actual), history) == Some{view} : Maybe<&2, V.Frame>},
+    actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>}) ->
+    Exists(B.Boundary, boundary =>
+      {ActualBoundary.project(LoopPolicy.after_phase(ReferenceFrame.graph(D.frame(reference)), actual, frame), history) == Some{boundary} : Maybe<&2, B.Boundary>} &
+      {ReferenceBoundaryView.project(World, D.consumed(World, ReferenceBoundary.next_boundary(D.internal(reference, D.AfterCommand{False{}})), world), child, history) == Some{boundary} : Maybe<&2, B.Boundary>}):
+  match reference:
+    case D.State{_, X.Frame{G.Bounded{G.Graph{+phase, _, _, _, _, _, _, _, _, _, _}, _}, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}:
+      match phase:
+        case G.Complete{}:
+          ready_completion_normal(World, actual, D.stage(reference, D.Completion{None{}}), child, frame, history, view, world,
+            actual_observed, actual_ready, Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.stage(reference, D.Completion{None{}}), history), ReferenceFrame.project(reference, history), Some{view}, ready_reference_stage_project(reference, history, D.Completion{None{}}), reference_ready), ready_staged_capsule_observed(actual, reference, child, history, D.Completion{None{}}, capsule))
+        case G.Incomplete{+reason}:
+          ready_completion_partial(World, actual, D.stage(reference, D.Completion{Some{reason}}), child, frame, history, view, world, reason,
+            actual_observed, actual_ready, Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.stage(reference, D.Completion{Some{reason}}), history), ReferenceFrame.project(reference, history), Some{view}, ready_reference_stage_project(reference, history, D.Completion{Some{reason}}), reference_ready), ready_staged_capsule_observed(actual, reference, child, history, D.Completion{Some{reason}}, capsule))
+        case G.Idle{}:
+          Tuple{ready_iteration_boundary(view, ReferenceReady.capsule(D.stage(reference, D.Iteration{}), child)),
+            ready_common_iteration_boundary(World, actual, D.stage(reference, D.Iteration{}), child, history, view, world,
+              actual_observed, Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.stage(reference, D.Iteration{}), history), ReferenceFrame.project(reference, history), Some{view}, ready_reference_stage_project(reference, history, D.Iteration{}), reference_ready), ready_staged_capsule_observed(actual, reference, child, history, D.Iteration{}, capsule))}
+        case G.GraphReady{}:
+          Tuple{ready_iteration_boundary(view, ReferenceReady.capsule(D.stage(reference, D.Iteration{}), child)),
+            ready_common_iteration_boundary(World, actual, D.stage(reference, D.Iteration{}), child, history, view, world,
+              actual_observed, Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.stage(reference, D.Iteration{}), history), ReferenceFrame.project(reference, history), Some{view}, ready_reference_stage_project(reference, history, D.Iteration{}), reference_ready), ready_staged_capsule_observed(actual, reference, child, history, D.Iteration{}, capsule))}
+        case G.Resolving{_}:
+          Tuple{ready_iteration_boundary(view, ReferenceReady.capsule(D.stage(reference, D.Iteration{}), child)),
+            ready_common_iteration_boundary(World, actual, D.stage(reference, D.Iteration{}), child, history, view, world,
+              actual_observed, Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.stage(reference, D.Iteration{}), history), ReferenceFrame.project(reference, history), Some{view}, ready_reference_stage_project(reference, history, D.Iteration{}), reference_ready), ready_staged_capsule_observed(actual, reference, child, history, D.Iteration{}, capsule))}
+        case G.Checking{_, _}:
+          Tuple{ready_iteration_boundary(view, ReferenceReady.capsule(D.stage(reference, D.Iteration{}), child)),
+            ready_common_iteration_boundary(World, actual, D.stage(reference, D.Iteration{}), child, history, view, world,
+              actual_observed, Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.stage(reference, D.Iteration{}), history), ReferenceFrame.project(reference, history), Some{view}, ready_reference_stage_project(reference, history, D.Iteration{}), reference_ready), ready_staged_capsule_observed(actual, reference, child, history, D.Iteration{}, capsule))}
+        case G.Capturing{_, _}:
+          Tuple{ready_iteration_boundary(view, ReferenceReady.capsule(D.stage(reference, D.Iteration{}), child)),
+            ready_common_iteration_boundary(World, actual, D.stage(reference, D.Iteration{}), child, history, view, world,
+              actual_observed, Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.stage(reference, D.Iteration{}), history), ReferenceFrame.project(reference, history), Some{view}, ready_reference_stage_project(reference, history, D.Iteration{}), reference_ready), ready_staged_capsule_observed(actual, reference, child, history, D.Iteration{}, capsule))}
+
+def ready_after_command_transport(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +history: V.History, +world: E.WorldState<World>, +skip: Bool, +continuation: Loop.Continuation,
+    +same: {LoopPolicy.after_command(skip, actual) == continuation : Loop.Continuation},
+    common: Exists(B.Boundary, boundary =>
+      {ActualBoundary.project(continuation, history) == Some{boundary} : Maybe<&2, B.Boundary>} &
+      {ReferenceBoundaryView.project(World, D.consumed(World, ReferenceBoundary.next_boundary(D.internal(reference, D.AfterCommand{skip})), world), child, history) == Some{boundary} : Maybe<&2, B.Boundary>})) ->
+    Exists(B.Boundary, boundary =>
+      {ActualBoundary.project(LoopPolicy.after_command(skip, actual), history) == Some{boundary} : Maybe<&2, B.Boundary>} &
+      {ReferenceBoundaryView.project(World, D.consumed(World, ReferenceBoundary.next_boundary(D.internal(reference, D.AfterCommand{skip})), world), child, history) == Some{boundary} : Maybe<&2, B.Boundary>}):
+  match common:
+    case (+boundary, Tuple{actual_boundary, reference_boundary}):
+      Tuple{boundary, Tuple{
+        Equal.trans(Maybe<&2, B.Boundary>, ActualBoundary.project(LoopPolicy.after_command(skip, actual), history), ActualBoundary.project(continuation, history), Some{boundary},
+          Equal.cong(Loop.Continuation, Maybe<&2, B.Boundary>, step => ActualBoundary.project(step, history), LoopPolicy.after_command(skip, actual), continuation, same), actual_boundary), reference_boundary}}
+
+def ready_after_command_frame(+actual: T.ResolverState, +reference: D.State, +frame: T.ResolverFrame,
+    present: {S.state_frame(actual) == Some{frame} : Maybe<&2, T.ResolverFrame>},
+    graph: {ReferenceFrame.graph(D.frame(reference)) == S.frame_graph(frame) : G.Graph}) ->
+    {LoopPolicy.after_command(False{}, actual) == LoopPolicy.after_phase(ReferenceFrame.graph(D.frame(reference)), actual, frame) : Loop.Continuation}:
+  Equal.trans(Loop.Continuation, LoopPolicy.after_command(False{}, actual), LoopPolicy.after_phase(S.frame_graph(frame), actual, frame),
+    LoopPolicy.after_phase(ReferenceFrame.graph(D.frame(reference)), actual, frame),
+    Equal.cong(Maybe<&2, T.ResolverFrame>, Loop.Continuation, value => LoopPolicy.after_frame(value, actual), S.state_frame(actual), Some{frame}, present),
+    Equal.cong(G.Graph, Loop.Continuation, value => LoopPolicy.after_phase(value, actual, frame), S.frame_graph(frame), ReferenceFrame.graph(D.frame(reference)),
+      Equal.sym(G.Graph, ReferenceFrame.graph(D.frame(reference)), S.frame_graph(frame), graph)))
+
+def ready_common_after_command(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +frame: T.ResolverFrame, +history: V.History, +view: V.Frame, +world: E.WorldState<World>, skip: Bool,
+    +present: {S.state_frame(actual) == Some{frame} : Maybe<&2, T.ResolverFrame>},
+    +actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>}) ->
+    Exists(B.Boundary, boundary =>
+      {ActualBoundary.project(LoopPolicy.after_command(skip, actual), history) == Some{boundary} : Maybe<&2, B.Boundary>} &
+      {ReferenceBoundaryView.project(World, D.consumed(World, ReferenceBoundary.next_boundary(D.internal(reference, D.AfterCommand{skip})), world), child, history) == Some{boundary} : Maybe<&2, B.Boundary>}):
+  match reference skip:
+    case D.State{_, _, _, _, _, _, _, _, _} True{}:
+      Tuple{ready_iteration_boundary(view, ReferenceReady.capsule(D.stage(reference, D.Iteration{}), child)),
+        ready_common_iteration_boundary(World, actual, D.stage(reference, D.Iteration{}), child, history, view, world,
+          Equal.trans(Maybe<&2, V.Frame>, ActualBoundary.frame(S.state_frame(actual), history), ActualBoundary.frame(Some{frame}, history), Some{view},
+            Equal.cong(Maybe<&2, T.ResolverFrame>, Maybe<&2, V.Frame>, value => ActualBoundary.frame(value, history), S.state_frame(actual), Some{frame}, present), actual_ready),
+          Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.stage(reference, D.Iteration{}), history), ReferenceFrame.project(reference, history), Some{view}, ready_reference_stage_project(reference, history, D.Iteration{}), reference_ready),
+          ready_staged_capsule_observed(actual, reference, child, history, D.Iteration{}, capsule))}
+    case D.State{_, _, _, _, _, _, _, _, _} False{}:
+      ready_after_command_transport(World, actual, reference, child, history, world, False{}, LoopPolicy.after_phase(ReferenceFrame.graph(D.frame(reference)), actual, frame),
+        ready_after_command_frame(actual, reference, frame, present,
+          Pair.fst({ReferenceFrame.graph(D.frame(reference)) == S.frame_graph(frame) : G.Graph},
+            {ready_reference_remaining(D.frame(reference)) == ready_history_remaining(history) : Nat},
+            ready_captured_coordinates(frame, reference, history, view, actual_ready, reference_ready))),
+        ready_common_after_phase(World, actual, reference, child, frame, history, view, world,
+          Equal.trans(Maybe<&2, V.Frame>, ActualBoundary.frame(S.state_frame(actual), history), ActualBoundary.frame(Some{frame}, history), Some{view},
+            Equal.cong(Maybe<&2, T.ResolverFrame>, Maybe<&2, V.Frame>, value => ActualBoundary.frame(value, history), S.state_frame(actual), Some{frame}, present), actual_ready),
+          actual_ready, reference_ready, capsule))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
