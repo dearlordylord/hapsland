@@ -67,6 +67,10 @@ try {
   const profileDirectory = process.env.HAPSLAND_PREPARATION_PROFILE_DIR
   if (profileDirectory !== undefined) {
     assert.equal(reference, "current-native", "profiling requires the explicit supplemental native reference")
+    const profileRuntime = process.env.HAPSLAND_PREPARATION_PROFILE_RUNTIME ?? "bun"
+    assert.ok(profileRuntime === "bun" || profileRuntime === "node")
+    const processTrace = process.env.HAPSLAND_PREPARATION_PROFILE_PROCESSES === "1"
+    if (processTrace) assert.equal(profileRuntime, "node")
     mkdirSync(profileDirectory, { recursive: true })
     for (const implementation of ["native-oracle", "public"]) {
       const output = execFileSync(
@@ -74,7 +78,7 @@ try {
         [
           "-c",
           "11",
-          bun,
+          profileRuntime === "node" ? process.execPath : bun,
           "--cpu-prof",
           "--cpu-prof-dir=" + profileDirectory,
           "--cpu-prof-name=" + implementation + ".cpuprofile",
@@ -87,7 +91,9 @@ try {
         ],
         { encoding: "utf8", timeout: 15000, maxBuffer: 8 * 1024 * 1024 }
       )
-      console.log(JSON.stringify({ diagnosticOnly: true, profileDirectory, worker: JSON.parse(output) }))
+      console.log(
+        JSON.stringify({ diagnosticOnly: true, profileRuntime, profileDirectory, worker: JSON.parse(output) })
+      )
     }
   } else {
     for (let pair = 0; pair < 17; pair++) {

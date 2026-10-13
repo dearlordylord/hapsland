@@ -33,10 +33,27 @@ const cases = await Promise.all(
     }
   }))
 )
+const observeProcesses = process.env.HAPSLAND_PREPARATION_PROFILE_PROCESSES === "1" && typeof Bun === "undefined"
+let processStarts = 0
+const processCounts = []
+const processObserver = observeProcesses
+  ? (await import("node:async_hooks")).createHook({
+      init(_id, type) {
+        if (type === "PROCESSWRAP") processStarts++
+      }
+    })
+  : undefined
+processObserver?.enable()
+let sweep = 0
 const run = async () => {
   const results = []
-  for (const { observation, context } of cases)
+  const round = observeProcesses ? sweep++ : 0
+  let index = 0
+  for (const { observation, context } of cases) {
+    const before = processStarts
     results.push(JSON.stringify(await Effect.runPromise(prepareObservation(observation, context))))
+    if (observeProcesses) processCounts.push({ sweep: round, fixture: index++, starts: processStarts - before })
+  }
   return results
 }
 const actual = await run()
@@ -87,6 +104,8 @@ for (let index = 0; index < rounds; index++) {
   checksum += result.reduce((sum, value) => sum + value.length, 0)
 }
 const used = process.cpuUsage(cpu)
+processObserver?.disable()
+if (observeProcesses) assert.ok(processStarts > 0 && processCounts.length === cases.length * (1 + warmups + rounds))
 console.log(
   JSON.stringify({
     seconds: (performance.now() - started) / 1000,
@@ -97,6 +116,8 @@ console.log(
     rounds,
     definedAndEqual: true,
     implementation,
-    runtime: Bun.version
+    ...(process.env.HAPSLAND_PREPARATION_PROFILE_DIR === undefined ? {} : { diagnosticMemory: process.memoryUsage() }),
+    ...(observeProcesses ? { diagnosticProcessCounts: processCounts } : {}),
+    runtime: typeof Bun === "undefined" ? process.version : Bun.version
   })
 )

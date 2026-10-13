@@ -8021,18 +8021,27 @@ def ready_reference_graph_project(+state: D.State, +history: V.History, +view: V
       V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
       ready_reference_graph_coordinate_rows(state, history, ReferenceFrame.targets(target_values), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, ready)
 
+def ready_captured_coordinate_pairs(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
+    actual_coordinates: ready_actual_graph_coordinates(actual, ready_history_remaining(history), view),
+    reference_coordinates: ready_reference_graph_coordinates(reference, view)) ->
+    {ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph} &
+    {ready_reference_remaining(D.frame(reference)) == ready_history_remaining(history) : Nat}:
+  match actual_coordinates reference_coordinates:
+    case Tuple{actual_graph, actual_remaining} Tuple{reference_graph, reference_remaining}:
+      Tuple{
+        Equal.trans(G.Graph, ready_reference_graph(D.frame(reference)), ready_view_graph(view), S.frame_graph(actual), reference_graph,
+          Equal.sym(G.Graph, S.frame_graph(actual), ready_view_graph(view), actual_graph)),
+        Equal.trans(Nat, ready_reference_remaining(D.frame(reference)), ready_view_remaining(view), ready_history_remaining(history), reference_remaining,
+          Equal.sym(Nat, ready_history_remaining(history), ready_view_remaining(view), actual_remaining))}
+
 def ready_captured_coordinates(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
     +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
     +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
     {ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph} &
     {ready_reference_remaining(D.frame(reference)) == ready_history_remaining(history) : Nat}:
-  Tuple{
-    Equal.trans(G.Graph, ready_reference_graph(D.frame(reference)), ready_view_graph(view), S.frame_graph(actual),
-      Pair.fst({ready_reference_graph(D.frame(reference)) == ready_view_graph(view) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == ready_view_remaining(view) : Nat}, ready_reference_graph_project(reference, history, view, reference_ready)),
-      Equal.sym(G.Graph, S.frame_graph(actual), ready_view_graph(view), Pair.fst({S.frame_graph(actual) == ready_view_graph(view) : G.Graph}, {ready_history_remaining(history) == ready_view_remaining(view) : Nat}, ready_actual_graph_project(actual, history, view, actual_ready)))),
-    Equal.trans(Nat, ready_reference_remaining(D.frame(reference)), ready_view_remaining(view), ready_history_remaining(history),
-      Pair.snd({ready_reference_graph(D.frame(reference)) == ready_view_graph(view) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == ready_view_remaining(view) : Nat}, ready_reference_graph_project(reference, history, view, reference_ready)),
-      Equal.sym(Nat, ready_history_remaining(history), ready_view_remaining(view), Pair.snd({S.frame_graph(actual) == ready_view_graph(view) : G.Graph}, {ready_history_remaining(history) == ready_view_remaining(view) : Nat}, ready_actual_graph_project(actual, history, view, actual_ready))))}
+  ready_captured_coordinate_pairs(actual, reference, history, view,
+    ready_actual_graph_project(actual, history, view, actual_ready),
+    ready_reference_graph_project(reference, history, view, reference_ready))
 
 def ready_reference_captured_at(+reference: D.State, +history: V.History, +view: V.Frame,
     +graph: G.Graph, +remaining: Nat, +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
@@ -8049,6 +8058,16 @@ def ready_reference_captured_at(+reference: D.State, +history: V.History, +view:
     {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_reference_remaining(D.frame(reference)), 1n))) == Some{ready_graph_view(view, G.step(_, G.Captured{source, contribution, work, ids}), Nat.sub(ready_reference_remaining(D.frame(reference)), 1n))} : Maybe<&2, V.Frame>}
   ready_reference_captured_frame(reference, history, view, source, contribution, work, ids, ready, ref_positive)
 
+def ready_reference_captured_coordinate_pair(+reference: D.State, +history: V.History, +view: V.Frame,
+    +graph: G.Graph, +remaining: Nat, +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
+    ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    positive: {Nat.is_gt(remaining, 0n) == True{} : Bool},
+    coordinates: {ready_reference_graph(D.frame(reference)) == graph : G.Graph} & {ready_reference_remaining(D.frame(reference)) == remaining : Nat}) ->
+    {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(remaining, 1n))) == Some{ready_graph_view(view, G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n))} : Maybe<&2, V.Frame>}:
+  match coordinates:
+    case (graph_equal, remaining_equal):
+      ready_reference_captured_at(reference, history, view, graph, remaining, source, contribution, work, ids, ready, positive, graph_equal, remaining_equal)
+
 def ready_captured_frames(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
     +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
     +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
@@ -8060,9 +8079,8 @@ def ready_captured_frames(+actual: T.ResolverFrame, +reference: D.State, +histor
     case V.History{_, _, _, _, _, +remaining, _}:
       Tuple{
         ready_graph_frame_complete(actual, history, view, G.step(S.frame_graph(actual), G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n), actual_ready),
-        ready_reference_captured_at(reference, history, view, S.frame_graph(actual), remaining, source, contribution, work, ids, reference_ready, positive,
-          Pair.fst({ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == remaining : Nat}, ready_captured_coordinates(actual, reference, history, view, actual_ready, reference_ready)),
-          Pair.snd({ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == remaining : Nat}, ready_captured_coordinates(actual, reference, history, view, actual_ready, reference_ready)))}
+        ready_reference_captured_coordinate_pair(reference, history, view, S.frame_graph(actual), remaining, source, contribution, work, ids, reference_ready, positive,
+          ready_captured_coordinates(actual, reference, history, view, actual_ready, reference_ready))}
 
 def ready_transition_selected(+actual: T.ResolverFrame, +step: G.Step,
     +owner: Nat, +index: Nat, +symbol: String,
