@@ -11,12 +11,17 @@ const core = readFileSync(corePath, "utf8")
 const proof = readFileSync(proofPath, "utf8")
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-request-mutant-"))
 const check = (file) => spawnSync("bend", [file, "--check-only"], { encoding: "utf8", timeout: 10000 })
+let assertions = 0
+const verify = (method, ...arguments_) => {
+  assert[method](...arguments_)
+  assertions += 1
+}
 try {
   const baseline = check(proofPath)
-  assert.equal(baseline.status, 0, baseline.stdout + baseline.stderr)
-  assert.match(baseline.stdout + baseline.stderr, /ALL PROOFS CHECK/u)
+  verify("equal", baseline.status, 0, baseline.stdout + baseline.stderr)
+  verify("match", baseline.stdout + baseline.stderr, /ALL PROOFS CHECK/u)
   const anchor = "def awaiting_request(step: Step) -> Maybe<&2, T.Request>:\n  request_from_view(view(step))"
-  assert.equal(core.split(anchor).length, 2, "one exact production projection")
+  verify("equal", core.split(anchor).length, 2, "one exact production projection")
   const imports = (text, original) =>
     text.replace(
       /^import (\.[^\s]+)(.*)$/gmu,
@@ -35,15 +40,16 @@ try {
   const mutantProofPath = join(temporary, "PROOF.bend")
   writeFileSync(mutantProofPath, mutantProof)
   const rejected = check(mutantProofPath)
-  assert.equal(rejected.error, undefined, "mutant must finish within hard10")
-  assert.notEqual(rejected.status, 0, "constant None must fail the original projection corollary")
-  assert.match(rejected.stdout + rejected.stderr, /awaiting_request_exact/u)
-  assert.match(rejected.stdout + rejected.stderr, /expected|observed/u)
-  assert.equal(readFileSync(corePath, "utf8"), core, "production core unchanged")
-  assert.equal(readFileSync(proofPath, "utf8"), proof, "production corollary unchanged")
+  verify("equal", rejected.error, undefined, "mutant must finish within hard10")
+  verify("notEqual", rejected.status, 0, "constant None must fail the original projection corollary")
+  verify("match", rejected.stdout + rejected.stderr, /awaiting_request_exact/u)
+  verify("match", rejected.stdout + rejected.stderr, /expected|observed/u)
+  verify("equal", readFileSync(corePath, "utf8"), core, "production core unchanged")
+  verify("equal", readFileSync(proofPath, "utf8"), proof, "production corollary unchanged")
   console.log(
     JSON.stringify({
       passed: true,
+      assertions,
       universalRequestProjection: true,
       constantNoneMutantRejected: true,
       hardDeadlineSeconds: 10
