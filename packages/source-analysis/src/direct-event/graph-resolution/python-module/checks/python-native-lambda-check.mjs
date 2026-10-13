@@ -1,29 +1,11 @@
-import { readFileSync } from "node:fs"
-import { execFileSync } from "node:child_process"
-import {
-  Parser,
-  Python,
-  descendants,
-  sameSyntaxNode
-} from "@hapsland/source-analysis/direct-event/languages/native-parser"
-const path = new URL("../../../languages/python.ts", import.meta.url)
-const source = readFileSync(path, "utf8"),
-  fragments =
-    source.slice(source.indexOf("const assignment ="), source.indexOf("const primitives =")) +
-    source.slice(source.indexOf("const staticTypeBlock ="), source.indexOf("const importedReference ="))
-const js = execFileSync(
-  "bun",
-  ["-e", 'process.stdout.write(new Bun.Transpiler({loader:"ts"}).transformSync(await Bun.stdin.text()))'],
-  { input: fragments, encoding: "utf8", timeout: 5000 }
+import { Parser, Python, descendants } from "@hapsland/source-analysis/direct-event/languages/native-parser"
+const nativeBindings = await import(
+  new URL("../../../../../dist/direct-event/languages/python/scope-bindings.js", import.meta.url)
 )
-const native = Function(
-  "Parser",
-  "Python",
-  "descendants",
-  "sameSyntaxNode",
-  js.replace("export const pythonImports", "const pythonImports") +
-    "\nreturn {moduleScope,unknownEvaluatedCall,unavailableImportNamespace,evaluatedNodes}"
-)(Parser, Python, descendants, sameSyntaxNode)
+const nativeAuthority = await import(
+  new URL("../../../../../dist/direct-event/languages/python/module-authority.js", import.meta.url)
+)
+const native = { ...nativeBindings, ...nativeAuthority }
 const text = "from dataclasses import field\nclass C:\n x=field(default_factory=lambda: run())\n"
 let differences = 0,
   identityFailures = 0,

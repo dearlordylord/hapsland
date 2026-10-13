@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFile, mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
@@ -12,17 +12,13 @@ try {
     emitted = join(temp, "bindings.mjs")
   execFileSync("taskset", ["-c", "10", "bend", file, "-o", emitted], { timeout: 10000 })
   const { default: child } = await import(pathToFileURL(emitted))
-  const source = await readFile(join(import.meta.dirname, "../../../languages/python.ts"), "utf8")
-  const fragments =
-    source.slice(source.indexOf("const assignment ="), source.indexOf("const rootFor =")) +
-    source.slice(source.indexOf("const scopedNodes ="), source.indexOf("const primitives =")) +
-    source.slice(source.indexOf("const staticTypeBlock ="), source.indexOf("export type PythonImport ="))
-  const js = execFileSync(
-    "bun",
-    ["-e", 'process.stdout.write(new Bun.Transpiler({loader:"ts"}).transformSync(await Bun.stdin.text()))'],
-    { input: fragments, encoding: "utf8", timeout: 5000 }
+  const nativeBindings = await import(
+    pathToFileURL(join(import.meta.dirname, "../../../../../dist/direct-event/languages/python/scope-bindings.js"))
   )
-  const native = Function(js + "\nreturn {scopeBindings,identities,moduleScope}")()
+  const nativeAuthority = await import(
+    pathToFileURL(join(import.meta.dirname, "../../../../../dist/direct-event/languages/python/module-authority.js"))
+  )
+  const native = { ...nativeBindings, ...nativeAuthority }
   const fixtures = [
     "from typing import TYPE_CHECKING as TC\nfrom .foo import Name as Alias\n",
     "import a.b\nimport c.d as E\nfrom . import child\n",

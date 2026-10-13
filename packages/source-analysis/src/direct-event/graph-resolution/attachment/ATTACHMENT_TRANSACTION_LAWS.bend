@@ -9195,6 +9195,236 @@ def ready_capture_published_actual(+frame: T.ResolverFrame, +order: V.Order, +it
       S.frame_captured(Admission.publish_child(False{}, frame, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan)), Map.set(&2, Maybe<&2, T.CapturedFacts>, S.frame_captured(frame), path, Some{T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}}), ready_capture_published_map(frame, target, path, T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceFrame.source_exports(source), bytes}, identity, plan)),
     ready_capture_publication_guarded(frame, order, items, sources, path, source, catalog, bytes, rows, canonical, coverage, actual, reference))
 
+
+def ready_map_put_node_count(-Value: Data, +position: Nat, +left: Map<&2, Value>, +right: Map<&2, Value>, +value: Value,
+    key_bit: String & Bool,
+    left_count: @key: String -> {List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, left, key, value))) == List.length(&2, String, Map.keys(&2, Value, left)) : Nat},
+    right_count: @key: String -> {List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, right, key, value))) == List.length(&2, String, Map.keys(&2, Value, right)) : Nat}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.put.go(&2, Value, MNode{position, left, right}, value, key_bit))) == List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat}:
+  match key_bit:
+    case Tuple{+key, False{}}:
+      %Equal.sym(Map<&2, Value>, Map.put.go(&2, Value, MNode{position, left, right}, value, Tuple{key, False{}}), MNode{position, Map.put(&2, Value, left, key, value), right},
+        Payload.put_node_split(Value, position, left, right, key, value, False{})):
+        {List.length(&2, String, Map.keys(&2, Value, _)) == List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat}
+      Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, Map.put(&2, Value, left, key, value), right})), (List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, left, key, value))) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat), List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})),
+        ready_map_keys_node(Value, position, Map.put(&2, Value, left, key, value), right),
+        Equal.trans(Nat, (List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, left, key, value))) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat), (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat), List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})),
+          Equal.cong(Nat, Nat, count => (count + List.length(&2, String, Map.keys(&2, Value, right)) : Nat), List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, left, key, value))), List.length(&2, String, Map.keys(&2, Value, left)), left_count(key)),
+          Equal.sym(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})), (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat), ready_map_keys_node(Value, position, left, right))))
+    case Tuple{+key, True{}}:
+      %Equal.sym(Map<&2, Value>, Map.put.go(&2, Value, MNode{position, left, right}, value, Tuple{key, True{}}), MNode{position, left, Map.put(&2, Value, right, key, value)},
+        Payload.put_node_split(Value, position, left, right, key, value, True{})):
+        {List.length(&2, String, Map.keys(&2, Value, _)) == List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})) : Nat}
+      Equal.trans(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, left, Map.put(&2, Value, right, key, value)})), (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, right, key, value))) : Nat), List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})),
+        ready_map_keys_node(Value, position, left, Map.put(&2, Value, right, key, value)),
+        Equal.trans(Nat, (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, right, key, value))) : Nat), (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat), List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})),
+          Equal.cong(Nat, Nat, count => (List.length(&2, String, Map.keys(&2, Value, left)) + count : Nat), List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, right, key, value))), List.length(&2, String, Map.keys(&2, Value, right)), right_count(key)),
+          Equal.sym(Nat, List.length(&2, String, Map.keys(&2, Value, MNode{position, left, right})), (List.length(&2, String, Map.keys(&2, Value, left)) + List.length(&2, String, Map.keys(&2, Value, right)) : Nat), ready_map_keys_node(Value, position, left, right))))
+
+def ready_map_put_count(-Value: Data, +tree: Map<&2, Value>, +key: String, +value: Value,
+    +valid: {Patricia.canonical(Value, tree) == True{} : Bool}, present: {Patricia.nonempty(Value, tree) == True{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, tree, key, value))) == List.length(&2, String, Map.keys(&2, Value, tree)) : Nat}:
+  match tree:
+    case MTip{}:
+      Empty.absurd({List.length(&2, String, Map.keys(&2, Value, Map.put(&2, Value, tree, key, value))) == List.length(&2, String, Map.keys(&2, Value, tree)) : Nat}, NatFacts.internal_false_ne_true(present))
+    case MLeaf{_, _}: {==}
+    case MNode{+position, +left, +right}:
+      ready_map_put_node_count(Value, position, left, right, value, Map.bit(key, position),
+        query => ready_map_put_count(Value, left, query, value, Insert.node_left_canonical(Value, position, left, right, valid), Insert.node_left_nonempty(Value, position, left, right, valid)),
+        query => ready_map_put_count(Value, right, query, value, Insert.node_right_canonical(Value, position, left, right, valid), Insert.node_right_nonempty(Value, position, left, right, valid)))
+
+def ready_map_set_present_found(-Value: Data, +found: Maybe<&2, String>, +tree: Map<&2, Value>, +key: String, +value: Value,
+    witness: {Insert.selected(Value, tree, key) == found : Maybe<&2, String>},
+    +valid: {Patricia.canonical(Value, tree) == True{} : Bool},
+    present: {Membership.selected_equal(found, key) == True{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.set.go(&2, Value, value, Tuple{tree, Tuple{key, found}}))) == List.length(&2, String, Map.keys(&2, Value, tree)) : Nat}:
+  match found:
+    case None{}:
+      Empty.absurd({List.length(&2, String, Map.keys(&2, Value, Map.set.go(&2, Value, value, Tuple{tree, Tuple{key, found}}))) == List.length(&2, String, Map.keys(&2, Value, tree)) : Nat}, NatFacts.internal_false_ne_true(present))
+    case Some{+old}:
+      %StringFacts.eq_of_eq_true(key, old, present):
+        {List.length(&2, String, Map.keys(&2, Value, Map.set.fin(&2, Value, tree, key, value, key, _))) == List.length(&2, String, Map.keys(&2, Value, tree)) : Nat}
+      %StringFacts.internal_cmp_refl(key):
+        {List.length(&2, String, Map.keys(&2, Value, Map.set.fin.go(&2, Value, tree, key, value, _))) == List.length(&2, String, Map.keys(&2, Value, tree)) : Nat}
+      ready_map_put_count(Value, tree, key, value, valid,
+        Equal.trans(Bool, Patricia.nonempty(Value, tree), Patricia.first_leaf_some(Insert.selected(Value, tree, key)), True{},
+          Equal.sym(Bool, Patricia.first_leaf_some(Insert.selected(Value, tree, key)), Patricia.nonempty(Value, tree), Insert.selected_present(Value, tree, key, valid)),
+          Equal.cong(Maybe<&2, String>, Bool, Patricia.first_leaf_some, Insert.selected(Value, tree, key), Some{old}, witness)))
+
+def ready_map_set_present_count(-Value: Data, +tree: Map<&2, Value>, +key: String, +value: Value,
+    valid: {Patricia.canonical(Value, tree) == True{} : Bool},
+    present: {Membership.has_value(Value, Map.has(&2, Value, tree, key)) == True{} : Bool}) ->
+    {List.length(&2, String, Map.keys(&2, Value, Map.set(&2, Value, tree, key, value))) == List.length(&2, String, Map.keys(&2, Value, tree)) : Nat}:
+  %Equal.sym(Map<&2, Value> & String & Maybe<&2, String>, Map.seek(&2, Value, tree, key),
+    Tuple{tree, Tuple{key, Insert.selected(Value, tree, key)}}, Insert.seek_exact(Value, tree, key)):
+    {List.length(&2, String, Map.keys(&2, Value, Map.set.go(&2, Value, value, _))) == List.length(&2, String, Map.keys(&2, Value, tree)) : Nat}
+  ready_map_set_present_found(Value, Insert.selected(Value, tree, key), tree, key, value, {==}, valid,
+    Equal.trans(Bool, Membership.selected_equal(Insert.selected(Value, tree, key), key), Membership.has_value(Value, Map.has(&2, Value, tree, key)), True{},
+      Equal.sym(Bool, Membership.has_value(Value, Map.has(&2, Value, tree, key)), Membership.selected_equal(Insert.selected(Value, tree, key), key),
+        Equal.cong(Map<&2, Value> & Bool, Bool, pair => Membership.has_value(Value, pair), Map.has(&2, Value, tree, key), Tuple{tree, Membership.selected_equal(Insert.selected(Value, tree, key), key)}, Membership.has_exact(Value, tree, key))), present))
+
+def ready_capture_lookup_present(+tree: Map<&2, Maybe<&2, T.CapturedFacts>>, +query: String, +value: T.CapturedFacts, +present: Bool,
+    test: {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == present : Bool},
+    ready: {Local.map_result(Maybe<&2, T.CapturedFacts>, Map.get(Maybe<&2, T.CapturedFacts>, None{}, tree, query)) == Some{value} : Maybe<&2, T.CapturedFacts>}) ->
+    {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}:
+  match present:
+    case True{}: test
+    case False{}:
+      Empty.absurd({Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool},
+        Contents.none_some(T.CapturedFacts, value,
+          Equal.trans(Maybe<&2, T.CapturedFacts>, None{},
+            Local.map_result(Maybe<&2, T.CapturedFacts>, Map.get(Maybe<&2, T.CapturedFacts>, None{}, tree, query)), Some{value},
+            Equal.sym(Maybe<&2, T.CapturedFacts>,
+              Local.map_result(Maybe<&2, T.CapturedFacts>, Map.get(Maybe<&2, T.CapturedFacts>, None{}, tree, query)), None{},
+              Payload.lookup_absent(Maybe<&2, T.CapturedFacts>, None{}, tree, query, test)), ready)))
+
+def ready_capture_raw_positive(+raw: Maybe<&2, T.CapturedFacts>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>, +id: String,
+    +source: Maybe<&2, V.CaptureSource>, +entry: V.CapturedEntry,
+    lookup: {Local.map_result(Maybe<&2, T.CapturedFacts>, Map.get(Maybe<&2, T.CapturedFacts>, None{}, tree, id)) == raw : Maybe<&2, T.CapturedFacts>},
+    ready: {ActualFrame.captured_entry(id, raw, source) == Some{entry} : Maybe<&2, V.CapturedEntry>}) ->
+    NatFacts.le(1n, observed_key_count(Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree), id)):
+  match raw:
+    case Some{value}:
+      pending_map_keys_positive(Maybe<&2, T.CapturedFacts>, tree, id,
+        ready_capture_lookup_present(tree, id, value, Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, id), {==}, lookup))
+    case None{}:
+      Empty.absurd(NatFacts.le(1n, observed_key_count(Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree), id)),
+        Contents.none_some(V.CapturedEntry, entry, ready))
+
+def ready_capture_positive_step(+head: Maybe<&2, V.CapturedEntry>, +rest: Maybe<&2, List<&2, V.CapturedEntry>>,
+    +id: String, +tail: List<&2, String>, +keys: List<&2, String>, +rows: List<&2, V.CapturedEntry>,
+    ready: {ActualFrame.captured_prefix(head, rest) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    head_positive: @entry: V.CapturedEntry -> {head == Some{entry} : Maybe<&2, V.CapturedEntry>} -> NatFacts.le(1n, observed_key_count(keys, id)),
+    tail_positive: @values: List<&2, V.CapturedEntry> -> {rest == Some{values} : Maybe<&2, List<&2, V.CapturedEntry>>} ->
+      {observed_positive(tail, keys) == True{} : Bool}) ->
+    {observed_positive(id <> tail, keys) == True{} : Bool}:
+  match head rest:
+    case Some{entry} Some{values}:
+      BoolFacts.and_eq_true(Nat.is_le(1n, observed_key_count(keys, id)), observed_positive(tail, keys),
+        head_positive(entry, {==}), tail_positive(values, {==}))
+    case None{} _:
+      Empty.absurd({observed_positive(id <> tail, keys) == True{} : Bool}, Contents.none_some(List<&2, V.CapturedEntry>, rows, ready))
+    case Some{_} None{}:
+      Empty.absurd({observed_positive(id <> tail, keys) == True{} : Bool}, Contents.none_some(List<&2, V.CapturedEntry>, rows, ready))
+
+def ready_capture_positive(+order: List<&2, String>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>, +sources: List<&2, V.CaptureSource>,
+    +rows: List<&2, V.CapturedEntry>,
+    ready: {ActualFrame.captured(order, tree, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {observed_positive(order, Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree)) == True{} : Bool}:
+  match order:
+    case []: {==}
+    case +id <> +tail:
+      +raw: Maybe<&2, T.CapturedFacts> = Local.map_result(Maybe<&2, T.CapturedFacts>, Map.get(Maybe<&2, T.CapturedFacts>, None{}, tree, id))
+      ready_capture_positive_step(ActualFrame.captured_entry(id, raw, V.capture_at(sources, id)),
+        ActualFrame.captured(tail, tree, sources), id, tail, Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree), rows, ready,
+        entry => found => ready_capture_raw_positive(raw, tree, id, V.capture_at(sources, id), entry, {==}, found),
+        values => found => ready_capture_positive(tail, tree, sources, values, found))
+
+def ready_capture_absent_case(+present: Bool, +order: List<&2, String>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>,
+    +sources: List<&2, V.CaptureSource>, +rows: List<&2, V.CapturedEntry>, +path: String,
+    lookup: {Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, path)) == present : Bool},
+    valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, tree) == True{} : Bool},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree))) == True{} : Bool},
+    absent: {List.contains(String, String.eq, order, path) == False{} : Bool},
+    projected: {ActualFrame.captured(order, tree, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, path)) == False{} : Bool}:
+  match present:
+    case False{}: lookup
+    case True{}:
+      Empty.absurd({Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, path)) == False{} : Bool},
+        observed_extra_impossible(order, Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree), path, unique, size, absent,
+          ready_capture_positive(order, tree, sources, rows, projected),
+          pending_map_keys_positive(Maybe<&2, T.CapturedFacts>, tree, path,
+            Equal.trans(Bool, Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, path), Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, path)), True{},
+              Equal.sym(Bool, Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, path)), Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, path), Membership.has_leaf_membership(Maybe<&2, T.CapturedFacts>, tree, path, valid)), lookup))))
+
+def ready_capture_absent(+order: List<&2, String>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>,
+    +sources: List<&2, V.CaptureSource>, +rows: List<&2, V.CapturedEntry>, +path: String,
+    valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, tree) == True{} : Bool},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree))) == True{} : Bool},
+    absent: {List.contains(String, String.eq, order, path) == False{} : Bool},
+    projected: {ActualFrame.captured(order, tree, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, path)) == False{} : Bool}:
+  ready_capture_absent_case(Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, path)), order, tree, sources, rows, path, {==}, valid, unique, size, absent, projected)
+
+
+def ready_capture_present_choice(+same: Bool, +head: String, +query: String, +tail: List<&2, String>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>,
+    test: {String.eq(head, query) == same : Bool},
+    present: {Bool.or(same, List.contains(String, String.eq, tail, query)) == True{} : Bool},
+    first: {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, head) == True{} : Bool},
+    rest: {List.contains(String, String.eq, tail, query) == True{} : Bool} -> {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}) ->
+    {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}:
+  match same:
+    case True{}:
+      %StringFacts.eq_of_eq_true(head, query, test): {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, _) == True{} : Bool}
+      first
+    case False{}: rest(present)
+
+def ready_capture_present_step(+head: String, +tail: List<&2, String>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>, +query: String,
+    +raw: Maybe<&2, T.CapturedFacts>, +provenance: Maybe<&2, V.CaptureSource>, +rest: Maybe<&2, List<&2, V.CapturedEntry>>, +rows: List<&2, V.CapturedEntry>,
+    lookup: {Local.map_result(Maybe<&2, T.CapturedFacts>, Map.get(Maybe<&2, T.CapturedFacts>, None{}, tree, head)) == raw : Maybe<&2, T.CapturedFacts>},
+    projected: {ActualFrame.captured_prefix(ActualFrame.captured_entry(head, raw, provenance), rest) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    present: {List.contains(String, String.eq, head <> tail, query) == True{} : Bool},
+    recurse: @retained: List<&2, V.CapturedEntry> -> {rest == Some{retained} : Maybe<&2, List<&2, V.CapturedEntry>>} ->
+      {List.contains(String, String.eq, tail, query) == True{} : Bool} -> {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}) ->
+    {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}:
+  match raw provenance rest:
+    case Some{+file} Some{_} Some{+retained}:
+      ready_capture_present_choice(String.eq(head, query), head, query, tail, tree, {==}, present,
+        ready_capture_lookup_present(tree, head, file, Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, head), {==}, lookup),
+        found => recurse(retained, {==}, found))
+    case None{} _ _:
+      Empty.absurd({Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}, Contents.none_some(List<&2, V.CapturedEntry>, rows, projected))
+    case Some{_} None{} _:
+      Empty.absurd({Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}, Contents.none_some(List<&2, V.CapturedEntry>, rows, projected))
+    case Some{_} Some{_} None{}:
+      Empty.absurd({Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}, Contents.none_some(List<&2, V.CapturedEntry>, rows, projected))
+
+def ready_capture_present(+order: List<&2, String>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>, +sources: List<&2, V.CaptureSource>,
+    +rows: List<&2, V.CapturedEntry>, +query: String,
+    projected: {ActualFrame.captured(order, tree, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>},
+    present: {List.contains(String, String.eq, order, query) == True{} : Bool}) ->
+    {Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}:
+  match order:
+    case []: Empty.absurd({Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query) == True{} : Bool}, NatFacts.internal_false_ne_true(present))
+    case +head <> +tail:
+      ready_capture_present_step(head, tail, tree, query, Local.map_result(Maybe<&2, T.CapturedFacts>, Map.get(Maybe<&2, T.CapturedFacts>, None{}, tree, head)), V.capture_at(sources, head), ActualFrame.captured(tail, tree, sources), rows,
+        {==}, projected, present, retained => ready => found => ready_capture_present(tail, tree, sources, retained, query, ready, found))
+
+def ready_string_history_membership(+order: List<&2, String>, +query: String) ->
+    {History.has_string(order, query) == List.contains(String, String.eq, order, query) : Bool}:
+  match order:
+    case []: {==}
+    case +head <> +tail:
+      Equal.cong(Bool, Bool, found => Bool.or(String.eq(head, query), found), History.has_string(tail, query), List.contains(String, String.eq, tail, query), ready_string_history_membership(tail, query))
+
+def ready_capture_membership_case(+present: Bool, +order: List<&2, String>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>,
+    +sources: List<&2, V.CaptureSource>, +rows: List<&2, V.CapturedEntry>, +query: String,
+    test: {List.contains(String, String.eq, order, query) == present : Bool},
+    valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, tree) == True{} : Bool},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree))) == True{} : Bool},
+    projected: {ActualFrame.captured(order, tree, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, query)) == present : Bool}:
+  match present:
+    case True{}:
+      Equal.trans(Bool, Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, query)), Insert.leaf_exists(Maybe<&2, T.CapturedFacts>, tree, query), True{},
+        Membership.has_leaf_membership(Maybe<&2, T.CapturedFacts>, tree, query, valid), ready_capture_present(order, tree, sources, rows, query, projected, test))
+    case False{}: ready_capture_absent(order, tree, sources, rows, query, valid, unique, size, test, projected)
+
+def ready_capture_membership(+order: List<&2, String>, +tree: Map<&2, Maybe<&2, T.CapturedFacts>>,
+    +sources: List<&2, V.CaptureSource>, +rows: List<&2, V.CapturedEntry>, +query: String,
+    valid: {Patricia.canonical(Maybe<&2, T.CapturedFacts>, tree) == True{} : Bool},
+    unique: {ActualFrame.strings_unique(order, order) == True{} : Bool},
+    size: {Nat.is_eq(List.length(&2, String, order), List.length(&2, String, Map.keys(&2, Maybe<&2, T.CapturedFacts>, tree))) == True{} : Bool},
+    projected: {ActualFrame.captured(order, tree, sources) == Some{rows} : Maybe<&2, List<&2, V.CapturedEntry>>}) ->
+    {Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, query)) == History.has_string(order, query) : Bool}:
+  Equal.trans(Bool, Membership.has_value(Maybe<&2, T.CapturedFacts>, Map.has(&2, Maybe<&2, T.CapturedFacts>, tree, query)), List.contains(String, String.eq, order, query), History.has_string(order, query),
+    ready_capture_membership_case(List.contains(String, String.eq, order, query), order, tree, sources, rows, query, {==}, valid, unique, size, projected),
+    Equal.sym(Bool, History.has_string(order, query), List.contains(String, String.eq, order, query), ready_string_history_membership(order, query)))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

@@ -1,16 +1,11 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFile, mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { projectPythonSyntax } from "../syntax-projection.ts"
-import {
-  Parser,
-  Python,
-  descendants,
-  sameSyntaxNode
-} from "@hapsland/source-analysis/direct-event/languages/native-parser"
+import { Parser, Python } from "@hapsland/source-analysis/direct-event/languages/native-parser"
 const temp = await mkdtemp("/tmp/hapsland-python-authority-")
 try {
   const emitted = join(temp, "child.mjs")
@@ -18,23 +13,13 @@ try {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  const source = await readFile(join(import.meta.dirname, "../../../languages/python.ts"), "utf8")
-  const fragments =
-    source.slice(source.indexOf("const assignment ="), source.indexOf("const primitives =")) +
-    source.slice(source.indexOf("const staticTypeBlock ="), source.indexOf("const importedReference ="))
-  const js = execFileSync(
-    "bun",
-    ["-e", 'process.stdout.write(new Bun.Transpiler({loader:"ts"}).transformSync(await Bun.stdin.text()))'],
-    { input: fragments, encoding: "utf8", timeout: 5000 }
+  const nativeBindings = await import(
+    pathToFileURL(join(import.meta.dirname, "../../../../../dist/direct-event/languages/python/scope-bindings.js"))
   )
-  const native = Function(
-    "Parser",
-    "Python",
-    "descendants",
-    "sameSyntaxNode",
-    js.replace("export const pythonImports", "const pythonImports") +
-      "\nreturn {pythonImports,staticPackageAuthority,moduleScope,unavailableImportNamespace,unknownEvaluatedCall}"
-  )(Parser, Python, descendants, sameSyntaxNode)
+  const nativeAuthority = await import(
+    pathToFileURL(join(import.meta.dirname, "../../../../../dist/direct-event/languages/python/module-authority.js"))
+  )
+  const native = { ...nativeBindings, ...nativeAuthority }
   const fixtures = [
     "",
     "class C: pass\n",
