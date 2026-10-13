@@ -11316,6 +11316,68 @@ def ready_omission_address_weight(+prefix: List<&2, F.Node>, +address: O.NodeAdd
     {(_ + ready_omission_work_weight(rest) : Nat) == 1n+(Allowance.nodes(List.append(&2, F.Node, prefix, suffix)) + ready_omission_work_weight(D.OmissionReferences{references} <> rest) : Nat) : Nat}
   ready_omission_address_arithmetic(Allowance.references(references), Allowance.nodes(List.append(&2, F.Node, prefix, suffix)), ready_omission_work_weight(rest))
 
+def ready_omission_work_demand(work: List<&2, D.OmissionWork>, +query: O.NodeAddress) -> Nat:
+  match work:
+    case []: 0n
+    case D.OmissionAddress{address} <> tail:
+      (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + ready_omission_work_demand(tail, query) : Nat)
+    case D.OmissionReferences{references} <> tail:
+      (Relation.incoming_references(references, query) + ready_omission_work_demand(tail, query) : Nat)
+
+def ready_omission_remove_incoming(prefix: List<&2, F.Node>, +address: O.NodeAddress, +artifact: T.Artifact,
+    +references: List<&2, F.Reference>, +suffix: List<&2, F.Node>, +query: O.NodeAddress) ->
+    {Relation.incoming(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), query) ==
+      (Relation.incoming_references(references, query) + Relation.incoming(List.append(&2, F.Node, prefix, suffix), query) : Nat) : Nat}:
+  match prefix:
+    case []: {==}
+    case F.Node{_, _, +before} <> +tail:
+      %Equal.sym(Nat, Relation.incoming(List.append(&2, F.Node, tail, F.Node{address, artifact, references} <> suffix), query),
+        (Relation.incoming_references(references, query) + Relation.incoming(List.append(&2, F.Node, tail, suffix), query) : Nat), ready_omission_remove_incoming(tail, address, artifact, references, suffix, query)):
+        {(Relation.incoming_references(before, query) + _ : Nat) == (Relation.incoming_references(references, query) + Relation.incoming(List.append(&2, F.Node, prefix, suffix), query) : Nat) : Nat}
+      ready_omission_weight_swap(Relation.incoming_references(before, query), Relation.incoming_references(references, query), Relation.incoming(List.append(&2, F.Node, tail, suffix), query))
+
+def ready_omission_remove_count(prefix: List<&2, F.Node>, +address: O.NodeAddress, +artifact: T.Artifact,
+    +references: List<&2, F.Reference>, +suffix: List<&2, F.Node>, +query: O.NodeAddress) ->
+    {F.count_address(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), query) ==
+      (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + F.count_address(List.append(&2, F.Node, prefix, suffix), query) : Nat) : Nat}:
+  match prefix:
+    case []: {==}
+    case F.Node{+before, _, _} <> +tail:
+      %Equal.sym(Nat, F.count_address(List.append(&2, F.Node, tail, F.Node{address, artifact, references} <> suffix), query),
+        (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + F.count_address(List.append(&2, F.Node, tail, suffix), query) : Nat), ready_omission_remove_count(tail, address, artifact, references, suffix, query)):
+        {(Bool.pick(Nat, F.same_address(query, before), 1n, 0n) + _ : Nat) == (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + F.count_address(List.append(&2, F.Node, prefix, suffix), query) : Nat) : Nat}
+      ready_omission_weight_swap(Bool.pick(Nat, F.same_address(query, before), 1n, 0n), Bool.pick(Nat, F.same_address(query, address), 1n, 0n), F.count_address(List.append(&2, F.Node, tail, suffix), query))
+
+def ready_omission_demand_arithmetic(+bit: Nat, +work: Nat, +references: Nat, +nodes: Nat) ->
+    {((bit + work : Nat) + (references + nodes : Nat) : Nat) == (bit + ((references + work : Nat) + nodes : Nat) : Nat) : Nat}:
+  Equal.trans(Nat, ((bit + work : Nat) + (references + nodes : Nat) : Nat), (bit + (work + (references + nodes : Nat) : Nat) : Nat),
+    (bit + ((references + work : Nat) + nodes : Nat) : Nat), Arithmetic.add_assoc(bit, work, (references + nodes : Nat)),
+    Equal.cong(Nat, Nat, value => (bit + value : Nat), (work + (references + nodes : Nat) : Nat), ((references + work : Nat) + nodes : Nat),
+      Equal.trans(Nat, (work + (references + nodes : Nat) : Nat), (references + (work + nodes : Nat) : Nat), ((references + work : Nat) + nodes : Nat),
+        ready_omission_weight_swap(work, references, nodes), Equal.sym(Nat, ((references + work : Nat) + nodes : Nat), (references + (work + nodes : Nat) : Nat), Arithmetic.add_assoc(references, work, nodes)))))
+
+def ready_omission_cancel_demand(same: Bool, +left: Nat, +right: Nat,
+    bounded: NatFacts.le((Bool.pick(Nat, same, 1n, 0n) + left : Nat), (Bool.pick(Nat, same, 1n, 0n) + right : Nat))) -> NatFacts.le(left, right):
+  match same:
+    case False{}: bounded
+    case True{}: bounded
+
+def ready_omission_address_demand(+prefix: List<&2, F.Node>, +address: O.NodeAddress, +artifact: T.Artifact,
+    +references: List<&2, F.Reference>, +suffix: List<&2, F.Node>, +rest: List<&2, D.OmissionWork>, +query: O.NodeAddress,
+    available: NatFacts.le((ready_omission_work_demand(D.OmissionAddress{address} <> rest, query) + Relation.incoming(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), query) : Nat),
+      F.count_address(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), query))) ->
+    NatFacts.le((ready_omission_work_demand(D.OmissionReferences{references} <> rest, query) + Relation.incoming(List.append(&2, F.Node, prefix, suffix), query) : Nat),
+      F.count_address(List.append(&2, F.Node, prefix, suffix), query)):
+  ready_omission_cancel_demand(F.same_address(query, address),
+    (ready_omission_work_demand(D.OmissionReferences{references} <> rest, query) + Relation.incoming(List.append(&2, F.Node, prefix, suffix), query) : Nat), F.count_address(List.append(&2, F.Node, prefix, suffix), query),
+    %ready_omission_demand_arithmetic(Bool.pick(Nat, F.same_address(query, address), 1n, 0n), ready_omission_work_demand(rest, query), Relation.incoming_references(references, query), Relation.incoming(List.append(&2, F.Node, prefix, suffix), query)):
+      NatFacts.le(_, (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + F.count_address(List.append(&2, F.Node, prefix, suffix), query) : Nat))
+    %ready_omission_remove_incoming(prefix, address, artifact, references, suffix, query):
+      NatFacts.le((ready_omission_work_demand(D.OmissionAddress{address} <> rest, query) + _ : Nat), (Bool.pick(Nat, F.same_address(query, address), 1n, 0n) + F.count_address(List.append(&2, F.Node, prefix, suffix), query) : Nat))
+    %ready_omission_remove_count(prefix, address, artifact, references, suffix, query):
+      NatFacts.le((ready_omission_work_demand(D.OmissionAddress{address} <> rest, query) + Relation.incoming(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), query) : Nat), _)
+    available)
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
