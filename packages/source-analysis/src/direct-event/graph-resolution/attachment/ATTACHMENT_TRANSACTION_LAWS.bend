@@ -12825,6 +12825,55 @@ def ready_projected_omissions_known(+root: Nat, +nodes: List<&2, Local.PlannedNo
           BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(retained, birth), 1n), Nat.is_eq(Relation.incoming(retained, birth), 0n), root_valid)))),
     ready_omission_forest_total(birth, retained, episode, valid))
 
+def ready_projected_omissions_forest_parts(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +entries: List<&2, F.AddressEntry>, +forest: F.Forest, +episode: Nat,
+    +checks: {Bool.and(P.aligned(nodes, entries, nodes, entries), Bool.and(P.catalog_unique(catalog, catalog),
+      Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)))) == True{} : Bool},
+    dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool}, valid: {Relation.frame_forest(forest, episode) == True{} : Bool},
+    contents: Exists(O.NodeAddress, birth => Exists(List<&2, F.Node>, retained =>
+      {F.address_at(entries, root) == Some{birth} : Maybe<&2, O.NodeAddress>} &
+      {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>} &
+      {Some{F.Forest{Some{birth}, retained}} == Some{forest} : Maybe<&2, F.Forest>}))) ->
+    {D.forest_omissions(Allowance.materialization(forest), forest)
+      == D.OmissionsObserved{LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, root, slots)} : D.OmissionResult}:
+  match contents:
+    case (+birth, (+retained, (found, (projected, same)))):
+      +forest_equal: {F.Forest{Some{birth}, retained} == forest : F.Forest} = Count.some_equal(F.Forest, F.Forest{Some{birth}, retained}, forest, same)
+      %forest_equal:
+        {D.forest_omissions(Allowance.materialization(_), _)
+          == D.OmissionsObserved{LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, root, slots)} : D.OmissionResult}
+      ready_projected_omissions_known(root, nodes, entries, slots, catalog, birth, retained, episode,
+        BoolFacts.eq_true_of_and_left(P.aligned(nodes, entries, nodes, entries), Bool.and(P.catalog_unique(catalog, catalog),
+          Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots))), checks), dense, projected,
+        BoolFacts.eq_true_of_and_right(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots),
+          BoolFacts.eq_true_of_and_right(P.catalog_unique(catalog, catalog), Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)),
+            BoolFacts.eq_true_of_and_right(P.aligned(nodes, entries, nodes, entries), Bool.and(P.catalog_unique(catalog, catalog),
+              Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots))), checks))), found,
+        %Equal.sym(F.Forest, F.Forest{Some{birth}, retained}, forest, forest_equal): {Relation.frame_forest(_, episode) == True{} : Bool}
+        valid)
+
+def ready_projected_omissions_parts(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +entries: List<&2, F.AddressEntry>, +forest: F.Forest, +episode: Nat,
+    dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool}, valid: {Relation.frame_forest(forest, episode) == True{} : Bool},
+    contents: {Bool.and(P.aligned(nodes, entries, nodes, entries), Bool.and(P.catalog_unique(catalog, catalog),
+      Bool.and(P.slots_owned(slots, nodes), P.forward_nodes(nodes, slots)))) == True{} : Bool} &
+      {P.forest(F.address_at(entries, root), P.nodes(nodes, slots, catalog, entries)) == Some{forest} : Maybe<&2, F.Forest>}) ->
+    {D.forest_omissions(Allowance.materialization(forest), forest)
+      == D.OmissionsObserved{LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, root, slots)} : D.OmissionResult}:
+  match contents:
+    case Tuple{checks, projected}:
+      ready_projected_omissions_forest_parts(root, nodes, slots, catalog, entries, forest, episode, checks, dense, valid,
+        Contents.forest_contents(F.address_at(entries, root), P.nodes(nodes, slots, catalog, entries), forest, projected))
+
+def ready_projected_omissions(+root: Nat, +nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>,
+    +catalog: List<&2, T.ArtifactEntry>, +entries: List<&2, F.AddressEntry>, +forest: F.Forest, +episode: Nat,
+    projected: {P.project(root, nodes, slots, catalog, entries) == Some{forest} : Maybe<&2, F.Forest>},
+    dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool}, valid: {Relation.frame_forest(forest, episode) == True{} : Bool}) ->
+    {D.forest_omissions(Allowance.materialization(forest), forest)
+      == D.OmissionsObserved{LoopPolicy.has_omission((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, root, slots)} : D.OmissionResult}:
+  ready_projected_omissions_parts(root, nodes, slots, catalog, entries, forest, episode, dense, valid,
+    Contents.project_contents(root, nodes, slots, catalog, entries, forest, projected))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

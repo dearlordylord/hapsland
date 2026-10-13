@@ -6,6 +6,7 @@ import ../traversal/SPEC.bend as Recursive
 import ./ActualAttachmentBoundaryProjection.bend as ActualBoundary
 import ../State.bend as State
 import ../LoopPolicy.bend as LoopPolicy
+import ../Loop.bend as Loop
 import ../Environment.bend as E
 import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
@@ -2256,3 +2257,168 @@ def completion_partial_allowed(+frame: T.ResolverFrame, +reason: G.Reason,
     {Bool.and(True{}, Bool.and(_, LoopPolicy.frame_has_omission(frame)))
       == LoopPolicy.frame_has_omission(frame) : Bool}
   {==}
+
+# Transport the already common selected boundary to the original partial entry.
+# The caller derives both transition equalities from the original omission and
+# materialization witnesses; no successful reply or new runtime state is assumed.
+def completion_partial_claim(-World: Data, +actual: T.ResolverState, +reference: D.State,
+    +child: X.Child, +history: V.History, +frame: T.ResolverFrame, +fuel: Nat,
+    +reason: G.Reason, +world: E.WorldState<World>) -> @-boundary:B.Boundary -> Type:
+  boundary => {
+    ActualBoundary.project(
+      LoopPolicy.request_completion(LoopPolicy.partial_allowed(frame, reason), actual, frame),
+      history
+    )
+    == Some{boundary}
+    : Maybe<&2, B.Boundary>
+  } & {
+    project(
+      World,
+      D.consumed(World, D.completion(fuel, reference, Some{reason}), world),
+      child,
+      history
+    )
+    == Some{boundary}
+    : Maybe<&2, B.Boundary>
+  }
+
+def completion_partial_selected(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  +reason: G.Reason,
+  +world: E.WorldState<World>,
+  +product: ArtifactValue.ProductValue,
+  actual_choice: {
+    LoopPolicy.request_completion(LoopPolicy.partial_allowed(frame, reason), actual, frame)
+    == LoopPolicy.completion_product(Some{product}, actual)
+    : Loop.Continuation
+  },
+  reference_choice: {
+    D.completion(fuel, reference, Some{reason})
+    == D.completion_selected(reference, product, True{})
+    : D.Selection
+  },
+  common: Exists(
+    B.Boundary,
+    completion_common_claim(World, actual, reference, child, history, product, world)
+  )
+) -> Exists(
+  B.Boundary,
+  completion_partial_claim(World, actual, reference, child, history, frame, fuel, reason, world)
+):
+  match common:
+    case (+boundary, (actual_boundary, reference_boundary)):
+      actual_observe: Loop.Continuation -> Maybe<&2, B.Boundary> = step => ActualBoundary.project(
+        step,
+        history
+      )
+      reference_observe: D.Selection -> Maybe<&2, B.Boundary> = selected => project(
+        World,
+        D.consumed(World, selected, world),
+        child,
+        history
+      )
+      Tuple{
+        boundary,
+        Tuple{
+          Equal.trans(
+            Maybe<&2, B.Boundary>,
+            actual_observe(
+              LoopPolicy.request_completion(
+                LoopPolicy.partial_allowed(frame, reason),
+                actual,
+                frame
+              )
+            ),
+            actual_observe(LoopPolicy.completion_product(Some{product}, actual)),
+            Some{boundary},
+            Equal.cong(
+              Loop.Continuation,
+              Maybe<&2, B.Boundary>,
+              actual_observe,
+              LoopPolicy.request_completion(
+                LoopPolicy.partial_allowed(frame, reason),
+                actual,
+                frame
+              ),
+              LoopPolicy.completion_product(Some{product}, actual),
+              actual_choice
+            ),
+            actual_boundary
+          ),
+          Equal.trans(
+            Maybe<&2, B.Boundary>,
+            reference_observe(D.completion(fuel, reference, Some{reason})),
+            reference_observe(D.completion_selected(reference, product, True{})),
+            Some{boundary},
+            Equal.cong(
+              D.Selection,
+              Maybe<&2, B.Boundary>,
+              reference_observe,
+              D.completion(fuel, reference, Some{reason}),
+              D.completion_selected(reference, product, True{}),
+              reference_choice
+            ),
+            reference_boundary
+          )
+        }
+      }
+
+
+def completion_partial_denied(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +world: E.WorldState<World>,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  +reason: G.Reason,
+  choice: {LoopPolicy.partial_allowed(frame, reason) == False{} : Bool},
+  selection: {D.completion(fuel, reference, Some{reason}) == D.no_unit(reference) : D.Selection},
+  actual_frame: {
+    ActualBoundary.frame(State.state_frame(actual), history)
+    == Some{view}
+    : Maybe<&2, V.Frame>
+  },
+  reference_frame: {Frame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}
+) -> Exists(
+  B.Boundary,
+  completion_partial_claim(World, actual, reference, child, history, frame, fuel, reason, world)
+):
+  Tuple{
+    B.Finished{None{}, view},
+    completion_empty_transport(
+      World,
+      actual,
+      reference,
+      child,
+      history,
+      view,
+      world,
+      frame,
+      fuel,
+      reason,
+      choice,
+      selection,
+      completion_denied(
+        World,
+        actual,
+        reference,
+        child,
+        history,
+        view,
+        world,
+        frame,
+        actual_frame,
+        reference_frame
+      )
+    )
+  }
