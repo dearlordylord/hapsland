@@ -50,29 +50,9 @@ try {
   const emitted = join(temporary, "spec.mjs")
   execFileSync("bend", [join(folder, "../RustSpecification.bend"), "-o", emitted], { timeout: 10000 })
   const spec = (await import(pathToFileURL(emitted))).default
-  let source = readFileSync(native, "utf8").replaceAll(
-    /from "(\.{1,2}\/[^"]+)"/g,
-    (_all, path) => `from "${pathToFileURL(join(dirname(native), path))}"`
-  )
-  source = source
-    .replace("import { lstat }", "import { lstat as originalLstat }")
-    .replace(
-      "contextDirectFilePolicy, eligibleNamedPath",
-      "contextDirectFilePolicy, eligibleNamedPath as originalEligible"
-    )
-  const marker =
-    "return { options: uniqueModuleRole(invalid, command.kind, roles), dependencies: [...dependencies].sort(), remaining };"
-  assert.ok(source.includes(marker))
-  source = source.replace(
-    marker,
-    "return { options: uniqueModuleRole(invalid, command.kind, roles), dependencies: [...dependencies].sort(), remaining, observation: {state, command, tasks: [...tasks], targets: [...targets], nextEdge, nextTarget, active, invalid, accumulatedDependencies: [...dependencies], roles} };"
-  )
-  source +=
-    '\nexport let trace=[]; export function resetTrace(){trace=[]}; const lstat=async(path)=>{trace.push({operation:"ReadFileStatus",path});return originalLstat(path)}; const eligibleNamedPath=(...args)=>{trace.push({operation:"AccessPath",path:args[1]});return originalEligible(...args)};\n'
-  const copy = join(temporary, "native.mjs")
-  writeFileSync(copy, source)
-  const original = await import(pathToFileURL(copy)),
+  const original = await import(pathToFileURL(native)),
     cases = []
+  let trace = []
   for (const profile of [
     { name: "no-cargo", path: "src/root.rs" },
     { name: "no-cargo-expired", path: "src/root.rs", expire: 0 },
@@ -95,22 +75,42 @@ try {
     const capture = { text: "pub struct Root;", byteLength: 16 },
       limits = { ...GRAPH_LIMIT_CEILINGS },
       host = { root: directory, policy: DEFAULT_DIRECT_FILE_POLICY }
-    original.resetTrace()
+    trace = []
     let nativeTicks = 0
     class Captures extends Map {
       set(path, value) {
-        original.trace.push({ operation: "InsertRootCaptureCache", path })
+        trace.push({ operation: "InsertRootCaptureCache", path })
         return super.set(path, value)
       }
     }
     host.captureCache = new Captures()
+    let observation
     const expected = await Effect.runPromise(
-      original.resolveRustModuleContext(profile.path, capture, host, limits, () => {
-        original.trace.push({ operation: "ReadDeadline" })
-        return nativeTicks++ >= (profile.expire ?? Infinity)
-      })
+      original.resolveRustModuleContext(
+        profile.path,
+        capture,
+        host,
+        limits,
+        () => {
+          trace.push({ operation: "ReadDeadline" })
+          return nativeTicks++ >= (profile.expire ?? Infinity)
+        },
+        {
+          readStatus: async (...args) => {
+            trace.push({ operation: "ReadFileStatus", path: args[0] })
+            return lstat(...args)
+          },
+          selectPath: (...args) => {
+            trace.push({ operation: "AccessPath", path: args[1] })
+            return eligibleNamedPath(...args)
+          },
+          observe: (snapshot) => {
+            observation = snapshot
+          }
+        }
+      )
     )
-    const expectedTrace = original.trace.map((item) => ({
+    const expectedTrace = trace.map((item) => ({
       ...item,
       ...(item.operation === "ReadFileStatus" ? { path: relative(directory, item.path) } : {})
     }))
@@ -183,8 +183,8 @@ try {
         action = spec.checked_path(action.state, selected !== undefined)
       } else throw new Error("unqualified capture continuation " + name)
     }
-    const state = action.state,
-      observation = expected.observation
+    const state = action.state
+    assert.ok(observation, profile.name + " final native observation")
     assert.deepEqual(actualTrace, expectedTrace, profile.name + " ordered cache/status/clock/access")
     assert.deepEqual(
       normalize(state.graph),

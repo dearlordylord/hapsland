@@ -103,11 +103,15 @@ export const cargoTargetRoots = (
   return roots.some((root) => !within(root) || extname(root) !== ".rs") ? undefined : roots
 }
 
-const nearestCargoManifest = Effect.fn("DirectEvent.nearestCargoManifest")(function* (path: string, root: string) {
+const nearestCargoManifest = Effect.fn("DirectEvent.nearestCargoManifest")(function* (
+  path: string,
+  root: string,
+  readStatus: typeof lstat
+) {
   let directory = dirname(path)
   for (let depth = 0; depth < 16; depth++) {
     const candidate = join(directory, "Cargo.toml")
-    const stat = yield* Effect.promise(() => lstat(join(root, candidate)).catch(() => undefined))
+    const stat = yield* Effect.promise(() => readStatus(join(root, candidate)).catch(() => undefined))
     if (stat !== undefined) {
       return candidate
     }
@@ -162,14 +166,36 @@ const inspectBoundedRustRoute = (
   maxDepth: number
 ): ReturnType<typeof inspectRustModules> => (route.depth > maxDepth ? undefined : inspectRustModules(source))
 
+type NativeRustObservation = {
+  readonly state: unknown
+  readonly command: ReturnType<typeof stepImportGraph>["command"]
+  readonly tasks: ReadonlyArray<readonly [number, Task]>
+  readonly targets: ReadonlyArray<readonly [string, number]>
+  readonly nextEdge: number
+  readonly nextTarget: number
+  readonly active: Task | undefined
+  readonly invalid: boolean
+  readonly accumulatedDependencies: readonly string[]
+  readonly roles: readonly GraphInspectionOptions[]
+}
+type NativeRustPorts = {
+  readonly readStatus?: typeof lstat
+  readonly selectPath?: typeof eligibleNamedPath
+  /** Retain the final observation without mutation; failure propagates before returning. */
+  readonly observe?: (snapshot: NativeRustObservation) => void
+}
+
 /** Cargo and mod links are binding evidence, not compiler execution. */
 export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModuleContext")(function* (
   path: string,
   rootCapture: StableCapture,
   context: LanguageGraphHost,
   limits: GraphLimits,
-  expired: () => boolean
+  expired: () => boolean,
+  ports?: NativeRustPorts
 ) {
+  const readStatus = ports?.readStatus ?? lstat
+  const selectPath = ports?.selectPath ?? eligibleNamedPath
   const captures = context.captureCache ?? new Map<string, StableCapture>()
   captures.set(path, rootCapture)
   const dependencies = new Set<string>()
@@ -186,7 +212,7 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
       tasks.set(id, task)
       return id
     })
-  const cargo = yield* nearestCargoManifest(path, context.root)
+  const cargo = yield* nearestCargoManifest(path, context.root, readStatus)
   let state = initialImportGraph(limits)
   const transition = stepImportGraph(state, {
     kind: "root",
@@ -202,7 +228,7 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     const found: string[] = []
     for (const candidate of paths) {
       if (!within(candidate)) continue
-      const stat = yield* Effect.promise(() => lstat(join(context.root, candidate)).catch(() => undefined))
+      const stat = yield* Effect.promise(() => readStatus(join(context.root, candidate)).catch(() => undefined))
       if (stat?.isFile()) found.push(candidate)
     }
     return found
@@ -270,7 +296,7 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     if (active === undefined) {
       return undefined
     }
-    const selected = yield* eligibleNamedPath(
+    const selected = yield* selectPath(
       context.root,
       active.path,
       contextDirectFilePolicy(context.policy),
@@ -303,7 +329,7 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     if (active === undefined) {
       return undefined
     }
-    const selected = yield* eligibleNamedPath(
+    const selected = yield* selectPath(
       context.root,
       active.path,
       contextDirectFilePolicy(context.policy),
@@ -363,5 +389,22 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     readBytes: limits.readBytes - Math.max(0, spent.readBytes - rootCapture.byteLength),
     work: limits.work - spent.work
   }
-  return { options: uniqueModuleRole(invalid, command.kind, roles), dependencies: [...dependencies].sort(), remaining }
+  const result = {
+    options: uniqueModuleRole(invalid, command.kind, roles),
+    dependencies: [...dependencies].sort(),
+    remaining
+  }
+  ports?.observe?.({
+    state,
+    command,
+    tasks: [...tasks],
+    targets: [...targets],
+    nextEdge,
+    nextTarget,
+    active,
+    invalid,
+    accumulatedDependencies: [...dependencies],
+    roles
+  })
+  return result
 })
