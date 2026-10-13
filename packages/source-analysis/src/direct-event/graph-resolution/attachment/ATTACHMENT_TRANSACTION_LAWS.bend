@@ -11844,6 +11844,137 @@ def ready_omission_finite_references(+references: List<&2, F.Reference>, +rest: 
             BoolFacts.eq_true_of_and_right(Nat.is_eq(F.count_address(all, child), 1n), ready_omission_reference_targets(tail, all), refs),
             BoolFacts.eq_true_of_and_right(ready_omission_reference_targets(references, all), ready_omission_work_targets(rest, all), targets))), demands, {==}, {==}, absent)
 
+def ready_omission_observed(+fuel: Nat, +work: List<&2, D.OmissionWork>, +all: List<&2, F.Node>) -> Type:
+  Exists(Bool, present => {D.omissions(fuel, work, all) == D.OmissionsObserved{present} : D.OmissionResult})
+
+def ready_omission_transition_no_zero(+head: D.OmissionWork, +rest: List<&2, D.OmissionWork>, +nodes: List<&2, F.Node>, +all: List<&2, F.Node>,
+    bounded: NatFacts.le((Allowance.nodes(nodes) + ready_omission_work_weight(head <> rest) : Nat), 0n),
+    transition: ready_omission_finite_transition(head <> rest, nodes, all, head, rest)) -> Empty:
+  match transition:
+    case (+next, (+remaining, (_, (weight, _)))):
+      BoolFacts.internal_false_ne_true(
+        %weight: NatFacts.le(_, 0n)
+        bounded)
+
+def ready_omission_references_positive(+references: List<&2, F.Reference>, +rest: List<&2, D.OmissionWork>, +nodes: List<&2, F.Node>) ->
+    NatFacts.le(1n, (Allowance.nodes(nodes) + ready_omission_work_weight(D.OmissionReferences{references} <> rest) : Nat)):
+  %Equal.sym(Nat, (Allowance.nodes(nodes) + 1n+(Allowance.references(references) + ready_omission_work_weight(rest) : Nat) : Nat),
+    1n+(Allowance.nodes(nodes) + (Allowance.references(references) + ready_omission_work_weight(rest) : Nat) : Nat),
+    Arithmetic.add_succ(Allowance.nodes(nodes), (Allowance.references(references) + ready_omission_work_weight(rest) : Nat))):
+    NatFacts.le(1n, _)
+  NatFacts.succ_le_succ(0n, (Allowance.nodes(nodes) + (Allowance.references(references) + ready_omission_work_weight(rest) : Nat) : Nat),
+    NatFacts.zero_le((Allowance.nodes(nodes) + (Allowance.references(references) + ready_omission_work_weight(rest) : Nat) : Nat)))
+
+def ready_omission_observed_step(+fuel: Nat, +head: D.OmissionWork, +rest: List<&2, D.OmissionWork>, +all: List<&2, F.Node>, +next: List<&2, D.OmissionWork>,
+    absent: {D.omission_found(head) == False{} : Bool}, step: {D.omission_step(head, rest, all) == Some{next} : Maybe<&2, List<&2, D.OmissionWork>>},
+    observed: ready_omission_observed(fuel, next, all)) -> ready_omission_observed(1n+fuel, head <> rest, all):
+  match observed:
+    case (+present, equal):
+      Tuple{present,
+        %Equal.sym(Bool, D.omission_found(head), False{}, absent):
+          {D.omission_dispatch(_, D.omission_step(head, rest, all), items => D.omissions(fuel, items, all)) == D.OmissionsObserved{present} : D.OmissionResult}
+        %Equal.sym(Maybe<&2, List<&2, D.OmissionWork>>, D.omission_step(head, rest, all), Some{next}, step):
+          {D.omission_next(_, items => D.omissions(fuel, items, all)) == D.OmissionsObserved{present} : D.OmissionResult}
+        equal}
+
+def ready_omission_total_transition(+fuel: Nat, +head: D.OmissionWork, +rest: List<&2, D.OmissionWork>, +nodes: List<&2, F.Node>, +all: List<&2, F.Node>,
+    absent: {D.omission_found(head) == False{} : Bool},
+    bounded: NatFacts.le((Allowance.nodes(nodes) + ready_omission_work_weight(head <> rest) : Nat), 1n+fuel),
+    transition: ready_omission_finite_transition(head <> rest, nodes, all, head, rest),
+    recursive: @next: List<&2, D.OmissionWork> -> @remaining: List<&2, F.Node> -> ready_omission_node_rows(remaining, all) ->
+      {Relation.nodes_valid(remaining, all) == True{} : Bool} -> {ready_omission_work_targets(next, all) == True{} : Bool} ->
+      {ready_omission_demands(all, next, remaining) == True{} : Bool} ->
+      NatFacts.le((Allowance.nodes(remaining) + ready_omission_work_weight(next) : Nat), fuel) -> ready_omission_observed(fuel, next, all)) ->
+    ready_omission_observed(1n+fuel, head <> rest, all):
+  match transition:
+    case (+next, (+remaining, (step, (weight, (rows, (valid, (targets, demands))))))):
+      ready_omission_observed_step(fuel, head, rest, all, next, absent, step,
+        recursive(next)(remaining)(rows)(valid)(targets)(demands)(
+          %weight: NatFacts.le(_, 1n+fuel)
+          bounded))
+
+def ready_omission_total(fuel: Nat, +work: List<&2, D.OmissionWork>, +nodes: List<&2, F.Node>, +all: List<&2, F.Node>,
+    rows: ready_omission_node_rows(nodes, all), +valid: {Relation.nodes_valid(nodes, all) == True{} : Bool},
+    +targets: {ready_omission_work_targets(work, all) == True{} : Bool}, +demands: {ready_omission_demands(all, work, nodes) == True{} : Bool},
+    bounded: NatFacts.le((Allowance.nodes(nodes) + ready_omission_work_weight(work) : Nat), fuel)) -> ready_omission_observed(fuel, work, all):
+  match fuel work:
+    case _ Nil{}: Tuple{False{}, {==}}
+    case 0n D.OmissionAddress{+address} <> +rest:
+      Empty.absurd(ready_omission_observed(0n, work, all),
+        ready_omission_transition_no_zero(D.OmissionAddress{address}, rest, nodes, all, bounded, ready_omission_finite_address(nodes, address, rest, all, rows, valid, targets, demands)))
+    case 0n D.OmissionReferences{+references} <> +rest:
+      Empty.absurd(ready_omission_observed(0n, work, all), BoolFacts.internal_false_ne_true(
+        NatFacts.le_trans(1n, (Allowance.nodes(nodes) + ready_omission_work_weight(work) : Nat), 0n, ready_omission_references_positive(references, rest, nodes), bounded)))
+    case 1n++remaining D.OmissionAddress{+address} <> +rest:
+      ready_omission_total_transition(remaining, D.OmissionAddress{address}, rest, nodes, all, {==}, bounded,
+        ready_omission_finite_address(nodes, address, rest, all, rows, valid, targets, demands),
+        +next => +unvisited => next_rows => next_valid => next_targets => next_demands => next_bound =>
+          ready_omission_total(remaining, next, unvisited, all, next_rows, next_valid, next_targets, next_demands, next_bound))
+    case 1n++remaining D.OmissionReferences{Nil{}} <> +rest:
+      ready_omission_total_transition(remaining, D.OmissionReferences{[]}, rest, nodes, all, {==}, bounded,
+        ready_omission_finite_references([], rest, nodes, all, rows, valid, targets, demands, {==}),
+        +next => +unvisited => next_rows => next_valid => next_targets => next_demands => next_bound =>
+          ready_omission_total(remaining, next, unvisited, all, next_rows, next_valid, next_targets, next_demands, next_bound))
+    case 1n++remaining D.OmissionReferences{F.Included{+symbol, +identity} <> +tail} <> +rest:
+      ready_omission_total_transition(remaining, D.OmissionReferences{F.Included{symbol, identity} <> tail}, rest, nodes, all, {==}, bounded,
+        ready_omission_finite_references(F.Included{symbol, identity} <> tail, rest, nodes, all, rows, valid, targets, demands, {==}),
+        +next => +unvisited => next_rows => next_valid => next_targets => next_demands => next_bound =>
+          ready_omission_total(remaining, next, unvisited, all, next_rows, next_valid, next_targets, next_demands, next_bound))
+    case 1n++remaining D.OmissionReferences{F.Expanded{+symbol, +child} <> +tail} <> +rest:
+      ready_omission_total_transition(remaining, D.OmissionReferences{F.Expanded{symbol, child} <> tail}, rest, nodes, all, {==}, bounded,
+        ready_omission_finite_references(F.Expanded{symbol, child} <> tail, rest, nodes, all, rows, valid, targets, demands, {==}),
+        +next => +unvisited => next_rows => next_valid => next_targets => next_demands => next_bound =>
+          ready_omission_total(remaining, next, unvisited, all, next_rows, next_valid, next_targets, next_demands, next_bound))
+    case 1n+_ D.OmissionReferences{F.Omitted{_, _, _} <> _} <> _:
+      Tuple{True{}, {==}}
+
+def ready_omission_forest_total(+root: O.NodeAddress, +nodes: List<&2, F.Node>, +episode: Nat,
+    +valid: {Relation.frame_forest(F.Forest{Some{root}, nodes}, episode) == True{} : Bool}) ->
+    Exists(Bool, present => {D.forest_omissions(Allowance.materialization(F.Forest{Some{root}, nodes}), F.Forest{Some{root}, nodes}) == D.OmissionsObserved{present} : D.OmissionResult}):
+  +retained: {Relation.retained(F.Forest{Some{root}, nodes}) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_left(Relation.retained(F.Forest{Some{root}, nodes}), Relation.episodes_before(nodes, episode), valid)
+  +nodes_valid: {Relation.nodes_valid(nodes, nodes) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_right(Relation.root_valid(Some{root}, nodes), Relation.nodes_valid(nodes, nodes), retained)
+  root_valid: {Relation.root_valid(Some{root}, nodes) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_left(Relation.root_valid(Some{root}, nodes), Relation.nodes_valid(nodes, nodes), retained)
+  ready_omission_total(Allowance.materialization(F.Forest{Some{root}, nodes}), [D.OmissionAddress{root}], nodes, nodes,
+    ready_omission_rows_from_valid(nodes, [], nodes, {==}, nodes_valid), nodes_valid,
+    BoolFacts.and_eq_true(Nat.is_eq(F.count_address(nodes, root), 1n), True{},
+      BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(nodes, root), 1n), Nat.is_eq(Relation.incoming(nodes, root), 0n), root_valid), {==}),
+    ready_omission_initial_demands(nodes, root, nodes, episode, valid),
+    NatFacts.add_le_add_left(0n, 2n, Allowance.nodes(nodes), NatFacts.zero_le(2n)))
+
+def ready_actual_omission_filter_step(+actual: Nat, +index: Nat, +symbol: String, +reference: Local.PlannedReference,
+    +tail: List<&2, Local.ReferenceSlot>, +remaining: Nat, +owner: Nat, +all: List<&2, Local.ReferenceSlot>,
+    tail_equal: {LoopPolicy.has_omission(1n+remaining, tail, owner, all) == LoopPolicy.has_omission(1n+remaining, P.owner_slots(tail, owner), owner, all) : Bool},
+    same: Bool, +equal: {Nat.is_eq(actual, owner) == same : Bool}) ->
+    {LoopPolicy.has_omission(1n+remaining, Local.ReferenceSlot{actual, index, symbol, reference} <> tail, owner, all)
+      == LoopPolicy.has_omission(1n+remaining, P.owner_slots(Local.ReferenceSlot{actual, index, symbol, reference} <> tail, owner), owner, all) : Bool}:
+  match same:
+    case False{}:
+      %Equal.sym(Bool, Nat.is_eq(actual, owner), False{}, equal):
+        {LoopPolicy.omission_slot(_, reference, child => LoopPolicy.has_omission(remaining, all, child, all), _ => LoopPolicy.has_omission(1n+remaining, tail, owner, all))
+          == LoopPolicy.has_omission(1n+remaining, Bool.pick(List<&2, Local.ReferenceSlot>, _, Local.ReferenceSlot{actual, index, symbol, reference} <> P.owner_slots(tail, owner), P.owner_slots(tail, owner)), owner, all) : Bool}
+      tail_equal
+    case True{}:
+      %Equal.sym(Bool, Nat.is_eq(actual, owner), True{}, equal):
+        {LoopPolicy.omission_slot(_, reference, child => LoopPolicy.has_omission(remaining, all, child, all), _ => LoopPolicy.has_omission(1n+remaining, tail, owner, all))
+          == LoopPolicy.has_omission(1n+remaining, Bool.pick(List<&2, Local.ReferenceSlot>, _, Local.ReferenceSlot{actual, index, symbol, reference} <> P.owner_slots(tail, owner), P.owner_slots(tail, owner)), owner, all) : Bool}
+      %Equal.sym(Bool, Nat.is_eq(actual, owner), True{}, equal):
+        {LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(remaining, all, child, all), _ => LoopPolicy.has_omission(1n+remaining, tail, owner, all))
+          == LoopPolicy.omission_slot(_, reference, child => LoopPolicy.has_omission(remaining, all, child, all), _ => LoopPolicy.has_omission(1n+remaining, P.owner_slots(tail, owner), owner, all)) : Bool}
+      Equal.cong(Bool, Bool, +rest => LoopPolicy.omission_slot(True{}, reference, child => LoopPolicy.has_omission(remaining, all, child, all), _ => rest),
+        LoopPolicy.has_omission(1n+remaining, tail, owner, all), LoopPolicy.has_omission(1n+remaining, P.owner_slots(tail, owner), owner, all), tail_equal)
+
+def ready_actual_omission_filter(slots: List<&2, Local.ReferenceSlot>, +fuel: Nat, +owner: Nat, +all: List<&2, Local.ReferenceSlot>) ->
+    {LoopPolicy.has_omission(fuel, slots, owner, all) == LoopPolicy.has_omission(fuel, P.owner_slots(slots, owner), owner, all) : Bool}:
+  match slots fuel:
+    case Nil{} _: {==}
+    case _ 0n: {==}
+    case Local.ReferenceSlot{+actual, +index, +symbol, +reference} <> +tail 1n++remaining:
+      ready_actual_omission_filter_step(actual, index, symbol, reference, tail, remaining, owner, all,
+        ready_actual_omission_filter(tail, 1n+remaining, owner, all), Nat.is_eq(actual, owner), {==})
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
