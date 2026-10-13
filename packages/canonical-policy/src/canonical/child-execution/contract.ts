@@ -79,6 +79,10 @@ export type Protocol<
   Preparation,
   S extends Session
 > = {
+  // Protocol-owned synchronous boundaries must check the original signal
+  // before each transition, including the final engine/terminal boundary.
+  synchronousAdvance?(continuation: C, options: { readonly signal?: AbortSignal | undefined }): C | undefined
+  initialSignalCheckpoint?(machine: M): "executor" | "protocol"
   initial(machine: M, input: I): C
   view(continuation: C): P
   resume(continuation: C, reply: Reply): C

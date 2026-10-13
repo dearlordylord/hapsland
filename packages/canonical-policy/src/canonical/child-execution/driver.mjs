@@ -39,7 +39,7 @@ const constructionFailure = (value) => constructionFailureTag in value
  * @template {import("./contract.ts").Request} R
  * @template Reply, A, Prep
  * @template {import("./contract.ts").Session} S
- * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<S>>, foreign: (requests: readonly R[], options: ForeignOptions) => Promise<Reply>, control?: Control, machine: M, selectMachine?: (input: I, session: S) => M | undefined, protocol: import("./contract.ts").Protocol<I, M, C, P, R, Reply, A, Prep, S>, hooks?: {
+ * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<S>>, foreign: (requests: readonly R[], options: ForeignOptions) => Promise<Reply>, foreignSync?: (requests: readonly R[], options: ForeignOptions) => {readonly value: Reply} | undefined, control?: Control, machine: M, selectMachine?: (input: I, session: S) => M | undefined, protocol: import("./contract.ts").Protocol<I, M, C, P, R, Reply, A, Prep, S>, hooks?: {
  * beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
  * beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
  * afterAction?: (event: {command: Action, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
@@ -54,6 +54,7 @@ export function createChildExecutionDriver({
   scope,
   registry,
   foreign,
+  foreignSync,
   hooks = {},
   control,
   machine,
@@ -69,6 +70,8 @@ export function createChildExecutionDriver({
    */
   /** @type {Map<bigint, M>} */
   const machines = new Map()
+  /** @type {Map<bigint, AbortSignal | undefined>} */
+  const invocationSignals = new Map()
   /** @param {bigint} invocation */
   const engine = (invocation) => machines.get(invocation) ?? machine
   let state = control ? undefined : initialState,
@@ -180,6 +183,13 @@ export function createChildExecutionDriver({
   const failed = () => ({ failure: { $: "Types.InvocationCancelled" } })
   /** @param {bigint} invocation @param {bigint} generation @param {C} raw @returns {ActionOutcome} */
   const settleOutcome = (invocation, generation, raw) => {
+    if (protocol.synchronousAdvance) {
+      for (;;) {
+        const next = protocol.synchronousAdvance(raw, { signal: invocationSignals.get(invocation) })
+        if (next === undefined) break
+        raw = next
+      }
+    }
     const projected = protocol.view(raw)
     const request = protocol.awaitRequest(projected)
     if (request !== undefined) {
@@ -464,6 +474,7 @@ export function createChildExecutionDriver({
       sessions.set(invocation, session)
       machines.set(invocation, (selectMachine ? selectMachine(input, session) : undefined) ?? machine)
       resources.set(launch.input_handle, { invocation, kind: "input", value: input })
+      invocationSignals.set(invocation, options.signal)
       const registryOutcome = await registry.runOutcome(session, async () => {
         taskEntered = true
         /** @type {Failure | undefined} */
@@ -487,7 +498,8 @@ export function createChildExecutionDriver({
           }
         }
         try {
-          if (options.signal?.aborted) abort()
+          if (protocol.initialSignalCheckpoint?.(engine(invocation)) !== "protocol" && options.signal?.aborted)
+            abort()
           if (finished.has(invocation)) {
             if (abortFailure) {
               taskFailure = abortFailure
@@ -513,18 +525,18 @@ export function createChildExecutionDriver({
                 ? AbortSignal.any([options.signal, lease.controller.signal])
                 : lease.controller.signal
               hooks.beforeProvider?.({ invocation, lease: leaseId, request: lease.request, driver })
-              payload = {
-                value: await foreign([lease.request], {
-                  ...options,
-                  signal,
-                  ownerLease: Object.freeze({
-                    invocation,
-                    generation: child.generation,
-                    lease: leaseId,
-                    request: BigInt(lease.request.id)
-                  })
+              const execution = {
+                ...options,
+                signal,
+                ownerLease: Object.freeze({
+                  invocation,
+                  generation: child.generation,
+                  lease: leaseId,
+                  request: BigInt(lease.request.id)
                 })
               }
+              const synchronous = foreignSync?.([lease.request], execution)
+              payload = { value: synchronous === undefined ? await foreign([lease.request], execution) : synchronous.value }
             } catch (error) {
               payload = { error }
             }
@@ -602,6 +614,7 @@ export function createChildExecutionDriver({
       if (!taskEntered && registry.get(Number(invocation)) !== session) session.close?.()
       if (!cancellationCleanup.get(invocation)?.completed.has(1)) engine(invocation).disposeInvocation(invocation)
       cancellationCleanup.delete(invocation)
+      invocationSignals.delete(invocation)
       machines.delete(invocation)
       sessions.delete(invocation)
       finished.delete(invocation)
