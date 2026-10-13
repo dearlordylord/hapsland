@@ -2085,5 +2085,20 @@ def initial(invocation: Nat, +input: Input) -> Step:
     }
   }
 
+# Exact existing host pump allowance: exhaustion is checked before settlement.
+def settle(remaining: Nat, step: Step) -> Maybe<&2, Step>:
+  match remaining:
+    case 0n: None{}
+    case 1n++rest:
+      match step:
+        case Internal{state}: settle(rest, advance(state))
+        case _: Some{step}
+
+def initial_settled(invocation: Nat, input: Input) -> Maybe<&2, Step>:
+  settle(10000n, initial(invocation, input))
+
+def resume_settled(step: Step, reply: Reply) -> Maybe<&2, Step>:
+  settle(10000n, resume(step, reply))
+
 def main() -> Unit:
   Unit{}

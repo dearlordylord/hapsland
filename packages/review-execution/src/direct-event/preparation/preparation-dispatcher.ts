@@ -1,5 +1,5 @@
 import { mapGraphAbi } from "@hapsland/source-analysis/direct-event/graph-resolution/abi-mapping"
-import type { Input, Step, Request, Reply } from "./preparation-core.js"
+import type { Input, Step, Request, Reply, Maybe } from "./preparation-core.js"
 
 type ResolverTag<Tag> = Tag extends `../../../../source-analysis/src/direct-event/graph-resolution/Types.${infer Name}`
   ? `Types.${Name}`
@@ -38,21 +38,17 @@ const preparationAbi = (value: unknown, intoPreparation: boolean): unknown =>
 // Mechanical dispatch only: Bend chooses each contract, candidate and root.
 // Canonical owns lifecycle through the same driver envelope as resolver children.
 export function createPreparationMachine(core: typeof import("./preparation-core.js").default) {
-  const pump = (initial: Step): SettledStep => {
-    let step = initial
-    for (let count = 0; count < 10000; count++) {
-      if (step.$ !== "Internal") return step
-      step = core.advance(step.state)
-    }
-    throw new Error("Preparation internal dispatch did not settle")
+  const settled = (result: Maybe<Step>): SettledStep => {
+    if (result.$ === "None") throw new Error("Preparation internal dispatch did not settle")
+    return result.value as SettledStep
   }
   return {
     kind: "preparation" as const,
     initial: (input: PreparationInvocation) =>
-      pump(core.initial(input.invocation, preparationAbi(input.preparation, true) as Input)),
+      settled(core.initial_settled(input.invocation, preparationAbi(input.preparation, true) as Input)),
     resume: (step: SettledStep, event: PreparationEvent) => {
       if (event.$ !== "Types.ServiceReply") throw new Error("Invalid preparation reply envelope")
-      return pump(core.resume(step, preparationAbi(event.reply, true) as Reply))
+      return settled(core.resume_settled(step, preparationAbi(event.reply, true) as Reply))
     },
     view: (step: SettledStep): Projection => {
       switch (step.$) {

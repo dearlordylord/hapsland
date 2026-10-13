@@ -53,6 +53,7 @@ import ./AttachmentReplacementStructureProof.bend as ReplacementStructure
 import ./AttachmentNodeReplacementTransport.bend as NodeReplacement
 import ./ForestRollbackProof.bend as Rollback
 import ./ConstructionForestProof.bend as Construction
+import ./AttachmentForestLookupProof.bend as ForestLookup
 import ../Attach.bend as Attach
 import ../AttachPlanning.bend as Admission
 import ../Resolve.bend as Resolve
@@ -11404,6 +11405,137 @@ def ready_omission_reference_step(+references: List<&2, F.Reference>, +rest: Lis
           Arithmetic.add_assoc(Bool.pick(Nat, F.same_address(child, query), 1n, 0n), Relation.incoming_references(tail, query), ready_omission_work_demand(rest, query)),
           Equal.cong(Bool, Nat, same => (Bool.pick(Nat, same, 1n, 0n) + (Relation.incoming_references(tail, query) + ready_omission_work_demand(rest, query) : Nat) : Nat),
             F.same_address(child, query), F.same_address(query, child), Construction.same_address_symmetric(child, query)))}}}
+
+def ready_omission_occurrence(+nodes: List<&2, F.Node>, +address: O.NodeAddress) -> Type:
+  Exists(List<&2, F.Node>, prefix => Exists(T.Artifact, artifact => Exists(List<&2, F.Reference>, references => Exists(List<&2, F.Node>, suffix =>
+    {nodes == List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix) : List<&2, F.Node>} &
+    {F.count_address(prefix, address) == 0n : Nat}))))
+
+def ready_omission_occurrence_cons(+owner: O.NodeAddress, +artifact: T.Artifact, +references: List<&2, F.Reference>, +tail: List<&2, F.Node>, +address: O.NodeAddress,
+    +different: {F.same_address(address, owner) == False{} : Bool}, evidence: ready_omission_occurrence(tail, address)) ->
+    ready_omission_occurrence(F.Node{owner, artifact, references} <> tail, address):
+  match evidence:
+    case (+prefix, (+found, (+refs, (+suffix, (decomposed, absent))))):
+      Tuple{F.Node{owner, artifact, references} <> prefix, Tuple{found, Tuple{refs, Tuple{suffix, Tuple{
+        Equal.cong(List<&2, F.Node>, List<&2, F.Node>, rest => F.Node{owner, artifact, references} <> rest,
+          tail, List.append(&2, F.Node, prefix, F.Node{address, found, refs} <> suffix), decomposed),
+        %Equal.sym(Bool, F.same_address(address, owner), False{}, different):
+          {(Bool.pick(Nat, _, 1n, 0n) + F.count_address(prefix, address) : Nat) == 0n : Nat}
+        absent}}}}}
+
+def ready_omission_occurrence_branch(+owner: O.NodeAddress, +artifact: T.Artifact, +references: List<&2, F.Reference>, +tail: List<&2, F.Node>, +address: O.NodeAddress,
+    present: NatFacts.le(1n, F.count_address(F.Node{owner, artifact, references} <> tail, address)),
+    recursive: NatFacts.le(1n, F.count_address(tail, address)) -> ready_omission_occurrence(tail, address),
+    same: Bool, +equal: {F.same_address(address, owner) == same : Bool}) ->
+    ready_omission_occurrence(F.Node{owner, artifact, references} <> tail, address):
+  match same:
+    case True{}:
+      Tuple{[], Tuple{artifact, Tuple{references, Tuple{tail, Tuple{
+        Equal.cong(O.NodeAddress, List<&2, F.Node>, value => F.Node{value, artifact, references} <> tail, owner, address,
+          Equal.sym(O.NodeAddress, address, owner, Rollback.same_address_equal(address, owner, equal))), {==}}}}}}
+    case False{}:
+      ready_omission_occurrence_cons(owner, artifact, references, tail, address, equal,
+        recursive(%equal: NatFacts.le(1n, (Bool.pick(Nat, _, 1n, 0n) + F.count_address(tail, address) : Nat))
+          present))
+
+def ready_omission_positive_occurrence(nodes: List<&2, F.Node>, +address: O.NodeAddress,
+    present: NatFacts.le(1n, F.count_address(nodes, address))) -> ready_omission_occurrence(nodes, address):
+  match nodes:
+    case []: Empty.absurd(ready_omission_occurrence([], address), BoolFacts.internal_false_ne_true(present))
+    case F.Node{+owner, +artifact, +references} <> +tail:
+      ready_omission_occurrence_branch(owner, artifact, references, tail, address, present,
+        positive => ready_omission_positive_occurrence(tail, address, positive), F.same_address(address, owner), {==})
+
+def ready_omission_lookup_prefix(+nodes: List<&2, F.Node>, +address: O.NodeAddress, +prefix: List<&2, F.Node>, +artifact: T.Artifact, +references: List<&2, F.Reference>, +suffix: List<&2, F.Node>,
+    decomposed: {nodes == List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix) : List<&2, F.Node>},
+    absent: {F.count_address(prefix, address) == 0n : Nat}) ->
+    {F.node_at(nodes, address) == Some{F.Node{address, artifact, references}} : Maybe<&2, F.Node>}:
+  Equal.trans(Maybe<&2, F.Node>, F.node_at(nodes, address), F.node_at(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), address), Some{F.Node{address, artifact, references}},
+    Equal.cong(List<&2, F.Node>, Maybe<&2, F.Node>, items => F.node_at(items, address), nodes, List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), decomposed),
+    Equal.trans(Maybe<&2, F.Node>, F.node_at(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), address), F.node_at(F.Node{address, artifact, references} <> suffix, address), Some{F.Node{address, artifact, references}},
+      ForestLookup.skip_absent(prefix, F.Node{address, artifact, references} <> suffix, address, absent),
+      Equal.cong(Bool, Maybe<&2, F.Node>, same => Bool.pick(Maybe<&2, F.Node>, same, Some{F.Node{address, artifact, references}}, F.node_at(suffix, address)), F.same_address(address, address), True{}, ForestLookup.address_refl(address))))
+
+def ready_omission_resolved_occurrence(+nodes: List<&2, F.Node>, +address: O.NodeAddress) -> Type:
+  Exists(List<&2, F.Node>, prefix => Exists(T.Artifact, artifact => Exists(List<&2, F.Reference>, references => Exists(List<&2, F.Node>, suffix =>
+    {nodes == List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix) : List<&2, F.Node>} &
+    {F.count_address(prefix, address) == 0n : Nat} &
+    {F.node_at(nodes, address) == Some{F.Node{address, artifact, references}} : Maybe<&2, F.Node>}))))
+
+def ready_omission_occurrence_lookup(+nodes: List<&2, F.Node>, +address: O.NodeAddress, evidence: ready_omission_occurrence(nodes, address)) ->
+    ready_omission_resolved_occurrence(nodes, address):
+  match evidence:
+    case (+prefix, (+artifact, (+references, (+suffix, (decomposed, absent))))):
+      +decomposed: {nodes == List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix) : List<&2, F.Node>} = decomposed
+      +absent: {F.count_address(prefix, address) == 0n : Nat} = absent
+      Tuple{prefix, Tuple{artifact, Tuple{references, Tuple{suffix, Tuple{decomposed, Tuple{absent,
+        ready_omission_lookup_prefix(nodes, address, prefix, artifact, references, suffix, decomposed, absent)}}}}}}
+
+def ready_omission_address_positive(+nodes: List<&2, F.Node>, +address: O.NodeAddress, +rest: List<&2, D.OmissionWork>) ->
+    NatFacts.le(1n, (ready_omission_work_demand(D.OmissionAddress{address} <> rest, address) + Relation.incoming(nodes, address) : Nat)):
+  %Equal.sym(Bool, F.same_address(address, address), True{}, ForestLookup.address_refl(address)):
+    NatFacts.le(1n, ((Bool.pick(Nat, _, 1n, 0n) + ready_omission_work_demand(rest, address) : Nat) + Relation.incoming(nodes, address) : Nat))
+  NatFacts.succ_le_succ(0n, (ready_omission_work_demand(rest, address) + Relation.incoming(nodes, address) : Nat),
+    NatFacts.zero_le((ready_omission_work_demand(rest, address) + Relation.incoming(nodes, address) : Nat)))
+
+def ready_omission_demanded_occurrence(+nodes: List<&2, F.Node>, +address: O.NodeAddress, +rest: List<&2, D.OmissionWork>,
+    available: NatFacts.le((ready_omission_work_demand(D.OmissionAddress{address} <> rest, address) + Relation.incoming(nodes, address) : Nat), F.count_address(nodes, address))) ->
+    ready_omission_resolved_occurrence(nodes, address):
+  ready_omission_occurrence_lookup(nodes, address, ready_omission_positive_occurrence(nodes, address,
+    NatFacts.le_trans(1n, (ready_omission_work_demand(D.OmissionAddress{address} <> rest, address) + Relation.incoming(nodes, address) : Nat), F.count_address(nodes, address),
+      ready_omission_address_positive(nodes, address, rest), available)))
+
+def ready_omission_node_rows(items: List<&2, F.Node>, +all: List<&2, F.Node>) -> Type:
+  match items:
+    case []: Unit
+    case F.Node{+address, +artifact, +references} <> tail:
+      {F.node_at(all, address) == Some{F.Node{address, artifact, references}} : Maybe<&2, F.Node>} & ready_omission_node_rows(tail, all)
+
+def ready_omission_prefix_step(prefix: List<&2, F.Node>, +node: F.Node, +tail: List<&2, F.Node>) ->
+    {List.append(&2, F.Node, prefix, node <> tail) == List.append(&2, F.Node, List.append(&2, F.Node, prefix, [node]), tail) : List<&2, F.Node>}:
+  match prefix:
+    case []: {==}
+    case +head <> +rest:
+      Equal.cong(List<&2, F.Node>, List<&2, F.Node>, items => head <> items,
+        List.append(&2, F.Node, rest, node <> tail), List.append(&2, F.Node, List.append(&2, F.Node, rest, [node]), tail), ready_omission_prefix_step(rest, node, tail))
+
+def ready_omission_rows_from_valid(items: List<&2, F.Node>, +prefix: List<&2, F.Node>, +all: List<&2, F.Node>,
+    +decomposed: {all == List.append(&2, F.Node, prefix, items) : List<&2, F.Node>},
+    +valid: {Relation.nodes_valid(items, all) == True{} : Bool}) -> ready_omission_node_rows(items, all):
+  match items:
+    case []: Unit{}
+    case F.Node{+address, +artifact, +references} <> +tail:
+      +counted: {F.count_address(all, address) == 1n : Nat} = NatFacts.eq_of_is_eq(F.count_address(all, address), 1n,
+        BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(all, address), 1n), Bool.and(Nat.is_le(Relation.incoming(all, address), 1n), Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all))), valid))
+      Tuple{
+        Equal.trans(Maybe<&2, F.Node>, F.node_at(all, address), F.node_at(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> tail), address), Some{F.Node{address, artifact, references}},
+          Equal.cong(List<&2, F.Node>, Maybe<&2, F.Node>, values => F.node_at(values, address), all, List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> tail), decomposed),
+          ForestLookup.exact_node(prefix, address, artifact, references, tail,
+            %decomposed: {F.count_address(_, address) == 1n : Nat}
+            counted)),
+        ready_omission_rows_from_valid(tail, List.append(&2, F.Node, prefix, [F.Node{address, artifact, references}]), all,
+          Equal.trans(List<&2, F.Node>, all, List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> tail), List.append(&2, F.Node, List.append(&2, F.Node, prefix, [F.Node{address, artifact, references}]), tail), decomposed, ready_omission_prefix_step(prefix, F.Node{address, artifact, references}, tail)),
+          Equal.sym(Bool, True{}, Relation.nodes_valid(tail, all), Rollback.nodes_tail(F.Node{address, artifact, references}, tail, all, Equal.sym(Bool, Relation.nodes_valid(items, all), True{}, valid))))}
+
+def ready_omission_rows_remove_cons(+head: F.Node, +prefix: List<&2, F.Node>, +address: O.NodeAddress, +artifact: T.Artifact,
+    +references: List<&2, F.Reference>, +suffix: List<&2, F.Node>, +all: List<&2, F.Node>,
+    head_ready: ready_omission_node_rows([head], all),
+    remainder: {F.node_at(all, address) == Some{F.Node{address, artifact, references}} : Maybe<&2, F.Node>} & ready_omission_node_rows(List.append(&2, F.Node, prefix, suffix), all)) ->
+    {F.node_at(all, address) == Some{F.Node{address, artifact, references}} : Maybe<&2, F.Node>} & ready_omission_node_rows(List.append(&2, F.Node, head <> prefix, suffix), all):
+  match head head_ready remainder:
+    case F.Node{_, _, _} Tuple{head_equal, _} Tuple{found, rest}: Tuple{found, Tuple{head_equal, rest}}
+
+def ready_omission_rows_remove(prefix: List<&2, F.Node>, +address: O.NodeAddress, +artifact: T.Artifact,
+    +references: List<&2, F.Reference>, +suffix: List<&2, F.Node>, +all: List<&2, F.Node>,
+    rows: ready_omission_node_rows(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix), all)) ->
+    {F.node_at(all, address) == Some{F.Node{address, artifact, references}} : Maybe<&2, F.Node>} & ready_omission_node_rows(List.append(&2, F.Node, prefix, suffix), all):
+  match prefix:
+    case []: rows
+    case F.Node{+owner, +value, +refs} <> +tail:
+      match rows:
+        case Tuple{head_ready, rest}:
+          ready_omission_rows_remove_cons(F.Node{owner, value, refs}, tail, address, artifact, references, suffix, all,
+            Tuple{head_ready, Unit{}}, ready_omission_rows_remove(tail, address, artifact, references, suffix, all, rest))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

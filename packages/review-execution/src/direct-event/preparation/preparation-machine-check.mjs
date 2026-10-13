@@ -80,11 +80,31 @@ try {
         selection_locations: none
       }
     }))
+  let pumpComparisons = 0
+  const originalPump = (step, fuel = 10000) => {
+    for (let count = 0; count < fuel; count++) {
+      if (step.$ !== "Internal") return some(step)
+      step = machine.advance(step.state)
+    }
+    return none
+  }
+  const checkPump = (step) => {
+    for (const fuel of [0, 1, 2, 9999, 10000]) {
+      assert.deepEqual(machine.settle(BigInt(fuel), step), originalPump(step, fuel))
+      pumpComparisons++
+    }
+  }
+  const emptyStart = machine.initial(1n, input([], { contracts: list([]) }))
+  checkPump(emptyStart)
+  checkPump(machine.advance(emptyStart.state))
+  checkPump({ $: "Failed", reason: "retained-failure" })
   let cases = 0,
     totalRequests = 0
   function run(configuration, options = {}) {
     let step = machine.initial(1n, configuration),
       last = -1n
+    assert.deepEqual(machine.initial_settled(1n, configuration), originalPump(step))
+    pumpComparisons++
     const captures = []
     const requests = []
     for (let fuel = 0; fuel < 10000; fuel++) {
@@ -218,7 +238,11 @@ try {
         default:
           throw new Error("Unexpected provider " + command.$)
       }
-      step = machine.resume(step, { $: "Reply", invocation: 1n, id: request.id, response })
+      const reply = { $: "Reply", invocation: 1n, id: request.id, response }
+      const resumed = machine.resume(step, reply)
+      assert.deepEqual(machine.resume_settled(step, reply), originalPump(resumed))
+      pumpComparisons++
+      step = resumed
     }
     throw new Error("Preparation did not settle")
   }
@@ -317,6 +341,7 @@ try {
       passed: true,
       cases,
       requests: totalRequests,
+      pumpComparisons,
       scope:
         "finite emitted whole preparation progression, contract/candidate order, shared cache/materialization refusal, quota-before-launch including refused root, fresh outer instances, cancellation/technical errors and frozen-path distinctions; simulated intermediate providers, no resident adoption or universal proof"
     })
