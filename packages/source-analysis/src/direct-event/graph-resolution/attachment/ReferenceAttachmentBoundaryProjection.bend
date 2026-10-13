@@ -1,3 +1,6 @@
+import ../../../../../agent-flow-bend/ImportGraph.bend as G
+import ../SignedLocalSpecification.bend as Signed
+import ../traversal/SPEC.bend as Recursive
 import ./ActualAttachmentBoundaryProjection.bend as ActualBoundary
 import ../State.bend as State
 import ../LoopPolicy.bend as LoopPolicy
@@ -114,6 +117,193 @@ def completion_denied(
     Equal.cong(Maybe<&2, V.Frame>, Maybe<&2, B.Boundary>,
       projected => finished(None{}, projected),
       Frame.project(reference, history), Some{view}, reference_frame)}
+
+
+# Completion changes the stage only; projected frame and capsule stay retained.
+def completion_assembled_stage(
+  +state: D.State,
+  +history: V.History,
+  +stage: D.Stage,
+  +targets: Maybe<&2, List<&2, V.TargetEntry>>,
+  +captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+  +visited: Maybe<&2, List<&2, String>>
+) -> {
+  Frame.assembled(D.stage(state, stage), history, targets, captured, visited)
+  == Frame.assembled(state, history, targets, captured, visited)
+  : Maybe<&2, V.Frame>
+}:
+  match state history targets captured visited:
+    case D.State{
+      D.Config{_, _, _, _, _, _},
+      X.Frame{
+        G.Bounded{_, _},
+        _,
+        _,
+        Signed.State{Recursive.State{_, _, _, _}, _},
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      },
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    } V.History{_, _, _, _, _, _, _} Some{_} Some{_} Some{_}: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ None{} _ _: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ Some{_} None{} _: {==}
+    case D.State{_, _, _, _, _, _, _, _, _} _ Some{_} Some{_} None{}: {==}
+
+def completion_frame_stage(
+  +state: D.State,
+  +history: V.History,
+  +stage: D.Stage
+) -> {
+  Frame.project(D.stage(state, stage), history)
+  == Frame.project(state, history)
+  : Maybe<&2, V.Frame>
+}:
+  match state history:
+    case D.State{
+      _,
+      X.Frame{
+        _,
+        _,
+        _,
+        Signed.State{Recursive.State{values, _, _, _}, _},
+        _,
+        captures,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      },
+      targets,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    } V.History{_, V.Order{_, _, _, _, _, seen}, _, sources, _, _, _}:
+      completion_assembled_stage(
+        state,
+        history,
+        stage,
+        Frame.targets(targets),
+        Frame.captured(captures, sources),
+        Frame.visited(seen, values)
+      )
+
+def completion_selected_claim(
+  -World: Data,
+  +state: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +product: ArtifactValue.ProductValue,
+  +world: E.WorldState<World>
+) -> @-request:T.Request -> Type:
+  request => {
+    project(
+      World,
+      D.consumed(World, D.completion_selected(state, product, True{}), world),
+      child,
+      history
+    )
+    == Some{
+      B.Selected{
+        request,
+        view,
+        B.MeasuringCompletion{allocated(Ready.capsule(state, child)), product}
+      }
+    }
+    : Maybe<&2, B.Boundary>
+  } & {
+    Boundary.selected_request(D.completion_selected(state, product, True{}))
+    == Some{request}
+    : Maybe<&2, T.Request>
+  }
+
+def completion_selected_boundary(
+  -World: Data,
+  +state: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +product: ArtifactValue.ProductValue,
+  +world: E.WorldState<World>,
+  ready: {Frame.project(state, history) == Some{view} : Maybe<&2, V.Frame>}
+) -> Exists(
+  T.Request,
+  completion_selected_claim(World, state, child, history, view, product, world)
+):
+  match state child:
+    case D.State{
+      D.Config{+invocation, _, _, _, _, _},
+      X.Frame{_, _, _, _, _, _, _, _, _, _, _, _},
+      _,
+      _,
+      _,
+      +next,
+      _,
+      _,
+      _
+    } X.Child{X.Attempt{_, _, _, _, _, _, _, _, _, _}, _, _, _}:
+      observe : Maybe<&2, V.Frame> -> Maybe<&2, B.Boundary> = projected => selected(
+        Some{T.Request{invocation, next, T.EncodeProduct{product}}},
+        projected,
+        B.MeasuringCompletion{
+          allocated(Ready.capsule(D.stage(state, D.AwaitCompletion{product}), child)),
+          product
+        }
+      )
+      observed : {
+        project(
+          World,
+          D.consumed(World, D.completion_selected(state, product, True{}), world),
+          child,
+          history
+        )
+        == Some{
+          B.Selected{
+            T.Request{invocation, next, T.EncodeProduct{product}},
+            view,
+            B.MeasuringCompletion{allocated(Ready.capsule(state, child)), product}
+          }
+        }
+        : Maybe<&2, B.Boundary>
+      } =
+        Equal.cong(
+          Maybe<&2, V.Frame>,
+          Maybe<&2, B.Boundary>,
+          observe,
+          Frame.project(D.stage(state, D.AwaitCompletion{product}), history),
+          Some{view},
+          Equal.trans(
+            Maybe<&2, V.Frame>,
+            Frame.project(D.stage(state, D.AwaitCompletion{product}), history),
+            Frame.project(state, history),
+            Some{view},
+            completion_frame_stage(state, history, D.AwaitCompletion{product}),
+            ready
+          )
+        )
+      request_equal : {
+        Boundary.selected_request(D.completion_selected(state, product, True{}))
+        == Some{T.Request{invocation, next, T.EncodeProduct{product}}}
+        : Maybe<&2, T.Request>
+      } = {==}
+      Tuple{T.Request{invocation, next, T.EncodeProduct{product}}, Tuple{observed, request_equal}}
 
 
 def main() -> Unit:
