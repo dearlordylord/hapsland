@@ -11975,6 +11975,135 @@ def ready_actual_omission_filter(slots: List<&2, Local.ReferenceSlot>, +fuel: Na
       ready_actual_omission_filter_step(actual, index, symbol, reference, tail, remaining, owner, all,
         ready_actual_omission_filter(tail, 1n+remaining, owner, all), Nat.is_eq(actual, owner), {==})
 
+def ready_actual_omission_stable(nodes: List<&2, Local.PlannedNode>, +left: Nat, +right: Nat, +slots: List<&2, Local.ReferenceSlot>) -> Bool:
+  match nodes:
+    case []: True{}
+    case Local.PlannedNode{+id, _} <> tail:
+      Bool.and(Cmp.is_eq(Bool.cmp(LoopPolicy.has_omission(left, slots, id, slots), LoopPolicy.has_omission(right, slots, id, slots))),
+        ready_actual_omission_stable(tail, left, right, slots))
+
+def ready_actual_omission_query_branch(+id: Nat, +artifact: Nat, +tail: List<&2, Local.PlannedNode>, +query: Nat,
+    +left: Nat, +right: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    +stable: {ready_actual_omission_stable(Local.PlannedNode{id, artifact} <> tail, left, right, slots) == True{} : Bool},
+    present: NatFacts.le(1n, P.node_count(Local.PlannedNode{id, artifact} <> tail, query)),
+    recursive: {ready_actual_omission_stable(tail, left, right, slots) == True{} : Bool} -> NatFacts.le(1n, P.node_count(tail, query)) ->
+      {LoopPolicy.has_omission(left, slots, query, slots) == LoopPolicy.has_omission(right, slots, query, slots) : Bool},
+    same: Bool, +equal: {Nat.is_eq(query, id) == same : Bool}) ->
+    {LoopPolicy.has_omission(left, slots, query, slots) == LoopPolicy.has_omission(right, slots, query, slots) : Bool}:
+  match same:
+    case True{}:
+      %Equal.sym(Nat, query, id, NatFacts.eq_of_is_eq(query, id, equal)):
+        {LoopPolicy.has_omission(left, slots, _, slots) == LoopPolicy.has_omission(right, slots, _, slots) : Bool}
+      BoolFacts.eq_of_cmp_eq(LoopPolicy.has_omission(left, slots, id, slots), LoopPolicy.has_omission(right, slots, id, slots),
+        BoolFacts.eq_true_of_and_left(Cmp.is_eq(Bool.cmp(LoopPolicy.has_omission(left, slots, id, slots), LoopPolicy.has_omission(right, slots, id, slots))), ready_actual_omission_stable(tail, left, right, slots), stable))
+    case False{}:
+      recursive(BoolFacts.eq_true_of_and_right(Cmp.is_eq(Bool.cmp(LoopPolicy.has_omission(left, slots, id, slots), LoopPolicy.has_omission(right, slots, id, slots))), ready_actual_omission_stable(tail, left, right, slots), stable))(
+        %equal: NatFacts.le(1n, (Bool.pick(Nat, _, 1n, 0n) + P.node_count(tail, query) : Nat))
+        present)
+
+def ready_actual_omission_query(nodes: List<&2, Local.PlannedNode>, +query: Nat, +left: Nat, +right: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    stable: {ready_actual_omission_stable(nodes, left, right, slots) == True{} : Bool}, present: NatFacts.le(1n, P.node_count(nodes, query))) ->
+    {LoopPolicy.has_omission(left, slots, query, slots) == LoopPolicy.has_omission(right, slots, query, slots) : Bool}:
+  match nodes:
+    case []:
+      Empty.absurd({LoopPolicy.has_omission(left, slots, query, slots) == LoopPolicy.has_omission(right, slots, query, slots) : Bool}, BoolFacts.internal_false_ne_true(present))
+    case Local.PlannedNode{+id, +artifact} <> +tail:
+      ready_actual_omission_query_branch(id, artifact, tail, query, left, right, slots, stable, present,
+        next_stable => next_present => ready_actual_omission_query(tail, query, left, right, slots, next_stable, next_present), Nat.is_eq(query, id), {==})
+
+def ready_actual_omission_slot_values(+actual: Nat, +index: Nat, +symbol: String, same: Bool, reference: Local.PlannedReference,
+    +tail: List<&2, Local.ReferenceSlot>, +owner: Nat, +left: Nat, +right: Nat, +all: List<&2, Local.ReferenceSlot>, +later: List<&2, Local.PlannedNode>,
+    +stable: {ready_actual_omission_stable(later, left, right, all) == True{} : Bool},
+    forward: {P.forward_reference(reference, later) == True{} : Bool},
+    tail_equal: {LoopPolicy.has_omission(1n+left, tail, owner, all) == LoopPolicy.has_omission(1n+right, tail, owner, all) : Bool}) ->
+    {LoopPolicy.omission_slot(same, reference, child => LoopPolicy.has_omission(left, all, child, all), _ => LoopPolicy.has_omission(1n+left, tail, owner, all))
+      == LoopPolicy.omission_slot(same, reference, child => LoopPolicy.has_omission(right, all, child, all), _ => LoopPolicy.has_omission(1n+right, tail, owner, all)) : Bool}:
+  match same:
+    case False{}: tail_equal
+    case True{}:
+      match reference:
+        case Local.Included{+identity}:
+          Equal.cong(Bool, Bool, +rest => LoopPolicy.omission_slot(True{}, Local.Included{identity}, _ => False{}, _ => rest),
+            LoopPolicy.has_omission(1n+left, tail, owner, all), LoopPolicy.has_omission(1n+right, tail, owner, all), tail_equal)
+        case Local.Omitted{+reason, +target}:
+          Equal.cong(Bool, Bool, +rest => LoopPolicy.omission_slot(True{}, Local.Omitted{reason, target}, _ => False{}, _ => rest),
+            LoopPolicy.has_omission(1n+left, tail, owner, all), LoopPolicy.has_omission(1n+right, tail, owner, all), tail_equal)
+        case Local.Expanded{+child}:
+          child_equal: {LoopPolicy.has_omission(left, all, child, all) == LoopPolicy.has_omission(right, all, child, all) : Bool} =
+            ready_actual_omission_query(later, child, left, right, all, stable,
+              %Equal.sym(Nat, P.node_count(later, child), 1n, NatFacts.eq_of_is_eq(P.node_count(later, child), 1n, forward)): NatFacts.le(1n, _)
+              NatFacts.le_refl(1n))
+          Equal.trans(Bool,
+            LoopPolicy.omission_slot(True{}, reference, node => LoopPolicy.has_omission(left, all, node, all), _ => LoopPolicy.has_omission(1n+left, tail, owner, all)),
+            LoopPolicy.omission_slot(True{}, Local.Expanded{child}, _ => LoopPolicy.has_omission(right, all, child, all), _ => LoopPolicy.has_omission(1n+left, tail, owner, all)),
+            LoopPolicy.omission_slot(True{}, reference, node => LoopPolicy.has_omission(right, all, node, all), _ => LoopPolicy.has_omission(1n+right, tail, owner, all)),
+            Equal.cong(Bool, Bool, +value => LoopPolicy.omission_slot(True{}, Local.Expanded{child}, _ => value, _ => LoopPolicy.has_omission(1n+left, tail, owner, all)),
+              LoopPolicy.has_omission(left, all, child, all), LoopPolicy.has_omission(right, all, child, all), child_equal),
+            Equal.cong(Bool, Bool, +rest => LoopPolicy.omission_slot(True{}, Local.Expanded{child}, _ => LoopPolicy.has_omission(right, all, child, all), _ => rest),
+              LoopPolicy.has_omission(1n+left, tail, owner, all), LoopPolicy.has_omission(1n+right, tail, owner, all), tail_equal))
+
+def ready_actual_omission_slot_stable(+actual: Nat, +index: Nat, +symbol: String, reference: Local.PlannedReference,
+    +tail: List<&2, Local.ReferenceSlot>, +owner: Nat, +left: Nat, +right: Nat, +all: List<&2, Local.ReferenceSlot>, +later: List<&2, Local.PlannedNode>,
+    +stable: {ready_actual_omission_stable(later, left, right, all) == True{} : Bool},
+    forward: {P.forward_reference(reference, later) == True{} : Bool},
+    tail_equal: {LoopPolicy.has_omission(1n+left, tail, owner, all) == LoopPolicy.has_omission(1n+right, tail, owner, all) : Bool}) ->
+    {LoopPolicy.has_omission(1n+left, Local.ReferenceSlot{actual, index, symbol, reference} <> tail, owner, all)
+      == LoopPolicy.has_omission(1n+right, Local.ReferenceSlot{actual, index, symbol, reference} <> tail, owner, all) : Bool}:
+  ready_actual_omission_slot_values(actual, index, symbol, Nat.is_eq(actual, owner), reference, tail, owner, left, right, all, later, stable, forward, tail_equal)
+
+def ready_actual_omission_slots_stable(slots: List<&2, Local.ReferenceSlot>, +left: Nat, +right: Nat, +owner: Nat,
+    +all: List<&2, Local.ReferenceSlot>, +later: List<&2, Local.PlannedNode>, +next: Nat,
+    +stable: {ready_actual_omission_stable(later, left, right, all) == True{} : Bool}, +indexed: {P.indexed(slots, next, later) == True{} : Bool}) ->
+    {LoopPolicy.has_omission(1n+left, slots, owner, all) == LoopPolicy.has_omission(1n+right, slots, owner, all) : Bool}:
+  match slots:
+    case []: {==}
+    case Local.ReferenceSlot{+actual, +index, +symbol, +reference} <> +tail:
+      +more: {Bool.and(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later)) == True{} : Bool} =
+        BoolFacts.eq_true_of_and_right(Nat.is_eq(index, next), Bool.and(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later)), indexed)
+      ready_actual_omission_slot_stable(actual, index, symbol, reference, tail, owner, left, right, all, later, stable,
+        BoolFacts.eq_true_of_and_left(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later), more),
+        ready_actual_omission_slots_stable(tail, left, right, owner, all, later, (next + 1n : Nat), stable,
+          BoolFacts.eq_true_of_and_right(P.forward_reference(reference, later), P.indexed(tail, (next + 1n : Nat), later), more)))
+
+def ready_actual_omission_owner_stable(+id: Nat, +left: Nat, +right: Nat, +slots: List<&2, Local.ReferenceSlot>, +later: List<&2, Local.PlannedNode>,
+    stable: {ready_actual_omission_stable(later, left, right, slots) == True{} : Bool}, indexed: {P.indexed(P.owner_slots(slots, id), 0n, later) == True{} : Bool}) ->
+    {LoopPolicy.has_omission(1n+left, slots, id, slots) == LoopPolicy.has_omission(1n+right, slots, id, slots) : Bool}:
+  Equal.trans(Bool, LoopPolicy.has_omission(1n+left, slots, id, slots), LoopPolicy.has_omission(1n+left, P.owner_slots(slots, id), id, slots), LoopPolicy.has_omission(1n+right, slots, id, slots),
+    ready_actual_omission_filter(slots, 1n+left, id, slots),
+    Equal.trans(Bool, LoopPolicy.has_omission(1n+left, P.owner_slots(slots, id), id, slots), LoopPolicy.has_omission(1n+right, P.owner_slots(slots, id), id, slots), LoopPolicy.has_omission(1n+right, slots, id, slots),
+      ready_actual_omission_slots_stable(P.owner_slots(slots, id), left, right, id, slots, later, 0n, stable, indexed),
+      Equal.sym(Bool, LoopPolicy.has_omission(1n+right, slots, id, slots), LoopPolicy.has_omission(1n+right, P.owner_slots(slots, id), id, slots), ready_actual_omission_filter(slots, 1n+right, id, slots))))
+
+def ready_actual_omission_equal_true(+left: Bool, +right: Bool, equal: {left == right : Bool}) ->
+    {Cmp.is_eq(Bool.cmp(left, right)) == True{} : Bool}:
+  %equal: {Cmp.is_eq(Bool.cmp(left, _)) == True{} : Bool}
+  Equal.cong(Cmp, Bool, value => Cmp.is_eq(value), Bool.cmp(left, left), EQ{}, BoolFacts.cmp_refl(left))
+
+def ready_actual_omission_suffix_stable(nodes: List<&2, Local.PlannedNode>, +left: Nat, +right: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    +forward: {P.forward_nodes(nodes, slots) == True{} : Bool},
+    +left_bound: NatFacts.le((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), left),
+    +right_bound: NatFacts.le((List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), right)) ->
+    {ready_actual_omission_stable(nodes, left, right, slots) == True{} : Bool}:
+  match nodes left right:
+    case Nil{} _ _: {==}
+    case Local.PlannedNode{_, _} <> _ 0n _:
+      Empty.absurd({ready_actual_omission_stable(nodes, 0n, right, slots) == True{} : Bool}, BoolFacts.internal_false_ne_true(left_bound))
+    case Local.PlannedNode{_, _} <> _ 1n+_ 0n:
+      Empty.absurd({ready_actual_omission_stable(nodes, left, 0n, slots) == True{} : Bool}, BoolFacts.internal_false_ne_true(right_bound))
+    case Local.PlannedNode{+id, _} <> +tail 1n++lower 1n++upper:
+      +tail_forward: {P.forward_nodes(tail, slots) == True{} : Bool} =
+        BoolFacts.eq_true_of_and_right(P.indexed(P.owner_slots(slots, id), 0n, tail), P.forward_nodes(tail, slots), forward)
+      BoolFacts.and_eq_true(Cmp.is_eq(Bool.cmp(LoopPolicy.has_omission(left, slots, id, slots), LoopPolicy.has_omission(right, slots, id, slots))), ready_actual_omission_stable(tail, left, right, slots),
+        ready_actual_omission_equal_true(LoopPolicy.has_omission(left, slots, id, slots), LoopPolicy.has_omission(right, slots, id, slots),
+          ready_actual_omission_owner_stable(id, lower, upper, slots, tail,
+            ready_actual_omission_suffix_stable(tail, lower, upper, slots, tail_forward, left_bound, right_bound),
+            BoolFacts.eq_true_of_and_left(P.indexed(P.owner_slots(slots, id), 0n, tail), P.forward_nodes(tail, slots), forward))),
+        ready_actual_omission_suffix_stable(tail, left, right, slots, tail_forward,
+          NatFacts.le_trans((List.length(&2, Local.PlannedNode, tail) + 1n : Nat), 1n+(List.length(&2, Local.PlannedNode, tail) + 1n : Nat), left,
+            NatFacts.le_succ((List.length(&2, Local.PlannedNode, tail) + 1n : Nat)), left_bound),
+          NatFacts.le_trans((List.length(&2, Local.PlannedNode, tail) + 1n : Nat), 1n+(List.length(&2, Local.PlannedNode, tail) + 1n : Nat), right,
+            NatFacts.le_succ((List.length(&2, Local.PlannedNode, tail) + 1n : Nat)), right_bound)))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

@@ -1,3 +1,7 @@
+import ./ActualAttachmentBoundaryProjection.bend as ActualBoundary
+import ../State.bend as State
+import ../LoopPolicy.bend as LoopPolicy
+import ../Environment.bend as E
 import ../../../../../source-artifacts/src/direct-event/value/Value.bend as ArtifactValue
 import Base
 import ./AttachmentBoundaryView.bend as B
@@ -21,8 +25,11 @@ def allocated(capsule: Phase.Capsule) -> Phase.Capsule:
       Phase.Capsule{invocation, path, language, context, clock, cache,
         (next + 1n : Nat), iterations, target, edge, fingerprint}
 
-def selected(request: Maybe<&2, T.Request>, frame: Maybe<&2, V.Frame>,
-    continuation: B.Continuation) -> Maybe<&2, B.Boundary>:
+def selected(
+  request: Maybe<&2, T.Request>,
+  frame: Maybe<&2, V.Frame>,
+  continuation: B.Continuation
+) -> Maybe<&2, B.Boundary>:
   match request frame:
     case Some{request} Some{frame}: Some{B.Selected{request, frame, continuation}}
     case _ _: None{}
@@ -30,8 +37,12 @@ def selected(request: Maybe<&2, T.Request>, frame: Maybe<&2, V.Frame>,
 # Request payload and continuation-owned measured product are both retained.
 # Fixed D.completion constructs them identically; observing the stage value
 # prevents a forged raw selection from hiding a different continuation value.
-def selected_stage(+state: D.State, +operation: T.Operation,
-    child: X.Child, history: V.History) -> Maybe<&2, B.Boundary>:
+def selected_stage(
+  +state: D.State,
+  +operation: T.Operation,
+  child: X.Child,
+  history: V.History
+) -> Maybe<&2, B.Boundary>:
   match state operation:
     case D.State{_, _, _, _, _, _, _, D.AwaitDeadline{}, _} T.ReadClock{_}:
       selected(Boundary.selected_request(D.Selected{state, operation}),
@@ -58,13 +69,52 @@ def finished(
     case Some{frame}: Some{B.Finished{product, frame}}
     case None{}: None{}
 
-def project(-World: Data, progress: D.Progress<World>, child: X.Child,
-    history: V.History) -> Maybe<&2, B.Boundary>:
+def project(
+  -World: Data,
+  progress: D.Progress<World>,
+  child: X.Child,
+  history: V.History
+) -> Maybe<&2, B.Boundary>:
   match progress:
     case D.DriverFailed{_, failure, _}: Some{B.Failed{failure}}
     case D.DriverFinished{state, product, _}: finished(product, Frame.project(state, history))
     case D.DriverSelected{state, operation, _}: selected_stage(state, operation, child, history)
     case _: None{}
+
+# Internal completion join for the original whole attachment transaction.
+# Denied completion preserves the complete projected frame and retained World.
+def completion_denied(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +world: E.WorldState<World>,
+  +frame: T.ResolverFrame,
+  actual_frame: {
+    ActualBoundary.frame(State.state_frame(actual), history)
+    == Some{view}
+    : Maybe<&2, V.Frame>
+  },
+  reference_frame: {Frame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}
+) -> {
+  ActualBoundary.project(LoopPolicy.request_completion(False{}, actual, frame), history)
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+} & {
+  project(World, D.consumed(World, D.no_unit(reference), world), child, history)
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+}:
+  Tuple{
+    Equal.cong(Maybe<&2, V.Frame>, Maybe<&2, B.Boundary>,
+      projected => ActualBoundary.finished(None{}, projected),
+      ActualBoundary.frame(State.state_frame(actual), history), Some{view}, actual_frame),
+    Equal.cong(Maybe<&2, V.Frame>, Maybe<&2, B.Boundary>,
+      projected => finished(None{}, projected),
+      Frame.project(reference, history), Some{view}, reference_frame)}
+
 
 def main() -> Unit:
   Unit{}
