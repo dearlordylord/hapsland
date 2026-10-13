@@ -12942,6 +12942,55 @@ def ready_reference_frame_dependencies(+state: D.State, +history: V.History, +vi
       V.History{_, V.Order{_, _, _, _, _, +seen}, _, +sources, _, _, _}:
       ready_reference_frame_dependencies_rows(state, history, ReferenceFrame.targets(target_values), ReferenceFrame.captured(captures, sources), ReferenceFrame.visited(seen, values), view, ready)
 
+def ready_completion_materialized_transport(+actual: T.ResolverState, +reference: D.State, +frame: T.ResolverFrame,
+    +history: V.History, +view: V.Frame, +product: ArtifactValue.ProductValue,
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    dependencies: {S.frame_dependencies(frame) == ready_reference_dependencies(D.frame(reference)) : List<&2, String>},
+    fingerprint: {ready_prepared_fingerprint(S.state_prepared(actual)) == ready_reference_fingerprint(D.frame(reference)) : Maybe<&2, String>},
+    materialized: {F.prepared_unit(Allowance.materialization(ready_staged_forest(view)), ready_staged_forest(view), S.frame_dependencies(frame), ready_prepared_fingerprint(S.state_prepared(actual))) == F.Materialized{product} : F.Materialization}) ->
+    {F.prepared_unit(Allowance.materialization(ready_reference_forest(D.frame(reference))), ready_reference_forest(D.frame(reference)), ready_reference_dependencies(D.frame(reference)), ready_reference_fingerprint(D.frame(reference))) == F.Materialized{product} : F.Materialization}:
+  %Equal.sym(F.Forest, ready_reference_forest(D.frame(reference)), ready_staged_forest(view), ready_reference_forest_project(reference, history, view, reference_ready)):
+    {F.prepared_unit(Allowance.materialization(_), _, ready_reference_dependencies(D.frame(reference)), ready_reference_fingerprint(D.frame(reference))) == F.Materialized{product} : F.Materialization}
+  %dependencies:
+    {F.prepared_unit(Allowance.materialization(ready_staged_forest(view)), ready_staged_forest(view), _, ready_reference_fingerprint(D.frame(reference))) == F.Materialized{product} : F.Materialization}
+  %fingerprint:
+    {F.prepared_unit(Allowance.materialization(ready_staged_forest(view)), ready_staged_forest(view), S.frame_dependencies(frame), _) == F.Materialized{product} : F.Materialization}
+  materialized
+
+def ready_completion_materialized_pair(+actual: T.ResolverState, +reference: D.State, +frame: T.ResolverFrame,
+    +history: V.History, +view: V.Frame,
+    reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    dependencies: {S.frame_dependencies(frame) == ready_reference_dependencies(D.frame(reference)) : List<&2, String>},
+    fingerprint: {ready_prepared_fingerprint(S.state_prepared(actual)) == ready_reference_fingerprint(D.frame(reference)) : Maybe<&2, String>},
+    result: ready_frame_view_materialization_result(frame, S.state_prepared(actual), view)) ->
+    Exists(ArtifactValue.ProductValue, product =>
+      {PreparedRoot.prepared_unit(frame, S.state_prepared(actual)) == Some{product} : Maybe<&2, ArtifactValue.ProductValue>} &
+      {F.prepared_unit(Allowance.materialization(ready_reference_forest(D.frame(reference))), ready_reference_forest(D.frame(reference)), ready_reference_dependencies(D.frame(reference)), ready_reference_fingerprint(D.frame(reference))) == F.Materialized{product} : F.Materialization}):
+  match view:
+    case V.Frame{_, _, _, _, _, +forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _}:
+      match result:
+        case (+product, Tuple{actual_product, reference_product}):
+          Tuple{product, Tuple{actual_product,
+            ready_completion_materialized_transport(actual, reference, frame, history, view, product, reference_ready, dependencies, fingerprint, reference_product)}}
+
+def ready_common_completion_materialized(+actual: T.ResolverState, +reference: D.State, +child: X.Child,
+    +frame: T.ResolverFrame, +history: V.History, +view: V.Frame,
+    +actual_ready: {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>},
+    +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+    capsule: {ActualBoundary.capsule(actual, history) == Some{ReferenceReady.capsule(reference, child)} : Maybe<&2, Phase.Capsule>}) ->
+    Exists(ArtifactValue.ProductValue, product =>
+      {PreparedRoot.prepared_unit(frame, S.state_prepared(actual)) == Some{product} : Maybe<&2, ArtifactValue.ProductValue>} &
+      {F.prepared_unit(Allowance.materialization(ready_reference_forest(D.frame(reference))), ready_reference_forest(D.frame(reference)), ready_reference_dependencies(D.frame(reference)), ready_reference_fingerprint(D.frame(reference))) == F.Materialized{product} : F.Materialization}):
+  match history:
+    case V.History{+addresses, _, _, _, _, _, _}:
+      ready_completion_materialized_pair(actual, reference, frame, history, view, reference_ready,
+        Equal.trans(List<&2, String>, S.frame_dependencies(frame), ready_view_dependencies(view), ready_reference_dependencies(D.frame(reference)),
+          ready_projected_frame_dependencies(frame, history, view,
+            Pair.snd({frame_checks(frame, history) == True{} : Bool}, {ActualFrame.projected(frame, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(frame, history, view, actual_ready))),
+          Equal.sym(List<&2, String>, ready_reference_dependencies(D.frame(reference)), ready_view_dependencies(view), ready_reference_frame_dependencies(reference, history, view, reference_ready))),
+        ready_common_product_fingerprint(actual, reference, child, S.state_clock(actual), S.state_language(actual), S.scratch_active_target(S.state_scratch(actual)), ActualBoundary.ready_edge(S.scratch_pending_edge(S.state_scratch(actual)), addresses), ReferenceReady.capsule(reference, child), capsule, {==}),
+        ready_frame_view_materialized(frame, S.state_prepared(actual), history, view, actual_ready))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.

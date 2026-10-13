@@ -4114,3 +4114,143 @@ def completion_reference_partial_true(
     completion_reference_partial_positive(D.frame(state), fuel, state, reason, True{}, count,
       eligible, positive, omissions),
     completion_reference_materialized(D.frame(state), fuel, state, product, prepared))
+
+# Join both observed omission outcomes at the original partial entry. All
+# transition equations are derived here from the existing internal witnesses.
+def completion_partial_common_positive(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +world: E.WorldState<World>,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  +reason: G.Reason,
+  +count: Nat,
+  +product: ArtifactValue.ProductValue,
+  +omission: Bool,
+  actual_frame: {
+    ActualBoundary.frame(State.state_frame(actual), history)
+    == Some{view}
+    : Maybe<&2, V.Frame>
+  },
+  reference_frame: {Frame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+  capsule_ready: {
+    ActualBoundary.capsule(actual, history)
+    == Some{Ready.capsule(reference, child)}
+    : Maybe<&2, Phase.Capsule>
+  },
+  request_ready: {
+    Some{
+      T.Request{
+        State.input_invocation(State.state_input(actual)),
+        State.state_next_request(actual),
+        T.EncodeProduct{product}
+      }
+    }
+    == Boundary.selected_request(D.completion_selected(reference, product, True{}))
+    : Maybe<&2, T.Request>
+  },
+  +eligible: {LoopPolicy.eligible_reason(reason) == True{} : Bool},
+  actual_positive: {Nat.is_gt(LoopPolicy.files(State.frame_graph(frame)), 0n) == True{} : Bool},
+  reference_positive: {LoopPolicy.files(Frame.graph(D.frame(reference))) == 1n+count : Nat},
+  actual_omission: {LoopPolicy.frame_has_omission(frame) == omission : Bool},
+  reference_omission: completion_omission_claim(D.frame(reference), fuel, omission),
+  actual_prepared: {
+    Root.prepared_unit(frame, State.state_prepared(actual))
+    == Some{product}
+    : Maybe<&2, ArtifactValue.ProductValue>
+  },
+  reference_prepared: completion_materialized_claim(D.frame(reference), fuel, product)
+) -> Exists(
+  B.Boundary,
+  completion_partial_claim(World, actual, reference, child, history, frame, fuel, reason, world)
+):
+  match omission:
+    case False{}:
+      completion_partial_denied(
+        World,
+        actual,
+        reference,
+        child,
+        history,
+        view,
+        world,
+        frame,
+        fuel,
+        reason,
+        Equal.trans(
+          Bool,
+          LoopPolicy.partial_allowed(frame, reason),
+          LoopPolicy.frame_has_omission(frame),
+          False{},
+          completion_partial_allowed(frame, reason, eligible, actual_positive),
+          actual_omission
+        ),
+        completion_reference_partial_false(
+          reference,
+          fuel,
+          reason,
+          count,
+          eligible,
+          reference_positive,
+          reference_omission
+        ),
+        actual_frame,
+        reference_frame
+      )
+    case True{}:
+      completion_partial_selected(
+        World,
+        actual,
+        reference,
+        child,
+        history,
+        frame,
+        fuel,
+        reason,
+        world,
+        product,
+        completion_partial_actual_selected(
+          actual,
+          frame,
+          reason,
+          product,
+          Equal.trans(
+            Bool,
+            LoopPolicy.partial_allowed(frame, reason),
+            LoopPolicy.frame_has_omission(frame),
+            True{},
+            completion_partial_allowed(frame, reason, eligible, actual_positive),
+            actual_omission
+          ),
+          actual_prepared
+        ),
+        completion_reference_partial_true(
+          reference,
+          fuel,
+          reason,
+          count,
+          product,
+          eligible,
+          reference_positive,
+          reference_omission,
+          reference_prepared
+        ),
+        completion_common_selected(
+          World,
+          actual,
+          reference,
+          child,
+          history,
+          view,
+          product,
+          world,
+          actual_frame,
+          reference_frame,
+          capsule_ready,
+          request_ready
+        )
+      )
