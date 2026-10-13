@@ -7893,15 +7893,11 @@ def ready_captured_limits(+state: G.Graph, +source: Nat, +contribution: Nat,
     Equal.cong(G.Step, G.Limits, step => ReferenceFrame.graph_limits(G.step_graph(step)), G.step(state, G.Captured{source, contribution, work, ids}), GraphReference.transition(state, G.Captured{source, contribution, work, ids}), ready_captured_graph(state, source, contribution, work, ids)),
     ready_reference_captured_limits(state, source, contribution, work, ids))
 
-def ready_reference_graph(frame: X.Frame) -> G.Graph:
-  match frame:
-    case X.Frame{G.Bounded{graph, _}, _, _, _, _, _, _, _, _, _, _, _}: graph
-
 def ready_reference_graph_rows(+state: D.State, +history: V.History,
     +targets_value: Maybe<&2, List<&2, V.TargetEntry>>, +captured_value: Maybe<&2, List<&2, V.CapturedEntry>>,
     +visited_value: Maybe<&2, List<&2, String>>, +view: V.Frame, +step: G.Step, +after: Nat,
     ready: {ReferenceFrame.assembled(state, history, targets_value, captured_value, visited_value) == Some{view} : Maybe<&2, V.Frame>},
-    limits: {ReferenceFrame.graph_limits(G.step_graph(step)) == ReferenceFrame.graph_limits(ready_reference_graph(D.frame(state))) : G.Limits}) ->
+    limits: {ReferenceFrame.graph_limits(G.step_graph(step)) == ReferenceFrame.graph_limits(ReferenceFrame.graph(D.frame(state))) : G.Limits}) ->
     {ReferenceFrame.assembled(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(step, after))), History.allowance(history, after), targets_value, captured_value, visited_value) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}:
   match state history targets_value captured_value visited_value step:
     case D.State{D.Config{_, _, _, +context, _, _}, X.Frame{G.Bounded{+graph, +remaining}, +command, +forest, Signed.State{Recursive.State{_, +budget, _, _}, +signed}, +edges, _, +artifacts_by_target, +next_edge, +episode, +next_artifact, +dependencies, _}, _, +target_ids, +next_target, _, _, _, _} V.History{_, _, _, _, +artifacts, _, _}
@@ -7919,7 +7915,7 @@ def ready_reference_graph_rows(+state: D.State, +history: V.History,
 def ready_reference_graph_complete(+state: D.State, +history: V.History, +view: V.Frame,
     +step: G.Step, +after: Nat,
     ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>},
-    limits: {ReferenceFrame.graph_limits(G.step_graph(step)) == ReferenceFrame.graph_limits(ready_reference_graph(D.frame(state))) : G.Limits}) ->
+    limits: {ReferenceFrame.graph_limits(G.step_graph(step)) == ReferenceFrame.graph_limits(ReferenceFrame.graph(D.frame(state))) : G.Limits}) ->
     {ReferenceFrame.project(D.with_frame(state, X.event_result(D.frame(state), GraphReference.bounded_result(step, after))), History.allowance(history, after)) == Some{ready_graph_view(view, step, after)} : Maybe<&2, V.Frame>}:
   match state history step:
     case D.State{_, X.Frame{_, _, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _, +captures, _, _, _, _, _, _}, +target_values, _, _, _, _, _, _}
@@ -7934,7 +7930,7 @@ def ready_reference_captured_frame(+state: D.State, +history: V.History, +view: 
     +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
     ready: {ReferenceFrame.project(state, history) == Some{view} : Maybe<&2, V.Frame>},
     positive: {Nat.is_gt(ready_reference_remaining(D.frame(state)), 0n) == True{} : Bool}) ->
-    {ReferenceFrame.project(D.with_frame(state, X.event(D.frame(state), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_reference_remaining(D.frame(state)), 1n))) == Some{ready_graph_view(view, G.step(ready_reference_graph(D.frame(state)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_reference_remaining(D.frame(state)), 1n))} : Maybe<&2, V.Frame>}:
+    {ReferenceFrame.project(D.with_frame(state, X.event(D.frame(state), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(ready_reference_remaining(D.frame(state)), 1n))) == Some{ready_graph_view(view, G.step(ReferenceFrame.graph(D.frame(state)), G.Captured{source, contribution, work, ids}), Nat.sub(ready_reference_remaining(D.frame(state)), 1n))} : Maybe<&2, V.Frame>}:
   match state:
     case D.State{_, X.Frame{G.Bounded{+graph, +remaining}, _, _, _, _, _, _, _, _, _, _, _}, _, _, _, _, _, _, _}:
       Equal.trans(Maybe<&2, V.Frame>, ReferenceFrame.project(D.with_frame(state, X.event(D.frame(state), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(remaining, 1n))),
@@ -7996,7 +7992,7 @@ def ready_actual_graph_project(+actual: T.ResolverFrame, +history: V.History, +v
     Pair.snd({frame_checks(actual, history) == True{} : Bool}, {ActualFrame.projected(actual, history) == Some{view} : Maybe<&2, V.Frame>}, actual_frame_contents(actual, history, view, ready)))
 
 def ready_reference_graph_coordinates(+state: D.State, +view: V.Frame) -> Type:
-  {ready_reference_graph(D.frame(state)) == ready_view_graph(view) : G.Graph} &
+  {ReferenceFrame.graph(D.frame(state)) == ready_view_graph(view) : G.Graph} &
   {ready_reference_remaining(D.frame(state)) == ready_view_remaining(view) : Nat}
 
 def ready_reference_graph_coordinate_rows(+state: D.State, +history: V.History,
@@ -8027,12 +8023,12 @@ def ready_reference_graph_project(+state: D.State, +history: V.History, +view: V
 def ready_captured_coordinate_pairs(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
     actual_coordinates: ready_actual_graph_coordinates(actual, ready_history_remaining(history), view),
     reference_coordinates: ready_reference_graph_coordinates(reference, view)) ->
-    {ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph} &
+    {ReferenceFrame.graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph} &
     {ready_reference_remaining(D.frame(reference)) == ready_history_remaining(history) : Nat}:
   match actual_coordinates reference_coordinates:
     case Tuple{actual_graph, actual_remaining} Tuple{reference_graph, reference_remaining}:
       Tuple{
-        Equal.trans(G.Graph, ready_reference_graph(D.frame(reference)), ready_view_graph(view), S.frame_graph(actual), reference_graph,
+        Equal.trans(G.Graph, ReferenceFrame.graph(D.frame(reference)), ready_view_graph(view), S.frame_graph(actual), reference_graph,
           Equal.sym(G.Graph, S.frame_graph(actual), ready_view_graph(view), actual_graph)),
         Equal.trans(Nat, ready_reference_remaining(D.frame(reference)), ready_view_remaining(view), ready_history_remaining(history), reference_remaining,
           Equal.sym(Nat, ready_history_remaining(history), ready_view_remaining(view), actual_remaining))}
@@ -8040,7 +8036,7 @@ def ready_captured_coordinate_pairs(+actual: T.ResolverFrame, +reference: D.Stat
 def ready_captured_coordinates(+actual: T.ResolverFrame, +reference: D.State, +history: V.History, +view: V.Frame,
     +actual_ready: {ActualFrame.project(actual, history) == Some{view} : Maybe<&2, V.Frame>},
     +reference_ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}) ->
-    {ready_reference_graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph} &
+    {ReferenceFrame.graph(D.frame(reference)) == S.frame_graph(actual) : G.Graph} &
     {ready_reference_remaining(D.frame(reference)) == ready_history_remaining(history) : Nat}:
   ready_captured_coordinate_pairs(actual, reference, history, view,
     ready_actual_graph_project(actual, history, view, actual_ready),
@@ -8050,7 +8046,7 @@ def ready_reference_captured_at(+reference: D.State, +history: V.History, +view:
     +graph: G.Graph, +remaining: Nat, +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
     ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
     positive: {Nat.is_gt(remaining, 0n) == True{} : Bool},
-    graph_equal: {ready_reference_graph(D.frame(reference)) == graph : G.Graph},
+    graph_equal: {ReferenceFrame.graph(D.frame(reference)) == graph : G.Graph},
     +remaining_equal: {ready_reference_remaining(D.frame(reference)) == remaining : Nat}) ->
     {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(remaining, 1n))) == Some{ready_graph_view(view, G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n))} : Maybe<&2, V.Frame>}:
   ref_positive = Equal.trans(Bool, Nat.is_gt(ready_reference_remaining(D.frame(reference)), 0n), Nat.is_gt(remaining, 0n), True{},
@@ -8065,7 +8061,7 @@ def ready_reference_captured_coordinate_pair(+reference: D.State, +history: V.Hi
     +graph: G.Graph, +remaining: Nat, +source: Nat, +contribution: Nat, +work: Nat, +ids: List<&2, Nat>,
     ready: {ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
     positive: {Nat.is_gt(remaining, 0n) == True{} : Bool},
-    coordinates: {ready_reference_graph(D.frame(reference)) == graph : G.Graph} & {ready_reference_remaining(D.frame(reference)) == remaining : Nat}) ->
+    coordinates: {ReferenceFrame.graph(D.frame(reference)) == graph : G.Graph} & {ready_reference_remaining(D.frame(reference)) == remaining : Nat}) ->
     {ReferenceFrame.project(D.with_frame(reference, X.event(D.frame(reference), G.Captured{source, contribution, work, ids})), History.allowance(history, Nat.sub(remaining, 1n))) == Some{ready_graph_view(view, G.step(graph, G.Captured{source, contribution, work, ids}), Nat.sub(remaining, 1n))} : Maybe<&2, V.Frame>}:
   match coordinates:
     case (graph_equal, remaining_equal):
@@ -11001,7 +10997,7 @@ def ready_selected_reference_allowance(+state: T.ResolverState, +frame: T.Resolv
         case (valid, (frame_ready, _)):
           Equal.trans(Bool, Nat.is_gt(ready_reference_remaining(D.frame(reference)), 0n), Nat.is_gt(remaining, 0n), True{},
             Equal.cong(Nat, Bool, value => Nat.is_gt(value, 0n), ready_reference_remaining(D.frame(reference)), remaining,
-              Pair.snd({ready_reference_graph(D.frame(reference)) == S.frame_graph(frame) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == remaining : Nat}, ready_captured_coordinates(frame, reference, history, view, frame_ready,
+              Pair.snd({ReferenceFrame.graph(D.frame(reference)) == S.frame_graph(frame) : G.Graph}, {ready_reference_remaining(D.frame(reference)) == remaining : Nat}, ready_captured_coordinates(frame, reference, history, view, frame_ready,
                 Pair.fst({ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}, {ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>} & {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, reference_ready_contents(reference, child, history, child_history, phase, reference_ready))))),
             BoolFacts.eq_true_of_and_left(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)),
               BoolFacts.eq_true_of_and_right(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))),
@@ -12550,6 +12546,90 @@ def ready_actual_node_fixed(+nodes: List<&2, Local.PlannedNode>, +entries: List<
         ready_actual_references_observation(slots, id, nodes, entries, slots, catalog, retained, refs,
           (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), aligned, dense, projected, references,
           ready_omission_reference_targets_valid(refs, address, retained, valid)))))
+
+def ready_actual_node_observations(nodes: List<&2, F.Node>, +entries: List<&2, F.AddressEntry>,
+    +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>) -> Bool:
+  match nodes:
+    case []: True{}
+    case F.Node{address, _, references} <> tail:
+      Bool.and(Cmp.is_eq(Bool.cmp(ready_actual_address_omission(entries, fuel, slots, address),
+        ready_actual_reference_omission(references, entries, fuel, slots))), ready_actual_node_observations(tail, entries, fuel, slots))
+
+def ready_actual_node_observation_lookup_step(same: Bool, +address: O.NodeAddress, +artifact: T.Artifact,
+    +references: List<&2, F.Reference>, +tail: List<&2, F.Node>, +query: O.NodeAddress, +found: F.Node,
+    +entries: List<&2, F.AddressEntry>, +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    selected: {F.same_address(query, address) == same : Bool},
+    +valid: {ready_actual_node_observations(F.Node{address, artifact, references} <> tail, entries, fuel, slots) == True{} : Bool},
+    located: {Bool.pick(Maybe<&2, F.Node>, same, Some{F.Node{address, artifact, references}}, F.node_at(tail, query)) == Some{found} : Maybe<&2, F.Node>},
+    recursive: {ready_actual_node_observations(tail, entries, fuel, slots) == True{} : Bool} ->
+      {F.node_at(tail, query) == Some{found} : Maybe<&2, F.Node>} ->
+      {ready_actual_address_omission(entries, fuel, slots, query) == ready_actual_reference_omission(Rollback.node_references(found), entries, fuel, slots) : Bool}) ->
+    {ready_actual_address_omission(entries, fuel, slots, query) == ready_actual_reference_omission(Rollback.node_references(found), entries, fuel, slots) : Bool}:
+  match same:
+    case False{}:
+      recursive(BoolFacts.eq_true_of_and_right(Cmp.is_eq(Bool.cmp(ready_actual_address_omission(entries, fuel, slots, address),
+        ready_actual_reference_omission(references, entries, fuel, slots))), ready_actual_node_observations(tail, entries, fuel, slots), valid))(located)
+    case True{}:
+      Equal.trans(Bool, ready_actual_address_omission(entries, fuel, slots, query), ready_actual_address_omission(entries, fuel, slots, address),
+        ready_actual_reference_omission(Rollback.node_references(found), entries, fuel, slots),
+        Equal.cong(O.NodeAddress, Bool, value => ready_actual_address_omission(entries, fuel, slots, value), query, address,
+          Rollback.same_address_equal(query, address, selected)),
+        Equal.trans(Bool, ready_actual_address_omission(entries, fuel, slots, address), ready_actual_reference_omission(references, entries, fuel, slots),
+          ready_actual_reference_omission(Rollback.node_references(found), entries, fuel, slots),
+          BoolFacts.eq_of_cmp_eq(ready_actual_address_omission(entries, fuel, slots, address), ready_actual_reference_omission(references, entries, fuel, slots),
+            BoolFacts.eq_true_of_and_left(Cmp.is_eq(Bool.cmp(ready_actual_address_omission(entries, fuel, slots, address),
+              ready_actual_reference_omission(references, entries, fuel, slots))), ready_actual_node_observations(tail, entries, fuel, slots), valid)),
+          Equal.cong(F.Node, Bool, value => ready_actual_reference_omission(Rollback.node_references(value), entries, fuel, slots),
+            F.Node{address, artifact, references}, found, Count.some_equal(F.Node, F.Node{address, artifact, references}, found, located))))
+
+def ready_actual_node_observation_lookup(nodes: List<&2, F.Node>, +query: O.NodeAddress, +found: F.Node,
+    +entries: List<&2, F.AddressEntry>, +fuel: Nat, +slots: List<&2, Local.ReferenceSlot>,
+    valid: {ready_actual_node_observations(nodes, entries, fuel, slots) == True{} : Bool},
+    located: {F.node_at(nodes, query) == Some{found} : Maybe<&2, F.Node>}) ->
+    {ready_actual_address_omission(entries, fuel, slots, query) == ready_actual_reference_omission(Rollback.node_references(found), entries, fuel, slots) : Bool}:
+  match nodes:
+    case []:
+      Empty.absurd({ready_actual_address_omission(entries, fuel, slots, query) == ready_actual_reference_omission(Rollback.node_references(found), entries, fuel, slots) : Bool},
+        Contents.none_some(F.Node, found, located))
+    case F.Node{+address, +artifact, +references} <> +tail:
+      ready_actual_node_observation_lookup_step(F.same_address(query, address), address, artifact, references, tail, query, found, entries, fuel, slots,
+        {==}, valid, located, tail_valid => tail_found => ready_actual_node_observation_lookup(tail, query, found, entries, fuel, slots, tail_valid, tail_found))
+
+def ready_actual_node_observation_contents(+nodes: List<&2, Local.PlannedNode>, +entries: List<&2, F.AddressEntry>,
+    +slots: List<&2, Local.ReferenceSlot>, +catalog: List<&2, T.ArtifactEntry>, +retained: List<&2, F.Node>,
+    +id: Nat, +handle: Nat, +head: F.Node,
+    aligned: {P.aligned(nodes, entries, nodes, entries) == True{} : Bool}, dense: {ActualFrame.dense(nodes, 0n) == True{} : Bool},
+    projected: {P.nodes(nodes, slots, catalog, entries) == Some{retained} : Maybe<&2, List<&2, F.Node>>},
+    forward: {P.forward_nodes(nodes, slots) == True{} : Bool}, present: NatFacts.le(1n, P.node_count(nodes, id)),
+    valid: {Relation.nodes_valid([head], retained) == True{} : Bool},
+    contents: Exists(O.NodeAddress, address => Exists(T.Artifact, artifact => Exists(List<&2, F.Reference>, refs =>
+      {F.address_at(entries, id) == Some{address} : Maybe<&2, O.NodeAddress>} &
+      {F.artifact_at(catalog, handle) == Some{artifact} : Maybe<&2, T.Artifact>} &
+      {P.references(P.owner_slots(slots, id), entries) == Some{refs} : Maybe<&2, List<&2, F.Reference>>} &
+      {Some{F.Node{address, artifact, refs}} == Some{head} : Maybe<&2, F.Node>})))) ->
+    {ready_actual_node_observations([head], entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}:
+  match contents:
+    case (+address, (+artifact, (+refs, (found, (_, (references, same)))))):
+      +node_equal: {F.Node{address, artifact, refs} == head : F.Node} = Count.some_equal(F.Node, F.Node{address, artifact, refs}, head, same)
+      +head_valid: {Relation.nodes_valid([F.Node{address, artifact, refs}], retained) == True{} : Bool} =
+        %Equal.sym(F.Node, F.Node{address, artifact, refs}, head, node_equal): {Relation.nodes_valid([_], retained) == True{} : Bool}
+        valid
+      %node_equal:
+        {ready_actual_node_observations([_], entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots) == True{} : Bool}
+      BoolFacts.and_eq_true(Cmp.is_eq(Bool.cmp(
+        ready_actual_address_omission(entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, address),
+        ready_actual_reference_omission(refs, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots))), True{},
+        ready_actual_omission_equal_true(
+          ready_actual_address_omission(entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots, address),
+          ready_actual_reference_omission(refs, entries, (List.length(&2, Local.PlannedNode, nodes) + 1n : Nat), slots),
+          ready_actual_node_fixed(nodes, entries, slots, catalog, retained, id, address, refs, aligned, dense, projected, forward, present, found,
+            NatFacts.eq_of_is_eq(F.count_address(retained, address), 1n,
+              BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(retained, address), 1n),
+                Bool.and(Nat.is_le(Relation.incoming(retained, address), 1n), Bool.and(Relation.references_valid(refs, address, retained), True{})), head_valid)), references,
+            BoolFacts.eq_true_of_and_left(Relation.references_valid(refs, address, retained), True{},
+              BoolFacts.eq_true_of_and_right(Nat.is_le(Relation.incoming(retained, address), 1n), Bool.and(Relation.references_valid(refs, address, retained), True{}),
+                BoolFacts.eq_true_of_and_right(Nat.is_eq(F.count_address(retained, address), 1n),
+                  Bool.and(Nat.is_le(Relation.incoming(retained, address), 1n), Bool.and(Relation.references_valid(refs, address, retained), True{})), head_valid))))), {==})
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

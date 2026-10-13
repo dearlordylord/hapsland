@@ -82,8 +82,12 @@ def source_exports(source: T.SourceFacts) -> Map<&2, Bool>:
   match source:
     case T.SourceFacts{_, declarations, _, _}: exports(declarations, Map.new(&2, Bool))
 
-def captured_entry(path: String, +source: T.SourceFacts, bytes: Nat,
-    provenance: Maybe<&2, V.CaptureSource>) -> Maybe<&2, V.CapturedEntry>:
+def captured_entry(
+  path: String,
+  +source: T.SourceFacts,
+  bytes: Nat,
+  provenance: Maybe<&2, V.CaptureSource>
+) -> Maybe<&2, V.CapturedEntry>:
   match provenance:
     case Some{V.CaptureSource{_, _, catalog}}:
       Some{
@@ -163,10 +167,13 @@ def graph_limits(graph: G.Graph) -> G.Limits:
   match graph:
     case G.Graph{_, _, _, _, _, _, _, _, _, _, limits}: limits
 
-def assembled(state: D.State, history: V.History,
-    projected_targets: Maybe<&2, List<&2, V.TargetEntry>>,
-    projected_captured: Maybe<&2, List<&2, V.CapturedEntry>>,
-    projected_visited: Maybe<&2, List<&2, String>>) -> Maybe<&2, V.Frame>:
+def assembled(
+  state: D.State,
+  history: V.History,
+  projected_targets: Maybe<&2, List<&2, V.TargetEntry>>,
+  projected_captured: Maybe<&2, List<&2, V.CapturedEntry>>,
+  projected_visited: Maybe<&2, List<&2, String>>
+) -> Maybe<&2, V.Frame>:
   match state history projected_targets projected_captured projected_visited:
     case D.State{D.Config{_, _, _, context, _, _},
       X.Frame{G.Bounded{+graph, remaining}, command, +forest,
@@ -192,6 +199,11 @@ def project(+state: D.State, +history: V.History) -> Maybe<&2, V.Frame>:
         captured(captures, sources),
         visited(seen, values)
       )
+
+# Sole reference graph observation shared by attachment and completion proofs.
+def graph(frame: X.Frame) -> G.Graph:
+  match frame:
+    case X.Frame{G.Bounded{graph, _}, _, _, _, _, _, _, _, _, _, _, _}: graph
 
 def main() -> Unit:
   Unit{}

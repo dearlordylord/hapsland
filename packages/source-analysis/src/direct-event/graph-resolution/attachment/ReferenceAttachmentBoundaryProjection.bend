@@ -1175,5 +1175,1069 @@ def completion_empty_allowed(
         }
       {==}
 
+# Existing reference completion also refuses every partial reason at files=0.
+def completion_reference_empty(
+  +observed: X.Frame,
+  +state: D.State,
+  +fuel: Nat,
+  +reason: G.Reason,
+  empty: {LoopPolicy.files(Frame.graph(observed)) == 0n : Nat}
+) -> {D.completion_observed(observed, fuel, state, Some{reason}) == D.no_unit(state) : D.Selection}:
+  match observed reason:
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.Missing{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.Ambiguous{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.Unsupported{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.Omitted{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.Excluded{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.CaptureUnavailable{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.FileLimit{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.ReadLimit{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.TreeLimit{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.WorkLimit{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.Deadline{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.DepthLimit{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+    case X.Frame{
+      G.Bounded{
+        G.Graph{
+          +phase,
+          +pending,
+          +visited,
+          +files,
+          +read,
+          +tree,
+          +work,
+          +skip_tree,
+          +skip_excluded,
+          +skip_other,
+          +limits
+        },
+        +remaining
+      },
+      +command,
+      +forest,
+      +local,
+      +edges,
+      +captures,
+      +identities,
+      +edge,
+      +episode,
+      +artifact,
+      +dependencies,
+      +fingerprint
+    } G.ProtocolViolation{}:
+      %Equal.sym(Nat, files, 0n, empty):
+        {
+          D.completion_observed(
+            X.Frame{
+              G.Bounded{
+                G.Graph{
+                  phase,
+                  pending,
+                  visited,
+                  _,
+                  read,
+                  tree,
+                  work,
+                  skip_tree,
+                  skip_excluded,
+                  skip_other,
+                  limits
+                },
+                remaining
+              },
+              command,
+              forest,
+              local,
+              edges,
+              captures,
+              identities,
+              edge,
+              episode,
+              artifact,
+              dependencies,
+              fingerprint
+            },
+            fuel,
+            state,
+            Some{reason}
+          )
+          == D.no_unit(state)
+          : D.Selection
+        }
+      {==}
+
+def completion_empty_transport(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +world: E.WorldState<World>,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  +reason: G.Reason,
+  choice: {LoopPolicy.partial_allowed(frame, reason) == False{} : Bool},
+  selection: {D.completion(fuel, reference, Some{reason}) == D.no_unit(reference) : D.Selection},
+  denied: {
+    ActualBoundary.project(LoopPolicy.request_completion(False{}, actual, frame), history)
+    == Some{B.Finished{None{}, view}}
+    : Maybe<&2, B.Boundary>
+  } & {
+    project(World, D.consumed(World, D.no_unit(reference), world), child, history)
+    == Some{B.Finished{None{}, view}}
+    : Maybe<&2, B.Boundary>
+  }
+) -> {
+  ActualBoundary.project(
+    LoopPolicy.request_completion(LoopPolicy.partial_allowed(frame, reason), actual, frame),
+    history
+  )
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+} & {
+  project(
+    World,
+    D.consumed(World, D.completion(fuel, reference, Some{reason}), world),
+    child,
+    history
+  )
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+}:
+  match denied:
+    case (actual_denied, reference_denied):
+      actual_observed : {
+        ActualBoundary.project(
+          LoopPolicy.request_completion(LoopPolicy.partial_allowed(frame, reason), actual, frame),
+          history
+        )
+        == Some{B.Finished{None{}, view}}
+        : Maybe<&2, B.Boundary>
+      } =
+        %Equal.sym(Bool, LoopPolicy.partial_allowed(frame, reason), False{}, choice):
+          {
+            ActualBoundary.project(LoopPolicy.request_completion(_, actual, frame), history)
+            == Some{B.Finished{None{}, view}}
+            : Maybe<&2, B.Boundary>
+          }
+        actual_denied
+      observe : D.Selection -> Maybe<&2, B.Boundary> = selected => project(
+        World,
+        D.consumed(World, selected, world),
+        child,
+        history
+      )
+      reference_observed : {
+        project(
+          World,
+          D.consumed(World, D.completion(fuel, reference, Some{reason}), world),
+          child,
+          history
+        )
+        == Some{B.Finished{None{}, view}}
+        : Maybe<&2, B.Boundary>
+      } =
+        Equal.trans(
+          Maybe<&2, B.Boundary>,
+          project(
+            World,
+            D.consumed(World, D.completion(fuel, reference, Some{reason}), world),
+            child,
+            history
+          ),
+          project(World, D.consumed(World, D.no_unit(reference), world), child, history),
+          Some{B.Finished{None{}, view}},
+          Equal.cong(
+            D.Selection,
+            Maybe<&2, B.Boundary>,
+            observe,
+            D.completion(fuel, reference, Some{reason}),
+            D.no_unit(reference),
+            selection
+          ),
+          reference_denied
+        )
+      Tuple{actual_observed, reference_observed}
+
+def completion_empty_common(
+  -World: Data,
+  +actual: T.ResolverState,
+  +reference: D.State,
+  +child: X.Child,
+  +history: V.History,
+  +view: V.Frame,
+  +world: E.WorldState<World>,
+  +frame: T.ResolverFrame,
+  +fuel: Nat,
+  +reason: G.Reason,
+  actual_frame: {
+    ActualBoundary.frame(State.state_frame(actual), history)
+    == Some{view}
+    : Maybe<&2, V.Frame>
+  },
+  reference_frame: {Frame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>},
+  actual_empty: {LoopPolicy.files(State.frame_graph(frame)) == 0n : Nat},
+  reference_empty: {LoopPolicy.files(Frame.graph(D.frame(reference))) == 0n : Nat}
+) -> {
+  ActualBoundary.project(
+    LoopPolicy.request_completion(LoopPolicy.partial_allowed(frame, reason), actual, frame),
+    history
+  )
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+} & {
+  project(
+    World,
+    D.consumed(World, D.completion(fuel, reference, Some{reason}), world),
+    child,
+    history
+  )
+  == Some{B.Finished{None{}, view}}
+  : Maybe<&2, B.Boundary>
+}:
+  completion_empty_transport(
+    World,
+    actual,
+    reference,
+    child,
+    history,
+    view,
+    world,
+    frame,
+    fuel,
+    reason,
+    completion_empty_allowed(frame, reason, actual_empty),
+    completion_reference_empty(D.frame(reference), reference, fuel, reason, reference_empty),
+    completion_denied(
+      World,
+      actual,
+      reference,
+      child,
+      history,
+      view,
+      world,
+      frame,
+      actual_frame,
+      reference_frame
+    )
+  )
+
 def main() -> Unit:
   Unit{}
