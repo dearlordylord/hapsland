@@ -11184,6 +11184,138 @@ def ready_common_iteration_boundary(-World: Data, +actual: T.ResolverState, +ref
   Tuple{ready_actual_iteration_boundary(actual, history, view, ReferenceReady.capsule(reference, child), actual_frame, capsule),
     ready_reference_iteration_boundary(World, reference, child, history, view, world, reference_frame)}
 
+def ready_omission_node_guard(+address: O.NodeAddress, +artifact: T.Artifact, +references: List<&2, F.Reference>,
+    +tail: List<&2, F.Node>, +all: List<&2, F.Node>,
+    +valid: {Relation.nodes_valid(F.Node{address, artifact, references} <> tail, all) == True{} : Bool}) ->
+    NatFacts.le(Relation.incoming(all, address), F.count_address(all, address)):
+  +rest: {Bool.and(Nat.is_le(Relation.incoming(all, address), 1n), Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all))) == True{} : Bool} =
+    BoolFacts.eq_true_of_and_right(Nat.is_eq(F.count_address(all, address), 1n), Bool.and(Nat.is_le(Relation.incoming(all, address), 1n), Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all))), valid)
+  count: {F.count_address(all, address) == 1n : Nat} = NatFacts.eq_of_is_eq(F.count_address(all, address), 1n,
+    BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(all, address), 1n), Bool.and(Nat.is_le(Relation.incoming(all, address), 1n), Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all))), valid))
+  %Equal.sym(Nat, F.count_address(all, address), 1n, count): NatFacts.le(Relation.incoming(all, address), _)
+  BoolFacts.eq_true_of_and_left(Nat.is_le(Relation.incoming(all, address), 1n), Bool.and(Relation.references_valid(references, address, all), Relation.nodes_valid(tail, all)), rest)
+
+def ready_omission_member_branch(+address: O.NodeAddress, +artifact: T.Artifact, +references: List<&2, F.Reference>,
+    +tail: List<&2, F.Node>, +all: List<&2, F.Node>, +query: O.NodeAddress, +remainder: Nat,
+    +valid: {Relation.nodes_valid(F.Node{address, artifact, references} <> tail, all) == True{} : Bool},
+    present: {F.count_address(F.Node{address, artifact, references} <> tail, query) == 1n+remainder : Nat},
+    recursive: {Relation.nodes_valid(tail, all) == True{} : Bool} -> {F.count_address(tail, query) == 1n+remainder : Nat} -> NatFacts.le(Relation.incoming(all, query), F.count_address(all, query)),
+    same: Bool, equal: {F.same_address(query, address) == same : Bool}) ->
+    NatFacts.le(Relation.incoming(all, query), F.count_address(all, query)):
+  match same:
+    case True{}:
+      %Equal.sym(O.NodeAddress, query, address, Rollback.same_address_equal(query, address, equal)):
+        NatFacts.le(Relation.incoming(all, _), F.count_address(all, _))
+      ready_omission_node_guard(address, artifact, references, tail, all, valid)
+    case False{}:
+      recursive(Equal.sym(Bool, True{}, Relation.nodes_valid(tail, all), Rollback.nodes_tail(F.Node{address, artifact, references}, tail, all,
+        Equal.sym(Bool, Relation.nodes_valid(F.Node{address, artifact, references} <> tail, all), True{}, valid))))(
+        %equal: {(Bool.pick(Nat, _, 1n, 0n) + F.count_address(tail, query) : Nat) == 1n+remainder : Nat}
+        present)
+
+def ready_omission_member_guard(items: List<&2, F.Node>, +all: List<&2, F.Node>, +query: O.NodeAddress, +remainder: Nat,
+    valid: {Relation.nodes_valid(items, all) == True{} : Bool},
+    present: {F.count_address(items, query) == 1n+remainder : Nat}) ->
+    NatFacts.le(Relation.incoming(all, query), F.count_address(all, query)):
+  match items:
+    case []:
+      Empty.absurd(NatFacts.le(Relation.incoming(all, query), F.count_address(all, query)),
+        Arithmetic.succ_ne_zero(remainder)(Equal.sym(Nat, 0n, 1n+remainder, present)))
+    case F.Node{+address, +artifact, +references} <> +tail:
+      ready_omission_member_branch(address, artifact, references, tail, all, query, remainder, valid, present,
+        tail_valid => tail_present => ready_omission_member_guard(tail, all, query, remainder, tail_valid, tail_present), F.same_address(query, address), {==})
+
+def ready_omission_incoming_case(+nodes: List<&2, F.Node>, +query: O.NodeAddress,
+    valid: {Relation.nodes_valid(nodes, nodes) == True{} : Bool}, count: Nat,
+    +counted: {F.count_address(nodes, query) == count : Nat}) ->
+    NatFacts.le(Relation.incoming(nodes, query), F.count_address(nodes, query)):
+  match count:
+    case 0n:
+      %Equal.sym(Nat, F.count_address(nodes, query), 0n, counted): NatFacts.le(Relation.incoming(nodes, query), _)
+      %Equal.sym(Nat, Relation.incoming(nodes, query), 0n,
+        Rollback.valid_nodes_absent_incoming(nodes, nodes, query, Equal.sym(Bool, Relation.nodes_valid(nodes, nodes), True{}, valid), counted)):
+        NatFacts.le(_, 0n)
+      {==}
+    case 1n+remaining: ready_omission_member_guard(nodes, nodes, query, remaining, valid, counted)
+
+def ready_omission_bit_bound(same: Bool) -> NatFacts.le((Bool.pick(Nat, same, 1n, 0n) + 0n : Nat), 1n):
+  match same:
+    case True{}: {==}
+    case False{}: {==}
+
+def ready_omission_root_demand_case(+root: O.NodeAddress, +nodes: List<&2, F.Node>, +query: O.NodeAddress,
+    +valid: {Relation.retained(F.Forest{Some{root}, nodes}) == True{} : Bool},
+    same: Bool, equal: {F.same_address(root, query) == same : Bool}) ->
+    NatFacts.le((Bool.pick(Nat, F.same_address(root, query), 1n, 0n) + Relation.incoming(nodes, query) : Nat), F.count_address(nodes, query)):
+  match same:
+    case True{}:
+      %Rollback.same_address_equal(root, query, equal):
+        NatFacts.le((Bool.pick(Nat, F.same_address(root, _), 1n, 0n) + Relation.incoming(nodes, _) : Nat), F.count_address(nodes, _))
+      +root_valid: {Bool.and(Nat.is_eq(F.count_address(nodes, root), 1n), Nat.is_eq(Relation.incoming(nodes, root), 0n)) == True{} : Bool} =
+        BoolFacts.eq_true_of_and_left(Relation.root_valid(Some{root}, nodes), Relation.nodes_valid(nodes, nodes), valid)
+      %Equal.sym(Nat, F.count_address(nodes, root), 1n, NatFacts.eq_of_is_eq(F.count_address(nodes, root), 1n,
+        BoolFacts.eq_true_of_and_left(Nat.is_eq(F.count_address(nodes, root), 1n), Nat.is_eq(Relation.incoming(nodes, root), 0n), root_valid))):
+        NatFacts.le((Bool.pick(Nat, F.same_address(root, root), 1n, 0n) + Relation.incoming(nodes, root) : Nat), _)
+      %Equal.sym(Nat, Relation.incoming(nodes, root), 0n, NatFacts.eq_of_is_eq(Relation.incoming(nodes, root), 0n,
+        BoolFacts.eq_true_of_and_right(Nat.is_eq(F.count_address(nodes, root), 1n), Nat.is_eq(Relation.incoming(nodes, root), 0n), root_valid))):
+        NatFacts.le((Bool.pick(Nat, F.same_address(root, root), 1n, 0n) + _ : Nat), 1n)
+      ready_omission_bit_bound(F.same_address(root, root))
+    case False{}:
+      %Equal.sym(Bool, F.same_address(root, query), False{}, equal):
+        NatFacts.le((Bool.pick(Nat, _, 1n, 0n) + Relation.incoming(nodes, query) : Nat), F.count_address(nodes, query))
+      ready_omission_incoming_case(nodes, query,
+        BoolFacts.eq_true_of_and_right(Relation.root_valid(Some{root}, nodes), Relation.nodes_valid(nodes, nodes), valid), F.count_address(nodes, query), {==})
+
+def ready_omission_forest_demand(+root: O.NodeAddress, +nodes: List<&2, F.Node>, +query: O.NodeAddress, +episode: Nat,
+    valid: {Relation.frame_forest(F.Forest{Some{root}, nodes}, episode) == True{} : Bool}) ->
+    NatFacts.le((Bool.pick(Nat, F.same_address(root, query), 1n, 0n) + Relation.incoming(nodes, query) : Nat), F.count_address(nodes, query)):
+  ready_omission_root_demand_case(root, nodes, query,
+    BoolFacts.eq_true_of_and_left(Relation.retained(F.Forest{Some{root}, nodes}), Relation.episodes_before(nodes, episode), valid), F.same_address(root, query), {==})
+
+def ready_omission_weight_swap(+a: Nat, +b: Nat, +c: Nat) ->
+    {(a + (b + c : Nat) : Nat) == (b + (a + c : Nat) : Nat) : Nat}:
+  Equal.trans(Nat, (a + (b + c : Nat) : Nat), ((a + b : Nat) + c : Nat), (b + (a + c : Nat) : Nat),
+    Equal.sym(Nat, ((a + b : Nat) + c : Nat), (a + (b + c : Nat) : Nat), Arithmetic.add_assoc(a, b, c)),
+    Equal.trans(Nat, ((a + b : Nat) + c : Nat), ((b + a : Nat) + c : Nat), (b + (a + c : Nat) : Nat),
+      Equal.cong(Nat, Nat, value => (value + c : Nat), (a + b : Nat), (b + a : Nat), Arithmetic.add_comm(a, b)), Arithmetic.add_assoc(b, a, c)))
+
+def ready_omission_address_arithmetic(+references: Nat, +nodes: Nat, +rest: Nat) ->
+    {(((2n + references : Nat) + nodes : Nat) + rest : Nat) == 1n+(nodes + ((1n + references : Nat) + rest : Nat) : Nat) : Nat}:
+  %Equal.sym(Nat, (((2n + references : Nat) + nodes : Nat) + rest : Nat), ((2n + references : Nat) + (nodes + rest : Nat) : Nat), Arithmetic.add_assoc((2n + references : Nat), nodes, rest)):
+    {_ == 1n+(nodes + ((1n + references : Nat) + rest : Nat) : Nat) : Nat}
+  Equal.cong(Nat, Nat, value => 1n+value,
+    ((1n + references : Nat) + (nodes + rest : Nat) : Nat), (nodes + ((1n + references : Nat) + rest : Nat) : Nat),
+    ready_omission_weight_swap((1n + references : Nat), nodes, rest))
+
+def ready_omission_work_weight(work: List<&2, D.OmissionWork>) -> Nat:
+  match work:
+    case []: 0n
+    case D.OmissionAddress{_} <> tail: ready_omission_work_weight(tail)
+    case D.OmissionReferences{references} <> tail:
+      (1n + Allowance.references(references) + ready_omission_work_weight(tail) : Nat)
+
+def ready_omission_node_weight(prefix: List<&2, F.Node>, +address: O.NodeAddress, +artifact: T.Artifact,
+    +references: List<&2, F.Reference>, +suffix: List<&2, F.Node>) ->
+    {Allowance.nodes(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix)) ==
+      ((2n + Allowance.references(references) : Nat) + Allowance.nodes(List.append(&2, F.Node, prefix, suffix)) : Nat) : Nat}:
+  match prefix:
+    case []: {==}
+    case F.Node{_, _, +before} <> +tail:
+      %Equal.sym(Nat, Allowance.nodes(List.append(&2, F.Node, tail, F.Node{address, artifact, references} <> suffix)),
+        ((2n + Allowance.references(references) : Nat) + Allowance.nodes(List.append(&2, F.Node, tail, suffix)) : Nat), ready_omission_node_weight(tail, address, artifact, references, suffix)):
+        {((2n + Allowance.references(before) : Nat) + _ : Nat) ==
+          ((2n + Allowance.references(references) : Nat) + Allowance.nodes(List.append(&2, F.Node, prefix, suffix)) : Nat) : Nat}
+      ready_omission_weight_swap((2n + Allowance.references(before) : Nat), (2n + Allowance.references(references) : Nat), Allowance.nodes(List.append(&2, F.Node, tail, suffix)))
+
+def ready_omission_address_weight(+prefix: List<&2, F.Node>, +address: O.NodeAddress, +artifact: T.Artifact,
+    +references: List<&2, F.Reference>, +suffix: List<&2, F.Node>, +rest: List<&2, D.OmissionWork>) ->
+    {(Allowance.nodes(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix)) + ready_omission_work_weight(D.OmissionAddress{address} <> rest) : Nat) ==
+      1n+(Allowance.nodes(List.append(&2, F.Node, prefix, suffix)) + ready_omission_work_weight(D.OmissionReferences{references} <> rest) : Nat) : Nat}:
+  %Equal.sym(Nat, Allowance.nodes(List.append(&2, F.Node, prefix, F.Node{address, artifact, references} <> suffix)),
+    ((2n + Allowance.references(references) : Nat) + Allowance.nodes(List.append(&2, F.Node, prefix, suffix)) : Nat), ready_omission_node_weight(prefix, address, artifact, references, suffix)):
+    {(_ + ready_omission_work_weight(rest) : Nat) == 1n+(Allowance.nodes(List.append(&2, F.Node, prefix, suffix)) + ready_omission_work_weight(D.OmissionReferences{references} <> rest) : Nat) : Nat}
+  ready_omission_address_arithmetic(Allowance.references(references), Allowance.nodes(List.append(&2, F.Node, prefix, suffix)), ready_omission_work_weight(rest))
+
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived
 # from whole entry execution. External resolver inputs are not restricted here.
