@@ -10581,6 +10581,7 @@ def ready_encoded_decision(-World: Data, +actual: T.ResolverState, +reference: D
                                             case Compose.Attachment{_, _, _, _, _, _, +candidate_ids, _, _}:
                                               match forest_witness:
                                                 case (+forest, (+attached, (replaced, (+shared_product, (materialized, (request_equal, (shared_measurement, reference_observations))))))):
+                                                  +accepted = accepted
                                                   +ref_config: D.Config = D.Config{ref_invocation, ref_root, ref_language, ref_context, ref_clock, ref_cache}
                                                   +ref_graph: G.Bounded = G.Bounded{ref_unbounded, ref_remaining}
                                                   +ref_local: Signed.State = Signed.State{Recursive.State{ref_values, Local.Budget{ref_limits, ref_paths, ref_max_targets, ref_work, ref_graph_work, ref_depth}, ref_next_address, ref_pending_rev}, ref_signed}
@@ -11143,10 +11144,20 @@ def ready_encoded_decision(-World: Data, +actual: T.ResolverState, +reference: D
         case Some{failure}:
           ready_rejected_transaction(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world, measured, request, product, staged, failure,
             awaited, encoded, stage, selected, projected, reference_projected, accepted)
-    case _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _} _ _:
+    case _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _} V.History{_, _, _, _, _, _, _} Phase.ChildHistory{F.Created{_, _, _}, _, _, _, _}:
       match shared:
-        case (+original_frame, (+original_child, (+original_edge, (frame_present, (child_present, (edge_present, parent_witness)))))):
-          Empty.absurd(Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world), parent_witness)
+        case (+original_frame, child_witness):
+          match child_witness:
+            case (+original_child, edge_witness):
+              match original_child:
+                case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}:
+                  match edge_witness:
+                    case (+original_edge, evidence):
+                      match original_edge:
+                        case Local.Pending{_, _, _, _, _, _, _, _}:
+                          match evidence:
+                            case (frame_present, (child_present, (edge_present, parent_witness))):
+                              Empty.absurd(Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world), parent_witness)
 
 def ready_encoded_joined(-World: Data, +actual: T.ResolverState, +reference: D.State, +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat, +owner: Nat, +id: Nat, +bytes: Nat, +world: E.WorldState<World>, +child_history: Phase.ChildHistory, +original_ready: {ActualReady.project(actual, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, +original_reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, +coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}, shared: ready_original_shared_result(actual, reference, child, history, child_history, phase, previous), evidence: ready_joined_measurement_result(actual, reference, child, history, phase, previous)) -> Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world):
   match evidence:
