@@ -82,7 +82,6 @@ try {
   for (const cancellation of ["none", "advance", "effect"]) {
     const registry = createServiceRegistry()
     const trace = []
-    let driver, invocation
     const machine = {
       initial: () => ({ $: "Continue", remaining: 2 }),
       view: (value) => value,
@@ -91,10 +90,16 @@ try {
         return { $: "Types.CompletedResolver", result: "accepted" }
       },
       disposeInvocation() {},
-      get retainedHandles() { return 0 }
+      get retainedHandles() {
+        return 0
+      }
     }
-    driver = createChildExecutionDriver({
-      owner: m, initialState: fresh(), scope, registry, machine,
+    const driver = createChildExecutionDriver({
+      owner: m,
+      initialState: fresh(),
+      scope,
+      registry,
+      machine,
       protocol: {
         ...fixtureProtocol,
         synchronousAdvance(held) {
@@ -103,9 +108,10 @@ try {
           if (cancellation === "advance") driver.cancel(BigInt(invocation))
           return {
             ...held,
-            step: held.step.remaining === 1
-              ? { $: "Types.AwaitService", request: { invocation: BigInt(invocation), id: 7n } }
-              : { $: "Continue", remaining: held.step.remaining - 1 }
+            step:
+              held.step.remaining === 1
+                ? { $: "Types.AwaitService", request: { invocation: BigInt(invocation), id: 7n } }
+                : { $: "Continue", remaining: held.step.remaining - 1 }
           }
         }
       },
@@ -115,14 +121,21 @@ try {
         if (cancellation === "effect") driver.cancel(BigInt(invocation))
         return { value: { value: "reply" } }
       },
-      foreign() { throw new Error("Unexpected async fallback") }
+      foreign() {
+        throw new Error("Unexpected async fallback")
+      }
     })
-    invocation = driver.allocateInvocation()
+    const invocation = driver.allocateInvocation()
     const session = { invocation, finish() {}, close() {}, revoke() {} }
     const outcome = await driver.drive(session, { invocation: BigInt(invocation) })
-    assert.deepEqual(trace, cancellation === "none"
-      ? ["advance", "advance", "effect", "resume", "microtask"]
-      : cancellation === "advance" ? ["advance"] : ["advance", "advance", "effect", "microtask"])
+    assert.deepEqual(
+      trace,
+      cancellation === "none"
+        ? ["advance", "advance", "effect", "resume", "microtask"]
+        : cancellation === "advance"
+          ? ["advance"]
+          : ["advance", "advance", "effect", "microtask"]
+    )
     assert.equal(driver.stats.accepted, cancellation === "none" ? 1 : 0)
     if (cancellation === "none") assert.equal(outcome.result, "accepted")
     else assert.equal(outcome.failure.$, "Types.InvocationCancelled")

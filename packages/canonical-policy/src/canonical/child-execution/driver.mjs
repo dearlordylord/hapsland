@@ -503,8 +503,7 @@ export function createChildExecutionDriver({
           }
         }
         try {
-          if (protocol.initialSignalCheckpoint?.(engine(invocation)) !== "protocol" && options.signal?.aborted)
-            abort()
+          if (protocol.initialSignalCheckpoint?.(engine(invocation)) !== "protocol" && options.signal?.aborted) abort()
           if (finished.has(invocation)) {
             if (abortFailure) {
               taskFailure = abortFailure
@@ -541,7 +540,9 @@ export function createChildExecutionDriver({
                 })
               }
               const synchronous = foreignSync?.([lease.request], execution)
-              payload = { value: synchronous === undefined ? await foreign([lease.request], execution) : synchronous.value }
+              payload = {
+                value: synchronous === undefined ? await foreign([lease.request], execution) : synchronous.value
+              }
             } catch (error) {
               payload = { error }
             }
