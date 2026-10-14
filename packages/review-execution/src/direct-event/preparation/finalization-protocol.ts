@@ -1,4 +1,9 @@
-import type { Protocol, Session } from "@hapsland/canonical-policy/canonical/child-execution"
+import type {
+  Protocol,
+  Session,
+  ForeignReply,
+  ForeignCommand
+} from "@hapsland/canonical-policy/canonical/child-execution"
 import core from "./preparation-finalization-core.js"
 import type { Step, Response } from "./preparation-finalization-core.js"
 import {
@@ -21,7 +26,10 @@ export type FinalizationRequest = {
   readonly finalization: Step
   readonly binding: Binding
 }
-export type FinalizationReply = { readonly $: "FinalizationReply"; readonly response: Response }
+export type FinalizationReply =
+  | { readonly $: "FinalizationReply"; readonly response: Response }
+  | { readonly $: "FinalizationReply"; readonly step: Step; readonly response: Response }
+  | { readonly $: "FinalizationReply"; readonly step: Step }
 export type FinalizationMachine = ReturnType<typeof createFinalizationMachine>
 export type FinalizationContinuation = {
   readonly kind: "finalization"
@@ -29,6 +37,7 @@ export type FinalizationContinuation = {
   readonly invocation: bigint
   readonly binding: Binding
   readonly step: Step
+  readonly settled?: true
 }
 export type FinalizationProjection = {
   readonly kind: "finalization"
@@ -66,6 +75,7 @@ export const finalizationProtocol: Protocol<
   initialSignalCheckpoint: () => "protocol",
   initial: (machine, input) => machine.initial(input),
   synchronousAdvance(held) {
+    if (held.settled) return undefined
     const next = held.binding.advance(held.step)
     return next === undefined ? undefined : { ...held, step: next }
   },
@@ -83,7 +93,11 @@ export const finalizationProtocol: Protocol<
       }
     }
   },
-  resume: (held, reply) => ({ ...held, step: held.binding.resume(held.step, reply.response) }),
+  resume(held, reply) {
+    if (!("response" in reply)) return { ...held, step: reply.step, settled: true }
+    const step = "step" in reply ? reply.step : held.step
+    return { ...held, step: held.binding.resume(step, reply.response) }
+  },
   awaitRequest: (projected) => (projected.view.$ === "Types.AwaitService" ? projected.view.request : undefined),
   installation: () => ({ method: "install" }),
   terminal: () => "terminal",
@@ -97,13 +111,54 @@ export const finalizationProtocol: Protocol<
   projectTerminal: (outcome) => outcome
 }
 
-export const performFinalizationSync = (request: FinalizationRequest) => {
-  const response = request.binding.performSync(request.finalization)
-  if (response !== undefined) return { value: { $: "FinalizationReply" as const, response: response.value } }
-  const engine = request.binding.performPending(request.finalization)
+export const performFinalizationSync = (request: FinalizationRequest): ForeignReply<FinalizationReply> => {
+  let step = request.finalization
+  // The first request has already passed the protocol's advance checkpoint.
+  let needsAdvance = false
   return {
-    pending: engine.pending,
-    map: (value: unknown): FinalizationReply => ({ $: "FinalizationReply", response: engine.map(value as boolean) })
+    group: {
+      checkpoints: "canonical",
+      next(): ForeignCommand<FinalizationReply> {
+        if (needsAdvance)
+          return {
+            kind: "checkpointed",
+            perform() {
+              const next = request.binding.advance(step)
+              return {
+                commit() {
+                  if (next === undefined) needsAdvance = false
+                  else step = next
+                }
+              }
+            }
+          }
+        if (!("state" in step) && !("unit" in step))
+          return { kind: "terminal", value: { $: "FinalizationReply", step } }
+        return {
+          kind: "checkpointed",
+          perform() {
+            const response = request.binding.performSync(step)
+            if (response !== undefined)
+              return {
+                commit() {
+                  step = request.binding.resume(step, response.value)
+                  needsAdvance = true
+                }
+              }
+            const pendingStep = step
+            const engine = request.binding.performPending(pendingStep)
+            return {
+              pending: engine.pending,
+              map: (value: unknown): FinalizationReply => ({
+                $: "FinalizationReply",
+                step: pendingStep,
+                response: engine.map(value as boolean)
+              })
+            }
+          }
+        }
+      }
+    }
   }
 }
 export const performFinalizationAsync = async (request: FinalizationRequest): Promise<FinalizationReply> => {

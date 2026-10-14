@@ -37,16 +37,28 @@ const required = (value) => {
 /**
  * @template Reply
  * @param {import("./contract.ts").ForeignReply<Reply>} result
- * @returns {import("./contract.ts").ForeignResult<Reply>}
+ * @param {() => boolean} live
+ * @returns {import("./contract.ts").ForeignResult<Reply> | {revoked: true}}
  */
-const executeSynchronousGroup = (result) => {
+const executeSynchronousGroup = (result, live) => {
   if (!("group" in result)) return result
+  const checkpointed = result.group.checkpoints === "canonical"
   for (;;) {
+    if (checkpointed && !live()) return { revoked: true }
     const command = result.group.next()
+    if (checkpointed && !live()) return { revoked: true }
     switch (command.kind) {
       case "primitive":
         command.perform()
         break
+      case "checkpointed": {
+        if (!checkpointed) throw new TypeError("Checkpointed primitive requires Canonical group authority")
+        const completed = command.perform()
+        if (!("commit" in completed)) return completed
+        if (!live()) return { revoked: true }
+        completed.commit()
+        break
+      }
       case "pending":
         return command.start()
       case "terminal":
@@ -94,7 +106,7 @@ export function createChildExecutionDriver({
 }) {
   /**
    * @typedef {P | ConstructionFailure} ResultPayload
-   * @typedef {{value: Reply} | {error: unknown}} ReplyPayload
+   * @typedef {{value: Reply} | {error: unknown} | {revoked: true}} ReplyPayload
    * @typedef {{kind: "state", value: C} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: I | P | AdviceInput | undefined} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined}} Payload
    * @typedef {Payload & {invocation: bigint}} HeldResource
    * @typedef {import("./contract.ts").Outcome<A>} TerminalOutcome
@@ -362,6 +374,7 @@ export function createChildExecutionDriver({
         const raw = load(command.state_handle, invocation, "state"),
           reply = load(command.reply_handle, invocation, "reply")
         if ("error" in reply) throw reply.error
+        if ("revoked" in reply) throw new TypeError("Revoked synchronous group cannot resume")
         stats.resumes++
         return settleOutcome(invocation, command.generation, protocol.resume(raw, reply.value))
       }
@@ -577,13 +590,21 @@ export function createChildExecutionDriver({
                   })
                 }
                 const offered = foreignSync?.([lease.request], execution)
-                const synchronous = offered === undefined ? undefined : executeSynchronousGroup(offered)
+                const synchronous =
+                  offered === undefined
+                    ? undefined
+                    : executeSynchronousGroup(offered, () => {
+                        const found = owner.find(invocation, current().children)
+                        return found.$ === "Some" && owner.child_active(found.value)
+                      })
                 if (synchronous === undefined) {
                   // The existing async port keeps its late-reply discard rules.
                   awaited = true
                   payload = {
                     value: /** @type {Reply} */ (yield awaitNative(foreign([lease.request], execution), true))
                   }
+                } else if ("revoked" in synchronous) {
+                  payload = synchronous
                 } else if ("pending" in synchronous) {
                   awaited = true
                   const value = yield awaitNative(synchronous.pending, true)

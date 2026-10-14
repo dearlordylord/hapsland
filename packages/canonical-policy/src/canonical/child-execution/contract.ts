@@ -64,15 +64,18 @@ export type ForeignResult<Reply> = { readonly value: Reply } | ForeignPending<Re
 // A single issued Canonical lease may execute an original synchronous group.
 // The Bend protocol chooses each primitive and the stopping boundary. Internal
 // machine request IDs remain inside this group; they do not issue new leases.
-// Primitive execution introduces no await or cancellation checkpoint. A pending
-// start runs once before awaiting; its mapper performs ABI conversion only.
+// Ordinary groups introduce no await or cancellation checkpoint. Opt-in
+// Canonical groups split native execution from its continuation commit, checking
+// live authority between them. Pending start runs once before awaiting; its
+// mapper does not resume a machine before Canonical accepts the reply.
 export type ForeignCommand<Reply> =
   | { readonly kind: "primitive"; readonly perform: () => void }
+  | { readonly kind: "checkpointed"; readonly perform: () => { readonly commit: () => void } | ForeignPending<Reply> }
   | { readonly kind: "pending"; readonly start: () => ForeignPending<Reply> }
   | { readonly kind: "terminal"; readonly value: Reply }
 export type ForeignReply<Reply> =
   | ForeignResult<Reply>
-  | { readonly group: { readonly next: () => ForeignCommand<Reply> } }
+  | { readonly group: { readonly checkpoints?: "canonical"; readonly next: () => ForeignCommand<Reply> } }
 
 export type Projection = { readonly kind: string; readonly view: { readonly $: string } }
 export type PreparationHandoff = {

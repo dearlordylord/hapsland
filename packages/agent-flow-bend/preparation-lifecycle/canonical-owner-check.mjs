@@ -255,6 +255,134 @@ try {
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 10
   }
+  // Checkpointed groups retain an issued lease while separating native effects
+  // from continuation commits. Revocation cannot resume or fabricate success.
+  for (const [mode, original] of [
+    ["terminal", undefined],
+    ["pending", undefined],
+    ["cancel-next", undefined],
+    ["cancel-effect", undefined],
+    ["cancel-reject", false],
+    ["cancel-map", null],
+    ...[undefined, null, false, 0, ""].map((error) => ["cancel-throw", error]),
+    ["start-throw", new Error("group pending start")]
+  ]) {
+    const registry = createServiceRegistry(),
+      trace = []
+    let closes = 0,
+      providers = 0,
+      completions = 0,
+      primitive = 0
+    const machine = {
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      view: (value) => value,
+      resume() {
+        trace.push("resume")
+        return { $: "Types.CompletedResolver", result: "accepted" }
+      },
+      disposeInvocation() {},
+      retainedHandles: 0
+    }
+    const driver = createFixtureDriver({
+      owner: m,
+      initialState: m.initial_limits(100n, 100000n, 100n, 100000n),
+      registry,
+      machine,
+      hooks: {
+        beforeProvider() {
+          providers++
+        },
+        beforeCompletion() {
+          completions++
+        }
+      },
+      foreignSync() {
+        return {
+          group: {
+            checkpoints: "canonical",
+            next() {
+              if (mode === "cancel-next") {
+                trace.push("next-cancel")
+                driver.cancel(BigInt(invocation))
+              }
+              if (primitive < 2) {
+                const index = primitive++
+                return {
+                  kind: "checkpointed",
+                  perform() {
+                    trace.push("effect " + index)
+                    if (index === 0) {
+                      queueMicrotask(() => trace.push("microtask"))
+                      if (mode === "cancel-effect" || mode === "cancel-throw") driver.cancel(BigInt(invocation))
+                      if (mode === "cancel-throw") throw original
+                    }
+                    return {
+                      commit() {
+                        trace.push("commit " + index)
+                      }
+                    }
+                  }
+                }
+              }
+              if (mode === "terminal") return { kind: "terminal", value: { value: "reply" } }
+              return {
+                kind: "checkpointed",
+                perform() {
+                  trace.push("start")
+                  if (mode !== "pending") driver.cancel(BigInt(invocation))
+                  if (mode === "start-throw") throw original
+                  return {
+                    pending: mode === "cancel-reject" ? Promise.reject(original) : Promise.resolve("reply"),
+                    map(value) {
+                      trace.push("map")
+                      if (mode === "cancel-map") throw original
+                      return { value }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      foreign() {
+        assert.fail("Checkpointed group cannot fall back")
+      }
+    })
+    const invocation = driver.allocateFreshnessInvocation()
+    const session = {
+      invocation,
+      finish() {},
+      revoke() {},
+      close() {
+        closes++
+      }
+    }
+    if (mode === "cancel-throw" || mode === "start-throw")
+      await assert.rejects(
+        () => driver.drive(session, { invocation: BigInt(invocation) }),
+        (error) => Object.is(error, original)
+      )
+    else {
+      const result = await driver.drive(session, { invocation: BigInt(invocation) })
+      if (mode === "terminal" || mode === "pending") assert.equal(result.result, "accepted")
+      else assert.equal(result.failure.$, "Types.InvocationCancelled")
+    }
+    if (mode === "cancel-next") assert.deepEqual(trace, ["next-cancel"])
+    else if (mode === "cancel-effect" || mode === "cancel-throw") assert.deepEqual(trace, ["effect 0", "microtask"])
+    else {
+      assert.deepEqual(trace.slice(0, 4), ["effect 0", "commit 0", "effect 1", "commit 1"])
+      assert.equal(trace.includes("resume"), mode === "terminal" || mode === "pending")
+      if (mode === "terminal") assert.deepEqual(trace.slice(4), ["resume", "microtask"])
+      if (mode === "pending") assert.deepEqual(trace.slice(4), ["start", "microtask", "map", "resume"])
+    }
+    assert.equal(providers, 1)
+    assert.equal(completions, 1)
+    assert.equal(closes, 1)
+    assert.equal(driver.stats.accepted, mode === "terminal" || mode === "pending" ? 1 : 0)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 9
+  }
   // The pending engine boundary must distinguish immediate throws from late
   // rejection and mapper failures, while cancellation still drains its lease.
   for (const mode of ["resolved", "immediate", "cancel-reject", "external-reject", "cancel-map-throw"]) {
