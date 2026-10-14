@@ -24,6 +24,7 @@ import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
  * @typedef {ReturnType<typeof ownedMachine.accepted> | PreparationHandoff | {adviceRetained: false, reason: unknown, cleanupPending: boolean}} TerminalOutcome
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").CancellationOutcome} CancellationOutcome
  * @typedef {Extract<TerminalOutcome, {result: object}> | Extract<TerminalOutcome, {failure: {$: string}}>} GraphOutcome
+ * @typedef {ReturnType<typeof finalizationProtocol.accepted> | CancellationOutcome} FinalizationOutcome
  * @typedef {PreparationHandoff | ReturnType<ownedMachine.PreparationMachine["accepted"]> | CancellationOutcome} PreparationOutcome
  * @typedef {ReturnType<ownedMachine.SourceMachine["accepted"]> | CancellationOutcome} SourceOutcome
  * @typedef {ReturnType<ownedMachine.PostMachine["accepted"]> | CancellationOutcome} PostOutcome
@@ -43,6 +44,7 @@ const required = (value) => {
 /**
  * @template {NativeSession} Session
  * @typedef {{
+ * (session: Session, input: Parameters<ownedMachine.FinalizationMachine["initial"]>[0], options?: ForeignOptions): Promise<FinalizationOutcome>;
  * (session: Session, input: Parameters<ownedMachine.ArtifactMachine["initial"]>[0], options?: ForeignOptions): Promise<GraphOutcome>;
  * (session: Session, input: Parameters<ownedMachine.PreparationMachine["initial"]>[0], options?: ForeignOptions): Promise<PreparationOutcome>;
  * (session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0], options?: ForeignOptions): Promise<SourceOutcome>;
@@ -82,7 +84,7 @@ export function createOwnedArtifactDriver({
   const protocol = {
     initialSignalCheckpoint: (machine) => (machine.kind === "finalization" ? "protocol" : "executor"),
     synchronousAdvance: (held, options) =>
-      held.kind === "finalization" ? finalizationProtocol.synchronousAdvance(held, options) : undefined,
+      held.kind === "finalization" ? finalizationProtocol.synchronousAdvance?.(held, options) : undefined,
     initial: ownedMachine.initial,
     view: ownedMachine.view,
     resume: ownedMachine.resume,
@@ -150,12 +152,12 @@ export function createOwnedArtifactDriver({
     registry,
     foreignSync(requests) {
       if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
-      const request = requests[0]
+      const request = required(requests[0])
       return "finalization" in request ? performFinalizationSync(request) : undefined
     },
     foreign(requests, options) {
       if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
-      const request = requests[0]
+      const request = required(requests[0])
       return "finalization" in request ? performFinalizationAsync(request) : foreign(requests, options)
     },
     hooks,
@@ -173,6 +175,7 @@ export function createOwnedArtifactDriver({
   /** @overload @param {Session} session @param {Parameters<ownedMachine.PreparationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PreparationOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.SourceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<SourceOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.PostMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.FinalizationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<FinalizationOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.AdviceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
   /** @param {Session} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
   function drive(session, input, options) {
