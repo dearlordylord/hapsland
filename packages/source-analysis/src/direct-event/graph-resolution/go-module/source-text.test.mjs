@@ -42,7 +42,10 @@ try {
     assert.equal(cores.Input.has(spellings, right), left === right)
     const chars = characters(left)
     assert.equal(BigInt(cores.RawTextMeasurement.utf16(characters(left, "RawText."))), BigInt(left.length))
-    assert.equal(BigInt(cores.RawTextMeasurement.bytes(characters(left, "RawText."))), BigInt(Buffer.byteLength(left, "utf8")))
+    assert.equal(
+      BigInt(cores.RawTextMeasurement.bytes(characters(left, "RawText."))),
+      BigInt(Buffer.byteLength(left, "utf8"))
+    )
     assert.equal(cores.RawText.ascii_text(chars), left)
     assert.equal(text(cores.RawText.skip_space(chars)), left.trimStart())
     assert.equal(text(cores.RawText.trim(chars)), left.trim())
@@ -70,7 +73,10 @@ try {
   for (const value of ["\ud800", "\udc00"]) {
     const chars = characters(value)
     assert.equal(BigInt(cores.RawTextMeasurement.utf16(characters(value, "RawText."))), BigInt(value.length))
-    assert.equal(BigInt(cores.RawTextMeasurement.bytes(characters(value, "RawText."))), BigInt(Buffer.byteLength(value, "utf8")))
+    assert.equal(
+      BigInt(cores.RawTextMeasurement.bytes(characters(value, "RawText."))),
+      BigInt(Buffer.byteLength(value, "utf8"))
+    )
     assert.equal(text(cores.RawText.trim(chars)), value.trim())
     assert.throws(
       () => cores.RawText.ascii_text(chars),
