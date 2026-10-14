@@ -451,15 +451,18 @@ try {
       }
     }
     if (mode === "gates-job-inactive") context.deps.residentJobActive = () => Effect.succeed(false)
+    const workspaceReleaseErrors = []
     let admissionCalls = 0,
       cleanupFails = mode === "source-cleanup-pending",
       claimReleased = false
     if (mode === "source-cleanup-pending") {
       const release = ledger.release
-      ledger.release = (reservation) =>
-        cleanupFails && context.activeWorkspaces.has(reservation)
-          ? Effect.fail(new Error("injected workspace release failure"))
-          : release(reservation)
+      ledger.release = (reservation) => {
+        if (!cleanupFails || !context.activeWorkspaces.has(reservation)) return release(reservation)
+        const error = new Error("injected workspace release failure")
+        workspaceReleaseErrors.push(error)
+        return Effect.fail(error)
+      }
       assert.equal(run(context.deps.residentReuse.claim("cleanup-extra-claim")), true)
       context.unassignedClaims.add("cleanup-extra-claim")
       const releaseClaim = context.deps.residentReleaseReuseClaim
@@ -735,16 +738,51 @@ try {
         result = resultFromSource
       } catch (error) {
         if (mode !== "source-cleanup-pending") throw error
-        assert.ok(error instanceof AggregateError)
-        assert.strictEqual(error.cause, injectedAdmissionError)
-        assert.equal(claimReleased, true, "other exact obligations attempted despite failed workspace release")
-        assert.equal(context.unassignedClaims.size, 0)
-        assert.equal(context.activeWorkspaces.size, 1)
-        assert.equal(registry.pendingCleanup, 1)
-        await assert.rejects(Effect.runPromise(registry.retryCleanupEffect()), /cleanup obligations remain pending/)
-        assert.equal(registry.pendingCleanup, 1)
-        cleanupFails = false
-        await Effect.runPromise(registry.retryCleanupEffect())
+        try {
+          assert.ok(Exit.isFailure(sourceExit))
+          assert.equal(
+            workspaceReleaseErrors.length,
+            2,
+            "task finish and invocation finish each retain a failed attempt"
+          )
+          const reasonValues = (cause) =>
+            cause.reasons.map((reason) => ({
+              kind: reason._tag,
+              value: reason.defect ?? reason.error,
+              fiberId: reason.fiberId
+            }))
+          assert.deepEqual(
+            reasonValues(sourceExit.cause),
+            workspaceReleaseErrors.flatMap((error) =>
+              reasonValues(Cause.combine(Cause.die(injectedAdmissionError), Cause.fail(error)))
+            )
+          )
+          for (let index = 0; index < workspaceReleaseErrors.length; index++) {
+            assert.strictEqual(sourceExit.cause.reasons[index * 2].defect, injectedAdmissionError)
+            assert.strictEqual(sourceExit.cause.reasons[index * 2 + 1].error, workspaceReleaseErrors[index])
+          }
+          assert.equal(claimReleased, true, "other exact obligations attempted despite failed workspace release")
+          assert.equal(context.unassignedClaims.size, 0)
+          assert.equal(context.activeWorkspaces.size, 1)
+          assert.equal(registry.pendingCleanup, 1)
+          const retry = await Effect.runPromiseExit(registry.retryCleanupEffect())
+          assert.ok(Exit.isFailure(retry))
+          assert.deepEqual(
+            retry.cause.reasons.map((reason) => reason._tag),
+            ["Die", "Fail"]
+          )
+          assert.equal(workspaceReleaseErrors.length, 3)
+          assert.deepEqual(
+            reasonValues(retry.cause),
+            reasonValues(Cause.combine(Cause.die(injectedAdmissionError), Cause.fail(workspaceReleaseErrors[2])))
+          )
+          assert.strictEqual(retry.cause.reasons[0].defect, injectedAdmissionError)
+          assert.strictEqual(retry.cause.reasons[1].error, workspaceReleaseErrors[2])
+          assert.equal(registry.pendingCleanup, 1)
+        } finally {
+          cleanupFails = false
+          await Effect.runPromise(registry.retryCleanupEffect())
+        }
         assert.equal(registry.pendingCleanup, 0)
         assert.equal(context.activeWorkspaces.size, 0)
         result = { completed: false, reason: { $: "DefectFailure", token: 1n } }
@@ -1050,7 +1088,7 @@ try {
         assert.equal(recoveryStart, -1)
       } else if (mode.endsWith("preparation-failure") || mode === "full-capture-failure") {
         assert.equal(result.completed, false)
-        assert.equal(result.reason.$, "TechnicalFailure")
+        assert.equal(result.reason.$, "TechnicalFailure", `${mode}: ${String(source.error(result.reason.token))}`)
         assert.strictEqual(source.error(result.reason.token), injectedPreparationError)
         assert.equal(interrupted.length, 1)
         assert.equal(completed.length, 0)

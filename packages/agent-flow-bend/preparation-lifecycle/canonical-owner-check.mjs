@@ -1277,7 +1277,8 @@ try {
     "pre-interrupted",
     "construct-failure",
     "construct-interrupted",
-    "provider-interrupted"
+    "provider-interrupted",
+    "async-construct-interrupted"
   ]) {
     const registry = createServiceRegistry()
     let constructions = 0,
@@ -1311,7 +1312,7 @@ try {
     })
     const task = Effect.withFiber((fiber) => {
       caller = fiber
-      return driver.driveConstructedEffect(() => {
+      const construct = () => {
         constructions++
         const invocation = driver.allocateFreshnessInvocation()
         if (mode === "construct-failure") {
@@ -1336,7 +1337,20 @@ try {
           }
         }
         return { session, input: { invocation: BigInt(invocation) } }
-      })
+      }
+      return mode === "async-construct-interrupted"
+        ? driver.driveConstructedFlowEffect(function* () {
+            const held = construct()
+            return yield {
+              kind: "await",
+              interruptible: false,
+              value: Promise.resolve().then(() => {
+                fiber.interruptUnsafe()
+                return held
+              })
+            }
+          })
+        : driver.driveConstructedEffect(construct)
     })
     const exit = await Effect.runPromiseExit(mode === "pre-interrupted" ? Effect.andThen(Effect.interrupt, task) : task)
     assert.equal(constructions, mode === "pre-interrupted" ? 0 : 1)

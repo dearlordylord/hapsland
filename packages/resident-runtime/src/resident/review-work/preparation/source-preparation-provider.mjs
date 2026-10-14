@@ -171,22 +171,27 @@ export function createSourcePreparationProvider(
       /** @type {import("./source-preparation-core.js").Response} */
       let response = { $: "Ack" }
       let observationCommitted = false
-      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
-      const run = function* (effect) {
+      /** @template A, E @param {Effect.Effect<A, E>} effect @param {boolean} [classify] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
+      const run = function* (effect, classify = true) {
         const exit = /** @type {Exit.Exit<A, E>} */ (yield effectNative(Effect.exit(restore(effect)), false))
         if (Exit.isFailure(exit)) {
           failureCause = exit.cause
-          failureKind = Cause.hasDies(exit.cause)
-            ? "Defect"
-            : Cause.hasFails(exit.cause)
-              ? "Failed"
-              : Cause.hasInterrupts(exit.cause)
-                ? "Cancelled"
-                : "Failed"
+          if (classify)
+            failureKind = Cause.hasDies(exit.cause)
+              ? "Defect"
+              : Cause.hasFails(exit.cause)
+                ? "Failed"
+                : Cause.hasInterrupts(exit.cause)
+                  ? "Cancelled"
+                  : "Failed"
           throw Cause.squash(exit.cause)
         }
         return exit.value
       }
+      // Child driver rejection was a raw await edge; retain its existing
+      // classification while carrying the full Effect Cause across that edge.
+      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
+      const runChild = (effect) => run(effect, false)
       /** @param {import("../../state/resolver-custody/provider-authority.ts").OwnerPublication} publication */
       const committed = (publication) => options.afterCommit?.(command, publication)
       const ownerLease = () => {
@@ -385,7 +390,7 @@ export function createSourcePreparationProvider(
             const parent = { $: "Parent", invocation, generation: child.generation, request: request.id }
             /** @type {PreparationSession | undefined} */
             let session
-            const handoff = yield* run(
+            const handoff = yield* runChild(
               driver.driveConstructedFlowEffect(
                 function* () {
                   const prepInvocation = driver.allocatePreparationInvocation(
@@ -409,6 +414,13 @@ export function createSourcePreparationProvider(
                     return { session, input: session.input }
                   } catch (original) {
                     const originalCause = failureCause ?? Cause.die(original)
+                    failureKind = Cause.hasDies(originalCause)
+                      ? "Defect"
+                      : Cause.hasFails(originalCause)
+                        ? "Failed"
+                        : Cause.hasInterrupts(originalCause)
+                          ? "Cancelled"
+                          : "Failed"
                     let combinedCause = originalCause
                     const failures = []
                     try {
@@ -433,7 +445,8 @@ export function createSourcePreparationProvider(
                       throw nativeFailureAggregate(
                         [original, ...failures],
                         "Preparation construction and cleanup failed",
-                        { cause: original }
+                        { cause: original },
+                        combinedCause
                       )
                     }
                     throw original
@@ -471,7 +484,7 @@ export function createSourcePreparationProvider(
             )
             let accepted
             try {
-              accepted = yield* run(
+              accepted = yield* runChild(
                 driver.driveHandoffEffect(handoff, post, () => post.input, { signal: options.signal })
               )
             } catch (error) {

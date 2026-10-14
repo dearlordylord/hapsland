@@ -48,7 +48,7 @@ export function performPreparationSessionRequest(
   request: Request,
   options: ForeignOptions
 ): Effect.Effect<Reply> {
-  return Effect.suspend(() => {
+  return Effect.suspend((): Effect.Effect<Reply> => {
     const { signal: requestedSignal, ...execution } = options
     const signal = requestedSignal === undefined ? {} : { signal: requestedSignal }
     const session = registry.get(hostNatural(request.invocation))
