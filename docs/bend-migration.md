@@ -193,7 +193,11 @@ The pinned formatter now accepts UnitEvidence, Glob and PostPreparation after
 local binding of three existing lambdas; declaration-header limitations in the
 attachment proof owners remain open. Formatter passes do not establish proofs.
 
-One current obstacle list (updated 2026-10-14 at 00:49 UTC):
+One current obstacle list (updated 2026-10-14 at 01:01 UTC):
+
+The cheap Object.entries→Object.keys ABI proposal is rejected by an executed getter-deletion counterexample: original entries omits the deleted next property, while captured keys retains it with undefined. No production mapper change is made and getter/error/order guarantees stay intact. Current cost diagnostics do not justify weakening lifecycle. Before adding freshness representations, align the existing three-mode whole acceptance path with Astra; lazy facts must preserve original property reads/serialization/short circuits.
+
+Astra checkpoints166 retained lines with no probes/compiler and byte-identical original DRAFT. Actual attachment IDs→History.ids passes actual hard10 verdict1.596s (16defs/12imports); reference original-ready registration IDs→same History.ids passes4.626s (20defs/19imports). Earlier delimiter/shift-head typing failures remain diagnostic failures. The shared next-edge/pending-view join, work-counter equality, publication/rollback and whole theorem remain open. The requested01:00 proof HOLD was observed01:00:31, recorded as31s late; it is not a qualified measurement miss or proof completion.
 
 A diagnostic-only owner call/time mode is added to the existing preparation worker, guarded by an explicit profile directory and reset after warmups. The real existing profiler passes both native/public golden controls and full results with instrumentation; worker lint selects1 actual file and passes. Over two measured rounds across seven fixtures, public owner.find runs17772 times/0.066894s; install/provider_start/provider_completed each run3368 times and total0.147150s; child_active runs10948 times/0.008767s. Instrumented worker public0.941108s/native0.357959s are diagnostic, not paired parity. The earlier complete CPU profile aggregates public owner0.8608s/nat_host0.2768s over startup+warmups+measurement, not the same interval; do not equate those costs or infer that owner alone explains whole parity failure. Counts identify both lifecycle and other ABI/engine cost; no lifecycle guarantee is relaxed and no generated compiler output is patched. Diagnostics live only under ignored .test-runs/bend-migration/preparation-owner-cost.
 
