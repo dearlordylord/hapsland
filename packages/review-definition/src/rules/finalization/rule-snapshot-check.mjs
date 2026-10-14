@@ -86,6 +86,30 @@ try {
     { timeout: 6000 }
   )
   const stage = (await import(pathToFileURL(output))).default
+  // Raw values pin first-match and rejection semantics independently of the
+  // authored-rule compiler, which rejects duplicate keys and input pairs.
+  const text = (value) => wire(value)
+  const values = (items) => list(items.map(wire))
+  const first = wire({ needle: "first" }),
+    second = wire({ needle: "second" })
+  const duplicate = { ...first, fields: list([first.fields.head, second.fields.head]) }
+  assert.equal(fromProductValue(tags(stage.field("needle", duplicate).value, false)), "first")
+  assert.equal(stage.field("missing", duplicate).$, "None")
+  const input = { kind: "type", languages: ["go"], requires: ["missing"] }
+  const later = { ...input, requires: [] }
+  const inputs = values([input, later])
+  assert.deepEqual(stage.first_input(inputs, "go", "type"), { $: "Some", value: wire(input) })
+  assert.equal(stage.any_capable(inputs, "go", "type", values([])), true)
+  assert.equal(stage.any_capable(inputs, "rust", "type", values([])), false)
+  for (const available of [[], ["a"], ["b"], ["a", "b"]])
+    for (const requirements of [[], ["a"], ["a", "b"], ["a", 1], [1, "a"]])
+      assert.equal(
+        stage.all_requirements(values(requirements), values(available)),
+        requirements.every((item) => typeof item === "string" && available.includes(item))
+      )
+  for (const entries of [[], [1, "go"], ["go", 1], Array(1000).fill("go")])
+    assert.equal(stage.contains("go", values(entries)), entries.includes("go"))
+  assert.equal(stage.input_matches(text({ kind: "function", languages: ["go"] }), "go", "type"), false)
   let cases = 0
   let comparedRules = 0
   for (const snapshot of snapshots)

@@ -5,6 +5,12 @@ import Base
 # Applicability admission stays with Canonical; this stage computes its facts
 # and freezes the admitted original rule, never a host-selected input.
 # Private projections of the shared producer ABI, not evidence policy.
+# Evaluate only the selected branch; Bool.pick on computed values is eager.
+def select_branch(-A: Type, condition: Bool, yes: Unit -> A, no: Unit -> A) -> A:
+  match condition:
+    case True{}: yes(Unit{})
+    case False{}: no(Unit{})
+
 def field_list(
   +key: String,
   fields: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
@@ -12,11 +18,11 @@ def field_list(
   match fields:
     case []: None{}
     case ArtifactValue.OrderedField{+candidate, value} <> tail:
-      Bool.pick(
+      select_branch(
         Maybe<&2, ArtifactValue.ProductValue>,
         String.eq(key, candidate),
-        Some{value},
-        field_list(key, tail)
+        _ => Some{value},
+        _ => field_list(key, tail)
       )
 
 def field(key: String, value: ArtifactValue.ProductValue) -> Maybe<&2, ArtifactValue.ProductValue>:
@@ -51,20 +57,12 @@ def contains(+value: String, values: List<&2, ArtifactValue.ProductValue>) -> Bo
   match values:
     case []: False{}
     case head <> tail:
-      Bool.or(same_text(Some{ArtifactValue.ProductText{value}}, Some{head}), contains(value, tail))
+      select_branch(Bool, same_text(Some{ArtifactValue.ProductText{value}}, Some{head}),
+        _ => True{}, _ => contains(value, tail))
 
 def input_matches(+input: ArtifactValue.ProductValue, language: String, kind: String) -> Bool:
-  Bool.and(same_text(Some{ArtifactValue.ProductText{kind}}, field("kind", input)),
-    contains(language, items(field("languages", input))))
-
-def choose_input(
-  matches: Bool,
-  head: ArtifactValue.ProductValue,
-  rest: Maybe<&2, ArtifactValue.ProductValue>
-) -> Maybe<&2, ArtifactValue.ProductValue>:
-  match matches:
-    case True{}: Some{head}
-    case False{}: rest
+  select_branch(Bool, same_text(Some{ArtifactValue.ProductText{kind}}, field("kind", input)),
+    _ => contains(language, items(field("languages", input))), _ => False{})
 
 def first_input(
   inputs: List<&2, ArtifactValue.ProductValue>,
@@ -74,7 +72,8 @@ def first_input(
   match inputs:
     case []: None{}
     case +head <> tail:
-      choose_input(input_matches(head, language, kind), head, first_input(tail, language, kind))
+      select_branch(Maybe<&2, ArtifactValue.ProductValue>, input_matches(head, language, kind),
+        _ => Some{head}, _ => first_input(tail, language, kind))
 
 def language_allowed(language: String, restriction: Maybe<&2, ArtifactValue.ProductValue>) -> Bool:
   match restriction:
@@ -89,7 +88,8 @@ def all_requirements(
   match requirements:
     case []: True{}
     case ArtifactValue.ProductText{value} <> tail:
-      Bool.and(contains(value, available), all_requirements(tail, available))
+      select_branch(Bool, contains(value, available),
+        _ => all_requirements(tail, available), _ => False{})
     case _: False{}
 
 def any_capable(
@@ -101,13 +101,14 @@ def any_capable(
   match inputs:
     case []: False{}
     case +head <> tail:
-      Bool.or(Bool.and(input_matches(head, language, kind),
-        all_requirements(items(field("requires", head)), available)),
-        any_capable(tail, language, kind, available))
+      select_branch(Bool,
+        select_branch(Bool, input_matches(head, language, kind),
+          _ => all_requirements(items(field("requires", head)), available), _ => False{}),
+        _ => True{}, _ => any_capable(tail, language, kind, available))
 
 def target_declared(+rule: ArtifactValue.ProductValue, +language: String, kind: String) -> Bool:
-  Bool.and(language_allowed(language, field("languages", rule)),
-    Bool.not(absent(first_input(items(field("inputs", rule)), language, kind))))
+  select_branch(Bool, language_allowed(language, field("languages", rule)),
+    _ => Bool.not(absent(first_input(items(field("inputs", rule)), language, kind))), _ => False{})
 
 def capabilities_available(
   +rule: ArtifactValue.ProductValue,
@@ -115,8 +116,8 @@ def capabilities_available(
   kind: String,
   available: List<&2, ArtifactValue.ProductValue>
 ) -> Bool:
-  Bool.and(language_allowed(language, field("languages", rule)),
-    any_capable(items(field("inputs", rule)), language, kind, available))
+  select_branch(Bool, language_allowed(language, field("languages", rule)),
+    _ => any_capable(items(field("inputs", rule)), language, kind, available), _ => False{})
 
 def type_capabilities() -> List<&2, ArtifactValue.ProductValue>:
   [
