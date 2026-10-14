@@ -1,3 +1,10 @@
+import {
+  awaitNativeWork,
+  runNativePromise,
+  runNativeEffect,
+  type NativeFlow,
+  type NativeWork
+} from "@hapsland/runtime-environment/runtime/native-execution"
 import { pureReply } from "./frontend-codec.ts"
 import type {
   StableCapture,
@@ -20,14 +27,29 @@ import {
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 
-type ResolverPorts = {
+type ResolverBindingPorts = {
   readonly observeProduct?: (value: ProductValue) => void
-  readonly drive: (session: ServiceSession, input: ResolverInput, options: PerformOptions) => Promise<ResolverOutcome>
+  readonly drive: (
+    session: ServiceSession,
+    input: ResolverInput,
+    options: PerformOptions
+  ) => NativeWork<ResolverOutcome>
   readonly allocateInvocation: () => number
   readonly onConstructionFailure: (
     invocation: number,
     cleanup: { readonly session: ServiceSession | undefined; readonly closePending: boolean }
   ) => unknown | Promise<unknown>
+}
+
+type ResolverPorts = Omit<ResolverBindingPorts, "drive"> & {
+  readonly drive: (session: ServiceSession, input: ResolverInput, options: PerformOptions) => Promise<ResolverOutcome>
+}
+type EffectResolverPorts = Omit<ResolverBindingPorts, "drive"> & {
+  readonly drive: (
+    session: ServiceSession,
+    input: ResolverInput,
+    options: PerformOptions
+  ) => Effect.Effect<ResolverOutcome>
 }
 
 function tagged<Name extends string, Fields extends object>(name: Name, fields: Fields): Variant<Name, Fields> {
@@ -41,14 +63,11 @@ function tagged<Name extends string, Fields extends object>(name: Name, fields: 
  * Drive must reject with opaque provider errors before closing session resources;
  * remaining protocol failures reject with their named technical error.
  * The returned resolver projects only the accepted emitted ReviewUnitResult.
- * This candidate does not yet replace the public multi-language native resolver.
  */
-export function createBendResolver({
-  observeProduct,
-  drive: ownedDrive,
-  allocateInvocation,
-  onConstructionFailure
-}: ResolverPorts) {
+function createResolverFlow(
+  { observeProduct, drive: ownedDrive, allocateInvocation, onConstructionFailure }: ResolverBindingPorts,
+  effects: boolean
+) {
   if (
     typeof ownedDrive !== "function" ||
     typeof allocateInvocation !== "function" ||
@@ -56,13 +75,13 @@ export function createBendResolver({
   )
     throw new Error("Resolver requires its owning Canonical driver")
   const drive = ownedDrive
-  return async (
+  return function* (
     path: string,
     capture: StableCapture,
     name: string,
     context: LanguageGraphHost,
     options: PerformOptions = {}
-  ): Promise<ReviewUnit | undefined> => {
+  ): NativeFlow<ReviewUnit | undefined> {
     const limits = { ...GRAPH_LIMIT_CEILINGS, ...context.limits }
     const activeInvocation = allocateInvocation()
     let session: ServiceSession | undefined, input: ResolverInput
@@ -72,27 +91,25 @@ export function createBendResolver({
         root: context.root,
         now: context.now,
         callerCache: context.captureCache,
-        access: (file, { signal } = {}) =>
-          Effect.runPromise(
-            eligibleNamedPath(
-              context.root,
-              file,
-              contextDirectFilePolicy(context.policy ?? DEFAULT_DIRECT_FILE_POLICY),
-              context.rootIdentity
-            ),
-            { signal }
-          ),
-        capture: (selected, sourceCap, { signal } = {}) =>
-          Effect.runPromise(
-            (context.captureSource ?? captureStable)(
-              context.root,
-              selected,
-              context.captureHooks,
-              context.rootIdentity,
-              sourceCap
-            ),
-            { signal }
-          ),
+        access: (file, { signal } = {}) => {
+          const effect = eligibleNamedPath(
+            context.root,
+            file,
+            contextDirectFilePolicy(context.policy ?? DEFAULT_DIRECT_FILE_POLICY),
+            context.rootIdentity
+          )
+          return effects ? effect : Effect.runPromise(effect, { signal })
+        },
+        capture: (selected, sourceCap, { signal } = {}) => {
+          const effect = (context.captureSource ?? captureStable)(
+            context.root,
+            selected,
+            context.captureHooks,
+            context.rootIdentity,
+            sourceCap
+          )
+          return effects ? effect : Effect.runPromise(effect, { signal })
+        },
         frontend: inspectSourceFrontend,
         parseCargo: parseCargoSyntax,
         parsePythonSyntax,
@@ -136,14 +153,14 @@ export function createBendResolver({
         failures.push(error)
       }
       try {
-        await onConstructionFailure(activeInvocation, { session, closePending })
+        yield* awaitNativeWork(Promise.resolve(onConstructionFailure(activeInvocation, { session, closePending })))
       } catch (error) {
         failures.push(error)
       }
       if (failures.length === 1) throw original
       throw new AggregateError(failures, "Resolver construction and cleanup failed", { cause: original })
     }
-    const outcome = await drive(session, input, options)
+    const outcome = yield* awaitNativeWork(drive(session, input, options))
     if ("failure" in outcome) throw new Error("Bend resolver technical failure: " + outcome.failure.$)
     if (outcome.result.$ === "Types.NoReviewUnit") return undefined
     observeProduct?.(outcome.result.value)
@@ -152,14 +169,41 @@ export function createBendResolver({
   }
 }
 
-export function createBendEffectResolver(options: ResolverPorts) {
-  const resolve = createBendResolver(options)
-  return (path: string, capture: StableCapture, name: string, context: LanguageGraphHost) =>
-    Effect.promise((signal) => resolve(path, capture, name, context, { signal }))
+export function createBendResolver(options: ResolverPorts) {
+  const resolve = createResolverFlow(options, false)
+  return (
+    path: string,
+    capture: StableCapture,
+    name: string,
+    context: LanguageGraphHost,
+    execution: PerformOptions = {}
+  ) => runNativePromise(resolve(path, capture, name, context, execution))
+}
+
+export function createBendEffectResolver(options: EffectResolverPorts) {
+  const resolve = createResolverFlow(options, true)
+  return (
+    path: string,
+    capture: StableCapture,
+    name: string,
+    context: LanguageGraphHost,
+    execution: PerformOptions = {}
+  ) =>
+    Effect.suspend(() => {
+      const interruption = new AbortController()
+      const signal = execution.signal ? AbortSignal.any([execution.signal, interruption.signal]) : interruption.signal
+      return runNativeEffect(resolve(path, capture, name, context, { ...execution, signal }), () =>
+        interruption.abort()
+      )
+    })
 }
 
 // Host resource custody and encoded service replies; continuation authority stays with Canonical.
-export { createServiceRegistry as createGraphServiceRegistry, performGraphServiceRequest } from "./service-session.ts"
+export {
+  createServiceRegistry as createGraphServiceRegistry,
+  performGraphServiceRequest,
+  performGraphServiceEffect
+} from "./service-session.ts"
 
 export type { GraphServiceReply } from "./service-session.ts"
 

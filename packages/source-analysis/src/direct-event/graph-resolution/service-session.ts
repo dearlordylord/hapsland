@@ -1,3 +1,10 @@
+import * as Effect from "effect/Effect"
+import {
+  awaitNativeWork,
+  runNativePromise,
+  runNativeEffect,
+  type NativeFlow
+} from "@hapsland/runtime-environment/runtime/native-execution"
 import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
 import { createHash } from "node:crypto"
 import { pureReply } from "./frontend-codec.ts"
@@ -102,7 +109,7 @@ export function createServiceSession({
     callerCache === undefined ? { $: "None" } : { $: "Some", value: register("CacheToken", callerCache) }
   const capturedResult = (value: ResourceValues["CaptureToken"]) =>
     tagged("CachePresent", { capture: register("CaptureToken", value), bytes: value.byteLength })
-  async function perform(request: Request, { signal }: PerformOptions = {}): Promise<Reply> {
+  function* performFlow(request: Request, { signal }: PerformOptions = {}): NativeFlow<Reply> {
     if (closed || !accepting || request?.$ !== tag("Request") || hostNatural(request.invocation) !== invocation)
       throw new Error("invalid request owner")
     const id = hostNatural(request.id),
@@ -160,14 +167,25 @@ export function createServiceSession({
           const entries: string[] = []
           let complete = true
           try {
-            const directory = await openDirectory(path.join(root, op.path))
+            const directory = yield* awaitNativeWork(openDirectory(path.join(root, op.path)))
             // Keep raw iterator order and names. The Bend owner chooses its
             // inventory bound, candidate filtering and sort. Early break awaits
             // the iterator's cleanup; filesystem read/close failures discard all.
-            for await (const entry of directory) {
-              entries.push(entry.name)
+            const iterator = directory[Symbol.asyncIterator]()
+            for (;;) {
+              const next = yield* awaitNativeWork(iterator.next())
+              if (next.done) break
+              try {
+                entries.push(next.value.name)
+              } catch (error) {
+                try {
+                  if (iterator.return) yield* awaitNativeWork(iterator.return())
+                } catch {}
+                throw error
+              }
               if (entries.length > limit) {
                 complete = false
+                if (iterator.return) yield* awaitNativeWork(iterator.return())
                 break
               }
             }
@@ -179,7 +197,7 @@ export function createServiceSession({
           break
         }
         case tag("ReadFileStatus"): {
-          const status = await lstat(path.join(root, op.path)).catch(() => undefined)
+          const status = yield* awaitNativeWork(lstat(path.join(root, op.path)).catch(() => undefined))
           outcome = tagged("StatusResult", {
             status: tagged(status === undefined ? "FileAbsent" : status.isFile() ? "ExistingFile" : "ExistingOther")
           })
@@ -188,7 +206,7 @@ export function createServiceSession({
         case tag("ReadPathMembership"): {
           let membership
           try {
-            const status = await lstat(path.join(root, op.path))
+            const status = yield* awaitNativeWork(lstat(path.join(root, op.path)))
             membership = tagged("MembershipPresent", {
               is_file: status.isFile(),
               is_directory: status.isDirectory(),
@@ -206,11 +224,15 @@ export function createServiceSession({
           break
         }
         case tag("SelectContextPath"):
-          outcome = tagged("ContextSelectionResult", { selected: await required(selectContextPath)(op.path) })
+          outcome = tagged("ContextSelectionResult", {
+            selected: yield* awaitNativeWork(Promise.resolve(required(selectContextPath)(op.path)))
+          })
           break
         case tag("ParsePythonSyntax"): {
           const source = lookup("CaptureToken", op.capture)
-          outcome = tagged("PythonSyntaxResult", { syntax: await required(parsePythonSyntax)(source.text) })
+          outcome = tagged("PythonSyntaxResult", {
+            syntax: yield* awaitNativeWork(Promise.resolve(required(parsePythonSyntax)(source.text)))
+          })
           break
         }
         case tag("ReadIdentifierCharacters"):
@@ -251,7 +273,7 @@ export function createServiceSession({
           break
         }
         case tag("AccessPath"): {
-          const selected = await required(access)(op.path, { signal })
+          const selected = yield* awaitNativeWork(required(access)(op.path, { signal }))
           outcome = tagged("AccessResult", {
             outcome:
               selected === undefined
@@ -264,9 +286,9 @@ export function createServiceSession({
           break
         }
         case tag("CaptureSource"): {
-          const result = await required(capture)(lookup("SelectionToken", op.selection), hostNatural(op.source_cap), {
-            signal
-          })
+          const result = yield* awaitNativeWork(
+            required(capture)(lookup("SelectionToken", op.selection), hostNatural(op.source_cap), { signal })
+          )
           outcome = tagged("CaptureResult", {
             outcome:
               result.status === "unavailable"
@@ -283,7 +305,9 @@ export function createServiceSession({
         }
         case tag("InspectSource"): {
           const source = lookup("CaptureToken", op.capture)
-          const facts = await required(frontend)(op.path, source.text, op.context, { signal })
+          const facts = yield* awaitNativeWork(
+            Promise.resolve(required(frontend)(op.path, source.text, op.context, { signal }))
+          )
           outcome = tagged("FrontendResult", {
             outcome: facts === undefined ? tagged("SourceUnsupported") : tagged("SourceInspected", { facts })
           })
@@ -376,7 +400,7 @@ export function createServiceSession({
         }
         case tag("ParseCargo"): {
           const source = lookup("CaptureToken", op.capture)
-          const syntax = await required(parseCargo)(source.text)
+          const syntax = yield* awaitNativeWork(Promise.resolve(required(parseCargo)(source.text)))
           outcome = tagged("CargoResult", {
             outcome: syntax === undefined ? tagged("CargoUnsupported") : tagged("CargoInspected", { syntax })
           })
@@ -384,7 +408,7 @@ export function createServiceSession({
         }
         case tag("InspectRustModules"): {
           const source = lookup("CaptureToken", op.capture)
-          const facts = await required(inspectRustModules)(source.text)
+          const facts = yield* awaitNativeWork(Promise.resolve(required(inspectRustModules)(source.text)))
           outcome = tagged("RustModulesResult", {
             outcome:
               facts === undefined
@@ -419,7 +443,8 @@ export function createServiceSession({
   const session: ServiceSession = Object.freeze({
     invocation,
     callerCache: caller,
-    perform,
+    perform: (request, options) => runNativePromise(performFlow(request, options)),
+    performEffect: (request, options) => Effect.suspend(() => runNativeEffect(performFlow(request, options), () => {})),
     registerCapture: (value) => register("CaptureToken", value),
     exception: (token) => lookup("ExceptionToken", token),
     cacheSnapshot: (token) => [...lookup("CacheToken", token)],
@@ -452,6 +477,23 @@ export async function performGraphServiceRequest(
   )
     throw new TypeError("Wrong graph service session")
   return pureReply(await session.perform(request, options))
+}
+
+export function performGraphServiceEffect(
+  session: ServiceSession,
+  request: Request,
+  options?: PerformOptions
+): Effect.Effect<GraphServiceReply> {
+  return Effect.suspend(() => {
+    if (
+      !("callerCache" in session) ||
+      typeof session.registerCapture !== "function" ||
+      typeof session.exception !== "function" ||
+      typeof session.cacheSnapshot !== "function"
+    )
+      throw new TypeError("Wrong graph service session")
+    return session.performEffect(request, options).pipe(Effect.map((reply) => pureReply(reply)))
+  })
 }
 
 export function createServiceRegistry() {

@@ -37,6 +37,7 @@ export type PreparationSession = {
   readonly input: PreparationInvocation
   readonly machine: PreparationMachine
   perform: ReturnType<typeof createPhysicalPreparationCapability>["perform"]
+  performEffect: ReturnType<typeof createPhysicalPreparationCapability>["performEffect"]
   revoke(): void
   close(): void
 }

@@ -4,6 +4,7 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as TestClock from "effect/testing/TestClock"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import type * as DecisionModel from "effect/ai/DecisionModel"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { readFile, writeFile, rm, symlink, rename, mkdir } from "node:fs/promises"
@@ -197,17 +198,28 @@ describe("direct-event vertical slice", () => {
   it.effect("keeps preparation admission in the caller reference and fiber", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
-      yield* Effect.promise(() => put(root, "type.ts", "export interface A { value: string }"))
+      yield* Effect.promise(() => put(root, "task.ts", "export interface Task { title: string }"))
+      yield* Effect.promise(() =>
+        put(root, "type.ts", "import type { Task } from './task'; export interface A { task: Task }")
+      )
       const observation = yield* adaptCodexDirectEvent(addEvent(root))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const permit = Context.Reference("preparation-test-caller-permit", { defaultValue: () => false })
       const caller = yield* Effect.fiberId
       let admissions = 0
-      yield* prepareObservation(observation, {
+      const captures: string[] = []
+      const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
         advicee: observation.advicee,
         settings,
         rules: configuredRules,
+        captureSource: (...args) =>
+          Effect.gen(function* () {
+            expect(yield* permit).toBe(true)
+            expect(yield* Effect.fiberId).toBe(caller)
+            captures.push(args[1].relativePath)
+            return yield* captureStable(...args)
+          }),
         beforeAnalyze: () =>
           Effect.gen(function* () {
             expect(yield* permit).toBe(true)
@@ -217,6 +229,8 @@ describe("direct-event vertical slice", () => {
           })
       }).pipe(Effect.provideService(permit, true))
       expect(admissions).toBe(1)
+      expect(new Set(captures)).toEqual(new Set(["type.ts", "task.ts"]))
+      expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(true)
     })
   )
 

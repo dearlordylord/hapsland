@@ -8,9 +8,16 @@
       ],
       "@hapsland/runtime-environment/runtime/native-session-registry": [
         "../runtime-environment/src/runtime/native-session-registry.ts"
+      ],
+      "@hapsland/runtime-environment/runtime/native-execution": [
+        "../runtime-environment/src/runtime/native-execution.ts"
+      ],
+      "@hapsland/source-analysis/direct-event/graph-resolution": [
+        "../source-analysis/src/direct-event/graph-resolution/consumer.ts"
       ]
     },
-    "allowJs": true
+    "allowJs": true,
+    "checkJs": true
   },
   "include": [
     "src/direct-event/freshness/**/*.ts",

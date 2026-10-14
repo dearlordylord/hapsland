@@ -1,3 +1,9 @@
+import {
+  performGraphServiceEffect,
+  createGraphServiceRegistry as createServiceRegistry,
+  createBendEffectResolver,
+  createBendResolver
+} from "@hapsland/source-analysis/direct-event/graph-resolution"
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { execFileSync } from "node:child_process"
@@ -11,11 +17,6 @@ import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph
 import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import {
-  createGraphServiceRegistry as createServiceRegistry,
-  createBendEffectResolver,
-  createBendResolver
-} from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { createArtifactMachine } from "../artifact-dispatcher.mjs"
 import { createGraphDriver } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
@@ -491,7 +492,10 @@ try {
       scope,
       machine: ownedMachine,
       registry,
-      foreign: async ([request], options) => {
+      foreign: () => {
+        throw new TypeError("Expected Graph Effect service")
+      },
+      foreignSync: ([request], options) => {
         totalRequests++
         ownedTranscript.push({ request: structuredClone(request) })
         operationTrace.push(request.operation.$)
@@ -504,13 +508,19 @@ try {
           }
           checkText(request.operation.value)
         }
-        const reply = await registry.perform(request, options)
-        ownedTranscript.push({ reply: structuredClone(reply) })
-        return reply
+        const session = registry.get(Number(request.invocation))
+        if (!session) throw new TypeError("Unknown graph service invocation")
+        return {
+          effect: performGraphServiceEffect(session, request, options),
+          map(reply) {
+            ownedTranscript.push({ reply: structuredClone(reply) })
+            return reply
+          }
+        }
       }
     })
     const resolver = createBendEffectResolver({
-      drive: driver.drive,
+      drive: driver.driveEffect,
       allocateInvocation: driver.allocateInvocation,
       onConstructionFailure: driver.constructionFailed
     })
@@ -566,7 +576,7 @@ try {
     const directCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
     const directRegistry = createServiceRegistry()
     const directMachine = createArtifactMachine({ ...artifacts, retainPrefixes: false })
-    const directResolver = createBendEffectResolver({
+    const directResolver = createBendResolver({
       allocateInvocation: () => 1,
       onConstructionFailure: () => {},
       drive: (session, input, options) =>
@@ -596,9 +606,7 @@ try {
     })
     let directResult, directError
     try {
-      directResult = await Effect.runPromise(
-        directResolver(path, stable(path), "Root", contextFor(directEvents, directCache))
-      )
+      directResult = await directResolver(path, stable(path), "Root", contextFor(directEvents, directCache))
     } catch (error) {
       directError = error
     }

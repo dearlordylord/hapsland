@@ -1,3 +1,11 @@
+import * as Effect from "effect/Effect"
+import {
+  awaitNativeWork,
+  runNativePromise,
+  runNativeEffect,
+  type NativeFlow,
+  type NativeWork
+} from "@hapsland/runtime-environment/runtime/native-execution"
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import preparationCore from "./preparation-core.js"
 import { createPreparationMachine, type ResolverWire } from "./preparation-dispatcher.ts"
@@ -29,11 +37,11 @@ export type PreparationPorts = {
   readonly runFinalization: (
     input: FinalizationInput,
     execution: PreparationExecution
-  ) => Promise<readonly FinalizedOutcome[]>
+  ) => NativeWork<readonly FinalizedOutcome[]>
   readonly performEffect: (
     request: PreparationEffectRequest,
     execution: PreparationExecution
-  ) => Promise<ResolverWire<Reply>>
+  ) => NativeFlow<ResolverWire<Reply>>
   readonly context: SourcePreparationContext
   readonly root: string
   readonly graphLimits: GraphLimits
@@ -48,32 +56,31 @@ export type PreparationPorts = {
  * Finalization policy stays inside this capability; external ports provide facts.
  */
 export function createPreparationCapability(ports: PreparationPorts) {
-  return {
-    machine: createPreparationMachine(preparationCore),
-    async perform(
-      requests: readonly ResolverWire<Request>[],
-      execution: PreparationExecution
-    ): Promise<ResolverWire<Reply>> {
-      if (requests.length !== 1) throw new TypeError("Preparation requires one driver request")
-      const request = requests[0]!
-      if (execution.ownerLease.invocation !== request.invocation || execution.ownerLease.request !== request.id)
-        throw new TypeError("Preparation request disagrees with owner lease")
-      const command = request.command
-      if (command.$ !== "RenderUnits") return ports.performEffect({ ...request, command }, execution)
-      const contract =
-        command.contract.$ === "PreparationSelection.FunctionContract"
-          ? FUNCTION_INPUT_CONTRACT
-          : command.contract.$ === "PreparationSelection.TypeContract"
-            ? TYPE_INPUT_CONTRACT
-            : command.contract.name
-      const declarations = unlist(command.declarations).map(({ id, declaration }) => ({
-        artifact: { id, kind: declaration.kind, name: declaration.name },
-        location: {
-          start: { line: Number(declaration.location.start.line), column: Number(declaration.location.start.column) },
-          end: { line: Number(declaration.location.end.line), column: Number(declaration.location.end.column) }
-        }
-      }))
-      const outcomes = await ports.runFinalization(
+  function* performFlow(
+    requests: readonly ResolverWire<Request>[],
+    execution: PreparationExecution
+  ): NativeFlow<ResolverWire<Reply>> {
+    if (requests.length !== 1) throw new TypeError("Preparation requires one driver request")
+    const request = requests[0]!
+    if (execution.ownerLease.invocation !== request.invocation || execution.ownerLease.request !== request.id)
+      throw new TypeError("Preparation request disagrees with owner lease")
+    const command = request.command
+    if (command.$ !== "RenderUnits") return yield* ports.performEffect({ ...request, command }, execution)
+    const contract =
+      command.contract.$ === "PreparationSelection.FunctionContract"
+        ? FUNCTION_INPUT_CONTRACT
+        : command.contract.$ === "PreparationSelection.TypeContract"
+          ? TYPE_INPUT_CONTRACT
+          : command.contract.name
+    const declarations = unlist(command.declarations).map(({ id, declaration }) => ({
+      artifact: { id, kind: declaration.kind, name: declaration.name },
+      location: {
+        start: { line: Number(declaration.location.start.line), column: Number(declaration.location.start.column) },
+        end: { line: Number(declaration.location.end.line), column: Number(declaration.location.end.column) }
+      }
+    }))
+    const outcomes = yield* awaitNativeWork(
+      ports.runFinalization(
         {
           invocation: request.invocation,
           command: request.id,
@@ -90,22 +97,29 @@ export function createPreparationCapability(ports: PreparationPorts) {
         },
         execution
       )
-      return {
-        $: "Reply",
-        invocation: request.invocation,
-        id: request.id,
-        response: {
-          $: "UnitsRendered",
-          outcomes: list(
-            outcomes.map((outcome) => ({
-              $: "OutcomeReady" as const,
-              path: outcome.path,
-              prepared: productValue(outcome.prepared)
-            }))
-          )
-        }
+    )
+    return {
+      $: "Reply",
+      invocation: request.invocation,
+      id: request.id,
+      response: {
+        $: "UnitsRendered",
+        outcomes: list(
+          outcomes.map((outcome) => ({
+            $: "OutcomeReady" as const,
+            path: outcome.path,
+            prepared: productValue(outcome.prepared)
+          }))
+        )
       }
-    },
+    }
+  }
+  return {
+    machine: createPreparationMachine(preparationCore),
+    perform: (requests: readonly ResolverWire<Request>[], execution: PreparationExecution) =>
+      runNativePromise(performFlow(requests, execution)),
+    performEffect: (requests: readonly ResolverWire<Request>[], execution: PreparationExecution) =>
+      Effect.suspend(() => runNativeEffect(performFlow(requests, execution), () => {})),
     decode: decodePreparationResult
   }
 }

@@ -1,3 +1,5 @@
+import type * as Effect from "effect/Effect"
+import type { NativeWork } from "@hapsland/runtime-environment/runtime/native-execution"
 import type { parseGoFileFacts } from "./go-module/parser-facts.ts"
 import type { List, ProductValue, Binary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { CaptureResult, StableCapture } from "@hapsland/native-observation/direct-event/capture"
@@ -284,9 +286,9 @@ export type SessionPorts = {
   readonly root: string
   readonly now?: (() => number) | undefined
   readonly callerCache?: Map<string, StableCapture> | undefined
-  readonly access?: ((path: string, options: PerformOptions) => Promise<EligiblePath | undefined>) | undefined
+  readonly access?: ((path: string, options: PerformOptions) => NativeWork<EligiblePath | undefined>) | undefined
   readonly capture?:
-    | ((selection: EligiblePath, cap: number, options: PerformOptions) => Promise<CaptureResult>)
+    | ((selection: EligiblePath, cap: number, options: PerformOptions) => NativeWork<CaptureResult>)
     | undefined
   readonly frontend?:
     | ((
@@ -306,6 +308,7 @@ export type ServiceSession = {
   readonly invocation: number
   readonly callerCache: Maybe<Token<"CacheToken">>
   perform(request: Request, options?: PerformOptions): Promise<Reply>
+  performEffect(request: Request, options?: PerformOptions): Effect.Effect<Reply>
   registerCapture(value: StableCapture): Token<"CaptureToken">
   exception(token: Token<"ExceptionToken">): unknown
   cacheSnapshot(token: Token<"CacheToken">): [string, StableCapture][]

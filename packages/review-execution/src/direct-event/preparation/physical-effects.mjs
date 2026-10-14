@@ -1,3 +1,4 @@
+import { awaitNativeWork } from "@hapsland/runtime-environment/runtime/native-execution"
 import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-event/codex-patch-hunks"
 import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import * as Effect from "effect/Effect"
@@ -21,7 +22,7 @@ import { createPreparationCapability } from "./machine.ts"
  * @typedef {import("./machine.ts").PreparationPorts} PreparationPorts
  * @typedef {Parameters<ReturnType<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").createBendResolver>>} RootArguments
  * @typedef {{path: RootArguments[0], capture: RootArguments[1], name: RootArguments[2], context: RootArguments[3]}} RootFacts
- * @typedef {Awaited<ReturnType<PreparationPorts["performEffect"]>>} PreparationReply
+ * @typedef {import("./canonical-protocol.ts").PreparationReply} PreparationReply
  * @typedef {Extract<Extract<PreparationReply["response"], {$: "SourceExtracted"}>["extraction"]["graph"], {$: "Some"}>["value"] extends import("@hapsland/source-artifacts/direct-event/value/codec").List<infer R> ? R : never} RootWire
  */
 // Physical engine/effect bindings for one fresh prepareObservation session.
@@ -41,11 +42,11 @@ import { createPreparationCapability } from "./machine.ts"
  * graphLimits?: import("@hapsland/canonical-policy/canonical/graph-limits").GraphLimits,
  * canonicalGate: PreparationPorts["canonicalGate"],
  * runFinalization: PreparationPorts["runFinalization"],
- * runEffect?: <A>(effect: Effect.Effect<A>, options?: {signal?: AbortSignal | undefined}) => Promise<A>,
- * admitMaterialization: (capture: CaptureWire, preflight: import("@hapsland/source-analysis/direct-event/analyzer").AnalyzerMaterializationPreflight | undefined, execution: PreparationExecution) => Promise<MaterializationReply>,
- * rejectMaterializationCapacity: (execution: PreparationExecution) => Promise<void>,
- * recordMaterializationCapacity: () => Promise<void>,
- * resolveRoot: (request: PreparationEffectRequest, facts: RootFacts, execution: PreparationExecution) => Promise<{unit: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewUnit | undefined, references: Extract<PreparationReply["response"], {$: "RootResolved"}>["references"]}>
+ * runEffect?: <A>(effect: Effect.Effect<A>, options?: {signal?: AbortSignal | undefined}) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<A>,
+ * admitMaterialization: (capture: CaptureWire, preflight: import("@hapsland/source-analysis/direct-event/analyzer").AnalyzerMaterializationPreflight | undefined, execution: PreparationExecution) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<MaterializationReply>,
+ * rejectMaterializationCapacity: (execution: PreparationExecution) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<void>,
+ * recordMaterializationCapacity: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<void>,
+ * resolveRoot: (request: PreparationEffectRequest, facts: RootFacts, execution: PreparationExecution) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<{unit: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewUnit | undefined, references: Extract<PreparationReply["response"], {$: "RootResolved"}>["references"]}>
  * }} PhysicalPreparationPorts
  * @param {PhysicalPreparationPorts} ports
  */
@@ -125,15 +126,16 @@ export function createPhysicalPreparationCapability({
       }))
     )
   /** @type {PreparationPorts["performEffect"]} */
-  const performEffect = async (request, options) => {
+  const performEffect = function* (request, options) {
     const command = request.command
     /** @type {PreparationReply["response"]} */
     let response
     switch (command.$) {
       case "InspectPath": {
-        const admission = await runEffect(
-          inspectNamedPath(root, command.candidate.path, currentPolicy(), rootIdentity),
-          { signal: options.signal }
+        const admission = yield* awaitNativeWork(
+          runEffect(inspectNamedPath(root, command.candidate.path, currentPolicy(), rootIdentity), {
+            signal: options.signal
+          })
         )
         if (admission.status === "denied") {
           response = { $: "PathDenied", reason: admission.reason }
@@ -147,15 +149,17 @@ export function createPhysicalPreparationCapability({
       case "CaptureSource": {
         const selected = selections.get(command.selection)
         if (!selected) throw new TypeError("Unknown preparation selection handle")
-        const capture = await runEffect(
-          (context.captureSource ?? captureStable)(
-            root,
-            selected,
-            context.captureHooks,
-            rootIdentity,
-            command.source_cap.$ === "None" ? undefined : Number(command.source_cap.value)
-          ),
-          { signal: options.signal }
+        const capture = yield* awaitNativeWork(
+          runEffect(
+            (context.captureSource ?? captureStable)(
+              root,
+              selected,
+              context.captureHooks,
+              rootIdentity,
+              command.source_cap.$ === "None" ? undefined : Number(command.source_cap.value)
+            ),
+            { signal: options.signal }
+          )
         )
         if (capture.status === "unavailable") {
           response = { $: "SourceUnavailable", diagnostic: productValue(capture.diagnostic) }
@@ -196,21 +200,23 @@ export function createPhysicalPreparationCapability({
             ("hasImports" in preflight && typeof preflight.hasImports !== "boolean"))
         )
           throw new TypeError("Malformed analyzer materialization preflight")
-        response = await admitMaterialization(
-          command.capture,
-          /** @type {import("@hapsland/source-analysis/direct-event/analyzer").AnalyzerMaterializationPreflight | undefined} */ (
-            preflight ?? undefined
-          ),
-          options
+        response = yield* awaitNativeWork(
+          admitMaterialization(
+            command.capture,
+            /** @type {import("@hapsland/source-analysis/direct-event/analyzer").AnalyzerMaterializationPreflight | undefined} */ (
+              preflight ?? undefined
+            ),
+            options
+          )
         )
         break
       }
       case "RejectMaterializationCapacity":
-        await rejectMaterializationCapacity(options)
+        yield* awaitNativeWork(rejectMaterializationCapacity(options))
         response = { $: "Ack" }
         break
       case "RecordMaterializationCapacity":
-        await recordMaterializationCapacity()
+        yield* awaitNativeWork(recordMaterializationCapacity())
         response = { $: "Ack" }
         break
       case "VerifyNativePatch": {
@@ -339,7 +345,7 @@ export function createPhysicalPreparationCapability({
           }
         }
         onRoot?.(rootFacts)
-        const { unit, references } = await resolveRoot(request, rootFacts, options)
+        const { unit, references } = yield* awaitNativeWork(resolveRoot(request, rootFacts, options))
         response = {
           $: "RootResolved",
           unit: unit === undefined ? none : some(productValue(unit)),
@@ -382,6 +388,10 @@ export function createPhysicalPreparationCapability({
     /** @param {Parameters<typeof capability.perform>[0][number]} request
      * @param {Parameters<typeof capability.perform>[1]} options
      */
-    perform: (request, options) => capability.perform([request], options)
+    perform: (request, options) => capability.perform([request], options),
+    /** @param {Parameters<typeof capability.perform>[0][number]} request
+     * @param {Parameters<typeof capability.perform>[1]} options
+     */
+    performEffect: (request, options) => capability.performEffect([request], options)
   }
 }

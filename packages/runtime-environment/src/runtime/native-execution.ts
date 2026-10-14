@@ -15,6 +15,10 @@ export const awaitNative = (value: unknown, interruptible = false): NativeSuspen
   interruptible
 })
 export const effectNative = (effect: Effect.Effect<unknown>): NativeSuspension => ({ kind: "effect", effect })
+export type NativeWork<Value> = Promise<Value> | Effect.Effect<Value>
+export function* awaitNativeWork<Value>(work: NativeWork<Value>): NativeFlow<Value> {
+  return (yield Effect.isEffect(work) ? effectNative(work) : awaitNative(work)) as Value
+}
 
 const receiptTag = Symbol("Native execution Effect Cause")
 type CauseReceipt = { readonly [receiptTag]: Cause.Cause<never> }
