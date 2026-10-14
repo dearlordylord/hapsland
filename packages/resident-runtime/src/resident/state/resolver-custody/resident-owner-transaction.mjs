@@ -492,6 +492,11 @@ export function createResidentOwnerTransaction({
      */
     launch_settings: (input_handle) => ({ $: "LaunchSettingsEvent", input_handle }),
     /**
+     * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchFreshnessEvent" }> ["input_handle"]} input_handle
+     * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchFreshnessEvent" }>}
+     */
+    launch_freshness: (input_handle) => ({ $: "LaunchFreshnessEvent", input_handle }),
+    /**
      * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourceEvent" }> ["scope"]} scope
      * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourceEvent" }> ["input_handle"]} input_handle
      * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourceEvent" }>}

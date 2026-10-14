@@ -229,63 +229,126 @@ try {
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 6
   }
-  // Settings have no fabricated observation: Canonical issues operation and child together.
-  let settings = m.initial_limits(100n, 100000n, 100n, 100000n)
-  const untouchedCanonical = settings.canonical
-  let settingsOut = m.launch_settings(settings, 500n)
-  assert.deepEqual(list(settingsOut.outputs), [])
-  settings = advanced(settingsOut)
-  assert.deepEqual(settings.canonical, untouchedCanonical)
-  const settingsChild = m.find(1n, settings.children).value
-  assert.deepEqual(settingsChild.scope, { $: "SettingsScope", operation: 1n })
-  assert.equal(m.live(settings.canonical, settingsChild.scope), false)
-  assert.equal(m.child_live(settings.canonical, settings.children, settingsChild), true)
-  assert.equal(
-    m.child_live(settings.canonical, settings.children, {
-      ...settingsChild,
-      scope: { $: "SettingsScope", operation: 2n }
-    }),
-    false
-  )
-  reject(m.launch(settings, settingsChild.scope, 501n), "NotPreparing")
-  settings = advanced(m.install(settings, 1n, 0n, 511n, 0n))
-  settings = advanced(m.provider_start(settings, 1n))
-  assert.equal(m.provider_live(settings, 1n, 0n, 1n, 0n), true)
-  for (const tuple of [
-    [2n, 0n, 1n, 0n],
-    [1n, 1n, 1n, 0n],
-    [1n, 0n, 2n, 0n],
-    [1n, 0n, 1n, 1n]
-  ])
-    assert.equal(m.provider_live(settings, ...tuple), false)
-  const settingsNested = m.launch_nested(settings, { $: "Parent", invocation: 1n, generation: 0n, request: 0n }, 516n)
-  reject(settingsNested, "WrongPhase")
-  assert.deepEqual(settingsNested.state, settings)
-  assert.deepEqual(
-    list(settings.children).map((child) => child.invocation),
-    [1n]
-  )
-  const cancelledSettings = advanced(m.cancel(settings, 1n))
-  assert.equal(m.provider_live(cancelledSettings, 1n, 0n, 1n, 0n), false)
-  const cancelledCompletion = m.provider_completed(cancelledSettings, 1n, 1n, 0n, 512n)
-  assert.equal(
-    list(cancelledCompletion.actions).some((action) => action.$ === "Resume" || action.$ === "AcceptResult"),
-    false
-  )
-  settings = advanced(m.provider_completed(settings, 1n, 1n, 0n, 512n))
-  settingsOut = m.terminal(settings, 1n, 1n, 513n)
-  assert.deepEqual(list(settingsOut.actions), [
-    { $: "AcceptResult", scope: settingsChild.scope, invocation: 1n, result_handle: 513n }
-  ])
-  settings = advanced(settingsOut)
-  assert.equal(m.child_live(settings.canonical, settings.children, m.find(1n, settings.children).value), false)
-  reject(m.terminal(settings, 1n, 1n, 513n), "WrongPhase")
-  settings = advanced(m.launch_settings(settings, 514n))
-  assert.deepEqual(m.find(2n, settings.children).value.scope, { $: "SettingsScope", operation: 2n })
-  assert.deepEqual(settings.canonical, untouchedCanonical)
-  reject(m.launch_settings({ ...settings, next_invocation: 0n }, 515n), "NotPreparing")
-  reject(m.launch_settings({ ...settings, next_invocation: 1n }, 515n), "NotPreparing")
-  assertions += 23
+  // Independent operations are issued with their exact child, without
+  // manufacturing an observation or borrowing another operation's scope.
+  for (const [scopeKind, launchMethod] of [
+    ["SettingsScope", "launch_settings"],
+    ["FreshnessScope", "launch_freshness"]
+  ]) {
+    let settings = m.initial_limits(100n, 100000n, 100n, 100000n)
+    const untouchedCanonical = settings.canonical
+    let settingsOut = m[launchMethod](settings, 500n)
+    assert.deepEqual(list(settingsOut.outputs), [])
+    settings = advanced(settingsOut)
+    assert.deepEqual(settings.canonical, untouchedCanonical)
+    const settingsChild = m.find(1n, settings.children).value
+    assert.deepEqual(settingsChild.scope, { $: scopeKind, operation: 1n })
+    assert.equal(m.live(settings.canonical, settingsChild.scope), false)
+    assert.equal(m.child_live(settings.canonical, settings.children, settingsChild), true)
+    assert.equal(
+      m.child_live(settings.canonical, settings.children, { ...settingsChild, scope: { $: scopeKind, operation: 2n } }),
+      false
+    )
+    reject(m.launch(settings, settingsChild.scope, 501n), "NotPreparing")
+    settings = advanced(m.install(settings, 1n, 0n, 511n, 0n))
+    settings = advanced(m.provider_start(settings, 1n))
+    assert.equal(m.provider_live(settings, 1n, 0n, 1n, 0n), true)
+    for (const tuple of [
+      [2n, 0n, 1n, 0n],
+      [1n, 1n, 1n, 0n],
+      [1n, 0n, 2n, 0n],
+      [1n, 0n, 1n, 1n]
+    ])
+      assert.equal(m.provider_live(settings, ...tuple), false)
+    const settingsNested = m.launch_nested(settings, { $: "Parent", invocation: 1n, generation: 0n, request: 0n }, 516n)
+    reject(settingsNested, "WrongPhase")
+    assert.deepEqual(settingsNested.state, settings)
+    assert.deepEqual(
+      list(settings.children).map((child) => child.invocation),
+      [1n]
+    )
+    const cancelledSettings = advanced(m.cancel(settings, 1n))
+    assert.equal(m.provider_live(cancelledSettings, 1n, 0n, 1n, 0n), false)
+    const cancelledCompletion = m.provider_completed(cancelledSettings, 1n, 1n, 0n, 512n)
+    assert.equal(
+      list(cancelledCompletion.actions).some((action) => action.$ === "Resume" || action.$ === "AcceptResult"),
+      false
+    )
+    settings = advanced(m.provider_completed(settings, 1n, 1n, 0n, 512n))
+    settingsOut = m.terminal(settings, 1n, 1n, 513n)
+    assert.deepEqual(list(settingsOut.actions), [
+      { $: "AcceptResult", scope: settingsChild.scope, invocation: 1n, result_handle: 513n }
+    ])
+    settings = advanced(settingsOut)
+    assert.equal(m.child_live(settings.canonical, settings.children, m.find(1n, settings.children).value), false)
+    reject(m.terminal(settings, 1n, 1n, 513n), "WrongPhase")
+    settings = advanced(m[launchMethod](settings, 514n))
+    assert.deepEqual(m.find(2n, settings.children).value.scope, { $: scopeKind, operation: 2n })
+    assert.deepEqual(settings.canonical, untouchedCanonical)
+    reject(m[launchMethod]({ ...settings, next_invocation: 0n }, 515n), "NotPreparing")
+    reject(m[launchMethod]({ ...settings, next_invocation: 1n }, 515n), "NotPreparing")
+    assert.equal(
+      m.child_live(settings.canonical, settings.children, {
+        ...m.find(2n, settings.children).value,
+        scope: { $: scopeKind === "SettingsScope" ? "FreshnessScope" : "SettingsScope", operation: 2n }
+      }),
+      false
+    )
+    assertions += 24
+  }
+  // The real common executor launches freshness from an empty Canonical state.
+  // Its named operation must not create preparation work or require host IDs.
+  for (const cancelled of [false, true]) {
+    const registry = createServiceRegistry()
+    const initialState = m.initial_limits(100n, 100000n, 100n, 100000n)
+    let closes = 0,
+      resumed = 0
+    const machine = {
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 1n } }),
+      view: (value) => value,
+      resume() {
+        resumed++
+        return { $: "Types.CompletedResolver", result: "freshness" }
+      },
+      disposeInvocation() {},
+      get retainedHandles() {
+        return 0
+      }
+    }
+    const driver = createFixtureDriver({
+      owner: m,
+      initialState,
+      registry,
+      machine,
+      foreignSync() {
+        if (cancelled) driver.cancel(BigInt(invocation))
+        return { value: { value: "fact" } }
+      },
+      foreign() {
+        assert.fail("synchronous freshness engine must not use async fallback")
+      }
+    })
+    const invocation = driver.allocateFreshnessInvocation()
+    assert.equal(invocation, 1)
+    assert.deepEqual(m.find(1n, driver.state.children).value.scope, { $: "FreshnessScope", operation: 1n })
+    const session = {
+      invocation,
+      finish() {},
+      revoke() {},
+      close() {
+        closes++
+      }
+    }
+    const outcome = await driver.drive(session, { invocation: BigInt(invocation) })
+    if (cancelled) assert.equal(outcome.failure.$, "Types.InvocationCancelled")
+    else assert.equal(outcome.result, "freshness")
+    assert.equal(resumed, cancelled ? 0 : 1)
+    assert.equal(closes, 1)
+    assert.deepEqual(driver.state.canonical, initialState.canonical)
+    assert.equal(registry.pendingCleanup, 0)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 8
+  }
   let invalidSource = fresh()
   const wrongScope = {
     $: "SourceScope",

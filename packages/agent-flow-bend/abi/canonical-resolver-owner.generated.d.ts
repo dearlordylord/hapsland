@@ -12,6 +12,7 @@ export type Child =
 
 export type Scope =
   | { readonly $: "SettingsScope"; readonly operation: bigint }
+  | { readonly $: "FreshnessScope"; readonly operation: bigint }
   | { readonly $: "Scope"; readonly partition: bigint; readonly lifetime: bigint; readonly round: bigint; readonly preparation: bigint }
   | { readonly $: "SourceScope"; readonly partition: bigint; readonly lifetime: bigint; readonly round: bigint; readonly observation: bigint; readonly permission: SourcePermission }
   | { readonly $: "AfterSourceScope"; readonly partition: bigint; readonly lifetime: bigint; readonly round: bigint; readonly observation: bigint; readonly barrier_request: bigint; readonly barrier_generation: bigint; readonly permission: AfterSourcePermission }
@@ -89,6 +90,7 @@ export type Refusal =
 export type ResidentEvent =
   | { readonly $: "CanonicalEvent"; readonly event: OwnerTransport<Canonical_CanonicalEvent> }
   | { readonly $: "LaunchSettingsEvent"; readonly input_handle: bigint }
+  | { readonly $: "LaunchFreshnessEvent"; readonly input_handle: bigint }
   | { readonly $: "LaunchEvent"; readonly scope: Scope; readonly input_handle: bigint }
   | { readonly $: "LaunchSourceEvent"; readonly scope: Scope; readonly input_handle: bigint }
   | { readonly $: "LaunchSourcePreparationEvent"; readonly parent: Parent; readonly scope: Scope; readonly input_handle: bigint }
@@ -129,6 +131,7 @@ export interface CanonicalResolverOwner {
   complete_public_preparation(state: State, partition: bigint, lifetime: bigint, round: bigint, operation: bigint, observation: bigint): List<Step>
   canonical_event(state: State, event: OwnerTransport<Canonical_CanonicalEvent>): Step
   launch_settings(state: State, input_handle: bigint): Step
+  launch_freshness(state: State, input_handle: bigint): Step
   launch(state: State, scope: Scope, input_handle: bigint): Step
   launch_preparation(state: State, scope: Scope, input_handle: bigint): Step
   launch_source(state: State, scope: Scope, input_handle: bigint): Step

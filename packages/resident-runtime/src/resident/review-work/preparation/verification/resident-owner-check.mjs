@@ -146,6 +146,18 @@ const postCore = (
     assert.equal(attemptedRestore, false)
     assert.strictEqual(run(transaction.read), beforeRestore)
     if (variant === "single-action-consumer") {
+      const currentOwner = bridge.control.readState()
+      const freshness = currentOwner.next_invocation
+      const launchedFreshness = bridge.control.invoke("launch_freshness", [901n])
+      assert.equal(launchedFreshness.$, "Advanced")
+      assert.deepEqual(owner.find(freshness, bridge.control.readState().children).value.scope, {
+        $: "FreshnessScope",
+        operation: freshness
+      })
+      assert.deepEqual(bridge.control.readState().canonical, currentOwner.canonical)
+      assert.equal(bridge.control.invoke("cancel", [freshness]).$, "Advanced")
+      assert.equal(owner.child_active(owner.find(freshness, bridge.control.readState().children).value), false)
+      cases++
       const before = published.length
       const step = bridge.control.invoke("cancel", [1n])
       assert.equal(step.$, "Advanced")

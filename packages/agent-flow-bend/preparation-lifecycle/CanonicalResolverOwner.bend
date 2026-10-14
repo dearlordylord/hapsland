@@ -30,6 +30,7 @@ type AfterSourcePermission is Data:
   AfterRecoveryActivity{}
 type Scope is Data:
   SettingsScope{operation: Nat}
+  FreshnessScope{operation: Nat}
   Scope{partition: Nat, lifetime: Nat, round: Nat, preparation: Nat}
   SourceScope{
     partition: Nat,
@@ -123,6 +124,7 @@ def preparing_live(
 def resolver_scope(scope: Scope) -> Scope:
   match scope:
     case SettingsScope{operation}: SettingsScope{operation}
+    case FreshnessScope{operation}: FreshnessScope{operation}
     case Scope{partition, lifetime, round, preparation}: Scope{
       partition,
       lifetime,
@@ -206,6 +208,7 @@ def source_scope_live(
 def live(+canonical: C.State, scope: Scope) -> Bool:
   match canonical scope:
     case _ SettingsScope{_}: False{}
+    case _ FreshnessScope{_}: False{}
     case _ AdviceTailScope{_, _, _, _, _, _}: True{}
     case _ AfterSourceScope{_, _, _, _, _, _, _}: True{}
     case C.State{_, rounds, work, _, _, _, _, _, _} SourceScope{
@@ -362,10 +365,34 @@ def settings_current(
       )
     case _: False{}
 
+# A freshness operation is its own Canonical-issued invocation, never a
+# manufactured settings or source preparation scope.
+def freshness_current(
+  +operation: Nat,
+  +invocation: Nat,
+  generation: Nat,
+  found: Maybe<&2, Child>
+) -> Bool:
+  match found:
+    case Some{Child{FreshnessScope{actual}, current, epoch, _, phase, _, _, None{}}}:
+      Bool.and(
+        Nat.is_eq(operation, invocation),
+        Bool.and(
+          Nat.is_eq(operation, actual),
+          Bool.and(
+            Nat.is_eq(invocation, current),
+            Bool.and(Nat.is_eq(generation, epoch), active(phase))
+          )
+        )
+      )
+    case _: False{}
+
 def child_scope_live(+canonical: C.State, +children: List<&2, Child>, child: Child) -> Bool:
   match child:
     case Child{SettingsScope{operation}, +invocation, generation, _, _, _, _, _}:
       settings_current(operation, invocation, generation, find(invocation, children))
+    case Child{FreshnessScope{operation}, +invocation, generation, _, _, _, _, _}:
+      freshness_current(operation, invocation, generation, find(invocation, children))
     case other: live(canonical, child_scope_value(other))
 
 def child_live(+canonical: C.State, +children: List<&2, Child>, +child: Child) -> Bool:
@@ -667,6 +694,13 @@ def launch_settings(+state: State, input_handle: Nat) -> Step:
     case State{_, +next_invocation, _, +children}:
       launched(settings_next_free(next_invocation, find(next_invocation, children)), state,
         SettingsScope{next_invocation}, input_handle)
+
+# Issue the independent freshness operation and root child in one transition.
+def launch_freshness(+state: State, input_handle: Nat) -> Step:
+  match state:
+    case State{_, +next_invocation, _, +children}:
+      launched(settings_next_free(next_invocation, find(next_invocation, children)), state,
+        FreshnessScope{next_invocation}, input_handle)
 
 def launch(+state: State, +scope: Scope, input_handle: Nat) -> Step:
   match scope:
@@ -2053,6 +2087,7 @@ type Custody is Data:
 type ResidentEvent is Data:
   CanonicalEvent{event: C.CanonicalEvent}
   LaunchSettingsEvent{input_handle: Nat}
+  LaunchFreshnessEvent{input_handle: Nat}
   LaunchEvent{scope: Scope, input_handle: Nat}
   LaunchSourceEvent{scope: Scope, input_handle: Nat}
   LaunchSourcePreparationEvent{parent: Parent, scope: Scope, input_handle: Nat}
@@ -2126,6 +2161,7 @@ def resident_event(state: State, event: ResidentEvent) -> Step:
   match event:
     case CanonicalEvent{event}: canonical_event(state, event)
     case LaunchSettingsEvent{input_handle}: launch_settings(state, input_handle)
+    case LaunchFreshnessEvent{input_handle}: launch_freshness(state, input_handle)
     case LaunchEvent{scope, input_handle}: launch(state, scope, input_handle)
     case LaunchSourceEvent{scope, input_handle}: launch_source(state, scope, input_handle)
     case LaunchSourcePreparationEvent{parent, scope, input_handle}: launch_source_preparation(

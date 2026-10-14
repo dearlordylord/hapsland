@@ -6,6 +6,7 @@ import type { NativeSession } from "@hapsland/runtime-environment/runtime/native
 export type Method =
   | "launch"
   | "launch_settings"
+  | "launch_freshness"
   | "launch_source"
   | "launch_source_preparation"
   | "launch_preparation"
