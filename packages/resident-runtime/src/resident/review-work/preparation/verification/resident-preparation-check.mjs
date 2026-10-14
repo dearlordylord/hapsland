@@ -277,6 +277,7 @@ try {
     postRequests = 0
   for (const testCase of selectedScenarios) {
     const { name: mode, fixture, expected, compareNative } = testCase
+    if (process.env.HAPSLAND_POSTFLOW_TRACE) console.error(JSON.stringify({ scenario: mode, phase: "start" }))
     const owned = mode.startsWith("retention-owned-"),
       postSessions = new Map(),
       currentPath = fixture.path,
@@ -695,6 +696,7 @@ try {
     )
     assert.equal(rootFds.filter((path) => path === root || path.startsWith(root + "/")).length, 0)
     cases++
+    if (process.env.HAPSLAND_POSTFLOW_TRACE) console.error(JSON.stringify({ scenario: mode, phase: "passed" }))
   }
   console.log(
     JSON.stringify({
