@@ -1,3 +1,4 @@
+import type { CapacityLimits } from "./state/capacity/model.ts"
 import type { InspectionPersistence } from "@hapsland/inspection-records/inspection/recorder"
 import type { ResidentDispatchControls } from "./execution-controls/dispatch-controls.ts"
 import type { ResidentReviewControls } from "./execution-controls/review-controls.ts"
@@ -9,6 +10,9 @@ import { type DispatchAuthorityObservation } from "./authorization/observation.t
 import { type JevRequestObservation } from "./review-work/request-observation.ts"
 
 export type ResidentRuntimeOptions = {
+  /** Local resource-owner budget; never supplied by resident IPC. */
+  readonly capacityLimits?: CapacityLimits
+
   /** Local persistence failure seam; never supplied by IPC. Production uses the private per-user journal. */
   readonly inspectionPersistence?: InspectionPersistence
 

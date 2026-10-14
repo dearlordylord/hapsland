@@ -1,3 +1,4 @@
+import type { PreparedObservation } from "@hapsland/review-execution/direct-event/pipeline"
 import type { PreparedUnit } from "@hapsland/review-definition/direct-event/model"
 import { toCodexDirectEventOutput } from "@hapsland/delivery-output/direct-event/output"
 import { findingFromProbability } from "@hapsland/review-definition/rules/decision"
@@ -20,25 +21,29 @@ const readPath = (root: unknown, path: readonly string[]): unknown => {
 /** Interpret a Post-selected recipe synchronously; native values never leave this invocation. */
 export const measurePostSizing = (
   mode: SizingMode,
-  prepared: PreparedUnit,
+  prepared: PreparedUnit | (() => PreparedUnit),
   observation?: DirectObservation,
-  dispatch?: ResidentDispatchContext
+  dispatch?: ResidentDispatchContext,
+  ready = true
 ): number | boolean => {
   const values = new Map<bigint, unknown>([
-    [0n, prepared],
     [1n, observation],
     [2n, dispatch]
   ])
+  const readValue = (handle: bigint): unknown => {
+    if (handle === 0n && !values.has(handle)) values.set(handle, typeof prepared === "function" ? prepared() : prepared)
+    return values.get(handle)
+  }
   let rules: PreparedUnit["input"]["rules"] = [],
     rule: PreparedUnit["input"]["rules"][number] | undefined
   const execute = (operation: Exclude<SizingOperation, { readonly $: "SizingFindings" }>): unknown => {
     switch (operation.$) {
       case "SizingRead":
-        return readPath(values.get(operation.source), unlist(operation.path))
+        return readPath(readValue(operation.source), unlist(operation.path))
       case "SizingRecord":
-        return Object.fromEntries(unlist(operation.fields).map((field) => [field.name, values.get(field.value)]))
+        return Object.fromEntries(unlist(operation.fields).map((field) => [field.name, readValue(field.value)]))
       case "SizingArray":
-        return unlist(operation.values).map((handle) => values.get(handle))
+        return unlist(operation.values).map((handle) => readValue(handle))
       case "SizingConstant":
         switch (operation.literal.$) {
           case "SizingUnitKind":
@@ -49,6 +54,10 @@ export const measurePostSizing = (
             return Number.MAX_SAFE_INTEGER
           case "SizingDigestPlaceholder":
             return "f".repeat(64)
+          case "SizingZero":
+            return 0
+          case "SizingFalse":
+            return false
           case "SizingOne":
             return 1
           case "SizingProbabilityMargin":
@@ -61,7 +70,7 @@ export const measurePostSizing = (
         break
       case "SizingCall": {
         const args = unlist(operation.arguments)
-        const read = <T>(index: number): T => values.get(args[index]!) as T
+        const read = <T>(index: number): T => readValue(args[index]!) as T
         switch (operation.primitive.$) {
           case "SizingOutput":
             return toCodexDirectEventOutput(read(0))
@@ -91,7 +100,7 @@ export const measurePostSizing = (
       }
     }
   }
-  let step = core.sizing_initial(mode)
+  let step = core.sizing_initial_ready(mode, ready)
   while (step.$ !== "SizingDone") {
     let reply: SizingReply = { $: "SizingAck" }
     switch (step.$) {
@@ -100,7 +109,7 @@ export const measurePostSizing = (
         values.set(step.operation.target, execute(step.operation))
         break
       case "SizingRules":
-        rules = prepared.input.rules
+        rules = (readValue(0n) as PreparedUnit).input.rules
         values.set(step.target, [])
         reply = {
           $: "SizingLength",
@@ -115,7 +124,7 @@ export const measurePostSizing = (
         reply = { $: "SizingFlag", value: findingFromProbability(1, rule!.threshold) }
         break
       case "SizingFinding": {
-        const sources = [prepared, rule, 1]
+        const sources = [readValue(0n), rule, 1]
         const finding = Object.fromEntries(
           unlist(step.fields).map((field) => [
             field.name,
@@ -132,3 +141,31 @@ export const measurePostSizing = (
   }
   return values.get(step.result) as number
 }
+
+type PreparedOutcome = PreparedObservation["outcomes"][number]
+const outcomePrepared = (outcome: PreparedOutcome): PreparedUnit =>
+  (outcome as Extract<PreparedOutcome, { readonly status: "ready" }>).prepared
+
+export const postOutcomeFits = (outcome: PreparedOutcome): boolean =>
+  measurePostSizing(
+    { $: "DeliverabilitySizing" },
+    () => outcomePrepared(outcome),
+    undefined,
+    undefined,
+    outcome.status === "ready"
+  ) as boolean
+
+export const postOutcomeReservationBytes = (
+  outcome: PreparedOutcome,
+  observation: DirectObservation,
+  dispatch: ResidentDispatchContext
+): bigint =>
+  BigInt(
+    measurePostSizing(
+      { $: "ReservationSizing" },
+      () => outcomePrepared(outcome),
+      observation,
+      dispatch,
+      outcome.status === "ready"
+    ) as number
+  )

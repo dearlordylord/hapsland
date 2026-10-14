@@ -31,7 +31,10 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     Effect.mapError(() => new ResidentAdapterError({ operation: "resident runtime configuration" }))
   )
   const reviewSettings = yield* makeReviewSettings()
-  const residentLedger = yield* makeResidentReviewState((_ledger, bridge) => createResidentPreparationBinding(bridge))
+  const residentLedger = yield* makeResidentReviewState(
+    (_ledger, bridge) => createResidentPreparationBinding(bridge),
+    options.capacityLimits
+  )
   const admissionLock = yield* Semaphore.make(1)
   const updateNoticeBudgets = yield* Ref.make<ReadonlyMap<string, number>>(new Map())
   const lifetime = residentLedger.residentLifetime

@@ -28,6 +28,8 @@ export type SizingLiteral = Tagged<
   | "SizingMaxGeneration"
   | "SizingDigestPlaceholder"
   | "SizingOne"
+  | "SizingZero"
+  | "SizingFalse"
   | "SizingProbabilityMargin"
   | "SizingOverhead"
   | "SizingFrameBytes"
@@ -354,6 +356,7 @@ export type AdviceTailStep =
 
 declare const core: {
   sizing_initial(mode: SizingMode): SizingStep
+  sizing_initial_ready(mode: SizingMode, ready: boolean): SizingStep
   sizing_resume(step: SizingStep, reply: SizingReply): SizingStep
   route_cached(route: Route): boolean
   native_plan_actions(route: Route): List<NativePlanAction>

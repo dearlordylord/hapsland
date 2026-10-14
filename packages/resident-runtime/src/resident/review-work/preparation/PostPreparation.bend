@@ -25,6 +25,8 @@ type SizingLiteral is Data:
   SizingMaxGeneration{}
   SizingDigestPlaceholder{}
   SizingOne{}
+  SizingZero{}
+  SizingFalse{}
   SizingProbabilityMargin{}
   SizingOverhead{}
   SizingFrameBytes{}
@@ -186,6 +188,16 @@ def sizing_initial(mode: SizingMode) -> SizingStep:
     case WorstOutcomeSizing{}: sizing_next(sizing_worst_recipe(), 10n)
     case DeliverabilitySizing{}: sizing_next(sizing_deliverability_recipe(), 14n)
     case ReservationSizing{}: sizing_next(sizing_reservation_recipe(), 37n)
+
+def sizing_absent(mode: SizingMode) -> SizingStep:
+  match mode:
+    case DeliverabilitySizing{}: sizing_next([SizingConstant{0n, SizingFalse{}}], 0n)
+    case _: sizing_next([SizingConstant{0n, SizingZero{}}], 0n)
+
+def sizing_initial_ready(mode: SizingMode, ready: Bool) -> SizingStep:
+  match ready:
+    case True{}: sizing_initial(mode)
+    case False{}: sizing_absent(mode)
 
 def sizing_find_next(
   index: Nat,

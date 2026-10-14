@@ -105,6 +105,46 @@ for (const [actual, expected] of [
     cases++
   }
 }
+const postSizing = await import(
+  new URL("../../../../../dist/resident/review-work/preparation/post-sizing.js", import.meta.url)
+)
+for (const status of ["ready", "incomplete"]) {
+  let preparedReads = 0,
+    statusReads = 0
+  const prepared = { identity: "id", input: { path: "p", declaration: { name: "D" }, rules: [] } }
+  const outcome = {
+    get status() {
+      statusReads++
+      return status
+    },
+    get prepared() {
+      preparedReads++
+      if (status !== "ready") throw new Error("non-ready prepared read")
+      return prepared
+    }
+  }
+  assert.equal(postSizing.postOutcomeFits(outcome), status === "ready" && nativeWorst(prepared) <= 262144 - 1024)
+  assert.equal(
+    postSizing.postOutcomeReservationBytes(outcome, observation, dispatch),
+    status === "ready" ? BigInt(nativeReservation(observation, dispatch, prepared)) : 0n
+  )
+  assert.equal(statusReads, 2)
+  assert.equal(preparedReads, status === "ready" ? 2 : 0)
+  cases++
+}
+const boundary = {
+  identity: "",
+  input: { path: "p", declaration: { name: "D" }, rules: [{ threshold: 0, id: "r", message: "m" }] }
+}
+const payloadLimit = 262144 - 1024
+const initialBytes = nativeWorst(boundary)
+boundary.identity = "x".repeat(payloadLimit - initialBytes)
+assert.equal(nativeWorst(boundary), payloadLimit)
+assert.equal(production.residentUnitFits(boundary), true)
+boundary.identity += "x"
+assert.equal(nativeWorst(boundary), payloadLimit + 1)
+assert.equal(production.residentUnitFits(boundary), false)
+cases += 2
 console.log(
   JSON.stringify({
     passed: true,

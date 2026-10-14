@@ -23,7 +23,7 @@ import { list, unlist as array } from "@hapsland/source-artifacts/direct-event/v
 import { sourcePartition } from "../../recipient/identity.ts"
 import { evaluationSourcePartition } from "../../work-ownership/identity.ts"
 import { selectPostValue } from "./post-selection.mjs"
-import { residentUnitFits, residentUnitReservationBytes } from "../../work-ownership/reservation.ts"
+import { postOutcomeFits, postOutcomeReservationBytes } from "./post-sizing.ts"
 // Canonical-owned effect dispatcher. Reuse progression belongs to Bend;
 // Host handlers expose semantic owner effects and resource receipts.
 /**
@@ -183,11 +183,8 @@ export function createPostPreparationProvider(
     $: "Outcome",
     handle,
     ready: outcome.status === "ready",
-    fits: outcome.status === "ready" && residentUnitFits(outcome.prepared),
-    reservation_bytes:
-      outcome.status === "ready"
-        ? BigInt(residentUnitReservationBytes(pathObservation, context.job.dispatch, outcome.prepared))
-        : 0n
+    fits: postOutcomeFits(outcome),
+    reservation_bytes: postOutcomeReservationBytes(outcome, pathObservation, context.job.dispatch)
   }))
   /** @param {import("./post-preparation-core.js").Planned} fact */
   const item = (fact) => {

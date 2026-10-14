@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { Effect } from "effect"
 import { join } from "node:path"
@@ -22,7 +22,6 @@ import { residentUnitReservationBytes } from "@hapsland/resident-runtime/residen
 import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import type { ResidentDispatchContext, ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
-import * as residentCapacity from "@hapsland/resident-runtime/resident/capacity"
 import type { CapacityLimits } from "@hapsland/resident-runtime/resident/capacity"
 
 const smallCapacityLimits: CapacityLimits = {
@@ -31,12 +30,6 @@ const smallCapacityLimits: CapacityLimits = {
   partitionItems: 16,
   partitionBytes: 64 * 1024
 }
-const originalMakeResidentState = residentCapacity.makeResidentState
-const makeResidentStateWithSmallCapacity = <Pending, DispatchKey, DispatchValue>(
-  _limits?: CapacityLimits,
-  requestedLifetime?: string
-) => originalMakeResidentState<Pending, DispatchKey, DispatchValue>(smallCapacityLimits, requestedLifetime)
-
 describe("target-root virtual rounds", () => {
   it("selects the admitted root's credential context when the first provisional root becomes stale", async () => {
     const a = await makeReviewGitFixture()
@@ -276,12 +269,11 @@ describe("target-root virtual rounds", () => {
       credential: null,
       controlled: { answers: {} }
     }
-    const capacityFactory = vi
-      .spyOn(residentCapacity, "makeResidentState")
-      .mockImplementation(makeResidentStateWithSmallCapacity)
     let closeServer: (() => Promise<void>) | undefined
     try {
-      const server = await acquireResidentFixture(residentPaths(join(a, "runtime")))
+      const server = await acquireResidentFixture(residentPaths(join(a, "runtime")), undefined, {
+        capacityLimits: smallCapacityLimits
+      })
       closeServer = () => Effect.runPromise(server.close)
       // Keep the tested payload under IPC's separate 256 KiB frame limit.
       const oversized = {
@@ -308,11 +300,7 @@ describe("target-root virtual rounds", () => {
       if (fresh === undefined) throw new Error("missing fresh capacity target")
       expect((await Effect.runPromise(server.admit(fresh, dispatch, true))).status).toBe("accepted")
     } finally {
-      try {
-        await closeServer?.()
-      } finally {
-        capacityFactory.mockRestore()
-      }
+      await closeServer?.()
     }
   })
   it("uses the immutable pre-edit policy and skips native source capture for another pinned root", async () => {
