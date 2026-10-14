@@ -74,7 +74,7 @@ export function createNativeSessionRegistry<Session extends NativeSession = Nati
   // ordinary run retains JavaScript finally's last-failure behavior.
   const runOutcomeFlow = function* <Value>(
     session: Session,
-    task: () => NativeFlow<Value>
+    task: () => NativeFlow<Value | Promise<Value>>
   ): NativeFlow<RegistryOutcome<Value>> {
     const failures: FailureOccurrence[] = []
     let registered = false,
@@ -113,8 +113,8 @@ export function createNativeSessionRegistry<Session extends NativeSession = Nati
   }
   const runOutcome = <Value>(session: Session, task: () => Value | Promise<Value>) =>
     runNativePromise(
-      runOutcomeFlow(session, function* (): NativeFlow<Value> {
-        return (yield awaitNative(task())) as Value
+      runOutcomeFlow(session, function* (): NativeFlow<Value | Promise<Value>> {
+        return task()
       })
     )
   return Object.freeze({

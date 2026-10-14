@@ -49,6 +49,40 @@ const snapshot = (mode) => {
   }
 }
 let cases = 0
+for (const pending of ["sync", "resolved", "deferred"]) {
+  const trace = []
+  const registry = createNativeSessionRegistry()
+  const task = registry.runOutcome(
+    {
+      invocation: 1,
+      close() {
+        trace.push("close")
+      }
+    },
+    () => {
+      if (pending === "deferred")
+        return new Promise((resolve) =>
+          queueMicrotask(() => {
+            trace.push("task microtask")
+            resolve(1)
+          })
+        )
+      queueMicrotask(() => trace.push("task microtask"))
+      return pending === "resolved" ? Promise.resolve(1) : 1
+    }
+  )
+  queueMicrotask(() => trace.push("caller microtask"))
+  const outcome = await task
+  assert.equal(outcome.task.value, 1)
+  assert.deepEqual(
+    trace,
+    pending === "deferred"
+      ? ["task microtask", "caller microtask", "close"]
+      : ["task microtask", "close", "caller microtask"]
+  )
+  assert.equal(registry.size, 0)
+  cases++
+}
 for (const mode of ["snapshot-line", "snapshot-unit"])
   for (const root of [false, true]) {
     const fixture = snapshot(mode)

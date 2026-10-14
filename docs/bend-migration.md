@@ -195,6 +195,9 @@ attachment proof owners remain open. Formatter passes do not establish proofs.
 
 One current obstacle list (updated 2026-10-14 after packaged snapshot qualification):
 
+The duplicate registry wrapper await is removed; three explicit synchronous/resolved/deferred task chronology cases pass in the actual native registry. Actual caller-fiber consumer now passes31 cases, Promise Freshness passes301 cases. Matching warm reaches its internal180s workspace deadline in Administration/Resident Entry and retains an unresolved writer group; it is not qualified. The documented reconciliation proves every recorded writer/group absent and archives complete custody under stopped-writers-Xn7AbG. Isolated Administration compilation passes on the same declared inputs. A concurrent common-owner check hits the original10s Bend emission bound; the unchanged isolated check then passes1115 assertions. Keep both failures, and retry matching workspace only after those focused prerequisites. Public Effect APIs and original whole proofs/parity remain open; these mechanical host changes are backed WIP, not acceptance.
+
+
 The current common-flow check:fast passes60 units plus native source/ABI/checked-JS/package gates and eight selected code files. The05:55:52/05:56:44 cadence windows are missed during correction/qualification; retain those gaps. A focused registry chronology probe exposes one extra wrapper await: task microtask → caller microtask → close, instead of original task microtask → close → caller microtask for a synchronous task. This prevents claiming unchanged Promise chronology; remove the duplicate wrapper suspension, qualify the ordinary registry and real consumers, and perform matching warm after all final source edits before the next primary measurement. Backup remains WIP, not whole acceptance.
 
 
