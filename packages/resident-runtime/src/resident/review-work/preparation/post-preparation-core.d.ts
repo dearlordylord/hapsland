@@ -3,6 +3,60 @@ import type { List } from "@hapsland/source-artifacts/direct-event/value/codec"
 type Tagged<Name extends string, Fields = object> = { readonly $: Name } & Fields
 type Maybe<A> = Tagged<"None"> | Tagged<"Some", { readonly value: A }>
 
+export type SizingField = Tagged<"SizingField", { readonly name: string; readonly value: bigint }>
+export type SizingFindingField = Tagged<
+  "SizingFindingField",
+  { readonly name: string; readonly source: bigint; readonly path: List<string> }
+>
+export type SizingPrimitive = Tagged<
+  | "SizingOutput"
+  | "SizingMeasure"
+  | "SizingRecipient"
+  | "SizingEvaluationPartition"
+  | "SizingEvaluationIdentity"
+  | "SizingSourcePartition"
+  | "SizingWorkSubject"
+  | "SizingMultiply"
+  | "SizingAdd"
+  | "SizingMaximum"
+  | "SizingLessEqual"
+  | "SizingSubtract"
+>
+export type SizingLiteral = Tagged<
+  | "SizingUnitKind"
+  | "SizingZeroUuid"
+  | "SizingMaxGeneration"
+  | "SizingDigestPlaceholder"
+  | "SizingOne"
+  | "SizingProbabilityMargin"
+  | "SizingOverhead"
+  | "SizingFrameBytes"
+>
+export type SizingOperation =
+  | Tagged<"SizingFindings", { readonly target: bigint }>
+  | Tagged<"SizingRead", { readonly target: bigint; readonly source: bigint; readonly path: List<string> }>
+  | Tagged<"SizingRecord", { readonly target: bigint; readonly fields: List<SizingField> }>
+  | Tagged<"SizingArray", { readonly target: bigint; readonly values: List<bigint> }>
+  | Tagged<"SizingConstant", { readonly target: bigint; readonly literal: SizingLiteral }>
+  | Tagged<
+      "SizingCall",
+      { readonly target: bigint; readonly primitive: SizingPrimitive; readonly arguments: List<bigint> }
+    >
+export type SizingMode = Tagged<"WorstOutcomeSizing" | "ReservationSizing" | "DeliverabilitySizing">
+type SizingContinuation = { readonly remaining: List<SizingOperation>; readonly result: bigint }
+type SizingIndex = SizingContinuation & { readonly index: bigint; readonly left: bigint; readonly target: bigint }
+export type SizingStep =
+  | Tagged<"SizingAwait", SizingContinuation & { readonly operation: SizingOperation }>
+  | Tagged<"SizingRules", SizingContinuation & { readonly target: bigint }>
+  | Tagged<"SizingPresence" | "SizingThreshold", SizingIndex>
+  | Tagged<"SizingFinding", SizingIndex & { readonly fields: List<SizingFindingField> }>
+  | Tagged<"SizingDone", { readonly result: bigint }>
+  | Tagged<"SizingRejected">
+export type SizingReply =
+  | Tagged<"SizingAck">
+  | Tagged<"SizingLength", { readonly length: bigint }>
+  | Tagged<"SizingFlag", { readonly value: boolean }>
+
 export type Outcome = Tagged<
   "Outcome",
   { readonly handle: bigint; readonly ready: boolean; readonly fits: boolean; readonly reservation_bytes: bigint }
@@ -299,6 +353,8 @@ export type AdviceTailStep =
   | Tagged<"AdviceCleanupPending", { readonly advice: bigint; readonly reason: Termination }>
 
 declare const core: {
+  sizing_initial(mode: SizingMode): SizingStep
+  sizing_resume(step: SizingStep, reply: SizingReply): SizingStep
   route_cached(route: Route): boolean
   native_plan_actions(route: Route): List<NativePlanAction>
   reuse_observation(route: Route): ReuseObservation

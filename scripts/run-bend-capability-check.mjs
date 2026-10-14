@@ -74,6 +74,7 @@ const suites = {
     "packages/source-artifacts/src/direct-event/value/codec-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/post-preparation-check.mjs",
+    "packages/resident-runtime/src/resident/review-work/preparation/verification/post-sizing-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owner-check.mjs",
     "packages/agent-flow-bend/preparation-lifecycle/canonical-owner-check.mjs",
     "packages/agent-flow-bend/preparation-lifecycle/public-preparation-mutation-check.py"

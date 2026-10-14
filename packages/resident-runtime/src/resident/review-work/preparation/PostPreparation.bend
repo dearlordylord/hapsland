@@ -1,5 +1,261 @@
 import Base
 
+# Synchronous sizing recipe. Register values remain native and retain IEEE arithmetic.
+# Registers 0n/1n/2n are prepared/observation/dispatch. Every record field is selected here.
+type SizingField is Data:
+  SizingField{name: String, value: Nat}
+type SizingFindingField is Data:
+  SizingFindingField{name: String, source: Nat, path: List<&2, String>}
+type SizingPrimitive is Data:
+  SizingOutput{}
+  SizingMeasure{}
+  SizingRecipient{}
+  SizingEvaluationPartition{}
+  SizingEvaluationIdentity{}
+  SizingSourcePartition{}
+  SizingWorkSubject{}
+  SizingMultiply{}
+  SizingAdd{}
+  SizingMaximum{}
+  SizingLessEqual{}
+  SizingSubtract{}
+type SizingLiteral is Data:
+  SizingUnitKind{}
+  SizingZeroUuid{}
+  SizingMaxGeneration{}
+  SizingDigestPlaceholder{}
+  SizingOne{}
+  SizingProbabilityMargin{}
+  SizingOverhead{}
+  SizingFrameBytes{}
+type SizingOperation is Data:
+  SizingFindings{target: Nat}
+  SizingRead{target: Nat, source: Nat, path: List<&2, String>}
+  SizingRecord{target: Nat, fields: List<&2, SizingField>}
+  SizingArray{target: Nat, values: List<&2, Nat>}
+  SizingConstant{target: Nat, literal: SizingLiteral}
+  SizingCall{target: Nat, primitive: SizingPrimitive, arguments: List<&2, Nat>}
+type SizingMode is Data:
+  WorstOutcomeSizing{}
+  ReservationSizing{}
+  DeliverabilitySizing{}
+type SizingStep is Data:
+  SizingAwait{operation: SizingOperation, remaining: List<&2, SizingOperation>, result: Nat}
+  SizingRules{target: Nat, remaining: List<&2, SizingOperation>, result: Nat}
+  SizingPresence{
+    index: Nat,
+    left: Nat,
+    target: Nat,
+    remaining: List<&2, SizingOperation>,
+    result: Nat
+  }
+  SizingThreshold{
+    index: Nat,
+    left: Nat,
+    target: Nat,
+    remaining: List<&2, SizingOperation>,
+    result: Nat
+  }
+  SizingFinding{
+    index: Nat,
+    left: Nat,
+    target: Nat,
+    remaining: List<&2, SizingOperation>,
+    result: Nat,
+    fields: List<&2, SizingFindingField>
+  }
+  SizingDone{result: Nat}
+  SizingRejected{}
+type SizingReply is Data:
+  SizingAck{}
+  SizingLength{length: Nat}
+  SizingFlag{value: Bool}
+
+def sizing_worst_recipe() -> List<&2, SizingOperation>:
+  [
+    SizingFindings{3n},
+    SizingCall{4n, SizingOutput{}, [3n]},
+    SizingRecord{5n, [SizingField{"findings", 3n}, SizingField{"output", 4n}]},
+    SizingCall{6n, SizingMeasure{}, [5n]},
+    SizingRead{7n, 3n, ["length"]},
+    SizingConstant{8n, SizingProbabilityMargin{}},
+    SizingCall{9n, SizingMultiply{}, [7n, 8n]},
+    SizingCall{10n, SizingAdd{}, [6n, 9n]}
+  ]
+
+def sizing_reservation_recipe() -> List<&2, SizingOperation>:
+  [
+    SizingFindings{3n},
+    SizingRead{4n, 1n, ["advicee"]},
+    SizingCall{5n, SizingRecipient{}, [4n]},
+    SizingConstant{6n, SizingZeroUuid{}},
+    SizingConstant{7n, SizingMaxGeneration{}},
+    SizingConstant{8n, SizingDigestPlaceholder{}},
+    SizingCall{9n, SizingEvaluationPartition{}, [1n, 6n, 7n, 8n]},
+    SizingCall{10n, SizingEvaluationIdentity{}, [9n, 0n]},
+    SizingRead{11n, 1n, ["root"]},
+    SizingRead{12n, 1n, ["advicee"]},
+    SizingCall{13n, SizingSourcePartition{}, [11n, 12n]},
+    SizingCall{14n, SizingWorkSubject{}, [13n, 0n]},
+    SizingRecord{
+      15n,
+      [SizingField{"subject", 14n}, SizingField{"token", 6n}, SizingField{"generation", 7n}]
+    },
+    SizingRead{16n, 15n, ["subject"]},
+    SizingRead{17n, 15n, ["token"]},
+    SizingRead{18n, 15n, ["generation"]},
+    SizingRead{19n, 0n, ["input"]},
+    SizingConstant{20n, SizingOne{}},
+    SizingRecord{
+      21n,
+      [
+        SizingField{"subject", 16n},
+        SizingField{"token", 17n},
+        SizingField{"generation", 18n},
+        SizingField{"input", 19n},
+        SizingField{"members", 20n}
+      ]
+    },
+    SizingConstant{22n, SizingUnitKind{}},
+    SizingRecord{
+      23n,
+      [
+        SizingField{"kind", 22n},
+        SizingField{"observation", 1n},
+        SizingField{"partition", 5n},
+        SizingField{"dispatch", 2n},
+        SizingField{"prepared", 0n},
+        SizingField{"revision", 15n},
+        SizingField{"evaluationKey", 10n},
+        SizingField{"currentWork", 21n}
+      ]
+    },
+    SizingCall{24n, SizingMeasure{}, [23n]},
+    SizingRecord{25n, [SizingField{"prepared", 0n}, SizingField{"findings", 3n}]},
+    SizingArray{26n, [25n]},
+    SizingCall{27n, SizingOutput{}, [3n]},
+    SizingCall{28n, SizingMeasure{}, [27n]},
+    SizingRecord{
+      29n,
+      [
+        SizingField{"observation", 1n},
+        SizingField{"partition", 5n},
+        SizingField{"prepared", 0n},
+        SizingField{"revision", 15n},
+        SizingField{"evaluationKey", 10n},
+        SizingField{"evaluations", 26n},
+        SizingField{"findings", 3n},
+        SizingField{"encodedBytes", 28n},
+        SizingField{"currentWork", 21n}
+      ]
+    },
+    SizingCall{30n, SizingMeasure{}, [29n]},
+    SizingRead{31n, 3n, ["length"]},
+    SizingConstant{32n, SizingProbabilityMargin{}},
+    SizingCall{33n, SizingMultiply{}, [31n, 32n]},
+    SizingCall{34n, SizingAdd{}, [30n, 33n]},
+    SizingCall{35n, SizingMaximum{}, [24n, 34n]},
+    SizingConstant{36n, SizingOverhead{}},
+    SizingCall{37n, SizingAdd{}, [35n, 36n]}
+  ]
+
+def sizing_next(operations: List<&2, SizingOperation>, result: Nat) -> SizingStep:
+  match operations:
+    case Nil{}: SizingDone{result}
+    case SizingFindings{target} <> rest: SizingRules{target, rest, result}
+    case operation <> rest: SizingAwait{operation, rest, result}
+
+def sizing_append(
+  first: List<&2, SizingOperation>,
+  last: List<&2, SizingOperation>
+) -> List<&2, SizingOperation>:
+  match first:
+    case Nil{}: last
+    case head <> tail: head <> sizing_append(tail, last)
+
+def sizing_deliverability_recipe() -> List<&2, SizingOperation>:
+  sizing_append(sizing_worst_recipe(), [
+    SizingConstant{11n, SizingFrameBytes{}},
+    SizingConstant{12n, SizingOverhead{}},
+    SizingCall{13n, SizingSubtract{}, [11n, 12n]},
+    SizingCall{14n, SizingLessEqual{}, [10n, 13n]}
+  ])
+
+def sizing_initial(mode: SizingMode) -> SizingStep:
+  match mode:
+    case WorstOutcomeSizing{}: sizing_next(sizing_worst_recipe(), 10n)
+    case DeliverabilitySizing{}: sizing_next(sizing_deliverability_recipe(), 14n)
+    case ReservationSizing{}: sizing_next(sizing_reservation_recipe(), 37n)
+
+def sizing_find_next(
+  index: Nat,
+  left: Nat,
+  target: Nat,
+  rest: List<&2, SizingOperation>,
+  result: Nat
+) -> SizingStep:
+  match left:
+    case 0n: sizing_next(rest, result)
+    case 1n++more: SizingPresence{index, more, target, rest, result}
+
+def sizing_finding_fields() -> List<&2, SizingFindingField>:
+  [
+    SizingFindingField{"path", 0n, ["input", "path"]},
+    SizingFindingField{"declaration", 0n, ["input", "declaration", "name"]},
+    SizingFindingField{"ruleId", 1n, ["id"]},
+    SizingFindingField{"probability", 2n, []},
+    SizingFindingField{"message", 1n, ["message"]},
+    SizingFindingField{"semanticIdentity", 0n, ["identity"]}
+  ]
+
+def sizing_resume(step: SizingStep, reply: SizingReply) -> SizingStep:
+  match step reply:
+    case SizingAwait{_, rest, result} SizingAck{}: sizing_next(rest, result)
+    case SizingRules{target, rest, result} SizingLength{length}: sizing_find_next(
+      0n,
+      length,
+      target,
+      rest,
+      result
+    )
+    case SizingPresence{index, left, target, rest, result} SizingFlag{False{}}: sizing_find_next(
+      (index + 1n : Nat),
+      left,
+      target,
+      rest,
+      result
+    )
+    case SizingPresence{index, left, target, rest, result} SizingFlag{True{}}: SizingThreshold{
+      index,
+      left,
+      target,
+      rest,
+      result
+    }
+    case SizingThreshold{index, left, target, rest, result} SizingFlag{False{}}: sizing_find_next(
+      (index + 1n : Nat),
+      left,
+      target,
+      rest,
+      result
+    )
+    case SizingThreshold{index, left, target, rest, result} SizingFlag{True{}}: SizingFinding{
+      index,
+      left,
+      target,
+      rest,
+      result,
+      sizing_finding_fields()
+    }
+    case SizingFinding{index, left, target, rest, result, _} SizingAck{}: sizing_find_next(
+      (index + 1n : Nat),
+      left,
+      target,
+      rest,
+      result
+    )
+    case _ _: SizingRejected{}
+
 # Whole post-preparation control protocol. Source-bearing values stay behind handles.
 # Every response is a result of an existing semantic owner or an external effect.
 # Canonical-owned composition candidate; whole correspondence and acceptance remain open.

@@ -18,13 +18,12 @@ import {
   ResidentProviderPermit,
   ResidentResourceReceipt
 } from "../../state/resolver-custody/resident-provider-permit.mjs"
-import { MAX_IPC_FRAME_BYTES } from "@hapsland/resident-transport/resident/protocol"
 import { logicalBytes } from "../../state/encoded-size.ts"
 import { list, unlist as array } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { sourcePartition } from "../../recipient/identity.ts"
 import { evaluationSourcePartition } from "../../work-ownership/identity.ts"
 import { selectPostValue } from "./post-selection.mjs"
-import { residentUnitWorstOutcomeBytes, residentUnitReservationBytes } from "../../work-ownership/reservation.ts"
+import { residentUnitFits, residentUnitReservationBytes } from "../../work-ownership/reservation.ts"
 // Canonical-owned effect dispatcher. Reuse progression belongs to Bend;
 // Host handlers expose semantic owner effects and resource receipts.
 /**
@@ -184,7 +183,7 @@ export function createPostPreparationProvider(
     $: "Outcome",
     handle,
     ready: outcome.status === "ready",
-    fits: outcome.status === "ready" && residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024,
+    fits: outcome.status === "ready" && residentUnitFits(outcome.prepared),
     reservation_bytes:
       outcome.status === "ready"
         ? BigInt(residentUnitReservationBytes(pathObservation, context.job.dispatch, outcome.prepared))
