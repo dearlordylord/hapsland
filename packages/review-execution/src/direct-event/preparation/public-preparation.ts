@@ -23,6 +23,7 @@ import {
 } from "./canonical-driver.ts"
 import { encodePreparationInput, type PreparationObservation } from "./input.ts"
 import type { SourcePreparationContext } from "./contract.ts"
+import { performFinalizationSync, performFinalizationAsync } from "./finalization-protocol.ts"
 
 // Private host receipt preserves the original Effect Exit across Promise IO.
 // It is neither product state nor a Bend correctness premise.
@@ -66,16 +67,22 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
         outputs = value
       }
     },
+    foreignSync(requests) {
+      if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
+      const request = requests[0]!
+      return "finalization" in request ? performFinalizationSync(request) : undefined
+    },
     async foreign(requests, execution) {
       if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
       const request = requests[0]!
       const session = registry.get(hostNatural(request.invocation))
       if (!session) throw new TypeError("Unknown owned service invocation")
+      if ("finalization" in request) return performFinalizationAsync(request)
       if ("operation" in request) {
         if ("input" in session) throw new TypeError("Wrong graph service session")
         return performGraphServiceRequest(session, request, execution)
       }
-      if (!("input" in session)) throw new TypeError("Wrong preparation service session")
+      if (!("input" in session) || !("perform" in session)) throw new TypeError("Wrong preparation service session")
       const { signal, ownerLease } = execution
       if (ownerLease === undefined) throw new TypeError("Missing preparation owner lease")
       return session.perform(request, { ownerLease, ...(signal === undefined ? {} : { signal }) })

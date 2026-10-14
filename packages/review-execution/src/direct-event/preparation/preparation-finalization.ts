@@ -3,7 +3,7 @@ import type { CanonicalEvent } from "@hapsland/canonical-policy/canonical/models
 import type { ReviewBackendSettings } from "@hapsland/runtime-environment/runtime/backend"
 import type { List } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { SourcePreparationContext, PreparedSource } from "./contract.ts"
-import type { Context, Invocation, Response, InputStep, RulesStep } from "./preparation-finalization-core.js"
+import type { Context, Invocation, Response, InputStep, RulesStep, Step } from "./preparation-finalization-core.js"
 import type { Maybe } from "./preparation-core.js"
 import { createHash } from "node:crypto"
 import { extname } from "node:path"
@@ -135,7 +135,7 @@ const checkSignal = (signal: AbortSignal | undefined) => {
 
 // Called inside the existing RenderUnits owner lease. No private identity
 // allocator, admission filter, unit loop, or finalization policy lives here.
-export function createPreparationFinalizationConsumer({
+export function createPreparationFinalizationExecution({
   machine,
   canonicalGate
 }: {
@@ -143,10 +143,7 @@ export function createPreparationFinalizationConsumer({
   readonly canonicalGate: CanonicalRuleGate
 }) {
   if (!machine || typeof canonicalGate !== "function") throw new TypeError("Missing finalization engine binding")
-  return async (
-    { invocation, command, units, declarations, path, frame }: FinalizationInput,
-    options: Execution = {}
-  ): Promise<readonly FinalizedOutcome[]> => {
+  return ({ invocation, command, units, declarations, path, frame }: FinalizationInput, options: Execution = {}) => {
     checkSignal(options.signal)
     const settings = frame.context.settings
     const context: Context = {
@@ -183,145 +180,180 @@ export function createPreparationFinalizationConsumer({
       )
     }
     const scope: Invocation = { $: "Invocation", owner: BigInt(invocation), command: BigInt(command) }
-    let step = machine.initial(scope, context, tags(list(units.map(productValue))))
     let encodingError: URIError | undefined
+    return {
+      initial: () => machine.initial(scope, context, tags(list(units.map(productValue)))),
+      advance(step: Step): Step | undefined {
+        checkSignal(options.signal)
+        return step.$ === "Continue" ? machine.advance(step.phase) : undefined
+      },
+      accepted(step: Step): readonly FinalizedOutcome[] | undefined {
+        switch (step.$) {
+          case "Completed": {
+            const outcomes = unlist(step.outcomes).map(
+              (value) => fromProductValue(tags(value, false)) as FinalizedOutcome
+            )
+            for (const outcome of outcomes)
+              (outcome.prepared as { input: PreparedSource["input"] }).input = freezeInput(outcome.prepared.input)
+            checkSignal(options.signal)
+            return outcomes
+          }
+          case "TypeError":
+            throw new TypeError(step.message)
+          case "URIError":
+            if (!encodingError) throw new TypeError("Missing URI engine exception")
+            throw encodingError
+          case "InvalidReply":
+            throw new TypeError("Invalid finalization engine reply")
+          case "InvalidInput":
+            throw new TypeError("Invalid finalization producer input")
+        }
+        return undefined
+      },
+      performSync(step: Step): { readonly value: Response } | undefined {
+        if (step.$ === "RulesRequest" && step.step.$ === "RuleFinalization.CanonicalGate") return undefined
+        let response: Response
+        switch (step.$) {
+          case "ObserveOmission":
+            try {
+              frame.context.observePreparationOmission?.(
+                step.path,
+                step.name,
+                step.reason as "missing-evidence" | "no-applicable-rule"
+              )
+              response = { $: "Observed" }
+            } catch {
+              response = { $: "ObserverSynchronouslyThrew" }
+            }
+            break
+          case "PathExtension":
+            response = { $: "Extension", value: extname(step.path).toLowerCase() }
+            break
+          case "ReadCurrentRules": {
+            const raw = frame.context.rules
+            const current = typeof raw === "function" ? raw() : raw
+            response = {
+              $: "CurrentRules",
+              rules: maybe(current === undefined ? undefined : tags(list(current.map(productValue)))),
+              fallback:
+                raw === undefined
+                  ? maybe(settings.rules === undefined ? undefined : tags(list(settings.rules.map(productValue))))
+                  : { $: "None" }
+            }
+            break
+          }
+          case "ReadProviderFacts": {
+            const layers = settings.configuration?.policy.layers
+            response = {
+              $: "ProviderFacts",
+              configuration: maybe(
+                layers === undefined
+                  ? undefined
+                  : list(
+                      layers.map((layer) => ({
+                        $: `${configuration}Layer` as const,
+                        name: layer.name,
+                        backend: maybe(
+                          layer.document.reviewBackend === undefined
+                            ? undefined
+                            : encodeSelection(layer.document.reviewBackend)
+                        )
+                      }))
+                    )
+              ),
+              identity: maybe(
+                settings.providerIdentity === undefined
+                  ? undefined
+                  : { $: `${backend}Identity` as const, ...settings.providerIdentity }
+              ),
+              backends: list(
+                Object.values(REVIEW_PROVIDERS).map((provider) => ({
+                  $: `${backend}Declaration` as const,
+                  id: provider.id,
+                  default_model: maybe(provider.defaultModel),
+                  destination: provider.destination
+                }))
+              )
+            }
+            break
+          }
+          case "RulesRequest": {
+            const nested = step.step
+            if (
+              nested.$ === "RuleFinalization.Engine" &&
+              (nested.query.$ === "../../../../runtime-inputs/src/matcher/glob/Glob.AnyCompile" ||
+                nested.query.$ === "../../../../runtime-inputs/src/matcher/glob/Glob.AnyTest")
+            ) {
+              const compile = nested.query.$ === "../../../../runtime-inputs/src/matcher/glob/Glob.AnyCompile"
+              let valid = true,
+                matched = false
+              try {
+                const expression = new RegExp(codeUnits(nested.query.expression))
+                if (nested.query.$ === "../../../../runtime-inputs/src/matcher/glob/Glob.AnyTest")
+                  matched = expression.test(codeUnits(nested.query.candidate))
+              } catch (error) {
+                if (!(error instanceof SyntaxError)) throw error
+                valid = false
+              }
+              response = compile ? { $: "Compiled", valid } : { $: "Tested", valid, matched }
+            } else throw new TypeError("Unexpected finalization rules engine")
+            break
+          }
+          case "InputRequest": {
+            const nested = step.step
+            if (nested.$ === "FrozenInput.EncodeComponent") {
+              try {
+                response = { $: "Encoded", value: encodeURIComponent(nested.value) }
+              } catch (error) {
+                if (!(error instanceof URIError)) throw error
+                encodingError = error
+                response = { $: "EncodingFailed" }
+              }
+            } else if (nested.$ === "FrozenInput.JsonPrimitive")
+              response = { $: "Serialized", value: primitive(nested.value) }
+            else if (nested.$ === "FrozenInput.Digest")
+              response = { $: "Hashed", value: createHash("sha256").update(nested.bytes, "utf8").digest("hex") }
+            else throw new TypeError("Unexpected finalization input engine")
+            break
+          }
+          default:
+            throw new TypeError("Unexpected finalization request")
+        }
+        return { value: response }
+      },
+      async performAsync(step: Step): Promise<Response> {
+        if (step.$ !== "RulesRequest" || step.step.$ !== "RuleFinalization.CanonicalGate")
+          throw new TypeError("Unexpected asynchronous finalization engine")
+        return { $: "CanonicalGate", admit: await canonicalGate(gateFacts(step.step), options) }
+      },
+      resume(step: Step, response: Response): Step {
+        checkSignal(options.signal)
+        if (!("state" in step) && !("unit" in step)) throw new TypeError("Unexpected finalization reply boundary")
+        const state = "state" in step ? step.state : step.unit.state
+        return machine.resume(step, { $: "Reply", invocation: scope, request: state.request, response })
+      }
+    }
+  }
+}
+
+export function createPreparationFinalizationConsumer(
+  binding: Parameters<typeof createPreparationFinalizationExecution>[0]
+) {
+  const createExecution = createPreparationFinalizationExecution(binding)
+  return async (input: FinalizationInput, options: Execution = {}): Promise<readonly FinalizedOutcome[]> => {
+    const execution = createExecution(input, options)
+    let step = execution.initial()
     for (;;) {
-      checkSignal(options.signal)
-      switch (step.$) {
-        case "Continue":
-          step = machine.advance(step.phase)
-          continue
-        case "Completed": {
-          const outcomes = unlist(step.outcomes).map(
-            (value) => fromProductValue(tags(value, false)) as FinalizedOutcome
-          )
-          for (const outcome of outcomes)
-            (outcome.prepared as { input: PreparedSource["input"] }).input = freezeInput(outcome.prepared.input)
-          checkSignal(options.signal)
-          return outcomes
-        }
-        case "TypeError":
-          throw new TypeError(step.message)
-        case "URIError":
-          if (!encodingError) throw new TypeError("Missing URI engine exception")
-          throw encodingError
-        case "InvalidReply":
-          throw new TypeError("Invalid finalization engine reply")
-        case "InvalidInput":
-          throw new TypeError("Invalid finalization producer input")
+      const next = execution.advance(step)
+      if (next !== undefined) {
+        step = next
+        continue
       }
-      const state = "state" in step ? step.state : step.unit.state
-      let response: Response
-      switch (step.$) {
-        case "ObserveOmission":
-          try {
-            frame.context.observePreparationOmission?.(
-              step.path,
-              step.name,
-              step.reason as "missing-evidence" | "no-applicable-rule"
-            )
-            response = { $: "Observed" }
-          } catch {
-            response = { $: "ObserverSynchronouslyThrew" }
-          }
-          break
-        case "PathExtension":
-          response = { $: "Extension", value: extname(step.path).toLowerCase() }
-          break
-        case "ReadCurrentRules": {
-          const raw = frame.context.rules
-          const current = typeof raw === "function" ? raw() : raw
-          response = {
-            $: "CurrentRules",
-            rules: maybe(current === undefined ? undefined : tags(list(current.map(productValue)))),
-            fallback:
-              raw === undefined
-                ? maybe(settings.rules === undefined ? undefined : tags(list(settings.rules.map(productValue))))
-                : { $: "None" }
-          }
-          break
-        }
-        case "ReadProviderFacts": {
-          const layers = settings.configuration?.policy.layers
-          response = {
-            $: "ProviderFacts",
-            configuration: maybe(
-              layers === undefined
-                ? undefined
-                : list(
-                    layers.map((layer) => ({
-                      $: `${configuration}Layer` as const,
-                      name: layer.name,
-                      backend: maybe(
-                        layer.document.reviewBackend === undefined
-                          ? undefined
-                          : encodeSelection(layer.document.reviewBackend)
-                      )
-                    }))
-                  )
-            ),
-            identity: maybe(
-              settings.providerIdentity === undefined
-                ? undefined
-                : { $: `${backend}Identity` as const, ...settings.providerIdentity }
-            ),
-            backends: list(
-              Object.values(REVIEW_PROVIDERS).map((provider) => ({
-                $: `${backend}Declaration` as const,
-                id: provider.id,
-                default_model: maybe(provider.defaultModel),
-                destination: provider.destination
-              }))
-            )
-          }
-          break
-        }
-        case "RulesRequest": {
-          const nested = step.step
-          if (nested.$ === "RuleFinalization.CanonicalGate")
-            response = { $: "CanonicalGate", admit: await canonicalGate(gateFacts(nested), options) }
-          else if (
-            nested.$ === "RuleFinalization.Engine" &&
-            (nested.query.$ === "../../../../runtime-inputs/src/matcher/glob/Glob.AnyCompile" ||
-              nested.query.$ === "../../../../runtime-inputs/src/matcher/glob/Glob.AnyTest")
-          ) {
-            const compile = nested.query.$ === "../../../../runtime-inputs/src/matcher/glob/Glob.AnyCompile"
-            let valid = true,
-              matched = false
-            try {
-              const expression = new RegExp(codeUnits(nested.query.expression))
-              if (nested.query.$ === "../../../../runtime-inputs/src/matcher/glob/Glob.AnyTest")
-                matched = expression.test(codeUnits(nested.query.candidate))
-            } catch (error) {
-              if (!(error instanceof SyntaxError)) throw error
-              valid = false
-            }
-            response = compile ? { $: "Compiled", valid } : { $: "Tested", valid, matched }
-          } else throw new TypeError("Unexpected finalization rules engine")
-          break
-        }
-        case "InputRequest": {
-          const nested = step.step
-          if (nested.$ === "FrozenInput.EncodeComponent") {
-            try {
-              response = { $: "Encoded", value: encodeURIComponent(nested.value) }
-            } catch (error) {
-              if (!(error instanceof URIError)) throw error
-              encodingError = error
-              response = { $: "EncodingFailed" }
-            }
-          } else if (nested.$ === "FrozenInput.JsonPrimitive")
-            response = { $: "Serialized", value: primitive(nested.value) }
-          else if (nested.$ === "FrozenInput.Digest")
-            response = { $: "Hashed", value: createHash("sha256").update(nested.bytes, "utf8").digest("hex") }
-          else throw new TypeError("Unexpected finalization input engine")
-          break
-        }
-        default:
-          throw new TypeError("Unexpected finalization request")
-      }
-      checkSignal(options.signal)
-      step = machine.resume(step, { $: "Reply", invocation: scope, request: state.request, response })
+      const accepted = execution.accepted(step)
+      if (accepted !== undefined) return accepted
+      const synchronous = execution.performSync(step)
+      const response = synchronous === undefined ? await execution.performAsync(step) : synchronous.value
+      step = execution.resume(step, response)
     }
   }
 }

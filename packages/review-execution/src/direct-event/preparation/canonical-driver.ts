@@ -1,3 +1,12 @@
+import {
+  finalizationProtocol,
+  type FinalizationInvocation,
+  type FinalizationMachine,
+  type FinalizationContinuation,
+  type FinalizationProjection,
+  type FinalizationRequest,
+  type FinalizationReply
+} from "./finalization-protocol.ts"
 import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
 import type { Protocol } from "@hapsland/canonical-policy/canonical/child-execution"
 import { graphProtocol } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
@@ -30,14 +39,24 @@ export type PreparationSession = {
   revoke(): void
   close(): void
 }
-export type PublicPreparationSession = PreparationSession | GraphSession
-export type PublicPreparationRequest = PreparationRequest | GraphRequest
-export type PublicPreparationReply = PreparationReply | GraphServiceReply
-type Machine = PreparationMachine | GraphMachine
-type Input = PreparationInvocation | GraphInput
-type Continuation = PreparationContinuation | GraphContinuation
-type Projection = PreparationProjection | GraphProjection
-type Accepted = PreparationAccepted | GraphAccepted
+export type FinalizationSession = {
+  readonly invocation: number
+  readonly input: FinalizationInvocation
+  readonly machine: FinalizationMachine
+  revoke(): void
+  close(): void
+}
+export type PublicPreparationSession = PreparationSession | GraphSession | FinalizationSession
+export type PublicPreparationRequest = PreparationRequest | GraphRequest | FinalizationRequest
+export type PublicPreparationReply = PreparationReply | GraphServiceReply | FinalizationReply
+type Machine = PreparationMachine | GraphMachine | FinalizationMachine
+type Input = PreparationInvocation | GraphInput | FinalizationInvocation
+type Continuation = PreparationContinuation | GraphContinuation | FinalizationContinuation
+type Projection = PreparationProjection | GraphProjection | FinalizationProjection
+type Accepted =
+  | PreparationAccepted
+  | GraphAccepted
+  | { readonly finalization: readonly import("./preparation-finalization.ts").FinalizedOutcome[] }
 
 // Composition of the two existing protocols; the sole shared Canonical driver
 // owns publication, provider leases, cancellation, acceptance and finalization.
@@ -52,7 +71,14 @@ const protocol: Protocol<
   PreparationResult,
   PublicPreparationSession
 > = {
+  initialSignalCheckpoint: (machine) => (machine.kind === "finalization" ? "protocol" : "executor"),
+  synchronousAdvance: (held) =>
+    held.kind === "finalization" ? finalizationProtocol.synchronousAdvance!(held, {}) : undefined,
   initial(machine, input) {
+    if (machine.kind === "finalization") {
+      if (!("finalization" in input)) throw new TypeError("Wrong finalization input binding")
+      return finalizationProtocol.initial(machine, input)
+    }
     if (machine.kind === "preparation") {
       if (!("preparation" in input)) throw new TypeError("Wrong preparation input binding")
       return preparationProtocol.initial(machine, input)
@@ -60,8 +86,18 @@ const protocol: Protocol<
     if (!("$" in input) || input.$ !== "Types.ResolverInput") throw new TypeError("Wrong artifact input binding")
     return graphProtocol.initial(machine, input)
   },
-  view: (held) => (held.kind === "preparation" ? preparationProtocol.view(held) : graphProtocol.view(held)),
+  view: (held) =>
+    held.kind === "finalization"
+      ? finalizationProtocol.view(held)
+      : held.kind === "preparation"
+        ? preparationProtocol.view(held)
+        : graphProtocol.view(held),
   resume(held, reply) {
+    if (held.kind === "finalization") {
+      if (reply.$ !== "FinalizationReply") throw new TypeError("Wrong finalization reply binding")
+      return finalizationProtocol.resume(held, reply)
+    }
+    if (reply.$ === "FinalizationReply") throw new TypeError("Unexpected finalization reply")
     if (held.kind === "preparation") {
       if (reply.$ === "Types.Reply") throw new TypeError("Wrong preparation reply binding")
       return preparationProtocol.resume(held, reply)
@@ -70,16 +106,24 @@ const protocol: Protocol<
     return graphProtocol.resume(held, reply)
   },
   awaitRequest: (projected) =>
-    projected.kind === "preparation"
-      ? preparationProtocol.awaitRequest(projected)
-      : graphProtocol.awaitRequest(projected),
+    projected.kind === "finalization"
+      ? finalizationProtocol.awaitRequest(projected)
+      : projected.kind === "preparation"
+        ? preparationProtocol.awaitRequest(projected)
+        : graphProtocol.awaitRequest(projected),
   installation: () => ({ method: "install" }),
   terminal: (projected, scope) =>
-    projected.kind === "preparation"
-      ? preparationProtocol.terminal(projected, scope)
-      : graphProtocol.terminal(projected, scope),
+    projected.kind === "finalization"
+      ? finalizationProtocol.terminal(projected, scope)
+      : projected.kind === "preparation"
+        ? preparationProtocol.terminal(projected, scope)
+        : graphProtocol.terminal(projected, scope),
   accepted: (projected) =>
-    projected.kind === "preparation" ? preparationProtocol.accepted(projected) : graphProtocol.accepted(projected),
+    projected.kind === "finalization"
+      ? finalizationProtocol.accepted(projected)
+      : projected.kind === "preparation"
+        ? preparationProtocol.accepted(projected)
+        : graphProtocol.accepted(projected),
   preparation(projected) {
     if (projected.kind !== "preparation") throw new TypeError("Graph cannot produce a preparation handoff")
     return preparationProtocol.preparation(projected)
