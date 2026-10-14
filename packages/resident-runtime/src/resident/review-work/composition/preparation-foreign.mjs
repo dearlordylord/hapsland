@@ -1,3 +1,4 @@
+import { withNativeSignal } from "@hapsland/runtime-environment/runtime/native-execution"
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import { createFinalizationSession } from "@hapsland/review-execution/direct-event/preparation"
 import * as Effect from "effect/Effect"
@@ -63,7 +64,7 @@ export function createPreparationForeign({
       }
     })
   return createPhysicalPreparationCapability({
-    runEffect: (effect) => effect,
+    runEffect: (effect, execution) => withNativeSignal(effect, execution?.signal),
     root,
     rootIdentity,
     context,

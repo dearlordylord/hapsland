@@ -1,6 +1,7 @@
 import * as Effect from "effect/Effect"
 import {
   awaitNativeWork,
+  nativeFailureValue,
   runNativePromise,
   runNativeEffect,
   type NativeFlow
@@ -436,7 +437,7 @@ export function createServiceSession({
       }
     } catch (error) {
       if (closed || !accepting) throw error
-      outcome = tagged("ProviderRejected", { exception: register("ExceptionToken", error) })
+      outcome = tagged("ProviderRejected", { exception: register("ExceptionToken", nativeFailureValue(error)) })
     }
     return tagged("Reply", { invocation, id, outcome })
   }

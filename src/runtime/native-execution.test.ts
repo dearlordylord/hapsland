@@ -8,6 +8,8 @@ import * as Fiber from "effect/Fiber"
 import * as Result from "effect/Result"
 import {
   nativeFailureAggregate,
+  nativeFailureValue,
+  withNativeSignal,
   awaitNative,
   effectNative,
   runNativeEffect,
@@ -304,4 +306,119 @@ describe("retained cleanup Cause transport", () => {
     expect(failure.errors).toEqual([undefined, defect])
     expect(failure.cause).toBeUndefined()
   })
+})
+
+describe("independently cancellable native IO", () => {
+  it("inherits Context and drains child finalization without interrupting its caller", async () => {
+    const marker = Context.Reference("native-io-context", { defaultValue: () => "missing" })
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const started = yield* Deferred.make<void>()
+        const finalizing = yield* Deferred.make<void>()
+        const release = yield* Deferred.make<void>()
+        const controller = new AbortController()
+        let settled = false
+        let caller: Fiber.Fiber<unknown, unknown> | undefined
+        const service = Effect.gen(function* () {
+          expect(yield* marker).toBe("caller")
+          expect(yield* Effect.fiber).not.toBe(caller)
+          yield* Deferred.succeed(started, undefined)
+          yield* Effect.never
+        }).pipe(Effect.ensuring(Effect.andThen(Deferred.succeed(finalizing, undefined), Deferred.await(release))))
+        const task = yield* Effect.forkChild(
+          Effect.withFiber((fiber) => {
+            caller = fiber
+            return Effect.exit(withNativeSignal(service, controller.signal)).pipe(
+              Effect.tap(() =>
+                Effect.sync(() => {
+                  settled = true
+                })
+              )
+            )
+          })
+        )
+        yield* Deferred.await(started)
+        controller.abort()
+        yield* Deferred.await(finalizing)
+        expect(settled).toBe(false)
+        yield* Deferred.succeed(release, undefined)
+        const exit = yield* Fiber.join(task)
+        expect(exit._tag).toBe("Failure")
+        if (exit._tag === "Failure") {
+          expect(Cause.hasDies(exit.cause)).toBe(true)
+          expect(Cause.hasInterrupts(exit.cause)).toBe(false)
+        }
+        expect(settled).toBe(true)
+        expect(yield* marker).toBe("caller")
+      }).pipe(Effect.provideService(marker, "caller"))
+    )
+  })
+  for (const cleanupFails of [false, true])
+    it(`preserves caller interruption and ${cleanupFails ? "failed" : "successful"} service finalization`, async () => {
+      const cleanupFailure = new Error("native IO finalizer")
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const started = yield* Deferred.make<void>()
+          const finalizing = yield* Deferred.make<void>()
+          const release = yield* Deferred.make<void>()
+          const service = Effect.andThen(Deferred.succeed(started, undefined), Effect.never).pipe(
+            Effect.ensuring(
+              Effect.andThen(
+                Deferred.succeed(finalizing, undefined),
+                Effect.andThen(Deferred.await(release), cleanupFails ? Effect.die(cleanupFailure) : Effect.void)
+              )
+            )
+          )
+          const task = yield* Effect.forkChild(withNativeSignal(service, new AbortController().signal))
+          yield* Deferred.await(started)
+          task.interruptUnsafe(991)
+          yield* Deferred.await(finalizing)
+          yield* Deferred.succeed(release, undefined)
+          const exit = yield* Fiber.await(task)
+          expect(exit._tag).toBe("Failure")
+          if (exit._tag === "Failure") {
+            expect(exit.cause.reasons).toHaveLength(cleanupFails ? 2 : 1)
+            if (cleanupFails) {
+              const reason = exit.cause.reasons[1]
+              expect(reason?._tag).toBe("Die")
+              if (reason?._tag === "Die") expect(reason.defect).toBe(cleanupFailure)
+            }
+            expect([...Cause.interruptors(exit.cause)]).toEqual([991])
+          }
+        })
+      )
+    })
+  it("keeps the direct caller fiber without a signal and never starts pre-aborted IO", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const caller = yield* Effect.fiber
+        expect(yield* withNativeSignal(Effect.fiber)).toBe(caller)
+        let starts = 0
+        const controller = new AbortController()
+        controller.abort()
+        const exit = yield* Effect.exit(
+          withNativeSignal(
+            Effect.sync(() => {
+              starts++
+            }),
+            controller.signal
+          )
+        )
+        expect(exit._tag).toBe("Failure")
+        expect(starts).toBe(0)
+      })
+    )
+  })
+  for (const value of [undefined, null, false, 0, ""]) {
+    it(`keeps the raw provider token value ${String(value)}`, async () => {
+      function* flow(): NativeFlow<unknown> {
+        try {
+          yield effectNative(Effect.die(value))
+        } catch (error) {
+          return nativeFailureValue(error)
+        }
+      }
+      expect(await Effect.runPromise(runNativeEffect(flow(), () => {}))).toBe(value)
+    })
+  }
 })

@@ -1,3 +1,4 @@
+import { withNativeSignal } from "@hapsland/runtime-environment/runtime/native-execution"
 import { performGraphNativeGroup } from "./graph-native-group.ts"
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import * as Effect from "effect/Effect"
@@ -116,7 +117,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
     cache,
     settings: context.settings,
     graphLimits,
-    runEffect: (effect) => effect,
+    runEffect: (effect, execution) => withNativeSignal(effect, execution?.signal),
     canonicalGate,
     runFinalization: (input, execution) =>
       Effect.gen(function* () {

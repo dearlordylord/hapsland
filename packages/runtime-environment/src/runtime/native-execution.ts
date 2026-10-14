@@ -2,6 +2,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Cause from "effect/Cause"
 import * as Result from "effect/Result"
+import * as Fiber from "effect/Fiber"
 
 // Mechanical suspension of the single native custody workflow. Interpreters
 // determine how to wait; the caller's flow retains lifecycle/progression.
@@ -73,6 +74,55 @@ export async function runNativePromise<Value>(flow: NativeFlow<Value>): Promise<
     }
   }
 }
+
+/** Independently cancellable native IO inherits Context in a supervised child.
+ * Lease cancellation settles that child before returning its original Promise
+ * rejection value; caller interruption remains the caller's own interruption.
+ * Other provider work continues directly in its caller fiber.
+ */
+export const withNativeSignal = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+  signal?: AbortSignal
+): Effect.Effect<A, E, R> => {
+  if (signal === undefined) return effect
+  return Effect.uninterruptibleMask((restore) =>
+    Effect.gen(function* () {
+      if (signal.aborted) return yield* Effect.die(Cause.squash(Cause.interrupt()))
+      const child = yield* Effect.forkChild(effect, { uninterruptible: false })
+      const abort = () => child.interruptUnsafe()
+      return yield* Effect.gen(function* () {
+        yield* Effect.sync(() => {
+          signal.addEventListener("abort", abort, { once: true })
+          if (signal.aborted) abort()
+        })
+        const waiting = yield* Effect.exit(restore(Fiber.await(child)))
+        if (Exit.isFailure(waiting)) {
+          abort()
+          const settled = yield* Fiber.await(child)
+          const cleanup = Exit.isFailure(settled)
+            ? settled.cause.reasons.filter((reason) => reason._tag !== "Interrupt")
+            : []
+          return yield* Effect.failCause(Cause.fromReasons([...waiting.cause.reasons, ...cleanup]))
+        }
+        const exit = waiting.value
+        if (Exit.isSuccess(exit)) return exit.value
+        if (signal.aborted && Cause.hasInterrupts(exit.cause)) return yield* Effect.die(Cause.squash(exit.cause))
+        return yield* Effect.failCause(exit.cause)
+      }).pipe(
+        Effect.ensuring(
+          Effect.gen(function* () {
+            signal.removeEventListener("abort", abort)
+            yield* Fiber.interrupt(child)
+          })
+        )
+      )
+    })
+  )
+}
+
+/** Provider error tokens retain raw thrown values, never interpreter receipts. */
+export const nativeFailureValue = (error: unknown): unknown =>
+  isReceipt(error) ? Cause.squash(error[receiptTag]) : error
 
 const waitNative = (value: unknown): Effect.Effect<unknown> =>
   Effect.callback((resume) => {

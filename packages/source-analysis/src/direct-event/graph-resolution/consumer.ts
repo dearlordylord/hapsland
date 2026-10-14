@@ -1,5 +1,6 @@
 import {
   awaitNativeWork,
+  withNativeSignal,
   runNativePromise,
   runNativeEffect,
   type NativeFlow,
@@ -98,7 +99,7 @@ function createResolverFlow(
             contextDirectFilePolicy(context.policy ?? DEFAULT_DIRECT_FILE_POLICY),
             context.rootIdentity
           )
-          return effects ? effect : Effect.runPromise(effect, { signal })
+          return effects ? withNativeSignal(effect, signal) : Effect.runPromise(effect, { signal })
         },
         capture: (selected, sourceCap, { signal } = {}) => {
           const effect = (context.captureSource ?? captureStable)(
@@ -108,7 +109,7 @@ function createResolverFlow(
             context.rootIdentity,
             sourceCap
           )
-          return effects ? effect : Effect.runPromise(effect, { signal })
+          return effects ? withNativeSignal(effect, signal) : Effect.runPromise(effect, { signal })
         },
         frontend: inspectSourceFrontend,
         parseCargo: parseCargoSyntax,
