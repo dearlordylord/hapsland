@@ -158,6 +158,106 @@ for (let bits = 0; bits < 256; bits++) {
   assert.deepEqual(lanes[1], lanes[0], "Canonical publication " + bits)
   cases++
 }
+for (const mode of ["snapshot-line", "snapshot-unit"]) {
+  for (const original of [new Error("original getter"), null, undefined, false, 0, ""]) {
+    let active
+    const input = { path: "a", declaration: { name: "Type" }, text: "source", sourceFingerprints: {} }
+    const prepared = { identity: "one", input }
+    const candidate = {
+      identity: "one",
+      input: {
+        ...input,
+        get sourceFingerprints() {
+          active.driver.cancel(active.invocation)
+          throw original
+        }
+      }
+    }
+    const ports = {
+      serialize: canonicalValue,
+      sameInput,
+      semanticIdentity,
+      verifyRoot: () => Promise.resolve(true),
+      prepare: () => Promise.resolve({ outcomes: [{ status: "ready", prepared: candidate }] }),
+      currentWork() {
+        assert.fail("No snapshot authority")
+      }
+    }
+    let caught = false
+    try {
+      await execute({ kind: mode, observation: {}, prepared, context: {} }, ports, {
+        beforeProvider(event) {
+          active = event
+        }
+      })
+    } catch (error) {
+      caught = true
+      assert.equal(error, original)
+    }
+    assert.equal(caught, true, mode + " preserves falsy immediate error after cancel")
+    cases++
+  }
+}
+{
+  let active
+  const prepared = { identity: "one", input: { path: "a", declaration: { name: "Type" }, text: "source" } }
+  let preparedCalls = 0
+  const ports = {
+    serialize: canonicalValue,
+    sameInput,
+    semanticIdentity,
+    verifyRoot() {
+      return new Promise((resolve) =>
+        queueMicrotask(() => {
+          active.driver.cancel(active.invocation)
+          resolve(true)
+        })
+      )
+    },
+    prepare() {
+      preparedCalls++
+      return Promise.resolve({ outcomes: [] })
+    },
+    currentWork() {
+      assert.fail("No snapshot authority")
+    }
+  }
+  const { outcome, driver } = await execute({ kind: "snapshot-unit", observation: {}, prepared, context: {} }, ports, {
+    beforeProvider(event) {
+      active = event
+    }
+  })
+  assert.equal(outcome.failure.$, "Types.InvocationCancelled")
+  assert.equal(driver.stats.accepted, 0)
+  assert.equal(preparedCalls, 0)
+  cases++
+}
+{
+  const input = { kind: "snapshot-unit", observation: {}, prepared: {}, context: {} }
+  const ports = {
+    serialize: canonicalValue,
+    sameInput,
+    semanticIdentity,
+    verifyRoot() {
+      assert.fail("Input substitution cannot start IO")
+    },
+    prepare() {
+      assert.fail("Input substitution cannot prepare")
+    },
+    currentWork() {
+      assert.fail("No authority")
+    }
+  }
+  const session = createFreshnessSession(21, input, ports)
+  assert.throws(
+    () => session.machine.initial({ ...session.input, freshness: { ...input } }),
+    /replaced its owned invocation/
+  )
+  assert.throws(() => session.machine.initial({ ...session.input, invocation: 22n }), /replaced its owned invocation/)
+  assert.equal(session.machine.retainedHandles, 0)
+  session.close()
+  cases += 2
+}
 console.log(
   JSON.stringify({
     passed: true,
