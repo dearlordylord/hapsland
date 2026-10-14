@@ -15,6 +15,7 @@ const sourceOwners = [
   "packages/native-observation/src/direct-event/edit-attribution",
   "packages/native-observation/src/direct-event/languages/path-language",
   "packages/review-execution/src/direct-event/preparation",
+  "packages/review-execution/src/direct-event/freshness",
   "packages/review-definition/src/rules/finalization",
   "packages/runtime-inputs/src/matcher/glob",
   "packages/runtime-inputs/src/configuration/review-backend",
