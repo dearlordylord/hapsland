@@ -169,3 +169,27 @@ invalid.close()
 console.log(
   JSON.stringify({ closedReplyCases: 2600, unchangedFacts: true, conversionFailureOutsideProviderCatch: true })
 )
+
+const { parseGoFileFacts } = await import("../go-module/parser-facts.ts")
+const { parsePythonSyntax } = await import("../frontends.ts")
+const { unlist } = await import("@hapsland/source-artifacts/direct-event/value/codec")
+const goSyntax = parseGoFileFacts("root.go", "package root\nconst Answer = 1 + 2\n")
+assert.ok(goSyntax)
+const pythonSyntax = await parsePythonSyntax("answer = 1 + 2\n")
+for (const rows of [unlist(goSyntax.expressions), unlist(pythonSyntax.nodes)]) {
+  assert.ok(rows.length > 0)
+  for (const row of rows) {
+    assert.equal(typeof row.id, "bigint")
+    assert.equal(typeof row.start, "number")
+    assert.equal(typeof row.end, "number")
+    for (const child of unlist(row.children)) assert.equal(typeof child, "number")
+  }
+}
+for (const outcome of [
+  tag("GoFileResult", { outcome: tag("GoFileInspected", { file: goSyntax }) }),
+  tag("PythonSyntaxResult", { syntax: pythonSyntax })
+]) {
+  const reply = tag("Reply", { invocation: 1, id: 2, outcome })
+  assert.deepEqual(encodeGraphReply(reply), naturalOracle(reply))
+}
+console.log(JSON.stringify({ realGoPythonSyntaxIds: true, neighboringNumericFieldsPreserved: true }))

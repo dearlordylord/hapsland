@@ -7,7 +7,7 @@ import { factDeclaration } from "../frontend-codec.ts"
 type SyntaxField = { readonly $: "Types.SyntaxField"; readonly name: string; readonly child: number }
 type SyntaxRow = {
   readonly $: "Types.GoSyntaxNode"
-  readonly id: number
+  readonly id: bigint
   readonly kind: string
   readonly text: string
   readonly start: number
@@ -40,7 +40,7 @@ export function goFileFacts(file: GoFile) {
     }
     rows[id] = {
       $: "Types.GoSyntaxNode",
-      id,
+      id: BigInt(id),
       kind: node.type,
       text: node.text,
       start: node.startIndex,

@@ -6,7 +6,7 @@ import { list, type List } from "@hapsland/source-artifacts/direct-event/value/c
 export type SyntaxField = { readonly $: "Types.SyntaxField"; readonly name: string; readonly child: number }
 export type SyntaxRow = {
   readonly $: "Types.PythonSyntaxNode"
-  readonly id: number
+  readonly id: bigint
   readonly kind: string
   readonly text: string
   readonly start: number
@@ -59,7 +59,7 @@ export function projectPythonSyntax(rootNode: Parser.SyntaxNode): PythonSyntax {
     }
     rows[id] = {
       $: "Types.PythonSyntaxNode",
-      id,
+      id: BigInt(id),
       kind: node.type,
       text: node.text,
       start: node.startIndex,
