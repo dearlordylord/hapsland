@@ -109,7 +109,7 @@
     "capabilities": [
       "provider-execution"
     ],
-    "bendPrecompile": "src/direct-event/preparation/build-recipe.json",
+    "bendPrecompile": "src/direct-event/build-recipe.json",
     "checkedJavaScript": [
       "src/direct-event/preparation/physical-effects.mjs"
     ]

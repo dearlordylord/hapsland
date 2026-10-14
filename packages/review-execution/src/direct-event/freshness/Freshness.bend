@@ -322,3 +322,106 @@ def initial(invocation: Nat, +input: Input) -> Step:
   match input:
     case Input{_, observation, _, _}:
       ask(Frame{invocation, 1n}, VerifyRoot{observation}, RootChecked{input})
+
+# One affine native engine is borrowed by the already-issued Canonical lease.
+# A synchronous group keeps the original checkpoint and exception boundary.
+type Engine is Type:
+  Engine{read: Query -> (Response & Engine)}
+
+def cursor_budget(cursor: Cursor) -> Nat:
+  match cursor:
+    case Cursor{_, _, length}: Nat.add(16n, Nat.mul(8n, length))
+
+def next_budget(next: Next) -> Nat:
+  match next:
+    case Item{_, cursor, _}: cursor_budget(cursor)
+    case Status{_, cursor, _, _}: cursor_budget(cursor)
+    case PathMatched{_, cursor, _, _}: cursor_budget(cursor)
+    case IdentityMatched{_, cursor, _, _}: cursor_budget(cursor)
+    case InputMatched{_, cursor, _, _}: cursor_budget(cursor)
+    case FingerprintsMatched{_, cursor, _}: cursor_budget(cursor)
+    case _: 16n
+
+def step_budget(step: Step) -> Nat:
+  match step:
+    case Await{_, _, next}: next_budget(next)
+    case _: 0n
+
+def engine_returned(
+  continue: Engine -> Step -> (Step & Engine),
+  step: Step,
+  invocation: Nat,
+  request: Nat,
+  result: (Response & Engine)
+) -> (Step & Engine):
+  match result:
+    case Tuple{response, engine}:
+      continue(engine, resume(step, Reply{invocation, request, response}))
+
+def engine_read(
+  continue: Engine -> Step -> (Step & Engine),
+  step: Step,
+  frame: Frame,
+  query: Query,
+  engine: Engine
+) -> (Step & Engine):
+  match frame engine:
+    case Frame{invocation, request} Engine{read}:
+      engine_returned(continue, step, invocation, request, read(query))
+
+type GroupState is Type:
+  Running{engine: Engine, step: Step}
+  Stopped{engine: Engine, step: Step}
+
+def primitive_returned(
+  step: Step,
+  invocation: Nat,
+  request: Nat,
+  result: Response & Engine
+) -> GroupState:
+  match result:
+    case Tuple{response, engine}:
+      Running{engine, resume(step, Reply{invocation, request, response})}
+
+def primitive_read(engine: Engine, step: Step, frame: Frame, query: Query) -> GroupState:
+  match engine frame:
+    case Engine{read} Frame{invocation, request}:
+      primitive_returned(step, invocation, request, read(query))
+
+def primitive_query(engine: Engine, step: Step, frame: Frame, +query: Query) -> GroupState:
+  match query:
+    case VerifyRoot{_}: Stopped{engine, step}
+    case Prepare{_, _}: Stopped{engine, step}
+    case _: primitive_read(engine, step, frame, query)
+
+def primitive_once(engine: Engine, +step: Step) -> GroupState:
+  match step:
+    case Await{frame, query, _}: primitive_query(engine, step, frame, query)
+    case _: Stopped{engine, step}
+
+def primitive_loop(fuel: Nat, state: GroupState) -> Step & Engine:
+  match fuel state:
+    case 0n Running{engine, step}: (step, engine)
+    case 0n Stopped{engine, step}: (step, engine)
+    case 1n++rest Running{engine, step}: primitive_loop(rest, primitive_once(engine, step))
+    case 1n++_ Stopped{engine, step}: (step, engine)
+
+def captured_group(engine: Engine, step: Step) -> (Step & Engine):
+  match step:
+    case +held: primitive_loop(step_budget(held), Running{engine, held})
+
+def sized_group_value(engine: Engine, +step: Step) -> (Step & Engine):
+  match step:
+    case Await{frame, query, Sized{_, _}}:
+      engine_read(captured_group, step, frame, query, engine)
+    case _: captured_group(engine, step)
+
+def sized_group(engine: Engine, step: Step) -> (Step & Engine):
+  sized_group_value(engine, step)
+
+def run_group(engine: Engine, +step: Step) -> (Step & Engine):
+  match step:
+    case Await{frame, query, Outcomes{_}}:
+      engine_read(sized_group, step, frame, query, engine)
+    case Await{_, _, Sized{_, _}}: sized_group(engine, step)
+    case _: captured_group(engine, step)

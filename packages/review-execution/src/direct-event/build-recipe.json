@@ -1,0 +1,17 @@
+[
+  {
+    "source": "preparation/Preparation.bend",
+    "output": "preparation/preparation-core.js",
+    "declaration": "preparation/preparation-core.d.ts"
+  },
+  {
+    "source": "preparation/PreparationFinalization.bend",
+    "output": "preparation/preparation-finalization-core.js",
+    "declaration": "preparation/preparation-finalization-core.d.ts"
+  },
+  {
+    "source": "freshness/Freshness.bend",
+    "output": "freshness/freshness-core.js",
+    "declaration": "freshness/freshness-core.d.ts"
+  }
+]

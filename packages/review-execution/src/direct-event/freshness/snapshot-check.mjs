@@ -1,12 +1,18 @@
 import assert from "node:assert/strict"
-import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
-import { join } from "node:path"
-import { tmpdir } from "node:os"
-import { pathToFileURL } from "node:url"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
 
-const temporary = mkdtempSync(join(tmpdir(), "hapsland-freshness-snapshot-"))
+import { pathToFileURL } from "node:url"
+import { resolve } from "node:path"
+// Optional emitted artifact is a focused compiler diagnostic. Normal gates
+// always consume the ordinary compiled package output.
+if (process.argv.length > 3) throw new Error("Expected at most one emitted-core diagnostic path")
+const core = (
+  await import(
+    process.argv[2]
+      ? pathToFileURL(resolve(process.argv[2])).href
+      : "../../../dist/direct-event/freshness/freshness-core.js"
+  )
+).default
 const tag = (value) => value.$.split(".").at(-1)
 const sameInput = (left, right) => {
   const { sourceFingerprints: _leftCapture, rootLocation: _leftLocation, ...leftReview } = left
@@ -51,16 +57,11 @@ const unlist = (value) => {
   assert.equal(value.$, "Nil")
   return items
 }
-try {
-  const output = join(temporary, "freshness.mjs")
-  execFileSync("taskset", ["-c", "11", "bend", join(import.meta.dirname, "Freshness.bend"), "-o", output], {
-    timeout: 10000
-  })
-  const core = (await import(pathToFileURL(output))).default
+{
   let requests = 0,
     rejectedReplies = 0,
     cases = 0
-  const consume = async (mode, prepared, engines) => {
+  const consume = async (mode, prepared, engines, grouped = false) => {
     const handles = new Map()
     let nextHandle = 0n
     const store = (value) => {
@@ -69,6 +70,46 @@ try {
       return id
     }
     const read = (lens) => unlist(lens.fields).reduce((value, key) => value[key], handles.get(lens.object))
+    const primitive = (query) => {
+      let response
+      switch (tag(query)) {
+        case "Read":
+          response = { $: "Handle", value: store(read(query.value)) }
+          return response
+        case "Length":
+          response = { $: "Count", value: BigInt(handles.get(query.array).length) }
+          return response
+        case "Element": {
+          const array = handles.get(query.array)
+          response = query.index in array ? { $: "Handle", value: store(array[query.index]) } : { $: "Missing" }
+          return response
+        }
+        case "TextIs":
+          response = { $: "Flag", value: read(query.value) === query.expected }
+          return response
+        case "Equal":
+          response = { $: "Flag", value: read(query.left) === read(query.right) }
+          return response
+        case "CanonicalEqual": {
+          const left = read(query.left)
+          const right = read(query.right)
+          const equal = query.review_input ? sameInput(left, right) : canonicalValue(left) === canonicalValue(right)
+          response = { $: "Flag", value: equal }
+          return response
+        }
+        default:
+          assert.fail("Unexpected snapshot query " + query.$)
+      }
+    }
+    const nativeEngine = {
+      $: "Engine",
+      read(query) {
+        const response = primitive(query)
+        requests++
+        return { $: "Tuple", fst: response, snd: nativeEngine }
+      }
+    }
+    let engine = nativeEngine
     const input = {
       $: "Input",
       mode: { $: mode },
@@ -79,16 +120,19 @@ try {
     let step = core.initial(41n, input)
     for (let count = 0; ; count++) {
       assert.ok(count < 10000, "snapshot query loop terminates")
+      if (grouped) {
+        const group = core.run_group(engine, step)
+        step = group.fst
+        engine = group.snd
+      }
       if (tag(step) === "Completed") return step.current
       assert.equal(tag(step), "Await")
+      if (grouped) assert.ok(["VerifyRoot", "Prepare"].includes(tag(step.query)), "group reaches original IO boundary")
       const query = step.query
       let response
       switch (tag(query)) {
         case "VerifyRoot":
           response = { $: "Flag", value: await engines.verifyRoot() }
-          break
-        case "Read":
-          response = { $: "Handle", value: store(read(query.value)) }
           break
         case "Prepare": {
           const names = unlist(query.names)
@@ -104,29 +148,8 @@ try {
           }
           break
         }
-        case "Length":
-          response = { $: "Count", value: BigInt(handles.get(query.array).length) }
-          break
-        case "Element": {
-          const array = handles.get(query.array)
-          response = query.index in array ? { $: "Handle", value: store(array[query.index]) } : { $: "Missing" }
-          break
-        }
-        case "TextIs":
-          response = { $: "Flag", value: read(query.value) === query.expected }
-          break
-        case "Equal":
-          response = { $: "Flag", value: read(query.left) === read(query.right) }
-          break
-        case "CanonicalEqual": {
-          const left = read(query.left)
-          const right = read(query.right)
-          const equal = query.review_input ? sameInput(left, right) : canonicalValue(left) === canonicalValue(right)
-          response = { $: "Flag", value: equal }
-          break
-        }
         default:
-          assert.fail("Unexpected snapshot query " + query.$)
+          response = primitive(query)
       }
       requests++
       for (const reply of [
@@ -166,12 +189,15 @@ try {
     [ready({ identity: "other" }), ready()],
     Object.assign(new Array(2), { 1: ready() }),
     new Array(3),
-    [undefined]
+    [undefined],
+    Array.from({ length: 1024 }, () => ready({ identity: "other" }))
   ]
   const capture = async (run) => {
     try {
       return { value: await run() }
     } catch (error) {
+      if (error instanceof RangeError && process.env.HAPSLAND_FRESHNESS_DIAGNOSTIC_STACK === "1")
+        process.stderr.write(error.stack.split("\n").slice(0, 12).join("\n") + "\n")
       return { error: { name: error.name, message: error.message } }
     }
   }
@@ -180,7 +206,11 @@ try {
       for (const outcomes of fixtures) {
         const traces = []
         const lanes = []
-        for (const implementation of [reference, consume]) {
+        for (const implementation of [
+          reference,
+          consume,
+          (mode, prepared, engines) => consume(mode, prepared, engines, true)
+        ]) {
           const trace = []
           const engines = {
             async verifyRoot() {
@@ -200,13 +230,19 @@ try {
         }
         assert.deepEqual(lanes[1], lanes[0], mode + " root=" + root)
         assert.deepEqual(traces[1], traces[0])
+        assert.deepEqual(lanes[2], lanes[0], mode + " grouped root=" + root)
+        assert.deepEqual(traces[2], traces[0])
         cases++
       }
   for (const mode of ["SnapshotLine", "SnapshotUnit"])
     for (const fault of ["root", "prepare", "status", "identity", "input", "fingerprints"]) {
       const originalError = new Error("original " + fault)
       const traces = []
-      for (const implementation of [reference, consume]) {
+      for (const implementation of [
+        reference,
+        consume,
+        (mode, prepared, engines) => consume(mode, prepared, engines, true)
+      ]) {
         const trace = []
         const prepared = {
           get identity() {
@@ -253,6 +289,7 @@ try {
         traces.push(trace)
       }
       assert.deepEqual(traces[1], traces[0], mode + " " + fault)
+      assert.deepEqual(traces[2], traces[0], mode + " grouped " + fault)
       cases++
     }
   console.log(
@@ -265,6 +302,4 @@ try {
         "complete lazy snapshot line/unit decisions and original error/read chronology; production Canonical integration, lazy Bend JSON, publication and universal correspondence remain open"
     })
   )
-} finally {
-  rmSync(temporary, { recursive: true, force: true })
 }
