@@ -20,6 +20,13 @@ const phase = (name) => {
 phase("imports:start")
 const load = (path) => import(pathToFileURL(root + path).href)
 const ownerCalls = {}
+const requestCounts = {},
+  seenRequests = new Set()
+const observeRequests = process.env.HAPSLAND_PREPARATION_PROFILE_REQUESTS === "1"
+if (observeRequests) {
+  assert.ok(process.env.HAPSLAND_PREPARATION_PROFILE_DIR, "request tracing is diagnostic only")
+  assert.equal(process.env.HAPSLAND_PREPARATION_PROFILE_OWNER, "1", "request tracing reconciles with issued leases")
+}
 if (process.env.HAPSLAND_PREPARATION_PROFILE_OWNER === "1") {
   assert.ok(process.env.HAPSLAND_PREPARATION_PROFILE_DIR, "owner tracing is diagnostic only")
   const owner = (await load("/packages/agent-flow-bend/dist/canonical-resolver-owner.generated.js")).default
@@ -43,6 +50,38 @@ const prepareObservation =
     ? (await load("/packages/review-execution/dist/direct-event/preparation/verification/native-preparation.js"))
         .prepareNativeObservation
     : (await load("/packages/review-execution/dist/direct-event/pipeline.js")).prepareObservation
+if (observeRequests && implementation === "public") {
+  for (const [family, path, name] of [
+    ["graph", "/packages/source-analysis/dist/direct-event/graph-resolution/composition/protocol.js", "graphProtocol"],
+    [
+      "preparation",
+      "/packages/review-execution/dist/direct-event/preparation/canonical-protocol.js",
+      "preparationProtocol"
+    ],
+    [
+      "finalization",
+      "/packages/review-execution/dist/direct-event/preparation/finalization-protocol.js",
+      "finalizationProtocol"
+    ]
+  ]) {
+    const protocol = (await load(path))[name],
+      original = protocol.awaitRequest
+    protocol.awaitRequest = (...args) => {
+      const request = Reflect.apply(original, protocol, args)
+      if (request !== undefined) {
+        const identity = `${family}:${request.invocation}:${request.id}`
+        if (!seenRequests.has(identity)) {
+          seenRequests.add(identity)
+          const operation = request.operation?.$ ?? request.command?.$ ?? request.finalization?.$ ?? "unknown"
+          const nested = request.finalization?.step?.$
+          const key = `${family}:${operation}${nested === undefined ? "" : ":" + nested}`
+          requestCounts[key] = (requestCounts[key] ?? 0) + 1
+        }
+      }
+      return request
+    }
+  }
+}
 const { discoverPhysicalWorkingTreeRoot } = await load("/packages/native-observation/dist/repository/root.js")
 const { configuredRules } = await load("/scripts/test-support/default-rules.ts")
 const { advicee } = await load("/scripts/test-support/test-fixtures.ts")
@@ -84,6 +123,7 @@ const run = async () => {
   let index = 0
   for (const { observation, context } of cases) {
     const before = processStarts
+    if (observeRequests) seenRequests.clear()
     results.push(JSON.stringify(await Effect.runPromise(prepareObservation(observation, context))))
     if (observeProcesses) processCounts.push({ sweep: round, fixture: index++, starts: processStarts - before })
   }
@@ -136,6 +176,7 @@ for (const record of Object.values(ownerCalls)) {
   record.calls = 0
   record.seconds = 0
 }
+for (const key of Object.keys(requestCounts)) requestCounts[key] = 0
 phase("measurement:start")
 const started = performance.now(),
   cpu = process.cpuUsage()
@@ -148,6 +189,11 @@ for (let index = 0; index < rounds; index++) {
 const used = process.cpuUsage(cpu)
 phase("measurement:complete")
 processObserver?.disable()
+if (observeRequests && implementation === "public")
+  assert.equal(
+    Object.values(requestCounts).reduce((sum, count) => sum + count, 0),
+    ownerCalls.provider_start.calls
+  )
 if (observeProcesses) assert.ok(processStarts > 0 && processCounts.length === cases.length * (1 + warmups + rounds))
 console.log(
   JSON.stringify({
@@ -161,6 +207,7 @@ console.log(
     implementation,
     ...(process.env.HAPSLAND_PREPARATION_PROFILE_DIR === undefined ? {} : { diagnosticMemory: process.memoryUsage() }),
     ...(process.env.HAPSLAND_PREPARATION_PROFILE_OWNER === "1" ? { diagnosticOwnerCalls: ownerCalls } : {}),
+    ...(observeRequests ? { diagnosticRequestCounts: requestCounts } : {}),
     ...(observeProcesses ? { diagnosticProcessCounts: processCounts } : {}),
     runtime: typeof Bun === "undefined" ? process.version : Bun.version
   })
