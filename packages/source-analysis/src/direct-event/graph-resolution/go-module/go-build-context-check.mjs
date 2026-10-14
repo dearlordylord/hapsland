@@ -55,11 +55,11 @@ try {
     "\u2028\u2029"
   ]) {
     assert.equal(
-      core["RawText.bytes"](raw(text).characters),
+      core["RawTextMeasurement.bytes"](raw(text).characters),
       BigInt(new TextEncoder().encode(text).length),
       JSON.stringify(text)
     )
-    assert.equal(core["RawText.utf16"](raw(text).characters), BigInt(text.length))
+    assert.equal(core["RawTextMeasurement.utf16"](raw(text).characters), BigInt(text.length))
   }
   const configurations = [
     ...GO_OS.map((goos) => ({ goos, goarch: "amd64", tags: ["z", "a", "a"] })),

@@ -10,7 +10,7 @@ import fc from "fast-check"
 const temporary = await mkdtemp("/tmp/hapsland-go-source-text-")
 try {
   const cores = {}
-  for (const name of ["Input", "RawText", "PreparationData"]) {
+  for (const name of ["Input", "RawText", "RawTextMeasurement", "PreparationData"]) {
     const emitted = join(temporary, name + ".mjs")
     execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, name + ".bend"), "-o", emitted], {
       timeout: 10000
@@ -41,8 +41,8 @@ try {
     const spellings = list([{ $: "Spelling", text: left, characters: list([]) }])
     assert.equal(cores.Input.has(spellings, right), left === right)
     const chars = characters(left)
-    assert.equal(BigInt(cores.RawText.utf16(chars)), BigInt(left.length))
-    assert.equal(BigInt(cores.RawText.bytes(chars)), BigInt(Buffer.byteLength(left, "utf8")))
+    assert.equal(BigInt(cores.RawTextMeasurement.utf16(characters(left, "RawText."))), BigInt(left.length))
+    assert.equal(BigInt(cores.RawTextMeasurement.bytes(characters(left, "RawText."))), BigInt(Buffer.byteLength(left, "utf8")))
     assert.equal(cores.RawText.ascii_text(chars), left)
     assert.equal(text(cores.RawText.skip_space(chars)), left.trimStart())
     assert.equal(text(cores.RawText.trim(chars)), left.trim())
@@ -69,8 +69,8 @@ try {
   // retain the original Unicode-scalar restriction and are not claimed for them.
   for (const value of ["\ud800", "\udc00"]) {
     const chars = characters(value)
-    assert.equal(BigInt(cores.RawText.utf16(chars)), BigInt(value.length))
-    assert.equal(BigInt(cores.RawText.bytes(chars)), BigInt(Buffer.byteLength(value, "utf8")))
+    assert.equal(BigInt(cores.RawTextMeasurement.utf16(characters(value, "RawText."))), BigInt(value.length))
+    assert.equal(BigInt(cores.RawTextMeasurement.bytes(characters(value, "RawText."))), BigInt(Buffer.byteLength(value, "utf8")))
     assert.equal(text(cores.RawText.trim(chars)), value.trim())
     assert.throws(
       () => cores.RawText.ascii_text(chars),
