@@ -5,7 +5,7 @@ import {
   type NativeFlow,
   type NativeWork
 } from "@hapsland/runtime-environment/runtime/native-execution"
-import { pureReply } from "./frontend-codec.ts"
+import { encodeGraphToken, encodeGraphCache } from "./reply-codec.ts"
 import type {
   StableCapture,
   CaptureDiagnostic as NativeCaptureDiagnostic
@@ -125,12 +125,12 @@ function createResolverFlow(
       input = tagged("ResolverInput", {
         invocation: BigInt(session.invocation),
         root_path: path,
-        root_capture: pureReply(session.registerCapture(capture)),
+        root_capture: encodeGraphToken(session.registerCapture(capture)),
         root_bytes: BigInt(capture.byteLength),
         root_name: name,
         root_source: capture.text,
         branch: tagged(context.branch === "function" ? "FunctionBranch" : "TypeBranch", {}),
-        caller_cache: pureReply(session.callerCache),
+        caller_cache: encodeGraphCache(session.callerCache),
         limits: {
           $: "../../../../agent-flow-bend/ImportGraph.Limits",
           version: BigInt(limits.version),

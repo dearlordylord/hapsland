@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect"
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { createBendResolver } from "../consumer.ts"
-import { pureReply } from "../frontend-codec.ts"
+import { encodeGraphReply } from "../reply-codec.ts"
 const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 export function createMachineDriver({ machine, foreign, registry, observeTransition, observeFinished, trace = false }) {
   return (session, input, options = {}) =>
@@ -25,7 +25,7 @@ export function createMachineDriver({ machine, foreign, registry, observeTransit
         }
         if (step.$ !== "Types.AwaitService") throw new Error("invalid Bend service step")
         operations?.push(step.request.operation.$)
-        const reply = pureReply(await foreign([step.request], options))
+        const reply = encodeGraphReply(await foreign([step.request], options))
         if (options.signal?.aborted) throw new TransportFailure("aborted")
         observeTransition?.(step, reply)
         state = machine.resume(state, tagged("ServiceReply", { reply }))

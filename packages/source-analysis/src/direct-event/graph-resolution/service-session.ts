@@ -7,7 +7,7 @@ import {
 } from "@hapsland/runtime-environment/runtime/native-execution"
 import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
 import { createHash } from "node:crypto"
-import { pureReply } from "./frontend-codec.ts"
+import { encodeGraphReply } from "./reply-codec.ts"
 import { parseGoFileFacts } from "./go-module/parser-facts.ts"
 import type {
   CaptureDiagnostic,
@@ -460,7 +460,7 @@ export function createServiceSession({
   return session
 }
 
-export type GraphServiceReply = ReturnType<typeof pureReply<Reply>>
+export type GraphServiceReply = Reply<bigint>
 
 // Graph effects and emitted Nat encoding retain their owner when a resident
 // registry also holds Source, Preparation, Post and Advice resource sessions.
@@ -468,7 +468,7 @@ export async function performGraphServiceRequest(
   session: ServiceSession,
   request: Request,
   options?: PerformOptions
-): Promise<ReturnType<typeof pureReply<Reply>>> {
+): Promise<Reply<bigint>> {
   if (
     !("callerCache" in session) ||
     typeof session.registerCapture !== "function" ||
@@ -476,7 +476,7 @@ export async function performGraphServiceRequest(
     typeof session.cacheSnapshot !== "function"
   )
     throw new TypeError("Wrong graph service session")
-  return pureReply(await session.perform(request, options))
+  return encodeGraphReply(await session.perform(request, options))
 }
 
 export function performGraphServiceEffect(
@@ -492,7 +492,7 @@ export function performGraphServiceEffect(
       typeof session.cacheSnapshot !== "function"
     )
       throw new TypeError("Wrong graph service session")
-    return session.performEffect(request, options).pipe(Effect.map((reply) => pureReply(reply)))
+    return session.performEffect(request, options).pipe(Effect.map((reply) => encodeGraphReply(reply)))
   })
 }
 
@@ -506,7 +506,7 @@ export function createServiceRegistry() {
     get pendingCleanup() {
       return registry.pendingCleanup
     },
-    async perform(request: Request, options?: PerformOptions): Promise<ReturnType<typeof pureReply<Reply>>> {
+    async perform(request: Request, options?: PerformOptions): Promise<Reply<bigint>> {
       const session = registry.get(hostNatural(request.invocation))
       if (!session) throw new TypeError("Unknown graph service invocation")
       return performGraphServiceRequest(session, request, options)

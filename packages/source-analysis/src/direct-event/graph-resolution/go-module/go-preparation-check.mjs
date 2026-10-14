@@ -15,7 +15,8 @@ import {
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { prepareGoGraph } from "./verification/native-preparation.ts"
 import { createServiceRegistry, createServiceSession } from "../service-session.ts"
-import { factDeclaration, pureReply } from "../frontend-codec.ts"
+import { factDeclaration } from "../frontend-codec.ts"
+import { encodeGraphReply } from "../reply-codec.ts"
 import { createEntryReferenceDriver } from "../entry-driver-check.mjs"
 
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
@@ -614,7 +615,7 @@ try {
           registry,
           foreign: async ([request], options) => {
             ownedRequests++
-            return pureReply(await registry.get(Number(request.invocation)).perform(request, options))
+            return encodeGraphReply(await registry.get(Number(request.invocation)).perform(request, options))
           }
         })
         const resolver = createBendResolver({

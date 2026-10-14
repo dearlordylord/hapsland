@@ -17,7 +17,10 @@ export type Variant<Name extends string, Fields extends object = Record<never, n
 } & Fields
 export type Maybe<Value> = { readonly $: "None" } | { readonly $: "Some"; readonly value: Value }
 export type TokenKind = "ClockToken" | "CaptureToken" | "SelectionToken" | "ExceptionToken" | "CacheToken"
-export type Token<Kind extends TokenKind> = Variant<Kind, { readonly invocation: Natural; readonly id: Natural }>
+export type Token<Kind extends TokenKind, Nat extends Natural = Natural> = Variant<
+  Kind,
+  { readonly invocation: Nat; readonly id: Nat }
+>
 export type ResourceValues = {
   ClockToken: number
   CaptureToken: StableCapture
@@ -87,16 +90,16 @@ export type Request = Variant<
   "Request",
   { readonly invocation: Natural; readonly id: Natural; readonly operation: Operation }
 >
-type CacheOutcome =
+type CacheOutcome<Nat extends Natural> =
   | Variant<"CacheAbsent">
-  | Variant<"CachePresent", { readonly capture: Token<"CaptureToken">; readonly bytes: Natural }>
+  | Variant<"CachePresent", { readonly capture: Token<"CaptureToken", Nat>; readonly bytes: Nat }>
 export type GoConfiguration = {
   readonly $: "go-module/Configuration.Configuration"
   readonly goos: string
   readonly goarch: string
   readonly tags: List<Extract<ServiceOutcome, Variant<"GoBuildTextResult">>["source"]>
 }
-export type ServiceOutcome =
+export type ServiceOutcome<Nat extends Natural = Natural> =
   | Variant<"GoConfigurationRead", { readonly configuration: Maybe<GoConfiguration> }>
   | Variant<"AnalysisConfigurationIdentityRead", { readonly identity: Maybe<string> }>
   | Variant<
@@ -137,7 +140,7 @@ export type ServiceOutcome =
     >
   | Variant<"DirectoryEntriesObserved", { readonly entries: List<string>; readonly complete: boolean }>
   | Variant<"DirectoryEntriesUnavailable">
-  | Variant<"ClockStarted", { readonly clock: Token<"ClockToken"> }>
+  | Variant<"ClockStarted", { readonly clock: Token<"ClockToken", Nat> }>
   | Variant<"ClockRead", { readonly bits: Binary64 }>
   | Variant<"DirnameResult" | "JoinedResult" | "NormalizedResult" | "RelativeResult", { readonly path: string }>
   | Variant<"BasenameResult", { readonly name: string }>
@@ -189,14 +192,17 @@ export type ServiceOutcome =
       {
         readonly outcome:
           | Variant<"AccessDenied">
-          | Variant<"AccessAllowed", { readonly selection: Token<"SelectionToken">; readonly relative_path: string }>
+          | Variant<
+              "AccessAllowed",
+              { readonly selection: Token<"SelectionToken", Nat>; readonly relative_path: string }
+            >
       }
     >
-  | Variant<"InvocationCacheCreated", { readonly cache: Token<"CacheToken"> }>
-  | Variant<"CacheResult", { readonly outcome: CacheOutcome }>
+  | Variant<"InvocationCacheCreated", { readonly cache: Token<"CacheToken", Nat> }>
+  | Variant<"CacheResult", { readonly outcome: CacheOutcome<Nat> }>
   | Variant<
       "CacheSnapshot",
-      { readonly entries: List<Variant<"CaptureBytes", { readonly path: string; readonly bytes: Natural }>> }
+      { readonly entries: List<Variant<"CaptureBytes", { readonly path: string; readonly bytes: Nat }>> }
     >
   | Variant<"CacheStored" | "RootCacheInserted" | "DiagnosticObserved">
   | Variant<
@@ -206,7 +212,7 @@ export type ServiceOutcome =
           | Variant<"CaptureUnavailable", { readonly diagnostic: CaptureDiagnostic }>
           | Variant<
               "SourceCaptured",
-              { readonly capture: Token<"CaptureToken">; readonly relative_path: string; readonly bytes: Natural }
+              { readonly capture: Token<"CaptureToken", Nat>; readonly relative_path: string; readonly bytes: Nat }
             >
       }
     >
@@ -234,11 +240,11 @@ export type ServiceOutcome =
           | Variant<"RustModulesInspected", { readonly names: List<string> }>
       }
     >
-  | Variant<"ProductEncoded" | "SourceTextEncoded", { readonly bytes: Natural }>
-  | Variant<"ProviderRejected", { readonly exception: Token<"ExceptionToken"> }>
-export type Reply = Variant<
+  | Variant<"ProductEncoded" | "SourceTextEncoded", { readonly bytes: Nat }>
+  | Variant<"ProviderRejected", { readonly exception: Token<"ExceptionToken", Nat> }>
+export type Reply<Nat extends Natural = Natural> = Variant<
   "Reply",
-  { readonly invocation: Natural; readonly id: Natural; readonly outcome: ServiceOutcome }
+  { readonly invocation: Nat; readonly id: Nat; readonly outcome: ServiceOutcome<Nat> }
 >
 export type ResolverInput = Variant<
   "ResolverInput",

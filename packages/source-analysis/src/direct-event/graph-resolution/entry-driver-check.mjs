@@ -6,7 +6,7 @@ import * as path from "node:path"
 import { pathToFileURL } from "node:url"
 import { createHash } from "node:crypto"
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { pureReply } from "./frontend-codec.ts"
+import { encodeGraphReply } from "./reply-codec.ts"
 
 const label = (value) => value.$.split(".").at(-1)
 const mapValues = (value, nominal = (tag) => tag) => {
@@ -226,7 +226,7 @@ export async function createEntryReferenceDriver({ temporary, go, python, artifa
         assert.equal(request.invocation, input.invocation, "entry request invocation")
         assert.equal(request.id, BigInt(++requests), "contiguous whole-entry request sequence")
         counts.requests++
-        const reply = pureReply(await session.perform(request, options))
+        const reply = encodeGraphReply(await session.perform(request, options))
         assert.equal(reply.invocation, request.invocation)
         assert.equal(reply.id, request.id)
         progress = program.complete(progress, {

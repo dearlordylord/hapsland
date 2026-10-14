@@ -1,4 +1,3 @@
-import { mapGraphAbi } from "./abi-mapping.ts"
 import type { ReviewArtifact, BundledArtifactOrigin } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import type { GraphFacts, GraphReference } from "../languages/contracts.ts"
 import {
@@ -194,23 +193,4 @@ export function tomlValue(value: unknown): TomlValue {
       fields: list(Object.entries(value).map(([key, item]) => tuple(key, tomlValue(item))))
     })
   throw new Error("unsupported TOML engine value")
-}
-
-type NaturalReply<Value> = Value extends readonly (infer Item)[]
-  ? NaturalReply<Item>[]
-  : Value extends object
-    ? {
-        [Key in keyof Value]: Key extends "invocation" | "id" | "bytes"
-          ? Value[Key] extends number
-            ? bigint
-            : NaturalReply<Value[Key]>
-          : NaturalReply<Value[Key]>
-      }
-    : Value
-
-// Only the emitted Nat ABI is converted here; graph decisions remain in Bend.
-export function pureReply<Value>(value: Value): NaturalReply<Value> {
-  return mapGraphAbi(value, (key, item) =>
-    ["invocation", "id", "bytes"].includes(key) && typeof item === "number" ? BigInt(item) : item
-  ) as NaturalReply<Value>
 }

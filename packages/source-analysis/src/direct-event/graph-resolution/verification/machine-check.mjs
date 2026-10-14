@@ -19,7 +19,7 @@ import {
   createIODriver,
   createVerificationEffectResolver as createBendEffectResolver
 } from "./resolver-driver.mjs"
-import { pureReply } from "../frontend-codec.ts"
+import { encodeGraphToken, encodeGraphCache } from "../reply-codec.ts"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),
   tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
@@ -93,12 +93,12 @@ try {
     tagged("ResolverInput", {
       invocation: BigInt(session.invocation),
       root_path: path,
-      root_capture: pureReply(session.registerCapture({ text: source, byteLength: Buffer.byteLength(source) })),
+      root_capture: encodeGraphToken(session.registerCapture({ text: source, byteLength: Buffer.byteLength(source) })),
       root_bytes: BigInt(Buffer.byteLength(source)),
       root_name: "Root",
       root_source: source,
       branch: tagged(branch === "function" ? "FunctionBranch" : "TypeBranch"),
-      caller_cache: pureReply(session.callerCache),
+      caller_cache: encodeGraphCache(session.callerCache),
       limits,
       ...overrides
     })
