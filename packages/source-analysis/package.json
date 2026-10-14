@@ -95,10 +95,6 @@
     "./testing/native-graph": {
       "types": "./dist/direct-event/graph-resolution/verification/native-graph-entry.d.ts",
       "default": "./dist/direct-event/graph-resolution/verification/native-graph-entry.js"
-    },
-    "./direct-event/graph-resolution/abi-mapping": {
-      "types": "./dist/direct-event/graph-resolution/abi-mapping.d.ts",
-      "default": "./dist/direct-event/graph-resolution/abi-mapping.js"
     }
   },
   "dependencies": {

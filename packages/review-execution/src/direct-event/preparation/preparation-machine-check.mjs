@@ -6,6 +6,128 @@ import { randomUUID } from "node:crypto"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createPreparationMachine } from "./preparation-dispatcher.ts"
+// Closed ABI transport must touch only Graph references, never source payloads.
+{
+  const list = (values) => values.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+  const array = (value) => {
+    const out = []
+    while (value.$ === "Con") {
+      out.push(value.head)
+      value = value.tail
+    }
+    return out
+  }
+  let received
+  const failed = { $: "Failed", reason: "probe" }
+  const core = {
+    initial_settled(_invocation, input) {
+      received = input
+      return { $: "Some", value: failed }
+    },
+    resume_settled(_step, reply) {
+      received = reply
+      return { $: "Some", value: failed }
+    }
+  }
+  const dispatcher = createPreparationMachine(core)
+  const input = { candidates: { $: "Nil" } }
+  dispatcher.initial({ invocation: 1n, preparation: input })
+  assert.equal(received, input)
+  const owner = "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."
+  const planned = [
+    { $: "traversal/core.Included", identity: "same" },
+    { $: "traversal/core.Expanded", node: 7n },
+    ...["Unresolved", "UnsupportedTarget", "ReferenceLimit", "Unavailable"].map((reason) => ({
+      $: "traversal/core.Omitted",
+      reason: { $: "traversal/core." + reason },
+      target_name: "Target"
+    }))
+  ]
+  const payload = { $: "Value.ProductText", value: "Types.Payload" }
+  Object.defineProperty(payload, "unread", {
+    enumerable: true,
+    get() {
+      throw new Error("unexpected payload traversal")
+    }
+  })
+  const references = planned.map((reference) => ({
+    $: "traversal/core.ReferenceSlot",
+    owner: 1n,
+    index: 2n,
+    symbol: "symbol",
+    reference
+  }))
+  for (const slots of [[], references, Array.from({ length: 25000 }, (_, i) => references[i % references.length])]) {
+    const reply = {
+      $: "Reply",
+      invocation: 1n,
+      id: 2n,
+      response: {
+        $: "RootResolved",
+        unit: { $: "Some", value: payload },
+        captures: { $: "Nil" },
+        references: list(slots)
+      }
+    }
+    dispatcher.resume(failed, { $: "Types.ServiceReply", reply })
+    assert.equal(received.response.unit, reply.response.unit)
+    const encoded = array(received.response.references)
+    assert.equal(encoded.length, slots.length)
+    encoded.forEach((slot, index) => {
+      const source = slots[index]
+      assert.equal(slot.$, owner + "ReferenceSlot")
+      assert.equal(slot.owner, source.owner)
+      assert.equal(slot.index, source.index)
+      assert.equal(slot.symbol, source.symbol)
+      const expected = { ...source.reference, $: owner + source.reference.$.slice("traversal/core.".length) }
+      if (source.reference.reason)
+        expected.reason = { $: owner + source.reference.reason.$.slice("traversal/core.".length) }
+      assert.deepEqual(slot.reference, expected)
+    })
+  }
+  for (const response of [{ $: "Ack" }, { $: "SourceUnavailable", diagnostic: payload }]) {
+    dispatcher.resume(failed, { $: "Types.ServiceReply", reply: { $: "Reply", invocation: 1n, id: 2n, response } })
+    assert.equal(received.response, response)
+  }
+  assert.throws(() => dispatcher.resume(failed, { $: "wrong" }), { message: "Invalid preparation reply envelope" })
+  const bad = {
+    $: "RootResolved",
+    unit: { $: "None" },
+    captures: { $: "Nil" },
+    references: list([{ ...references[0], reference: { $: "traversal/core.Unknown" } }])
+  }
+  assert.throws(
+    () =>
+      dispatcher.resume(failed, {
+        $: "Types.ServiceReply",
+        reply: { $: "Reply", invocation: 1n, id: 2n, response: bad }
+      }),
+    /Invalid Graph planned reference/
+  )
+  for (const method of ["initial_settled", "resume_settled"]) {
+    const guarded = createPreparationMachine({ ...core, [method]: () => ({ $: "None" }) })
+    assert.throws(
+      () =>
+        method === "initial_settled"
+          ? guarded.initial({ invocation: 1n, preparation: input })
+          : guarded.resume(failed, {
+              $: "Types.ServiceReply",
+              reply: { $: "Reply", invocation: 1n, id: 2n, response: { $: "Ack" } }
+            }),
+      /Preparation internal dispatch did not settle/
+    )
+  }
+  assert.throws(() => dispatcher.view({ $: "Internal" }), /Unsettled preparation projection/)
+  assert.throws(() => dispatcher.accepted({ $: "Types.AwaitService" }), /Invalid accepted preparation projection/)
+  console.log(
+    JSON.stringify({
+      closedPreparationAbi: true,
+      referenceVariants: 6,
+      longReferenceList: 25000,
+      payloadNotTraversed: true
+    })
+  )
+}
 const temporary = await mkdtemp("/tmp/hapsland-preparation-machine-")
 try {
   const emitted = join(temporary, "preparation.mjs")

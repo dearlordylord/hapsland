@@ -8,7 +8,7 @@ import {
 } from "@hapsland/runtime-environment/runtime/native-execution"
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import preparationCore from "./preparation-core.js"
-import { createPreparationMachine, type ResolverWire } from "./preparation-dispatcher.ts"
+import { createPreparationMachine, type PreparationReply } from "./preparation-dispatcher.ts"
 import {
   type FinalizationInput,
   type FinalizedOutcome,
@@ -16,13 +16,13 @@ import {
   type Execution
 } from "./preparation-finalization.ts"
 import { decodePreparationResult } from "./preparation-result-codec.ts"
-import type { Command, Request, Reply } from "./preparation-core.js"
+import type { Command, Request } from "./preparation-core.js"
 import type { SourcePreparationContext } from "./contract.ts"
 import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
-export type PreparationEffectRequest = Omit<ResolverWire<Request>, "command"> & {
-  readonly command: Exclude<ResolverWire<Command>, { readonly $: "RenderUnits" }>
+export type PreparationEffectRequest = Omit<Request, "command"> & {
+  readonly command: Exclude<Command, { readonly $: "RenderUnits" }>
 }
 export type PreparationExecution = Execution & {
   readonly ownerLease: {
@@ -41,7 +41,7 @@ export type PreparationPorts = {
   readonly performEffect: (
     request: PreparationEffectRequest,
     execution: PreparationExecution
-  ) => NativeFlow<ResolverWire<Reply>>
+  ) => NativeFlow<PreparationReply>
   readonly context: SourcePreparationContext
   readonly root: string
   readonly graphLimits: GraphLimits
@@ -56,10 +56,7 @@ export type PreparationPorts = {
  * Finalization policy stays inside this capability; external ports provide facts.
  */
 export function createPreparationCapability(ports: PreparationPorts) {
-  function* performFlow(
-    requests: readonly ResolverWire<Request>[],
-    execution: PreparationExecution
-  ): NativeFlow<ResolverWire<Reply>> {
+  function* performFlow(requests: readonly Request[], execution: PreparationExecution): NativeFlow<PreparationReply> {
     if (requests.length !== 1) throw new TypeError("Preparation requires one driver request")
     const request = requests[0]!
     if (execution.ownerLease.invocation !== request.invocation || execution.ownerLease.request !== request.id)
@@ -116,9 +113,9 @@ export function createPreparationCapability(ports: PreparationPorts) {
   }
   return {
     machine: createPreparationMachine(preparationCore),
-    perform: (requests: readonly ResolverWire<Request>[], execution: PreparationExecution) =>
+    perform: (requests: readonly Request[], execution: PreparationExecution) =>
       runNativePromise(performFlow(requests, execution)),
-    performEffect: (requests: readonly ResolverWire<Request>[], execution: PreparationExecution) =>
+    performEffect: (requests: readonly Request[], execution: PreparationExecution) =>
       Effect.suspend(() => runNativeEffect(performFlow(requests, execution), () => {})),
     decode: decodePreparationResult
   }
