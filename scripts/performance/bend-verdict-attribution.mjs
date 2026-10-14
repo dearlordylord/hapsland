@@ -68,6 +68,12 @@ Bun.plugin({
       if (path === safe) {
         const retry = "    return null;\n  }\n  // a def that names a def out of scope is out too"
         const regroup = "  throw new Regroup(key);"
+        const registration = "  let n = e.names.get(key);\n  if (n === undefined) {"
+        assert.equal(source.split(registration).length, 2)
+        source = source.replace(
+          registration,
+          `${registration}\n    if (k === "Nat.read.go") console.error(JSON.stringify({diagnosticOnly: true,\n      stage: "nat_read_registration", pass: __hapslandPass, live, stack: e.stack}));`
+        )
         assert.equal(source.split(retry).length, 2)
         assert.equal(source.split(regroup).length, 2)
         source = source.replace(
@@ -80,7 +86,7 @@ ${retry}`
         source = source.replace(
           regroup,
           `  console.error(JSON.stringify({diagnosticOnly: true, stage: "regroup",
-            pass: __hapslandPass, key, leader: g.k, members: g.ms, grew: e.grew}));
+            pass: __hapslandPass, key, leader: g.k, members: g.ms, grew: e.grew, stack: e.stack}));
 ${regroup}`
         )
         source = instrument(source, ["safe_pass", "item_emit"])
