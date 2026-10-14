@@ -10479,8 +10479,6 @@ def ready_encoded_decision(-World: Data, +actual: T.ResolverState, +reference: D
       Phase.Child{_, _, _, _, +original_source_bytes, _, _, _, +original_before, F.Forest{Some{_}, _}, _, +original_payloads, _, V.Budget{_, _, _, +original_work, _, _}, _, _}, _}
       V.History{+original_addresses, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
       Phase.ChildHistory{F.Created{_, _, +original_child_addresses}, +original_source, +original_catalog, _, _}:
-      +ref_graph: G.Bounded = G.Bounded{ref_unbounded, ref_remaining}
-      +ref_local: Signed.State = Signed.State{Recursive.State{ref_values, Local.Budget{ref_limits, ref_paths, ref_max_targets, ref_work, ref_graph_work, ref_depth}, ref_next_address, ref_pending_rev}, ref_signed}
       match validation:
         case None{}:
           match shared:
@@ -10503,6 +10501,8 @@ def ready_encoded_decision(-World: Data, +actual: T.ResolverState, +reference: D
                                             case Compose.Attachment{_, _, _, _, _, _, +candidate_ids, _, _}:
                                               match forest_witness:
                                                 case (+forest, (+attached, (replaced, (+shared_product, (materialized, (request_equal, (shared_measurement, reference_observations))))))):
+                                                  +ref_graph: G.Bounded = G.Bounded{ref_unbounded, ref_remaining}
+                                                  +ref_local: Signed.State = Signed.State{Recursive.State{ref_values, Local.Budget{ref_limits, ref_paths, ref_max_targets, ref_work, ref_graph_work, ref_depth}, ref_next_address, ref_pending_rev}, ref_signed}
                                                   +original_selected: {ActualReady.parts(actual, Some{original_frame}, Some{original_child}, Some{original_edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>} = ready_actual_parts_installed(actual, history, child_history, phase, original_frame, original_child, original_edge, frame_present, child_present, edge_present, original_ready)
                                                   +reference_selection: {ReferenceBoundary.enter(reference, child, previous) == D.request(reference, D.Transaction{X.attached(F.Replaced{forest}, D.frame(reference), child, previous)}, T.EncodeProduct{shared_product}) : D.Selection} =
                                                     ready_reference_replaced_measurement(reference, child, previous, forest, shared_product,
