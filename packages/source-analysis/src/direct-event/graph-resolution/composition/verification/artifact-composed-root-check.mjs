@@ -65,10 +65,12 @@ try {
       return pair
     }
     machine = {
+      kind: split.kind,
       initial: (input) => compare({ split: split.initial(input), shadow: shadow.initial(input) }),
       resume: (state, event) =>
         compare({ split: split.resume(state.split, event), shadow: shadow.resume(state.shadow, event) }),
       view: (state) => split.view(state.split),
+      awaitingRequest: (state) => split.awaitingRequest(state.split),
       dispose: split.dispose,
       disposeInvocation: split.disposeInvocation,
       get retainedHandles() {
@@ -111,6 +113,10 @@ try {
   const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
   const guarded = {
     ...machine,
+    awaitingRequest(state) {
+      activeState = state
+      return machine.awaitingRequest(state)
+    },
     view(state) {
       activeState = state
       const projection = machine.view(state)
