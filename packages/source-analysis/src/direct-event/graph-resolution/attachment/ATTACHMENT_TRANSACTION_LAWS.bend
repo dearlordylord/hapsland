@@ -11197,10 +11197,20 @@ def ready_encoded_shared(-World: Data, +actual: T.ResolverState, +reference: D.S
                                             Tuple{original_frame, Tuple{original_child, Tuple{original_edge, Tuple{frame_present, Tuple{child_present, Tuple{edge_present, Tuple{attachment, Tuple{forest, Tuple{attached, Tuple{replaced, Tuple{shared_product, Tuple{materialized, Tuple{request_equal, Tuple{Tuple{shared_measured, Tuple{shared_request, Tuple{shared_awaited, Tuple{shared_encoded, Tuple{shared_stage, shared_projected}}}}}, Tuple{reference_requested, reference_staged}}}}}}}}}}}}}}},
                                             ready_original_joined_witness(actual, reference, child, history, child_history, phase, previous, original_ready,
                                               Tuple{original_frame, Tuple{original_child, Tuple{original_edge, Tuple{frame_present, Tuple{child_present, Tuple{edge_present, Tuple{attachment, Tuple{forest, Tuple{attached, Tuple{replaced, Tuple{shared_product, Tuple{materialized, Tuple{request_equal, Tuple{Tuple{shared_measured, Tuple{shared_request, Tuple{shared_awaited, Tuple{shared_encoded, Tuple{shared_stage, shared_projected}}}}}, Tuple{reference_requested, reference_staged}}}}}}}}}}}}}}}))
-    case Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _} _ _:
+    case Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _} V.History{_, _, _, _, _, _, _} Phase.ChildHistory{F.Created{_, _, _}, _, _, _, _}:
       match shared:
-        case (+original_frame, (+original_child, (+original_edge, (frame_present, (child_present, (edge_present, parent_witness)))))):
-          Empty.absurd(Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world), parent_witness)
+        case (+original_frame, child_witness):
+          match child_witness:
+            case (+original_child, edge_witness):
+              match original_child:
+                case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{_, _, _, _, _, _}, _, _, _}:
+                  match edge_witness:
+                    case (+original_edge, evidence):
+                      match original_edge:
+                        case Local.Pending{_, _, _, _, _, _, _, _}:
+                          match evidence:
+                            case (frame_present, (child_present, (edge_present, parent_witness))):
+                              Empty.absurd(Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world), parent_witness)
 
 def ready_attachment_transaction_exact(-World: Data, +actual: T.ResolverState, +reference: D.State, +child: X.Child, +phase: Phase.Phase, +history: V.History, +child_history: Phase.ChildHistory, +previous: Nat, +reply: T.Reply, +world: E.WorldState<World>, ready: {ActualReady.project(actual, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) -> Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world):
   match reply:
@@ -11277,6 +11287,9 @@ def ready_attachment_transaction_exact(-World: Data, +actual: T.ResolverState, +
     case T.Reply{_, _, T.DiagnosticObserved{}}:
       ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
     case T.Reply{+owner, +id, T.ProductEncoded{+bytes}}:
+      +ready = ready
+      +reference_ready = reference_ready
+      +coherent = coherent
       ready_encoded_shared(World, actual, reference, child, phase, history, previous, owner, id, bytes, world, child_history, ready, reference_ready, coherent,
         ready_original_shared(actual, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent))
     case T.Reply{_, _, T.SourceTextEncoded{_}}:
