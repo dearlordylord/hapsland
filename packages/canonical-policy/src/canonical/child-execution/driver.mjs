@@ -39,7 +39,7 @@ const constructionFailure = (value) => constructionFailureTag in value
  * @template {import("./contract.ts").Request} R
  * @template Reply, A, Prep
  * @template {import("./contract.ts").Session} S
- * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<S>>, foreign: (requests: readonly R[], options: ForeignOptions) => Promise<Reply>, foreignSync?: (requests: readonly R[], options: ForeignOptions) => {readonly value: Reply} | undefined, control?: Control, machine: M, selectMachine?: (input: I, session: S) => M | undefined, protocol: import("./contract.ts").Protocol<I, M, C, P, R, Reply, A, Prep, S>, hooks?: {
+ * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<S>>, foreign: (requests: readonly R[], options: ForeignOptions) => Promise<Reply>, foreignSync?: (requests: readonly R[], options: ForeignOptions) => import("./contract.ts").ForeignReply<Reply> | undefined, control?: Control, machine: M, selectMachine?: (input: I, session: S) => M | undefined, protocol: import("./contract.ts").Protocol<I, M, C, P, R, Reply, A, Prep, S>, hooks?: {
  * beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
  * beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
  * afterAction?: (event: {command: Action, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
@@ -524,6 +524,8 @@ export function createChildExecutionDriver({
             const lease = required(leases.get(leaseId))
             /** @type {ReplyPayload} */
             let payload
+            let immediateFailure = false,
+              awaited = false
             try {
               const signal = options.signal
                 ? AbortSignal.any([options.signal, lease.controller.signal])
@@ -540,10 +542,17 @@ export function createChildExecutionDriver({
                 })
               }
               const synchronous = foreignSync?.([lease.request], execution)
-              payload = {
-                value: synchronous === undefined ? await foreign([lease.request], execution) : synchronous.value
-              }
+              if (synchronous === undefined) {
+                // The existing async port keeps its late-reply discard rules.
+                awaited = true
+                payload = { value: await foreign([lease.request], execution) }
+              } else if ("pending" in synchronous) {
+                awaited = true
+                const value = await synchronous.pending
+                payload = { value: synchronous.map(value) }
+              } else payload = { value: synchronous.value }
             } catch (error) {
+              immediateFailure = !awaited
               payload = { error }
             }
             const replyId = save(invocation, { kind: "reply", value: payload })
@@ -571,6 +580,12 @@ export function createChildExecutionDriver({
               throw error
             } finally {
               release(replyId, invocation)
+            }
+            if (immediateFailure && "error" in payload) {
+              // Cancellation can discard the reply but cannot turn an engine
+              // throw before any await into a late asynchronous rejection.
+              taskFailure = takeFailure(payload.error)
+              throw payload.error
             }
           }
           if (abortFailure) {

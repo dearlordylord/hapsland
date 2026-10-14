@@ -53,6 +53,11 @@ export type Session = NativeSession & {
 export type Input = { readonly invocation: bigint | number; readonly kind?: never }
 export type Machine = { disposeInvocation(invocation: bigint): void; readonly retainedHandles: number }
 export type Request = { readonly invocation: bigint; readonly id: bigint }
+// A pending engine is invoked before the await boundary; mapping its raw reply
+// afterward must not execute the effect again or choose product progression.
+export type ForeignReply<Reply> =
+  | { readonly value: Reply }
+  | { readonly pending: Promise<unknown>; readonly map: (value: unknown) => Reply }
 export type Projection = { readonly kind: string; readonly view: { readonly $: string } }
 export type PreparationHandoff = {
   readonly handoff: bigint

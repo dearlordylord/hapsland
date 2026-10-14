@@ -22,7 +22,11 @@ export function createPreparationFinalizationConsumer(
       const accepted = execution.accepted(step)
       if (accepted !== undefined) return accepted
       const synchronous = execution.performSync(step)
-      const response = synchronous === undefined ? await execution.performAsync(step) : synchronous.value
+      let response
+      if (synchronous === undefined) {
+        const engine = execution.performPending(step)
+        response = engine.map(await engine.pending)
+      } else response = synchronous.value
       step = execution.resume(step, response)
     }
   }

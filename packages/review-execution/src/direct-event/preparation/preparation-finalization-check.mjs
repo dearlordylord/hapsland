@@ -12,6 +12,16 @@ import { registeredLanguages } from "@hapsland/source-analysis/direct-event/lang
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { initialCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 import { createPreparationFinalizationConsumer } from "../../../dist/direct-event/preparation/verification/finalization-engine-consumer.js"
+import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
+import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
+import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
+import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
+import {
+  createFinalizationMachine,
+  finalizationProtocol,
+  performFinalizationSync,
+  performFinalizationAsync
+} from "../../../dist/direct-event/preparation/finalization-protocol.js"
 import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import {
   productValue,
@@ -433,118 +443,213 @@ try {
     assert.equal(result.outputs.length, 1)
     return result.outputs[0].gate === "admit"
   }
-  const consume = createPreparationFinalizationConsumer({ machine: core, canonicalGate: runtimeGate })
-  const runtimeInput = (settings, currentRules) => ({
-    invocation: 700,
-    command: 19,
-    units: [unit],
-    declarations: [{ artifact: root, location }],
-    path: "run.ts",
-    frame: {
-      contract: FUNCTION_INPUT_CONTRACT,
-      graphLimits: GRAPH_LIMIT_CEILINGS,
-      supportingCaptures: captures,
-      observation: { root: "/workspace" },
-      context: { settings, rules: currentRules }
-    }
-  })
-  const unusedFallback = {}
-  Object.defineProperty(unusedFallback, "rules", {
-    get() {
-      throw new Error("unused fallback read")
-    }
-  })
-  const frozen = await consume(runtimeInput(unusedFallback, () => [rules[1]]))
-  assert.equal(frozen.length, 1)
-  assert.ok(Object.isFrozen(frozen[0].prepared.input))
-  assert.ok(Object.isFrozen(frozen[0].prepared.input.unit.root.artifact))
-  runtimeCases++
-  const readError = new Error("original current rules exception")
-  await assert.rejects(
-    consume(
-      runtimeInput({ rules }, () => {
-        throw readError
+  const createOwnedConsumer =
+    (canonicalGate) =>
+    async (input, execution = {}) => {
+      let state = owner.initial_limits(100n, 1000000n, 100n, 1000000n)
+      const opened = owner.canonical_event(state, { $: "../Canonical.OpenRound", partition: 1n, lifetime: 1n })
+      assert.equal(opened.$, "Advanced")
+      state = opened.state
+      for (const step of unlist(owner.begin_public_preparation(state, 1n, 1n, 1n, 100n))) {
+        assert.equal(step.$, "Advanced")
+        state = step.state
+      }
+      const registry = createNativeSessionRegistry()
+      const machine = createFinalizationMachine({ machine: core, canonicalGate })
+      const driver = createChildExecutionDriver({
+        owner,
+        initialState: state,
+        scope: { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },
+        machine,
+        registry,
+        protocol: finalizationProtocol,
+        foreignSync: ([request]) => performFinalizationSync(request),
+        foreign: ([request]) => performFinalizationAsync(request)
       })
-    ),
-    (error) => error === readError
-  )
-  runtimeCases++
-  for (const original of [undefined, null, false, 0, ""]) {
-    for (const native of [false, true]) {
-      let reads = 0
-      const input = runtimeInput({ rules }, () => {
-        reads++
-        throw original
-      })
-      input.units = [unit, unit]
-      const observed = await Promise.resolve()
-        .then(() =>
-          native ? nativePrepareReadyUnits(input.units, input.declarations, input.path, input.frame) : consume(input)
-        )
-        .then(
-          () => ({ raised: false }),
-          (error) => ({ raised: true, error })
-        )
-      assert.equal(observed.raised, true)
-      assert.equal(observed.error, original)
-      assert.equal(reads, 1, "a failed rules read must stop before the next unit")
-    }
-    runtimeCases++
-  }
-  const settingsBefore = () => ({
-    rules,
-    providerIdentity: { provider: "openai", model: "gpt-6-luna", destination: "before" }
-  })
-  const update = (settings) => () => {
-    settings.providerIdentity = { provider: "openai", model: "gpt-6-luna", destination: "after" }
-    return [rules[1]]
-  }
-  const expectedSettings = settingsBefore()
-  const expectedRuntimeInput = runtimeInput(expectedSettings, update(expectedSettings))
-  const expectedUpdated = nativePrepareReadyUnits(
-    expectedRuntimeInput.units,
-    expectedRuntimeInput.declarations,
-    expectedRuntimeInput.path,
-    expectedRuntimeInput.frame
-  )
-  const actualSettings = settingsBefore()
-  assert.deepEqual(await consume(runtimeInput(actualSettings, update(actualSettings))), expectedUpdated)
-  runtimeCases++
-  const originalEncode = globalThis.encodeURIComponent
-  const originalURIError = new URIError("original URI engine exception")
-  try {
-    globalThis.encodeURIComponent = () => {
-      throw originalURIError
-    }
-    const settings = {
-      rules,
-      configuration: {
-        policy: {
-          layers: [
-            {
-              name: "user",
-              document: {
-                reviewBackend: { provider: "cloudflare", model: "clef", accountId: "0123456789abcdef0123456789abcdef" }
-              }
-            }
-          ]
+      const invocation = driver.allocateInvocation()
+      let closes = 0
+      const session = {
+        invocation,
+        revoke() {},
+        close() {
+          closes++
         }
       }
+      try {
+        const result = await driver.drive(
+          session,
+          { invocation: BigInt(invocation), finalization: input, execution },
+          execution
+        )
+        if ("failure" in result) throw new TransportFailure("aborted")
+        assert.ok("finalization" in result)
+        return result.finalization
+      } finally {
+        assert.equal(closes, 1)
+        assert.equal(registry.pendingCleanup, 0)
+        assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+      }
     }
-    await assert.rejects(consume(runtimeInput(settings, () => [rules[1]])), (error) => error === originalURIError)
-  } finally {
-    globalThis.encodeURIComponent = originalEncode
-  }
-  runtimeCases++
-  const gateError = new Error("original Canonical gate exception")
-  const failedGate = createPreparationFinalizationConsumer({
-    machine: core,
-    canonicalGate: () => {
+  for (const createConsumer of [
+    (gate) => createPreparationFinalizationConsumer({ machine: core, canonicalGate: gate }),
+    createOwnedConsumer
+  ]) {
+    const consume = createConsumer(runtimeGate)
+
+    const runtimeInput = (settings, currentRules) => ({
+      invocation: 700,
+      command: 19,
+      units: [unit],
+      declarations: [{ artifact: root, location }],
+      path: "run.ts",
+      frame: {
+        contract: FUNCTION_INPUT_CONTRACT,
+        graphLimits: GRAPH_LIMIT_CEILINGS,
+        supportingCaptures: captures,
+        observation: { root: "/workspace" },
+        context: { settings, rules: currentRules }
+      }
+    })
+    const unusedFallback = {}
+    Object.defineProperty(unusedFallback, "rules", {
+      get() {
+        throw new Error("unused fallback read")
+      }
+    })
+    const frozen = await consume(runtimeInput(unusedFallback, () => [rules[1]]))
+    assert.equal(frozen.length, 1)
+    assert.ok(Object.isFrozen(frozen[0].prepared.input))
+    assert.ok(Object.isFrozen(frozen[0].prepared.input.unit.root.artifact))
+    runtimeCases++
+    const readError = new Error("original current rules exception")
+    await assert.rejects(
+      consume(
+        runtimeInput({ rules }, () => {
+          throw readError
+        })
+      ),
+      (error) => error === readError
+    )
+    runtimeCases++
+    for (const original of [undefined, null, false, 0, ""]) {
+      for (const native of [false, true]) {
+        let reads = 0
+        const input = runtimeInput({ rules }, () => {
+          reads++
+          throw original
+        })
+        input.units = [unit, unit]
+        const observed = await Promise.resolve()
+          .then(() =>
+            native ? nativePrepareReadyUnits(input.units, input.declarations, input.path, input.frame) : consume(input)
+          )
+          .then(
+            () => ({ raised: false }),
+            (error) => ({ raised: true, error })
+          )
+        assert.equal(observed.raised, true)
+        assert.equal(observed.error, original)
+        assert.equal(reads, 1, "a failed rules read must stop before the next unit")
+      }
+      runtimeCases++
+    }
+    const settingsBefore = () => ({
+      rules,
+      providerIdentity: { provider: "openai", model: "gpt-6-luna", destination: "before" }
+    })
+    const update = (settings) => () => {
+      settings.providerIdentity = { provider: "openai", model: "gpt-6-luna", destination: "after" }
+      return [rules[1]]
+    }
+    const expectedSettings = settingsBefore()
+    const expectedRuntimeInput = runtimeInput(expectedSettings, update(expectedSettings))
+    const expectedUpdated = nativePrepareReadyUnits(
+      expectedRuntimeInput.units,
+      expectedRuntimeInput.declarations,
+      expectedRuntimeInput.path,
+      expectedRuntimeInput.frame
+    )
+    const actualSettings = settingsBefore()
+    assert.deepEqual(await consume(runtimeInput(actualSettings, update(actualSettings))), expectedUpdated)
+    runtimeCases++
+    const originalEncode = globalThis.encodeURIComponent
+    const originalURIError = new URIError("original URI engine exception")
+    try {
+      globalThis.encodeURIComponent = () => {
+        throw originalURIError
+      }
+      const settings = {
+        rules,
+        configuration: {
+          policy: {
+            layers: [
+              {
+                name: "user",
+                document: {
+                  reviewBackend: {
+                    provider: "cloudflare",
+                    model: "clef",
+                    accountId: "0123456789abcdef0123456789abcdef"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+      await assert.rejects(consume(runtimeInput(settings, () => [rules[1]])), (error) => error === originalURIError)
+    } finally {
+      globalThis.encodeURIComponent = originalEncode
+    }
+    runtimeCases++
+    const gateError = new Error("original Canonical gate exception")
+    const failedGate = createConsumer(() => {
       throw gateError
+    })
+    await assert.rejects(failedGate(runtimeInput({ rules }, () => [rules[1]])), (error) => error === gateError)
+    runtimeCases++
+    for (const mode of ["initial", "rules", "gate", "rules-throw", "gate-throw"]) {
+      const controller = new AbortController()
+      const original = new Error("abort then synchronous " + mode)
+      const trace = []
+      if (mode === "initial") controller.abort()
+      const input = runtimeInput({ rules }, () => {
+        trace.push("rules")
+        if (mode.startsWith("rules")) controller.abort()
+        if (mode === "rules-throw") throw original
+        return [rules[1]]
+      })
+      const execute = createConsumer((event) => {
+        trace.push("gate")
+        if (mode.startsWith("gate")) controller.abort()
+        if (mode === "gate-throw") throw original
+        return runtimeGate(event)
+      })
+      await assert.rejects(execute(input, { signal: controller.signal }), (error) =>
+        mode.endsWith("throw") ? error === original : error instanceof TransportFailure && error.code === "aborted"
+      )
+      assert.deepEqual(trace, mode === "initial" ? [] : mode.startsWith("rules") ? ["rules"] : ["rules", "gate"])
+      runtimeCases++
     }
-  })
-  await assert.rejects(failedGate(runtimeInput({ rules }, () => [rules[1]])), (error) => error === gateError)
-  runtimeCases++
+    const trace = []
+    let queued = false
+    const execute = createConsumer((event) => {
+      trace.push(queued ? "gate:after-microtask" : "gate:before-microtask")
+      return runtimeGate(event)
+    })
+    await execute(
+      runtimeInput({ rules }, () => {
+        trace.push("rules")
+        queueMicrotask(() => {
+          queued = true
+          trace.push("microtask")
+        })
+        return [rules[1]]
+      })
+    )
+    assert.deepEqual(trace.slice(0, 3), ["rules", "gate:before-microtask", "microtask"])
+    runtimeCases++
+  }
   console.log(
     JSON.stringify({
       passed: true,
@@ -556,7 +661,7 @@ try {
       rulesReads,
       rejectedReplies,
       scope:
-        "Whole ordered Bend prepareReadyUnits progression against actual native consumer, including short-circuit/read/omission chronology and nested/global correlation; universal proofs and production RenderUnits wiring remain open"
+        "Whole ordered Bend prepareReadyUnits progression against actual native consumer, including short-circuit/read/omission chronology and nested/global correlation; actual Canonical child runtime faults and cleanup; original universal proof and whole acceptance remain open"
     })
   )
 } finally {

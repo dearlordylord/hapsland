@@ -321,10 +321,11 @@ export function createPreparationFinalizationExecution({
         }
         return { value: response }
       },
-      async performAsync(step: Step): Promise<Response> {
+      performPending(step: Step) {
         if (step.$ !== "RulesRequest" || step.step.$ !== "RuleFinalization.CanonicalGate")
           throw new TypeError("Unexpected asynchronous finalization engine")
-        return { $: "CanonicalGate", admit: await canonicalGate(gateFacts(step.step), options) }
+        const pending = canonicalGate(gateFacts(step.step), options)
+        return { pending, map: (admit: boolean): Response => ({ $: "CanonicalGate", admit }) }
       },
       resume(step: Step, response: Response): Step {
         checkSignal(options.signal)

@@ -193,7 +193,11 @@ The pinned formatter now accepts UnitEvidence, Glob and PostPreparation after
 local binding of three existing lambdas; declaration-header limitations in the
 attachment proof owners remain open. Formatter passes do not establish proofs.
 
-One current obstacle list (updated 2026-10-14 at 01:01 UTC):
+One current obstacle list (updated 2026-10-14 at 01:26 UTC):
+
+The current Finalization cancellation/error correction passes matching workspace build46/46 (5cached,87.278s), the actual shared Canonical owner984 assertions, and complete Finalization66 cases plus32 runtime fault/chronology cases on both the direct verification consumer and actual Canonical child. The original rules/gate callback abort-then-throw case first failed: Canonical discarded the reply and returned aborted instead of the original synchronous error. The binding now calls the engine before its single original await, carries that exact pending Promise with a mechanical reply mapper, and preserves immediate throws while retaining late asynchronous discard. Initial/rules/gate cancellation, falsy thrown values, URIError identity, lazy reads and original microtask chronology pass. Broader public/resident consumers and fast/source/lint qualification of this latest correction remain required; whole proof, freshness, parity and oracle deletion are still open.
+
+Frozen10da0d51 qualifies17 execution pairs PASS **0.5630037368477966** (01:04:40.391003 UTC) and17 build pairs FAIL **1.0096521485598742** (01:05:18.066485 UTC), with unchanged HEAD/sources/artifacts. The 01:03:21/01:04:06 primary start windows were missed. Next primary starts are **01:34:40/01:35:18 UTC**. This does not qualify the subsequently changed runtime or establish whole parity.
 
 The cheap Object.entries→Object.keys ABI proposal is rejected by an executed getter-deletion counterexample: original entries omits the deleted next property, while captured keys retains it with undefined. No production mapper change is made and getter/error/order guarantees stay intact. Current cost diagnostics do not justify weakening lifecycle. Before adding freshness representations, align the existing three-mode whole acceptance path with Astra; lazy facts must preserve original property reads/serialization/short circuits.
 

@@ -97,16 +97,19 @@ export const finalizationProtocol: Protocol<
   projectTerminal: (outcome) => outcome
 }
 
-export const performFinalizationSync = (
-  request: FinalizationRequest
-): { readonly value: FinalizationReply } | undefined => {
+export const performFinalizationSync = (request: FinalizationRequest) => {
   const response = request.binding.performSync(request.finalization)
-  return response === undefined ? undefined : { value: { $: "FinalizationReply", response: response.value } }
+  if (response !== undefined) return { value: { $: "FinalizationReply" as const, response: response.value } }
+  const engine = request.binding.performPending(request.finalization)
+  return {
+    pending: engine.pending,
+    map: (value: unknown): FinalizationReply => ({ $: "FinalizationReply", response: engine.map(value as boolean) })
+  }
 }
-export const performFinalizationAsync = async (request: FinalizationRequest): Promise<FinalizationReply> => ({
-  $: "FinalizationReply",
-  response: await request.binding.performAsync(request.finalization)
-})
+export const performFinalizationAsync = async (request: FinalizationRequest): Promise<FinalizationReply> => {
+  const engine = request.binding.performPending(request.finalization)
+  return { $: "FinalizationReply", response: engine.map(await engine.pending) }
+}
 
 export type FinalizationSession = {
   readonly invocation: number
