@@ -24,9 +24,9 @@ try {
   const artifacts = {}
   let owner
   for (const [key, name] of [
-    ["composition", "ArtifactComposition"],
-    ["parent", "GenericArtifact"],
-    ["python", "PythonArtifact"],
+    ["composition", "GraphCompositionEntry"],
+    ["parent", "GenericGraphEntry"],
+    ["python", "PythonGraphEntry"],
     ["owner", "CanonicalResolverOwner"]
   ]) {
     const emitted = join(temp, name + ".mjs")
@@ -38,12 +38,12 @@ try {
         "bend",
         new URL(
           {
-            ArtifactComposition:
-              "../../../../../../source-analysis/src/direct-event/graph-resolution/composition/ArtifactComposition.bend",
-            GenericArtifact:
-              "../../../../../../source-analysis/src/direct-event/graph-resolution/composition/GenericArtifact.bend",
-            PythonArtifact:
-              "../../../../../../source-analysis/src/direct-event/graph-resolution/composition/PythonArtifact.bend",
+            GraphCompositionEntry:
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/GraphCompositionEntry.bend",
+            GenericGraphEntry:
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/GenericGraphEntry.bend",
+            PythonGraphEntry:
+              "../../../../../../source-analysis/src/direct-event/graph-resolution/PythonGraphEntry.bend",
             CanonicalResolverOwner:
               "../../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"
           }[name],

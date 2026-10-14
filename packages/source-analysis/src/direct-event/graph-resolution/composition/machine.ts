@@ -1,7 +1,7 @@
-import composition from "./artifact-composition-core.js"
-import parent from "./generic-artifact-core.js"
-import python from "./python-artifact-core.js"
-import go from "./go-artifact-core.js"
+import composition from "../artifact-composition-core.js"
+import parent from "../generic-artifact-core.js"
+import python from "../python-artifact-core.js"
+import go from "../go-artifact-core.js"
 import { createArtifactMachine } from "./artifact-dispatcher.mjs"
 
 /** One actual Graph composition with packaged Generic/Python/Go engines.

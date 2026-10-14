@@ -46,10 +46,10 @@ try {
   const artifacts = {}
   let owner
   for (const [key, name] of [
-    ["composition", "ArtifactComposition"],
-    ["parent", "GenericArtifact"],
-    ["python", "PythonArtifact"],
-    ["go", "GoArtifact"],
+    ["composition", "GraphCompositionEntry"],
+    ["parent", "GenericGraphEntry"],
+    ["python", "PythonGraphEntry"],
+    ["go", "GoGraphEntry"],
     ["owner", "CanonicalResolverOwner"]
   ]) {
     const emitted = join(emissionTemp, name + ".mjs")
@@ -61,10 +61,10 @@ try {
         "bend",
         new URL(
           {
-            ArtifactComposition: "../ArtifactComposition.bend",
-            GenericArtifact: "../GenericArtifact.bend",
-            PythonArtifact: "../PythonArtifact.bend",
-            GoArtifact: "../GoArtifact.bend",
+            GraphCompositionEntry: "../../GraphCompositionEntry.bend",
+            GenericGraphEntry: "../../GenericGraphEntry.bend",
+            PythonGraphEntry: "../../PythonGraphEntry.bend",
+            GoGraphEntry: "../../GoGraphEntry.bend",
             CanonicalResolverOwner:
               "../../../../../../agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"
           }[name],

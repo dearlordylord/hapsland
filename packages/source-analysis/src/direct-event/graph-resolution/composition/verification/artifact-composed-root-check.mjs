@@ -21,9 +21,9 @@ try {
   {
     const artifacts = {}
     for (const [key, name] of [
-      ["composition", "ArtifactComposition"],
-      ["parent", "GenericArtifact"],
-      ["python", "PythonArtifact"]
+      ["composition", "GraphCompositionEntry"],
+      ["parent", "GenericGraphEntry"],
+      ["python", "PythonGraphEntry"]
     ]) {
       const emitted = join(temp, name + ".mjs")
       execFileSync(
@@ -34,9 +34,9 @@ try {
           "bend",
           new URL(
             {
-              ArtifactComposition: "../ArtifactComposition.bend",
-              GenericArtifact: "../GenericArtifact.bend",
-              PythonArtifact: "../PythonArtifact.bend"
+              GraphCompositionEntry: "../../GraphCompositionEntry.bend",
+              GenericGraphEntry: "../../GenericGraphEntry.bend",
+              PythonGraphEntry: "../../PythonGraphEntry.bend"
             }[name],
             import.meta.url
           ).pathname,

@@ -13,9 +13,9 @@
     "noEmit": true
   },
   "files": [
-    "src/direct-event/graph-resolution/composition/generic-artifact-core.d.ts",
-    "src/direct-event/graph-resolution/composition/python-artifact-core.d.ts",
-    "src/direct-event/graph-resolution/composition/go-artifact-core.d.ts",
-    "src/direct-event/graph-resolution/composition/artifact-composition-core.d.ts"
+    "src/direct-event/graph-resolution/generic-artifact-core.d.ts",
+    "src/direct-event/graph-resolution/python-artifact-core.d.ts",
+    "src/direct-event/graph-resolution/go-artifact-core.d.ts",
+    "src/direct-event/graph-resolution/artifact-composition-core.d.ts"
   ]
 }

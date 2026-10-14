@@ -1,4 +1,4 @@
-import { artifactTransport } from "./artifact-check-codec.mjs"
+import { artifactTransport, graphEntryTransport } from "./artifact-check-codec.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { existsSync } from "node:fs"
@@ -321,10 +321,10 @@ try {
   let owner
   if (ownedMode)
     for (const [key, source] of [
-      ["composition", "source-analysis/src/direct-event/graph-resolution/composition/ArtifactComposition.bend"],
-      ["parent", "source-analysis/src/direct-event/graph-resolution/composition/GenericArtifact.bend"],
-      ["python", "source-analysis/src/direct-event/graph-resolution/composition/PythonArtifact.bend"],
-      ["go", "source-analysis/src/direct-event/graph-resolution/composition/GoArtifact.bend"],
+      ["composition", "source-analysis/src/direct-event/graph-resolution/GraphCompositionEntry.bend"],
+      ["parent", "source-analysis/src/direct-event/graph-resolution/GenericGraphEntry.bend"],
+      ["python", "source-analysis/src/direct-event/graph-resolution/PythonGraphEntry.bend"],
+      ["go", "source-analysis/src/direct-event/graph-resolution/GoGraphEntry.bend"],
       ["owner", "agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"]
     ]) {
       const output = join(emissionTemp, key + ".mjs")
@@ -334,7 +334,11 @@ try {
       else ownedArtifacts[key] = artifact
     }
   const referenceEntry = entryMode
-    ? await createEntryReferenceDriver({ temporary: emissionTemp, go: ownedArtifacts.go, artifactTransport })
+    ? await createEntryReferenceDriver({
+        temporary: emissionTemp,
+        go: ownedArtifacts.go,
+        artifactTransport: graphEntryTransport
+      })
     : undefined
   let requests = 0,
     transitions = 0
