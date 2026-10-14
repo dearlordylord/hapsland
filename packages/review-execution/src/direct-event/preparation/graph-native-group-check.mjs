@@ -21,13 +21,15 @@ async function run(mode, grouped, failure) {
   const operation =
     mode === "fulfilled"
       ? { $: "Types.SelectContextPath", path: "root.ts" }
-      : mode === "cancel-return"
-        ? {
-            $: "Types.ObserveDiagnostic",
-            path: "root.ts",
-            diagnostic: { $: "Types.CaptureDiagnostic", value: productValue(null) }
-          }
-        : { $: "Types.StartClock" }
+      : mode === "effect"
+        ? { $: "Types.AccessPath", path: "root.ts" }
+        : mode === "cancel-return"
+          ? {
+              $: "Types.ObserveDiagnostic",
+              path: "root.ts",
+              diagnostic: { $: "Types.CaptureDiagnostic", value: productValue(null) }
+            }
+          : { $: "Types.StartClock" }
   const request = (held) => ({ $: "Types.Request", invocation: held.invocation, id: 1n, operation })
   const machine = {
     kind: "artifact",
@@ -70,6 +72,11 @@ async function run(mode, grouped, failure) {
   const raw = createServiceSession({
     invocation,
     root: "/",
+    access() {
+      nativeStarts++
+      trace.push("native")
+      return Effect.succeed(undefined)
+    },
     selectContextPath() {
       nativeStarts++
       trace.push("native")
@@ -100,7 +107,7 @@ async function run(mode, grouped, failure) {
   assert.equal(closes, 1)
   assert.equal(nativeStarts, 1)
   assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
-  if (mode === "fulfilled") {
+  if (mode === "fulfilled" || mode === "effect") {
     assert.equal(result.result, "accepted")
     assert.equal(trace.filter((x) => x === "resume").length, 1)
     assert.ok(
@@ -114,7 +121,8 @@ async function run(mode, grouped, failure) {
   cases++
   return { result, closes, nativeStarts }
 }
-for (const mode of ["fulfilled", "cancel-return"]) assert.deepEqual(await run(mode, true), await run(mode, false))
+for (const mode of ["fulfilled", "effect", "cancel-return"])
+  assert.deepEqual(await run(mode, true), await run(mode, false))
 for (const failure of [undefined, null, false, 0, ""])
   assert.deepEqual(await run("cancel-throw", true, failure), await run("cancel-throw", false, failure))
 console.log(
