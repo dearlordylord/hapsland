@@ -1343,6 +1343,21 @@ def child_active(child: Child) -> Bool:
   match child:
     case Child{_, _, _, _, phase, _, _, _}: active(phase)
 
+def active_observed(child: Maybe<&2, Child>) -> Maybe<&2, Bool>:
+  match child:
+    case None{}: None{}
+    case Some{child}: Some{child_active(child)}
+
+def active_reader(+children: List<&2, Child>) -> Nat -> Maybe<&2, Bool>:
+  invocation => active_observed(find(invocation, children))
+
+def active_reader_exact(+children: List<&2, Child>, +invocation: Nat) -> {
+  active_reader(children)(invocation)
+  == active_observed(find(invocation, children))
+  : Maybe<&2, Bool>
+}:
+  {==}
+
 def advice_cleanup_allowed(valid: Bool, state: State, child: Child) -> Step:
   match valid child:
     case True{} Child{

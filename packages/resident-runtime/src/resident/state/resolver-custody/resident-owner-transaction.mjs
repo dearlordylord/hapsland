@@ -680,7 +680,57 @@ export function createResidentOwnerTransaction({
   }
   // Synchronous driver calls are serialized through the actual Ref transaction.
   // readState assembles a transient call snapshot; the driver stores no C.State.
+  /** @type {import("@hapsland/agent-flow-bend/canonical-resolver-owner").State["children"] | undefined} */
+  let readerChildren
+  /** @type {ReturnType<typeof owner.active_reader> | undefined} */
+  let activeReader
+  /** @type {WeakSet<object>} */
+  const immutableChildren = new WeakSet()
+  /** @param {object} children */
+  const deeplyFrozen = (children) => {
+    if (immutableChildren.has(children)) return true
+    /** @type {object[]} */
+    const pending = [children]
+    /** @type {Set<object>} */
+    const seen = new Set()
+    while (pending.length > 0) {
+      const value = pending.pop()
+      if (value === undefined) break
+      if (seen.has(value)) continue
+      seen.add(value)
+      if (!Object.isFrozen(value)) return false
+      for (const field of Reflect.ownKeys(value)) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, field)
+        // Accessors are not immutable data, even when their container is frozen.
+        if (!descriptor || !("value" in descriptor)) return false
+        const child = descriptor.value
+        if (typeof child === "object" && child !== null) pending.push(child)
+      }
+    }
+    immutableChildren.add(children)
+    return true
+  }
   const control = {
+    /**
+     * @param {bigint} invocation
+     * @returns {ReturnType<ReturnType<typeof owner.active_reader>>}
+     */
+    readActive(invocation) {
+      const snapshot = Effect.runSync(transaction.read)
+      const children = snapshot.resolverCustody.children
+      // Custom transaction fixtures can supply mutable custody. Preserve their
+      // live reads instead of retaining a decoded snapshot of mutable data.
+      if (!deeplyFrozen(children)) {
+        const found = owner.find(invocation, children)
+        return found.$ === "Some" ? { $: "Some", value: owner.child_active(found.value) } : { $: "None" }
+      }
+      if (readerChildren !== children || activeReader === undefined) {
+        const reader = owner.active_reader(children)
+        readerChildren = children
+        activeReader = reader
+      }
+      return activeReader(invocation)
+    },
     readState() {
       const snapshot = Effect.runSync(transaction.read)
       return owner.assembled(toOwnerCanonical(snapshot.canonical), snapshot.resolverCustody)
