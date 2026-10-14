@@ -1,3 +1,4 @@
+import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Cause from "effect/Cause"
@@ -118,8 +119,25 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
         generation: parent.generation,
         request: parent.request
       })
-      const session = createFinalizationSession(invocation, input, execution, canonicalGate)
+      let session
+      try {
+        session = createFinalizationSession(invocation, input, execution, canonicalGate)
+      } catch (error) {
+        try {
+          await driver.constructionFailed(invocation)
+        } catch (cleanup) {
+          throw new AggregateError([error, cleanup], "Finalization construction and cleanup failed", { cause: error })
+        }
+        throw error
+      }
       const result = await driver.drive(session, session.input, execution)
+      if (
+        "failure" in result &&
+        result.failure !== undefined &&
+        "$" in result.failure &&
+        result.failure.$ === "Types.InvocationCancelled"
+      )
+        throw new TransportFailure("aborted")
       if (!("finalization" in result)) throw new TypeError("Canonical did not accept finalization")
       return result.finalization
     },
