@@ -77,6 +77,58 @@ try {
     return s
   }
   let assertions = 0
+  // The actual owner must retain synchronous reply chronology and revoke the
+  // pump even when cancellation does not abort the caller's signal.
+  for (const cancellation of ["none", "advance", "effect"]) {
+    const registry = createServiceRegistry()
+    const trace = []
+    let driver, invocation
+    const machine = {
+      initial: () => ({ $: "Continue", remaining: 2 }),
+      view: (value) => value,
+      resume() {
+        trace.push("resume")
+        return { $: "Types.CompletedResolver", result: "accepted" }
+      },
+      disposeInvocation() {},
+      get retainedHandles() { return 0 }
+    }
+    driver = createChildExecutionDriver({
+      owner: m, initialState: fresh(), scope, registry, machine,
+      protocol: {
+        ...fixtureProtocol,
+        synchronousAdvance(held) {
+          if (held.step.$ !== "Continue") return undefined
+          trace.push("advance")
+          if (cancellation === "advance") driver.cancel(BigInt(invocation))
+          return {
+            ...held,
+            step: held.step.remaining === 1
+              ? { $: "Types.AwaitService", request: { invocation: BigInt(invocation), id: 7n } }
+              : { $: "Continue", remaining: held.step.remaining - 1 }
+          }
+        }
+      },
+      foreignSync() {
+        trace.push("effect")
+        queueMicrotask(() => trace.push("microtask"))
+        if (cancellation === "effect") driver.cancel(BigInt(invocation))
+        return { value: { value: "reply" } }
+      },
+      foreign() { throw new Error("Unexpected async fallback") }
+    })
+    invocation = driver.allocateInvocation()
+    const session = { invocation, finish() {}, close() {}, revoke() {} }
+    const outcome = await driver.drive(session, { invocation: BigInt(invocation) })
+    assert.deepEqual(trace, cancellation === "none"
+      ? ["advance", "advance", "effect", "resume", "microtask"]
+      : cancellation === "advance" ? ["advance"] : ["advance", "advance", "effect", "microtask"])
+    assert.equal(driver.stats.accepted, cancellation === "none" ? 1 : 0)
+    if (cancellation === "none") assert.equal(outcome.result, "accepted")
+    else assert.equal(outcome.failure.$, "Types.InvocationCancelled")
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 4
+  }
   // Settings have no fabricated observation: Canonical issues operation and child together.
   let settings = m.initial_limits(100n, 100000n, 100n, 100000n)
   const untouchedCanonical = settings.canonical

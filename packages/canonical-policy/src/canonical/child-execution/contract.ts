@@ -81,6 +81,7 @@ export type Protocol<
 > = {
   // Protocol-owned synchronous boundaries must check the original signal
   // before each transition, including the final engine/terminal boundary.
+  // The executor checks current Canonical child authority before each call.
   synchronousAdvance?(continuation: C, options: { readonly signal?: AbortSignal | undefined }): C | undefined
   initialSignalCheckpoint?(machine: M): "executor" | "protocol"
   initial(machine: M, input: I): C

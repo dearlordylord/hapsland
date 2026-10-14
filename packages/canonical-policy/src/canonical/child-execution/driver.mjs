@@ -48,6 +48,8 @@ const constructionFailure = (value) => constructionFailureTag in value
  * beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown
  * }}} options
  */
+// foreignSync must return undefined without effects for unsupported requests;
+// only that case delegates execution to the asynchronous foreign port.
 export function createChildExecutionDriver({
   owner,
   initialState,
@@ -185,6 +187,9 @@ export function createChildExecutionDriver({
   const settleOutcome = (invocation, generation, raw) => {
     if (protocol.synchronousAdvance) {
       for (;;) {
+        // A synchronous effect may cancel through Canonical without aborting
+        // the caller's signal. Never advance a continuation after that revocation.
+        if (!owner.child_active(findChild(invocation))) return { failures: [], rejection: undefined }
         const next = protocol.synchronousAdvance(raw, { signal: invocationSignals.get(invocation) })
         if (next === undefined) break
         raw = next
