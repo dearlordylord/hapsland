@@ -1,3 +1,8 @@
+import {
+  effectNative,
+  runNativeEffect,
+  nativeFailureAggregate
+} from "@hapsland/runtime-environment/runtime/native-execution"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { ResidentAdapterError } from "../../adapter-error.ts"
 import { randomUUID } from "node:crypto"
@@ -23,7 +28,7 @@ import { residentUnitWorstOutcomeBytes, residentUnitReservationBytes } from "../
 // Host handlers expose semantic owner effects and resource receipts.
 /**
  * @typedef {import("./context.ts").PlannedPreparationItem | (Omit<Extract<import("./context.ts").PlannedPreparationItem, {kind: "cached"}>, "cached"> & {cached?: import("../../state/evaluation-reuse.ts").CachedEvaluation})} NativePlan
- * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<ReturnType<typeof createAdviceTailProvider>>>, "driveAdvice" | "adviceHandoff" | "prepareAdviceInput" | "releaseAdviceInput">} AdviceDriver
+ * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<ReturnType<typeof createAdviceTailProvider>>>, "driveAdviceEffect" | "adviceHandoff" | "prepareAdviceInput" | "releaseAdviceInput">} AdviceDriver
  * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver>, "state" | "handoffResult">} PreparationHandoffDriver
  * @typedef {import("./context.ts").PreparationContext & { deps: import("./context.ts").Dependencies & Pick<import("../evaluation/context.ts").Dependencies, "residentNow" | "residentReviewControls"> & Pick<import("../../advice-delivery/handoff/context.ts").Dependencies, "residentAdviceExpired">, ownedAdvice?: {core: typeof import("./post-preparation-core.js").default, bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, driver: AdviceDriver} }} PostContext
  * @typedef {{owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner, driver: PreparationHandoffDriver, sourceInvocation: bigint, operation: bigint, capability: import("../../state/capacity/model.ts").CapacityReservation, handoff: {handoff: bigint, scope: Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").Scope, {$: "RetainingScope"}>}, parent: {invocation: bigint, generation: bigint, request: bigint}}} SourceWorkspace
@@ -128,7 +133,6 @@ export function createPostPreparationProvider(
   /** @param {string} key */
   const transferredClaim = (key) =>
     [...transferred].some((value) => value.kind === "unit" && value.evaluationKey === key)
-  const rawRun = Effect.runPromise
   const outcomes = new Map(prepared.outcomes.map((outcome, index) => [BigInt(index + 1), outcome]))
   /** @type {import("./post-preparation-core.js").Outcome[]} */
   const facts = [...outcomes].map(([handle, outcome]) => ({
@@ -243,20 +247,29 @@ export function createPostPreparationProvider(
     get transferredUnits() {
       return transferred.size
     },
-    async finish() {
+    /** @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<void>} */
+    *finishFlow() {
+      /** @template A @param {Effect.Effect<A>} effect @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
+      const run = function* (effect) {
+        return /** @type {A} */ (yield effectNative(effect, false))
+      }
+
       if (finished) return
       /** @type {unknown[]} */
       const failures = []
-      /** @template A, E @param {Effect.Effect<A, E>} effect @param {() => unknown} [receipt] */
-      const attempt = async (effect, receipt) => {
-        const exit = await Effect.runPromiseExit(
-          Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt, receipt))
+      /** @template A, E @param {Effect.Effect<A, E>} effect @param {() => unknown} [receipt] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<boolean>} */
+      const attempt = function* (effect, receipt) {
+        const exit = /** @type {Exit.Exit<A, E>} */ (
+          yield effectNative(
+            Effect.exit(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt, receipt))),
+            false
+          )
         )
         if (Exit.isFailure(exit)) {
           finalizationCause =
             finalizationCause === undefined ? exit.cause : Cause.combine(finalizationCause, exit.cause)
           try {
-            await rawRun(Effect.failCause(exit.cause))
+            throw Cause.squash(exit.cause)
           } catch (error) {
             failures.push(error)
           }
@@ -269,10 +282,12 @@ export function createPostPreparationProvider(
           tail.started = true
           let rejected
           try {
-            await adviceBinding().driver.driveAdvice(
-              adviceBinding().driver.adviceHandoff(tail.receipt.invocation),
-              tail.provider,
-              { signal: context.deps.residentLifetimeController.signal }
+            yield* run(
+              adviceBinding().driver.driveAdviceEffect(
+                adviceBinding().driver.adviceHandoff(tail.receipt.invocation),
+                tail.provider,
+                { signal: context.deps.residentLifetimeController.signal }
+              )
             )
           } catch (error) {
             rejected = error
@@ -283,7 +298,7 @@ export function createPostPreparationProvider(
             finalizationCause = finalizationCause === undefined ? cause : Cause.combine(finalizationCause, cause)
             if (rejected === undefined) {
               try {
-                await rawRun(Effect.failCause(cause))
+                throw Cause.squash(cause)
               } catch (error) {
                 failures.push(error)
               }
@@ -302,39 +317,49 @@ export function createPostPreparationProvider(
           value.round !== undefined &&
           workUnitId !== undefined
         )
-          await attempt(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
+          yield* attempt(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
       }
       const transferredReservations = new Set([...transferred].map((value) => BigInt(value.reservation.id)))
       const transferredKeys = new Set(
         [...transferred].filter((value) => value.kind === "unit").map((value) => value.evaluationKey)
       )
       for (const [handle, value] of reservations)
-        if (!transferredReservations.has(handle)) await attempt(ledger.release(value))
+        if (!transferredReservations.has(handle)) yield* attempt(ledger.release(value))
       for (const [handle, value] of acquiredRevisions)
         if (!transferredAcquisition(handle))
-          await attempt(context.deps.residentReleaseCurrentWork(value), () => acquiredRevisions.delete(handle))
+          yield* attempt(context.deps.residentReleaseCurrentWork(value), () => acquiredRevisions.delete(handle))
       for (const key of ownedClaims)
         if (!transferredKeys.has(key)) {
-          if (await attempt(context.deps.residentReleaseReuseClaim(key))) context.unassignedClaims.delete(key)
+          if (yield* attempt(context.deps.residentReleaseReuseClaim(key))) context.unassignedClaims.delete(key)
         }
       if (!sourceWorkspace && context.activeWorkspaces.has(preparation.reservation)) {
-        if (await attempt(ledger.release(preparation.reservation)))
+        if (yield* attempt(ledger.release(preparation.reservation)))
           context.activeWorkspaces.delete(preparation.reservation)
       }
       if (failures.length)
-        throw new AggregateError(
+        throw nativeFailureAggregate(
           primaryFailure === undefined ? failures : [primaryFailure, ...failures],
           "Post-preparation resource finalization failed",
           { cause: primaryFailure ?? failures[0] }
         )
       finished = true
     },
+    /** @param {import("./post-preparation-core.js").Request} request
+     * @param {{signal?: AbortSignal | undefined, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, beforeCommand?: (command: import("./post-preparation-core.js").Command) => void, afterCommit?: (command: import("./post-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>) => void, afterPendingRestore?: (receipt: NonNullable<import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>["restoredPending"]>) => void}} [options]
+     * @returns {Effect.Effect<import("./post-preparation-core.js").Reply>}
+     */
+    performEffect(request, options = {}) {
+      return Effect.uninterruptibleMask((restore) =>
+        runNativeEffect(this.performFlow(request, restore, options), () => {})
+      )
+    },
     /**
      * @param {import("./post-preparation-core.js").Request} request
      * @param {{signal?: AbortSignal | undefined, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, beforeCommand?: (command: import("./post-preparation-core.js").Command) => void, afterCommit?: (command: import("./post-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>) => void, afterPendingRestore?: (receipt: NonNullable<import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>["restoredPending"]>) => void}} [options]
-     * @returns {Promise<import("./post-preparation-core.js").Reply>}
+     * @param {typeof Effect.interruptible} restore
+     * @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<import("./post-preparation-core.js").Reply>}
      */
-    async perform(request, options = {}) {
+    *performFlow(request, restore, options = {}) {
       if (revoked || closed || options.signal?.aborted) throw new Error("Revoked post-preparation session")
       if (request.invocation !== invocation) throw new Error("Wrong postflow provider invocation")
       const command = request.command
@@ -411,9 +436,9 @@ export function createPostPreparationProvider(
        * @param {Effect.Effect<A, E>} effect
        * @param {bigint | undefined} [releasedAcquisition]
        * @param {string | undefined} [releasedClaim]
-       * @returns {Promise<A>}
+       * @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>}
        */
-      const run = async (effect, releasedAcquisition, releasedClaim) => {
+      const run = function* (effect, releasedAcquisition, releasedClaim) {
         /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>} publication */
         const receipt = (publication) => {
           if (releasedAcquisition !== undefined) acquiredRevisions.delete(releasedAcquisition)
@@ -423,13 +448,20 @@ export function createPostPreparationProvider(
           }
           committed({ ...publication, releasedAcquisition })
         }
-        const exit = await Effect.runPromiseExit(
-          Effect.uninterruptible(effect).pipe(
-            Effect.provideService(ResidentResourceReceipt, receipt),
-            Effect.provideService(
-              ResidentProviderPermit,
-              cleanup || !options.ownerLease ? undefined : { credential: options.ownerLease, committed: receipt }
-            )
+        const exit = /** @type {Exit.Exit<A, E>} */ (
+          yield effectNative(
+            Effect.exit(
+              restore(
+                Effect.uninterruptible(effect).pipe(
+                  Effect.provideService(ResidentResourceReceipt, receipt),
+                  Effect.provideService(
+                    ResidentProviderPermit,
+                    cleanup || !options.ownerLease ? undefined : { credential: options.ownerLease, committed: receipt }
+                  )
+                )
+              )
+            ),
+            false
           )
         )
         if (Exit.isFailure(exit)) {
@@ -441,14 +473,14 @@ export function createPostPreparationProvider(
               : Cause.hasInterrupts(exit.cause)
                 ? "Cancelled"
                 : "Failed"
-          return rawRun(Effect.failCause(exit.cause))
+          throw Cause.squash(exit.cause)
         }
         return exit.value
       }
-      /** @param {bigint} handle */
-      const releaseAcquisition = async (handle) => {
+      /** @param {bigint} handle @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<void>} */
+      const releaseAcquisition = function* (handle) {
         if (!acquiredRevisions.has(handle) || transferredAcquisition(handle)) return
-        await run(context.deps.residentReleaseCurrentWork(revision(handle)), handle)
+        yield* run(context.deps.residentReleaseCurrentWork(revision(handle)), handle)
         acquiredRevisions.delete(handle)
       }
       try {
@@ -456,17 +488,17 @@ export function createPostPreparationProvider(
         failureKind = "Defect"
         switch (command.$) {
           case "CheckActive":
-            response = { $: "Active", value: await run(context.deps.residentJobActive(context.job)) }
+            response = { $: "Active", value: yield* run(context.deps.residentJobActive(context.job)) }
             break
           case "ReleaseWorkspace":
-            await run(ledger.release(preparation.reservation))
+            yield* run(ledger.release(preparation.reservation))
             context.activeWorkspaces.delete(preparation.reservation)
             break
           case "Offer":
             response = {
               $: "Offered",
               accepted:
-                (await run(
+                (yield* run(
                   ledger.preparedOffer(command.outcome.ready, !command.deliverability || command.outcome.fits)
                 )) === "preparedAdmitted"
             }
@@ -475,11 +507,11 @@ export function createPostPreparationProvider(
             context.deps.residentInspection.observePreparation(context.job, prepared)
             break
           case "ReportDeliverabilityCapacity":
-            await run(ledger.runtime.rejectCapacity())
-            await run(context.deps.residentRecordAnalytics(context.job, "capacity-rejected"))
+            yield* run(ledger.runtime.rejectCapacity())
+            yield* run(context.deps.residentRecordAnalytics(context.job, "capacity-rejected"))
             break
           case "ReportDeliverabilityNotice":
-            await run(context.deps.residentRecordOperationalFailure(context.job.observation, "capacity"))
+            yield* run(context.deps.residentRecordOperationalFailure(context.job.observation, "capacity"))
             recordActivity({
               statePath: context.job.dispatch.activityPath,
               root: context.job.observation.root,
@@ -489,7 +521,7 @@ export function createPostPreparationProvider(
             })
             break
           case "ReportEmptyAnalytics":
-            await run(
+            yield* run(
               context.deps.residentRecordAnalytics(
                 context.job,
                 command.incomplete ? "incomplete-candidate" : "skipped-candidate"
@@ -506,7 +538,7 @@ export function createPostPreparationProvider(
             })
             break
           case "ObserveReady":
-            await run(ledger.runtime.observePreparedUnits(array(command.ready).length))
+            yield* run(ledger.runtime.observePreparedUnits(array(command.ready).length))
             break
           case "LookupReuse": {
             const outcome = outcomes.get(command.outcome.handle)
@@ -518,10 +550,10 @@ export function createPostPreparationProvider(
               context.job.settings.configuration.policy.digest
             )
             const evaluationKey = context.deps.residentReuse.key(generationPartition, outcome.prepared)
-            const liveAdvice = (await run(context.deps.residentAdvice())).some(
+            const liveAdvice = (yield* run(context.deps.residentAdvice())).some(
               (advice) => advice.evaluationKey === evaluationKey
             )
-            const route = await run(context.deps.residentReuse.route(evaluationKey, liveAdvice))
+            const route = yield* run(context.deps.residentReuse.route(evaluationKey, liveAdvice))
             const key = command.outcome.handle
             /** @type {Record<typeof route, Exclude<import("./post-preparation-core.js").Route["$"], "CachedFinding">>} */
             const routeFacts = {
@@ -547,7 +579,7 @@ export function createPostPreparationProvider(
           }
           case "ReadCached": {
             const planned = item(command.item),
-              cached = await run(context.deps.residentReuse.cached(planned.evaluationKey))
+              cached = yield* run(context.deps.residentReuse.cached(planned.evaluationKey))
             planned.cached = cached
             response = {
               $: "CachedFacts",
@@ -558,7 +590,7 @@ export function createPostPreparationProvider(
           }
           case "ReadPending": {
             const planned = item(command.item),
-              owner = await run(context.deps.residentReuse.pending(planned.evaluationKey))
+              owner = yield* run(context.deps.residentReuse.pending(planned.evaluationKey))
             if (owner === undefined) throw new Error("canonical reuse route lacks pending evaluation")
             const handle = BigInt(pendingOwners.size + 1)
             pendingOwners.set(handle, { key: planned.evaluationKey, owner })
@@ -574,7 +606,7 @@ export function createPostPreparationProvider(
               sourcePartition(context.job.observation.root, context.job.observation.advicee),
               planned.outcome.prepared
             )
-            const restored = await run(
+            const restored = yield* run(
               Effect.gen(function* () {
                 const permit = yield* ResidentProviderPermit
                 return yield* effect.pipe(
@@ -592,7 +624,7 @@ export function createPostPreparationProvider(
             for (const fact of array(command.planned)) observePlannedEvaluation(context, completeItem(fact))
             break
           case "OwnerBarrier":
-            await run(
+            yield* run(
               withinWork(
                 context.deps.residentPreparationControls
                   .afterReuseBoundary("ownerClaimed")
@@ -604,16 +636,16 @@ export function createPostPreparationProvider(
           case "RecordReuseAnalytics": {
             const planned = completeItem(command.item)
             if (planned.kind === "cached")
-              await run(
+              yield* run(
                 context.deps.residentRecordAnalytics(context.job, "cache-hit", planned.cached.evaluation.findings)
               )
             else if (planned.kind === "joined")
-              await run(context.deps.residentRecordAnalytics(context.job, "joined-review"))
+              yield* run(context.deps.residentRecordAnalytics(context.job, "joined-review"))
             else throw new Error("Reuse analytics requires a cached or joined plan")
             break
           }
           case "JoinedBarrier":
-            await run(
+            yield* run(
               withinWork(
                 context.deps.residentPreparationControls
                   .afterReuseBoundary("claimJoined")
@@ -624,7 +656,7 @@ export function createPostPreparationProvider(
             break
           case "CompletePreparation": {
             const retained = array(command.retained),
-              allocations = await run(
+              allocations = yield* run(
                 ledger.completePreparation(
                   context.job.partition,
                   preparation.operation,
@@ -648,7 +680,7 @@ export function createPostPreparationProvider(
             break
           }
           case "RegisterClear": {
-            const value = await run(
+            const value = yield* run(
               context.deps.residentRegisterCurrentWork(
                 sourcePartition(context.job.observation.root, context.job.observation.advicee),
                 item(command.item).outcome.prepared
@@ -662,10 +694,10 @@ export function createPostPreparationProvider(
             break
           }
           case "ReleaseClear":
-            await releaseAcquisition(command.revision)
+            yield* releaseAcquisition(command.revision)
             break
           case "ReadLiveAdvice": {
-            const existing = (await run(context.deps.residentAdvice())).find(
+            const existing = (yield* run(context.deps.residentAdvice())).find(
               (advice) => advice.evaluationKey === item(command.item).evaluationKey
             )
             const handle = BigInt(adviceOwners.size + 1)
@@ -676,7 +708,7 @@ export function createPostPreparationProvider(
           case "PublishJoinedAdvice": {
             const existing = adviceOwners.get(command.advice)
             if (!existing) throw new Error("Unknown advice owner")
-            const publication = await run(ledger.advice.publish(existing)),
+            const publication = yield* run(ledger.advice.publish(existing)),
               handle = BigInt(publications.size + 1)
             publications.set(handle, publication)
             response = { $: "Published", publication: handle }
@@ -686,7 +718,7 @@ export function createPostPreparationProvider(
             const existing = adviceOwners.get(command.advice),
               publication = publications.get(command.publication)
             if (!existing || !publication) throw new Error("Unknown joined publication")
-            await run(context.deps.residentRecordJoinedOutcomes(publication, existing.id))
+            yield* run(context.deps.residentRecordJoinedOutcomes(publication, existing.id))
             break
           }
           case "ReadCurrentAdvice": {
@@ -694,13 +726,13 @@ export function createPostPreparationProvider(
             if (!existing) throw new Error("Unknown advice owner")
             response = {
               $: "FindingCount",
-              findings: BigInt((await run(ledger.advice.current(existing))).findings.length)
+              findings: BigInt((yield* run(ledger.advice.current(existing))).findings.length)
             }
             break
           }
           case "ReadJoinedPending": {
             const planned = item(command.item),
-              owner = await run(context.deps.residentReuse.pending(planned.evaluationKey)),
+              owner = yield* run(context.deps.residentReuse.pending(planned.evaluationKey)),
               handle = BigInt(pendingOwners.size + 1)
             if (owner !== undefined) pendingOwners.set(handle, { key: planned.evaluationKey, owner })
             response = { $: "JoinOwner", owner: owner === undefined ? none : some(handle) }
@@ -712,7 +744,7 @@ export function createPostPreparationProvider(
               pending = record?.owner
             if (command.owner.$ === "Some" && (!pending || record.key !== planned.evaluationKey))
               throw new Error("Unknown joined pending owner")
-            await run(
+            yield* run(
               context.deps.residentJoined.append({
                 admission: context.job.canonicalObservationId,
                 evaluationKey: planned.evaluationKey,
@@ -747,7 +779,7 @@ export function createPostPreparationProvider(
             break
           }
           case "RegisterRevision": {
-            const token = await run(
+            const token = yield* run(
               context.deps.residentRegisterCurrentWork(
                 sourcePartition(context.job.observation.root, context.job.observation.advicee),
                 item(command.slot.item).outcome.prepared
@@ -765,7 +797,7 @@ export function createPostPreparationProvider(
             const policy =
                 context.job.round === undefined || context.job.workObservationId === undefined
                   ? undefined
-                  : await run(ledger.rounds.policyWork(context.job.round)),
+                  : yield* run(ledger.rounds.policyWork(context.job.round)),
               planned = completeItem(command.slot.item),
               operation = Number(command.slot.operation)
             const observation = context.job.workObservationId
@@ -789,7 +821,7 @@ export function createPostPreparationProvider(
             break
           case "AttachOwner": {
             const value = unit(command.slot, command.revision, command.work),
-              accepted = await run(context.deps.residentJoined.attachOwner(value.evaluationKey, value, value.revision))
+              accepted = yield* run(context.deps.residentJoined.attachOwner(value.evaluationKey, value, value.revision))
             if (accepted) context.unassignedClaims.delete(value.evaluationKey)
             response = { $: "Attached", accepted }
             break
@@ -797,7 +829,7 @@ export function createPostPreparationProvider(
           case "Enqueue":
             response = {
               $: "Queued",
-              accepted: await run(
+              accepted: yield* run(
                 context.deps.residentDispatcher.enqueue(
                   context.job.partition,
                   unit(command.slot, command.revision, command.work)
@@ -809,26 +841,26 @@ export function createPostPreparationProvider(
             if (transferredReservation(command.slot.reservation)) break
             if (command.slot.item.route.$ === "Owner") {
               const key = item(command.slot.item).evaluationKey
-              if (ownedClaims.has(key)) await run(context.deps.residentReleaseReuseClaim(key), undefined, key)
+              if (ownedClaims.has(key)) yield* run(context.deps.residentReleaseReuseClaim(key), undefined, key)
               ownedClaims.delete(key)
               context.unassignedClaims.delete(key)
             }
-            await run(ledger.release(reservation(command.slot)))
+            yield* run(ledger.release(reservation(command.slot)))
             reservations.delete(command.slot.reservation)
             dischargedReservations.add(command.slot.reservation)
-            await releaseAcquisition(command.revision)
+            yield* releaseAcquisition(command.revision)
             break
           case "ReleaseAttached": {
             if (transferredReservation(command.slot.reservation)) break
             const value = unit(command.slot, command.revision, command.work)
             if (ownedClaims.has(value.evaluationKey))
-              await run(
+              yield* run(
                 context.deps.residentReleaseReuseClaim(value.evaluationKey, "capacity"),
                 undefined,
                 value.evaluationKey
               )
-            await run(ledger.release(value.reservation))
-            await run(context.deps.residentReleaseCurrentWork(value.revision))
+            yield* run(ledger.release(value.reservation))
+            yield* run(context.deps.residentReleaseCurrentWork(value.revision))
             acquiredRevisions.delete(command.revision)
             value.released = true
             ownedClaims.delete(value.evaluationKey)
@@ -839,14 +871,14 @@ export function createPostPreparationProvider(
             break
           }
           case "ReportCapacity":
-            await run(ledger.runtime.rejectCapacity())
-            await run(context.deps.residentRecordAnalytics(context.job, "capacity-rejected"))
-            await run(context.deps.residentRecordOperationalFailure(context.job.observation, "capacity"))
+            yield* run(ledger.runtime.rejectCapacity())
+            yield* run(context.deps.residentRecordAnalytics(context.job, "capacity-rejected"))
+            yield* run(context.deps.residentRecordOperationalFailure(context.job.observation, "capacity"))
             break
           case "StartCachedReview":
             response = {
               $: "ReviewAccepted",
-              value: await run(
+              value: yield* run(
                 ledger.startReview(context.job.partition, Number(command.slot.operation), context.job.canonicalRound)
               )
             }
@@ -854,7 +886,7 @@ export function createPostPreparationProvider(
           case "CompleteCachedReview":
             response = {
               $: "ReviewAccepted",
-              value: await run(
+              value: yield* run(
                 ledger.completeReview(
                   context.job.partition,
                   Number(command.slot.operation),
@@ -882,11 +914,11 @@ export function createPostPreparationProvider(
           case "CheckCachedActive":
             response = {
               $: "Active",
-              value: await run(context.deps.residentJobActive(unit(command.slot, command.revision, command.work)))
+              value: yield* run(context.deps.residentJobActive(unit(command.slot, command.revision, command.work)))
             }
             break
           case "ReadCachedAdvice": {
-            const existing = (await run(context.deps.residentAdvice())).find(
+            const existing = (yield* run(context.deps.residentAdvice())).find(
               (value) => value.evaluationKey === item(command.slot.item).evaluationKey
             )
             const handle = BigInt(adviceOwners.size + 1)
@@ -898,12 +930,12 @@ export function createPostPreparationProvider(
             const value = unit(command.slot, command.revision, command.work)
             const workUnitId = value.workUnitId
             if (value.round !== undefined && workUnitId !== undefined)
-              await run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
+              yield* run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
             break
           }
           case "ReleaseCachedUnit": {
-            await run(ledger.release(reservation(command.slot)))
-            await releaseAcquisition(command.revision)
+            yield* run(ledger.release(reservation(command.slot)))
+            yield* releaseAcquisition(command.revision)
             const value = unit(command.slot, command.revision, command.work)
             value.released = true
             reservations.delete(command.slot.reservation)
@@ -949,7 +981,7 @@ export function createPostPreparationProvider(
             const binding = context.ownedAdvice,
               handle = binding.driver.prepareAdviceInput(invocation, { unit: value, evaluation })
             try {
-              await run(
+              yield* run(
                 binding.bridge.adviceInsertAndHandoff(options.ownerLease, initial, handle, (publication) => {
                   transferred.add(value)
                   const receipt = publication.adviceReceipt
@@ -1005,10 +1037,12 @@ export function createPostPreparationProvider(
             tail.preserved = true
             tail.started = true
             tail.provider.preserve()
-            await adviceBinding().driver.driveAdvice(
-              adviceBinding().driver.adviceHandoff(command.tail),
-              tail.provider,
-              { signal: context.deps.residentLifetimeController.signal }
+            yield* run(
+              adviceBinding().driver.driveAdviceEffect(
+                adviceBinding().driver.adviceHandoff(command.tail),
+                tail.provider,
+                { signal: context.deps.residentLifetimeController.signal }
+              )
             )
             break
           }
@@ -1018,14 +1052,16 @@ export function createPostPreparationProvider(
             tail.started = true
             let accepted
             try {
-              accepted = await adviceBinding().driver.driveAdvice(
-                adviceBinding().driver.adviceHandoff(command.tail),
-                tail.provider,
-                { signal: context.deps.residentLifetimeController.signal }
+              accepted = yield* run(
+                adviceBinding().driver.driveAdviceEffect(
+                  adviceBinding().driver.adviceHandoff(command.tail),
+                  tail.provider,
+                  { signal: context.deps.residentLifetimeController.signal }
+                )
               )
             } catch (error) {
               const cause = tail.provider.handoffFailureCause ?? tail.provider.terminationCause
-              if (cause !== undefined) await run(Effect.failCause(cause))
+              if (cause !== undefined) yield* run(Effect.failCause(cause))
               throw error
             }
             if (!("adviceRetained" in accepted) || !accepted.adviceRetained) {
@@ -1033,7 +1069,7 @@ export function createPostPreparationProvider(
               const token = reason && "token" in reason ? reason.token : undefined
               const cause =
                 tail.provider.terminationCause ?? (token === undefined ? undefined : tail.provider.cause(token))
-              if (cause !== undefined) await run(Effect.failCause(cause))
+              if (cause !== undefined) yield* run(Effect.failCause(cause))
               throw (token === undefined ? undefined : tail.provider.error(token)) ?? new Error("Advice tail failed")
             }
             break
@@ -1042,10 +1078,10 @@ export function createPostPreparationProvider(
             const value = unit(command.slot, command.revision, command.work)
             const workUnitId = value.workUnitId
             if (!value.completed && value.round !== undefined && workUnitId !== undefined) {
-              await run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
+              yield* run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
               if (!value.released) {
-                await run(ledger.release(value.reservation))
-                await run(context.deps.residentReleaseCurrentWork(value.revision))
+                yield* run(ledger.release(value.reservation))
+                yield* run(context.deps.residentReleaseCurrentWork(value.revision))
                 acquiredRevisions.delete(command.revision)
                 value.released = true
               }
@@ -1053,13 +1089,13 @@ export function createPostPreparationProvider(
             break
           }
           case "Cleanup": {
-            if (command.revision.$ === "Some") await releaseAcquisition(command.revision.value)
+            if (command.revision.$ === "Some") yield* releaseAcquisition(command.revision.value)
             const remaining = new Map(array(command.remaining).map((slot) => [slot.item.key, slot]))
             for (const planned of array(command.planned)) {
               const slot = remaining.get(planned.key)
               if (slot && !transferredReservation(slot.reservation)) {
                 if (reservations.has(slot.reservation)) {
-                  await run(ledger.release(reservation(slot)))
+                  yield* run(ledger.release(reservation(slot)))
                   reservations.delete(slot.reservation)
                   dischargedReservations.add(slot.reservation)
                 } else if (!dischargedReservations.has(slot.reservation)) throw new Error("Unknown native reservation")
@@ -1067,7 +1103,7 @@ export function createPostPreparationProvider(
               remaining.delete(planned.key)
               const key = item(planned).evaluationKey
               if (ownedClaims.has(key) && !transferredClaim(key)) {
-                await run(context.deps.residentReleaseReuseClaim(key), undefined, key)
+                yield* run(context.deps.residentReleaseReuseClaim(key), undefined, key)
                 ownedClaims.delete(key)
                 context.unassignedClaims.delete(key)
               }
@@ -1091,46 +1127,4 @@ export function createPostPreparationProvider(
       return { $: "Reply", invocation: request.invocation, id: request.id, response }
     }
   }
-}
-// Intermediate direct runner retained until the owned physical handoff qualifies.
-/**
- * @param {typeof import("./post-preparation-core.js").default} core
- * @param {PostContext} context
- * @param {import("@hapsland/review-execution/direct-event/pipeline").PreparedObservation} prepared
- * @param {Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>} preparation
- * @param {import("@hapsland/native-observation/direct-event/observation").DirectObservation} pathObservation
- * @param {boolean} analyticsEnabled
- */
-export function bendPostPreparation(core, context, prepared, preparation, pathObservation, analyticsEnabled) {
-  const provider = createPostPreparationProvider(1n, context, prepared, preparation, pathObservation, analyticsEnabled)
-  /** @type {Cause.Cause<unknown> | undefined} */
-  let terminalCause
-  return Effect.tryPromise({
-    try: async () => {
-      let step = core.initial(
-        provider.input.invocation,
-        provider.input.postPreparation.roundBound,
-        provider.input.postPreparation.outcomes,
-        provider.input.postPreparation.incomplete
-      )
-      for (let fuel = 0; fuel < 10000; fuel++) {
-        if (step.$ === "Internal") {
-          step = core.advance(step.state)
-          continue
-        }
-        if (step.$ === "Finished") return true
-        if (step.$ === "Stopped") {
-          if (step.reason.$ === "TechnicalFailure" || step.reason.$ === "DefectFailure") {
-            terminalCause = provider.terminationCause ?? provider.cause(step.reason.token)
-            throw provider.error(step.reason.token) ?? new Error("Postflow refused native attachment")
-          }
-          return false
-        }
-        if (step.$ !== "Await") throw new Error("Postflow rejected response")
-        step = core.resume(step, await provider.perform(step.request))
-      }
-      throw new Error("Postflow did not settle")
-    },
-    catch: (error) => error
-  }).pipe(Effect.catch((error) => (terminalCause === undefined ? Effect.fail(error) : Effect.failCause(terminalCause))))
 }

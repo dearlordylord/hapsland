@@ -23,7 +23,7 @@ export type Execution = { readonly signal?: AbortSignal }
 export type CanonicalRuleGate = (
   event: Extract<CanonicalEvent, { kind: "ruleApplicabilityCheck" }>,
   execution: Execution
-) => Promise<boolean>
+) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<boolean>
 export type FinalizationFrame = {
   readonly contract: string
   readonly graphLimits: GraphLimits

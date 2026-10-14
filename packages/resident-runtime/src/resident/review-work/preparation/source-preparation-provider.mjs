@@ -1,3 +1,8 @@
+import {
+  effectNative,
+  runNativeEffect,
+  nativeFailureAggregate
+} from "@hapsland/runtime-environment/runtime/native-execution"
 import { decodeControlledOptions } from "../../authorization/controlled.ts"
 import { verifyObservationRoot } from "@hapsland/native-observation/direct-event/adapter"
 import { effectiveSessionAnalytics } from "@hapsland/runtime-inputs/configuration/resolve"
@@ -19,8 +24,8 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
  * @typedef {Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>} AdmittedPreparation
  * @typedef {{handle: bigint, candidate: bigint, invocation: bigint, admissionRequest: bigint, preparation: AdmittedPreparation}} PreparationReceipt
  * @typedef {ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>} PreparationCapability
- * @typedef {{invocation: number, machine: PreparationCapability["machine"], input: Parameters<PreparationCapability["machine"]["initial"]>[0], perform: (request: Parameters<PreparationCapability["perform"]>[0][number], options: Parameters<PreparationCapability["perform"]>[1]) => ReturnType<PreparationCapability["perform"]>, decode: PreparationCapability["decode"], revoke: () => unknown, close: () => unknown, error?: (token: bigint) => unknown, finish?: () => unknown | Promise<unknown>}} PreparationSession
- * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<PreparationSession | ReturnType<typeof createPostPreparationProvider>>>, "state" | "allocatePreparationInvocation" | "constructionFailed" | "drive" | "handoffResult" | "driveHandoff">} SourceDriver
+ * @typedef {{invocation: number, machine: PreparationCapability["machine"], input: Parameters<PreparationCapability["machine"]["initial"]>[0], performEffect: (request: Parameters<PreparationCapability["performEffect"]>[0][number], options: Parameters<PreparationCapability["performEffect"]>[1]) => ReturnType<PreparationCapability["performEffect"]>, decode: PreparationCapability["decode"], revoke: () => unknown, close: () => unknown, error?: (token: bigint) => unknown, finish?: () => unknown | Promise<unknown>}} PreparationSession
+ * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<PreparationSession | ReturnType<typeof createPostPreparationProvider>>>, "state" | "allocatePreparationInvocation" | "constructionFailed" | "driveEffect" | "handoffResult" | "driveHandoffEffect">} SourceDriver
  */
 // Foreign effects and opaque receipts for one whole source. The cursor chooses
 // admission, refusal reporting, candidate progression and source completion.
@@ -54,8 +59,7 @@ export function createSourcePreparationProvider(
   let credentialRequired
   /** @type {Cause.Cause<unknown> | undefined} */
   let pendingDefectCause
-  const run = Effect.runPromise,
-    ledger = context.deps.residentLedger,
+  const ledger = context.deps.residentLedger,
     job = context.job
   const originalReservation = job.reservation
   bridge.bindSourceReservation(invocation, originalReservation)
@@ -95,16 +99,17 @@ export function createSourcePreparationProvider(
     close() {
       closed = true
     },
-    async finish() {
+    /** @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<void>} */
+    *finishFlow() {
       if (finished) return
       // Only exact resources acquired by this source; transferred units are owned
       // by their independent dispatcher/advice scope and are never swept here.
       /** @type {unknown[]} */
       const failures = []
-      /** @template A, E @param {Effect.Effect<A, E>} effect @param {() => unknown} [settled] */
-      const attempt = async (effect, settled = () => {}) => {
+      /** @template A @param {Effect.Effect<A>} effect @param {() => unknown} [settled] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<void>} */
+      const attempt = function* (effect, settled = () => {}) {
         try {
-          await run(Effect.uninterruptible(effect))
+          yield effectNative(Effect.uninterruptible(effect), false)
           settled()
         } catch (error) {
           failures.push(error)
@@ -112,15 +117,15 @@ export function createSourcePreparationProvider(
       }
       for (const receipt of preparations.values())
         if (context.activeWorkspaces.has(receipt.preparation.reservation)) {
-          await attempt(ledger.release(receipt.preparation.reservation), () =>
+          yield* attempt(ledger.release(receipt.preparation.reservation), () =>
             context.activeWorkspaces.delete(receipt.preparation.reservation)
           )
         }
-      if (originalReservation !== undefined) await attempt(ledger.release(originalReservation))
+      if (originalReservation !== undefined) yield* attempt(ledger.release(originalReservation))
       for (const key of [...context.unassignedClaims])
-        await attempt(context.deps.residentReleaseReuseClaim(key), () => context.unassignedClaims.delete(key))
+        yield* attempt(context.deps.residentReleaseReuseClaim(key), () => context.unassignedClaims.delete(key))
       if (failures.length)
-        throw new AggregateError(
+        throw nativeFailureAggregate(
           primaryFailure === undefined ? failures : [primaryFailure, ...failures],
           "Source resource cleanup remains incomplete",
           { cause: primaryFailure ?? failures[0] }
@@ -128,12 +133,22 @@ export function createSourcePreparationProvider(
       bridge.forgetSourceReservation(invocation)
       finished = true
     },
+    /** @param {import("./source-preparation-core.js").Request} request
+     * @param {{signal?: AbortSignal | undefined, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, beforeCommand?: (command: import("./source-preparation-core.js").Command) => void, afterCommit?: (command: import("./source-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").OwnerPublication) => void}} [options]
+     * @returns {Effect.Effect<import("./source-preparation-core.js").Reply>}
+     */
+    performEffect(request, options = {}) {
+      return Effect.uninterruptibleMask((restore) =>
+        runNativeEffect(this.performFlow(request, restore, options), () => {})
+      )
+    },
     /**
      * @param {import("./source-preparation-core.js").Request} request
      * @param {{signal?: AbortSignal | undefined, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, beforeCommand?: (command: import("./source-preparation-core.js").Command) => void, afterCommit?: (command: import("./source-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").OwnerPublication) => void}} [options]
-     * @returns {Promise<import("./source-preparation-core.js").Reply>}
+     * @param {typeof Effect.interruptible} restore
+     * @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<import("./source-preparation-core.js").Reply>}
      */
-    async perform(request, options = {}) {
+    *performFlow(request, restore, options = {}) {
       if (revoked || closed || options.signal?.aborted) throw new Error("Revoked source session")
       if (request.invocation !== invocation) throw new Error("Wrong source invocation")
       const command = request.command
@@ -144,9 +159,9 @@ export function createSourcePreparationProvider(
       /** @type {import("./source-preparation-core.js").Response} */
       let response = { $: "Ack" }
       let observationCommitted = false
-      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {Promise<A>} */
-      const run = async (effect) => {
-        const exit = await Effect.runPromiseExit(effect)
+      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
+      const run = function* (effect) {
+        const exit = /** @type {Exit.Exit<A, E>} */ (yield effectNative(Effect.exit(restore(effect)), false))
         if (Exit.isFailure(exit)) {
           failureCause = exit.cause
           failureKind = Cause.hasDies(exit.cause)
@@ -156,7 +171,7 @@ export function createSourcePreparationProvider(
               : Cause.hasInterrupts(exit.cause)
                 ? "Cancelled"
                 : "Failed"
-          return Effect.runPromise(Effect.failCause(exit.cause))
+          throw Cause.squash(exit.cause)
         }
         return exit.value
       }
@@ -166,7 +181,7 @@ export function createSourcePreparationProvider(
         if (options.ownerLease === undefined) throw new TypeError("Source command lacks its Canonical lease")
         return options.ownerLease
       }
-      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {Promise<A>} */
+      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
       const scoped = (effect) =>
         run(
           Effect.uninterruptible(effect).pipe(
@@ -184,7 +199,7 @@ export function createSourcePreparationProvider(
             if (round === undefined || observationId === undefined) throw new TypeError("Missing source policy binding")
             response = {
               $: "GateAccepted",
-              value: await scoped(
+              value: yield* scoped(
                 ledger.rounds.policyWork(round).pipe(Effect.map((policy) => policy.startSource(observationId)))
               )
             }
@@ -193,28 +208,28 @@ export function createSourcePreparationProvider(
           case "StartObservation":
             response = {
               $: "GateAccepted",
-              value: !(await run(bridge.startSourceObservation(ownerLease(), committed))).refusal
+              value: !(yield* run(bridge.startSourceObservation(ownerLease(), committed))).refusal
             }
             break
           case "AwaitBackendGate":
-            await scoped(context.deps.residentAwaitBackendGate())
+            yield* scoped(context.deps.residentAwaitBackendGate())
             break
           case "ReadRuntimeActive":
-            response = { $: "Active", value: (await scoped(ledger.runtime.snapshot())).lifecycle === "active" }
+            response = { $: "Active", value: (yield* scoped(ledger.runtime.snapshot())).lifecycle === "active" }
             break
           case "DecodeControlled":
-            controlled = await run(Effect.sync(() => decodeControlledOptions(job.dispatch.controlled)))
+            controlled = yield* run(Effect.sync(() => decodeControlledOptions(job.dispatch.controlled)))
             response = { $: "GateAccepted", value: controlled !== undefined }
             break
           case "ReadCredentialRequired":
-            credentialRequired = await run(Effect.sync(() => context.deps.residentCredentialRequired(controlled)))
+            credentialRequired = yield* run(Effect.sync(() => context.deps.residentCredentialRequired(controlled)))
             break
           case "CheckCredentialShape": {
             const required = credentialRequired
             if (required === undefined) throw new TypeError("Missing source credential fact")
             response = {
               $: "GateAccepted",
-              value: await run(
+              value: yield* run(
                 Effect.sync(() =>
                   context.deps.residentCredentialShapeMatches(job.dispatch, job.settings.credentialEnvVar, required)
                 )
@@ -225,7 +240,7 @@ export function createSourcePreparationProvider(
           case "VerifyObservationRoot":
             response = {
               $: "GateAccepted",
-              value: await run(withinWork(verifyObservationRoot(job.observation), context.preparationSignal))
+              value: yield* run(withinWork(verifyObservationRoot(job.observation), context.preparationSignal))
             }
             break
           case "CheckCredentialGeneration": {
@@ -233,7 +248,7 @@ export function createSourcePreparationProvider(
             if (required === undefined) throw new TypeError("Missing source credential fact")
             response = {
               $: "GateAccepted",
-              value: await run(
+              value: yield* run(
                 Effect.sync(() => context.deps.residentCredentialGenerationCurrent(job.dispatch, required))
               )
             }
@@ -244,32 +259,32 @@ export function createSourcePreparationProvider(
             if (held.$ !== "Some") throw new TypeError("Missing source invocation")
             const child = held.value
             if (child.scope.$ === "AfterSourceScope")
-              await run(bridge.releaseSourceReservation(ownerLease(), committed))
-            else if (originalReservation !== undefined) await scoped(ledger.release(originalReservation))
+              yield* run(bridge.releaseSourceReservation(ownerLease(), committed))
+            else if (originalReservation !== undefined) yield* scoped(ledger.release(originalReservation))
             break
           }
           case "CheckJobActive":
-            response = { $: "Active", value: await scoped(context.deps.residentJobActive(job)) }
+            response = { $: "Active", value: yield* scoped(context.deps.residentJobActive(job)) }
             break
           case "RecordPreparationFailureAnalytics":
-            await scoped(context.deps.residentRecordAnalytics(job, "preparation-failed"))
+            yield* scoped(context.deps.residentRecordAnalytics(job, "preparation-failed"))
             break
           case "RecordUnavailableActivity":
-            await run(Effect.sync(() => activity({ stage: "unavailable" })))
+            yield* run(Effect.sync(() => activity({ stage: "unavailable" })))
             break
           case "ReadEffectiveAnalytics":
-            analyticsEnabled = await run(
+            analyticsEnabled = yield* run(
               Effect.sync(() => effectiveSessionAnalytics(job.settings.configuration.policy))
             )
             job.analyticsEnabled = analyticsEnabled
             break
           case "CheckCandidateActive":
             candidate(command.candidate)
-            response = { $: "Active", value: await scoped(context.deps.residentJobActive(job)) }
+            response = { $: "Active", value: yield* scoped(context.deps.residentJobActive(job)) }
             break
           case "AdmitCandidateWorkspace": {
             const selected = candidate(command.candidate),
-              requestedBytes = await run(Effect.sync(() => captureWorkspaceBytes(selected.path)))
+              requestedBytes = yield* run(Effect.sync(() => captureWorkspaceBytes(selected.path)))
             /** @type {PreparationReceipt | undefined} */
             let receipt
             /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>} publication */
@@ -300,7 +315,7 @@ export function createSourcePreparationProvider(
               }
               committed(publication)
             }
-            const result = await run(
+            const result = yield* run(
               Effect.uninterruptible(
                 ledger.beginObservedPreparation(
                   job.partition,
@@ -369,10 +384,12 @@ export function createSourcePreparationProvider(
             /** @type {PreparationSession} */
             let session
             try {
-              session = await run(
-                Effect.promise(() =>
-                  Promise.resolve(
-                    buildPreparationSession(prepInvocation, candidate(command.candidate), receipt.preparation)
+              session = yield* run(
+                Effect.uninterruptible(
+                  Effect.promise(() =>
+                    Promise.resolve(
+                      buildPreparationSession(prepInvocation, candidate(command.candidate), receipt.preparation)
+                    )
                   )
                 )
               )
@@ -390,7 +407,7 @@ export function createSourcePreparationProvider(
               // exact workspace before the outer Source panic diagnostic.
               // Keep failed release custody for finish's existing retry.
               try {
-                await scoped(ledger.release(receipt.preparation.reservation))
+                yield* scoped(ledger.release(receipt.preparation.reservation))
                 context.activeWorkspaces.delete(receipt.preparation.reservation)
               } catch (cleanup) {
                 failures.push(cleanup)
@@ -399,13 +416,13 @@ export function createSourcePreparationProvider(
               failureCause = combinedCause
               if (failures.length) {
                 failureKind = "Defect"
-                throw new AggregateError([original, ...failures], "Preparation construction and cleanup failed", {
+                throw nativeFailureAggregate([original, ...failures], "Preparation construction and cleanup failed", {
                   cause: original
                 })
               }
               throw original
             }
-            const handoff = await driver.drive(session, session.input, { signal: options.signal })
+            const handoff = yield* run(driver.driveEffect(session, session.input, { signal: options.signal }))
             if (!("handoff" in handoff)) {
               const failure = "failure" in handoff ? handoff.failure : undefined
               const reason = failure && "reason" in failure ? failure.reason : undefined
@@ -434,7 +451,9 @@ export function createSourcePreparationProvider(
             )
             let accepted
             try {
-              accepted = await driver.driveHandoff(handoff, post, () => post.input, { signal: options.signal })
+              accepted = yield* run(
+                driver.driveHandoffEffect(handoff, post, () => post.input, { signal: options.signal })
+              )
             } catch (error) {
               const cause = post.handoffFailureCause
               if (cause !== undefined) {
@@ -447,7 +466,7 @@ export function createSourcePreparationProvider(
                       ? "Cancelled"
                       : "Failed"
                 if (failureKind === "Defect") pendingDefectCause = cause
-                await run(Effect.failCause(cause))
+                yield* run(Effect.failCause(cause))
               }
               throw error
             }
@@ -463,7 +482,7 @@ export function createSourcePreparationProvider(
                       ? "Cancelled"
                       : "Failed"
                 if (failureKind === "Defect") pendingDefectCause = failureCause
-                await run(Effect.failCause(failureCause))
+                yield* run(Effect.failCause(failureCause))
               }
               throw post.error(reason.token) ?? new Error("Post-preparation failed: " + reason.$)
             }
@@ -503,10 +522,10 @@ export function createSourcePreparationProvider(
             break
           }
           case "RejectCandidateCapacity":
-            await scoped(ledger.runtime.rejectCapacity())
+            yield* scoped(ledger.runtime.rejectCapacity())
             break
           case "RecordCandidateAnalytics":
-            await scoped(
+            yield* scoped(
               context.deps.residentRecordAnalytics(
                 job,
                 command.outcome.$ === "CapacityRejected" ? "capacity-rejected" : "preparation-failed"
@@ -514,7 +533,7 @@ export function createSourcePreparationProvider(
             )
             break
           case "RecordCandidateUnavailable":
-            await run(Effect.sync(() => activity({ stage: "unavailable" })))
+            yield* run(Effect.sync(() => activity({ stage: "unavailable" })))
             break
           case "ReadExpectedActivity": {
             expected.clear()
@@ -523,7 +542,7 @@ export function createSourcePreparationProvider(
             break
           }
           case "RecordPendingActivity":
-            await run(
+            yield* run(
               Effect.sync(() =>
                 activity({
                   stage: "pending",
@@ -542,14 +561,14 @@ export function createSourcePreparationProvider(
             if (round === undefined || observationId === undefined) throw new TypeError("Missing source policy binding")
             response = {
               $: "CompletionAccepted",
-              value: await scoped(
+              value: yield* scoped(
                 ledger.rounds.policyWork(round).pipe(Effect.map((policy) => policy.completeSource(observationId)))
               )
             }
             break
           }
           case "CompleteObservation":
-            await run(
+            yield* run(
               bridge.completeSourceObservation(ownerLease(), (publication) => {
                 observationCommitted = true
                 job.completed = true
@@ -559,7 +578,7 @@ export function createSourcePreparationProvider(
             response = { $: "CompletionAccepted", value: true }
             break
           case "AfterPrepare":
-            await run(
+            yield* run(
               withinWork(
                 context.deps.residentPreparationControls.afterPrepare.pipe(
                   Effect.mapError(() => new ResidentAdapterError({ operation: "preparation barrier" }))
@@ -596,7 +615,7 @@ export function createSourcePreparationProvider(
           pendingDefectCause = combinedCause
         if (command.$ === "ObserveCandidateDiagnostic" && pendingDefectCause) {
           try {
-            await run(Effect.failCause(combinedCause))
+            yield* run(Effect.failCause(combinedCause))
           } catch (combined) {
             errors.set(token, combined)
           }

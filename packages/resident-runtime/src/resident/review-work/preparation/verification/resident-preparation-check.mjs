@@ -12,7 +12,7 @@ import {
   DEFAULT_DIRECT_FILE_POLICY
 } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { performGraphServiceRequest } from "@hapsland/source-analysis/direct-event/graph-resolution"
+import { performGraphServiceEffect } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
 import {
   hostNatural,
@@ -125,12 +125,6 @@ const scenarios = [
   scenario("retention-cached-clear", twoDeclarations),
   scenario("retention-joined-claimed", twoDeclarations),
   scenario("retention-joined-pending", twoDeclarations),
-  scenario("retention-bend-success", twoDeclarations),
-  scenario("retention-bend-cached-clear", twoDeclarations),
-  scenario("retention-bend-joined-claimed", twoDeclarations),
-  scenario("retention-bend-joined-pending", twoDeclarations),
-  scenario("retention-bend-after-revision", twoDeclarations),
-  scenario("retention-bend-fault-after-revision", twoDeclarations),
   scenario("retention-owned-success", twoDeclarations),
   scenario("retention-owned-cached-clear", twoDeclarations),
   scenario("retention-owned-joined-claimed", twoDeclarations),
@@ -304,10 +298,10 @@ try {
       acceptedAtFinalizationCancel,
       captureReads = 0,
       betweenReads = 0
-    const performGraphRequest = async (request, options) => {
+    const performGraphRequest = (request, options) => {
       const session = registry.get(hostNatural(request.invocation))
       if (!session) throw new TypeError("Unknown graph service invocation")
-      return performGraphServiceRequest(session, request, options)
+      return performGraphServiceEffect(session, request, options)
     }
     const context = {
       root,
@@ -393,103 +387,105 @@ try {
               ? tailMachine
               : undefined
       },
-      foreign: async ([request], options) => {
-        requests++
-        if (postSessions.has(Number(request.invocation))) {
-          postRequests++
-          const postSession = postSessions.get(Number(request.invocation))
-          if (mode === "retention-owned-duplicate-active" && !duplicateChecked) {
-            duplicateChecked = true
-            const before = Effect.runSync(connection.transaction.read),
-              resources = driver.resources
-            await assert.rejects(
-              driver.driveHandoff(connection.owned.receipt, postSession, () => postSession.input),
-              /Session already owned/
+      foreign: ([request], options) =>
+        Effect.gen(function* () {
+          requests++
+          if (postSessions.has(Number(request.invocation))) {
+            postRequests++
+            const postSession = postSessions.get(Number(request.invocation))
+            if (mode === "retention-owned-duplicate-active" && !duplicateChecked) {
+              duplicateChecked = true
+              const before = Effect.runSync(connection.transaction.read),
+                resources = driver.resources
+              const rejected = yield* Effect.exit(
+                driver.driveHandoffEffect(connection.owned.receipt, postSession, () => postSession.input)
+              )
+              assert.equal(rejected._tag, "Failure")
+              assert.match(String(Cause.squash(rejected.cause)), /Session already owned/)
+              assert.strictEqual(Effect.runSync(connection.transaction.read), before)
+              assert.deepEqual(driver.resources, resources)
+            }
+            const faultCommand = {
+              "retention-owned-fault-reuse-claim": "LookupReuse",
+              "retention-owned-fault-clear-register": "RegisterClear",
+              "retention-owned-fault-clear-release": "ReleaseClear",
+              "retention-owned-fault-joined-append": "AppendJoined",
+              "retention-owned-fault-clear-shared-release": "ReleaseClear"
+            }[mode]
+            if (
+              mode === "retention-owned-cached-finding-standalone-cutoff" ||
+              mode === "retention-owned-cached-finding-standalone-insert-ack"
             )
-            assert.strictEqual(Effect.runSync(connection.transaction.read), before)
-            assert.deepEqual(driver.resources, resources)
-          }
-          const faultCommand = {
-            "retention-owned-fault-reuse-claim": "LookupReuse",
-            "retention-owned-fault-clear-register": "RegisterClear",
-            "retention-owned-fault-clear-release": "ReleaseClear",
-            "retention-owned-fault-joined-append": "AppendJoined",
-            "retention-owned-fault-clear-shared-release": "ReleaseClear"
-          }[mode]
-          if (
-            mode === "retention-owned-cached-finding-standalone-cutoff" ||
-            mode === "retention-owned-cached-finding-standalone-insert-ack"
-          )
-            return postSession.perform(request, {
-              ...options,
-              afterCommit: (command) => {
-                if (command.$ === "InsertCachedAdvice" && !reuseFaultInjected) {
-                  reuseFaultInjected = true
-                  if (mode.endsWith("-cutoff")) driver.cancel(request.invocation)
-                  else throw new Error("injected cached insert acknowledgement loss")
-                }
-              }
-            })
-          if (mode === "retention-owned-fault-clear-cleanup-receipt")
-            return postSession.perform(request, {
-              ...options,
-              beforeCommand: (command) => {
-                if (command.$ === "ReleaseClear" && !originalCleanupFailure) {
-                  originalCleanupFailure = true
-                  throw new Error("injected original clear release failure")
-                }
-              },
-              afterCommit: (command, publication) => {
-                if (command.$ === "Cleanup" && publication.releasedAcquisition !== undefined && !reuseFaultInjected) {
-                  reuseFaultInjected = true
-                  throw new Error("injected cleanup release action sink failure")
-                }
-              }
-            })
-          if (faultCommand)
-            return postSession.perform(request, {
-              ...options,
-              afterCommit: (command) => {
-                if (!reuseFaultInjected && command.$ === faultCommand) {
-                  reuseFaultInjected = true
-                  throw new Error("injected reuse commit acknowledgement loss")
-                }
-              }
-            })
-          return postSession.perform(
-            request,
-            mode === "retention-owned-joined-pending-restore-fault"
-              ? {
-                  ...options,
-                  afterPendingRestore: () => {
-                    throw new Error("injected pending restore acknowledgement loss")
+              return yield* postSession.performEffect(request, {
+                ...options,
+                afterCommit: (command) => {
+                  if (command.$ === "InsertCachedAdvice" && !reuseFaultInjected) {
+                    reuseFaultInjected = true
+                    if (mode.endsWith("-cutoff")) driver.cancel(request.invocation)
+                    else throw new Error("injected cached insert acknowledgement loss")
                   }
                 }
-              : options
-          )
-        }
-        const adviceSession = registry.get(Number(request.invocation))
-        if (adviceSession?.input?.adviceTail) {
-          postRequests++
-          return adviceSession.perform(request, options)
-        }
-        if (request.operation) {
-          if (
-            ["parent-cancel-late-success", "parent-cancel-late-rejection"].includes(mode) &&
-            !cancelled &&
-            request.operation.$ === "Types.CaptureSource"
-          ) {
-            const pending = performGraphRequest(request, { ...options, signal: undefined })
-            cancelled = true
-            driver.cancel(parentInvocation)
-            const reply = await pending
-            if (mode === "parent-cancel-late-rejection") throw new Error("late capture provider fault")
-            return reply
+              })
+            if (mode === "retention-owned-fault-clear-cleanup-receipt")
+              return yield* postSession.performEffect(request, {
+                ...options,
+                beforeCommand: (command) => {
+                  if (command.$ === "ReleaseClear" && !originalCleanupFailure) {
+                    originalCleanupFailure = true
+                    throw new Error("injected original clear release failure")
+                  }
+                },
+                afterCommit: (command, publication) => {
+                  if (command.$ === "Cleanup" && publication.releasedAcquisition !== undefined && !reuseFaultInjected) {
+                    reuseFaultInjected = true
+                    throw new Error("injected cleanup release action sink failure")
+                  }
+                }
+              })
+            if (faultCommand)
+              return yield* postSession.performEffect(request, {
+                ...options,
+                afterCommit: (command) => {
+                  if (!reuseFaultInjected && command.$ === faultCommand) {
+                    reuseFaultInjected = true
+                    throw new Error("injected reuse commit acknowledgement loss")
+                  }
+                }
+              })
+            return yield* postSession.performEffect(
+              request,
+              mode === "retention-owned-joined-pending-restore-fault"
+                ? {
+                    ...options,
+                    afterPendingRestore: () => {
+                      throw new Error("injected pending restore acknowledgement loss")
+                    }
+                  }
+                : options
+            )
           }
-          return await performGraphRequest(request, options)
-        }
-        return preparationForeign.perform(request, options)
-      }
+          const adviceSession = registry.get(Number(request.invocation))
+          if (adviceSession?.input?.adviceTail) {
+            postRequests++
+            return yield* adviceSession.performEffect(request, options)
+          }
+          if (request.operation) {
+            if (
+              ["parent-cancel-late-success", "parent-cancel-late-rejection"].includes(mode) &&
+              !cancelled &&
+              request.operation.$ === "Types.CaptureSource"
+            ) {
+              const pending = performGraphRequest(request, { ...options, signal: undefined })
+              cancelled = true
+              driver.cancel(parentInvocation)
+              const reply = yield* pending
+              if (mode === "parent-cancel-late-rejection") throw new Error("late capture provider fault")
+              return reply
+            }
+            return yield* performGraphRequest(request, options)
+          }
+          return yield* preparationForeign.performEffect(request, options)
+        })
     })
     // One action sink and one resource dispatcher for both parent and resolver.
     const preparationForeign = createPreparationForeign({
@@ -563,7 +559,9 @@ try {
       advicee_host: "codex",
       before_analyze: true
     }
-    let outcome = await driver.drive(session, { invocation: BigInt(parentInvocation), preparation: preparationInput })
+    let outcome = await Effect.runPromise(
+      driver.driveEffect(session, { invocation: BigInt(parentInvocation), preparation: preparationInput })
+    )
     if (owned) {
       const receipt = outcome
       outcome = driver.handoffResult(receipt)
@@ -578,10 +576,9 @@ try {
             preparation: BigInt(preparation.operation)
           })
           const sourceSession = { invocation, revoke() {}, close() {} }
-          const nextReceipt = await driver.drive(sourceSession, {
-            invocation: BigInt(invocation),
-            preparation: preparationInput
-          })
+          const nextReceipt = await Effect.runPromise(
+            driver.driveEffect(sourceSession, { invocation: BigInt(invocation), preparation: preparationInput })
+          )
           const result = driver.handoffResult(nextReceipt)
           connection.owned.receipt = nextReceipt
           return result.preparation

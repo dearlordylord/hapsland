@@ -797,7 +797,7 @@ const postCore = (
           if (tailVariant.startsWith("driver-construction-")) throw constructorFailure
           return tailMachine
         },
-        foreign: async ([request], options) => await registry.get(Number(request.invocation)).perform(request, options)
+        foreign: ([request], options) => registry.get(Number(request.invocation)).performEffect(request, options)
       })
       const input = adviceDriver.prepareAdviceInput(2n, {})
       assert.equal(input, 1n)
@@ -879,7 +879,7 @@ const postCore = (
       if (tailVariant === "driver-construction-cleanup-failure") {
         let rejected
         try {
-          await adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n), provider, tailOptions)
+          await Effect.runPromise(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions))
         } catch (error) {
           rejected = error
         }
@@ -895,10 +895,10 @@ const postCore = (
         assert.equal(registry.pendingCleanup, 1)
         assert.ok(adviceDriver.resources.sessions > 0)
         assert.strictEqual(run(advice.values())[0], capability)
-        await assert.rejects(registry.retryCleanup(), /obligations remain pending/)
+        await assert.rejects(Effect.runPromise(registry.retryCleanupEffect()), /obligations remain pending/)
         assert.equal(registry.pendingCleanup, 1)
         cleanupFails = false
-        await registry.retryCleanup()
+        await Effect.runPromise(registry.retryCleanupEffect())
         assert.equal(registry.pendingCleanup, 0)
         assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
         assert.deepEqual(adviceDriver.resources, {
@@ -918,7 +918,7 @@ const postCore = (
       }
       if (tailVariant === "driver-construction-failure") {
         await assert.rejects(
-          adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n), provider, tailOptions),
+          Effect.runPromise(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)),
           /injected tail constructor failure/
         )
         assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
@@ -940,7 +940,7 @@ const postCore = (
       }
       if (tailVariant === "driver-cleanup-pending" || tailVariant === "driver-observer-pending") {
         await assert.rejects(
-          adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n), provider, tailOptions),
+          Effect.runPromise(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)),
           (error) => {
             const messages = (value) =>
               value instanceof AggregateError ? [value.message, ...value.errors.flatMap(messages)] : [value.message]
@@ -951,11 +951,11 @@ const postCore = (
         assert.equal(registry.pendingCleanup, 1)
         if (tailVariant === "driver-cleanup-pending") assert.strictEqual(run(advice.values())[0], capability)
         else assert.equal(run(advice.values()).length, 0)
-        await assert.rejects(registry.retryCleanup(), /obligations remain pending/)
+        await assert.rejects(Effect.runPromise(registry.retryCleanupEffect()), /obligations remain pending/)
         assert.equal(registry.pendingCleanup, 1)
         cleanupFails = false
         observerFails = false
-        await registry.retryCleanup()
+        await Effect.runPromise(registry.retryCleanupEffect())
         assert.equal(registry.pendingCleanup, 0)
         assert.equal(run(advice.values()).length, 0)
         assert.equal(run(revision.current(revisions[1], prepared)), true)
@@ -967,7 +967,9 @@ const postCore = (
         continue
       }
       if (tailVariant !== "driver-active-false") {
-        const outcome = await adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n), provider, tailOptions)
+        const outcome = await Effect.runPromise(
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)
+        )
         assert.equal(outcome.adviceRetained, false)
         assert.equal(outcome.reason.$, "TechnicalFailure")
         assert.equal(outcome.reason.token, 1n)
@@ -994,7 +996,11 @@ const postCore = (
         continue
       }
       assert.deepEqual(
-        await adviceDriver.driveAdvice(adviceDriver.adviceHandoff(3n), provider, { signal: lifetimeController.signal }),
+        await Effect.runPromise(
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, {
+            signal: lifetimeController.signal
+          })
+        ),
         { adviceRetained: true }
       )
       assert.strictEqual(

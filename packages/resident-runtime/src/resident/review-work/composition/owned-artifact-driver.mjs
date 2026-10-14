@@ -3,6 +3,7 @@ import {
   performFinalizationSync,
   performFinalizationAsync
 } from "@hapsland/review-execution/direct-event/preparation"
+import * as Effect from "effect/Effect"
 import * as ownedMachine from "./owned-machine.mjs"
 import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
@@ -54,9 +55,23 @@ const required = (value) => {
  */
 /**
  * @template {NativeSession} Session
- * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice" | "driveConstructedEffect"> & {
+ * @typedef {{
+ * (session: Session, input: Parameters<ownedMachine.FinalizationMachine["initial"]>[0], options?: ForeignOptions): import("effect/Effect").Effect<FinalizationOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.ArtifactMachine["initial"]>[0], options?: ForeignOptions): import("effect/Effect").Effect<GraphOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.PreparationMachine["initial"]>[0], options?: ForeignOptions): import("effect/Effect").Effect<PreparationOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0], options?: ForeignOptions): import("effect/Effect").Effect<SourceOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions): import("effect/Effect").Effect<PostOutcome>;
+ * (session: Session, input: Parameters<ownedMachine.AdviceMachine["initial"]>[0], options?: ForeignOptions): import("effect/Effect").Effect<AdviceOutcome>;
+ * }} DriveEffect
+ */
+/**
+ * @template {NativeSession} Session
+ * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice" | "driveConstructedEffect" | "driveEffect" | "driveHandoffEffect" | "driveAdviceEffect"> & {
  * driveConstructedEffect: (construct: () => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}, options?: ForeignOptions) => import("effect/Effect").Effect<SourceOutcome>,
  * drive: Drive<Session>,
+ * driveEffect: DriveEffect<Session>,
+ * driveHandoffEffect: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => import("effect/Effect").Effect<PostOutcome>,
+ * driveAdviceEffect: (receipt: AdviceHandoff, session: Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}, options?: ForeignOptions) => import("effect/Effect").Effect<AdviceOutcome>,
  * driveHandoff: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => Promise<PostOutcome>,
  * driveAdvice: (receipt: AdviceHandoff, session: Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}, options?: ForeignOptions) => Promise<AdviceOutcome>
  * }} Driver
@@ -67,7 +82,7 @@ const exactRequest = (request) => typeof request.invocation === "bigint" && type
 // executes their single shared action/custody implementation.
 /**
  * @template {NativeSession} [Session=NativeSession]
- * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => Promise<ownedMachine.Reply>, hooks?: Hooks<Session>, control?: Control, machine: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
+ * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<ownedMachine.Reply>, hooks?: Hooks<Session>, control?: Control, machine: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
  * @returns {Driver<Session>}
  */
 export function createOwnedArtifactDriver({
@@ -151,15 +166,20 @@ export function createOwnedArtifactDriver({
   const shared = createChildExecutionDriver({
     owner,
     registry,
-    foreignSync(requests) {
+    foreignSync(requests, options) {
       if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
       const request = required(requests[0])
-      return "finalization" in request ? performFinalizationSync(request) : undefined
+      if ("finalization" in request) return performFinalizationSync(request)
+      const work = foreign(requests, options)
+      return Effect.isEffect(work)
+        ? { effect: work, map: (value) => /** @type {ownedMachine.Reply} */ (value) }
+        : { pending: work, map: (value) => /** @type {ownedMachine.Reply} */ (value) }
     },
-    foreign(requests, options) {
+    foreign(requests, _options) {
       if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
       const request = required(requests[0])
-      return "finalization" in request ? performFinalizationAsync(request) : foreign(requests, options)
+      if ("finalization" in request) return performFinalizationAsync(request)
+      throw new TypeError("Owned native work must use its selected execution port")
     },
     hooks,
     machine,
@@ -172,7 +192,10 @@ export function createOwnedArtifactDriver({
   const sharedDrive = shared.drive,
     sharedHandoff = shared.driveHandoff,
     sharedAdvice = shared.driveAdvice,
-    sharedConstructed = shared.driveConstructedEffect
+    sharedConstructed = shared.driveConstructedEffect,
+    sharedEffect = shared.driveEffect,
+    sharedHandoffEffect = shared.driveHandoffEffect,
+    sharedAdviceEffect = shared.driveAdviceEffect
   /** @overload @param {Session} session @param {Parameters<ownedMachine.ArtifactMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<GraphOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.PreparationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PreparationOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.SourceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<SourceOutcome>} */
@@ -182,6 +205,16 @@ export function createOwnedArtifactDriver({
   /** @param {Session} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
   function drive(session, input, options) {
     return sharedDrive(session, input, options)
+  }
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.ArtifactMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Effect.Effect<GraphOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.PreparationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Effect.Effect<PreparationOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.SourceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Effect.Effect<SourceOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.PostMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Effect.Effect<PostOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.FinalizationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Effect.Effect<FinalizationOutcome>} */
+  /** @overload @param {Session} session @param {Parameters<ownedMachine.AdviceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Effect.Effect<AdviceOutcome>} */
+  /** @param {Session} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Effect.Effect<TerminalOutcome>} */
+  function driveEffect(session, input, options) {
+    return sharedEffect(session, input, options)
   }
   /** @overload @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
   /** @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
@@ -193,10 +226,28 @@ export function createOwnedArtifactDriver({
   function driveAdvice(receipt, session, options) {
     return sharedAdvice(receipt, session, options)
   }
+  /** @overload @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Effect.Effect<PostOutcome>} */
+  /** @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Effect.Effect<TerminalOutcome>} */
+  function driveHandoffEffect(receipt, session, buildInput, options) {
+    return sharedHandoffEffect(receipt, session, buildInput, options)
+  }
+  /** @overload @param {AdviceHandoff} receipt @param {Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}} session @param {ForeignOptions} [options] @returns {Effect.Effect<AdviceOutcome>} */
+  /** @param {AdviceHandoff} receipt @param {Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}} session @param {ForeignOptions} [options] @returns {Effect.Effect<TerminalOutcome>} */
+  function driveAdviceEffect(receipt, session, options) {
+    return sharedAdviceEffect(receipt, session, options)
+  }
   /** @overload @param {() => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}} construct @param {ForeignOptions} [options] @returns {import("effect/Effect").Effect<SourceOutcome>} */
   /** @param {() => {session: Session, input: ownedMachine.Input}} construct @param {ForeignOptions} [options] @returns {import("effect/Effect").Effect<TerminalOutcome>} */
   function driveConstructedEffect(construct, options) {
     return sharedConstructed(construct, options)
   }
-  return Object.assign(shared, { drive, driveHandoff, driveAdvice, driveConstructedEffect })
+  return Object.assign(shared, {
+    drive,
+    driveHandoff,
+    driveAdvice,
+    driveConstructedEffect,
+    driveEffect,
+    driveHandoffEffect,
+    driveAdviceEffect
+  })
 }

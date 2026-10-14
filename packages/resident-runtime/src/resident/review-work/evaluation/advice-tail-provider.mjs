@@ -1,3 +1,8 @@
+import {
+  effectNative,
+  runNativeEffect,
+  nativeFailureAggregate
+} from "@hapsland/runtime-environment/runtime/native-execution"
 import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
 import * as Exit from "effect/Exit"
@@ -41,17 +46,24 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
   let lastCause
   /** @type {import("../../state/resolver-custody/provider-authority.ts").AdviceOwnership | undefined} */
   let pendingFate
-  /** @template A, E @param {Effect.Effect<A, E>} effect @returns {Promise<A>} */
-  const run = async (effect) => {
-    const exit = await Effect.runPromiseExit(
-      Effect.uninterruptible(effect).pipe(
-        Effect.provideService(ResidentProviderPermit, undefined),
-        Effect.provideService(ResidentResourceReceipt, undefined)
+  /** @template A, E @param {Effect.Effect<A, E>} effect @param {typeof Effect.interruptible} restore @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
+  const runEffect = function* (effect, restore) {
+    const exit = /** @type {Exit.Exit<A, E>} */ (
+      yield effectNative(
+        Effect.exit(
+          restore(
+            Effect.uninterruptible(effect).pipe(
+              Effect.provideService(ResidentProviderPermit, undefined),
+              Effect.provideService(ResidentResourceReceipt, undefined)
+            )
+          )
+        ),
+        false
       )
     )
     if (Exit.isFailure(exit)) {
       lastCause = exit.cause
-      return Effect.runPromise(Effect.failCause(exit.cause))
+      throw Cause.squash(exit.cause)
     }
     return exit.value
   }
@@ -64,11 +76,14 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
         : Cause.hasInterrupts(cause)
           ? "Cancelled"
           : "Failed"
-  const expired = async () => {
-    const snapshot = await run(bridge.read)
+  /** @param {typeof Effect.interruptible} restore @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<boolean>} */
+  const expired = function* (restore) {
+    /** @template A, E @param {Effect.Effect<A, E>} effect @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
+    const run = (effect) => runEffect(effect, restore)
+    const snapshot = yield* run(bridge.read)
     if (snapshot.records.advice.entries.get(capability.id)?.capability !== capability) return false
-    return await run(
-      context.deps.residentAdviceExpired(capability, await run(Effect.sync(() => context.deps.residentNow())))
+    return yield* run(
+      context.deps.residentAdviceExpired(capability, yield* run(Effect.sync(() => context.deps.residentNow())))
     )
   }
   const publishFate = () => {
@@ -151,35 +166,50 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
     close() {
       closed = true
     },
-    async finish() {
+    /** @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<void>} */
+    *finishFlow() {
+      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
+      const run = (effect) => runEffect(effect, (value) => value)
       if (finished) return
       lastCause = undefined
       try {
-        await run(Effect.sync(publishFate))
+        yield* run(Effect.sync(publishFate))
         if (accepted || cleanupDischarged) {
           finished = true
           return
         }
-        const retirement = context.retirementForExpired(await expired())
-        await run(bridge.adviceCleanup(capability, (publication) => committedRemoval(publication), retirement))
+        const retirement = context.retirementForExpired(yield* expired((effect) => effect))
+        yield* run(bridge.adviceCleanup(capability, (publication) => committedRemoval(publication), retirement))
         cleanupDischarged = true
         finished = true
       } catch (error) {
         const cause = lastCause ?? Cause.die(error)
         finalizationCause = finalizationCause === undefined ? cause : Cause.combine(finalizationCause, cause)
-        throw new AggregateError(
+        throw nativeFailureAggregate(
           primaryFailure === undefined ? [error] : [primaryFailure, error],
           "Advice tail cleanup remains incomplete",
           { cause: primaryFailure ?? error }
         )
       }
     },
+    /** @param {import("../preparation/post-preparation-core.js").Request} request
+     * @param {{ signal?: AbortSignal, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, afterCommit?: (command: import("../preparation/post-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>) => void }} [options]
+     * @returns {Effect.Effect<import("../preparation/post-preparation-core.js").Reply>}
+     */
+    performEffect(request, options = {}) {
+      return Effect.uninterruptibleMask((restore) =>
+        runNativeEffect(this.performFlow(request, restore, options), () => {})
+      )
+    },
     /**
      * @param {import("../preparation/post-preparation-core.js").Request} request
      * @param {{ signal?: AbortSignal, ownerLease?: import("../../state/resolver-custody/provider-authority.ts").ProviderLease, afterCommit?: (command: import("../preparation/post-preparation-core.js").Command, publication: import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>) => void }} [options]
-     * @returns {Promise<import("../preparation/post-preparation-core.js").Reply>}
+     * @param {typeof Effect.interruptible} restore
+     * @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<import("../preparation/post-preparation-core.js").Reply>}
      */
-    async perform(request, options = {}) {
+    *performFlow(request, restore, options = {}) {
+      /** @template A, E @param {Effect.Effect<A, E>} effect @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
+      const run = (effect) => runEffect(effect, restore)
       if (request.invocation !== invocation || !("advice" in request.command) || request.command.advice !== advice)
         throw new Error("Wrong advice tail capability")
       const command = request.command
@@ -194,7 +224,7 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
           throw new Error("Advice tail requires cleanup")
         switch (command.$) {
           case "AdvicePendingBarrier":
-            await run(
+            yield* run(
               withinWork(
                 context.deps.residentReviewControls
                   .afterAdvicePending(capability.id)
@@ -204,14 +234,14 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
             )
             break
           case "AdviceCheckActive": {
-            const value = await run(context.deps.residentJobActive(unit))
+            const value = yield* run(context.deps.residentJobActive(unit))
             response = { $: "Active", value }
             if (!value) accepted = true
             break
           }
           case "AdvicePublish": {
             if (!options.ownerLease) throw new Error("Advice publication lacks its Canonical lease")
-            const published = await run(
+            const published = yield* run(
               bridge.adviceTailPublish(options.ownerLease, capability, (publication) =>
                 options.afterCommit?.(command, publication)
               )
@@ -224,16 +254,16 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
           case "AdviceRecordPublished": {
             const publication = publications.get(command.publication)
             if (!publication) throw new Error("Unknown advice publication")
-            await run(context.deps.residentRecordJoinedOutcomes(publication, capability.id))
+            yield* run(context.deps.residentRecordJoinedOutcomes(publication, capability.id))
             accepted = true
             break
           }
           case "AdviceCheckExpired":
-            response = { $: "Expired", value: await expired() }
+            response = { $: "Expired", value: yield* expired(restore) }
             break
           case "AdviceRemove": {
             if (!options.ownerLease) throw new Error("Advice removal lacks its Canonical lease")
-            const result = await run(
+            const result = yield* run(
               bridge.adviceTailRemove(
                 options.ownerLease,
                 capability,

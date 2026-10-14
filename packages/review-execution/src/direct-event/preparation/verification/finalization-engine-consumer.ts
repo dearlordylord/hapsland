@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect"
 // Finite engine verification only; production dispatches through Canonical.
 import {
   createPreparationFinalizationExecution,
@@ -25,7 +26,9 @@ export function createPreparationFinalizationConsumer(
       let response
       if (synchronous === undefined) {
         const engine = execution.performPending(step)
-        response = engine.map(await engine.pending)
+        response = engine.map(
+          await (Effect.isEffect(engine.pending) ? Effect.runPromise(engine.pending) : engine.pending)
+        )
       } else response = synchronous.value
       step = execution.resume(step, response)
     }

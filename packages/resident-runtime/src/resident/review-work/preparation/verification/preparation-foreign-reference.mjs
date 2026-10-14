@@ -19,55 +19,58 @@ export function createVerificationPreparationForeign({ compareRoots = true, onRo
   })
   return {
     ...capability,
-    async perform(request, effectOptions) {
-      const command = request.command
-      if (mode === "first-refused" && command.$ === "ResolveRoot" && roots === 0) {
-        roots++
-        onRoot?.()
-        return {
-          $: "Reply",
-          invocation: request.invocation,
-          id: request.id,
-          response: {
-            $: "RootResolved",
-            unit: { $: "None" },
-            references: list([]),
-            captures: capability.snapshotCaptures()
+    performEffect(request, effectOptions) {
+      return Effect.gen(function* () {
+        const command = request.command
+        if (mode === "first-refused" && command.$ === "ResolveRoot" && roots === 0) {
+          roots++
+          onRoot?.()
+          return {
+            $: "Reply",
+            invocation: request.invocation,
+            id: request.id,
+            response: {
+              $: "RootResolved",
+              unit: { $: "None" },
+              references: list([]),
+              captures: capability.snapshotCaptures()
+            }
           }
         }
-      }
-      if (mode === "resize-refused" && command.$ === "AdmitMaterialization") {
-        const bytes = 200000000
-        const result = Effect.runSync(
-          options.connection.bridge.nativeScoped(effectOptions.ownerLease, (draft, records) => [
-            resize(draft, options.connection.preparation.reservation, bytes),
-            records
-          ])
-        ).value
-        options.onMaterialization?.({ kind: "resize", bytes, status: result.status })
-        const admission = {
-          resized: { $: "Resized" },
-          "capacity-refused": { $: "CapacityRefused", constraint: result.constraint },
-          "invalid-reservation": { $: "InvalidReservation" },
-          "invalid-measurement": { $: "InvalidMeasurement" }
-        }[result.status]
-        if (!admission) throw new Error("Unknown materialization resize status " + result.status)
-        return {
-          $: "Reply",
-          invocation: request.invocation,
-          id: request.id,
-          response: { $: "MaterializationDone", requested: BigInt(bytes), result: admission }
+        if (mode === "resize-refused" && command.$ === "AdmitMaterialization") {
+          const bytes = 200000000
+          const result = Effect.runSync(
+            options.connection.bridge.nativeScoped(effectOptions.ownerLease, (draft, records) => [
+              resize(draft, options.connection.preparation.reservation, bytes),
+              records
+            ])
+          ).value
+          options.onMaterialization?.({ kind: "resize", bytes, status: result.status })
+          const admission = {
+            resized: { $: "Resized" },
+            "capacity-refused": { $: "CapacityRefused", constraint: result.constraint },
+            "invalid-reservation": { $: "InvalidReservation" },
+            "invalid-measurement": { $: "InvalidMeasurement" }
+          }[result.status]
+          if (!admission) throw new Error("Unknown materialization resize status " + result.status)
+          return {
+            $: "Reply",
+            invocation: request.invocation,
+            id: request.id,
+            response: { $: "MaterializationDone", requested: BigInt(bytes), result: admission }
+          }
         }
-      }
-      const reply = await capability.perform(request, effectOptions)
-      if (compareRoots && request.command.$ === "ResolveRoot") {
-        const expected = await Effect.runPromise(
-          resolveGraphUnit(facts.path, facts.capture, facts.name, { ...facts.context, captureCache: new Map() })
-        )
-        const unit = reply.response.unit
-        assert.deepEqual(unit.$ === "None" ? undefined : fromProductValue(unit.value), expected)
-      }
-      return reply
+        const reply = yield* capability.performEffect(request, effectOptions)
+        if (compareRoots && request.command.$ === "ResolveRoot") {
+          const expected = yield* resolveGraphUnit(facts.path, facts.capture, facts.name, {
+            ...facts.context,
+            captureCache: new Map()
+          })
+          const unit = reply.response.unit
+          assert.deepEqual(unit.$ === "None" ? undefined : fromProductValue(unit.value), expected)
+        }
+        return reply
+      })
     }
   }
 }

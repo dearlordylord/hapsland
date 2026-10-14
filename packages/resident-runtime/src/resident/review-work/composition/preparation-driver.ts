@@ -16,7 +16,10 @@ type PreparationDriverPorts = {
   readonly registry: ReturnType<typeof createPreparationSessionRegistry>
   readonly hooks?: Hooks<PreparationNativeSession>
   /** Verification effect interception; production uses the native gateway. */
-  readonly foreign?: (requests: readonly Request[], options: ForeignOptions) => Promise<Reply>
+  readonly foreign?: (
+    requests: readonly Request[],
+    options: ForeignOptions
+  ) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<Reply>
 }
 
 /** Internal resident composition. One supplied custody registry and Canonical
@@ -39,7 +42,7 @@ export function createResidentPreparationDriver({ bridge, registry, hooks, forei
     ...(hooks === undefined ? {} : { hooks }),
     foreign:
       foreign ??
-      (async (requests, options) => {
+      ((requests, options) => {
         if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
         return performPreparationSessionRequest(registry, requests[0]!, options)
       }),

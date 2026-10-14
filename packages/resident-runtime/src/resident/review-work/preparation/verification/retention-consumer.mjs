@@ -7,7 +7,7 @@ import { completeSourcePreparation } from "./native-post-retention.ts"
 import { sourcePartition } from "../../../recipient/identity.ts"
 import { evaluationSourcePartition } from "../../../work-ownership/identity.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { bendPostPreparation, createPostPreparationProvider } from "../post-preparation-host.mjs"
+import { createPostPreparationProvider } from "../post-preparation-host.mjs"
 import { nativePostPreparation } from "./native-post-preparation-child.mjs"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
 
@@ -33,14 +33,12 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
   }
   const reuseFault = reuseFaults[mode]
   const faultJoinRestore = mode === "retention-owned-joined-pending-restore-fault"
-  const useOwned = mode.startsWith("retention-owned-"),
-    useBend = mode.startsWith("retention-bend-")
-  mode = mode.replace("retention-bend-", "retention-").replace("retention-owned-", "retention-")
+  const useOwned = mode.startsWith("retention-owned-")
+  mode = mode.replace("retention-owned-", "retention-")
   if (mode === "retention-duplicate-active") mode = "retention-success"
   if (faultJoinRestore) mode = "retention-joined-pending"
   if (reuseFault) mode = reuseFault[1]
-  const postFlow = (...args) =>
-    useBend ? bendPostPreparation(connection.postCore, ...args) : nativePostPreparation(...args)
+  const postFlow = nativePostPreparation
   const {
     retire,
     run,
@@ -200,13 +198,11 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
     try {
       const flow = async () => {
         if (!useOwned) return Effect.runPromise(postFlow(context, prepared, connection.preparation, observation, false))
-        const accepted = await connection.owned.driver.driveHandoff(
-          connection.owned.receipt,
-          postSession,
-          (projection) => {
+        const accepted = await Effect.runPromise(
+          connection.owned.driver.driveHandoffEffect(connection.owned.receipt, postSession, (projection) => {
             assert.equal(projection.preparation, result)
             return postSession.input
-          }
+          })
         )
         if (["TechnicalFailure", "DefectFailure"].includes(accepted.reason?.$)) {
           const cause = postSession.cause(accepted.reason.token)
@@ -302,13 +298,11 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
             false
           )
           connection.owned.postSessions.set(secondSession.invocation, secondSession)
-          const accepted = await connection.owned.driver.driveHandoff(
-            connection.owned.receipt,
-            secondSession,
-            (projection) => {
+          const accepted = await Effect.runPromise(
+            connection.owned.driver.driveHandoffEffect(connection.owned.receipt, secondSession, (projection) => {
               assert.equal(projection.preparation, sourceResult)
               return secondSession.input
-            }
+            })
           )
           if (faultJoinRestore) {
             assert.equal(accepted.reason?.$, "DefectFailure")

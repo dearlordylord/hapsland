@@ -17,7 +17,7 @@ export function createResidentPreparationSession(ports: SessionPorts): Preparati
   return {
     invocation,
     machine: foreign.machine,
-    perform: foreign.perform,
+    performEffect: foreign.performEffect,
     decode: foreign.decode,
     revoke() {},
     close() {},

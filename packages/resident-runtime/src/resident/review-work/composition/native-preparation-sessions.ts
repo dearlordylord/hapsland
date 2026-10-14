@@ -1,7 +1,8 @@
+import * as Effect from "effect/Effect"
 import type { FinalizationSession } from "@hapsland/review-execution/direct-event/preparation"
 import { performFinalizationAsync } from "@hapsland/review-execution/direct-event/preparation"
 import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
-import { performGraphServiceRequest } from "@hapsland/source-analysis/direct-event/graph-resolution"
+import { performGraphServiceEffect } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { hostNatural } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { createBendResolver } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import type {
@@ -42,128 +43,133 @@ const adviceSession = (session: PreparationNativeSession): session is AdviceSess
  * Reject wrong-family lookups before any provider performs an effect. No native
  * session is reconstructed, wrapped, or stored in another registry.
  */
-export async function performPreparationSessionRequest(
+export function performPreparationSessionRequest(
   registry: ReturnType<typeof createPreparationSessionRegistry>,
   request: Request,
   options: ForeignOptions
-): Promise<Reply> {
-  const { signal: requestedSignal, ...execution } = options
-  const signal = requestedSignal === undefined ? {} : { signal: requestedSignal }
-  const session = registry.get(hostNatural(request.invocation))
-  if (!session) throw new TypeError("Unknown owned service invocation")
-  if ("finalization" in request) {
-    if (!("input" in session && "finalization" in session.input))
-      throw new TypeError("Wrong finalization service session")
-    return performFinalizationAsync(request)
-  }
-  if ("operation" in request) {
-    if ("input" in session) throw new TypeError("Wrong graph service session")
-    return performGraphServiceRequest(session, request, options)
-  }
-  const command = request.command
-  switch (command.$) {
-    case "StartPolicySource":
-    case "StartObservation":
-    case "AwaitBackendGate":
-    case "ReadRuntimeActive":
-    case "DecodeControlled":
-    case "ReadCredentialRequired":
-    case "CheckCredentialShape":
-    case "VerifyObservationRoot":
-    case "CheckCredentialGeneration":
-    case "ReleaseJobReservation":
-    case "CheckJobActive":
-    case "RecordPreparationFailureAnalytics":
-    case "RecordUnavailableActivity":
-    case "ReadEffectiveAnalytics":
-    case "CheckCandidateActive":
-    case "AdmitCandidateWorkspace":
-    case "PrepareCandidate":
-    case "ObserveCandidateDiagnostic":
-    case "RejectCandidateCapacity":
-    case "RecordCandidateAnalytics":
-    case "RecordCandidateUnavailable":
-    case "ReadExpectedActivity":
-    case "RecordPendingActivity":
-    case "CompletePolicySource":
-    case "CompleteObservation":
-    case "AfterPrepare":
-      if (!sourceSession(session)) throw new TypeError("Wrong source service session")
-      return session.perform({ ...request, command }, { ...execution, ...signal })
-    case "ObservePreparation":
-    case "CheckActive":
-    case "ReleaseWorkspace":
-    case "Offer":
-    case "ReportDeliverabilityCapacity":
-    case "ReportDeliverabilityNotice":
-    case "ReportEmptyAnalytics":
-    case "ReportEmptyActivity":
-    case "ObserveReady":
-    case "LookupReuse":
-    case "ReadCached":
-    case "ReadPending":
-    case "RestorePending":
-    case "ObservePlans":
-    case "RecordReuseAnalytics":
-    case "OwnerBarrier":
-    case "CompletePreparation":
-    case "RegisterClear":
-    case "ReleaseClear":
-    case "ReadLiveAdvice":
-    case "PublishJoinedAdvice":
-    case "RecordJoinedOutcomes":
-    case "ReadCurrentAdvice":
-    case "ReadJoinedPending":
-    case "AppendJoined":
-    case "RememberExpected":
-    case "RecordReuseActivity":
-    case "JoinedBarrier":
-    case "RegisterRevision":
-    case "RegisterWork":
-    case "ObserveUnit":
-    case "AttachOwner":
-    case "Enqueue":
-    case "StartCachedReview":
-    case "CompleteCachedReview":
-    case "RecordCachedActivity":
-    case "CheckCachedActive":
-    case "ReadCachedAdvice":
-    case "RetireCachedWork":
-    case "ReleaseCachedUnit":
-    case "InsertCachedAdvice":
-    case "ObserveRetainedAdvice":
-    case "PreserveAdviceTail":
-    case "AwaitAdviceTail":
-    case "FinalizeCachedUnit":
-    case "ReleaseAttached":
-    case "ReleaseUnspawned":
-    case "ReportCapacity":
-    case "Cleanup":
-      if (!postSession(session)) throw new TypeError("Wrong post-preparation service session")
-      return session.perform({ ...request, command }, { ...execution, ...signal })
-    case "AdvicePendingBarrier":
-    case "AdviceCheckActive":
-    case "AdvicePublish":
-    case "AdviceRecordPublished":
-    case "AdviceCheckExpired":
-    case "AdviceRemove":
-      if (!adviceSession(session)) throw new TypeError("Wrong advice service session")
-      return session.perform({ ...request, command }, { ...execution, ...signal })
-    case "InspectPath":
-    case "CaptureSource":
-    case "Preflight":
-    case "RejectMaterializationCapacity":
-    case "RecordMaterializationCapacity":
-    case "AdmitMaterialization":
-    case "ExtractSource":
-    case "VerifyNativePatch":
-    case "ClassifyAmbiguity":
-    case "ResolveRoot":
-    case "RenderUnits":
-      if (!preparationSession(session)) throw new TypeError("Wrong preparation service session")
-      if (!options.ownerLease) throw new TypeError("Preparation request lacks its owner lease")
-      return session.perform({ ...request, command }, { ...execution, ...signal, ownerLease: options.ownerLease })
-  }
-  const unsupported: never = command
-  throw new TypeError(`Unsupported owned service command: ${String(unsupported)}`)
+): Effect.Effect<Reply> {
+  return Effect.suspend(() => {
+    const { signal: requestedSignal, ...execution } = options
+    const signal = requestedSignal === undefined ? {} : { signal: requestedSignal }
+    const session = registry.get(hostNatural(request.invocation))
+    if (!session) throw new TypeError("Unknown owned service invocation")
+    if ("finalization" in request) {
+      if (!("input" in session && "finalization" in session.input))
+        throw new TypeError("Wrong finalization service session")
+      return Effect.promise(() => performFinalizationAsync(request))
+    }
+    if ("operation" in request) {
+      if ("input" in session) throw new TypeError("Wrong graph service session")
+      return performGraphServiceEffect(session, request, options)
+    }
+    const command = request.command
+    switch (command.$) {
+      case "StartPolicySource":
+      case "StartObservation":
+      case "AwaitBackendGate":
+      case "ReadRuntimeActive":
+      case "DecodeControlled":
+      case "ReadCredentialRequired":
+      case "CheckCredentialShape":
+      case "VerifyObservationRoot":
+      case "CheckCredentialGeneration":
+      case "ReleaseJobReservation":
+      case "CheckJobActive":
+      case "RecordPreparationFailureAnalytics":
+      case "RecordUnavailableActivity":
+      case "ReadEffectiveAnalytics":
+      case "CheckCandidateActive":
+      case "AdmitCandidateWorkspace":
+      case "PrepareCandidate":
+      case "ObserveCandidateDiagnostic":
+      case "RejectCandidateCapacity":
+      case "RecordCandidateAnalytics":
+      case "RecordCandidateUnavailable":
+      case "ReadExpectedActivity":
+      case "RecordPendingActivity":
+      case "CompletePolicySource":
+      case "CompleteObservation":
+      case "AfterPrepare":
+        if (!sourceSession(session)) throw new TypeError("Wrong source service session")
+        return session.performEffect({ ...request, command }, { ...execution, ...signal })
+      case "ObservePreparation":
+      case "CheckActive":
+      case "ReleaseWorkspace":
+      case "Offer":
+      case "ReportDeliverabilityCapacity":
+      case "ReportDeliverabilityNotice":
+      case "ReportEmptyAnalytics":
+      case "ReportEmptyActivity":
+      case "ObserveReady":
+      case "LookupReuse":
+      case "ReadCached":
+      case "ReadPending":
+      case "RestorePending":
+      case "ObservePlans":
+      case "RecordReuseAnalytics":
+      case "OwnerBarrier":
+      case "CompletePreparation":
+      case "RegisterClear":
+      case "ReleaseClear":
+      case "ReadLiveAdvice":
+      case "PublishJoinedAdvice":
+      case "RecordJoinedOutcomes":
+      case "ReadCurrentAdvice":
+      case "ReadJoinedPending":
+      case "AppendJoined":
+      case "RememberExpected":
+      case "RecordReuseActivity":
+      case "JoinedBarrier":
+      case "RegisterRevision":
+      case "RegisterWork":
+      case "ObserveUnit":
+      case "AttachOwner":
+      case "Enqueue":
+      case "StartCachedReview":
+      case "CompleteCachedReview":
+      case "RecordCachedActivity":
+      case "CheckCachedActive":
+      case "ReadCachedAdvice":
+      case "RetireCachedWork":
+      case "ReleaseCachedUnit":
+      case "InsertCachedAdvice":
+      case "ObserveRetainedAdvice":
+      case "PreserveAdviceTail":
+      case "AwaitAdviceTail":
+      case "FinalizeCachedUnit":
+      case "ReleaseAttached":
+      case "ReleaseUnspawned":
+      case "ReportCapacity":
+      case "Cleanup":
+        if (!postSession(session)) throw new TypeError("Wrong post-preparation service session")
+        return session.performEffect({ ...request, command }, { ...execution, ...signal })
+      case "AdvicePendingBarrier":
+      case "AdviceCheckActive":
+      case "AdvicePublish":
+      case "AdviceRecordPublished":
+      case "AdviceCheckExpired":
+      case "AdviceRemove":
+        if (!adviceSession(session)) throw new TypeError("Wrong advice service session")
+        return session.performEffect({ ...request, command }, { ...execution, ...signal })
+      case "InspectPath":
+      case "CaptureSource":
+      case "Preflight":
+      case "RejectMaterializationCapacity":
+      case "RecordMaterializationCapacity":
+      case "AdmitMaterialization":
+      case "ExtractSource":
+      case "VerifyNativePatch":
+      case "ClassifyAmbiguity":
+      case "ResolveRoot":
+      case "RenderUnits":
+        if (!preparationSession(session)) throw new TypeError("Wrong preparation service session")
+        if (!options.ownerLease) throw new TypeError("Preparation request lacks its owner lease")
+        return session.performEffect(
+          { ...request, command },
+          { ...execution, ...signal, ownerLease: options.ownerLease }
+        )
+    }
+    const unsupported: never = command
+    throw new TypeError(`Unsupported owned service command: ${String(unsupported)}`)
+  })
 }

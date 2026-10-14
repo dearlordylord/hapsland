@@ -257,9 +257,9 @@ try {
       bridge,
       registry,
       hooks: { canonicalOutputs: (items) => outputs.push(...items) },
-      foreign: async ([request], options) => {
+      foreign: ([request], options) => {
         totalRequests++
-        if (request.operation) return await performPreparationSessionRequest(registry, request, options)
+        if (request.operation) return performPreparationSessionRequest(registry, request, options)
         const session = registry.get(Number(request.invocation))
         commands.push({
           invocation: request.invocation,
@@ -694,7 +694,7 @@ try {
           revoke() {},
           close() {},
           machine: foreign.machine,
-          perform: foreign.perform,
+          performEffect: foreign.performEffect,
           decode: foreign.decode,
           input: {
             invocation: BigInt(invocation),
@@ -741,10 +741,10 @@ try {
         assert.equal(context.unassignedClaims.size, 0)
         assert.equal(context.activeWorkspaces.size, 1)
         assert.equal(registry.pendingCleanup, 1)
-        await assert.rejects(registry.retryCleanup(), /cleanup obligations remain pending/)
+        await assert.rejects(Effect.runPromise(registry.retryCleanupEffect()), /cleanup obligations remain pending/)
         assert.equal(registry.pendingCleanup, 1)
         cleanupFails = false
-        await registry.retryCleanup()
+        await Effect.runPromise(registry.retryCleanupEffect())
         assert.equal(registry.pendingCleanup, 0)
         assert.equal(context.activeWorkspaces.size, 0)
         result = { completed: false, reason: { $: "DefectFailure", token: 1n } }
@@ -755,7 +755,7 @@ try {
         assert.equal(finalizerAckLost, true)
         assert.equal(finalizerFailed, true)
         assert.equal(registry.pendingCleanup, 1)
-        await registry.retryCleanup()
+        await Effect.runPromise(registry.retryCleanupEffect())
         assert.equal(registry.pendingCleanup, 0)
       }
       if (mode === "completion-ack-loss") {

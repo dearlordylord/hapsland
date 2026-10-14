@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect"
 import type {
   Protocol,
   Session,
@@ -147,14 +148,12 @@ export const performFinalizationSync = (request: FinalizationRequest): ForeignRe
               }
             const pendingStep = step
             const engine = request.binding.performPending(pendingStep)
-            return {
-              pending: engine.pending,
-              map: (value: unknown): FinalizationReply => ({
-                $: "FinalizationReply",
-                step: pendingStep,
-                response: engine.map(value as boolean)
-              })
-            }
+            const map = (value: unknown): FinalizationReply => ({
+              $: "FinalizationReply",
+              step: pendingStep,
+              response: engine.map(value as boolean)
+            })
+            return Effect.isEffect(engine.pending) ? { effect: engine.pending, map } : { pending: engine.pending, map }
           }
         }
       }
@@ -163,6 +162,7 @@ export const performFinalizationSync = (request: FinalizationRequest): ForeignRe
 }
 export const performFinalizationAsync = async (request: FinalizationRequest): Promise<FinalizationReply> => {
   const engine = request.binding.performPending(request.finalization)
+  if (Effect.isEffect(engine.pending)) throw new TypeError("Finalization Effect requires its caller-fiber port")
   return { $: "FinalizationReply", response: engine.map(await engine.pending) }
 }
 
