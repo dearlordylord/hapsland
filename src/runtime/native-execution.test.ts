@@ -211,7 +211,7 @@ describe("noninterruptible native Effect cleanup", () => {
       expect(Cause.hasInterrupts(exit.cause)).toBe(true)
       const defects = exit.cause.reasons.filter((reason) => reason._tag === "Die").map((reason) => reason.defect)
       expect(defects).toEqual(fails ? [failure] : [])
-      if (fails) expect(exit.cause.reasons[0]._tag).toBe("Interrupt")
+      if (fails) expect(exit.cause.reasons[0]?._tag).toBe("Interrupt")
     }
   )
 })
@@ -220,7 +220,7 @@ describe("retained cleanup flows", () => {
   it("retains construction successes across a falsy Promise cleanup failure", async () => {
     const registry = createNativeSessionRegistry()
     const session = { invocation: 1, close() {} }
-    const calls = [0, 0]
+    const calls: [number, number] = [0, 0]
     registry.retainCleanup(session, () => {
       calls[0]++
     })
@@ -245,7 +245,7 @@ describe("retained cleanup flows", () => {
     let fail = true,
       observedFiber: unknown,
       observedMarker: string | undefined
-    registry.retainCleanupFlow({ invocation: 1, close() {} }, function* (): NativeFlow<unknown> {
+    registry.retainCleanupFlow({ invocation: 1, close() {} }, function* (): NativeFlow<void> {
       yield effectNative(
         Effect.gen(function* () {
           observedFiber = yield* Effect.fiber
