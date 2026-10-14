@@ -1,8 +1,14 @@
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import * as Effect from "effect/Effect"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
-import type { Step } from "@hapsland/agent-flow-bend/canonical-resolver-owner"
-import { toOwner } from "@hapsland/canonical-policy/canonical/child-execution"
+import type { Step, State } from "@hapsland/agent-flow-bend/canonical-resolver-owner"
+import {
+  toOwner,
+  type Control,
+  type Method,
+  type Arguments,
+  type EntryTable
+} from "@hapsland/canonical-policy/canonical/child-execution"
 import { CANONICAL_MAX_BYTES, encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/resolve"
@@ -44,9 +50,27 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
   const registry = createNativeSessionRegistry<PublicPreparationSession>()
   const graph = createGraphMachine()
   let outputs: readonly Output[] = []
+  // This state and its decoded reader remain private to one preparation lifetime.
+  // Each existing owner step commits before the common driver executes its actions.
+  let state = owner.initial_limits(1n, BigInt(CANONICAL_MAX_BYTES), 1n, BigInt(CANONICAL_MAX_BYTES))
+  let activeReader = owner.active_reader(state.children)
+  const commit = (step: Step): Step => {
+    state = step.state
+    activeReader = owner.active_reader(state.children)
+    return step
+  }
+  const entries: EntryTable = owner
+  const control: Control = {
+    readState: () => state,
+    readActive: (invocation) => activeReader.query(invocation),
+    invoke<M extends Method>(method: M, args: Arguments<M>) {
+      const call = entries[method] as (state: State, ...args: Arguments<M>) => Step
+      return commit(call(state, ...args))
+    }
+  }
   const driver = createPublicPreparationDriver({
     owner,
-    initialState: owner.initial_limits(1n, BigInt(CANONICAL_MAX_BYTES), 1n, BigInt(CANONICAL_MAX_BYTES)),
+    control,
     machine: graph,
     registry,
     selectMachine: (_input, session) => ("input" in session ? session.machine : graph),
@@ -212,7 +236,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
       const beginning = unlist(
         owner.begin_public_preparation(driver.state, 1n, 1n, round, BigInt(graphLimits.readBytes))
       )
-      for (const step of beginning) driver.acceptPublication(step)
+      for (const step of beginning) driver.acceptPublication(commit(step))
       const admission = beginning[0]
       const admitted =
         admission?.$ === "Advanced"
@@ -268,7 +292,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
       for (const step of unlist(
         owner.complete_public_preparation(driver.state, 1n, 1n, round, preparation, observationId)
       ))
-        driver.acceptPublication(step)
+        driver.acceptPublication(commit(step))
       return { ...result, ambiguousLine: outcome.preparation.ambiguous_line }
     })
   return { run, retire }

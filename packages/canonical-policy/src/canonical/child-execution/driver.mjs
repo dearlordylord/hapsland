@@ -143,6 +143,21 @@ export function createChildExecutionDriver({
     if (child.$ !== "Some") throw new Error("Missing Canonical invocation")
     return child.value
   }
+  /**
+   * @param {bigint} invocation
+   * @returns {ReturnType<NonNullable<Control["readActive"]>>}
+   */
+  const readActive = (invocation) => {
+    if (control?.readActive) return control.readActive(invocation)
+    const found = owner.find(invocation, current().children)
+    return found.$ === "Some" ? { $: "Some", value: owner.child_active(found.value) } : { $: "None" }
+  }
+  /** @param {bigint} invocation */
+  const requireActive = (invocation) => {
+    const observed = readActive(invocation)
+    if (observed.$ !== "Some") throw new Error("Missing Canonical invocation")
+    return observed.value
+  }
   /** @type {Map<bigint, HeldResource>} */
   const resources = new Map()
   /** @type {Map<bigint, {invocation: bigint, request: R, controller: AbortController}>} */
@@ -230,7 +245,7 @@ export function createChildExecutionDriver({
       for (;;) {
         // A synchronous effect may cancel through Canonical without aborting
         // the caller's signal. Never advance a continuation after that revocation.
-        if (!owner.child_active(findChild(invocation))) return { failures: [], rejection: undefined }
+        if (!requireActive(invocation)) return { failures: [], rejection: undefined }
         const next = protocol.synchronousAdvance(raw, { signal: invocationSignals.get(invocation) })
         if (next === undefined) break
         raw = next
@@ -594,8 +609,8 @@ export function createChildExecutionDriver({
                   offered === undefined
                     ? undefined
                     : executeSynchronousGroup(offered, () => {
-                        const found = owner.find(invocation, current().children)
-                        return found.$ === "Some" && owner.child_active(found.value)
+                        const found = readActive(invocation)
+                        return found.$ === "Some" && found.value
                       })
                 if (synchronous === undefined) {
                   // The existing async port keeps its late-reply discard rules.

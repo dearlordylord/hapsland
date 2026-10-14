@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
@@ -41,7 +41,7 @@ try {
   const emitted = join(temp, "owner.mjs")
   execFileSync(
     "taskset",
-    ["-c", "11", "bend", join(import.meta.dirname, "./CanonicalResolverOwner.bend"), "-o", emitted],
+    ["-c", "10", "bend", join(import.meta.dirname, "./CanonicalResolverOwner.bend"), "-o", emitted],
     { timeout: 10000 }
   )
   const m = (await import(pathToFileURL(emitted))).default
@@ -77,6 +77,41 @@ try {
     return s
   }
   let assertions = 0
+  {
+    const before = advanced(m.launch(fresh(), scope, 50n))
+    const after = advanced(m.cancel(before, 1n))
+    let reads = 0
+    const child = before.children.head
+    const observed = {
+      ...child,
+      get invocation() {
+        reads++
+        return child.invocation
+      }
+    }
+    const children = { ...before.children, head: observed }
+    const reader = m.active_reader(children)
+    const constructionReads = reads
+    assert.equal(reader.$, "ActiveReader")
+    assert.equal(typeof reader.query, "function")
+    assert.ok(constructionReads > 0)
+    for (let repeat = 0; repeat < 16; repeat++) {
+      assert.deepEqual(reader.query(1n), { $: "Some", value: true })
+      assert.deepEqual(reader.query(0n), { $: "None" })
+      assert.deepEqual(reader.query((1n << 48n) - 1n), { $: "None" })
+      assertions += 3
+    }
+    assert.equal(reads, constructionReads)
+    observed.phase = { $: "ChildCancelled" }
+    assert.deepEqual(reader.query(1n), { $: "Some", value: true })
+    assert.deepEqual(m.active_reader(children).query(1n), { $: "Some", value: false })
+    assert.deepEqual(m.active_reader(after.children).query(1n), { $: "Some", value: false })
+    const emittedSource = await readFile(emitted, "utf8")
+    const factoryExport = emittedSource.split("\n").find((line) => line.startsWith('  "active_reader":'))
+    assert.match(factoryExport, /, 1\),$/u)
+    console.log(JSON.stringify({ reader: { constructionReads, repeatedCalls: 48, repeatedReads: 0, factoryArity: 1 } }))
+    assertions += 8
+  }
   // The actual owner must retain synchronous reply chronology and revoke the
   // pump even when cancellation does not abort the caller's signal.
   for (const cancellation of ["none", "advance", "effect"]) {
