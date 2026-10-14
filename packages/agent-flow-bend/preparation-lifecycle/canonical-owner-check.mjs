@@ -142,6 +142,93 @@ try {
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 4
   }
+  // The pending engine boundary must distinguish immediate throws from late
+  // rejection and mapper failures, while cancellation still drains its lease.
+  for (const mode of ["resolved", "immediate", "cancel-reject", "external-reject", "cancel-map-throw"]) {
+    const registry = createServiceRegistry()
+    const original = new Error("pending engine " + mode)
+    let resumed = 0,
+      closes = 0,
+      mapped = 0
+    let rejectPending
+    let startedEngine
+    const started = new Promise((resolve) => {
+      startedEngine = resolve
+    })
+    const machine = {
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      view: (value) => value,
+      resume() {
+        resumed++
+        return { $: "Types.CompletedResolver", result: "accepted" }
+      },
+      disposeInvocation() {},
+      get retainedHandles() {
+        return 0
+      }
+    }
+    const driver = createFixtureDriver({
+      owner: m,
+      initialState: fresh(),
+      scope,
+      registry,
+      machine,
+      foreignSync() {
+        startedEngine()
+        if (mode === "immediate") {
+          driver.cancel(BigInt(invocation))
+          throw original
+        }
+        if (mode.startsWith("cancel")) driver.cancel(BigInt(invocation))
+        const pending =
+          mode === "external-reject"
+            ? new Promise((_resolve, reject) => {
+                rejectPending = reject
+              })
+            : mode === "cancel-reject"
+              ? Promise.reject(original)
+              : Promise.resolve("reply")
+        return {
+          pending,
+          map(value) {
+            mapped++
+            if (mode === "cancel-map-throw") throw original
+            return { value }
+          }
+        }
+      },
+      foreign() {
+        assert.fail("pending engine must not call async fallback")
+      }
+    })
+    const invocation = driver.allocateInvocation()
+    const session = {
+      invocation,
+      finish() {},
+      revoke() {},
+      close() {
+        closes++
+      }
+    }
+    const execution = driver.drive(session, { invocation: BigInt(invocation) })
+    if (mode === "external-reject") {
+      await started
+      driver.cancel(BigInt(invocation))
+      rejectPending(original)
+    }
+    if (mode === "immediate") await assert.rejects(execution, (error) => error === original)
+    else {
+      const outcome = await execution
+      if (mode === "resolved") assert.equal(outcome.result, "accepted")
+      else assert.equal(outcome.failure.$, "Types.InvocationCancelled")
+    }
+    assert.equal(resumed, mode === "resolved" ? 1 : 0)
+    assert.equal(mapped, mode === "resolved" || mode === "cancel-map-throw" ? 1 : 0)
+    assert.equal(closes, 1)
+    assert.equal(registry.pendingCleanup, 0)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 6
+  }
   // Settings have no fabricated observation: Canonical issues operation and child together.
   let settings = m.initial_limits(100n, 100000n, 100n, 100000n)
   const untouchedCanonical = settings.canonical
