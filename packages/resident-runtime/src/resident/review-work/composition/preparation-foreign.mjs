@@ -12,7 +12,7 @@ import { createPhysicalPreparationCapability } from "@hapsland/review-execution/
  * @typedef {Parameters<Parameters<typeof createBendResolver>[0]["drive"]>[0]} GraphSession
  * @typedef {Pick<ReturnType<typeof import("./owned-artifact-driver.mjs").createOwnedArtifactDriver<GraphSession | import("@hapsland/review-execution/direct-event/preparation").FinalizationSession>>, "state" | "allocateInvocation" | "constructionFailed" | "drive">} GraphDriver
  * @typedef {import("@hapsland/review-execution/direct-event/preparation/physical-effects").RootFacts} RootFacts
- * @typedef {Awaited<ReturnType<PreparationPorts["performEffect"]>>} PreparationReply
+ * @typedef {import("@hapsland/review-execution/direct-event/preparation").PreparationReply} PreparationReply
  */
 /**
  * @param {{
