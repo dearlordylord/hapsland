@@ -11333,5 +11333,8 @@ law attachment_transaction_exact:
   }
   Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world)
 
+def attachment_transaction_exact(World, actual, reference, child, phase, history, child_history, previous, reply, world, actual_ready, reference_ready, budget_coherent):
+  ready_attachment_transaction_exact(World, actual, reference, child, phase, history, child_history, previous, reply, world, actual_ready, reference_ready, budget_coherent)
+
 def main() -> Unit:
   Unit{}
