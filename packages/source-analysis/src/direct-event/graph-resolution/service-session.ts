@@ -443,6 +443,7 @@ export function createServiceSession({
   const session: ServiceSession = Object.freeze({
     invocation,
     callerCache: caller,
+    performFlow,
     perform: (request, options) => runNativePromise(performFlow(request, options)),
     performEffect: (request, options) => Effect.suspend(() => runNativeEffect(performFlow(request, options), () => {})),
     registerCapture: (value) => register("CaptureToken", value),
@@ -477,6 +478,18 @@ export async function performGraphServiceRequest(
   )
     throw new TypeError("Wrong graph service session")
   return encodeGraphReply(await session.perform(request, options))
+}
+
+// Expose the same native workflow to the private caller-fiber group. Reply Nat
+// encoding remains after the service catch, as in the Promise/Effect ports.
+export function* performGraphServiceFlow(
+  session: ServiceSession,
+  request: Request,
+  options?: PerformOptions
+): NativeFlow<GraphServiceReply> {
+  if (!("callerCache" in session) || typeof session.performFlow !== "function")
+    throw new TypeError("Wrong graph service session")
+  return encodeGraphReply(yield* session.performFlow(request, options))
 }
 
 export function performGraphServiceEffect(

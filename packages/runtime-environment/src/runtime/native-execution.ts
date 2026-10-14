@@ -73,14 +73,22 @@ const rawDefect = (cause: Cause.Cause<never>): unknown => {
   return Result.isSuccess(defect) ? defect.success : receipt(cause)
 }
 
-export const runNativeEffect = <Value>(flow: NativeFlow<Value>, onInterrupt: () => void): Effect.Effect<Value> =>
+export const runNativeEffect = <Value>(
+  flow: NativeFlow<Value>,
+  onInterrupt: () => void,
+  initialStep?: IteratorResult<NativeSuspension, Value>
+): Effect.Effect<Value> =>
   Effect.uninterruptibleMask((restore) => {
+    let first = initialStep
     let interruption: Cause.Cause<never> | undefined
     const resume = (failed: boolean, held: unknown): Effect.Effect<Value> =>
       Effect.suspend(() => {
         let step: IteratorResult<NativeSuspension, Value>
         try {
-          step = failed ? flow.throw(held) : flow.next(held)
+          if (first !== undefined) {
+            step = first
+            first = undefined
+          } else step = failed ? flow.throw(held) : flow.next(held)
         } catch (error) {
           const cause = nativeCause(error)
           return Effect.failCause(

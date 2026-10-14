@@ -1,3 +1,4 @@
+import type { GraphNativeRequest, GraphNativeReply } from "./graph-native-group.ts"
 import {
   finalizationProtocol,
   type FinalizationInvocation,
@@ -28,8 +29,8 @@ import {
 type GraphMachine = Parameters<typeof graphProtocol.initial>[0]
 type GraphInput = Parameters<typeof graphProtocol.initial>[1]
 type GraphContinuation = ReturnType<typeof graphProtocol.initial>
-type GraphProjection = ReturnType<typeof graphProtocol.view>
-type GraphRequest = Exclude<ReturnType<typeof graphProtocol.awaitRequest>, undefined>
+type GraphProjection = ReturnType<typeof graphProtocol.view> & { readonly graphContinuation?: GraphContinuation }
+type GraphRequest = GraphNativeRequest
 type GraphAccepted = ReturnType<typeof graphProtocol.accepted>
 export type GraphSession = Parameters<Parameters<typeof createBendResolver>[0]["drive"]>[0]
 export type PreparationSession = {
@@ -44,7 +45,7 @@ export type PreparationSession = {
 export type { FinalizationSession } from "./finalization-protocol.ts"
 export type PublicPreparationSession = PreparationSession | GraphSession | FinalizationSession
 export type PublicPreparationRequest = PreparationRequest | GraphRequest | FinalizationRequest
-export type PublicPreparationReply = PreparationReply | GraphServiceReply | FinalizationReply
+export type PublicPreparationReply = PreparationReply | GraphServiceReply | FinalizationReply | GraphNativeReply
 type Machine = PreparationMachine | GraphMachine | FinalizationMachine
 type Input = PreparationInvocation | GraphInput | FinalizationInvocation
 type Continuation = PreparationContinuation | GraphContinuation | FinalizationContinuation
@@ -56,7 +57,9 @@ type Accepted =
 
 // Composition of the two existing protocols; the sole shared Canonical driver
 // owns publication, provider leases, cancellation, acceptance and finalization.
-const protocol: Protocol<
+const protocolFor = (
+  groupGraph: boolean
+): Protocol<
   Input,
   Machine,
   Continuation,
@@ -66,7 +69,7 @@ const protocol: Protocol<
   Accepted,
   PreparationResult,
   PublicPreparationSession
-> = {
+> => ({
   initialSignalCheckpoint: (machine) => (machine.kind === "finalization" ? "protocol" : "executor"),
   synchronousAdvance: (held) =>
     held.kind === "finalization" ? finalizationProtocol.synchronousAdvance!(held, {}) : undefined,
@@ -82,16 +85,21 @@ const protocol: Protocol<
     if (!("$" in input) || input.$ !== "Types.ResolverInput") throw new TypeError("Wrong artifact input binding")
     return graphProtocol.initial(machine, input)
   },
-  view: (held) =>
-    held.kind === "finalization"
-      ? finalizationProtocol.view(held)
-      : held.kind === "preparation"
-        ? preparationProtocol.view(held)
-        : graphProtocol.view(held),
+  view(held) {
+    if (held.kind === "finalization") return finalizationProtocol.view(held)
+    if (held.kind === "preparation") return preparationProtocol.view(held)
+    const projected = graphProtocol.view(held)
+    return groupGraph ? { ...projected, graphContinuation: held } : projected
+  },
   resume(held, reply) {
     if (held.kind === "finalization") {
       if (reply.$ !== "FinalizationReply") throw new TypeError("Wrong finalization reply binding")
       return finalizationProtocol.resume(held, reply)
+    }
+    if (reply.$ === "GraphNativeReply") {
+      if (held.kind !== "artifact" || reply.continuation.machine !== held.machine)
+        throw new TypeError("Wrong private Graph continuation")
+      return reply.reply === undefined ? reply.continuation : graphProtocol.resume(reply.continuation, reply.reply)
     }
     if (reply.$ === "FinalizationReply") throw new TypeError("Unexpected finalization reply")
     if (held.kind === "preparation") {
@@ -101,12 +109,14 @@ const protocol: Protocol<
     if (reply.$ !== "Types.Reply") throw new TypeError("Wrong artifact reply binding")
     return graphProtocol.resume(held, reply)
   },
-  awaitRequest: (projected) =>
-    projected.kind === "finalization"
-      ? finalizationProtocol.awaitRequest(projected)
-      : projected.kind === "preparation"
-        ? preparationProtocol.awaitRequest(projected)
-        : graphProtocol.awaitRequest(projected),
+  awaitRequest(projected) {
+    if (projected.kind === "finalization") return finalizationProtocol.awaitRequest(projected)
+    if (projected.kind === "preparation") return preparationProtocol.awaitRequest(projected)
+    const request = graphProtocol.awaitRequest(projected)
+    return request === undefined || !groupGraph
+      ? request
+      : { ...request, graphContinuation: projected.graphContinuation }
+  },
   installation: () => ({ method: "install" }),
   terminal: (projected, scope) =>
     projected.kind === "finalization"
@@ -132,7 +142,7 @@ const protocol: Protocol<
       return graphProtocol.projectTerminal({ failure: outcome.failure }, session)
     return outcome
   }
-}
+})
 
 type Options = Omit<
   Parameters<
@@ -151,5 +161,12 @@ type Options = Omit<
   "protocol"
 >
 export function createPublicPreparationDriver(options: Options) {
-  return createChildExecutionDriver({ ...options, protocol })
+  return createChildExecutionDriver({ ...options, protocol: protocolFor(false) })
+}
+
+// Private caller-fiber binding: external provider hooks keep the ordinary driver.
+export function createEffectPreparationDriver(
+  options: Omit<Options, "hooks"> & { readonly hooks?: Pick<NonNullable<Options["hooks"]>, "canonicalOutputs"> }
+) {
+  return createChildExecutionDriver({ ...options, protocol: protocolFor(true) })
 }

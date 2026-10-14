@@ -1,5 +1,5 @@
 import type * as Effect from "effect/Effect"
-import type { NativeWork } from "@hapsland/runtime-environment/runtime/native-execution"
+import type { NativeWork, NativeFlow } from "@hapsland/runtime-environment/runtime/native-execution"
 import type { parseGoFileFacts } from "./go-module/parser-facts.ts"
 import type { List, ProductValue, Binary64 } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { CaptureResult, StableCapture } from "@hapsland/native-observation/direct-event/capture"
@@ -313,6 +313,7 @@ export type SessionPorts = {
 export type ServiceSession = {
   readonly invocation: number
   readonly callerCache: Maybe<Token<"CacheToken">>
+  performFlow(request: Request, options?: PerformOptions): NativeFlow<Reply>
   perform(request: Request, options?: PerformOptions): Promise<Reply>
   performEffect(request: Request, options?: PerformOptions): Effect.Effect<Reply>
   registerCapture(value: StableCapture): Token<"CaptureToken">

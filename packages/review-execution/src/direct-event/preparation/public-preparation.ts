@@ -1,3 +1,4 @@
+import { performGraphNativeGroup } from "./graph-native-group.ts"
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
 import * as Effect from "effect/Effect"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
@@ -17,15 +18,12 @@ import {
   createGraphMachine,
   type GraphOutcome
 } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
-import {
-  createBendEffectResolver,
-  performGraphServiceEffect
-} from "@hapsland/source-analysis/direct-event/graph-resolution"
+import { createBendEffectResolver } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { hostNatural, list, unlist, productValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { StableCapture } from "@hapsland/native-observation/direct-event/capture"
 import { createPhysicalPreparationCapability } from "./physical-effects.mjs"
 import {
-  createPublicPreparationDriver,
+  createEffectPreparationDriver,
   type PublicPreparationSession,
   type PublicPreparationReply,
   type PreparationSession
@@ -68,7 +66,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
       return commit(call(state, ...args))
     }
   }
-  const driver = createPublicPreparationDriver({
+  const driver = createEffectPreparationDriver({
     owner,
     control,
     machine: graph,
@@ -87,10 +85,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
       if (!session) throw new TypeError("Unknown owned service invocation")
       if ("operation" in request) {
         if ("input" in session) throw new TypeError("Wrong graph service session")
-        return {
-          effect: performGraphServiceEffect(session, request, execution),
-          map: (value: unknown) => value as PublicPreparationReply
-        }
+        return performGraphNativeGroup(request, session, execution)
       }
       if (!("input" in session) || !("performEffect" in session))
         throw new TypeError("Wrong preparation service session")

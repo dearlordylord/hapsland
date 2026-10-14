@@ -202,7 +202,8 @@ export function createBendEffectResolver(options: EffectResolverPorts) {
 export {
   createServiceRegistry as createGraphServiceRegistry,
   performGraphServiceRequest,
-  performGraphServiceEffect
+  performGraphServiceEffect,
+  performGraphServiceFlow
 } from "./service-session.ts"
 
 export type { GraphServiceReply } from "./service-session.ts"
