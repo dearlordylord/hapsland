@@ -13,5 +13,10 @@
     "source": "freshness/Freshness.bend",
     "output": "freshness/freshness-core.js",
     "declaration": "freshness/freshness-core.d.ts"
+  },
+  {
+    "source": "freshness/PublicationRetention.bend",
+    "output": "freshness/publication-retention-core.js",
+    "declaration": "freshness/publication-retention-core.d.ts"
   }
 ]
