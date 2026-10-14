@@ -20,25 +20,10 @@ import {
   unlist
 } from "@hapsland/source-artifacts/direct-event/value/codec"
 
-const prefix = "../../../../source-analysis/src/direct-event/graph-resolution/Types."
 const backend = "../../../../runtime-environment/src/runtime/backend/Backend."
 const configuration = "../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend."
-const tags = (value, outward = true) => {
-  if (Array.isArray(value)) return value.map((item) => tags(item, outward))
-  if (value !== null && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        key === "$" && typeof item === "string"
-          ? outward
-            ? item.replace(/^Types\./, prefix)
-            : item.replace(prefix, "Types.")
-          : tags(item, outward)
-      ])
-    )
-  return value
-}
-const wire = (value) => tags(productValue(value))
+
+const wire = (value) => productValue(value)
 const label = (value) => value.$.split(".").at(-1)
 const maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
 const text = (value) => String.fromCharCode(...unlist(value))
@@ -174,22 +159,23 @@ try {
           const metadata = modules.UnitEvidence.metadata(
             evidence,
             TYPE_INPUT_CONTRACT,
-            tags(list(declarations.map(productValue))),
-            tags(list([...captures].map(([path, capture]) => productValue({ path, ...capture })))),
+            list(declarations.map(productValue)),
+            list([...captures].map(([path, capture]) => productValue({ path, ...capture }))),
             wire(unit)
           )
           assert.equal(label(metadata), "EvidenceReady")
           const invocation = BigInt(cases + 1)
-          let rules = modules.RuleFinalization.initial(invocation, tags(list([productValue(rule)])), {
+          let rules = modules.RuleFinalization.initial(invocation, list([productValue(rule)]), {
             $: "Context",
             path: maybe(path),
             language,
             kind: "type",
             contract: TYPE_INPUT_CONTRACT,
             complete: true,
-            available: tags(
-              list([productValue("root-declaration"), ...(!partial ? [productValue("resolved-outbound-types")] : [])])
-            )
+            available: list([
+              productValue("root-declaration"),
+              ...(!partial ? [productValue("resolved-outbound-types")] : [])
+            ])
           })
           while (label(rules) !== "Completed") {
             if (label(rules) === "Continue") rules = modules.RuleFinalization.advance(rules.state)
@@ -296,7 +282,7 @@ try {
             step = modules.FrozenInput.resume(step, reply)
             engineRequests++
           }
-          const input = fromProductValue(tags(step.input, false))
+          const input = fromProductValue(step.input)
           assert.deepEqual(input, expected[0].prepared.input)
           assert.deepEqual(Object.keys(input), Object.keys(expected[0].prepared.input))
           assert.equal(JSON.stringify(input), JSON.stringify(expected[0].prepared.input))

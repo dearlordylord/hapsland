@@ -10,23 +10,7 @@ import { applicableRule } from "@hapsland/review-definition/rules/decision"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
-const prefix = "../../../../source-analysis/src/direct-event/graph-resolution/Types."
-const tags = (value, outward) => {
-  if (Array.isArray(value)) return value.map((item) => tags(item, outward))
-  if (value !== null && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        key === "$" && typeof item === "string"
-          ? outward
-            ? item.replace(/^Types\./, prefix)
-            : item.replace(prefix, "Types.")
-          : tags(item, outward)
-      ])
-    )
-  return value
-}
-const wire = (value) => tags(productValue(value), true)
+const wire = (value) => productValue(value)
 const languages = ["typescript", "rust", "bend", "python", "go"]
 const rules = []
 for (const language of languages) {
@@ -93,7 +77,7 @@ try {
   const first = wire({ needle: "first" }),
     second = wire({ needle: "second" })
   const duplicate = { ...first, fields: list([first.fields.head, second.fields.head]) }
-  assert.equal(fromProductValue(tags(stage.field("needle", duplicate).value, false)), "first")
+  assert.equal(fromProductValue(stage.field("needle", duplicate).value), "first")
   assert.equal(stage.field("missing", duplicate).$, "None")
   const input = { kind: "type", languages: ["go"], requires: ["missing"] }
   const later = { ...input, requires: [] }
@@ -119,7 +103,7 @@ try {
           for (const partial of [false, true]) {
             const encoded = snapshot.map(wire)
             const capabilities = unlist(stage.contract_capabilities(contract, partial)).map((value) =>
-              fromProductValue(tags(value, false))
+              fromProductValue(value)
             )
             const target = {
               language,
@@ -151,23 +135,23 @@ try {
                   rule,
                   language,
                   kind,
-                  tags(list(capabilities.map(productValue)), true)
+                  list(capabilities.map(productValue))
                 )
               })
             )
             assert.deepEqual(
-              selected.map((value) => fromProductValue(tags(value, false)).id),
+              selected.map((value) => fromProductValue(value).id),
               expected.map(({ id }) => id)
             )
             const actual = unlist(stage.freeze_rules(list(selected), language, kind, contract)).map((value) =>
-              fromProductValue(tags(value, false))
+              fromProductValue(value)
             )
             assert.deepEqual(actual, freezeRules(expected, target))
             // Freeze the full snapshot too: disabled/unselected rules still have
             // native first-input targets when freezeRules is called directly.
             assert.deepEqual(
               unlist(stage.freeze_rules(list(encoded), language, kind, contract)).map((value) =>
-                fromProductValue(tags(value, false))
+                fromProductValue(value)
               ),
               freezeRules(snapshot, target)
             )

@@ -44,26 +44,10 @@ export type FinalizationInput = {
 }
 export type FinalizedOutcome = { readonly path: string; readonly prepared: PreparedSource }
 
-const prefix = "../../../../source-analysis/src/direct-event/graph-resolution/Types."
 const backend = "../../../../runtime-environment/src/runtime/backend/Backend."
 const language = "../../../../native-observation/src/direct-event/languages/path-language/PathLanguage."
 const configuration = "../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend."
-const tags = <Value>(value: Value, outward = true): Value => {
-  if (Array.isArray(value)) return value.map((item) => tags(item, outward)) as Value
-  if (value !== null && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        key === "$" && typeof item === "string"
-          ? outward
-            ? item.replace(/^Types\./, prefix)
-            : item.replace(prefix, "Types.")
-          : tags(item, outward)
-      ])
-    ) as Value
-  return value
-}
-const wire = (value: unknown) => tags(productValue(value))
+const wire = productValue
 const maybe = <Value>(value: Value | undefined): Maybe<Value> =>
   value === undefined ? { $: "None" } : { $: "Some", value }
 const encodeSelection = (
@@ -152,23 +136,17 @@ export function createPreparationFinalizationExecution({
       path,
       root: frame.observation.root,
       graph_limits: wire(frame.graphLimits),
-      declarations: tags(list(declarations.map(productValue))),
-      captures: tags(
-        list(
-          [...frame.supportingCaptures].map(([path, capture]) =>
-            productValue({ path, contentHash: capture.contentHash, byteLength: capture.byteLength })
-          )
+      declarations: list(declarations.map(productValue)),
+      captures: list(
+        [...frame.supportingCaptures].map(([path, capture]) =>
+          productValue({ path, contentHash: capture.contentHash, byteLength: capture.byteLength })
         )
       ),
-      bundled: tags(
-        list(
-          registeredLanguages.flatMap((language) =>
-            [
-              ...(
-                language.supportingTypes?.(path, frame.supportingCaptures.get(path)?.text ?? "") ?? new Map()
-              ).values()
-            ].map(({ artifact }) => productValue(artifact))
-          )
+      bundled: list(
+        registeredLanguages.flatMap((language) =>
+          [
+            ...(language.supportingTypes?.(path, frame.supportingCaptures.get(path)?.text ?? "") ?? new Map()).values()
+          ].map(({ artifact }) => productValue(artifact))
         )
       ),
       languages: list(
@@ -182,7 +160,7 @@ export function createPreparationFinalizationExecution({
     const scope: Invocation = { $: "Invocation", owner: BigInt(invocation), command: BigInt(command) }
     let encodingError: URIError | undefined
     return {
-      initial: () => machine.initial(scope, context, tags(list(units.map(productValue)))),
+      initial: () => machine.initial(scope, context, list(units.map(productValue))),
       advance(step: Step): Step | undefined {
         checkSignal(options.signal)
         return step.$ === "Continue" ? machine.advance(step.phase) : undefined
@@ -190,9 +168,7 @@ export function createPreparationFinalizationExecution({
       accepted(step: Step): readonly FinalizedOutcome[] | undefined {
         switch (step.$) {
           case "Completed": {
-            const outcomes = unlist(step.outcomes).map(
-              (value) => fromProductValue(tags(value, false)) as FinalizedOutcome
-            )
+            const outcomes = unlist(step.outcomes).map((value) => fromProductValue(value) as FinalizedOutcome)
             for (const outcome of outcomes)
               (outcome.prepared as { input: PreparedSource["input"] }).input = freezeInput(outcome.prepared.input)
             checkSignal(options.signal)
@@ -234,10 +210,10 @@ export function createPreparationFinalizationExecution({
             const current = typeof raw === "function" ? raw() : raw
             response = {
               $: "CurrentRules",
-              rules: maybe(current === undefined ? undefined : tags(list(current.map(productValue)))),
+              rules: maybe(current === undefined ? undefined : list(current.map(productValue))),
               fallback:
                 raw === undefined
-                  ? maybe(settings.rules === undefined ? undefined : tags(list(settings.rules.map(productValue))))
+                  ? maybe(settings.rules === undefined ? undefined : list(settings.rules.map(productValue)))
                   : { $: "None" }
             }
             break

@@ -10,22 +10,6 @@ import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-d
 import { initialCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
-const prefix = "../../../../source-analysis/src/direct-event/graph-resolution/Types."
-const tags = (value, outward) => {
-  if (Array.isArray(value)) return value.map((item) => tags(item, outward))
-  if (value !== null && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        key === "$" && typeof item === "string"
-          ? outward
-            ? item.replace(/^Types\./, prefix)
-            : item.replace(prefix, "Types.")
-          : tags(item, outward)
-      ])
-    )
-  return value
-}
 const label = (value) => value.$.split(".").at(-1)
 const text = (units) => {
   const values = unlist(units)
@@ -127,14 +111,14 @@ try {
                   target
                 )
               )
-              let step = core.initial(7n, tags(list(snapshot.map(productValue)), true), {
+              let step = core.initial(7n, list(snapshot.map(productValue)), {
                 $: "Context",
                 path: path === undefined ? { $: "None" } : { $: "Some", value: path },
                 language,
                 kind,
                 contract,
                 complete,
-                available: tags(list(capabilities.map(productValue)), true)
+                available: list(capabilities.map(productValue))
               })
               let previousRequest = 0n
               for (let turns = 0; label(step) !== "Completed"; turns++) {
@@ -245,7 +229,7 @@ try {
                 }
               }
               assert.deepEqual(
-                unlist(step.frozen).map((value) => fromProductValue(tags(value, false))),
+                unlist(step.frozen).map((value) => fromProductValue(value)),
                 expected
               )
               cases++

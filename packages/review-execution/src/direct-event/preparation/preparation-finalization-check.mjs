@@ -31,26 +31,11 @@ import {
   unlist
 } from "@hapsland/source-artifacts/direct-event/value/codec"
 
-const prefix = "../../../../source-analysis/src/direct-event/graph-resolution/Types."
 const backend = "../../../../runtime-environment/src/runtime/backend/Backend."
 const languagePrefix = "../../../../native-observation/src/direct-event/languages/path-language/PathLanguage."
 const configuration = "../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend."
-const tags = (value, outward = true) => {
-  if (Array.isArray(value)) return value.map((item) => tags(item, outward))
-  if (value !== null && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        key === "$" && typeof item === "string"
-          ? outward
-            ? item.replace(/^Types\./, prefix)
-            : item.replace(prefix, "Types.")
-          : tags(item, outward)
-      ])
-    )
-  return value
-}
-const wire = (value) => tags(productValue(value))
+
+const wire = (value) => productValue(value)
 const label = (value) => value.$.split(".").at(-1)
 const maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
 const text = (value) => String.fromCharCode(...unlist(value))
@@ -211,12 +196,12 @@ try {
         path,
         root: "/workspace",
         graph_limits: wire(GRAPH_LIMIT_CEILINGS),
-        declarations: tags(list(declarations.map(productValue))),
-        captures: tags(list([...captures].map(([path, capture]) => productValue({ path, ...capture })))),
+        declarations: list(declarations.map(productValue)),
+        captures: list([...captures].map(([path, capture]) => productValue({ path, ...capture }))),
         bundled: list([]),
         languages
       },
-      tags(list(units.map(productValue)))
+      list(units.map(productValue))
     )
     let previousRequest = 0n,
       savedReply,
@@ -255,8 +240,8 @@ try {
         case "ReadCurrentRules":
           response = {
             $: "CurrentRules",
-            rules: maybe(tags(list(actualBindings.currentRules().map(productValue)))),
-            fallback: maybe(tags(list(rules.map(productValue))))
+            rules: maybe(list(actualBindings.currentRules().map(productValue))),
+            fallback: maybe(list(rules.map(productValue)))
           }
           rulesReads++
           break
@@ -357,7 +342,7 @@ try {
       )
     else {
       assert.equal(label(step), "Completed")
-      const actual = unlist(step.outcomes).map((value) => fromProductValue(tags(value, false)))
+      const actual = unlist(step.outcomes).map((value) => fromProductValue(value))
       assert.deepEqual(actual, expected)
       assert.equal(JSON.stringify(actual), JSON.stringify(expected))
     }
