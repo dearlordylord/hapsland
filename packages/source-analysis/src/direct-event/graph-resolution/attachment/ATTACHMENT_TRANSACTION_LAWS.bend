@@ -11170,9 +11170,9 @@ def ready_encoded_joined(-World: Data, +actual: T.ResolverState, +reference: D.S
 def ready_encoded_shared(-World: Data, +actual: T.ResolverState, +reference: D.State, +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat, +owner: Nat, +id: Nat, +bytes: Nat, +world: E.WorldState<World>, +child_history: Phase.ChildHistory, +original_ready: {ActualReady.project(actual, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, +original_reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, +coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}, shared: ready_original_shared_result(actual, reference, child, history, child_history, phase, previous)) -> Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world):
   match phase history child_history:
     case Phase.Phase{V.Frame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
-      Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{_}, _}, _, _, _, _, _, _}, _}
+      Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{_}, _}, _, +shared_payloads, _, _, _, _}, _}
       V.History{_, V.Order{_, _, _, _, _, _}, _, _, _, _, _}
-      Phase.ChildHistory{F.Created{_, _, _}, _, _, _, _}:
+      Phase.ChildHistory{F.Created{_, _, _}, +shared_source, +shared_catalog, _, _}:
       match shared:
         case (+original_frame, child_witness):
           match child_witness:
@@ -11188,9 +11188,10 @@ def ready_encoded_shared(-World: Data, +actual: T.ResolverState, +reference: D.S
                               match parent_witness:
                                 case (+attachment, (+forest, (+attached, (+replaced, (+shared_product, (+materialized, (+request_equal, (shared_measurement, reference_observations)))))))):
                                   match shared_measurement:
-                                    case (+shared_measured, (+shared_request, (+shared_awaited, (+shared_encoded, (+shared_stage, +shared_projected))))):
+                                    case (+shared_measured, (+shared_request, (+shared_awaited, (+shared_encoded, (+shared_stage, shared_projected))))):
                                       match reference_observations:
                                         case (+reference_requested, +reference_staged):
+                                          +shared_projected: {Contract.actual_frame(S.state_frame(shared_measured), History.measurement(phase, history)) == Some{ready_staged_frame(ready_phase_frame(phase), forest, ready_payload_rows(shared_payloads, S.frame_next_edge(original_frame), shared_source, shared_catalog), S.frame_next_edge(Attach.attached_frame(attachment, original_frame)))} : Maybe<&2, V.Frame>} = shared_projected
                                           ready_encoded_joined(World, actual, reference, child, phase, history, previous, owner, id, bytes, world, child_history, original_ready, original_reference_ready, coherent,
                                             Tuple{original_frame, Tuple{original_child, Tuple{original_edge, Tuple{frame_present, Tuple{child_present, Tuple{edge_present, Tuple{attachment, Tuple{forest, Tuple{attached, Tuple{replaced, Tuple{shared_product, Tuple{materialized, Tuple{request_equal, Tuple{Tuple{shared_measured, Tuple{shared_request, Tuple{shared_awaited, Tuple{shared_encoded, Tuple{shared_stage, shared_projected}}}}}, Tuple{reference_requested, reference_staged}}}}}}}}}}}}}}},
                                             ready_original_joined_witness(actual, reference, child, history, child_history, phase, previous, original_ready,
