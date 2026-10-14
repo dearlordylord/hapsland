@@ -361,6 +361,164 @@ try {
   }
   assert.equal(finish.$, "CleanupFinishDone")
   cases++
+  // Independent native ordering oracle for the four original compound releases.
+  // Every primitive can fail before or after its receipt; no later action runs.
+  const nativeRelease = (kind, operation) => {
+    if (kind === "UnspawnedRelease") {
+      if (operation("ReleaseReadTransfer")) return
+      if (operation("ReleaseReadOwner")) {
+        if (operation("ReleaseReadPlanClaim")) operation("ReleasePlanClaim")
+        operation("ReleaseForgetPlanClaim")
+      }
+      operation("ReleaseSlotReservation")
+      operation("ReleaseForgetReservation")
+      operation("ReleaseAcquisition")
+    } else if (kind === "AttachedRelease") {
+      if (operation("ReleaseReadTransfer")) return
+      operation("ReleaseBuildUnit")
+      if (operation("ReleaseReadUnitClaim")) operation("ReleaseCapacityClaim")
+      operation("ReleaseUnitReservation")
+      operation("ReleaseCurrentWork")
+      operation("ReleaseForgetAcquisition")
+      operation("ReleaseMarkUnit")
+      operation("ReleaseForgetUnitClaim")
+      operation("ReleaseForgetReservation")
+    } else if (kind === "CachedRelease") {
+      operation("ReleaseSlotReservation")
+      operation("ReleaseAcquisition")
+      operation("ReleaseBuildUnit")
+      operation("ReleaseMarkUnit")
+      operation("ReleaseForgetReservation")
+    } else {
+      operation("ReleaseBuildUnit")
+      const workBound = operation("ReleaseReadWorkBound")
+      if (!operation("ReleaseReadCompleted") && operation("ReleaseReadRound") && workBound) {
+        operation("ReleaseRetireWork")
+        if (!operation("ReleaseReadReleased")) {
+          operation("ReleaseUnitReservation")
+          operation("ReleaseCurrentWork")
+          operation("ReleaseForgetAcquisition")
+          operation("ReleaseMarkUnit")
+        }
+      }
+    }
+  }
+  for (let mask = 0; mask < 512; mask++) {
+    const bit = (index) => Boolean(mask & (1 << index))
+    for (const kind of ["UnspawnedRelease", "AttachedRelease", "CachedRelease", "FinalizedRelease"]) {
+      const fault = new Error("release primitive fault")
+      const exercise = (bend, failAt, after) => {
+        const trace = [],
+          state = {
+            claim: bit(2),
+            unassigned: true,
+            reservation: true,
+            revision: true,
+            acquired: true,
+            reserved: true,
+            built: false,
+            released: bit(6)
+          }
+        let failure
+        const operation = (name) => {
+          trace.push(name)
+          if (trace.length === failAt && !after) throw fault
+          let value
+          switch (name) {
+            case "ReleaseReadTransfer":
+              value = bit(0)
+              break
+            case "ReleaseReadOwner":
+              value = bit(1)
+              break
+            case "ReleaseReadPlanClaim":
+            case "ReleaseReadUnitClaim":
+              value = state.claim
+              break
+            case "ReleaseBuildUnit":
+              state.built = true
+              break
+            case "ReleasePlanClaim":
+            case "ReleaseCapacityClaim":
+            case "ReleaseForgetPlanClaim":
+            case "ReleaseForgetUnitClaim":
+              state.claim = false
+              state.unassigned = false
+              break
+            case "ReleaseSlotReservation":
+            case "ReleaseUnitReservation":
+              state.reserved = false
+              break
+            case "ReleaseForgetReservation":
+              state.reservation = false
+              break
+            case "ReleaseAcquisition":
+              if (state.acquired && !bit(7)) {
+                state.acquired = false
+                state.revision = false
+              }
+              break
+            case "ReleaseCurrentWork":
+              state.revision = false
+              break
+            case "ReleaseForgetAcquisition":
+              state.acquired = false
+              break
+            case "ReleaseMarkUnit":
+              state.released = true
+              break
+            case "ReleaseReadWorkBound":
+              value = bit(5)
+              break
+            case "ReleaseReadCompleted":
+              value = bit(3)
+              break
+            case "ReleaseReadRound":
+              value = bit(4)
+              break
+            case "ReleaseRetireWork":
+              if (bit(8)) state.released = true
+              break
+            case "ReleaseReadReleased":
+              value = state.released
+              break
+            default:
+              throw new Error("Unknown release primitive " + name)
+          }
+          if (trace.length === failAt && after) throw fault
+          return value
+        }
+        try {
+          if (!bend) nativeRelease(kind, operation)
+          else {
+            let release = core.release_initial({ $: kind })
+            while (release.$ === "ReleaseAwait") {
+              const value = operation(release.operation.$)
+              release = core.release_resume(
+                release,
+                value === undefined ? { $: "ReleaseAck" } : { $: "ReleaseFlag", value }
+              )
+            }
+            assert.equal(release.$, "ReleaseDone")
+          }
+        } catch (error) {
+          failure = error
+        }
+        return { trace, state, failure }
+      }
+      const native = exercise(false, 0, false)
+      assert.deepEqual(exercise(true, 0, false), native)
+      cases++
+      for (let index = 1; index <= native.trace.length; index++)
+        for (const after of [false, true]) {
+          const expected = exercise(false, index, after),
+            actual = exercise(true, index, after)
+          assert.strictEqual(expected.failure, fault)
+          assert.deepEqual(actual, expected, `${kind} primitive ${index}, after=${after}, mask=${mask}`)
+          cases++
+        }
+    }
+  }
   const runTail = (options) => {
     let step = core.advice_initial(77n, 900n),
       ordinal = 0
@@ -449,7 +607,7 @@ try {
       cases,
       requests,
       scope:
-        "finite source-free whole postflow draft, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not physical integration or universal correspondence"
+        "finite source-free whole postflow draft, four original release sequences across native fact axes and failure before/after every primitive, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not physical integration or universal correspondence"
     })
   )
 } finally {

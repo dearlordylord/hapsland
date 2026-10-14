@@ -993,36 +993,119 @@ export function createPostPreparationProvider(
             }
             break
           case "ReleaseUnspawned":
-            if (transferredReservation(command.slot.reservation)) break
-            if (command.slot.item.route.$ === "Owner") {
-              const key = item(command.slot.item).evaluationKey
-              if (ownedClaims.has(key)) yield* run(context.deps.residentReleaseReuseClaim(key), undefined, key)
-              ownedClaims.delete(key)
-              context.unassignedClaims.delete(key)
+          case "ReleaseAttached":
+          case "ReleaseCachedUnit":
+          case "FinalizeCachedUnit": {
+            /** @type {Record<typeof command.$, import("./post-preparation-core.js").ReleaseKind>} */
+            const kinds = {
+              ReleaseUnspawned: { $: "UnspawnedRelease" },
+              ReleaseAttached: { $: "AttachedRelease" },
+              ReleaseCachedUnit: { $: "CachedRelease" },
+              FinalizeCachedUnit: { $: "FinalizedRelease" }
             }
-            yield* run(ledger.release(reservation(command.slot)))
-            reservations.delete(command.slot.reservation)
-            dischargedReservations.add(command.slot.reservation)
-            yield* releaseAcquisition(command.revision)
-            break
-          case "ReleaseAttached": {
-            if (transferredReservation(command.slot.reservation)) break
-            const value = unit(command.slot, command.revision, command.work)
-            if (ownedClaims.has(value.evaluationKey))
-              yield* run(
-                context.deps.residentReleaseReuseClaim(value.evaluationKey, "capacity"),
-                undefined,
-                value.evaluationKey
-              )
-            yield* run(ledger.release(value.reservation))
-            yield* run(context.deps.residentReleaseCurrentWork(value.revision))
-            acquiredRevisions.delete(command.revision)
-            value.released = true
-            ownedClaims.delete(value.evaluationKey)
-            context.unassignedClaims.delete(value.evaluationKey)
-            reservations.delete(command.slot.reservation)
-            dischargedReservations.add(command.slot.reservation)
-            acquiredRevisions.delete(command.revision)
+            /** @type {import("../../work-ownership/jobs.ts").UnitJob | undefined} */
+            let releaseUnit
+            /** @type {number | undefined} */
+            let releaseWorkUnitId
+            const requireUnit = () => {
+              if (!releaseUnit) throw new Error("Release unit has not been constructed")
+              return releaseUnit
+            }
+            let release = postCore.release_initial(kinds[command.$])
+            while (release.$ === "ReleaseAwait") {
+              /** @type {import("./post-preparation-core.js").ReleaseResponse} */
+              let result = { $: "ReleaseAck" }
+              switch (release.operation.$) {
+                case "ReleaseReadTransfer":
+                  result = { $: "ReleaseFlag", value: transferredReservation(command.slot.reservation) }
+                  break
+                case "ReleaseReadOwner":
+                  result = { $: "ReleaseFlag", value: command.slot.item.route.$ === "Owner" }
+                  break
+                case "ReleaseBuildUnit":
+                  releaseUnit = unit(command.slot, command.revision, "work" in command ? command.work : none)
+                  break
+                case "ReleaseReadPlanClaim":
+                  result = { $: "ReleaseFlag", value: ownedClaims.has(item(command.slot.item).evaluationKey) }
+                  break
+                case "ReleaseReadUnitClaim":
+                  result = { $: "ReleaseFlag", value: ownedClaims.has(requireUnit().evaluationKey) }
+                  break
+                case "ReleasePlanClaim": {
+                  const key = item(command.slot.item).evaluationKey
+                  yield* run(context.deps.residentReleaseReuseClaim(key), undefined, key)
+                  break
+                }
+                case "ReleaseCapacityClaim": {
+                  const key = requireUnit().evaluationKey
+                  yield* run(context.deps.residentReleaseReuseClaim(key, "capacity"), undefined, key)
+                  break
+                }
+                case "ReleaseForgetPlanClaim": {
+                  const key = item(command.slot.item).evaluationKey
+                  ownedClaims.delete(key)
+                  context.unassignedClaims.delete(key)
+                  break
+                }
+                case "ReleaseForgetUnitClaim": {
+                  const key = requireUnit().evaluationKey
+                  ownedClaims.delete(key)
+                  context.unassignedClaims.delete(key)
+                  break
+                }
+                case "ReleaseSlotReservation":
+                  yield* run(ledger.release(reservation(command.slot)))
+                  break
+                case "ReleaseUnitReservation":
+                  yield* run(ledger.release(requireUnit().reservation))
+                  break
+                case "ReleaseForgetReservation":
+                  reservations.delete(command.slot.reservation)
+                  dischargedReservations.add(command.slot.reservation)
+                  break
+                case "ReleaseAcquisition":
+                  yield* releaseAcquisition(command.revision)
+                  break
+                case "ReleaseCurrentWork":
+                  yield* run(context.deps.residentReleaseCurrentWork(requireUnit().revision))
+                  break
+                case "ReleaseForgetAcquisition":
+                  acquiredRevisions.delete(command.revision)
+                  break
+                case "ReleaseMarkUnit":
+                  requireUnit().released = true
+                  break
+                case "ReleaseReadWorkBound":
+                  releaseWorkUnitId = requireUnit().workUnitId
+                  result = { $: "ReleaseFlag", value: releaseWorkUnitId !== undefined }
+                  break
+                case "ReleaseReadCompleted":
+                  result = { $: "ReleaseFlag", value: requireUnit().completed === true }
+                  break
+                case "ReleaseReadRound":
+                  result = { $: "ReleaseFlag", value: requireUnit().round !== undefined }
+                  break
+                case "ReleaseRetireWork": {
+                  const value = requireUnit(),
+                    workUnitId = releaseWorkUnitId,
+                    round = value.round
+                  if (round === undefined || workUnitId === undefined)
+                    throw new Error("Missing finalization work receipt")
+                  yield* run(ledger.rounds.policyWork(round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
+                  break
+                }
+                case "ReleaseReadReleased":
+                  result = { $: "ReleaseFlag", value: requireUnit().released === true }
+                  break
+                default: {
+                  /** @type {never} */
+                  const unsupported = release.operation
+                  throw new Error("Unsupported release operation " + String(unsupported))
+                }
+              }
+              release = postCore.release_resume(release, result)
+            }
+            if (release.$ !== "ReleaseDone") throw new Error("Invalid Post release cursor reply")
             break
           }
           case "ReportCapacity":
@@ -1086,15 +1169,6 @@ export function createPostPreparationProvider(
             const workUnitId = value.workUnitId
             if (value.round !== undefined && workUnitId !== undefined)
               yield* run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
-            break
-          }
-          case "ReleaseCachedUnit": {
-            yield* run(ledger.release(reservation(command.slot)))
-            yield* releaseAcquisition(command.revision)
-            const value = unit(command.slot, command.revision, command.work)
-            value.released = true
-            reservations.delete(command.slot.reservation)
-            dischargedReservations.add(command.slot.reservation)
             break
           }
           case "InsertCachedAdvice": {
@@ -1226,20 +1300,6 @@ export function createPostPreparationProvider(
                 tail.provider.terminationCause ?? (token === undefined ? undefined : tail.provider.cause(token))
               if (cause !== undefined) yield* run(Effect.failCause(cause))
               throw (token === undefined ? undefined : tail.provider.error(token)) ?? new Error("Advice tail failed")
-            }
-            break
-          }
-          case "FinalizeCachedUnit": {
-            const value = unit(command.slot, command.revision, command.work)
-            const workUnitId = value.workUnitId
-            if (!value.completed && value.round !== undefined && workUnitId !== undefined) {
-              yield* run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
-              if (!value.released) {
-                yield* run(ledger.release(value.reservation))
-                yield* run(context.deps.residentReleaseCurrentWork(value.revision))
-                acquiredRevisions.delete(command.revision)
-                value.released = true
-              }
             }
             break
           }

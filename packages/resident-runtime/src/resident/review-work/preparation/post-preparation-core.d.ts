@@ -90,6 +90,39 @@ export type CleanupFinish =
   | Tagged<"CleanupFinishDone">
   | Tagged<"CleanupFinishRejected">
 
+export type ReleaseKind =
+  | Tagged<"UnspawnedRelease">
+  | Tagged<"AttachedRelease">
+  | Tagged<"CachedRelease">
+  | Tagged<"FinalizedRelease">
+export type ReleaseOperation =
+  | Tagged<"ReleaseReadTransfer">
+  | Tagged<"ReleaseReadOwner">
+  | Tagged<"ReleaseBuildUnit">
+  | Tagged<"ReleaseReadPlanClaim">
+  | Tagged<"ReleaseReadUnitClaim">
+  | Tagged<"ReleasePlanClaim">
+  | Tagged<"ReleaseCapacityClaim">
+  | Tagged<"ReleaseForgetPlanClaim">
+  | Tagged<"ReleaseForgetUnitClaim">
+  | Tagged<"ReleaseSlotReservation">
+  | Tagged<"ReleaseUnitReservation">
+  | Tagged<"ReleaseForgetReservation">
+  | Tagged<"ReleaseAcquisition">
+  | Tagged<"ReleaseCurrentWork">
+  | Tagged<"ReleaseForgetAcquisition">
+  | Tagged<"ReleaseMarkUnit">
+  | Tagged<"ReleaseReadWorkBound">
+  | Tagged<"ReleaseReadCompleted", { readonly work_bound: boolean }>
+  | Tagged<"ReleaseReadRound", { readonly work_bound: boolean }>
+  | Tagged<"ReleaseRetireWork">
+  | Tagged<"ReleaseReadReleased">
+export type ReleaseResponse = Tagged<"ReleaseAck"> | Tagged<"ReleaseFlag", { readonly value: boolean }>
+export type ReleaseStep =
+  | Tagged<"ReleaseAwait", { readonly kind: ReleaseKind; readonly operation: ReleaseOperation }>
+  | Tagged<"ReleaseDone">
+  | Tagged<"ReleaseRejected">
+
 export type Command =
   | Tagged<"ObservePreparation">
   | Tagged<"AdvicePendingBarrier", { readonly advice: bigint }>
@@ -204,6 +237,8 @@ export type AdviceTailStep =
   | Tagged<"AdviceCleanupPending", { readonly advice: bigint; readonly reason: Termination }>
 
 declare const core: {
+  release_initial(kind: ReleaseKind): ReleaseStep
+  release_resume(step: ReleaseStep, response: ReleaseResponse): ReleaseStep
   cleanup_finish_initial(): CleanupFinish
   cleanup_finish_inventory(finish: CleanupFinish, facts: List<CleanupFact>): CleanupFinish
   cleanup_finish_reply(finish: CleanupFinish, success: boolean): CleanupFinish

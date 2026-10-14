@@ -98,6 +98,43 @@ type CleanupFinish is Data:
   CleanupFinishDone{}
   CleanupFinishRejected{}
 
+# These sequences remain inside the original Canonical request/lease. Native
+# queries are lazy, preserving each variant's read/effect/receipt ordering.
+type ReleaseKind is Data:
+  UnspawnedRelease{}
+  AttachedRelease{}
+  CachedRelease{}
+  FinalizedRelease{}
+type ReleaseOperation is Data:
+  ReleaseReadTransfer{}
+  ReleaseReadOwner{}
+  ReleaseBuildUnit{}
+  ReleaseReadPlanClaim{}
+  ReleaseReadUnitClaim{}
+  ReleasePlanClaim{}
+  ReleaseCapacityClaim{}
+  ReleaseForgetPlanClaim{}
+  ReleaseForgetUnitClaim{}
+  ReleaseSlotReservation{}
+  ReleaseUnitReservation{}
+  ReleaseForgetReservation{}
+  ReleaseAcquisition{}
+  ReleaseCurrentWork{}
+  ReleaseForgetAcquisition{}
+  ReleaseMarkUnit{}
+  ReleaseReadWorkBound{}
+  ReleaseReadCompleted{work_bound: Bool}
+  ReleaseReadRound{work_bound: Bool}
+  ReleaseRetireWork{}
+  ReleaseReadReleased{}
+type ReleaseResponse is Data:
+  ReleaseAck{}
+  ReleaseFlag{value: Bool}
+type ReleaseStep is Data:
+  ReleaseAwait{kind: ReleaseKind, operation: ReleaseOperation}
+  ReleaseDone{}
+  ReleaseRejected{}
+
 type Command is Data:
   ObservePreparation{}
   AdvicePendingBarrier{advice: Nat}
@@ -528,6 +565,158 @@ def await_command(state: State, phase: Phase, command: Command) -> Step:
         State{invocation, Nat.add(next, 1n), bound, incomplete, refused, phase},
         Request{invocation, next, command}
       }
+
+def release_initial(+kind: ReleaseKind) -> ReleaseStep:
+  match kind:
+    case UnspawnedRelease{}: ReleaseAwait{kind, ReleaseReadTransfer{}}
+    case AttachedRelease{}: ReleaseAwait{kind, ReleaseReadTransfer{}}
+    case CachedRelease{}: ReleaseAwait{kind, ReleaseSlotReservation{}}
+    case FinalizedRelease{}: ReleaseAwait{kind, ReleaseBuildUnit{}}
+
+def release_finalize(ready: Bool) -> ReleaseStep:
+  match ready:
+    case True{}: ReleaseAwait{FinalizedRelease{}, ReleaseRetireWork{}}
+    case False{}: ReleaseDone{}
+
+def release_transition(
+  +kind: ReleaseKind,
+  operation: ReleaseOperation,
+  response: ReleaseResponse
+) -> ReleaseStep:
+  match kind operation response:
+    case UnspawnedRelease{} ReleaseReadTransfer{} ReleaseFlag{False{}}: ReleaseAwait{
+      kind,
+      ReleaseReadOwner{}
+    }
+    case AttachedRelease{} ReleaseReadTransfer{} ReleaseFlag{False{}}: ReleaseAwait{
+      kind,
+      ReleaseBuildUnit{}
+    }
+    case _ ReleaseReadTransfer{} ReleaseFlag{True{}}: ReleaseDone{}
+    case UnspawnedRelease{} ReleaseReadOwner{} ReleaseFlag{True{}}: ReleaseAwait{
+      kind,
+      ReleaseReadPlanClaim{}
+    }
+    case UnspawnedRelease{} ReleaseReadOwner{} ReleaseFlag{False{}}: ReleaseAwait{
+      kind,
+      ReleaseSlotReservation{}
+    }
+    case UnspawnedRelease{} ReleaseReadPlanClaim{} ReleaseFlag{True{}}: ReleaseAwait{
+      kind,
+      ReleasePlanClaim{}
+    }
+    case UnspawnedRelease{} ReleaseReadPlanClaim{} ReleaseFlag{False{}}: ReleaseAwait{
+      kind,
+      ReleaseForgetPlanClaim{}
+    }
+    case UnspawnedRelease{} ReleasePlanClaim{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseForgetPlanClaim{}
+    }
+    case UnspawnedRelease{} ReleaseForgetPlanClaim{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseSlotReservation{}
+    }
+    case UnspawnedRelease{} ReleaseSlotReservation{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseForgetReservation{}
+    }
+    case UnspawnedRelease{} ReleaseForgetReservation{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseAcquisition{}
+    }
+    case UnspawnedRelease{} ReleaseAcquisition{} ReleaseAck{}: ReleaseDone{}
+    case AttachedRelease{} ReleaseBuildUnit{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseReadUnitClaim{}
+    }
+    case AttachedRelease{} ReleaseReadUnitClaim{} ReleaseFlag{True{}}: ReleaseAwait{
+      kind,
+      ReleaseCapacityClaim{}
+    }
+    case AttachedRelease{} ReleaseReadUnitClaim{} ReleaseFlag{False{}}: ReleaseAwait{
+      kind,
+      ReleaseUnitReservation{}
+    }
+    case AttachedRelease{} ReleaseCapacityClaim{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseUnitReservation{}
+    }
+    case AttachedRelease{} ReleaseUnitReservation{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseCurrentWork{}
+    }
+    case AttachedRelease{} ReleaseCurrentWork{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseForgetAcquisition{}
+    }
+    case AttachedRelease{} ReleaseForgetAcquisition{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseMarkUnit{}
+    }
+    case AttachedRelease{} ReleaseMarkUnit{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseForgetUnitClaim{}
+    }
+    case AttachedRelease{} ReleaseForgetUnitClaim{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseForgetReservation{}
+    }
+    case AttachedRelease{} ReleaseForgetReservation{} ReleaseAck{}: ReleaseDone{}
+    case CachedRelease{} ReleaseSlotReservation{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseAcquisition{}
+    }
+    case CachedRelease{} ReleaseAcquisition{} ReleaseAck{}: ReleaseAwait{kind, ReleaseBuildUnit{}}
+    case CachedRelease{} ReleaseBuildUnit{} ReleaseAck{}: ReleaseAwait{kind, ReleaseMarkUnit{}}
+    case CachedRelease{} ReleaseMarkUnit{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseForgetReservation{}
+    }
+    case CachedRelease{} ReleaseForgetReservation{} ReleaseAck{}: ReleaseDone{}
+    case FinalizedRelease{} ReleaseBuildUnit{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseReadWorkBound{}
+    }
+    case FinalizedRelease{} ReleaseReadWorkBound{} ReleaseFlag{bound}: ReleaseAwait{
+      kind,
+      ReleaseReadCompleted{bound}
+    }
+    case FinalizedRelease{} ReleaseReadCompleted{_} ReleaseFlag{True{}}: ReleaseDone{}
+    case FinalizedRelease{} ReleaseReadCompleted{bound} ReleaseFlag{False{}}: ReleaseAwait{
+      kind,
+      ReleaseReadRound{bound}
+    }
+    case FinalizedRelease{} ReleaseReadRound{_} ReleaseFlag{False{}}: ReleaseDone{}
+    case FinalizedRelease{} ReleaseReadRound{bound} ReleaseFlag{True{}}: release_finalize(bound)
+    case FinalizedRelease{} ReleaseRetireWork{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseReadReleased{}
+    }
+    case FinalizedRelease{} ReleaseReadReleased{} ReleaseFlag{True{}}: ReleaseDone{}
+    case FinalizedRelease{} ReleaseReadReleased{} ReleaseFlag{False{}}: ReleaseAwait{
+      kind,
+      ReleaseUnitReservation{}
+    }
+    case FinalizedRelease{} ReleaseUnitReservation{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseCurrentWork{}
+    }
+    case FinalizedRelease{} ReleaseCurrentWork{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseForgetAcquisition{}
+    }
+    case FinalizedRelease{} ReleaseForgetAcquisition{} ReleaseAck{}: ReleaseAwait{
+      kind,
+      ReleaseMarkUnit{}
+    }
+    case FinalizedRelease{} ReleaseMarkUnit{} ReleaseAck{}: ReleaseDone{}
+    case _ _ _: ReleaseRejected{}
+
+def release_resume(step: ReleaseStep, response: ReleaseResponse) -> ReleaseStep:
+  match step:
+    case ReleaseAwait{kind, operation}: release_transition(kind, operation, response)
+    case _: ReleaseRejected{}
 
 def cleanup_choose(
   required: Bool,
