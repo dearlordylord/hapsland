@@ -594,7 +594,8 @@ export function createChildExecutionDriver({
                   offered === undefined
                     ? undefined
                     : executeSynchronousGroup(offered, () => {
-                        return owner.invocation_active(invocation, current().children)
+                        const found = owner.find(invocation, current().children)
+                        return found.$ === "Some" && owner.child_active(found.value)
                       })
                 if (synchronous === undefined) {
                   // The existing async port keeps its late-reply discard rules.

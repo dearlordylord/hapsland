@@ -1343,15 +1343,6 @@ def child_active(child: Child) -> Bool:
   match child:
     case Child{_, _, _, _, phase, _, _, _}: active(phase)
 
-def found_active(found: Maybe<&2, Child>) -> Bool:
-  match found:
-    case None{}: False{}
-    case Some{child}: child_active(child)
-
-# Same authority query, without exporting and reimporting the selected Child.
-def invocation_active(invocation: Nat, children: List<&2, Child>) -> Bool:
-  found_active(find(invocation, children))
-
 def advice_cleanup_allowed(valid: Bool, state: State, child: Child) -> Step:
   match valid child:
     case True{} Child{
