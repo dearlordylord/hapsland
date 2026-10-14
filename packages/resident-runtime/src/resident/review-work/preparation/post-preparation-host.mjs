@@ -23,12 +23,12 @@ import { logicalBytes } from "../../state/encoded-size.ts"
 import { list, unlist as array } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { sourcePartition } from "../../recipient/identity.ts"
 import { evaluationSourcePartition } from "../../work-ownership/identity.ts"
-import { observePlannedEvaluation } from "./evaluation-observation.ts"
+import { selectPostValue } from "./post-selection.mjs"
 import { residentUnitWorstOutcomeBytes, residentUnitReservationBytes } from "../../work-ownership/reservation.ts"
 // Canonical-owned effect dispatcher. Reuse progression belongs to Bend;
 // Host handlers expose semantic owner effects and resource receipts.
 /**
- * @typedef {import("./context.ts").PlannedPreparationItem | (Omit<Extract<import("./context.ts").PlannedPreparationItem, {kind: "cached"}>, "cached"> & {cached?: import("../../state/evaluation-reuse.ts").CachedEvaluation})} NativePlan
+ * @typedef {{outcome: import("./context.ts").ReadyPreparedOutcome, evaluationKey: string, route: import("./post-preparation-core.js").Route, cached?: import("../../state/evaluation-reuse.ts").CachedEvaluation}} NativePlan
  * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<ReturnType<typeof createAdviceTailProvider>>>, "driveAdviceEffect" | "adviceHandoff" | "prepareAdviceInput" | "releaseAdviceInput">} AdviceDriver
  * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver>, "state" | "handoffResult">} PreparationHandoffDriver
  * @typedef {import("./context.ts").PreparationContext & { deps: import("./context.ts").Dependencies & Pick<import("../evaluation/context.ts").Dependencies, "residentNow" | "residentReviewControls"> & Pick<import("../../advice-delivery/handoff/context.ts").Dependencies, "residentAdviceExpired">, ownedAdvice?: {core: typeof import("./post-preparation-core.js").default, bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, driver: AdviceDriver} }} PostContext
@@ -196,11 +196,19 @@ export function createPostPreparationProvider(
     if (!value) throw new Error("Unknown native plan")
     return value
   }
-  /** @param {import("./post-preparation-core.js").Planned} fact @returns {import("./context.ts").PlannedPreparationItem} */
+  /** @param {import("./post-preparation-core.js").Planned} fact */
   const completeItem = (fact) => {
     const value = item(fact)
-    if (value.kind === "cached" && value.cached === undefined) throw new Error("Cached plan lacks its native receipt")
-    return /** @type {import("./context.ts").PlannedPreparationItem} */ (value)
+    if (postCore.route_cached(value.route) && value.cached === undefined)
+      throw new Error("Cached plan lacks its native receipt")
+    return value
+  }
+  /** @param {import("./post-preparation-core.js").Planned} fact @param {string} message */
+  const cachedItem = (fact, message) => {
+    const value = completeItem(fact)
+    if (!postCore.route_cached(value.route)) throw new Error(message)
+    if (value.cached === undefined) throw new Error("Cached plan lacks its native receipt")
+    return /** @type {NativePlan & {cached: import("../../state/evaluation-reuse.ts").CachedEvaluation}} */ (value)
   }
   const adviceBinding = () => {
     const binding = context.ownedAdvice
@@ -230,9 +238,14 @@ export function createPostPreparationProvider(
     if (existing) return existing
     const planned = item(slot.item),
       job = context.job,
-      observed = prepared.observation.outcomes.find(
-        (outcome) => outcome.status === "observed" && outcome.path === planned.outcome.path
+      selected = selectPostValue(
+        postCore,
+        prepared.observation.outcomes,
+        { $: "ObservedSelection" },
+        (outcome) => outcome.path === planned.outcome.path,
+        { observed: (outcome) => outcome.status === "observed" }
       ),
+      observed = selected.found ? selected.value : undefined,
       sourceHash = observed?.status === "observed" ? observed.snapshot.sourceHash : undefined
     const inspectionEvaluationId = context.deps.residentInspection.evaluationId(planned.evaluationKey)
     /** @type {import("../../work-ownership/jobs.ts").UnitJob} */
@@ -343,9 +356,13 @@ export function createPostPreparationProvider(
             return [...units].map(([handle, value]) => ({
               $: "CleanupWork",
               handle,
-              cached: [...plans.values()].some(
-                (plan) => plan.evaluationKey === value.evaluationKey && plan.kind === "cached"
-              ),
+              cached: selectPostValue(
+                postCore,
+                [...plans.values()],
+                { $: "CachedPlanMembership" },
+                (plan) => plan.evaluationKey === value.evaluationKey,
+                { route: (plan) => plan.route }
+              ).found,
               completed: value.completed === true || dischargedWork.has(handle),
               round_bound: value.round !== undefined,
               work_bound: value.workUnitId !== undefined
@@ -705,9 +722,12 @@ export function createPostPreparationProvider(
               context.job.settings.configuration.policy.digest
             )
             const evaluationKey = context.deps.residentReuse.key(generationPartition, outcome.prepared)
-            const liveAdvice = (yield* run(context.deps.residentAdvice())).some(
+            const liveAdvice = selectPostValue(
+              postCore,
+              yield* run(context.deps.residentAdvice()),
+              { $: "AdviceMembership" },
               (advice) => advice.evaluationKey === evaluationKey
-            )
+            ).found
             const route = yield* run(context.deps.residentReuse.route(evaluationKey, liveAdvice))
             const key = command.outcome.handle
             /** @type {Record<typeof route, Exclude<import("./post-preparation-core.js").Route["$"], "CachedFinding">>} */
@@ -718,18 +738,20 @@ export function createPostPreparationProvider(
               joinedPending: "JoinedPending",
               joinedClaimed: "JoinedClaimed"
             }
-            if (route === "owner") plans.set(key, { kind: "owner", outcome, evaluationKey })
-            else if (route === "cached") plans.set(key, { kind: "cached", outcome, evaluationKey })
-            else if (route === "joinedAdvice")
-              plans.set(key, { kind: "joined", join: "advice", outcome, evaluationKey })
-            else if (route === "joinedPending")
-              plans.set(key, { kind: "joined", join: "pending", outcome, evaluationKey })
-            else plans.set(key, { kind: "joined", join: "claimed", outcome, evaluationKey })
-            if (route === "owner") {
-              ownedClaims.add(evaluationKey)
-              context.unassignedClaims.add(evaluationKey)
+            /** @type {import("./post-preparation-core.js").Route} */
+            const routeReceipt = { $: routeFacts[route] }
+            for (const action of array(postCore.native_plan_actions(routeReceipt))) {
+              switch (action.$) {
+                case "StoreNativePlan":
+                  plans.set(key, { outcome, evaluationKey, route: routeReceipt })
+                  break
+                case "TrackNativeClaim":
+                  ownedClaims.add(evaluationKey)
+                  context.unassignedClaims.add(evaluationKey)
+                  break
+              }
             }
-            response = { $: "Routed", key, route: { $: routeFacts[route] } }
+            response = { $: "Routed", key, route: routeReceipt }
             break
           }
           case "ReadCached": {
@@ -775,9 +797,76 @@ export function createPostPreparationProvider(
             owner.revision = restored
             break
           }
-          case "ObservePlans":
-            for (const fact of array(command.planned)) observePlannedEvaluation(context, completeItem(fact))
+          case "ObservePlans": {
+            /** @type {Record<import("./post-preparation-core.js").InspectionRoute["$"], "fresh" | "cached" | "existing-advice" | "joined-pending" | "joined-claimed">} */
+            const routes = {
+              FreshInspection: "fresh",
+              CachedInspection: "cached",
+              AdviceInspection: "existing-advice",
+              PendingInspection: "joined-pending",
+              ClaimedInspection: "joined-claimed"
+            }
+            for (const fact of array(command.planned)) {
+              const planned = completeItem(fact)
+              /** @type {PostContext["job"]["inspectionReceipt"]} */
+              let receipt
+              /** @type {string | undefined} */
+              let evaluationId
+              let observation = postCore.plan_observation_initial(planned.route)
+              while (observation.$ === "PlanObservationAwait") {
+                const operation = observation.operation
+                /** @type {import("./post-preparation-core.js").PlanObservationResponse} */
+                let result = { $: "PlanObservationAck" }
+                switch (operation.$) {
+                  case "ReadPlanReceipt":
+                    receipt = context.job.inspectionReceipt
+                    result = { $: "PlanObservationFlag", value: receipt !== undefined }
+                    break
+                  case "ForgetPlanOrigin":
+                    context.deps.residentInspection.forgetOrigin(planned.evaluationKey)
+                    break
+                  case "CheckPlanInspection":
+                    if (receipt === undefined) throw new Error("Missing plan inspection receipt")
+                    result = { $: "PlanObservationFlag", value: context.deps.inspection.isEnabled(receipt.scope.root) }
+                    break
+                  case "RegisterPlanOrigin":
+                    context.deps.residentInspection.registerOrigin(planned.evaluationKey)
+                    break
+                  case "ReadPlanEvaluation":
+                    evaluationId = context.deps.residentInspection.evaluationId(planned.evaluationKey)
+                    result = { $: "PlanObservationFlag", value: evaluationId !== undefined }
+                    break
+                  case "OfferMissingPlan":
+                  case "OfferLinkedPlan": {
+                    if (receipt === undefined) throw new Error("Missing plan inspection receipt")
+                    const original =
+                      operation.$ === "OfferMissingPlan"
+                        ? { status: /** @type {const} */ ("missing"), reason: /** @type {const} */ ("not-captured") }
+                        : {
+                            status: /** @type {const} */ ("linked"),
+                            evaluationId: /** @type {string} */ (evaluationId)
+                          }
+                    context.deps.inspection.offer(
+                      receipt.scope,
+                      { ...receipt.correlation, ...(evaluationId === undefined ? {} : { evaluationId }) },
+                      {
+                        kind: "evaluation-route",
+                        route: routes[operation.route.$],
+                        semanticIdentity: planned.outcome.prepared.identity,
+                        path: planned.outcome.path,
+                        declaration: planned.outcome.prepared.input.declaration.name,
+                        original
+                      }
+                    )
+                    break
+                  }
+                }
+                observation = postCore.plan_observation_resume(observation, result)
+              }
+              if (observation.$ !== "PlanObservationDone") throw new Error("Invalid plan observation reply")
+            }
             break
+          }
           case "OwnerBarrier":
             yield* run(
               withinWork(
@@ -790,13 +879,23 @@ export function createPostPreparationProvider(
             break
           case "RecordReuseAnalytics": {
             const planned = completeItem(command.item)
-            if (planned.kind === "cached")
-              yield* run(
-                context.deps.residentRecordAnalytics(context.job, "cache-hit", planned.cached.evaluation.findings)
-              )
-            else if (planned.kind === "joined")
-              yield* run(context.deps.residentRecordAnalytics(context.job, "joined-review"))
-            else throw new Error("Reuse analytics requires a cached or joined plan")
+            switch (postCore.reuse_observation(planned.route).$) {
+              case "CachedReuseObservation":
+                yield* run(
+                  context.deps.residentRecordAnalytics(
+                    context.job,
+                    "cache-hit",
+                    cachedItem(command.item, "Reuse analytics requires a cached or joined plan").cached.evaluation
+                      .findings
+                  )
+                )
+                break
+              case "JoinedReuseObservation":
+                yield* run(context.deps.residentRecordAnalytics(context.job, "joined-review"))
+                break
+              case "InvalidReuseObservation":
+                throw new Error("Reuse analytics requires a cached or joined plan")
+            }
             break
           }
           case "JoinedBarrier":
@@ -852,9 +951,13 @@ export function createPostPreparationProvider(
             yield* releaseAcquisition(command.revision)
             break
           case "ReadLiveAdvice": {
-            const existing = (yield* run(context.deps.residentAdvice())).find(
+            const selected = selectPostValue(
+              postCore,
+              yield* run(context.deps.residentAdvice()),
+              { $: "AdviceSelection" },
               (advice) => advice.evaluationKey === item(command.item).evaluationKey
             )
+            const existing = selected.found ? selected.value : undefined
             const handle = BigInt(adviceOwners.size + 1)
             if (existing !== undefined) adviceOwners.set(handle, existing)
             response = { $: "AdviceOwner", owner: existing === undefined ? none : some(handle) }
@@ -956,17 +1059,29 @@ export function createPostPreparationProvider(
               planned = completeItem(command.slot.item),
               operation = Number(command.slot.operation)
             const observation = context.job.workObservationId
-            const work =
-              policy === undefined || observation === undefined
-                ? undefined
-                : planned.kind === "cached"
-                  ? policy.cachedFinding(
-                      observation,
-                      planned.cached.evaluation.findings.length,
-                      logicalBytes(planned.cached.evaluation.findings),
-                      operation
-                    )
-                  : policy.spawn(observation, operation)
+            /** @type {number | undefined} */
+            let work
+            switch (postCore.planned_work(planned.route, policy !== undefined, observation !== undefined).$) {
+              case "NoPlannedWork":
+                break
+              case "SpawnPlannedWork":
+                if (policy === undefined || observation === undefined)
+                  throw new Error("Missing work registration receipt")
+                work = policy.spawn(observation, operation)
+                break
+              case "CachedPlannedWork": {
+                if (policy === undefined || observation === undefined)
+                  throw new Error("Missing work registration receipt")
+                const cached = cachedItem(command.slot.item, "Cached work requires its cached plan").cached
+                work = policy.cachedFinding(
+                  observation,
+                  cached.evaluation.findings.length,
+                  logicalBytes(cached.evaluation.findings),
+                  operation
+                )
+                break
+              }
+            }
             response = { $: "Work", token: work === undefined ? none : some(BigInt(work)) }
             break
           }
@@ -1136,8 +1251,7 @@ export function createPostPreparationProvider(
             }
             break
           case "RecordCachedActivity": {
-            const planned = completeItem(command.slot.item)
-            if (planned.kind !== "cached") throw new Error("Cached activity requires its cached plan")
+            const planned = cachedItem(command.slot.item, "Cached activity requires its cached plan")
             recordActivity({
               statePath: context.job.dispatch.activityPath,
               root: context.job.observation.root,
@@ -1156,9 +1270,13 @@ export function createPostPreparationProvider(
             }
             break
           case "ReadCachedAdvice": {
-            const existing = (yield* run(context.deps.residentAdvice())).find(
+            const selected = selectPostValue(
+              postCore,
+              yield* run(context.deps.residentAdvice()),
+              { $: "AdviceSelection" },
               (value) => value.evaluationKey === item(command.slot.item).evaluationKey
             )
+            const existing = selected.found ? selected.value : undefined
             const handle = BigInt(adviceOwners.size + 1)
             if (existing) adviceOwners.set(handle, existing)
             response = { $: "AdviceOwner", owner: existing === undefined ? none : some(handle) }
@@ -1175,10 +1293,9 @@ export function createPostPreparationProvider(
             if (!context.ownedAdvice || !options.ownerLease)
               throw new Error("Cached advice requires Canonical composition")
             const value = unit(command.slot, command.revision, command.work),
-              planned = completeItem(command.slot.item),
+              planned = cachedItem(command.slot.item, "Cached advice requires its cached plan"),
               credential = value.dispatch.credential,
               required = value.dispatch.controlled === null || value.dispatch.controlled.requireCredential === true
-            if (planned.kind !== "cached") throw new Error("Cached advice requires its cached plan")
             const evaluation = { prepared: value.prepared, findings: planned.cached.evaluation.findings }
             const initial = {
               analyticsPath: value.dispatch.activityPath,

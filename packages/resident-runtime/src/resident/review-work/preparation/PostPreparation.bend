@@ -135,6 +135,68 @@ type ReleaseStep is Data:
   ReleaseDone{}
   ReleaseRejected{}
 
+type SelectionKind is Data:
+  AdviceMembership{}
+  AdviceSelection{}
+  ObservedSelection{}
+  CachedPlanMembership{}
+type SelectionStage is Data:
+  SelectionPresence{}
+  SelectionStatus{}
+  SelectionEquality{}
+  SelectionRoute{}
+type SelectionStep is Data:
+  SelectionRead{kind: SelectionKind, index: Nat, remaining: Nat, stage: SelectionStage}
+  SelectionFound{index: Nat}
+  SelectionMissing{}
+  SelectionRejected{}
+type SelectionResponse is Data:
+  SelectionFlag{value: Bool}
+  SelectionPlanRoute{route: Route}
+type NativePlanAction is Data:
+  StoreNativePlan{}
+  TrackNativeClaim{}
+type ReuseObservation is Data:
+  CachedReuseObservation{}
+  JoinedReuseObservation{}
+  InvalidReuseObservation{}
+type WorkChoice is Data:
+  NoPlannedWork{}
+  SpawnPlannedWork{}
+  CachedPlannedWork{}
+type InspectionRoute is Data:
+  FreshInspection{}
+  CachedInspection{}
+  AdviceInspection{}
+  PendingInspection{}
+  ClaimedInspection{}
+type PlanObservationStage is Data:
+  PlanReadReceipt{}
+  PlanForgotOrigin{receipt: Bool}
+  PlanEnabled{}
+  PlanRegistered{}
+  PlanEvaluationRead{}
+  PlanOffered{}
+type PlanObservationOperation is Data:
+  ReadPlanReceipt{}
+  ForgetPlanOrigin{}
+  CheckPlanInspection{}
+  RegisterPlanOrigin{}
+  ReadPlanEvaluation{}
+  OfferMissingPlan{route: InspectionRoute}
+  OfferLinkedPlan{route: InspectionRoute}
+type PlanObservationStep is Data:
+  PlanObservationAwait{
+    route: Route,
+    stage: PlanObservationStage,
+    operation: PlanObservationOperation
+  }
+  PlanObservationDone{}
+  PlanObservationRejected{}
+type PlanObservationResponse is Data:
+  PlanObservationAck{}
+  PlanObservationFlag{value: Bool}
+
 type Command is Data:
   ObservePreparation{}
   AdvicePendingBarrier{advice: Nat}
@@ -565,6 +627,186 @@ def await_command(state: State, phase: Phase, command: Command) -> Step:
         State{invocation, Nat.add(next, 1n), bound, incomplete, refused, phase},
         Request{invocation, next, command}
       }
+
+def route_cached(route: Route) -> Bool:
+  match route:
+    case CachedEntry{}: True{}
+    case CachedClear{}: True{}
+    case CachedFinding{_}: True{}
+    case _: False{}
+
+def route_owner(route: Route) -> Bool:
+  match route:
+    case Owner{}: True{}
+    case _: False{}
+
+def native_plan_actions(route: Route) -> List<&2, NativePlanAction>:
+  match route:
+    case Owner{}: [StoreNativePlan{}, TrackNativeClaim{}]
+    case _: [StoreNativePlan{}]
+
+def reuse_observation(route: Route) -> ReuseObservation:
+  match route:
+    case Owner{}: InvalidReuseObservation{}
+    case CachedEntry{}: CachedReuseObservation{}
+    case CachedClear{}: CachedReuseObservation{}
+    case CachedFinding{_}: CachedReuseObservation{}
+    case _: JoinedReuseObservation{}
+
+def planned_work_choice(route: Route, available: Bool) -> WorkChoice:
+  match available:
+    case False{}: NoPlannedWork{}
+    case True{}: Bool.pick(WorkChoice, route_cached(route), CachedPlannedWork{}, SpawnPlannedWork{})
+
+def planned_work(route: Route, policy: Bool, observation: Bool) -> WorkChoice:
+  planned_work_choice(route, policy && observation)
+
+def inspection_route(route: Route) -> InspectionRoute:
+  match route:
+    case Owner{}: FreshInspection{}
+    case CachedEntry{}: CachedInspection{}
+    case CachedClear{}: CachedInspection{}
+    case CachedFinding{_}: CachedInspection{}
+    case JoinedAdvice{}: AdviceInspection{}
+    case JoinedPending{}: PendingInspection{}
+    case JoinedClaimed{}: ClaimedInspection{}
+
+def selection_stage(kind: SelectionKind) -> SelectionStage:
+  match kind:
+    case AdviceMembership{}: SelectionPresence{}
+    case CachedPlanMembership{}: SelectionPresence{}
+    case ObservedSelection{}: SelectionStatus{}
+    case AdviceSelection{}: SelectionEquality{}
+
+def selection_next(+kind: SelectionKind, index: Nat, remaining: Nat) -> SelectionStep:
+  match remaining:
+    case 0n: SelectionMissing{}
+    case 1n+rest: SelectionRead{kind, index, rest, selection_stage(kind)}
+
+def selection_initial(kind: SelectionKind, length: Nat) -> SelectionStep:
+  selection_next(kind, 0n, length)
+
+def selection_route_match(
+  yes: Bool,
+  kind: SelectionKind,
+  +index: Nat,
+  remaining: Nat
+) -> SelectionStep:
+  match yes:
+    case True{}: SelectionFound{index}
+    case False{}: selection_next(kind, Nat.add(index, 1n), remaining)
+
+def selection_equal(
+  +kind: SelectionKind,
+  +index: Nat,
+  remaining: Nat,
+  equal: Bool
+) -> SelectionStep:
+  match kind equal:
+    case CachedPlanMembership{} True{}: SelectionRead{kind, index, remaining, SelectionRoute{}}
+    case _ True{}: SelectionFound{index}
+    case _ False{}: selection_next(kind, Nat.add(index, 1n), remaining)
+
+def selection_resume(step: SelectionStep, response: SelectionResponse) -> SelectionStep:
+  match step response:
+    case SelectionRead{kind, index, remaining, SelectionPresence{}} SelectionFlag{True{}}: SelectionRead{
+      kind,
+      index,
+      remaining,
+      SelectionEquality{}
+    }
+    case SelectionRead{kind, index, remaining, SelectionStatus{}} SelectionFlag{True{}}: SelectionRead{
+      kind,
+      index,
+      remaining,
+      SelectionEquality{}
+    }
+    case SelectionRead{kind, index, remaining, SelectionPresence{}} SelectionFlag{False{}}: selection_next(
+      kind,
+      Nat.add(index, 1n),
+      remaining
+    )
+    case SelectionRead{kind, index, remaining, SelectionStatus{}} SelectionFlag{False{}}: selection_next(
+      kind,
+      Nat.add(index, 1n),
+      remaining
+    )
+    case SelectionRead{kind, index, remaining, SelectionEquality{}} SelectionFlag{equal}: selection_equal(
+      kind,
+      index,
+      remaining,
+      equal
+    )
+    case SelectionRead{kind, index, remaining, SelectionRoute{}} SelectionPlanRoute{route}: selection_route_match(
+      route_cached(route),
+      kind,
+      index,
+      remaining
+    )
+    case _ _: SelectionRejected{}
+
+def plan_observation_initial(+route: Route) -> PlanObservationStep:
+  PlanObservationAwait{route, PlanReadReceipt{}, ReadPlanReceipt{}}
+
+def plan_observation_enable(route: Route, receipt: Bool) -> PlanObservationStep:
+  match receipt:
+    case False{}: PlanObservationDone{}
+    case True{}: PlanObservationAwait{route, PlanEnabled{}, CheckPlanInspection{}}
+
+def plan_observation_origin(route: Route, receipt: Bool, owner: Bool) -> PlanObservationStep:
+  match owner:
+    case True{}: PlanObservationAwait{route, PlanForgotOrigin{receipt}, ForgetPlanOrigin{}}
+    case False{}: plan_observation_enable(route, receipt)
+
+def plan_observation_evaluation(route: Route) -> PlanObservationStep:
+  PlanObservationAwait{route, PlanEvaluationRead{}, ReadPlanEvaluation{}}
+
+def plan_observation_register(route: Route, owner: Bool) -> PlanObservationStep:
+  match owner:
+    case True{}: PlanObservationAwait{route, PlanRegistered{}, RegisterPlanOrigin{}}
+    case False{}: plan_observation_evaluation(route)
+
+def plan_observation_offer(+route: Route, linked: Bool) -> PlanObservationStep:
+  match linked:
+    case True{}: PlanObservationAwait{
+      route,
+      PlanOffered{},
+      OfferLinkedPlan{inspection_route(route)}
+    }
+    case False{}: PlanObservationAwait{
+      route,
+      PlanOffered{},
+      OfferMissingPlan{inspection_route(route)}
+    }
+
+def plan_observation_resume(
+  step: PlanObservationStep,
+  response: PlanObservationResponse
+) -> PlanObservationStep:
+  match step response:
+    case PlanObservationAwait{+route, PlanReadReceipt{}, _} PlanObservationFlag{receipt}: plan_observation_origin(
+      route,
+      receipt,
+      route_owner(route)
+    )
+    case PlanObservationAwait{route, PlanForgotOrigin{receipt}, _} PlanObservationAck{}: plan_observation_enable(
+      route,
+      receipt
+    )
+    case PlanObservationAwait{_, PlanEnabled{}, _} PlanObservationFlag{False{}}: PlanObservationDone{}
+    case PlanObservationAwait{+route, PlanEnabled{}, _} PlanObservationFlag{True{}}: plan_observation_register(
+      route,
+      route_owner(route)
+    )
+    case PlanObservationAwait{route, PlanRegistered{}, _} PlanObservationAck{}: plan_observation_evaluation(
+      route
+    )
+    case PlanObservationAwait{route, PlanEvaluationRead{}, _} PlanObservationFlag{linked}: plan_observation_offer(
+      route,
+      linked
+    )
+    case PlanObservationAwait{_, PlanOffered{}, _} PlanObservationAck{}: PlanObservationDone{}
+    case _ _: PlanObservationRejected{}
 
 def release_initial(+kind: ReleaseKind) -> ReleaseStep:
   match kind:

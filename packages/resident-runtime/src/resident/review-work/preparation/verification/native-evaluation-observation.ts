@@ -1,4 +1,5 @@
-import type { PreparationContext, PlannedPreparationItem } from "./context.ts"
+import type { PreparationContext } from "../context.ts"
+import type { PlannedPreparationItem } from "./native-preparation-planning.ts"
 
 export const observePlannedEvaluation = (
   context: PreparationContext<"inspection" | "residentInspection">,

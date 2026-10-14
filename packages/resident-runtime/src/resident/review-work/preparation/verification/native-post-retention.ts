@@ -9,13 +9,13 @@ import { ResidentAdapterError } from "../../../adapter-error.ts"
 import { withinWork } from "../../../work-ownership/cancellation.ts"
 import { sourcePartition } from "../../../recipient/identity.ts"
 import { logicalBytes } from "../../../state/encoded-size.ts"
-import {
-  type PreparationContext,
-  type PlannedPreparationItem,
-  type RetainedPreparationItem,
-  type PreparationReservation,
-  type PreparedUnitFacts
-} from "../context.ts"
+import type { PreparationContext } from "../context.ts"
+import type {
+  PlannedPreparationItem,
+  RetainedPreparationItem,
+  PreparationReservation,
+  PreparedUnitFacts
+} from "./native-preparation-planning.ts"
 
 export const recordReuseObservation = Effect.fn("ResidentRuntime.recordReuseObservation")(function* (
   context: PreparationContext<

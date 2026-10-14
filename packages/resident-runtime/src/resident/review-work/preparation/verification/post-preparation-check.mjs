@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { selectPostValue } from "../post-selection.mjs"
+import { observePlannedEvaluation as observeNativePlan } from "./native-evaluation-observation.ts"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
@@ -519,6 +521,264 @@ try {
         }
     }
   }
+  const routeCases = [
+    ["Owner", "owner", undefined, "fresh", "FreshInspection"],
+    ["CachedEntry", "cached", undefined, "cached", "CachedInspection"],
+    ["CachedClear", "cached", undefined, "cached", "CachedInspection"],
+    ["CachedFinding", "cached", undefined, "cached", "CachedInspection"],
+    ["JoinedAdvice", "joined", "advice", "existing-advice", "AdviceInspection"],
+    ["JoinedPending", "joined", "pending", "joined-pending", "PendingInspection"],
+    ["JoinedClaimed", "joined", "claimed", "joined-claimed", "ClaimedInspection"]
+  ]
+  const nativeRouteNames = Object.fromEntries(routeCases.map((entry) => [entry[4], entry[3]]))
+  for (const [tag, kind, join] of routeCases) {
+    const route = tag === "CachedFinding" ? { $: tag, evaluation: 99n } : { $: tag }
+    assert.equal(core.route_cached(route), kind === "cached")
+    assert.deepEqual(
+      array(core.native_plan_actions(route)).map((x) => x.$),
+      kind === "owner" ? ["StoreNativePlan", "TrackNativeClaim"] : ["StoreNativePlan"]
+    )
+    assert.equal(
+      core.reuse_observation(route).$,
+      kind === "owner"
+        ? "InvalidReuseObservation"
+        : kind === "cached"
+          ? "CachedReuseObservation"
+          : "JoinedReuseObservation"
+    )
+    for (const policy of [false, true])
+      for (const observation of [false, true]) {
+        assert.equal(
+          core.planned_work(route, policy, observation).$,
+          !policy || !observation ? "NoPlannedWork" : kind === "cached" ? "CachedPlannedWork" : "SpawnPlannedWork"
+        )
+        cases++
+      }
+    for (const receiptPresent of [false, true])
+      for (const enabled of [false, true])
+        for (const id of [undefined, "", "id"]) {
+          const fault = new Error("plan observation fault")
+          const exercise = (bend, failAt) => {
+            const trace = [],
+              offers = []
+            const call = (name, value) => {
+              trace.push(name)
+              if (trace.length === failAt) throw fault
+              return value
+            }
+            const receipt = { scope: { root: "root" }, correlation: { invocation: "test" } }
+            const context = {
+              job: {
+                get inspectionReceipt() {
+                  return call("receipt", receiptPresent ? receipt : undefined)
+                }
+              },
+              deps: {
+                residentInspection: {
+                  forgetOrigin: () => call("forget"),
+                  registerOrigin: () => call("register"),
+                  evaluationId: () => call("evaluation", id)
+                },
+                inspection: {
+                  isEnabled: () => call("enabled", enabled),
+                  offer: (...args) => {
+                    call("offer")
+                    offers.push(args)
+                  }
+                }
+              }
+            }
+            const item = {
+              kind,
+              ...(join === undefined ? {} : { join }),
+              evaluationKey: "key",
+              outcome: {
+                path: "path",
+                prepared: { identity: "identity", input: { declaration: { name: "declaration" } } }
+              }
+            }
+            let failure
+            try {
+              if (!bend) observeNativePlan(context, item)
+              else {
+                let step = core.plan_observation_initial(route),
+                  heldReceipt,
+                  evaluationId
+                while (step.$ === "PlanObservationAwait") {
+                  const op = step.operation
+                  let response = { $: "PlanObservationAck" }
+                  switch (op.$) {
+                    case "ReadPlanReceipt":
+                      heldReceipt = context.job.inspectionReceipt
+                      response = { $: "PlanObservationFlag", value: heldReceipt !== undefined }
+                      break
+                    case "ForgetPlanOrigin":
+                      context.deps.residentInspection.forgetOrigin()
+                      break
+                    case "CheckPlanInspection":
+                      response = { $: "PlanObservationFlag", value: context.deps.inspection.isEnabled() }
+                      break
+                    case "RegisterPlanOrigin":
+                      context.deps.residentInspection.registerOrigin()
+                      break
+                    case "ReadPlanEvaluation":
+                      evaluationId = context.deps.residentInspection.evaluationId()
+                      response = { $: "PlanObservationFlag", value: evaluationId !== undefined }
+                      break
+                    case "OfferMissingPlan":
+                    case "OfferLinkedPlan":
+                      context.deps.inspection.offer(
+                        heldReceipt.scope,
+                        { ...heldReceipt.correlation, ...(evaluationId === undefined ? {} : { evaluationId }) },
+                        {
+                          kind: "evaluation-route",
+                          route: nativeRouteNames[op.route.$],
+                          semanticIdentity: item.outcome.prepared.identity,
+                          path: item.outcome.path,
+                          declaration: item.outcome.prepared.input.declaration.name,
+                          original:
+                            op.$ === "OfferLinkedPlan"
+                              ? { status: "linked", evaluationId }
+                              : { status: "missing", reason: "not-captured" }
+                        }
+                      )
+                      break
+                  }
+                  step = core.plan_observation_resume(step, response)
+                }
+                assert.equal(step.$, "PlanObservationDone")
+              }
+            } catch (error) {
+              failure = error
+            }
+            return { trace, offers, failure }
+          }
+          const expected = exercise(false, 0)
+          assert.deepEqual(exercise(true, 0), expected)
+          cases++
+          for (let fail = 1; fail <= expected.trace.length; fail++) {
+            const native = exercise(false, fail),
+              bend = exercise(true, fail)
+            assert.strictEqual(native.failure, fault)
+            assert.deepEqual(bend, native)
+            cases++
+          }
+        }
+  }
+  const selectionFault = new Error("selection getter fault")
+  const selectionFactories = [
+    () => [
+      { status: "skipped", path: "target", key: "other" },
+      { status: "observed", path: "target", key: "target" },
+      { status: "observed", path: "target", key: "target" }
+    ],
+    () => [
+      {
+        status: "skipped",
+        get path() {
+          throw selectionFault
+        },
+        key: "other"
+      },
+      { status: "observed", path: "target", key: "target" },
+      {
+        get status() {
+          throw selectionFault
+        },
+        get key() {
+          throw selectionFault
+        }
+      }
+    ],
+    () => {
+      const values = []
+      values.length = 2
+      values[1] = { status: "observed", path: "target", key: "target" }
+      return values
+    },
+    () => [{ status: "observed", path: "other", key: "other" }],
+    () => [],
+    () => [
+      { status: "observed", path: "\ud800", key: "\ud800" },
+      { status: "observed", path: "\ud800", key: "\ud800" }
+    ],
+    () => {
+      const values = [
+        {
+          status: "observed",
+          get path() {
+            values.push({ status: "observed", path: "target", key: "target" })
+            return "other"
+          },
+          get key() {
+            values.push({ status: "observed", path: "target", key: "target" })
+            return "other"
+          }
+        }
+      ]
+      return values
+    },
+    () => {
+      const values = [
+        {
+          status: "observed",
+          get path() {
+            delete values[1]
+            return "other"
+          },
+          get key() {
+            delete values[1]
+            return "other"
+          }
+        },
+        { status: "observed", path: "target", key: "target" },
+        { status: "observed", path: "target", key: "target" }
+      ]
+      return values
+    }
+  ]
+  for (const factory of selectionFactories)
+    for (const mode of ["AdviceMembership", "AdviceSelection", "ObservedSelection"])
+      for (const target of ["target", "\ud800", "missing"]) {
+        const exercise = (bend) => {
+          const trace = [],
+            base = factory()
+          const values = new Proxy(base, {
+            has: (object, key) => {
+              trace.push(["has", String(key)])
+              return Reflect.has(object, key)
+            },
+            get: (object, key, receiver) => {
+              trace.push(["get", String(key)])
+              return Reflect.get(object, key, receiver)
+            }
+          })
+          const equal = mode === "ObservedSelection" ? (row) => row.path === target : (row) => row.key === target
+          const observed = (row) => row.status === "observed"
+          let result, failure
+          try {
+            if (bend) {
+              const selected = selectPostValue(core, values, { $: mode }, equal, { observed })
+              result = mode === "AdviceMembership" ? selected.found : selected.found ? selected.value : undefined
+            } else if (mode === "AdviceMembership") result = Array.prototype.some.call(values, equal)
+            else
+              result = Array.prototype.find.call(
+                values,
+                mode === "ObservedSelection" ? (row) => observed(row) && equal(row) : equal
+              )
+          } catch (error) {
+            failure = error === selectionFault ? error : { name: error.name, message: error.message }
+          }
+          // Compare native payload identity by the original index, plus complete getter/has order.
+          return {
+            trace,
+            result: typeof result === "object" && result !== null ? base.indexOf(result) : result,
+            failure
+          }
+        }
+        assert.deepEqual(exercise(true), exercise(false), `${mode}, ${target}`)
+        cases++
+      }
   const runTail = (options) => {
     let step = core.advice_initial(77n, 900n),
       ordinal = 0
@@ -607,7 +867,7 @@ try {
       cases,
       requests,
       scope:
-        "finite source-free whole postflow draft, four original release sequences across native fact axes and failure before/after every primitive, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not physical integration or universal correspondence"
+        "finite source-free whole postflow draft, native plan/inspection ordering and lazy sparse/UTF16 first-match correspondence, four original release sequences across native fact axes and failure before/after every primitive, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not physical integration or universal correspondence"
     })
   )
 } finally {

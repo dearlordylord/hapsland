@@ -16,6 +16,7 @@
     "src/resident/review-work/evaluation/advice-tail-provider.mjs",
     "src/resident/review-work/preparation/post-preparation-dispatcher.mjs",
     "src/resident/review-work/preparation/post-preparation-host.mjs",
+    "src/resident/review-work/preparation/post-selection.mjs",
     "src/resident/review-work/preparation/source-preparation-dispatcher.mjs",
     "src/resident/review-work/preparation/source-preparation-provider.mjs",
     "src/resident/state/resolver-custody/resident-owner-transaction.mjs",

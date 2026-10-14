@@ -6,9 +6,9 @@ import { MAX_IPC_FRAME_BYTES } from "@hapsland/resident-transport/resident/proto
 import { ResidentAdapterError } from "../../../adapter-error.ts"
 import { residentUnitWorstOutcomeBytes, residentUnitReservationBytes } from "../../../work-ownership/reservation.ts"
 import { withinWork } from "../../../work-ownership/cancellation.ts"
-import { type PreparationContext, type RetainedPreparationItem } from "../context.ts"
-import { planPreparedUnits } from "./native-preparation-planning.ts"
-import { observePlannedEvaluation } from "../evaluation-observation.ts"
+import { type PreparationContext } from "../context.ts"
+import { planPreparedUnits, type RetainedPreparationItem } from "./native-preparation-planning.ts"
+import { observePlannedEvaluation } from "./native-evaluation-observation.ts"
 import { recordReuseObservation, retainPreparedUnit } from "./native-post-retention.ts"
 
 // Independent original native Post oracle. The whole source reference calls

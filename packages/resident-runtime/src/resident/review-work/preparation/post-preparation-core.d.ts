@@ -123,6 +123,68 @@ export type ReleaseStep =
   | Tagged<"ReleaseDone">
   | Tagged<"ReleaseRejected">
 
+export type SelectionKind =
+  | Tagged<"AdviceMembership">
+  | Tagged<"AdviceSelection">
+  | Tagged<"ObservedSelection">
+  | Tagged<"CachedPlanMembership">
+export type SelectionStage =
+  | Tagged<"SelectionPresence">
+  | Tagged<"SelectionStatus">
+  | Tagged<"SelectionEquality">
+  | Tagged<"SelectionRoute">
+export type SelectionStep =
+  | Tagged<
+      "SelectionRead",
+      {
+        readonly kind: SelectionKind
+        readonly index: bigint
+        readonly remaining: bigint
+        readonly stage: SelectionStage
+      }
+    >
+  | Tagged<"SelectionFound", { readonly index: bigint }>
+  | Tagged<"SelectionMissing">
+  | Tagged<"SelectionRejected">
+export type SelectionResponse =
+  | Tagged<"SelectionFlag", { readonly value: boolean }>
+  | Tagged<"SelectionPlanRoute", { readonly route: Route }>
+export type NativePlanAction = Tagged<"StoreNativePlan"> | Tagged<"TrackNativeClaim">
+export type ReuseObservation =
+  | Tagged<"CachedReuseObservation">
+  | Tagged<"JoinedReuseObservation">
+  | Tagged<"InvalidReuseObservation">
+export type WorkChoice = Tagged<"NoPlannedWork"> | Tagged<"SpawnPlannedWork"> | Tagged<"CachedPlannedWork">
+export type InspectionRoute =
+  | Tagged<"FreshInspection">
+  | Tagged<"CachedInspection">
+  | Tagged<"AdviceInspection">
+  | Tagged<"PendingInspection">
+  | Tagged<"ClaimedInspection">
+export type PlanObservationOperation =
+  | Tagged<"ReadPlanReceipt">
+  | Tagged<"ForgetPlanOrigin">
+  | Tagged<"CheckPlanInspection">
+  | Tagged<"RegisterPlanOrigin">
+  | Tagged<"ReadPlanEvaluation">
+  | Tagged<"OfferMissingPlan", { readonly route: InspectionRoute }>
+  | Tagged<"OfferLinkedPlan", { readonly route: InspectionRoute }>
+declare const planObservationState: unique symbol
+export type PlanObservationStep =
+  | Tagged<
+      "PlanObservationAwait",
+      {
+        readonly route: Route
+        readonly stage: { readonly [planObservationState]: never }
+        readonly operation: PlanObservationOperation
+      }
+    >
+  | Tagged<"PlanObservationDone">
+  | Tagged<"PlanObservationRejected">
+export type PlanObservationResponse =
+  | Tagged<"PlanObservationAck">
+  | Tagged<"PlanObservationFlag", { readonly value: boolean }>
+
 export type Command =
   | Tagged<"ObservePreparation">
   | Tagged<"AdvicePendingBarrier", { readonly advice: bigint }>
@@ -237,6 +299,14 @@ export type AdviceTailStep =
   | Tagged<"AdviceCleanupPending", { readonly advice: bigint; readonly reason: Termination }>
 
 declare const core: {
+  route_cached(route: Route): boolean
+  native_plan_actions(route: Route): List<NativePlanAction>
+  reuse_observation(route: Route): ReuseObservation
+  planned_work(route: Route, policy: boolean, observation: boolean): WorkChoice
+  selection_initial(kind: SelectionKind, length: bigint): SelectionStep
+  selection_resume(step: SelectionStep, response: SelectionResponse): SelectionStep
+  plan_observation_initial(route: Route): PlanObservationStep
+  plan_observation_resume(step: PlanObservationStep, response: PlanObservationResponse): PlanObservationStep
   release_initial(kind: ReleaseKind): ReleaseStep
   release_resume(step: ReleaseStep, response: ReleaseResponse): ReleaseStep
   cleanup_finish_initial(): CleanupFinish
