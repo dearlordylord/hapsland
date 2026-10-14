@@ -1131,7 +1131,11 @@ try {
       } else if (mode === "full-owner-barrier-failure") {
         assert.equal(result.completed, false)
         assert.equal(result.reason.$, "TechnicalFailure")
-        assert.equal(source.error(result.reason.token).operation, "owner claim barrier")
+        assert.equal(
+          source.error(result.reason.token).operation,
+          "owner claim barrier",
+          String(source.error(result.reason.token)?.stack ?? source.error(result.reason.token))
+        )
         assert.equal(interrupted.length, 1)
         assert.equal(completed.length, 0)
       } else if (mode.startsWith("full-inspection-")) {

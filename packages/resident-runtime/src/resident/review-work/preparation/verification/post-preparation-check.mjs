@@ -134,6 +134,31 @@ try {
           break
         case "Cleanup":
           cleanup.push(command)
+          response = {
+            $: "CleanupInventory",
+            facts: list(
+              array(command.actions).map((action) => {
+                switch (action.$) {
+                  case "ReleaseCleanupRevision":
+                    return { $: "CleanupRevision", handle: action.handle, present: true, transferred: false }
+                  case "ReleaseCleanupReservation":
+                    return {
+                      $: "CleanupReservation",
+                      handle: action.handle,
+                      present: true,
+                      transferred: false,
+                      discharged: false
+                    }
+                  case "ReleaseCleanupClaim":
+                    return { $: "CleanupClaim", handle: action.handle, present: true, transferred: false }
+                  case "InvalidCleanupAllocation":
+                    return { $: "CleanupInvalidAllocation" }
+                  default:
+                    throw new Error("Invalid cleanup action in fixture")
+                }
+              })
+            )
+          }
           break
       }
       if (options.failAt === ordinal && command.$ !== "Cleanup") response = { $: "Failed", token: 77n }
@@ -200,7 +225,9 @@ try {
       assert.equal(failed.step.$, "Stopped")
       assert.equal(failed.cleanup.length, 1)
       assert.deepEqual(
-        array(failed.cleanup[0].remaining).map((slot) => slot.item.key),
+        array(failed.cleanup[0].actions)
+          .filter((action) => action.$ === "ReleaseCleanupReservation")
+          .map((action) => action.handle - 200n),
         refused.includes(3n) ? [] : [3n]
       )
       cases++
@@ -226,7 +253,11 @@ try {
         assert.equal(result.step.$, "Stopped")
         assert.equal(result.step.reason.$, "TechnicalFailure")
         assert.equal(result.cleanup.length, 1)
-        assert.ok(array(result.cleanup[0].remaining).some((slot) => slot.item.key === 1n))
+        assert.ok(
+          array(result.cleanup[0].actions).some(
+            (action) => action.$ === "ReleaseCleanupReservation" && action.handle === 201n
+          )
+        )
       }
     ]
   ]) {
@@ -246,11 +277,13 @@ try {
       assert.equal(result.cleanup.length, 2)
       assert.deepEqual(result.cleanup[0], result.cleanup[1])
       for (const command of result.cleanup)
-        for (const slot of array(command.remaining)) {
-          assert.ok(!result.enqueued.includes(slot.item.key), "cleanup touched transferred dispatcher owner")
+        for (const action of array(command.actions)) {
+          if (action.$ !== "ReleaseCleanupReservation") continue
+          const key = action.handle - 200n
+          assert.ok(!result.enqueued.includes(key), "cleanup touched transferred dispatcher owner")
           assert.ok(
-            array(command.planned).some((item) => item.key === slot.item.key),
-            "cleanup lost the allocation plan for an owner or cached finding"
+            array(command.actions).some((other) => other.$ === "ReleaseCleanupClaim" && other.handle === key),
+            "cleanup lost its bound claim"
           )
         }
       cases++
@@ -272,6 +305,62 @@ try {
       cases++
     }
   }
+  for (let mask = 0; mask < 512; mask++) {
+    const bit = (index) => Boolean(mask & (1 << index))
+    const facts = [
+      { $: "CleanupTail", handle: 1n, started: bit(0) },
+      { $: "CleanupWork", handle: 2n, cached: bit(1), completed: bit(2), round_bound: bit(3), work_bound: bit(4) },
+      { $: "CleanupReservation", handle: 3n, present: bit(5), transferred: bit(6), discharged: bit(7) },
+      { $: "CleanupRevision", handle: 4n, present: bit(5), transferred: bit(6) },
+      { $: "CleanupClaim", handle: 5n, present: bit(7), transferred: bit(8) },
+      { $: "CleanupWorkspace", source_owned: bit(8), active: bit(0) }
+    ]
+    const expected = []
+    if (!bit(0)) expected.push({ $: "DrainCleanupTail", handle: 1n })
+    if (bit(1) && !bit(2) && bit(3) && bit(4)) expected.push({ $: "RetireCleanupWork", handle: 2n })
+    if (!bit(6)) {
+      if (bit(5)) expected.push({ $: "ReleaseCleanupReservation", handle: 3n })
+      else if (!bit(7)) expected.push({ $: "InvalidCleanupReservation" })
+    }
+    if (bit(5) && !bit(6)) expected.push({ $: "ReleaseCleanupRevision", handle: 4n })
+    if (bit(7) && !bit(8)) expected.push({ $: "ReleaseCleanupClaim", handle: 5n })
+    if (!bit(8) && bit(0)) expected.push({ $: "ReleaseCleanupWorkspace" })
+    for (const mode of ["RetryCleanup", "CollectCleanup"]) {
+      let cursor = core.cleanup_initial({ $: mode }, list(facts))
+      for (const [index, action] of expected.entries()) {
+        assert.equal(cursor.$, "CleanupAwait")
+        assert.deepEqual(cursor.action, action)
+        const failed = core.cleanup_reply(cursor, false)
+        if (mode === "RetryCleanup") assert.deepEqual(failed, cursor, "main cleanup must not skip a failed obligation")
+        else assert.equal(failed.$, index === expected.length - 1 ? "CleanupDone" : "CleanupAwait")
+        cursor = core.cleanup_reply(cursor, true)
+      }
+      assert.equal(cursor.$, "CleanupDone")
+      cases++
+    }
+  }
+  let finish = core.cleanup_finish_initial()
+  const stages = [
+    "CleanupTails",
+    "CleanupWorks",
+    "CleanupReservations",
+    "CleanupRevisions",
+    "CleanupClaims",
+    "CleanupWorkspaceStage"
+  ]
+  for (const stage of stages) {
+    assert.deepEqual(finish, { $: "CleanupFinishRead", stage: { $: stage } })
+    // Each stage is requested only after the preceding action settles, including failures.
+    finish = core.cleanup_finish_inventory(
+      finish,
+      list([{ $: "CleanupClaim", handle: 33n, present: true, transferred: false }])
+    )
+    assert.equal(finish.$, "CleanupFinishRun")
+    assert.deepEqual(finish.cursor.action, { $: "ReleaseCleanupClaim", handle: 33n })
+    finish = core.cleanup_finish_reply(finish, false)
+  }
+  assert.equal(finish.$, "CleanupFinishDone")
+  cases++
   const runTail = (options) => {
     let step = core.advice_initial(77n, 900n),
       ordinal = 0

@@ -438,7 +438,11 @@ try {
                   }
                 },
                 afterCommit: (command, publication) => {
-                  if (command.$ === "Cleanup" && publication.releasedAcquisition !== undefined && !reuseFaultInjected) {
+                  if (
+                    command.$ === "PerformCleanup" &&
+                    publication.releasedAcquisition !== undefined &&
+                    !reuseFaultInjected
+                  ) {
                     reuseFaultInjected = true
                     throw new Error("injected cleanup release action sink failure")
                   }

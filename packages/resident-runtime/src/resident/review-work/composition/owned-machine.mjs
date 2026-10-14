@@ -110,6 +110,7 @@ function postReply(reply) {
   const response = reply.response
   switch (response.$) {
     case "Ack":
+    case "CleanupInventory":
     case "Active":
     case "Expired":
     case "Offered":

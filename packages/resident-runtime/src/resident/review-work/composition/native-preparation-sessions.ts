@@ -141,6 +141,7 @@ export function performPreparationSessionRequest(
       case "ReleaseUnspawned":
       case "ReportCapacity":
       case "Cleanup":
+      case "PerformCleanup":
         if (!postSession(session)) throw new TypeError("Wrong post-preparation service session")
         return session.performEffect({ ...request, command }, { ...execution, ...signal })
       case "AdvicePendingBarrier":

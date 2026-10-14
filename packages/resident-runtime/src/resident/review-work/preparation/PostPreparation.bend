@@ -58,6 +58,46 @@ type AdviceRetirement is Data:
 def advice_retirement(expired: Bool) -> AdviceRetirement:
   Bool.pick(AdviceRetirement, expired, ExpiredRetirement{}, RetentionFailureRetirement{})
 
+# Cleanup is selected here; native maps remain the resource authority.
+type CleanupAction is Data:
+  DrainCleanupTail{handle: Nat}
+  RetireCleanupWork{handle: Nat}
+  ReleaseCleanupReservation{handle: Nat}
+  ReleaseCleanupRevision{handle: Nat}
+  ReleaseCleanupClaim{handle: Nat}
+  ReleaseCleanupWorkspace{}
+  InvalidCleanupAllocation{}
+  InvalidCleanupReservation{}
+  InvalidCleanupPlan{}
+type CleanupFact is Data:
+  CleanupTail{handle: Nat, started: Bool}
+  CleanupWork{handle: Nat, cached: Bool, completed: Bool, round_bound: Bool, work_bound: Bool}
+  CleanupReservation{handle: Nat, present: Bool, transferred: Bool, discharged: Bool}
+  CleanupRevision{handle: Nat, present: Bool, transferred: Bool}
+  CleanupClaim{handle: Nat, present: Bool, transferred: Bool}
+  CleanupWorkspace{source_owned: Bool, active: Bool}
+  CleanupInvalidAllocation{}
+  CleanupInvalidPlan{}
+type CleanupMode is Data:
+  RetryCleanup{}
+  CollectCleanup{}
+type CleanupCursor is Data:
+  CleanupDone{}
+  CleanupAwait{mode: CleanupMode, action: CleanupAction, remaining: List<&2, CleanupAction>}
+
+type CleanupStage is Data:
+  CleanupTails{}
+  CleanupWorks{}
+  CleanupReservations{}
+  CleanupRevisions{}
+  CleanupClaims{}
+  CleanupWorkspaceStage{}
+type CleanupFinish is Data:
+  CleanupFinishRead{stage: CleanupStage}
+  CleanupFinishRun{stage: CleanupStage, cursor: CleanupCursor}
+  CleanupFinishDone{}
+  CleanupFinishRejected{}
+
 type Command is Data:
   ObservePreparation{}
   AdvicePendingBarrier{advice: Nat}
@@ -113,9 +153,11 @@ type Command is Data:
   ReleaseAttached{slot: Slot, revision: Nat, work: Maybe<&2, Nat>}
   ReleaseUnspawned{slot: Slot, revision: Nat}
   ReportCapacity{item: Planned}
-  Cleanup{remaining: List<&2, Slot>, planned: List<&2, Planned>, revision: Maybe<&2, Nat>}
+  Cleanup{actions: List<&2, CleanupAction>}
+  PerformCleanup{action: CleanupAction}
 type Response is Data:
   Ack{}
+  CleanupInventory{facts: List<&2, CleanupFact>}
   Active{value: Bool}
   Expired{value: Bool}
   Offered{accepted: Bool}
@@ -202,6 +244,7 @@ type Phase is Data:
     revision: Maybe<&2, Nat>,
     reason: Termination
   }
+  Cleaning{cursor: CleanupCursor, reason: Termination}
 type Termination is Data:
   Inactive{}
   CancelledReason{token: Nat}
@@ -486,6 +529,199 @@ def await_command(state: State, phase: Phase, command: Command) -> Step:
         Request{invocation, next, command}
       }
 
+def cleanup_choose(
+  required: Bool,
+  action: CleanupAction,
+  rest: List<&2, CleanupAction>
+) -> List<&2, CleanupAction>:
+  match required:
+    case True{}: action <> rest
+    case False{}: rest
+
+def cleanup_reservation_fact(
+  handle: Nat,
+  present: Bool,
+  transferred: Bool,
+  discharged: Bool,
+  rest: List<&2, CleanupAction>
+) -> List<&2, CleanupAction>:
+  match present transferred discharged:
+    case _ True{} _: rest
+    case True{} False{} _: ReleaseCleanupReservation{handle} <> rest
+    case False{} False{} True{}: rest
+    case False{} False{} False{}: InvalidCleanupReservation{} <> rest
+
+def cleanup_select(fact: CleanupFact, rest: List<&2, CleanupAction>) -> List<&2, CleanupAction>:
+  match fact:
+    case CleanupTail{handle, started}: cleanup_choose(
+      Bool.not(started),
+      DrainCleanupTail{handle},
+      rest
+    )
+    case CleanupWork{handle, cached, completed, round_bound, work_bound}: cleanup_choose(
+      cached && Bool.not(completed) && round_bound && work_bound,
+      RetireCleanupWork{handle},
+      rest
+    )
+    case CleanupReservation{handle, present, transferred, discharged}: cleanup_reservation_fact(
+      handle,
+      present,
+      transferred,
+      discharged,
+      rest
+    )
+    case CleanupRevision{handle, present, transferred}: cleanup_choose(
+      present && Bool.not(transferred),
+      ReleaseCleanupRevision{handle},
+      rest
+    )
+    case CleanupClaim{handle, present, transferred}: cleanup_choose(
+      present && Bool.not(transferred),
+      ReleaseCleanupClaim{handle},
+      rest
+    )
+    case CleanupWorkspace{source_owned, active}: cleanup_choose(
+      Bool.not(source_owned) && active,
+      ReleaseCleanupWorkspace{},
+      rest
+    )
+    case CleanupInvalidAllocation{}: InvalidCleanupAllocation{} <> rest
+    case CleanupInvalidPlan{}: InvalidCleanupPlan{} <> rest
+
+def cleanup_actions_go(
+  facts: List<&2, CleanupFact>,
+  acc: List<&2, CleanupAction>
+) -> List<&2, CleanupAction>:
+  match facts:
+    case Nil{}: List.reverse(&2, CleanupAction, acc)
+    case fact <> rest: cleanup_actions_go(rest, cleanup_select(fact, acc))
+
+def cleanup_actions(facts: List<&2, CleanupFact>) -> List<&2, CleanupAction>:
+  cleanup_actions_go(facts, Nil{})
+
+def cleanup_next(mode: CleanupMode, actions: List<&2, CleanupAction>) -> CleanupCursor:
+  match actions:
+    case Nil{}: CleanupDone{}
+    case action <> remaining: CleanupAwait{mode, action, remaining}
+
+def cleanup_initial(mode: CleanupMode, facts: List<&2, CleanupFact>) -> CleanupCursor:
+  cleanup_next(mode, cleanup_actions(facts))
+
+def cleanup_reply(+cursor: CleanupCursor, success: Bool) -> CleanupCursor:
+  match cursor success:
+    case CleanupDone{} _: CleanupDone{}
+    case CleanupAwait{RetryCleanup{}, _, _} False{}: cursor
+    case CleanupAwait{mode, _, remaining} _: cleanup_next(mode, remaining)
+
+# Read each finalization stage only after earlier effects settle, matching the
+# native custody observation order. No resource inventory survives a finish retry.
+def cleanup_finish_next(stage: CleanupStage) -> CleanupFinish:
+  match stage:
+    case CleanupTails{}: CleanupFinishRead{CleanupWorks{}}
+    case CleanupWorks{}: CleanupFinishRead{CleanupReservations{}}
+    case CleanupReservations{}: CleanupFinishRead{CleanupRevisions{}}
+    case CleanupRevisions{}: CleanupFinishRead{CleanupClaims{}}
+    case CleanupClaims{}: CleanupFinishRead{CleanupWorkspaceStage{}}
+    case CleanupWorkspaceStage{}: CleanupFinishDone{}
+
+def cleanup_finish_wrap(stage: CleanupStage, cursor: CleanupCursor) -> CleanupFinish:
+  match cursor:
+    case CleanupDone{}: cleanup_finish_next(stage)
+    case +other: CleanupFinishRun{stage, other}
+
+def cleanup_finish_initial() -> CleanupFinish:
+  CleanupFinishRead{CleanupTails{}}
+
+def cleanup_finish_inventory(finish: CleanupFinish, facts: List<&2, CleanupFact>) -> CleanupFinish:
+  match finish:
+    case CleanupFinishRead{stage}: cleanup_finish_wrap(
+      stage,
+      cleanup_initial(CollectCleanup{}, facts)
+    )
+    case _: CleanupFinishRejected{}
+
+def cleanup_finish_reply(finish: CleanupFinish, success: Bool) -> CleanupFinish:
+  match finish:
+    case CleanupFinishRun{stage, cursor}: cleanup_finish_wrap(stage, cleanup_reply(cursor, success))
+    case _: CleanupFinishRejected{}
+
+def cleanup_key(item: Planned) -> Nat:
+  match item:
+    case Planned{_, key, _}: key
+
+# Preserve the previous Map's last slot for duplicate keys, and consume all
+# matching entries before checking for a slot without a bound plan.
+def cleanup_find(+key: Nat, slots: List<&2, Slot>, found: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+  match slots:
+    case Nil{}: found
+    case Slot{Planned{_, other, _}, _, reservation} <> rest:
+      cleanup_find(
+        key,
+        rest,
+        Bool.pick(Maybe<&2, Nat>, Nat.is_eq(key, other), Some{reservation}, found)
+      )
+
+def cleanup_remove_go(+key: Nat, slots: List<&2, Slot>, +acc: List<&2, Slot>) -> List<&2, Slot>:
+  match slots:
+    case Nil{}: List.reverse(&2, Slot, acc)
+    case +slot <> rest: cleanup_remove_go(
+      key,
+      rest,
+      Bool.pick(List<&2, Slot>, Nat.is_eq(key, cleanup_key(slot_item(slot))), acc, slot <> acc)
+    )
+
+def cleanup_remove(key: Nat, slots: List<&2, Slot>) -> List<&2, Slot>:
+  cleanup_remove_go(key, slots, Nil{})
+
+def cleanup_plan(
+  reservation: Maybe<&2, Nat>,
+  key: Nat,
+  acc: List<&2, CleanupAction>
+) -> List<&2, CleanupAction>:
+  match reservation:
+    case None{}: ReleaseCleanupClaim{key} <> acc
+    case Some{handle}: ReleaseCleanupClaim{key} <> ReleaseCleanupReservation{handle} <> acc
+
+def cleanup_unbound(slots: List<&2, Slot>, acc: List<&2, CleanupAction>) -> List<&2, CleanupAction>:
+  match slots:
+    case Nil{}: acc
+    case _ <> _: InvalidCleanupAllocation{} <> acc
+
+def cleanup_plans_go(
+  planned: List<&2, Planned>,
+  +slots: List<&2, Slot>,
+  acc: List<&2, CleanupAction>
+) -> List<&2, CleanupAction>:
+  match planned:
+    case Nil{}: List.reverse(&2, CleanupAction, cleanup_unbound(slots, acc))
+    case +item <> rest:
+      +key = cleanup_key(item)
+      cleanup_plans_go(
+        rest,
+        cleanup_remove(key, slots),
+        cleanup_plan(cleanup_find(key, slots, None{}), key, acc)
+      )
+
+def cleanup_plans(planned: List<&2, Planned>, slots: List<&2, Slot>) -> List<&2, CleanupAction>:
+  cleanup_plans_go(planned, slots, Nil{})
+
+def cleanup_revision(
+  revision: Maybe<&2, Nat>,
+  rest: List<&2, CleanupAction>
+) -> List<&2, CleanupAction>:
+  match revision:
+    case None{}: rest
+    case Some{handle}: ReleaseCleanupRevision{handle} <> rest
+
+def cleanup_command(state: State, reason: Termination, +cursor: CleanupCursor) -> Step:
+  match cursor:
+    case CleanupDone{}: Stopped{reason}
+    case CleanupAwait{_, action, _}: await_command(
+      state,
+      Cleaning{cursor, reason},
+      PerformCleanup{action}
+    )
+
 def cleanup_values(
   state: State,
   +slots: List<&2, Slot>,
@@ -493,7 +729,11 @@ def cleanup_values(
   +revision: Maybe<&2, Nat>,
   reason: Termination
 ) -> Step:
-  await_command(state, Cleaned{slots, planned, revision, reason}, Cleanup{slots, planned, revision})
+  await_command(
+    state,
+    Cleaned{slots, planned, revision, reason},
+    Cleanup{cleanup_revision(revision, cleanup_plans(planned, slots))}
+  )
 
 def cleanup(+state: State, +phase: Phase, reason: Termination) -> Step:
   cleanup_values(state, held_slots(phase), held_plans(phase), held_revision(phase), reason)
@@ -1221,7 +1461,17 @@ def resume_phase(+state: State, +phase: Phase, response: Response) -> Step:
     )
     case Released{continuation} Ack{}: inside(state, continuation)
     case CapacityReported{continuation} Ack{}: inside(state, continuation)
-    case Cleaned{_, _, _, reason} Ack{}: Stopped{reason}
+    case Cleaned{_, _, _, reason} CleanupInventory{facts}: cleanup_command(
+      state,
+      reason,
+      cleanup_initial(RetryCleanup{}, facts)
+    )
+    case Cleaning{cursor, reason} Ack{}: cleanup_command(
+      state,
+      reason,
+      cleanup_reply(cursor, True{})
+    )
+    case Cleaning{cursor, reason} _: cleanup_command(state, reason, cleanup_reply(cursor, False{}))
     case Cleaned{slots, planned, revision, reason} _: cleanup_values(
       state,
       slots,

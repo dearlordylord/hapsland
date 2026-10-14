@@ -30,6 +30,66 @@ export type ReuseActivity =
 
 export type AdviceRetirement = Tagged<"ExpiredRetirement"> | Tagged<"RetentionFailureRetirement">
 
+export type CleanupAction =
+  | Tagged<"DrainCleanupTail", { readonly handle: bigint }>
+  | Tagged<"RetireCleanupWork", { readonly handle: bigint }>
+  | Tagged<"ReleaseCleanupReservation", { readonly handle: bigint }>
+  | Tagged<"ReleaseCleanupRevision", { readonly handle: bigint }>
+  | Tagged<"ReleaseCleanupClaim", { readonly handle: bigint }>
+  | Tagged<"ReleaseCleanupWorkspace">
+  | Tagged<"InvalidCleanupAllocation">
+  | Tagged<"InvalidCleanupReservation">
+  | Tagged<"InvalidCleanupPlan">
+export type CleanupFact =
+  | Tagged<"CleanupTail", { readonly handle: bigint; readonly started: boolean }>
+  | Tagged<
+      "CleanupWork",
+      {
+        readonly handle: bigint
+        readonly cached: boolean
+        readonly completed: boolean
+        readonly round_bound: boolean
+        readonly work_bound: boolean
+      }
+    >
+  | Tagged<
+      "CleanupReservation",
+      {
+        readonly handle: bigint
+        readonly present: boolean
+        readonly transferred: boolean
+        readonly discharged: boolean
+      }
+    >
+  | Tagged<"CleanupRevision", { readonly handle: bigint; readonly present: boolean; readonly transferred: boolean }>
+  | Tagged<"CleanupClaim", { readonly handle: bigint; readonly present: boolean; readonly transferred: boolean }>
+  | Tagged<"CleanupWorkspace", { readonly source_owned: boolean; readonly active: boolean }>
+  | Tagged<"CleanupInvalidAllocation">
+  | Tagged<"CleanupInvalidPlan">
+export type CleanupMode = Tagged<"RetryCleanup"> | Tagged<"CollectCleanup">
+export type CleanupCursor =
+  | Tagged<"CleanupDone">
+  | Tagged<
+      "CleanupAwait",
+      { readonly mode: CleanupMode; readonly action: CleanupAction; readonly remaining: List<CleanupAction> }
+    >
+
+export type CleanupStage =
+  | Tagged<"CleanupTails">
+  | Tagged<"CleanupWorks">
+  | Tagged<"CleanupReservations">
+  | Tagged<"CleanupRevisions">
+  | Tagged<"CleanupClaims">
+  | Tagged<"CleanupWorkspaceStage">
+export type CleanupFinish =
+  | Tagged<"CleanupFinishRead", { readonly stage: CleanupStage }>
+  | Tagged<
+      "CleanupFinishRun",
+      { readonly stage: CleanupStage; readonly cursor: Extract<CleanupCursor, { $: "CleanupAwait" }> }
+    >
+  | Tagged<"CleanupFinishDone">
+  | Tagged<"CleanupFinishRejected">
+
 export type Command =
   | Tagged<"ObservePreparation">
   | Tagged<"AdvicePendingBarrier", { readonly advice: bigint }>
@@ -85,13 +145,12 @@ export type Command =
   | Tagged<"ReleaseAttached", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
   | Tagged<"ReleaseUnspawned", { readonly slot: Slot; readonly revision: bigint }>
   | Tagged<"ReportCapacity", { readonly item: Planned }>
-  | Tagged<
-      "Cleanup",
-      { readonly remaining: List<Slot>; readonly planned: List<Planned>; readonly revision: Maybe<bigint> }
-    >
+  | Tagged<"Cleanup", { readonly actions: List<CleanupAction> }>
+  | Tagged<"PerformCleanup", { readonly action: CleanupAction }>
 
 export type Response =
   | Tagged<"Ack">
+  | Tagged<"CleanupInventory", { readonly facts: List<CleanupFact> }>
   | Tagged<"Active", { readonly value: boolean }>
   | Tagged<"Expired", { readonly value: boolean }>
   | Tagged<"Offered", { readonly accepted: boolean }>
@@ -145,6 +204,11 @@ export type AdviceTailStep =
   | Tagged<"AdviceCleanupPending", { readonly advice: bigint; readonly reason: Termination }>
 
 declare const core: {
+  cleanup_finish_initial(): CleanupFinish
+  cleanup_finish_inventory(finish: CleanupFinish, facts: List<CleanupFact>): CleanupFinish
+  cleanup_finish_reply(finish: CleanupFinish, success: boolean): CleanupFinish
+  cleanup_initial(mode: CleanupMode, facts: List<CleanupFact>): CleanupCursor
+  cleanup_reply(cursor: CleanupCursor, success: boolean): CleanupCursor
   initial(invocation: bigint, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Step
   advance(state: State): Step
   resume(step: Step, reply: Reply): Step

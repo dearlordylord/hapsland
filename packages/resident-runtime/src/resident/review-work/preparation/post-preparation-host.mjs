@@ -3,6 +3,7 @@ import {
   runNativeEffect,
   nativeFailureAggregate
 } from "@hapsland/runtime-environment/runtime/native-execution"
+import postCore from "./post-preparation-core.js"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { ResidentAdapterError } from "../../adapter-error.ts"
 import { randomUUID } from "node:crypto"
@@ -133,6 +134,50 @@ export function createPostPreparationProvider(
   /** @param {string} key */
   const transferredClaim = (key) =>
     [...transferred].some((value) => value.kind === "unit" && value.evaluationKey === key)
+  /** @type {Set<bigint>} */
+  const dischargedWork = new Set()
+  /** @param {bigint} handle */
+  const claimKey = (handle) => {
+    const plan = plans.get(handle)
+    if (!plan) throw new Error("Unknown native cleanup claim")
+    return plan.evaluationKey
+  }
+  /** @param {import("./post-preparation-core.js").CleanupAction} action
+   * @returns {import("./post-preparation-core.js").CleanupFact} */
+  const cleanupFact = (action) => {
+    switch (action.$) {
+      case "ReleaseCleanupReservation":
+        return {
+          $: "CleanupReservation",
+          handle: action.handle,
+          present: reservations.has(action.handle),
+          transferred: transferredReservation(action.handle),
+          discharged: dischargedReservations.has(action.handle)
+        }
+      case "ReleaseCleanupRevision":
+        return {
+          $: "CleanupRevision",
+          handle: action.handle,
+          present: acquiredRevisions.has(action.handle),
+          transferred: transferredAcquisition(action.handle)
+        }
+      case "ReleaseCleanupClaim": {
+        const plan = plans.get(action.handle)
+        if (!plan) return { $: "CleanupInvalidPlan" }
+        const key = plan.evaluationKey
+        return {
+          $: "CleanupClaim",
+          handle: action.handle,
+          present: ownedClaims.has(key),
+          transferred: transferredClaim(key)
+        }
+      }
+      case "InvalidCleanupAllocation":
+        return { $: "CleanupInvalidAllocation" }
+      default:
+        throw new Error("Invalid main cleanup fact request")
+    }
+  }
   const outcomes = new Map(prepared.outcomes.map((outcome, index) => [BigInt(index + 1), outcome]))
   /** @type {import("./post-preparation-core.js").Outcome[]} */
   const facts = [...outcomes].map(([handle, outcome]) => ({
@@ -285,67 +330,154 @@ export function createPostPreparationProvider(
         }
         return true
       }
-      for (const tail of tails.values())
-        if (!tail.started) {
-          tail.started = true
-          let rejected
-          try {
-            yield* run(
-              adviceBinding().driver.driveAdviceEffect(
-                adviceBinding().driver.adviceHandoff(tail.receipt.invocation),
-                tail.provider,
-                { signal: context.deps.residentLifetimeController.signal }
+      // Each stage is a fresh ephemeral ABI projection of authoritative custody.
+      /** @type {Map<bigint, string>} */
+      let claimHandles = new Map()
+      /** @param {import("./post-preparation-core.js").CleanupStage} stage
+       * @returns {import("./post-preparation-core.js").CleanupFact[]} */
+      const inventory = (stage) => {
+        switch (stage.$) {
+          case "CleanupTails":
+            return [...tails].map(([handle, tail]) => ({ $: "CleanupTail", handle, started: tail.started }))
+          case "CleanupWorks":
+            return [...units].map(([handle, value]) => ({
+              $: "CleanupWork",
+              handle,
+              cached: [...plans.values()].some(
+                (plan) => plan.evaluationKey === value.evaluationKey && plan.kind === "cached"
+              ),
+              completed: value.completed === true || dischargedWork.has(handle),
+              round_bound: value.round !== undefined,
+              work_bound: value.workUnitId !== undefined
+            }))
+          case "CleanupReservations":
+            return [...reservations.keys()].map((handle) => cleanupFact({ $: "ReleaseCleanupReservation", handle }))
+          case "CleanupRevisions":
+            return [...acquiredRevisions.keys()].map((handle) => cleanupFact({ $: "ReleaseCleanupRevision", handle }))
+          case "CleanupClaims":
+            claimHandles = new Map([...ownedClaims].map((key, index) => [BigInt(index + 1), key]))
+            return [...claimHandles].map(([handle, key]) => ({
+              $: "CleanupClaim",
+              handle,
+              present: ownedClaims.has(key),
+              transferred: transferredClaim(key)
+            }))
+          case "CleanupWorkspaceStage":
+            return [
+              {
+                $: "CleanupWorkspace",
+                source_owned: sourceWorkspace !== undefined,
+                active: context.activeWorkspaces.has(preparation.reservation)
+              }
+            ]
+        }
+      }
+      const core = postCore
+      let finish = core.cleanup_finish_initial()
+      while (finish.$ !== "CleanupFinishDone") {
+        if (finish.$ === "CleanupFinishRejected") throw new Error("Invalid cleanup finalization cursor")
+        if (finish.$ === "CleanupFinishRead") {
+          finish = core.cleanup_finish_inventory(finish, list(inventory(finish.stage)))
+          continue
+        }
+        const action = finish.cursor.action
+        const failureCount = failures.length
+        switch (action.$) {
+          case "DrainCleanupTail": {
+            const tail = tails.get(action.handle)
+            if (!tail) throw new Error("Unknown cleanup tail")
+            if (tail.started) break
+            tail.started = true
+            let rejected
+            try {
+              yield* run(
+                adviceBinding().driver.driveAdviceEffect(
+                  adviceBinding().driver.adviceHandoff(tail.receipt.invocation),
+                  tail.provider,
+                  { signal: context.deps.residentLifetimeController.signal }
+                )
+              )
+            } catch (error) {
+              rejected = error
+              failures.push(error)
+            }
+            const cause = tail.provider.handoffFailureCause ?? tail.provider.terminationCause
+            if (cause !== undefined) {
+              failureCauses.push(cause)
+              finalizationCause = finalizationCause === undefined ? cause : Cause.combine(finalizationCause, cause)
+              if (rejected === undefined) {
+                try {
+                  throw Cause.squash(cause)
+                } catch (error) {
+                  failures.push(error)
+                }
+              }
+            } else if (rejected !== undefined) {
+              failureCauses.push(Cause.die(rejected))
+              finalizationCause =
+                finalizationCause === undefined
+                  ? Cause.die(rejected)
+                  : Cause.combine(finalizationCause, Cause.die(rejected))
+            }
+            break
+          }
+          case "RetireCleanupWork": {
+            const value = units.get(action.handle)
+            if (!value || value.round === undefined || value.workUnitId === undefined)
+              throw new Error("Unknown cleanup work")
+            if (value.completed || dischargedWork.has(action.handle)) break
+            const workUnitId = value.workUnitId
+            if (
+              yield* attempt(
+                ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId)))
               )
             )
-          } catch (error) {
-            rejected = error
-            failures.push(error)
+              dischargedWork.add(action.handle)
+            break
           }
-          const cause = tail.provider.handoffFailureCause ?? tail.provider.terminationCause
-          if (cause !== undefined) {
-            failureCauses.push(cause)
-            finalizationCause = finalizationCause === undefined ? cause : Cause.combine(finalizationCause, cause)
-            if (rejected === undefined) {
-              try {
-                throw Cause.squash(cause)
-              } catch (error) {
-                failures.push(error)
-              }
+          case "ReleaseCleanupReservation": {
+            const value = reservations.get(action.handle)
+            if (!value || transferredReservation(action.handle)) break
+            const discharged = () => {
+              reservations.delete(action.handle)
+              dischargedReservations.add(action.handle)
             }
-          } else if (rejected !== undefined) {
-            failureCauses.push(Cause.die(rejected))
-            finalizationCause =
-              finalizationCause === undefined
-                ? Cause.die(rejected)
-                : Cause.combine(finalizationCause, Cause.die(rejected))
+            if (yield* attempt(ledger.release(value), discharged)) {
+              reservations.delete(action.handle)
+              dischargedReservations.add(action.handle)
+            }
+            break
           }
+          case "ReleaseCleanupRevision": {
+            const value = acquiredRevisions.get(action.handle)
+            if (!value || transferredAcquisition(action.handle)) break
+            yield* attempt(context.deps.residentReleaseCurrentWork(value), () =>
+              acquiredRevisions.delete(action.handle)
+            )
+            break
+          }
+          case "ReleaseCleanupClaim": {
+            const key = claimHandles.get(action.handle)
+            if (key === undefined) throw new Error("Unknown cleanup claim")
+            if (!ownedClaims.has(key) || transferredClaim(key)) break
+            const discharged = () => {
+              ownedClaims.delete(key)
+              context.unassignedClaims.delete(key)
+            }
+            if (yield* attempt(context.deps.residentReleaseReuseClaim(key), discharged)) {
+              ownedClaims.delete(key)
+              context.unassignedClaims.delete(key)
+            }
+            break
+          }
+          case "ReleaseCleanupWorkspace":
+            if (yield* attempt(ledger.release(preparation.reservation)))
+              context.activeWorkspaces.delete(preparation.reservation)
+            break
+          default:
+            throw new Error("Invalid final cleanup operation")
         }
-      for (const value of units.values()) {
-        const workUnitId = value.workUnitId
-        if (
-          [...plans.values()].some((plan) => plan.evaluationKey === value.evaluationKey && plan.kind === "cached") &&
-          !value.completed &&
-          value.round !== undefined &&
-          workUnitId !== undefined
-        )
-          yield* attempt(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
-      }
-      const transferredReservations = new Set([...transferred].map((value) => BigInt(value.reservation.id)))
-      const transferredKeys = new Set(
-        [...transferred].filter((value) => value.kind === "unit").map((value) => value.evaluationKey)
-      )
-      for (const [handle, value] of reservations)
-        if (!transferredReservations.has(handle)) yield* attempt(ledger.release(value))
-      for (const [handle, value] of acquiredRevisions)
-        if (!transferredAcquisition(handle))
-          yield* attempt(context.deps.residentReleaseCurrentWork(value), () => acquiredRevisions.delete(handle))
-      for (const key of ownedClaims)
-        if (!transferredKeys.has(key)) {
-          if (yield* attempt(context.deps.residentReleaseReuseClaim(key))) context.unassignedClaims.delete(key)
-        }
-      if (!sourceWorkspace && context.activeWorkspaces.has(preparation.reservation)) {
-        if (yield* attempt(ledger.release(preparation.reservation)))
-          context.activeWorkspaces.delete(preparation.reservation)
+        finish = core.cleanup_finish_reply(finish, failures.length === failureCount)
       }
       if (failures.length)
         throw nativeFailureAggregate(
@@ -380,7 +512,13 @@ export function createPostPreparationProvider(
       const acquisitionHandle = ["RegisterClear", "RegisterRevision"].includes(command.$)
         ? BigInt(revisions.size + 1)
         : undefined
-      const cleanup = ["Cleanup", "ReleaseUnspawned", "ReleaseAttached", "FinalizeCachedUnit"].includes(command.$)
+      const cleanup = [
+        "Cleanup",
+        "PerformCleanup",
+        "ReleaseUnspawned",
+        "ReleaseAttached",
+        "FinalizeCachedUnit"
+      ].includes(command.$)
       /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown> & {releasedAcquisition?: bigint | undefined}} publication */
       const committed = (publication) => {
         if (publication.restoredPending) {
@@ -448,11 +586,16 @@ export function createPostPreparationProvider(
        * @param {Effect.Effect<A, E>} effect
        * @param {bigint | undefined} [releasedAcquisition]
        * @param {string | undefined} [releasedClaim]
+       * @param {bigint | undefined} [releasedReservation]
        * @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>}
        */
-      const run = function* (effect, releasedAcquisition, releasedClaim) {
+      const run = function* (effect, releasedAcquisition, releasedClaim, releasedReservation) {
         /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown>} publication */
         const receipt = (publication) => {
+          if (releasedReservation !== undefined) {
+            reservations.delete(releasedReservation)
+            dischargedReservations.add(releasedReservation)
+          }
           if (releasedAcquisition !== undefined) acquiredRevisions.delete(releasedAcquisition)
           if (releasedClaim !== undefined) {
             ownedClaims.delete(releasedClaim)
@@ -1100,27 +1243,43 @@ export function createPostPreparationProvider(
             }
             break
           }
-          case "Cleanup": {
-            if (command.revision.$ === "Some") yield* releaseAcquisition(command.revision.value)
-            const remaining = new Map(array(command.remaining).map((slot) => [slot.item.key, slot]))
-            for (const planned of array(command.planned)) {
-              const slot = remaining.get(planned.key)
-              if (slot && !transferredReservation(slot.reservation)) {
-                if (reservations.has(slot.reservation)) {
-                  yield* run(ledger.release(reservation(slot)))
-                  reservations.delete(slot.reservation)
-                  dischargedReservations.add(slot.reservation)
-                } else if (!dischargedReservations.has(slot.reservation)) throw new Error("Unknown native reservation")
+          case "Cleanup":
+            response = { $: "CleanupInventory", facts: list(array(command.actions).map(cleanupFact)) }
+            break
+          case "PerformCleanup": {
+            const action = command.action
+            switch (action.$) {
+              case "ReleaseCleanupRevision":
+                yield* releaseAcquisition(action.handle)
+                break
+              case "ReleaseCleanupReservation": {
+                if (transferredReservation(action.handle)) break
+                const value = reservations.get(action.handle)
+                if (value !== undefined) {
+                  yield* run(ledger.release(value), undefined, undefined, action.handle)
+                  reservations.delete(action.handle)
+                  dischargedReservations.add(action.handle)
+                } else if (!dischargedReservations.has(action.handle)) throw new Error("Unknown native reservation")
+                break
               }
-              remaining.delete(planned.key)
-              const key = item(planned).evaluationKey
-              if (ownedClaims.has(key) && !transferredClaim(key)) {
-                yield* run(context.deps.residentReleaseReuseClaim(key), undefined, key)
-                ownedClaims.delete(key)
-                context.unassignedClaims.delete(key)
+              case "ReleaseCleanupClaim": {
+                const key = claimKey(action.handle)
+                if (ownedClaims.has(key) && !transferredClaim(key)) {
+                  yield* run(context.deps.residentReleaseReuseClaim(key), undefined, key)
+                  ownedClaims.delete(key)
+                  context.unassignedClaims.delete(key)
+                }
+                break
               }
+              case "InvalidCleanupAllocation":
+                throw new Error("Cleanup allocation lacks its bound plan")
+              case "InvalidCleanupReservation":
+                throw new Error("Unknown native reservation")
+              case "InvalidCleanupPlan":
+                throw new Error("Unknown native plan")
+              default:
+                throw new Error("Invalid main cleanup operation")
             }
-            if (remaining.size) throw new Error("Cleanup allocation lacks its bound plan")
             break
           }
           default:
