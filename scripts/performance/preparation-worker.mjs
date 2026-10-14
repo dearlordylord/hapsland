@@ -19,6 +19,24 @@ const phase = (name) => {
 }
 phase("imports:start")
 const load = (path) => import(pathToFileURL(root + path).href)
+const ownerCalls = {}
+if (process.env.HAPSLAND_PREPARATION_PROFILE_OWNER === "1") {
+  assert.ok(process.env.HAPSLAND_PREPARATION_PROFILE_DIR, "owner tracing is diagnostic only")
+  const owner = (await load("/packages/agent-flow-bend/dist/canonical-resolver-owner.generated.js")).default
+  for (const [name, original] of Object.entries(owner)) {
+    if (typeof original !== "function") continue
+    owner[name] = (...args) => {
+      const record = (ownerCalls[name] ??= { calls: 0, seconds: 0 })
+      record.calls++
+      const start = performance.now()
+      try {
+        return Reflect.apply(original, owner, args)
+      } finally {
+        record.seconds += (performance.now() - start) / 1000
+      }
+    }
+  }
+}
 assert.ok(implementation === "public" || implementation === "native-oracle")
 const prepareObservation =
   implementation === "native-oracle"
@@ -114,6 +132,10 @@ const warmups = 3,
 phase("warmups:start")
 for (let index = 0; index < warmups; index++) assert.deepEqual(await run(), expected)
 phase("warmups:complete")
+for (const record of Object.values(ownerCalls)) {
+  record.calls = 0
+  record.seconds = 0
+}
 phase("measurement:start")
 const started = performance.now(),
   cpu = process.cpuUsage()
@@ -138,6 +160,7 @@ console.log(
     definedAndEqual: true,
     implementation,
     ...(process.env.HAPSLAND_PREPARATION_PROFILE_DIR === undefined ? {} : { diagnosticMemory: process.memoryUsage() }),
+    ...(process.env.HAPSLAND_PREPARATION_PROFILE_OWNER === "1" ? { diagnosticOwnerCalls: ownerCalls } : {}),
     ...(observeProcesses ? { diagnosticProcessCounts: processCounts } : {}),
     runtime: typeof Bun === "undefined" ? process.version : Bun.version
   })
