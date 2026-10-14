@@ -3014,14 +3014,15 @@ export const stepCanonical = (
   return decodeTrustedCanonicalStep(bendCanonicalStep(state, encodeCanonicalEvent(event)))
 }
 /** Decode a checked result produced by a core which composes Canonical directly. */
-export const decodeTrustedCanonicalStep = (
-  raw: unknown
+const decodeCanonicalStep = (
+  raw: unknown,
+  publishState: boolean
 ): { readonly state: unknown; readonly outputs: readonly CanonicalOutput[]; readonly rejection?: string } => {
   switch (tag(raw)) {
     case "Canonical.Advanced": {
       const x = decodeCanonicalConstructor(raw, "Canonical.Advanced")
       const outputs = readList(x.outputs, decodeOutput)
-      registerCanonical(x.state)
+      if (publishState) registerCanonical(x.state)
       return { state: x.state, outputs }
     }
     case "Canonical.Rejected": {
@@ -3031,12 +3032,49 @@ export const decodeTrustedCanonicalStep = (
         reason.$ === "Canonical.PermitDenied"
           ? reason.reason.$.slice("Admission.".length)
           : reason.$.slice("Canonical.".length)
-      registerCanonical(x.state)
+      if (publishState) registerCanonical(x.state)
       return { state: x.state, outputs: [], rejection }
     }
     default:
       throw new TypeError("unknown canonical step")
   }
+}
+
+export const decodeTrustedCanonicalStep = (raw: unknown): ReturnType<typeof decodeCanonicalStep> =>
+  decodeCanonicalStep(raw, true)
+
+export type ConfigurationDecisionEvent = Extract<
+  CanonicalEvent,
+  {
+    readonly kind:
+      | "includeLayerCheck"
+      | "fileSelectionCheck"
+      | "fileProtectionInvalid"
+      | "fileProtectionCheck"
+      | "candidateFileCheck"
+      | "reviewAdmissionCheck"
+  }
+>
+let configurationState: unknown
+/** Stateless policy uses Canonical's existing six state-preserving branches.
+ * The private initial state never escapes; only decoded outputs are published.
+ */
+export const decideCanonicalConfiguration = (event: ConfigurationDecisionEvent) => {
+  const encoded = encodeCanonicalEvent(event)
+  switch (encoded.$) {
+    case "Canonical.IncludeLayerCheck":
+    case "Canonical.FileSelectionCheck":
+    case "Canonical.FileProtectionInvalid":
+    case "Canonical.FileProtectionCheck":
+    case "Canonical.CandidateFileCheck":
+    case "Canonical.ReviewAdmissionCheck":
+      break
+    default:
+      throw new TypeError("expected canonical configuration event")
+  }
+  configurationState ??= initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 })
+  const { outputs, rejection } = decodeCanonicalStep(bendCanonicalStep(configurationState, encoded), false)
+  return { outputs, ...(rejection === undefined ? {} : { rejection }) }
 }
 
 /** Private trusted-composer publication; the exact projection decoder runs before return. */

@@ -5,10 +5,11 @@ export {
   probabilityWords,
   encodeCanonicalEvent,
   initialCanonical,
+  decideCanonicalConfiguration,
   projectCanonical,
   stepCanonical
 } from "./canonical-boundary.ts"
-export type { ProbabilityWords } from "./canonical-boundary.ts"
+export type { ConfigurationDecisionEvent, ProbabilityWords } from "./canonical-boundary.ts"
 export type {
   JevRequestOutcome,
   CompletedEditReason,

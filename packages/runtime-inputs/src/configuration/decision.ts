@@ -1,11 +1,10 @@
-import { initialCanonical, stepCanonical, type CanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
+import {
+  decideCanonicalConfiguration,
+  type ConfigurationDecisionEvent
+} from "@hapsland/canonical-policy/canonical/adapter"
 
-// Stateless configuration checks share the installed Canonical.step boundary.
-// A fresh empty lifetime keeps file settings independent of resident capacity.
-const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 })
-
-const decide = (event: CanonicalEvent) => {
-  const result = stepCanonical(initial, event)
+const decide = (event: ConfigurationDecisionEvent) => {
+  const result = decideCanonicalConfiguration(event)
   if (result.rejection !== undefined || result.outputs.length !== 1) {
     throw new Error("canonical configuration decision refused")
   }

@@ -3,6 +3,8 @@ import fc from "fast-check"
 import {
   CANONICAL_MAX_BYTES,
   initialCanonical,
+  decideCanonicalConfiguration,
+  type ConfigurationDecisionEvent,
   probabilityWords,
   projectCanonical,
   stepCanonical,
@@ -514,4 +516,69 @@ it("rejects duplicate request identities and interrupted requests that never sta
     )
     expect(() => projectCanonical(malformed)).toThrow("foreign canonical state")
   }
+})
+
+it("stateless configuration preserves every branch and rank rejection of the stateful boundary", () => {
+  const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 })
+  const events: ConfigurationDecisionEvent[] = [{ kind: "fileProtectionInvalid" }]
+  for (let mask = 0; mask < 16; mask++) {
+    const a = (mask & 1) !== 0,
+      b = (mask & 2) !== 0,
+      c = (mask & 4) !== 0,
+      d = (mask & 8) !== 0
+    events.push(
+      { kind: "fileSelectionCheck", protected: a, excluded: b, includesEmpty: c, included: d },
+      { kind: "fileProtectionCheck", sensitiveName: a, generatedOrVendor: b, allowedExtension: c },
+      { kind: "candidateFileCheck", gitAdmin: a, physicalSafe: b, gitAllowed: c },
+      { kind: "reviewAdmissionCheck", rootValid: a, configurationValid: b, credentialReady: c, selected: d }
+    )
+  }
+  for (const supplied of [false, true])
+    for (const currentRank of [0, 1, 2 ** 48 - 1])
+      for (const candidateRank of [0, 1, 2 ** 48 - 1])
+        events.push({ kind: "includeLayerCheck", supplied, currentRank, candidateRank })
+  for (const event of events) {
+    const { outputs, rejection } = stepCanonical(initial, event)
+    expect(decideCanonicalConfiguration(event)).toEqual({ outputs, ...(rejection === undefined ? {} : { rejection }) })
+  }
+  const failure = (run: () => unknown) => {
+    try {
+      run()
+      return undefined
+    } catch (error) {
+      if (!(error instanceof Error)) throw error
+      return { name: error.name, message: error.message }
+    }
+  }
+  for (const rank of [-1, 0.5, 2 ** 48, Number.NaN, Infinity])
+    for (const field of ["currentRank", "candidateRank"] as const) {
+      const event: ConfigurationDecisionEvent = {
+        kind: "includeLayerCheck",
+        supplied: true,
+        currentRank: 0,
+        candidateRank: 0,
+        [field]: rank
+      }
+      const expected = failure(() => stepCanonical(initial, event))
+      expect(expected).toBeDefined()
+      expect(failure(() => decideCanonicalConfiguration(event))).toEqual(expected)
+    }
+})
+
+it("stateless configuration reads the original event only through the existing encoder", () => {
+  const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 })
+  const makeEvent = (reads: string[]): ConfigurationDecisionEvent => ({
+    get kind() {
+      reads.push("kind")
+      return "includeLayerCheck" as const
+    },
+    supplied: true,
+    currentRank: 0,
+    candidateRank: 1
+  })
+  const originalReads: string[] = [],
+    narrowedReads: string[] = []
+  const original = stepCanonical(initial, makeEvent(originalReads))
+  expect(decideCanonicalConfiguration(makeEvent(narrowedReads)).outputs).toEqual(original.outputs)
+  expect(narrowedReads).toEqual(originalReads)
 })
