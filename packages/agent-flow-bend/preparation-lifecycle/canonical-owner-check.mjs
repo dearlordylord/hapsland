@@ -77,6 +77,42 @@ try {
     return s
   }
   let assertions = 0
+  // Preserve the exact existing authority predicate across every child phase,
+  // missing IDs, and duplicate IDs; the ABI entry changes no checkpoint policy.
+  for (const phase of [
+    "ChildInstalling",
+    "ChildReady",
+    "ChildAwaiting",
+    "ChildResuming",
+    "ChildAccepted",
+    "ChildCancelled"
+  ]) {
+    const child = {
+      $: "Child",
+      scope: { $: "FreshnessScope", operation: 1n },
+      invocation: 3n,
+      generation: 4n,
+      handle: 5n,
+      phase: { $: phase },
+      request: { $: "Some", value: 7n },
+      lease: { $: "Some", value: { $: "Lease", id: 9n, request: 7n } },
+      parent: { $: "None" }
+    }
+    for (const children of [
+      { $: "Nil" },
+      { $: "Con", head: child, tail: { $: "Nil" } },
+      {
+        $: "Con",
+        head: child,
+        tail: { $: "Con", head: { ...child, phase: { $: "ChildCancelled" } }, tail: { $: "Nil" } }
+      }
+    ])
+      for (const invocation of [0n, 3n, 4n]) {
+        const found = m.find(invocation, children)
+        assert.equal(m.invocation_active(invocation, children), found.$ === "Some" && m.child_active(found.value))
+        assertions++
+      }
+  }
   // The actual owner must retain synchronous reply chronology and revoke the
   // pump even when cancellation does not abort the caller's signal.
   for (const cancellation of ["none", "advance", "effect"]) {
