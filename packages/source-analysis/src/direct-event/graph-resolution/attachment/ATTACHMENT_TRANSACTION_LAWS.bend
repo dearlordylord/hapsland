@@ -10413,7 +10413,61 @@ def ready_registration_eliminate(-Result: Type, +registration: X.Registration, b
 def ready_projected_continue(+step: Loop.Continuation, +history: V.History, +boundary: B.Boundary, observed: {ActualBoundary.project(step, history) == Some{boundary} : Maybe<&2, B.Boundary>}) -> {ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}:
   match step:
     case Loop.ServiceStep{_}: observed
-    case _:
+    case Loop.PythonIteration{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.PythonTerminal{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.GoTerminal{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.AdmitPythonCapture{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.PythonCaptured{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.InspectPythonTarget{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.ResolvePython{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.PreparePython{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.PrepareGo{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.InspectGoRoot{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.InspectPythonRoot{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.PrepareRust{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.PreparedRust{_, _, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustAdvance{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustInvalid{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustFollowInvalid{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustFindCargo{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustCargoContinue{_}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustFollow{_, _, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustCargo{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustModules{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.RustTasks{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.ResolvePending{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.CheckTarget{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.ReadTarget{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.InspectCaptured{_, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.ReadBundled{_, _, _, _}:
+      Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
+    case Loop.PrepareImportedRust{_}:
       Empty.absurd({ActualBoundary.project(Machine.continue_action(step), history) == Some{boundary} : Maybe<&2, B.Boundary>}, Contents.none_some(B.Boundary, boundary, observed))
 
 def ready_encoded_decision(-World: Data, +actual: T.ResolverState, +reference: D.State, +child: X.Child, +phase: Phase.Phase, +history: V.History, +previous: Nat, +owner: Nat, +id: Nat, +bytes: Nat, +world: E.WorldState<World>, +measured: T.ResolverState, +request: T.Request, +product: ArtifactValue.ProductValue, +staged: V.Frame, +awaited: {Attach.previous(previous, actual) == Loop.ServiceStep{T.AwaitService{measured, request}} : Loop.Continuation}, +encoded: {Contract.operation(request) == T.EncodeProduct{product} : T.Operation}, +stage: {S.state_stage(measured) == T.MeasuringCandidateTree{} : T.ResolverStage}, +selected: {ReferenceBoundary.selected_request(ReferenceBoundary.enter(reference, child, previous)) == Some{request} : Maybe<&2, T.Request>}, +projected: {Contract.actual_frame(S.state_frame(measured), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>}, +reference_projected: {Staged.project(ReferenceBoundary.enter(reference, child, previous), History.measurement(phase, history)) == Some{staged} : Maybe<&2, V.Frame>}, +child_history: Phase.ChildHistory, +original_ready: {ActualReady.project(actual, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, +original_reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, +coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}, +validation: Maybe<&2, T.TechnicalFailure>, accepted: {Boundary.check(request, T.Reply{owner, id, T.ProductEncoded{bytes}}) == validation : Maybe<&2, T.TechnicalFailure>}, shared: ready_original_shared_result(actual, reference, child, history, child_history, phase, previous)) -> Contract.conclusion(World, actual, reference, child, phase, history, previous, T.Reply{owner, id, T.ProductEncoded{bytes}}, world):
