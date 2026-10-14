@@ -30,21 +30,30 @@ const receipt = (cause: Cause.Cause<never>): CauseReceipt => ({ [receiptTag]: ca
 const isReceipt = (value: unknown): value is CauseReceipt =>
   typeof value === "object" && value !== null && receiptTag in value && Cause.isCause(value[receiptTag])
 const ownedFailures = new WeakSet<AggregateError>()
+const ownedFailureCauses = new WeakMap<AggregateError, Cause.Cause<unknown>>()
 export const nativeFailureAggregate = (
   errors: Iterable<unknown>,
   message: string,
-  options?: ErrorOptions
+  options?: ErrorOptions,
+  cause?: Cause.Cause<unknown>
 ): AggregateError => {
   const failure = new AggregateError(errors, message, options)
   ownedFailures.add(failure)
+  if (cause !== undefined) ownedFailureCauses.set(failure, cause)
   return failure
 }
 const nativeCause = (error: unknown): Cause.Cause<never> => {
   if (isReceipt(error)) return error[receiptTag]
   // Only our custody workflow's aggregates expose failure occurrences. An
   // arbitrary user's AggregateError (including its getters) stays opaque.
-  if (error instanceof AggregateError && ownedFailures.has(error))
-    return Cause.fromReasons(error.errors.flatMap((held) => nativeCause(held).reasons))
+  if (error instanceof AggregateError && ownedFailures.has(error)) {
+    // NativeFlow erases the service error channel; this private receipt preserves
+    // its runtime reasons without exposing them as provider error-token values.
+    const held = ownedFailureCauses.get(error)
+    return held === undefined
+      ? Cause.fromReasons(error.errors.flatMap((value) => nativeCause(value).reasons))
+      : (held as Cause.Cause<never>)
+  }
   return Cause.die(error)
 }
 

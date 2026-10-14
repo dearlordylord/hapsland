@@ -1,5 +1,6 @@
 import {
   effectNative,
+  awaitNative,
   runNativeEffect,
   nativeFailureAggregate
 } from "@hapsland/runtime-environment/runtime/native-execution"
@@ -25,7 +26,7 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
  * @typedef {{handle: bigint, candidate: bigint, invocation: bigint, admissionRequest: bigint, preparation: AdmittedPreparation}} PreparationReceipt
  * @typedef {ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>} PreparationCapability
  * @typedef {{invocation: number, machine: PreparationCapability["machine"], input: Parameters<PreparationCapability["machine"]["initial"]>[0], performEffect: (request: Parameters<PreparationCapability["performEffect"]>[0][number], options: Parameters<PreparationCapability["performEffect"]>[1]) => ReturnType<PreparationCapability["performEffect"]>, decode: PreparationCapability["decode"], revoke: () => unknown, close: () => unknown, error?: (token: bigint) => unknown, finish?: () => unknown | Promise<unknown>}} PreparationSession
- * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<PreparationSession | ReturnType<typeof createPostPreparationProvider>>>, "state" | "allocatePreparationInvocation" | "constructionFailed" | "driveEffect" | "handoffResult" | "driveHandoffEffect">} SourceDriver
+ * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<PreparationSession | ReturnType<typeof createPostPreparationProvider>>>, "state" | "allocatePreparationInvocation" | "constructionFailed" | "driveConstructedFlowEffect" | "handoffResult" | "driveHandoffEffect">} SourceDriver
  */
 // Foreign effects and opaque receipts for one whole source. The cursor chooses
 // admission, refusal reporting, candidate progression and source completion.
@@ -53,6 +54,8 @@ export function createSourcePreparationProvider(
     finished = false
   /** @type {unknown} */
   let primaryFailure
+  /** @type {Cause.Cause<unknown> | undefined} */
+  let primaryCause
   /** @type {ReturnType<typeof decodeControlledOptions>} */
   let controlled
   /** @type {boolean | undefined} */
@@ -106,10 +109,18 @@ export function createSourcePreparationProvider(
       // by their independent dispatcher/advice scope and are never swept here.
       /** @type {unknown[]} */
       const failures = []
+      /** @type {Cause.Cause<unknown>[]} */
+      const failureCauses = []
       /** @template A @param {Effect.Effect<A>} effect @param {() => unknown} [settled] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<void>} */
       const attempt = function* (effect, settled = () => {}) {
         try {
-          yield effectNative(Effect.uninterruptible(effect), false)
+          const exit = /** @type {Exit.Exit<A, never>} */ (
+            yield effectNative(Effect.exit(Effect.uninterruptible(effect)), false)
+          )
+          if (Exit.isFailure(exit)) {
+            failureCauses.push(exit.cause)
+            throw Cause.squash(exit.cause)
+          }
           settled()
         } catch (error) {
           failures.push(error)
@@ -128,7 +139,8 @@ export function createSourcePreparationProvider(
         throw nativeFailureAggregate(
           primaryFailure === undefined ? failures : [primaryFailure, ...failures],
           "Source resource cleanup remains incomplete",
-          { cause: primaryFailure ?? failures[0] }
+          { cause: primaryFailure ?? failures[0] },
+          Cause.fromReasons([...(primaryCause?.reasons ?? []), ...failureCauses.flatMap((cause) => cause.reasons)])
         )
       bridge.forgetSourceReservation(invocation)
       finished = true
@@ -371,58 +383,66 @@ export function createSourcePreparationProvider(
             const sourceScope = held.value.scope
             /** @type {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent} */
             const parent = { $: "Parent", invocation, generation: child.generation, request: request.id }
-            const prepInvocation = driver.allocatePreparationInvocation(
-              {
-                $: "PreparationScope",
-                partition: sourceScope.partition,
-                lifetime: sourceScope.lifetime,
-                round: sourceScope.round,
-                preparation: BigInt(receipt.preparation.operation)
-              },
-              parent
-            )
-            /** @type {PreparationSession} */
+            /** @type {PreparationSession | undefined} */
             let session
-            try {
-              session = yield* run(
-                Effect.uninterruptible(
-                  Effect.promise(() =>
-                    Promise.resolve(
-                      buildPreparationSession(prepInvocation, candidate(command.candidate), receipt.preparation)
-                    )
+            const handoff = yield* run(
+              driver.driveConstructedFlowEffect(
+                function* () {
+                  const prepInvocation = driver.allocatePreparationInvocation(
+                    {
+                      $: "PreparationScope",
+                      partition: sourceScope.partition,
+                      lifetime: sourceScope.lifetime,
+                      round: sourceScope.round,
+                      preparation: BigInt(receipt.preparation.operation)
+                    },
+                    parent
                   )
-                )
+                  try {
+                    session = /** @type {PreparationSession} */ (
+                      yield awaitNative(
+                        Promise.resolve(
+                          buildPreparationSession(prepInvocation, candidate(command.candidate), receipt.preparation)
+                        )
+                      )
+                    )
+                    return { session, input: session.input }
+                  } catch (original) {
+                    const originalCause = failureCause ?? Cause.die(original)
+                    let combinedCause = originalCause
+                    const failures = []
+                    try {
+                      driver.constructionFailed(prepInvocation)
+                    } catch (cleanup) {
+                      failures.push(cleanup)
+                      combinedCause = Cause.combine(combinedCause, Cause.die(cleanup))
+                    }
+                    // Match the native preparation onError finalizer: release this
+                    // exact workspace before the outer Source panic diagnostic.
+                    // Keep failed release custody for finish's existing retry.
+                    try {
+                      yield* scoped(ledger.release(receipt.preparation.reservation))
+                      context.activeWorkspaces.delete(receipt.preparation.reservation)
+                    } catch (cleanup) {
+                      failures.push(cleanup)
+                      combinedCause = Cause.combine(combinedCause, failureCause ?? Cause.die(cleanup))
+                    }
+                    failureCause = combinedCause
+                    if (failures.length) {
+                      failureKind = "Defect"
+                      throw nativeFailureAggregate(
+                        [original, ...failures],
+                        "Preparation construction and cleanup failed",
+                        { cause: original }
+                      )
+                    }
+                    throw original
+                  }
+                },
+                { signal: options.signal }
               )
-            } catch (original) {
-              const originalCause = failureCause ?? Cause.die(original)
-              let combinedCause = originalCause
-              const failures = []
-              try {
-                driver.constructionFailed(prepInvocation)
-              } catch (cleanup) {
-                failures.push(cleanup)
-                combinedCause = Cause.combine(combinedCause, Cause.die(cleanup))
-              }
-              // Match the native preparation onError finalizer: release this
-              // exact workspace before the outer Source panic diagnostic.
-              // Keep failed release custody for finish's existing retry.
-              try {
-                yield* scoped(ledger.release(receipt.preparation.reservation))
-                context.activeWorkspaces.delete(receipt.preparation.reservation)
-              } catch (cleanup) {
-                failures.push(cleanup)
-                combinedCause = Cause.combine(combinedCause, failureCause ?? Cause.die(cleanup))
-              }
-              failureCause = combinedCause
-              if (failures.length) {
-                failureKind = "Defect"
-                throw nativeFailureAggregate([original, ...failures], "Preparation construction and cleanup failed", {
-                  cause: original
-                })
-              }
-              throw original
-            }
-            const handoff = yield* run(driver.driveEffect(session, session.input, { signal: options.signal }))
+            )
+            if (session === undefined) throw new TypeError("Missing constructed Preparation session")
             if (!("handoff" in handoff)) {
               const failure = "failure" in handoff ? handoff.failure : undefined
               const reason = failure && "reason" in failure ? failure.reason : undefined
@@ -591,6 +611,7 @@ export function createSourcePreparationProvider(
             throw new Error("Unknown source command")
         }
       } catch (error) {
+        primaryCause ??= failureCause ?? Cause.die(error)
         primaryFailure ??= error
         const token = BigInt(errors.size + 1)
         errors.set(token, error)

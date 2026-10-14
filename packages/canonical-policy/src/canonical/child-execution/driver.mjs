@@ -995,6 +995,15 @@ export function createChildExecutionDriver({
         return yield* driveInvocationFlow(session, input, execution)
       }, options)
     },
+    /** Async native construction and registration share the same masked flow.
+     * @param {() => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: S, input: I}>} construct @param {ForeignOptions} [options]
+     */
+    driveConstructedFlowEffect(construct, options = {}) {
+      return runEffectFlow(function* (execution) {
+        const { session, input } = yield* construct()
+        return yield* driveInvocationFlow(session, input, execution)
+      }, options)
+    },
     /** @param {number} invocation @param {{session?: S | undefined, closePending?: boolean, inputHandle?: bigint}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false, inputHandle } = {}) {
       const ownerInvocation = BigInt(invocation)

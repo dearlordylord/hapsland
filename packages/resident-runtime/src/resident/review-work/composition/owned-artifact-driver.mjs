@@ -66,8 +66,9 @@ const required = (value) => {
  */
 /**
  * @template {NativeSession} Session
- * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice" | "driveConstructedEffect" | "driveEffect" | "driveHandoffEffect" | "driveAdviceEffect"> & {
+ * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice" | "driveConstructedEffect" | "driveEffect" | "driveHandoffEffect" | "driveAdviceEffect" | "driveConstructedFlowEffect"> & {
  * driveConstructedEffect: (construct: () => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}, options?: ForeignOptions) => import("effect/Effect").Effect<SourceOutcome>,
+ * driveConstructedFlowEffect: (construct: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: Session, input: Parameters<ownedMachine.PreparationMachine["initial"]>[0]}>, options?: ForeignOptions) => Effect.Effect<PreparationOutcome>,
  * drive: Drive<Session>,
  * driveEffect: DriveEffect<Session>,
  * driveHandoffEffect: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => import("effect/Effect").Effect<PostOutcome>,
@@ -193,6 +194,7 @@ export function createOwnedArtifactDriver({
     sharedHandoff = shared.driveHandoff,
     sharedAdvice = shared.driveAdvice,
     sharedConstructed = shared.driveConstructedEffect,
+    sharedConstructedFlow = shared.driveConstructedFlowEffect,
     sharedEffect = shared.driveEffect,
     sharedHandoffEffect = shared.driveHandoffEffect,
     sharedAdviceEffect = shared.driveAdviceEffect
@@ -241,11 +243,17 @@ export function createOwnedArtifactDriver({
   function driveConstructedEffect(construct, options) {
     return sharedConstructed(construct, options)
   }
+  /** @overload @param {() => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: Session, input: Parameters<ownedMachine.PreparationMachine["initial"]>[0]}>} construct @param {ForeignOptions} [options] @returns {Effect.Effect<PreparationOutcome>} */
+  /** @param {() => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: Session, input: ownedMachine.Input}>} construct @param {ForeignOptions} [options] @returns {Effect.Effect<TerminalOutcome>} */
+  function driveConstructedFlowEffect(construct, options) {
+    return sharedConstructedFlow(construct, options)
+  }
   return Object.assign(shared, {
     drive,
     driveHandoff,
     driveAdvice,
     driveConstructedEffect,
+    driveConstructedFlowEffect,
     driveEffect,
     driveHandoffEffect,
     driveAdviceEffect

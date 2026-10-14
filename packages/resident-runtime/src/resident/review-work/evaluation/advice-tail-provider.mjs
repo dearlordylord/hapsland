@@ -188,7 +188,8 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
         throw nativeFailureAggregate(
           primaryFailure === undefined ? [error] : [primaryFailure, error],
           "Advice tail cleanup remains incomplete",
-          { cause: primaryFailure ?? error }
+          { cause: primaryFailure ?? error },
+          primaryCause === undefined ? cause : Cause.combine(primaryCause, cause)
         )
       }
     },

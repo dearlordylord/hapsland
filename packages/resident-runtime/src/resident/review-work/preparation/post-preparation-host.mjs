@@ -257,6 +257,8 @@ export function createPostPreparationProvider(
       if (finished) return
       /** @type {unknown[]} */
       const failures = []
+      /** @type {Cause.Cause<unknown>[]} */
+      const failureCauses = []
       /** @template A, E @param {Effect.Effect<A, E>} effect @param {() => unknown} [receipt] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<boolean>} */
       const attempt = function* (effect, receipt) {
         const exit = /** @type {Exit.Exit<A, E>} */ (
@@ -266,6 +268,7 @@ export function createPostPreparationProvider(
           )
         )
         if (Exit.isFailure(exit)) {
+          failureCauses.push(exit.cause)
           finalizationCause =
             finalizationCause === undefined ? exit.cause : Cause.combine(finalizationCause, exit.cause)
           try {
@@ -295,6 +298,7 @@ export function createPostPreparationProvider(
           }
           const cause = tail.provider.handoffFailureCause ?? tail.provider.terminationCause
           if (cause !== undefined) {
+            failureCauses.push(cause)
             finalizationCause = finalizationCause === undefined ? cause : Cause.combine(finalizationCause, cause)
             if (rejected === undefined) {
               try {
@@ -303,11 +307,13 @@ export function createPostPreparationProvider(
                 failures.push(error)
               }
             }
-          } else if (rejected !== undefined)
+          } else if (rejected !== undefined) {
+            failureCauses.push(Cause.die(rejected))
             finalizationCause =
               finalizationCause === undefined
                 ? Cause.die(rejected)
                 : Cause.combine(finalizationCause, Cause.die(rejected))
+          }
         }
       for (const value of units.values()) {
         const workUnitId = value.workUnitId
@@ -340,7 +346,8 @@ export function createPostPreparationProvider(
         throw nativeFailureAggregate(
           primaryFailure === undefined ? failures : [primaryFailure, ...failures],
           "Post-preparation resource finalization failed",
-          { cause: primaryFailure ?? failures[0] }
+          { cause: primaryFailure ?? failures[0] },
+          Cause.fromReasons([...(primaryCause?.reasons ?? []), ...failureCauses.flatMap((cause) => cause.reasons)])
         )
       finished = true
     },

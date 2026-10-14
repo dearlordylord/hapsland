@@ -7,6 +7,7 @@ import * as Deferred from "effect/Deferred"
 import * as Fiber from "effect/Fiber"
 import * as Result from "effect/Result"
 import {
+  nativeFailureAggregate,
   awaitNative,
   effectNative,
   runNativeEffect,
@@ -286,5 +287,21 @@ describe("retained cleanup flows", () => {
     await registry.retryCleanup()
     expect(replacement).toBe(1)
     expect(registry.pendingCleanup).toBe(0)
+  })
+})
+
+describe("retained cleanup Cause transport", () => {
+  it("retains exact composite reasons without changing Promise aggregate errors", async () => {
+    const defect = new Error("cleanup defect")
+    const cause = Cause.combine(Cause.fail(undefined), Cause.die(defect))
+    const failure = nativeFailureAggregate([undefined, defect], "cleanup", { cause: undefined }, cause)
+    function* flow(): NativeFlow<void> {
+      throw failure
+    }
+    const exit = await Effect.runPromiseExit(runNativeEffect(flow(), () => {}))
+    expect(exit._tag).toBe("Failure")
+    if (exit._tag === "Failure") expect(exit.cause.reasons).toEqual(cause.reasons)
+    expect(failure.errors).toEqual([undefined, defect])
+    expect(failure.cause).toBeUndefined()
   })
 })
