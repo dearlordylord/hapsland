@@ -1,5 +1,6 @@
 import Base
 import ./RawText.bend as Raw
+import ./RawTextMeasurement.bend as Measurement
 
 # Complete go-build-context policy. Path basename and character observations are
 # mechanical inputs; configuration, tokenization and membership remain here.
@@ -76,7 +77,7 @@ def valid_tag(+text: Raw.Text) -> Bool:
   Bool.and(
     Bool.not(Raw.empty(items)),
     Bool.and(
-      Nat.is_le(Raw.utf16(items), 128n),
+      Nat.is_le(Measurement.utf16(items), 128n),
       Bool.and(
         all_word(items),
         Bool.not(
@@ -516,7 +517,7 @@ def expression_admit(
       expression_checked(Bool.and(Nat.is_gt(count, 0n), Nat.is_le(count, 256n)), tokens, snapshot)
 
 def expression_chars(+items: List<&2, Raw.Character>, snapshot: Maybe<&2, Snapshot>) -> Membership:
-  expression_admit(Nat.is_le(Raw.bytes(items), 4096n), items, snapshot)
+  expression_admit(Nat.is_le(Measurement.bytes(items), 4096n), items, snapshot)
 
 def expression( +text: Raw.Text, +snapshot: Maybe<&2, Snapshot>) -> Membership:
   expression_chars(Raw.chars(text), snapshot)
