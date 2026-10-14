@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "src/direct-event/freshness/**/*.ts",
+    "src/direct-event/evaluation/**/*.ts"
+  ]
+}

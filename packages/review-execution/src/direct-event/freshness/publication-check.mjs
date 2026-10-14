@@ -27,7 +27,7 @@ const sameInput = (left, right) => {
   return canonicalValue(l) === canonicalValue(r)
 }
 const sameAdvicee = (left, right) => canonicalValue(left) === canonicalValue(right)
-const reference = async (observation, evaluations, context, engines, authority) => {
+export const reference = async (observation, evaluations, context, engines, authority) => {
   const empty = (status) => ({ status, evaluations: [], findings: [] })
   if (
     !(
@@ -220,7 +220,7 @@ const traced = (label, record, trace) =>
       ])
     )
   )
-const fixture = (bits, trace) => {
+export const fixture = (bits, trace) => {
   const rawInput = {
     path: "a",
     declaration: { name: "Type" },
@@ -291,162 +291,164 @@ const resultRecord = (result, fixture, trace) => {
   )
   return { status: result.status, evaluations, findings, trace: chronology }
 }
-let cases = 0
-for (let bits = 0; bits < 256; bits++) {
-  const lanes = []
-  for (const implementation of [reference, consume]) {
-    const trace = []
-    const f = fixture(bits, trace)
-    const result = await implementation(f.observation, f.evaluations, f.context, f.engines, f.authority)
-    lanes.push(resultRecord(result, f, trace))
+if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  let cases = 0
+  for (let bits = 0; bits < 256; bits++) {
+    const lanes = []
+    for (const implementation of [reference, consume]) {
+      const trace = []
+      const f = fixture(bits, trace)
+      const result = await implementation(f.observation, f.evaluations, f.context, f.engines, f.authority)
+      lanes.push(resultRecord(result, f, trace))
+    }
+    assert.deepEqual(lanes[1], lanes[0], "publication fixture " + bits)
+    cases++
   }
-  assert.deepEqual(lanes[1], lanes[0], "publication fixture " + bits)
-  cases++
-}
-for (const scenario of [
-  "authority-getter",
-  "authority-throw",
-  "authority-absent",
-  "advicee-nested",
-  "advicee-throw",
-  "empty",
-  "duplicates",
-  "sparse-findings",
-  "sparse-evaluations",
-  "names-path",
-  "names-throw",
-  "root-throw",
-  "prepare-throw"
-]) {
-  const lanes = []
-  for (const implementation of [reference, consume]) {
-    const trace = []
-    const f = fixture(0, trace)
-    const originalError = new Error("original " + scenario)
-    if (scenario === "authority-absent") f.authority = undefined
-    if (scenario === "authority-getter" || scenario === "authority-throw") {
-      f.authority = {
-        get isCurrentWork() {
-          trace.push("authority method read")
-          if (scenario === "authority-throw") throw originalError
-          return function (prepared) {
-            assert.equal(this, f.authority)
-            assert.equal(prepared, f.evaluations[0].prepared)
-            trace.push("authority receiver call")
+  for (const scenario of [
+    "authority-getter",
+    "authority-throw",
+    "authority-absent",
+    "advicee-nested",
+    "advicee-throw",
+    "empty",
+    "duplicates",
+    "sparse-findings",
+    "sparse-evaluations",
+    "names-path",
+    "names-throw",
+    "root-throw",
+    "prepare-throw"
+  ]) {
+    const lanes = []
+    for (const implementation of [reference, consume]) {
+      const trace = []
+      const f = fixture(0, trace)
+      const originalError = new Error("original " + scenario)
+      if (scenario === "authority-absent") f.authority = undefined
+      if (scenario === "authority-getter" || scenario === "authority-throw") {
+        f.authority = {
+          get isCurrentWork() {
+            trace.push("authority method read")
+            if (scenario === "authority-throw") throw originalError
+            return function (prepared) {
+              assert.equal(this, f.authority)
+              assert.equal(prepared, f.evaluations[0].prepared)
+              trace.push("authority receiver call")
+              return true
+            }
+          }
+        }
+      }
+      if (scenario === "advicee-nested" || scenario === "advicee-throw") {
+        let right = { session: "same" }
+        const left = {
+          get session() {
+            trace.push("left advicee serialization")
+            if (scenario === "advicee-throw") throw originalError
+            right = { session: "mutated" }
+            return "same"
+          }
+        }
+        f.observation = {
+          root: "root",
+          get advicee() {
+            trace.push("observation advicee read")
+            return left
+          }
+        }
+        f.context = {
+          controlledWriter: true,
+          get advicee() {
+            trace.push("context advicee read")
+            return right
+          }
+        }
+      }
+      if (scenario === "empty") f.evaluations = []
+      if (scenario === "duplicates") f.evaluations = [f.evaluations[0], f.evaluations[0]]
+      if (scenario === "sparse-findings") {
+        const evaluation = f.evaluations[0]
+        const findings = new Array(3)
+        findings[2] = evaluation.findings[0]
+        f.evaluations = [{ prepared: evaluation.prepared, findings }]
+      }
+      if (scenario === "sparse-evaluations") f.evaluations = Object.assign(new Array(2), { 1: f.evaluations[0] })
+      if (scenario === "root-throw")
+        f.engines.verifyRoot = async () => {
+          trace.push("root failure")
+          throw originalError
+        }
+      if (scenario === "prepare-throw")
+        f.engines.prepare = async () => {
+          trace.push("prepare failure")
+          throw originalError
+        }
+      if (scenario === "names-path" || scenario === "names-throw") {
+        let namesPhase = false,
+          namesReads = 0
+        const old = f.evaluations[0]
+        const rawInput = { ...old.prepared.input }
+        const input = {
+          ...rawInput,
+          get path() {
+            trace.push("changing path")
+            if (namesPhase) {
+              if (scenario === "names-throw") throw originalError
+              return ++namesReads === 2 ? "b" : "a"
+            }
+            return "a"
+          }
+        }
+        const evaluation = { prepared: { ...old.prepared, input }, findings: old.findings }
+        f.evaluations = [evaluation]
+        const verify = f.engines.verifyRoot,
+          prepare = f.engines.prepare
+        f.engines.verifyRoot = async (...args) => {
+          const result = await verify(...args)
+          namesPhase = true
+          return result
+        }
+        f.engines.prepare = async (...args) => {
+          namesPhase = false
+          return prepare(...args)
+        }
+        f.authority = {
+          async isCurrentWork(prepared) {
+            assert.equal(prepared, evaluation.prepared)
+            trace.push("authority")
             return true
           }
         }
-      }
-    }
-    if (scenario === "advicee-nested" || scenario === "advicee-throw") {
-      let right = { session: "same" }
-      const left = {
-        get session() {
-          trace.push("left advicee serialization")
-          if (scenario === "advicee-throw") throw originalError
-          right = { session: "mutated" }
-          return "same"
-        }
-      }
-      f.observation = {
-        root: "root",
-        get advicee() {
-          trace.push("observation advicee read")
-          return left
-        }
-      }
-      f.context = {
-        controlledWriter: true,
-        get advicee() {
-          trace.push("context advicee read")
-          return right
-        }
-      }
-    }
-    if (scenario === "empty") f.evaluations = []
-    if (scenario === "duplicates") f.evaluations = [f.evaluations[0], f.evaluations[0]]
-    if (scenario === "sparse-findings") {
-      const evaluation = f.evaluations[0]
-      const findings = new Array(3)
-      findings[2] = evaluation.findings[0]
-      f.evaluations = [{ prepared: evaluation.prepared, findings }]
-    }
-    if (scenario === "sparse-evaluations") f.evaluations = Object.assign(new Array(2), { 1: f.evaluations[0] })
-    if (scenario === "root-throw")
-      f.engines.verifyRoot = async () => {
-        trace.push("root failure")
-        throw originalError
-      }
-    if (scenario === "prepare-throw")
-      f.engines.prepare = async () => {
-        trace.push("prepare failure")
-        throw originalError
-      }
-    if (scenario === "names-path" || scenario === "names-throw") {
-      let namesPhase = false,
-        namesReads = 0
-      const old = f.evaluations[0]
-      const rawInput = { ...old.prepared.input }
-      const input = {
-        ...rawInput,
-        get path() {
-          trace.push("changing path")
-          if (namesPhase) {
-            if (scenario === "names-throw") throw originalError
-            return ++namesReads === 2 ? "b" : "a"
+        if (scenario === "names-throw") {
+          const array = f.evaluations
+          array[Symbol.iterator] = function () {
+            const iterator = Array.prototype[Symbol.iterator].call(this)
+            iterator.return = () => {
+              trace.push("iterator close")
+              throw new Error("cleanup failure")
+            }
+            return iterator
           }
-          return "a"
         }
       }
-      const evaluation = { prepared: { ...old.prepared, input }, findings: old.findings }
-      f.evaluations = [evaluation]
-      const verify = f.engines.verifyRoot,
-        prepare = f.engines.prepare
-      f.engines.verifyRoot = async (...args) => {
-        const result = await verify(...args)
-        namesPhase = true
-        return result
-      }
-      f.engines.prepare = async (...args) => {
-        namesPhase = false
-        return prepare(...args)
-      }
-      f.authority = {
-        async isCurrentWork(prepared) {
-          assert.equal(prepared, evaluation.prepared)
-          trace.push("authority")
-          return true
-        }
-      }
-      if (scenario === "names-throw") {
-        const array = f.evaluations
-        array[Symbol.iterator] = function () {
-          const iterator = Array.prototype[Symbol.iterator].call(this)
-          iterator.return = () => {
-            trace.push("iterator close")
-            throw new Error("cleanup failure")
-          }
-          return iterator
-        }
+      try {
+        const result = await implementation(f.observation, f.evaluations, f.context, f.engines, f.authority)
+        lanes.push(resultRecord(result, f, trace))
+      } catch (error) {
+        if (scenario.endsWith("throw")) assert.equal(error, originalError)
+        lanes.push({ error: error.name, trace: [...trace] })
       }
     }
-    try {
-      const result = await implementation(f.observation, f.evaluations, f.context, f.engines, f.authority)
-      lanes.push(resultRecord(result, f, trace))
-    } catch (error) {
-      if (scenario.endsWith("throw")) assert.equal(error, originalError)
-      lanes.push({ error: error.name, trace: [...trace] })
-    }
+    assert.deepEqual(lanes[1], lanes[0], scenario)
+    cases++
   }
-  assert.deepEqual(lanes[1], lanes[0], scenario)
-  cases++
+  console.log(
+    JSON.stringify({
+      passed: true,
+      cases,
+      requests,
+      scope:
+        "complete lazy publication prefix and retention suffix; production synchronous grouping, Canonical adoption, lazy Bend JSON and universal proof remain open"
+    })
+  )
 }
-console.log(
-  JSON.stringify({
-    passed: true,
-    cases,
-    requests,
-    scope:
-      "complete lazy publication prefix and retention suffix; production synchronous grouping, Canonical adoption, lazy Bend JSON and universal proof remain open"
-  })
-)

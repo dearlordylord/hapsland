@@ -57,5 +57,14 @@ export type Reply = Tagged<
   "Reply",
   { readonly invocation: bigint; readonly request: bigint; readonly response: Response }
 >
-declare const core: { initial(invocation: bigint, input: Input): Step; resume(step: Step, reply: Reply): Step }
+export type Boundary =
+  | Tagged<"PrimitiveBoundary">
+  | Tagged<"IoBoundary">
+  | Tagged<"TerminalBoundary">
+  | Tagged<"InvalidBoundary">
+declare const core: {
+  boundary(step: Step): Boundary
+  initial(invocation: bigint, input: Input): Step
+  resume(step: Step, reply: Reply): Step
+}
 export default core

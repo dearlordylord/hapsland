@@ -1,3 +1,5 @@
+import type { EvaluatedUnit } from "./evaluation/contract.ts"
+import type { RevalidationResult, ResidentPublicationAuthority } from "./freshness/contract.ts"
 import { prepareSource } from "./preparation/public-preparation.ts"
 import type {
   SourceLineRequest,
@@ -70,25 +72,8 @@ assertReviewEngineBoundary("pipeline")
 export const DIRECT_EVENT_DEADLINE_MS = 15_000 as const
 
 export type { SourceLineRequest } from "./preparation/contract.ts"
-export type EvaluatedUnit = { readonly prepared: PreparedUnit; readonly findings: ReadonlyArray<Finding> }
-
-export type RevalidationResult =
-  | {
-      readonly status: "current"
-      readonly evaluations: ReadonlyArray<EvaluatedUnit>
-      readonly findings: ReadonlyArray<Finding>
-    }
-  | { readonly status: "stale"; readonly findings: readonly [] }
-  | { readonly status: "unavailable"; readonly findings: readonly [] }
-  | { readonly status: "unattributed"; readonly findings: readonly [] }
-
-/**
- * Publication authority is explicit because semantic equality cannot prove
- * that a later resident observation has not superseded completed work.
- */
-export type ResidentPublicationAuthority = {
-  readonly isCurrentWork: (prepared: PreparedUnit) => Effect.Effect<boolean>
-}
+export type { EvaluatedUnit } from "./evaluation/contract.ts"
+export type { RevalidationResult, ResidentPublicationAuthority } from "./freshness/contract.ts"
 
 export type DirectReviewResult =
   | { readonly status: "unsupported"; readonly output: undefined }

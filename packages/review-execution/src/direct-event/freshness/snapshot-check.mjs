@@ -20,7 +20,7 @@ const sameInput = (left, right) => {
   return canonicalValue(leftReview) === canonicalValue(rightReview)
 }
 // The independent oracle retains the original filter/some and field ordering.
-const reference = async (mode, prepared, engines) => {
+export const reference = async (mode, prepared, engines) => {
   if (!(await engines.verifyRoot())) return false
   const names =
     mode === "SnapshotLine" ? undefined : new Map([[prepared.input.path, new Set([prepared.input.declaration.name])]])
@@ -57,7 +57,7 @@ const unlist = (value) => {
   assert.equal(value.$, "Nil")
   return items
 }
-{
+if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   let requests = 0,
     rejectedReplies = 0,
     cases = 0

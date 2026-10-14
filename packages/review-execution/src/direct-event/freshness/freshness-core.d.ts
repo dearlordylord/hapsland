@@ -35,7 +35,14 @@ export type Reply = Tagged<
 >
 export type Tuple<Left, Right> = Tagged<"Tuple", { readonly fst: Left; readonly snd: Right }>
 export type Engine = Tagged<"Engine", { readonly read: (query: Query) => Tuple<Response, Engine> }>
+export type Boundary =
+  | Tagged<"PrimitiveBoundary">
+  | Tagged<"IoBoundary">
+  | Tagged<"TerminalBoundary">
+  | Tagged<"InvalidBoundary">
 declare const core: {
+  boundary(step: Step): Boundary
+
   initial(invocation: bigint, input: Input): Step
   resume(step: Step, reply: Reply): Step
   run_group(engine: Engine, step: Step): Tuple<Step, Engine>

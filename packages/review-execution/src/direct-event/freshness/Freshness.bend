@@ -425,3 +425,22 @@ def run_group(engine: Engine, +step: Step) -> (Step & Engine):
       engine_read(sized_group, step, frame, query, engine)
     case Await{_, _, Sized{_, _}}: sized_group(engine, step)
     case _: captured_group(engine, step)
+
+# The common Canonical interpreter executes only the disposition chosen here.
+type Boundary is Data:
+  PrimitiveBoundary{}
+  IoBoundary{}
+  TerminalBoundary{}
+  InvalidBoundary{}
+
+def query_boundary(query: Query) -> Boundary:
+  match query:
+    case VerifyRoot{_}: IoBoundary{}
+    case Prepare{_, _}: IoBoundary{}
+    case _: PrimitiveBoundary{}
+
+def boundary(step: Step) -> Boundary:
+  match step:
+    case Await{_, query, _}: query_boundary(query)
+    case Completed{_}: TerminalBoundary{}
+    case InvalidReply{}: InvalidBoundary{}

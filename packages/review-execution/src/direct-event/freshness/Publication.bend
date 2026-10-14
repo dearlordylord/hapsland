@@ -606,3 +606,28 @@ def resume(step: Step, +reply: Reply) -> Step:
 
 def initial(invocation: Nat, +input: Input) -> Step:
   ask(Frame{invocation, 1n}, Truthy{Lens{context(input), ["controlledWriter"]}}, Controlled{input})
+
+# Internal retention commands stay under the same issued outer lease.
+type Boundary is Data:
+  PrimitiveBoundary{}
+  IoBoundary{}
+  TerminalBoundary{}
+  InvalidBoundary{}
+
+def retention_boundary(query: Retention.Query) -> Boundary:
+  match query:
+    case Retention.CurrentWork{_, _}: IoBoundary{}
+    case _: PrimitiveBoundary{}
+
+def query_boundary(query: Query) -> Boundary:
+  match query:
+    case VerifyRoot{_}: IoBoundary{}
+    case Prepare{_, _}: IoBoundary{}
+    case RetentionQuery{query}: retention_boundary(query)
+    case _: PrimitiveBoundary{}
+
+def boundary(step: Step) -> Boundary:
+  match step:
+    case Await{_, query, _}: query_boundary(query)
+    case Completed{_, _, _}: TerminalBoundary{}
+    case InvalidReply{}: InvalidBoundary{}
