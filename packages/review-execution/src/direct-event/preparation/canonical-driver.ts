@@ -5,6 +5,7 @@ import {
   type FinalizationContinuation,
   type FinalizationProjection,
   type FinalizationRequest,
+  type FinalizationSession,
   type FinalizationReply
 } from "./finalization-protocol.ts"
 import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
@@ -39,13 +40,7 @@ export type PreparationSession = {
   revoke(): void
   close(): void
 }
-export type FinalizationSession = {
-  readonly invocation: number
-  readonly input: FinalizationInvocation
-  readonly machine: FinalizationMachine
-  revoke(): void
-  close(): void
-}
+export type { FinalizationSession } from "./finalization-protocol.ts"
 export type PublicPreparationSession = PreparationSession | GraphSession | FinalizationSession
 export type PublicPreparationRequest = PreparationRequest | GraphRequest | FinalizationRequest
 export type PublicPreparationReply = PreparationReply | GraphServiceReply | FinalizationReply

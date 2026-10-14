@@ -9947,6 +9947,131 @@ def ready_candidate_allocated_identity(+available: Maybe<&2, ArtifactValue.Produ
             Equal.cong(Loop.Continuation, Maybe<&2, T.ResolverState>, ready_await_state,
               Attach.request_candidate(available, child, ids, previous, state), Loop.ServiceStep{T.AwaitService{measured, request}}, awaited)))}}
 
+def ready_view_captured(view: Phase.Child, work: Nat, contribution: Nat, ids: List<&2, Nat>) -> G.GraphEvent:
+  match view:
+    case Phase.Child{_, _, _, _, bytes, _, _, _, before, _, _, _, _, V.Budget{_, _, _, _, _, _}, _, _}:
+      G.Captured{bytes, contribution, Nat.sub(work, before), ids}
+
+def ready_actual_captured(child: T.TentativeChild, work: Nat, contribution: Nat, ids: List<&2, Nat>) -> G.GraphEvent:
+  match child:
+    case T.TentativeChild{_, _, _, bytes, _, _, _, before, Local.Plan{_, _, _, _, _, budget}, _, _, _}:
+      G.Captured{bytes, contribution, Nat.sub(work, before), ids}
+
+def ready_reference_captured(child: X.Child, work: Nat, contribution: Nat, ids: List<&2, Nat>) -> G.GraphEvent:
+  match child:
+    case X.Child{X.Attempt{_, _, _, _, bytes, _, _, _, _, before}, _, Signed.State{Recursive.State{_, budget, _, _}, _}, _}:
+      G.Captured{bytes, contribution, Nat.sub(work, before), ids}
+
+def ready_actual_captured_view(+forest: Maybe<&2, F.Forest>, +pending: Maybe<&2, List<&2, V.PendingPayload>>, +visited: Maybe<&2, List<&2, String>>, +child: T.TentativeChild, +edge: Local.Pending, +history: Phase.ChildHistory, +view: Phase.Child, +work: Nat, +contribution: Nat, +ids: List<&2, Nat>, ready: {ActualReady.child_view(forest, pending, visited, child, edge, history) == Some{view} : Maybe<&2, Phase.Child>}) -> {ready_actual_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}:
+  match forest pending visited child history:
+    case Some{+forest_value} Some{+pending_value} Some{+visited_value}
+      T.TentativeChild{target, +path, capture, bytes, file, artifact, identity, before, Local.Plan{_, _, _, _, _, Local.Budget{limits, targets, maximum, child_work, graph_work, depth}}, _, _, _}
+      Phase.ChildHistory{F.Created{_, _, addresses}, source, catalog, _, _}:
+      %Count.some_equal(Phase.Child, Phase.Child{target, path, ActualReady.edge_kind(edge, path), capture, bytes, file,
+          artifact, identity, before, forest_value, addresses, pending_value, visited_value, V.actual_budget(Local.Budget{limits, targets, maximum, child_work, graph_work, depth}), source, catalog}, view, ready):
+        {ready_actual_captured(child, work, contribution, ids) == ready_view_captured(_, work, contribution, ids) : G.GraphEvent}
+      {==}
+    case None{} _ _ _ _:
+      Empty.absurd({ready_actual_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}, Contents.none_some(Phase.Child, view, ready))
+    case Some{_} None{} _ _ _:
+      Empty.absurd({ready_actual_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}, Contents.none_some(Phase.Child, view, ready))
+    case Some{_} Some{_} None{} _ _:
+      Empty.absurd({ready_actual_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}, Contents.none_some(Phase.Child, view, ready))
+
+def ready_actual_captured_projected(+child: T.TentativeChild, +edge: Local.Pending, +history: Phase.ChildHistory, +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child, +work: Nat, +contribution: Nat, +ids: List<&2, Nat>, ready: {ActualReady.child_projected(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}) -> {ready_actual_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}:
+  match child history:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+root, +nodes, +slots, +items, +visited, _}, _, _, _}
+        Phase.ChildHistory{F.Created{_, _, +addresses}, _, _, _, +order}:
+      ready_actual_captured_view(ActualReady.valid_forest(P.project(root, nodes, slots, artifacts, addresses), episode),
+        ActualReady.pending(items, addresses), ActualReady.visited_complete(order, visited), child, edge, history, view, work, contribution, ids, ready)
+
+def ready_actual_captured_project(+child: T.TentativeChild, +edge: Local.Pending, +history: Phase.ChildHistory, +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child, +work: Nat, +contribution: Nat, +ids: List<&2, Nat>, ready: {ActualReady.child_project(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}) -> {ready_actual_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}:
+  ready_actual_captured_projected(child, edge, history, artifacts, episode, view, work, contribution, ids,
+    Pair.snd({child_checks(child) == True{} : Bool}, {ActualReady.child_projected(child, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}, actual_child_contents(child, edge, history, artifacts, episode, view, ready)))
+
+def ready_reference_captured_view(+child: X.Child, +history: Phase.ChildHistory, +visited: Maybe<&2, List<&2, String>>, +view: Phase.Child, +work: Nat, +contribution: Nat, +ids: List<&2, Nat>, ready: {ReferenceReady.child_view(child, history, visited) == Some{view} : Maybe<&2, Phase.Child>}) -> {ready_reference_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}:
+  match child history visited:
+    case X.Child{
+      X.Attempt{
+        +target,
+        edge,
+        +kind,
+        +source,
+        +bytes,
+        name,
+        expected,
+        Local.Declaration{+handle, +identity, function, bundled, references, +source_path},
+        +catalog,
+        +before
+      },
+      F.Created{root, nodes, addresses},
+      Signed.State{Recursive.State{_, Local.Budget{limits, targets, maximum, child_work, graph_work, depth}, _, _}, signed},
+      edges
+    }
+      Phase.ChildHistory{_, _, _, capture, _} Some{+visited}:
+      %Count.some_equal(Phase.Child,
+        Phase.Child{
+          target,
+          X.attempt_path(
+            X.Attempt{
+              target,
+              edge,
+              kind,
+              source,
+              bytes,
+              name,
+              expected,
+              Local.Declaration{handle, identity, function, bundled, references, source_path},
+              catalog,
+              before
+            }
+          ),
+          kind,
+          capture,
+          bytes,
+          T.CapturedFacts{ReferenceFrame.facts(catalog), ReferenceReady.file_exports(kind, source), bytes},
+          handle,
+          identity,
+          before,
+          F.Forest{Some{root}, nodes},
+          addresses,
+          ReferenceReady.pending(edges),
+          visited,
+          V.budget(Local.Budget{limits, targets, maximum, child_work, graph_work, depth}, signed),
+          source,
+          catalog
+        }, view, ready):
+        {ready_reference_captured(child, work, contribution, ids) == ready_view_captured(_, work, contribution, ids) : G.GraphEvent}
+      {==}
+    case _ _ None{}:
+      Empty.absurd({ready_reference_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}, Contents.none_some(Phase.Child, view, ready))
+
+def ready_reference_captured_project(+child: X.Child, +history: Phase.ChildHistory, +view: Phase.Child, +work: Nat, +contribution: Nat, +ids: List<&2, Nat>, ready: {ReferenceReady.child_project(child, history) == Some{view} : Maybe<&2, Phase.Child>}) -> {ready_reference_captured(child, work, contribution, ids) == ready_view_captured(view, work, contribution, ids) : G.GraphEvent}:
+  match child history:
+    case X.Child{_, _, Signed.State{Recursive.State{+values, _, _, _}, _}, _} Phase.ChildHistory{_, _, _, _, +order}:
+      ready_reference_captured_view(child, history, ReferenceFrame.visited(order, values), view, work, contribution, ids, ready)
+
+def ready_common_child_captured(+actual: T.TentativeChild, +edge: Local.Pending, +reference: X.Child, +history: Phase.ChildHistory, +artifacts: List<&2, T.ArtifactEntry>, +episode: Nat, +view: Phase.Child, +work: Nat, +contribution: Nat, +ids: List<&2, Nat>, actual_ready: {ActualReady.child_project(actual, edge, history, artifacts, episode) == Some{view} : Maybe<&2, Phase.Child>}, reference_ready: {ReferenceReady.child_project(reference, history) == Some{view} : Maybe<&2, Phase.Child>}) -> {ready_actual_captured(actual, work, contribution, ids) == ready_reference_captured(reference, work, contribution, ids) : G.GraphEvent}:
+  Equal.trans(G.GraphEvent, ready_actual_captured(actual, work, contribution, ids), ready_view_captured(view, work, contribution, ids), ready_reference_captured(reference, work, contribution, ids),
+    ready_actual_captured_project(actual, edge, history, artifacts, episode, view, work, contribution, ids, actual_ready),
+    Equal.sym(G.GraphEvent, ready_reference_captured(reference, work, contribution, ids), ready_view_captured(view, work, contribution, ids), ready_reference_captured_project(reference, history, view, work, contribution, ids, reference_ready)))
+
+def ready_selected_child_captured(+state: T.ResolverState, +frame: T.ResolverFrame, +actual: T.TentativeChild, +edge: Local.Pending, +reference: D.State, +child: X.Child, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +work: Nat, +contribution: Nat, +ids: List<&2, Nat>, actual_ready: {ActualReady.parts(state, Some{frame}, Some{actual}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}) -> {ready_actual_captured(actual, work, contribution, ids) == ready_reference_captured(child, work, contribution, ids) : G.GraphEvent}:
+  match history phase:
+    case V.History{+addresses, _, _, _, _, +remaining, +episode} Phase.Phase{+view, +child_view, +capsule}:
+      Parent.eliminate_pair({Bool.and(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))))) == True{} : Bool}, {ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>} & {ActualReady.child_project(actual, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>} & {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>}, {ready_actual_captured(actual, work, contribution, ids) == ready_reference_captured(child, work, contribution, ids) : G.GraphEvent},
+        selected_phase_contents(state, frame, actual, edge, history, child_history, phase, actual_ready),
+        valid => observations =>
+        Parent.eliminate_pair({ActualFrame.project(frame, history) == Some{view} : Maybe<&2, V.Frame>}, {ActualReady.child_project(actual, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>} & {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>}, {ready_actual_captured(actual, work, contribution, ids) == ready_reference_captured(child, work, contribution, ids) : G.GraphEvent}, observations,
+          frame_ready => child_observations =>
+          Parent.eliminate_pair({ActualReady.child_project(actual, edge, child_history, S.frame_artifacts(frame), episode) == Some{child_view} : Maybe<&2, Phase.Child>}, {ActualReady.capsule(S.state_clock(state), S.state_language(state), S.scratch_active_target(S.state_scratch(state)), V.pending_payload(edge, addresses), state) == Some{capsule} : Maybe<&2, Phase.Capsule>}, {ready_actual_captured(actual, work, contribution, ids) == ready_reference_captured(child, work, contribution, ids) : G.GraphEvent}, child_observations,
+            actual_child => actual_capsule =>
+            Parent.eliminate_pair({ReferenceFrame.project(reference, history) == Some{view} : Maybe<&2, V.Frame>}, {ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>} & {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, {ready_actual_captured(actual, work, contribution, ids) == ready_reference_captured(child, work, contribution, ids) : G.GraphEvent}, reference_ready_contents(reference, child, history, child_history, phase, reference_ready),
+              reference_frame => reference_observations =>
+              Parent.eliminate_pair({ReferenceReady.child_project(child, child_history) == Some{child_view} : Maybe<&2, Phase.Child>}, {Some{ReferenceReady.capsule(reference, child)} == Some{capsule} : Maybe<&2, Phase.Capsule>}, {ready_actual_captured(actual, work, contribution, ids) == ready_reference_captured(child, work, contribution, ids) : G.GraphEvent}, reference_observations,
+                reference_child => reference_capsule =>
+                ready_common_child_captured(actual, edge, child, child_history, S.frame_artifacts(frame), episode, child_view, work, contribution, ids, actual_child, reference_child)))))
+
 def ready_registration_eliminate(-Result: Type, +registration: X.Registration, body: @more: List<&2, X.Edge> -> @ids: List<&2, Nat> -> @next: Nat -> {registration == X.Registration{more, ids, next} : X.Registration} -> Result) -> Result:
   match registration:
     case X.Registration{+more, +ids, +next}: body(more)(ids)(next)({==})

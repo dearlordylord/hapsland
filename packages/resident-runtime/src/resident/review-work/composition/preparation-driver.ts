@@ -44,6 +44,11 @@ export function createResidentPreparationDriver({ bridge, registry, hooks, forei
         return performPreparationSessionRequest(registry, requests[0]!, options)
       }),
     selectMachine: (input, session) => {
+      if ("finalization" in input) {
+        if (!("input" in session && "finalization" in session.input && "machine" in session && session.machine))
+          throw new TypeError("Wrong finalization engine session")
+        return session.machine
+      }
       if ("sourcePreparation" in input) {
         if (!("input" in session && "sourcePreparation" in session.input))
           throw new TypeError("Wrong source engine session")

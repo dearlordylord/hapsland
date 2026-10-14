@@ -1,3 +1,8 @@
+import {
+  finalizationProtocol,
+  performFinalizationSync,
+  performFinalizationAsync
+} from "@hapsland/review-execution/direct-event/preparation"
 import * as ownedMachine from "./owned-machine.mjs"
 import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
@@ -75,6 +80,9 @@ export function createOwnedArtifactDriver({
 }) {
   /** @type {import("@hapsland/canonical-policy/canonical/child-execution").Protocol<ownedMachine.Input, ownedMachine.Machine, ownedMachine.Continuation, ownedMachine.Projection, Request, ownedMachine.Reply, ReturnType<typeof ownedMachine.accepted>, PreparationResult, Session>} */
   const protocol = {
+    initialSignalCheckpoint: (machine) => (machine.kind === "finalization" ? "protocol" : "executor"),
+    synchronousAdvance: (held, options) =>
+      held.kind === "finalization" ? finalizationProtocol.synchronousAdvance(held, options) : undefined,
     initial: ownedMachine.initial,
     view: ownedMachine.view,
     resume: ownedMachine.resume,
@@ -103,6 +111,7 @@ export function createOwnedArtifactDriver({
       return { method: "install" }
     },
     terminal(projected, scope) {
+      if (projected.kind === "finalization") return "terminal"
       return projected.view.$ === "AdviceTailPreserved"
         ? "terminal_advice_preserved"
         : scope.$ === "PreparationScope"
@@ -139,7 +148,16 @@ export function createOwnedArtifactDriver({
   const shared = createChildExecutionDriver({
     owner,
     registry,
-    foreign,
+    foreignSync(requests) {
+      if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
+      const request = requests[0]
+      return "finalization" in request ? performFinalizationSync(request) : undefined
+    },
+    foreign(requests, options) {
+      if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
+      const request = requests[0]
+      return "finalization" in request ? performFinalizationAsync(request) : foreign(requests, options)
+    },
     hooks,
     machine,
     protocol,

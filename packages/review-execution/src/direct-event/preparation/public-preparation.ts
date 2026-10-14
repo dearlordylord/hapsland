@@ -23,7 +23,11 @@ import {
 } from "./canonical-driver.ts"
 import { encodePreparationInput, type PreparationObservation } from "./input.ts"
 import type { SourcePreparationContext } from "./contract.ts"
-import { performFinalizationSync, performFinalizationAsync } from "./finalization-protocol.ts"
+import {
+  performFinalizationSync,
+  performFinalizationAsync,
+  createFinalizationSession
+} from "./finalization-protocol.ts"
 
 // Private host receipt preserves the original Effect Exit across Promise IO.
 // It is neither product state nor a Bend correctness premise.
@@ -88,6 +92,15 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
       return session.perform(request, { ownerLease, ...(signal === undefined ? {} : { signal }) })
     }
   })
+  const canonicalGate: import("./preparation-finalization.ts").CanonicalRuleGate = async (event) => {
+    driver.canonicalEvent(toOwner(encodeCanonicalEvent(event)))
+    const decision = outputs.find((output) => output.$ === "../Canonical.PolicyDecided")
+    if (!decision || decision.$ !== "../Canonical.PolicyDecided" || decision.decision.$ !== "../Canonical.RuleGate")
+      throw new TypeError("Canonical finalization gate missing")
+    if (decision.decision.gate.$ === "../RulePolicy.Admit") return true
+    if (decision.decision.gate.$ === "../RulePolicy.Omit") return false
+    throw new TypeError("Invalid Canonical finalization gate")
+  }
   const physical = createPhysicalPreparationCapability({
     root: observation.root,
     rootIdentity: observation.rootIdentity,
@@ -96,14 +109,19 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
     settings: context.settings,
     graphLimits,
     runEffect,
-    async canonicalGate(event) {
-      driver.canonicalEvent(toOwner(encodeCanonicalEvent(event)))
-      const decision = outputs.find((output) => output.$ === "../Canonical.PolicyDecided")
-      if (!decision || decision.$ !== "../Canonical.PolicyDecided" || decision.decision.$ !== "../Canonical.RuleGate")
-        throw new TypeError("Canonical finalization gate missing")
-      if (decision.decision.gate.$ === "../RulePolicy.Admit") return true
-      if (decision.decision.gate.$ === "../RulePolicy.Omit") return false
-      throw new TypeError("Invalid Canonical finalization gate")
+    canonicalGate,
+    async runFinalization(input, execution) {
+      const parent = execution.ownerLease
+      const invocation = driver.allocateInvocation({
+        $: "Parent",
+        invocation: parent.invocation,
+        generation: parent.generation,
+        request: parent.request
+      })
+      const session = createFinalizationSession(invocation, input, execution, canonicalGate)
+      const result = await driver.drive(session, session.input, execution)
+      if (!("finalization" in result)) throw new TypeError("Canonical did not accept finalization")
+      return result.finalization
     },
     async admitMaterialization(capture, preflight, execution) {
       const admission =

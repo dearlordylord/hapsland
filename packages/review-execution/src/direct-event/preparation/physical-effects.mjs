@@ -40,6 +40,7 @@ import { createPreparationCapability } from "./machine.ts"
  * settings: PreparationPorts["context"]["settings"],
  * graphLimits?: import("@hapsland/canonical-policy/canonical/graph-limits").GraphLimits,
  * canonicalGate: PreparationPorts["canonicalGate"],
+ * runFinalization: PreparationPorts["runFinalization"],
  * runEffect?: <A>(effect: Effect.Effect<A>, options?: {signal?: AbortSignal | undefined}) => Promise<A>,
  * admitMaterialization: (capture: CaptureWire, preflight: import("@hapsland/source-analysis/direct-event/analyzer").AnalyzerMaterializationPreflight | undefined, execution: PreparationExecution) => Promise<MaterializationReply>,
  * rejectMaterializationCapacity: (execution: PreparationExecution) => Promise<void>,
@@ -57,6 +58,7 @@ export function createPhysicalPreparationCapability({
   settings,
   graphLimits = GRAPH_LIMIT_CEILINGS,
   canonicalGate,
+  runFinalization,
   runEffect = Effect.runPromise,
   admitMaterialization,
   rejectMaterializationCapacity,
@@ -353,6 +355,7 @@ export function createPhysicalPreparationCapability({
   }
   const capability = createPreparationCapability({
     canonicalGate,
+    runFinalization,
     performEffect,
     context: {
       get settings() {

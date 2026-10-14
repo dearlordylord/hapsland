@@ -1,10 +1,12 @@
 import type { Protocol, Session } from "@hapsland/canonical-policy/canonical/child-execution"
+import core from "./preparation-finalization-core.js"
 import type { Step, Response } from "./preparation-finalization-core.js"
 import {
   createPreparationFinalizationExecution,
   type FinalizationInput,
   type FinalizedOutcome,
-  type Execution
+  type Execution,
+  type CanonicalRuleGate
 } from "./preparation-finalization.ts"
 
 type Binding = ReturnType<ReturnType<typeof createPreparationFinalizationExecution>>
@@ -105,3 +107,25 @@ export const performFinalizationAsync = async (request: FinalizationRequest): Pr
   $: "FinalizationReply",
   response: await request.binding.performAsync(request.finalization)
 })
+
+export type FinalizationSession = {
+  readonly invocation: number
+  readonly input: FinalizationInvocation
+  readonly machine: FinalizationMachine
+  revoke(): void
+  close(): void
+}
+export function createFinalizationSession(
+  invocation: number,
+  finalization: FinalizationInput,
+  execution: Execution,
+  canonicalGate: CanonicalRuleGate
+): FinalizationSession {
+  return {
+    invocation,
+    input: { invocation: BigInt(invocation), finalization, execution },
+    machine: createFinalizationMachine({ machine: core, canonicalGate }),
+    revoke() {},
+    close() {}
+  }
+}

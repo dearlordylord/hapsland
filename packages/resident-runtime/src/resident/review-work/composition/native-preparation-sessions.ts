@@ -1,3 +1,5 @@
+import type { FinalizationSession } from "@hapsland/review-execution/direct-event/preparation"
+import { performFinalizationAsync } from "@hapsland/review-execution/direct-event/preparation"
 import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
 import { performGraphServiceRequest } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { hostNatural } from "@hapsland/source-artifacts/direct-event/value/codec"
@@ -17,7 +19,13 @@ type GraphSession = Parameters<Parameters<typeof createBendResolver>[0]["drive"]
 type SourceSession = ReturnType<typeof createSourcePreparationProvider>
 type PostSession = ReturnType<typeof createPostPreparationProvider>
 type AdviceSession = ReturnType<typeof createAdviceTailProvider>
-export type PreparationNativeSession = GraphSession | SourceSession | PostSession | AdviceSession | PreparationSession
+export type PreparationNativeSession =
+  | FinalizationSession
+  | GraphSession
+  | SourceSession
+  | PostSession
+  | AdviceSession
+  | PreparationSession
 
 export const createPreparationSessionRegistry = () => createNativeSessionRegistry<PreparationNativeSession>()
 
@@ -43,6 +51,11 @@ export async function performPreparationSessionRequest(
   const signal = requestedSignal === undefined ? {} : { signal: requestedSignal }
   const session = registry.get(hostNatural(request.invocation))
   if (!session) throw new TypeError("Unknown owned service invocation")
+  if ("finalization" in request) {
+    if (!("input" in session && "finalization" in session.input))
+      throw new TypeError("Wrong finalization service session")
+    return performFinalizationAsync(request)
+  }
   if ("operation" in request) {
     if ("input" in session) throw new TypeError("Wrong graph service session")
     return performGraphServiceRequest(session, request, options)

@@ -1,9 +1,9 @@
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import preparationCore from "./preparation-core.js"
-import finalizationCore from "./preparation-finalization-core.js"
 import { createPreparationMachine, type ResolverWire } from "./preparation-dispatcher.ts"
 import {
-  createPreparationFinalizationConsumer,
+  type FinalizationInput,
+  type FinalizedOutcome,
   type CanonicalRuleGate,
   type Execution
 } from "./preparation-finalization.ts"
@@ -26,6 +26,10 @@ export type PreparationExecution = Execution & {
 }
 export type PreparationPorts = {
   readonly canonicalGate: CanonicalRuleGate
+  readonly runFinalization: (
+    input: FinalizationInput,
+    execution: PreparationExecution
+  ) => Promise<readonly FinalizedOutcome[]>
   readonly performEffect: (
     request: PreparationEffectRequest,
     execution: PreparationExecution
@@ -44,10 +48,6 @@ export type PreparationPorts = {
  * Finalization policy stays inside this capability; external ports provide facts.
  */
 export function createPreparationCapability(ports: PreparationPorts) {
-  const finalize = createPreparationFinalizationConsumer({
-    machine: finalizationCore,
-    canonicalGate: ports.canonicalGate
-  })
   return {
     machine: createPreparationMachine(preparationCore),
     async perform(
@@ -73,7 +73,7 @@ export function createPreparationCapability(ports: PreparationPorts) {
           end: { line: Number(declaration.location.end.line), column: Number(declaration.location.end.column) }
         }
       }))
-      const outcomes = await finalize(
+      const outcomes = await ports.runFinalization(
         {
           invocation: request.invocation,
           command: request.id,

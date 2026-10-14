@@ -1,3 +1,4 @@
+import { createFinalizationSession } from "@hapsland/review-execution/direct-event/preparation"
 import * as Effect from "effect/Effect"
 import { ResidentProviderPermit } from "../../state/resolver-custody/resident-provider-permit.mjs"
 import { resize } from "../../state/capacity/reservations.ts"
@@ -8,7 +9,7 @@ import { createPhysicalPreparationCapability } from "@hapsland/review-execution/
 /**
  * @typedef {import("@hapsland/review-execution/direct-event/preparation").PreparationPorts} PreparationPorts
  * @typedef {Parameters<Parameters<typeof createBendResolver>[0]["drive"]>[0]} GraphSession
- * @typedef {Pick<ReturnType<typeof import("./owned-artifact-driver.mjs").createOwnedArtifactDriver<GraphSession>>, "state" | "allocateInvocation" | "constructionFailed" | "drive">} GraphDriver
+ * @typedef {Pick<ReturnType<typeof import("./owned-artifact-driver.mjs").createOwnedArtifactDriver<GraphSession | import("@hapsland/review-execution/direct-event/preparation").FinalizationSession>>, "state" | "allocateInvocation" | "constructionFailed" | "drive">} GraphDriver
  * @typedef {import("@hapsland/review-execution/direct-event/preparation/physical-effects").RootFacts} RootFacts
  * @typedef {Awaited<ReturnType<PreparationPorts["performEffect"]>>} PreparationReply
  */
@@ -68,6 +69,19 @@ export function createPreparationForeign({
     ...(graphLimits === undefined ? {} : { graphLimits }),
     ...(onRoot === undefined ? {} : { onRoot }),
     canonicalGate,
+    async runFinalization(input, execution) {
+      const parent = execution.ownerLease
+      const invocation = driver.allocateInvocation({
+        $: "Parent",
+        invocation: parent.invocation,
+        generation: parent.generation,
+        request: parent.request
+      })
+      const session = createFinalizationSession(invocation, input, execution, canonicalGate)
+      const result = await driver.drive(session, session.input, execution)
+      if (!("finalization" in result)) throw new TypeError("Canonical did not accept finalization")
+      return result.finalization
+    },
     async admitMaterialization(capture, preflight, options) {
       const bytes = analysisWorkspaceBytes(
         capture.path,

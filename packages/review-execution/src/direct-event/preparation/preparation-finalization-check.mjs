@@ -11,7 +11,7 @@ import { REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
 import { registeredLanguages } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { initialCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
-import { createPreparationFinalizationConsumer } from "../../../dist/direct-event/preparation/preparation-finalization.js"
+import { createPreparationFinalizationConsumer } from "../../../dist/direct-event/preparation/verification/finalization-engine-consumer.js"
 import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import {
   productValue,

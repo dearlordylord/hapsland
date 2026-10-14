@@ -16,3 +16,5 @@ export type {
 } from "./canonical-protocol.ts"
 
 export { prepareSource } from "./public-preparation.ts"
+
+export * from "./finalization-protocol.ts"
