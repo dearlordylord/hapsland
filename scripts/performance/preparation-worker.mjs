@@ -21,7 +21,12 @@ phase("imports:start")
 const load = (path) => import(pathToFileURL(root + path).href)
 const ownerCalls = {}
 const requestCounts = {},
-  seenRequests = new Set()
+  logicalRequestCounts = {},
+  seenRequests = new Set(),
+  requestMetadata = new Map(),
+  issuedLeases = new Set(),
+  providerOutcomes = { issuedCalls: 0, refusedCalls: 0, noActionCalls: 0 }
+let requestEpoch = 0
 const observeRequests = process.env.HAPSLAND_PREPARATION_PROFILE_REQUESTS === "1"
 if (observeRequests) {
   assert.ok(process.env.HAPSLAND_PREPARATION_PROFILE_DIR, "request tracing is diagnostic only")
@@ -36,11 +41,36 @@ if (process.env.HAPSLAND_PREPARATION_PROFILE_OWNER === "1") {
       const record = (ownerCalls[name] ??= { calls: 0, seconds: 0 })
       record.calls++
       const start = performance.now()
+      let result
       try {
-        return Reflect.apply(original, owner, args)
+        result = Reflect.apply(original, owner, args)
       } finally {
         record.seconds += (performance.now() - start) / 1000
       }
+      if (observeRequests && name === "provider_start") {
+        let issued = 0
+        if (result.$ === "Rejected") providerOutcomes.refusedCalls++
+        else {
+          let actions = result.actions
+          while (actions.$ === "Con") {
+            const action = actions.head
+            if (action.$ === "ExecuteProvider") {
+              const identity = `${requestEpoch}:${action.invocation}:${action.lease}:${action.request}`
+              assert.equal(issuedLeases.has(identity), false, "duplicate issued Canonical lease")
+              const metadata = requestMetadata.get(`${requestEpoch}:${action.invocation}:${action.request}`)
+              assert.ok(metadata, "issued Canonical lease lacks observed request metadata")
+              issuedLeases.add(identity)
+              requestCounts[metadata] = (requestCounts[metadata] ?? 0) + 1
+              issued++
+            }
+            actions = actions.tail
+          }
+          assert.equal(actions.$, "Nil")
+          if (issued) providerOutcomes.issuedCalls++
+          else providerOutcomes.noActionCalls++
+        }
+      }
+      return result
     }
   }
 }
@@ -70,12 +100,16 @@ if (observeRequests && implementation === "public") {
       const request = Reflect.apply(original, protocol, args)
       if (request !== undefined) {
         const identity = `${family}:${request.invocation}:${request.id}`
+        const operation = request.operation?.$ ?? request.command?.$ ?? request.finalization?.$ ?? "unknown"
+        const nested = request.finalization?.step?.$
+        const key = `${family}:${operation}${nested === undefined ? "" : ":" + nested}`
+        const metadataIdentity = `${requestEpoch}:${request.invocation}:${request.id}`
+        const existing = requestMetadata.get(metadataIdentity)
+        assert.ok(existing === undefined || existing === key, "conflicting Canonical request metadata")
+        requestMetadata.set(metadataIdentity, key)
         if (!seenRequests.has(identity)) {
           seenRequests.add(identity)
-          const operation = request.operation?.$ ?? request.command?.$ ?? request.finalization?.$ ?? "unknown"
-          const nested = request.finalization?.step?.$
-          const key = `${family}:${operation}${nested === undefined ? "" : ":" + nested}`
-          requestCounts[key] = (requestCounts[key] ?? 0) + 1
+          logicalRequestCounts[key] = (logicalRequestCounts[key] ?? 0) + 1
         }
       }
       return request
@@ -123,7 +157,11 @@ const run = async () => {
   let index = 0
   for (const { observation, context } of cases) {
     const before = processStarts
-    if (observeRequests) seenRequests.clear()
+    if (observeRequests) {
+      requestEpoch++
+      seenRequests.clear()
+      requestMetadata.clear()
+    }
     results.push(JSON.stringify(await Effect.runPromise(prepareObservation(observation, context))))
     if (observeProcesses) processCounts.push({ sweep: round, fixture: index++, starts: processStarts - before })
   }
@@ -176,7 +214,10 @@ for (const record of Object.values(ownerCalls)) {
   record.calls = 0
   record.seconds = 0
 }
-for (const key of Object.keys(requestCounts)) requestCounts[key] = 0
+for (const histogram of [requestCounts, logicalRequestCounts])
+  for (const key of Object.keys(histogram)) histogram[key] = 0
+issuedLeases.clear()
+for (const key of Object.keys(providerOutcomes)) providerOutcomes[key] = 0
 phase("measurement:start")
 const started = performance.now(),
   cpu = process.cpuUsage()
@@ -189,11 +230,16 @@ for (let index = 0; index < rounds; index++) {
 const used = process.cpuUsage(cpu)
 phase("measurement:complete")
 processObserver?.disable()
-if (observeRequests && implementation === "public")
+if (observeRequests && implementation === "public") {
   assert.equal(
     Object.values(requestCounts).reduce((sum, count) => sum + count, 0),
+    issuedLeases.size
+  )
+  assert.equal(
+    Object.values(providerOutcomes).reduce((sum, count) => sum + count, 0),
     ownerCalls.provider_start.calls
   )
+}
 if (observeProcesses) assert.ok(processStarts > 0 && processCounts.length === cases.length * (1 + warmups + rounds))
 console.log(
   JSON.stringify({
@@ -207,7 +253,14 @@ console.log(
     implementation,
     ...(process.env.HAPSLAND_PREPARATION_PROFILE_DIR === undefined ? {} : { diagnosticMemory: process.memoryUsage() }),
     ...(process.env.HAPSLAND_PREPARATION_PROFILE_OWNER === "1" ? { diagnosticOwnerCalls: ownerCalls } : {}),
-    ...(observeRequests ? { diagnosticRequestCounts: requestCounts } : {}),
+    ...(observeRequests
+      ? {
+          diagnosticRequestCounts: requestCounts,
+          diagnosticLogicalRequestCounts: logicalRequestCounts,
+          diagnosticIssuedLeases: issuedLeases.size,
+          diagnosticProviderOutcomes: providerOutcomes
+        }
+      : {}),
     ...(observeProcesses ? { diagnosticProcessCounts: processCounts } : {}),
     runtime: typeof Bun === "undefined" ? process.version : Bun.version
   })
