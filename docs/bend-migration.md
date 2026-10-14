@@ -132,6 +132,8 @@ that a subsystem has migrated.
 
 ## Current whole preparation acceptance path
 
+Latest primary checkpoint, 2026-10-14, candidate `3f61312cf0ad09df7ace692f5768b36bcf27485a`: normal workspace warm passed 46/46 (15 cached, 49.407s), then matching cached warm passed 46/46 (23 cached, 2.513s). Execution started 08:56:45.741259 UTC and qualified **PASS**, ratio 0.700794394304621. Build started 08:57:17.563749 UTC and qualified **FAIL parity**, ratio 1.2679639652363128. Both retain all 17 pairs against fixed baseline `8948343b46f8426abebe675a39dc4039997b0d5b`; every build sample used 23/46 cached tasks, and HEAD, authored inputs and artifact trees remained unchanged. The 15-second candidate build sample remains included. The due execution/build windows at 08:54:43/08:56:01 UTC were missed and are not retrospectively satisfied by these late runs. Evidence is in ignored `.test-runs/bend-migration/performance/2026-10-14T08-56-45.741259+00-00/qualification.json` and `2026-10-14T08-57-17.563749+00-00/qualification.json`. These primary scopes do not replace the retained failed whole-Preparation supplemental measurement. Original whole transaction proofs and build parity remain acceptance blockers; accepted whole slices remain zero.
+
 The working candidate is not accepted production. Astra agreed the shortest
 whole-unit route: graph resolution/parser facts belong to source-analysis;
 preparation progression to review-execution; source/post preparation, advice tail
