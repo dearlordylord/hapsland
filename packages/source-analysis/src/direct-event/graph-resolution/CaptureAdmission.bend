@@ -21,8 +21,12 @@ def cache_bytes(entries: List<&2, T.CaptureBytes>) -> Nat:
 # The observation cache owns independent aggregate limits, not Graph.Limits.
 # requestedBytes defaults to the original source ceiling, even for a tighter unit.
 def bytes_refusal_for(+used: Nat, +requested: Nat) -> Maybe<&2, T.CaptureDiagnostic>:
-  Bool.pick(Maybe<&2, T.CaptureDiagnostic>, Nat.is_gt((used + requested : Nat), 16777216n),
-    Some{T.CaptureBudgetDiagnostic{"bytes", used, requested, 16777216n}}, None{})
+  Bool.pick(
+    Maybe<&2, T.CaptureDiagnostic>,
+    Nat.is_gt((used + requested : Nat), Nat.mul(256n, Nat.mul(256n, 256n))),
+    Some{T.CaptureBudgetDiagnostic{"bytes", used, requested, Nat.mul(256n, Nat.mul(256n, 256n))}},
+    None{}
+  )
 
 def files_refusal_for(
   +entries: List<&2, T.CaptureBytes>,
