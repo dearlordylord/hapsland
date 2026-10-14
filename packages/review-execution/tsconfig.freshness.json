@@ -4,15 +4,17 @@
     "incremental": false,
     "paths": {
       "@hapsland/canonical-policy/canonical/child-execution": [
-        "../canonical-policy/src/canonical/child-execution/contract.ts"
+        "../canonical-policy/src/canonical/child-execution/index.ts"
       ],
       "@hapsland/runtime-environment/runtime/native-session-registry": [
         "../runtime-environment/src/runtime/native-session-registry.ts"
       ]
-    }
+    },
+    "allowJs": true
   },
   "include": [
     "src/direct-event/freshness/**/*.ts",
-    "src/direct-event/evaluation/**/*.ts"
+    "src/direct-event/evaluation/**/*.ts",
+    "src/direct-event/pipeline.ts"
   ]
 }

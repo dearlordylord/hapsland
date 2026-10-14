@@ -3,11 +3,15 @@ import * as Effect from "effect/Effect"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { rm } from "node:fs/promises"
+import { readFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { makeGitFixture, put, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
-import { prepareSourceLine, prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
+import {
+  prepareSourceLine,
+  preparedSourceLineStillCurrent,
+  prepareObservation
+} from "@hapsland/review-execution/direct-event/pipeline"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import { checkRuleAtLine, formatRuleCheck } from "@hapsland/administration/rules/check"
@@ -117,6 +121,17 @@ describe("one-off file and line rule checks", () => {
     expect(selected.prepared.identity).toBe(matching.prepared.identity)
     expect(selected.prepared).not.toHaveProperty("advicee")
     expect(manual.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(1)
+    const selection = { ...repository, path: "target.ts", line: 4 }
+    expect(await Effect.runPromise(preparedSourceLineStillCurrent(selection, selected.prepared, { settings }))).toBe(
+      true
+    )
+    const source = await readFile(join(root, "target.ts"), "utf8")
+    await put(root, "target.ts", source.replace("secret: string", "secret: boolean"))
+    // The selected declaration is unchanged; complete-capture freshness still
+    // rejects an unrelated edit in its source file.
+    expect(await Effect.runPromise(preparedSourceLineStillCurrent(selection, selected.prepared, { settings }))).toBe(
+      false
+    )
   })
 
   it.each([0.7, 0.71])(

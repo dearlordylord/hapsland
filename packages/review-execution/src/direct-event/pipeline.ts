@@ -1,5 +1,6 @@
 import type { EvaluatedUnit } from "./evaluation/contract.ts"
 import type { RevalidationResult, ResidentPublicationAuthority } from "./freshness/contract.ts"
+import { executeFreshness } from "./freshness/consumer.ts"
 import { prepareSource } from "./preparation/public-preparation.ts"
 import type {
   SourceLineRequest,
@@ -42,12 +43,7 @@ import {
   type ReportCandidateInputFailure
 } from "./review-renderer.ts"
 
-import {
-  canonicalValue,
-  semanticIdentity,
-  type PreparedUnit,
-  type ReviewInput
-} from "@hapsland/review-definition/direct-event/model"
+import { canonicalValue, type PreparedUnit, type ReviewInput } from "@hapsland/review-definition/direct-event/model"
 import { bundledArtifactDomain } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { type DirectObservation, type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import {
@@ -89,24 +85,6 @@ export type DirectReviewResult =
 
 const sameAdvicee = (left: DirectAdvicee, right: DirectAdvicee): boolean =>
   canonicalValue(left) === canonicalValue(right)
-
-const sameInput = (left: ReviewInput, right: ReviewInput): boolean => {
-  const { sourceFingerprints: _leftCapture, rootLocation: _leftLocation, ...leftReview } = left
-  const { sourceFingerprints: _rightCapture, rootLocation: _rightLocation, ...rightReview } = right
-  return canonicalValue(leftReview) === canonicalValue(rightReview)
-}
-
-const preparedBelongsTo = (prepared: PreparedUnit, observation: DirectObservation): boolean =>
-  prepared.root === observation.root && sameAdvicee(prepared.advicee, observation.advicee)
-
-const validEvaluation = (evaluation: EvaluatedUnit): boolean =>
-  evaluation.prepared.identity === semanticIdentity(evaluation.prepared.input) &&
-  evaluation.findings.every(
-    (finding) =>
-      finding.semanticIdentity === evaluation.prepared.identity &&
-      finding.path === evaluation.prepared.input.path &&
-      finding.declaration === evaluation.prepared.input.declaration.name
-  )
 
 const current = <A>(value: A | (() => A)): A => (typeof value === "function" ? (value as () => A)() : value)
 
@@ -151,19 +129,16 @@ export const preparedSourceLineStillCurrent = Effect.fn("DirectEvent.preparedSou
   prepared: PreparedSource,
   context: SourcePreparationContext
 ) {
-  if (!(yield* verifyObservationRoot(request))) return false
-  const latest = yield* prepareSourceLine(request, context)
-  const ready = latest.outcomes.filter((outcome) => outcome.status === "ready")
-  return (
-    ready.length === 1 &&
-    ready.some(
-      (outcome) =>
-        outcome.status === "ready" &&
-        outcome.prepared.identity === prepared.identity &&
-        sameInput(outcome.prepared.input, prepared.input) &&
-        canonicalValue(outcome.prepared.input.sourceFingerprints) === canonicalValue(prepared.input.sourceFingerprints)
-    )
+  const outcome = yield* executeFreshness(
+    { kind: "snapshot-line", observation: request, prepared, context },
+    {
+      verifyRoot: () => verifyObservationRoot(request),
+      prepare: () => prepareSourceLine(request, context),
+      currentWork: currentWorkEffect
+    }
   )
+  if (outcome.kind !== "snapshot") throw new TypeError("Unexpected publication result for line snapshot")
+  return outcome.current
 })
 
 /** Explicit snapshot comparison for analysis callers; the review loop checks at publication. */
@@ -172,17 +147,16 @@ export const preparedUnitStillCurrent = Effect.fn("DirectEvent.preparedUnitStill
   prepared: PreparedUnit,
   context: DirectReviewContext
 ) {
-  if (!(yield* verifyObservationRoot(observation))) return false
-  const names = new Map([[prepared.input.path, new Set([prepared.input.declaration.name])]])
-  const latest = yield* prepareObservation(observation, context, names)
-  return latest.outcomes.some(
-    (outcome) =>
-      outcome.status === "ready" &&
-      outcome.prepared.input.path === prepared.input.path &&
-      outcome.prepared.identity === prepared.identity &&
-      sameInput(outcome.prepared.input, prepared.input) &&
-      canonicalValue(outcome.prepared.input.sourceFingerprints) === canonicalValue(prepared.input.sourceFingerprints)
+  const outcome = yield* executeFreshness(
+    { kind: "snapshot-unit", observation, prepared, context },
+    {
+      verifyRoot: () => verifyObservationRoot(observation),
+      prepare: (_input, names) => prepareObservation(observation, context, names),
+      currentWork: currentWorkEffect
+    }
   )
+  if (outcome.kind !== "snapshot") throw new TypeError("Unexpected publication result for unit snapshot")
+  return outcome.current
 })
 
 type Evaluation =
@@ -632,82 +606,32 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   return yield* finishObservationPublication(observation, evaluated.evaluations, context)
 })
 
-const evaluatedNames = (evaluations: readonly EvaluatedUnit[]): ReadonlyMap<string, ReadonlySet<string>> => {
-  const frozenNames = new Map<string, Set<string>>()
-  for (const evaluation of evaluations) {
-    const input = evaluation.prepared.input
-    const names = frozenNames.get(input.path) ?? new Set<string>()
-    names.add(input.declaration.name)
-    frozenNames.set(input.path, names)
-  }
-  return frozenNames
-}
-const retainMatchingEvaluations = (evaluations: readonly EvaluatedUnit[], current: readonly PreparedUnit[]) => {
-  const retained: Array<EvaluatedUnit> = []
-  let foundChangedInput = false
-  for (const evaluation of evaluations) {
-    const expected = evaluation.prepared.input
-    const sameSubject = current.filter(
-      (prepared) =>
-        prepared.input.path === expected.path && prepared.input.declaration.name === expected.declaration.name
-    )
-    const matching = sameSubject.find(
-      (prepared) => prepared.identity === evaluation.prepared.identity && sameInput(prepared.input, expected)
-    )
-    if (matching !== undefined) retained.push(evaluation)
-    else if (sameSubject.length > 0) foundChangedInput = true
-  }
-  return { retained, foundChangedInput }
-}
-const publishRetainedEvaluations = Effect.fn("DirectEvent.publishRetainedEvaluations")(function* (
-  retained: readonly EvaluatedUnit[],
-  authority: ResidentPublicationAuthority | undefined
-): Effect.fn.Return<RevalidationResult> {
-  // Keep the scheduler-owned supersession check last: semantic capture does
-  // not prove that a later accepted observation has not replaced this work.
-  const publishable: Array<EvaluatedUnit> = []
-  for (const evaluation of retained) {
-    if (authority === undefined || (yield* authority.isCurrentWork(evaluation.prepared))) {
-      publishable.push(evaluation)
-    }
-  }
-  if (publishable.length === 0) return { status: "stale", findings: [] }
-  return { status: "current", evaluations: publishable, findings: publishable.flatMap(({ findings }) => findings) }
-})
-const publicationAttributed = (
-  observation: DirectObservation,
-  evaluations: readonly EvaluatedUnit[],
-  context: DirectReviewContext
-): boolean =>
-  context.controlledWriter &&
-  sameAdvicee(observation.advicee, context.advicee) &&
-  evaluations.every((evaluation) => preparedBelongsTo(evaluation.prepared, observation))
-const validPublicationEvaluations = (evaluations: readonly EvaluatedUnit[]): boolean =>
-  evaluations.length > 0 && evaluations.every(validEvaluation)
+// Native method invocation preserves its original receiver without consulting
+// an overridable function.call property. All acceptance decisions are Bend-owned.
+const currentWorkEffect = (
+  method: unknown,
+  receiver: ResidentPublicationAuthority,
+  prepared: unknown
+): Effect.Effect<boolean> =>
+  Reflect.apply(method as ResidentPublicationAuthority["isCurrentWork"], receiver, [prepared])
 
-/**
- * Recheck delayed evaluations against current authority and complete canonical
- * inputs. A whole-file match is intentionally neither accepted nor consulted.
- */
+/** Revalidate the whole delayed-publication flow through its Canonical scope. */
 const revalidateForPublication = Effect.fn("DirectEvent.revalidateForPublication")(function* (
   observation: DirectObservation,
   evaluations: ReadonlyArray<EvaluatedUnit>,
   context: DirectReviewContext,
   authority: ResidentPublicationAuthority | undefined
 ): Effect.fn.Return<RevalidationResult> {
-  if (!publicationAttributed(observation, evaluations, context)) return { status: "unattributed", findings: [] }
-  if (!validPublicationEvaluations(evaluations)) return { status: "unavailable", findings: [] }
-  if (!(yield* verifyObservationRoot(observation))) {
-    return { status: "unavailable", findings: [] }
-  }
-  const frozenNames = evaluatedNames(evaluations)
-  const currentPrepared = yield* prepareObservation(observation, context, frozenNames)
-  const current = currentPrepared.outcomes.flatMap((outcome) => (outcome.status === "ready" ? [outcome.prepared] : []))
-  const { retained, foundChangedInput } = retainMatchingEvaluations(evaluations, current)
-  if (retained.length > 0) {
-    return yield* publishRetainedEvaluations(retained, authority)
-  }
-  return foundChangedInput ? { status: "stale", findings: [] } : { status: "unavailable", findings: [] }
+  const outcome = yield* executeFreshness(
+    { kind: "publication", observation, evaluations, context, authority },
+    {
+      verifyRoot: () => verifyObservationRoot(observation),
+      prepare: (_input, names) => prepareObservation(observation, context, names),
+      currentWork: currentWorkEffect
+    }
+  )
+  if (outcome.kind !== "publication") throw new TypeError("Unexpected snapshot result for publication")
+  return outcome.result
 })
 
 /**

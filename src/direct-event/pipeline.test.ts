@@ -22,6 +22,7 @@ import {
   reviewCodexDirectEvent,
   reviewObservation,
   type DirectReviewContext,
+  type ResidentPublicationAuthority,
   type EvaluationEvidence
 } from "@hapsland/review-execution/direct-event/pipeline"
 import {
@@ -1837,6 +1838,28 @@ describe("direct-event vertical slice", () => {
       const result = yield* reviewObservation(observation, context)
       expect(result.status).toBe("ready")
       if (result.status !== "ready") return
+
+      const caller = yield* Effect.fiberId
+      const authority: ResidentPublicationAuthority = {
+        isCurrentWork(_prepared) {
+          expect(this).toBe(authority)
+          return Effect.gen(function* () {
+            expect(yield* Effect.fiberId).toBe(caller)
+            return true
+          })
+        }
+      }
+      Object.defineProperty(authority.isCurrentWork, "call", {
+        get() {
+          throw new Error("Publication must not inspect a function.call property")
+        }
+      })
+      const current = yield* revalidateEvaluations(observation, result.evaluations, context, authority)
+      expect(current.status).toBe("current")
+      if (current.status === "current") {
+        expect(current.evaluations).toEqual(result.evaluations)
+        expect(current.evaluations[0]).toBe(result.evaluations[0])
+      }
 
       const superseded = yield* revalidateEvaluations(observation, result.evaluations, context, {
         isCurrentWork: () => Effect.succeed(false)
