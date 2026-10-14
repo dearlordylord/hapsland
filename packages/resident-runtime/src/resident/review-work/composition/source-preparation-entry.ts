@@ -1,5 +1,4 @@
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { createSourcePreparationProvider } from "../preparation/source-preparation-provider.mjs"
 import type { PostContext } from "../preparation/post-preparation-host.mjs"
@@ -30,9 +29,10 @@ export const runResidentSourcePreparation = Effect.fn("ResidentRuntime.sourcePre
 ) {
   const { driver, bridge } = ports
   const job = context.job
-  const { source, outcome } = yield* Effect.acquireUseRelease(
-    Effect.gen(function* () {
-      const partition = yield* context.deps.residentLedger.partitionId(job.partition)
+  const partition = yield* context.deps.residentLedger.partitionId(job.partition)
+  let source: SourceSession | undefined
+  const outcome = yield* driver.driveConstructedEffect(
+    () => {
       const invocation = driver.allocateSourceInvocation({
         $: "SourceScope",
         partition: BigInt(partition),
@@ -41,56 +41,33 @@ export const runResidentSourcePreparation = Effect.fn("ResidentRuntime.sourcePre
         observation: BigInt(job.canonicalObservationId),
         permission: { $: "SourceNew" }
       })
-      const source = yield* Effect.sync(() => {
+      try {
+        source = createSourcePreparationProvider(BigInt(invocation), context, {
+          owner,
+          bridge,
+          driver,
+          candidates: job.observation.candidates,
+          buildPreparationSession: ports.buildPreparationSession,
+          entry: ports.entry ?? "full"
+        })
+        return { session: source, input: source.input }
+      } catch (original) {
         try {
-          return createSourcePreparationProvider(BigInt(invocation), context, {
-            owner,
-            bridge,
-            driver,
-            candidates: job.observation.candidates,
-            buildPreparationSession: ports.buildPreparationSession,
-            entry: ports.entry ?? "full"
-          })
-        } catch (original) {
-          try {
-            driver.constructionFailed(invocation)
-          } catch (cleanup) {
-            throw new AggregateError([original, cleanup], "Source construction and cleanup failed", { cause: original })
-          }
-          throw original
+          driver.constructionFailed(invocation, source === undefined ? {} : { session: source })
+        } catch (cleanup) {
+          throw new AggregateError([original, cleanup], "Source construction and cleanup failed", { cause: original })
         }
-      })
-      const controller = new AbortController()
-      const signal = AbortSignal.any([context.preparationSignal, controller.signal])
-      const completion = Promise.resolve().then(() => driver.drive(source, source.input, { signal }))
-      return { source, controller, completion }
-    }),
-    ({ source, completion }) => Effect.promise(() => completion.then((outcome) => ({ source, outcome }))),
-    ({ controller, completion }, exit) =>
-      Effect.gen(function* () {
-        controller.abort()
-        yield* Effect.promise(() => completion).pipe(
-          Effect.catchCause((cause) => {
-            // Keep late cleanup failures on interruption; do not duplicate a
-            // completion rejection already observed by the use effect.
-            const observed =
-              Exit.isFailure(exit) &&
-              cause.reasons.every(
-                (reason) =>
-                  reason._tag === "Die" &&
-                  exit.cause.reasons.some((previous) => previous._tag === "Die" && previous.defect === reason.defect)
-              )
-            return observed ? Effect.void : Effect.failCause(cause)
-          }),
-          Effect.asVoid
-        )
-      })
+        throw original
+      }
+    },
+    { signal: context.preparationSignal }
   )
+  if (source === undefined) throw new TypeError("Missing constructed Source session")
   if (!("completed" in outcome) && !("failure" in outcome && outcome.failure.$ === "Types.InvocationCancelled"))
     throw new TypeError("Wrong Canonical Source terminal binding")
   ports.onTerminal?.(source, outcome)
   // Canonical job cancellation is a settled product outcome. Fiber interruption
-  // is handled separately by acquireUseRelease and retains its original Cause.
+  // is settled by the shared driver and retains its original Cause.
   if ("failure" in outcome) return outcome
   if (!outcome.recovered && outcome.reason && "token" in outcome.reason) {
     const cause = source.cause(outcome.reason.token)

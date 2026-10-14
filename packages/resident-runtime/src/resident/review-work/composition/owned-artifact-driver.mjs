@@ -54,7 +54,8 @@ const required = (value) => {
  */
 /**
  * @template {NativeSession} Session
- * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice"> & {
+ * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice" | "driveConstructedEffect"> & {
+ * driveConstructedEffect: (construct: () => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}, options?: ForeignOptions) => import("effect/Effect").Effect<SourceOutcome>,
  * drive: Drive<Session>,
  * driveHandoff: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => Promise<PostOutcome>,
  * driveAdvice: (receipt: AdviceHandoff, session: Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}, options?: ForeignOptions) => Promise<AdviceOutcome>
@@ -170,7 +171,8 @@ export function createOwnedArtifactDriver({
   })
   const sharedDrive = shared.drive,
     sharedHandoff = shared.driveHandoff,
-    sharedAdvice = shared.driveAdvice
+    sharedAdvice = shared.driveAdvice,
+    sharedConstructed = shared.driveConstructedEffect
   /** @overload @param {Session} session @param {Parameters<ownedMachine.ArtifactMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<GraphOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.PreparationMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<PreparationOutcome>} */
   /** @overload @param {Session} session @param {Parameters<ownedMachine.SourceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<SourceOutcome>} */
@@ -191,5 +193,10 @@ export function createOwnedArtifactDriver({
   function driveAdvice(receipt, session, options) {
     return sharedAdvice(receipt, session, options)
   }
-  return Object.assign(shared, { drive, driveHandoff, driveAdvice })
+  /** @overload @param {() => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}} construct @param {ForeignOptions} [options] @returns {import("effect/Effect").Effect<SourceOutcome>} */
+  /** @param {() => {session: Session, input: ownedMachine.Input}} construct @param {ForeignOptions} [options] @returns {import("effect/Effect").Effect<TerminalOutcome>} */
+  function driveConstructedEffect(construct, options) {
+    return sharedConstructed(construct, options)
+  }
+  return Object.assign(shared, { drive, driveHandoff, driveAdvice, driveConstructedEffect })
 }

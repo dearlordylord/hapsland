@@ -53,6 +53,6 @@ export function createResidentPreparationBinding(bridge: ReturnType<typeof creat
         }
       })
     }),
-    cleanup: () => Effect.promise(() => registry.retryCleanup())
+    cleanup: () => registry.retryCleanupEffect()
   }
 }

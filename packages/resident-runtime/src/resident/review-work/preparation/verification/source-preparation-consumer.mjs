@@ -611,16 +611,6 @@ try {
       )
     }
     let invocation, source, sourceExit, resultFromSource
-    if (mode === "full-fiber-interrupt") {
-      const drive = driver.drive
-      driver.drive = async (session, input, options) => {
-        const outcome = await drive(session, input, options)
-        // Observe completion even when the interrupted use effect cannot call
-        // onTerminal. The original driver and its finalization still own it.
-        if ("sourcePreparation" in input) resultFromSource = outcome
-        return outcome
-      }
-    }
     const executeSource = runResidentSourcePreparation(context, {
       bridge,
       driver,
@@ -738,7 +728,7 @@ try {
         : undefined
       try {
         sourceExit = await Effect.runPromiseExit(executeSource, { signal: effectController.signal })
-        if (resultFromSource === undefined) {
+        if (resultFromSource === undefined && mode !== "full-fiber-interrupt") {
           if (Exit.isFailure(sourceExit)) throw Cause.squash(sourceExit.cause)
           assert.fail("Source entry must expose its terminal observation")
         }
@@ -1071,7 +1061,11 @@ try {
         assert.equal(interrupted.length, 1)
         assert.equal(completed.length, 0)
       } else if (["cancel-between-candidates", "full-cancel-after-enqueue", "full-fiber-interrupt"].includes(mode)) {
-        assert.ok(result.failure)
+        if (mode === "full-fiber-interrupt") {
+          assert.ok(Exit.isFailure(sourceExit))
+          assert.equal(Cause.hasInterrupts(sourceExit.cause), true)
+          assert.equal(resultFromSource, undefined, "interrupted Effect cannot publish a returned terminal")
+        } else assert.ok(result.failure)
         assert.equal(context.job.completed, undefined)
         assert.equal(interrupted.length, 1)
         assert.equal(completed.length, 0)
