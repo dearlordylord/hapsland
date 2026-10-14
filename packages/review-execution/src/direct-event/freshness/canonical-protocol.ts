@@ -1,5 +1,6 @@
 import type { Protocol, ForeignReply, ForeignCommand } from "@hapsland/canonical-policy/canonical/child-execution"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { createLazyJson } from "./lazy-json.ts"
 import snapshot from "./freshness-core.js"
 import publication from "./publication-core.js"
 import type * as Snapshot from "./freshness-core.js"
@@ -128,7 +129,8 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
   const iterator = function* (array: unknown): Generator<unknown, void, unknown> {
     for (const item of array as Iterable<unknown>) yield item
   }
-  const primitive = (query: NativeQuery): Response => {
+  const json = createLazyJson(store, value)
+  const primitive = (query: NativeQuery, invocation: bigint): Response => {
     switch (query.$) {
       case "Read":
       case "PublicationRetention.Read":
@@ -146,18 +148,18 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
         return {
           $: "Flag",
           value: query.review_input
-            ? ports.sameInput(read(query.left), read(query.right))
-            : ports.serialize(read(query.left)) === ports.serialize(read(query.right))
+            ? json.compare(invocation, read(query.left), read(query.right), true)
+            : json.compareLenses(invocation, query.left, query.right)
         }
       case "AdviceeEqual": {
         const left = read(query.left),
           right = read(query.right)
-        return { $: "Flag", value: ports.serialize(left) === ports.serialize(right) }
+        return { $: "Flag", value: json.compare(invocation, left, right, false) }
       }
       case "Identity":
-        return { $: "Handle", value: store(ports.semanticIdentity(value(query.input))) }
+        return { $: "Handle", value: store(json.identity(invocation, value(query.input))) }
       case "PublicationRetention.InputEqual":
-        return { $: "Flag", value: ports.sameInput(value(query.left), value(query.right)) }
+        return { $: "Flag", value: json.compare(invocation, value(query.left), value(query.right), true) }
       case "Length":
       case "PublicationRetention.Length":
         return { $: "Count", value: BigInt((value(query.array) as { length: number }).length) }
@@ -281,6 +283,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
         if (boundary === "TerminalBoundary") return { kind: "terminal", value: { $: "FreshnessReply", request, state } }
         if (state.step.$ !== "Await") throw new TypeError("Invalid freshness command boundary")
         const query = nativeQuery(state.step.query)
+        const invocation = state.step.frame.invocation
         if (boundary === "IoBoundary")
           return {
             kind: "pending",
@@ -298,7 +301,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
           kind: "primitive",
           perform() {
             try {
-              state = advance(state, primitive(query))
+              state = advance(state, primitive(query, invocation))
             } catch (error) {
               if (iteratorBody) activeIterator?.throw(error)
               throw error

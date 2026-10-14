@@ -4,7 +4,6 @@ import * as Exit from "effect/Exit"
 import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
-import { canonicalValue, semanticIdentity } from "@hapsland/review-definition/direct-event/model"
 import {
   createFreshnessSession,
   freshnessProtocol,
@@ -13,11 +12,6 @@ import {
 import { reference as snapshotReference } from "./snapshot-check.mjs"
 import { reference as publicationReference, fixture as publicationFixture } from "./publication-check.mjs"
 
-const sameInput = (left, right) => {
-  const { sourceFingerprints: _lc, rootLocation: _ll, ...l } = left
-  const { sourceFingerprints: _rc, rootLocation: _rl, ...r } = right
-  return canonicalValue(l) === canonicalValue(r)
-}
 const runEffect = async (effect, execution) => {
   const exit = await Effect.runPromiseExit(effect, execution)
   if (Exit.isFailure(exit)) throw exit.cause
@@ -53,6 +47,114 @@ const execute = async (input, ports, hooks = {}) => {
 }
 let cases = 0
 for (const mode of ["snapshot-line", "snapshot-unit"]) {
+  const lanes = []
+  for (const canonical of [false, true]) {
+    const trace = []
+    const fingerprints = (label) => {
+      const array = []
+      array.map = function (callback) {
+        trace.push(label + " map " + (this === array))
+        const text = callback({
+          get z() {
+            trace.push(label + " z")
+            return 2
+          },
+          get a() {
+            trace.push(label + " a")
+            return 1
+          }
+        })
+        return {
+          join(separator) {
+            trace.push(label + " join " + separator)
+            return {
+              [Symbol.toPrimitive](hint) {
+                trace.push(label + " coerce " + hint)
+                return text
+              }
+            }
+          }
+        }
+      }
+      return array
+    }
+    const input = (label) => ({
+      path: "a",
+      declaration: { name: "Type" },
+      text: "source",
+      get sourceFingerprints() {
+        trace.push(label + " fingerprints")
+        return fingerprints(label)
+      }
+    })
+    const prepared = { identity: "one", input: input("right") }
+    const candidate = { identity: "one", input: input("left") }
+    const payload = { kind: mode, observation: {}, prepared, context: {} }
+    const ports = {
+      verifyRoot: () => Promise.resolve(true),
+      prepare: () => Promise.resolve({ outcomes: [{ status: "ready", prepared: candidate }] }),
+      currentWork() {
+        assert.fail("No snapshot authority")
+      }
+    }
+    const current = canonical
+      ? (await execute(payload, ports)).outcome.current
+      : await snapshotReference(mode === "snapshot-line" ? "SnapshotLine" : "SnapshotUnit", prepared, {
+          verifyRoot: ports.verifyRoot,
+          prepare: ports.prepare
+        })
+    lanes.push({ current, trace })
+  }
+  assert.deepEqual(lanes[1], lanes[0], mode + " native map/join under Canonical lease")
+  cases++
+}
+for (const mode of ["snapshot-line", "snapshot-unit"]) {
+  for (const original of [new Error("later original getter"), null, undefined, false, 0, ""]) {
+    let active
+    const trace = []
+    const input = { path: "a", declaration: { name: "Type" }, text: "source", sourceFingerprints: {} }
+    const prepared = { identity: "one", input }
+    const candidate = {
+      identity: "one",
+      input: {
+        ...input,
+        sourceFingerprints: {
+          get a() {
+            trace.push("cancel")
+            active.driver.cancel(active.invocation)
+            return 1
+          },
+          get z() {
+            trace.push("later throw")
+            throw original
+          }
+        }
+      }
+    }
+    const ports = {
+      verifyRoot: () => Promise.resolve(true),
+      prepare: () => Promise.resolve({ outcomes: [{ status: "ready", prepared: candidate }] }),
+      currentWork() {
+        assert.fail("No snapshot authority")
+      }
+    }
+    let failed = false
+    try {
+      await execute({ kind: mode, observation: {}, prepared, context: {} }, ports, {
+        beforeProvider(event) {
+          active = event
+        }
+      })
+    } catch (error) {
+      failed = true
+      assert.equal(error, original)
+    }
+    assert.equal(failed, true)
+    assert.deepEqual(trace, ["cancel", "later throw"])
+    cases++
+  }
+}
+for (const mode of ["snapshot-line", "snapshot-unit"]) {
   for (const root of [false, true])
     for (const count of [0, 1, 2, 1024]) {
       const lanes = []
@@ -68,9 +170,6 @@ for (const mode of ["snapshot-line", "snapshot-unit"]) {
         const payload = { kind: mode, observation: {}, prepared, context: {} }
         const outcomes = Array.from({ length: count }, () => ({ status: "ready", prepared }))
         const ports = {
-          serialize: canonicalValue,
-          sameInput,
-          semanticIdentity,
           verifyRoot() {
             trace.push("root")
             return Promise.resolve(root)
@@ -112,9 +211,6 @@ for (let bits = 0; bits < 256; bits++) {
       }
     }
     const ports = {
-      serialize: canonicalValue,
-      sameInput,
-      semanticIdentity,
       verifyRoot: f.engines.verifyRoot,
       prepare: (_input, names) => f.engines.prepare(f.observation, f.context, names),
       currentWork: (method, receiver, prepared, execution) => runEffect(method.call(receiver, prepared), execution)
@@ -174,9 +270,6 @@ for (const mode of ["snapshot-line", "snapshot-unit"]) {
       }
     }
     const ports = {
-      serialize: canonicalValue,
-      sameInput,
-      semanticIdentity,
       verifyRoot: () => Promise.resolve(true),
       prepare: () => Promise.resolve({ outcomes: [{ status: "ready", prepared: candidate }] }),
       currentWork() {
@@ -203,9 +296,6 @@ for (const mode of ["snapshot-line", "snapshot-unit"]) {
   const prepared = { identity: "one", input: { path: "a", declaration: { name: "Type" }, text: "source" } }
   let preparedCalls = 0
   const ports = {
-    serialize: canonicalValue,
-    sameInput,
-    semanticIdentity,
     verifyRoot() {
       return new Promise((resolve) =>
         queueMicrotask(() => {
@@ -235,9 +325,6 @@ for (const mode of ["snapshot-line", "snapshot-unit"]) {
 {
   const input = { kind: "snapshot-unit", observation: {}, prepared: {}, context: {} }
   const ports = {
-    serialize: canonicalValue,
-    sameInput,
-    semanticIdentity,
     verifyRoot() {
       assert.fail("Input substitution cannot start IO")
     },
@@ -263,6 +350,6 @@ console.log(
     passed: true,
     cases,
     scope:
-      "actual issued Canonical child, complete three-mode results/read/IO traces and zero retained resources; production cutover, lazy Bend JSON and universal proof remain open"
+      "actual issued Canonical child, complete three-mode results/read/IO traces and zero retained resources; lazy Bend JSON qualified; production cutover and universal proof remain open"
   })
 )

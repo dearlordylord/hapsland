@@ -60,8 +60,7 @@ export type FreshnessExecution = {
     readonly request: bigint
   }
 }
-// Serialization ports remain explicit until their lazy Bend replacement is
-// qualified. They are not a claim that the whole migration unit is accepted.
+// Native ports perform external IO; canonical traversal and identity are Bend-owned.
 export type FreshnessPorts = {
   verifyRoot(observation: FreshnessInput["observation"], execution: FreshnessExecution): Promise<boolean>
   prepare(
@@ -75,7 +74,4 @@ export type FreshnessPorts = {
     prepared: unknown,
     execution: FreshnessExecution
   ): Promise<boolean>
-  serialize(value: unknown): string
-  sameInput(left: unknown, right: unknown): boolean
-  semanticIdentity(value: unknown): unknown
 }

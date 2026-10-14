@@ -23,5 +23,10 @@
     "source": "freshness/Publication.bend",
     "output": "freshness/publication-core.js",
     "declaration": "freshness/publication-core.d.ts"
+  },
+  {
+    "source": "freshness/LazyJson.bend",
+    "output": "freshness/lazy-json-core.js",
+    "declaration": "freshness/lazy-json-core.d.ts"
   }
 ]
