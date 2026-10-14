@@ -1,3 +1,7 @@
+import {
+  ResidentProviderPermit,
+  ResidentResourceReceipt
+} from "../../../state/resolver-custody/resident-provider-permit.mjs"
 import assert from "node:assert/strict"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import postCore from "../../../../../dist/resident/review-work/preparation/post-preparation-core.js"
@@ -6,6 +10,7 @@ import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
+import * as Context from "effect/Context"
 import * as Ref from "effect/Ref"
 import * as Scope from "effect/Scope"
 import * as Exit from "effect/Exit"
@@ -38,6 +43,16 @@ import { createResidentPreparationSession } from "../../composition/preparation-
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
 import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
 import { runResidentSourcePreparation } from "../../composition/source-preparation-entry.ts"
+const withUnissuedAuthority = (effect) =>
+  effect.pipe(
+    Effect.provideService(ResidentProviderPermit, {
+      credential: { invocation: 999999n, generation: 999999n, lease: 999999n, request: 999999n }
+    }),
+    Effect.provideService(ResidentResourceReceipt, () => {
+      throw new Error("unissued caller receipt crossed provider boundary")
+    })
+  )
+const callerMarker = Context.Reference("resident-source-caller", { defaultValue: () => "missing" })
 const run = Effect.runSync,
   temp = await mkdtemp("/tmp/hapsland-source-composition-")
 try {
@@ -269,7 +284,7 @@ try {
         if (session.input?.sourcePreparation) {
           source = session
           invocation = session.invocation
-          return performPreparationSessionRequest(registry, request, {
+          const work = performPreparationSessionRequest(registry, request, {
             ...options,
             beforeCommand: (command) => {
               if (mode === "after-prepare-analytics-failure" && command.$ === "RecordPreparationFailureAnalytics")
@@ -300,6 +315,7 @@ try {
                 throw new Error("injected observation completion acknowledgement loss")
             }
           })
+          return mode === "full-workflow" ? withUnissuedAuthority(work) : work
         }
         if (
           ((mode === "first-preparation-failure" && caches.length === 1) ||
@@ -398,6 +414,29 @@ try {
       })
     }
     const { context, ledger, lifecycle, scope, hold } = shared
+    let expectedCaller
+    const callerStages = new Set()
+    const inCaller = (stage, effect, direct = true) =>
+      Effect.gen(function* () {
+        if (expectedCaller !== undefined) {
+          assert.equal(yield* callerMarker, "resident-caller", stage + " Context")
+          const current = yield* Effect.fiber
+          if (direct) assert.strictEqual(current, expectedCaller, stage + " caller fiber")
+          else assert.notStrictEqual(current, expectedCaller, stage + " independently cancellable IO child")
+          callerStages.add(stage)
+        }
+        return yield* effect
+      })
+    if (mode === "full-workflow") {
+      const active = context.deps.residentJobActive
+      context.deps.residentJobActive = (...args) => inCaller("Source", active(...args))
+      const route = context.deps.residentReuse.route
+      context.deps.residentReuse.route = (...args) => inCaller("Post", route(...args))
+      const canonical = bridge.canonical
+      bridge.canonical = (...args) => inCaller("Canonical gate", canonical(...args))
+      const release = ledger.release
+      ledger.release = (...args) => inCaller("cleanup", release(...args))
+    }
     connection.runtime = ledger.runtime
     if (mode === "full-cancel-after-enqueue") cancelSourceAfterFirstEnqueue(context, sourceEffects)
     const effectController = new AbortController()
@@ -665,6 +704,10 @@ try {
                 )
             : captureStable
         }
+        if (mode === "full-workflow") {
+          const capture = preparationContext.captureSource
+          preparationContext.captureSource = (...args) => inCaller("IO", capture(...args), false)
+        }
         const foreignPorts = {
           connection: { ...connection, preparation },
           owner,
@@ -730,12 +773,27 @@ try {
         ? captureActivityPublications(context.job.dispatch.activityPath, sourceEffects)
         : undefined
       try {
-        sourceExit = await Effect.runPromiseExit(executeSource, { signal: effectController.signal })
+        const execution =
+          mode === "full-workflow"
+            ? Effect.withFiber((fiber) => {
+                expectedCaller = fiber
+                return executeSource.pipe(
+                  Effect.ensuring(
+                    Effect.sync(() => {
+                      expectedCaller = undefined
+                    })
+                  )
+                )
+              }).pipe(Effect.provideService(callerMarker, "resident-caller"))
+            : executeSource
+        sourceExit = await Effect.runPromiseExit(execution, { signal: effectController.signal })
         if (resultFromSource === undefined && mode !== "full-fiber-interrupt") {
           if (Exit.isFailure(sourceExit)) throw Cause.squash(sourceExit.cause)
           assert.fail("Source entry must expose its terminal observation")
         }
         result = resultFromSource
+        if (mode === "full-workflow")
+          assert.deepEqual([...callerStages].sort(), ["Canonical gate", "IO", "Post", "Source", "cleanup"].sort())
       } catch (error) {
         if (mode !== "source-cleanup-pending") throw error
         try {
@@ -765,7 +823,7 @@ try {
           assert.equal(context.unassignedClaims.size, 0)
           assert.equal(context.activeWorkspaces.size, 1)
           assert.equal(registry.pendingCleanup, 1)
-          const retry = await Effect.runPromiseExit(registry.retryCleanupEffect())
+          const retry = await Effect.runPromiseExit(withUnissuedAuthority(registry.retryCleanupEffect()))
           assert.ok(Exit.isFailure(retry))
           assert.deepEqual(
             retry.cause.reasons.map((reason) => reason._tag),
@@ -781,7 +839,7 @@ try {
           assert.equal(registry.pendingCleanup, 1)
         } finally {
           cleanupFails = false
-          await Effect.runPromise(registry.retryCleanupEffect())
+          await Effect.runPromise(withUnissuedAuthority(registry.retryCleanupEffect()))
         }
         assert.equal(registry.pendingCleanup, 0)
         assert.equal(context.activeWorkspaces.size, 0)
@@ -793,7 +851,7 @@ try {
         assert.equal(finalizerAckLost, true)
         assert.equal(finalizerFailed, true)
         assert.equal(registry.pendingCleanup, 1)
-        await Effect.runPromise(registry.retryCleanupEffect())
+        await Effect.runPromise(withUnissuedAuthority(registry.retryCleanupEffect()))
         assert.equal(registry.pendingCleanup, 0)
       }
       if (mode === "completion-ack-loss") {

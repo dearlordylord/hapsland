@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
+import * as Context from "effect/Context"
+import * as Exit from "effect/Exit"
 import * as Ref from "effect/Ref"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
@@ -28,7 +30,8 @@ const postCore = (
   const tailMachine = createAdviceTailMachine(postCore)
   const run = Effect.runSync,
     limits = { globalItems: 100, globalBytes: 10000, partitionItems: 16, partitionBytes: 10000 }
-  let cases = 0
+  let cases = 0,
+    callerChecks = 0
   for (const variant of [
     "completed",
     "interrupted",
@@ -832,6 +835,31 @@ const postCore = (
           tailVariant === "driver-cleanup-pending" || tailVariant === "driver-construction-cleanup-failure",
         observerFails = tailVariant === "driver-observer-pending",
         ackFails = tailVariant === "driver-fate-ack-failure"
+      const marker = Context.Reference("advice-tail-caller", { defaultValue: () => "missing" })
+      let expectedCaller,
+        cleanupCalls = 0
+      const inCaller = (effect, direct = true) =>
+        Effect.gen(function* () {
+          assert.equal(yield* marker, "advice-caller")
+          if (direct) assert.strictEqual(yield* Effect.fiber, expectedCaller)
+          callerChecks++
+          return yield* effect
+        })
+      const runTail = (effect) =>
+        Effect.runPromise(
+          Effect.withFiber((fiber) => {
+            expectedCaller = fiber
+            return effect.pipe(
+              Effect.ensuring(
+                Effect.sync(() => {
+                  expectedCaller = undefined
+                })
+              )
+            )
+          }).pipe(Effect.provideService(marker, "advice-caller"))
+        )
+      const exitTail = (effect) => runTail(Effect.exit(effect))
+      const observerFailure = new Error("injected observer failure before offer")
       const fates = []
       const tailOptions = {
         signal: lifetimeController.signal,
@@ -843,7 +871,7 @@ const postCore = (
         }
       }
       const observeAdviceFate = (actual, actualFindings, fate, reason) => {
-        if (observerFails) throw new Error("injected observer failure before offer")
+        if (observerFails) throw observerFailure
         assert.strictEqual(actual, capability)
         assert.deepEqual(actualFindings, findings)
         fates.push({ fate, reason })
@@ -852,7 +880,11 @@ const postCore = (
         ...bridge,
         adviceTailRemove: (...args) =>
           cleanupFails ? Effect.fail(new Error("injected pending removal failure")) : bridge.adviceTailRemove(...args),
-        adviceCleanup: (...args) => (cleanupFails ? Effect.fail(cleanupFailure) : bridge.adviceCleanup(...args))
+        read: inCaller(bridge.read),
+        adviceCleanup: (...args) => {
+          if (cleanupFails) cleanupCalls++
+          return inCaller(cleanupFails ? Effect.fail(cleanupFailure) : bridge.adviceCleanup(...args))
+        }
       }
       const provider = createAdviceTailProvider(
         3n,
@@ -864,29 +896,33 @@ const postCore = (
           deps: {
             residentReviewControls: {
               afterAdvicePending: () =>
-                tailVariant !== "driver-active-false"
-                  ? Effect.fail(new Error("injected pending advice barrier failure"))
-                  : Effect.void
+                inCaller(
+                  tailVariant !== "driver-active-false"
+                    ? Effect.fail(new Error("injected pending advice barrier failure"))
+                    : Effect.void,
+                  false
+                )
             },
             residentLifetimeController: lifetimeController,
             residentNow: () => 0,
-            residentAdviceExpired: () => Effect.succeed(tailVariant === "driver-expired-failure"),
+            residentAdviceExpired: () => inCaller(Effect.succeed(tailVariant === "driver-expired-failure")),
             residentInspection: { observeAdviceFate },
-            residentJobActive: () => Effect.succeed(false)
+            residentJobActive: () => inCaller(Effect.succeed(false))
           }
         }
       )
       if (tailVariant === "driver-construction-cleanup-failure") {
-        let rejected
-        try {
-          await Effect.runPromise(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions))
-        } catch (error) {
-          rejected = error
-        }
-        assert.ok(rejected instanceof AggregateError)
-        assert.strictEqual(rejected.cause, constructorFailure)
-        const nestedErrors = (error) => (error instanceof AggregateError ? error.errors.flatMap(nestedErrors) : [error])
-        assert.ok(nestedErrors(rejected).includes(constructorFailure))
+        const rejected = await exitTail(
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)
+        )
+        assert.ok(Exit.isFailure(rejected))
+        assert.ok(
+          rejected.cause.reasons.some((reason) => reason._tag === "Die" && reason.defect === constructorFailure)
+        )
+        assert.equal(
+          rejected.cause.reasons.filter((reason) => reason._tag === "Fail" && reason.error === cleanupFailure).length,
+          cleanupCalls
+        )
         // Effect preserves the cleanup failure in its Cause, even when its thrown
         // FiberFailure is wrapped by the host finalization aggregate.
         assert.ok(Cause.hasFails(provider.addedFailureCause))
@@ -895,10 +931,12 @@ const postCore = (
         assert.equal(registry.pendingCleanup, 1)
         assert.ok(adviceDriver.resources.sessions > 0)
         assert.strictEqual(run(advice.values())[0], capability)
-        await assert.rejects(Effect.runPromise(registry.retryCleanupEffect()), /obligations remain pending/)
+        const retried = await exitTail(registry.retryCleanupEffect())
+        assert.ok(Exit.isFailure(retried))
+        assert.ok(retried.cause.reasons.some((reason) => reason._tag === "Fail" && reason.error === cleanupFailure))
         assert.equal(registry.pendingCleanup, 1)
         cleanupFails = false
-        await Effect.runPromise(registry.retryCleanupEffect())
+        await runTail(registry.retryCleanupEffect())
         assert.equal(registry.pendingCleanup, 0)
         assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
         assert.deepEqual(adviceDriver.resources, {
@@ -918,7 +956,7 @@ const postCore = (
       }
       if (tailVariant === "driver-construction-failure") {
         await assert.rejects(
-          Effect.runPromise(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)),
+          runTail(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)),
           /injected tail constructor failure/
         )
         assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
@@ -939,23 +977,41 @@ const postCore = (
         continue
       }
       if (tailVariant === "driver-cleanup-pending" || tailVariant === "driver-observer-pending") {
-        await assert.rejects(
-          Effect.runPromise(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)),
-          (error) => {
-            const messages = (value) =>
-              value instanceof AggregateError ? [value.message, ...value.errors.flatMap(messages)] : [value.message]
-            return messages(error).some((message) => /cleanup remains incomplete/.test(message))
-          }
+        const rejected = await exitTail(
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)
         )
+        assert.ok(Exit.isFailure(rejected))
+        const barrier = provider.terminationCause.reasons.find(
+          (reason) => reason._tag === "Fail" && reason.error.operation === "pending advice barrier"
+        )
+        assert.ok(barrier)
+        assert.ok(rejected.cause.reasons.some((reason) => reason._tag === "Fail" && reason.error === barrier.error))
+        if (tailVariant === "driver-cleanup-pending") {
+          assert.equal(cleanupCalls, 2)
+          assert.equal(
+            rejected.cause.reasons.filter((reason) => reason._tag === "Fail" && reason.error === cleanupFailure).length,
+            cleanupCalls
+          )
+        } else
+          assert.ok(rejected.cause.reasons.some((reason) => reason._tag === "Die" && reason.defect === observerFailure))
         assert.equal(registry.size, 0)
         assert.equal(registry.pendingCleanup, 1)
         if (tailVariant === "driver-cleanup-pending") assert.strictEqual(run(advice.values())[0], capability)
         else assert.equal(run(advice.values()).length, 0)
-        await assert.rejects(Effect.runPromise(registry.retryCleanupEffect()), /obligations remain pending/)
+        const retried = await exitTail(registry.retryCleanupEffect())
+        assert.ok(Exit.isFailure(retried))
+        if (tailVariant === "driver-cleanup-pending") {
+          assert.equal(cleanupCalls, 3)
+          assert.equal(
+            retried.cause.reasons.filter((reason) => reason._tag === "Fail" && reason.error === cleanupFailure).length,
+            1
+          )
+        } else
+          assert.ok(retried.cause.reasons.some((reason) => reason._tag === "Die" && reason.defect === observerFailure))
         assert.equal(registry.pendingCleanup, 1)
         cleanupFails = false
         observerFails = false
-        await Effect.runPromise(registry.retryCleanupEffect())
+        await runTail(registry.retryCleanupEffect())
         assert.equal(registry.pendingCleanup, 0)
         assert.equal(run(advice.values()).length, 0)
         assert.equal(run(revision.current(revisions[1], prepared)), true)
@@ -967,7 +1023,7 @@ const postCore = (
         continue
       }
       if (tailVariant !== "driver-active-false") {
-        const outcome = await Effect.runPromise(
+        const outcome = await runTail(
           adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)
         )
         assert.equal(outcome.adviceRetained, false)
@@ -996,7 +1052,7 @@ const postCore = (
         continue
       }
       assert.deepEqual(
-        await Effect.runPromise(
+        await runTail(
           adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, {
             signal: lifetimeController.signal
           })
@@ -1092,10 +1148,12 @@ const postCore = (
     assert.equal(projectCanonical(run(transaction.read).canonical).global.bytes, 0)
     cases++
   }
+  assert.ok(callerChecks > 0)
   console.log(
     JSON.stringify({
       passed: true,
       cases,
+      callerChecks,
       scope:
         "actual resident Ref/capacity/revision/advice owners; atomic insertion and independent Canonical advice-tail driver; revoked and duplicate birth rollback, insertion/removal ack loss, parent cancellation, expiry fate, absent publication and replacement identity, persistent resource/observer cleanup obligations; controlled source handles, full cached settlement and production adoption remain open"
     })

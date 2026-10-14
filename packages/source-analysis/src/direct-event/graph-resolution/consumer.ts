@@ -1,6 +1,5 @@
 import {
   awaitNativeWork,
-  withNativeSignal,
   runNativePromise,
   runNativeEffect,
   type NativeFlow,
@@ -46,6 +45,10 @@ type ResolverPorts = Omit<ResolverBindingPorts, "drive"> & {
   readonly drive: (session: ServiceSession, input: ResolverInput, options: PerformOptions) => Promise<ResolverOutcome>
 }
 type EffectResolverPorts = Omit<ResolverBindingPorts, "drive"> & {
+  /** Resident shared leases need independently cancellable native IO; direct
+   * public callbacks keep the caller fiber unless their binding selects it.
+   */
+  readonly physicalEffect?: typeof import("@hapsland/runtime-environment/runtime/native-execution").withNativeSignal
   readonly drive: (
     session: ServiceSession,
     input: ResolverInput,
@@ -66,7 +69,13 @@ function tagged<Name extends string, Fields extends object>(name: Name, fields: 
  * The returned resolver projects only the accepted emitted ReviewUnitResult.
  */
 function createResolverFlow(
-  { observeProduct, drive: ownedDrive, allocateInvocation, onConstructionFailure }: ResolverBindingPorts,
+  {
+    observeProduct,
+    drive: ownedDrive,
+    allocateInvocation,
+    onConstructionFailure,
+    physicalEffect
+  }: ResolverBindingPorts & Pick<EffectResolverPorts, "physicalEffect">,
   effects: boolean
 ) {
   if (
@@ -76,6 +85,8 @@ function createResolverFlow(
   )
     throw new Error("Resolver requires its owning Canonical driver")
   const drive = ownedDrive
+  const runPhysical = <A, E, R>(effect: Effect.Effect<A, E, R>, signal?: AbortSignal) =>
+    physicalEffect === undefined ? effect : physicalEffect(effect, signal)
   return function* (
     path: string,
     capture: StableCapture,
@@ -99,7 +110,7 @@ function createResolverFlow(
             contextDirectFilePolicy(context.policy ?? DEFAULT_DIRECT_FILE_POLICY),
             context.rootIdentity
           )
-          return effects ? withNativeSignal(effect, signal) : Effect.runPromise(effect, { signal })
+          return effects ? runPhysical(effect, signal) : Effect.runPromise(effect, { signal })
         },
         capture: (selected, sourceCap, { signal } = {}) => {
           const effect = (context.captureSource ?? captureStable)(
@@ -109,7 +120,7 @@ function createResolverFlow(
             context.rootIdentity,
             sourceCap
           )
-          return effects ? withNativeSignal(effect, signal) : Effect.runPromise(effect, { signal })
+          return effects ? runPhysical(effect, signal) : Effect.runPromise(effect, { signal })
         },
         frontend: inspectSourceFrontend,
         parseCargo: parseCargoSyntax,

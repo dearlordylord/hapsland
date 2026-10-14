@@ -115,7 +115,15 @@ export function createSourcePreparationProvider(
       const attempt = function* (effect, settled = () => {}) {
         try {
           const exit = /** @type {Exit.Exit<A, never>} */ (
-            yield effectNative(Effect.exit(Effect.uninterruptible(effect)), false)
+            yield effectNative(
+              Effect.exit(
+                Effect.uninterruptible(effect).pipe(
+                  Effect.provideService(ResidentProviderPermit, undefined),
+                  Effect.provideService(ResidentResourceReceipt, undefined)
+                )
+              ),
+              false
+            )
           )
           if (Exit.isFailure(exit)) {
             failureCauses.push(exit.cause)
@@ -173,7 +181,19 @@ export function createSourcePreparationProvider(
       let observationCommitted = false
       /** @template A, E @param {Effect.Effect<A, E>} effect @param {boolean} [classify] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>} */
       const run = function* (effect, classify = true) {
-        const exit = /** @type {Exit.Exit<A, E>} */ (yield effectNative(Effect.exit(restore(effect)), false))
+        const exit = /** @type {Exit.Exit<A, E>} */ (
+          yield effectNative(
+            Effect.exit(
+              restore(
+                effect.pipe(
+                  Effect.provideService(ResidentProviderPermit, undefined),
+                  Effect.provideService(ResidentResourceReceipt, undefined)
+                )
+              )
+            ),
+            false
+          )
+        )
         if (Exit.isFailure(exit)) {
           failureCause = exit.cause
           if (classify)

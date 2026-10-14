@@ -155,6 +155,7 @@ export function createPreparationForeign({
         if (child.$ !== "Some") throw new TypeError("Missing preparation parent invocation")
         const parent = child.value
         const resolver = createBendEffectResolver({
+          physicalEffect: withNativeSignal,
           allocateInvocation: () =>
             driver.allocateInvocation({
               $: "Parent",

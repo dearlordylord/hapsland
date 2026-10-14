@@ -309,50 +309,63 @@ describe("retained cleanup Cause transport", () => {
 })
 
 describe("independently cancellable native IO", () => {
-  it("inherits Context and drains child finalization without interrupting its caller", async () => {
-    const marker = Context.Reference("native-io-context", { defaultValue: () => "missing" })
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        const started = yield* Deferred.make<void>()
-        const finalizing = yield* Deferred.make<void>()
-        const release = yield* Deferred.make<void>()
-        const controller = new AbortController()
-        let settled = false
-        let caller: Fiber.Fiber<unknown, unknown> | undefined
-        const service = Effect.gen(function* () {
-          expect(yield* marker).toBe("caller")
-          expect(yield* Effect.fiber).not.toBe(caller)
-          yield* Deferred.succeed(started, undefined)
-          yield* Effect.never
-        }).pipe(Effect.ensuring(Effect.andThen(Deferred.succeed(finalizing, undefined), Deferred.await(release))))
-        const task = yield* Effect.forkChild(
-          Effect.withFiber((fiber) => {
-            caller = fiber
-            return Effect.exit(withNativeSignal(service, controller.signal)).pipe(
-              Effect.tap(() =>
-                Effect.sync(() => {
-                  settled = true
-                })
+  for (const cleanupFails of [false, true])
+    it(`inherits Context and drains ${cleanupFails ? "failed" : "successful"} child cleanup on lease abort`, async () => {
+      const cleanupFailure = new Error("lease IO finalizer")
+      const marker = Context.Reference("native-io-context", { defaultValue: () => "missing" })
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const started = yield* Deferred.make<void>()
+          const finalizing = yield* Deferred.make<void>()
+          const release = yield* Deferred.make<void>()
+          const controller = new AbortController()
+          let settled = false
+          let caller: Fiber.Fiber<unknown, unknown> | undefined
+          const service = Effect.gen(function* () {
+            expect(yield* marker).toBe("caller")
+            expect(yield* Effect.fiber).not.toBe(caller)
+            yield* Deferred.succeed(started, undefined)
+            yield* Effect.never
+          }).pipe(
+            Effect.ensuring(
+              Effect.andThen(
+                Deferred.succeed(finalizing, undefined),
+                Effect.andThen(Deferred.await(release), cleanupFails ? Effect.die(cleanupFailure) : Effect.void)
               )
             )
-          })
-        )
-        yield* Deferred.await(started)
-        controller.abort()
-        yield* Deferred.await(finalizing)
-        expect(settled).toBe(false)
-        yield* Deferred.succeed(release, undefined)
-        const exit = yield* Fiber.join(task)
-        expect(exit._tag).toBe("Failure")
-        if (exit._tag === "Failure") {
-          expect(Cause.hasDies(exit.cause)).toBe(true)
-          expect(Cause.hasInterrupts(exit.cause)).toBe(false)
-        }
-        expect(settled).toBe(true)
-        expect(yield* marker).toBe("caller")
-      }).pipe(Effect.provideService(marker, "caller"))
-    )
-  })
+          )
+          const task = yield* Effect.forkChild(
+            Effect.withFiber((fiber) => {
+              caller = fiber
+              return Effect.exit(withNativeSignal(service, controller.signal)).pipe(
+                Effect.tap(() =>
+                  Effect.sync(() => {
+                    settled = true
+                  })
+                )
+              )
+            })
+          )
+          yield* Deferred.await(started)
+          controller.abort()
+          yield* Deferred.await(finalizing)
+          expect(settled).toBe(false)
+          yield* Deferred.succeed(release, undefined)
+          const exit = yield* Fiber.join(task)
+          expect(exit._tag).toBe("Failure")
+          if (exit._tag === "Failure") {
+            expect(Cause.hasDies(exit.cause)).toBe(true)
+            expect(Cause.hasInterrupts(exit.cause)).toBe(false)
+            if (cleanupFails) {
+              const defect = Cause.findDefect(exit.cause)
+              expect(Result.isSuccess(defect) && defect.success).toBe(cleanupFailure)
+            }
+          }
+          expect(settled).toBe(true)
+          expect(yield* marker).toBe("caller")
+        }).pipe(Effect.provideService(marker, "caller"))
+      )
+    })
   for (const cleanupFails of [false, true])
     it(`preserves caller interruption and ${cleanupFails ? "failed" : "successful"} service finalization`, async () => {
       const cleanupFailure = new Error("native IO finalizer")

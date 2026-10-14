@@ -263,7 +263,12 @@ export function createPostPreparationProvider(
       const attempt = function* (effect, receipt) {
         const exit = /** @type {Exit.Exit<A, E>} */ (
           yield effectNative(
-            Effect.exit(Effect.uninterruptible(effect).pipe(Effect.provideService(ResidentResourceReceipt, receipt))),
+            Effect.exit(
+              Effect.uninterruptible(effect).pipe(
+                Effect.provideService(ResidentProviderPermit, undefined),
+                Effect.provideService(ResidentResourceReceipt, receipt)
+              )
+            ),
             false
           )
         )

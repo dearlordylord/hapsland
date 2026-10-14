@@ -5,6 +5,8 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import * as Cause from "effect/Cause"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { resolveGraphUnit as __resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import {
@@ -475,10 +477,15 @@ try {
               !cancelled &&
               request.operation.$ === "Types.CaptureSource"
             ) {
-              const pending = performGraphRequest(request, { ...options, signal: undefined })
+              // Start real native IO before cancellation, as the former eager
+              // Promise fixture did. This child intentionally ignores the lease
+              // signal so Canonical must discard its eventual success/rejection.
+              const pending = yield* Effect.forkChild(performGraphRequest(request, { ...options, signal: undefined }), {
+                startImmediately: true
+              })
               cancelled = true
               driver.cancel(parentInvocation)
-              const reply = yield* pending
+              const reply = yield* Fiber.join(pending)
               if (mode === "parent-cancel-late-rejection") throw new Error("late capture provider fault")
               return reply
             }
