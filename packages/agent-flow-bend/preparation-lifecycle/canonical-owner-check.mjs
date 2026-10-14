@@ -1135,56 +1135,139 @@ try {
   assert.equal(m.provider_live(adviceState, 3n, 4n, 5n, 3n), false)
   reject(m.advice_cleanup_only(adviceState, 3n), "WrongPhase")
   assertions += 3
-  for (const failureAt of ["input", "machine", "register"]) {
-    const registry = createServiceRegistry(),
-      machine = {
-        initial: () => ({ $: "PreparationFinished", result: {} }),
-        view: (value) => value,
-        disposeInvocation() {},
-        get retainedHandles() {
-          return 0
+  for (const mode of ["promise", "effect"])
+    for (const failureAt of ["input", "machine", "register"]) {
+      const registry = createServiceRegistry(),
+        machine = {
+          initial: () => ({ $: "PreparationFinished", result: {} }),
+          view: (value) => value,
+          disposeInvocation() {},
+          get retainedHandles() {
+            return 0
+          }
         }
+      const driver = createChildExecutionDriver({
+        protocol: { ...fixtureProtocol, view: (held) => ({ ...fixtureProtocol.view(held), kind: "fixture" }) },
+        owner: m,
+        initialState: fresh(),
+        scope,
+        registry,
+        machine,
+        selectMachine: (input) => {
+          if (input.postPreparation && failureAt === "machine") throw new Error("machine construction")
+          return machine
+        },
+        foreign: () => {
+          throw new Error("unexpected provider")
+        }
+      })
+      const invocation = driver.allocatePreparationInvocation()
+      const prepSession = { invocation, close() {}, revoke() {} }
+      const receipt = await driver.drive(prepSession, { invocation: BigInt(invocation) })
+      let finishes = 0,
+        closes = 0
+      const session = {
+        invocation: Number(receipt.handoff),
+        finish() {
+          finishes++
+        },
+        close() {
+          closes++
+        },
+        revoke() {}
       }
-    const driver = createFixtureDriver({
+      if (failureAt === "register") registry.register({ invocation: session.invocation, close() {} })
+      const buildInput = () => {
+        if (failureAt === "input") throw new Error("input construction")
+        return { invocation: receipt.handoff, postPreparation: {} }
+      }
+      await assert.rejects(
+        mode === "promise"
+          ? driver.driveHandoff(receipt, session, buildInput)
+          : Effect.runPromise(driver.driveHandoffEffect(receipt, session, buildInput)),
+        failureAt === "register" ? /duplicate active invocation/ : new RegExp(failureAt + " construction")
+      )
+      assert.equal(finishes, 1)
+      assert.equal(closes, 1)
+      assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+      assertions += 3
+    }
+  // An issued preparation handoff executes its native effect in the caller's
+  // fiber; forged Advice capabilities remain refused and close exactly once.
+  {
+    const registry = createServiceRegistry()
+    let observedFiber,
+      closes = 0
+    const machine = {
+      initial: (input) =>
+        input.postPreparation
+          ? { $: "Types.AwaitService", request: { invocation: input.invocation, id: 0n } }
+          : { $: "PreparationFinished", result: {} },
+      view: (value) => value,
+      resume: () => ({ $: "Types.CompletedResolver", result: "post accepted" }),
+      disposeInvocation() {},
+      retainedHandles: 0
+    }
+    const driver = createChildExecutionDriver({
+      protocol: { ...fixtureProtocol, view: (held) => ({ ...fixtureProtocol.view(held), kind: "fixture" }) },
       owner: m,
       initialState: fresh(),
       scope,
       registry,
       machine,
-      selectMachine: (input) => {
-        if (input.postPreparation && failureAt === "machine") throw new Error("machine construction")
-        return machine
-      },
-      foreign: () => {
-        throw new Error("unexpected provider")
+      foreignSync: () => ({
+        effect: Effect.map(Effect.fiber, (fiber) => {
+          observedFiber = fiber
+          return {}
+        }),
+        map: (value) => value
+      }),
+      foreign() {
+        assert.fail("Effect handoff cannot use Promise provider")
       }
     })
     const invocation = driver.allocatePreparationInvocation()
-    const prepSession = { invocation, close() {}, revoke() {} }
-    const receipt = await driver.drive(prepSession, { invocation: BigInt(invocation) })
-    let finishes = 0,
-      closes = 0
+    const receipt = await driver.drive({ invocation, close() {}, revoke() {} }, { invocation: BigInt(invocation) })
     const session = {
       invocation: Number(receipt.handoff),
-      finish() {
-        finishes++
-      },
       close() {
         closes++
       },
       revoke() {}
     }
-    if (failureAt === "register") registry.register({ invocation: session.invocation, close() {} })
-    await assert.rejects(
-      driver.driveHandoff(receipt, session, () => {
-        if (failureAt === "input") throw new Error("input construction")
-        return { invocation: receipt.handoff, postPreparation: {} }
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const caller = yield* Effect.fiber
+        const outcome = yield* driver.driveHandoffEffect(receipt, session, () => ({
+          invocation: receipt.handoff,
+          postPreparation: {}
+        }))
+        assert.equal(observedFiber, caller)
+        return outcome
       })
     )
-    assert.equal(finishes, 1)
+    assert.equal(result.result, "post accepted")
     assert.equal(closes, 1)
+    for (const mode of ["promise", "effect"]) {
+      let refusedCloses = 0
+      const refused = {
+        invocation: 9999,
+        input: { invocation: 9999n },
+        close() {
+          refusedCloses++
+        },
+        revoke() {}
+      }
+      const forged = { handoff: 9999n, scope: { $: "AdviceTailScope", origin: 1n } }
+      await assert.rejects(
+        mode === "promise"
+          ? driver.driveAdvice(forged, refused)
+          : Effect.runPromise(driver.driveAdviceEffect(forged, refused))
+      )
+      assert.equal(refusedCloses, 1)
+    }
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
-    assertions += 3
+    assertions += 6
   }
   // Opaque provider failures include falsy JavaScript thrown values. They must
   // survive saved-reply delivery without a Resume or terminal acceptance.

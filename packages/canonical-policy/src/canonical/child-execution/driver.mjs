@@ -196,10 +196,10 @@ export function createChildExecutionDriver({
     }
   }
   /** @param {S} session */
-  const closeUnregistered = async (session) => {
+  function* closeUnregisteredFlow(session) {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session) return
     try {
-      await runNativePromise(finishSessionFlow(session))
+      yield* finishSessionFlow(session)
     } finally {
       session.close?.()
     }
@@ -823,6 +823,52 @@ export function createChildExecutionDriver({
     }
     return required(outcome)
   }
+  /** @param {AdviceHandoff} receipt @param {S & {input: I}} session @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
+  function* driveAdviceFlow(receipt, session, options = {}) {
+    const launch = launches.get(receipt.handoff)
+    if (!launch || launch.$ !== "LaunchAdviceTail" || launch.receipt !== receipt) {
+      yield* closeUnregisteredFlow(session)
+      throw new Error("Unknown or consumed advice handoff")
+    }
+    if (session.input.invocation !== receipt.handoff) {
+      yield* closeUnregisteredFlow(session)
+      throw new Error("Advice session changed Canonical invocation")
+    }
+    return yield* driveInvocationFlow(session, session.input, options)
+  }
+  /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: bigint, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
+  function* driveHandoffFlow(receipt, session, buildInput, options = {}) {
+    const invocation = receipt.handoff
+    if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
+      throw new Error("Session already owned by an active invocation")
+    // Refuse a consumed capability without cancelling its already-running child.
+    const launch = launches.get(invocation)
+    if (!launch || launch.$ !== "LaunchPostPreparation" || launch.receipt !== receipt) {
+      yield* closeUnregisteredFlow(session)
+      throw new Error("Unknown or consumed preparation handoff capability")
+    }
+    let entered = false
+    try {
+      const result = driver.handoffResult(receipt)
+      const input = buildInput(result, invocation, receipt.scope)
+      if (input.invocation !== invocation) throw new Error("Post input changed Canonical invocation")
+      entered = true
+      return yield* driveInvocationFlow(session, input, options)
+    } catch (error) {
+      const child = owner.find(invocation, current().children)
+      if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+      throw error
+    } finally {
+      if (!entered) yield* closeUnregisteredFlow(session)
+    }
+  }
+  /** @param {(options: ForeignOptions) => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} flow @param {ForeignOptions} options */
+  const runEffectFlow = (flow, options) =>
+    Effect.suspend(() => {
+      const interruption = new AbortController()
+      const signal = options.signal ? AbortSignal.any([options.signal, interruption.signal]) : interruption.signal
+      return runNativeEffect(flow({ ...options, signal }), () => interruption.abort())
+    })
   const driver = {
     /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent | undefined} [parent] @param {boolean} [preparation] @param {Scope} [issuedScope] @param {"settings" | "freshness"} [independentOperation] @returns {number} */
     allocateInvocation(parent, preparation = false, issuedScope = scope, independentOperation) {
@@ -903,18 +949,13 @@ export function createChildExecutionDriver({
       if (launch?.$ !== "LaunchAdviceTail") throw new Error("Missing advice launch")
       return launch.receipt
     },
-    /** @param {AdviceHandoff} receipt @param {S & {input: I}} session @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
-    async driveAdvice(receipt, session, options = {}) {
-      const launch = launches.get(receipt.handoff)
-      if (!launch || launch.$ !== "LaunchAdviceTail" || launch.receipt !== receipt) {
-        await closeUnregistered(session)
-        throw new Error("Unknown or consumed advice handoff")
-      }
-      if (session.input.invocation !== receipt.handoff) {
-        await closeUnregistered(session)
-        throw new Error("Advice session changed Canonical invocation")
-      }
-      return await driver.drive(session, session.input, options)
+    /** @param {AdviceHandoff} receipt @param {S & {input: I}} session @param {ForeignOptions} [options] */
+    driveAdvice(receipt, session, options = {}) {
+      return runNativePromise(driveAdviceFlow(receipt, session, options))
+    },
+    /** @param {AdviceHandoff} receipt @param {S & {input: I}} session @param {ForeignOptions} [options] */
+    driveAdviceEffect(receipt, session, options = {}) {
+      return runEffectFlow((execution) => driveAdviceFlow(receipt, session, execution), options)
     },
     /** @param {PreparationHandoff} receipt @returns {{preparation: Prep}} */
     handoffResult(receipt) {
@@ -926,31 +967,13 @@ export function createChildExecutionDriver({
         throw new Error("Wrong accepted preparation handoff")
       return { preparation: protocol.preparation(projected) }
     },
-    /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: bigint, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
-    async driveHandoff(receipt, session, buildInput, options = {}) {
-      const invocation = receipt.handoff
-      if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
-        throw new Error("Session already owned by an active invocation")
-      // Refuse a consumed capability without cancelling its already-running child.
-      const launch = launches.get(invocation)
-      if (!launch || launch.$ !== "LaunchPostPreparation" || launch.receipt !== receipt) {
-        await closeUnregistered(session)
-        throw new Error("Unknown or consumed preparation handoff capability")
-      }
-      let entered = false
-      try {
-        const result = driver.handoffResult(receipt)
-        const input = buildInput(result, invocation, receipt.scope)
-        if (input.invocation !== invocation) throw new Error("Post input changed Canonical invocation")
-        entered = true
-        return await driver.drive(session, input, options)
-      } catch (error) {
-        const child = owner.find(invocation, current().children)
-        if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
-        throw error
-      } finally {
-        if (!entered) await closeUnregistered(session)
-      }
+    /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: bigint, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] */
+    driveHandoff(receipt, session, buildInput, options = {}) {
+      return runNativePromise(driveHandoffFlow(receipt, session, buildInput, options))
+    },
+    /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: bigint, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] */
+    driveHandoffEffect(receipt, session, buildInput, options = {}) {
+      return runEffectFlow((execution) => driveHandoffFlow(receipt, session, buildInput, execution), options)
     },
     /** @param {S} session @param {I} input @param {ForeignOptions} [options] */
     drive(session, input, options = {}) {
@@ -958,11 +981,7 @@ export function createChildExecutionDriver({
     },
     /** @param {S} session @param {I} input @param {ForeignOptions} [options] */
     driveEffect(session, input, options = {}) {
-      return Effect.suspend(() => {
-        const interruption = new AbortController()
-        const signal = options.signal ? AbortSignal.any([options.signal, interruption.signal]) : interruption.signal
-        return runNativeEffect(driveInvocationFlow(session, input, { ...options, signal }), () => interruption.abort())
-      })
+      return runEffectFlow((execution) => driveInvocationFlow(session, input, execution), options)
     },
     /** @param {number} invocation @param {{session?: S | undefined, closePending?: boolean, inputHandle?: bigint}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false, inputHandle } = {}) {
