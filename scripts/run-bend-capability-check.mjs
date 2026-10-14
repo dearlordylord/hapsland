@@ -63,6 +63,7 @@ const suites = {
     return roots
   },
   "preparation-protocol": () => [
+    "packages/review-execution/src/direct-event/preparation/graph-native-group-check.mjs",
     "packages/review-execution/src/direct-event/freshness/lazy-json-check.mjs",
     "packages/review-execution/src/direct-event/freshness/snapshot-check.mjs",
     "packages/review-execution/src/direct-event/freshness/publication-retention-check.mjs",
