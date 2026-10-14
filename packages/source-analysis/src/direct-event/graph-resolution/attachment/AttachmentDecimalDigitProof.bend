@@ -1,4 +1,5 @@
 import Base
+import ./AttachmentDecimalReader.bend as Reader
 import ../traversal/INTERPRETER_STRING_FACTS.bend as Facts
 
 def zero_bound(number: Nat, small: {Nat.is_lt(number, 0n) == True{} : Bool}) -> Empty:
@@ -11,7 +12,7 @@ def step_9(+remainder: Nat, +tail: String, +acc: Nat, small: {Nat.is_lt(9n+remai
   match remainder:
     case 0n: {==}
     case 1n+rest:
-      Empty.absurd({Nat.read.go(SCon{Chr{U32.from_nat(Nat.add(48n, 10n+rest))}, tail}, acc) == Nat.read.go(tail, Nat.add(Nat.mul(acc, 10n), 10n+rest)) : Maybe<&2, Nat>}, zero_bound(rest, small))
+      Empty.absurd({Reader.read(SCon{Chr{U32.from_nat(Nat.add(48n, 10n+rest))}, tail}, acc) == Reader.read(tail, Nat.add(Nat.mul(acc, 10n), 10n+rest)) : Maybe<&2, Nat>}, zero_bound(rest, small))
 
 def step_8(+remainder: Nat, +tail: String, +acc: Nat, small: {Nat.is_lt(8n+remainder, 10n) == True{} : Bool}) ->
     {Nat.read.go(SCon{Chr{U32.from_nat(Nat.add(48n, 8n+remainder))}, tail}, acc) == Nat.read.go(tail, Nat.add(Nat.mul(acc, 10n), 8n+remainder)) : Maybe<&2, Nat>}:
