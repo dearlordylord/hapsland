@@ -13,7 +13,8 @@ type Query is Data:
   Read{value: Lens}
   Equal{left: Lens, right: Lens}
   InputEqual{left: Nat, right: Nat}
-  CurrentWork{prepared: Nat}
+  CurrentMethod{}
+  CurrentWork{method: Nat, prepared: Nat}
   IsArray{value: Nat}
   Length{array: Nat}
   Element{array: Nat, index: Nat}
@@ -60,7 +61,8 @@ type Next is Data:
   Identity{matching: Match, candidate: Nat}
   CandidateInput{matching: Match}
   ComparedInput{matching: Match}
-  AuthorityPrepared{authority: Authority, evaluation: Nat}
+  AuthorityMethod{authority: Authority, evaluation: Nat}
+  AuthorityPrepared{authority: Authority, evaluation: Nat, method: Nat}
   AuthorityResult{authority: Authority, evaluation: Nat}
   Findings{flatten: Flatten}
   FindingsKind{flatten: Flatten, value: Nat}
@@ -149,8 +151,8 @@ def authority_next(frame: Frame, authority: Authority, enabled: Bool) -> Step:
     case Authority{+head <> tail, publishable} True{}:
       ask(
         frame,
-        Read{Lens{head, ["prepared"]}},
-        AuthorityPrepared{Authority{tail, publishable}, head}
+        CurrentMethod{},
+        AuthorityMethod{Authority{tail, publishable}, head}
       )
     case Authority{head <> tail, publishable} False{}:
       authority_finished(frame, reverse_into(head <> tail, publishable))
@@ -298,8 +300,14 @@ def response(frame: Frame, next: Next, response: Response) -> Step:
     )
     case CandidateInput{matching} Handle{value}: candidate_input(frame, matching, value)
     case ComparedInput{matching} Flag{valid}: input_returned(frame, matching, valid)
-    case AuthorityPrepared{authority, evaluation} Handle{prepared}:
-      ask(frame, CurrentWork{prepared}, AuthorityResult{authority, evaluation})
+    case AuthorityMethod{authority, +evaluation} Handle{method}:
+      ask(
+        frame,
+        Read{Lens{evaluation, ["prepared"]}},
+        AuthorityPrepared{authority, evaluation, method}
+      )
+    case AuthorityPrepared{authority, evaluation, method} Handle{prepared}:
+      ask(frame, CurrentWork{method, prepared}, AuthorityResult{authority, evaluation})
     case AuthorityResult{authority, evaluation} Flag{valid}: authority_returned(
       frame,
       authority,
@@ -331,10 +339,9 @@ def resume(step: Step, +reply: Reply) -> Step:
     case Await{+frame, _, next}: returned(frame, next, reply, correlated(frame, reply))
     case _: InvalidReply{}
 
-def initial(invocation: Nat, +input: Input) -> Step:
+def start(+frame: Frame, +input: Input) -> Step:
   match input:
-    case Input{evaluations, _, _}: ask(
-      Frame{invocation, 1n},
-      Iterator{evaluations},
-      Iterated{input}
-    )
+    case Input{evaluations, _, _}: ask(frame, Iterator{evaluations}, Iterated{input})
+
+def initial(invocation: Nat, input: Input) -> Step:
+  start(Frame{invocation, 1n}, input)

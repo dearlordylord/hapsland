@@ -13,7 +13,8 @@ export type Query =
   | Tagged<"Read", { readonly value: Lens }>
   | Tagged<"Equal", { readonly left: Lens; readonly right: Lens }>
   | Tagged<"InputEqual", { readonly left: bigint; readonly right: bigint }>
-  | Tagged<"CurrentWork", { readonly prepared: bigint }>
+  | Tagged<"CurrentMethod">
+  | Tagged<"CurrentWork", { readonly method: bigint; readonly prepared: bigint }>
   | Tagged<"IsArray", { readonly value: bigint }>
   | Tagged<"Length", { readonly array: bigint }>
   | Tagged<"Element", { readonly array: bigint; readonly index: bigint }>
@@ -36,5 +37,9 @@ export type Reply = Tagged<
   "Reply",
   { readonly invocation: bigint; readonly request: bigint; readonly response: Response }
 >
-declare const core: { initial(invocation: bigint, input: Input): Step; resume(step: Step, reply: Reply): Step }
+declare const core: {
+  start(frame: Frame, input: Input): Step
+  initial(invocation: bigint, input: Input): Step
+  resume(step: Step, reply: Reply): Step
+}
 export default core

@@ -44,7 +44,7 @@ const reference = async (evaluations, current, authority) => {
   if (retained.length === 0) return { status: changed ? "Stale" : "Unavailable", evaluations: [], findings: [] }
   const publishable = []
   for (const evaluation of retained)
-    if (authority === undefined || (await authority(evaluation.prepared))) publishable.push(evaluation)
+    if (authority === undefined || (await authority.isCurrentWork(evaluation.prepared))) publishable.push(evaluation)
   if (publishable.length === 0) return { status: "Stale", evaluations: [], findings: [] }
   return { status: "Current", evaluations: publishable, findings: publishable.flatMap(({ findings }) => findings) }
 }
@@ -106,8 +106,11 @@ const consume = async (evaluations, current, authority) => {
         case "InputEqual":
           response = { $: "Flag", value: sameInput(handles.get(q.left), handles.get(q.right)) }
           break
+        case "CurrentMethod":
+          response = { $: "Handle", value: store(authority.isCurrentWork) }
+          break
         case "CurrentWork":
-          response = { $: "Flag", value: await authority(handles.get(q.prepared)) }
+          response = { $: "Flag", value: await handles.get(q.method).call(authority, handles.get(q.prepared)) }
           break
         case "IsArray":
           response = { $: "Flag", value: Array.isArray(handles.get(q.value)) }
@@ -152,9 +155,11 @@ for (const evaluations of [[], [ea], [ea, eb], [ea, ea, eb], [eb, ea]])
       for (const implementation of [reference, consume]) {
         const trace = []
         const authority = enabled
-          ? async (prepared) => {
-              trace.push(prepared.identity)
-              return prepared.identity !== "b"
+          ? {
+              async isCurrentWork(prepared) {
+                trace.push(prepared.identity)
+                return prepared.identity !== "b"
+              }
             }
           : undefined
         results.push(await implementation(evaluations, current, authority))

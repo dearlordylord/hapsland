@@ -65,6 +65,7 @@ const suites = {
   "preparation-protocol": () => [
     "packages/review-execution/src/direct-event/freshness/snapshot-check.mjs",
     "packages/review-execution/src/direct-event/freshness/publication-retention-check.mjs",
+    "packages/review-execution/src/direct-event/freshness/publication-check.mjs",
     "packages/source-analysis/src/direct-event/graph-resolution/verification/frontend-codec-check.mjs",
     "packages/source-analysis/src/direct-event/graph-resolution/composition/request-projection-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/construction-cleanup.test.mjs",
