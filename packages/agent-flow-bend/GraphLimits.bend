@@ -48,7 +48,7 @@ def fields(
   check_bytes : Unit -> Maybe<&2, String> = _ => first(
     field_violation(
       bytes,
-      12582912n,
+      Nat.mul(12n, Nat.mul(Nat.mul(32n, 32n), Nat.mul(32n, 32n))),
       "graphLimits.readBytes must be an integer from 1 to 12582912"
     ),
     check_edges
@@ -58,13 +58,17 @@ def fields(
     check_bytes
   )
   check_tree : Unit -> Maybe<&2, String> = _ => first(
-    field_violation(tree, 20480n, "graphLimits.treeBytes must be an integer from 1 to 20480"),
+    field_violation(
+      tree,
+      Nat.mul(20n, Nat.mul(32n, 32n)),
+      "graphLimits.treeBytes must be an integer from 1 to 20480"
+    ),
     check_files
   )
   first(
     field_violation(
       source,
-      2097152n,
+      Nat.mul(128n, Nat.mul(128n, 128n)),
       "graphLimits.sourceBytes must be an integer from 1 to 2097152"
     ),
     check_tree
