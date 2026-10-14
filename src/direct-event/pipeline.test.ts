@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Deferred from "effect/Deferred"
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as TestClock from "effect/testing/TestClock"
@@ -190,6 +191,32 @@ describe("direct-event vertical slice", () => {
         }
       })
       expect(prepared.outcomes.every((outcome) => outcome.status === "skipped")).toBe(true)
+    })
+  )
+
+  it.effect("keeps preparation admission in the caller reference and fiber", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "type.ts", "export interface A { value: string }"))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const permit = Context.Reference("preparation-test-caller-permit", { defaultValue: () => false })
+      const caller = yield* Effect.fiberId
+      let admissions = 0
+      yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules,
+        beforeAnalyze: () =>
+          Effect.gen(function* () {
+            expect(yield* permit).toBe(true)
+            expect(yield* Effect.fiberId).toBe(caller)
+            admissions += 1
+            return { status: "admitted" as const }
+          })
+      }).pipe(Effect.provideService(permit, true))
+      expect(admissions).toBe(1)
     })
   )
 

@@ -6106,6 +6106,53 @@ def ready_replaced_appended_selected(+parents: List<&2, Local.PlannedNode>, +slo
             NodeReplacement.replacement_payload(Compose.replace_slot(slots, owner, index, reference), changed, replaced))),
         ReplacementStructure.selected(slots, owner, index, reference, owner, index, symbol)), selected))
 
+# The registration constructor preserves the replaced parent slots and shifted child slots.
+def ready_registered_frame_references(+registration: Compose.RegisteredPending, +root: Nat, +nodes: List<&2, Local.PlannedNode>, +slots: List<&2, Local.ReferenceSlot>, +items: List<&2, Local.Pending>, +visited: Map<&2, Bool>, +budget: Local.Budget, +frame: T.ResolverFrame, +references: List<&2, Local.ReferenceSlot>) -> {S.frame_references(Attach.attached_frame(Compose.attachment_registered(registration, Compose.remap(Local.Plan{root, nodes, slots, items, visited, budget}, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), S.frame_nodes(frame), references), frame)) == List.append(&2, Local.ReferenceSlot, references, Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)))) : List<&2, Local.ReferenceSlot>}:
+  match registration frame:
+    case Compose.RegisteredPending{_, _, _} T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: {==}
+
+# Instantiate the original parent theorem's replacement witness for captured rollback.
+def ready_selected_attachment_slot(+child: T.TentativeChild, +history: V.History, +child_history: Phase.ChildHistory, +phase: Phase.Phase, +state: T.ResolverState, +frame: T.ResolverFrame, +edge: Local.Pending, +attachment: Compose.Attachment, +ready: {ActualReady.parts(state, Some{frame}, Some{child}, Some{edge}, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, attached: ready_selected_attachment_result(child, frame, edge, attachment)) -> {ActualReady.selected_slot(edge, S.frame_references(Attach.attached_frame(attachment, frame))) == True{} : Bool}:
+  match child history child_history phase edge:
+    case T.TentativeChild{_, _, _, _, _, _, _, _, Local.Plan{+root, +nodes, +slots, +items, +visited, +budget}, _, _, _}
+        V.History{+addresses, V.Order{_, _, _, _, _, _}, _, _, _, +remaining, +episode}
+        Phase.ChildHistory{F.Created{_, _, +child_addresses}, _, _, _, _}
+        Phase.Phase{V.Frame{_, _, _, _, _, +parent_forest, _, _, _, _, _, _, _, _, _, _, _, _, _, _}, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{Some{_}, _}, _, _, _, _, _, _}, _}
+        Local.Pending{+owner, +index, _, +symbol, _, _, _, _}:
+      +known: Bool = Bool.and(Bool.not(Attach.bundled_edge(edge)), Local.map_result(Bool, Map.get(Bool, False{}, S.frame_visited(frame), ready_actual_identity(child))))
+      +parent = ready_selected_parent(child, history, child_history, phase, state, frame, edge, known, ready)
+      match parent:
+        case (+references, (+found, (+forest, (replacement, (found_eq, (+shape, _)))))):
+          +attachment_eq: {found == attachment : Compose.Attachment} = Count.some_equal(Compose.Attachment, found, attachment,
+            Equal.trans(Maybe<&2, Compose.Attachment>, Some{found}, Compose.tentative_attachment(Compose.remap(Local.Plan{root, nodes, slots, items, visited, budget}, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), S.frame_nodes(frame), S.frame_references(frame), owner, index, Bool.pick(Maybe<&2, String>, known, Some{ready_actual_identity(child)}, None{}), S.frame_next_edge(frame), S.frame_pending(frame)), Some{attachment},
+              Equal.sym(Maybe<&2, Compose.Attachment>, Compose.tentative_attachment(Compose.remap(Local.Plan{root, nodes, slots, items, visited, budget}, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), S.frame_nodes(frame), S.frame_references(frame), owner, index, Bool.pick(Maybe<&2, String>, known, Some{ready_actual_identity(child)}, None{}), S.frame_next_edge(frame), S.frame_pending(frame)), Some{found}, found_eq), attached))
+          +observations = selected_phase_contents(state, frame, child, edge, history, child_history, phase, ready)
+          match observations:
+            case (valid, (frame_ready, _)):
+              match actual_frame_contents(frame, history, ready_phase_frame(phase), frame_ready):
+                case (checks, projected):
+                  match projected_frame_semantics(frame, history, ready_phase_frame(phase), projected):
+                    case (parent_projection, _):
+                      match Contents.project_contents(S.frame_root(frame), S.frame_nodes(frame), S.frame_references(frame), S.frame_artifacts(frame), addresses, parent_forest, parent_projection):
+                        case (projection_checks, _):
+                          +selected: {ActualReady.slot_count(S.frame_references(frame), owner, index, symbol) == 1n : Nat} = NatFacts.eq_of_is_eq(ActualReady.slot_count(S.frame_references(frame), owner, index, symbol), 1n,
+                            BoolFacts.eq_true_of_and_right(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)),
+                              BoolFacts.eq_true_of_and_right(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame))),
+                                BoolFacts.eq_true_of_and_right(ActualReady.mutable_maps_canonical(frame), Bool.and(ActualReady.fresh_registration(history, frame), Bool.and(Nat.is_gt(remaining, 0n), ActualReady.selected_slot(edge, S.frame_references(frame)))), valid))))
+                          +count = ready_replaced_appended_selected(S.frame_nodes(frame), S.frame_references(frame), addresses, slots, owner, index, symbol, ready_payload_owner(ready_capsule_payload(ready_phase_capsule(phase))), Bool.pick(Local.PlannedReference, known, Local.Included{ready_actual_identity(child)}, Local.Expanded{(root + List.length(&2, Local.PlannedNode, S.frame_nodes(frame)) : Nat)}), references,
+                            BoolFacts.eq_true_of_and_left(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame))),
+                              BoolFacts.eq_true_of_and_right(ActualFrame.coverage(ready_history_order(history), frame), Bool.and(ActualFrame.dense(S.frame_nodes(frame), 0n), Bool.and(Nat.is_eq(S.frame_next_node(frame), List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), ActualFrame.catalog_valid(S.frame_artifacts(frame)))), checks)),
+                            BoolFacts.eq_true_of_and_left(P.aligned(S.frame_nodes(frame), addresses, S.frame_nodes(frame), addresses), Bool.and(P.catalog_unique(S.frame_artifacts(frame), S.frame_artifacts(frame)), Bool.and(P.slots_owned(S.frame_references(frame), S.frame_nodes(frame)), P.forward_nodes(S.frame_nodes(frame), S.frame_references(frame)))), projection_checks),
+                            ready_selected_owner(state, frame, child, edge, history, child_history, phase, ready), selected, replacement)
+                          %attachment_eq: {ActualReady.selected_slot(edge, S.frame_references(Attach.attached_frame(_, frame))) == True{} : Bool}
+                          %Equal.sym(Compose.Attachment, found, ready_actual_registration(child, frame, references), shape): {ActualReady.selected_slot(edge, S.frame_references(Attach.attached_frame(_, frame))) == True{} : Bool}
+                          %Equal.sym(List<&2, Local.ReferenceSlot>, S.frame_references(Attach.attached_frame(ready_actual_registration(child, frame, references), frame)), List.append(&2, Local.ReferenceSlot, references, Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)))), ready_registered_frame_references(Compose.register_pending(Compose.shift_pending(items, List.length(&2, Local.PlannedNode, S.frame_nodes(frame))), S.frame_next_edge(frame), S.frame_pending(frame)), root, nodes, slots, items, visited, budget, frame, references)):
+                            {Nat.is_eq(ActualReady.slot_count(_, owner, index, symbol), 1n) == True{} : Bool}
+                          %Equal.sym(Nat, ActualReady.slot_count(List.append(&2, Local.ReferenceSlot, references, Compose.shift_slots(slots, List.length(&2, Local.PlannedNode, S.frame_nodes(frame)))), owner, index, symbol), 1n, count): {Nat.is_eq(_, 1n) == True{} : Bool}
+                          {==}
+    case _ _ _ Phase.Phase{_, Phase.Child{_, _, _, _, _, _, _, _, _, F.Forest{None{}, _}, _, _, _, _, _, _}, _} _:
+      Empty.absurd({ActualReady.selected_slot(edge, S.frame_references(Attach.attached_frame(attachment, frame))) == True{} : Bool}, ready_selected_parent(child, history, child_history, phase, state, frame, edge, False{}, ready))
+
 def ready_transition_selected(+actual: T.ResolverFrame, +step: G.Step, +owner: Nat, +index: Nat, +symbol: String, selected: {ActualReady.slot_count(S.frame_references(actual), owner, index, symbol) == 1n : Nat}) -> {ActualReady.slot_count(S.frame_references(PreparedRoot.frame_transition(actual, step)), owner, index, symbol) == 1n : Nat}:
   match actual step:
     case T.ResolverFrame{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _} G.Step{_, _}: selected
