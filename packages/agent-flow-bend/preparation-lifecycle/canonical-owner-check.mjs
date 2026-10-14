@@ -1,4 +1,5 @@
 import * as Effect from "effect/Effect"
+import * as Cause from "effect/Cause"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, readFile, rm } from "node:fs/promises"
@@ -1268,6 +1269,97 @@ try {
     }
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 6
+  }
+  // Construction stays under the interpreter mask until registration. Native
+  // finalization still runs in the same fiber after an interruption is pending.
+  for (const mode of [
+    "success",
+    "pre-interrupted",
+    "construct-failure",
+    "construct-interrupted",
+    "provider-interrupted"
+  ]) {
+    const registry = createServiceRegistry()
+    let constructions = 0,
+      closes = 0,
+      finishes = 0,
+      starts = 0,
+      caller
+    const machine = {
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      view: (value) => value,
+      resume: () => ({ $: "Types.CompletedResolver", result: "accepted" }),
+      disposeInvocation() {},
+      retainedHandles: 0
+    }
+    const driver = createFixtureDriver({
+      owner: m,
+      initialState: m.initial_limits(100n, 100000n, 100n, 100000n),
+      registry,
+      machine,
+      foreignSync: () => ({
+        effect: Effect.sync(() => {
+          starts++
+          if (mode === "provider-interrupted") caller.interruptUnsafe()
+          return {}
+        }),
+        map: (value) => value
+      }),
+      foreign() {
+        assert.fail("constructed Effect cannot start a Promise provider")
+      }
+    })
+    const task = Effect.withFiber((fiber) => {
+      caller = fiber
+      return driver.driveConstructedEffect(() => {
+        constructions++
+        const invocation = driver.allocateFreshnessInvocation()
+        if (mode === "construct-failure") {
+          driver.constructionFailed(invocation)
+          throw undefined
+        }
+        if (mode === "construct-interrupted") fiber.interruptUnsafe()
+        const session = {
+          invocation,
+          close() {
+            closes++
+          },
+          revoke() {},
+          *finishFlow() {
+            yield {
+              kind: "effect",
+              effect: Effect.map(Effect.fiber, (current) => {
+                assert.equal(current, fiber)
+                finishes++
+              })
+            }
+          }
+        }
+        return { session, input: { invocation: BigInt(invocation) } }
+      })
+    })
+    const exit = await Effect.runPromiseExit(mode === "pre-interrupted" ? Effect.andThen(Effect.interrupt, task) : task)
+    assert.equal(constructions, mode === "pre-interrupted" ? 0 : 1)
+    assert.equal(
+      finishes,
+      ["pre-interrupted", "construct-failure"].includes(mode) ? 0 : 1,
+      mode +
+        " finish: " +
+        JSON.stringify({
+          closes,
+          starts,
+          pending: registry.pendingCleanup,
+          reasons: exit._tag === "Failure" ? exit.cause.reasons : []
+        })
+    )
+    assert.equal(closes, finishes)
+    assert.equal(exit._tag, mode === "success" ? "Success" : "Failure")
+    if (exit._tag === "Failure" && mode !== "construct-failure") assert.equal(Cause.hasInterrupts(exit.cause), true)
+    assert.equal(registry.size, 0)
+    assert.equal(registry.pendingCleanup, 0)
+    assert.equal(starts, ["success", "provider-interrupted"].includes(mode) ? 1 : 0)
+    assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
+    assertions += 9
   }
   // Opaque provider failures include falsy JavaScript thrown values. They must
   // survive saved-reply delivery without a Resume or terminal acceptance.

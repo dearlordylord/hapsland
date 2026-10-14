@@ -182,16 +182,22 @@ export function createChildExecutionDriver({
   /** @type {WeakSet<S>} */
   const finalizedSessions = new WeakSet()
   /** @param {S} session */
-  function* finishSessionFlow(session) {
+  function* finalizeSessionFlow(session) {
     if (finalizedSessions.has(session)) return
+    if (session.finishFlow)
+      yield effectNative(
+        runNativeEffect(session.finishFlow(), () => {}),
+        false
+      )
+    else yield awaitNative(session.finish?.())
+    finalizedSessions.add(session)
+  }
+  /** @param {S} session */
+  function* finishSessionFlow(session) {
     try {
-      yield awaitNative(session.finish?.())
-      finalizedSessions.add(session)
+      yield* finalizeSessionFlow(session)
     } catch (error) {
-      registry.retainCleanup(session, async () => {
-        await session.finish?.()
-        finalizedSessions.add(session)
-      })
+      registry.retainCleanupFlow(session, () => finalizeSessionFlow(session))
       throw error
     }
   }
@@ -759,10 +765,7 @@ export function createChildExecutionDriver({
           throw new Error("Finalization still owns a provider lease")
         // Call finish directly here: a failing retry must not replace its registry
         // obligation, or a subsequent successful retry cannot discharge that owner.
-        if (!finalizedSessions.has(session)) {
-          yield awaitNative(session.finish?.())
-          finalizedSessions.add(session)
-        }
+        yield* finalizeSessionFlow(session)
         if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
           const id = save(invocation, {
             kind: "result",
@@ -793,8 +796,8 @@ export function createChildExecutionDriver({
       }
       return { failures: attemptFailures, rejection: attemptFailures[0] }
     }
-    const completeInvocation = async () => {
-      const attempt = await runNativePromise(completeInvocationOutcome())
+    const completeInvocation = function* () {
+      const attempt = yield* completeInvocationOutcome()
       if (attempt.failures.length > 1)
         throw nativeFailureAggregate(
           attempt.failures.map((receipt) => receipt.error),
@@ -805,7 +808,7 @@ export function createChildExecutionDriver({
     }
     const finalization = yield* completeInvocationOutcome()
     failures.push(...finalization.failures)
-    if (finalization.rejection) registry.retainCleanup(session, completeInvocation)
+    if (finalization.rejection) registry.retainCleanupFlow(session, completeInvocation)
     if (failures.length === 1) throw required(failures[0]).error
     if (failures.length > 1) {
       /** @type {unknown} */
@@ -982,6 +985,15 @@ export function createChildExecutionDriver({
     /** @param {S} session @param {I} input @param {ForeignOptions} [options] */
     driveEffect(session, input, options = {}) {
       return runEffectFlow((execution) => driveInvocationFlow(session, input, execution), options)
+    },
+    /** Construction and registration share the first masked interpreter step.
+     * @param {() => {session: S, input: I}} construct @param {ForeignOptions} [options]
+     */
+    driveConstructedEffect(construct, options = {}) {
+      return runEffectFlow(function* (execution) {
+        const { session, input } = construct()
+        return yield* driveInvocationFlow(session, input, execution)
+      }, options)
     },
     /** @param {number} invocation @param {{session?: S | undefined, closePending?: boolean, inputHandle?: bigint}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false, inputHandle } = {}) {

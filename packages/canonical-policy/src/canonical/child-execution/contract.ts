@@ -51,6 +51,7 @@ export type TerminalMethod =
 export type Session = NativeSession & {
   revoke(): unknown
   finish?: () => unknown | Promise<unknown>
+  finishFlow?: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<unknown>
   forceCleanup?: (error: unknown) => unknown
 }
 export type Input = { readonly invocation: bigint | number; readonly kind?: never }

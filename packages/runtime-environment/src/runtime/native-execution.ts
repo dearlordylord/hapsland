@@ -7,14 +7,18 @@ import * as Result from "effect/Result"
 // determine how to wait; the caller's flow retains lifecycle/progression.
 export type NativeSuspension =
   | { readonly kind: "await"; readonly value: unknown; readonly interruptible: boolean }
-  | { readonly kind: "effect"; readonly effect: Effect.Effect<unknown> }
+  | { readonly kind: "effect"; readonly effect: Effect.Effect<unknown>; readonly interruptible?: boolean }
 export type NativeFlow<Value> = Generator<NativeSuspension, Value, unknown>
 export const awaitNative = (value: unknown, interruptible = false): NativeSuspension => ({
   kind: "await",
   value,
   interruptible
 })
-export const effectNative = (effect: Effect.Effect<unknown>): NativeSuspension => ({ kind: "effect", effect })
+export const effectNative = (effect: Effect.Effect<unknown>, interruptible = true): NativeSuspension => ({
+  kind: "effect",
+  effect,
+  interruptible
+})
 export type NativeWork<Value> = Promise<Value> | Effect.Effect<Value>
 export function* awaitNativeWork<Value>(work: NativeWork<Value>): NativeFlow<Value> {
   return (yield Effect.isEffect(work) ? effectNative(work) : awaitNative(work)) as Value
@@ -95,7 +99,8 @@ export const runNativeEffect = <Value>(
         onSuspension?.()
         const suspension = step.value
         const waiting = suspension.kind === "effect" ? suspension.effect : waitNative(suspension.value)
-        const interruptible = suspension.kind === "effect" || suspension.interruptible
+        const interruptible =
+          suspension.kind === "effect" ? suspension.interruptible !== false : suspension.interruptible
         return Effect.exit(interruptible ? restore(waiting) : waiting).pipe(
           Effect.flatMap((exit) => {
             if (Exit.isSuccess(exit)) return resume(false, exit.value)

@@ -1,4 +1,11 @@
-import { awaitNative, runNativePromise, type NativeFlow } from "./native-execution.ts"
+import * as Effect from "effect/Effect"
+import {
+  awaitNative,
+  runNativePromise,
+  runNativeEffect,
+  nativeFailureAggregate,
+  type NativeFlow
+} from "./native-execution.ts"
 
 // Native invocation resource custody: registration, finalization and retained cleanup.
 type FailureOccurrence = { readonly phase: "register" | "task" | "close" | "remove"; readonly error: unknown }
@@ -14,53 +21,64 @@ type RegistryOutcome<Value> = {
 export type NativeSession = { readonly invocation: number; close(): void }
 
 export function createNativeSessionRegistry<Session extends NativeSession = NativeSession>() {
+  type Cleanup = () => NativeFlow<unknown>
   const sessions = new Map<number, Session>(),
-    cleanupObligations = new Map<number, { session: Session | undefined; retry: () => unknown | Promise<unknown> }>()
-  const retainCleanup = (session: Session, retry: () => unknown | Promise<unknown>) => {
+    cleanupObligations = new Map<number, { session: Session | undefined; retry: Cleanup }>()
+  const promiseCleanup = (retry: () => unknown | Promise<unknown>): Cleanup =>
+    function* () {
+      return yield awaitNative(retry())
+    }
+  const retainCleanupFlow = (session: Session, retry: Cleanup) => {
     const previous = cleanupObligations.get(session.invocation)
     if (previous && previous.session !== session) throw new Error("Cleanup obligation owner replaced")
     cleanupObligations.set(session.invocation, { session, retry })
   }
-  // Construction can fail before a session exists. Keep that exact invocation
-  // in this same registry, and compose rather than replace an existing obligation.
-  const retainConstructionCleanup = (
-    invocation: number,
-    session: Session | undefined,
-    retry: () => unknown | Promise<unknown>
-  ) => {
+  const retainCleanup = (session: Session, retry: () => unknown | Promise<unknown>) =>
+    retainCleanupFlow(session, promiseCleanup(retry))
+  // Construction can fail before a session exists. Retain one composed flow and
+  // its completed steps so successful cleanup is never replayed after a failure.
+  const retainConstructionCleanupFlow = (invocation: number, session: Session | undefined, retry: Cleanup) => {
     const previous = cleanupObligations.get(invocation)
     if (previous && previous.session !== session) throw new Error("Cleanup obligation owner replaced")
-    const completed = new Set()
-    const combined = previous
-      ? async () => {
-          const failures = []
+    const completed = new Set<number>()
+    const combined: Cleanup = previous
+      ? function* () {
+          const failures: unknown[] = []
           for (const [index, cleanup] of [previous.retry, retry].entries()) {
             if (completed.has(index)) continue
             try {
-              await cleanup()
+              yield* cleanup()
               completed.add(index)
             } catch (error) {
               failures.push(error)
             }
           }
           if (failures.length === 1) throw failures[0]
-          if (failures.length) throw new AggregateError(failures, "Construction cleanup remains pending")
+          if (failures.length) throw nativeFailureAggregate(failures, "Construction cleanup remains pending")
         }
       : retry
     cleanupObligations.set(invocation, { session, retry: combined })
   }
-  const retryCleanup = async () => {
-    const failures = []
+  const retainConstructionCleanup = (
+    invocation: number,
+    session: Session | undefined,
+    retry: () => unknown | Promise<unknown>
+  ) => retainConstructionCleanupFlow(invocation, session, promiseCleanup(retry))
+  const retryCleanupFlow = function* (): NativeFlow<void> {
+    const failures: unknown[] = []
     for (const [id, obligation] of [...cleanupObligations]) {
       try {
-        await obligation.retry()
+        yield* obligation.retry()
         if (cleanupObligations.get(id) === obligation) cleanupObligations.delete(id)
       } catch (error) {
         failures.push(error)
       }
     }
-    if (failures.length) throw new AggregateError(failures, "Resident cleanup obligations remain pending")
+    if (failures.length) throw nativeFailureAggregate(failures, "Resident cleanup obligations remain pending")
   }
+  const retryCleanup = () => runNativePromise(retryCleanupFlow())
+  const retryCleanupEffect = () =>
+    Effect.uninterruptible(Effect.suspend(() => runNativeEffect(retryCleanupFlow(), () => {})))
   const register = (session: Session) => {
     if (sessions.has(session.invocation)) throw new Error("duplicate active invocation")
     sessions.set(session.invocation, session)
@@ -119,8 +137,12 @@ export function createNativeSessionRegistry<Session extends NativeSession = Nati
     )
   return Object.freeze({
     retainCleanup,
+    retainCleanupFlow,
     retainConstructionCleanup,
+    retainConstructionCleanupFlow,
     retryCleanup,
+    retryCleanupFlow,
+    retryCleanupEffect,
     hasCleanup: (session: Session) => cleanupObligations.get(session.invocation)?.session === session,
     get pendingCleanup() {
       return cleanupObligations.size
