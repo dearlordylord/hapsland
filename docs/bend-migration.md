@@ -161,16 +161,10 @@ next units/stages or select rules/provider/input. Full OtherContract values rema
 intact. URI engine exceptions retain their original object; other host failures
 propagate, while synchronous omission observer throws alone are swallowed.
 
-The production-binding `native-preparation-children.mjs` is removed. The renamed
-`native-preparation-reference.mjs` reads the current TS owner only for verification;
-it is never a product engine. Delete it with the replaced TS implementation on
-whole acceptance, preserving the independent correspondence contract at its owner.
-The default resident entry now connects the whole Source → preparation/graph →
-Post candidate through its lifetime-owned Canonical binding. Actual production
-preparation ownership fixtures and full finite Source/resident consumers pass.
-Public review-execution `pipeline.ts` still retains TS preparation algorithms.
-Accepted whole units: **0**; replaced production TS algorithms removed: **0**.
-The connected candidate is qualification progress, not whole-unit acceptance.
+The superseded production-binding native-preparation-children.mjs and source-slicing reference mechanism are removed. The remaining native reference is the normal tracked owner file `packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts`, exposed only through the verification testing entry. Delete it and its testing export after whole guarantee qualification, updating the independent verification consumers; production has no oracle fallback.
+
+The resident Source → Preparation/Graph → Post path and public pipeline now use their Canonical-owned Bend bindings. Public observation/source-line preparation and all three Freshness entries are connected. Approximately900 lines of former preparation algorithms were removed from production pipeline.ts but retained in that verification oracle; the replaced freshness selection/retention/orchestration bodies were deleted (115 removed/39 added pipeline lines at cutover). Public Preparation's private fresh-runtime Cause/active-Promise bridge is also removed. These are production connection/deletion facts, not completed repository-wide oracle deletion. Accepted whole units remain **0** until the original whole guarantees, final consumer qualification and required parity hold on the acceptance candidate.
+
 
 Current finite evidence, with commands at the testing matrix:
 
@@ -224,6 +218,8 @@ On checkout-matching virtiofs, temporary generated-output deletion means are syn
 The original SkipImport branch now consumes the qualified selected-slot guard, original registration/history address preservation and ready_captured_rollback_total, unpacks both full-frame projections and exact rollback transaction, then applies ready_actual_rollback_applied. The actual whole-candidate verdict reaches the narrower encoded_rollback_after_command obligation in2.920s (CPU10/hard10,601defs/58imports); it exits1 and is not a whole PASS. Original DRAFT/premises stay byte-identical. Next is captured-step transport into shared after_command and existing History.encoded/capsule transport; non-Skip publication obligations remain.
 
 Oracle deletion audit: the single retained Review Execution native-preparation.ts is used by five owner verification paths/public correspondence and the current-native supplemental performance lane. Its production pipeline body has already been removed; no production fallback exists. Delete the oracle/testing export and update those verification consumers after whole guarantee qualification; do not count its relocation as repository-wide TS deletion.
+
+The actual rollback equation is now consumed in the original SkipImport boundary target: capturedStep transports the replacement witness into the explicit Skip frame, then ready_actual_rollback_applied rewrites Admission.rejected_slots into Resolve.progressed(False,...). Whole verdict reaches LoopPolicy.after_phase on that rolled-back frame, exit1 in2.995s (CPU10/hard10,601defs/58imports). Reference transaction/history/capsule alignment and final common after_command remain unqualified; no original whole claim is reported closed yet. Original DRAFT remains unchanged.
 
 Current obstacles: (1) finish unchanged original whole correspondence/transaction proofs, specifically claims7–8 attachment publication/rollback and common after_command assembly; (2) remove remaining superseded TS verification oracles after whole guarantee qualification and rerun affected final consumers; (3) preserve qualified primary17-pair parity/cadence on the final frozen acceptance candidate and qualify whole-slice performance scope; (4) complete the remaining whole Canonical/Preparation progression audit. Current public caller-fiber/Cause/cancellation and packaged consumers are qualified; existing analyzer/build parity passes for87629937. Broader pipeline sameAdvicee logic remains outside this freshness cutover. Accepted whole slices remain zero.
 
