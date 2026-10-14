@@ -1,6 +1,7 @@
 import * as Effect from "effect/Effect"
 import {
   awaitNative,
+  awaitNativeWork,
   effectNative,
   runNativePromise,
   runNativeEffect,
@@ -38,9 +39,10 @@ const required = (value) => {
  * @template Reply
  * @param {import("./contract.ts").ForeignReply<Reply>} result
  * @param {() => boolean} live
- * @returns {import("./contract.ts").ForeignResult<Reply> | {revoked: true}}
+ * @param {() => void} onAwait
+ * @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<import("./contract.ts").ForeignResult<Reply> | {revoked: true}>}
  */
-const executeSynchronousGroup = (result, live) => {
+const executeSynchronousGroup = function* (result, live, onAwait) {
   if (!("group" in result)) return result
   const checkpointed = result.group.checkpoints === "canonical"
   for (;;) {
@@ -57,6 +59,15 @@ const executeSynchronousGroup = (result, live) => {
         if (!("commit" in completed)) return completed
         if (!live()) return { revoked: true }
         completed.commit()
+        break
+      }
+      case "effect-checkpointed": {
+        if (!checkpointed) throw new TypeError("Effect checkpoint requires Canonical group authority")
+        onAwait()
+        const outcome = yield* awaitNativeWork(command.perform())
+        if ("value" in outcome) return { value: outcome.value }
+        if (!live()) return { revoked: true }
+        outcome.commit()
         break
       }
       case "pending":
@@ -608,10 +619,16 @@ export function createChildExecutionDriver({
                 const synchronous =
                   offered === undefined
                     ? undefined
-                    : executeSynchronousGroup(offered, () => {
-                        const found = readActive(invocation)
-                        return found.$ === "Some" && found.value
-                      })
+                    : yield* executeSynchronousGroup(
+                        offered,
+                        () => {
+                          const found = readActive(invocation)
+                          return found.$ === "Some" && found.value
+                        },
+                        () => {
+                          awaited = true
+                        }
+                      )
                 if (synchronous === undefined) {
                   // The existing async port keeps its late-reply discard rules.
                   awaited = true

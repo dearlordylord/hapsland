@@ -113,9 +113,9 @@ const protocolFor = (
     if (projected.kind === "finalization") return finalizationProtocol.awaitRequest(projected)
     if (projected.kind === "preparation") return preparationProtocol.awaitRequest(projected)
     const request = graphProtocol.awaitRequest(projected)
-    return request === undefined || !groupGraph
-      ? request
-      : { ...request, graphContinuation: projected.graphContinuation }
+    if (request === undefined || !groupGraph) return request
+    if (projected.graphContinuation === undefined) throw new TypeError("Missing private Graph projection")
+    return { ...request, graphContinuation: projected.graphContinuation }
   },
   installation: () => ({ method: "install" }),
   terminal: (projected, scope) =>

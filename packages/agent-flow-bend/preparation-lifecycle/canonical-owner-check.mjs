@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, readFile, rm } from "node:fs/promises"
@@ -417,6 +418,73 @@ try {
     assert.equal(driver.stats.accepted, mode === "terminal" || mode === "pending" ? 1 : 0)
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 9
+  }
+  // Effect commands retain the old asynchronous discard classification, even
+  // when a native callback synchronously cancels and throws a falsy value.
+  for (const failure of [undefined, null, false, 0, ""]) {
+    const outcomes = []
+    for (const grouped of [false, true]) {
+      const registry = createServiceRegistry()
+      let closes = 0,
+        starts = 0,
+        resumes = 0
+      const machine = {
+        initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+        view: (value) => value,
+        resume() {
+          resumes++
+          return { $: "Types.CompletedResolver", result: "accepted" }
+        },
+        disposeInvocation() {},
+        retainedHandles: 0
+      }
+      const driver = createFixtureDriver({
+        owner: m,
+        initialState: m.initial_limits(100n, 100000n, 100n, 100000n),
+        registry,
+        machine,
+        foreignSync() {
+          const effect = Effect.sync(() => {
+            starts++
+            driver.cancel(BigInt(invocation))
+            throw failure
+          })
+          return grouped
+            ? {
+                group: {
+                  checkpoints: "canonical",
+                  next: () => ({ kind: "effect-checkpointed", perform: () => effect })
+                }
+              }
+            : {
+                effect,
+                map() {
+                  assert.fail("cancelled failure cannot map")
+                }
+              }
+        },
+        foreign() {
+          assert.fail("effect command cannot fall back")
+        }
+      })
+      const invocation = driver.allocateFreshnessInvocation()
+      const session = {
+        invocation,
+        finish() {},
+        revoke() {},
+        close() {
+          closes++
+        }
+      }
+      const result = await Effect.runPromise(driver.driveEffect(session, { invocation: BigInt(invocation) }))
+      assert.equal(result.failure.$, "Types.InvocationCancelled")
+      outcomes.push({ result, closes, starts, resumes, resources: driver.resources })
+    }
+    assert.deepEqual(outcomes[1], outcomes[0])
+    assert.equal(outcomes[1].closes, 1)
+    assert.equal(outcomes[1].starts, 1)
+    assert.equal(outcomes[1].resumes, 0)
+    assertions += 4
   }
   // The pending engine boundary must distinguish immediate throws from late
   // rejection and mapper failures, while cancellation still drains its lease.

@@ -72,6 +72,10 @@ export type ForeignResult<Reply> = { readonly value: Reply } | ForeignPending<Re
 export type ForeignCommand<Reply> =
   | { readonly kind: "primitive"; readonly perform: () => void }
   | { readonly kind: "checkpointed"; readonly perform: () => { readonly commit: () => void } | ForeignPending<Reply> }
+  | {
+      readonly kind: "effect-checkpointed"
+      readonly perform: () => Effect.Effect<{ readonly commit: () => void } | { readonly value: Reply }>
+    }
   | { readonly kind: "pending"; readonly start: () => ForeignPending<Reply> }
   | { readonly kind: "terminal"; readonly value: Reply }
 export type ForeignReply<Reply> =

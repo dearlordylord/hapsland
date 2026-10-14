@@ -33,30 +33,29 @@ export function performGraphNativeGroup(
         const current = next
         if (current === undefined) return { kind: "terminal", value: { $: "GraphNativeReply", continuation } }
         return {
-          kind: "checkpointed",
+          kind: "effect-checkpointed",
           perform() {
-            const flow = performGraphServiceFlow(session, current, options)
-            const first = flow.next()
-            if (first.done)
-              return {
-                commit() {
-                  continuation = graphProtocol.resume(continuation, first.value)
-                  next = graphProtocol.awaitRequest(graphProtocol.view(continuation))
+            return Effect.suspend(() => {
+              let suspended = false
+              const flow = performGraphServiceFlow(session, current, options)
+              return runNativeEffect(
+                flow,
+                () => {},
+                () => {
+                  suspended = true
                 }
-              }
-            const pendingContinuation = continuation
-            let completed: GraphNativeReply | undefined
-            return {
-              effect: runNativeEffect(flow, () => {}, first).pipe(
+              ).pipe(
                 Effect.map((reply) => {
-                  completed = { $: "GraphNativeReply", continuation: pendingContinuation, reply }
+                  if (suspended) return { value: { $: "GraphNativeReply" as const, continuation, reply } }
+                  return {
+                    commit() {
+                      continuation = graphProtocol.resume(continuation, reply)
+                      next = graphProtocol.awaitRequest(graphProtocol.view(continuation))
+                    }
+                  }
                 })
-              ),
-              map() {
-                if (completed === undefined) throw new TypeError("Graph native suspension did not complete")
-                return completed
-              }
-            }
+              )
+            })
           }
         }
       }
