@@ -56,9 +56,25 @@ export type Machine = { disposeInvocation(invocation: bigint): void; readonly re
 export type Request = { readonly invocation: bigint; readonly id: bigint }
 // A pending engine is invoked before the await boundary; mapping its raw reply
 // afterward must not execute the effect again or choose product progression.
-export type ForeignReply<Reply> =
+export type ForeignResult<Reply> =
   | { readonly value: Reply }
   | { readonly pending: Promise<unknown>; readonly map: (value: unknown) => Reply }
+// A single issued Canonical lease may execute an original synchronous group.
+// The Bend protocol chooses each primitive and the stopping boundary. Internal
+// machine request IDs remain inside this group; they do not issue new leases.
+// Primitive execution introduces no await or cancellation checkpoint. A pending
+// start runs once before awaiting; its mapper performs ABI conversion only.
+export type ForeignCommand<Reply> =
+  | { readonly kind: "primitive"; readonly perform: () => void }
+  | {
+      readonly kind: "pending"
+      readonly start: () => Extract<ForeignResult<Reply>, { readonly pending: Promise<unknown> }>
+    }
+  | { readonly kind: "terminal"; readonly value: Reply }
+export type ForeignReply<Reply> =
+  | ForeignResult<Reply>
+  | { readonly group: { readonly next: () => ForeignCommand<Reply> } }
+
 export type Projection = { readonly kind: string; readonly view: { readonly $: string } }
 export type PreparationHandoff = {
   readonly handoff: bigint

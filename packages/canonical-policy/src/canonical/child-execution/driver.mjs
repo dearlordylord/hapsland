@@ -26,6 +26,26 @@ const required = (value) => {
   return value
 }
 /**
+ * @template Reply
+ * @param {import("./contract.ts").ForeignReply<Reply>} result
+ * @returns {import("./contract.ts").ForeignResult<Reply>}
+ */
+const executeSynchronousGroup = (result) => {
+  if (!("group" in result)) return result
+  for (;;) {
+    const command = result.group.next()
+    switch (command.kind) {
+      case "primitive":
+        command.perform()
+        break
+      case "pending":
+        return command.start()
+      case "terminal":
+        return { value: command.value }
+    }
+  }
+}
+/**
  * @template {import("./contract.ts").Projection} P
  * @param {P | ConstructionFailure} value
  * @returns {value is ConstructionFailure}
@@ -541,7 +561,8 @@ export function createChildExecutionDriver({
                   request: BigInt(lease.request.id)
                 })
               }
-              const synchronous = foreignSync?.([lease.request], execution)
+              const offered = foreignSync?.([lease.request], execution)
+              const synchronous = offered === undefined ? undefined : executeSynchronousGroup(offered)
               if (synchronous === undefined) {
                 // The existing async port keeps its late-reply discard rules.
                 awaited = true
