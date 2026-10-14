@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "src/runtime/native-execution.ts",
+    "src/runtime/native-session-registry.ts"
+  ]
+}

@@ -1,3 +1,12 @@
+import * as Effect from "effect/Effect"
+import {
+  awaitNative,
+  effectNative,
+  runNativePromise,
+  runNativeEffect,
+  nativeFailureAggregate
+} from "@hapsland/runtime-environment/runtime/native-execution"
+
 const constructionFailureTag = Symbol("CanonicalConstructionFailure")
 /**
  * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner} Owner
@@ -135,10 +144,10 @@ export function createChildExecutionDriver({
   /** @type {WeakSet<S>} */
   const finalizedSessions = new WeakSet()
   /** @param {S} session */
-  const finishSession = async (session) => {
+  function* finishSessionFlow(session) {
     if (finalizedSessions.has(session)) return
     try {
-      await session.finish?.()
+      yield awaitNative(session.finish?.())
       finalizedSessions.add(session)
     } catch (error) {
       registry.retainCleanup(session, async () => {
@@ -152,7 +161,7 @@ export function createChildExecutionDriver({
   const closeUnregistered = async (session) => {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session) return
     try {
-      await finishSession(session)
+      await runNativePromise(finishSessionFlow(session))
     } finally {
       session.close?.()
     }
@@ -443,16 +452,19 @@ export function createChildExecutionDriver({
   }
   /** @param {Step} step */
   const apply = (step) => unwrap(applyOutcome(step))
-  /** @param {S} session @param {I} input @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
-  async function driveInvocation(session, input, options = {}) {
+  /** @param {S} session @param {I} input @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
+  function* driveInvocationFlow(session, input, options = {}) {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
       throw new Error("Session already owned by an active invocation")
     const invocation = BigInt(input.invocation),
       launch = launches.get(invocation)
-    if (!launch)
-      return registry.run(session, async () => {
+    if (!launch) {
+      const missing = yield* registry.runOutcomeFlow(session, function* () {
         throw new Error("Missing Canonical Launch")
       })
+      if (missing.rejection) throw missing.rejection.error
+      throw new Error("Missing Canonical Launch")
+    }
     let taskEntered = false,
       registryRejected = false
     /** @type {Failure | undefined} */
@@ -500,136 +512,146 @@ export function createChildExecutionDriver({
       machines.set(invocation, (selectMachine ? selectMachine(input, session) : undefined) ?? machine)
       resources.set(launch.input_handle, { invocation, kind: "input", value: input })
       invocationSignals.set(invocation, options.signal)
-      const registryOutcome = await registry.runOutcome(session, async () => {
-        taskEntered = true
-        /** @type {Failure | undefined} */
-        let abortFailure
-        const abort = () => {
-          try {
-            const child = owner.find(invocation, current().children)
-            if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
-          } catch (error) {
-            const receipt = takeFailure(error)
-            abortFailure ??= receipt
+      const registryOutcome = yield* registry.runOutcomeFlow(
+        session,
+        /** @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */ function* () {
+          taskEntered = true
+          /** @type {Failure | undefined} */
+          let abortFailure
+          const abort = () => {
+            try {
+              const child = owner.find(invocation, current().children)
+              if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
+            } catch (error) {
+              const receipt = takeFailure(error)
+              abortFailure ??= receipt
+            }
           }
-        }
-        options.signal?.addEventListener("abort", abort, { once: true })
-        const finishTaskSession = async () => {
-          try {
-            await finishSession(session)
-          } catch (error) {
-            taskFailure = rememberFailure(error)
-            throw error
+          options.signal?.addEventListener("abort", abort, { once: true })
+          const finishTaskSession = function* () {
+            try {
+              yield awaitNative(yield* finishSessionFlow(session))
+            } catch (error) {
+              taskFailure = rememberFailure(error)
+              throw error
+            }
           }
-        }
-        try {
-          if (protocol.initialSignalCheckpoint?.(engine(invocation)) !== "protocol" && options.signal?.aborted) abort()
-          if (finished.has(invocation)) {
+          try {
+            if (protocol.initialSignalCheckpoint?.(engine(invocation)) !== "protocol" && options.signal?.aborted)
+              abort()
+            if (finished.has(invocation)) {
+              if (abortFailure) {
+                taskFailure = abortFailure
+                throw abortFailure.error
+              }
+              return terminalOutcome()
+            }
+            try {
+              settleInInvocation(invocation, 0n, protocol.initial(engine(invocation), input))
+            } finally {
+              release(launch.input_handle, invocation)
+            }
+            while (!finished.has(invocation)) {
+              applyInInvocation(invoke("provider_start", invocation))
+              const child = findChild(invocation)
+              if (child.lease.$ !== "Some") throw new Error("Provider start lacks its Canonical lease")
+              const leaseId = child.lease.value.id
+              const lease = required(leases.get(leaseId))
+              /** @type {ReplyPayload} */
+              let payload
+              let immediateFailure = false,
+                awaited = false
+              try {
+                const signal = options.signal
+                  ? AbortSignal.any([options.signal, lease.controller.signal])
+                  : lease.controller.signal
+                hooks.beforeProvider?.({ invocation, lease: leaseId, request: lease.request, driver })
+                const execution = {
+                  ...options,
+                  signal,
+                  ownerLease: Object.freeze({
+                    invocation,
+                    generation: child.generation,
+                    lease: leaseId,
+                    request: BigInt(lease.request.id)
+                  })
+                }
+                const offered = foreignSync?.([lease.request], execution)
+                const synchronous = offered === undefined ? undefined : executeSynchronousGroup(offered)
+                if (synchronous === undefined) {
+                  // The existing async port keeps its late-reply discard rules.
+                  awaited = true
+                  payload = {
+                    value: /** @type {Reply} */ (yield awaitNative(foreign([lease.request], execution), true))
+                  }
+                } else if ("pending" in synchronous) {
+                  awaited = true
+                  const value = yield awaitNative(synchronous.pending, true)
+                  payload = { value: synchronous.map(value) }
+                } else if ("effect" in synchronous) {
+                  awaited = true
+                  const value = yield effectNative(synchronous.effect)
+                  payload = { value: synchronous.map(value) }
+                } else payload = { value: synchronous.value }
+              } catch (error) {
+                immediateFailure = !awaited
+                payload = { error }
+              }
+              const replyId = save(invocation, { kind: "reply", value: payload })
+              try {
+                hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
+                applyInInvocation(invoke("provider_completed", invocation, leaseId, BigInt(lease.request.id), replyId))
+              } catch (error) {
+                taskFailure = takeFailure(error)
+                try {
+                  const child = owner.find(invocation, current().children)
+                  if (child.$ === "Some" && owner.child_active(child.value))
+                    applyInInvocation(invoke("cancel", invocation))
+                } catch (cleanupError) {
+                  takeFailure(cleanupError)
+                }
+                if (leases.has(leaseId)) {
+                  try {
+                    applyInInvocation(
+                      invoke("provider_completed", invocation, leaseId, BigInt(lease.request.id), replyId)
+                    )
+                  } catch (cleanupError) {
+                    takeFailure(cleanupError)
+                  }
+                }
+                throw error
+              } finally {
+                release(replyId, invocation)
+              }
+              if (immediateFailure && "error" in payload) {
+                // Cancellation can discard the reply but cannot turn an engine
+                // throw before any await into a late asynchronous rejection.
+                taskFailure = takeFailure(payload.error)
+                throw payload.error
+              }
+            }
             if (abortFailure) {
               taskFailure = abortFailure
               throw abortFailure.error
             }
             return terminalOutcome()
-          }
-          try {
-            settleInInvocation(invocation, 0n, protocol.initial(engine(invocation), input))
+          } catch (error) {
+            taskFailure ??= takeFailure(error)
+            try {
+              const child = owner.find(invocation, current().children)
+              if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
+            } catch (cleanupError) {
+              taskFailure = takeFailure(cleanupError)
+              throw cleanupError
+            }
+            throw error
           } finally {
-            release(launch.input_handle, invocation)
+            options.signal?.removeEventListener("abort", abort)
+            // Provider await has settled before registry.run closes native resources.
+            yield awaitNative(yield* finishTaskSession())
           }
-          while (!finished.has(invocation)) {
-            applyInInvocation(invoke("provider_start", invocation))
-            const child = findChild(invocation)
-            if (child.lease.$ !== "Some") throw new Error("Provider start lacks its Canonical lease")
-            const leaseId = child.lease.value.id
-            const lease = required(leases.get(leaseId))
-            /** @type {ReplyPayload} */
-            let payload
-            let immediateFailure = false,
-              awaited = false
-            try {
-              const signal = options.signal
-                ? AbortSignal.any([options.signal, lease.controller.signal])
-                : lease.controller.signal
-              hooks.beforeProvider?.({ invocation, lease: leaseId, request: lease.request, driver })
-              const execution = {
-                ...options,
-                signal,
-                ownerLease: Object.freeze({
-                  invocation,
-                  generation: child.generation,
-                  lease: leaseId,
-                  request: BigInt(lease.request.id)
-                })
-              }
-              const offered = foreignSync?.([lease.request], execution)
-              const synchronous = offered === undefined ? undefined : executeSynchronousGroup(offered)
-              if (synchronous === undefined) {
-                // The existing async port keeps its late-reply discard rules.
-                awaited = true
-                payload = { value: await foreign([lease.request], execution) }
-              } else if ("pending" in synchronous) {
-                awaited = true
-                const value = await synchronous.pending
-                payload = { value: synchronous.map(value) }
-              } else payload = { value: synchronous.value }
-            } catch (error) {
-              immediateFailure = !awaited
-              payload = { error }
-            }
-            const replyId = save(invocation, { kind: "reply", value: payload })
-            try {
-              hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
-              applyInInvocation(invoke("provider_completed", invocation, leaseId, BigInt(lease.request.id), replyId))
-            } catch (error) {
-              taskFailure = takeFailure(error)
-              try {
-                const child = owner.find(invocation, current().children)
-                if (child.$ === "Some" && owner.child_active(child.value))
-                  applyInInvocation(invoke("cancel", invocation))
-              } catch (cleanupError) {
-                takeFailure(cleanupError)
-              }
-              if (leases.has(leaseId)) {
-                try {
-                  applyInInvocation(
-                    invoke("provider_completed", invocation, leaseId, BigInt(lease.request.id), replyId)
-                  )
-                } catch (cleanupError) {
-                  takeFailure(cleanupError)
-                }
-              }
-              throw error
-            } finally {
-              release(replyId, invocation)
-            }
-            if (immediateFailure && "error" in payload) {
-              // Cancellation can discard the reply but cannot turn an engine
-              // throw before any await into a late asynchronous rejection.
-              taskFailure = takeFailure(payload.error)
-              throw payload.error
-            }
-          }
-          if (abortFailure) {
-            taskFailure = abortFailure
-            throw abortFailure.error
-          }
-          return terminalOutcome()
-        } catch (error) {
-          taskFailure ??= takeFailure(error)
-          try {
-            const child = owner.find(invocation, current().children)
-            if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
-          } catch (cleanupError) {
-            taskFailure = takeFailure(cleanupError)
-            throw cleanupError
-          }
-          throw error
-        } finally {
-          options.signal?.removeEventListener("abort", abort)
-          // Provider await has settled before registry.run closes native resources.
-          await finishTaskSession()
         }
-      })
+      )
       for (const receipt of registryOutcome.failures)
         if (receipt.phase !== "task" || !taskFailure) rememberFailure(receipt.error)
       if (registryOutcome.rejection) {
@@ -662,7 +684,8 @@ export function createChildExecutionDriver({
       finished.delete(invocation)
       for (const [id, held] of resources) if (held.invocation === invocation) release(id, invocation)
     }
-    const completeInvocationOutcome = async () => {
+    /** @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<ActionOutcome>} */
+    const completeInvocationOutcome = function* () {
       /** @type {Failure[]} */
       const attemptFailures = []
       /** @param {Step} step */
@@ -684,7 +707,7 @@ export function createChildExecutionDriver({
         // Call finish directly here: a failing retry must not replace its registry
         // obligation, or a subsequent successful retry cannot discharge that owner.
         if (!finalizedSessions.has(session)) {
-          await session.finish?.()
+          yield awaitNative(session.finish?.())
           finalizedSessions.add(session)
         }
         if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
@@ -718,16 +741,16 @@ export function createChildExecutionDriver({
       return { failures: attemptFailures, rejection: attemptFailures[0] }
     }
     const completeInvocation = async () => {
-      const attempt = await completeInvocationOutcome()
+      const attempt = await runNativePromise(completeInvocationOutcome())
       if (attempt.failures.length > 1)
-        throw new AggregateError(
+        throw nativeFailureAggregate(
           attempt.failures.map((receipt) => receipt.error),
           "Finalization attempt failed",
           { cause: required(attempt.rejection).error }
         )
       unwrap(attempt)
     }
-    const finalization = await completeInvocationOutcome()
+    const finalization = yield* completeInvocationOutcome()
     failures.push(...finalization.failures)
     if (finalization.rejection) registry.retainCleanup(session, completeInvocation)
     if (failures.length === 1) throw required(failures[0]).error
@@ -739,7 +762,7 @@ export function createChildExecutionDriver({
         seen.add(primary)
         primary = primary.cause
       }
-      throw new AggregateError(
+      throw nativeFailureAggregate(
         failures.map((receipt) => receipt.error),
         "Invocation and finalization failed",
         { cause: primary }
@@ -783,7 +806,9 @@ export function createChildExecutionDriver({
           try {
             driver.constructionFailed(Number(invocation), { inputHandle: inputId })
           } catch (cleanup) {
-            throw new AggregateError([error, cleanup], "Invocation publication and cleanup failed", { cause: error })
+            throw nativeFailureAggregate([error, cleanup], "Invocation publication and cleanup failed", {
+              cause: error
+            })
           }
         } else resources.delete(inputId)
         throw error
@@ -874,7 +899,18 @@ export function createChildExecutionDriver({
         if (!entered) await closeUnregistered(session)
       }
     },
-    drive: driveInvocation,
+    /** @param {S} session @param {I} input @param {ForeignOptions} [options] */
+    drive(session, input, options = {}) {
+      return runNativePromise(driveInvocationFlow(session, input, options))
+    },
+    /** @param {S} session @param {I} input @param {ForeignOptions} [options] */
+    driveEffect(session, input, options = {}) {
+      return Effect.suspend(() => {
+        const interruption = new AbortController()
+        const signal = options.signal ? AbortSignal.any([options.signal, interruption.signal]) : interruption.signal
+        return runNativeEffect(driveInvocationFlow(session, input, { ...options, signal }), () => interruption.abort())
+      })
+    },
     /** @param {number} invocation @param {{session?: S | undefined, closePending?: boolean, inputHandle?: bigint}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false, inputHandle } = {}) {
       const ownerInvocation = BigInt(invocation)
@@ -917,7 +953,8 @@ export function createChildExecutionDriver({
           }
         }
         if (failures.length === 1) throw failures[0]
-        if (failures.length) throw new AggregateError(failures, "Construction cleanup failed", { cause: failures[0] })
+        if (failures.length)
+          throw nativeFailureAggregate(failures, "Construction cleanup failed", { cause: failures[0] })
         // A committed launch can fail before its action enters launches. Only
         // release the allocator's exact input after cancellation has settled.
         if (inputHandle !== undefined && resources.has(inputHandle)) release(inputHandle, ownerInvocation)

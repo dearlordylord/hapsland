@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect"
 import type { Protocol, ForeignReply, ForeignCommand } from "@hapsland/canonical-policy/canonical/child-execution"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createLazyJson } from "./lazy-json.ts"
@@ -211,11 +212,11 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
   const begin = (
     query: NativeQuery,
     execution: FreshnessExecution
-  ): { readonly pending: Promise<unknown>; readonly encode: (raw: unknown) => Response } => {
+  ): { readonly work: Promise<unknown> | Effect.Effect<unknown>; readonly encode: (raw: unknown) => Response } => {
     switch (query.$) {
       case "VerifyRoot":
         return {
-          pending: ports.verifyRoot(value(query.observation) as FreshnessInput["observation"], execution),
+          work: ports.verifyRoot(value(query.observation) as FreshnessInput["observation"], execution),
           encode: (raw) => ({ $: "Flag", value: !!raw })
         }
       case "Prepare": {
@@ -228,13 +229,13 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
                   unlist(query.names).map((name) => [value(name.path) as string, new Set([value(name.name) as string])])
                 )
         return {
-          pending: ports.prepare(requiredInput(), names, execution),
+          work: ports.prepare(requiredInput(), names, execution),
           encode: (raw) => ({ $: "Handle", value: store(raw) })
         }
       }
       case "PublicationRetention.CurrentWork":
         return {
-          pending: ports.currentWork(value(query.method), authority(), value(query.prepared), execution),
+          work: ports.currentWork(value(query.method), authority(), value(query.prepared), execution),
           encode: (raw) => ({ $: "Flag", value: !!raw })
         }
       default:
@@ -290,10 +291,13 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
             start() {
               const engine = begin(query, execution)
               // Encoding only: Canonical's completion resumes the IO continuation.
-              return {
-                pending: engine.pending,
-                map: (raw) => ({ $: "FreshnessReply", request, state, response: engine.encode(raw) })
-              }
+              const map = (raw: unknown): FreshnessReply => ({
+                $: "FreshnessReply",
+                request,
+                state,
+                response: engine.encode(raw)
+              })
+              return Effect.isEffect(engine.work) ? { effect: engine.work, map } : { pending: engine.work, map }
             }
           }
         if (boundary !== "PrimitiveBoundary") throw new TypeError("Invalid freshness disposition")

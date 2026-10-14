@@ -1,9 +1,16 @@
+import { awaitNative, runNativePromise, type NativeFlow } from "./native-execution.ts"
+
 // Native invocation resource custody: registration, finalization and retained cleanup.
 type FailureOccurrence = { readonly phase: "register" | "task" | "close" | "remove"; readonly error: unknown }
 type TaskOutcome<Value> =
   | { readonly status: "not-started" }
   | { readonly status: "success"; readonly value: Value }
   | { readonly status: "failure"; readonly receipt: FailureOccurrence }
+type RegistryOutcome<Value> = {
+  readonly task: TaskOutcome<Value>
+  readonly failures: FailureOccurrence[]
+  readonly rejection: FailureOccurrence | undefined
+}
 export type NativeSession = { readonly invocation: number; close(): void }
 
 export function createNativeSessionRegistry<Session extends NativeSession = NativeSession>() {
@@ -65,7 +72,10 @@ export function createNativeSessionRegistry<Session extends NativeSession = Nati
   // Preserve distinct failure events even when their original thrown values are
   // identical. A whole owning workflow can compose task and finalizer causes;
   // ordinary run retains JavaScript finally's last-failure behavior.
-  const runOutcome = async <Value>(session: Session, task: () => Value | Promise<Value>) => {
+  const runOutcomeFlow = function* <Value>(
+    session: Session,
+    task: () => NativeFlow<Value>
+  ): NativeFlow<RegistryOutcome<Value>> {
     const failures: FailureOccurrence[] = []
     let registered = false,
       taskOutcome: TaskOutcome<Value> = { status: "not-started" },
@@ -84,7 +94,7 @@ export function createNativeSessionRegistry<Session extends NativeSession = Nati
     }
     if (registered) {
       try {
-        taskOutcome = { status: "success", value: await task() }
+        taskOutcome = { status: "success", value: (yield awaitNative(yield* task())) as Value }
       } catch (error) {
         taskOutcome = { status: "failure", receipt: record("task", error) }
       }
@@ -101,6 +111,12 @@ export function createNativeSessionRegistry<Session extends NativeSession = Nati
     }
     return { task: taskOutcome, failures, rejection }
   }
+  const runOutcome = <Value>(session: Session, task: () => Value | Promise<Value>) =>
+    runNativePromise(
+      runOutcomeFlow(session, function* (): NativeFlow<Value> {
+        return (yield awaitNative(task())) as Value
+      })
+    )
   return Object.freeze({
     retainCleanup,
     retainConstructionCleanup,
@@ -116,6 +132,7 @@ export function createNativeSessionRegistry<Session extends NativeSession = Nati
     register,
     remove,
     runOutcome,
+    runOutcomeFlow,
     async run<Value>(session: Session, task: () => Value | Promise<Value>) {
       const outcome = await runOutcome(session, task)
       if (outcome.rejection) throw outcome.rejection.error

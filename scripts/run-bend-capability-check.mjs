@@ -78,6 +78,7 @@ const suites = {
     "packages/agent-flow-bend/preparation-lifecycle/public-preparation-mutation-check.py"
   ],
   "preparation-consumer": () => [
+    "packages/review-execution/src/direct-event/freshness/canonical-effect-check.mjs",
     "packages/review-execution/src/direct-event/freshness/canonical-check.mjs",
     "packages/resident-runtime/src/resident/endpoint-lifecycle/verification/cleanup.test.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-consumer.mjs",

@@ -1,5 +1,6 @@
 import type * as Owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import type { NativeSession } from "@hapsland/runtime-environment/runtime/native-session-registry"
+import type * as Effect from "effect/Effect"
 
 // Existing committed Canonical entries; domain adapters cannot add actions or
 // change their execution order. Parameters retain the owner ABI correlation.
@@ -56,9 +57,10 @@ export type Machine = { disposeInvocation(invocation: bigint): void; readonly re
 export type Request = { readonly invocation: bigint; readonly id: bigint }
 // A pending engine is invoked before the await boundary; mapping its raw reply
 // afterward must not execute the effect again or choose product progression.
-export type ForeignResult<Reply> =
-  | { readonly value: Reply }
+export type ForeignPending<Reply> =
   | { readonly pending: Promise<unknown>; readonly map: (value: unknown) => Reply }
+  | { readonly effect: Effect.Effect<unknown>; readonly map: (value: unknown) => Reply }
+export type ForeignResult<Reply> = { readonly value: Reply } | ForeignPending<Reply>
 // A single issued Canonical lease may execute an original synchronous group.
 // The Bend protocol chooses each primitive and the stopping boundary. Internal
 // machine request IDs remain inside this group; they do not issue new leases.
@@ -66,10 +68,7 @@ export type ForeignResult<Reply> =
 // start runs once before awaiting; its mapper performs ABI conversion only.
 export type ForeignCommand<Reply> =
   | { readonly kind: "primitive"; readonly perform: () => void }
-  | {
-      readonly kind: "pending"
-      readonly start: () => Extract<ForeignResult<Reply>, { readonly pending: Promise<unknown> }>
-    }
+  | { readonly kind: "pending"; readonly start: () => ForeignPending<Reply> }
   | { readonly kind: "terminal"; readonly value: Reply }
 export type ForeignReply<Reply> =
   | ForeignResult<Reply>

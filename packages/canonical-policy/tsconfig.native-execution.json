@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.checked-javascript.json",
+  "compilerOptions": {
+    "paths": {
+      "@hapsland/runtime-environment/runtime/native-execution": [
+        "../runtime-environment/src/runtime/native-execution.ts"
+      ],
+      "@hapsland/runtime-environment/runtime/native-session-registry": [
+        "../runtime-environment/src/runtime/native-session-registry.ts"
+      ]
+    }
+  }
+}

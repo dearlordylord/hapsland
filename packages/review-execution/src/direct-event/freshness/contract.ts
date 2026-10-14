@@ -62,16 +62,19 @@ export type FreshnessExecution = {
 }
 // Native ports perform external IO; canonical traversal and identity are Bend-owned.
 export type FreshnessPorts = {
-  verifyRoot(observation: FreshnessInput["observation"], execution: FreshnessExecution): Promise<boolean>
+  verifyRoot(
+    observation: FreshnessInput["observation"],
+    execution: FreshnessExecution
+  ): Promise<boolean> | Effect.Effect<boolean>
   prepare(
     input: FreshnessInput,
     names: ReadonlyMap<string, ReadonlySet<string>> | undefined,
     execution: FreshnessExecution
-  ): Promise<unknown>
+  ): Promise<unknown> | Effect.Effect<unknown>
   currentWork(
     method: unknown,
     receiver: ResidentPublicationAuthority,
     prepared: unknown,
     execution: FreshnessExecution
-  ): Promise<boolean>
+  ): Promise<boolean> | Effect.Effect<boolean>
 }

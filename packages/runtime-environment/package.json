@@ -71,6 +71,10 @@
     "./runtime/native-session-registry": {
       "types": "./dist/runtime/native-session-registry.d.ts",
       "default": "./dist/runtime/native-session-registry.js"
+    },
+    "./runtime/native-execution": {
+      "types": "./dist/runtime/native-execution.d.ts",
+      "default": "./dist/runtime/native-execution.js"
     }
   },
   "dependencies": {
