@@ -381,7 +381,8 @@ try {
             driver.cancel(invocation)
         }
       },
-      selectMachine: (input) => {
+      selectMachine: (input, session) => {
+        if ("finalization" in input) return session.machine
         if (input.postPreparation && mode === "retention-owned-constructor-fault")
           throw new Error("injected post machine construction failure")
         return input.preparation
