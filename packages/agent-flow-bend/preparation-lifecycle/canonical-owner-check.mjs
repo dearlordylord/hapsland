@@ -41,7 +41,7 @@ try {
   const emitted = join(temp, "owner.mjs")
   execFileSync(
     "taskset",
-    ["-c", "10", "bend", join(import.meta.dirname, "./CanonicalResolverOwner.bend"), "-o", emitted],
+    ["-c", "11", "bend", join(import.meta.dirname, "./CanonicalResolverOwner.bend"), "-o", emitted],
     { timeout: 10000 }
   )
   const m = (await import(pathToFileURL(emitted))).default
@@ -77,31 +77,6 @@ try {
     return s
   }
   let assertions = 0
-  // A retained reader must be reusable without transporting its captured list
-  // again, and must retain None separately from an inactive invocation.
-  {
-    const before = advanced(m.launch(fresh(), scope, 50n))
-    const after = advanced(m.cancel(before, 1n))
-    const beforeReader = m.active_reader(before.children)
-    const afterReader = m.active_reader(after.children)
-    for (let repeat = 0; repeat < 8; repeat++) {
-      for (const invocation of [1n, 0n, 2n, (1n << 48n) - 1n, 1n]) {
-        for (const [state, reader] of [
-          [before, beforeReader],
-          [after, afterReader]
-        ]) {
-          const found = m.find(invocation, state.children)
-          const expected = found.$ === "Some" ? { $: "Some", value: m.child_active(found.value) } : { $: "None" }
-          assert.deepEqual(reader(invocation), expected)
-          assertions++
-        }
-      }
-    }
-    assert.deepEqual(beforeReader(1n), { $: "Some", value: true })
-    assert.deepEqual(afterReader(1n), { $: "Some", value: false })
-    assert.deepEqual(beforeReader(0n), { $: "None" })
-    assertions += 3
-  }
   // The actual owner must retain synchronous reply chronology and revoke the
   // pump even when cancellation does not abort the caller's signal.
   for (const cancellation of ["none", "advance", "effect"]) {

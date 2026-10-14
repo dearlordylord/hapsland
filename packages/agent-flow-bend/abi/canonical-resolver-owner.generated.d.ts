@@ -124,7 +124,6 @@ export interface CanonicalResolverOwner {
   assembled(canonical: OwnerTransport<Canonical_State>, custody: Custody): State
   find(invocation: bigint, children: List<Child>): Maybe<Child>
   child_active(child: Child): boolean
-  active_reader(children: List<Child>): (invocation: bigint) => Maybe<boolean>
   live(canonical: OwnerTransport<Canonical_State>, scope: Scope): boolean
   provider_live(state: State, invocation: bigint, generation: bigint, lease: bigint, request: bigint): boolean
   advice_provider_allowed(state: State, invocation: bigint, generation: bigint, lease: bigint, request: bigint, kind: AdvicePermission): boolean

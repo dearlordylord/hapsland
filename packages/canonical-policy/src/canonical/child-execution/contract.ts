@@ -34,7 +34,6 @@ export type ControlledStep =
   | Omit<Extract<Owner.Step, { readonly $: "Rejected" }>, "state">
 export type Control = {
   readState(): Owner.State
-  readActive?(invocation: bigint): { readonly $: "None" } | { readonly $: "Some"; readonly value: boolean }
   invoke<M extends Method>(method: M, args: Arguments<M>): ControlledStep
 }
 export type Installation =

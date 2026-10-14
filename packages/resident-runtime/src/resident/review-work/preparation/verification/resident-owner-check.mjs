@@ -90,49 +90,6 @@ const postCore = (
       [1n, 2n]
     )
     assert.equal("canonical" in run(transaction.read).resolverCustody, false)
-    if (variant === "completed") {
-      const committed = run(transaction.read)
-      assert.deepEqual(bridge.control.readActive(1n), { $: "Some", value: true })
-      assert.deepEqual(bridge.control.readActive(999n), { $: "None" })
-      assert.deepEqual(bridge.control.readActive(1n), { $: "Some", value: true })
-      const mutable = structuredClone(committed.resolverCustody)
-      const target = owner.find(1n, mutable.children)
-      assert.equal(target.$, "Some")
-      // The emitted ABI lookup returns a copy; mutate the actual fixture child.
-      let children = mutable.children
-      while (children.$ === "Con" && children.head.invocation !== 1n) children = children.tail
-      assert.equal(children.$, "Con")
-      const child = children.head
-      Object.freeze(mutable.children)
-      const aborted = new Error("reader aborted external custody commit")
-      assert.throws(
-        () =>
-          run(
-            transaction.commitAllEffect((draft) => {
-              draft.resolverCustody = mutable
-              throw aborted
-            })
-          ),
-        (error) => error === aborted
-      )
-      assert.deepEqual(bridge.control.readActive(1n), { $: "Some", value: true })
-      run(
-        transaction.commitAllEffect((draft, records) => {
-          draft.resolverCustody = mutable
-          return [undefined, records]
-        })
-      )
-      assert.deepEqual(bridge.control.readActive(1n), { $: "Some", value: true })
-      child.phase = { $: "ChildCancelled" }
-      assert.deepEqual(bridge.control.readActive(1n), { $: "Some", value: false })
-      run(
-        transaction.commitAllEffect((draft, records) => {
-          draft.resolverCustody = committed.resolverCustody
-          return [undefined, records]
-        })
-      )
-      assert.deepEqual(bridge.control.readActive(1n), { $: "Some", value: true })
-    }
     event("InstallEvent", { invocation: 1n, generation: 0n, handle: 11n, request: 0n })
     event("ProviderStartEvent", { invocation: 1n })
     const credential = { invocation: 1n, generation: 0n, lease: 1n, request: 0n }
