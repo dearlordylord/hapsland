@@ -6,9 +6,8 @@ import {
 import postCore from "./post-preparation-core.js"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { ResidentAdapterError } from "../../adapter-error.ts"
-import { randomUUID } from "node:crypto"
 import { createAdviceTailProvider } from "../evaluation/advice-tail-provider.mjs"
-import { residentSettingsEnvironmentOnly } from "../../authorization/credentials.ts"
+import { enrollCachedAdvice } from "./post-enrollment.ts"
 import { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
 import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
@@ -1281,45 +1280,28 @@ export function createPostPreparationProvider(
           case "RetireCachedWork": {
             const value = unit(command.slot, command.revision, command.work)
             const workUnitId = value.workUnitId
-            if (value.round !== undefined && workUnitId !== undefined)
-              yield* run(ledger.rounds.policyWork(value.round).pipe(Effect.map((policy) => policy.retire(workUnitId))))
+            switch (
+              postCore.planned_work(command.slot.item.route, value.round !== undefined, workUnitId !== undefined).$
+            ) {
+              case "NoPlannedWork":
+                break
+              case "CachedPlannedWork":
+              case "SpawnPlannedWork":
+                yield* run(
+                  ledger.rounds
+                    .policyWork(/** @type {import("../../state/round-records.ts").RoundWork} */ (value.round))
+                    .pipe(Effect.map((policy) => policy.retire(/** @type {number} */ (workUnitId))))
+                )
+                break
+            }
             break
           }
           case "InsertCachedAdvice": {
             if (!context.ownedAdvice || !options.ownerLease)
               throw new Error("Cached advice requires Canonical composition")
             const value = unit(command.slot, command.revision, command.work),
-              planned = cachedItem(command.slot.item, "Cached advice requires its cached plan"),
-              credential = value.dispatch.credential,
-              required = value.dispatch.controlled === null || value.dispatch.controlled.requireCredential === true
-            const evaluation = { prepared: value.prepared, findings: planned.cached.evaluation.findings }
-            const initial = {
-              analyticsPath: value.dispatch.activityPath,
-              analyticsEnabled: value.analyticsEnabled ?? value.dispatch.sessionAnalytics === true,
-              analyticsControlled: value.dispatch.controlled !== null,
-              id: randomUUID(),
-              ...(value.round === undefined ? {} : { round: value.round }),
-              ...(value.workUnitId === undefined ? {} : { workUnitId: value.workUnitId }),
-              admissionId: value.admissionId,
-              canonicalOperationId: value.canonicalOperationId,
-              canonicalRound: value.canonicalRound,
-              observation: value.observation,
-              settings: value.settings,
-              partition: value.partition,
-              reservation: value.reservation,
-              prepared: value.prepared,
-              ...(value.sourceHash === undefined ? {} : { sourceHash: value.sourceHash }),
-              revision: value.revision,
-              evaluationKey: value.evaluationKey,
-              evaluations: [evaluation],
-              findings: evaluation.findings,
-              sequence: context.sequence,
-              credentialGeneration: credential?.generation ?? null,
-              credentialStatePath: credential?.statePath ?? null,
-              credentialRequired: required,
-              credentialEnvironmentOnly: credential === null ? false : residentSettingsEnvironmentOnly(value.settings),
-              pendingAt: context.deps.residentNow()
-            }
+              planned = cachedItem(command.slot.item, "Cached advice requires its cached plan")
+            const { initial, evaluation } = enrollCachedAdvice(value, planned, context)
             const binding = context.ownedAdvice,
               handle = binding.driver.prepareAdviceInput(invocation, { unit: value, evaluation })
             try {

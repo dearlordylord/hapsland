@@ -268,6 +268,226 @@ def sizing_resume(step: SizingStep, reply: SizingReply) -> SizingStep:
     )
     case _ _: SizingRejected{}
 
+# Cached-advice enrollment stays inside the original atomic handoff command.
+# Native registers 0/1/2 retain unit/planned/context identity; the recipe owns reads and fields.
+type EnrollmentField is Data:
+  EnrollmentField{name: String, value: Nat}
+type EnrollmentLiteral is Data:
+  EnrollmentTrue{}
+  EnrollmentFalse{}
+  EnrollmentNullValue{}
+type EnrollmentCheck is Data:
+  EnrollmentNull{}
+  EnrollmentNullish{}
+  EnrollmentUndefined{}
+  EnrollmentTrueCheck{}
+type EnrollmentPrimitive is Data:
+  EnrollmentUuid{}
+  EnrollmentNow{}
+  EnrollmentEnvironmentOnly{}
+type EnrollmentOperation is Data:
+  EnrollmentRead{target: Nat, source: Nat, path: List<&2, String>}
+  EnrollmentConstant{target: Nat, literal: EnrollmentLiteral}
+  EnrollmentRecord{target: Nat, fields: List<&2, EnrollmentField>}
+  EnrollmentArray{target: Nat, values: List<&2, Nat>}
+  EnrollmentPut{name: String, value: Nat}
+  EnrollmentCall{target: Nat, primitive: EnrollmentPrimitive, arguments: List<&2, Nat>}
+  EnrollmentChoose{
+    source: Nat,
+    check: EnrollmentCheck,
+    when_true: List<&2, EnrollmentOperation>,
+    when_false: List<&2, EnrollmentOperation>
+  }
+type EnrollmentStep is Data:
+  EnrollmentAwait{operation: EnrollmentOperation, remaining: List<&2, EnrollmentOperation>}
+  EnrollmentInspect{
+    source: Nat,
+    check: EnrollmentCheck,
+    when_true: List<&2, EnrollmentOperation>,
+    when_false: List<&2, EnrollmentOperation>,
+    remaining: List<&2, EnrollmentOperation>
+  }
+  EnrollmentDone{evaluation: Nat}
+  EnrollmentRejected{}
+type EnrollmentReply is Data:
+  EnrollmentAck{}
+  EnrollmentFlag{value: Bool}
+
+def enrollment_recipe() -> List<&2, EnrollmentOperation>:
+  [
+    EnrollmentRead{10n, 0n, ["dispatch", "credential"]},
+    EnrollmentRead{11n, 0n, ["dispatch", "controlled"]},
+    EnrollmentChoose{
+      11n,
+      EnrollmentNull{},
+      [EnrollmentConstant{20n, EnrollmentTrue{}}],
+      [
+        EnrollmentRead{12n, 0n, ["dispatch", "controlled", "requireCredential"]},
+        EnrollmentChoose{
+          12n,
+          EnrollmentTrueCheck{},
+          [EnrollmentConstant{20n, EnrollmentTrue{}}],
+          [EnrollmentConstant{20n, EnrollmentFalse{}}]
+        }
+      ]
+    },
+    EnrollmentRead{31n, 0n, ["prepared"]},
+    EnrollmentRead{32n, 1n, ["cached", "evaluation", "findings"]},
+    EnrollmentRecord{30n, [EnrollmentField{"prepared", 31n}, EnrollmentField{"findings", 32n}]},
+    EnrollmentRead{40n, 0n, ["dispatch", "activityPath"]},
+    EnrollmentPut{"analyticsPath", 40n},
+    EnrollmentRead{41n, 0n, ["analyticsEnabled"]},
+    EnrollmentChoose{
+      41n,
+      EnrollmentNullish{},
+      [
+        EnrollmentRead{42n, 0n, ["dispatch", "sessionAnalytics"]},
+        EnrollmentChoose{
+          42n,
+          EnrollmentTrueCheck{},
+          [EnrollmentConstant{41n, EnrollmentTrue{}}],
+          [EnrollmentConstant{41n, EnrollmentFalse{}}]
+        }
+      ],
+      []
+    },
+    EnrollmentPut{"analyticsEnabled", 41n},
+    EnrollmentRead{43n, 0n, ["dispatch", "controlled"]},
+    EnrollmentChoose{
+      43n,
+      EnrollmentNull{},
+      [EnrollmentConstant{43n, EnrollmentFalse{}}],
+      [EnrollmentConstant{43n, EnrollmentTrue{}}]
+    },
+    EnrollmentPut{"analyticsControlled", 43n},
+    EnrollmentCall{44n, EnrollmentUuid{}, []},
+    EnrollmentPut{"id", 44n},
+    EnrollmentRead{45n, 0n, ["round"]},
+    EnrollmentChoose{
+      45n,
+      EnrollmentUndefined{},
+      [],
+      [EnrollmentRead{46n, 0n, ["round"]}, EnrollmentPut{"round", 46n}]
+    },
+    EnrollmentRead{47n, 0n, ["workUnitId"]},
+    EnrollmentChoose{
+      47n,
+      EnrollmentUndefined{},
+      [],
+      [EnrollmentRead{48n, 0n, ["workUnitId"]}, EnrollmentPut{"workUnitId", 48n}]
+    },
+    EnrollmentRead{49n, 0n, ["admissionId"]},
+    EnrollmentPut{"admissionId", 49n},
+    EnrollmentRead{50n, 0n, ["canonicalOperationId"]},
+    EnrollmentPut{"canonicalOperationId", 50n},
+    EnrollmentRead{51n, 0n, ["canonicalRound"]},
+    EnrollmentPut{"canonicalRound", 51n},
+    EnrollmentRead{52n, 0n, ["observation"]},
+    EnrollmentPut{"observation", 52n},
+    EnrollmentRead{53n, 0n, ["settings"]},
+    EnrollmentPut{"settings", 53n},
+    EnrollmentRead{54n, 0n, ["partition"]},
+    EnrollmentPut{"partition", 54n},
+    EnrollmentRead{55n, 0n, ["reservation"]},
+    EnrollmentPut{"reservation", 55n},
+    EnrollmentRead{56n, 0n, ["prepared"]},
+    EnrollmentPut{"prepared", 56n},
+    EnrollmentRead{57n, 0n, ["sourceHash"]},
+    EnrollmentChoose{
+      57n,
+      EnrollmentUndefined{},
+      [],
+      [EnrollmentRead{58n, 0n, ["sourceHash"]}, EnrollmentPut{"sourceHash", 58n}]
+    },
+    EnrollmentRead{59n, 0n, ["revision"]},
+    EnrollmentPut{"revision", 59n},
+    EnrollmentRead{60n, 0n, ["evaluationKey"]},
+    EnrollmentPut{"evaluationKey", 60n},
+    EnrollmentArray{61n, [30n]},
+    EnrollmentPut{"evaluations", 61n},
+    EnrollmentRead{62n, 30n, ["findings"]},
+    EnrollmentPut{"findings", 62n},
+    EnrollmentRead{63n, 2n, ["sequence"]},
+    EnrollmentPut{"sequence", 63n},
+    EnrollmentChoose{
+      10n,
+      EnrollmentNullish{},
+      [EnrollmentConstant{64n, EnrollmentNullValue{}}],
+      [
+        EnrollmentRead{64n, 10n, ["generation"]},
+        EnrollmentChoose{
+          64n,
+          EnrollmentNullish{},
+          [EnrollmentConstant{64n, EnrollmentNullValue{}}],
+          []
+        }
+      ]
+    },
+    EnrollmentPut{"credentialGeneration", 64n},
+    EnrollmentChoose{
+      10n,
+      EnrollmentNullish{},
+      [EnrollmentConstant{65n, EnrollmentNullValue{}}],
+      [
+        EnrollmentRead{65n, 10n, ["statePath"]},
+        EnrollmentChoose{
+          65n,
+          EnrollmentNullish{},
+          [EnrollmentConstant{65n, EnrollmentNullValue{}}],
+          []
+        }
+      ]
+    },
+    EnrollmentPut{"credentialStatePath", 65n},
+    EnrollmentPut{"credentialRequired", 20n},
+    EnrollmentChoose{
+      10n,
+      EnrollmentNull{},
+      [EnrollmentConstant{66n, EnrollmentFalse{}}],
+      [
+        EnrollmentRead{67n, 0n, ["settings"]},
+        EnrollmentCall{66n, EnrollmentEnvironmentOnly{}, [67n]}
+      ]
+    },
+    EnrollmentPut{"credentialEnvironmentOnly", 66n},
+    EnrollmentCall{68n, EnrollmentNow{}, []},
+    EnrollmentPut{"pendingAt", 68n}
+  ]
+
+def enrollment_append(
+  first: List<&2, EnrollmentOperation>,
+  last: List<&2, EnrollmentOperation>
+) -> List<&2, EnrollmentOperation>:
+  match first:
+    case Nil{}: last
+    case head <> tail: head <> enrollment_append(tail, last)
+
+def enrollment_next(operations: List<&2, EnrollmentOperation>) -> EnrollmentStep:
+  match operations:
+    case Nil{}: EnrollmentDone{30n}
+    case EnrollmentChoose{source, check, yes, no} <> rest: EnrollmentInspect{
+      source,
+      check,
+      yes,
+      no,
+      rest
+    }
+    case operation <> rest: EnrollmentAwait{operation, rest}
+
+def enrollment_initial() -> EnrollmentStep:
+  enrollment_next(enrollment_recipe())
+
+def enrollment_resume(step: EnrollmentStep, reply: EnrollmentReply) -> EnrollmentStep:
+  match step reply:
+    case EnrollmentAwait{_, rest} EnrollmentAck{}: enrollment_next(rest)
+    case EnrollmentInspect{_, _, yes, _, rest} EnrollmentFlag{True{}}: enrollment_next(
+      enrollment_append(yes, rest)
+    )
+    case EnrollmentInspect{_, _, _, no, rest} EnrollmentFlag{False{}}: enrollment_next(
+      enrollment_append(no, rest)
+    )
+    case _ _: EnrollmentRejected{}
+
 # Whole post-preparation control protocol. Source-bearing values stay behind handles.
 # Every response is a result of an existing semantic owner or an external effect.
 # Canonical-owned composition candidate; whole correspondence and acceptance remain open.

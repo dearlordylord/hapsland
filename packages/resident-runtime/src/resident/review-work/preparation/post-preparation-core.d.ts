@@ -59,6 +59,50 @@ export type SizingReply =
   | Tagged<"SizingLength", { readonly length: bigint }>
   | Tagged<"SizingFlag", { readonly value: boolean }>
 
+export type EnrollmentField = Tagged<"EnrollmentField", { readonly name: string; readonly value: bigint }>
+export type EnrollmentLiteral = Tagged<"EnrollmentTrue" | "EnrollmentFalse" | "EnrollmentNullValue">
+export type EnrollmentCheck = Tagged<
+  "EnrollmentNull" | "EnrollmentNullish" | "EnrollmentUndefined" | "EnrollmentTrueCheck"
+>
+export type EnrollmentPrimitive = Tagged<"EnrollmentUuid" | "EnrollmentNow" | "EnrollmentEnvironmentOnly">
+export type EnrollmentOperation =
+  | Tagged<"EnrollmentRead", { readonly target: bigint; readonly source: bigint; readonly path: List<string> }>
+  | Tagged<"EnrollmentConstant", { readonly target: bigint; readonly literal: EnrollmentLiteral }>
+  | Tagged<"EnrollmentRecord", { readonly target: bigint; readonly fields: List<EnrollmentField> }>
+  | Tagged<"EnrollmentArray", { readonly target: bigint; readonly values: List<bigint> }>
+  | Tagged<"EnrollmentPut", { readonly name: string; readonly value: bigint }>
+  | Tagged<
+      "EnrollmentCall",
+      { readonly target: bigint; readonly primitive: EnrollmentPrimitive; readonly arguments: List<bigint> }
+    >
+  | Tagged<
+      "EnrollmentChoose",
+      {
+        readonly source: bigint
+        readonly check: EnrollmentCheck
+        readonly when_true: List<EnrollmentOperation>
+        readonly when_false: List<EnrollmentOperation>
+      }
+    >
+export type EnrollmentStep =
+  | Tagged<
+      "EnrollmentAwait",
+      { readonly operation: EnrollmentOperation; readonly remaining: List<EnrollmentOperation> }
+    >
+  | Tagged<
+      "EnrollmentInspect",
+      {
+        readonly source: bigint
+        readonly check: EnrollmentCheck
+        readonly when_true: List<EnrollmentOperation>
+        readonly when_false: List<EnrollmentOperation>
+        readonly remaining: List<EnrollmentOperation>
+      }
+    >
+  | Tagged<"EnrollmentDone", { readonly evaluation: bigint }>
+  | Tagged<"EnrollmentRejected">
+export type EnrollmentReply = Tagged<"EnrollmentAck"> | Tagged<"EnrollmentFlag", { readonly value: boolean }>
+
 export type Outcome = Tagged<
   "Outcome",
   { readonly handle: bigint; readonly ready: boolean; readonly fits: boolean; readonly reservation_bytes: bigint }
@@ -355,6 +399,8 @@ export type AdviceTailStep =
   | Tagged<"AdviceCleanupPending", { readonly advice: bigint; readonly reason: Termination }>
 
 declare const core: {
+  enrollment_initial(): EnrollmentStep
+  enrollment_resume(step: EnrollmentStep, reply: EnrollmentReply): EnrollmentStep
   sizing_initial(mode: SizingMode): SizingStep
   sizing_initial_ready(mode: SizingMode, ready: boolean): SizingStep
   sizing_resume(step: SizingStep, reply: SizingReply): SizingStep
