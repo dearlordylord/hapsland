@@ -91,9 +91,11 @@ const unlist = (value) => {
           response = { $: "Flag", value: read(query.left) === read(query.right) }
           return response
         case "CanonicalEqual": {
-          const left = read(query.left)
-          const right = read(query.right)
-          const equal = query.review_input ? sameInput(left, right) : canonicalValue(left) === canonicalValue(right)
+          // sameInput evaluates both arguments first; fingerprint equality
+          // finishes left serialization before reading the right lens.
+          const equal = query.review_input
+            ? sameInput(read(query.left), read(query.right))
+            : canonicalValue(read(query.left)) === canonicalValue(read(query.right))
           response = { $: "Flag", value: equal }
           return response
         }
@@ -234,6 +236,48 @@ const unlist = (value) => {
         assert.deepEqual(traces[2], traces[0])
         cases++
       }
+  for (const mode of ["SnapshotLine", "SnapshotUnit"]) {
+    const lanes = []
+    for (const implementation of [
+      reference,
+      consume,
+      (mode, prepared, engines) => consume(mode, prepared, engines, true)
+    ]) {
+      const trace = []
+      let rightFingerprint = { revision: "old" }
+      const prepared = {
+        ...original,
+        input: {
+          ...original.input,
+          get sourceFingerprints() {
+            trace.push("right fingerprint read")
+            return rightFingerprint
+          }
+        }
+      }
+      const item = ready()
+      item.prepared.input.sourceFingerprints = {
+        get revision() {
+          trace.push("left fingerprint serialize")
+          rightFingerprint = { revision: "new" }
+          return "new"
+        }
+      }
+      const result = await implementation(mode, prepared, {
+        async verifyRoot() {
+          return true
+        },
+        async prepare() {
+          return { outcomes: [item] }
+        }
+      })
+      lanes.push({ result, trace })
+    }
+    assert.equal(lanes[0].result, true)
+    assert.deepEqual(lanes[1], lanes[0], mode + " fingerprint serialization chronology")
+    assert.deepEqual(lanes[2], lanes[0], mode + " grouped fingerprint serialization chronology")
+    cases++
+  }
   for (const mode of ["SnapshotLine", "SnapshotUnit"])
     for (const fault of ["root", "prepare", "status", "identity", "input", "fingerprints"]) {
       const originalError = new Error("original " + fault)
