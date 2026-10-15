@@ -181,8 +181,8 @@ arbitrary fuel.
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
 | Original proof formatting | The complete attachment law must pass the pinned formatter. Its remaining deep block/list layouts still fail; prefix or isolated-definition checks are insufficient. |
-| JSON tree correspondence | Prove validator soundness/completeness and exact ordered literal/primitive trace for the exported `ProductValue`. The indexed forest relation and four reviewed laws are drafted; their proofs remain open. Eight separate batch laws already pin reply acceptance and raw-token substitution within the typed String domain. |
-| Batch correlation and counters | Six actual-machine laws for export, nonempty Input exposure, exact resume, assembly and uncharged outer export passed the pinned kernel. Prove N0 and complete Top scheduling/acceptance laws; preserve prefix failure/cancellation, header IDs and original Digest IDs. |
+| JSON tree correspondence | Prove validator soundness/completeness and exact ordered literal/primitive trace for the exported `ProductValue`. Four reviewed laws use an indexed forest relation. Completeness and exact folds have front-end checks; soundness and the complete kernel verdict remain open. Eight batch laws separately pin typed String reply acceptance/substitution. |
+| Batch correlation and counters | Fifteen actual-machine laws, including N0, Top scheduling/resume and crossed response refusals, passed the pinned kernel. Close the exact plan-to-command and Export acceptance composition laws, then format the complete proof; preserve prefix failure/cancellation, header IDs and original Digest IDs. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Requalify the full composed consumers after the newly connected tree validator; individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
@@ -202,7 +202,9 @@ bridge helper names.
   pieces, malformed streams, 361 fold splits and arbitrary compound stacks.
   These finite checks complement the local proofs; they do not replace the
   missing tree/trace and counter laws.
-- Eight batch laws pass the pinned verdict, with named mutations for selection
+- Eight batch protocol laws and fifteen actual-machine laws pass the pinned verdict.
+  Three additional composition laws remain unproved; the actual-machine proof
+  still fails formatting. Protocol named mutations cover selection
   offsets, invocation checking, outer IDs and literal preservation. Actual machine
   consumers cover headers/counters, 606 FrozenInput refusals and 9615 Finalization
   refusals; runtime cases cover prefix throw/abort and late token coercion.
@@ -213,9 +215,9 @@ bridge helper names.
 - The connected validator candidate passed the matching 46-workspace build,
   `check:fast` with cumulative lint (10 files), full Finalization consumer
   (66 cases / 52 runtime cases), and focused Source/Post/resident consumers.
-  Those finite and simulated consumer scopes do not establish whole acceptance.
-- Primary analyzer/build on `f1421c2c` pass at 0.7702 / 0.8165. Complete current-native
-  Preparation on that same candidate **fails parity at 2.0011**. All 30 workspace
+  These finite/simulated scopes do not establish whole acceptance.
+- Primary analyzer/build on `bce78508` pass at 0.7532 / 0.9051.
+  Complete current-native Preparation on the earlier `f1421c2c` candidate **fails parity at 2.0011**. All 30 workspace
   dependencies resolved inside the measured checkout. Earlier measurements using
   a shared `node_modules` with workspace links into another checkout cannot qualify
   the isolated candidate and are superseded by these local-workspace measurements.
