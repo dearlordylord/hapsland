@@ -2770,28 +2770,28 @@ def named_seen_step(
     J.Ghost{depth, prefix, subtotal} <> others
   )
 ) -> Exists(
-    List<&2, J.Ghost>,
-    after => Step.valid(
-      root,
-      invocation,
-      reversed_ops,
-      Step.advance(
-        C.Continue{
-          C.Cursor{
-            global,
-            slot,
-            name,
-            expanded,
-            referenced,
-            failure,
-            remaining,
-            C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
-          }
+  List<&2, J.Ghost>,
+  after => Step.valid(
+    root,
+    invocation,
+    reversed_ops,
+    Step.advance(
+      C.Continue{
+        C.Cursor{
+          global,
+          slot,
+          name,
+          expanded,
+          referenced,
+          failure,
+          remaining,
+          C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
         }
-      ),
-      after
-    )
-  ):
+      }
+    ),
+    after
+  )
+):
   match already:
     case True{}: nochild_all_budgets(
       root,
@@ -2923,28 +2923,28 @@ def named_target_step(
     J.Ghost{depth, prefix, subtotal} <> others
   )
 ) -> Exists(
-    List<&2, J.Ghost>,
-    after => Step.valid(
-      root,
-      invocation,
-      reversed_ops,
-      Step.advance(
-        C.Continue{
-          C.Cursor{
-            global,
-            slot,
-            name,
-            expanded,
-            referenced,
-            failure,
-            remaining,
-            C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
-          }
+  List<&2, J.Ghost>,
+  after => Step.valid(
+    root,
+    invocation,
+    reversed_ops,
+    Step.advance(
+      C.Continue{
+        C.Cursor{
+          global,
+          slot,
+          name,
+          expanded,
+          referenced,
+          failure,
+          remaining,
+          C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
         }
-      ),
-      after
-    )
-  ):
+      }
+    ),
+    after
+  )
+):
   match target:
     case None{}: nochild_all_budgets(
       root,
@@ -3104,28 +3104,28 @@ def named_limit_step(
     J.Ghost{depth, prefix, subtotal} <> others
   )
 ) -> Exists(
-    List<&2, J.Ghost>,
-    after => Step.valid(
-      root,
-      invocation,
-      reversed_ops,
-      Step.advance(
-        C.Continue{
-          C.Cursor{
-            global,
-            slot,
-            name,
-            expanded,
-            referenced,
-            failure,
-            remaining,
-            C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
-          }
+  List<&2, J.Ghost>,
+  after => Step.valid(
+    root,
+    invocation,
+    reversed_ops,
+    Step.advance(
+      C.Continue{
+        C.Cursor{
+          global,
+          slot,
+          name,
+          expanded,
+          referenced,
+          failure,
+          remaining,
+          C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
         }
-      ),
-      after
-    )
-  ):
+      }
+    ),
+    after
+  )
+):
   match limited:
     case True{}: nochild_all_budgets(
       root,
@@ -3230,28 +3230,28 @@ def named_semantic_step(
     J.Ghost{depth, prefix, subtotal} <> others
   )
 ) -> Exists(
-    List<&2, J.Ghost>,
-    after => Step.valid(
-      root,
-      invocation,
-      reversed_ops,
-      Step.advance(
-        C.Continue{
-          C.Cursor{
-            global,
-            slot,
-            name,
-            expanded,
-            referenced,
-            failure,
-            remaining,
-            C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
-          }
+  List<&2, J.Ghost>,
+  after => Step.valid(
+    root,
+    invocation,
+    reversed_ops,
+    Step.advance(
+      C.Continue{
+        C.Cursor{
+          global,
+          slot,
+          name,
+          expanded,
+          referenced,
+          failure,
+          remaining,
+          C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
         }
-      ),
-      after
-    )
-  ):
+      }
+    ),
+    after
+  )
+):
   match valid:
     case (+global_equal, rest):
       named_limit_step(
@@ -3351,28 +3351,28 @@ def named_step(
     J.Ghost{depth, prefix, subtotal} <> others
   )
 ) -> Exists(
-    List<&2, J.Ghost>,
-    after => Step.valid(
-      root,
-      invocation,
-      reversed_ops,
-      Step.advance(
-        C.Continue{
-          C.Cursor{
-            global,
-            slot,
-            name,
-            expanded,
-            referenced,
-            failure,
-            remaining,
-            C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
-          }
+  List<&2, J.Ghost>,
+  after => Step.valid(
+    root,
+    invocation,
+    reversed_ops,
+    Step.advance(
+      C.Continue{
+        C.Cursor{
+          global,
+          slot,
+          name,
+          expanded,
+          referenced,
+          failure,
+          remaining,
+          C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents
         }
-      ),
-      after
-    )
-  ):
+      }
+    ),
+    after
+  )
+):
   match valid:
     case (semantic, trace): named_semantic_step(
       root,
@@ -5048,28 +5048,28 @@ def return_all_depths(
     } <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others
   )
 ) -> Exists(
-    List<&2, J.Ghost>,
-    after => Step.valid(
-      root,
-      invocation,
-      reversed_ops,
-      Step.advance(
-        C.Continue{
-          C.Cursor{
-            global,
-            slot,
-            name,
-            expanded,
-            referenced,
-            failure,
-            remaining,
-            C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors
-          }
+  List<&2, J.Ghost>,
+  after => Step.valid(
+    root,
+    invocation,
+    reversed_ops,
+    Step.advance(
+      C.Continue{
+        C.Cursor{
+          global,
+          slot,
+          name,
+          expanded,
+          referenced,
+          failure,
+          remaining,
+          C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors
         }
-      ),
-      after
-    )
-  ):
+      }
+    ),
+    after
+  )
+):
   match child_depth:
     case 0n:
       Empty.absurd(
@@ -6010,15 +6010,15 @@ def reject_shape(
     ghosts
   )
 ) -> Exists(
-    List<&2, J.Ghost>,
-    after => Step.valid(
-      root,
-      invocation,
-      reversed_ops,
-      Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}),
-      after
-    )
-  ):
+  List<&2, J.Ghost>,
+  after => Step.valid(
+    root,
+    invocation,
+    reversed_ops,
+    Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}),
+    after
+  )
+):
   match valid:
     case ((_, (_, (_, (shape, _)))), _):
       Empty.absurd(
@@ -6274,15 +6274,15 @@ def continue_frames(
     ghosts
   )
 ) -> Exists(
-    List<&2, J.Ghost>,
-    after => Step.valid(
-      root,
-      invocation,
-      reversed_ops,
-      Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}),
-      after
-    )
-  ):
+  List<&2, J.Ghost>,
+  after => Step.valid(
+    root,
+    invocation,
+    reversed_ops,
+    Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}),
+    after
+  )
+):
   match frames ghosts:
     case Nil{} ghosts: reject_shape(
       root,
