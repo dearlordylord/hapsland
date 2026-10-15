@@ -143,8 +143,8 @@ acceptance of this unit.
 ### Selected implementation
 
 Production Source/Post/Advice use the common Canonical Effect owner.
-Source still calls the TS local analyzer; Canonical wiring alone does not
-complete its algorithm migration.
+Source calls packaged local Bend Core in Outcomes mode; public Trees and
+Preflight use the same core. Whole Preparation acceptance remains open.
 Preserve its caller-fiber, lifecycle, cancellation, resource-custody and result
 acceptance guarantees. Native identity, clock, settings, hash/reuse authority,
 IEEE operations, serialization engines and atomic resource operations remain
@@ -182,10 +182,10 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; native host retains artifact slots/materialization/postfix effects. 30 laws/42 mutants pass. Connected consumer: 64 roots/five languages/114 artifact identities/18 measurement/17 fault cases, 72 packaged modes. Source59/6687, resident67/14323+868Post and FrozenInput60/606 refusals pass. Native reference is verification-only; switch whole oracle to it, rebuild and repeat oracle consumers, then qualify public flow and whole parity. |
+| Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; native host retains artifact slots/materialization/postfix effects. 30 laws/42 mutants pass. Connected consumer: 64 roots/five languages/114 artifact identities/18 measurement/17 fault cases, 72 packaged modes. Source59/6687, resident67/14323+868Post and FrozenInput60/606 refusals pass. Independent verification-only TS oracle now backs all comparisons. Rebuild/23 receipts, repeated Source/resident/FrozenInput, 254 public tests and check:fast pass; whole parity remains. |
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Original law/premises/binding/main remain byte-identical. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation also affects local analyzer proofs; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
-| Connected consumer qualification | Capture candidate: Evidence/FrozenInput, Finalization, Source/resident and public Preparation pass. Internal immutable cache/context checks use semantic equality. Requalify analyzer/public tree consumers and actual Source/resident after local analyzer connection, including failure/measurement ordering. |
+| Connected consumer qualification | Local analyzer connection requalified against independent TS: Source/resident/FrozenInput and 254 public tests pass, including failure/measurement ordering. |
 | Whole-path parity | Capture candidate whole current-native ratio is 1.3804; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup proposal closed without implementation: small fixture dependency sets, no existing order proof, and unequal Bend Strings can share UTF16 units. Exact insertion equivalence needs a new proof chain with unsupported whole-path payoff. Next implementation needs another source-supported hypothesis. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
