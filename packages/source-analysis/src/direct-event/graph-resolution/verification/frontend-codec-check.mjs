@@ -12,7 +12,9 @@ const naturalOracle = (value) => {
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => [
       key,
-      naturalOracle(["id", "invocation", "bytes"].includes(key) && typeof item === "number" ? BigInt(item) : item)
+      naturalOracle(
+        ["id", "invocation", "bytes"].includes(key) && typeof item === "number" ? Number(BigInt(item)) : item
+      )
     ])
   )
 }
@@ -92,7 +94,7 @@ const pythonSyntax = await parsePythonSyntax("answer = 1 + 2\n")
 for (const rows of [unlist(goSyntax.expressions), unlist(pythonSyntax.nodes)]) {
   assert.ok(rows.length > 0)
   for (const row of rows) {
-    assert.equal(typeof row.id, "bigint")
+    assert.equal(typeof row.id, "number")
     assert.equal(typeof row.start, "number")
     assert.equal(typeof row.end, "number")
     for (const child of unlist(row.children)) assert.equal(typeof child, "number")

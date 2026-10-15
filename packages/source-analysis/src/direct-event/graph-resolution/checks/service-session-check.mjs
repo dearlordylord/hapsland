@@ -30,7 +30,7 @@ const folder = join(import.meta.dirname, ".."),
   temporary = mkdtempSync("/tmp/hapsland-whole-resolver-services-")
 const tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
+  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.37")
   const program = join(temporary, "services.js")
   execFileSync("bend", [join(folder, "Runtime.bend"), "-o", program], { timeout: 10000 })
   const protocolPath = join(temporary, "protocol.mjs")
@@ -55,23 +55,23 @@ try {
     )
   }
   const directoryRequest = tagged("Request", {
-    invocation: 1n,
-    id: 2n,
-    operation: tagged("ReadDirectoryEntries", { path: ".", limit: 128n })
+    invocation: 1,
+    id: 2,
+    operation: tagged("ReadDirectoryEntries", { path: ".", limit: 128 })
   })
   for (const outcome of [
     tagged("DirectoryEntriesObserved", { entries: list(["raw"]), complete: true }),
     tagged("DirectoryEntriesUnavailable")
   ]) {
-    const reply = tagged("Reply", { invocation: 1n, id: 2n, outcome })
+    const reply = tagged("Reply", { invocation: 1, id: 2, outcome })
     assert.deepEqual(protocol.check(directoryRequest, reply), { $: "CheckedOutcome", outcome })
-    assert.equal(protocol.check(directoryRequest, { ...reply, id: 3n }).failure.$, "Types.WrongCorrelation")
-    assert.equal(protocol.check(directoryRequest, { ...reply, invocation: 4n }).failure.$, "Types.WrongInvocation")
+    assert.equal(protocol.check(directoryRequest, { ...reply, id: 3 }).failure.$, "Types.WrongCorrelation")
+    assert.equal(protocol.check(directoryRequest, { ...reply, invocation: 4 }).failure.$, "Types.WrongInvocation")
   }
   assert.equal(
     protocol.check(
       directoryRequest,
-      tagged("Reply", { invocation: 1n, id: 2n, outcome: tagged("ProductEncoded", { bytes: 1n }) })
+      tagged("Reply", { invocation: 1, id: 2, outcome: tagged("ProductEncoded", { bytes: 1 }) })
     ).failure.$,
     "Types.WrongReplyKind"
   )
@@ -180,7 +180,7 @@ try {
         }
       }
     }
-    let numericTotal = 0n
+    let numericTotal = 0
     for (const row of rows) {
       for (const value of [
         row.id,
@@ -189,20 +189,20 @@ try {
         ...unlist(row.children),
         ...unlist(row.fields).map((f) => f.child)
       ])
-        numericTotal += BigInt(value)
+        numericTotal += Number(BigInt(value))
     }
     for (const location of unlist(facts.type_locations))
       if (location.$ === "Some")
         for (const point of [location.value.start, location.value.end])
-          numericTotal += BigInt(point.line + point.column)
+          numericTotal += Number(BigInt(point.line + point.column))
     for (const group of unlist(facts.groups))
       for (const member of unlist(group.members))
-        if (member.expression.$ === "Some") numericTotal += BigInt(member.expression.value) + 1n
+        if (member.expression.$ === "Some") numericTotal += Number(BigInt(member.expression.value)) + 1
     assert.equal(goProbe.numeric_total(goProbeValue(facts)), numericTotal)
     assert.equal(facts.cgo, native.cgo)
     const checked = protocol.check(
-      tagged("Request", { invocation: 1n, id: 2n, operation: tagged("InspectGoFile", { path: "root.go", capture }) }),
-      tagged("Reply", { invocation: 1n, id: 2n, outcome: reply })
+      tagged("Request", { invocation: 1, id: 2, operation: tagged("InspectGoFile", { path: "root.go", capture }) }),
+      tagged("Reply", { invocation: 1, id: 2, outcome: reply })
     )
     assert.equal(checked.$, "CheckedOutcome")
     assert.equal(checked.outcome.$, "Types.GoFileResult")
@@ -214,9 +214,9 @@ try {
     "Types.GoFileUnsupported"
   )
   const checkMechanicalReply = (operation, outcome) => {
-    const request = tagged("Request", { invocation: goApi.session.invocation, id: 2n, operation })
-    const reply = tagged("Reply", { invocation: goApi.session.invocation, id: 2n, outcome })
-    // Runtime JSON projects Nat to number; direct emitted Protocol projects Nat to bigint.
+    const request = tagged("Request", { invocation: goApi.session.invocation, id: 2, operation })
+    const reply = tagged("Reply", { invocation: goApi.session.invocation, id: 2, outcome })
+    // Runtime JSON and the Bend 2.0.37 emitted Protocol both project Nat to number.
     // Keep exact payload equality on both boundaries, converting only declared Nat fields.
     const checkedOutcome =
       operation.$ === "Types.ReadGoBuildText"
@@ -225,23 +225,26 @@ try {
             source: {
               ...outcome.source,
               characters: list(
-                unlist(outcome.source.characters).map((character) => ({ ...character, code: BigInt(character.code) }))
+                unlist(outcome.source.characters).map((character) => ({
+                  ...character,
+                  code: Number(BigInt(character.code))
+                }))
               )
             }
           }
         : outcome
     assert.deepEqual(protocol.check(request, reply), { $: "CheckedOutcome", outcome: checkedOutcome })
     assert.deepEqual(boundary.check(request, reply), { $: "None" })
-    assert.equal(boundary.check(request, { ...reply, id: 3n }).value.$, "Types.WrongCorrelation")
-    assert.equal(boundary.check(request, { ...reply, invocation: 900n }).value.$, "Types.WrongInvocation")
+    assert.equal(boundary.check(request, { ...reply, id: 3 }).value.$, "Types.WrongCorrelation")
+    assert.equal(boundary.check(request, { ...reply, invocation: 900 }).value.$, "Types.WrongInvocation")
     assert.equal(
-      boundary.check(request, { ...reply, outcome: tagged("ProductEncoded", { bytes: 1n }) }).value.$,
+      boundary.check(request, { ...reply, outcome: tagged("ProductEncoded", { bytes: 1 }) }).value.$,
       "Types.WrongReplyKind"
     )
-    assert.equal(protocol.check(request, { ...reply, id: 3n }).failure.$, "Types.WrongCorrelation")
-    assert.equal(protocol.check(request, { ...reply, invocation: 900n }).failure.$, "Types.WrongInvocation")
+    assert.equal(protocol.check(request, { ...reply, id: 3 }).failure.$, "Types.WrongCorrelation")
+    assert.equal(protocol.check(request, { ...reply, invocation: 900 }).failure.$, "Types.WrongInvocation")
     assert.equal(
-      protocol.check(request, { ...reply, outcome: tagged("ProductEncoded", { bytes: 1n }) }).failure.$,
+      protocol.check(request, { ...reply, outcome: tagged("ProductEncoded", { bytes: 1 }) }).failure.$,
       "Types.WrongReplyKind"
     )
   }
@@ -291,21 +294,21 @@ try {
     assert.ok(error instanceof RangeError)
     assert.equal(error.message, message)
     assert.strictEqual(goApi.session.exception(outcome.exception), error)
-    const request = tagged("Request", { invocation: BigInt(goApi.session.invocation), id: 2n, operation })
-    const reply = tagged("Reply", { invocation: BigInt(goApi.session.invocation), id: 2n, outcome })
+    const request = tagged("Request", { invocation: Number(BigInt(goApi.session.invocation)), id: 2, operation })
+    const reply = tagged("Reply", { invocation: Number(BigInt(goApi.session.invocation)), id: 2, outcome })
     assert.deepEqual(protocol.check(request, reply), {
       $: "CheckedOutcome",
       outcome: {
         ...outcome,
         exception: {
           ...outcome.exception,
-          invocation: BigInt(outcome.exception.invocation),
-          id: BigInt(outcome.exception.id)
+          invocation: Number(BigInt(outcome.exception.invocation)),
+          id: Number(BigInt(outcome.exception.id))
         }
       }
     })
     assert.deepEqual(boundary.check(request, reply), { $: "None" })
-    const foreign = { ...reply, outcome: { ...outcome, exception: { ...outcome.exception, invocation: 900n } } }
+    const foreign = { ...reply, outcome: { ...outcome, exception: { ...outcome.exception, invocation: 900 } } }
     assert.equal(protocol.check(request, foreign).failure.$, "Types.WrongInvocation")
     assert.equal(boundary.check(request, foreign).value.$, "Types.WrongInvocation")
   }

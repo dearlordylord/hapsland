@@ -56,19 +56,19 @@ const twoDeclarations = {
   path: "root.py",
   source: "from leaf import Foo\nclass Root:\n first: Foo\nclass Second:\n second: Foo\n",
   contracts: [{ $: "PreparationSelection.TypeContract" }],
-  expected: { selected: 2n, units: 2 }
+  expected: { selected: 2, units: 2 }
 }
 const oneDeclaration = {
   path: "single.py",
   source: "from leaf import Foo\nclass Root:\n first: Foo\n",
   contracts: [{ $: "PreparationSelection.TypeContract" }],
-  expected: { selected: 1n, units: 1 }
+  expected: { selected: 1, units: 1 }
 }
 const mixedContracts = {
   path: "mixed.ts",
   source: "export interface Foo { value: string }\nexport function run(value: Foo): Foo { return value }\n",
   contracts: [{ $: "PreparationSelection.TypeContract" }, { $: "PreparationSelection.FunctionContract" }],
-  expected: { selected: 2n, units: 2 }
+  expected: { selected: 2, units: 2 }
 }
 // Expectations describe each physical input independently of observed output.
 const scenario = (
@@ -76,7 +76,7 @@ const scenario = (
   fixture,
   { expected = fixture.expected, compareNative = false, retentionMode = name } = {}
 ) => ({ name, fixture, expected, compareNative, retentionMode })
-const multiCandidate = { ...twoDeclarations, candidates: ["root.py", "leaf.py"], expected: { selected: 3n, units: 3 } }
+const multiCandidate = { ...twoDeclarations, candidates: ["root.py", "leaf.py"], expected: { selected: 3, units: 3 } }
 const languageRoots = [
   [
     "go",
@@ -91,7 +91,7 @@ const languageRoots = [
 ].map(([language, fixture]) =>
   scenario(
     "retention-owned-" + language + "-success",
-    { ...fixture, contracts: [{ $: "PreparationSelection.TypeContract" }], expected: { selected: 1n, units: 1 } },
+    { ...fixture, contracts: [{ $: "PreparationSelection.TypeContract" }], expected: { selected: 1, units: 1 } },
     { compareNative: true, retentionMode: "retention-owned-success" }
   )
 )
@@ -100,7 +100,7 @@ const scenarios = [
   scenario("dependency-then-candidate", multiCandidate, { compareNative: true }),
   scenario(
     "normalized-repeat-candidate",
-    { ...twoDeclarations, candidates: ["root.py", "./root.py"], expected: { selected: 4n, units: 4 } },
+    { ...twoDeclarations, candidates: ["root.py", "./root.py"], expected: { selected: 4, units: 4 } },
     { compareNative: true }
   ),
   scenario(
@@ -110,13 +110,13 @@ const scenarios = [
   ),
   scenario("two-roots", twoDeclarations, { compareNative: true }),
   scenario("rules-replaced-after-capture", twoDeclarations, { compareNative: true }),
-  scenario("unused-rules-getter", twoDeclarations, { expected: { selected: 0n, units: 0 } }),
-  scenario("first-refused", twoDeclarations, { expected: { selected: 2n, units: 1 } }),
+  scenario("unused-rules-getter", twoDeclarations, { expected: { selected: 0, units: 0 } }),
+  scenario("first-refused", twoDeclarations, { expected: { selected: 2, units: 1 } }),
   scenario("parent-cancel-between-reads", twoDeclarations),
   scenario("parent-cancel-late-success", twoDeclarations),
   scenario("parent-cancel-late-rejection", twoDeclarations),
   scenario("parent-cancel-finalization-gate", twoDeclarations),
-  scenario("resize-refused", twoDeclarations, { expected: { selected: 0n, units: 0 } }),
+  scenario("resize-refused", twoDeclarations, { expected: { selected: 0, units: 0 } }),
   scenario("mixed-contracts", mixedContracts, { compareNative: true }),
   scenario("retention-success", twoDeclarations),
   scenario("retention-before-flow", twoDeclarations),
@@ -194,7 +194,7 @@ try {
     gitInode: String(b.ino)
   }
   const _c = (name, fields = {}) => ({ $: "../../../packages/agent-flow-bend/Canonical." + name, ...fields }),
-    scope = { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n }
+    scope = { $: "Scope", partition: 1, lifetime: 1, round: 1, preparation: 2 }
   const initial = () => {
     const run = Effect.runSync,
       limits = { globalItems: 100, globalBytes: 100000000, partitionItems: 16, partitionBytes: 100000000 }
@@ -256,13 +256,13 @@ try {
     $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Location",
     start: {
       $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-      line: BigInt(value.start.line),
-      column: BigInt(value.start.column)
+      line: Number(BigInt(value.start.line)),
+      column: Number(BigInt(value.start.column))
     },
     end: {
       $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-      line: BigInt(value.end.line),
-      column: BigInt(value.end.column)
+      line: Number(BigInt(value.end.line)),
+      column: Number(BigInt(value.end.column))
     }
   })
   const postCore = (
@@ -357,10 +357,10 @@ try {
         [...cache].map(([path, capture], index) => ({
           $: "Capture",
           path,
-          handle: BigInt(index + 1),
+          handle: Number(BigInt(index + 1)),
           text: capture.text,
           content_hash: capture.contentHash,
-          bytes: BigInt(capture.byteLength)
+          bytes: Number(BigInt(capture.byteLength))
         }))
       )
     let duplicateChecked = false,
@@ -539,7 +539,7 @@ try {
     const session = { invocation: parentInvocation, revoke() {}, close() {} }
     const limits = {
       $: "../../../../agent-flow-bend/ImportGraph.Limits",
-      version: 1n,
+      version: 1,
       ...Object.fromEntries(
         Object.entries(GRAPH_LIMIT_CEILINGS).map(([key, value]) => [
           {
@@ -548,7 +548,7 @@ try {
             readBytes: "read_bytes",
             outgoingEdges: "outgoing_edges"
           }[key] ?? key,
-          BigInt(value)
+          Number(BigInt(value))
         ])
       )
     }
@@ -572,7 +572,7 @@ try {
       before_analyze: true
     }
     let outcome = await Effect.runPromise(
-      driver.driveEffect(session, { invocation: BigInt(parentInvocation), preparation: preparationInput })
+      driver.driveEffect(session, { invocation: Number(BigInt(parentInvocation)), preparation: preparationInput })
     )
     if (owned) {
       const receipt = outcome
@@ -585,11 +585,11 @@ try {
           connection.preparation = preparation
           const invocation = driver.allocatePreparationInvocation({
             ...scope,
-            preparation: BigInt(preparation.operation)
+            preparation: Number(BigInt(preparation.operation))
           })
           const sourceSession = { invocation, revoke() {}, close() {} }
           const nextReceipt = await Effect.runPromise(
-            driver.driveEffect(sourceSession, { invocation: BigInt(invocation), preparation: preparationInput })
+            driver.driveEffect(sourceSession, { invocation: Number(BigInt(invocation)), preparation: preparationInput })
           )
           const result = driver.handoffResult(nextReceipt)
           connection.owned.receipt = nextReceipt

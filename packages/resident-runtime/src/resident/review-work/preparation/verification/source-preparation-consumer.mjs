@@ -46,7 +46,7 @@ import { runResidentSourcePreparation } from "../../composition/source-preparati
 const withUnissuedAuthority = (effect) =>
   effect.pipe(
     Effect.provideService(ResidentProviderPermit, {
-      credential: { invocation: 999999n, generation: 999999n, lease: 999999n, request: 999999n }
+      credential: { invocation: 999999, generation: 999999, lease: 999999, request: 999999 }
     }),
     Effect.provideService(ResidentResourceReceipt, () => {
       throw new Error("unissued caller receipt crossed provider boundary")
@@ -296,7 +296,7 @@ try {
               if (
                 mode === "cancel-between-candidates" &&
                 command.$ === "CheckCandidateActive" &&
-                command.candidate === 2n
+                command.candidate === 2
               )
                 driver.cancel(request.invocation)
             },
@@ -308,7 +308,7 @@ try {
               if (
                 ["admission-ack-loss", "source-cleanup-pending"].includes(mode) &&
                 command.$ === "AdmitCandidateWorkspace" &&
-                command.candidate === 2n
+                command.candidate === 2
               )
                 throw injectedAdmissionError
               if (mode === "completion-ack-loss" && command.$ === "CompleteObservation")
@@ -639,7 +639,7 @@ try {
       : GRAPH_LIMIT_CEILINGS
     const bendLimits = {
       $: "../../../../agent-flow-bend/ImportGraph.Limits",
-      version: 1n,
+      version: 1,
       ...Object.fromEntries(
         Object.entries(sourceGraphLimits).map(([key, value]) => [
           {
@@ -648,7 +648,7 @@ try {
             readBytes: "read_bytes",
             outgoingEdges: "outgoing_edges"
           }[key] ?? key,
-          BigInt(value)
+          Number(BigInt(value))
         ])
       )
     }
@@ -743,7 +743,7 @@ try {
           performEffect: foreign.performEffect,
           decode: foreign.decode,
           input: {
-            invocation: BigInt(invocation),
+            invocation: Number(BigInt(invocation)),
             preparation: {
               $: "Input",
               candidates: list([
@@ -843,7 +843,7 @@ try {
         }
         assert.equal(registry.pendingCleanup, 0)
         assert.equal(context.activeWorkspaces.size, 0)
-        result = { completed: false, reason: { $: "DefectFailure", token: 1n } }
+        result = { completed: false, reason: { $: "DefectFailure", token: 1 } }
       } finally {
         activity?.close()
       }
@@ -856,14 +856,14 @@ try {
       }
       if (mode === "completion-ack-loss") {
         assert.equal(
-          commands.filter((item) => item.invocation === BigInt(invocation)).at(-1).command,
+          commands.filter((item) => item.invocation === Number(BigInt(invocation))).at(-1).command,
           "CompleteObservation"
         )
       }
       if (mode === "after-prepare-failure")
         assert.deepEqual(
           commands
-            .filter((item) => item.invocation === BigInt(invocation))
+            .filter((item) => item.invocation === Number(BigInt(invocation)))
             .slice(-4)
             .map((item) => item.command),
           [
@@ -873,7 +873,9 @@ try {
             "RecordUnavailableActivity"
           ]
         )
-      const recovery = commands.filter((item) => item.invocation === BigInt(invocation)).map((item) => item.command)
+      const recovery = commands
+        .filter((item) => item.invocation === Number(BigInt(invocation)))
+        .map((item) => item.command)
       const recoveryStart = recovery.indexOf("RecordPreparationFailureAnalytics")
       if (mode === "after-prepare-analytics-failure")
         assert.deepEqual(recovery.slice(recoveryStart), ["RecordPreparationFailureAnalytics"])
@@ -997,7 +999,9 @@ try {
                 ? "SourceInactive"
                 : "SettingsRefused"
           )
-        const gates = commands.filter((item) => item.invocation === BigInt(invocation)).map((item) => item.command)
+        const gates = commands
+          .filter((item) => item.invocation === Number(BigInt(invocation)))
+          .map((item) => item.command)
         const prefix = ["StartPolicySource", "StartObservation", "AwaitBackendGate"]
         const common = ["ReadRuntimeActive", "DecodeControlled"]
         const checks = {
