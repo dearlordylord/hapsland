@@ -94,5 +94,19 @@ def specification_drop(
 ) -> Bool:
   selected_drop(~specification_weight, catalog, name, target_id, expanded)
 
+# Remaining active-frame Spec equations. Ancestors keep separate parked bounds.
+def specification_required(
+  references: List<&2, M.Reference>,
+  catalog: M.Catalog,
+  expanded: List<&2, String>
+) -> Nat:
+  Nat.add(
+    1n,
+    Nat.add(
+      List.length(&2, M.Reference, references),
+      catalog_unvisited(~specification_weight, catalog, expanded)
+    )
+  )
+
 def main() -> Unit:
   Unit{}

@@ -82,6 +82,7 @@ try {
     { timeout: 11000 }
   )
   const continuation = (await import(pathToFileURL(continuationOutput))).default
+  let specificationDepthBounds = 0
   let continuationStates = 0,
     childEntries = 0,
     childReturns = 0
@@ -173,6 +174,11 @@ try {
       for (let index = 0; index < frames.length; index++) {
         const frame = frames[index]
         assert.ok(depths[index] > 0, "original Spec continuation depth must suffice")
+        assert.ok(
+          weighted.specification_required(frame.pending, rootCatalog, cursor.expanded) <= depths[index],
+          "exact active and parked Spec depths cover the remaining weighted inventory"
+        )
+        specificationDepthBounds++
         if (index < frames.length - 1) assert.equal(frame.site.$, "Some", "child has an existing parent")
         let subtotal = measuring ? expressions[expressions.length - 1 - index] : { $: "Literal", value: 0 }
         const prefix = unlist(frame.reversed).reverse()
@@ -735,6 +741,7 @@ try {
       potentialStates,
       selectedDropCases,
       continuationStates,
+      specificationDepthBounds,
       childEntries,
       childReturns,
       scope:
