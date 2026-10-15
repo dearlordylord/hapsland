@@ -235,7 +235,10 @@ assert.equal(controls, golden.controls, "lanes must use the same semantic rules 
 const expected = golden.results
 assert.deepEqual(actual, expected)
 const warmups = 3,
-  rounds = 2
+  rounds = Number(process.env.HAPSLAND_PREPARATION_PROFILE_ROUNDS ?? 2)
+assert.ok(Number.isInteger(rounds) && rounds >= 2 && rounds <= 20)
+if (process.env.HAPSLAND_PREPARATION_PROFILE_ROUNDS !== undefined)
+  assert.ok(process.env.HAPSLAND_PREPARATION_PROFILE_DIR, "custom rounds are diagnostic only")
 phase("warmups:start")
 for (let index = 0; index < warmups; index++) assert.deepEqual(await run(), expected)
 phase("warmups:complete")
