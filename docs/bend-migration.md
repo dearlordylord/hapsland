@@ -169,7 +169,7 @@ crossings with a Bend-selected serialization plan:
    preserving its existing late-coercion/error boundary.
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
-is removed. The whole Preparation migration is still **not accepted**: original attachment gates and whole-path parity remain open.
+is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
 Astra rejected State callbacks (full marshalling) and transition closures
 (nondecreasing recursion). Direct tree planning needs a supported nested
 ProductValue fold and must preserve the ExportJson cancellation boundary. Existing
