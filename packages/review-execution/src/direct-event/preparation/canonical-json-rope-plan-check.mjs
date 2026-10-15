@@ -11,7 +11,10 @@ const roots = [
   "CanonicalJsonPlanSpecification.bend",
   "CanonicalJsonRopePlanSpecification.bend",
   "CanonicalJsonRopePlanProof.bend",
-  "CanonicalJsonRopePlanSortProof.bend"
+  "CanonicalJsonRopePlanSortProof.bend",
+  "CanonicalJsonRopePlanStackProof.bend",
+  "CanonicalJsonRopePlanCountProof.bend",
+  "CanonicalJsonRopePlanLaws.bend"
 ]
 const sources = roots.map((name) => readFileSync(join(import.meta.dirname, name), "utf8"))
 const copies = new Map(roots.map((name) => [join(import.meta.dirname, name), join(temporary, name)]))
@@ -21,6 +24,27 @@ const rebase = (source, owner) =>
     return `import ${copies.get(absolute) ?? absolute}${rest}`
   })
 const mutations = [
+  {
+    name: "primitive discards older roots",
+    proof: 6,
+    section: "operation_exact",
+    before: "RopeValid{RopePiece{PrimitivePiece{value}} <> stack}",
+    after: "RopeValid{[RopePiece{PrimitivePiece{value}}]}"
+  },
+  {
+    name: "invalid fold recovers as empty",
+    proof: 6,
+    section: "fold_exact",
+    before: "case _ RopeInvalid{}: RopeInvalid{}",
+    after: "case _ RopeInvalid{}: RopeValid{[]}"
+  },
+  {
+    name: "finish accepts multiple roots",
+    proof: 6,
+    section: "finish_exact",
+    before: "case RopeValid{value <> []}: rope_flatten(value)",
+    after: "case RopeValid{value <> _}: rope_flatten(value)"
+  },
   {
     name: "reversed key comparator",
     proof: 4,
@@ -59,7 +83,12 @@ const mutations = [
   }
 ]
 try {
-  const checks = [{ name: "baseline assembly", proof: 3 }, { name: "baseline stable sort", proof: 4 }, ...mutations]
+  const checks = [
+    { name: "baseline assembly", proof: 3 },
+    { name: "baseline stable sort", proof: 4 },
+    { name: "baseline universal compile", proof: 6 },
+    ...mutations
+  ]
   for (const check of checks) {
     let implementation = sources[0]
     if (check.before !== undefined) {
@@ -96,7 +125,7 @@ try {
     }
   }
   console.log(
-    `Rope planner: two baseline proof roots pass; ${mutations.length} semantic mutants rejected. Failures may occur in shared invariants; universal compile correspondence remains separate.`
+    `Rope planner: three baseline proof roots pass; ${mutations.length} semantic mutants rejected. Failures may occur in shared invariants; universal compile correspondence passes; whole Preparation acceptance remains separate.`
   )
 } finally {
   rmSync(temporary, { recursive: true, force: true })

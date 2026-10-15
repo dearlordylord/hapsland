@@ -180,7 +180,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Rope planner equivalence | Astra approved internal counted ropes and unchanged Operation/Piece ABI. Independent original specification/local and compound proofs pass. Finite production checks: 79 trees, 2048 arbitrary streams, duplicate keys, depth 25000. Kernel passes exact flatten/array assembly and join counts; Astra approved per-root count invariant. Exact stable-sort erasure and object assembly now pass. Still required: count preservation, stack simulation and unconditional compile equality. Tree proof unqualified; new proof formatting blocked by pinned block-list limitation. |
+| Rope planner consumers | Unconditional compile equality, exact stack simulation, counts, stable-sort erasure and original tree-laws pass kernel. Three proof roots/eight semantic mutants and validator pass. Requalify complete production consumers and whole Preparation parity; pinned proof formatting remains open. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the Map cohort. Finalization/public Preparation pass; repeat after production edits. |
 | Whole-path parity | The assessed 2.0.37 Map cohort passes producers/consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
@@ -192,18 +192,18 @@ that only bridges helper names.
 
 ### Current qualification limits
 
-- Rope planner: exact flatten, array/object assembly, join counts and stable-sort
-  payload erasure pass kernel. Astra approved the per-root count invariant.
-  Two proof roots pass; five semantic mutants are rejected by comparator,
-  flatten, count and punctuation invariants. Universal operation/fold simulation
-  and `compile_exact` remain open; old tree proof is not yet qualified.
-  Finite codec checks cover 79 trees/2117 pieces, 2048 arbitrary streams,
-  duplicate keys and depth 25000. Original seven local/eight compound laws pass
-  against the independent original specification, not the new compile theorem.
+- Rope planner: unconditional compile equality for arbitrary operation streams,
+  exact stack/fold simulation, count preservation, stable-sort payload erasure,
+  flatten and array/object assembly pass kernel. No caller count/tree/budget
+  premise was added. Original tree-laws pass through this bridge; validator
+  79 trees/1344 refusals/676 equality cases and four mutations pass.
+  Three proof roots/eight semantic mutants pass the owner runner. Finite codec
+  checks cover 79 trees/2117 pieces, 2048 arbitrary streams, duplicate keys and
+  depth 25000. Production imports no specification/proof owner.
 - Eight batch protocol/eighteen actual-machine laws pass. Existing consumers
   cover correlated headers/counters, 606 FrozenInput and 9615 Finalization
   refusals, prefix throw/abort and late raw-token coercion. Requalify consumers
-  after the complete rope proof. Validator mutations require that full closure.
+  on the completed rope candidate before whole acceptance.
 - UnitEvidence query: five arbitrary-input laws, 1940 cases/five mutants,
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas

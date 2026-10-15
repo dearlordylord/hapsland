@@ -1,6 +1,7 @@
 import Base
 import ./CanonicalJsonPlanTreeLaws.bend as Laws
 import ./CanonicalJsonRopePlanLaws.bend as RopeLaws
+import ./CanonicalJsonRopePlanCountProof.bend as RopeProof
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/GRAPH_REVERSE_FACTS.bend as Reverse
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/INTERPRETER_NAT_FACTS.bend as Nats
 import ./CanonicalJsonPlanCompoundLaws.bend as Compound
@@ -517,10 +518,12 @@ def Laws.forest_exact(values, operations, plans, rest, encoding):
     encoding))
 
 def Laws.tree_exact(value, operations, parts, encoding):
-  %RopeLaws.compile_exact(operations) : {_ == Some{parts} : Maybe<&2, List<&2, Plan.Piece>>}
-  Equal.cong(Spec.Stack, Maybe<&2, List<&2, Plan.Piece>>, state => Spec.finish(state),
-    Spec.fold(operations, Spec.ValidStack{[]}), Spec.ValidStack{[parts]},
-    Laws.forest_exact([value], operations, [parts], [], encoding))
+  Equal.trans(Maybe<&2, List<&2, Plan.Piece>>,
+    Plan.compile(operations), Spec.compile(operations), Some{parts},
+    RopeLaws.compile_exact(operations),
+    Equal.cong(Spec.Stack, Maybe<&2, List<&2, Plan.Piece>>, state => Spec.finish(state),
+      Spec.fold(operations, Spec.ValidStack{[]}), Spec.ValidStack{[parts]},
+      Laws.forest_exact([value], operations, [parts], [], encoding)))
 
 def nat_reflexive(+value: Nat) -> {Nat.is_eq(value, value) == True{} : Bool}:
   match value:
