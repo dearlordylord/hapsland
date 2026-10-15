@@ -147,5 +147,50 @@ def initial_cursor(root: M.Declaration, invocation: C.Global) -> C.Cursor:
         [C.Frame{slot, references, [], None{}}]
       }
 
+# Proof constructors for the actual fresh-child transition. Their explicit
+# predecessor budgets are supplied by the internal branch theorem.
+def enter_cursor(rest: Nat, actual: C.Cursor, target: M.Declaration, +symbol: String,
+  target_id: Maybe<&2, String>) -> C.Cursor:
+  match actual target:
+    case C.Cursor{
+      global,
+      root,
+      +name,
+      expanded,
+      +referenced,
+      failure,
+      _,
+      C.Frame{parent_slot, _ <> tail, reversed, site} <> ancestors
+    }
+      M.Declaration{slot, identity, _, references}:
+      C.Cursor{
+        global,
+        root,
+        name,
+        identity <> expanded,
+        C.reference_names(name, symbol, target_id, referenced),
+        failure,
+        rest,
+        C.Frame{
+          slot,
+          references,
+          [],
+          Some{symbol}
+        } <> C.Frame{parent_slot, tail, reversed, site} <> ancestors
+      }
+    case cursor _: cursor
+
+def enter_ghosts(
+  +depth: Nat,
+  ghosts: List<&2, Ghost>,
+  +target: M.Declaration,
+  +symbol: String
+) -> List<&2, Ghost>:
+  match ghosts:
+    case Ghost{_, prefix, subtotal} <> rest:
+      Ghost{depth, [], K.initial_subtotal(target)}
+      <> Ghost{1n+depth, prefix, S.edge_total(subtotal, symbol, Some{target})} <> rest
+    case []: []
+
 def main() -> Unit:
   Unit{}

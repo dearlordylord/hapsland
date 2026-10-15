@@ -339,6 +339,47 @@ try {
                   ),
                   "actual child entry preserves exact Global/shared state and command queue"
                 )
+                assert.deepEqual(
+                  jointTags(
+                    joint.enter_cursor(
+                      previous.cursor.remaining - 2,
+                      jointTags(previous.cursor, true),
+                      child,
+                      reference.name,
+                      reference.target_id
+                    ),
+                    false
+                  ),
+                  next,
+                  "joint fresh cursor constructor equals the actual retained cursor"
+                )
+                const beforeGhosts = list(
+                  oldFrames.map((frame, index) => ({
+                    $: "Ghost",
+                    depth: depths[index],
+                    prefix: list(unlist(frame.reversed).reverse()),
+                    subtotal: measuring ? expressions[expressions.length - 1 - index] : { $: "Spec.Literal", value: 0 }
+                  }))
+                )
+                const afterGhosts = joint.enter_ghosts(depth - 2, beforeGhosts, child, reference.name)
+                assert.equal(
+                  joint.shape(
+                    list(nextFrames.map((frame) => ({ ...frame, $: "Core.Frame" }))),
+                    afterGhosts,
+                    currentRoot.slot
+                  ),
+                  true
+                )
+                assert.equal(
+                  joint.bounds_valid(
+                    list(nextFrames.map((frame) => ({ ...frame, $: "Core.Frame" }))),
+                    afterGhosts,
+                    rootCatalog,
+                    next.expanded
+                  ),
+                  true,
+                  "fresh transition retains bounds for the child and every parked frame"
+                )
                 depths.unshift(continuation.child_reference_depth(depth))
                 childEntries++
               }
