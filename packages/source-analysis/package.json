@@ -209,7 +209,7 @@
         }
       }
     ],
-    "bendPrecompile": "src/direct-event/graph-resolution/build-recipe.json",
+    "bendPrecompile": "src/direct-event/build-recipe.json",
     "checkedJavaScript": [
       "src/direct-event/graph-resolution/composition/artifact-dispatcher.mjs"
     ]

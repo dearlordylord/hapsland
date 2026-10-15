@@ -1,0 +1,27 @@
+[
+  {
+    "source": "graph-resolution/GenericGraphEntry.bend",
+    "output": "graph-resolution/generic-artifact-core.js",
+    "declaration": "graph-resolution/generic-artifact-core.d.ts"
+  },
+  {
+    "source": "graph-resolution/PythonGraphEntry.bend",
+    "output": "graph-resolution/python-artifact-core.js",
+    "declaration": "graph-resolution/python-artifact-core.d.ts"
+  },
+  {
+    "source": "graph-resolution/GoGraphEntry.bend",
+    "output": "graph-resolution/go-artifact-core.js",
+    "declaration": "graph-resolution/go-artifact-core.d.ts"
+  },
+  {
+    "source": "graph-resolution/GraphCompositionEntry.bend",
+    "output": "graph-resolution/artifact-composition-core.js",
+    "declaration": "graph-resolution/artifact-composition-core.d.ts"
+  },
+  {
+    "source": "local-analysis/Core.bend",
+    "output": "local-analysis/analyzer-core.js",
+    "declaration": "local-analysis/analyzer-core.d.ts"
+  }
+]

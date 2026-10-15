@@ -16,6 +16,7 @@
     "src/direct-event/graph-resolution/generic-artifact-core.d.ts",
     "src/direct-event/graph-resolution/python-artifact-core.d.ts",
     "src/direct-event/graph-resolution/go-artifact-core.d.ts",
-    "src/direct-event/graph-resolution/artifact-composition-core.d.ts"
+    "src/direct-event/graph-resolution/artifact-composition-core.d.ts",
+    "src/direct-event/local-analysis/analyzer-core.d.ts"
   ]
 }
