@@ -60,12 +60,15 @@ def entry_numeric(+count: Nat, +declarations: List<&2, M.Declaration>, +supporti
 
 def Laws.root_entry_valid(root, catalog, purpose, pending, prefix, request):
   match root catalog purpose:
-    case M.Declaration{_, identity, _, references} M.Catalog{declarations, supporting} Core.Trees{}:
-      entry_numeric(List.length(&2, M.Reference, references), declarations, supporting, [identity])
-    case M.Declaration{_, identity, _, references} M.Catalog{declarations, supporting} Core.Outcomes{}:
-      entry_numeric(List.length(&2, M.Reference, references), declarations, supporting, [identity])
-    case M.Declaration{_, identity, _, references} M.Catalog{declarations, supporting} Core.Preflight{}:
-      entry_numeric(List.length(&2, M.Reference, references), declarations, supporting, [identity])
+    case M.Declaration{_, _, _, []} _ Core.Trees{}: {==}
+    case M.Declaration{_, _, _, []} _ Core.Outcomes{}: {==}
+    case M.Declaration{_, _, _, []} _ Core.Preflight{}: {==}
+    case M.Declaration{_, identity, _, +head <> +tail} M.Catalog{declarations, supporting} Core.Trees{}:
+      entry_numeric(List.length(&2, M.Reference, head <> tail), declarations, supporting, [identity])
+    case M.Declaration{_, identity, _, +head <> +tail} M.Catalog{declarations, supporting} Core.Outcomes{}:
+      entry_numeric(List.length(&2, M.Reference, head <> tail), declarations, supporting, [identity])
+    case M.Declaration{_, identity, _, +head <> +tail} M.Catalog{declarations, supporting} Core.Preflight{}:
+      entry_numeric(List.length(&2, M.Reference, head <> tail), declarations, supporting, [identity])
 
 def main() -> Unit:
   Unit{}

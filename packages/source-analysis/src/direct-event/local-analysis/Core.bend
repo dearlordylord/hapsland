@@ -587,17 +587,29 @@ def start_root(remaining: Nat, +global: Global, declaration: M.Declaration) -> S
         node_operations(global_purpose(global), slot)
       )
 
+# A leaf needs no catalog inventory or DFS cursor. Its exact measurement queue
+# still uses ordinary matching Acks before returning to the outer continuation.
+def enter_root(+global: Global, declaration: M.Declaration) -> Step:
+  match global declaration:
+    case Global{catalog, +purpose, pending, prefix, +request} M.Declaration{+slot, _, _, []}:
+      schedule(
+        List.append(&2, M.Op, node_operations(purpose, slot), finish_operations(purpose)),
+        RootNext{Global{catalog, purpose, pending,
+          save_outcome(purpose, M.Outcome{slot, None{}, outcome_tree(purpose, slot, [])}, prefix),
+          request}},
+        request
+      )
+    case Global{+catalog, purpose, pending, prefix, request} +declaration:
+      start_root(M.traversal_inventory(declaration, catalog),
+        Global{catalog, purpose, pending, prefix, request}, declaration)
+
 def next_root(global: Global) -> Step:
   match global:
     case Global{catalog, purpose, [], reversed, request}: finish_global(
       Global{catalog, purpose, [], reversed, request}
     )
     case Global{+catalog, purpose, +head <> tail, reversed, request}:
-      start_root(
-        M.traversal_inventory(head, catalog),
-        Global{catalog, purpose, tail, reversed, request},
-        head
-      )
+      enter_root(Global{catalog, purpose, tail, reversed, request}, head)
 
 def initial(+catalog: M.Catalog, +purpose: Purpose) -> Step:
   schedule(

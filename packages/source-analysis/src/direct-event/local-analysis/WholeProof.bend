@@ -252,11 +252,11 @@ def tail_continuation(+tail: List<&2, M.Declaration>, +catalog: M.Catalog, +purp
 def cons_equation(+catalog: M.Catalog, +purpose: C.Purpose, +head: M.Declaration, +tail: List<&2, M.Declaration>,
   +prefix: List<&2, M.Outcome>, +request: Nat, +reversed: List<&2, M.Op>, +extra: Nat,
   +name: String, +expanded: List<&2, String>, +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +node: M.NodePlan, +bytes: S.BytesExpr, +root_reversed: List<&2, M.Op>, +used: Nat, within: N.le(used, Nat.sub(E.root_weight(head, catalog), 1n)),
-  continue: @+remaining: Nat -> {E.run(Nat.add(used, remaining), C.start_root(M.traversal_inventory(head, catalog), C.Global{catalog, purpose, tail, prefix, request}, head), reversed) == E.run(remaining, C.NextRoot{C.Global{catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes)))}}, List.append(&2, M.Op, root_reversed, reversed)) : E.Run}) -> {
+  continue: @+remaining: Nat -> {E.run(Nat.add(used, remaining), C.enter_root(C.Global{catalog, purpose, tail, prefix, request}, head), reversed) == E.run(remaining, C.NextRoot{C.Global{catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes)))}}, List.append(&2, M.Op, root_reversed, reversed)) : E.Run}) -> {
   roots_run(catalog, purpose, head <> tail, prefix, request, reversed, extra) == roots_run(catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes))), List.append(&2, M.Op, root_reversed, reversed), Nat.add(extra, Nat.sub(Nat.sub(E.root_weight(head, catalog), 1n), used))) : E.Run
 }:
   %root_fuel_split(head, catalog, E.roots_weight(tail, catalog), extra, used, within) :
-    {E.run(_, C.start_root(M.traversal_inventory(head, catalog), C.Global{catalog, purpose, tail, prefix, request}, head), reversed) == roots_run(catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes))), List.append(&2, M.Op, root_reversed, reversed), Nat.add(extra, Nat.sub(Nat.sub(E.root_weight(head, catalog), 1n), used))) : E.Run}
+    {E.run(_, C.enter_root(C.Global{catalog, purpose, tail, prefix, request}, head), reversed) == roots_run(catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes))), List.append(&2, M.Op, root_reversed, reversed), Nat.add(extra, Nat.sub(Nat.sub(E.root_weight(head, catalog), 1n), used))) : E.Run}
   continue(Nat.add(1n+E.roots_weight(tail, catalog), Nat.add(extra, Nat.sub(Nat.sub(E.root_weight(head, catalog), 1n), used))))
 
 def cons_segment(+catalog: M.Catalog, +purpose: C.Purpose, +head: M.Declaration, +tail: List<&2, M.Declaration>,
@@ -264,7 +264,7 @@ def cons_segment(+catalog: M.Catalog, +purpose: C.Purpose, +head: M.Declaration,
   +name: String, +expanded: List<&2, String>, +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +node: M.NodePlan, +bytes: S.BytesExpr, +root_reversed: List<&2, M.Op>,
   equal: {S.analyze(head, catalog) == S.NodeResult{S.State{name, expanded, referenced, failure}, node, bytes} : S.NodeResult},
   trace: {List.reverse(&2, M.Op, root_reversed) == Root.expected_operations(purpose, bytes) : List<&2, M.Op>},
-  segment: Segment.segment_type(Nat.sub(E.root_weight(head, catalog), 1n), C.start_root(M.traversal_inventory(head, catalog), C.Global{catalog, purpose, tail, prefix, request}, head), reversed, C.Global{catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes)))}, List.append(&2, M.Op, root_reversed, reversed)),
+  segment: Segment.segment_type(Nat.sub(E.root_weight(head, catalog), 1n), C.enter_root(C.Global{catalog, purpose, tail, prefix, request}, head), reversed, C.Global{catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes)))}, List.append(&2, M.Op, root_reversed, reversed)),
   suffix: tail_continuation(tail, catalog, purpose)) ->
   whole_result(roots_run(catalog, purpose, head <> tail, prefix, request, reversed, extra), catalog, purpose, head <> tail, prefix, reversed):
   match segment:
@@ -283,8 +283,8 @@ def cons_root(+catalog: M.Catalog, +purpose: C.Purpose, +head: M.Declaration, +t
   suffix: tail_continuation(tail, catalog, purpose)) ->
   whole_result(roots_run(catalog, purpose, head <> tail, prefix, request, reversed, extra), catalog, purpose, head <> tail, prefix, reversed):
   cons_segment(catalog, purpose, head, tail, prefix, request, reversed, extra, name, expanded, referenced, failure, node, bytes, root_reversed, equal, trace,
-    segment_suffix(Nat.sub(E.root_weight(head, catalog), 1n), C.start_root(M.traversal_inventory(head, catalog), C.Global{catalog, purpose, tail, prefix, request}, head), reversed, C.Global{catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes)))}, root_reversed,
-      Segment.segment(Nat.sub(E.root_weight(head, catalog), 1n), C.start_root(M.traversal_inventory(head, catalog), C.Global{catalog, purpose, tail, prefix, request}, head), [], C.Global{catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes)))}, root_reversed, root_equal)), suffix)
+    segment_suffix(Nat.sub(E.root_weight(head, catalog), 1n), C.enter_root(C.Global{catalog, purpose, tail, prefix, request}, head), reversed, C.Global{catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes)))}, root_reversed,
+      Segment.segment(Nat.sub(E.root_weight(head, catalog), 1n), C.enter_root(C.Global{catalog, purpose, tail, prefix, request}, head), [], C.Global{catalog, purpose, tail, Root.expected_prefix(purpose, node, failure, prefix), Nat.add(request, List.length(&2, M.Op, Root.expected_operations(purpose, bytes)))}, root_reversed, root_equal)), suffix)
 
 def normalize_root(+head: M.Declaration, +catalog: M.Catalog, +purpose: C.Purpose, +tail: List<&2, M.Declaration>,
   +prefix: List<&2, M.Outcome>, +request: Nat, +actual: Root.RootRun, +specification: S.NodeResult,

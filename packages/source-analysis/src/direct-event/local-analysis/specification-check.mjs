@@ -662,12 +662,40 @@ try {
           request
         }
         const entered = core.next_root({ ...invocation, pending: list([root, ...unlist(pending)]) })
-        const initial = entered.$ === "Continue" ? entered.cursor : entered.next.cursor
-        assert.deepEqual(
-          jointTags(joint.initial_cursor(root, jointTags(invocation, true)), false),
-          initial,
-          "joint initial cursor is actual root-entry retained cursor"
-        )
+        if (unlist(root.references).length === 0) {
+          if (purpose === "Core.Preflight") {
+            const queue = [entered.operation, ...unlist(entered.remaining)]
+            assert.deepEqual(queue, [
+              { $: "Model.MeasureArtifact", slot: root.slot },
+              { $: "Model.Push", value: 512 },
+              { $: "Model.Add" },
+              { $: "Model.Add" }
+            ], "leaf preflight preserves the exact four operations")
+            assert.equal(entered.next.$, "RootNext", "leaf needs no DFS cursor")
+            let step = entered
+            for (let offset = 0; offset < 4; offset++) {
+              assert.equal(step.$, "Engine")
+              assert.equal(step.request, request + offset)
+              assert.equal(core.resume(step, { $: "Ack", request: request + offset + 1 }).$, "InvalidReply")
+              step = core.resume(step, { $: "Ack", request: request + offset })
+            }
+            assert.equal(step.$, "NextRoot")
+            assert.equal(step.global.request, request + 4)
+            assert.deepEqual(step.global.pending, pending)
+            assert.deepEqual(step.global.reversed, prefix)
+          } else {
+            assert.equal(entered.$, "NextRoot", "leaf analysis needs no DFS cursor")
+            assert.equal(entered.global.request, request)
+            assert.deepEqual(entered.global.pending, pending)
+          }
+        } else {
+          const initial = entered.$ === "Continue" ? entered.cursor : entered.next.cursor
+          assert.deepEqual(
+            jointTags(joint.initial_cursor(root, jointTags(invocation, true)), false),
+            initial,
+            "joint initial cursor is actual nonempty root-entry retained cursor"
+          )
+        }
         const actual = rootContract.execute(root, facts, { $: purpose }, pending, prefix, request)
         const expected = rootContract.expected(root, facts, { $: purpose }, pending, prefix, request)
         assert.equal(actual.$, "RootDone", "complete_root_with_continuation: cursor budget")
@@ -702,6 +730,9 @@ try {
     return result
   }
   const references = (result) => unlist(result.node.references)
+  const leaf = declaration(41, "Leaf")
+  inspect(leaf, catalog([]))
+  inspect(leaf, catalog([leaf, declaration(42, "After", [named("Leaf")])]))
   const a = declaration(0, "A", [named("X")]),
     oldX = declaration(1, "X"),
     newX = declaration(2, "X")
