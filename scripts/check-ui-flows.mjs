@@ -1,5 +1,6 @@
 import { parse } from "@babel/parser"
-import { existsSync, readFileSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, mkdirSync, writeFileSync, renameSync, rmSync } from "node:fs"
+import { createHash, randomUUID } from "node:crypto"
 import { resolve, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
@@ -45,6 +46,64 @@ const declarations = (tree) => {
       names.add(node.id.name)
   })
   return names
+}
+
+const digest = (value) => createHash("sha256").update(value).digest("hex")
+// Reports contain no source or AST. A single slot per relative file bounds
+// retained versions; all current files are still enumerated and read each run.
+const analysisCache = (candidateRoot, registry) => {
+  try {
+    const identity = digest(
+      JSON.stringify(registry) +
+        digest(readFileSync(fileURLToPath(import.meta.url))) +
+        digest(readFileSync(fileURLToPath(import.meta.resolve("@babel/parser")))) +
+        JSON.stringify({
+          node: process.version,
+          bun: process.versions.bun ?? null,
+          arguments: process.execArgv,
+          nodeOptions: process.env.NODE_OPTIONS ?? null,
+          bunOptions: process.env.BUN_OPTIONS ?? null
+        })
+    )
+    const directory = resolve(candidateRoot, ".test-runs/ui-flow-analysis")
+    return { directory, identity }
+  } catch {
+    return undefined
+  }
+}
+const readAnalysis = (file, key) => {
+  try {
+    const report = JSON.parse(readFileSync(file, "utf8"))
+    if (
+      !report ||
+      typeof report !== "object" ||
+      Array.isArray(report) ||
+      Object.keys(report).sort().join(",") !== "compositions,errors,journeys,key" ||
+      report.key !== key ||
+      ![report.errors, report.journeys, report.compositions].every(
+        (items) => Array.isArray(items) && items.every((item) => typeof item === "string")
+      )
+    )
+      return undefined
+    return report
+  } catch {
+    return undefined
+  }
+}
+const writeAnalysis = (cache, file, report) => {
+  let temporary
+  try {
+    temporary = file + "." + randomUUID() + ".tmp"
+    mkdirSync(cache.directory, { recursive: true })
+    writeFileSync(temporary, JSON.stringify(report))
+    renameSync(temporary, file)
+  } catch {
+    // An unavailable cache never changes validation.
+  } finally {
+    try {
+      if (temporary !== undefined) rmSync(temporary, { force: true })
+    } catch {}
+  }
 }
 
 /** Source-only preflight: no compiled package, dependency build or replay execution. */
@@ -98,9 +157,27 @@ export function checkUiFlows(
   const files = readdirSync(resolve(candidateRoot, "packages"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .flatMap((entry) => sourceFiles(resolve(candidateRoot, "packages", entry.name, "src")))
+  const cache = analysisCache(candidateRoot, registry)
+  const allErrors = errors
+  const allJourneys = observedJourneys
+  const allCompositions = observedCompositions
   for (const file of files) {
     const path = relative(candidateRoot, file)
-    const tree = ast(readFileSync(file, "utf8"))
+    const source = readFileSync(file, "utf8")
+    const eligible = cache !== undefined && !requiredTrees.has(path)
+    const cacheFile = eligible ? resolve(cache.directory, digest(path) + ".json") : undefined
+    const key = eligible ? digest(path + "\0" + digest(source) + "\0" + cache.identity) : undefined
+    const cached = eligible ? readAnalysis(cacheFile, key) : undefined
+    if (cached) {
+      for (const error of cached.errors) allErrors.push(error)
+      for (const id of cached.journeys) allJourneys.add(id)
+      for (const id of cached.compositions) allCompositions.add(id)
+      continue
+    }
+    const errors = []
+    const observedJourneys = new Set()
+    const observedCompositions = new Set()
+    const tree = ast(source)
     if (requiredTrees.has(path)) trees.set(path, tree)
     const parents = new WeakMap()
     const owner = owners.get(path)
@@ -270,6 +347,16 @@ export function checkUiFlows(
       }
     })
     if (owner && !registered) errors.push(`UI owner has no registered dispatch: ${path}`)
+    for (const error of errors) allErrors.push(error)
+    for (const id of observedJourneys) allJourneys.add(id)
+    for (const id of observedCompositions) allCompositions.add(id)
+    if (eligible)
+      writeAnalysis(cache, cacheFile, {
+        key,
+        errors,
+        journeys: [...observedJourneys],
+        compositions: [...observedCompositions]
+      })
   }
   const reachable = new Set()
   const reach = (id) => {

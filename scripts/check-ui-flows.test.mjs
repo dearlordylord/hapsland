@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto"
+import * as flowRegistry from "../packages/administration/src/interaction/flow-registry.ts"
 import assert from "node:assert/strict"
 import { cpSync, mkdtempSync, realpathSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -159,4 +161,41 @@ test("CLI journeys must retain their actual handler and input-flow bindings", (t
   })
   assert.notEqual(result.status, 0)
   assert.match(result.stderr, /CLI journey does not reach its registered input flow: setup -> rules/)
+})
+
+test("cached file analysis preserves source selection, mutations, registry and corruption checks", (t) => {
+  const root = fixture(t)
+  const relative = "packages/administration/src/onboarding/cache-probe.ts"
+  const source = join(root, relative)
+  writeFileSync(source, "export const cacheProbe = true;\n")
+  const expected = checkUiFlows(root)
+  const reportPath = join(
+    root,
+    ".test-runs/ui-flow-analysis",
+    createHash("sha256").update(relative).digest("hex") + ".json"
+  )
+  const positive = JSON.parse(readFileSync(reportPath, "utf8"))
+  assert.deepEqual(positive.errors, [])
+  assert.deepEqual(checkUiFlows(root), expected)
+  const prompt = "export const cacheProbe = (input) => input.confirm({});\n"
+  writeFileSync(source, prompt)
+  assert.throws(() => checkUiFlows(root), /Unregistered UI input/)
+  writeFileSync(source, "export const cacheProbe = true;\n")
+  const added = join(root, "packages/administration/src/onboarding/cache-new-prompt.ts")
+  writeFileSync(added, prompt)
+  assert.throws(() => checkUiFlows(root), /Unregistered UI input/)
+  rmSync(added)
+  writeFileSync(source, prompt)
+  assert.throws(() => checkUiFlows(root, flowRegistry), /Unregistered UI input/)
+  const registryKey = JSON.parse(readFileSync(reportPath, "utf8")).key
+  const registry = { ...flowRegistry, interactionInfrastructure: [...flowRegistry.interactionInfrastructure, relative] }
+  assert.deepEqual(checkUiFlows(root, registry), expected)
+  assert.notEqual(JSON.parse(readFileSync(reportPath, "utf8")).key, registryKey)
+  assert.throws(() => checkUiFlows(root), /Unregistered UI input/)
+  const negative = JSON.parse(readFileSync(reportPath, "utf8"))
+  writeFileSync(reportPath, JSON.stringify({ ...negative, errors: false }))
+  assert.throws(() => checkUiFlows(root), /Unregistered UI input/)
+  assert.deepEqual(JSON.parse(readFileSync(reportPath, "utf8")).errors, negative.errors)
+  writeFileSync(source, "export const = ;")
+  assert.throws(() => checkUiFlows(root), SyntaxError)
 })
