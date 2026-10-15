@@ -19,7 +19,9 @@ try {
     "Core.bend",
     "Potential.bend",
     "SelectedTargetLaws.bend",
-    "SelectedTargetProof.bend"
+    "SelectedTargetProof.bend",
+    "WeightedInventory.bend",
+    "WeightedInventoryProof.bend"
   ])
     copyFileSync(join(owner, file), join(directory, file))
   for (const file of [
@@ -51,14 +53,16 @@ try {
   const diagnostic = result.stdout + result.stderr
   assert.equal(result.status, 1, "lookup cannot charge a declaration outside the catalog")
   assert.ok(diagnostic.includes("SOME PROOFS FAIL"), diagnostic)
-  assert.ok(diagnostic.includes("Location: Laws.selected_target_drop"), diagnostic)
+  assert.ok(diagnostic.includes("Location: selected_target_drop"), diagnostic)
   console.log(
     JSON.stringify({
       kernelRoots: 1,
       mutant: "lookup_fabricates_declaration",
       law: "selected_target_drop",
+      location: "shared weighted selected_target_drop helper",
       rejected: true,
-      scope: "selected-target budget only; traversal preservation and correspondence remain unproved"
+      scope:
+        "Core and Spec weighted lookup inventory; mutant fails shared weighted helper; traversal preservation and correspondence remain unproved"
     })
   )
 } finally {

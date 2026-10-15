@@ -85,6 +85,13 @@ try {
   let continuationStates = 0,
     childEntries = 0,
     childReturns = 0
+  const weightedOutput = join(temporary, "weighted-inventory.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "WeightedInventory.bend"), "-o", weightedOutput],
+    { timeout: 11000 }
+  )
+  const weighted = (await import(pathToFileURL(weightedOutput))).default
   let selectedDropCases = 0
   let potentialStates = 0
   const checkPotential = (cursor) => {
@@ -370,6 +377,11 @@ try {
       for (const target of targets)
         for (const expanded of [[], [root.identity], candidates.map((entry) => entry.identity)]) {
           assert.equal(potential.selected_drop(facts, name, target, list(expanded)), true, "selected_target_drop")
+          assert.equal(
+            weighted.specification_drop(facts, name, target, list(expanded)),
+            true,
+            "Spec weighted selected-target drop"
+          )
           selectedDropCases++
         }
     const result = spec.analyze(root, facts)
