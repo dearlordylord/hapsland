@@ -168,7 +168,12 @@ def later_parent_disjoint(
   inside: {later_route(prefix, index, route) == True{} : Bool}
 ) -> Empty:
   self : {later_route(prefix, index, prefix) == True{} : Bool} =
-    %Equal.sym(List<&2, Nat>, prefix, route, ReplacementFacts.same_route_equal(prefix, route, same)):
+    %Equal.sym(
+      List<&2, Nat>,
+      prefix,
+      route,
+      ReplacementFacts.same_route_equal(prefix, route, same)
+    ):
       {later_route(prefix, index, _) == True{} : Bool}
     inside
   later_self_impossible(prefix, index, self)
@@ -1295,7 +1300,12 @@ def within_different_case(
     case False{}: {==}
     case True{}:
       at_query : {node_within(episode, prefix, query) == True{} : Bool} =
-        %Equal.sym(O.NodeAddress, query, owner, ReplacementFacts.same_address_equal(query, owner, actual)):
+        %Equal.sym(
+          O.NodeAddress,
+          query,
+          owner,
+          ReplacementFacts.same_address_equal(query, owner, actual)
+        ):
           {node_within(episode, prefix, _) == True{} : Bool}
         inside
       impossible : {False{} == True{} : Bool} =
@@ -1359,7 +1369,12 @@ def later_different_case(
     case False{}: {==}
     case True{}:
       at_query : {node_later(episode, prefix, first, query) == True{} : Bool} =
-        %Equal.sym(O.NodeAddress, query, owner, ReplacementFacts.same_address_equal(query, owner, actual)):
+        %Equal.sym(
+          O.NodeAddress,
+          query,
+          owner,
+          ReplacementFacts.same_address_equal(query, owner, actual)
+        ):
           {node_later(episode, prefix, first, _) == True{} : Bool}
         inside
       impossible : {False{} == True{} : Bool} =
