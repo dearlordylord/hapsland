@@ -89,7 +89,7 @@ export const reference = async (observation, evaluations, context, engines, auth
 let requests = 0
 const consume = async (observation, evaluations, context, engines, authority) => {
   const values = new Map()
-  let nextHandle = 0n
+  let nextHandle = 0
   const store = (value) => {
     const id = nextHandle++
     values.set(id, value)
@@ -122,7 +122,7 @@ const consume = async (observation, evaluations, context, engines, authority) =>
       case "InputEqual":
         return { $: "Flag", value: sameInput(values.get(q.left), values.get(q.right)) }
       case "Length":
-        return { $: "Count", value: BigInt(values.get(q.array).length) }
+        return { $: "Count", value: (values.get(q.array).length) }
       case "Element": {
         const array = values.get(q.array)
         return q.index in array ? { $: "Handle", value: store(array[q.index]) } : { $: "Missing" }
@@ -172,14 +172,14 @@ const consume = async (observation, evaluations, context, engines, authority) =>
         assert.fail("Unexpected publication query " + q.$)
     }
   }
-  let step = core.initial(31n, {
+  let step = core.initial(31, {
     $: "Input",
     observation: store(observation),
     evaluations: store(evaluations),
     context: store(context),
     authority: authority !== undefined
   })
-  let previousRequest = 0n
+  let previousRequest = 0
   try {
     for (let count = 0; ; count++) {
       assert.ok(count < 100000, "publication terminates")
@@ -194,8 +194,8 @@ const consume = async (observation, evaluations, context, engines, authority) =>
       previousRequest = step.frame.request
       const response = await primitive(step.query)
       const reply = { $: "Reply", invocation: step.frame.invocation, request: step.frame.request, response }
-      assert.equal(tag(core.resume(step, { ...reply, invocation: reply.invocation + 1n })), "InvalidReply")
-      assert.equal(tag(core.resume(step, { ...reply, request: reply.request + 1n })), "InvalidReply")
+      assert.equal(tag(core.resume(step, { ...reply, invocation: reply.invocation + 1 })), "InvalidReply")
+      assert.equal(tag(core.resume(step, { ...reply, request: reply.request + 1 })), "InvalidReply")
       requests++
       step = core.resume(step, reply)
     }

@@ -21,7 +21,7 @@ const setup = (input, ports, customize = (session) => session) => {
   const registry = createNativeSessionRegistry()
   const driver = createChildExecutionDriver({
     owner,
-    initialState: owner.initial_limits(100n, 100000n, 100n, 100000n),
+    initialState: owner.initial_limits(100, 100000, 100, 100000),
     registry,
     machine: { retainedHandles: 0, disposeInvocation() {} },
     selectMachine: (_input, session) => session.machine,

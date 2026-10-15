@@ -51,7 +51,7 @@ const reference = async (evaluations, current, authority) => {
 let requests = 0
 const consume = async (evaluations, current, authority) => {
   const handles = new Map()
-  let next = 0n
+  let next = 0
   const store = (value) => {
     const id = next++
     handles.set(id, value)
@@ -60,7 +60,7 @@ const consume = async (evaluations, current, authority) => {
   const read = (lens) => unlist(lens.fields).reduce((value, key) => value[key], handles.get(lens.object))
   let activeIterator
   let iteratorBody = false
-  let step = core.initial(11n, {
+  let step = core.initial(11, {
     $: "Input",
     evaluations: store(evaluations),
     current: store(current),
@@ -116,7 +116,7 @@ const consume = async (evaluations, current, authority) => {
           response = { $: "Flag", value: Array.isArray(handles.get(q.value)) }
           break
         case "Length":
-          response = { $: "Count", value: BigInt(handles.get(q.array).length) }
+          response = { $: "Count", value: (handles.get(q.array).length) }
           break
         case "Element": {
           const array = handles.get(q.array)
@@ -128,8 +128,8 @@ const consume = async (evaluations, current, authority) => {
       }
       requests++
       const reply = { $: "Reply", invocation: step.frame.invocation, request: step.frame.request, response }
-      assert.equal(tag(core.resume(step, { ...reply, invocation: reply.invocation + 1n })), "InvalidReply")
-      assert.equal(tag(core.resume(step, { ...reply, request: reply.request + 1n })), "InvalidReply")
+      assert.equal(tag(core.resume(step, { ...reply, invocation: reply.invocation + 1 })), "InvalidReply")
+      assert.equal(tag(core.resume(step, { ...reply, request: reply.request + 1 })), "InvalidReply")
       step = core.resume(step, reply)
     }
   } catch (error) {

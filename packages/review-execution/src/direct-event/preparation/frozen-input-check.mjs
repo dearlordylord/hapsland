@@ -179,7 +179,7 @@ try {
             wire(unit)
           )
           assert.equal(label(metadata), "EvidenceReady")
-          const invocation = BigInt(cases + 1)
+          const invocation = (cases + 1)
           let rules = modules.RuleFinalization.initial(invocation, list([productValue(rule)]), {
             $: "Context",
             path: maybe(path),
@@ -261,7 +261,7 @@ try {
             maybe({ $: backend + "Identity", ...supplied }),
             catalog
           )
-          let previousRequest = 0n
+          let previousRequest = 0
           for (let turns = 0; label(step) !== "Completed"; turns++) {
             assert.ok(turns < 10000)
             if (label(step) === "Continue") {
@@ -302,7 +302,7 @@ try {
                 assert.equal(empty.state.request, request)
                 const emptyDigest = modules.FrozenInput.advance(empty.state)
                 assert.equal(label(emptyDigest), "Digest")
-                assert.equal(emptyDigest.state.request, request + 1n)
+                assert.equal(emptyDigest.state.request, request + 1)
                 assert.equal(emptyDigest.bytes, "[]")
                 batchBoundaryCases++
                 const batchValue = productValue([true, false])
@@ -311,12 +311,12 @@ try {
                   operations: planOperations(batchValue)
                 })
                 assert.equal(label(batch), "SerializeBatch")
-                assert.equal(batch.state.request, request + 1n)
+                assert.equal(batch.state.request, request + 1)
                 const commands = unlist(batch.commands)
                 assert.equal(commands.length, 2)
                 assert.deepEqual(
                   commands.map((command) => command.request),
-                  [request + 1n, request + 2n]
+                  [request + 1, request + 2]
                 )
                 assert.ok(commands.every((command) => command.invocation === currentInvocation))
                 const tokens = commands.map((command) => batchToken(command, primitive(command.primitive)))
@@ -324,8 +324,8 @@ try {
                 for (const invalid of [
                   tokens.slice(1),
                   [...tokens, tokens[0]],
-                  [{ ...tokens[0], request: tokens[0].request + 1n }, tokens[1]],
-                  [{ ...tokens[0], invocation: currentInvocation + 1n }, tokens[1]],
+                  [{ ...tokens[0], request: tokens[0].request + 1 }, tokens[1]],
+                  [{ ...tokens[0], invocation: currentInvocation + 1 }, tokens[1]],
                   [...tokens].reverse()
                 ]) {
                   assert.equal(
@@ -336,9 +336,9 @@ try {
                 }
                 const stored = modules.FrozenInput.resume(batch, { ...envelope, tokens: list(tokens) })
                 assert.equal(label(stored), "Continue")
-                assert.equal(stored.state.request, request + 2n)
+                assert.equal(stored.state.request, request + 2)
                 const digest = modules.FrozenInput.advance(stored.state)
-                assert.equal(digest.state.request, request + 3n)
+                assert.equal(digest.state.request, request + 3)
                 assert.equal(digest.bytes, "[true,false]")
                 batchBoundaryCases++
                 let coercions = 0
@@ -384,8 +384,8 @@ try {
               }
             }
             for (const wrong of [
-              { ...reply, invocation: currentInvocation + 1n },
-              { ...reply, request: request + 1n },
+              { ...reply, invocation: currentInvocation + 1 },
+              { ...reply, request: request + 1 },
               kind === "Digest"
                 ? { $: "Planned", invocation: currentInvocation, request, operations: list([]) }
                 : { $: "Hashed", invocation: currentInvocation, request, value: "wrong" }

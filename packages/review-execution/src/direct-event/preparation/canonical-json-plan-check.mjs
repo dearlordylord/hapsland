@@ -43,7 +43,7 @@ const primitive = (value) => {
 const postorder = (value, operations = []) => {
   if (Array.isArray(value)) {
     for (const item of value) postorder(item, operations)
-    operations.push({ $: "ArrayOperation", arity: BigInt(value.length) })
+    operations.push({ $: "ArrayOperation", arity: (value.length) })
   } else if (value !== null && typeof value === "object") {
     const keys = Object.keys(value)
     for (const key of keys) postorder(value[key], operations)
@@ -132,11 +132,11 @@ try {
   const primitiveOperation = { $: "PrimitiveOperation", value: primitive("first") }
   const malformed = [
     [],
-    [{ $: "ArrayOperation", arity: 1n }],
+    [{ $: "ArrayOperation", arity: 1 }],
     [{ $: "ObjectOperation", keys: list(["key"]) }],
     [primitiveOperation, primitiveOperation],
-    [primitiveOperation, { $: "ArrayOperation", arity: 2n }],
-    [{ $: "ArrayOperation", arity: 100000n }, primitiveOperation]
+    [primitiveOperation, { $: "ArrayOperation", arity: 2 }],
+    [{ $: "ArrayOperation", arity: 100000 }, primitiveOperation]
   ]
   for (const operations of malformed) assert.equal(label(plan.compile(list(operations))), "None")
   const stackValues = [[literal("old")], [literal("older")]]
@@ -144,8 +144,8 @@ try {
   const streams = [
     [],
     [primitiveOperation],
-    [{ $: "ArrayOperation", arity: 0n }],
-    [{ $: "ArrayOperation", arity: 3n }],
+    [{ $: "ArrayOperation", arity: 0 }],
+    [{ $: "ArrayOperation", arity: 3 }],
     ...values.slice(0, 15).map((value) => postorder(value))
   ]
   for (const prefix of streams)
@@ -157,7 +157,7 @@ try {
       )
   for (let arity = 0; arity < 6; arity += 1) {
     const accumulated = [[literal("accumulated")]]
-    const result = plan.pop(BigInt(arity), list(stackValues.map(list)), list(accumulated.map(list)))
+    const result = plan.pop((arity), list(stackValues.map(list)), list(accumulated.map(list)))
     const expected =
       arity > stackValues.length
         ? { $: "Underflow" }
@@ -197,7 +197,7 @@ try {
       literal("]")
     ]
     equal(
-      plan.operation({ $: "ArrayOperation", arity: BigInt(count) }, underlying),
+      plan.operation({ $: "ArrayOperation", arity: (count) }, underlying),
       { $: "ValidStack", values: list([array, ...stackValues].map(list)) },
       "array_exact over arbitrary child plans and older stack"
     )
@@ -226,7 +226,7 @@ try {
     )
     for (const left of fields)
       for (const right of fields) assert.equal(plan.fields_le(left, right), left.key <= right.key, "comparison_exact")
-    const tooMany = BigInt(count + stackValues.length + 1)
+    const tooMany = (count + stackValues.length + 1)
     assert.equal(
       label(plan.operation({ $: "ArrayOperation", arity: tooMany }, underlying)),
       "InvalidStack",

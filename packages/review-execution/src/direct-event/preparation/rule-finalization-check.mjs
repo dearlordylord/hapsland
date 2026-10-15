@@ -111,7 +111,7 @@ try {
                   target
                 )
               )
-              let step = core.initial(7n, list(snapshot.map(productValue)), {
+              let step = core.initial(7, list(snapshot.map(productValue)), {
                 $: "Context",
                 path: path === undefined ? { $: "None" } : { $: "Some", value: path },
                 language,
@@ -120,7 +120,7 @@ try {
                 complete,
                 available: list(capabilities.map(productValue))
               })
-              let previousRequest = 0n
+              let previousRequest = 0
               for (let turns = 0; label(step) !== "Completed"; turns++) {
                 assert.ok(turns < 100000)
                 if (label(step) === "Continue") step = core.advance(step.state)
@@ -143,17 +143,17 @@ try {
                     const reply = compile ? { $: "Compiled", valid } : { $: "Tested", valid, matched }
                     if (rejectedEngineReplies < 20) {
                       assert.equal(
-                        label(core.engine_returned(8n, request, step.work, step.excluding, step.query, reply)),
+                        label(core.engine_returned(8, request, step.work, step.excluding, step.query, reply)),
                         "InvalidReply"
                       )
                       assert.equal(
-                        label(core.engine_returned(7n, request - 1n, step.work, step.excluding, step.query, reply)),
+                        label(core.engine_returned(7, request - 1, step.work, step.excluding, step.query, reply)),
                         "InvalidReply"
                       )
                       assert.equal(
                         label(
                           core.engine_returned(
-                            7n,
+                            7,
                             request,
                             step.work,
                             step.excluding,
@@ -167,11 +167,11 @@ try {
                       rejectedEngineReplies += 3
                     }
                     assert.equal(
-                      label(core.resume(step, { $: "GateReply", invocation: 7n, request, admit: true })),
+                      label(core.resume(step, { $: "GateReply", invocation: 7, request, admit: true })),
                       "InvalidReply"
                     )
                     rejectedPhaseReplies++
-                    step = core.resume(step, { $: "EngineResult", invocation: 7n, request, result: reply })
+                    step = core.resume(step, { $: "EngineResult", invocation: 7, request, result: reply })
                     engineRequests++
                   } else {
                     assert.equal(label(step), "CanonicalGate")
@@ -201,8 +201,8 @@ try {
                     assert.equal(result.outputs.length, 1)
                     assert.equal(result.outputs[0].kind, "ruleGate")
                     if (rejectedGateReplies < 20) {
-                      assert.equal(label(core.gate_returned(8n, request, true, step.work)), "InvalidReply")
-                      assert.equal(label(core.gate_returned(7n, request - 1n, true, step.work)), "InvalidReply")
+                      assert.equal(label(core.gate_returned(8, request, true, step.work)), "InvalidReply")
+                      assert.equal(label(core.gate_returned(7, request - 1, true, step.work)), "InvalidReply")
                       rejectedReplies += 2
                       rejectedGateReplies += 2
                     }
@@ -210,7 +210,7 @@ try {
                       label(
                         core.resume(step, {
                           $: "EngineResult",
-                          invocation: 7n,
+                          invocation: 7,
                           request,
                           result: { $: "Compiled", valid: true }
                         })
@@ -220,7 +220,7 @@ try {
                     rejectedPhaseReplies++
                     step = core.resume(step, {
                       $: "GateReply",
-                      invocation: 7n,
+                      invocation: 7,
                       request,
                       admit: result.outputs[0].gate === "admit"
                     })

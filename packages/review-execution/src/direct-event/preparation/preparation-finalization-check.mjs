@@ -188,7 +188,7 @@ try {
       expectedError = { name: error.name, message: error.message }
     }
     const actualBindings = makeBindings()
-    const invocation = { $: "Invocation", owner: BigInt(cases + 1), command: 3n }
+    const invocation = { $: "Invocation", owner: (cases + 1), command: 3 }
     let step = core.initial(
       invocation,
       {
@@ -204,7 +204,7 @@ try {
       },
       list(units.map(productValue))
     )
-    let previousRequest = 0n,
+    let previousRequest = 0,
       savedReply,
       savedAt
     for (let turns = 0; !["Completed", "TypeError", "URIError"].includes(label(step)); turns++) {
@@ -351,16 +351,16 @@ try {
         assert.ok(commands.length > 0)
         assert.equal(commands[0].request, request, "batch header is first pending outer request")
         for (let index = 0; index < commands.length; index++)
-          assert.equal(commands[index].request, request + BigInt(index))
+          assert.equal(commands[index].request, request + (index))
         const observations = unlist(response.observations)
         const malformed = [observations.slice(1), [...observations, observations[0]]]
         for (const index of new Set([0, Math.floor(observations.length / 2), observations.length - 1])) {
           malformed.push(
-            observations.map((item, offset) => (offset === index ? { ...item, request: item.request + 1n } : item))
+            observations.map((item, offset) => (offset === index ? { ...item, request: item.request + 1 } : item))
           )
           malformed.push(
             observations.map((item, offset) =>
-              offset === index ? { ...item, token: { ...item.token, request: item.token.request + 1n } } : item
+              offset === index ? { ...item, token: { ...item.token, request: item.token.request + 1 } } : item
             )
           )
         }
@@ -373,18 +373,18 @@ try {
         }
         const after = core.resume(step, reply)
         assert.equal(label(after), "Continue")
-        assert.equal(after.phase.unit.state.request, request + BigInt(commands.length - 1))
+        assert.equal(after.phase.unit.state.request, request + (commands.length - 1))
         assert.equal(label(after.phase.step), "Continue")
         const digest = core.advance(after.phase)
         assert.equal(label(digest), "InputRequest")
         assert.equal(label(digest.step), "Digest")
-        assert.equal(digest.unit.state.request, request + BigInt(commands.length))
-        assert.equal(digest.step.state.request, commands[0].command.request + BigInt(commands.length))
+        assert.equal(digest.unit.state.request, request + (commands.length))
+        assert.equal(digest.step.state.request, commands[0].command.request + (commands.length))
       }
       for (const wrong of [
-        { ...reply, invocation: { ...invocation, command: invocation.command - 1n } },
-        { ...reply, invocation: { ...invocation, owner: invocation.owner + 1n } },
-        { ...reply, request: request + 1n },
+        { ...reply, invocation: { ...invocation, command: invocation.command - 1 } },
+        { ...reply, invocation: { ...invocation, owner: invocation.owner + 1 } },
+        { ...reply, request: request + 1 },
         { ...reply, response: { $: label(step) === "ObserveOmission" ? "Hashed" : "Observed", value: "wrong" } }
       ]) {
         assert.equal(label(core.resume(step, wrong)), "InvalidReply")
@@ -496,11 +496,11 @@ try {
   const createOwnedConsumer =
     (canonicalGate) =>
     async (input, execution = {}) => {
-      let state = owner.initial_limits(100n, 1000000n, 100n, 1000000n)
-      const opened = owner.canonical_event(state, { $: "../Canonical.OpenRound", partition: 1n, lifetime: 1n })
+      let state = owner.initial_limits(100, 1000000, 100, 1000000)
+      const opened = owner.canonical_event(state, { $: "../Canonical.OpenRound", partition: 1, lifetime: 1 })
       assert.equal(opened.$, "Advanced")
       state = opened.state
-      for (const step of unlist(owner.begin_public_preparation(state, 1n, 1n, 1n, 100n))) {
+      for (const step of unlist(owner.begin_public_preparation(state, 1, 1, 1, 100))) {
         assert.equal(step.$, "Advanced")
         state = step.state
       }
@@ -509,7 +509,7 @@ try {
       const driver = createChildExecutionDriver({
         owner,
         initialState: state,
-        scope: { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },
+        scope: { $: "Scope", partition: 1, lifetime: 1, round: 1, preparation: 2 },
         machine,
         registry,
         protocol: finalizationProtocol,
@@ -528,7 +528,7 @@ try {
       try {
         const result = await driver.drive(
           session,
-          { invocation: BigInt(invocation), finalization: input, execution },
+          { invocation: (invocation), finalization: input, execution },
           execution
         )
         if ("failure" in result) throw new TransportFailure("aborted")

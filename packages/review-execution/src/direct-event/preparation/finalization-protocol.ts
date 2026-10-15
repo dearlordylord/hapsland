@@ -199,7 +199,7 @@ export function createFinalizationSession(
 ): FinalizationSession {
   return {
     invocation,
-    input: { invocation: Number(invocation), finalization, execution },
+    input: { invocation: Number(BigInt(invocation)), finalization, execution },
     machine: createFinalizationMachine({ machine: core, canonicalGate }),
     revoke() {},
     close() {}

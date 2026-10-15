@@ -31,12 +31,12 @@ import { createPreparationMachine } from "./preparation-dispatcher.ts"
   }
   const dispatcher = createPreparationMachine(core)
   const input = { candidates: { $: "Nil" } }
-  dispatcher.initial({ invocation: 1n, preparation: input })
+  dispatcher.initial({ invocation: 1, preparation: input })
   assert.equal(received, input)
   const owner = "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core."
   const planned = [
     { $: "traversal/core.Included", identity: "same" },
-    { $: "traversal/core.Expanded", node: 7n },
+    { $: "traversal/core.Expanded", node: 7 },
     ...["Unresolved", "UnsupportedTarget", "ReferenceLimit", "Unavailable"].map((reason) => ({
       $: "traversal/core.Omitted",
       reason: { $: "traversal/core." + reason },
@@ -52,16 +52,16 @@ import { createPreparationMachine } from "./preparation-dispatcher.ts"
   })
   const references = planned.map((reference) => ({
     $: "traversal/core.ReferenceSlot",
-    owner: 1n,
-    index: 2n,
+    owner: 1,
+    index: 2,
     symbol: "symbol",
     reference
   }))
   for (const slots of [[], references, Array.from({ length: 25000 }, (_, i) => references[i % references.length])]) {
     const reply = {
       $: "Reply",
-      invocation: 1n,
-      id: 2n,
+      invocation: 1,
+      id: 2,
       response: {
         $: "RootResolved",
         unit: { $: "Some", value: payload },
@@ -86,7 +86,7 @@ import { createPreparationMachine } from "./preparation-dispatcher.ts"
     })
   }
   for (const response of [{ $: "Ack" }, { $: "SourceUnavailable", diagnostic: payload }]) {
-    dispatcher.resume(failed, { $: "Types.ServiceReply", reply: { $: "Reply", invocation: 1n, id: 2n, response } })
+    dispatcher.resume(failed, { $: "Types.ServiceReply", reply: { $: "Reply", invocation: 1, id: 2, response } })
     assert.equal(received.response, response)
   }
   assert.throws(() => dispatcher.resume(failed, { $: "wrong" }), { message: "Invalid preparation reply envelope" })
@@ -100,7 +100,7 @@ import { createPreparationMachine } from "./preparation-dispatcher.ts"
     () =>
       dispatcher.resume(failed, {
         $: "Types.ServiceReply",
-        reply: { $: "Reply", invocation: 1n, id: 2n, response: bad }
+        reply: { $: "Reply", invocation: 1, id: 2, response: bad }
       }),
     /Invalid Graph planned reference/
   )
@@ -109,10 +109,10 @@ import { createPreparationMachine } from "./preparation-dispatcher.ts"
     assert.throws(
       () =>
         method === "initial_settled"
-          ? guarded.initial({ invocation: 1n, preparation: input })
+          ? guarded.initial({ invocation: 1, preparation: input })
           : guarded.resume(failed, {
               $: "Types.ServiceReply",
-              reply: { $: "Reply", invocation: 1n, id: 2n, response: { $: "Ack" } }
+              reply: { $: "Reply", invocation: 1, id: 2, response: { $: "Ack" } }
             }),
       /Preparation internal dispatch did not settle/
     )
@@ -152,14 +152,14 @@ try {
     functionContract = { $: "PreparationSelection.FunctionContract" }
   const limits = {
     $: "../../../../agent-flow-bend/ImportGraph.Limits",
-    version: 1n,
-    source_bytes: 2097152n,
-    tree_bytes: 16777216n,
-    files: 64n,
-    read_bytes: 16777216n,
-    outgoing_edges: 256n,
-    depth: 32n,
-    work: 10000n
+    version: 1,
+    source_bytes: 2097152,
+    tree_bytes: 16777216,
+    files: 64,
+    read_bytes: 16777216,
+    outgoing_edges: 256,
+    depth: 32,
+    work: 10000
   }
   const candidate = (path, operation = "CandidateAdd", lines = ["changed"]) => ({
     $: "Candidate",
@@ -193,13 +193,13 @@ try {
           $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Location",
           start: {
             $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-            line: 1n,
-            column: 1n
+            line: 1,
+            column: 1
           },
           end: {
             $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-            line: 1n,
-            column: 2n
+            line: 1,
+            column: 2
           }
         },
         selection_locations: none
@@ -215,11 +215,11 @@ try {
   }
   const checkPump = (step) => {
     for (const fuel of [0, 1, 2, 9999, 10000]) {
-      assert.deepEqual(machine.settle(BigInt(fuel), step), originalPump(step, fuel))
+      assert.deepEqual(machine.settle((fuel), step), originalPump(step, fuel))
       pumpComparisons++
     }
   }
-  const emptyStart = machine.initial(1n, input([], { contracts: list([]) }))
+  const emptyStart = machine.initial(1, input([], { contracts: list([]) }))
   checkPump(emptyStart)
   checkPump(machine.advance(emptyStart.state))
   checkPump({ $: "Failed", reason: "retained-failure" })
@@ -227,24 +227,24 @@ try {
   const dispatcher = createPreparationMachine(machine)
   for (const contracts of [4999, 5000]) {
     const configuration = input([], { contracts: list(Array(contracts).fill(contract)) })
-    const start = machine.initial(1n, configuration)
-    const bounded = machine.initial_settled(1n, configuration)
+    const start = machine.initial(1, configuration)
+    const bounded = machine.initial_settled(1, configuration)
     assert.equal(bounded.$, contracts === 4999 ? "Some" : "None")
     longPumpBoundaries++
     if (contracts === 4999) {
-      assert.equal(dispatcher.initial({ invocation: 1n, preparation: configuration }).$, "Finished")
-      assert.equal(machine.settle(9999n, start).$, "None")
+      assert.equal(dispatcher.initial({ invocation: 1, preparation: configuration }).$, "Finished")
+      assert.equal(machine.settle(9999, start).$, "None")
       assert.equal(bounded.value.$, "Finished")
-      assert.equal(bounded.value.result.selected, 0n)
+      assert.equal(bounded.value.result.selected, 0)
       assert.deepEqual(array(bounded.value.result.units), [])
       longPumpBoundaries++
     } else {
-      assert.throws(() => dispatcher.initial({ invocation: 1n, preparation: configuration }), {
+      assert.throws(() => dispatcher.initial({ invocation: 1, preparation: configuration }), {
         message: "Preparation internal dispatch did not settle"
       })
       const afterFirst = machine.advance(start.state)
-      assert.equal(machine.settle(10000n, afterFirst).$, "None")
-      const accepted = machine.settle(10001n, afterFirst)
+      assert.equal(machine.settle(10000, afterFirst).$, "None")
+      const accepted = machine.settle(10001, afterFirst)
       assert.equal(accepted.$, "Some")
       assert.equal(accepted.value.$, "Finished")
       assert.deepEqual(array(accepted.value.result.units), [])
@@ -254,9 +254,9 @@ try {
   let cases = 0,
     totalRequests = 0
   function run(configuration, options = {}) {
-    let step = machine.initial(1n, configuration),
-      last = -1n
-    assert.deepEqual(machine.initial_settled(1n, configuration), originalPump(step))
+    let step = machine.initial(1, configuration),
+      last = -1
+    assert.deepEqual(machine.initial_settled(1, configuration), originalPump(step))
     pumpComparisons++
     const captures = []
     const requests = []
@@ -270,28 +270,28 @@ try {
       }
       const request = step.request,
         command = request.command
-      assert.equal(request.invocation, 1n)
-      assert.equal(request.id, last + 1n)
+      assert.equal(request.invocation, 1)
+      assert.equal(request.id, last + 1)
       last = request.id
       requests.push(command)
       totalRequests++
       assert.equal(
-        machine.resume(step, { $: "Reply", invocation: 2n, id: request.id, response: { $: "Cancelled" } }).reason,
+        machine.resume(step, { $: "Reply", invocation: 2, id: request.id, response: { $: "Cancelled" } }).reason,
         "wrong-correlation"
       )
       let response
       switch (command.$) {
         case "InspectPath":
-          response = { $: "PathAllowed", path: command.candidate.path, selection: 1n }
+          response = { $: "PathAllowed", path: command.candidate.path, selection: 1 }
           break
         case "CaptureSource": {
           const capture = {
             $: "Capture",
             path: command.path,
-            handle: BigInt(captures.length + 1),
+            handle: (captures.length + 1),
             text: "x",
             content_hash: "hash",
-            bytes: 1n
+            bytes: 1
           }
           captures.push(capture)
           response = { $: "SourceCaptured", capture }
@@ -303,7 +303,7 @@ try {
         case "AdmitMaterialization":
           response = {
             $: "MaterializationDone",
-            requested: 1024n,
+            requested: 1024,
             result:
               options.materializationResult ??
               (options.refuseMaterialization
@@ -359,8 +359,8 @@ try {
                   ? [
                       {
                         $: "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.ReferenceSlot",
-                        owner: 1n,
-                        index: 0n,
+                        owner: 1,
+                        index: 0,
                         symbol: "missing",
                         reference: {
                           $: "../../../../source-analysis/src/direct-event/graph-resolution/traversal/core.Omitted",
@@ -391,7 +391,7 @@ try {
         default:
           throw new Error("Unexpected provider " + command.$)
       }
-      const reply = { $: "Reply", invocation: 1n, id: request.id, response }
+      const reply = { $: "Reply", invocation: 1, id: request.id, response }
       const resumed = machine.resume(step, reply)
       assert.deepEqual(machine.resume_settled(step, reply), originalPump(resumed))
       pumpComparisons++
@@ -408,7 +408,7 @@ try {
   let check = run(input([candidate("a.py"), candidate("b.py")], { contracts: list([contract, functionContract]) })),
     result = finished(check)
   assert.equal(result.complete, true)
-  assert.equal(result.selected, 8n)
+  assert.equal(result.selected, 8)
   assert.equal(array(result.units).length, 8)
   for (const tag of ["CaptureSource", "Preflight", "AdmitMaterialization"]) assert.equal(count(check, tag), 2)
   assert.equal(count(check, "ExtractSource"), 4)
@@ -441,7 +441,7 @@ try {
     refuseFirst: true
   })
   result = finished(check)
-  assert.equal(result.selected, 64n)
+  assert.equal(result.selected, 64)
   assert.equal(count(check, "ResolveRoot"), 64)
   assert.equal(array(result.units).length, 63)
   assert.equal(result.complete, false)
@@ -479,10 +479,10 @@ try {
   check = run(input([candidate("a.py")], { frozen: some(list([{ $: "FrozenPath", path: "a.py", names: list([]) }])) }))
   result = finished(check)
   assert.equal(array(result.paths).length, 1)
-  assert.equal(result.selected, 0n)
+  assert.equal(result.selected, 0)
   for (let index = 0; index < 2; index++) {
     result = finished(run(input([candidate("fresh.py")]), { rootCount: 65 }))
-    assert.equal(result.selected, 64n)
+    assert.equal(result.selected, 64)
     assert.equal(array(result.units).length, 64)
   }
   check = run(input([candidate("a.py")], { before_analyze: false }))

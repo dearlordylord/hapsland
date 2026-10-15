@@ -137,7 +137,7 @@ export function createPreparationForeign({
           default:
             throw new Error("Unknown materialization resize status")
         }
-        return { $: "MaterializationDone", requested: (bytes), result: admission }
+        return { $: "MaterializationDone", requested: (Number(BigInt(bytes))), result: admission }
       }),
     rejectMaterializationCapacity: (options) =>
       connection.runtime

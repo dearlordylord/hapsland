@@ -16,7 +16,7 @@ const root = resolve(import.meta.dirname, "..")
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-lifecycle-bend-"))
 try {
   const compiled = join(temporary, "lifecycle.js")
-  execFileSync("bend", [join(root, "LifecycleRuntime.bend"), "-o", compiled], { stdio: "pipe" })
+  execFileSync("bend", [join(root, "LifecycleRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 10_000 })
   let source = readFileSync(compiled, "utf8")
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
   if (

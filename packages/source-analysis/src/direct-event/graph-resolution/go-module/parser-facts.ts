@@ -40,7 +40,7 @@ export function goFileFacts(file: GoFile) {
     }
     rows[id] = {
       $: "Types.GoSyntaxNode",
-      id: id,
+      id: Number(BigInt(id)),
       kind: node.type,
       text: node.text,
       start: node.startIndex,

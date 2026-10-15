@@ -21,7 +21,7 @@ const execute = async (input, ports, hooks = {}) => {
   const registry = createNativeSessionRegistry()
   const driver = createChildExecutionDriver({
     owner,
-    initialState: owner.initial_limits(100n, 100000n, 100n, 100000n),
+    initialState: owner.initial_limits(100, 100000, 100, 100000),
     registry,
     machine: { retainedHandles: 0, disposeInvocation() {} },
     selectMachine: (_input, session) => session.machine,
@@ -340,7 +340,7 @@ for (const mode of ["snapshot-line", "snapshot-unit"]) {
     () => session.machine.initial({ ...session.input, freshness: { ...input } }),
     /replaced its owned invocation/
   )
-  assert.throws(() => session.machine.initial({ ...session.input, invocation: 22n }), /replaced its owned invocation/)
+  assert.throws(() => session.machine.initial({ ...session.input, invocation: 22 }), /replaced its owned invocation/)
   assert.equal(session.machine.retainedHandles, 0)
   session.close()
   cases += 2

@@ -66,14 +66,14 @@ export function createPhysicalPreparationCapability({
   recordMaterializationCapacity,
   resolveRoot
 }) {
-  /** @type {Map<bigint, import("@hapsland/native-observation/direct-event/capture").StableCapture>} */
+  /** @type {Map<number, import("@hapsland/native-observation/direct-event/capture").StableCapture>} */
   const rootCaptures = new Map()
-  /** @type {Map<bigint, import("@hapsland/native-observation/direct-event/selection").EligiblePath>} */
+  /** @type {Map<number, import("@hapsland/native-observation/direct-event/selection").EligiblePath>} */
   const selections = new Map()
-  /** @type {Map<import("@hapsland/native-observation/direct-event/capture").StableCapture, bigint>} */
+  /** @type {Map<import("@hapsland/native-observation/direct-event/capture").StableCapture, number>} */
   const captureHandles = new Map()
-  let nextSelection = 1n,
-    nextCapture = 1n
+  let nextSelection = 1,
+    nextCapture = 1
   /** @param {import("@hapsland/native-observation/direct-event/capture").StableCapture} capture */
   const registerCapture = (capture) => {
     let handle = captureHandles.get(capture)
@@ -104,13 +104,13 @@ export function createPhysicalPreparationCapability({
     $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Location",
     start: {
       $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-      line: BigInt(value.start.line),
-      column: BigInt(value.start.column)
+      line: Number(BigInt(value.start.line)),
+      column: Number(BigInt(value.start.column))
     },
     end: {
       $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-      line: BigInt(value.end.line),
-      column: BigInt(value.end.column)
+      line: Number(BigInt(value.end.line)),
+      column: Number(BigInt(value.end.column))
     }
   })
   /** @returns {Extract<PreparationReply["response"], {$: "RootResolved"}>["captures"]} */
@@ -122,7 +122,7 @@ export function createPhysicalPreparationCapability({
         handle: registerCapture(capture),
         text: capture.text,
         content_hash: capture.contentHash,
-        bytes: BigInt(capture.byteLength)
+        bytes: Number(BigInt(capture.byteLength))
       }))
     )
   /** @type {PreparationPorts["performEffect"]} */
@@ -175,7 +175,7 @@ export function createPhysicalPreparationCapability({
             handle,
             text: capture.capture.text,
             content_hash: capture.capture.contentHash,
-            bytes: BigInt(capture.capture.byteLength)
+            bytes: Number(BigInt(capture.capture.byteLength))
           }
         }
         break

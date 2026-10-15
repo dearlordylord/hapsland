@@ -277,7 +277,7 @@ export function createChildExecutionDriver({
       try {
         hooks.beforeInstall?.({ invocation, generation, handle: id, request, driver })
         const child = findChild(invocation)
-        const requestId = Number(request.id)
+        const requestId = Number(BigInt(request.id))
         const installation = protocol.installation(projected, child.scope)
         const step =
           installation.method === "install"
@@ -501,7 +501,7 @@ export function createChildExecutionDriver({
   function* driveInvocationFlow(session, input, options = {}) {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
       throw new Error("Session already owned by an active invocation")
-    const invocation = Number(input.invocation),
+    const invocation = Number(BigInt(input.invocation)),
       launch = launches.get(invocation)
     if (!launch) {
       const missing = yield* registry.runOutcomeFlow(session, function* () {
@@ -618,7 +618,7 @@ export function createChildExecutionDriver({
                     invocation,
                     generation: child.generation,
                     lease: leaseId,
-                    request: Number(lease.request.id)
+                    request: Number(BigInt(lease.request.id))
                   })
                 }
                 const offered = foreignSync?.([lease.request], execution)
@@ -659,7 +659,7 @@ export function createChildExecutionDriver({
               const replyId = save(invocation, { kind: "reply", value: payload })
               try {
                 hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
-                applyInInvocation(invoke("provider_completed", invocation, leaseId, Number(lease.request.id), replyId))
+                applyInInvocation(invoke("provider_completed", invocation, leaseId, Number(BigInt(lease.request.id)), replyId))
               } catch (error) {
                 taskFailure = takeFailure(error)
                 try {
@@ -672,7 +672,7 @@ export function createChildExecutionDriver({
                 if (leases.has(leaseId)) {
                   try {
                     applyInInvocation(
-                      invoke("provider_completed", invocation, leaseId, Number(lease.request.id), replyId)
+                      invoke("provider_completed", invocation, leaseId, Number(BigInt(lease.request.id)), replyId)
                     )
                   } catch (cleanupError) {
                     takeFailure(cleanupError)
@@ -734,7 +734,7 @@ export function createChildExecutionDriver({
     }
     const releaseInvocation = () => {
       // Keep the selected engine/session reachable if native close fails.
-      if (!taskEntered && registry.get(Number(invocation)) !== session) session.close?.()
+      if (!taskEntered && registry.get(Number(BigInt(invocation))) !== session) session.close?.()
       if (!cancellationCleanup.get(invocation)?.completed.has(1)) engine(invocation).disposeInvocation(invocation)
       cancellationCleanup.delete(invocation)
       invocationSignals.delete(invocation)
@@ -879,7 +879,7 @@ export function createChildExecutionDriver({
         throw new TypeError("Independent operation requires a root invocation")
       if (!independentOperation && (!parent || preparation) && !issuedScope)
         throw new TypeError("Missing owned invocation scope")
-      if (current().next_invocation < 1 || current().next_invocation > Number(Number.MAX_SAFE_INTEGER))
+      if (current().next_invocation < 1 || current().next_invocation > Number.MAX_SAFE_INTEGER)
         throw new RangeError("Invocation exceeds exact native ID range")
       const invocation = current().next_invocation
       const inputId = save(invocation, { kind: "input", value: undefined })
@@ -901,12 +901,12 @@ export function createChildExecutionDriver({
                   inputId
                 )
         )
-        return Number(invocation)
+        return Number(BigInt(invocation))
       } catch (error) {
         const child = owner.find(invocation, current().children)
         if (child.$ === "Some") {
           try {
-            driver.constructionFailed(Number(invocation), { inputHandle: inputId })
+            driver.constructionFailed(Number(BigInt(invocation)), { inputHandle: inputId })
           } catch (cleanup) {
             throw nativeFailureAggregate([error, cleanup], "Invocation publication and cleanup failed", {
               cause: error
@@ -1006,7 +1006,7 @@ export function createChildExecutionDriver({
     },
     /** @param {number} invocation @param {{session?: S | undefined, closePending?: boolean, inputHandle?: number}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false, inputHandle } = {}) {
-      const ownerInvocation = Number(invocation)
+      const ownerInvocation = Number(BigInt(invocation))
       let cancelCommitted = false
       /** @type {Extract<Step, {$: "Advanced"}>["outputs"] | undefined} */
       let pendingOutputs
@@ -1062,7 +1062,7 @@ export function createChildExecutionDriver({
     },
     /** @param {number} invocation */
     cancel(invocation) {
-      apply(invoke("cancel", Number(invocation)))
+      apply(invoke("cancel", Number(BigInt(invocation))))
     },
     /** @param {readonly Action[]} commands */
     acceptActions(commands) {
@@ -1080,6 +1080,7 @@ export function createChildExecutionDriver({
     canonicalEvent(event) {
       apply(invoke("canonical_event", event))
     },
+    /** @returns {State} */
     get state() {
       return current()
     },

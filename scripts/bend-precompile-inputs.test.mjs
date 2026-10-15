@@ -6,9 +6,13 @@ import test from "node:test"
 import { bendPrecompileEntryMethods, readBendPrecompile } from "./bend-precompile-inputs.mjs"
 import { selectBendPrecompileEntries } from "./bend-precompile-entry.mjs"
 
-const library = `function run_lib(f, n) {
+const library = `function run_loop(r) {
+  while (r !== null && typeof r === "object" && r.$ === "$JMP") r = r.f(r.x);
+  return r;
+}
+function run_lib(f, n) {
   return (...a) => a.length < n ? run_lib((...b) => f(...a, ...b), n - a.length)
-    : f(...a);
+    : run_loop(f(...a));
 }
 function helper(x) { return x + 1 }
 export default {

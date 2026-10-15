@@ -30,7 +30,7 @@ async function run(mode, grouped, failure) {
               diagnostic: { $: "Types.CaptureDiagnostic", value: productValue(null) }
             }
           : { $: "Types.StartClock" }
-  const request = (held) => ({ $: "Types.Request", invocation: held.invocation, id: 1n, operation })
+  const request = (held) => ({ $: "Types.Request", invocation: held.invocation, id: 1, operation })
   const machine = {
     kind: "artifact",
     initial: (input) => ({ phase: 0, invocation: input.invocation }),
@@ -56,7 +56,7 @@ async function run(mode, grouped, failure) {
   const registry = createNativeSessionRegistry()
   const driver = (grouped ? createEffectPreparationDriver : createPublicPreparationDriver)({
     owner: observedOwner,
-    initialState: owner.initial_limits(100n, 100000n, 100n, 100000n),
+    initialState: owner.initial_limits(100, 100000, 100, 100000),
     registry,
     machine,
     foreignSync([outgoing], execution) {
@@ -85,13 +85,13 @@ async function run(mode, grouped, failure) {
     now() {
       nativeStarts++
       trace.push("native")
-      driver.cancel(BigInt(invocation))
+      driver.cancel((invocation))
       throw failure
     },
     diagnostic() {
       nativeStarts++
       trace.push("native")
-      driver.cancel(BigInt(invocation))
+      driver.cancel((invocation))
     }
   })
   const session = {
@@ -102,7 +102,7 @@ async function run(mode, grouped, failure) {
     }
   }
   const result = await Effect.runPromise(
-    driver.driveEffect(session, { $: "Types.ResolverInput", invocation: BigInt(invocation) })
+    driver.driveEffect(session, { $: "Types.ResolverInput", invocation: (invocation) })
   )
   assert.equal(closes, 1)
   assert.equal(nativeStarts, 1)

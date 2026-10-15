@@ -21,9 +21,9 @@ export type OwnerPublication = {
   readonly refusal?: Owner.Refusal | undefined
 }
 export type AdviceReceipt = {
-  readonly invocation: bigint
-  readonly origin: bigint
-  readonly inputHandle: bigint
+  readonly invocation: number
+  readonly origin: number
+  readonly inputHandle: number
   readonly capability: import("../advice-records.ts").Advice
   readonly scope: Extract<Owner.Scope, { readonly $: "AdviceTailScope" }>
 }

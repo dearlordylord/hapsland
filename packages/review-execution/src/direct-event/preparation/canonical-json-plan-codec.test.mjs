@@ -11,9 +11,9 @@ test("postorder conversion preserves unsorted UTF-16 keys and nested child order
     primitive({ $: "CanonicalJson.BoolPrimitive", value: true }),
     primitive({ $: "CanonicalJson.NullPrimitive" }),
     primitive({ $: "CanonicalJson.StringPrimitive", value: "text" }),
-    { $: "ArrayOperation", arity: 0n },
+    { $: "ArrayOperation", arity: 0 },
     { $: "ObjectOperation", keys: list(["\ue000", "😀", "a"]) },
-    { $: "ArrayOperation", arity: 2n },
+    { $: "ArrayOperation", arity: 2 },
     { $: "ObjectOperation", keys: list([]) },
     { $: "ObjectOperation", keys: list(["z", "a"]) }
   ])
@@ -28,7 +28,7 @@ test("numeric primitives retain exact source Binary64 bits and identity", () => 
   assert.deepEqual(operations, [
     primitive({ $: "CanonicalJson.NumberPrimitive", bits: numbers[0].bits }),
     primitive({ $: "CanonicalJson.NumberPrimitive", bits: numbers[1].bits }),
-    { $: "ArrayOperation", arity: 2n }
+    { $: "ArrayOperation", arity: 2 }
   ])
   for (let index = 0; index < numbers.length; index++) {
     assert.strictEqual(operations[index].value.bits, numbers[index].bits)

@@ -78,7 +78,12 @@ const required = (value) => {
  * }} Driver
  */
 /** @param {RawRequest} request @returns {request is Request} */
-const exactRequest = (request) => typeof request.invocation === "number" && typeof request.id === "number"
+const exactRequest = (request) => {
+  const invocation = request.invocation
+  if (typeof invocation !== "number" || !Number.isInteger(invocation)) return false
+  const id = request.id
+  return typeof id === "number" && Number.isInteger(id)
+}
 // Concrete machine protocols remain at this composition owner. CanonicalPolicy
 // executes their single shared action/custody implementation.
 /**

@@ -135,24 +135,24 @@ function createResolverFlow(
           : undefined
       })
       input = tagged("ResolverInput", {
-        invocation: session.invocation,
+        invocation: Number(BigInt(session.invocation)),
         root_path: path,
         root_capture: encodeGraphToken(session.registerCapture(capture)),
-        root_bytes: capture.byteLength,
+        root_bytes: Number(BigInt(capture.byteLength)),
         root_name: name,
         root_source: capture.text,
         branch: tagged(context.branch === "function" ? "FunctionBranch" : "TypeBranch", {}),
         caller_cache: encodeGraphCache(session.callerCache),
         limits: {
           $: "../../../../agent-flow-bend/ImportGraph.Limits",
-          version: limits.version,
-          source_bytes: limits.sourceBytes,
-          tree_bytes: limits.treeBytes,
-          files: limits.files,
-          read_bytes: limits.readBytes,
-          outgoing_edges: limits.outgoingEdges,
-          depth: limits.depth,
-          work: limits.work
+          version: Number(BigInt(limits.version)),
+          source_bytes: Number(BigInt(limits.sourceBytes)),
+          tree_bytes: Number(BigInt(limits.treeBytes)),
+          files: Number(BigInt(limits.files)),
+          read_bytes: Number(BigInt(limits.readBytes)),
+          outgoing_edges: Number(BigInt(limits.outgoingEdges)),
+          depth: Number(BigInt(limits.depth)),
+          work: Number(BigInt(limits.work))
         }
       })
     } catch (original) {

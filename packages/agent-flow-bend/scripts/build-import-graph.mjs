@@ -17,7 +17,7 @@ const output = resolve(process.argv[2] ?? join(root, "dist"))
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-import-graph-bend-"))
 try {
   const compiled = join(temporary, "import-graph.js")
-  execFileSync("bend", [join(root, "ImportGraphRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 120_000 })
+  execFileSync("bend", [join(root, "ImportGraphRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 10_000 })
   let source = readFileSync(compiled, "utf8")
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
   if (

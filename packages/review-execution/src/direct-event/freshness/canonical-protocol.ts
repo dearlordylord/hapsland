@@ -163,7 +163,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
         return { $: "Flag", value: json.compare(invocation, value(query.left), value(query.right), true) }
       case "Length":
       case "PublicationRetention.Length":
-        return { $: "Count", value: Number((value(query.array) as { length: number }).length) }
+        return { $: "Count", value: Number(BigInt((value(query.array) as { length: number }).length)) }
       case "Element":
       case "PublicationRetention.Element": {
         const array = value(query.array) as Record<string, unknown>
@@ -333,7 +333,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
 
 function createFreshnessMachine(invocation: number, input: FreshnessInput, ports: FreshnessPorts) {
   let ownedInput: FreshnessInput | undefined = input
-  const ownedInvocation = Number(invocation)
+  const ownedInvocation = Number(BigInt(invocation))
   const binding = createBinding(input, ports)
   return {
     kind: "freshness" as const,
@@ -400,7 +400,7 @@ export function createFreshnessSession(
   const machine = createFreshnessMachine(invocation, input, ports)
   return {
     invocation,
-    input: { invocation: Number(invocation), freshness: input },
+    input: { invocation: Number(BigInt(invocation)), freshness: input },
     machine,
     revoke() {},
     close() {

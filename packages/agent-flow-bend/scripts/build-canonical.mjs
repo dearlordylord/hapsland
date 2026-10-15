@@ -52,7 +52,7 @@ const sourceHash = digest.digest("hex")
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-canonical-bend-"))
 try {
   const compiled = join(temporary, "canonical.js")
-  execFileSync("bend", [join(root, "CanonicalRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 120_000 })
+  execFileSync("bend", [join(root, "CanonicalRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 10_000 })
   let source = readFileSync(compiled, "utf8")
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
   if (

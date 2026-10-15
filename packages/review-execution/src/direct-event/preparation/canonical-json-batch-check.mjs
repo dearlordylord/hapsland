@@ -24,7 +24,7 @@ const referenceSelect = (parts, invocation, first) => {
   const commands = []
   for (const part of parts)
     if (label(part) === "PrimitivePiece")
-      commands.push({ $: "Command", invocation, request: first + BigInt(commands.length), primitive: part.value })
+      commands.push({ $: "Command", invocation, request: first + (commands.length), primitive: part.value })
   return commands
 }
 const referenceBind = (parts, tokens) => {
@@ -81,16 +81,16 @@ try {
     refusals = 0,
     rawCases = 0
   for (const parts of streams)
-    for (const invocation of [0n, 17n])
-      for (const first of [0n, 9n]) {
+    for (const invocation of [0, 17])
+      for (const first of [0, 9]) {
         const expected = referenceSelect(parts, invocation, first)
         const commands = unlist(batch.select(list(parts), invocation, first))
         sameCommands(commands, expected)
-        for (const outer of [0n, 101n]) {
+        for (const outer of [0, 101]) {
           const scheduled = unlist(batch.schedule(list(commands), outer))
           assert.deepEqual(
             scheduled.map((value) => value.request),
-            commands.map((_, index) => outer + BigInt(index))
+            commands.map((_, index) => outer + (index))
           )
           sameCommands(
             scheduled.map((value) => value.command),
@@ -109,10 +109,10 @@ try {
           if (tokens.length) {
             badInner.push(
               tokens.slice(1),
-              [{ ...tokens[0], invocation: invocation + 1n }, ...tokens.slice(1)],
-              [{ ...tokens[0], request: first + 1n }, ...tokens.slice(1)]
+              [{ ...tokens[0], invocation: invocation + 1 }, ...tokens.slice(1)],
+              [{ ...tokens[0], request: first + 1 }, ...tokens.slice(1)]
             )
-            badOuter.push(envelopes.slice(1), [{ ...envelopes[0], request: outer + 1n }, ...envelopes.slice(1)])
+            badOuter.push(envelopes.slice(1), [{ ...envelopes[0], request: outer + 1 }, ...envelopes.slice(1)])
           }
           if (tokens.length > 1) {
             badInner.push([...tokens].reverse())
@@ -140,33 +140,33 @@ try {
     for (let split = 0; split <= parts.length; split++) {
       const prefix = parts.slice(0, split),
         suffix = parts.slice(split)
-      const left = unlist(batch.select(list(prefix), 17n, 29n))
-      const right = unlist(batch.select(list(suffix), 17n, 29n + BigInt(left.length)))
-      sameCommands(unlist(batch.select(list(parts), 17n, 29n)), [...left, ...right])
+      const left = unlist(batch.select(list(prefix), 17, 29))
+      const right = unlist(batch.select(list(suffix), 17, 29 + (left.length)))
+      sameCommands(unlist(batch.select(list(parts), 17, 29)), [...left, ...right])
       const commands = [...left, ...right]
       for (let index = 0; index <= commands.length; index++) {
-        assert.deepEqual(unlist(batch.schedule(list(commands), 41n)), [
-          ...unlist(batch.schedule(list(commands.slice(0, index)), 41n)),
-          ...unlist(batch.schedule(list(commands.slice(index)), 41n + BigInt(index)))
+        assert.deepEqual(unlist(batch.schedule(list(commands), 41)), [
+          ...unlist(batch.schedule(list(commands.slice(0, index)), 41)),
+          ...unlist(batch.schedule(list(commands.slice(index)), 41 + (index)))
         ])
       }
     }
   // Exact validators also accept malformed expected streams when IDs match.
   // Uniqueness belongs to select/schedule, not arbitrary caller expectations.
-  const duplicate = referenceSelect([primitive("a")], 7n, 11n)[0]
+  const duplicate = referenceSelect([primitive("a")], 7, 11)[0]
   const duplicated = [duplicate, duplicate, duplicate]
   const matching = duplicated.map((value, index) => token(value, String(index)))
   assert.deepEqual(maybeValues(batch.accept(list(duplicated), list(matching))), ["0", "1", "2"])
   for (let index = 0; index < matching.length; index++) {
-    const broken = matching.map((value, offset) => (offset === index ? { ...value, request: 999n } : value))
+    const broken = matching.map((value, offset) => (offset === index ? { ...value, request: 999 } : value))
     assert.equal(label(batch.accept(list(duplicated), list(broken))), "None")
   }
-  const scheduled = unlist(batch.schedule(list(duplicated), 23n))
-  const malformedInner = matching.map((value) => ({ ...value, invocation: 999n }))
+  const scheduled = unlist(batch.schedule(list(duplicated), 23))
+  const malformedInner = matching.map((value) => ({ ...value, invocation: 999 }))
   const envelopes = scheduled.map((value, index) => observed(value, malformedInner[index]))
   assert.deepEqual(maybeValues(batch.strip_outer(list(scheduled), list(envelopes))), malformedInner)
   for (let index = 0; index < envelopes.length; index++) {
-    const broken = envelopes.map((value, offset) => (offset === index ? { ...value, request: 999n } : value))
+    const broken = envelopes.map((value, offset) => (offset === index ? { ...value, request: 999 } : value))
     assert.equal(label(batch.strip_outer(list(scheduled), list(broken))), "None")
   }
   let coercions = 0
@@ -178,8 +178,8 @@ try {
   }
   for (const raw of [undefined, 7, opaque, Symbol("raw-json-token")]) {
     const parts = [literal("["), primitive("first"), literal(","), primitive("second"), literal("]")]
-    const commands = unlist(batch.select(list(parts), 13n, 27n))
-    const scheduled = unlist(batch.schedule(list(commands), 53n))
+    const commands = unlist(batch.select(list(parts), 13, 27))
+    const scheduled = unlist(batch.schedule(list(commands), 53))
     const tokens = [token(commands[0], raw), token(commands[1], "second-token")]
     const stripped = maybeValues(
       batch.strip_outer(list(scheduled), list(scheduled.map((value, index) => observed(value, tokens[index]))))

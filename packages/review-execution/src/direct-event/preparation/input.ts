@@ -61,13 +61,13 @@ export function encodePreparationInput({
     limits: {
       $: "../../../../agent-flow-bend/ImportGraph.Limits",
       version: 1,
-      source_bytes: Number(graphLimits.sourceBytes),
-      tree_bytes: Number(graphLimits.treeBytes),
-      files: Number(graphLimits.files),
-      read_bytes: Number(graphLimits.readBytes),
-      outgoing_edges: Number(graphLimits.outgoingEdges),
-      depth: Number(graphLimits.depth),
-      work: Number(graphLimits.work)
+      source_bytes: Number(BigInt(graphLimits.sourceBytes)),
+      tree_bytes: Number(BigInt(graphLimits.treeBytes)),
+      files: Number(BigInt(graphLimits.files)),
+      read_bytes: Number(BigInt(graphLimits.readBytes)),
+      outgoing_edges: Number(BigInt(graphLimits.outgoingEdges)),
+      depth: Number(BigInt(graphLimits.depth)),
+      work: Number(BigInt(graphLimits.work))
     },
     frozen:
       frozenNames === undefined
@@ -76,7 +76,7 @@ export function encodePreparationInput({
             $: "Some",
             value: list([...frozenNames].map(([path, names]) => ({ $: "FrozenPath", path, names: list([...names]) })))
           },
-    line: line === undefined ? { $: "None" } : { $: "Some", value: Number(line) },
+    line: line === undefined ? { $: "None" } : { $: "Some", value: Number(BigInt(line)) },
     verified:
       verified === undefined
         ? { $: "None" }
@@ -95,13 +95,13 @@ export function encodePreparationInput({
                     $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Location",
                     start: {
                       $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-                      line: Number(hunk.location.start.line),
-                      column: Number(hunk.location.start.column)
+                      line: Number(BigInt(hunk.location.start.line)),
+                      column: Number(BigInt(hunk.location.start.column))
                     },
                     end: {
                       $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-                      line: Number(hunk.location.end.line),
-                      column: Number(hunk.location.end.column)
+                      line: Number(BigInt(hunk.location.end.line)),
+                      column: Number(BigInt(hunk.location.end.column))
                     }
                   }
                 }))

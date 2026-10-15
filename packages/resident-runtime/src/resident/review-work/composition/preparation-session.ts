@@ -22,7 +22,7 @@ export function createResidentPreparationSession(ports: SessionPorts): Preparati
     revoke() {},
     close() {},
     input: {
-      invocation: (invocation),
+      invocation: (Number(BigInt(invocation))),
       preparation: encodePreparationInput({
         observation,
         candidates: [candidate],

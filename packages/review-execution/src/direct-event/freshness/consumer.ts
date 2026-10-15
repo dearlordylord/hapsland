@@ -16,7 +16,7 @@ export const executeFreshness = Effect.fn("Freshness.execute")(function* (
   const registry = createNativeSessionRegistry<FreshnessSession>()
   const driver = createChildExecutionDriver({
     owner,
-    initialState: owner.initial_limits(1, Number(CANONICAL_MAX_BYTES), 1, Number(CANONICAL_MAX_BYTES)),
+    initialState: owner.initial_limits(1, Number(BigInt(CANONICAL_MAX_BYTES)), 1, Number(BigInt(CANONICAL_MAX_BYTES))),
     registry,
     machine: {
       kind: "freshness" as const,

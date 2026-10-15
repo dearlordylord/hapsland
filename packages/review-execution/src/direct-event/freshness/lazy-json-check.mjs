@@ -10,7 +10,7 @@ const sameInput = (left, right) => {
 }
 const candidate = () => {
   const arena = new Map()
-  let next = 0n
+  let next = 0
   const store = (value) => {
     const id = next++
     arena.set(id, value)
@@ -43,16 +43,16 @@ const qualify = (name, fixture, operation = "serialize") => {
         const { json, store } = candidate()
         result =
           operation === "serialize"
-            ? json.serialize(1n, values[0])
+            ? json.serialize(1, values[0])
             : operation === "identity"
-              ? json.identity(1n, values[0])
+              ? json.identity(1, values[0])
               : operation === "lens"
                 ? json.compareLenses(
-                    1n,
+                    1,
                     { $: "Lens", object: store(values[0]), fields: list(["field"]) },
                     { $: "Lens", object: store(values[1]), fields: list(["field"]) }
                   )
-                : json.compare(1n, ...values, operation === "review")
+                : json.compare(1, ...values, operation === "review")
       }
     } catch (caught) {
       failed = true

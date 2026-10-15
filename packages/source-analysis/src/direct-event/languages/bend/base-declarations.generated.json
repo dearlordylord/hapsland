@@ -1,8 +1,8 @@
 {
   "library": "bend/Base",
-  "compilerVersion": "2.0.36",
-  "compilerSource": "ae1101c",
-  "moduleHash": "99ac43f2b2bb3e3f39acdcedcecbbd3cb44749ce13969c827d6973fa66f7facf",
+  "compilerVersion": "2.0.37",
+  "compilerSource": "4ff8545f19b09b7d2b8ca2303668100eac8efd66",
+  "moduleHash": "3238272964daa05438a8a99311008802fd495963ac78dbbf51f6d5e6bdcee77c",
   "namespacePrefixes": [
     "ALeaf",
     "ANode",
@@ -24,6 +24,7 @@
     "Equal",
     "Event",
     "Exists",
+    "Exit",
     "F32",
     "Fail",
     "False",

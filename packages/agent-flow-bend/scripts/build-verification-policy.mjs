@@ -74,7 +74,7 @@ try {
           phaseTag,
           actionTag,
           true,
-          BigInt(attempts),
+          attempts,
           sources[source],
           Boolean(ready),
           results[result],
@@ -110,7 +110,7 @@ try {
       for (const count of [0, 1, 2, 3, 4, 31, 65536])
         for (const values of contexts) {
           const [_, source, ready, result, yes, stored] = values
-          const bucket = Number(core.attempt_bucket(BigInt(count)))
+          const bucket = Number(core.attempt_bucket(count))
           const facts = [bucket, source, ready, result, yes, stored]
           const index = axes.reduce((key, { axis, radix }) => key * radix + facts[axis], 0)
           assert.deepEqual(
@@ -119,7 +119,7 @@ try {
               phaseTag,
               actionTag,
               true,
-              BigInt(count),
+              count,
               sources[source],
               Boolean(ready),
               results[result],
@@ -162,7 +162,7 @@ try {
       assert.equal(specialized.verificationRouteIndex(phase, action), expectedRoutes.get(phase + ":" + action))
   }
   for (const count of [0, 1, 2, 3, 4, 31, 65536, Number.MAX_SAFE_INTEGER])
-    assert.equal(specialized.verificationAttemptBucket(count), Number(core.attempt_bucket(BigInt(count))))
+    assert.equal(specialized.verificationAttemptBucket(count), Number(core.attempt_bucket(count)))
   const target = join(outputDirectory, "verification-policy.generated.js"),
     declaration = join(outputDirectory, "verification-policy.generated.d.ts"),
     abi = join(root, "abi/verification-policy.generated.d.ts")

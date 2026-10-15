@@ -2,7 +2,7 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
 import type { Maybe, Reply, ServiceOutcome, Token, TokenKind } from "./service-contract.ts"
 
 export function encodeGraphToken<Kind extends TokenKind>(token: Token<Kind>): Token<Kind, number> {
-  return { $: token.$, invocation: token.invocation, id: token.id }
+  return { $: token.$, invocation: Number(BigInt(token.invocation)), id: Number(BigInt(token.id)) }
 }
 
 export function encodeGraphCache(cache: Maybe<Token<"CacheToken">>): Maybe<Token<"CacheToken", number>> {
@@ -36,7 +36,7 @@ function encodeOutcome(outcome: ServiceOutcome): ServiceOutcome<number> {
             : {
                 ...outcome.outcome,
                 capture: encodeGraphToken(outcome.outcome.capture),
-                bytes: outcome.outcome.bytes
+                bytes: Number(BigInt(outcome.outcome.bytes))
               }
       }
     case "Types.CaptureResult":
@@ -48,17 +48,17 @@ function encodeOutcome(outcome: ServiceOutcome): ServiceOutcome<number> {
             : {
                 ...outcome.outcome,
                 capture: encodeGraphToken(outcome.outcome.capture),
-                bytes: outcome.outcome.bytes
+                bytes: Number(BigInt(outcome.outcome.bytes))
               }
       }
     case "Types.CacheSnapshot":
       return {
         ...outcome,
-        entries: list(unlist(outcome.entries).map((entry) => ({ ...entry, bytes: entry.bytes })))
+        entries: list(unlist(outcome.entries).map((entry) => ({ ...entry, bytes: Number(BigInt(entry.bytes)) })))
       }
     case "Types.ProductEncoded":
     case "Types.SourceTextEncoded":
-      return { ...outcome, bytes: outcome.bytes }
+      return { ...outcome, bytes: Number(BigInt(outcome.bytes)) }
     default:
       return outcome
   }
@@ -67,8 +67,8 @@ function encodeOutcome(outcome: ServiceOutcome): ServiceOutcome<number> {
 export function encodeGraphReply(reply: Reply): Reply<number> {
   return {
     $: reply.$,
-    invocation: reply.invocation,
-    id: reply.id,
+    invocation: Number(BigInt(reply.invocation)),
+    id: Number(BigInt(reply.id)),
     outcome: encodeOutcome(reply.outcome)
   }
 }

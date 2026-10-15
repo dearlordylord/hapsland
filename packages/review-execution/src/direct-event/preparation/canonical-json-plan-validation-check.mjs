@@ -33,7 +33,7 @@ const reference = (value) => {
       ]
     case "ProductArray": {
       const children = unlist(value.items)
-      return [...children.flatMap(reference), { $: "CanonicalJsonPlan.ArrayOperation", arity: BigInt(children.length) }]
+      return [...children.flatMap(reference), { $: "CanonicalJsonPlan.ArrayOperation", arity: (children.length) }]
     }
     case "ProductObject": {
       const fields = unlist(value.fields)
@@ -145,10 +145,10 @@ try {
           changed = { ...operation, value: { ...primitive, value: primitive.value + "!" } }
         else changed = { ...operation, value: { $: "CanonicalJson.BoolPrimitive", value: false } }
         invalid.push(
-          actual.map((entry, at) => (at === index ? { $: "CanonicalJsonPlan.ArrayOperation", arity: 0n } : entry))
+          actual.map((entry, at) => (at === index ? { $: "CanonicalJsonPlan.ArrayOperation", arity: 0 } : entry))
         )
       } else if (operation.$ === "CanonicalJsonPlan.ArrayOperation")
-        changed = { ...operation, arity: operation.arity + 1n }
+        changed = { ...operation, arity: operation.arity + 1 }
       else {
         const keys = unlist(operation.keys)
         changed = { ...operation, keys: list([...keys, "extra key"]) }

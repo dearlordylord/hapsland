@@ -173,7 +173,7 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 `migration/bend-abi-2037` assesses official Bend 2.0.37 (`4ff8545f`):
 Numeric Nat/shared records remove recursive JS marshalling; Astra chose a whole cohort. Preserve native bounds, required isolation,
 raw-token identity, cancellation and errors; refuse recursive BigInt wrappers.
-ABI/host conversion is WIP; custody, fixtures, regeneration and consumers remain open.
+46/46 workspace tasks and Finalization 66+52 cases / 9615 refusals pass; whole consumers/parity remain open.
 
 ### Remaining obstacles and acceptance evidence
 

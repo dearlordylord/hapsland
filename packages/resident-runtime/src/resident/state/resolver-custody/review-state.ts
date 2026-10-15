@@ -11,7 +11,7 @@ import { providerTransaction } from "./resident-provider-permit.mjs"
 /** Host resource binding for Canonical commands, retained through final cleanup. */
 type ResidentOwnerBinding = {
   readonly acceptActions: (actions: readonly Action[]) => void
-  readonly validateAdviceInput: (invocation: bigint, inputHandle: bigint) => boolean
+  readonly validateAdviceInput: (invocation: number, inputHandle: number) => boolean
 }
 
 /** Internal composition seam. The binding receives facades, never the mutable

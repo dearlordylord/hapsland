@@ -171,7 +171,7 @@ const makeExecution = (selection: ReviewBackendSettings, ports: ProviderIdentity
   const run = (signal: AbortSignal) => {
     active = driver.drive(
       session,
-      { invocation: Number(invocation), selection: encodedSelection, catalog: encodedCatalog },
+      { invocation: Number(BigInt(invocation)), selection: encodedSelection, catalog: encodedCatalog },
       { signal }
     )
     return active
@@ -188,7 +188,7 @@ const makeExecution = (selection: ReviewBackendSettings, ports: ProviderIdentity
   }
   const retire = (exit: Exit.Exit<unknown, unknown>) => {
     const cancel = Effect.sync(() => {
-      const child = owner.find(Number(invocation), driver.state.children)
+      const child = owner.find(Number(BigInt(invocation)), driver.state.children)
       if (child.$ === "Some" && owner.child_active(child.value)) driver.cancel(invocation)
     })
     const settle = Effect.promise(async () => {

@@ -45,7 +45,7 @@ export const canonicalJsonPlanOperations = (value: ProductValue): List<Canonical
         break
       case "../../../../source-artifacts/src/direct-event/value/Value.ProductArray": {
         const children = unlist(node.items)
-        pending.push({ operation: { $: "ArrayOperation", arity: Number(children.length) } })
+        pending.push({ operation: { $: "ArrayOperation", arity: Number(BigInt(children.length)) } })
         for (let index = children.length - 1; index >= 0; index--) pending.push({ value: children[index]! })
         break
       }

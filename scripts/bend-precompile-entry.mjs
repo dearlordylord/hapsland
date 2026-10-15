@@ -2,9 +2,10 @@ import assert from "node:assert/strict"
 import { parse } from "@babel/parser"
 
 // The pinned library adapter only creates a curried wrapper; constructing an
-// unused export executes no algorithm or converter. Keep their bodies intact.
+// unused export executes no algorithm or converter. Saturated calls run the
+// pinned 2.0.37 trampoline; keep those bodies intact.
 const libraryAdapter =
-  "functionrun_lib(f,n){return(...a)=>a.length<n?run_lib((...b)=>f(...a,...b),n-a.length):f(...a);}"
+  "functionrun_lib(f,n){return(...a)=>a.length<n?run_lib((...b)=>f(...a,...b),n-a.length):run_loop(f(...a));}"
 
 export function selectBendPrecompileEntries(source, required) {
   assert.ok(required.length > 0 && new Set(required).size === required.length, "Invalid private entry ABI")

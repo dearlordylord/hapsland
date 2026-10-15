@@ -15,19 +15,19 @@ import { ResidentAdapterError } from "../../adapter-error.ts"
 // Exact-capability IO binding for the independent Bend advice tail. No host flow
 // loop, source completion, policy branch or arbitrary transaction callback.
 /**
- * @param {bigint} invocation
+ * @param {number} invocation
  * @param {ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>} bridge
  * @param {import("../../state/advice-records.ts").Advice} capability
  * @param {import("../../work-ownership/jobs.ts").UnitJob} unit
  * @param {{ deps: Pick<import("./context.ts").Dependencies, "residentAdvice" | "residentNow" | "residentInspection" | "residentReviewControls" | "residentLifetimeController" | "residentJobActive" | "residentRecordJoinedOutcomes"> & Pick<import("../../advice-delivery/handoff/context.ts").Dependencies, "residentAdviceExpired">, retirementForExpired: typeof import("../preparation/post-preparation-core.js").default.advice_retirement }} context
  */
 export function createAdviceTailProvider(invocation, bridge, capability, unit, context) {
-  const advice = 1n
-  /** @type {Map<bigint, unknown>} */
+  const advice = 1
+  /** @type {Map<number, unknown>} */
   const errors = new Map()
-  /** @type {Map<bigint, Cause.Cause<unknown>>} */
+  /** @type {Map<number, Cause.Cause<unknown>>} */
   const errorCauses = new Map()
-  /** @type {Map<bigint, readonly import("../../state/joined-reviews.ts").JoinedReviewOutcome[]>} */
+  /** @type {Map<number, readonly import("../../state/joined-reviews.ts").JoinedReviewOutcome[]>} */
   const publications = new Map()
   let revoked = false,
     closed = false,
@@ -112,14 +112,14 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
     publishFate()
     after?.(publication)
   }
-  /** @type {{ invocation: bigint, adviceTail: { advice: bigint, failure?: import("../preparation/post-preparation-core.js").Termination, preserved?: boolean } }} */
+  /** @type {{ invocation: number, adviceTail: { advice: number, failure?: import("../preparation/post-preparation-core.js").Termination, preserved?: boolean } }} */
   const input = { invocation, adviceTail: { advice } }
   return {
     input,
     invocation: Number(invocation),
-    /** @param {bigint} token */
+    /** @param {number} token */
     error: (token) => errors.get(token),
-    /** @param {bigint} token */
+    /** @param {number} token */
     cause: (token) => errorCauses.get(token),
     get terminationCause() {
       return primaryCause
@@ -142,7 +142,7 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
     forceCleanup(error, cause = Cause.die(error)) {
       primaryFailure ??= error
       primaryCause ??= cause
-      const token = BigInt(errors.size + 1)
+      const token = Number(BigInt(errors.size + 1))
       errors.set(token, error)
       errorCauses.set(token, primaryCause)
       this.input.adviceTail.failure = {
@@ -247,7 +247,7 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
                 options.afterCommit?.(command, publication)
               )
             )
-            const handle = BigInt(publications.size + 1)
+            const handle = Number(BigInt(publications.size + 1))
             publications.set(handle, published)
             response = { $: "Published", publication: handle }
             break
@@ -284,7 +284,7 @@ export function createAdviceTailProvider(invocation, bridge, capability, unit, c
         const cause = lastCause ?? Cause.die(error)
         primaryCause = primaryCause === undefined ? cause : Cause.combine(primaryCause, cause)
         addedCause = addedCause === undefined ? cause : Cause.combine(addedCause, cause)
-        const token = BigInt(errors.size + 1)
+        const token = Number(BigInt(errors.size + 1))
         errors.set(token, error)
         errorCauses.set(token, primaryCause)
         response = { $: kind(cause), token }

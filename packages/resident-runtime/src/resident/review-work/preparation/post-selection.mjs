@@ -12,7 +12,7 @@
 export function selectPostValue(core, values, kind, equal, ports = {}) {
   // ToLength, as used by native some/find; no new input cap or scalar decoding.
   const length = Math.min(Math.max(Math.trunc(+values.length) || 0, 0), Number.MAX_SAFE_INTEGER)
-  let step = core.selection_initial(kind, (length))
+  let step = core.selection_initial(kind, (Number(BigInt(length))))
   /** @type {A | undefined} */
   let current
   let currentIndex = -1
@@ -47,7 +47,7 @@ export function selectPostValue(core, values, kind, equal, ports = {}) {
     step = core.selection_resume(step, response)
   }
   if (step.$ === "SelectionFound") {
-    if (step.index !== (currentIndex)) throw new Error("Post selection lacks its native receipt")
+    if (step.index !== (Number(BigInt(currentIndex)))) throw new Error("Post selection lacks its native receipt")
     return { found: true, value: /** @type {A} */ (current) }
   }
   if (step.$ === "SelectionMissing") return { found: false }

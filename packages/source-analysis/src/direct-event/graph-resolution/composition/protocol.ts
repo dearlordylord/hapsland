@@ -24,8 +24,12 @@ export type GraphProjection = {
 }
 type RawRequest = Extract<GraphProjection["view"], { $: "Types.AwaitService" }>["request"]
 type Request = RawRequest & { readonly invocation: number; readonly id: number }
-const exactRequest = (request: RawRequest): request is Request =>
-  typeof request.invocation === "number" && typeof request.id === "number"
+const exactRequest = (request: RawRequest): request is Request => {
+  const invocation = request.invocation
+  if (typeof invocation !== "number" || !Number.isInteger(invocation)) return false
+  const id = request.id
+  return typeof id === "number" && Number.isInteger(id)
+}
 
 // The same Graph protocol is consumed by standalone Graph verification and by
 // composed Preparation. It owns no Canonical action loop or resource registry.

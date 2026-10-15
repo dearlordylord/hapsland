@@ -50,7 +50,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
   let outputs: readonly Output[] = []
   // This state and its decoded reader remain private to one preparation lifetime.
   // Each existing owner step commits before the common driver executes its actions.
-  let state = owner.initial_limits(1, Number(CANONICAL_MAX_BYTES), 1, Number(CANONICAL_MAX_BYTES))
+  let state = owner.initial_limits(1, Number(BigInt(CANONICAL_MAX_BYTES)), 1, Number(BigInt(CANONICAL_MAX_BYTES)))
   let activeReader = owner.active_reader(state.children)
   const commit = (step: Step): Step => {
     state = step.state
@@ -229,7 +229,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
   const run = () =>
     Effect.gen(function* () {
       const beginning = unlist(
-        owner.begin_public_preparation(driver.state, 1, 1, round, Number(graphLimits.readBytes))
+        owner.begin_public_preparation(driver.state, 1, 1, round, Number(BigInt(graphLimits.readBytes)))
       )
       for (const step of beginning) driver.acceptPublication(commit(step))
       const admission = beginning[0]
@@ -271,7 +271,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
         round,
         preparation
       })
-      const input = { invocation: Number(invocation), preparation: preparationInput }
+      const input = { invocation: Number(BigInt(invocation)), preparation: preparationInput }
       const session: PreparationSession = {
         invocation,
         input,

@@ -59,7 +59,7 @@ export function projectPythonSyntax(rootNode: Parser.SyntaxNode): PythonSyntax {
     }
     rows[id] = {
       $: "Types.PythonSyntaxNode",
-      id: id,
+      id: Number(BigInt(id)),
       kind: node.type,
       text: node.text,
       start: node.startIndex,

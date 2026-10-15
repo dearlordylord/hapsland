@@ -63,7 +63,7 @@ if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
     cases = 0
   const consume = async (mode, prepared, engines, grouped = false) => {
     const handles = new Map()
-    let nextHandle = 0n
+    let nextHandle = 0
     const store = (value) => {
       const id = ++nextHandle
       handles.set(id, value)
@@ -77,7 +77,7 @@ if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
           response = { $: "Handle", value: store(read(query.value)) }
           return response
         case "Length":
-          response = { $: "Count", value: BigInt(handles.get(query.array).length) }
+          response = { $: "Count", value: (handles.get(query.array).length) }
           return response
         case "Element": {
           const array = handles.get(query.array)
@@ -119,7 +119,7 @@ if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
       prepared: store(prepared),
       context: store({})
     }
-    let step = core.initial(41n, input)
+    let step = core.initial(41, input)
     for (let count = 0; ; count++) {
       assert.ok(count < 10000, "snapshot query loop terminates")
       if (grouped) {
@@ -155,13 +155,13 @@ if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
       }
       requests++
       for (const reply of [
-        { $: "Reply", invocation: 42n, request: step.frame.request, response },
-        { $: "Reply", invocation: 41n, request: step.frame.request + 1n, response },
-        { $: "Reply", invocation: 41n, request: step.frame.request, response: { $: "Missing" } }
+        { $: "Reply", invocation: 42, request: step.frame.request, response },
+        { $: "Reply", invocation: 41, request: step.frame.request + 1, response },
+        { $: "Reply", invocation: 41, request: step.frame.request, response: { $: "Missing" } }
       ]) {
         if (
           tag(query) === "Element" &&
-          reply.invocation === 41n &&
+          reply.invocation === 41 &&
           reply.request === step.frame.request &&
           tag(reply.response) === "Missing"
         )
@@ -169,7 +169,7 @@ if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
         assert.equal(tag(core.resume(step, reply)), "InvalidReply")
         rejectedReplies++
       }
-      step = core.resume(step, { $: "Reply", invocation: 41n, request: step.frame.request, response })
+      step = core.resume(step, { $: "Reply", invocation: 41, request: step.frame.request, response })
     }
   }
   const original = {

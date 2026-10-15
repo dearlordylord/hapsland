@@ -17,7 +17,7 @@ import {
  * @param {{ owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner,
  * transaction: import("./provider-authority.ts").NativeTransaction,
  * onActions?: (actions: readonly import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action[]) => Effect.Effect<void>,
- * validateAdviceInput?: (invocation: bigint, inputHandle: bigint) => boolean }} options
+ * validateAdviceInput?: (invocation: number, inputHandle: number) => boolean }} options
  */
 export function createResidentOwnerTransaction({
   owner,
@@ -25,9 +25,9 @@ export function createResidentOwnerTransaction({
   onActions = () => Effect.void,
   validateAdviceInput
 }) {
-  /** @type {Map<bigint, import("./provider-authority.ts").AdviceReceipt>} */
+  /** @type {Map<number, import("./provider-authority.ts").AdviceReceipt>} */
   const adviceReceipts = new Map()
-  /** @type {Map<bigint, { readonly reservation: import("../capacity/model.ts").CapacityReservation | undefined }>} */
+  /** @type {Map<number, { readonly reservation: import("../capacity/model.ts").CapacityReservation | undefined }>} */
   const sourceReservations = new Map()
   /**
    * @param {import("../capacity/model.ts").CapacityDraft} draft
@@ -97,7 +97,7 @@ export function createResidentOwnerTransaction({
    * @param {import("./provider-authority.ts").CommitReceipt | undefined} [onCommitted]
    * @param {import("./provider-authority.ts").PendingRestore | undefined} [pendingRestore]
    * @param {(import("./provider-authority.ts").AdviceBinding & { permission: import("@hapsland/agent-flow-bend/canonical-resolver-owner").AdvicePermission }) | undefined} [adviceTail]
-   * @param {{ initial: import("../advice-records.ts").AdviceInitial, inputHandle: bigint } | undefined} [adviceBirth]
+   * @param {{ initial: import("../advice-records.ts").AdviceInitial, inputHandle: number } | undefined} [adviceBirth]
    * @param {import("./provider-authority.ts").AdviceBinding | undefined} [cleanupAdvice]
    * @param {{ readonly reservation: import("../capacity/model.ts").CapacityReservation | undefined } | undefined} [sourceRelease]
    * @returns {Effect.Effect<import("./provider-authority.ts").NativePublication<A>>}
@@ -170,10 +170,10 @@ export function createResidentOwnerTransaction({
           if (adviceReceipts.get(credential.invocation)?.capability !== capability)
             throw new Error("Advice capability differs from issued tail receipt")
           if (
-            tailScope.partition !== BigInt(draft.partitionIds.get(capability.partition) ?? 0) ||
+            tailScope.partition !== Number(BigInt(draft.partitionIds.get(capability.partition) ?? 0)) ||
             tailScope.lifetime !== adviceReceipts.get(credential.invocation)?.scope.lifetime ||
-            tailScope.round !== BigInt(capability.canonicalRound) ||
-            tailScope.operation !== BigInt(capability.canonicalOperationId)
+            tailScope.round !== Number(BigInt(capability.canonicalRound)) ||
+            tailScope.operation !== Number(BigInt(capability.canonicalOperationId))
           )
             throw new Error("Advice capability differs from issued tail scope")
         } else if (adviceTail) throw new Error("Closed advice operation requires tail authority")
@@ -230,7 +230,7 @@ export function createResidentOwnerTransaction({
             owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, {
               $: "HandoffAdviceEvent",
               ...credential,
-              operation: BigInt(inserted.canonicalOperationId),
+              operation: Number(BigInt(inserted.canonicalOperationId)),
               input_handle: adviceBirth.inputHandle
             })
           )
@@ -330,7 +330,7 @@ export function createResidentOwnerTransaction({
       onCommitted
     )
   /**
-   * @param {bigint} invocation
+   * @param {number} invocation
    * @param {import("../capacity/model.ts").CapacityReservation | undefined} reservation
    */
   const bindSourceReservation = (invocation, reservation) => {
@@ -342,13 +342,13 @@ export function createResidentOwnerTransaction({
         (child.value.scope.$ !== "SourceScope" ||
           child.value.scope.permission.$ !== "SourceNew" ||
           child.value.phase.$ !== "ChildInstalling" ||
-          child.value.generation !== 0n ||
+          child.value.generation !== 0 ||
           child.value.lease.$ !== "None"))
     )
       throw new Error("Source reservation must bind before invocation launch")
     sourceReservations.set(invocation, Object.freeze({ reservation }))
   }
-  /** @param {bigint} invocation */
+  /** @param {number} invocation */
   const forgetSourceReservation = (invocation) => {
     const snapshot = Effect.runSync(transaction.read),
       child = owner.find(invocation, snapshot.resolverCustody.children),
@@ -406,11 +406,11 @@ export function createResidentOwnerTransaction({
   /**
    * @param {import("./provider-authority.ts").ProviderLease} credential
    * @param {import("../advice-records.ts").AdviceInitial} initial
-   * @param {bigint} inputHandle
+   * @param {number} inputHandle
    * @param {import("./provider-authority.ts").CommitReceipt | undefined} [onCommitted]
    */
   const adviceInsertAndHandoff = (credential, initial, inputHandle, onCommitted) => {
-    if (!credential || typeof inputHandle !== "bigint" || inputHandle < 1n)
+    if (!credential || typeof inputHandle !== "number" || inputHandle < 1)
       throw new Error("Advice birth requires provider credential and opaque input handle")
     return residentAdvice({
       ...transaction,
@@ -681,6 +681,7 @@ export function createResidentOwnerTransaction({
   // Synchronous driver calls are serialized through the actual Ref transaction.
   // readState assembles a transient call snapshot; the driver stores no C.State.
   const control = {
+    /** @returns {import("@hapsland/agent-flow-bend/canonical-resolver-owner").State} */
     readState() {
       const snapshot = Effect.runSync(transaction.read)
       return owner.assembled(toOwnerCanonical(snapshot.canonical), snapshot.resolverCustody)

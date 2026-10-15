@@ -167,7 +167,7 @@ export function createPreparationFinalizationExecution({
         }))
       )
     }
-    const scope: Invocation = { $: "Invocation", owner: Number(invocation), command: Number(command) }
+    const scope: Invocation = { $: "Invocation", owner: Number(BigInt(invocation)), command: Number(BigInt(command)) }
     let encodingError: URIError | undefined
     return {
       initial: () => machine.initial(scope, context, list(units.map(productValue))),
