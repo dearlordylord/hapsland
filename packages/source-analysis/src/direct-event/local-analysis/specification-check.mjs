@@ -53,6 +53,13 @@ try {
     { timeout: 11000 }
   )
   const execution = (await import(pathToFileURL(executionOutput))).default
+  const stackOutput = join(temporary, "stack.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "Stack.bend"), "-o", stackOutput],
+    { timeout: 11000 }
+  )
+  const stackModel = (await import(pathToFileURL(stackOutput))).default
   const checkedCatalogs = new WeakSet()
   let lawCatalogs = 0
   const checkLawInstances = (facts) => {
@@ -74,6 +81,16 @@ try {
     const measured = execution.execute(facts, { $: "Core.Preflight" })
     assert.equal(execution.completed(measured), true, "derived_budget_sufficient: preflight")
     assert.deepEqual(execution.trace(measured), spec.preflight_trace(facts), "preflight_trace_exact")
+    const trace = spec.preflight_trace(facts)
+    assert.equal(stackModel.trace_valid(trace), spec.complete(facts), "preflight_stack_effect")
+    assert.equal(stackModel.trace_valid(trace), true, "preflight terminal stack depth")
+    const ops = unlist(trace.value)
+    for (const split of new Set([0, 1, Math.floor(ops.length / 2), ops.length]))
+      for (const depth of [0, 1, 7]) {
+        const prefix = stackModel.depth(list(ops.slice(0, split)), depth)
+        const composed = prefix.$ === "None" ? none : stackModel.depth(list(ops.slice(split)), prefix.value)
+        assert.deepEqual(stackModel.depth(trace.value, depth), composed, "append_exact")
+      }
     lawCatalogs++
   }
   let cursorSteps = 0,
@@ -131,11 +148,22 @@ try {
     }
     throw new Error("local cursor fixture deadline exceeded")
   }
+  const emptyFacts = catalog([])
+  checkLawInstances(emptyFacts)
+  assert.deepEqual(unlist(runCore(core.initial(emptyFacts, { $: "Trees" })).step.outcomes), [])
+  assert.deepEqual(unlist(runCore(core.initial(emptyFacts, { $: "Outcomes" })).step.outcomes), [])
+  assert.equal(runCore(core.initial(emptyFacts, { $: "Preflight" }), [], true).bytes, 0)
+  for (const operation of [{ $: "Model.Add" }, { $: "Model.Multiply" }]) {
+    for (const depth of [0, 1]) assert.deepEqual(stackModel.operation(operation, depth), none)
+    for (const depth of [2, 3, 17]) assert.deepEqual(stackModel.operation(operation, depth), some(depth - 1))
+  }
   let rawCases = 0
   const inspect = (root, facts) => {
     checkLawInstances(facts)
     const result = spec.analyze(root, facts)
     assert.equal(result.$, "NodeResult", "derived recursive depth must suffice for each finite fixture")
+    for (const depth of [0, 1, 3, 17])
+      assert.deepEqual(stackModel.depth(spec.postfix(result.bytes), depth), some(depth + 1), "postfix_effect")
     const materialized = spec.outcome({ $: "Model.Materialize" }, result)
     const outcomes = spec.outcome({ $: "Model.OutcomesOnly" }, result)
     assert.equal(materialized.$, "Some")
