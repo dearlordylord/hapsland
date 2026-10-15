@@ -187,15 +187,15 @@ the installer in the common Git directory, executed in the current worktree.
 
 Use standalone `bend-format` **0.1.23**, Python 3 and the repository's
 `.editorconfig`. The source pin is
-[`28efd257b557295c77944cc49f05f55a75089176`](https://github.com/dearlordylord/bend-idea/commit/28efd257b557295c77944cc49f05f55a75089176).
-It includes result-header and block-list support used by the migration proofs.
+[`55e106a85ac7ad2444a204c4dce883b7a8521e34`](https://github.com/dearlordylord/bend-idea/commit/55e106a85ac7ad2444a204c4dce883b7a8521e34).
+It includes result-header, result-list anchor and block-list support used by the migration proofs.
 This source candidate has no published release. Build its standalone JAR with
 JDK 21+ from the exact commit:
 
 ```sh
 git clone --filter=blob:none https://github.com/dearlordylord/bend-idea.git bend-idea-format
 cd bend-idea-format
-git checkout --detach 28efd257b557295c77944cc49f05f55a75089176
+git checkout --detach 55e106a85ac7ad2444a204c4dce883b7a8521e34
 ./gradlew buildFormatTool
 export BEND_FORMAT_JAR="$PWD/build/libs/bend-format-tool-0.1.23.jar"
 cd -
