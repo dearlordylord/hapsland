@@ -54,7 +54,7 @@ def observeNode {A : Type} (counter : IO.Ref Nat) (depth : Nat) (path : String)
     pure (fallback ())
   else
     match term with
-    | Lam _ _ => action.run
+    | Lam _ _ | Prj _ => action.run
     | _ =>
       counter.set (used + 1)
       let started ← IO.monoNanosNow
@@ -67,7 +67,7 @@ mutual
 partial def observeCheck (counter : IO.Ref Nat) (depth : Nat) (path : String)
     (ck : Book) (fuel : Nat) (ctx : Ctx) (term expected : Term) : ExceptT String IO Unit :=
   observeNode counter depth path term (fun _ => Term.check ck fuel ctx term expected)
-    (observecheckCore counter (match term with | Lam _ _ => depth | _ => depth - 1) path ck fuel ctx term expected)
+    (observecheckCore counter (match term with | Lam _ _ | Prj _ => depth | _ => depth - 1) path ck fuel ctx term expected)
 
 partial def observeInfer (counter : IO.Ref Nat) (depth : Nat) (path : String)
     (ck : Book) (fuel : Nat) (ctx : Ctx) (term : Term) : ExceptT String IO Term :=
