@@ -15,8 +15,72 @@ assert.equal(hash(source), expectedSourceHash, "kernel source identity")
 assert.equal(hash(book), expectedBookHash, "complete book identity")
 const marker = "def main (args : List String) : IO UInt32 := do"
 assert.equal(source.split(marker).length, 2, "exactly one original kernel main")
+// Replicate only the existing checker equations; every unexpanded node delegates
+// to the original checker. The original Def.check is replayed after observation.
+const inferStart = source.indexOf("def Term.infer (ck : Book)")
+const checkStart = source.indexOf("def Term.check (ck : Book)")
+const inferEnd = source.indexOf("\n-- Γ ⊢ v", inferStart)
+const checkEnd = source.indexOf("\nend", checkStart)
+assert.ok(inferStart >= 0 && inferEnd > inferStart && checkEnd > checkStart)
+const replica = (body, name, result) =>
+  body
+    .replace(
+      `def Term.${name} (ck : Book)`,
+      `partial def observe${name}Core (counter : IO.Ref Nat) (depth : Nat) (path : String) (ck : Book)`
+    )
+    .replace(`Res ${result}`, `ExceptT String IO ${result}`)
+    .replaceAll("Term.check ck", 'observeCheck counter depth (path ++ "/check") ck')
+    .replaceAll("Term.infer ck", 'observeInfer counter depth (path ++ "/infer") ck')
+const subtreeObserver = String.raw`
+instance : MonadLift (Except String) (ExceptT String IO) where
+  monadLift result := ExceptT.mk (pure result)
+
+def diagnosticHead (term : Term) : String :=
+  match (Term.unspine term []).1 with
+  | Ref name => name
+  | Lam _ _ => "Lam"
+  | Let _ _ _ => "Let"
+  | Prj _ => "Prj"
+  | Mat name _ _ => "Mat:" ++ name
+  | Rwt _ _ _ => "Rwt"
+  | Ann _ _ => "Ann"
+  | _ => "other"
+
+def observeNode {A : Type} (counter : IO.Ref Nat) (depth : Nat) (path : String)
+    (term : Term) (fallback : Unit → Res A) (action : ExceptT String IO A) : ExceptT String IO A := ExceptT.mk do
+  let used ← counter.get
+  if depth == 0 || used >= 128 then
+    pure (fallback ())
+  else
+    match term with
+    | Lam _ _ => action.run
+    | _ =>
+      counter.set (used + 1)
+      let started ← IO.monoNanosNow
+      let result ← action.run
+      let ended ← IO.monoNanosNow
+      (← IO.getStderr).putStrLn s!"kernel-subtree\t{used}\t{path}\t{diagnosticHead term}\t{ended - started}"
+      pure result
+
+mutual
+partial def observeCheck (counter : IO.Ref Nat) (depth : Nat) (path : String)
+    (ck : Book) (fuel : Nat) (ctx : Ctx) (term expected : Term) : ExceptT String IO Unit :=
+  observeNode counter depth path term (fun _ => Term.check ck fuel ctx term expected)
+    (observecheckCore counter (match term with | Lam _ _ => depth | _ => depth - 1) path ck fuel ctx term expected)
+
+partial def observeInfer (counter : IO.Ref Nat) (depth : Nat) (path : String)
+    (ck : Book) (fuel : Nat) (ctx : Ctx) (term : Term) : ExceptT String IO Term :=
+  observeNode counter depth path term (fun _ => Term.infer ck fuel ctx term)
+    (observeinferCore counter (depth - 1) path ck fuel ctx term)
+
+${replica(source.slice(inferStart, inferEnd), "infer", "Term")}
+${replica(source.slice(checkStart, checkEnd), "check", "Unit")}
+end
+`
+
 const instrumentation = `
 -- Diagnostic IO only; Def.check and the original main remain unchanged.
+${subtreeObserver}
 def diagnosticStage (name : String) (check : Unit → Res Unit) : IO (Res Unit) := do
   let started ← IO.monoNanosNow
   match check () with
@@ -31,10 +95,11 @@ def diagnosticStage (name : String) (check : Unit → Res Unit) : IO (Res Unit) 
 
 def diagnosticTarget (bk : Book) (ls : Book × Book) (i : Nat) (d : Def) : IO (Res Unit) := do
   let ck := if d.o then ls.2 else ls.1
+  let counter ← IO.mkRef 0
   let observed : ExceptT String IO Unit := do
     ExceptT.mk (diagnosticStage "freshness" (fun _ => Res.need (Book.index bk d.k == some i) "a fresh name"))
     ExceptT.mk (diagnosticStage "type" (fun _ => Term.check ck FUEL [] d.T T1))
-    ExceptT.mk (diagnosticStage "body" (fun _ => Term.check ck FUEL [] d.v d.T))
+    observeCheck counter 12 "body" ck FUEL [] d.v d.T
     ExceptT.mk (diagnosticStage "closure" (fun _ => Res.need (Term.ren Nat.succ d.v == d.v) "a closed def"))
     ExceptT.mk (diagnosticStage "termination" (fun _ => Res.need (Term.tree ⟨bk, i, [], [], []⟩ [] d.v) "affine live code, calls that descend"))
   let result ← observed.run
