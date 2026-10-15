@@ -13,6 +13,7 @@ const sourceOwners = [
   "packages/source-artifacts/src/direct-event/value",
   "packages/source-analysis/src/direct-event/graph-resolution",
   "packages/source-analysis/src/direct-event/local-analysis",
+  "packages/source-analysis/src/direct-event/combined-preflight",
   "packages/source-analysis/src/direct-event/analysis-checks",
   "packages/native-observation/src/direct-event/edit-attribution",
   "packages/native-observation/src/direct-event/languages/path-language",
