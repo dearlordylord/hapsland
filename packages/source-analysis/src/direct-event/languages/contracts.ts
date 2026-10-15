@@ -1,3 +1,4 @@
+import type { AnalyzerMaterializationPreflight, CombinedPreflightPolicy } from "../combined-preflight/contracts.ts"
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import {
   type captureStable,
@@ -21,11 +22,7 @@ export type TypeExtractionFailure = {
   readonly units: readonly []
 }
 export const MAX_TYPE_DECLARATIONS = 1024
-export type AnalyzerMaterializationPreflight = {
-  readonly declarations: number
-  readonly expandedUnitBytes: number
-  readonly hasImports?: boolean
-}
+export type { AnalyzerMaterializationPreflight } from "../combined-preflight/contracts.ts"
 
 export type GraphReference = {
   readonly kind: "named" | "unsupported"
@@ -94,6 +91,17 @@ export type LanguageAdapter = {
   isBundledArtifact?(artifact: ReviewArtifact): boolean
   analyzeFunctions?(path: string, source: string): import("./function-facts.ts").FunctionFileAnalysis | undefined
   extractSource(path: string, source: string): NativeSourceExtraction
+  /** One Preflight command; parser resources never escape into ExtractSource. */
+  preflightSource?(
+    path: string,
+    source: string
+  ): {
+    parseTypes(): TypeExtractionFailure | readonly GraphDeclaration[]
+    combinedPreflight(
+      bound: AnalyzerMaterializationPreflight | undefined,
+      policy: CombinedPreflightPolicy
+    ): AnalyzerMaterializationPreflight | undefined
+  }
   parseTypes(path: string, source: string, allowImports?: boolean): TypeExtractionFailure | readonly GraphDeclaration[]
   inspect(path: string, source: string): GraphFile | undefined
   supportingTypes?(path: string, source: string): ReadonlyMap<string, GraphDeclaration>
@@ -105,6 +113,7 @@ export type LanguageAdapter = {
   combinedPreflight(
     path: string,
     source: string,
-    typeBound: AnalyzerMaterializationPreflight | undefined
+    typeBound: AnalyzerMaterializationPreflight | undefined,
+    policy: CombinedPreflightPolicy
   ): AnalyzerMaterializationPreflight | undefined
 }

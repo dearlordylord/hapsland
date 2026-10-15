@@ -6,6 +6,7 @@ import type {
 } from "./languages/contracts.ts"
 import type { ReviewUnit, TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { languageForPath } from "./languages/registry.ts"
+import { combinedPreflightPolicy } from "./combined-preflight/native.ts"
 import {
   analyzeDeclarations,
   declarationOutcomes,
@@ -61,7 +62,14 @@ export const analyzerMaterializationPreflight = (
   source: string,
   allowImports = false
 ): AnalyzerMaterializationPreflight | undefined => {
-  const parsed = parsedDeclarations(path, source, allowImports)
+  return materializationPreflight(path, source, allowImports, parsedDeclarations(path, source, allowImports))
+}
+const materializationPreflight = (
+  path: string,
+  source: string,
+  allowImports: boolean,
+  parsed: TypeExtractionFailure | readonly GraphDeclaration[]
+): AnalyzerMaterializationPreflight | undefined => {
   if ("status" in parsed) return undefined
   const expandedUnitBytes = preflightDeclarations(
     parsed,
@@ -77,8 +85,18 @@ export const analyzerMaterializationPreflight = (
 export const combinedAnalyzerMaterializationPreflight = (
   path: string,
   source: string
-): AnalyzerMaterializationPreflight | undefined =>
-  languageForPath(path)?.combinedPreflight(path, source, analyzerMaterializationPreflight(path, source, true))
+): AnalyzerMaterializationPreflight | undefined => {
+  const language = languageForPath(path)
+  const session = language?.preflightSource?.(path, source)
+  // Native type measurements intentionally remain outside the combined catch.
+  const bound =
+    session === undefined
+      ? analyzerMaterializationPreflight(path, source, true)
+      : materializationPreflight(path, source, true, session.parseTypes())
+  return session === undefined
+    ? language?.combinedPreflight(path, source, bound, combinedPreflightPolicy)
+    : session.combinedPreflight(bound, combinedPreflightPolicy)
+}
 export const typeDeclarationCount = (path: string, source: string): number | undefined =>
   analyzerMaterializationPreflight(path, source)?.declarations
 

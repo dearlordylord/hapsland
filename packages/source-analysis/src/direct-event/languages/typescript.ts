@@ -12,6 +12,7 @@ import {
   type GraphFacts
 } from "./contracts.ts"
 import { analyzeFunctionFile, analyzeFunctionRoot, functionDeclarationNodes } from "./typescript-functions.ts"
+import { type TypeScriptPreflightInput, type TypeScriptPreflightEffects } from "../combined-preflight/contracts.ts"
 
 type ParsedDeclaration = {
   readonly node: SyntaxNode
@@ -300,76 +301,63 @@ const preflightDeclarations = (root: SyntaxNode): ReadonlyArray<SyntaxNode> =>
   root.namedChildren
     .flatMap((node) => (node.type === "export_statement" ? node.namedChildren.filter(isReviewDeclaration) : [node]))
     .filter(isReviewDeclaration)
-const functionPreflightBytes = (path: string, node: SyntaxNode, name: string): number => {
-  const rendered = exportedSourceNode(node)
-  const artifact = {
-    path,
-    id: `${path}:function:${name}`,
-    kind: "function",
-    name,
-    source: rendered.text,
-    sourceHash: "0".repeat(64)
-  }
-  let bytes = encodedBytes(artifact) + 1024
-  for (const site of descendants(node)) {
-    // Binding may emit multiple facts for one syntax site. JSON escaping
-    // can expand a source character by at most six ASCII bytes.
-    bytes += 4 * (1024 + 6 * Buffer.byteLength(site.text, "utf8") + 2 * Buffer.byteLength(path, "utf8"))
-  }
-  return bytes
-}
-const allFunctionPreflightBytes = (
+// Foreign syntax facts and measurements only; admission and sizing live in Bend.
+// The callback also lets the independent verification owner reuse native facts
+// without calling the production policy machine.
+export const withNativeTypeScriptPreflight = (
   path: string,
-  functions: readonly { readonly node: SyntaxNode; readonly name: string }[]
-): number => {
-  let total = 0
-  for (const { node, name } of functions) {
-    const bytes = functionPreflightBytes(path, node, name)
-    total += bytes
-  }
-  return total
-}
-const preflightHasImports = (
-  root: SyntaxNode,
-  typeBound: import("./contracts.ts").AnalyzerMaterializationPreflight | undefined
-): boolean => root.namedChildren.some((node) => node.type === "import_statement") || typeBound?.hasImports === true
-const preflightTypeBytes = (typeBound: import("./contracts.ts").AnalyzerMaterializationPreflight | undefined): number =>
-  typeBound?.expandedUnitBytes ?? 0
-const rootPreflight = (
-  path: string,
-  root: SyntaxNode,
-  typeBound: import("./contracts.ts").AnalyzerMaterializationPreflight | undefined
+  source: string,
+  typeBound: import("./contracts.ts").AnalyzerMaterializationPreflight | undefined,
+  consume: (
+    input: TypeScriptPreflightInput,
+    bound: import("./contracts.ts").AnalyzerMaterializationPreflight | undefined,
+    effects: TypeScriptPreflightEffects
+  ) => import("./contracts.ts").AnalyzerMaterializationPreflight | undefined,
+  readRoot: () => SyntaxNode = () => typeScriptRoot(path, source)
 ): import("./contracts.ts").AnalyzerMaterializationPreflight | undefined => {
-  if (root.hasError) return undefined
-  const declarations = preflightDeclarations(root).filter((node) => kindOf(node) !== undefined)
-  const functions = functionDeclarationNodes(root)
-  const count = declarations.length + functions.length
-  if (count > MAX_TYPE_DECLARATIONS) return undefined
-  // A valid file without supported roots materializes no review units. Keep
-  // this measured empty result distinct from an unknown or invalid parse.
-  if (count === 0) return { declarations: 0, expandedUnitBytes: 0, hasImports: preflightHasImports(root, typeBound) }
-  // Files containing types need a valid type bound; function-only files start at zero.
-  if (declarations.length > 0 && typeBound === undefined) return undefined
-  const functionBytes = allFunctionPreflightBytes(path, functions)
-  return {
-    declarations: count,
-    expandedUnitBytes: preflightTypeBytes(typeBound) + functionBytes,
-    hasImports: preflightHasImports(root, typeBound)
+  if (!supported.has(extname(path).toLowerCase())) return undefined
+  try {
+    const root = readRoot()
+    const parseValid = !root.hasError
+    // Keep native declaration reads after hasError, including on invalid trees.
+    const types = parseValid ? preflightDeclarations(root).filter((node) => kindOf(node) !== undefined).length : 0
+    const functions = parseValid ? functionDeclarationNodes(root) : []
+    const sites = new Map<number, ReadonlyArray<SyntaxNode>>()
+    return consume({ parseValid, types, functions: functions.length }, typeBound, {
+      artifactBytes(slot) {
+        const { node, name } = functions[slot]!
+        const rendered = exportedSourceNode(node)
+        return encodedBytes({
+          path,
+          id: `${path}:function:${name}`,
+          kind: "function",
+          name,
+          source: rendered.text,
+          sourceHash: "0".repeat(64)
+        })
+      },
+      observeSites(slot) {
+        const observed = descendants(functions[slot]!.node)
+        sites.set(slot, observed)
+        return observed.length
+      },
+      siteBytes: (slot, site) => Buffer.byteLength(sites.get(slot)![site]!.text, "utf8"),
+      pathBytes: () => Buffer.byteLength(path, "utf8"),
+      typeBytes: () => typeBound?.expandedUnitBytes ?? 0,
+      rootImports: () => root.namedChildren.some((node) => node.type === "import_statement"),
+      typeImports: () => typeBound?.hasImports === true
+    })
+  } catch {
+    return undefined
   }
 }
 export const combinedPreflight = (
   path: string,
   source: string,
-  typeBound: import("./contracts.ts").AnalyzerMaterializationPreflight | undefined
-): import("./contracts.ts").AnalyzerMaterializationPreflight | undefined => {
-  const extension = extname(path).toLowerCase()
-  if (!supported.has(extension)) return undefined
-  try {
-    return rootPreflight(path, typeScriptRoot(path, source), typeBound)
-  } catch {
-    return undefined
-  }
-}
+  typeBound: import("./contracts.ts").AnalyzerMaterializationPreflight | undefined,
+  policy: import("../combined-preflight/contracts.ts").CombinedPreflightPolicy
+): import("./contracts.ts").AnalyzerMaterializationPreflight | undefined =>
+  withNativeTypeScriptPreflight(path, source, typeBound, policy.typescript)
 
 export const inspectTypeScriptFunctions = (path: string, source: string): GraphFacts | undefined => {
   const file = analyzeFunctionFile(path, source)
@@ -404,6 +392,15 @@ export const tsAdapter: LanguageAdapter = {
   probe: { path: "doctor.ts", source: "export interface DoctorProbe { ready: boolean }" },
   analyzeFunctions: analyzeFunctionFile,
   extractSource: extractTypeScriptSource,
+  preflightSource(path, source) {
+    let root: SyntaxNode | undefined
+    const readRoot = () => (root ??= typeScriptRoot(path, source))
+    return {
+      parseTypes: () => normalized(parsedDeclarations(path, source, true, readRoot)),
+      combinedPreflight: (bound, policy) =>
+        withNativeTypeScriptPreflight(path, source, bound, policy.typescript, readRoot)
+    }
+  },
   parseTypes,
   inspect: inspectTypeScript,
   hasImports: (source) => /\bimport\b/u.test(source),

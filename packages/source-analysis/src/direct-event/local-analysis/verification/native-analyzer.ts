@@ -14,6 +14,7 @@ import type {
   TypeDeclaration
 } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { languageForPath } from "../../languages/registry.ts"
+import { combinedNativePreflight } from "../../combined-preflight/verification/native.ts"
 export type { GraphDeclaration, GraphFile }
 type ParsedDeclaration = GraphDeclaration
 export type UnitAnalysis =
@@ -188,7 +189,7 @@ export const combinedAnalyzerMaterializationPreflight = (
   path: string,
   source: string
 ): AnalyzerMaterializationPreflight | undefined =>
-  languageForPath(path)?.combinedPreflight(path, source, analyzerMaterializationPreflight(path, source, true))
+  combinedNativePreflight(path, source, analyzerMaterializationPreflight(path, source, true))
 export const typeDeclarationCount = (path: string, source: string): number | undefined =>
   analyzerMaterializationPreflight(path, source)?.declarations
 

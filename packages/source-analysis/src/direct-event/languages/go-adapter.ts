@@ -21,9 +21,6 @@ export const goAdapter: LanguageAdapter = {
   },
   unselectedTypeEditReason: goUnselectedTypeEditReason,
   hasImports: () => true,
-  combinedPreflight: (_path, source, bound) =>
-    bound ??
-    (inspectGoFile("preflight.go", source) === undefined
-      ? undefined
-      : { declarations: 0, expandedUnitBytes: 0, hasImports: true })
+  combinedPreflight: (_path, source, bound, policy) =>
+    policy.go(bound, () => inspectGoFile("preflight.go", source) !== undefined)
 }

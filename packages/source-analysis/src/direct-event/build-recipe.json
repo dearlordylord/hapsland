@@ -23,5 +23,10 @@
     "source": "local-analysis/Core.bend",
     "output": "local-analysis/analyzer-core.js",
     "declaration": "local-analysis/analyzer-core.d.ts"
+  },
+  {
+    "source": "combined-preflight/Core.bend",
+    "output": "combined-preflight/preflight-core.js",
+    "declaration": "combined-preflight/preflight-core.d.ts"
   }
 ]
