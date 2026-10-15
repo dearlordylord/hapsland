@@ -30,9 +30,24 @@ const replica = (body, name, result) =>
     )
     .replace(`Res ${result}`, `ExceptT String IO ${result}`)
     .replaceAll("Min a b", "Term.Min a b")
+    .replaceAll("Term.check ck n c A T2", "originalBinderCheck ck n c A T2")
+    .replaceAll("Term.check ck n c V T2", "originalBinderCheck ck n c V T2")
+    .replaceAll("Term.infer ck n c v", 'observeLetValue counter (path ++ "/let-value") ck n c v')
+    .replaceAll("Term.infer ck n c e", 'observeLetValue counter (path ++ "/rewrite-evidence") ck n c e')
+    .replaceAll("Term.check ck n c T T1", "originalBinderCheck ck n c T T1")
+    .replaceAll(
+      "Term.check ck n ((E, none) :: (A, none) :: c) P T1",
+      'observeCheckLeaf counter (path ++ "/rewrite-motive") ck n ((E, none) :: (A, none) :: c) P T1'
+    )
+    .replaceAll(
+      "Term.check ck n c x A",
+      'observeArgument counter depth (path ++ "/argument:" ++ diagnosticHead f) (diagnosticHead f) ck n c x A'
+    )
     .replaceAll("Term.check ck", 'observeCheck counter depth (path ++ "/check") ck')
     .replaceAll("Term.infer ck", 'observeInfer counter depth (path ++ "/infer") ck')
 const subtreeObserver = String.raw`
+def originalBinderCheck := Term.check
+
 instance : MonadLift (Except String) (ExceptT String IO) where
   monadLift result := ExceptT.mk (pure result)
 
@@ -48,31 +63,59 @@ def diagnosticHead (term : Term) : String :=
   | _ => "other"
 
 def observeNode {A : Type} (counter : IO.Ref Nat) (depth : Nat) (path : String)
-    (term : Term) (fallback : Unit → Res A) (action : ExceptT String IO A) : ExceptT String IO A := ExceptT.mk do
+    (term : Term) (silent : Bool) (fallback : Unit → Res A) (action : Unit → ExceptT String IO A) : ExceptT String IO A := ExceptT.mk do
   let used ← counter.get
   if depth == 0 || used >= 128 then
     pure (fallback ())
+  else if silent then (action ()).run
   else
     match term with
-    | Lam _ _ | Prj _ => action.run
+    | Lam _ _ | Prj _ | Let _ _ _ => (action ()).run
     | _ =>
       counter.set (used + 1)
       let started ← IO.monoNanosNow
-      let result ← action.run
+      let result ← (action ()).run
       let ended ← IO.monoNanosNow
       (← IO.getStderr).putStrLn s!"kernel-subtree\t{used}\t{path}\t{diagnosticHead term}\t{ended - started}"
       pure result
 
+def observeLetValue (counter : IO.Ref Nat) (path : String) (ck : Book) (fuel : Nat) (ctx : Ctx) (term : Term) : ExceptT String IO Term :=
+  observeNode counter 1 path term false (fun _ => Term.infer ck fuel ctx term)
+    (fun _ => ExceptT.mk (pure (Term.infer ck fuel ctx term)))
+
+def observeCheckLeaf (counter : IO.Ref Nat) (path : String) (ck : Book) (fuel : Nat) (ctx : Ctx) (term expected : Term) : ExceptT String IO Unit :=
+  observeNode counter 1 path term false (fun _ => Term.check ck fuel ctx term expected)
+    (fun _ => ExceptT.mk (pure (Term.check ck fuel ctx term expected)))
+
 mutual
 partial def observeCheck (counter : IO.Ref Nat) (depth : Nat) (path : String)
     (ck : Book) (fuel : Nat) (ctx : Ctx) (term expected : Term) : ExceptT String IO Unit :=
-  observeNode counter depth path term (fun _ => Term.check ck fuel ctx term expected)
-    (observecheckCore counter (match term with | Lam _ _ | Prj _ => depth | _ => depth - 1) path ck fuel ctx term expected)
+  if expected == T1 || expected == T2 then
+    ExceptT.mk (pure (Term.check ck fuel ctx term expected))
+  else
+    let singleton := match term with
+      | Mat _ _ _ => match Ctx.wnf ck ctx expected with
+        | All _ domain _ => match Ctx.wnf ck ctx domain with
+          | Enu [_] => true
+          | _ => false
+        | _ => false
+      | App _ f (Var _) => Term.takes (Term.unspine f []).1
+      | _ => false
+    observeNode counter depth path term singleton (fun _ => Term.check ck fuel ctx term expected)
+      (fun _ => observecheckCore counter (if singleton then depth else match term with | Lam _ _ | Prj _ | Let _ _ _ | Rwt _ _ _ => depth | _ => depth - 1) path ck fuel ctx term expected)
 
 partial def observeInfer (counter : IO.Ref Nat) (depth : Nat) (path : String)
     (ck : Book) (fuel : Nat) (ctx : Ctx) (term : Term) : ExceptT String IO Term :=
-  observeNode counter depth path term (fun _ => Term.infer ck fuel ctx term)
-    (observeinferCore counter (depth - 1) path ck fuel ctx term)
+  observeNode counter depth path term (match term with | App _ _ _ => true | _ => false) (fun _ => Term.infer ck fuel ctx term)
+    (fun _ => observeinferCore counter (match term with | App _ _ _ => depth | _ => depth - 1) path ck fuel ctx term)
+
+partial def observeArgument (counter : IO.Ref Nat) (depth : Nat) (path owner : String)
+    (ck : Book) (fuel : Nat) (ctx : Ctx) (term expected : Term) : ExceptT String IO Unit :=
+  let head := (Term.unspine term []).1
+  if owner != "ready_graph_step_eliminate" && (Term.takes head || (match head with | Rwt _ _ _ | Let _ _ _ => true | _ => false)) then
+    observeCheck counter depth path ck fuel ctx term expected
+  else
+    observeCheckLeaf counter path ck fuel ctx term expected
 
 ${replica(source.slice(inferStart, inferEnd), "infer", "Term")}
 ${replica(source.slice(checkStart, checkEnd), "check", "Unit")}
