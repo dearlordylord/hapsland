@@ -227,6 +227,50 @@ try {
               const depth = depths[0]
               depths[0] = continuation.sibling_depth(depth)
               if (nextFrames.length > oldFrames.length) {
+                const reference = unlist(oldFrames[0].pending)[0]
+                assert.equal(reference.$, "Model.Named")
+                const target = core.lookup(previous.cursor.global.catalog, reference.name, reference.target_id)
+                assert.equal(target.$, "Some")
+                const child = target.value
+                const parent = { ...oldFrames[0], pending: list(unlist(oldFrames[0].pending).slice(1)) }
+                assert.deepEqual(
+                  next.frames,
+                  list([
+                    {
+                      $: "Frame",
+                      slot: child.slot,
+                      pending: child.references,
+                      reversed: list([]),
+                      site: some(reference.name)
+                    },
+                    parent,
+                    ...oldFrames.slice(1)
+                  ]),
+                  "child entry retains exact parked parent and ancestors"
+                )
+                assert.deepEqual(next.expanded, list([child.identity, ...unlist(previous.cursor.expanded)]))
+                assert.equal(
+                  next.remaining,
+                  previous.cursor.remaining - 2,
+                  "reference and declaration each spend one semantic tick"
+                )
+                assert.equal(next.failure.$, previous.cursor.failure.$)
+                assert.deepEqual(
+                  step,
+                  core.enter_child(
+                    previous.cursor.remaining - 1,
+                    {
+                      ...previous.cursor,
+                      referenced: next.referenced,
+                      remaining: previous.cursor.remaining - 1,
+                      frames: list([parent, ...oldFrames.slice(1)])
+                    },
+                    child,
+                    reference.name,
+                    core.edge_operations(previous.cursor.global.purpose, reference.name, target)
+                  ),
+                  "actual child entry preserves exact Global/shared state and command queue"
+                )
                 depths.unshift(continuation.child_reference_depth(depth))
                 childEntries++
               }
