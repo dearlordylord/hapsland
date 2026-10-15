@@ -46,9 +46,27 @@ try {
     ],
     [
       "next_root_discards_pending",
-      "Global{catalog, purpose, tail, reversed, request},",
-      "Global{catalog, purpose, [], reversed, request},",
+      "enter_root(Global{catalog, purpose, tail, reversed, request}, head)",
+      "enter_root(Global{catalog, purpose, [], reversed, request}, head)",
       "Laws.complete_root_with_continuation"
+    ],
+    [
+      "leaf_omits_final_add",
+      "List.append(&2, M.Op, node_operations(purpose, slot), finish_operations(purpose))",
+      "node_operations(purpose, slot)",
+      "empty_valid"
+    ],
+    [
+      "leaf_discards_outcome",
+      "save_outcome(purpose, M.Outcome{slot, None{}, outcome_tree(purpose, slot, [])}, prefix)",
+      "prefix",
+      "empty_valid"
+    ],
+    [
+      "leaf_starts_with_wrong_request",
+      "          request}},\n        request\n      )",
+      "          request}},\n        Nat.add(request, 1n)\n      )",
+      "empty_valid"
     ],
     [
       "outer_root_progression_stalls",
