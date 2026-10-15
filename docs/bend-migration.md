@@ -210,10 +210,7 @@ that only bridges helper names.
   valid stream for a different exported tree. Four universal correspondence laws pass the pinned kernel and formatting. Four
   semantic validator mutants are rejected within the proof closure; this does not
   claim that each first error isolates a named universal law.
-- The connected validator candidate passed the matching 46-workspace build,
-  `check:fast` with cumulative lint (10 files), full Finalization consumer
-  (66 cases / 52 runtime cases), and focused Source/Post/resident consumers.
-  Post candidate `660bde05` removes all three host algorithms: offer disposition,
+- Post candidate `660bde05` removes all three host algorithms: offer disposition,
   retained-advice observation and bounded Internal progression. Its 27 laws pass
   the standard runner; four mutants fail their named laws. Build (46 workspaces),
   fast gate (5 files), Post 23360 cases, compiled resident 67 and Source 59 cases
@@ -226,8 +223,8 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary analyzer/build on `660bde05` pass at 0.6820 / 0.7893.
-  Complete current-native Preparation on that candidate **fails parity at 2.0473**.
+- Primary analyzer/build on `73d8c75d` pass at 0.6585 / 0.7946.
+  Public current-native Preparation on that candidate **fails parity at 1.8979**.
   All 30 workspace dependencies resolve inside the measured checkout.
 
 ### Check and source owners
