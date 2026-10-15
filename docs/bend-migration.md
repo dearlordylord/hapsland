@@ -171,10 +171,10 @@ crossings with a Bend-selected serialization plan:
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
 `migration/bend-abi-2037` assesses Bend 2.0.37 (`4ff8545f`), numeric Nat/shared
-records, preserving bounds/isolation. The next trial adds code-point
+records, preserving bounds/isolation. The assessed fork adds code-point
 String.cmp to String.eq via JS intrinsics [309f0246](https://github.com/dearlordylord/bend/commit/309f0246c9244364085ed15fc544f4af19dd5fce).
 C/BendTT semantics remain. Five tree laws and 79 trees/1344
-refusals pass on the equality cohort. Comparator cohort qualification is pending.
+refusals pass. Comparator cohort: 99 producer tests, public/physical consumers pass; whole parity fails.
 
 ### Remaining obstacles and acceptance evidence
 
@@ -182,8 +182,8 @@ refusals pass on the equality cohort. Comparator cohort qualification is pending
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Emission/kernel passes alone are diagnostic. |
 | Original proof formatting | Formatter 0.1.23 (`d1e5aa7`) passes local release gates: 653 tests + one optional skip, IDE compatibility and signature. Full-law formatting passes; release/pin await authorization. |
-| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the equality cohort. Finalization/public Preparation pass; repeat after production edits. |
-| Whole-path parity | Qualify the complete 2.0.37 producer/host cohort, then measure connected Preparation against current native, including conversion/effects/process costs. Require ratio ≤ 1; analyzer/build alone is insufficient. |
+| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the comparator cohort. Finalization/public Preparation pass; repeat after production edits. |
+| Whole-path parity | The assessed 2.0.37 comparator cohort passes producers/consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,
@@ -226,8 +226,8 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary actual `e78dd582` analyzer/build: 0.7040 / 0.8440. Whole current-native
-  Preparation on `e78dd582` **fails parity at 1.3788**: equal outputs, 17 frozen pairs,
+- Primary actual `d18bf742` analyzer/build: 0.6999 / 0.8107. Whole current-native
+  Preparation on `d18bf742` **fails parity at 1.2957**: equal outputs, 17 frozen pairs,
   30 local workspaces.
   Qualified-codec/public/physical consumers pass; whole parity fails.
 - Attachment facts/consumers pass verdict/format. Full TT is 7,445,671 bytes;
