@@ -462,7 +462,7 @@ export function createServiceSession({
   return session
 }
 
-export type GraphServiceReply = Reply<bigint>
+export type GraphServiceReply = Reply<number>
 
 // Graph effects and emitted Nat encoding retain their owner when a resident
 // registry also holds Source, Preparation, Post and Advice resource sessions.
@@ -470,7 +470,7 @@ export async function performGraphServiceRequest(
   session: ServiceSession,
   request: Request,
   options?: PerformOptions
-): Promise<Reply<bigint>> {
+): Promise<Reply<number>> {
   if (
     !("callerCache" in session) ||
     typeof session.registerCapture !== "function" ||
@@ -520,7 +520,7 @@ export function createServiceRegistry() {
     get pendingCleanup() {
       return registry.pendingCleanup
     },
-    async perform(request: Request, options?: PerformOptions): Promise<Reply<bigint>> {
+    async perform(request: Request, options?: PerformOptions): Promise<Reply<number>> {
       const session = registry.get(hostNatural(request.invocation))
       if (!session) throw new TypeError("Unknown graph service invocation")
       return performGraphServiceRequest(session, request, options)

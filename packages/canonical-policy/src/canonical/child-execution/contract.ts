@@ -34,7 +34,7 @@ export type ControlledStep =
   | Omit<Extract<Owner.Step, { readonly $: "Rejected" }>, "state">
 export type Control = {
   readState(): Owner.State
-  readActive?(invocation: bigint): ReturnType<Owner.ActiveReader["query"]>
+  readActive?(invocation: number): ReturnType<Owner.ActiveReader["query"]>
   invoke<M extends Method>(method: M, args: Arguments<M>): ControlledStep
 }
 export type Installation =
@@ -54,9 +54,9 @@ export type Session = NativeSession & {
   finishFlow?: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<unknown>
   forceCleanup?: (error: unknown) => unknown
 }
-export type Input = { readonly invocation: bigint | number; readonly kind?: never }
-export type Machine = { disposeInvocation(invocation: bigint): void; readonly retainedHandles: number }
-export type Request = { readonly invocation: bigint; readonly id: bigint }
+export type Input = { readonly invocation: number; readonly kind?: never }
+export type Machine = { disposeInvocation(invocation: number): void; readonly retainedHandles: number }
+export type Request = { readonly invocation: number; readonly id: number }
 // A pending engine is invoked before the await boundary; mapping its raw reply
 // afterward must not execute the effect again or choose product progression.
 export type ForeignPending<Reply> =
@@ -85,7 +85,7 @@ export type ForeignReply<Reply> =
 
 export type Projection = { readonly kind: string; readonly view: { readonly $: string } }
 export type PreparationHandoff = {
-  readonly handoff: bigint
+  readonly handoff: number
   readonly scope: Extract<Owner.Scope, { $: "RetainingScope" }>
 }
 export type CancellationOutcome = { readonly failure: { readonly $: "Types.InvocationCancelled" } }

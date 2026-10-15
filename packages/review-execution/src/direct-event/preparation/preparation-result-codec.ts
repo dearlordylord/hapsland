@@ -20,13 +20,13 @@ type WireDiagnostic =
   | {
       readonly $: "CaptureBudget"
       readonly resource: "files" | "bytes"
-      readonly used: bigint
-      readonly requested: bigint
-      readonly limit: bigint
+      readonly used: number
+      readonly requested: number
+      readonly limit: number
     }
   | {
       readonly $: "MaterializationRefused"
-      readonly requested: bigint
+      readonly requested: number
       readonly constraint: "globalItems" | "globalBytes" | "partitionItems" | "partitionBytes"
     }
   | { readonly $: "PreparationPanic" }
@@ -59,7 +59,7 @@ export type PreparationResult = {
   readonly outcomes: List<WireOutcome>
   readonly units: List<ProductValue>
   readonly line_roots: List<string>
-  readonly selected: bigint
+  readonly selected: number
   readonly ambiguous_line: boolean
 }
 type SourceOutcome =

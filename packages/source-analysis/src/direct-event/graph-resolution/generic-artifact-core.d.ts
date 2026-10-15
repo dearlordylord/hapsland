@@ -30,16 +30,16 @@ export type ResolverStep =
 type ExpectedKind = Tagged<`traversal/core.${"AnyKind" | "TypeKind" | "FunctionKind"}`>
 type PendingTarget =
   | Tagged<"traversal/core.Imported", { readonly path: string; readonly name: string }>
-  | Tagged<"traversal/core.BundledTarget", { readonly declaration: bigint }>
+  | Tagged<"traversal/core.BundledTarget", { readonly declaration: number }>
 type Pending = Tagged<
   "traversal/core.Pending",
   {
-    readonly owner: bigint
-    readonly index: bigint
+    readonly owner: number
+    readonly index: number
     readonly from: string
     readonly symbol: string
     readonly name: string
-    readonly depth: bigint
+    readonly depth: number
     readonly expected: ExpectedKind
     readonly target: PendingTarget
   }
@@ -76,7 +76,7 @@ export type ParentAction =
   | Tagged<"composition/ArtifactProtocol.Publish", { readonly result: ResolverStep }>
 export type ResolverEvent =
   | Tagged<"Types.ServiceReply", { readonly reply: GraphServiceReply }>
-  | Tagged<"Types.CancelInvocation", { readonly invocation: bigint }>
+  | Tagged<"Types.CancelInvocation", { readonly invocation: number }>
 declare const core: {
   initial(input: ResolverInput): Continuation
   resume(step: Continuation, event: ResolverEvent): Continuation

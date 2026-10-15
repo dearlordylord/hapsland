@@ -11,7 +11,7 @@ import type {
   parsePythonSyntax
 } from "./frontends.ts"
 
-export type Natural = number | bigint
+export type Natural = number
 export type Variant<Name extends string, Fields extends object = Record<never, never>> = {
   readonly $: `Types.${Name}`
 } & Fields
@@ -249,24 +249,24 @@ export type Reply<Nat extends Natural = Natural> = Variant<
 export type ResolverInput = Variant<
   "ResolverInput",
   {
-    readonly invocation: bigint
+    readonly invocation: number
     readonly root_path: string
     readonly root_capture: Token<"CaptureToken">
-    readonly root_bytes: bigint
+    readonly root_bytes: number
     readonly root_name: string
     readonly root_source: string
     readonly branch: Variant<"FunctionBranch" | "TypeBranch">
     readonly caller_cache: Maybe<Token<"CacheToken">>
     readonly limits: {
       readonly $: "../../../../agent-flow-bend/ImportGraph.Limits"
-      readonly version: bigint
-      readonly source_bytes: bigint
-      readonly tree_bytes: bigint
-      readonly files: bigint
-      readonly read_bytes: bigint
-      readonly outgoing_edges: bigint
-      readonly depth: bigint
-      readonly work: bigint
+      readonly version: number
+      readonly source_bytes: number
+      readonly tree_bytes: number
+      readonly files: number
+      readonly read_bytes: number
+      readonly outgoing_edges: number
+      readonly depth: number
+      readonly work: number
     }
   }
 >

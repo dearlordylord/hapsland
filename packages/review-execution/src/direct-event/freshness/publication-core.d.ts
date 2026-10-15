@@ -12,50 +12,50 @@ type RetentionWire<Value> = Value extends { readonly $: infer Name extends strin
     : Value
 export type Input = Tagged<
   "Input",
-  { readonly observation: bigint; readonly evaluations: bigint; readonly context: bigint; readonly authority: boolean }
+  { readonly observation: number; readonly evaluations: number; readonly context: number; readonly authority: boolean }
 >
-export type Lens = Tagged<"Lens", { readonly object: bigint; readonly fields: List<string> }>
+export type Lens = Tagged<"Lens", { readonly object: number; readonly fields: List<string> }>
 export type Query =
   | Tagged<"Read", { readonly value: Lens }>
   | Tagged<"Truthy", { readonly value: Lens }>
   | Tagged<"Equal", { readonly left: Lens; readonly right: Lens }>
   | Tagged<"AdviceeEqual", { readonly left: Lens; readonly right: Lens }>
-  | Tagged<"EqualValues", { readonly left: bigint; readonly right: bigint }>
-  | Tagged<"Identity", { readonly input: bigint }>
-  | Tagged<"Length", { readonly array: bigint }>
-  | Tagged<"Element", { readonly array: bigint; readonly index: bigint }>
-  | Tagged<"VerifyRoot", { readonly observation: bigint }>
+  | Tagged<"EqualValues", { readonly left: number; readonly right: number }>
+  | Tagged<"Identity", { readonly input: number }>
+  | Tagged<"Length", { readonly array: number }>
+  | Tagged<"Element", { readonly array: number; readonly index: number }>
+  | Tagged<"VerifyRoot", { readonly observation: number }>
   | Tagged<"NewMap">
   | Tagged<"NewSet">
-  | Tagged<"MapGet", { readonly map: bigint; readonly key: bigint }>
-  | Tagged<"SetAdd", { readonly set: bigint; readonly value: bigint }>
-  | Tagged<"MapSet", { readonly map: bigint; readonly key: bigint; readonly value: bigint }>
-  | Tagged<"Iterator", { readonly array: bigint }>
-  | Tagged<"IteratorNext", { readonly iterator: bigint }>
-  | Tagged<"Prepare", { readonly input: Input; readonly names: bigint }>
-  | Tagged<"StatusReady", { readonly outcome: bigint }>
-  | Tagged<"FreshArray", { readonly values: List<bigint> }>
+  | Tagged<"MapGet", { readonly map: number; readonly key: number }>
+  | Tagged<"SetAdd", { readonly set: number; readonly value: number }>
+  | Tagged<"MapSet", { readonly map: number; readonly key: number; readonly value: number }>
+  | Tagged<"Iterator", { readonly array: number }>
+  | Tagged<"IteratorNext", { readonly iterator: number }>
+  | Tagged<"Prepare", { readonly input: Input; readonly names: number }>
+  | Tagged<"StatusReady", { readonly outcome: number }>
+  | Tagged<"FreshArray", { readonly values: List<number> }>
   | Tagged<"RetentionQuery", { readonly query: RetentionWire<RetentionQuery> }>
 export type Response =
-  | Tagged<"Handle", { readonly value: bigint }>
+  | Tagged<"Handle", { readonly value: number }>
   | Tagged<"Flag", { readonly value: boolean }>
-  | Tagged<"Count", { readonly value: bigint }>
+  | Tagged<"Count", { readonly value: number }>
   | Tagged<"Missing">
   | Tagged<"End">
   | Tagged<"Acknowledged">
   | Tagged<"RetentionResponse", { readonly response: RetentionWire<RetentionResponse> }>
-export type Frame = Tagged<"Frame", { readonly invocation: bigint; readonly request: bigint }>
+export type Frame = Tagged<"Frame", { readonly invocation: number; readonly request: number }>
 export type Status = Tagged<"Unattributed"> | Tagged<"Unavailable"> | Tagged<"Stale"> | Tagged<"Current">
 export type Step =
   | Tagged<"Await", { readonly frame: Frame; readonly query: Query; readonly next: Next }>
   | Tagged<
       "Completed",
-      { readonly status: Status; readonly evaluations: List<bigint>; readonly findings: List<bigint> }
+      { readonly status: Status; readonly evaluations: List<number>; readonly findings: List<number> }
     >
   | Tagged<"InvalidReply">
 export type Reply = Tagged<
   "Reply",
-  { readonly invocation: bigint; readonly request: bigint; readonly response: Response }
+  { readonly invocation: number; readonly request: number; readonly response: Response }
 >
 export type Boundary =
   | Tagged<"PrimitiveBoundary">
@@ -64,7 +64,7 @@ export type Boundary =
   | Tagged<"InvalidBoundary">
 declare const core: {
   boundary(step: Step): Boundary
-  initial(invocation: bigint, input: Input): Step
+  initial(invocation: number, input: Input): Step
   resume(step: Step, reply: Reply): Step
 }
 export default core

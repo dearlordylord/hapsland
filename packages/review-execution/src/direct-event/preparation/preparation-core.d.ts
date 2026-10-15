@@ -11,7 +11,7 @@ type Attribution<Name extends string, Fields = object> = Tagged<
   `../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.${Name}`,
   Fields
 >
-export type Position = Attribution<"Position", { readonly line: bigint; readonly column: bigint }>
+export type Position = Attribution<"Position", { readonly line: number; readonly column: number }>
 export type Location = Attribution<"Location", { readonly start: Position; readonly end: Position }>
 export type Hunk = Attribution<
   "Hunk",
@@ -46,23 +46,23 @@ export type Capture = Tagged<
   "Capture",
   {
     readonly path: string
-    readonly handle: bigint
+    readonly handle: number
     readonly text: string
     readonly content_hash: string
-    readonly bytes: bigint
+    readonly bytes: number
   }
 >
 export type Limits = Tagged<
   "../../../../agent-flow-bend/ImportGraph.Limits",
   {
-    readonly version: bigint
-    readonly source_bytes: bigint
-    readonly tree_bytes: bigint
-    readonly files: bigint
-    readonly read_bytes: bigint
-    readonly outgoing_edges: bigint
-    readonly depth: bigint
-    readonly work: bigint
+    readonly version: number
+    readonly source_bytes: number
+    readonly tree_bytes: number
+    readonly files: number
+    readonly read_bytes: number
+    readonly outgoing_edges: number
+    readonly depth: number
+    readonly work: number
   }
 >
 export type Input = Tagged<
@@ -72,7 +72,7 @@ export type Input = Tagged<
     readonly contracts: List<Contract>
     readonly limits: Limits
     readonly frozen: Maybe<List<Tagged<"FrozenPath", { readonly path: string; readonly names: List<string> }>>>
-    readonly line: Maybe<bigint>
+    readonly line: Maybe<number>
     readonly verified: Maybe<
       Selection<"VerifiedSpans", { readonly path: string; readonly content_hash: string; readonly hunks: List<Hunk> }>
     >
@@ -113,7 +113,7 @@ export type ReferenceSlot =
   GraphReferenceSlot<"../../../../source-analysis/src/direct-event/graph-resolution/traversal/core">
 export type Command =
   | Tagged<"InspectPath", { readonly candidate: Candidate }>
-  | Tagged<"CaptureSource", { readonly path: string; readonly selection: bigint; readonly source_cap: Maybe<bigint> }>
+  | Tagged<"CaptureSource", { readonly path: string; readonly selection: number; readonly source_cap: Maybe<number> }>
   | Tagged<"Preflight", { readonly capture: Capture }>
   | Tagged<"RejectMaterializationCapacity">
   | Tagged<"RecordMaterializationCapacity">
@@ -131,12 +131,12 @@ export type Command =
         readonly units: List<ProductValue>
       }
     >
-export type Request = Tagged<"Request", { readonly invocation: bigint; readonly id: bigint; readonly command: Command }>
+export type Request = Tagged<"Request", { readonly invocation: number; readonly id: number; readonly command: Command }>
 export type Response =
   | Tagged<"Ack">
   | Tagged<"Cancelled">
   | Tagged<"AmbiguityClassificationFailed">
-  | Tagged<"PathAllowed", { readonly path: string; readonly selection: bigint }>
+  | Tagged<"PathAllowed", { readonly path: string; readonly selection: number }>
   | Tagged<"PathDenied", { readonly reason: string }>
   | Tagged<"SourceCaptured", { readonly capture: Capture }>
   | Tagged<"SourceUnavailable", { readonly diagnostic: ProductValue }>
@@ -150,7 +150,7 @@ export type Response =
           | Tagged<"MaterializationDenied", { readonly diagnostic: ProductValue }>
           | Tagged<"InvalidReservation">
           | Tagged<"InvalidMeasurement">
-        readonly requested: bigint
+        readonly requested: number
       }
     >
   | Tagged<"SourceExtracted", { readonly extraction: Extraction }>
@@ -170,14 +170,14 @@ export type Response =
       }
     >
   | Tagged<"TechnicalFailure", { readonly message: string }>
-export type Reply = Tagged<"Reply", { readonly invocation: bigint; readonly id: bigint; readonly response: Response }>
+export type Reply = Tagged<"Reply", { readonly invocation: number; readonly id: number; readonly response: Response }>
 export type Step =
   | Tagged<"Internal", { readonly state: State }>
   | Tagged<"Await", { readonly state: State; readonly request: Request }>
   | Tagged<"Finished", { readonly result: PreparationResult }>
   | Tagged<"Failed", { readonly reason: string }>
 declare const core: {
-  initial_settled(invocation: bigint, input: Input): Maybe<Step>
+  initial_settled(invocation: number, input: Input): Maybe<Step>
   resume_settled(step: Step, reply: Reply): Maybe<Step>
 }
 export default core

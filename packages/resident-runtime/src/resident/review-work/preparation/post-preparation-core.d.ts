@@ -3,10 +3,10 @@ import type { List } from "@hapsland/source-artifacts/direct-event/value/codec"
 type Tagged<Name extends string, Fields = object> = { readonly $: Name } & Fields
 type Maybe<A> = Tagged<"None"> | Tagged<"Some", { readonly value: A }>
 
-export type SizingField = Tagged<"SizingField", { readonly name: string; readonly value: bigint }>
+export type SizingField = Tagged<"SizingField", { readonly name: string; readonly value: number }>
 export type SizingFindingField = Tagged<
   "SizingFindingField",
-  { readonly name: string; readonly source: bigint; readonly path: List<string> }
+  { readonly name: string; readonly source: number; readonly path: List<string> }
 >
 export type SizingPrimitive = Tagged<
   | "SizingOutput"
@@ -35,50 +35,50 @@ export type SizingLiteral = Tagged<
   | "SizingFrameBytes"
 >
 export type SizingOperation =
-  | Tagged<"SizingFindings", { readonly target: bigint }>
-  | Tagged<"SizingRead", { readonly target: bigint; readonly source: bigint; readonly path: List<string> }>
-  | Tagged<"SizingRecord", { readonly target: bigint; readonly fields: List<SizingField> }>
-  | Tagged<"SizingArray", { readonly target: bigint; readonly values: List<bigint> }>
-  | Tagged<"SizingConstant", { readonly target: bigint; readonly literal: SizingLiteral }>
+  | Tagged<"SizingFindings", { readonly target: number }>
+  | Tagged<"SizingRead", { readonly target: number; readonly source: number; readonly path: List<string> }>
+  | Tagged<"SizingRecord", { readonly target: number; readonly fields: List<SizingField> }>
+  | Tagged<"SizingArray", { readonly target: number; readonly values: List<number> }>
+  | Tagged<"SizingConstant", { readonly target: number; readonly literal: SizingLiteral }>
   | Tagged<
       "SizingCall",
-      { readonly target: bigint; readonly primitive: SizingPrimitive; readonly arguments: List<bigint> }
+      { readonly target: number; readonly primitive: SizingPrimitive; readonly arguments: List<number> }
     >
 export type SizingMode = Tagged<"WorstOutcomeSizing" | "ReservationSizing" | "DeliverabilitySizing">
-type SizingContinuation = { readonly remaining: List<SizingOperation>; readonly result: bigint }
-type SizingIndex = SizingContinuation & { readonly index: bigint; readonly left: bigint; readonly target: bigint }
+type SizingContinuation = { readonly remaining: List<SizingOperation>; readonly result: number }
+type SizingIndex = SizingContinuation & { readonly index: number; readonly left: number; readonly target: number }
 export type SizingStep =
   | Tagged<"SizingAwait", SizingContinuation & { readonly operation: SizingOperation }>
-  | Tagged<"SizingRules", SizingContinuation & { readonly target: bigint }>
+  | Tagged<"SizingRules", SizingContinuation & { readonly target: number }>
   | Tagged<"SizingPresence" | "SizingThreshold", SizingIndex>
   | Tagged<"SizingFinding", SizingIndex & { readonly fields: List<SizingFindingField> }>
-  | Tagged<"SizingDone", { readonly result: bigint }>
+  | Tagged<"SizingDone", { readonly result: number }>
   | Tagged<"SizingRejected">
 export type SizingReply =
   | Tagged<"SizingAck">
-  | Tagged<"SizingLength", { readonly length: bigint }>
+  | Tagged<"SizingLength", { readonly length: number }>
   | Tagged<"SizingFlag", { readonly value: boolean }>
 
-export type EnrollmentField = Tagged<"EnrollmentField", { readonly name: string; readonly value: bigint }>
+export type EnrollmentField = Tagged<"EnrollmentField", { readonly name: string; readonly value: number }>
 export type EnrollmentLiteral = Tagged<"EnrollmentTrue" | "EnrollmentFalse" | "EnrollmentNullValue">
 export type EnrollmentCheck = Tagged<
   "EnrollmentNull" | "EnrollmentNullish" | "EnrollmentUndefined" | "EnrollmentTrueCheck"
 >
 export type EnrollmentPrimitive = Tagged<"EnrollmentUuid" | "EnrollmentNow" | "EnrollmentEnvironmentOnly">
 export type EnrollmentOperation =
-  | Tagged<"EnrollmentRead", { readonly target: bigint; readonly source: bigint; readonly path: List<string> }>
-  | Tagged<"EnrollmentConstant", { readonly target: bigint; readonly literal: EnrollmentLiteral }>
-  | Tagged<"EnrollmentRecord", { readonly target: bigint; readonly fields: List<EnrollmentField> }>
-  | Tagged<"EnrollmentArray", { readonly target: bigint; readonly values: List<bigint> }>
-  | Tagged<"EnrollmentPut", { readonly name: string; readonly value: bigint }>
+  | Tagged<"EnrollmentRead", { readonly target: number; readonly source: number; readonly path: List<string> }>
+  | Tagged<"EnrollmentConstant", { readonly target: number; readonly literal: EnrollmentLiteral }>
+  | Tagged<"EnrollmentRecord", { readonly target: number; readonly fields: List<EnrollmentField> }>
+  | Tagged<"EnrollmentArray", { readonly target: number; readonly values: List<number> }>
+  | Tagged<"EnrollmentPut", { readonly name: string; readonly value: number }>
   | Tagged<
       "EnrollmentCall",
-      { readonly target: bigint; readonly primitive: EnrollmentPrimitive; readonly arguments: List<bigint> }
+      { readonly target: number; readonly primitive: EnrollmentPrimitive; readonly arguments: List<number> }
     >
   | Tagged<
       "EnrollmentChoose",
       {
-        readonly source: bigint
+        readonly source: number
         readonly check: EnrollmentCheck
         readonly when_true: List<EnrollmentOperation>
         readonly when_false: List<EnrollmentOperation>
@@ -92,60 +92,60 @@ export type EnrollmentStep =
   | Tagged<
       "EnrollmentInspect",
       {
-        readonly source: bigint
+        readonly source: number
         readonly check: EnrollmentCheck
         readonly when_true: List<EnrollmentOperation>
         readonly when_false: List<EnrollmentOperation>
         readonly remaining: List<EnrollmentOperation>
       }
     >
-  | Tagged<"EnrollmentDone", { readonly evaluation: bigint }>
+  | Tagged<"EnrollmentDone", { readonly evaluation: number }>
   | Tagged<"EnrollmentRejected">
 export type EnrollmentReply = Tagged<"EnrollmentAck"> | Tagged<"EnrollmentFlag", { readonly value: boolean }>
 
 export type Outcome = Tagged<
   "Outcome",
-  { readonly handle: bigint; readonly ready: boolean; readonly fits: boolean; readonly reservation_bytes: bigint }
+  { readonly handle: number; readonly ready: boolean; readonly fits: boolean; readonly reservation_bytes: number }
 >
 
 export type Route =
   | Tagged<"Owner">
   | Tagged<"CachedEntry">
   | Tagged<"CachedClear">
-  | Tagged<"CachedFinding", { readonly evaluation: bigint }>
+  | Tagged<"CachedFinding", { readonly evaluation: number }>
   | Tagged<"JoinedAdvice">
   | Tagged<"JoinedPending">
   | Tagged<"JoinedClaimed">
 
-export type Planned = Tagged<"Planned", { readonly outcome: Outcome; readonly key: bigint; readonly route: Route }>
+export type Planned = Tagged<"Planned", { readonly outcome: Outcome; readonly key: number; readonly route: Route }>
 
-export type Allocation = Tagged<"Allocation", { readonly operation: bigint; readonly reservation: bigint }>
+export type Allocation = Tagged<"Allocation", { readonly operation: number; readonly reservation: number }>
 
-export type Slot = Tagged<"Slot", { readonly item: Planned; readonly operation: bigint; readonly reservation: bigint }>
+export type Slot = Tagged<"Slot", { readonly item: Planned; readonly operation: number; readonly reservation: number }>
 
 export type ReuseActivity =
   | Tagged<"ClearActivity">
-  | Tagged<"FindingsActivity", { readonly findings: bigint }>
+  | Tagged<"FindingsActivity", { readonly findings: number }>
   | Tagged<"UnavailableActivity">
 
 export type AdviceRetirement = Tagged<"ExpiredRetirement"> | Tagged<"RetentionFailureRetirement">
 
 export type CleanupAction =
-  | Tagged<"DrainCleanupTail", { readonly handle: bigint }>
-  | Tagged<"RetireCleanupWork", { readonly handle: bigint }>
-  | Tagged<"ReleaseCleanupReservation", { readonly handle: bigint }>
-  | Tagged<"ReleaseCleanupRevision", { readonly handle: bigint }>
-  | Tagged<"ReleaseCleanupClaim", { readonly handle: bigint }>
+  | Tagged<"DrainCleanupTail", { readonly handle: number }>
+  | Tagged<"RetireCleanupWork", { readonly handle: number }>
+  | Tagged<"ReleaseCleanupReservation", { readonly handle: number }>
+  | Tagged<"ReleaseCleanupRevision", { readonly handle: number }>
+  | Tagged<"ReleaseCleanupClaim", { readonly handle: number }>
   | Tagged<"ReleaseCleanupWorkspace">
   | Tagged<"InvalidCleanupAllocation">
   | Tagged<"InvalidCleanupReservation">
   | Tagged<"InvalidCleanupPlan">
 export type CleanupFact =
-  | Tagged<"CleanupTail", { readonly handle: bigint; readonly started: boolean }>
+  | Tagged<"CleanupTail", { readonly handle: number; readonly started: boolean }>
   | Tagged<
       "CleanupWork",
       {
-        readonly handle: bigint
+        readonly handle: number
         readonly cached: boolean
         readonly completed: boolean
         readonly round_bound: boolean
@@ -155,14 +155,14 @@ export type CleanupFact =
   | Tagged<
       "CleanupReservation",
       {
-        readonly handle: bigint
+        readonly handle: number
         readonly present: boolean
         readonly transferred: boolean
         readonly discharged: boolean
       }
     >
-  | Tagged<"CleanupRevision", { readonly handle: bigint; readonly present: boolean; readonly transferred: boolean }>
-  | Tagged<"CleanupClaim", { readonly handle: bigint; readonly present: boolean; readonly transferred: boolean }>
+  | Tagged<"CleanupRevision", { readonly handle: number; readonly present: boolean; readonly transferred: boolean }>
+  | Tagged<"CleanupClaim", { readonly handle: number; readonly present: boolean; readonly transferred: boolean }>
   | Tagged<"CleanupWorkspace", { readonly source_owned: boolean; readonly active: boolean }>
   | Tagged<"CleanupInvalidAllocation">
   | Tagged<"CleanupInvalidPlan">
@@ -238,12 +238,12 @@ export type SelectionStep =
       "SelectionRead",
       {
         readonly kind: SelectionKind
-        readonly index: bigint
-        readonly remaining: bigint
+        readonly index: number
+        readonly remaining: number
         readonly stage: SelectionStage
       }
     >
-  | Tagged<"SelectionFound", { readonly index: bigint }>
+  | Tagged<"SelectionFound", { readonly index: number }>
   | Tagged<"SelectionMissing">
   | Tagged<"SelectionRejected">
 export type SelectionResponse =
@@ -303,12 +303,12 @@ export type RetainedObservationResponse =
 
 export type Command =
   | Tagged<"ObservePreparation">
-  | Tagged<"AdvicePendingBarrier", { readonly advice: bigint }>
-  | Tagged<"AdviceCheckActive", { readonly advice: bigint }>
-  | Tagged<"AdvicePublish", { readonly advice: bigint }>
-  | Tagged<"AdviceRecordPublished", { readonly advice: bigint; readonly publication: bigint }>
-  | Tagged<"AdviceCheckExpired", { readonly advice: bigint }>
-  | Tagged<"AdviceRemove", { readonly advice: bigint; readonly retirement: AdviceRetirement }>
+  | Tagged<"AdvicePendingBarrier", { readonly advice: number }>
+  | Tagged<"AdviceCheckActive", { readonly advice: number }>
+  | Tagged<"AdvicePublish", { readonly advice: number }>
+  | Tagged<"AdviceRecordPublished", { readonly advice: number; readonly publication: number }>
+  | Tagged<"AdviceCheckExpired", { readonly advice: number }>
+  | Tagged<"AdviceRemove", { readonly advice: number; readonly retirement: AdviceRetirement }>
   | Tagged<"CheckActive">
   | Tagged<"ReleaseWorkspace">
   | Tagged<"Offer", { readonly outcome: Outcome; readonly allowed: boolean }>
@@ -320,41 +320,41 @@ export type Command =
   | Tagged<"LookupReuse", { readonly outcome: Outcome }>
   | Tagged<"ReadCached", { readonly item: Planned }>
   | Tagged<"ReadPending", { readonly item: Planned }>
-  | Tagged<"RestorePending", { readonly item: Planned; readonly owner: bigint }>
+  | Tagged<"RestorePending", { readonly item: Planned; readonly owner: number }>
   | Tagged<"ObservePlans", { readonly planned: List<Planned> }>
   | Tagged<"RecordReuseAnalytics", { readonly item: Planned }>
   | Tagged<"OwnerBarrier">
   | Tagged<"CompletePreparation", { readonly retained: List<Planned> }>
   | Tagged<"RegisterClear", { readonly item: Planned }>
-  | Tagged<"ReleaseClear", { readonly revision: bigint }>
+  | Tagged<"ReleaseClear", { readonly revision: number }>
   | Tagged<"ReadLiveAdvice", { readonly item: Planned }>
-  | Tagged<"PublishJoinedAdvice", { readonly advice: bigint }>
-  | Tagged<"RecordJoinedOutcomes", { readonly advice: bigint; readonly publication: bigint }>
-  | Tagged<"ReadCurrentAdvice", { readonly advice: bigint }>
+  | Tagged<"PublishJoinedAdvice", { readonly advice: number }>
+  | Tagged<"RecordJoinedOutcomes", { readonly advice: number; readonly publication: number }>
+  | Tagged<"ReadCurrentAdvice", { readonly advice: number }>
   | Tagged<"ReadJoinedPending", { readonly item: Planned }>
-  | Tagged<"AppendJoined", { readonly item: Planned; readonly owner: Maybe<bigint> }>
+  | Tagged<"AppendJoined", { readonly item: Planned; readonly owner: Maybe<number> }>
   | Tagged<"RememberExpected", { readonly item: Planned }>
   | Tagged<"RecordReuseActivity", { readonly item: Planned; readonly activity: ReuseActivity }>
   | Tagged<"JoinedBarrier">
   | Tagged<"RegisterRevision", { readonly slot: Slot }>
-  | Tagged<"RegisterWork", { readonly slot: Slot; readonly revision: bigint }>
-  | Tagged<"ObserveUnit", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
-  | Tagged<"AttachOwner", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
-  | Tagged<"Enqueue", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
+  | Tagged<"RegisterWork", { readonly slot: Slot; readonly revision: number }>
+  | Tagged<"ObserveUnit", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
+  | Tagged<"AttachOwner", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
+  | Tagged<"Enqueue", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
   | Tagged<"StartCachedReview", { readonly slot: Slot }>
   | Tagged<"CompleteCachedReview", { readonly slot: Slot }>
   | Tagged<"RecordCachedActivity", { readonly slot: Slot }>
-  | Tagged<"CheckCachedActive", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
+  | Tagged<"CheckCachedActive", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
   | Tagged<"ReadCachedAdvice", { readonly slot: Slot }>
-  | Tagged<"RetireCachedWork", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
-  | Tagged<"ReleaseCachedUnit", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
-  | Tagged<"InsertCachedAdvice", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
-  | Tagged<"ObserveRetainedAdvice", { readonly tail: bigint }>
-  | Tagged<"PreserveAdviceTail", { readonly tail: bigint }>
-  | Tagged<"AwaitAdviceTail", { readonly tail: bigint }>
-  | Tagged<"FinalizeCachedUnit", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
-  | Tagged<"ReleaseAttached", { readonly slot: Slot; readonly revision: bigint; readonly work: Maybe<bigint> }>
-  | Tagged<"ReleaseUnspawned", { readonly slot: Slot; readonly revision: bigint }>
+  | Tagged<"RetireCachedWork", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
+  | Tagged<"ReleaseCachedUnit", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
+  | Tagged<"InsertCachedAdvice", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
+  | Tagged<"ObserveRetainedAdvice", { readonly tail: number }>
+  | Tagged<"PreserveAdviceTail", { readonly tail: number }>
+  | Tagged<"AwaitAdviceTail", { readonly tail: number }>
+  | Tagged<"FinalizeCachedUnit", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
+  | Tagged<"ReleaseAttached", { readonly slot: Slot; readonly revision: number; readonly work: Maybe<number> }>
+  | Tagged<"ReleaseUnspawned", { readonly slot: Slot; readonly revision: number }>
   | Tagged<"ReportCapacity", { readonly item: Planned }>
   | Tagged<"Cleanup", { readonly actions: List<CleanupAction> }>
   | Tagged<"PerformCleanup", { readonly action: CleanupAction }>
@@ -365,36 +365,36 @@ export type Response =
   | Tagged<"Active", { readonly value: boolean }>
   | Tagged<"Expired", { readonly value: boolean }>
   | Tagged<"Offered", { readonly accepted: boolean }>
-  | Tagged<"Routed", { readonly key: bigint; readonly route: Route }>
-  | Tagged<"CachedFacts", { readonly evaluation: bigint; readonly findings: bigint }>
-  | Tagged<"PendingOwner", { readonly owner: bigint }>
-  | Tagged<"AdviceOwner", { readonly owner: Maybe<bigint> }>
-  | Tagged<"Published", { readonly publication: bigint }>
-  | Tagged<"FindingCount", { readonly findings: bigint }>
-  | Tagged<"JoinOwner", { readonly owner: Maybe<bigint> }>
+  | Tagged<"Routed", { readonly key: number; readonly route: Route }>
+  | Tagged<"CachedFacts", { readonly evaluation: number; readonly findings: number }>
+  | Tagged<"PendingOwner", { readonly owner: number }>
+  | Tagged<"AdviceOwner", { readonly owner: Maybe<number> }>
+  | Tagged<"Published", { readonly publication: number }>
+  | Tagged<"FindingCount", { readonly findings: number }>
+  | Tagged<"JoinOwner", { readonly owner: Maybe<number> }>
   | Tagged<"Reserved", { readonly allocations: List<Maybe<Allocation>> }>
-  | Tagged<"Revision", { readonly token: bigint }>
-  | Tagged<"Work", { readonly token: Maybe<bigint> }>
+  | Tagged<"Revision", { readonly token: number }>
+  | Tagged<"Work", { readonly token: Maybe<number> }>
   | Tagged<"Attached", { readonly accepted: boolean }>
   | Tagged<"Queued", { readonly accepted: boolean }>
   | Tagged<"ReviewAccepted", { readonly value: boolean }>
-  | Tagged<"AdviceInserted", { readonly tail: bigint }>
-  | Tagged<"Cancelled", { readonly token: bigint }>
-  | Tagged<"Failed", { readonly token: bigint }>
-  | Tagged<"Defect", { readonly token: bigint }>
+  | Tagged<"AdviceInserted", { readonly tail: number }>
+  | Tagged<"Cancelled", { readonly token: number }>
+  | Tagged<"Failed", { readonly token: number }>
+  | Tagged<"Defect", { readonly token: number }>
 
 export type Termination =
   | Tagged<"Inactive">
-  | Tagged<"CancelledReason", { readonly token: bigint }>
-  | Tagged<"TechnicalFailure", { readonly token: bigint }>
-  | Tagged<"DefectFailure", { readonly token: bigint }>
+  | Tagged<"CancelledReason", { readonly token: number }>
+  | Tagged<"TechnicalFailure", { readonly token: number }>
+  | Tagged<"DefectFailure", { readonly token: number }>
 
 declare const stateHandle: unique symbol
 export type State = { readonly [stateHandle]: "PostPreparation.State" }
 
-export type Request = Tagged<"Request", { readonly invocation: bigint; readonly id: bigint; readonly command: Command }>
+export type Request = Tagged<"Request", { readonly invocation: number; readonly id: number; readonly command: Command }>
 
-export type Reply = Tagged<"Reply", { readonly invocation: bigint; readonly id: bigint; readonly response: Response }>
+export type Reply = Tagged<"Reply", { readonly invocation: number; readonly id: number; readonly response: Response }>
 
 export type Step =
   | Tagged<"Internal", { readonly state: State }>
@@ -412,7 +412,7 @@ export type AdviceTailStep =
   | Tagged<"AdviceFinished">
   | Tagged<"AdviceStopped", { readonly reason: Termination }>
   | Tagged<"AdviceRejected">
-  | Tagged<"AdviceCleanupPending", { readonly advice: bigint; readonly reason: Termination }>
+  | Tagged<"AdviceCleanupPending", { readonly advice: number; readonly reason: Termination }>
 
 declare const core: {
   enrollment_initial(): EnrollmentStep
@@ -424,7 +424,7 @@ declare const core: {
   native_plan_actions(route: Route): List<NativePlanAction>
   reuse_observation(route: Route): ReuseObservation
   planned_work(route: Route, policy: boolean, observation: boolean): WorkChoice
-  selection_initial(kind: SelectionKind, length: bigint): SelectionStep
+  selection_initial(kind: SelectionKind, length: number): SelectionStep
   selection_resume(step: SelectionStep, response: SelectionResponse): SelectionStep
   plan_observation_initial(route: Route): PlanObservationStep
   plan_observation_resume(step: PlanObservationStep, response: PlanObservationResponse): PlanObservationStep
@@ -440,13 +440,13 @@ declare const core: {
     step: RetainedObservationStep,
     response: RetainedObservationResponse
   ): RetainedObservationStep
-  initial_settled(invocation: bigint, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Maybe<Step>
+  initial_settled(invocation: number, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Maybe<Step>
   resume_settled(step: Step, reply: Reply): Maybe<Step>
-  initial(invocation: bigint, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Step
+  initial(invocation: number, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Step
   advance(state: State): Step
   resume(step: Step, reply: Reply): Step
-  advice_initial(invocation: bigint, advice: bigint): AdviceTailStep
-  advice_initial_cleanup(invocation: bigint, advice: bigint, reason: Termination): AdviceTailStep
+  advice_initial(invocation: number, advice: number): AdviceTailStep
+  advice_initial_cleanup(invocation: number, advice: number, reason: Termination): AdviceTailStep
   advice_initial_preserved(): AdviceTailStep
   advice_retirement(expired: boolean): AdviceRetirement
   advice_resume(step: AdviceTailStep, reply: Reply): AdviceTailStep

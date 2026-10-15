@@ -19,7 +19,7 @@ type NativeQuery =
   | Extract<Publication.Query, { readonly $: "RetentionQuery" }>["query"]
 type Response = Snapshot.Response | Exclude<Publication.Response, { readonly $: "RetentionResponse" }>
 type Binding = ReturnType<typeof createBinding>
-export type FreshnessInvocation = { readonly invocation: bigint; readonly freshness: FreshnessInput }
+export type FreshnessInvocation = { readonly invocation: number; readonly freshness: FreshnessInput }
 export type FreshnessMachine = ReturnType<typeof createFreshnessMachine>
 export type FreshnessContinuation = {
   readonly kind: "freshness"
@@ -28,8 +28,8 @@ export type FreshnessContinuation = {
   readonly state: State
 }
 export type FreshnessRequest = {
-  readonly invocation: bigint
-  readonly id: bigint
+  readonly invocation: number
+  readonly id: number
   readonly held: FreshnessContinuation
 }
 export type FreshnessReply = {
@@ -104,8 +104,8 @@ const nativeQuery = (query: Query): NativeQuery => (query.$ === "RetentionQuery"
 // Invocation-local original values, not serialized product state. Cancellation
 // revokes acceptance; final session close clears these only after lease settlement.
 function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
-  const values = new Map<bigint, unknown>()
-  let nextHandle = 0n
+  const values = new Map<number, unknown>()
+  let nextHandle = 0
   let liveInput: FreshnessInput | undefined = input
   let activeIterator: Generator<unknown, void, unknown> | undefined
   let iteratorBody = false
@@ -114,7 +114,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
     values.set(id, value)
     return id
   }
-  const value = (id: bigint) => values.get(id)
+  const value = (id: number) => values.get(id)
   const read = (lens: Pick<Snapshot.Lens, "object" | "fields">): unknown =>
     unlist(lens.fields).reduce<unknown>((held, key) => (held as Record<string, unknown>)[key], value(lens.object))
   const requiredInput = () => {
@@ -131,7 +131,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
     for (const item of array as Iterable<unknown>) yield item
   }
   const json = createLazyJson(store, value)
-  const primitive = (query: NativeQuery, invocation: bigint): Response => {
+  const primitive = (query: NativeQuery, invocation: number): Response => {
     switch (query.$) {
       case "Read":
       case "PublicationRetention.Read":
@@ -163,7 +163,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
         return { $: "Flag", value: json.compare(invocation, value(query.left), value(query.right), true) }
       case "Length":
       case "PublicationRetention.Length":
-        return { $: "Count", value: BigInt((value(query.array) as { length: number }).length) }
+        return { $: "Count", value: Number((value(query.array) as { length: number }).length) }
       case "Element":
       case "PublicationRetention.Element": {
         const array = value(query.array) as Record<string, unknown>
@@ -221,7 +221,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
         }
       case "Prepare": {
         const names =
-          typeof query.names === "bigint"
+          typeof query.names === "number"
             ? (value(query.names) as ReadonlyMap<string, ReadonlySet<string>>)
             : query.names.$ === "Nil"
               ? undefined
@@ -251,7 +251,7 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
       activeIterator = undefined
       values.clear()
     },
-    initial(invocation: bigint): State {
+    initial(invocation: number): State {
       const held = requiredInput()
       const observation = store(held.observation),
         context = store(held.context)
@@ -333,14 +333,14 @@ function createBinding(input: FreshnessInput, ports: FreshnessPorts) {
 
 function createFreshnessMachine(invocation: number, input: FreshnessInput, ports: FreshnessPorts) {
   let ownedInput: FreshnessInput | undefined = input
-  const ownedInvocation = BigInt(invocation)
+  const ownedInvocation = Number(invocation)
   const binding = createBinding(input, ports)
   return {
     kind: "freshness" as const,
     get retainedHandles() {
       return binding.retainedHandles
     },
-    disposeInvocation(_invocation: bigint) {},
+    disposeInvocation(_invocation: number) {},
     close() {
       ownedInput = undefined
       binding.close()
@@ -400,7 +400,7 @@ export function createFreshnessSession(
   const machine = createFreshnessMachine(invocation, input, ports)
   return {
     invocation,
-    input: { invocation: BigInt(invocation), freshness: input },
+    input: { invocation: Number(invocation), freshness: input },
     machine,
     revoke() {},
     close() {

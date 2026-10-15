@@ -17,11 +17,11 @@ type Configuration = Extract<ServiceOutcome, { readonly $: "Types.GoConfiguratio
 export type Input = GoTag<
   "Input",
   {
-    readonly invocation: bigint
-    readonly next_request: bigint
+    readonly invocation: number
+    readonly next_request: number
     readonly root_path: string
     readonly root_capture: Token<"CaptureToken">
-    readonly root_bytes: bigint
+    readonly root_bytes: number
     readonly branch: ResolverInput["branch"]
     readonly clock: Token<"ClockToken">
     readonly caller_cache: Maybe<Token<"CacheToken">>
@@ -34,7 +34,7 @@ export type Command =
   | GoTag<"GoPrepare", { readonly input: Input }>
   | GoTag<
       "GoInspect",
-      { readonly prepared: Prepared; readonly path: string; readonly branch: Input["branch"]; readonly next: bigint }
+      { readonly prepared: Prepared; readonly path: string; readonly branch: Input["branch"]; readonly next: number }
     >
 type SourceFacts = Extract<
   Extract<ServiceOutcome, { readonly $: "Types.FrontendResult" }>["outcome"],
@@ -47,9 +47,9 @@ export type Result =
   | GoTag<"GoInspected", { readonly facts: Maybe<SourceFacts> }>
 export type View =
   | GoTag<"GoContinue">
-  | GoTag<"GoAwait", { readonly request: Request; readonly next: bigint }>
-  | GoTag<"GoReturned", { readonly result: Result; readonly next: bigint }>
-  | GoTag<"GoFailed", { readonly failure: ResolverFailure; readonly next: bigint }>
+  | GoTag<"GoAwait", { readonly request: Request; readonly next: number }>
+  | GoTag<"GoReturned", { readonly result: Result; readonly next: number }>
+  | GoTag<"GoFailed", { readonly failure: ResolverFailure; readonly next: number }>
 declare const core: {
   begin(command: Command): Step
   advance(step: Step): Step

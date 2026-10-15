@@ -26,12 +26,12 @@ export const measurePostSizing = (
   dispatch?: ResidentDispatchContext,
   ready = true
 ): number | boolean => {
-  const values = new Map<bigint, unknown>([
-    [1n, observation],
-    [2n, dispatch]
+  const values = new Map<number, unknown>([
+    [1, observation],
+    [2, dispatch]
   ])
-  const readValue = (handle: bigint): unknown => {
-    if (handle === 0n && !values.has(handle)) values.set(handle, typeof prepared === "function" ? prepared() : prepared)
+  const readValue = (handle: number): unknown => {
+    if (handle === 0 && !values.has(handle)) values.set(handle, typeof prepared === "function" ? prepared() : prepared)
     return values.get(handle)
   }
   let rules: PreparedUnit["input"]["rules"] = [],
@@ -109,11 +109,11 @@ export const measurePostSizing = (
         values.set(step.operation.target, execute(step.operation))
         break
       case "SizingRules":
-        rules = (readValue(0n) as PreparedUnit).input.rules
+        rules = (readValue(0) as PreparedUnit).input.rules
         values.set(step.target, [])
         reply = {
           $: "SizingLength",
-          length: BigInt(Math.min(Math.max(Math.trunc(+rules.length) || 0, 0), Number.MAX_SAFE_INTEGER))
+          length: (Math.min(Math.max(Math.trunc(+rules.length) || 0, 0), Number.MAX_SAFE_INTEGER))
         }
         break
       case "SizingPresence":
@@ -124,7 +124,7 @@ export const measurePostSizing = (
         reply = { $: "SizingFlag", value: findingFromProbability(1, rule!.threshold) }
         break
       case "SizingFinding": {
-        const sources = [readValue(0n), rule, 1]
+        const sources = [readValue(0), rule, 1]
         const finding = Object.fromEntries(
           unlist(step.fields).map((field) => [
             field.name,
@@ -159,8 +159,8 @@ export const postOutcomeReservationBytes = (
   outcome: PreparedOutcome,
   observation: DirectObservation,
   dispatch: ResidentDispatchContext
-): bigint =>
-  BigInt(
+): number =>
+  Number(BigInt(
     measurePostSizing(
       { $: "ReservationSizing" },
       () => outcomePrepared(outcome),
@@ -168,4 +168,4 @@ export const postOutcomeReservationBytes = (
       dispatch,
       outcome.status === "ready"
     ) as number
-  )
+  ))

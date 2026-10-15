@@ -37,7 +37,7 @@ export const preparationProtocol: Protocol<
   awaitRequest(projected) {
     if (projected.view.$ !== "Types.AwaitService") return undefined
     const request = projected.view.request
-    if (typeof request.invocation !== "bigint" || typeof request.id !== "bigint")
+    if (typeof request.invocation !== "number" || typeof request.id !== "number")
       throw new TypeError("Provider request requires exact Bend Nat identifiers")
     return request
   },

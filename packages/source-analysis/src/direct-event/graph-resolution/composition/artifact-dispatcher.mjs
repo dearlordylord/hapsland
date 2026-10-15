@@ -11,35 +11,35 @@
  * parent: typeof import("../generic-artifact-core.js").default,
  * python: typeof import("../python-artifact-core.js").default,
  * go: typeof import("../go-artifact-core.js").default, retainPrefixes?: boolean }} options
- * @returns {{kind: "artifact", initial(input: import("../service-contract.ts").ResolverInput): import("../artifact-composition-core.js").Step, resume(step: import("../artifact-composition-core.js").Step, event: import("../generic-artifact-core.js").ResolverEvent): import("../artifact-composition-core.js").Step, awaitingRequest(step: import("../artifact-composition-core.js").Step): import("../service-contract.ts").Request | undefined, view(step: import("../artifact-composition-core.js").Step): import("../generic-artifact-core.js").ResolverStep, dispose(): void, disposeInvocation(invocation: bigint): void, readonly retainedHandles: number}}
+ * @returns {{kind: "artifact", initial(input: import("../service-contract.ts").ResolverInput): import("../artifact-composition-core.js").Step, resume(step: import("../artifact-composition-core.js").Step, event: import("../generic-artifact-core.js").ResolverEvent): import("../artifact-composition-core.js").Step, awaitingRequest(step: import("../artifact-composition-core.js").Step): import("../service-contract.ts").Request | undefined, view(step: import("../artifact-composition-core.js").Step): import("../generic-artifact-core.js").ResolverStep, dispose(): void, disposeInvocation(invocation: number): void, readonly retainedHandles: number}}
  */
 export function createArtifactMachine({ composition, parent, python, go, retainPrefixes = true }) {
-  /** @type {Map<bigint, { invocation: bigint, artifact: "parent" | "python" | "go", state: import("../generic-artifact-core.js").Continuation | import("../python-artifact-core.js").Step | import("../go-artifact-core.js").Step }>} */
+  /** @type {Map<number, { invocation: number, artifact: "parent" | "python" | "go", state: import("../generic-artifact-core.js").Continuation | import("../python-artifact-core.js").Step | import("../go-artifact-core.js").Step }>} */
   const handles = new Map()
-  let next = 1n
+  let next = 1
   /**
    * @overload
-   * @param {bigint} invocation
+   * @param {number} invocation
    * @param {"parent"} artifact
    * @param {import("../generic-artifact-core.js").Continuation} state
    * @returns {import("../artifact-composition-core.js").StateHandle}
    */
   /**
    * @overload
-   * @param {bigint} invocation
+   * @param {number} invocation
    * @param {"python"} artifact
    * @param {import("../python-artifact-core.js").Step} state
    * @returns {import("../artifact-composition-core.js").StateHandle}
    */
   /**
    * @overload
-   * @param {bigint} invocation
+   * @param {number} invocation
    * @param {"go"} artifact
    * @param {import("../go-artifact-core.js").Step} state
    * @returns {import("../artifact-composition-core.js").StateHandle}
    */
   /**
-   * @param {bigint} invocation
+   * @param {number} invocation
    * @param {"parent" | "python" | "go"} artifact
    * @param {import("../generic-artifact-core.js").Continuation | import("../python-artifact-core.js").Step | import("../go-artifact-core.js").Step} state
    * @returns {import("../artifact-composition-core.js").StateHandle}
@@ -189,7 +189,7 @@ export function createArtifactMachine({ composition, parent, python, go, retainP
       return projected.value
     },
     dispose: () => handles.clear(),
-    /** @param {bigint} invocation */
+    /** @param {number} invocation */
     disposeInvocation: (invocation) => {
       for (const [id, value] of handles) if (value.invocation === invocation) handles.delete(id)
     },

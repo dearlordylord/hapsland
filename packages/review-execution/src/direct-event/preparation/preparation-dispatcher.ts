@@ -14,7 +14,7 @@ export type PreparationReply = Omit<Reply, "response"> & {
         readonly references: import("@hapsland/source-artifacts/direct-event/value/codec").List<ReferenceSlot>
       })
 }
-export type PreparationInvocation = { readonly invocation: bigint; readonly preparation: Input }
+export type PreparationInvocation = { readonly invocation: number; readonly preparation: Input }
 export type PreparationEvent = { readonly $: "Types.ServiceReply"; readonly reply: PreparationReply }
 type SettledStep = Exclude<Step, { readonly $: "Internal" }>
 type Projection =

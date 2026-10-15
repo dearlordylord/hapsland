@@ -5,11 +5,11 @@ import type { Operation, Query, Response, Lens } from "./lazy-json-core.js"
 
 // The parent's invocation-local arena owns all raw values until lease settlement.
 // This interpreter only decodes Bend commands; it has no IO/cancel/controller.
-export function createLazyJson(store: (value: unknown) => bigint, value: (id: bigint) => unknown) {
-  const property = (object: bigint, key: bigint): unknown =>
+export function createLazyJson(store: (value: unknown) => number, value: (id: number) => unknown) {
+  const property = (object: number, key: number): unknown =>
     (value(object) as Record<PropertyKey, unknown>)[value(key) as PropertyKey]
   const handle = (raw: unknown): Response => ({ $: "Handle", value: store(raw) })
-  const primitive = (query: Query, invocation: bigint): Response => {
+  const primitive = (query: Query, invocation: number): Response => {
     switch (query.$) {
       case "Classify": {
         const raw = value(query.value)
@@ -90,7 +90,7 @@ export function createLazyJson(store: (value: unknown) => bigint, value: (id: bi
         return { $: "Acknowledged" }
     }
   }
-  const run = (invocation: bigint, operation: Operation) => {
+  const run = (invocation: number, operation: Operation) => {
     let step = core.initial(invocation, operation)
     while (step.$ === "Await") {
       const response = primitive(step.query, invocation)
@@ -99,22 +99,22 @@ export function createLazyJson(store: (value: unknown) => bigint, value: (id: bi
     if (step.$ === "InvalidReply") throw new TypeError("Invalid lazy JSON command reply")
     return step
   }
-  const text = (invocation: bigint, operation: Operation): bigint => {
+  const text = (invocation: number, operation: Operation): number => {
     const result = run(invocation, operation)
     if (result.$ !== "CompletedText") throw new TypeError("Expected lazy JSON text")
     return result.value
   }
-  const flag = (invocation: bigint, operation: Operation): boolean => {
+  const flag = (invocation: number, operation: Operation): boolean => {
     const result = run(invocation, operation)
     if (result.$ !== "CompletedFlag") throw new TypeError("Expected lazy JSON comparison")
     return result.value
   }
   return {
-    serialize: (invocation: bigint, raw: unknown) =>
+    serialize: (invocation: number, raw: unknown) =>
       value(text(invocation, { $: "Serialize", value: store(raw) })) as string,
-    compare: (invocation: bigint, left: unknown, right: unknown, reviewInput: boolean) =>
+    compare: (invocation: number, left: unknown, right: unknown, reviewInput: boolean) =>
       flag(invocation, { $: reviewInput ? "ReviewEqual" : "Compare", left: store(left), right: store(right) }),
-    compareLenses: (invocation: bigint, left: Lens, right: Lens) => flag(invocation, { $: "LensCompare", left, right }),
-    identity: (invocation: bigint, raw: unknown) => value(text(invocation, { $: "Identity", value: store(raw) }))
+    compareLenses: (invocation: number, left: Lens, right: Lens) => flag(invocation, { $: "LensCompare", left, right }),
+    identity: (invocation: number, raw: unknown) => value(text(invocation, { $: "Identity", value: store(raw) }))
   }
 }

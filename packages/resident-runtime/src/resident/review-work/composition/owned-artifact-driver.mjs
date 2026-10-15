@@ -17,7 +17,7 @@ import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").ControlledStep | OwnerStep} Step
  * @typedef {import("@hapsland/runtime-environment/runtime/native-session-registry").NativeSession & {revoke(): unknown, finish?: () => unknown | Promise<unknown>, exception?: (token: Parameters<Parameters<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").createBendResolver>[0]["drive"]>[0] extends {exception: (token: infer T) => unknown} ? T : never) => unknown, forceCleanup?: (error: unknown) => unknown}} NativeSession
  * @typedef {Extract<ownedMachine.Projection["view"], {$: "Types.AwaitService"}>["request"]} RawRequest
- * @typedef {RawRequest & {readonly invocation: bigint, readonly id: bigint}} Request
+ * @typedef {RawRequest & {readonly invocation: number, readonly id: number}} Request
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").ForeignOptions} ForeignOptions
 
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").PreparationHandoff} PreparationHandoff
@@ -71,14 +71,14 @@ const required = (value) => {
  * driveConstructedFlowEffect: (construct: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: Session, input: Parameters<ownedMachine.PreparationMachine["initial"]>[0]}>, options?: ForeignOptions) => Effect.Effect<PreparationOutcome>,
  * drive: Drive<Session>,
  * driveEffect: DriveEffect<Session>,
- * driveHandoffEffect: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => import("effect/Effect").Effect<PostOutcome>,
+ * driveHandoffEffect: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: number, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => import("effect/Effect").Effect<PostOutcome>,
  * driveAdviceEffect: (receipt: AdviceHandoff, session: Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}, options?: ForeignOptions) => import("effect/Effect").Effect<AdviceOutcome>,
- * driveHandoff: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => Promise<PostOutcome>,
+ * driveHandoff: (receipt: PreparationHandoff, session: Session, buildInput: (result: {preparation: PreparationResult}, invocation: number, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0], options?: ForeignOptions) => Promise<PostOutcome>,
  * driveAdvice: (receipt: AdviceHandoff, session: Session & {input: Parameters<ownedMachine.AdviceMachine["initial"]>[0]}, options?: ForeignOptions) => Promise<AdviceOutcome>
  * }} Driver
  */
 /** @param {RawRequest} request @returns {request is Request} */
-const exactRequest = (request) => typeof request.invocation === "bigint" && typeof request.id === "bigint"
+const exactRequest = (request) => typeof request.invocation === "number" && typeof request.id === "number"
 // Concrete machine protocols remain at this composition owner. CanonicalPolicy
 // executes their single shared action/custody implementation.
 /**
@@ -218,8 +218,8 @@ export function createOwnedArtifactDriver({
   function driveEffect(session, input, options) {
     return sharedEffect(session, input, options)
   }
-  /** @overload @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
-  /** @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
+  /** @overload @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: number, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<PostOutcome>} */
+  /** @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: number, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
   function driveHandoff(receipt, session, buildInput, options) {
     return sharedHandoff(receipt, session, buildInput, options)
   }
@@ -228,8 +228,8 @@ export function createOwnedArtifactDriver({
   function driveAdvice(receipt, session, options) {
     return sharedAdvice(receipt, session, options)
   }
-  /** @overload @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Effect.Effect<PostOutcome>} */
-  /** @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: bigint, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Effect.Effect<TerminalOutcome>} */
+  /** @overload @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: number, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Effect.Effect<PostOutcome>} */
+  /** @param {PreparationHandoff} receipt @param {Session} session @param {(result: {preparation: PreparationResult}, invocation: number, scope: PreparationHandoff["scope"]) => Parameters<ownedMachine.PostMachine["initial"]>[0]} buildInput @param {ForeignOptions} [options] @returns {Effect.Effect<TerminalOutcome>} */
   function driveHandoffEffect(receipt, session, buildInput, options) {
     return sharedHandoffEffect(receipt, session, buildInput, options)
   }

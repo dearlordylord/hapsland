@@ -35,13 +35,13 @@ export const runWorkspaceSizing = (
   preflight?: unknown,
   rules?: unknown
 ): number => {
-  const values = new Map<bigint, unknown>([
-    [0n, path],
-    [1n, sourceBytes],
-    [2n, preflight],
-    [3n, rules]
+  const values = new Map<number, unknown>([
+    [0, path],
+    [1, sourceBytes],
+    [2, preflight],
+    [3, rules]
   ])
-  const primitive = (kind: Primitive, args: readonly bigint[]): unknown => {
+  const primitive = (kind: Primitive, args: readonly number[]): unknown => {
     const first = values.get(args[0]!)
     const second = values.get(args[1]!)
     switch (kind.$) {

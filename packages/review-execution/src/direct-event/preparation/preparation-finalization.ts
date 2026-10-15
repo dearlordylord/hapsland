@@ -45,8 +45,8 @@ export type FinalizationFrame = {
   readonly context: SourcePreparationContext
 }
 export type FinalizationInput = {
-  readonly invocation: bigint | number
-  readonly command: bigint | number
+  readonly invocation: number
+  readonly command: number
   readonly units: readonly unknown[]
   readonly declarations: readonly unknown[]
   readonly path: string
@@ -167,7 +167,7 @@ export function createPreparationFinalizationExecution({
         }))
       )
     }
-    const scope: Invocation = { $: "Invocation", owner: BigInt(invocation), command: BigInt(command) }
+    const scope: Invocation = { $: "Invocation", owner: Number(invocation), command: Number(command) }
     let encodingError: URIError | undefined
     return {
       initial: () => machine.initial(scope, context, list(units.map(productValue))),

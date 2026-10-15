@@ -20,12 +20,12 @@ const constructionFailureTag = Symbol("CanonicalConstructionFailure")
  * @typedef {import("./contract.ts").ControlledStep | OwnerStep} Step
  * @typedef {{phase: string, error: unknown, command?: Action, operation?: number}} Failure
  * @typedef {{failures: Failure[], rejection: Failure | undefined}} ActionOutcome
- * @typedef {{signal?: AbortSignal | undefined, ownerLease?: {invocation: bigint, generation: bigint, lease: bigint, request: bigint}}} ForeignOptions
+ * @typedef {{signal?: AbortSignal | undefined, ownerLease?: {invocation: number, generation: number, lease: number, request: number}}} ForeignOptions
  * @typedef {{[constructionFailureTag]: true, kind: "construction-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} ConstructionFailure
- * @typedef {{origin: bigint, value: unknown, kind?: never}} AdviceInput
+ * @typedef {{origin: number, value: unknown, kind?: never}} AdviceInput
  * @typedef {import("./contract.ts").PreparationHandoff} PreparationHandoff
- * @typedef {{handoff: bigint, scope: Extract<Scope, {$: "AdviceTailScope"}>}} AdviceHandoff
- * @typedef {Extract<Action, {$: "Launch"}> | (Extract<Action, {$: "LaunchPostPreparation"}> & {input_handle: bigint, receipt: PreparationHandoff}) | (Extract<Action, {$: "LaunchAdviceTail"}> & {receipt: AdviceHandoff})} Launch
+ * @typedef {{handoff: number, scope: Extract<Scope, {$: "AdviceTailScope"}>}} AdviceHandoff
+ * @typedef {Extract<Action, {$: "Launch"}> | (Extract<Action, {$: "LaunchPostPreparation"}> & {input_handle: number, receipt: PreparationHandoff}) | (Extract<Action, {$: "LaunchAdviceTail"}> & {receipt: AdviceHandoff})} Launch
  * @typedef {{command: Extract<Action, {$: "CancelChild"}>, completed: Set<number>}} CancellationCleanup
  */
 /** @template {Method} M @typedef {import("./contract.ts").Arguments<M>} Arguments */
@@ -92,12 +92,12 @@ const constructionFailure = (value) => constructionFailureTag in value
  * @template Reply, A, Prep
  * @template {import("./contract.ts").Session} S
  * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<S>>, foreign: (requests: readonly R[], options: ForeignOptions) => Promise<Reply>, foreignSync?: (requests: readonly R[], options: ForeignOptions) => import("./contract.ts").ForeignReply<Reply> | undefined, control?: Control, machine: M, selectMachine?: (input: I, session: S) => M | undefined, protocol: import("./contract.ts").Protocol<I, M, C, P, R, Reply, A, Prep, S>, hooks?: {
- * beforeInstall?: (event: {invocation: bigint, generation: bigint, handle: bigint, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
- * beforeTerminal?: (event: {invocation: bigint, generation: bigint, handle: bigint, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
+ * beforeInstall?: (event: {invocation: number, generation: number, handle: number, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
+ * beforeTerminal?: (event: {invocation: number, generation: number, handle: number, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
  * afterAction?: (event: {command: Action, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
  * canonicalOutputs?: (outputs: readonly (Extract<Step, {$: "Advanced"}>["outputs"] extends import("@hapsland/agent-flow-bend/canonical-resolver-owner").List<infer O> ? O : never)[]) => unknown,
- * beforeProvider?: (event: {invocation: bigint, lease: bigint, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
- * beforeCompletion?: (event: {invocation: bigint, lease: bigint, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown
+ * beforeProvider?: (event: {invocation: number, lease: number, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown,
+ * beforeCompletion?: (event: {invocation: number, lease: number, request: R, driver: ReturnType<typeof createChildExecutionDriver<I,M,C,P,R,Reply,A,Prep,S>>}) => unknown
  * }}} options
  */
 // foreignSync must return undefined without effects for unsupported requests;
@@ -119,17 +119,17 @@ export function createChildExecutionDriver({
    * @typedef {P | ConstructionFailure} ResultPayload
    * @typedef {{value: Reply} | {error: unknown} | {revoked: true}} ReplyPayload
    * @typedef {{kind: "state", value: C} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: I | P | AdviceInput | undefined} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined}} Payload
-   * @typedef {Payload & {invocation: bigint}} HeldResource
+   * @typedef {Payload & {invocation: number}} HeldResource
    * @typedef {import("./contract.ts").Outcome<A>} TerminalOutcome
    */
-  /** @type {Map<bigint, M>} */
+  /** @type {Map<number, M>} */
   const machines = new Map()
-  /** @type {Map<bigint, AbortSignal | undefined>} */
+  /** @type {Map<number, AbortSignal | undefined>} */
   const invocationSignals = new Map()
-  /** @param {bigint} invocation */
+  /** @param {number} invocation */
   const engine = (invocation) => machines.get(invocation) ?? machine
   let state = control ? undefined : initialState,
-    nextHandle = 1n
+    nextHandle = 1
   /** @type {EntryTable} */
   const entries = owner
   const current = () => (control ? control.readState() : required(state))
@@ -148,14 +148,14 @@ export function createChildExecutionDriver({
     const call = /** @type {(state: State, ...args: Arguments<M>) => OwnerStep} */ (entries[method])
     return call(current(), ...args)
   }
-  /** @param {bigint} invocation */
+  /** @param {number} invocation */
   const findChild = (invocation) => {
     const child = owner.find(invocation, current().children)
     if (child.$ !== "Some") throw new Error("Missing Canonical invocation")
     return child.value
   }
   /**
-   * @param {bigint} invocation
+   * @param {number} invocation
    * @returns {ReturnType<NonNullable<Control["readActive"]>>}
    */
   const readActive = (invocation) => {
@@ -163,21 +163,21 @@ export function createChildExecutionDriver({
     const found = owner.find(invocation, current().children)
     return found.$ === "Some" ? { $: "Some", value: owner.child_active(found.value) } : { $: "None" }
   }
-  /** @param {bigint} invocation */
+  /** @param {number} invocation */
   const requireActive = (invocation) => {
     const observed = readActive(invocation)
     if (observed.$ !== "Some") throw new Error("Missing Canonical invocation")
     return observed.value
   }
-  /** @type {Map<bigint, HeldResource>} */
+  /** @type {Map<number, HeldResource>} */
   const resources = new Map()
-  /** @type {Map<bigint, {invocation: bigint, request: R, controller: AbortController}>} */
+  /** @type {Map<number, {invocation: number, request: R, controller: AbortController}>} */
   const leases = new Map()
-  /** @type {Map<bigint, Launch>} */
+  /** @type {Map<number, Launch>} */
   const launches = new Map()
-  /** @type {Map<bigint, S>} */
+  /** @type {Map<number, S>} */
   const sessions = new Map()
-  /** @type {Map<bigint, TerminalOutcome>} */
+  /** @type {Map<number, TerminalOutcome>} */
   const finished = new Map()
   /** @type {WeakSet<S>} */
   const finalizedSessions = new WeakSet()
@@ -229,24 +229,24 @@ export function createChildExecutionDriver({
     if (value.$ !== "Nil") throw new Error("Malformed owner action list")
     return out
   }
-  /** @param {bigint} invocation @param {Payload} payload */
+  /** @param {number} invocation @param {Payload} payload */
   const save = (invocation, payload) => {
     const id = nextHandle++
     resources.set(id, { invocation, ...payload })
     return id
   }
-  /** @overload @param {bigint} id @param {bigint} invocation @param {"state"} kind @returns {C} */
-  /** @overload @param {bigint} id @param {bigint} invocation @param {"result"} kind @returns {ResultPayload} */
-  /** @overload @param {bigint} id @param {bigint} invocation @param {"reply"} kind @returns {ReplyPayload} */
-  /** @overload @param {bigint} id @param {bigint} invocation @param {"input"} kind @returns {I | P | AdviceInput | undefined} */
-  /** @param {bigint} id @param {bigint} invocation @param {Payload["kind"]} kind @returns {Payload["value"]} */
+  /** @overload @param {number} id @param {number} invocation @param {"state"} kind @returns {C} */
+  /** @overload @param {number} id @param {number} invocation @param {"result"} kind @returns {ResultPayload} */
+  /** @overload @param {number} id @param {number} invocation @param {"reply"} kind @returns {ReplyPayload} */
+  /** @overload @param {number} id @param {number} invocation @param {"input"} kind @returns {I | P | AdviceInput | undefined} */
+  /** @param {number} id @param {number} invocation @param {Payload["kind"]} kind @returns {Payload["value"]} */
   function load(id, invocation, kind) {
     const held = resources.get(id)
     if (!held || held.invocation !== invocation || held.kind !== kind)
       throw new Error("Wrong opaque resource ownership")
     return held.value
   }
-  /** @param {bigint} id @param {bigint} invocation */
+  /** @param {number} id @param {number} invocation */
   const release = (id, invocation) => {
     const held = resources.get(id)
     if (held && held.invocation === invocation) {
@@ -256,7 +256,7 @@ export function createChildExecutionDriver({
   }
   /** @returns {Extract<TerminalOutcome, {failure: object}>} */
   const failed = () => ({ failure: { $: "Types.InvocationCancelled" } })
-  /** @param {bigint} invocation @param {bigint} generation @param {C} raw @returns {ActionOutcome} */
+  /** @param {number} invocation @param {number} generation @param {C} raw @returns {ActionOutcome} */
   const settleOutcome = (invocation, generation, raw) => {
     if (protocol.synchronousAdvance) {
       for (;;) {
@@ -277,7 +277,7 @@ export function createChildExecutionDriver({
       try {
         hooks.beforeInstall?.({ invocation, generation, handle: id, request, driver })
         const child = findChild(invocation)
-        const requestId = BigInt(request.id)
+        const requestId = Number(request.id)
         const installation = protocol.installation(projected, child.scope)
         const step =
           installation.method === "install"
@@ -307,7 +307,7 @@ export function createChildExecutionDriver({
   }
   // Cancellation commits in Canonical before these resource operations run.
   // Keep successful suboperations so a later cleanup retry cannot replay them.
-  /** @type {Map<bigint, CancellationCleanup>} */
+  /** @type {Map<number, CancellationCleanup>} */
   const cancellationCleanup = new Map()
   /** @param {CancellationCleanup} obligation @returns {ActionOutcome} */
   const runCancellationCleanup = (obligation) => {
@@ -354,7 +354,7 @@ export function createChildExecutionDriver({
         break
       case "LaunchAdviceTail": {
         const held = resources.get(command.input_handle)
-        if (!held || held.invocation !== 0n || held.kind !== "advice-input" || held.value.origin !== command.origin)
+        if (!held || held.invocation !== 0 || held.kind !== "advice-input" || held.value.origin !== command.origin)
           throw new Error("Advice launch requires its prepared opaque input")
         const child = owner.find(invocation, current().children)
         if (child.$ !== "Some" || child.value.scope.$ !== "AdviceTailScope")
@@ -501,7 +501,7 @@ export function createChildExecutionDriver({
   function* driveInvocationFlow(session, input, options = {}) {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
       throw new Error("Session already owned by an active invocation")
-    const invocation = BigInt(input.invocation),
+    const invocation = Number(input.invocation),
       launch = launches.get(invocation)
     if (!launch) {
       const missing = yield* registry.runOutcomeFlow(session, function* () {
@@ -592,7 +592,7 @@ export function createChildExecutionDriver({
               return terminalOutcome()
             }
             try {
-              settleInInvocation(invocation, 0n, protocol.initial(engine(invocation), input))
+              settleInInvocation(invocation, 0, protocol.initial(engine(invocation), input))
             } finally {
               release(launch.input_handle, invocation)
             }
@@ -618,7 +618,7 @@ export function createChildExecutionDriver({
                     invocation,
                     generation: child.generation,
                     lease: leaseId,
-                    request: BigInt(lease.request.id)
+                    request: Number(lease.request.id)
                   })
                 }
                 const offered = foreignSync?.([lease.request], execution)
@@ -659,7 +659,7 @@ export function createChildExecutionDriver({
               const replyId = save(invocation, { kind: "reply", value: payload })
               try {
                 hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
-                applyInInvocation(invoke("provider_completed", invocation, leaseId, BigInt(lease.request.id), replyId))
+                applyInInvocation(invoke("provider_completed", invocation, leaseId, Number(lease.request.id), replyId))
               } catch (error) {
                 taskFailure = takeFailure(error)
                 try {
@@ -672,7 +672,7 @@ export function createChildExecutionDriver({
                 if (leases.has(leaseId)) {
                   try {
                     applyInInvocation(
-                      invoke("provider_completed", invocation, leaseId, BigInt(lease.request.id), replyId)
+                      invoke("provider_completed", invocation, leaseId, Number(lease.request.id), replyId)
                     )
                   } catch (cleanupError) {
                     takeFailure(cleanupError)
@@ -839,7 +839,7 @@ export function createChildExecutionDriver({
     }
     return yield* driveInvocationFlow(session, session.input, options)
   }
-  /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: bigint, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
+  /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: number, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
   function* driveHandoffFlow(receipt, session, buildInput, options = {}) {
     const invocation = receipt.handoff
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
@@ -879,7 +879,7 @@ export function createChildExecutionDriver({
         throw new TypeError("Independent operation requires a root invocation")
       if (!independentOperation && (!parent || preparation) && !issuedScope)
         throw new TypeError("Missing owned invocation scope")
-      if (current().next_invocation < 1n || current().next_invocation > BigInt(Number.MAX_SAFE_INTEGER))
+      if (current().next_invocation < 1 || current().next_invocation > Number(Number.MAX_SAFE_INTEGER))
         throw new RangeError("Invocation exceeds exact native ID range")
       const invocation = current().next_invocation
       const inputId = save(invocation, { kind: "input", value: undefined })
@@ -932,21 +932,21 @@ export function createChildExecutionDriver({
     allocateSourceInvocation(issuedScope) {
       return driver.allocateInvocation(undefined, false, issuedScope)
     },
-    /** @param {bigint} origin @param {unknown} value */
+    /** @param {number} origin @param {unknown} value */
     prepareAdviceInput(origin, value) {
-      if (typeof origin !== "bigint" || origin < 1n) throw new Error("Advice input requires its origin")
-      return save(0n, { kind: "advice-input", value: { origin, value } })
+      if (!Number.isSafeInteger(origin) || origin < 1) throw new Error("Advice input requires its origin")
+      return save(0, { kind: "advice-input", value: { origin, value } })
     },
-    /** @param {bigint} origin @param {bigint} handle */
+    /** @param {number} origin @param {number} handle */
     validateAdviceInput(origin, handle) {
       const held = resources.get(handle)
-      return !!held && held.invocation === 0n && held.kind === "advice-input" && held.value.origin === origin
+      return !!held && held.invocation === 0 && held.kind === "advice-input" && held.value.origin === origin
     },
-    /** @param {bigint} handle */
+    /** @param {number} handle */
     releaseAdviceInput(handle) {
-      release(handle, 0n)
+      release(handle, 0)
     },
-    /** @param {bigint} invocation @returns {AdviceHandoff} */
+    /** @param {number} invocation @returns {AdviceHandoff} */
     adviceHandoff(invocation) {
       const launch = launches.get(invocation)
       if (launch?.$ !== "LaunchAdviceTail") throw new Error("Missing advice launch")
@@ -970,11 +970,11 @@ export function createChildExecutionDriver({
         throw new Error("Wrong accepted preparation handoff")
       return { preparation: protocol.preparation(projected) }
     },
-    /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: bigint, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] */
+    /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: number, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] */
     driveHandoff(receipt, session, buildInput, options = {}) {
       return runNativePromise(driveHandoffFlow(receipt, session, buildInput, options))
     },
-    /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: bigint, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] */
+    /** @param {PreparationHandoff} receipt @param {S} session @param {(result: {preparation: Prep}, invocation: number, scope: PreparationHandoff["scope"]) => I} buildInput @param {ForeignOptions} [options] */
     driveHandoffEffect(receipt, session, buildInput, options = {}) {
       return runEffectFlow((execution) => driveHandoffFlow(receipt, session, buildInput, execution), options)
     },
@@ -1004,9 +1004,9 @@ export function createChildExecutionDriver({
         return yield* driveInvocationFlow(session, input, execution)
       }, options)
     },
-    /** @param {number} invocation @param {{session?: S | undefined, closePending?: boolean, inputHandle?: bigint}} [cleanup] */
+    /** @param {number} invocation @param {{session?: S | undefined, closePending?: boolean, inputHandle?: number}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false, inputHandle } = {}) {
-      const ownerInvocation = BigInt(invocation)
+      const ownerInvocation = Number(invocation)
       let cancelCommitted = false
       /** @type {Extract<Step, {$: "Advanced"}>["outputs"] | undefined} */
       let pendingOutputs
@@ -1060,9 +1060,9 @@ export function createChildExecutionDriver({
         throw error
       }
     },
-    /** @param {number | bigint} invocation */
+    /** @param {number} invocation */
     cancel(invocation) {
-      apply(invoke("cancel", BigInt(invocation)))
+      apply(invoke("cancel", Number(invocation)))
     },
     /** @param {readonly Action[]} commands */
     acceptActions(commands) {

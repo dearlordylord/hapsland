@@ -17,12 +17,12 @@ type Census = { readonly [census]: true }
 type Return = { readonly [returnValue]: true }
 export type StateHandle = Tagged<
   "composition/ArtifactProtocol.StateHandle",
-  { readonly invocation: bigint; readonly id: bigint }
+  { readonly invocation: number; readonly id: number }
 >
 type Context = Tagged<
   "composition/ArtifactComposition.Context",
   {
-    readonly invocation: bigint
+    readonly invocation: number
     readonly session: Maybe<Session>
     readonly cache: Maybe<Token<"CacheToken">>
     readonly census: Census

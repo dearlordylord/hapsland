@@ -14,7 +14,7 @@ type Primitive =
 
 export type CanonicalJsonPlanOperation =
   | { readonly $: "PrimitiveOperation"; readonly value: Primitive }
-  | { readonly $: "ArrayOperation"; readonly arity: bigint }
+  | { readonly $: "ArrayOperation"; readonly arity: number }
   | { readonly $: "ObjectOperation"; readonly keys: List<string> }
 
 type Task = { readonly value: ProductValue } | { readonly operation: CanonicalJsonPlanOperation }
@@ -45,7 +45,7 @@ export const canonicalJsonPlanOperations = (value: ProductValue): List<Canonical
         break
       case "../../../../source-artifacts/src/direct-event/value/Value.ProductArray": {
         const children = unlist(node.items)
-        pending.push({ operation: { $: "ArrayOperation", arity: BigInt(children.length) } })
+        pending.push({ operation: { $: "ArrayOperation", arity: Number(children.length) } })
         for (let index = children.length - 1; index >= 0; index--) pending.push({ value: children[index]! })
         break
       }

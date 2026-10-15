@@ -1,17 +1,17 @@
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { Maybe, Reply, ServiceOutcome, Token, TokenKind } from "./service-contract.ts"
 
-export function encodeGraphToken<Kind extends TokenKind>(token: Token<Kind>): Token<Kind, bigint> {
-  return { $: token.$, invocation: BigInt(token.invocation), id: BigInt(token.id) }
+export function encodeGraphToken<Kind extends TokenKind>(token: Token<Kind>): Token<Kind, number> {
+  return { $: token.$, invocation: token.invocation, id: token.id }
 }
 
-export function encodeGraphCache(cache: Maybe<Token<"CacheToken">>): Maybe<Token<"CacheToken", bigint>> {
+export function encodeGraphCache(cache: Maybe<Token<"CacheToken">>): Maybe<Token<"CacheToken", number>> {
   return cache.$ === "None" ? cache : { $: "Some", value: encodeGraphToken(cache.value) }
 }
 
 // Encode the closed transport fields after the provider catch. Frontend facts
 // and ProductValue payloads already have their own ABI and are not traversed.
-function encodeOutcome(outcome: ServiceOutcome): ServiceOutcome<bigint> {
+function encodeOutcome(outcome: ServiceOutcome): ServiceOutcome<number> {
   switch (outcome.$) {
     case "Types.ClockStarted":
       return { ...outcome, clock: encodeGraphToken(outcome.clock) }
@@ -36,7 +36,7 @@ function encodeOutcome(outcome: ServiceOutcome): ServiceOutcome<bigint> {
             : {
                 ...outcome.outcome,
                 capture: encodeGraphToken(outcome.outcome.capture),
-                bytes: BigInt(outcome.outcome.bytes)
+                bytes: outcome.outcome.bytes
               }
       }
     case "Types.CaptureResult":
@@ -48,27 +48,27 @@ function encodeOutcome(outcome: ServiceOutcome): ServiceOutcome<bigint> {
             : {
                 ...outcome.outcome,
                 capture: encodeGraphToken(outcome.outcome.capture),
-                bytes: BigInt(outcome.outcome.bytes)
+                bytes: outcome.outcome.bytes
               }
       }
     case "Types.CacheSnapshot":
       return {
         ...outcome,
-        entries: list(unlist(outcome.entries).map((entry) => ({ ...entry, bytes: BigInt(entry.bytes) })))
+        entries: list(unlist(outcome.entries).map((entry) => ({ ...entry, bytes: entry.bytes })))
       }
     case "Types.ProductEncoded":
     case "Types.SourceTextEncoded":
-      return { ...outcome, bytes: BigInt(outcome.bytes) }
+      return { ...outcome, bytes: outcome.bytes }
     default:
       return outcome
   }
 }
 
-export function encodeGraphReply(reply: Reply): Reply<bigint> {
+export function encodeGraphReply(reply: Reply): Reply<number> {
   return {
     $: reply.$,
-    invocation: BigInt(reply.invocation),
-    id: BigInt(reply.id),
+    invocation: reply.invocation,
+    id: reply.id,
     outcome: encodeOutcome(reply.outcome)
   }
 }

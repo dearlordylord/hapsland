@@ -17,13 +17,13 @@ import {
 
 type Binding = ReturnType<ReturnType<typeof createPreparationFinalizationExecution>>
 export type FinalizationInvocation = {
-  readonly invocation: bigint
+  readonly invocation: number
   readonly finalization: FinalizationInput
   readonly execution: Execution
 }
 export type FinalizationRequest = {
-  readonly invocation: bigint
-  readonly id: bigint
+  readonly invocation: number
+  readonly id: number
   readonly finalization: Step
   readonly binding: Binding
 }
@@ -35,7 +35,7 @@ export type FinalizationMachine = ReturnType<typeof createFinalizationMachine>
 export type FinalizationContinuation = {
   readonly kind: "finalization"
   readonly machine: FinalizationMachine
-  readonly invocation: bigint
+  readonly invocation: number
   readonly binding: Binding
   readonly step: Step
   readonly settled?: true
@@ -54,7 +54,7 @@ export function createFinalizationMachine(engines: Parameters<typeof createPrepa
   return {
     kind: "finalization" as const,
     retainedHandles: 0,
-    disposeInvocation(_invocation: bigint) {},
+    disposeInvocation(_invocation: number) {},
     initial(input: FinalizationInvocation): FinalizationContinuation {
       const binding = createExecution({ ...input.finalization, invocation: input.invocation }, input.execution)
       return { kind: "finalization", machine: this, invocation: input.invocation, binding, step: binding.initial() }
@@ -199,7 +199,7 @@ export function createFinalizationSession(
 ): FinalizationSession {
   return {
     invocation,
-    input: { invocation: BigInt(invocation), finalization, execution },
+    input: { invocation: Number(invocation), finalization, execution },
     machine: createFinalizationMachine({ machine: core, canonicalGate }),
     revoke() {},
     close() {}

@@ -30,14 +30,14 @@ import { postOutcomeFits, postOutcomeReservationBytes } from "./post-sizing.ts"
  * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<ReturnType<typeof createAdviceTailProvider>>>, "driveAdviceEffect" | "adviceHandoff" | "prepareAdviceInput" | "releaseAdviceInput">} AdviceDriver
  * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver>, "state" | "handoffResult">} PreparationHandoffDriver
  * @typedef {import("./context.ts").PreparationContext & { deps: import("./context.ts").Dependencies & Pick<import("../evaluation/context.ts").Dependencies, "residentNow" | "residentReviewControls"> & Pick<import("../../advice-delivery/handoff/context.ts").Dependencies, "residentAdviceExpired">, ownedAdvice?: {core: typeof import("./post-preparation-core.js").default, bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, driver: AdviceDriver} }} PostContext
- * @typedef {{owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner, driver: PreparationHandoffDriver, sourceInvocation: bigint, operation: bigint, capability: import("../../state/capacity/model.ts").CapacityReservation, handoff: {handoff: bigint, scope: Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").Scope, {$: "RetainingScope"}>}, parent: {invocation: bigint, generation: bigint, request: bigint}}} SourceWorkspace
+ * @typedef {{owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner, driver: PreparationHandoffDriver, sourceInvocation: number, operation: number, capability: import("../../state/capacity/model.ts").CapacityReservation, handoff: {handoff: number, scope: Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").Scope, {$: "RetainingScope"}>}, parent: {invocation: number, generation: number, request: number}}} SourceWorkspace
  */
 /** @template A @param {A} value @returns {{$: "Some", value: A}} */
 const some = (value) => ({ $: "Some", value })
 /** @type {{$: "None"}} */
 const none = { $: "None" }
 /**
- * @param {bigint} invocation
+ * @param {number} invocation
  * @param {PostContext} context
  * @param {import("@hapsland/review-execution/direct-event/pipeline").PreparedObservation} prepared
  * @param {Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>} preparation
@@ -55,25 +55,25 @@ export function createPostPreparationProvider(
   sourceWorkspace
 ) {
   const ledger = context.deps.residentLedger
-  /** @type {Map<bigint, NativePlan>} */
+  /** @type {Map<number, NativePlan>} */
   const plans = new Map()
-  /** @type {Map<bigint, import("../../state/capacity/model.ts").CapacityReservation>} */
+  /** @type {Map<number, import("../../state/capacity/model.ts").CapacityReservation>} */
   const reservations = new Map()
-  /** @type {Map<bigint, import("../../state/revision.ts").WorkRevision>} */
+  /** @type {Map<number, import("../../state/revision.ts").WorkRevision>} */
   const revisions = new Map()
-  /** @type {Map<bigint, import("../../work-ownership/jobs.ts").UnitJob>} */
+  /** @type {Map<number, import("../../work-ownership/jobs.ts").UnitJob>} */
   const units = new Map()
-  /** @type {Map<bigint, unknown>} */
+  /** @type {Map<number, unknown>} */
   const errors = new Map()
-  /** @type {Map<bigint, Cause.Cause<unknown>>} */
+  /** @type {Map<number, Cause.Cause<unknown>>} */
   const errorCauses = new Map()
-  /** @type {Map<bigint, import("../../state/resolver-custody/provider-authority.ts").PendingRestore>} */
+  /** @type {Map<number, import("../../state/resolver-custody/provider-authority.ts").PendingRestore>} */
   const pendingOwners = new Map()
-  /** @type {Map<bigint, import("../../state/advice-records.ts").Advice>} */
+  /** @type {Map<number, import("../../state/advice-records.ts").Advice>} */
   const adviceOwners = new Map()
-  /** @type {Map<bigint, readonly import("../../state/joined-reviews.ts").JoinedReviewOutcome[]>} */
+  /** @type {Map<number, readonly import("../../state/joined-reviews.ts").JoinedReviewOutcome[]>} */
   const publications = new Map()
-  /** @type {Map<bigint, {receipt: import("../../state/resolver-custody/provider-authority.ts").AdviceReceipt, provider: ReturnType<typeof createAdviceTailProvider>, unit: import("../../work-ownership/jobs.ts").UnitJob, evaluation: import("@hapsland/review-execution/direct-event/pipeline").EvaluatedUnit, started: boolean, preserved?: boolean}>} */
+  /** @type {Map<number, {receipt: import("../../state/resolver-custody/provider-authority.ts").AdviceReceipt, provider: ReturnType<typeof createAdviceTailProvider>, unit: import("../../work-ownership/jobs.ts").UnitJob, evaluation: import("@hapsland/review-execution/direct-event/pipeline").EvaluatedUnit, started: boolean, preserved?: boolean}>} */
   const tails = new Map()
   let revoked = false,
     closed = false,
@@ -114,17 +114,17 @@ export function createPostPreparationProvider(
   }
   /** @type {Set<import("../../work-ownership/jobs.ts").Job>} */
   const transferred = new Set()
-  /** @type {Set<bigint>} */
+  /** @type {Set<number>} */
   const dischargedReservations = new Set()
   /** @type {Set<string>} */
   const ownedClaims = new Set()
-  /** @type {Map<bigint, import("../../state/revision.ts").WorkRevision>} */
+  /** @type {Map<number, import("../../state/revision.ts").WorkRevision>} */
   const acquiredRevisions = new Map()
-  /** @type {Map<bigint, bigint>} */
+  /** @type {Map<number, number>} */
   const revisionReservations = new Map()
-  /** @param {bigint} handle */
-  const transferredReservation = (handle) => [...transferred].some((value) => BigInt(value.reservation.id) === handle)
-  /** @param {bigint} handle */
+  /** @param {number} handle */
+  const transferredReservation = (handle) => [...transferred].some((value) => (value.reservation.id) === handle)
+  /** @param {number} handle */
   const transferredAcquisition = (handle) => {
     const reservation = revisionReservations.get(handle)
     return reservation !== undefined && transferredReservation(reservation)
@@ -132,9 +132,9 @@ export function createPostPreparationProvider(
   /** @param {string} key */
   const transferredClaim = (key) =>
     [...transferred].some((value) => value.kind === "unit" && value.evaluationKey === key)
-  /** @type {Set<bigint>} */
+  /** @type {Set<number>} */
   const dischargedWork = new Set()
-  /** @param {bigint} handle */
+  /** @param {number} handle */
   const claimKey = (handle) => {
     const plan = plans.get(handle)
     if (!plan) throw new Error("Unknown native cleanup claim")
@@ -176,7 +176,7 @@ export function createPostPreparationProvider(
         throw new Error("Invalid main cleanup fact request")
     }
   }
-  const outcomes = new Map(prepared.outcomes.map((outcome, index) => [BigInt(index + 1), outcome]))
+  const outcomes = new Map(prepared.outcomes.map((outcome, index) => [(index + 1), outcome]))
   /** @type {import("./post-preparation-core.js").Outcome[]} */
   const facts = [...outcomes].map(([handle, outcome]) => ({
     $: "Outcome",
@@ -216,7 +216,7 @@ export function createPostPreparationProvider(
     if (!value) throw new Error("Unknown native reservation")
     return value
   }
-  /** @param {bigint} token */
+  /** @param {number} token */
   const revision = (token) => {
     const value = revisions.get(token)
     if (!value) throw new Error("Unknown native revision")
@@ -224,8 +224,8 @@ export function createPostPreparationProvider(
   }
   /**
    * @param {import("./post-preparation-core.js").Slot} slot
-   * @param {bigint} revisionToken
-   * @param {{$: "None"} | {$: "Some", value: bigint}} work
+   * @param {number} revisionToken
+   * @param {{$: "None"} | {$: "Some", value: number}} work
    * @returns {import("../../work-ownership/jobs.ts").UnitJob}
    */
   const unit = (slot, revisionToken, work) => {
@@ -276,9 +276,9 @@ export function createPostPreparationProvider(
         outcomes: list(facts)
       }
     },
-    /** @param {bigint} token */
+    /** @param {number} token */
     error: (token) => errors.get(token),
-    /** @param {bigint} token */
+    /** @param {number} token */
     cause: (token) => errorCauses.get(token),
     get terminationCause() {
       return primaryCause
@@ -339,7 +339,7 @@ export function createPostPreparationProvider(
         return true
       }
       // Each stage is a fresh ephemeral ABI projection of authoritative custody.
-      /** @type {Map<bigint, string>} */
+      /** @type {Map<number, string>} */
       let claimHandles = new Map()
       /** @param {import("./post-preparation-core.js").CleanupStage} stage
        * @returns {import("./post-preparation-core.js").CleanupFact[]} */
@@ -367,7 +367,7 @@ export function createPostPreparationProvider(
           case "CleanupRevisions":
             return [...acquiredRevisions.keys()].map((handle) => cleanupFact({ $: "ReleaseCleanupRevision", handle }))
           case "CleanupClaims":
-            claimHandles = new Map([...ownedClaims].map((key, index) => [BigInt(index + 1), key]))
+            claimHandles = new Map([...ownedClaims].map((key, index) => [(index + 1), key]))
             return [...claimHandles].map(([handle, key]) => ({
               $: "CleanupClaim",
               handle,
@@ -522,7 +522,7 @@ export function createPostPreparationProvider(
       /** @type {import("./post-preparation-core.js").Response} */
       let response = { $: "Ack" }
       const acquisitionHandle = ["RegisterClear", "RegisterRevision"].includes(command.$)
-        ? BigInt(revisions.size + 1)
+        ? (revisions.size + 1)
         : undefined
       const cleanup = [
         "Cleanup",
@@ -531,7 +531,7 @@ export function createPostPreparationProvider(
         "ReleaseAttached",
         "FinalizeCachedUnit"
       ].includes(command.$)
-      /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown> & {releasedAcquisition?: bigint | undefined}} publication */
+      /** @param {import("../../state/resolver-custody/provider-authority.ts").NativePublication<unknown> & {releasedAcquisition?: number | undefined}} publication */
       const committed = (publication) => {
         if (publication.restoredPending) {
           publication.restoredPending.pendingOwnerIdentity.revision = publication.restoredPending.revision
@@ -556,7 +556,7 @@ export function createPostPreparationProvider(
             )
               throw new Error("Invalid reservation receipt")
             reservations.set(
-              BigInt(reservation.id),
+              (reservation.id),
               /** @type {import("../../state/capacity/model.ts").CapacityReservation} */ (reservation)
             )
           }
@@ -596,9 +596,9 @@ export function createPostPreparationProvider(
       /**
        * @template A, E
        * @param {Effect.Effect<A, E>} effect
-       * @param {bigint | undefined} [releasedAcquisition]
+       * @param {number | undefined} [releasedAcquisition]
        * @param {string | undefined} [releasedClaim]
-       * @param {bigint | undefined} [releasedReservation]
+       * @param {number | undefined} [releasedReservation]
        * @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<A>}
        */
       const run = function* (effect, releasedAcquisition, releasedClaim, releasedReservation) {
@@ -644,7 +644,7 @@ export function createPostPreparationProvider(
         }
         return exit.value
       }
-      /** @param {bigint} handle @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<void>} */
+      /** @param {number} handle @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<void>} */
       const releaseAcquisition = function* (handle) {
         if (!acquiredRevisions.has(handle) || transferredAcquisition(handle)) return
         yield* run(context.deps.residentReleaseCurrentWork(revision(handle)), handle)
@@ -754,7 +754,7 @@ export function createPostPreparationProvider(
             response = {
               $: "CachedFacts",
               evaluation: command.item.key,
-              findings: BigInt(cached.evaluation.findings.length)
+              findings: (cached.evaluation.findings.length)
             }
             break
           }
@@ -762,7 +762,7 @@ export function createPostPreparationProvider(
             const planned = item(command.item),
               owner = yield* run(context.deps.residentReuse.pending(planned.evaluationKey))
             if (owner === undefined) throw new Error("canonical reuse route lacks pending evaluation")
-            const handle = BigInt(pendingOwners.size + 1)
+            const handle = (pendingOwners.size + 1)
             pendingOwners.set(handle, { key: planned.evaluationKey, owner })
             response = { $: "PendingOwner", owner: handle }
             break
@@ -918,9 +918,9 @@ export function createPostPreparationProvider(
               allocations: list(
                 allocations.map((allocation) => {
                   if (allocation === undefined) return none
-                  const handle = BigInt(allocation.reservation.id)
+                  const handle = (allocation.reservation.id)
                   reservations.set(handle, allocation.reservation)
-                  return some({ $: "Allocation", operation: BigInt(allocation.operation), reservation: handle })
+                  return some({ $: "Allocation", operation: (allocation.operation), reservation: handle })
                 })
               )
             }
@@ -951,7 +951,7 @@ export function createPostPreparationProvider(
               (advice) => advice.evaluationKey === item(command.item).evaluationKey
             )
             const existing = selected.found ? selected.value : undefined
-            const handle = BigInt(adviceOwners.size + 1)
+            const handle = (adviceOwners.size + 1)
             if (existing !== undefined) adviceOwners.set(handle, existing)
             response = { $: "AdviceOwner", owner: existing === undefined ? none : some(handle) }
             break
@@ -960,7 +960,7 @@ export function createPostPreparationProvider(
             const existing = adviceOwners.get(command.advice)
             if (!existing) throw new Error("Unknown advice owner")
             const publication = yield* run(ledger.advice.publish(existing)),
-              handle = BigInt(publications.size + 1)
+              handle = (publications.size + 1)
             publications.set(handle, publication)
             response = { $: "Published", publication: handle }
             break
@@ -977,14 +977,14 @@ export function createPostPreparationProvider(
             if (!existing) throw new Error("Unknown advice owner")
             response = {
               $: "FindingCount",
-              findings: BigInt((yield* run(ledger.advice.current(existing))).findings.length)
+              findings: ((yield* run(ledger.advice.current(existing))).findings.length)
             }
             break
           }
           case "ReadJoinedPending": {
             const planned = item(command.item),
               owner = yield* run(context.deps.residentReuse.pending(planned.evaluationKey)),
-              handle = BigInt(pendingOwners.size + 1)
+              handle = (pendingOwners.size + 1)
             if (owner !== undefined) pendingOwners.set(handle, { key: planned.evaluationKey, owner })
             response = { $: "JoinOwner", owner: owner === undefined ? none : some(handle) }
             break
@@ -1075,7 +1075,7 @@ export function createPostPreparationProvider(
                 break
               }
             }
-            response = { $: "Work", token: work === undefined ? none : some(BigInt(work)) }
+            response = { $: "Work", token: work === undefined ? none : some((work)) }
             break
           }
           case "ObserveUnit":
@@ -1270,7 +1270,7 @@ export function createPostPreparationProvider(
               (value) => value.evaluationKey === item(command.slot.item).evaluationKey
             )
             const existing = selected.found ? selected.value : undefined
-            const handle = BigInt(adviceOwners.size + 1)
+            const handle = (adviceOwners.size + 1)
             if (existing) adviceOwners.set(handle, existing)
             response = { $: "AdviceOwner", owner: existing === undefined ? none : some(handle) }
             break
@@ -1425,7 +1425,7 @@ export function createPostPreparationProvider(
         if (primaryFailure === undefined) primaryCause = cause
         else if (cleanup) primaryCause = primaryCause === undefined ? cause : Cause.combine(primaryCause, cause)
         primaryFailure ??= error
-        const token = BigInt(errors.size + 1)
+        const token = (errors.size + 1)
         errors.set(token, error)
         errorCauses.set(token, cause)
         response = { $: failureKind, token }

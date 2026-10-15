@@ -15,7 +15,7 @@ export function createPostPreparationMachine(core) {
   return {
     /** @type {"post"} */
     kind: "post",
-    /** @param {{ invocation: bigint, postPreparation: { roundBound: boolean, outcomes: import("@hapsland/source-artifacts/direct-event/value/codec").List<import("./post-preparation-core.js").Outcome>, incomplete: boolean } }} input */
+    /** @param {{ invocation: number, postPreparation: { roundBound: boolean, outcomes: import("@hapsland/source-artifacts/direct-event/value/codec").List<import("./post-preparation-core.js").Outcome>, incomplete: boolean } }} input */
     initial: (input) =>
       settled(
         core.initial_settled(
@@ -76,7 +76,7 @@ export function createAdviceTailMachine(core) {
       if (!permission) throw new Error("Unknown closed advice command")
       return { $: permission }
     },
-    /** @param {{ invocation: bigint, adviceTail: { advice: bigint, preserved?: boolean, failure?: import("./post-preparation-core.js").Termination } }} input */
+    /** @param {{ invocation: number, adviceTail: { advice: number, preserved?: boolean, failure?: import("./post-preparation-core.js").Termination } }} input */
     initial: (input) =>
       input.adviceTail.preserved
         ? core.advice_initial_preserved()

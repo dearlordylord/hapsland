@@ -23,15 +23,15 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
 
 /**
  * @typedef {Extract<import("../../state/capacity/model.ts").PreparationAdmission, {status: "admitted"}>} AdmittedPreparation
- * @typedef {{handle: bigint, candidate: bigint, invocation: bigint, admissionRequest: bigint, preparation: AdmittedPreparation}} PreparationReceipt
+ * @typedef {{handle: number, candidate: number, invocation: number, admissionRequest: number, preparation: AdmittedPreparation}} PreparationReceipt
  * @typedef {ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>} PreparationCapability
- * @typedef {{invocation: number, machine: PreparationCapability["machine"], input: Parameters<PreparationCapability["machine"]["initial"]>[0], performEffect: (request: Parameters<PreparationCapability["performEffect"]>[0][number], options: Parameters<PreparationCapability["performEffect"]>[1]) => ReturnType<PreparationCapability["performEffect"]>, decode: PreparationCapability["decode"], revoke: () => unknown, close: () => unknown, error?: (token: bigint) => unknown, finish?: () => unknown | Promise<unknown>}} PreparationSession
+ * @typedef {{invocation: number, machine: PreparationCapability["machine"], input: Parameters<PreparationCapability["machine"]["initial"]>[0], performEffect: (request: Parameters<PreparationCapability["performEffect"]>[0][number], options: Parameters<PreparationCapability["performEffect"]>[1]) => ReturnType<PreparationCapability["performEffect"]>, decode: PreparationCapability["decode"], revoke: () => unknown, close: () => unknown, error?: (token: number) => unknown, finish?: () => unknown | Promise<unknown>}} PreparationSession
  * @typedef {Pick<ReturnType<typeof import("../composition/owned-artifact-driver.mjs").createOwnedArtifactDriver<PreparationSession | ReturnType<typeof createPostPreparationProvider>>>, "state" | "allocatePreparationInvocation" | "constructionFailed" | "driveConstructedFlowEffect" | "handoffResult" | "driveHandoffEffect">} SourceDriver
  */
 // Foreign effects and opaque receipts for one whole source. The cursor chooses
 // admission, refusal reporting, candidate progression and source completion.
 /**
- * @param {bigint} invocation
+ * @param {number} invocation
  * @param {import("./post-preparation-host.mjs").PostContext} context
  * @param {{owner: import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner, bridge: ReturnType<typeof import("../../state/resolver-custody/resident-owner-transaction.mjs").createResidentOwnerTransaction>, driver: SourceDriver, candidates: import("@hapsland/native-observation/direct-event/observation").DirectObservation["candidates"], buildPreparationSession: (invocation: number, candidate: import("@hapsland/native-observation/direct-event/observation").DirectObservation["candidates"][number], preparation: AdmittedPreparation) => PreparationSession | Promise<PreparationSession>, analyticsEnabled?: boolean, entry?: "full" | "after-gates"}} options
  */
@@ -40,14 +40,14 @@ export function createSourcePreparationProvider(
   context,
   { owner, bridge, driver, candidates, buildPreparationSession, analyticsEnabled = false, entry = "full" }
 ) {
-  const handles = new Map(candidates.map((candidate, index) => [BigInt(index + 1), candidate]))
-  /** @type {Map<bigint, PreparationReceipt>} */
+  const handles = new Map(candidates.map((candidate, index) => [(index + 1), candidate]))
+  /** @type {Map<number, PreparationReceipt>} */
   const preparations = new Map()
-  /** @type {Map<bigint, unknown>} */
+  /** @type {Map<number, unknown>} */
   const errors = new Map()
-  /** @type {Map<bigint, Cause.Cause<unknown>>} */
+  /** @type {Map<number, Cause.Cause<unknown>>} */
   const errorCauses = new Map()
-  /** @type {Map<bigint, string>} */
+  /** @type {Map<number, string>} */
   const expected = new Map()
   let revoked = false,
     closed = false,
@@ -75,7 +75,7 @@ export function createSourcePreparationProvider(
       lifetime: context.deps.lifetime,
       ...fields
     })
-  /** @param {bigint} handle */
+  /** @param {number} handle */
   const candidate = (handle) => {
     const value = handles.get(handle)
     if (!value) throw new Error("Unknown source candidate")
@@ -92,9 +92,9 @@ export function createSourcePreparationProvider(
         candidates: list([...handles.keys()])
       }
     },
-    /** @param {bigint} token */
+    /** @param {number} token */
     error: (token) => errors.get(token),
-    /** @param {bigint} token */
+    /** @param {number} token */
     cause: (token) => errorCauses.get(token),
     revoke() {
       revoked = true
@@ -341,7 +341,7 @@ export function createSourcePreparationProvider(
                 )
                   throw new TypeError("Malformed committed preparation admission")
                 receipt = Object.freeze({
-                  handle: request.id + 1n,
+                  handle: request.id + 1,
                   candidate: command.candidate,
                   invocation,
                   admissionRequest: request.id,
@@ -372,7 +372,7 @@ export function createSourcePreparationProvider(
             } else {
               response = {
                 $: "WorkspaceRefused",
-                requested_bytes: BigInt(requestedBytes),
+                requested_bytes: (requestedBytes),
                 reason:
                   result.status === "capacity-refused"
                     ? { $: "CapacityRefused" }
@@ -398,7 +398,7 @@ export function createSourcePreparationProvider(
               !receipt ||
               receipt.invocation !== invocation ||
               receipt.candidate !== command.candidate ||
-              receipt.admissionRequest + 1n !== request.id
+              receipt.admissionRequest + 1 !== request.id
             )
               throw new Error("Candidate preparation differs from issued admission receipt")
             const held = owner.find(invocation, driver.state.children)
@@ -419,7 +419,7 @@ export function createSourcePreparationProvider(
                       partition: sourceScope.partition,
                       lifetime: sourceScope.lifetime,
                       round: sourceScope.round,
-                      preparation: BigInt(receipt.preparation.operation)
+                      preparation: (receipt.preparation.operation)
                     },
                     parent
                   )
@@ -496,7 +496,7 @@ export function createSourcePreparationProvider(
                 owner,
                 driver,
                 sourceInvocation: invocation,
-                operation: BigInt(receipt.preparation.operation),
+                operation: (receipt.preparation.operation),
                 capability: receipt.preparation.reservation,
                 handoff,
                 parent
@@ -590,7 +590,7 @@ export function createSourcePreparationProvider(
             break
           case "ReadExpectedActivity": {
             expected.clear()
-            context.expectedActivityUnits.forEach((identity, index) => expected.set(BigInt(index + 1), identity))
+            context.expectedActivityUnits.forEach((identity, index) => expected.set((index + 1), identity))
             response = { $: "ExpectedActivity", identities: list([...expected.keys()]) }
             break
           }
@@ -646,7 +646,7 @@ export function createSourcePreparationProvider(
       } catch (error) {
         primaryCause ??= failureCause ?? Cause.die(error)
         primaryFailure ??= error
-        const token = BigInt(errors.size + 1)
+        const token = (errors.size + 1)
         errors.set(token, error)
         const cause = failureCause ?? (failureKind === "Defect" ? Cause.die(error) : Cause.fail(error))
         const combinedCause =

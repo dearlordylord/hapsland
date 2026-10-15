@@ -25,17 +25,17 @@ export type Literal = Tagged<
   | "WorkspaceImportWorkspace"
 >
 export type Operation =
-  | Tagged<"WorkspaceConstant", { readonly target: bigint; readonly value: Literal }>
-  | Tagged<"WorkspaceReadOptional", { readonly target: bigint; readonly source: bigint; readonly field: string }>
+  | Tagged<"WorkspaceConstant", { readonly target: number; readonly value: Literal }>
+  | Tagged<"WorkspaceReadOptional", { readonly target: number; readonly source: number; readonly field: string }>
   | Tagged<
       "WorkspaceCall",
-      { readonly target: bigint; readonly primitive: Primitive; readonly arguments: List<bigint> }
+      { readonly target: number; readonly primitive: Primitive; readonly arguments: List<number> }
     >
   | Tagged<
       "WorkspaceBranch",
       {
         readonly primitive: Primitive
-        readonly arguments: List<bigint>
+        readonly arguments: List<number>
         readonly yes: List<Operation>
         readonly no: List<Operation>
       }
@@ -44,9 +44,9 @@ export type Operation =
 export type Step =
   | Tagged<
       "WorkspaceAwait",
-      { readonly operation: Operation; readonly remaining: List<Operation>; readonly result: bigint }
+      { readonly operation: Operation; readonly remaining: List<Operation>; readonly result: number }
     >
-  | Tagged<"WorkspaceDone", { readonly result: bigint }>
+  | Tagged<"WorkspaceDone", { readonly result: number }>
   | Tagged<"WorkspaceRejected">
 export type Reply = Tagged<"WorkspaceAck"> | Tagged<"WorkspaceFlag", { readonly value: boolean }>
 declare const core: { initial(mode: Mode): Step; resume(step: Step, reply: Reply): Step }

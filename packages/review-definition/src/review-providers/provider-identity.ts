@@ -39,11 +39,11 @@ const encodeCatalog = (catalog: typeof REVIEW_PROVIDERS) =>
 type Settled = Exclude<Step, { readonly $: "Continue" }>
 type Terminal = Exclude<Settled, { readonly $: "EncodeComponent" }>
 type Input = {
-  readonly invocation: bigint
+  readonly invocation: number
   readonly selection: Selection
   readonly catalog: ReturnType<typeof encodeCatalog>
 }
-type Request = { readonly invocation: bigint; readonly id: bigint; readonly value: string }
+type Request = { readonly invocation: number; readonly id: number; readonly value: string }
 type Continuation = { readonly machine: ProviderMachine; readonly step: Settled }
 type Projection = {
   readonly kind: "provider"
@@ -131,7 +131,7 @@ const makeExecution = (selection: ReviewBackendSettings, ports: ProviderIdentity
   let encodingError: URIError | undefined
   const driver = createChildExecutionDriver({
     owner,
-    initialState: owner.initial_limits(1n, 1n, 1n, 1n),
+    initialState: owner.initial_limits(1, 1, 1, 1),
     registry,
     machine,
     protocol,
@@ -171,7 +171,7 @@ const makeExecution = (selection: ReviewBackendSettings, ports: ProviderIdentity
   const run = (signal: AbortSignal) => {
     active = driver.drive(
       session,
-      { invocation: BigInt(invocation), selection: encodedSelection, catalog: encodedCatalog },
+      { invocation: Number(invocation), selection: encodedSelection, catalog: encodedCatalog },
       { signal }
     )
     return active
@@ -188,7 +188,7 @@ const makeExecution = (selection: ReviewBackendSettings, ports: ProviderIdentity
   }
   const retire = (exit: Exit.Exit<unknown, unknown>) => {
     const cancel = Effect.sync(() => {
-      const child = owner.find(BigInt(invocation), driver.state.children)
+      const child = owner.find(Number(invocation), driver.state.children)
       if (child.$ === "Some" && owner.child_active(child.value)) driver.cancel(invocation)
     })
     const settle = Effect.promise(async () => {

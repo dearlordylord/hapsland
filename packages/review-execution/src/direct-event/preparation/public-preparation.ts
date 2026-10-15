@@ -50,7 +50,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
   let outputs: readonly Output[] = []
   // This state and its decoded reader remain private to one preparation lifetime.
   // Each existing owner step commits before the common driver executes its actions.
-  let state = owner.initial_limits(1n, BigInt(CANONICAL_MAX_BYTES), 1n, BigInt(CANONICAL_MAX_BYTES))
+  let state = owner.initial_limits(1, Number(CANONICAL_MAX_BYTES), 1, Number(CANONICAL_MAX_BYTES))
   let activeReader = owner.active_reader(state.children)
   const commit = (step: Step): Step => {
     state = step.state
@@ -206,7 +206,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
         }
       })
   })
-  driver.canonicalEvent({ $: "../Canonical.OpenRound", partition: 1n, lifetime: 1n })
+  driver.canonicalEvent({ $: "../Canonical.OpenRound", partition: 1, lifetime: 1 })
   const opened = outputs.find(
     (output) => output.$ === "../Canonical.EventEstablished" && output.event.$ === "../Canonical.RoundStarted"
   )
@@ -215,7 +215,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
   const round = opened.event.id
   const retire = () =>
     Effect.sync(() => {
-      driver.canonicalEvent({ $: "../Canonical.RetirePartition", partition: 1n, lifetime: 1n, round })
+      driver.canonicalEvent({ $: "../Canonical.RetirePartition", partition: 1, lifetime: 1, round })
     }).pipe(
       Effect.ensuring(
         Effect.promise(async () => {
@@ -229,7 +229,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
   const run = () =>
     Effect.gen(function* () {
       const beginning = unlist(
-        owner.begin_public_preparation(driver.state, 1n, 1n, round, BigInt(graphLimits.readBytes))
+        owner.begin_public_preparation(driver.state, 1, 1, round, Number(graphLimits.readBytes))
       )
       for (const step of beginning) driver.acceptPublication(commit(step))
       const admission = beginning[0]
@@ -266,12 +266,12 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
       })
       const invocation = driver.allocateInvocation(undefined, false, {
         $: "Scope",
-        partition: 1n,
-        lifetime: 1n,
+        partition: 1,
+        lifetime: 1,
         round,
         preparation
       })
-      const input = { invocation: BigInt(invocation), preparation: preparationInput }
+      const input = { invocation: Number(invocation), preparation: preparationInput }
       const session: PreparationSession = {
         invocation,
         input,
@@ -285,7 +285,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
       if (!("preparation" in outcome)) throw new Error("Canonical did not accept a preparation result")
       const result = physical.decode(outcome.preparation)
       for (const step of unlist(
-        owner.complete_public_preparation(driver.state, 1n, 1n, round, preparation, observationId)
+        owner.complete_public_preparation(driver.state, 1, 1, round, preparation, observationId)
       ))
         driver.acceptPublication(commit(step))
       return { ...result, ambiguousLine: outcome.preparation.ambiguous_line }

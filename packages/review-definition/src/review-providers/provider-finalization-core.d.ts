@@ -25,8 +25,8 @@ export type Identity = Backend<
 declare const opaqueState: unique symbol
 export type State = {
   readonly [opaqueState]: "ProviderFinalization.State"
-  readonly invocation: bigint
-  readonly request: bigint
+  readonly invocation: number
+  readonly request: number
 }
 export type Step =
   | Tagged<"Continue", { readonly state: State }>
@@ -36,10 +36,10 @@ export type Step =
   | Tagged<"URIError">
   | Tagged<"InvalidReply">
 export type Reply =
-  | Tagged<"Encoded", { readonly invocation: bigint; readonly request: bigint; readonly value: string }>
-  | Tagged<"EncodingFailed", { readonly invocation: bigint; readonly request: bigint }>
+  | Tagged<"Encoded", { readonly invocation: number; readonly request: number; readonly value: string }>
+  | Tagged<"EncodingFailed", { readonly invocation: number; readonly request: number }>
 declare const core: {
-  initial_selection(invocation: bigint, selection: Selection, catalog: List<Declaration>): Step
+  initial_selection(invocation: number, selection: Selection, catalog: List<Declaration>): Step
   advance(state: State): Step
   resume(step: Step, reply: Reply): Step
 }

@@ -10,7 +10,7 @@ export type WorkspaceRefusal =
   | Tagged<"InvalidMeasurement">
 
 export type CandidateDiagnostic =
-  | Tagged<"WorkspaceCapacity", { readonly requested_bytes: bigint }>
+  | Tagged<"WorkspaceCapacity", { readonly requested_bytes: number }>
   | Tagged<"WorkspaceUnavailable", { readonly reason: UnavailableReason }>
   | Tagged<"WorkspacePanic">
 
@@ -31,41 +31,41 @@ export type Command =
   | Tagged<"RecordPreparationFailureAnalytics">
   | Tagged<"RecordUnavailableActivity">
   | Tagged<"ReadEffectiveAnalytics">
-  | Tagged<"CheckCandidateActive", { readonly candidate: bigint }>
-  | Tagged<"AdmitCandidateWorkspace", { readonly candidate: bigint }>
-  | Tagged<"PrepareCandidate", { readonly candidate: bigint; readonly preparation: bigint }>
-  | Tagged<"ObserveCandidateDiagnostic", { readonly candidate: bigint; readonly diagnostic: CandidateDiagnostic }>
+  | Tagged<"CheckCandidateActive", { readonly candidate: number }>
+  | Tagged<"AdmitCandidateWorkspace", { readonly candidate: number }>
+  | Tagged<"PrepareCandidate", { readonly candidate: number; readonly preparation: number }>
+  | Tagged<"ObserveCandidateDiagnostic", { readonly candidate: number; readonly diagnostic: CandidateDiagnostic }>
   | Tagged<"RejectCandidateCapacity">
   | Tagged<"RecordCandidateAnalytics", { readonly outcome: CandidateAnalytics }>
   | Tagged<"RecordCandidateUnavailable">
   | Tagged<"ReadExpectedActivity">
-  | Tagged<"RecordPendingActivity", { readonly identities: List<bigint> }>
+  | Tagged<"RecordPendingActivity", { readonly identities: List<number> }>
   | Tagged<"CompletePolicySource">
   | Tagged<"CompleteObservation">
   | Tagged<"AfterPrepare">
 
 export type Response =
   | Tagged<"GateAccepted", { readonly value: boolean }>
-  | Tagged<"ExpectedActivity", { readonly identities: List<bigint> }>
+  | Tagged<"ExpectedActivity", { readonly identities: List<number> }>
   | Tagged<"Active", { readonly value: boolean }>
-  | Tagged<"WorkspaceAdmitted", { readonly preparation: bigint }>
-  | Tagged<"WorkspaceRefused", { readonly reason: WorkspaceRefusal; readonly requested_bytes: bigint }>
-  | Tagged<"ObservationCommittedCancelled", { readonly token: bigint }>
-  | Tagged<"ObservationCommittedFailure", { readonly token: bigint }>
-  | Tagged<"ObservationCommittedDefect", { readonly token: bigint; readonly recoverable: boolean }>
+  | Tagged<"WorkspaceAdmitted", { readonly preparation: number }>
+  | Tagged<"WorkspaceRefused", { readonly reason: WorkspaceRefusal; readonly requested_bytes: number }>
+  | Tagged<"ObservationCommittedCancelled", { readonly token: number }>
+  | Tagged<"ObservationCommittedFailure", { readonly token: number }>
+  | Tagged<"ObservationCommittedDefect", { readonly token: number; readonly recoverable: boolean }>
   | Tagged<"CandidateContinued", { readonly value: boolean }>
   | Tagged<"Ack">
   | Tagged<"CompletionAccepted", { readonly value: boolean }>
-  | Tagged<"Failed", { readonly token: bigint }>
-  | Tagged<"Defect", { readonly token: bigint; readonly interrupted: boolean; readonly recoverable: boolean }>
-  | Tagged<"Cancelled", { readonly token: bigint }>
+  | Tagged<"Failed", { readonly token: number }>
+  | Tagged<"Defect", { readonly token: number; readonly interrupted: boolean; readonly recoverable: boolean }>
+  | Tagged<"Cancelled", { readonly token: number }>
 
 declare const stateHandle: unique symbol
 export type State = { readonly [stateHandle]: "SourcePreparation.State" }
 
-export type Request = Tagged<"Request", { readonly invocation: bigint; readonly id: bigint; readonly command: Command }>
+export type Request = Tagged<"Request", { readonly invocation: number; readonly id: number; readonly command: Command }>
 
-export type Reply = Tagged<"Reply", { readonly invocation: bigint; readonly id: bigint; readonly response: Response }>
+export type Reply = Tagged<"Reply", { readonly invocation: number; readonly id: number; readonly response: Response }>
 
 export type Reason =
   | Tagged<"StartRefused">
@@ -74,9 +74,9 @@ export type Reason =
   | Tagged<"CandidateStopped">
   | Tagged<"PolicyRefused">
   | Tagged<"ObservationRefused">
-  | Tagged<"TechnicalFailure", { readonly token: bigint }>
-  | Tagged<"DefectFailure", { readonly token: bigint }>
-  | Tagged<"InvocationCancelled", { readonly token: bigint }>
+  | Tagged<"TechnicalFailure", { readonly token: number }>
+  | Tagged<"DefectFailure", { readonly token: number }>
+  | Tagged<"InvocationCancelled", { readonly token: number }>
   | Tagged<"ProtocolFailure">
 
 export type Step =
@@ -87,9 +87,9 @@ export type Step =
   | Tagged<"Rejected">
 
 declare const core: {
-  initial(invocation: bigint, policy_required: boolean, controlled_present: boolean, candidates: List<bigint>): Step
-  initial_after_gates(invocation: bigint, policy_required: boolean, candidates: List<bigint>): Step
+  initial(invocation: number, policy_required: boolean, controlled_present: boolean, candidates: List<number>): Step
+  initial_after_gates(invocation: number, policy_required: boolean, candidates: List<number>): Step
   resume(step: Step, reply: Reply): Step
-  permission(command: Command): bigint
+  permission(command: Command): number
 }
 export default core

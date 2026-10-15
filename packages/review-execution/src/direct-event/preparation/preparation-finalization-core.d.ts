@@ -8,7 +8,7 @@ type Backend<Name extends string, Fields = object> = Tagged<
   `../../../../runtime-environment/src/runtime/backend/Backend.${Name}`,
   Fields
 >
-export type Invocation = Tagged<"Invocation", { readonly owner: bigint; readonly command: bigint }>
+export type Invocation = Tagged<"Invocation", { readonly owner: number; readonly command: number }>
 export type Context = Tagged<
   "Context",
   {
@@ -27,7 +27,7 @@ export type Context = Tagged<
     >
   }
 >
-export type State = Opaque<"Finalization.State"> & { readonly invocation: Invocation; readonly request: bigint }
+export type State = Opaque<"Finalization.State"> & { readonly invocation: Invocation; readonly request: number }
 export type UnitState = Opaque<"Finalization.UnitState"> & { readonly state: State }
 export type Phase = Opaque<"Finalization.Phase">
 type RulesState = Opaque<"Rules.State">
@@ -87,8 +87,8 @@ export type RulesStep =
         readonly rule_excluded: boolean
         readonly target_declared: boolean
         readonly capabilities_available: boolean
-        readonly source_rung: bigint
-        readonly minimum_rung: bigint
+        readonly source_rung: number
+        readonly minimum_rung: number
       }
     >
   | Tagged<"RuleFinalization.Completed", { readonly frozen: List<ProductValue> }>
@@ -101,23 +101,23 @@ export type Primitive =
   | Tagged<"CanonicalJson.NumberPrimitive", { readonly bits: Binary64 }>
 export type JsonPlanOperation =
   | Tagged<"CanonicalJsonPlan.PrimitiveOperation", { readonly value: Primitive }>
-  | Tagged<"CanonicalJsonPlan.ArrayOperation", { readonly arity: bigint }>
+  | Tagged<"CanonicalJsonPlan.ArrayOperation", { readonly arity: number }>
   | Tagged<"CanonicalJsonPlan.ObjectOperation", { readonly keys: List<string> }>
 export type JsonBatchCommand = Tagged<
   "CanonicalJsonBatch.Command",
-  { readonly invocation: bigint; readonly request: bigint; readonly primitive: Primitive }
+  { readonly invocation: number; readonly request: number; readonly primitive: Primitive }
 >
 export type JsonBatchScheduled = Tagged<
   "CanonicalJsonBatch.Scheduled",
-  { readonly request: bigint; readonly command: JsonBatchCommand }
+  { readonly request: number; readonly command: JsonBatchCommand }
 >
 export type JsonBatchObserved = Tagged<
   "CanonicalJsonBatch.Observed",
   {
-    readonly request: bigint
+    readonly request: number
     readonly token: Tagged<
       "CanonicalJsonBatch.Token",
-      { readonly invocation: bigint; readonly request: bigint; readonly value: string }
+      { readonly invocation: number; readonly request: number; readonly value: string }
     >
   }
 >
@@ -200,7 +200,7 @@ export type Response =
   | Tagged<"Hashed", { readonly value: string }>
 export type Reply = Tagged<
   "Reply",
-  { readonly invocation: Invocation; readonly request: bigint; readonly response: Response }
+  { readonly invocation: Invocation; readonly request: number; readonly response: Response }
 >
 declare const core: {
   initial(invocation: Invocation, context: Context, units: List<ProductValue>): Step

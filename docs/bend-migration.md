@@ -170,11 +170,10 @@ crossings with a Bend-selected serialization plan:
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
-The isolated `migration/bend-abi-2037` assesses official Bend 2.0.37 (`4ff8545f`):
-number Nat and shared records remove recursive JS marshalling. Astra selected a
-whole producer/host cohort transition. Preserve native bounds, required isolation,
+`migration/bend-abi-2037` assesses official Bend 2.0.37 (`4ff8545f`):
+Numeric Nat/shared records remove recursive JS marshalling; Astra chose a whole cohort. Preserve native bounds, required isolation,
 raw-token identity, cancellation and errors; refuse recursive BigInt wrappers.
-This preparatory pin is unqualified.
+ABI/host conversion is WIP; custody, fixtures, regeneration and consumers remain open.
 
 ### Remaining obstacles and acceptance evidence
 
@@ -183,7 +182,7 @@ This preparatory pin is unqualified.
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Emission/kernel passes alone are diagnostic. |
 | Original proof formatting | Formatter 0.1.23 (`d1e5aa7`) passes local release gates: 653 tests + one optional skip, IDE compatibility and signature. Full-law formatting passes; release/pin await authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Post-cut compiled Source/resident, Finalization and public Preparation pass; repeat on the final candidate. Individual module checks are insufficient. |
-| Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
+| Whole-path parity | Qualify the complete 2.0.37 producer/host cohort, then measure connected Preparation against current native, including conversion/effects/process costs. Require ratio ≤ 1; analyzer/build alone is insufficient. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,

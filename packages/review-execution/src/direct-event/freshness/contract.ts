@@ -54,10 +54,10 @@ export type FreshnessResult =
 export type FreshnessExecution = {
   readonly signal?: AbortSignal | undefined
   readonly ownerLease?: {
-    readonly invocation: bigint
-    readonly generation: bigint
-    readonly lease: bigint
-    readonly request: bigint
+    readonly invocation: number
+    readonly generation: number
+    readonly lease: number
+    readonly request: number
   }
 }
 // Native ports perform external IO; canonical traversal and identity are Bend-owned.

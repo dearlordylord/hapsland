@@ -1,9 +1,7 @@
 import type * as Owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { projectTrustedCanonical } from "../canonical-boundary.ts"
-// Inverse of the already-declared owner Nat/tag conversion for Canonical outputs.
-export type HostTransport<Value> = Value extends bigint
-  ? number
-  : Value extends object
+// Canonical outputs retain numeric Nat; only imported constructor tags relocate.
+export type HostTransport<Value> = Value extends object
     ? {
         readonly [Key in keyof Value]: Key extends "$"
           ? Value[Key] extends `../${infer Tag}`
@@ -13,20 +11,14 @@ export type HostTransport<Value> = Value extends bigint
       }
     : Value
 
-// The existing Canonical ABI changes only Nat representation and imported tags.
+// The owner ABI preserves numeric Nat and relocates imported constructor tags.
 const prefix = "../"
 const convert = (value: unknown, intoOwner: boolean): unknown => {
   if (typeof value === "number") {
     if (!Number.isSafeInteger(value) || value < 0) throw new TypeError("Inexact Canonical Nat")
-    return intoOwner ? BigInt(value) : value
+    return value
   }
-  if (typeof value === "bigint") {
-    if (intoOwner) return value
-    const number = Number(value)
-    if (!Number.isSafeInteger(number) || BigInt(number) !== value || number < 0)
-      throw new TypeError("Inexact published Canonical Nat")
-    return number
-  }
+  if (typeof value === "bigint") throw new TypeError("Expected numeric Canonical Nat")
   if (Array.isArray(value)) return value.map((item: unknown) => convert(item, intoOwner))
   if (value && typeof value === "object")
     return Object.fromEntries(

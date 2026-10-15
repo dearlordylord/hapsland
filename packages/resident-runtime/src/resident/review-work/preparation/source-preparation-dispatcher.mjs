@@ -8,7 +8,7 @@ export function createSourcePreparationMachine(core) {
   return {
     /** @type {"source"} */
     kind: "source",
-    /** @param {{ invocation: bigint, sourcePreparation: { entry: "full" | "after-gates", policyRequired: boolean, controlledPresent: boolean, candidates: import("@hapsland/source-artifacts/direct-event/value/codec").List<bigint> } }} input */
+    /** @param {{ invocation: number, sourcePreparation: { entry: "full" | "after-gates", policyRequired: boolean, controlledPresent: boolean, candidates: import("@hapsland/source-artifacts/direct-event/value/codec").List<number> } }} input */
     initial: (input) =>
       input.sourcePreparation.entry === "after-gates"
         ? core.initial_after_gates(

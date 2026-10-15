@@ -35,14 +35,14 @@ export const runResidentSourcePreparation = Effect.fn("ResidentRuntime.sourcePre
     () => {
       const invocation = driver.allocateSourceInvocation({
         $: "SourceScope",
-        partition: BigInt(partition),
-        lifetime: BigInt(context.deps.residentLedger.canonicalLifetime),
-        round: BigInt(job.canonicalRound),
-        observation: BigInt(job.canonicalObservationId),
+        partition: (partition),
+        lifetime: (context.deps.residentLedger.canonicalLifetime),
+        round: (job.canonicalRound),
+        observation: (job.canonicalObservationId),
         permission: { $: "SourceNew" }
       })
       try {
-        source = createSourcePreparationProvider(BigInt(invocation), context, {
+        source = createSourcePreparationProvider((invocation), context, {
           owner,
           bridge,
           driver,

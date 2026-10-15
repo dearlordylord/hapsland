@@ -26,10 +26,10 @@ export type PreparationEffectRequest = Omit<Request, "command"> & {
 }
 export type PreparationExecution = Execution & {
   readonly ownerLease: {
-    readonly invocation: bigint
-    readonly generation: bigint
-    readonly lease: bigint
-    readonly request: bigint
+    readonly invocation: number
+    readonly generation: number
+    readonly lease: number
+    readonly request: number
   }
 }
 export type PreparationPorts = {

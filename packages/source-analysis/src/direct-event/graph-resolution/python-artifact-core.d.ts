@@ -12,8 +12,8 @@ declare const step: unique symbol
 export type Session = { readonly [session]: true }
 export type Step = { readonly [step]: true }
 type Bound =
-  | Tagged<"python-module/Session.Nonnegative", { readonly value: bigint }>
-  | Tagged<"python-module/Session.Negative", { readonly magnitude: bigint }>
+  | Tagged<"python-module/Session.Nonnegative", { readonly value: number }>
+  | Tagged<"python-module/Session.Negative", { readonly magnitude: number }>
 type Remaining = Tagged<
   "python-module/Session.Remaining",
   { readonly files: Bound; readonly read_bytes: Bound; readonly work: Bound }
@@ -26,16 +26,16 @@ export type Command =
       {
         readonly root: string
         readonly capture: Token<"CaptureToken">
-        readonly root_bytes: bigint
-        readonly files: bigint
-        readonly read_bytes: bigint
-        readonly work: bigint
-        readonly source_cap: bigint
-        readonly depth: bigint
+        readonly root_bytes: number
+        readonly files: number
+        readonly read_bytes: number
+        readonly work: number
+        readonly source_cap: number
+        readonly depth: number
         readonly clock: Token<"ClockToken">
-        readonly invocation: bigint
+        readonly invocation: number
         readonly caller_cache: Maybe<Token<"CacheToken">>
-        readonly next: bigint
+        readonly next: number
       }
     >
   | CommandTag<
@@ -45,8 +45,8 @@ export type Command =
         readonly path: string
         readonly root: string
         readonly capture: Token<"CaptureToken">
-        readonly invocation: bigint
-        readonly next: bigint
+        readonly invocation: number
+        readonly next: number
       }
     >
   | CommandTag<
@@ -61,8 +61,8 @@ export type Command =
         readonly clock: Token<"ClockToken">
         readonly cache: Token<"CacheToken">
         readonly separator: string
-        readonly invocation: bigint
-        readonly next: bigint
+        readonly invocation: number
+        readonly next: number
       }
     >
   | CommandTag<
@@ -72,8 +72,8 @@ export type Command =
         readonly remaining: Remaining
         readonly clock: Token<"ClockToken">
         readonly separator: string
-        readonly invocation: bigint
-        readonly next: bigint
+        readonly invocation: number
+        readonly next: number
       }
     >
 type SourceFacts = Extract<
@@ -90,11 +90,11 @@ export type Result =
   | CommandTag<"Resolved", { readonly session: Session; readonly result: Maybe<Resolution> }>
   | CommandTag<"Revalidated", { readonly session: Session; readonly valid: boolean }>
 export type View =
-  | CommandTag<"Await", { readonly request: Request; readonly session: Maybe<Session>; readonly next: bigint }>
-  | CommandTag<"Returned", { readonly result: Result; readonly next: bigint }>
+  | CommandTag<"Await", { readonly request: Request; readonly session: Maybe<Session>; readonly next: number }>
+  | CommandTag<"Returned", { readonly result: Result; readonly next: number }>
   | CommandTag<
       "Failed",
-      { readonly failure: ResolverFailure; readonly session: Maybe<Session>; readonly next: Maybe<bigint> }
+      { readonly failure: ResolverFailure; readonly session: Maybe<Session>; readonly next: Maybe<number> }
     >
 declare const core: { begin(command: Command): Step; resume(step: Step, reply: Reply): Step; view(step: Step): View }
 export default core

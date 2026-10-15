@@ -25,10 +25,10 @@ export const enrollCachedAdvice = (
     environmentOnly: residentSettingsEnvironmentOnly
   }
 ): { readonly initial: AdviceInitial; readonly evaluation: EvaluatedUnit } => {
-  const values = new Map<bigint, unknown>([
-    [0n, unit],
-    [1n, planned],
-    [2n, context]
+  const values = new Map<number, unknown>([
+    [0, unit],
+    [1, planned],
+    [2, context]
   ])
   const initial: Record<string, unknown> = {}
   const execute = (operation: Exclude<EnrollmentOperation, { readonly $: "EnrollmentChoose" }>): void => {
