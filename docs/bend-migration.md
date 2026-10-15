@@ -175,15 +175,15 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; host retains slots/materialization/postfix effects. 30 laws/45 mutants and 78 packaged modes pass. Source/resident/FrozenInput pass against independent verification-only TS; whole parity remains. |
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Formatting preserves complete BendTT. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Closed: 0.1.23 source `bend-idea:55e106a`; 54 behavior/two architecture/six wrapper tests pass. Nine proofs conform; JointStep fixed point in one pass. Whole kernel/eight runners/28 mutants pass. Attachment complete BendTT unchanged. |
-| Shared extraction | Five adapters share one invocation-local ExtractSource parser; no cross-command cache. Astra approves. Build/23 receipts, 42 cases, Source59/6687, resident67/14323+868Post, Graph18/1425/7125 and 363 public tests pass. Whole ratio 1.5301 fails. |
+| Shared extraction | Five adapters share one invocation-local parser, without cross-command cache. Astra approves. Build/23 receipts, 42 cases, Source/resident/Graph and 363 public tests pass. Whole ratio 1.5301 fails. |
 | Combined preflight | Core replaces TS callable sizing/admission and Go fallback through Canonical Preflight. One TS parser per invocation. Astra approves structure/order. 384 cases/1540 replies/16 queue comparisons, 32 physical cases, Source59/resident67, build/23 receipts and fast4 pass. Laws approval/proofs and whole parity remain. |
-| Whole-path parity | Empty-root Core skips inventory/cursor; original Root/Whole proofs, eight whole mutants, exact leaf queue/Acks and 78 cases pass. Whole current-native ratio is 1.6743; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 allocation failed twice; trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
+| Whole-path parity | Empty-root Core skips inventory/cursor; original Root/Whole proofs, eight whole mutants, exact leaf queue/Acks and 78 cases pass. Whole grouped current-native ratio is 1.4448; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 allocation failed twice; trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Production groups existing Engine queues without crossing observations. The same
 1484 instructions use 127 group Acks and three observation replies. Exact scalar
 end-state/request comparisons and throw-prefix cases pass; CPU ratio 1.3570 is
-a one-callable diagnostic, not whole parity. New whole trial remains pending.
+a one-callable diagnostic, not whole parity. Whole trial fails at 1.4448; unchanged retries are closed. Astra finds no justified next perf mechanism.
 
 Each action closes a row. Before adding a representation or proof chain,
 explain how it shortens this path; prefer equivalent laws to generic machinery
@@ -202,17 +202,17 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `d87389d2` + diagnostic: execution/build pass 0.7085 / 0.8612
-  (22:55:51 / 22:56:17 UTC, 17 frozen pairs, cache 23/46). Starts exceeded
-  the interval by 4m52s / 4m55s; parity does not qualify cadence.
+- Primary `6424fd52`: execution/build pass 0.7761 / 0.8300
+  (23:22:10 / 23:23:09 UTC, 17 frozen pairs, cache 23/46); cadence met.
+  Prior 22:55/22:56 pass 0.7085/0.8612 started 4m52s/4m55s late.
   Prior 21:01 execution failed 1.1571; later passes do not erase that result.
   Prior f8ce cadence also missed (+10s/+48s).
   Function execution does not measure the local type analyzer.
-  Connected preflight whole at 22:25 UTC **fails parity at 1.6743**:
+  Grouped preflight whole at 23:20 UTC **fails parity at 1.4448**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
   oracle and 30 local workspaces. Build/23 receipts, physical Source/resident/Graph,
-  78 local cases/468 contexts pass; connected fast selects 11 files; 363 public tests pass.
-  Earlier whole 1.2650/1.5301/1.4098 are separate runs, not causal comparisons.
+  78 local cases/468 contexts pass; grouped fast selects four files; 363 public tests pass.
+  Earlier whole 1.2650/1.5301/1.4098/1.6743 are separate runs, not causal comparisons.
   Unchanged capture, rope, shared-extraction, empty-root and connected preflight trials are closed.
 - Full attachment BendTT is unchanged by formatting. Shared-witness
   and reply-dispatch factorization do not yet pass current hard10 qualification.
