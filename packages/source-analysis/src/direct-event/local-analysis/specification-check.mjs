@@ -30,6 +30,22 @@ const catalog = (declarations, supporting = []) => ({
   declarations: list(declarations),
   supporting: list(supporting.map(([key, value]) => ({ $: "Model.Supporting", key, declaration: value })))
 })
+const coreTags = new Set(["Cursor", "Global", "Frame", "Trees", "Outcomes", "Preflight"])
+const jointTags = (value, imported) => {
+  if (value === null || typeof value !== "object") return value
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      key === "$"
+        ? imported && coreTags.has(item)
+          ? `Core.${item}`
+          : !imported
+            ? item.replace(/^Core\./u, "")
+            : item
+        : jointTags(item, imported)
+    ])
+  )
+}
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-local-analysis-spec-"))
 try {
   const output = join(temporary, "specification.mjs")
@@ -82,6 +98,13 @@ try {
     { timeout: 11000 }
   )
   const continuation = (await import(pathToFileURL(continuationOutput))).default
+  const jointOutput = join(temporary, "joint.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "Joint.bend"), "-o", jointOutput],
+    { timeout: 11000 }
+  )
+  const joint = (await import(pathToFileURL(jointOutput))).default
   let specificationDepthBounds = 0
   let continuationStates = 0,
     childEntries = 0,
@@ -163,6 +186,38 @@ try {
       assert.equal(frames.length, depths.length)
       assert.equal(frames.at(-1).site.$, "None", "root frame has no parent site")
       assert.equal(frames.at(-1).slot, currentRoot.slot)
+      const jointFrames = list(frames.map((frame) => ({ ...frame, $: "Core.Frame" })))
+      const ghosts = list(
+        frames.map((frame, index) => ({
+          $: "Ghost",
+          depth: depths[index],
+          prefix: list(unlist(frame.reversed).reverse()),
+          subtotal: measuring ? expressions[expressions.length - 1 - index] : { $: "Spec.Literal", value: 0 }
+        }))
+      )
+      assert.equal(joint.shape(jointFrames, ghosts, currentRoot.slot), true, "joint actual stack/ghost shape")
+      assert.equal(
+        joint.bounds_valid(jointFrames, ghosts, rootCatalog, cursor.expanded),
+        true,
+        "joint active/parked numeric bounds"
+      )
+      assert.equal(joint.shape(jointFrames, list([]), currentRoot.slot), false, "missing ghost must refuse")
+      assert.equal(joint.shape(jointFrames, ghosts, currentRoot.slot + 10000), false, "wrong root slot must refuse")
+      assert.equal(
+        joint.shape(
+          list(
+            frames.map((frame, index) => ({
+              ...frame,
+              $: "Core.Frame",
+              site: index === frames.length - 1 ? some("orphan-root") : frame.site
+            }))
+          ),
+          ghosts,
+          currentRoot.slot
+        ),
+        false,
+        "orphan root site must refuse"
+      )
       let state = {
         $: "State",
         root_name: cursor.root_name,
@@ -402,6 +457,21 @@ try {
           potential.entry_valid(root, facts, { $: purpose }, pending, prefix, request),
           true,
           "root_entry_valid"
+        )
+        const invocation = {
+          $: "Global",
+          catalog: facts,
+          purpose: { $: purpose.replace(/^Core\./u, "") },
+          pending,
+          reversed: prefix,
+          request
+        }
+        const entered = core.next_root({ ...invocation, pending: list([root, ...unlist(pending)]) })
+        const initial = entered.$ === "Continue" ? entered.cursor : entered.next.cursor
+        assert.deepEqual(
+          jointTags(joint.initial_cursor(root, jointTags(invocation, true)), false),
+          initial,
+          "joint initial cursor is actual root-entry retained cursor"
         )
         const actual = rootContract.execute(root, facts, { $: purpose }, pending, prefix, request)
         const expected = rootContract.expected(root, facts, { $: purpose }, pending, prefix, request)
