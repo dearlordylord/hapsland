@@ -169,11 +169,11 @@ crossings with a Bend-selected serialization plan:
    preserving its existing late-coercion/error boundary.
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
-is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
+is removed. Preparation is **not accepted**: full-proof formatting and whole-path parity remain open.
 `migration/bend-abi-2037` assesses Bend 2.0.37 (`4ff8545f`), numeric Nat/shared
-records, preserving bounds/isolation. Next compiler cohort: iterative List/String concatenation [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084), retaining right-fold raw-token coercion.
+records, preserving bounds/isolation. Assessed compiler cohort: iterative List/String concatenation [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084), retaining right-fold raw-token coercion.
 Node/Bun, affine/erased payloads, 25k sequences, 10 regressions and C/TT byte controls pass.
-Product qualification pending.
+23 receipts, 99 producer tests, original attachment verdict and full consumers pass; whole parity fails.
 Preparation/Finalization forwards Bend trees directly; intermediate roundtrips/freeze
 are removed, public decode/freeze stays. Full consumers pass; parity remains open.
 Graph Effect forwards accepted ProductValue; native Promise projection stays.
@@ -222,10 +222,10 @@ that only bridges helper names.
 - Workspace removes both TS sizing formulas. Bend serves admission/resize/handoff,
   retaining IEEE/coercion order. 18 laws, four mutants, 6930 differential cases
   and public/server/Source/resident consumers pass.
-- Primary `c161b10a` Graph handoff cohort analyzer/build: 0.7014 / 0.8396.
-  Whole current-native Preparation **fails parity at 1.3478**: equal outputs,
+- Primary `f4ca2eae` sequence cohort analyzer/build: 0.7674 / 0.8214.
+  Whole current-native Preparation **fails parity at 1.4616**: equal outputs,
   17 frozen pairs, 30 local workspaces; freezes pass, build cache 23/46.
-  Fused validate/plan is closed after deep-stream overflow; no retry.
+  Sequence trial is closed after whole parity failure. Fused validate/plan stays closed.
 - Original full attachment verdict passes the CPU10/10s capability gate after
   replacing duplicated witness reconstruction with existing `ready_original_joined`.
   Astra approves; law/premises/binding/main and whole reply dispatch are byte-identical.
