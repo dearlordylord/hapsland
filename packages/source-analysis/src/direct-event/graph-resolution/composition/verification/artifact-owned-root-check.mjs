@@ -103,14 +103,14 @@ try {
     captured = await Effect.runPromise(captureStable(root, selection, {}, rootIdentity))
   assert.equal(captured.status, "captured")
   const c = (name, fields = {}) => ({ $: "../Canonical." + name, ...fields }),
-    scope = { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n }
+    scope = { $: "Scope", partition: 1, lifetime: 1, round: 1, preparation: 2 }
   const initial = () => {
-    let state = owner.initial_limits(100n, 100000000n, 100n, 100000000n)
+    let state = owner.initial_limits(100, 100000000, 100, 100000000)
     for (const event of [
-      c("OpenRound", { partition: 1n, lifetime: 1n }),
-      c("AdmitObservation", { partition: 1n, lifetime: 1n, round: 1n }),
-      c("StartObservation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n }),
-      c("BeginObservedPreparation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n, bytes: 1000n })
+      c("OpenRound", { partition: 1, lifetime: 1 }),
+      c("AdmitObservation", { partition: 1, lifetime: 1, round: 1 }),
+      c("StartObservation", { partition: 1, lifetime: 1, round: 1, observation: 1 }),
+      c("BeginObservedPreparation", { partition: 1, lifetime: 1, round: 1, observation: 1, bytes: 1000 })
     ]) {
       const step = owner.canonical_event(state, event)
       assert.equal(step.$, "Advanced")
@@ -136,7 +136,7 @@ try {
   cases++
   const overflow = createGraphDriver({
     owner,
-    initialState: { ...initial(), next_invocation: 2n ** 53n },
+    initialState: { ...initial(), next_invocation: 2 ** 53 },
     scope,
     machine: createArtifactMachine({ ...artifacts, retainPrefixes: false }),
     registry: createServiceRegistry(),
@@ -189,7 +189,7 @@ try {
           if (triggered) return
           triggered = true
           if (mode === "retire-provider")
-            driver.canonicalEvent(c("RetirePartition", { partition: 1n, lifetime: 1n, round: 1n }))
+            driver.canonicalEvent(c("RetirePartition", { partition: 1, lifetime: 1, round: 1 }))
           else driver.cancel(invocation)
         }
       if (mode === "completion-hook-throws")
@@ -199,7 +199,7 @@ try {
       if (mode === "external-abort") hooks.beforeProvider = () => controller.abort()
       if (mode === "cancel-before-install")
         hooks.beforeInstall = ({ invocation, generation, driver }) => {
-          if (generation === 0n || triggered) return
+          if (generation === 0 || triggered) return
           triggered = true
           driver.cancel(invocation)
         }
@@ -302,7 +302,7 @@ try {
         )
         assert.deepEqual(await resolver(fixturePath, fixtureCapture, "Root", context), expected)
         if (mode === "between-roots") {
-          driver.canonicalEvent(c("InterruptPreparation", { partition: 1n, lifetime: 1n, round: 1n, operation: 2n }))
+          driver.canonicalEvent(c("InterruptPreparation", { partition: 1, lifetime: 1, round: 1, operation: 2 }))
           await assert.rejects(resolver(fixturePath, fixtureCapture, "Second", context), /NotPreparing/)
         } else {
           const second = await Effect.runPromise(
@@ -311,11 +311,11 @@ try {
           assert.deepEqual(await resolver(fixturePath, fixtureCapture, "Second", context), second)
           driver.canonicalEvent(
             c("PreparationCompleted", {
-              partition: 1n,
-              lifetime: 1n,
-              round: 1n,
-              operation: 2n,
-              unit_bytes: { $: "Con", head: 100n, tail: { $: "Con", head: 100n, tail: { $: "Nil" } } }
+              partition: 1,
+              lifetime: 1,
+              round: 1,
+              operation: 2,
+              unit_bytes: { $: "Con", head: 100, tail: { $: "Con", head: 100, tail: { $: "Nil" } } }
             })
           )
           assert.equal(driver.stats.accepted, 2)
