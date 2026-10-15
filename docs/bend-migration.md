@@ -179,7 +179,6 @@ two-key Map shapes/evaluation-order checks and unchanged C/TT bytes.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Emission/kernel passes alone are diagnostic. |
 | Original proof formatting | Formatter 0.1.23 (`d1e5aa7`) passes local release gates: 653 tests + one optional skip, IDE compatibility and signature. Full-law formatting passes; release/pin await authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the Map cohort. Finalization/public Preparation pass; repeat after production edits. |
 | Whole-path parity | The assessed 2.0.37 Map cohort passes producers/consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
@@ -230,9 +229,10 @@ that only bridges helper names.
   17 frozen pairs, 30 local workspaces; freezes pass, build cache 23/46.
   Fused validate/plan stopped after two checks: old/fused JS overflow at
   5000/25000 nodes; 100/1000 pass. No adoption.
-- Attachment facts/consumers pass verdict/format. Full TT is 7,445,671 bytes;
-  original law/premises/binding/main remain byte-identical. Full verdict times out.
-  Renderer/pending-key trials preserve TT; no reliable gain. Both stopped.
+- Original full attachment verdict passes the CPU10/10s capability gate after
+  replacing duplicated witness reconstruction with existing `ready_original_joined`.
+  Astra approves; law/premises/binding/main and whole reply dispatch are byte-identical.
+  Renderer/pending-key trials stay closed. Full-proof pinned formatting remains open.
 
 ### Check and source owners
 
