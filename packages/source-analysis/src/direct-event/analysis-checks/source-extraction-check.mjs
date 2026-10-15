@@ -65,7 +65,15 @@ for (const [path, source] of fixtures) {
               : { status: "unsupported", name: unit.root.name, reason: unit.reason }
           )
         }
-  assert.deepEqual(extractSource(path, source), { graph, functions, typeFile }, path + ": " + source)
+  const actual = extractSource(path, source)
+  assert.deepEqual(actual, { graph, functions, typeFile }, path + ": " + source)
+  // Map equality alone does not establish the iteration order consumed by Source.
+  if (graph !== undefined)
+    for (const key of ["declarations", "imports"])
+      assert.deepEqual([...actual.graph[key].keys()], [...graph[key].keys()], path + ": ordered " + key)
+  if (functions !== undefined)
+    for (const key of ["functions", "types", "imports", "excludedFunctions"])
+      assert.deepEqual([...actual.functions[key].keys()], [...functions[key].keys()], path + ": ordered " + key)
 }
 const mainParses = []
 for (const [path, source] of fixtures

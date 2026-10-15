@@ -93,13 +93,13 @@ try {
     { timeout: 10000 }
   )
   const owner = (await import(pathToFileURL(ownerPath))).default
-  let ownerState = owner.initial_limits(100n, 100000000n, 100n, 100000000n)
+  let ownerState = owner.initial_limits(100, 100000000, 100, 100000000)
   const canonical = (name, fields) => ({ $: "../Canonical." + name, ...fields })
   for (const event of [
-    canonical("OpenRound", { partition: 1n, lifetime: 1n }),
-    canonical("AdmitObservation", { partition: 1n, lifetime: 1n, round: 1n }),
-    canonical("StartObservation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n }),
-    canonical("BeginObservedPreparation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n, bytes: 1000n })
+    canonical("OpenRound", { partition: 1, lifetime: 1 }),
+    canonical("AdmitObservation", { partition: 1, lifetime: 1, round: 1 }),
+    canonical("StartObservation", { partition: 1, lifetime: 1, round: 1, observation: 1 }),
+    canonical("BeginObservedPreparation", { partition: 1, lifetime: 1, round: 1, observation: 1, bytes: 1000 })
   ]) {
     const step = owner.canonical_event(ownerState, event)
     assert.equal(step.$, "Advanced")
@@ -122,7 +122,7 @@ try {
       const projection = machine.view(state)
       if (projection.$ !== "Types.AwaitService") {
         assert.equal(
-          machine.view(machine.resume(state, t("CancelInvocation", { invocation: 0n }))).failure.$,
+          machine.view(machine.resume(state, t("CancelInvocation", { invocation: 0 }))).failure.$,
           "Types.ReplyAfterTerminal"
         )
         assert.equal(
@@ -131,8 +131,8 @@ try {
               state,
               t("ServiceReply", {
                 reply: t("Reply", {
-                  invocation: 0n,
-                  id: 0n,
+                  invocation: 0,
+                  id: 0,
                   outcome: t("ClockRead", { bits: t("Binary64", { high: 0, low: 0 }) })
                 })
               })
@@ -148,7 +148,7 @@ try {
   const driver = createGraphDriver({
     owner,
     initialState: ownerState,
-    scope: { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },
+    scope: { $: "Scope", partition: 1, lifetime: 1, round: 1, preparation: 2 },
     machine: guarded,
     registry,
     foreign: async ([request], options) => {
@@ -165,13 +165,13 @@ try {
         "Types.ReplyAfterTerminal"
       )
       assert.equal(
-        machine.view(machine.resume(activeState, t("ServiceReply", { reply: { ...reply, id: reply.id + 1n } }))).failure
+        machine.view(machine.resume(activeState, t("ServiceReply", { reply: { ...reply, id: reply.id + 1 } }))).failure
           .$,
         "Types.WrongCorrelation"
       )
       assert.equal(
         machine.view(
-          machine.resume(activeState, t("ServiceReply", { reply: { ...reply, invocation: reply.invocation + 1n } }))
+          machine.resume(activeState, t("ServiceReply", { reply: { ...reply, invocation: reply.invocation + 1 } }))
         ).failure.$,
         "Types.WrongInvocation"
       )
