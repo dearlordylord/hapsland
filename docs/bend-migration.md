@@ -171,15 +171,16 @@ crossings with a Bend-selected serialization plan:
 The batch protocol is connected through FrozenInput and Finalization in the
 production dispatch path. The superseded per-primitive FrozenInput request path
 is removed. The whole Preparation migration is still **not accepted**: original attachment gates and whole-path parity remain open.
-The planner and validator decrease operation lists, without opaque handles or
-arbitrary fuel.
+The planner and validator decrease operation lists. A retained-State getter or
+callback still marshals State; a transition closure needs nondecreasing recursion.
+Astra rejected this route; do not repeat the readChild experiment.
 
 ### Remaining obstacles and acceptance evidence
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
-| Original proof formatting | Candidate `bb531601` formats the whole law idempotently with byte-identical full BendTT. 70 focused checks and strengthened regressions pass. Versioned release and Hapsland pin adoption await owner authorization. |
+| Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Emission/kernel passes alone are diagnostic. |
+| Original proof formatting | `bb531601` formats the whole law idempotently with identical full BendTT; 70 checks pass. Release and pin adoption await authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Post-cut compiled Source/resident, Finalization and public Preparation pass; repeat on the final candidate. Individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
@@ -228,7 +229,7 @@ that only bridges helper names.
 - Latest `c0f265f5` analyzer/build ratios: 0.8225 / 0.9100. Public current-native
   Preparation **fails parity at 2.0142**, with equal outputs, after the competing
   CPU11 benchmark ended. All 17 pairs and 30 local workspace resolutions qualify.
-  No whole-path benefit is demonstrated for the string change.
+  No whole-path gain is demonstrated.
 - Shared address facts and construction consumers pass verdict/format. Complete
   attachment TT decreases to 7,445,671 bytes; full verdict still times out.
   The original law, premises, binding and main remain byte-identical.
@@ -253,4 +254,4 @@ Retained sources/tests/proofs/runners belong to ordinary domain owners under
 evidence/prototypes, snapshots, `.txt` copies or restoration inventories.
 Only results belong in ignored `.test-runs`.
 
-Replace superseded status in place. Keep chronology in Git and run details in executable reports.
+Replace superseded status in place. Keep chronology in Git and details in executable reports.
