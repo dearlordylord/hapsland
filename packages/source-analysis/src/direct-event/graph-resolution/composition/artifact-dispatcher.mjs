@@ -1,4 +1,4 @@
-// Constructor names are an artifact ABI detail of Bend 2.0.36, not policy.
+// Constructor names are an artifact ABI detail of the pinned Bend compiler, not policy.
 // Graph and artifact-value payloads retain their separate declaration owners.
 // Resident artifacts refer to those exact owners through different import paths.
 

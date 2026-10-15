@@ -174,7 +174,7 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 Numeric Nat/shared records remove recursive JS marshalling. Preserve native bounds/isolation,
 raw-token identity, cancellation and errors; refuse recursive BigInt wrappers.
 Build 46/46, Graph 2600 replies/195 requests, Source 59+34, resident 67 and
-Finalization 66+52/9615 refusals pass. Whole acceptance remains open.
+Finalization 66+52/9615 refusals pass. Post/workspace/owner checks pass; acceptance remains open.
 
 ### Remaining obstacles and acceptance evidence
 
@@ -226,7 +226,7 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary `c0f265f5` analyzer/build: 0.6370 / 0.7875. Whole current-native
+- Primary `c0f265f5` analyzer/build: 0.6341 / 0.8409. Whole current-native
   Preparation on `b20acb05` **fails parity at 1.5744**: equal outputs, 17 frozen pairs,
   30 local workspaces.
   No whole-path gain shown.

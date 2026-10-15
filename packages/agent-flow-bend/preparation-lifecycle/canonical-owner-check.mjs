@@ -81,38 +81,28 @@ try {
   let assertions = 0
   {
     const before = advanced(m.launch(fresh(), scope, 50))
-    const after = advanced(m.cancel(before, 1))
-    let reads = 0
-    const child = before.children.head
-    const observed = {
-      ...child,
-      get invocation() {
-        reads++
-        return child.invocation
-      }
-    }
-    const children = { ...before.children, head: observed }
-    const reader = m.active_reader(children)
-    const constructionReads = reads
+    // active_reader_exact owns queries over immutable Bend children. A new
+    // committed state must not change the reader for its predecessor.
+    const reader = m.active_reader(before.children)
     assert.equal(reader.$, "ActiveReader")
     assert.equal(typeof reader.query, "function")
-    assert.ok(constructionReads > 0)
+    assert.deepEqual(reader.query(1), { $: "Some", value: true })
+    const after = advanced(m.cancel(before, 1))
+    const cancelled = m.active_reader(after.children)
     for (let repeat = 0; repeat < 16; repeat++) {
       assert.deepEqual(reader.query(1), { $: "Some", value: true })
       assert.deepEqual(reader.query(0), { $: "None" })
-      assert.deepEqual(reader.query((1 << 48) - 1), { $: "None" })
-      assertions += 3
+      assert.deepEqual(reader.query(2 ** 48 - 1), { $: "None" })
+      assert.deepEqual(cancelled.query(1), { $: "Some", value: false })
+      assert.deepEqual(cancelled.query(0), { $: "None" })
+      assertions += 5
     }
-    assert.equal(reads, constructionReads)
-    observed.phase = { $: "ChildCancelled" }
-    assert.deepEqual(reader.query(1), { $: "Some", value: true })
-    assert.deepEqual(m.active_reader(children).query(1), { $: "Some", value: false })
-    assert.deepEqual(m.active_reader(after.children).query(1), { $: "Some", value: false })
+    assert.deepEqual(m.active_reader(before.children).query(1), { $: "Some", value: true })
     const emittedSource = await readFile(emitted, "utf8")
     const factoryExport = emittedSource.split("\n").find((line) => line.startsWith('  "active_reader":'))
     assert.match(factoryExport, /, 1\),$/u)
-    console.log(JSON.stringify({ reader: { constructionReads, repeatedCalls: 48, repeatedReads: 0, factoryArity: 1 } }))
-    assertions += 8
+    console.log(JSON.stringify({ reader: { immutableStateIsolation: true, repeatedCalls: 80, factoryArity: 1 } }))
+    assertions += 5
   }
   // The actual owner must retain synchronous reply chronology and revoke the
   // pump even when cancellation does not abort the caller's signal.
