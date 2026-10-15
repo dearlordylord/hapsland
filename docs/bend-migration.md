@@ -206,8 +206,8 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `1445b08e`: analyzer/build 0.8074 / 0.8935
-  (16:09/16:09 UTC, 17 pairs, frozen inputs, build cache 23/46).
+- Primary `92478dbb`: analyzer/build 0.7705 / 0.8482
+  (16:36/16:37 UTC, 17 pairs, frozen inputs, build cache 23/46).
   Normal workspace build and 23 receipts pass; proof-body edits change no runtime algorithm.
   Capture candidate `2f37ebc6` whole Preparation at 13:33 UTC **fails parity at 1.3804**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, 30 local workspaces.
