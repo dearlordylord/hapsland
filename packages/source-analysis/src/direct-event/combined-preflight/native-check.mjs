@@ -202,3 +202,72 @@ console.log(
       "packaged combined preflight: native sentinel/UTF8 measurements, parser invocation lifetime, phase-specific errors, lazy sites, import short-circuit and Go identity; laws and whole acceptance remain open"
   })
 )
+
+// Bounded diagnostic of the newly connected policy boundary. It is not whole
+// parity evidence: both policies deliberately use the same parser/measurement port.
+if (process.argv.includes("--measure-policy")) {
+  const core = (await import(new URL("./combined-preflight/preflight-core.js", analyzerUrl))).default
+  const originalAdvance = core.advance,
+    originalResume = core.resume
+  const calls = { advance: 0, resume: 0, engine: 0, observations: 0 }
+  const probeSource = `export function run() { return ${Array.from({ length: 40 }, (_, i) => `"value${i}"`).join(" + ")}; }`
+  try {
+    core.advance = (...args) => {
+      calls.advance++
+      return originalAdvance(...args)
+    }
+    core.resume = (step, reply) => {
+      calls.resume++
+      if (step.$ === "Engine") calls.engine++
+      else calls.observations++
+      return originalResume(step, reply)
+    }
+    const actual = withNativeTypeScriptPreflight("probe.ts", probeSource, undefined, native.runTypeScriptPreflight)
+    const expected = withNativeTypeScriptPreflight(
+      "probe.ts",
+      probeSource,
+      undefined,
+      reference.nativeTypeScriptPreflight
+    )
+    assert.deepEqual(actual, expected)
+  } finally {
+    core.advance = originalAdvance
+    core.resume = originalResume
+  }
+  const measure = (policy, rounds) => {
+    const cpu = process.cpuUsage(),
+      started = performance.now()
+    for (let i = 0; i < rounds; i++)
+      assert.equal(withNativeTypeScriptPreflight("probe.ts", probeSource, undefined, policy).declarations, 1)
+    const elapsed = process.cpuUsage(cpu)
+    return { milliseconds: performance.now() - started, cpuMilliseconds: (elapsed.user + elapsed.system) / 1000 }
+  }
+  for (let i = 0; i < 20; i++) {
+    measure(native.runTypeScriptPreflight, 1)
+    measure(reference.nativeTypeScriptPreflight, 1)
+  }
+  const pairs = []
+  for (let pair = 0; pair < 7; pair++) {
+    let bend, previous
+    if (pair % 2 === 0) {
+      bend = measure(native.runTypeScriptPreflight, 25)
+      previous = measure(reference.nativeTypeScriptPreflight, 25)
+    } else {
+      previous = measure(reference.nativeTypeScriptPreflight, 25)
+      bend = measure(native.runTypeScriptPreflight, 25)
+    }
+    pairs.push({ bend, previous })
+  }
+  const sum = (key, field) => pairs.reduce((total, pair) => total + pair[key][field], 0)
+  console.log(
+    JSON.stringify({
+      profile: "combined-policy-boundary",
+      calls,
+      pairs,
+      cpuRatio: sum("bend", "cpuMilliseconds") / sum("previous", "cpuMilliseconds"),
+      wallRatio: sum("bend", "milliseconds") / sum("previous", "milliseconds"),
+      scope:
+        "one callable fixture; shared native parser/measurement port; bounded diagnostic, not whole Preparation parity or causal comparison with earlier whole runs"
+    })
+  )
+}
