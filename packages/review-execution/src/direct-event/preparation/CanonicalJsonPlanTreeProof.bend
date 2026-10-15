@@ -380,5 +380,294 @@ def primitive_continuation(+primitive: Json.Primitive) -> continuation([Laws.pri
       {Bool.and(_, Validation.validate_reversed(suffix, expected)) == Validation.validate_reversed(suffix, expected) : Bool}
     {==}
 
+def array_continuation_run(
+  +items: List<&2, Value.ProductValue>, +operations: List<&2, Plan.Operation>,
+  +suffix: List<&2, Plan.Operation>, +expected: List<&2, Value.ProductValue>,
+  children: {Validation.validate_reversed(List.reverse.go(&2, Plan.Operation, operations, suffix), List.reverse.go(&2, Value.ProductValue, items, expected))
+    == Validation.validate_reversed(suffix, expected) : Bool}
+) -> {Validation.validate_reversed(List.reverse.go(&2, Plan.Operation,
+  List.append(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), suffix),
+  Value.ProductArray{items} <> expected) == Validation.validate_reversed(suffix, expected) : Bool}:
+  %Equal.sym(List<&2, Plan.Operation>,
+    List.reverse.go(&2, Plan.Operation, List.append(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), suffix),
+    Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)} <> List.reverse.go(&2, Plan.Operation, operations, suffix),
+    reverse_operations(operations, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}], suffix)) :
+    {Validation.validate_reversed(_, Value.ProductArray{items} <> expected) == Validation.validate_reversed(suffix, expected) : Bool}
+  %Equal.sym(Bool, Nat.is_eq(List.length(&2, Value.ProductValue, items), List.length(&2, Value.ProductValue, items)), True{}, nat_reflexive(List.length(&2, Value.ProductValue, items))) :
+    {Bool.and(_, Validation.validate_reversed(List.reverse.go(&2, Plan.Operation, operations, suffix),
+      List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, items), expected))) == Validation.validate_reversed(suffix, expected) : Bool}
+  %Lists.reverse_go_spec(&2, Value.ProductValue, items, expected) :
+    {Validation.validate_reversed(List.reverse.go(&2, Plan.Operation, operations, suffix), _) == Validation.validate_reversed(suffix, expected) : Bool}
+  children
+
+def array_continuation(+items: List<&2, Value.ProductValue>, +operations: List<&2, Plan.Operation>, children: continuation(items, operations)) ->
+  continuation([Value.ProductArray{items}], List.append(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}])):
+  +suffix => +expected => array_continuation_run(items, operations, suffix, expected, children(suffix, expected))
+
+def object_continuation_run(
+  +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +operations: List<&2, Plan.Operation>,
+  +suffix: List<&2, Plan.Operation>, +expected: List<&2, Value.ProductValue>,
+  children: {Validation.validate_reversed(List.reverse.go(&2, Plan.Operation, operations, suffix), List.reverse.go(&2, Value.ProductValue, Laws.field_values(fields), expected))
+    == Validation.validate_reversed(suffix, expected) : Bool}
+) -> {Validation.validate_reversed(List.reverse.go(&2, Plan.Operation,
+  List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}]), suffix),
+  Value.ProductObject{fields} <> expected) == Validation.validate_reversed(suffix, expected) : Bool}:
+  %Equal.sym(List<&2, Plan.Operation>,
+    List.reverse.go(&2, Plan.Operation, List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}]), suffix),
+    Plan.ObjectOperation{Laws.field_keys(fields)} <> List.reverse.go(&2, Plan.Operation, operations, suffix),
+    reverse_operations(operations, [Plan.ObjectOperation{Laws.field_keys(fields)}], suffix)) :
+    {Validation.validate_reversed(_, Value.ProductObject{fields} <> expected) == Validation.validate_reversed(suffix, expected) : Bool}
+  %Equal.sym(Bool, Validation.object_keys(Laws.field_keys(fields), fields), True{}, keys_reflexive(fields)) :
+    {Bool.and(_, Validation.validate_reversed(List.reverse.go(&2, Plan.Operation, operations, suffix),
+      List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, Validation.field_values(fields)), expected))) == Validation.validate_reversed(suffix, expected) : Bool}
+  %Equal.sym(List<&2, Value.ProductValue>, Validation.field_values(fields), Laws.field_values(fields), field_values_same(fields)) :
+    {Validation.validate_reversed(List.reverse.go(&2, Plan.Operation, operations, suffix),
+      List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, _), expected)) == Validation.validate_reversed(suffix, expected) : Bool}
+  %Lists.reverse_go_spec(&2, Value.ProductValue, Laws.field_values(fields), expected) :
+    {Validation.validate_reversed(List.reverse.go(&2, Plan.Operation, operations, suffix), _) == Validation.validate_reversed(suffix, expected) : Bool}
+  children
+
+def object_continuation(+fields: List<&2, Value.OrderedField<Value.ProductValue>>, +operations: List<&2, Plan.Operation>, children: continuation(Laws.field_values(fields), operations)) ->
+  continuation([Value.ProductObject{fields}], List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}])):
+  +suffix => +expected => object_continuation_run(fields, operations, suffix, expected, children(suffix, expected))
+
+# The reverse interpreter consumes each whole encoded forest before its suffix.
+def derive_continuation(
+  -values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>,
+  encoding: Laws.ForestEncoding<values, operations, plans>
+) -> continuation(values, operations):
+  match encoding:
+    case Laws.EmptyForest{v, o, _}:
+      continuation_transport(values, operations, [], [], v, o, suffix => expected => {==})
+    case Laws.PrimitiveForest{+primitive, +tv, +to, tp, tail, v, o, _}:
+      continuation_transport(values, operations, Laws.primitive_value(primitive) <> tv, Plan.PrimitiveOperation{primitive} <> to, v, o,
+        continuation_sequence(Laws.primitive_value(primitive), [Plan.PrimitiveOperation{primitive}], tv, to,
+          primitive_continuation(primitive), derive_continuation(tv, to, tp, tail)))
+    case Laws.ArrayForest{+items, +co, cp, +tv, +to, tp, children, tail, v, o, _}:
+      continuation_transport(values, operations, Value.ProductArray{items} <> tv,
+        List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, co, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), to),
+        v, joined_operations(operations, co, Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}, to, o),
+        continuation_sequence(Value.ProductArray{items}, List.append(&2, Plan.Operation, co, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), tv, to,
+          array_continuation(items, co, derive_continuation(items, co, cp, children)), derive_continuation(tv, to, tp, tail)))
+    case Laws.ObjectForest{+fields, pf, +co, +tv, +to, tp, children, _, tail, v, o, _}:
+      continuation_transport(values, operations, Value.ProductObject{fields} <> tv,
+        List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, co, [Plan.ObjectOperation{Laws.field_keys(fields)}]), to),
+        v, joined_operations(operations, co, Plan.ObjectOperation{Laws.field_keys(fields)}, to, o),
+        continuation_sequence(Value.ProductObject{fields}, List.append(&2, Plan.Operation, co, [Plan.ObjectOperation{Laws.field_keys(fields)}]), tv, to,
+          object_continuation(fields, co, derive_continuation(Laws.field_values(fields), co, Compound.values(pf), children)), derive_continuation(tv, to, tp, tail)))
+
+def Laws.validation_complete(values, operations, plans, encoding):
+  derive_continuation(values, operations, plans, encoding)([], [])
+
+# Equality duplication is derived by equality elimination; affine proof values
+# are never marked Data. This retains the checked derivation while exposing count.
+def equality_twice_type(-A: Type, -left: A, -right: A) -> Type:
+  {left == right : A} & {left == right : A}
+
+def equality_twice(-A: Type, -left: A, -right: A, proof: {left == right : A}) -> equality_twice_type(A, left, right):
+  %proof : equality_twice_type(A, left, _)
+  ({==}, {==})
+
+def count_transport(
+  -values: List<&2, Value.ProductValue>, -plans: List<&2, List<&2, Plan.Piece>>,
+  -actual_values: List<&2, Value.ProductValue>, -actual_plans: List<&2, List<&2, Plan.Piece>>,
+  values_shape: {values == actual_values : List<&2, Value.ProductValue>},
+  plans_shape: {plans == actual_plans : List<&2, List<&2, Plan.Piece>>},
+  count: {List.length(&2, Value.ProductValue, actual_values) == List.length(&2, List<&2, Plan.Piece>, actual_plans) : Nat}
+) -> {List.length(&2, Value.ProductValue, values) == List.length(&2, List<&2, Plan.Piece>, plans) : Nat}:
+  %Equal.sym(List<&2, Value.ProductValue>, values, actual_values, values_shape) :
+    {List.length(&2, Value.ProductValue, _) == List.length(&2, List<&2, Plan.Piece>, plans) : Nat}
+  %Equal.sym(List<&2, List<&2, Plan.Piece>>, plans, actual_plans, plans_shape) :
+    {List.length(&2, Value.ProductValue, actual_values) == List.length(&2, List<&2, Plan.Piece>, _) : Nat}
+  count
+
+def retained_count(-values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>) -> Type:
+  Laws.ForestEncoding<values, operations, plans> &
+    {List.length(&2, Value.ProductValue, values) == List.length(&2, List<&2, Plan.Piece>, plans) : Nat}
+
+def preserve_empty(
+  -values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>,
+  vs: equality_twice_type(List<&2, Value.ProductValue>, values, []),
+  o: {operations == [] : List<&2, Plan.Operation>},
+  ps: equality_twice_type(List<&2, List<&2, Plan.Piece>>, plans, [])
+) -> retained_count(values, operations, plans):
+  match vs ps:
+    case Tuple{v1, v2} Tuple{p1, p2}:
+      (Laws.EmptyForest{v1, o, p1}, count_transport(values, plans, [], [], v2, p2, {==}))
+
+def preserve_step(
+  -values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>,
+  -head: Value.ProductValue, -parts: List<&2, Plan.Piece>,
+  -tv: List<&2, Value.ProductValue>, -to: List<&2, Plan.Operation>, -tp: List<&2, List<&2, Plan.Piece>>,
+  vs: equality_twice_type(List<&2, Value.ProductValue>, values, head <> tv),
+  ps: equality_twice_type(List<&2, List<&2, Plan.Piece>>, plans, parts <> tp),
+  tail: retained_count(tv, to, tp),
+  rebuild: {values == head <> tv : List<&2, Value.ProductValue>} ->
+    {plans == parts <> tp : List<&2, List<&2, Plan.Piece>>} ->
+    Laws.ForestEncoding<tv, to, tp> -> Laws.ForestEncoding<values, operations, plans>
+) -> retained_count(values, operations, plans):
+  match vs ps tail:
+    case Tuple{v1, v2} Tuple{p1, p2} Tuple{encoding, count}:
+      (rebuild(v1, p1, encoding), count_transport(values, plans, head <> tv, parts <> tp, v2, p2,
+        Equal.cong(Nat, Nat, n => 1n+n, List.length(&2, Value.ProductValue, tv), List.length(&2, List<&2, Plan.Piece>, tp), count)))
+
+def preserve_count(
+  -values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>,
+  encoding: Laws.ForestEncoding<values, operations, plans>
+) -> retained_count(values, operations, plans):
+  match encoding:
+    case Laws.EmptyForest{v, o, p}:
+      preserve_empty(values, operations, plans,
+        equality_twice(List<&2, Value.ProductValue>, values, [], v), o,
+        equality_twice(List<&2, List<&2, Plan.Piece>>, plans, [], p))
+    case Laws.PrimitiveForest{+primitive, +tv, +to, +tp, tail, v, o, p}:
+      preserve_step(values, operations, plans, Laws.primitive_value(primitive), [Plan.PrimitivePiece{primitive}], tv, to, tp,
+        equality_twice(List<&2, Value.ProductValue>, values, Laws.primitive_value(primitive) <> tv, v),
+        equality_twice(List<&2, List<&2, Plan.Piece>>, plans, [Plan.PrimitivePiece{primitive}] <> tp, p),
+        preserve_count(tv, to, tp, tail),
+        v1 => p1 => rest => Laws.PrimitiveForest{primitive, tv, to, tp, rest, v1, o, p1})
+    case Laws.ArrayForest{+items, co, +cp, +tv, +to, +tp, children, tail, v, o, p}:
+      preserve_step(values, operations, plans, Value.ProductArray{items}, Compound.array_trace(cp), tv, to, tp,
+        equality_twice(List<&2, Value.ProductValue>, values, Value.ProductArray{items} <> tv, v),
+        equality_twice(List<&2, List<&2, Plan.Piece>>, plans, Compound.array_trace(cp) <> tp, p),
+        preserve_count(tv, to, tp, tail),
+        v1 => p1 => rest => Laws.ArrayForest{items, co, cp, tv, to, tp, children, rest, v1, o, p1})
+    case Laws.ObjectForest{+fields, +pf, co, +tv, +to, +tp, children, keys, tail, v, o, p}:
+      preserve_step(values, operations, plans, Value.ProductObject{fields}, Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, pf)), tv, to, tp,
+        equality_twice(List<&2, Value.ProductValue>, values, Value.ProductObject{fields} <> tv, v),
+        equality_twice(List<&2, List<&2, Plan.Piece>>, plans, Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, pf)) <> tp, p),
+        preserve_count(tv, to, tp, tail),
+        v1 => p1 => rest => Laws.ObjectForest{fields, pf, co, tv, to, tp, children, keys, rest, v1, o, p1})
+
+def encoding_values(
+  -target: List<&2, Value.ProductValue>, -actual: List<&2, Value.ProductValue>,
+  -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>,
+  equal: {target == actual : List<&2, Value.ProductValue>}, proof: Laws.ForestEncoding<actual, operations, plans>
+) -> Laws.ForestEncoding<target, operations, plans>:
+  %Equal.sym(List<&2, Value.ProductValue>, target, actual, equal) : Laws.ForestEncoding<_, operations, plans>
+  proof
+
+def cons_parts_type(-head: Value.ProductValue, -tail: List<&2, Value.ProductValue>, -right: List<&2, Value.ProductValue>) -> Type:
+  {head == Maybe.default(&2, Value.ProductValue, List.head(&2, Value.ProductValue, right), Value.ProductNull{}) : Value.ProductValue} &
+    {tail == List.tail(&2, Value.ProductValue, right) : List<&2, Value.ProductValue>}
+
+def cons_parts(
+  -head: Value.ProductValue, -tail: List<&2, Value.ProductValue>, -other: Value.ProductValue, -rest: List<&2, Value.ProductValue>,
+  equal: {head <> tail == other <> rest : List<&2, Value.ProductValue>}
+) -> {head == other : Value.ProductValue} & {tail == rest : List<&2, Value.ProductValue>}:
+  %equal : cons_parts_type(head, tail, _)
+  ({==}, {==})
+
+# A prefix cut returns exact operation slices and their constructive encodings.
+# Old trace choices need not be retained: soundness requires a trace witness.
+def cut_result(-prefix: List<&2, Value.ProductValue>, -suffix: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>) -> Type:
+  Sigma<&2, &1, List<&2, Plan.Operation>, left_operations =>
+    Sigma<&2, &1, List<&2, Plan.Operation>, right_operations =>
+      Sigma<&2, &1, List<&2, List<&2, Plan.Piece>>, left_plans =>
+        Sigma<&2, &1, List<&2, List<&2, Plan.Piece>>, right_plans =>
+          Laws.ForestEncoding<prefix, left_operations, left_plans> &
+          (Laws.ForestEncoding<suffix, right_operations, right_plans> &
+            {operations == List.append(&2, Plan.Operation, left_operations, right_operations) : List<&2, Plan.Operation>})>>>>
+
+def head_builder(-value: Value.ProductValue, -operations: List<&2, Plan.Operation>, -parts: List<&2, Plan.Piece>) -> Type:
+  @tail_values: List<&2, Value.ProductValue> -> @tail_operations: List<&2, Plan.Operation> -> @tail_plans: List<&2, List<&2, Plan.Piece>> ->
+    Laws.ForestEncoding<tail_values, tail_operations, tail_plans> ->
+    Laws.ForestEncoding<value <> tail_values, List.append(&2, Plan.Operation, operations, tail_operations), parts <> tail_plans>
+
+def primitive_builder(+primitive: Json.Primitive) -> head_builder(Laws.primitive_value(primitive), [Plan.PrimitiveOperation{primitive}], [Plan.PrimitivePiece{primitive}]):
+  tv => to => tp => tail => Laws.PrimitiveForest{primitive, tv, to, tp, tail, {==}, {==}, {==}}
+
+def array_builder(
+  +items: List<&2, Value.ProductValue>, +operations: List<&2, Plan.Operation>, +plans: List<&2, List<&2, Plan.Piece>>,
+  children: Laws.ForestEncoding<items, operations, plans>
+) -> head_builder(Value.ProductArray{items}, List.append(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), Compound.array_trace(plans)):
+  tv => +to => tp => tail => Laws.ArrayForest{items, operations, plans, tv, to, tp, children, tail, {==},
+    Lists.append_assoc(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}], to), {==}}
+
+def object_builder(
+  +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +planned: List<&2, Plan.Field>, +operations: List<&2, Plan.Operation>,
+  children: Laws.ForestEncoding<Laws.field_values(fields), operations, Compound.values(planned)>,
+  keys: {Compound.keys(planned) == Laws.field_keys(fields) : List<&2, String>}
+) -> head_builder(Value.ProductObject{fields}, List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}]),
+  Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, planned))):
+  tv => +to => tp => tail => Laws.ObjectForest{fields, planned, operations, tv, to, tp, children, keys, tail, {==},
+    Lists.append_assoc(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}], to), {==}}
+
+def cut_operations(
+  -operations: List<&2, Plan.Operation>, +head: List<&2, Plan.Operation>, -tail: List<&2, Plan.Operation>,
+  +left: List<&2, Plan.Operation>, +right: List<&2, Plan.Operation>,
+  outer: {operations == List.append(&2, Plan.Operation, head, tail) : List<&2, Plan.Operation>},
+  inner: {tail == List.append(&2, Plan.Operation, left, right) : List<&2, Plan.Operation>}
+) -> {operations == List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, head, left), right) : List<&2, Plan.Operation>}:
+  Equal.trans(List<&2, Plan.Operation>, operations, List.append(&2, Plan.Operation, head, tail),
+    List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, head, left), right), outer,
+    Equal.trans(List<&2, Plan.Operation>, List.append(&2, Plan.Operation, head, tail), List.append(&2, Plan.Operation, head, List.append(&2, Plan.Operation, left, right)),
+      List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, head, left), right),
+      Equal.cong(List<&2, Plan.Operation>, List<&2, Plan.Operation>, xs => List.append(&2, Plan.Operation, head, xs), tail, List.append(&2, Plan.Operation, left, right), inner),
+      Equal.sym(List<&2, Plan.Operation>, List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, head, left), right),
+        List.append(&2, Plan.Operation, head, List.append(&2, Plan.Operation, left, right)), Lists.append_assoc(&2, Plan.Operation, head, left, right))))
+
+def cut_prepend(
+  -source: Value.ProductValue, +prefix: List<&2, Value.ProductValue>, +suffix: List<&2, Value.ProductValue>,
+  -operations: List<&2, Plan.Operation>, +value: Value.ProductValue, +head: List<&2, Plan.Operation>, +parts: List<&2, Plan.Piece>, -tail: List<&2, Plan.Operation>,
+  head_equal: {source == value : Value.ProductValue},
+  operations_equal: {operations == List.append(&2, Plan.Operation, head, tail) : List<&2, Plan.Operation>},
+  build: head_builder(value, head, parts), cut: cut_result(prefix, suffix, tail)
+) -> cut_result(source <> prefix, suffix, operations):
+  match cut:
+    case Tuple{+lo, Tuple{+ro, Tuple{+lp, Tuple{+rp, Tuple{left, Tuple{right, equal}}}}}}:
+      (List.append(&2, Plan.Operation, head, lo), (ro, (parts <> lp, (rp,
+        (encoding_values(source <> prefix, value <> prefix, List.append(&2, Plan.Operation, head, lo), parts <> lp,
+          Equal.cong(Value.ProductValue, List<&2, Value.ProductValue>, x => x <> prefix, source, value, head_equal),
+          build(prefix, lo, lp, left)),
+        (right, cut_operations(operations, head, tail, lo, ro, operations_equal, equal)))))))
+
+def use_cons_parts(
+  -R: Type, -head: Value.ProductValue, -tail: List<&2, Value.ProductValue>, -other: Value.ProductValue, -rest: List<&2, Value.ProductValue>,
+  proof: {head == other : Value.ProductValue} & {tail == rest : List<&2, Value.ProductValue>},
+  use: {head == other : Value.ProductValue} -> {tail == rest : List<&2, Value.ProductValue>} -> R
+) -> R:
+  match proof:
+    case (first, later): use(first, later)
+
+# Splitting follows the original forest prefix; it does not search or add fuel.
+def split_forest(
+  +prefix: List<&2, Value.ProductValue>, +suffix: List<&2, Value.ProductValue>,
+  +operations: List<&2, Plan.Operation>, +plans: List<&2, List<&2, Plan.Piece>>,
+  encoding: Laws.ForestEncoding<List.append(&2, Value.ProductValue, prefix, suffix), operations, plans>
+) -> cut_result(prefix, suffix, operations):
+  match prefix encoding:
+    case Nil{} encoding:
+      ([], (operations, ([], (plans, (Laws.EmptyForest{{==}, {==}, {==}}, (encoding, {==}))))))
+    case Con{head, tail} Laws.EmptyForest{v, _, _}:
+      Empty.absurd(cut_result(head <> tail, suffix, operations), Strings.internal_false_ne_true(
+        Equal.cong(List<&2, Value.ProductValue>, Bool, xs => List.is_empty(&2, Value.ProductValue, xs),
+          head <> List.append(&2, Value.ProductValue, tail, suffix), [], v)))
+    case Con{+source, +prefix} Laws.PrimitiveForest{+primitive, +tv, +to, tp, tail, v, o, _}:
+      use_cons_parts(cut_result(source <> prefix, suffix, operations), source, List.append(&2, Value.ProductValue, prefix, suffix), Laws.primitive_value(primitive), tv,
+        cons_parts(source, List.append(&2, Value.ProductValue, prefix, suffix), Laws.primitive_value(primitive), tv, v),
+        head_equal => tail_equal => cut_prepend(source, prefix, suffix, operations,
+          Laws.primitive_value(primitive), [Plan.PrimitiveOperation{primitive}], [Plan.PrimitivePiece{primitive}], to,
+          head_equal, o, primitive_builder(primitive),
+          split_forest(prefix, suffix, to, tp,
+            encoding_values(List.append(&2, Value.ProductValue, prefix, suffix), tv, to, tp, tail_equal, tail))))
+    case Con{+source, +prefix} Laws.ArrayForest{+items, +co, +cp, +tv, +to, tp, children, tail, v, o, _}:
+      use_cons_parts(cut_result(source <> prefix, suffix, operations), source, List.append(&2, Value.ProductValue, prefix, suffix), Value.ProductArray{items}, tv,
+        cons_parts(source, List.append(&2, Value.ProductValue, prefix, suffix), Value.ProductArray{items}, tv, v),
+        head_equal => tail_equal => cut_prepend(source, prefix, suffix, operations,
+          Value.ProductArray{items}, List.append(&2, Plan.Operation, co, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), Compound.array_trace(cp), to,
+          head_equal, joined_operations(operations, co, Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}, to, o), array_builder(items, co, cp, children),
+          split_forest(prefix, suffix, to, tp,
+            encoding_values(List.append(&2, Value.ProductValue, prefix, suffix), tv, to, tp, tail_equal, tail))))
+    case Con{+source, +prefix} Laws.ObjectForest{+fields, +pf, +co, +tv, +to, tp, children, keys, tail, v, o, _}:
+      use_cons_parts(cut_result(source <> prefix, suffix, operations), source, List.append(&2, Value.ProductValue, prefix, suffix), Value.ProductObject{fields}, tv,
+        cons_parts(source, List.append(&2, Value.ProductValue, prefix, suffix), Value.ProductObject{fields}, tv, v),
+        head_equal => tail_equal => cut_prepend(source, prefix, suffix, operations,
+          Value.ProductObject{fields}, List.append(&2, Plan.Operation, co, [Plan.ObjectOperation{Laws.field_keys(fields)}]),
+          Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, pf)), to,
+          head_equal, joined_operations(operations, co, Plan.ObjectOperation{Laws.field_keys(fields)}, to, o), object_builder(fields, pf, co, children, keys),
+          split_forest(prefix, suffix, to, tp,
+            encoding_values(List.append(&2, Value.ProductValue, prefix, suffix), tv, to, tp, tail_equal, tail))))
+
 def main() -> Unit:
   Unit{}
