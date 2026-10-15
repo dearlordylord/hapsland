@@ -3,7 +3,8 @@ import ./CanonicalJson.bend as Json
 import ./CanonicalJsonPlan.bend as Plan
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as Value
 
-# Draft compound laws. Tree correspondence, replies and counters remain separate.
+# Reviewed compound laws; bindings are in CanonicalJsonPlanCompoundProof.bend.
+# Tree correspondence, replies and counters remain separate.
 # This reference starts with the opening delimiter and appends later members;
 # it does not call the planner's array_parts/object_parts/pair_fields helpers.
 def array_suffix(values: List<&2, List<&2, Plan.Piece>>) -> List<&2, Plan.Piece>:
