@@ -1,3 +1,4 @@
+import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -20,6 +21,19 @@ import {
   unlist
 } from "@hapsland/source-artifacts/direct-event/value/codec"
 
+const planOperations = (value) =>
+  list(
+    unlist(canonicalJsonPlanOperations(value)).map((operation) => ({
+      ...operation,
+      $: "CanonicalJsonPlan." + operation.$
+    }))
+  )
+const batchToken = (command, value) => ({
+  $: "CanonicalJsonBatch.Token",
+  invocation: command.invocation,
+  request: command.request,
+  value
+})
 const backend = "../../../../runtime-environment/src/runtime/backend/Backend."
 const configuration = "../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend."
 
@@ -95,7 +109,8 @@ try {
   let cases = 0,
     engineRequests = 0,
     canonicalRequests = 0,
-    rejectedReplies = 0
+    rejectedReplies = 0,
+    batchBoundaryCases = 0
   for (const [language, extension] of [
     ["typescript", "ts"],
     ["rust", "rs"],
@@ -254,15 +269,96 @@ try {
               continue
             }
             const { invocation: currentInvocation, request } = step.state
-            assert.ok(request > previousRequest)
-            previousRequest = request
             const kind = label(step)
+            if (kind === "ExportJson") assert.equal(request, previousRequest)
+            else assert.ok(request > previousRequest)
+            previousRequest = request
             let reply
             if (kind === "EncodeComponent")
               reply = { $: "Encoded", invocation: currentInvocation, request, value: encodeURIComponent(step.value) }
-            else if (kind === "JsonPrimitive")
-              reply = { $: "Serialized", invocation: currentInvocation, request, value: primitive(step.value) }
-            else {
+            else if (kind === "ExportJson") {
+              reply = { $: "Planned", invocation: currentInvocation, request, operations: planOperations(step.value) }
+              if (batchBoundaryCases === 0) {
+                const empty = modules.FrozenInput.resume(step, {
+                  ...reply,
+                  operations: planOperations(productValue([]))
+                })
+                assert.equal(label(empty), "Continue")
+                assert.equal(empty.state.request, request)
+                const emptyDigest = modules.FrozenInput.advance(empty.state)
+                assert.equal(label(emptyDigest), "Digest")
+                assert.equal(emptyDigest.state.request, request + 1n)
+                assert.equal(emptyDigest.bytes, "[]")
+                batchBoundaryCases++
+                const batch = modules.FrozenInput.resume(step, {
+                  ...reply,
+                  operations: planOperations(productValue([true, false]))
+                })
+                assert.equal(label(batch), "SerializeBatch")
+                assert.equal(batch.state.request, request + 1n)
+                const commands = unlist(batch.commands)
+                assert.equal(commands.length, 2)
+                assert.deepEqual(
+                  commands.map((command) => command.request),
+                  [request + 1n, request + 2n]
+                )
+                assert.ok(commands.every((command) => command.invocation === currentInvocation))
+                const tokens = commands.map((command) => batchToken(command, primitive(command.primitive)))
+                const envelope = { $: "SerializedBatch", invocation: currentInvocation, request: batch.state.request }
+                for (const invalid of [
+                  tokens.slice(1),
+                  [...tokens, tokens[0]],
+                  [{ ...tokens[0], request: tokens[0].request + 1n }, tokens[1]],
+                  [{ ...tokens[0], invocation: currentInvocation + 1n }, tokens[1]],
+                  [...tokens].reverse()
+                ]) {
+                  assert.equal(
+                    label(modules.FrozenInput.resume(batch, { ...envelope, tokens: list(invalid) })),
+                    "InvalidReply"
+                  )
+                  rejectedReplies++
+                }
+                const stored = modules.FrozenInput.resume(batch, { ...envelope, tokens: list(tokens) })
+                assert.equal(label(stored), "Continue")
+                assert.equal(stored.state.request, request + 2n)
+                const digest = modules.FrozenInput.advance(stored.state)
+                assert.equal(digest.state.request, request + 3n)
+                assert.equal(digest.bytes, "[true,false]")
+                batchBoundaryCases++
+                let coercions = 0
+                const coercionError = new Error("late batch coercion")
+                const raw = {
+                  toString() {
+                    coercions++
+                    throw coercionError
+                  }
+                }
+                const rawStored = modules.FrozenInput.resume(batch, {
+                  ...envelope,
+                  tokens: list([batchToken(commands[0], raw), batchToken(commands[1], "tail")])
+                })
+                assert.equal(label(rawStored), "Continue")
+                assert.equal(coercions, 0)
+                assert.throws(
+                  () => modules.FrozenInput.advance(rawStored.state),
+                  (error) => error === coercionError
+                )
+                assert.equal(coercions, 1)
+                batchBoundaryCases++
+              }
+            } else if (kind === "SerializeBatch") {
+              const commands = unlist(step.commands)
+              assert.equal(commands[0].request, request)
+              reply = {
+                $: "SerializedBatch",
+                invocation: currentInvocation,
+                request,
+                tokens: list(commands.map((command) => batchToken(command, primitive(command.primitive))))
+              }
+              // The first pending request is the header; accepted tokens charge
+              // the remaining logical requests without host-created identifiers.
+              previousRequest = commands.at(-1).request
+            } else {
               assert.equal(kind, "Digest")
               reply = {
                 $: "Hashed",
@@ -274,7 +370,9 @@ try {
             for (const wrong of [
               { ...reply, invocation: currentInvocation + 1n },
               { ...reply, request: request + 1n },
-              { $: kind === "Digest" ? "Serialized" : "Hashed", invocation: currentInvocation, request, value: "wrong" }
+              kind === "Digest"
+                ? { $: "Planned", invocation: currentInvocation, request, operations: list([]) }
+                : { $: "Hashed", invocation: currentInvocation, request, value: "wrong" }
             ]) {
               assert.equal(label(modules.FrozenInput.resume(step, wrong)), "InvalidReply")
               rejectedReplies++
@@ -297,6 +395,7 @@ try {
       engineRequests,
       canonicalRequests,
       rejectedReplies,
+      batchBoundaryCases,
       scope:
         "Compiled evidence/rules/provider/frozen-input/identity stages versus full native ready consumer; stage composition remains in test harness, whole production lifecycle and laws are open"
     })

@@ -135,6 +135,40 @@ try {
           cases++
         }
       }
+  // Composition laws: splitting at every position preserves both namespaces.
+  for (const parts of streams)
+    for (let split = 0; split <= parts.length; split++) {
+      const prefix = parts.slice(0, split),
+        suffix = parts.slice(split)
+      const left = unlist(batch.select(list(prefix), 17n, 29n))
+      const right = unlist(batch.select(list(suffix), 17n, 29n + BigInt(left.length)))
+      sameCommands(unlist(batch.select(list(parts), 17n, 29n)), [...left, ...right])
+      const commands = [...left, ...right]
+      for (let index = 0; index <= commands.length; index++) {
+        assert.deepEqual(unlist(batch.schedule(list(commands), 41n)), [
+          ...unlist(batch.schedule(list(commands.slice(0, index)), 41n)),
+          ...unlist(batch.schedule(list(commands.slice(index)), 41n + BigInt(index)))
+        ])
+      }
+    }
+  // Exact validators also accept malformed expected streams when IDs match.
+  // Uniqueness belongs to select/schedule, not arbitrary caller expectations.
+  const duplicate = referenceSelect([primitive("a")], 7n, 11n)[0]
+  const duplicated = [duplicate, duplicate, duplicate]
+  const matching = duplicated.map((value, index) => token(value, String(index)))
+  assert.deepEqual(maybeValues(batch.accept(list(duplicated), list(matching))), ["0", "1", "2"])
+  for (let index = 0; index < matching.length; index++) {
+    const broken = matching.map((value, offset) => (offset === index ? { ...value, request: 999n } : value))
+    assert.equal(label(batch.accept(list(duplicated), list(broken))), "None")
+  }
+  const scheduled = unlist(batch.schedule(list(duplicated), 23n))
+  const malformedInner = matching.map((value) => ({ ...value, invocation: 999n }))
+  const envelopes = scheduled.map((value, index) => observed(value, malformedInner[index]))
+  assert.deepEqual(maybeValues(batch.strip_outer(list(scheduled), list(envelopes))), malformedInner)
+  for (let index = 0; index < envelopes.length; index++) {
+    const broken = envelopes.map((value, offset) => (offset === index ? { ...value, request: 999n } : value))
+    assert.equal(label(batch.strip_outer(list(scheduled), list(broken))), "None")
+  }
   let coercions = 0
   const opaque = {
     toString() {

@@ -1,9 +1,19 @@
+import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import type { CanonicalEvent } from "@hapsland/canonical-policy/canonical/models"
 import type { ReviewBackendSettings } from "@hapsland/runtime-environment/runtime/backend"
 import type { List } from "@hapsland/source-artifacts/direct-event/value/codec"
 import type { SourcePreparationContext, PreparedSource } from "./contract.ts"
-import type { Context, Invocation, Response, InputStep, RulesStep, Step } from "./preparation-finalization-core.js"
+import type {
+  Context,
+  Invocation,
+  Response,
+  Primitive,
+  JsonPlanOperation,
+  JsonBatchObserved,
+  RulesStep,
+  Step
+} from "./preparation-finalization-core.js"
 import type { Maybe } from "./preparation-core.js"
 import { createHash } from "node:crypto"
 import { extname } from "node:path"
@@ -76,7 +86,7 @@ const codeUnits = (value: List<number>) => {
     text += String.fromCharCode(...units.slice(index, index + 1024))
   return text
 }
-const primitive = (value: Extract<InputStep, { $: "FrozenInput.JsonPrimitive" }>["value"]) => {
+const primitive = (value: Primitive) => {
   switch (value.$) {
     case "CanonicalJson.NullPrimitive":
       return "null"
@@ -186,6 +196,47 @@ export function createPreparationFinalizationExecution({
         }
         return undefined
       },
+      beginGroup(step: Step) {
+        if (step.$ !== "JsonBatchRequest") return undefined
+        let commands = step.commands
+        let first = true
+        const observations: JsonBatchObserved[] = []
+        return {
+          checkpoints: "canonical" as const,
+          next():
+            | { kind: "terminal"; value: Response }
+            | { kind: "checkpointed"; perform: () => { commit: () => void } } {
+            if (commands.$ === "Nil")
+              return { kind: "terminal", value: { $: "BatchSerialized", observations: list(observations) } }
+            const current = commands
+            return {
+              kind: "checkpointed",
+              perform() {
+                // The first command already passed the outer advance checkpoint.
+                if (!first) checkSignal(options.signal)
+                const value = primitive(current.head.command.primitive)
+                return {
+                  commit() {
+                    checkSignal(options.signal)
+                    observations.push({
+                      $: "CanonicalJsonBatch.Observed",
+                      request: current.head.request,
+                      token: {
+                        $: "CanonicalJsonBatch.Token",
+                        invocation: current.head.command.invocation,
+                        request: current.head.command.request,
+                        value
+                      }
+                    })
+                    commands = current.tail
+                    first = false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       performSync(step: Step): { readonly value: Response } | undefined {
         if (step.$ === "RulesRequest" && step.step.$ === "RuleFinalization.CanonicalGate") return undefined
         let response: Response
@@ -285,9 +336,21 @@ export function createPreparationFinalizationExecution({
                 encodingError = error
                 response = { $: "EncodingFailed" }
               }
-            } else if (nested.$ === "FrozenInput.JsonPrimitive")
-              response = { $: "Serialized", value: primitive(nested.value) }
-            else if (nested.$ === "FrozenInput.Digest")
+            } else if (nested.$ === "FrozenInput.ExportJson") {
+              const operations = unlist(canonicalJsonPlanOperations(nested.value)).map(
+                (operation): JsonPlanOperation => {
+                  switch (operation.$) {
+                    case "PrimitiveOperation":
+                      return { ...operation, $: "CanonicalJsonPlan.PrimitiveOperation" }
+                    case "ArrayOperation":
+                      return { ...operation, $: "CanonicalJsonPlan.ArrayOperation" }
+                    case "ObjectOperation":
+                      return { ...operation, $: "CanonicalJsonPlan.ObjectOperation" }
+                  }
+                }
+              )
+              response = { $: "Planned", operations: list(operations) }
+            } else if (nested.$ === "FrozenInput.Digest")
               response = { $: "Hashed", value: createHash("sha256").update(nested.bytes, "utf8").digest("hex") }
             else throw new TypeError("Unexpected finalization input engine")
             break
@@ -303,8 +366,10 @@ export function createPreparationFinalizationExecution({
         const pending = canonicalGate(gateFacts(step.step), options)
         return { pending, map: (admit: boolean): Response => ({ $: "CanonicalGate", admit }) }
       },
-      resume(step: Step, response: Response): Step {
-        checkSignal(options.signal)
+      resume(step: Step, response: Response, alreadyChecked = false): Step {
+        // A completed nested batch checked the last primitive at commit. Its
+        // terminal reply is storage only; the next advance checks before concat.
+        if (!alreadyChecked) checkSignal(options.signal)
         if (!("state" in step) && !("unit" in step)) throw new TypeError("Unexpected finalization reply boundary")
         const state = "state" in step ? step.state : step.unit.state
         return machine.resume(step, { $: "Reply", invocation: scope, request: state.request, response })

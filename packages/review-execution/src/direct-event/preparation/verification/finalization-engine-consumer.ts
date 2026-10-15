@@ -22,6 +22,18 @@ export function createPreparationFinalizationConsumer(
       }
       const accepted = execution.accepted(step)
       if (accepted !== undefined) return accepted
+      const group = execution.beginGroup(step)
+      if (group !== undefined) {
+        for (;;) {
+          const command = group.next()
+          if (command.kind === "terminal") {
+            step = execution.resume(step, command.value, true)
+            break
+          }
+          command.perform().commit()
+        }
+        continue
+      }
       const synchronous = execution.performSync(step)
       let response
       if (synchronous === undefined) {

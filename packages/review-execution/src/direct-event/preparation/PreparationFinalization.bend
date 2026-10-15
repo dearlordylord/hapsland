@@ -7,6 +7,8 @@ import ../../../../review-definition/src/rules/finalization/RuleSnapshot.bend as
 import ./UnitEvidence.bend as Evidence
 import ./RuleFinalization.bend as Rules
 import ./FrozenInput.bend as Input
+import ./CanonicalJsonBatch.bend as Batch
+import ./CanonicalJsonPlan.bend as Plan
 
 # Whole ordered prepareReadyUnits replacement. The host executes closed requests;
 # it never chooses the next unit/stage or filters native outcomes.
@@ -53,6 +55,7 @@ type Step is Data:
   ReadProviderFacts{unit: UnitState, rules: List<&2, ArtifactValue.ProductValue>}
   RulesRequest{unit: UnitState, step: Rules.Step}
   InputRequest{unit: UnitState, step: Input.Step}
+  JsonBatchRequest{unit: UnitState, step: Input.Step, commands: List<&2, Batch.Scheduled>}
   Completed{outcomes: List<&2, ArtifactValue.ProductValue>}
   TypeError{message: String}
   URIError{}
@@ -76,7 +79,8 @@ type Response is Data:
   CanonicalGate{admit: Bool}
   Encoded{value: String}
   EncodingFailed{}
-  Serialized{value: String}
+  Planned{operations: List<&2, Plan.Operation>}
+  BatchSerialized{observations: List<&2, Batch.Observed>}
   Hashed{value: String}
 type Reply is Data:
   Reply{invocation: Invocation, request: Nat, response: Response}
@@ -100,6 +104,16 @@ def increment_unit(unit: UnitState) -> UnitState:
       partial,
       fingerprints
     }
+
+def add_requests(state: State, count: Nat) -> State:
+  match state:
+    case State{invocation, request, context, pending, reversed}:
+      State{invocation, Nat.add(request, count), context, pending, reversed}
+
+def add_unit_requests(unit: UnitState, count: Nat) -> UnitState:
+  match unit:
+    case UnitState{state, value, location, partial, fingerprints}:
+      UnitState{add_requests(state, count), value, location, partial, fingerprints}
 
 def unit_state(unit: UnitState) -> State:
   match unit:
@@ -161,6 +175,17 @@ def ready(+unit: UnitState, input: ArtifactValue.ProductValue, identity: String)
         }
       }
 
+def expose_batch(unit: UnitState, +step: Input.Step, commands: List<&2, Batch.Command>) -> Step:
+  match unit:
+    case UnitState{State{invocation, +request, context, pending, reversed}, value,
+      location, partial, fingerprints}:
+      JsonBatchRequest{
+        UnitState{State{invocation, Nat.add(1n, request), context, pending, reversed},
+          value, location, partial, fingerprints},
+        step,
+        Batch.schedule(commands, Nat.add(1n, request))
+      }
+
 def input_expose(unit: UnitState, step: Input.Step) -> Step:
   match step:
     case Input.Completed{input, identity}: ready(unit, input, identity)
@@ -168,6 +193,9 @@ def input_expose(unit: UnitState, step: Input.Step) -> Step:
     case Input.TypeError{message}: TypeError{message}
     case Input.URIError{}: URIError{}
     case Input.InvalidReply{}: InvalidReply{}
+    case Input.ExportJson{state, value}: InputRequest{unit, Input.ExportJson{state, value}}
+    case Input.SerializeBatch{state, +commands}:
+      expose_batch(unit, Input.SerializeBatch{state, commands}, commands)
     case _: InputRequest{increment_unit(unit), step}
 
 def invocation_owner(invocation: Invocation) -> Nat:
@@ -421,9 +449,9 @@ def input_with_state(state: Input.State, step: Input.Step, response: Response) -
       step,
       Input.EncodingFailed{invocation, request}
     )
-    case Input.State{invocation, request, _} Serialized{value}: Input.resume(
+    case Input.State{invocation, request, _} Planned{operations}: Input.resume(
       step,
-      Input.Serialized{invocation, request, value}
+      Input.Planned{invocation, request, operations}
     )
     case Input.State{invocation, request, _} Hashed{value}: Input.resume(
       step,
@@ -434,7 +462,7 @@ def input_with_state(state: Input.State, step: Input.Step, response: Response) -
 def input_response(+step: Input.Step, response: Response) -> Input.Step:
   match step:
     case Input.EncodeComponent{state, _}: input_with_state(state, step, response)
-    case Input.JsonPrimitive{state, _}: input_with_state(state, step, response)
+    case Input.ExportJson{state, _}: input_with_state(state, step, response)
     case Input.Digest{state, _}: input_with_state(state, step, response)
     case _: Input.InvalidReply{}
 
@@ -452,6 +480,24 @@ def rules_snapshot(
   match value:
     case Some{rules}: rules
     case None{}: rules_or_empty(fallback)
+
+def batch_tokens(
+  step: Input.Step,
+  tokens: Maybe<&2, List<&2, Batch.Token>>
+) -> Input.Step:
+  match step tokens:
+    case Input.SerializeBatch{Input.State{+invocation, +request, work}, commands} Some{tokens}:
+      Input.resume(
+        Input.SerializeBatch{Input.State{invocation, request, work}, commands},
+        Input.SerializedBatch{invocation, request, tokens}
+      )
+    case _ _: Input.InvalidReply{}
+
+def batch_accepted(unit: UnitState, count: Nat, step: Input.Step) -> Step:
+  match step:
+    case Input.Continue{state}:
+      input_expose(add_unit_requests(unit, Nat.sub(count, 1n)), Input.Continue{state})
+    case _: InvalidReply{}
 
 def resume(step: Step, reply: Reply) -> Step:
   match step reply:
@@ -503,6 +549,18 @@ def resume(step: Step, reply: Reply) -> Step:
         Step,
         correlation(unit_state(unit), invocation, request),
         rules_expose(unit, rules_response(step, response)),
+        InvalidReply{}
+      )
+    case JsonBatchRequest{+unit, step, +commands} Reply{
+      invocation, request, BatchSerialized{observations}
+    }:
+      Bool.pick(
+        Step,
+        correlation(unit_state(unit), invocation, request),
+        batch_accepted(
+          unit, List.length(&2, Batch.Scheduled, commands),
+          batch_tokens(step, Batch.strip_outer(commands, observations))
+        ),
         InvalidReply{}
       )
     case InputRequest{+unit, step} Reply{invocation, request, response}:

@@ -116,6 +116,7 @@ export const performFinalizationSync = (request: FinalizationRequest): ForeignRe
   let step = request.finalization
   // The first request has already passed the protocol's advance checkpoint.
   let needsAdvance = false
+  let nested: ReturnType<Binding["beginGroup"]>
   return {
     group: {
       checkpoints: "canonical",
@@ -135,6 +136,23 @@ export const performFinalizationSync = (request: FinalizationRequest): ForeignRe
           }
         if (!("state" in step) && !("unit" in step))
           return { kind: "terminal", value: { $: "FinalizationReply", step } }
+        nested ??= request.binding.beginGroup(step)
+        if (nested !== undefined) {
+          const command = nested.next()
+          if (command.kind !== "terminal") return command
+          return {
+            kind: "checkpointed",
+            perform() {
+              return {
+                commit() {
+                  step = request.binding.resume(step, command.value, true)
+                  nested = undefined
+                  needsAdvance = true
+                }
+              }
+            }
+          }
+        }
         return {
           kind: "checkpointed",
           perform() {

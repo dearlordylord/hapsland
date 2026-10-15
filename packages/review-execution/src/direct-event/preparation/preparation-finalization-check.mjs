@@ -22,6 +22,7 @@ import {
   performFinalizationSync,
   performFinalizationAsync
 } from "../../../dist/direct-event/preparation/finalization-protocol.js"
+import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
 import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import {
   productValue,
@@ -221,7 +222,9 @@ try {
       assert.notEqual(label(step), "InvalidReply")
       const state = step.state ?? step.unit.state
       const request = state.request
-      assert.ok(request > previousRequest)
+      if (label(step) === "InputRequest" && label(step.step) === "ExportJson")
+        assert.equal(request, previousRequest, "mechanical flatten does not consume an outer ID")
+      else assert.ok(request > previousRequest)
       previousRequest = request
       let response
       switch (label(step)) {
@@ -305,10 +308,37 @@ try {
               assert.ok(error instanceof URIError)
               response = { $: "EncodingFailed" }
             }
-          } else if (label(nested) === "JsonPrimitive") response = { $: "Serialized", value: primitive(nested.value) }
+          } else if (label(nested) === "ExportJson")
+            response = {
+              $: "Planned",
+              operations: list(
+                unlist(canonicalJsonPlanOperations(nested.value)).map((operation) => ({
+                  ...operation,
+                  $: `CanonicalJsonPlan.${operation.$}`
+                }))
+              )
+            }
           else {
             assert.equal(label(nested), "Digest")
             response = { $: "Hashed", value: createHash("sha256").update(nested.bytes, "utf8").digest("hex") }
+          }
+          break
+        }
+        case "JsonBatchRequest": {
+          response = {
+            $: "BatchSerialized",
+            observations: list(
+              unlist(step.commands).map((scheduled) => ({
+                $: "CanonicalJsonBatch.Observed",
+                request: scheduled.request,
+                token: {
+                  $: "CanonicalJsonBatch.Token",
+                  invocation: scheduled.command.invocation,
+                  request: scheduled.command.request,
+                  value: primitive(scheduled.command.primitive)
+                }
+              }))
+            )
           }
           break
         }
@@ -316,6 +346,41 @@ try {
           throw new Error("Unexpected whole request " + step.$)
       }
       const reply = { $: "Reply", invocation, request, response }
+      if (label(step) === "JsonBatchRequest") {
+        const commands = unlist(step.commands)
+        assert.ok(commands.length > 0)
+        assert.equal(commands[0].request, request, "batch header is first pending outer request")
+        for (let index = 0; index < commands.length; index++)
+          assert.equal(commands[index].request, request + BigInt(index))
+        const observations = unlist(response.observations)
+        const malformed = [observations.slice(1), [...observations, observations[0]]]
+        for (const index of new Set([0, Math.floor(observations.length / 2), observations.length - 1])) {
+          malformed.push(
+            observations.map((item, offset) => (offset === index ? { ...item, request: item.request + 1n } : item))
+          )
+          malformed.push(
+            observations.map((item, offset) =>
+              offset === index ? { ...item, token: { ...item.token, request: item.token.request + 1n } } : item
+            )
+          )
+        }
+        for (const bad of malformed) {
+          assert.equal(
+            label(core.resume(step, { ...reply, response: { $: "BatchSerialized", observations: list(bad) } })),
+            "InvalidReply"
+          )
+          rejectedReplies++
+        }
+        const after = core.resume(step, reply)
+        assert.equal(label(after), "Continue")
+        assert.equal(after.phase.unit.state.request, request + BigInt(commands.length - 1))
+        assert.equal(label(after.phase.step), "Continue")
+        const digest = core.advance(after.phase)
+        assert.equal(label(digest), "InputRequest")
+        assert.equal(label(digest.step), "Digest")
+        assert.equal(digest.unit.state.request, request + BigInt(commands.length))
+        assert.equal(digest.step.state.request, commands[0].command.request + BigInt(commands.length))
+      }
       for (const wrong of [
         { ...reply, invocation: { ...invocation, command: invocation.command - 1n } },
         { ...reply, invocation: { ...invocation, owner: invocation.owner + 1n } },
@@ -616,6 +681,76 @@ try {
       assert.deepEqual(trace, mode === "initial" ? [] : mode.startsWith("rules") ? ["rules"] : ["rules", "gate"])
       runtimeCases++
     }
+    // Exercise native serialization inside both the finite consumer and the
+    // actual Canonical lease: partial failure cannot execute the suffix.
+    const stringify = JSON.stringify
+    let totalPrimitives = 0
+    try {
+      JSON.stringify = function (...args) {
+        totalPrimitives++
+        return Reflect.apply(stringify, JSON, args)
+      }
+      await consume(runtimeInput({ rules }, () => [rules[1]]))
+    } finally {
+      JSON.stringify = stringify
+    }
+    assert.ok(totalPrimitives > 2)
+    for (const at of new Set([1, Math.ceil(totalPrimitives / 2), totalPrimitives])) {
+      for (const mode of ["throw", "abort", "abort-throw"]) {
+        let calls = 0
+        const controller = new AbortController()
+        const original = new Error(`serialization ${mode} at ${at}`)
+        try {
+          JSON.stringify = function (...args) {
+            calls++
+            if (calls === at) {
+              if (mode.startsWith("abort")) controller.abort()
+              if (mode.endsWith("throw")) throw original
+            }
+            return Reflect.apply(stringify, JSON, args)
+          }
+          await assert.rejects(
+            consume(
+              runtimeInput({ rules }, () => [rules[1]]),
+              { signal: controller.signal }
+            ),
+            (error) =>
+              mode.endsWith("throw")
+                ? error === original
+                : error instanceof TransportFailure && error.code === "aborted"
+          )
+          assert.equal(calls, at, "failed/revoked primitive prevents every suffix effect")
+        } finally {
+          JSON.stringify = stringify
+        }
+        runtimeCases++
+      }
+    }
+    // The first raw token must survive all remaining primitive effects before
+    // assembly coerces it. Resume/group commit must never coerce the token.
+    let calls = 0,
+      coercions = 0
+    const assemblyError = new Error("late token coercion")
+    try {
+      JSON.stringify = function (...args) {
+        calls++
+        if (calls === 1)
+          return {
+            toString() {
+              coercions++
+              assert.equal(calls, totalPrimitives)
+              throw assemblyError
+            }
+          }
+        return Reflect.apply(stringify, JSON, args)
+      }
+      await assert.rejects(consume(runtimeInput({ rules }, () => [rules[1]])), (error) => error === assemblyError)
+      assert.equal(calls, totalPrimitives)
+      assert.equal(coercions, 1)
+    } finally {
+      JSON.stringify = stringify
+    }
+    runtimeCases++
     const trace = []
     let queued = false
     const execute = createConsumer((event) => {

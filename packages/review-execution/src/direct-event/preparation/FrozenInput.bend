@@ -3,7 +3,8 @@ import Base
 import ../../../../runtime-environment/src/runtime/backend/Backend.bend as Backend
 import ../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend.bend as Configuration
 import ../../../../review-definition/src/review-providers/ProviderFinalization.bend as Provider
-import ./CanonicalJson.bend as Json
+import ./CanonicalJsonPlan.bend as Plan
+import ./CanonicalJsonBatch.bend as Batch
 import ./UnitEvidence.bend as Evidence
 
 # Connected frozen-input and semantic-identity construction. Upstream evidence
@@ -22,14 +23,21 @@ type Frame is Data:
   }
 type Work is Data:
   ProviderWork{frame: Frame, step: Provider.Step}
-  JsonWork{input: ArtifactValue.ProductValue, state: Json.State}
+  FlattenWork{input: ArtifactValue.ProductValue}
+  BatchWork{
+    input: ArtifactValue.ProductValue,
+    parts: List<&2, Plan.Piece>,
+    commands: List<&2, Batch.Command>
+  }
+  AssemblyWork{input: ArtifactValue.ProductValue, parts: List<&2, String>}
   HashWork{input: ArtifactValue.ProductValue}
 type State is Data:
   State{invocation: Nat, request: Nat, work: Work}
 type Step is Data:
   Continue{state: State}
   EncodeComponent{state: State, value: String}
-  JsonPrimitive{state: State, value: Json.Primitive}
+  ExportJson{state: State, value: ArtifactValue.ProductValue}
+  SerializeBatch{state: State, commands: List<&2, Batch.Command>}
   Digest{state: State, bytes: String}
   Completed{input: ArtifactValue.ProductValue, identity: String}
   TypeError{message: String}
@@ -38,7 +46,8 @@ type Step is Data:
 type Reply is Data:
   Encoded{invocation: Nat, request: Nat, value: String}
   EncodingFailed{invocation: Nat, request: Nat}
-  Serialized{invocation: Nat, request: Nat, value: String}
+  Planned{invocation: Nat, request: Nat, operations: List<&2, Plan.Operation>}
+  SerializedBatch{invocation: Nat, request: Nat, tokens: List<&2, Batch.Token>}
   Hashed{invocation: Nat, request: Nat, value: String}
 
 def identity_value(identity: Backend.Identity) -> ArtifactValue.ProductValue:
@@ -120,12 +129,9 @@ def identity_ready(
   identity: Backend.Identity
 ) -> Step:
   +fields = core_fields(frame, identity)
-  Continue{
-    State{
-      invocation,
-      request,
-      JsonWork{input_value(frame, fields), Json.initial(ArtifactValue.ProductObject{fields})}
-    }
+  ExportJson{
+    State{invocation, request, FlattenWork{input_value(frame, fields)}},
+    ArtifactValue.ProductObject{fields}
   }
 
 def provider_expose(invocation: Nat, request: Nat, frame: Frame, step: Provider.Step) -> Step:
@@ -161,33 +167,63 @@ def initial(
     Provider.initial(invocation, configuration, identity, catalog)
   )
 
-def json_expose(
+def assembled(
   invocation: Nat,
   request: Nat,
   input: ArtifactValue.ProductValue,
-  step: Json.Step
+  parts: Maybe<&2, List<&2, String>>
 ) -> Step:
-  match step:
-    case Json.Continue{state}: Continue{State{invocation, request, JsonWork{input, state}}}
-    case Json.JsonPrimitive{state, value}: JsonPrimitive{
-      State{invocation, Nat.add(1n, request), JsonWork{input, state}},
-      value
+  match parts:
+    case None{}: InvalidReply{}
+    case Some{parts}: Continue{State{invocation, request, AssemblyWork{input, parts}}}
+
+# Empty plans reach assembly without issuing or charging a native request.
+def batch_selected(
+  invocation: Nat,
+  request: Nat,
+  input: ArtifactValue.ProductValue,
+  parts: List<&2, Plan.Piece>,
+  commands: List<&2, Batch.Command>
+) -> Step:
+  match commands:
+    case []: assembled(invocation, request, input, Batch.bind(parts, []))
+    case +head <> +tail: SerializeBatch{
+      State{invocation, Nat.add(1n, request), BatchWork{input, parts, head <> tail}},
+      head <> tail
     }
-    case Json.Complete{bytes}: Digest{
-      State{invocation, Nat.add(1n, request), HashWork{input}},
-      bytes
-    }
+
+def planned(
+  +invocation: Nat,
+  +request: Nat,
+  input: ArtifactValue.ProductValue,
+  parts: Maybe<&2, List<&2, Plan.Piece>>
+) -> Step:
+  match parts:
+    case None{}: InvalidReply{}
+    case Some{+parts}: batch_selected(
+      invocation, request, input, parts,
+      Batch.select(parts, invocation, Nat.add(1n, request))
+    )
+
+def accepted_tokens(
+  invocation: Nat,
+  request: Nat,
+  input: ArtifactValue.ProductValue,
+  parts: List<&2, Plan.Piece>,
+  tokens: Maybe<&2, List<&2, String>>
+) -> Step:
+  match tokens:
+    case None{}: InvalidReply{}
+    case Some{tokens}: assembled(invocation, request, input, Batch.bind(parts, tokens))
 
 def advance(state: State) -> Step:
   match state:
     case State{invocation, request, ProviderWork{frame, Provider.Continue{state}}}:
       provider_expose(invocation, request, frame, Provider.advance(state))
-    case State{invocation, request, JsonWork{input, state}}: json_expose(
-      invocation,
-      request,
-      input,
-      Json.advance(state)
-    )
+    case State{invocation, request, AssemblyWork{input, parts}}: Digest{
+      State{invocation, Nat.add(1n, request), HashWork{input}},
+      String.concat(parts)
+    }
     case _: InvalidReply{}
 
 def same(+invocation: Nat, +request: Nat, received_invocation: Nat, received_request: Nat) -> Bool:
@@ -231,17 +267,26 @@ def resume(step: Step, reply: Reply) -> Step:
         provider_expose(invocation, request, frame, provider_failed(state)),
         InvalidReply{}
       )
-    case JsonPrimitive{State{+invocation, +request, JsonWork{input, state}}, _} Serialized{
-      received_invocation,
-      received_request,
-      value
+    case ExportJson{State{+invocation, +request, FlattenWork{input}}, _} Planned{
+      received_invocation, received_request, operations
     }:
       Bool.pick(
         Step,
         same(invocation, request, received_invocation, received_request),
-        Continue{
-          State{invocation, request, JsonWork{input, Json.primitive_returned(state, value)}}
-        },
+        planned(invocation, request, input, Plan.compile(operations)),
+        InvalidReply{}
+      )
+    case SerializeBatch{
+      State{+invocation, +request, BatchWork{input, parts, +commands}}, _
+    } SerializedBatch{received_invocation, received_request, tokens}:
+      Bool.pick(
+        Step,
+        same(invocation, request, received_invocation, received_request),
+        accepted_tokens(
+          invocation,
+          Nat.add(request, Nat.sub(List.length(&2, Batch.Command, commands), 1n)),
+          input, parts, Batch.accept(commands, tokens)
+        ),
         InvalidReply{}
       )
     case Digest{State{invocation, request, HashWork{input}}, _} Hashed{

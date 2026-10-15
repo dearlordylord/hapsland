@@ -94,15 +94,38 @@ export type RulesStep =
   | Tagged<"RuleFinalization.Completed", { readonly frozen: List<ProductValue> }>
   | Tagged<"RuleFinalization.InvalidReply">
 type InputState = Opaque<"FrozenInput.State">
-type Primitive =
+export type Primitive =
   | Tagged<"CanonicalJson.NullPrimitive">
   | Tagged<"CanonicalJson.BoolPrimitive", { readonly value: boolean }>
   | Tagged<"CanonicalJson.StringPrimitive", { readonly value: string }>
   | Tagged<"CanonicalJson.NumberPrimitive", { readonly bits: Binary64 }>
+export type JsonPlanOperation =
+  | Tagged<"CanonicalJsonPlan.PrimitiveOperation", { readonly value: Primitive }>
+  | Tagged<"CanonicalJsonPlan.ArrayOperation", { readonly arity: bigint }>
+  | Tagged<"CanonicalJsonPlan.ObjectOperation", { readonly keys: List<string> }>
+export type JsonBatchCommand = Tagged<
+  "CanonicalJsonBatch.Command",
+  { readonly invocation: bigint; readonly request: bigint; readonly primitive: Primitive }
+>
+export type JsonBatchScheduled = Tagged<
+  "CanonicalJsonBatch.Scheduled",
+  { readonly request: bigint; readonly command: JsonBatchCommand }
+>
+export type JsonBatchObserved = Tagged<
+  "CanonicalJsonBatch.Observed",
+  {
+    readonly request: bigint
+    readonly token: Tagged<
+      "CanonicalJsonBatch.Token",
+      { readonly invocation: bigint; readonly request: bigint; readonly value: string }
+    >
+  }
+>
 export type InputStep =
   | Tagged<"FrozenInput.Continue", { readonly state: InputState }>
   | Tagged<"FrozenInput.EncodeComponent", { readonly state: InputState; readonly value: string }>
-  | Tagged<"FrozenInput.JsonPrimitive", { readonly state: InputState; readonly value: Primitive }>
+  | Tagged<"FrozenInput.ExportJson", { readonly state: InputState; readonly value: ProductValue }>
+  | Tagged<"FrozenInput.SerializeBatch", { readonly state: InputState; readonly commands: List<JsonBatchCommand> }>
   | Tagged<"FrozenInput.Digest", { readonly state: InputState; readonly bytes: string }>
   | Tagged<"FrozenInput.Completed", { readonly input: ProductValue; readonly identity: string }>
   | Tagged<"FrozenInput.TypeError", { readonly message: string }>
@@ -119,6 +142,14 @@ export type Step =
   | Tagged<"ReadProviderFacts", { readonly unit: UnitState; readonly rules: List<ProductValue> }>
   | Tagged<"RulesRequest", { readonly unit: UnitState; readonly step: RulesStep }>
   | Tagged<"InputRequest", { readonly unit: UnitState; readonly step: InputStep }>
+  | Tagged<
+      "JsonBatchRequest",
+      {
+        readonly unit: UnitState
+        readonly step: Extract<InputStep, { $: "FrozenInput.SerializeBatch" }>
+        readonly commands: List<JsonBatchScheduled>
+      }
+    >
   | Tagged<"Completed", { readonly outcomes: List<ProductValue> }>
   | Tagged<"TypeError", { readonly message: string }>
   | Tagged<"URIError">
@@ -164,7 +195,8 @@ export type Response =
   | Tagged<"CanonicalGate", { readonly admit: boolean }>
   | Tagged<"Encoded", { readonly value: string }>
   | Tagged<"EncodingFailed">
-  | Tagged<"Serialized", { readonly value: string }>
+  | Tagged<"Planned", { readonly operations: List<JsonPlanOperation> }>
+  | Tagged<"BatchSerialized", { readonly observations: List<JsonBatchObserved> }>
   | Tagged<"Hashed", { readonly value: string }>
 export type Reply = Tagged<
   "Reply",
