@@ -11,12 +11,20 @@ def bits_equal(left: Value.Binary64, right: Value.Binary64) -> Bool:
     case Value.Binary64{a, b} Value.Binary64{c, d}:
       Bool.and(U32.is_eq(a, c), U32.is_eq(b, d))
 
+# Equality needs no reconstructed copy of the two discarded strings.
+def equal_go(left: String, right: String, same: Bool) -> Bool:
+  match left right same:
+    case SNil{} SNil{} True{}: True{}
+    case SCon{a, left} SCon{b, right} True{}:
+      equal_go(left, right, Cmp.is_eq(Pair.snd(Char & Char, Cmp, Char.cmp(a, b))))
+    case _ _ _: False{}
+
 def primitive_matches(primitive: Json.Primitive, expected: Value.ProductValue) -> Bool:
   match primitive expected:
     case Json.NullPrimitive{} Value.ProductNull{}: True{}
     case Json.BoolPrimitive{a} Value.ProductBool{b}: Bool.not(Bool.xor(a, b))
     case Json.NumberPrimitive{a} Value.ProductNumber{b}: bits_equal(a, b)
-    case Json.StringPrimitive{a} Value.ProductText{b}: String.eq(a, b)
+    case Json.StringPrimitive{a} Value.ProductText{b}: equal_go(a, b, True{})
     case _ _: False{}
 
 def object_keys(
@@ -26,7 +34,7 @@ def object_keys(
   match keys fields:
     case Nil{} Nil{}: True{}
     case Con{key, keys} Con{Value.OrderedField{expected, _}, fields}:
-      Bool.and(String.eq(key, expected), object_keys(keys, fields))
+      Bool.and(equal_go(key, expected, True{}), object_keys(keys, fields))
     case _ _: False{}
 
 def field_values(

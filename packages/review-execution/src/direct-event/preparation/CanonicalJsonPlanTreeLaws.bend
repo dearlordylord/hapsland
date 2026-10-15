@@ -164,5 +164,12 @@ law tree_exact:
   for encoding: ForestEncoding<[value], operations, [parts]>
   {Plan.compile(operations) == Some{parts} : Maybe<&2, List<&2, Plan.Piece>>}
 
+# Tail comparison discards strings; its result is exactly the original Base equality.
+law string_equal_exact:
+  for +left: String
+  for +right: String
+  for +same: Bool
+  {Validation.equal_go(left, right, same) == Bool.and(same, String.eq(left, right)) : Bool}
+
 def main() -> Unit:
   Unit{}
