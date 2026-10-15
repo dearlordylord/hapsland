@@ -65,6 +65,36 @@ try {
     { timeout: 11000 }
   )
   const validator = (await import(pathToFileURL(output))).default
+  const strings = [
+    "",
+    "a",
+    "b",
+    "aa",
+    "ab",
+    "a\u0000b",
+    "λ😀",
+    "\ue000",
+    "\ud800",
+    "\udfff",
+    "prefix".repeat(1000),
+    "prefix".repeat(1000) + "!",
+    "x".repeat(22000)
+  ]
+  let equalityCases = 0
+  for (const left of strings)
+    for (const right of strings) {
+      for (const same of [false, true]) {
+        assert.equal(validator.equal_go(left, right, same), same && left === right)
+        equalityCases++
+      }
+      assert.equal(validator.validate(list(operations(productValue(left))), productValue(right)), left === right)
+      const expected = productValue({ [right]: true })
+      const changed = operations(expected).map((operation) =>
+        operation.$ === "CanonicalJsonPlan.ObjectOperation" ? { ...operation, keys: list([left]) } : operation
+      )
+      assert.equal(validator.validate(list(changed), expected), left === right)
+      equalityCases += 2
+    }
   const values = [
     null,
     true,
@@ -151,6 +181,7 @@ try {
       cases,
       refusals,
       continuations,
+      equalityCases,
       scope: "actual emitted plan validator; finite codec and continuation checks, not whole proof/runtime acceptance"
     })
   )

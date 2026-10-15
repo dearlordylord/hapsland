@@ -13,7 +13,78 @@ import ./CanonicalJsonPlanValidation.bend as Validation
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as Value
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/INTERPRETER_STRING_FACTS.bend as Strings
 
-# Concrete pre-proof falsification instances. Universal bindings remain open.
+# The native validator consumer falsified this exact strengthened equality before binding.
+def equal_cmp_step(
+  +x: U32,
+  +y: U32,
+  +left: String,
+  +right: String,
+  +comparison: Cmp,
+  ih: {
+    Validation.equal_go(left, right, Cmp.is_eq(comparison))
+    == Bool.and(Cmp.is_eq(comparison), String.eq(left, right))
+    : Bool
+  }
+) -> {Validation.equal_go(left, right, Cmp.is_eq(comparison))
+    == Cmp.is_eq(Pair.snd(String & String, Cmp,
+      String.cmp.fin(left, right, ((Chr{x}, Chr{y}), comparison)))) : Bool}:
+  match comparison:
+    case LT{}: ih
+    case GT{}: ih
+    case EQ{}:
+      Equal.trans(
+        Bool,
+        Validation.equal_go(left, right, True{}),
+        String.eq(left, right),
+        Cmp.is_eq(
+          Pair.snd(String & String, Cmp, String.cmp.rec(Chr{x}, Chr{y}, String.cmp(left, right)))
+        ),
+        ih,
+        Equal.sym(
+          Bool,
+          Cmp.is_eq(
+            Pair.snd(String & String, Cmp, String.cmp.rec(Chr{x}, Chr{y}, String.cmp(left, right)))
+          ),
+          String.eq(left, right),
+          Strings.internal_rec_is_eq(Chr{x}, Chr{y}, String.cmp(left, right))
+        )
+      )
+
+def Laws.string_equal_exact(left, right, same):
+  match left right same:
+    case SNil{} SNil{} False{}: {==}
+    case SNil{} SNil{} True{}: {==}
+    case SNil{} SCon{_, _} False{}: {==}
+    case SNil{} SCon{_, _} True{}: {==}
+    case SCon{_, _} SNil{} False{}: {==}
+    case SCon{_, _} SNil{} True{}: {==}
+    case SCon{_, _} SCon{_, _} False{}: {==}
+    case SCon{Chr{+x}, +left} SCon{Chr{+y}, +right} True{}:
+      equal_cmp_step(x, y, left, right, U32.cmp(x, y),
+        Laws.string_equal_exact(left, right, Cmp.is_eq(U32.cmp(x, y))))
+
+# Existing proofs consume the original Base equality through the exact new theorem.
+def string_equal(
+  +left: String,
+  +right: String
+) -> {Validation.equal_go(left, right, True{}) == String.eq(left, right) : Bool}:
+  Laws.string_equal_exact(left, right, True{})
+
+def string_reflexive(
+  +value: String
+) -> {Validation.equal_go(value, value, True{}) == True{} : Bool}:
+  Equal.trans(Bool, Validation.equal_go(value, value, True{}), String.eq(value, value), True{},
+    string_equal(value, value), Strings.eq_refl(value))
+
+def string_accepted(
+  +left: String,
+  +right: String,
+  accepted: {Validation.equal_go(left, right, True{}) == True{} : Bool}
+) -> {String.eq(left, right) == True{} : Bool}:
+  %string_equal(left, right) : {_ == True{} : Bool}
+  accepted
+
+# Concrete falsification instances precede the forest/tree universal bindings below.
 # These construct actual indexed witnesses, not assumed codec correspondence.
 
 def instance_0_encoding() -> Laws.ForestEncoding<[], [], []>:
@@ -516,7 +587,7 @@ def primitive_reflexive(+primitive: Json.Primitive) -> {Validation.primitive_mat
         case False{}: {==}
         case True{}: {==}
     case Json.NumberPrimitive{bits}: bits_reflexive(bits)
-    case Json.StringPrimitive{value}: Strings.eq_refl(value)
+    case Json.StringPrimitive{value}: string_reflexive(value)
 
 def keys_reflexive(+fields: List<&2,
   Value.OrderedField<Value.ProductValue>>) -> {Validation.object_keys(Laws.field_keys(fields),
@@ -524,7 +595,7 @@ def keys_reflexive(+fields: List<&2,
   match fields:
     case []: {==}
     case Value.OrderedField{+key, _} <> +tail:
-      %Equal.sym(Bool, String.eq(key, key), True{}, Strings.eq_refl(key)) :
+      %Equal.sym(Bool, Validation.equal_go(key, key, True{}), True{}, string_reflexive(key)) :
         {Bool.and(_, Validation.object_keys(Laws.field_keys(tail), tail)) == True{} : Bool}
       keys_reflexive(tail)
 
@@ -1153,7 +1224,7 @@ def primitive_matches_equal(+primitive: Json.Primitive, +value: Value.ProductVal
         bits_matches_equal(a, b, accepted))
     case Json.StringPrimitive{+a} Value.ProductText{+b}:
       Equal.cong(String, Value.ProductValue, x => Value.ProductText{x}, b, a, Equal.sym(String, a,
-        b, Strings.eq_of_eq_true(a, b, accepted)))
+        b, Strings.eq_of_eq_true(a, b, string_accepted(a, b, accepted))))
     case Json.NullPrimitive{} Value.ProductBool{+b}: Empty.absurd(
       {Value.ProductBool{b} == Laws.primitive_value(Json.NullPrimitive{}) : Value.ProductValue},
       Strings.internal_false_ne_true(accepted))
@@ -1221,12 +1292,12 @@ def matched_keys(+keys: List<&2, String>, +fields: List<&2, Value.OrderedField<V
   match keys fields:
     case Nil{} Nil{}: {==}
     case Con{+key, +keys} Con{Value.OrderedField{+name, _}, +fields}:
-      accepted_and({key <> keys == name <> Laws.field_keys(fields) : List<&2, String>}, String.eq(
-        key, name), Validation.object_keys(keys, fields), accepted,
+      accepted_and({key <> keys == name <> Laws.field_keys(fields) : List<&2, String>},
+        Validation.equal_go(key, name, True{}), Validation.object_keys(keys, fields), accepted,
         first => rest => Equal.trans(List<&2, String>, key <> keys, name <> keys,
           name <> Laws.field_keys(fields),
           Equal.cong(String, List<&2, String>, x => x <> keys, key, name, Strings.eq_of_eq_true(key,
-            name, first)),
+            name, string_accepted(key, name, first))),
           Equal.cong(List<&2, String>, List<&2, String>, xs => name <> xs, keys, Laws.field_keys(
             fields), matched_keys(keys, fields, rest))))
     case Nil{} Con{Value.OrderedField{key, value}, fields}: Empty.absurd({[] == Laws.field_keys(

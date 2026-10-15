@@ -16,7 +16,7 @@ def equal_go(left: String, right: String, same: Bool) -> Bool:
   match left right same:
     case SNil{} SNil{} True{}: True{}
     case SCon{a, left} SCon{b, right} True{}:
-      equal_go(left, right, Cmp.is_eq(Pair.snd(Char & Char, Cmp, Char.cmp(a, b))))
+      equal_go(left, right, Char.is_eq(a, b))
     case _ _ _: False{}
 
 def primitive_matches(primitive: Json.Primitive, expected: Value.ProductValue) -> Bool:
