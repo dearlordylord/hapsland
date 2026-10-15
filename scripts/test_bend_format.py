@@ -30,7 +30,7 @@ source = sys.stdin.buffer.read() if '--stdin-path' in args else b''
 with open(os.environ['FORMAT_TEST_LOG'], 'a') as log:
     log.write(json.dumps({'args': args, 'stdin': base64.b64encode(source).decode()}) + '\\n')
 if args == ['--version']:
-    print(os.environ.get('FORMAT_TEST_VERSION', 'bend-format 0.1.19'))
+    print(os.environ.get('FORMAT_TEST_VERSION', 'bend-format 0.1.23'))
     sys.exit(0)
 if '--stdin-path' not in args:
     source = b''.join(pathlib.Path(path).read_bytes() for path in args[1:] if path != '--')
@@ -52,7 +52,7 @@ sys.exit(2 if b'UNAVAILABLE' in source else 1 if b'BAD' in source else 0)
 
     def test_wrong_version_rejects_before_formatting(self):
         (self.root / 'example.bend').write_bytes(b'BAD\n')
-        self.env['FORMAT_TEST_VERSION'] = 'bend-format 0.1.14'
+        self.env['FORMAT_TEST_VERSION'] = 'bend-format 0.1.19'
         self.assertEqual(self.run_format('check').returncode, 2)
         self.assertEqual([call['args'] for call in self.calls()], [['--version']])
 

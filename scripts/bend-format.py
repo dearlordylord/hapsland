@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-VERSION = "bend-format 0.1.19"
+VERSION = "bend-format 0.1.23"
 
 
 def git(root, *args):
