@@ -205,6 +205,24 @@ mutation anchors; after formatting executable Bend, rerun its affected proofs,
 mutation checks and artifact checks. Style checks do not establish semantics.
 Wrapper and staged-byte regression tests: `python3 scripts/test_bend_format.py`.
 
+For an unsupported block/list failure, the optional
+[location-only diagnostic](../scripts/bend-format-diagnostic.java) uses
+the unchanged pinned JAR's settings, scanner and selector. With Java 21 and
+`BEND_FORMAT_JAR` / `BEND_FORMAT_JAVA` set, its source compilation and real consumer
+check are:
+
+```sh
+timeout --kill-after=5s 45s taskset -c 9 "$BEND_FORMAT_JAVA" --class-path "$BEND_FORMAT_JAR" scripts/bend-format-diagnostic.java "$BEND_FORMAT_JAR" path/to/file.bend
+```
+
+It reports the first failing selected root and separately labels independently
+failing nested lists on the original maps; those are not a sequential formatter
+trace. Exit 0 means locations were collected, never formatting acceptance. The
+normal formatter gate remains required. The helper pins the JAR hash and fails
+closed on a different private ABI; delete or replace it when the pinned formatter
+provides these locations directly. Check changed diagnostic source with this real
+consumer command and `node scripts/check-repository-assets.mjs`.
+
 ## Optional development modules
 
 Ordinary `npm test`, coverage/quality checks, and production/release builds exclude the game and the separate Monkey Business test suite. The production build does not validate or rebuild the standalone simulator. Run `npm run test:game` for generated game-lab identity, lab types and the focused lab suite; run `npm run test:simulation` for simulator freshness and all explicitly enumerated Monkey Business tests. Both entrypoints use the finite supervisor; native game/lab checks remain separate commands in the matrix below. Explicit `test:focused` selections can still include these owners. Production conformance tests using the model as an oracle remain in the ordinary gate, as do the production Bend artifact and authority checks. This separation changes test selection, not CRAP thresholds or missing-evidence policy. Review it when a development module becomes a production dependency.
