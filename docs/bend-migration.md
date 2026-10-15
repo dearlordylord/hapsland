@@ -214,7 +214,7 @@ that only bridges helper names.
   Query rewrite stops resolved field/catalog/path searches and failed predicates.
   Astra approved five arbitrary-input equivalence laws; kernel and 1940 emitted
   cases/five mutants pass. Formatter 0.1.19 refuses proof block expressions;
-  consumers and whole parity remain pending for this query candidate.
+  evidence/Finalization/compiled Source/resident/public consumers and fast pass.
 - Post candidate `660bde05` removes all three host algorithms: offer disposition,
   retained-advice observation and bounded Internal progression. Its 27 laws pass
   the standard runner; four mutants fail their named laws. Build (46 workspaces),
@@ -226,8 +226,8 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary actual `f1fb6330` analyzer/build: 0.5914 / 0.8401. Whole current-native
-  Preparation on `912a5174` **fails parity at 1.4458**: equal outputs, 17 frozen pairs,
+- Primary actual `e78dd582` analyzer/build: 0.7040 / 0.8440. Whole current-native
+  Preparation on `e78dd582` **fails parity at 1.3788**: equal outputs, 17 frozen pairs,
   30 local workspaces.
   Qualified-codec/public/physical consumers pass; whole parity fails.
 - Attachment facts/consumers pass verdict/format. Full TT is 7,445,671 bytes;
