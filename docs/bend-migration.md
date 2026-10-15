@@ -177,7 +177,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Original proof formatting | Pinned 0.1.19 block-list limitation also affects local analyzer proofs; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Local analyzer connection requalified against independent TS: Source/resident/FrozenInput and 254 public tests pass, including failure/measurement ordering. |
 | Shared extraction | All five adapters use one invocation-local Source Analysis entry inside ExtractSource; no cross-command cache or new Core laws. Astra review: no blocker. Build/23 receipts, 42 ordered differential cases, Source59/6687, resident67/14323+868Post and Graph18/1425/7125 fences pass. Graph fixtures use numeric Nat; fast checks select 15 files. Public consumers: 10 files/363 tests pass. Whole parity fails 1.5301. Deterministic parser facts only. |
-| Whole-path parity | Empty-root Core skips inventory/cursor; original Root/Whole proofs pass, exact leaf queue/Acks and 78 differential cases pass. Whole trial pending. Shared-extraction whole current-native ratio is 1.5301; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 scratch: encode 1.3228, encode/decode 1.4240; 17 frozen equal-output pairs each. Both failed; allocation trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
+| Whole-path parity | Empty-root Core skips inventory/cursor; original Root/Whole proofs, eight whole mutants, exact leaf queue/Acks and 78 cases pass. Whole current-native ratio is 1.4098; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 scratch: encode 1.3228, encode/decode 1.4240; 17 frozen equal-output pairs each. Both failed; allocation trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,
@@ -201,12 +201,12 @@ that only bridges helper names.
   (20:39:09 / 20:39:51 UTC, 17 frozen pairs, cache 23/46); cadence met.
   Prior f8ce starts exceeded 30 minutes by 10s / 48s; parity did not qualify cadence.
   Function execution does not measure the local type analyzer.
-  Shared-extraction whole Preparation at 20:23 UTC **fails parity at 1.5301**:
+  Empty-root whole Preparation at 20:46 UTC **fails parity at 1.4098**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
   oracle and 30 local workspaces. Build/23 receipts, physical Source/resident/Graph,
-  42 extraction cases and 363 public tests pass; check:fast selects 15 lint files.
-  Earlier whole 1.2650 and capture 1.3804 are separate runs, not causal comparisons.
-  Unchanged capture, rope and shared-extraction timing retries are closed.
+  78 local cases/468 contexts pass; current fast checks select two lint files. Prior shared-extraction public suite: 363 tests.
+  Earlier whole 1.2650/1.5301 are separate runs, not causal comparisons.
+  Unchanged capture, rope, shared-extraction and empty-root timing retries are closed.
 - Original attachment law/premises/binding/main remain byte-identical. Shared-witness
   and reply-dispatch factorization do not yet pass current hard10 qualification.
   Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
