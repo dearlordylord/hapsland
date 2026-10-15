@@ -213,8 +213,8 @@ that only bridges helper names.
   in the proof closure; their first errors do not all isolate named laws.
   Query rewrite stops resolved field/catalog/path searches and failed predicates.
   Astra approved five arbitrary-input equivalence laws; kernel and 1940 emitted
-  cases/five mutants pass. Formatter 0.1.19 refuses proof block expressions;
-  evidence/Finalization/compiled Source/resident/public consumers and fast pass.
+  cases/five mutants and pinned 0.1.19 format pass; evidence/Finalization/compiled
+  Source/resident/public consumers and fast pass.
 - Post candidate `660bde05` removes all three host algorithms: offer disposition,
   retained-advice observation and bounded Internal progression. Its 27 laws pass
   the standard runner; four mutants fail their named laws. Build (46 workspaces),
