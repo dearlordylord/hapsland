@@ -80,6 +80,7 @@ law comparison_exact:
   {Plan.fields_le(left, right) == reference_le(left, right) : Bool}
 
 # Includes empty objects, duplicate keys and arbitrary primitive/literal plans.
+# The mandatory comparison_exact law independently pins the sorting comparator.
 law object_exact:
   for +fields: List<&2, Plan.Field>
   for +rest: List<&2, List<&2, Plan.Piece>>
@@ -87,7 +88,7 @@ law object_exact:
     Plan.operation(Plan.ObjectOperation{keys(fields)},
       List.append(&2, List<&2, Plan.Piece>,
         List.reverse(&2, List<&2, Plan.Piece>, values(fields)), rest))
-    == Plan.ValidStack{object_trace(List.sort(~Plan.Field, ~reference_le, fields)) <> rest}
+    == Plan.ValidStack{object_trace(List.sort(~Plan.Field, ~Plan.fields_le, fields)) <> rest}
     : Plan.Stack
   }
 
