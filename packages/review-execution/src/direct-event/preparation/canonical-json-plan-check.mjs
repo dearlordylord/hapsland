@@ -123,7 +123,10 @@ try {
   for (const value of values) {
     const operations = canonicalJsonPlanOperations(productValue(value))
     equal(operations, list(postorder(value)), "actual ProductValue codec preserves postorder structure")
-    const result = plan.compile(operations)
+    // This isolated emission uses Plan as its root, so only this verification
+    // boundary rebases operation tags; production uses owner-qualified tags.
+    const rootOperations = list(unlist(operations).map((operation) => ({ ...operation, $: label(operation) })))
+    const result = plan.compile(rootOperations)
     assert.equal(label(result), "Some")
     const parts = unlist(result.value)
     equal(parts, expectedParts(value), "exact primitive identity, key pairing and punctuation")

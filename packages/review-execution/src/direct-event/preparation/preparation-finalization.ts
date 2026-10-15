@@ -9,7 +9,6 @@ import type {
   Invocation,
   Response,
   Primitive,
-  JsonPlanOperation,
   JsonBatchObserved,
   RulesStep,
   Step
@@ -337,19 +336,7 @@ export function createPreparationFinalizationExecution({
                 response = { $: "EncodingFailed" }
               }
             } else if (nested.$ === "FrozenInput.ExportJson") {
-              const operations = unlist(canonicalJsonPlanOperations(nested.value)).map(
-                (operation): JsonPlanOperation => {
-                  switch (operation.$) {
-                    case "PrimitiveOperation":
-                      return { ...operation, $: "CanonicalJsonPlan.PrimitiveOperation" }
-                    case "ArrayOperation":
-                      return { ...operation, $: "CanonicalJsonPlan.ArrayOperation" }
-                    case "ObjectOperation":
-                      return { ...operation, $: "CanonicalJsonPlan.ObjectOperation" }
-                  }
-                }
-              )
-              response = { $: "Planned", operations: list(operations) }
+              response = { $: "Planned", operations: canonicalJsonPlanOperations(nested.value) }
             } else if (nested.$ === "FrozenInput.Digest")
               response = { $: "Hashed", value: createHash("sha256").update(nested.bytes, "utf8").digest("hex") }
             else throw new TypeError("Unexpected finalization input engine")

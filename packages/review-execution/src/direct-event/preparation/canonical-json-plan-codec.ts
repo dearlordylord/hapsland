@@ -13,9 +13,9 @@ type Primitive =
   | { readonly $: "CanonicalJson.StringPrimitive"; readonly value: string }
 
 export type CanonicalJsonPlanOperation =
-  | { readonly $: "PrimitiveOperation"; readonly value: Primitive }
-  | { readonly $: "ArrayOperation"; readonly arity: number }
-  | { readonly $: "ObjectOperation"; readonly keys: List<string> }
+  | { readonly $: "CanonicalJsonPlan.PrimitiveOperation"; readonly value: Primitive }
+  | { readonly $: "CanonicalJsonPlan.ArrayOperation"; readonly arity: number }
+  | { readonly $: "CanonicalJsonPlan.ObjectOperation"; readonly keys: List<string> }
 
 type Task = { readonly value: ProductValue } | { readonly operation: CanonicalJsonPlanOperation }
 
@@ -32,26 +32,37 @@ export const canonicalJsonPlanOperations = (value: ProductValue): List<Canonical
     const node = task.value
     switch (node.$) {
       case "../../../../source-artifacts/src/direct-event/value/Value.ProductNull":
-        operations.push({ $: "PrimitiveOperation", value: { $: "CanonicalJson.NullPrimitive" } })
+        operations.push({ $: "CanonicalJsonPlan.PrimitiveOperation", value: { $: "CanonicalJson.NullPrimitive" } })
         break
       case "../../../../source-artifacts/src/direct-event/value/Value.ProductBool":
-        operations.push({ $: "PrimitiveOperation", value: { $: "CanonicalJson.BoolPrimitive", value: node.value } })
+        operations.push({
+          $: "CanonicalJsonPlan.PrimitiveOperation",
+          value: { $: "CanonicalJson.BoolPrimitive", value: node.value }
+        })
         break
       case "../../../../source-artifacts/src/direct-event/value/Value.ProductNumber":
-        operations.push({ $: "PrimitiveOperation", value: { $: "CanonicalJson.NumberPrimitive", bits: node.bits } })
+        operations.push({
+          $: "CanonicalJsonPlan.PrimitiveOperation",
+          value: { $: "CanonicalJson.NumberPrimitive", bits: node.bits }
+        })
         break
       case "../../../../source-artifacts/src/direct-event/value/Value.ProductText":
-        operations.push({ $: "PrimitiveOperation", value: { $: "CanonicalJson.StringPrimitive", value: node.value } })
+        operations.push({
+          $: "CanonicalJsonPlan.PrimitiveOperation",
+          value: { $: "CanonicalJson.StringPrimitive", value: node.value }
+        })
         break
       case "../../../../source-artifacts/src/direct-event/value/Value.ProductArray": {
         const children = unlist(node.items)
-        pending.push({ operation: { $: "ArrayOperation", arity: Number(BigInt(children.length)) } })
+        pending.push({ operation: { $: "CanonicalJsonPlan.ArrayOperation", arity: Number(BigInt(children.length)) } })
         for (let index = children.length - 1; index >= 0; index--) pending.push({ value: children[index]! })
         break
       }
       case "../../../../source-artifacts/src/direct-event/value/Value.ProductObject": {
         const fields = unlist(node.fields)
-        pending.push({ operation: { $: "ObjectOperation", keys: list(fields.map((field) => field.key)) } })
+        pending.push({
+          operation: { $: "CanonicalJsonPlan.ObjectOperation", keys: list(fields.map((field) => field.key)) }
+        })
         for (let index = fields.length - 1; index >= 0; index--) pending.push({ value: fields[index]!.value })
         break
       }

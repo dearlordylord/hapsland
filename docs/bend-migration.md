@@ -152,8 +152,8 @@ The current performance candidate replaces the JSON stage's repeated primitive
 crossings with a Bend-selected serialization plan:
 
 1. The [mechanical codec](../packages/review-execution/src/direct-event/preparation/canonical-json-plan-codec.ts)
-   converts an already materialized `ProductValue` into postorder operations.
-   It preserves field order and Binary64 bits; it neither sorts nor serializes.
+   emits qualified postorder operations from `ProductValue`, preserving order
+   and Binary64 identity. No second host retag/reboxing pass remains.
 2. Bend [validates the stream](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlanValidation.bend)
    against the exact exported tree, including primitive payloads, Binary64 bits,
    original keys and child order. Different trees are refused before planning.
@@ -229,7 +229,7 @@ that only bridges helper names.
 - Primary actual `f1fb6330` analyzer/build: 0.5914 / 0.8401. Whole current-native
   Preparation on `defa39e3` **fails parity at 1.3156**: equal outputs, 17 frozen pairs,
   30 local workspaces.
-  Six-mode JSON/fast/focused pass.
+  Qualified-codec consumers pass; new whole parity pending.
 - Attachment facts/consumers pass verdict/format. Full TT is 7,445,671 bytes;
   original law/premises/binding/main remain byte-identical. Full verdict times out.
   Renderer/pending-key trials preserve TT; no reliable gain. Both stopped.
@@ -246,8 +246,7 @@ Primary [cadence](../scripts/performance/production-cadence.py): baseline
 `8948343b46f8426abebe675a39ac4039997b0d5b`, 17 pairs, 23/46 cached tasks, local
 workspaces, frozen HEAD/sources/artifacts/receipts/environment files. Build:
 `--environment` for candidate; `--baseline-environment` for baseline only.
-Start build and execution measurements at least every 30 minutes. Run complete
-Preparation parity separately; diagnostics and instrumented timings are not parity.
+Start build and execution measurements at least every 30 minutes. Run whole Preparation parity separately; diagnostics are not parity.
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
 [source organization](source-organization.md), with one tracked authority, never

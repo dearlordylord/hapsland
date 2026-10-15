@@ -309,15 +309,7 @@ try {
               response = { $: "EncodingFailed" }
             }
           } else if (label(nested) === "ExportJson")
-            response = {
-              $: "Planned",
-              operations: list(
-                unlist(canonicalJsonPlanOperations(nested.value)).map((operation) => ({
-                  ...operation,
-                  $: `CanonicalJsonPlan.${operation.$}`
-                }))
-              )
-            }
+            response = { $: "Planned", operations: canonicalJsonPlanOperations(nested.value) }
           else {
             assert.equal(label(nested), "Digest")
             response = { $: "Hashed", value: createHash("sha256").update(nested.bytes, "utf8").digest("hex") }

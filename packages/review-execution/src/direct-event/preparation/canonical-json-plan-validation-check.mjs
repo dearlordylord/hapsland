@@ -9,11 +9,7 @@ import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
 
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-json-plan-validation-"))
 const prefix = "../../../../source-artifacts/src/direct-event/value/Value."
-const operations = (value) =>
-  unlist(canonicalJsonPlanOperations(value)).map((operation) => ({
-    ...operation,
-    $: "CanonicalJsonPlan." + operation.$
-  }))
+const operations = (value) => unlist(canonicalJsonPlanOperations(value))
 // Independent tree walk used only by this finite consumer.
 const reference = (value) => {
   switch (value.$.slice(prefix.length)) {

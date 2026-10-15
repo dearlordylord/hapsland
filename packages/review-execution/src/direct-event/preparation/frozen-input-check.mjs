@@ -21,13 +21,7 @@ import {
   unlist
 } from "@hapsland/source-artifacts/direct-event/value/codec"
 
-const planOperations = (value) =>
-  list(
-    unlist(canonicalJsonPlanOperations(value)).map((operation) => ({
-      ...operation,
-      $: "CanonicalJsonPlan." + operation.$
-    }))
-  )
+const planOperations = canonicalJsonPlanOperations
 const batchToken = (command, value) => ({
   $: "CanonicalJsonBatch.Token",
   invocation: command.invocation,

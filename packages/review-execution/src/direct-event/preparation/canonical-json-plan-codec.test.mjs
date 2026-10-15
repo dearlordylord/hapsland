@@ -3,7 +3,7 @@ import { test } from "node:test"
 import { productValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
 
-const primitive = (value) => ({ $: "PrimitiveOperation", value })
+const primitive = (value) => ({ $: "CanonicalJsonPlan.PrimitiveOperation", value })
 
 test("postorder conversion preserves unsorted UTF-16 keys and nested child order", () => {
   const input = productValue({ z: [true, { "\ue000": null, "😀": "text", a: [] }], a: {} })
@@ -11,11 +11,11 @@ test("postorder conversion preserves unsorted UTF-16 keys and nested child order
     primitive({ $: "CanonicalJson.BoolPrimitive", value: true }),
     primitive({ $: "CanonicalJson.NullPrimitive" }),
     primitive({ $: "CanonicalJson.StringPrimitive", value: "text" }),
-    { $: "ArrayOperation", arity: 0 },
-    { $: "ObjectOperation", keys: list(["\ue000", "😀", "a"]) },
-    { $: "ArrayOperation", arity: 2 },
-    { $: "ObjectOperation", keys: list([]) },
-    { $: "ObjectOperation", keys: list(["z", "a"]) }
+    { $: "CanonicalJsonPlan.ArrayOperation", arity: 0 },
+    { $: "CanonicalJsonPlan.ObjectOperation", keys: list(["\ue000", "😀", "a"]) },
+    { $: "CanonicalJsonPlan.ArrayOperation", arity: 2 },
+    { $: "CanonicalJsonPlan.ObjectOperation", keys: list([]) },
+    { $: "CanonicalJsonPlan.ObjectOperation", keys: list(["z", "a"]) }
   ])
   assert.deepEqual(canonicalJsonPlanOperations(input), canonicalJsonPlanOperations(input))
 })
@@ -28,7 +28,7 @@ test("numeric primitives retain exact source Binary64 bits and identity", () => 
   assert.deepEqual(operations, [
     primitive({ $: "CanonicalJson.NumberPrimitive", bits: numbers[0].bits }),
     primitive({ $: "CanonicalJson.NumberPrimitive", bits: numbers[1].bits }),
-    { $: "ArrayOperation", arity: 2 }
+    { $: "CanonicalJsonPlan.ArrayOperation", arity: 2 }
   ])
   for (let index = 0; index < numbers.length; index++) {
     assert.strictEqual(operations[index].value.bits, numbers[index].bits)
