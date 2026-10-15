@@ -4,6 +4,8 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
+import { productValue } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
 
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-json-plan-"))
 const label = (value) => value.$.split(".").at(-1)
@@ -119,7 +121,9 @@ try {
     })
   let pieces = 0
   for (const value of values) {
-    const result = plan.compile(list(postorder(value)))
+    const operations = canonicalJsonPlanOperations(productValue(value))
+    equal(operations, list(postorder(value)), "actual ProductValue codec preserves postorder structure")
+    const result = plan.compile(operations)
     assert.equal(label(result), "Some")
     const parts = unlist(result.value)
     equal(parts, expectedParts(value), "exact primitive identity, key pairing and punctuation")
