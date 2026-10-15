@@ -3,7 +3,7 @@ import ./Model.bend as M
 import ./Core.bend as C
 import ./Joint.bend as J
 
-# In-progress preservation of the complete joint cursor and exact actual
+# Preservation of the complete joint cursor and exact actual
 # transition for the fresh named branch. Internal successor forms cannot be
 # promoted to premises of the public Root completion law.
 law fresh_cursor:

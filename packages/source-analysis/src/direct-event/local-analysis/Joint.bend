@@ -198,6 +198,14 @@ def enter_ghosts(
 def fresh_case(+root: M.Declaration, +invocation: C.Global, +request: Nat,
   +actual: C.Cursor, +ghosts: List<&2, Ghost>, +target: M.Declaration) -> Type:
   match actual ghosts:
+    case C.Cursor{_, _, _, _, _, _, 2n+_, C.Frame{_, M.Unsupported{_} <> _, _, _} <> _} _: Unit
+    case C.Cursor{_, _, _, _, _, _, 2n+_, C.Frame{_, Nil{}, _, _} <> _} _: Unit
+    case C.Cursor{_, _, _, _, _, _, 2n+_, Nil{}} _: Unit
+    case C.Cursor{_, _, _, _, _, _, 2n+_, C.Frame{_, M.Named{_, _} <> _, _, _} <> _} Nil{}: Unit
+    case C.Cursor{_, _, _, _, _, _, 0n, _} _: Unit
+    case C.Cursor{_, _, _, _, _, _, 1n, _} _: Unit
+    case C.Cursor{_, _, _, _, _, _, 2n+_, C.Frame{_, M.Named{_, _} <> _, _, _} <> _} Ghost{0n, _, _} <> _: Unit
+    case C.Cursor{_, _, _, _, _, _, 2n+_, C.Frame{_, M.Named{_, _} <> _, _, _} <> _} Ghost{1n, _, _} <> _: Unit
     case C.Cursor{+global, +slot, +name, +expanded, +referenced, +failure, 2n++rest,
       C.Frame{+parent_slot, M.Named{+symbol, +target_id} <> +tail, +reversed, +site} <> +ancestors}
       Ghost{2n++depth, +prefix, +subtotal} <> +others:
