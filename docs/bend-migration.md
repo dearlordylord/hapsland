@@ -206,26 +206,30 @@ that only bridges helper names.
   consumers cover headers/counters, 606 FrozenInput refusals and 9615 Finalization
   refusals; runtime cases cover prefix throw/abort and late token coercion.
 - The stream validator's emitted consumer checks 79 trees, 1344 refusals and two
-  reverse continuations. The real FrozenInput consumer refuses a structurally
-  valid stream for a different exported tree. Four universal correspondence laws pass the pinned kernel and formatting. Four
-  semantic validator mutants are rejected within the proof closure; this does not
-  claim that each first error isolates a named universal law.
+  reverse continuations. FrozenInput refuses a valid stream for a different tree.
+  Four correspondence laws pass kernel and formatting. Four semantic mutants fail
+  in the proof closure; their first errors do not all isolate named laws.
+  Candidate `c0f265f5` adds discard-only string equality, proved equal to Base
+  for arbitrary strings and accumulator. All five laws, two named equality
+  mutants, 676 equality cases, formatting, build and fast gate (1 file) pass.
+  Matching FrozenInput (60/606 refusals), Finalization (66/52 runtime/9615
+  refusals), Source (59/34 native), resident (67) and 13 public tests pass.
 - Post candidate `660bde05` removes all three host algorithms: offer disposition,
   retained-advice observation and bounded Internal progression. Its 27 laws pass
   the standard runner; four mutants fail their named laws. Build (46 workspaces),
-  fast gate (5 files), Post 23360 cases, compiled resident 67 and Source 59 cases
-  (34 whole-native comparisons), Finalization 66/52 runtime cases, and all 13
-  public Preparation tests pass. These scopes do not establish universal
-  correspondence, parity or whole acceptance.
+  fast gate (5 files), 23360 Post cases and full consumers pass. These scopes do
+  not establish universal correspondence, parity or whole acceptance.
 - Workspace candidate `73d8c75d` removes both production TS formulas. Its Bend
   recipe serves Source admission, resize and handoff synchronously, preserving
   IEEE/coercion order. Astra approved 18 laws and structure. Kernel, four named
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary analyzer/build on `73d8c75d` pass at 0.6585 / 0.7946.
-  Public current-native Preparation on that candidate **fails parity at 1.8979**.
-  All 30 workspace dependencies resolve inside the measured checkout.
+- On `c0f265f5`, primary analyzer/build ratios are 0.7922 / 0.8263; public
+  current-native Preparation **fails parity at 1.9817**, with equal outputs.
+  All 17 pairs and 30 checkout-local workspace resolutions qualify mechanically.
+  Another project concurrently occupied CPU11: timings establish neither
+  optimization benefit nor final uncontended parity.
 
 ### Check and source owners
 
@@ -248,7 +252,5 @@ one maintained source authority. An unfinished candidate still belongs there.
 Results belong in ignored `.test-runs`; evidence/prototypes, source snapshots,
 `.txt` copies and source-restoration inventories are not migration source owners.
 
-This document contains the current acceptance path and constraints. Replace
-superseded status in place. Experiment chronology, past candidates and historical
-measurements remain in Git history; do not append them here or create an archive
-copy. Existing executable qualification reports own detailed local run output.
+Replace superseded status in place. History stays in Git, detailed run output
+in executable qualification reports; do not append chronology or archive copies.
