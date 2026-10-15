@@ -6,13 +6,26 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { spawnSync } from "node:child_process"
 
-const [sourcePath, expectedSourceHash, bookPath, expectedBookHash, toolchainPath] = process.argv.slice(2)
-assert.equal(process.argv.length, 7, "expected kernel source/hash, complete book/hash, Lean toolchain directory")
+const [
+  sourcePath,
+  expectedSourceHash,
+  bookPath,
+  expectedBookHash,
+  toolchainPath,
+  comparisonBookPath,
+  comparisonBookHash
+] = process.argv.slice(2)
+assert.ok(
+  process.argv.length === 7 || process.argv.length === 9,
+  "expected kernel source/hash, complete book/hash, Lean toolchain directory, optional comparison book/hash"
+)
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex")
 const source = readFileSync(sourcePath, "utf8")
 const book = readFileSync(bookPath)
 assert.equal(hash(source), expectedSourceHash, "kernel source identity")
 assert.equal(hash(book), expectedBookHash, "complete book identity")
+if (comparisonBookPath)
+  assert.equal(hash(readFileSync(comparisonBookPath)), comparisonBookHash, "comparison full book identity")
 const marker = "def main (args : List String) : IO UInt32 := do"
 assert.equal(source.split(marker).length, 2, "exactly one original kernel main")
 // Replicate only the existing checker equations; every unexpanded node delegates
@@ -221,6 +234,22 @@ try {
   console.error(
     JSON.stringify({ diagnosticOnly: true, sourceHash: hash(source), bookHash: hash(book), bookBytes: book.length })
   )
+  if (comparisonBookPath) {
+    const comparisonStart = performance.now()
+    const comparison = run(binary, ["--baseline", resolve(comparisonBookPath)], 10000)
+    console.error(
+      JSON.stringify({
+        stage: "comparison-baseline",
+        bookHash: comparisonBookHash,
+        exit: comparison.status,
+        signal: comparison.signal,
+        milliseconds: performance.now() - comparisonStart
+      })
+    )
+    assert.equal(comparison.status, 0, comparison.stdout + comparison.stderr)
+    assert.equal(comparison.stdout.trim(), "ALL PROOFS CHECK")
+    assert.equal(hash(readFileSync(comparisonBookPath)), comparisonBookHash, "comparison full book unchanged")
+  }
   const baselineStart = performance.now()
   const baseline = run(binary, ["--baseline", resolve(bookPath)], 10000)
   console.error(
@@ -233,22 +262,49 @@ try {
   )
   assert.equal(baseline.status, 0, baseline.stdout + baseline.stderr)
   assert.equal(baseline.stdout.trim(), "ALL PROOFS CHECK")
-  const start = performance.now()
-  const attributed = run(binary, [resolve(bookPath)], 10000)
-  process.stderr.write(attributed.stderr)
-  process.stdout.write(attributed.stdout)
-  console.error(
-    JSON.stringify({
-      stage: "attributed",
-      exit: attributed.status,
-      signal: attributed.signal,
-      milliseconds: performance.now() - start
-    })
-  )
-  if (attributed.status === 0) assert.equal(attributed.stdout, baseline.stdout, "same full-book verdict")
+  if (comparisonBookPath) {
+    for (let pair = 1; pair < 3; pair += 1) {
+      for (const [label, path, expectedHash] of [
+        ["original", comparisonBookPath, comparisonBookHash],
+        ["changed", bookPath, expectedBookHash]
+      ]) {
+        const controlStart = performance.now()
+        const control = run(binary, ["--baseline", resolve(path)], 10000)
+        console.error(
+          JSON.stringify({
+            stage: "paired-control",
+            pair,
+            label,
+            bookHash: expectedHash,
+            exit: control.status,
+            signal: control.signal,
+            milliseconds: performance.now() - controlStart
+          })
+        )
+        assert.equal(control.status, 0, control.stdout + control.stderr)
+        assert.equal(control.stdout.trim(), "ALL PROOFS CHECK")
+        assert.equal(hash(readFileSync(path)), expectedHash, "paired full book unchanged")
+      }
+    }
+  }
+  if (!comparisonBookPath) {
+    const start = performance.now()
+    const attributed = run(binary, [resolve(bookPath)], 10000)
+    process.stderr.write(attributed.stderr)
+    process.stdout.write(attributed.stdout)
+    console.error(
+      JSON.stringify({
+        stage: "attributed",
+        exit: attributed.status,
+        signal: attributed.signal,
+        milliseconds: performance.now() - start
+      })
+    )
+    if (attributed.status === 0) assert.equal(attributed.stdout, baseline.stdout, "same full-book verdict")
+    process.exitCode = attributed.status ?? 1
+  }
   assert.equal(hash(readFileSync(sourcePath)), expectedSourceHash, "kernel source unchanged")
   assert.equal(hash(readFileSync(bookPath)), expectedBookHash, "book unchanged")
-  process.exitCode = attributed.status ?? 1
 } finally {
   // Generated compiler artifacts have no lifecycle after this diagnostic invocation.
   rmSync(temporary, { recursive: true, force: true })
