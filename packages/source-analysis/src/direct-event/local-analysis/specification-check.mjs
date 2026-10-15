@@ -10,6 +10,9 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
 const { languageForPath } = await import(
   new URL("./languages/registry.js", import.meta.resolve("@hapsland/source-analysis/direct-event/analyzer"))
 )
+const packagedCore = (
+  await import(new URL("../../../dist/direct-event/local-analysis/analyzer-core.js", import.meta.url))
+).default
 const some = (value) => ({ $: "Some", value })
 const none = { $: "None" }
 const named = (name, targetId) => ({
@@ -172,6 +175,24 @@ try {
     )
     potentialStates++
   }
+  let packagedModes = 0
+  const runPackaged = (facts, purpose) => {
+    let step = packagedCore.initial(facts, { $: purpose })
+    const operations = []
+    for (let tick = 0; tick < 100000; tick++) {
+      if (step.$ === "Continue" || step.$ === "NextRoot") step = packagedCore.advance(step)
+      else if (step.$ === "Engine") {
+        assert.equal(purpose, "Preflight", "packaged analysis must issue no native commands")
+        operations.push(step.operation)
+        step = packagedCore.resume(step, { $: "Ack", request: step.request })
+      } else {
+        assert.equal(step.$, purpose === "Preflight" ? "PreflightCompleted" : "Completed")
+        packagedModes++
+        return { step, operations }
+      }
+    }
+    throw new Error("packaged local analyzer fixture deadline exceeded")
+  }
   const checkedCatalogs = new WeakSet()
   let lawCatalogs = 0
   const checkLawInstances = (facts) => {
@@ -184,6 +205,12 @@ try {
     ]) {
       const result = execution.execute(facts, { $: purpose })
       assert.equal(execution.completed(result), true, "derived_budget_sufficient: cursor")
+      const packaged = runPackaged(facts, purpose.replace("Core.", ""))
+      assert.deepEqual(
+        some(packaged.step.outcomes),
+        execution.outcomes(result),
+        "packaged private ABI preserves complete outcomes"
+      )
       assert.deepEqual(
         execution.outcomes(result),
         spec.outcomes(facts, { $: mode }),
@@ -192,6 +219,11 @@ try {
     }
     const measured = execution.execute(facts, { $: "Core.Preflight" })
     assert.equal(execution.completed(measured), true, "derived_budget_sufficient: preflight")
+    assert.deepEqual(
+      some(list(runPackaged(facts, "Preflight").operations)),
+      execution.trace(measured),
+      "packaged private ABI preserves the exact native command stream"
+    )
     assert.deepEqual(execution.trace(measured), spec.preflight_trace(facts), "preflight_trace_exact")
     const trace = spec.preflight_trace(facts)
     assert.equal(stackModel.trace_valid(trace), spec.complete(facts), "preflight_stack_effect")
@@ -964,6 +996,7 @@ try {
       cursorSteps,
       refusedAcks,
       lawCatalogs,
+      packagedModes,
       rootContexts,
       potentialStates,
       selectedDropCases,
