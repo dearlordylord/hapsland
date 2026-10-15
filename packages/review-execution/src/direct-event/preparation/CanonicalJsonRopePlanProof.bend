@@ -220,5 +220,56 @@ def join_count_exact(+left: P.Rope, +right: P.Rope,
     Equal.cong(Nat, Nat, n => Nat.add(1n, Nat.add(M.true_nodes(left), n)),
       P.rope_nodes(right), M.true_nodes(right), right_counted))
 
+def object_more_exact(+values: List<&2, P.RopeField>, +accumulated: P.Rope) -> {
+  M.trace(P.rope_object_more(values, accumulated))
+  == List.append(&2, P.Piece, M.trace(accumulated), M.object_suffix(values)) : List<&2, P.Piece>
+}:
+  match values:
+    case []: {==}
+    case value <> tail:
+      Equal.trans(List<&2, P.Piece>,
+        M.trace(P.rope_object_more(tail,
+          P.rope_join(accumulated, P.rope_join(P.RopePiece{P.LiteralPiece{","}}, P.rope_object_field(value))))),
+        List.append(&2, P.Piece,
+          List.append(&2, P.Piece, M.trace(accumulated), P.LiteralPiece{","} <> M.trace(P.rope_object_field(value))),
+          M.object_suffix(tail)),
+        List.append(&2, P.Piece, M.trace(accumulated), M.object_suffix(value <> tail)),
+        object_more_exact(tail,
+          P.rope_join(accumulated, P.rope_join(P.RopePiece{P.LiteralPiece{","}}, P.rope_object_field(value)))),
+        L.append_assoc(&2, P.Piece, M.trace(accumulated),
+          P.LiteralPiece{","} <> M.trace(P.rope_object_field(value)), M.object_suffix(tail)))
+
+def object_suffix_nonempty(+tail: List<&2, P.RopeField>, +head: P.RopeField) -> {
+  M.object_suffix(head <> tail) == P.LiteralPiece{","} <> S.object_parts(M.fields(head <> tail))
+  : List<&2, P.Piece>
+}:
+  match tail head:
+    case Nil{} P.RopeField{_, _}: {==}
+    case Con{value, rest} P.RopeField{key, parts}:
+      Equal.cong(List<&2, P.Piece>, List<&2, P.Piece>,
+        xs => P.LiteralPiece{","} <> List.append(&2, P.Piece,
+          M.trace(P.rope_object_field(P.RopeField{key, parts})), xs),
+        M.object_suffix(value <> rest),
+        P.LiteralPiece{","} <> S.object_parts(M.fields(value <> rest)),
+        object_suffix_nonempty(rest, value))
+
+def object_parts_exact(+values: List<&2, P.RopeField>) -> {
+  M.trace(P.rope_object_parts(values)) == S.object_parts(M.fields(values)) : List<&2, P.Piece>
+}:
+  match values:
+    case []: {==}
+    case P.RopeField{key, parts} <> []:
+      object_more_exact([], P.rope_object_field(P.RopeField{key, parts}))
+    case P.RopeField{key, parts} <> value <> rest:
+      Equal.trans(List<&2, P.Piece>,
+        M.trace(P.rope_object_more(value <> rest, P.rope_object_field(P.RopeField{key, parts}))),
+        List.append(&2, P.Piece, M.trace(P.rope_object_field(P.RopeField{key, parts})), M.object_suffix(value <> rest)),
+        S.object_parts(M.fields(P.RopeField{key, parts} <> value <> rest)),
+        object_more_exact(value <> rest, P.rope_object_field(P.RopeField{key, parts})),
+        Equal.cong(List<&2, P.Piece>, List<&2, P.Piece>,
+          xs => List.append(&2, P.Piece, M.trace(P.rope_object_field(P.RopeField{key, parts})), xs),
+          M.object_suffix(value <> rest), P.LiteralPiece{","} <> S.object_parts(M.fields(value <> rest)),
+          object_suffix_nonempty(rest, value)))
+
 def main() -> Unit:
   Unit{}

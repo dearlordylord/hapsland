@@ -180,7 +180,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Rope planner equivalence | Astra approved internal counted ropes and unchanged Operation/Piece ABI. Independent original specification/local and compound proofs pass. Finite production checks: 79 trees, 2048 arbitrary streams, duplicate keys, depth 25000. Kernel passes exact flatten/array assembly and join counts; Astra approved per-root count invariant. Still required: stable-sort erasure, count preservation, stack simulation and unconditional compile equality. Tree proof unqualified; new proof formatting blocked by pinned block-list limitation. |
+| Rope planner equivalence | Astra approved internal counted ropes and unchanged Operation/Piece ABI. Independent original specification/local and compound proofs pass. Finite production checks: 79 trees, 2048 arbitrary streams, duplicate keys, depth 25000. Kernel passes exact flatten/array assembly and join counts; Astra approved per-root count invariant. Exact stable-sort erasure and object assembly now pass. Still required: count preservation, stack simulation and unconditional compile equality. Tree proof unqualified; new proof formatting blocked by pinned block-list limitation. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the Map cohort. Finalization/public Preparation pass; repeat after production edits. |
 | Whole-path parity | The assessed 2.0.37 Map cohort passes producers/consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
@@ -192,44 +192,32 @@ that only bridges helper names.
 
 ### Current qualification limits
 
-- The original planner has seven local and eight compound laws, approved by Astra
-  and proved against the independent specification. The production rope compile
-  bridge is unproved; these passes do not qualify the new tree proof. The independent `comparison_exact` law is
-  mandatory alongside object layout. Named mutations cover primitive loss,
-  pop loss, single-root refusal, wrong comparison and rejecting all compounds.
-- The actual codec-to-emitted-planner consumer checks 79 trees / 2117 exact
-  pieces, malformed streams, 361 fold splits and arbitrary compound stacks.
-  Finite checks do not establish the open rope compile theorem.
-- Eight batch protocol laws and eighteen actual-machine laws pass the pinned verdict.
-  The actual-machine laws/proof also pass formatting; composition mutants reject
-  a shifted first request ID and removed Export header guard.
-  Protocol named mutations cover selection
-  offsets, invocation checking, outer IDs and literal preservation. Actual machine
-  consumers cover headers/counters, 606 FrozenInput refusals and 9615 Finalization
-  refusals; runtime cases cover prefix throw/abort and late token coercion.
-- The stream validator's emitted consumer checks 79 trees, 1344 refusals and two
-  reverse continuations. FrozenInput refuses a valid stream for a different tree.
-  Four correspondence laws pass kernel and formatting. Four semantic mutants fail
-  in the proof closure; their first errors do not all isolate named laws.
-  Query rewrite stops resolved field/catalog/path searches and failed predicates.
-  Astra approved five arbitrary-input equivalence laws; kernel and 1940 emitted
-  cases/five mutants and pinned 0.1.19 format pass; evidence/Finalization/compiled
-  Source/resident/public consumers and fast pass.
-- Post removes TS offer disposition, retained-advice observation and bounded
-  progression. 27 laws, four named mutants, 23360 cases and full consumers pass.
-- Workspace removes both TS sizing formulas. Bend serves admission/resize/handoff,
-  retaining IEEE/coercion order. 18 laws, four mutants, 6930 differential cases
-  and public/server/Source/resident consumers pass.
+- Rope planner: exact flatten, array/object assembly, join counts and stable-sort
+  payload erasure pass kernel. Astra approved the per-root count invariant.
+  Two proof roots pass; five semantic mutants are rejected by comparator,
+  flatten, count and punctuation invariants. Universal operation/fold simulation
+  and `compile_exact` remain open; old tree proof is not yet qualified.
+  Finite codec checks cover 79 trees/2117 pieces, 2048 arbitrary streams,
+  duplicate keys and depth 25000. Original seven local/eight compound laws pass
+  against the independent original specification, not the new compile theorem.
+- Eight batch protocol/eighteen actual-machine laws pass. Existing consumers
+  cover correlated headers/counters, 606 FrozenInput and 9615 Finalization
+  refusals, prefix throw/abort and late raw-token coercion. Requalify consumers
+  after the complete rope proof. Validator mutations require that full closure.
+- UnitEvidence query: five arbitrary-input laws, 1940 cases/five mutants,
+  pinned format and compiled consumers pass. Post removes three TS algorithms
+  (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
+  (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
 - Primary `01940c44` rope candidate analyzer/build: 0.7359 / 0.8211
   (12:38 UTC, 17 pairs, frozen inputs, build cache 23/46).
-  Last whole current-native Preparation (`f4ca2eae`) **fails parity at 1.4616**: equal outputs,
-  17 frozen pairs, 30 local workspaces; freezes pass, build cache 23/46.
-  Sequence trial is closed after whole parity failure. Fused validate/plan stays closed.
-- Original full attachment verdict passes the CPU10/10s capability gate after
-  replacing duplicated witness reconstruction with existing `ready_original_joined`.
-  Astra approves; law/premises/binding/main and whole reply dispatch are byte-identical.
-  Workspace build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
-  Renderer/pending-key trials stay closed. Full-proof pinned formatting remains open.
+  Last whole current-native Preparation (`f4ca2eae`) **fails parity at 1.4616**:
+  equal outputs, 17 frozen pairs, 30 local workspaces. Whole acceptance stays open.
+- Original attachment verdict passes CPU10/10s through the existing shared
+  witness lemma; law/premises/binding/main/reply dispatch remain byte-identical.
+  Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
+  Pinned formatting remains open. Renderer/pending-key, runtime attribution,
+  attachment formatter alias/hoist, fused validate/plan and compiler sequence
+  trials are closed; renaming does not authorize another attempt.
 
 ### Check and source owners
 
