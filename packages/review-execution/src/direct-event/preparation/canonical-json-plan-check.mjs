@@ -177,8 +177,68 @@ try {
     "single_root"
   )
   assert.equal(label(plan.finish(state)), "None", "multiple_roots_refused")
+  const childPlans = [
+    [],
+    [literal("part")],
+    [primitivePiece(false)],
+    [literal("["), primitivePiece(null), literal("]")]
+  ]
+  let compoundCases = 0
+  for (let count = 0; count < 8; count += 1) {
+    const children = Array.from({ length: count }, (_, index) => childPlans[index % childPlans.length])
+    const underlying = list([...children].reverse().concat(stackValues).map(list))
+    const array = [
+      literal("["),
+      ...children.flatMap((parts, index) => [...(index ? [literal(",")] : []), ...parts]),
+      literal("]")
+    ]
+    equal(
+      plan.operation({ $: "ArrayOperation", arity: BigInt(count) }, underlying),
+      { $: "ValidStack", values: list([array, ...stackValues].map(list)) },
+      "array_exact over arbitrary child plans and older stack"
+    )
+    const names = ["z", "a", "😀", "\ue000", "a", "", "constructor", "0"].slice(0, count)
+    const fields = names.map((key, index) => ({ $: "Field", key, parts: list(children[index]) }))
+    equal(
+      plan.pair_fields(list(names), list(children.map(list)), list([])),
+      { $: "Some", value: list(fields) },
+      "pairing_exact"
+    )
+    const ordered = [...fields].sort((left, right) => (left.key < right.key ? -1 : left.key > right.key ? 1 : 0))
+    const object = [
+      literal("{"),
+      ...ordered.flatMap((field, index) => [
+        ...(index ? [literal(",")] : []),
+        primitivePiece(field.key),
+        literal(":"),
+        ...unlist(field.parts)
+      ]),
+      literal("}")
+    ]
+    equal(
+      plan.operation({ $: "ObjectOperation", keys: list(names) }, underlying),
+      { $: "ValidStack", values: list([object, ...stackValues].map(list)) },
+      "object_exact including duplicate keys"
+    )
+    for (const left of fields)
+      for (const right of fields) assert.equal(plan.fields_le(left, right), left.key <= right.key, "comparison_exact")
+    const tooMany = BigInt(count + stackValues.length + 1)
+    assert.equal(
+      label(plan.operation({ $: "ArrayOperation", arity: tooMany }, underlying)),
+      "InvalidStack",
+      "array_underflow"
+    )
+    assert.equal(
+      label(plan.operation({ $: "ObjectOperation", keys: list(Array(Number(tooMany)).fill("x")) }, underlying)),
+      "InvalidStack",
+      "object_underflow"
+    )
+    compoundCases += 1
+  }
+  assert.equal(label(plan.finish({ $: "InvalidStack" })), "None", "invalid_finish")
+  assert.equal(label(plan.finish({ $: "ValidStack", values: list([]) })), "None", "empty_finish")
   console.log(
-    `Canonical JSON postorder: ${values.length} trees/${pieces} exact pieces, ${malformed.length} malformed streams, ${streams.length ** 2} fold splits and all seven local law instances`
+    `Canonical JSON postorder: ${values.length} trees/${pieces} exact pieces, ${malformed.length} malformed streams, ${streams.length ** 2} fold splits, ${compoundCases} compound stacks and all fifteen law instances`
   )
 } finally {
   rmSync(temporary, { recursive: true, force: true })
