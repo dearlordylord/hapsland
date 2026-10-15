@@ -180,15 +180,14 @@ arbitrary fuel.
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
 | Original proof formatting | The complete attachment law must pass the pinned formatter. Its remaining deep block/list layouts still fail; prefix or isolated-definition checks are insufficient. |
-| Remaining Post host decisions | Move offer disposition, retained-advice observation and bounded Internal progression into the existing Post Bend capability. All three host algorithms are removed in the current WIP; 27 reviewed laws are proved, emitted falsification/types pass; matching build and full consumers remain open. Keep native receipt/settings/inspection IO and custody in the host; preserve offer/completion order and the exact existing pump bound/error behavior. Remove the replaced TS branches and loop. |
+| Remaining Post host decisions | Move offer disposition, retained-advice observation and bounded Internal progression into the existing Post Bend capability. All three algorithms are removed; 27 laws pass the standard runner and four named mutants fail. Build (46 workspaces), fast gate (5 files), Post and compiled Source/resident consumers pass; repeat on the final candidate. Keep native receipt/settings/inspection IO and custody in the host; preserve offer/completion order and the exact existing pump bound/error behavior. Remove the replaced TS branches and loop. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. After the remaining Post host cut, requalify the full composed consumers on one final candidate; individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
-Each action must close one row. A new representation or supporting proof chain
-must explain how it shortens this path before implementation. Review equivalent
-law-set formulations before introducing generic theorem machinery solely to
-bridge helper names.
+Each action must close one row. Before adding a representation or proof chain,
+explain how it shortens this path; prefer equivalent laws to generic machinery
+that only bridges helper names.
 
 ### Current qualification limits
 
@@ -215,10 +214,11 @@ bridge helper names.
 - The connected validator candidate passed the matching 46-workspace build,
   `check:fast` with cumulative lint (10 files), full Finalization consumer
   (66 cases / 52 runtime cases), and focused Source/Post/resident consumers.
-  The retained candidate also passes 13 real public Preparation tests (including
-  nested Graph cancellation and complete Causes), Post 21867 finite cases and
-  resident 67 cases with actual compiled host/five-language IO. These scopes do
-  not establish universal correspondence, parity or whole acceptance.
+  The earlier retained candidate passes 13 real public Preparation tests, including
+  nested Graph cancellation and complete Causes. Post candidate `660bde05` passes
+  23360 finite Post cases, resident 67 cases and Source 59 cases (34 whole-native
+  comparisons), with actual compiled host/five-language IO. These scopes do not
+  establish universal correspondence, parity or whole acceptance.
 - Primary analyzer/build on `1d025d0e` pass at 0.6489 / 0.7579.
   Complete current-native Preparation on that candidate **fails parity at 2.1312**.
   All 30 workspace dependencies resolve inside the measured checkout.
