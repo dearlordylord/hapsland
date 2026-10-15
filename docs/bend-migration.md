@@ -232,6 +232,7 @@ that only bridges helper names.
 - Original full attachment verdict passes the CPU10/10s capability gate after
   replacing duplicated witness reconstruction with existing `ready_original_joined`.
   Astra approves; law/premises/binding/main and whole reply dispatch are byte-identical.
+  Workspace build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
   Renderer/pending-key trials stay closed. Full-proof pinned formatting remains open.
 
 ### Check and source owners
