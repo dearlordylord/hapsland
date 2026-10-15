@@ -242,10 +242,10 @@ selection and deadlines. The existing
 preparation-owned Bend roots and checkers; qualify affected roots/consumers rather
 than rerunning a suite with a known unrelated prerequisite failure.
 
-Primary cadence uses [production-cadence.py](../scripts/performance/production-cadence.py):
-fixed baseline `8948343b46f8426abebe675a39ac4039997b0d5b`, 17 alternating pairs,
-frozen HEAD/authored inputs/artifacts, checkout-local workspace resolution and
-23/46 cached tasks in every build sample.
+Primary [cadence](../scripts/performance/production-cadence.py): baseline
+`8948343b46f8426abebe675a39ac4039997b0d5b`, 17 pairs, 23/46 cached tasks, local
+workspaces, frozen HEAD/sources/artifacts/receipts/environment files. Build:
+`--environment` for candidate; `--baseline-environment` for baseline only.
 Start build and execution measurements at least every 30 minutes. Run complete
 Preparation parity separately; diagnostics and instrumented timings are not parity.
 
@@ -253,5 +253,3 @@ Retained sources/tests/proofs/runners belong to ordinary domain owners under
 [source organization](source-organization.md), with one tracked authority, never
 evidence/prototypes, snapshots, `.txt` copies or restoration inventories.
 Only results belong in ignored `.test-runs`.
-
-Replace status in place; chronology stays in Git.

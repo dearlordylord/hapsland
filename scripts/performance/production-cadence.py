@@ -12,19 +12,35 @@ parser = argparse.ArgumentParser()
 parser.add_argument("lane", choices=["build", "execution", "preparation"])
 parser.add_argument("--baseline", required=True, type=Path)
 parser.add_argument("--environment", type=Path)
+parser.add_argument("--baseline-environment", type=Path)
 parser.add_argument("--preparation-reference", choices=["fixed-baseline", "current-native"], default="fixed-baseline")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[2]
 baseline = args.baseline.resolve()
 if args.preparation_reference == "current-native" and (args.lane != "preparation" or baseline != root):
     parser.error("current-native is supplemental preparation only; --baseline must name the current checkout")
+if args.baseline_environment and args.lane != "build":
+    parser.error("--baseline-environment is supported only for build")
+environment_inputs = {}
+def environment_overrides(path):
+    content = path.read_bytes()
+    values = json.loads(content)
+    if not isinstance(values, dict) or any(not isinstance(key, str) or (value is not None and not isinstance(value, str)) for key, value in values.items()):
+        raise ValueError("Environment overrides must map names to strings or null")
+    environment_inputs[str(path.resolve())] = hashlib.sha256(content).hexdigest()
+    return values
+
 env = os.environ.copy()
 if args.environment:
-    for key, value in json.loads(args.environment.read_text()).items():
+    for key, value in environment_overrides(args.environment).items():
         if value is None:
             env.pop(key, None)
         else:
             env[key] = value
+if args.baseline_environment:
+    env["HAPSLAND_PERFORMANCE_BASELINE_ENV"] = json.dumps(environment_overrides(args.baseline_environment))
+else:
+    env.pop("HAPSLAND_PERFORMANCE_BASELINE_ENV", None)
 env.update(HAPSLAND_PERFORMANCE_BASELINE_ROOT=str(baseline), HAPSLAND_PERFORMANCE_CANDIDATE_ROOT=str(root), HAPSLAND_PREPARATION_REFERENCE=args.preparation_reference)
 
 def git(checkout, *options):
@@ -66,7 +82,7 @@ def artifacts():
                 if not directory.is_dir():
                     continue
                 for path in sorted(directory.rglob("*")):
-                    if path.is_file() and path.suffix in [".js", ".mjs", ".cjs", ".node"]:
+                    if path.is_file() and (path.suffix in [".js", ".mjs", ".cjs", ".node"] or path.name == ".bend-receipt.json"):
                         result[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
     return result
 
@@ -102,9 +118,10 @@ sources_unchanged = all(sources(Path(p)) == value for p, value in frozen_sources
 artifacts_unchanged = artifacts() == frozen_artifacts
 workspaces_unchanged = all(workspace_resolutions(Path(p)) == value for p, value in frozen_workspaces.items())
 complete = measurement is not None and all(len(measurement.get("samples", {}).get(lane, [])) == 17 for lane in ["typescript", "integratedBend"])
-qualified = result.returncode == 0 and heads_unchanged and sources_unchanged and artifacts_unchanged and workspaces_unchanged and complete
+environments_unchanged = all(hashlib.sha256(Path(path).read_bytes()).hexdigest() == digest for path, digest in environment_inputs.items())
+qualified = environments_unchanged and result.returncode == 0 and heads_unchanged and sources_unchanged and artifacts_unchanged and workspaces_unchanged and complete
 parity = qualified and bool(measurement.get(args.lane + "Parity"))
-record = {"startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "workspaceResolutions": frozen_workspaces, "workspaceResolutionsUnchanged": workspaces_unchanged, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "supplemental current-native whole preparation" if args.lane == "preparation" and args.preparation_reference == "current-native" else "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
+record = {"environmentFileHashes": environment_inputs, "environmentFilesUnchanged": environments_unchanged, "startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "workspaceResolutions": frozen_workspaces, "workspaceResolutionsUnchanged": workspaces_unchanged, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "supplemental current-native whole preparation" if args.lane == "preparation" and args.preparation_reference == "current-native" else "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
 (output / "qualification.json").write_text(json.dumps(record, indent=2) + "\n")
 print(json.dumps({"evidence": str(output / "qualification.json"), "exitCode": result.returncode, "qualified": qualified, "parity": parity, "preparationReference": args.preparation_reference if args.lane == "preparation" else None, "ratio": measurement.get("meanRatio") if measurement else None}), flush=True)
 raise SystemExit(0 if parity else 1)

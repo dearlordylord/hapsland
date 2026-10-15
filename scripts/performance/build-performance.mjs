@@ -1,4 +1,5 @@
 import { spawnSync, execFileSync } from "node:child_process"
+import { createHash } from "node:crypto"
 import { performance } from "node:perf_hooks"
 import { writeFileSync } from "node:fs"
 const roots = {
@@ -6,6 +7,24 @@ const roots = {
     process.env.HAPSLAND_PERFORMANCE_BASELINE_ROOT ?? "/workspace/typescript/hapsland-bend-baseline-master-8948343b",
   integratedBend: process.env.HAPSLAND_PERFORMANCE_CANDIDATE_ROOT ?? "/workspace/typescript/hapsland-bend-selection-ui"
 }
+const baselineEnvironment = { ...process.env }
+const baselineOverrides = JSON.parse(process.env.HAPSLAND_PERFORMANCE_BASELINE_ENV ?? "{}")
+for (const [key, value] of Object.entries(baselineOverrides)) {
+  if (value === null) delete baselineEnvironment[key]
+  else if (typeof value === "string") baselineEnvironment[key] = value
+  else throw new Error("Baseline environment overrides must be strings or null")
+}
+delete baselineEnvironment.HAPSLAND_PERFORMANCE_BASELINE_ENV
+const candidateEnvironment = { ...process.env }
+delete candidateEnvironment.HAPSLAND_PERFORMANCE_BASELINE_ENV
+const environmentHashes = Object.fromEntries(
+  Object.entries({ typescript: baselineEnvironment, integratedBend: candidateEnvironment }).map(([lane, env]) => [
+    lane,
+    createHash("sha256")
+      .update(JSON.stringify(Object.entries(env).sort(([a], [b]) => a.localeCompare(b))))
+      .digest("hex")
+  ])
+)
 const outputPath = process.env.HAPSLAND_PERFORMANCE_OUTPUT ?? "/tmp/hapsland-current-production-build.json"
 const baselineRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: roots.typescript, encoding: "utf8" }).trim()
 const startedAt = new Date().toISOString()
@@ -20,6 +39,7 @@ for (let round = 0; round < 17; round++) {
     const start = performance.now()
     const result = spawnSync("taskset", ["-c", "11", process.execPath, "scripts/build-workspaces.mjs"], {
       cwd: root,
+      env: name === "typescript" ? baselineEnvironment : candidateEnvironment,
       timeout,
       encoding: "utf8",
       maxBuffer: 8 * 1024 * 1024
@@ -65,6 +85,7 @@ const record = {
     "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all thirty-four samples",
   warmPreparationMatched,
   baselineRevision,
+  environmentHashes,
   startedAt,
   at: new Date().toISOString(),
   roots,
