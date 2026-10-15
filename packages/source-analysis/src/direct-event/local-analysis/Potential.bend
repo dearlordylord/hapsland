@@ -37,6 +37,41 @@ def catalog_unvisited(catalog: M.Catalog, +expanded: List<&2, String>) -> Nat:
         supporting_unvisited(supporting, expanded)
       )
 
+# Credit belongs to the actual selected declaration, including a fold's
+# incoming default. Already-expanded entries contribute no new semantic work.
+def selected_credit(selected: Maybe<&2, M.Declaration>, +expanded: List<&2, String>) -> Nat:
+  match selected:
+    case None{}: 0n
+    case Some{+target}:
+      fresh_weight(Core.contains(Core.declaration_identity(target), expanded), target)
+
+def selected_expanded(
+  selected: Maybe<&2, M.Declaration>,
+  expanded: List<&2, String>
+) -> List<&2, String>:
+  match selected:
+    case None{}: expanded
+    case Some{target}: Core.declaration_identity(target) <> expanded
+
+# The lookup result must pay its own charge from the same catalog. This
+# counts duplicate identities rather than assuming unique slots or names.
+def selected_drop_result(
+  +selected: Maybe<&2, M.Declaration>,
+  +catalog: M.Catalog,
+  +expanded: List<&2, String>
+) -> Bool:
+  Nat.is_le(Nat.add(selected_credit(selected, expanded),
+    catalog_unvisited(catalog, selected_expanded(selected, expanded))),
+    catalog_unvisited(catalog, expanded))
+
+def selected_drop(
+  +catalog: M.Catalog,
+  name: String,
+  target_id: Maybe<&2, String>,
+  +expanded: List<&2, String>
+) -> Bool:
+  selected_drop_result(Core.lookup(catalog, name, target_id), catalog, expanded)
+
 def pending_references(frames: List<&2, Core.Frame>) -> Nat:
   match frames:
     case []: 0n

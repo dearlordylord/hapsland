@@ -182,7 +182,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Local analyzer still in TS | Candidate cursor owns DFS/limit/first failure, trees/outcomes and preflight commands; production ExtractSource/Preflight still uses native TS. Independent spec and 24 catalogs/2757 steps/924 wrong-Ack refusals pass. Seven local laws/five mutants pass kernel; the joint root contract passes 456 contexts and potential checks 2113 states. Joint root correspondence/preservation and four whole laws remain unproved. Connect public tree and Source outcome/preflight consumers inside existing Canonical leases, preserve parser/artifact identity/native measurement and IEEE effects, then delete superseded analyzer.ts traversal/preflight. |
+| Local analyzer still in TS | Candidate cursor owns DFS/limit/first failure, trees/outcomes and preflight commands; production ExtractSource/Preflight still uses native TS. Independent spec: 24 catalogs/2757 steps/924 wrong-Ack refusals pass. Seven local laws/five mutants pass kernel; the joint root contract passes 456 contexts and potential checks 2113 states. Selected-target budget drop passes 11175 finite cases; its draft, joint root/preservation and four whole laws remain unproved. Connect public tree and Source outcome/preflight consumers inside existing Canonical leases, preserve parser/artifact identity/native measurement and IEEE effects, then delete superseded analyzer.ts traversal/preflight. |
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Original law/premises/binding/main remain byte-identical. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation also affects local analyzer proofs; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Capture candidate: Evidence/FrozenInput, Finalization, Source/resident and public Preparation pass. Internal immutable cache/context checks use semantic equality. Requalify analyzer/public tree consumers and actual Source/resident after local analyzer connection, including failure/measurement ordering. |
@@ -206,8 +206,8 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `ba6a0f16`: analyzer/build 0.5755 / 0.8251
-  (14:18/14:19 UTC, 17 pairs, frozen inputs, build cache 23/46).
+- Primary `e8a47d31`: analyzer/build 0.7391 / 0.8647
+  (14:46/14:47 UTC, 17 pairs, frozen inputs, build cache 23/46).
   Normal workspace build and 23 receipts pass; proof-body edits change no runtime algorithm.
   Capture candidate `2f37ebc6` whole Preparation at 13:33 UTC **fails parity at 1.3804**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, 30 local workspaces.

@@ -75,6 +75,7 @@ try {
     { timeout: 11000 }
   )
   const potential = (await import(pathToFileURL(potentialOutput))).default
+  let selectedDropCases = 0
   let potentialStates = 0
   const checkPotential = (cursor) => {
     assert.equal(
@@ -186,6 +187,15 @@ try {
   let rawCases = 0
   const inspect = (root, facts) => {
     checkLawInstances(facts)
+    const candidates = [...unlist(facts.declarations), ...unlist(facts.supporting).map((entry) => entry.declaration)]
+    const names = new Set(["missing-target", "", ...candidates.map((entry) => entry.name)])
+    const targets = [none, some(""), some("missing-key"), ...unlist(facts.supporting).map((entry) => some(entry.key))]
+    for (const name of names)
+      for (const target of targets)
+        for (const expanded of [[], [root.identity], candidates.map((entry) => entry.identity)]) {
+          assert.equal(potential.selected_drop(facts, name, target, list(expanded)), true, "selected_target_drop")
+          selectedDropCases++
+        }
     const result = spec.analyze(root, facts)
     assert.equal(result.$, "NodeResult", "derived recursive depth must suffice for each finite fixture")
     for (const depth of [0, 1, 3, 17])
@@ -535,6 +545,7 @@ try {
       lawCatalogs,
       rootContexts,
       potentialStates,
+      selectedDropCases,
       scope:
         "unconnected cursor and independent recursive specification; finite law instances, no universal proofs or production acceptance"
     })
