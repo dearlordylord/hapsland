@@ -174,7 +174,7 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 Numeric Nat/shared records remove recursive JS marshalling. Preserve native bounds/isolation,
 raw-token identity, cancellation and errors; refuse recursive BigInt wrappers.
 Build 46/46, Graph 2600 replies/195 requests, Source 59+34, resident 67 and
-Finalization 66+52/9615 refusals pass. Post/workspace/owner checks pass; acceptance remains open.
+Finalization 66+52/9615 refusals pass. Post/workspace/owner pass; acceptance open.
 
 ### Remaining obstacles and acceptance evidence
 
