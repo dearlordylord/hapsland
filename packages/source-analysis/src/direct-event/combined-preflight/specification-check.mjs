@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
@@ -24,7 +24,7 @@ try {
         ? Object.fromEntries(
             Object.entries(value).map(([key, item]) => [
               key,
-              key === "$" && typeof item === "string" ? item.replace(/^Model\./u, "") : normalize(item)
+              key === "$" && typeof item === "string" ? item.replace(/^(?:Model|Core)\./u, "") : normalize(item)
             ])
           )
         : value
@@ -38,6 +38,58 @@ try {
     { timeout: 11000 }
   )
   const core = (await import(pathToFileURL(coreOutput))).default
+  const verification = {}
+  for (const name of ["Execution", "ProtocolReference"]) {
+    const target = join(temporary, name + ".mjs")
+    execFileSync(
+      "timeout",
+      ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, name + ".bend"), "-o", target],
+      { timeout: 11000 }
+    )
+    const module = (await import(pathToFileURL(target))).default
+    verification[name] = Object.fromEntries(
+      Object.entries(module).map(([key, fn]) => [key, (...args) => normalize(fn(...args))])
+    )
+  }
+  // An imported Bend datatype carries the defining module's constructor name.
+  // Keep this conversion in the verification ABI, outside production bindings.
+  const coreConstructors = new Set([
+    "Advance",
+    "Engine",
+    "AwaitSites",
+    "AwaitRootImports",
+    "AwaitTypeImports",
+    "AwaitGo",
+    "Completed",
+    "InvalidReply",
+    "Ack",
+    "SitesObserved",
+    "ImportsObserved",
+    "GoInspected",
+    "Functions",
+    "FunctionSites",
+    "Sites",
+    "Finish",
+    "Imports"
+  ])
+  const importedCore = (value) =>
+    Array.isArray(value)
+      ? value.map(importedCore)
+      : value !== null && typeof value === "object"
+        ? Object.fromEntries(
+            Object.entries(value).map(([key, item]) => [
+              key,
+              key === "$" && coreConstructors.has(item) ? "Core." + item : importedCore(item)
+            ])
+          )
+        : value
+  const execution = verification.Execution,
+    protocol = Object.fromEntries(
+      Object.entries(verification.ProtocolReference).map(([key, fn]) => [
+        key,
+        (...args) => fn(...args.map(importedCore))
+      ])
+    )
   let protocolCases = 0
   const runCore = (
     initial,
@@ -258,6 +310,10 @@ try {
                 runCore(core.typescript(valid, types, counts.length, bound), counts, imports, typeImports, false, true),
                 { decision: plan.decision, operations: unlist(plan.operations) }
               )
+              assert.deepEqual(execution.typescript(valid, types, list(counts), bound, imports, typeImports), {
+                $: "Some",
+                value: plan
+              })
               const count = types + counts.length
               const refused = !valid || count > 1024 || (count > 0 && types > 0 && !bound)
               assert.equal(plan.decision.$, refused ? "Unavailable" : count === 0 ? "MeasuredEmpty" : "Measured")
@@ -280,11 +336,13 @@ try {
         decision: plan.decision,
         operations: unlist(plan.operations)
       })
+      assert.deepEqual(execution.go(bound, valid), { $: "Some", value: plan })
       assert.equal(plan.decision.$, bound ? "RetainBound" : valid ? "MeasuredEmpty" : "Unavailable")
       assert.deepEqual(unlist(plan.operations), bound ? [] : [{ $: "InspectGo" }])
       cases++
     }
   for (const bound of [false, true]) {
+    assert.deepEqual(execution.passthrough(bound), { $: "Some", value: spec.passthrough(bound) })
     assert.deepEqual(runCore(core.passthrough(bound)), { decision: spec.passthrough(bound).decision, operations: [] })
     assert.deepEqual(spec.passthrough(bound), {
       $: "Plan",
@@ -293,13 +351,188 @@ try {
     })
     cases++
   }
+  let protocolReferenceCases = 0,
+    advanceReferenceCases = 0
+  for (const request of [0, 7, 2 ** 40]) {
+    const phase = { $: "Finish", count: 7 }
+    const phases = [
+      phase,
+      ...[false, true].map((empty) => ({ $: "Imports", count: 7, empty })),
+      ...[0, 2].flatMap((remaining) => [
+        { $: "Functions", slot: 2, remaining, count: 7 },
+        { $: "Sites", slot: 2, site: 3, remaining, remaining_functions: 4, count: 7 }
+      ]),
+      { $: "FunctionSites", slot: 2, remaining_functions: 3, count: 7 }
+    ]
+    const states = [
+      { $: "InvalidReply" },
+      { $: "Completed", decision: { $: "Model.Unavailable" } },
+      ...phases.map((phase) => ({ $: "Advance", phase, request })),
+      {
+        $: "Engine",
+        operation: { $: "Model.Push", value: 4 },
+        request,
+        remaining: list([{ $: "Model.Add" }]),
+        next: phase
+      },
+      { $: "AwaitSites", slot: 2, remaining_functions: 3, count: 7, request },
+      ...[false, true].flatMap((empty) => [
+        { $: "AwaitRootImports", count: 7, empty, request },
+        { $: "AwaitTypeImports", count: 7, empty, request }
+      ]),
+      { $: "AwaitGo", request }
+    ]
+    for (const step of states) {
+      assert.deepEqual(normalize(core.advance(step)), protocol.advance(step))
+      advanceReferenceCases++
+    }
+    for (const step of states)
+      for (const actual of [request, request + 1])
+        for (const reply of [
+          { $: "Ack", request: actual },
+          { $: "SitesObserved", request: actual, count: 3 },
+          ...[false, true].flatMap((present) => [
+            { $: "ImportsObserved", request: actual, present },
+            { $: "GoInspected", request: actual, valid: present }
+          ])
+        ]) {
+          assert.deepEqual(normalize(core.resume(step, reply)), protocol.resume(step, reply))
+          assert.deepEqual(normalize(core.resume_group(step, reply)), protocol.group(step, reply))
+          protocolReferenceCases++
+        }
+  }
+  assert.deepEqual(execution.started({ $: "InvalidReply" }, list([]), false, false), { $: "None" })
+  assert.deepEqual(
+    execution.started({ $: "Advance", phase: { $: "Finish", count: 0 }, request: 0 }, list([]), false, false),
+    { $: "None" }
+  )
+
+  // Real, compiling Core mutations falsify the proposed whole/protocol laws.
+  // Temporary copies are diagnostics, never source snapshots or recovery inputs.
+  const mutations = [
+    [
+      "admits_1025",
+      "Nat.is_le(Nat.add(types, functions), 1024n)",
+      "Nat.is_le(Nat.add(types, functions), 1025n)",
+      "typescript_exact",
+      "typescript",
+      [true, 1025, list([]), true, false, false]
+    ],
+    [
+      "missing_type_bound_accepted",
+      "Bool.or(Nat.is_eq(types, 0n), bound)",
+      "True{}",
+      "typescript_exact",
+      "typescript",
+      [true, 1, list([]), false, false, false]
+    ],
+    [
+      "raw_path_not_measured",
+      "M.MeasureRawPath{}",
+      "M.Push{0n}",
+      "typescript_exact",
+      "typescript",
+      [true, 0, list([1]), false, false, false]
+    ],
+    [
+      "final_operand_order_changed",
+      "[M.ReadTypeBytes{}, M.Swap{}, M.Add{}]",
+      "[M.ReadTypeBytes{}, M.Add{}, M.Swap{}]",
+      "typescript_exact",
+      "typescript",
+      [true, 1, list([]), true, false, false]
+    ],
+    [
+      "go_inspection_skipped",
+      "case False{}: AwaitGo{0n}",
+      "case False{}: Completed{M.Unavailable{}}",
+      "go_exact",
+      "go",
+      [false, true]
+    ],
+    [
+      "wrong_group_ack_accepted",
+      "acknowledge_group(Nat.is_eq(request, actual), remaining, next, request)",
+      "acknowledge_group(True{}, remaining, next, request)",
+      "resume_group_exact"
+    ],
+    ["group_successor_lost", "case []: Nat.add(request, 1n)", "case []: request", "resume_group_exact"]
+  ]
+  mutations.push(
+    [
+      "passthrough_bound_lost",
+      "def passthrough(bound: Bool) -> Step:\n  match bound:\n    case True{}: Completed{M.RetainBound{}}",
+      "def passthrough(bound: Bool) -> Step:\n  match bound:\n    case True{}: Completed{M.Unavailable{}}",
+      "passthrough_exact",
+      "passthrough",
+      [true]
+    ],
+    [
+      "wrong_sites_reply_accepted",
+      "accepted_sites(Nat.is_eq(request, actual), slot, functions, count, sites, request)",
+      "accepted_sites(True{}, slot, functions, count, sites, request)",
+      "scalar_protocol_exact"
+    ]
+  )
+  mutations.push([
+    "advance_request_reset",
+    "case Imports{count, empty}: AwaitRootImports{count, empty, request}",
+    "case Imports{count, empty}: AwaitRootImports{count, empty, 0n}",
+    "scalar_protocol_exact"
+  ])
+  for (const [name, from, to, law, entry, args] of mutations) {
+    const directory = join(temporary, name)
+    mkdirSync(directory)
+    for (const file of ["Model.bend", "Core.bend", "Execution.bend"])
+      copyFileSync(join(import.meta.dirname, file), join(directory, file))
+    const path = join(directory, "Core.bend"),
+      source = readFileSync(path, "utf8")
+    assert.equal(source.split(from).length, 2, name + ": unique semantic anchor")
+    writeFileSync(path, source.replace(from, to))
+    const target = join(directory, "mutant.mjs")
+    execFileSync(
+      "timeout",
+      ["10s", "taskset", "-c", "10", "bend", join(directory, entry ? "Execution.bend" : "Core.bend"), "-o", target],
+      { timeout: 11000 }
+    )
+    const mutant = (await import(pathToFileURL(target))).default
+    if (entry) assert.notDeepEqual(normalize(mutant[entry](...args)), { $: "Some", value: spec[entry](...args) }, name)
+    else if (name === "advance_request_reset") {
+      const step = { $: "Advance", phase: { $: "Imports", count: 7, empty: false }, request: 7 }
+      assert.notDeepEqual(normalize(mutant.advance(step)), protocol.advance(step), name)
+    } else {
+      const scalar = law === "scalar_protocol_exact"
+      const step = scalar
+        ? { $: "AwaitSites", slot: 0, remaining_functions: 0, count: 1, request: 0 }
+        : core.typescript(true, 0, 1, false)
+      const reply = scalar
+        ? { $: "SitesObserved", request: 1, count: 0 }
+        : { $: "Ack", request: step.request + (name === "wrong_group_ack_accepted" ? 1 : 0) }
+      assert.notDeepEqual(
+        normalize(mutant[scalar ? "resume" : "resume_group"](step, reply)),
+        protocol[scalar ? "resume" : "group"](step, reply),
+        name
+      )
+    }
+    console.log(
+      JSON.stringify({
+        mutant: name,
+        law,
+        rejected: true,
+        scope: "finite executable falsification, not kernel proof mutation"
+      })
+    )
+  }
   console.log(
     JSON.stringify({
       cases,
       protocolCases,
       groupEquivalenceCases,
+      protocolReferenceCases,
+      advanceReferenceCases,
+      semanticMutants: mutations.length,
       scope:
-        "draft combined preflight machine/spec agreement, native measurement/fault order, IEEE expression and reply correlation; no universal proof or production connection claimed"
+        "draft combined preflight machine/spec agreement, native measurement/fault order, IEEE expression and reply correlation; whole grouped driver/spec agreement; draft laws unproved, whole acceptance remains open"
     })
   )
 } finally {
