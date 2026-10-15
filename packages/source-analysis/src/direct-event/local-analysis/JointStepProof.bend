@@ -1376,5 +1376,153 @@ def return_all_depths(+root: M.Declaration,
     case 1n++child_depth:
       (J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others, return_continue(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, child_slot, child_reversed, child_prefix, child_subtotal, child_depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, symbol, valid))
 
+def root_result(+root: M.Declaration, +catalog: M.Catalog, +purpose: C.Purpose, +state: S.State,
+  +frame_slot: Nat, +reversed_refs: List<&2, M.ReferencePlan>, +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr, +depth: Nat,
+  valid: J.semantic([C.Frame{frame_slot, [], reversed_refs, None{}}], [J.Ghost{1n+depth, prefix, subtotal}],
+    root, catalog, purpose, state)) -> {
+  S.NodeResult{state, M.NodePlan{S.declaration_slot(root), prefix}, subtotal} == S.analyze(root, catalog) : S.NodeResult
+}:
+  match valid:
+    case (_, result):
+      %Return.completed_child(prefix, state, subtotal) :
+        {S.node_result(_, S.declaration_slot(root)) == S.analyze(root, catalog) : S.NodeResult}
+      result
+
+def root_trace(+purpose: C.Purpose, +reversed_ops: List<&2, M.Op>, +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>, +subtotal: S.BytesExpr,
+  trace: {List.reverse(&2, M.Op, reversed_ops)
+    == Step.cursor_postfix(purpose, [J.Ghost{depth, prefix, subtotal}]) : List<&2, M.Op>}) -> {
+  List.append(&2, M.Op, List.reverse(&2, M.Op, reversed_ops), C.finish_operations(purpose))
+    == Root.expected_operations(purpose, subtotal) : List<&2, M.Op>
+}:
+  match purpose:
+    case C.Preflight{}: Equal.cong(List<&2, M.Op>, List<&2, M.Op>, before => List.append(&2, M.Op, before, [M.Add{}]),
+      List.reverse(&2, M.Op, reversed_ops), S.postfix(subtotal), trace)
+    case C.Trees{}: Equal.cong(List<&2, M.Op>, List<&2, M.Op>, before => List.append(&2, M.Op, before, []),
+      List.reverse(&2, M.Op, reversed_ops), [], trace)
+    case C.Outcomes{}: Equal.cong(List<&2, M.Op>, List<&2, M.Op>, before => List.append(&2, M.Op, before, []),
+      List.reverse(&2, M.Op, reversed_ops), [], trace)
+
+def root_saved(+purpose: C.Purpose, +slot: Nat, +failure: Maybe<&2, M.Failure>,
+  +reversed_refs: List<&2, M.ReferencePlan>, +prefix: List<&2, M.ReferencePlan>, +outcomes: List<&2, M.Outcome>,
+  accumulator: K.accumulator_relation(purpose, reversed_refs, prefix)) -> {
+  C.save_outcome(purpose, M.Outcome{slot, failure, C.outcome_tree(purpose, slot, reversed_refs)}, outcomes)
+    == Root.expected_prefix(purpose, M.NodePlan{slot, prefix}, failure, outcomes) : List<&2, M.Outcome>
+}:
+  match purpose:
+    case C.Preflight{}: {==}
+    case C.Outcomes{}: {==}
+    case C.Trees{}:
+      %accumulator : {C.save_outcome(C.Trees{}, M.Outcome{slot, failure, C.outcome_tree(C.Trees{}, slot, reversed_refs)}, outcomes)
+        == Root.expected_prefix(C.Trees{}, M.NodePlan{slot, _}, failure, outcomes) : List<&2, M.Outcome>}
+      {==}
+
+def root_deferred(+root: M.Declaration, +catalog: M.Catalog, +purpose: C.Purpose,
+  +pending: List<&2, M.Declaration>, +outcomes: List<&2, M.Outcome>, +initial_request: Nat, +stored_request: Nat,
+  +name: String, +expanded: List<&2, String>, +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>,
+  +reversed_refs: List<&2, M.ReferencePlan>, +prefix: List<&2, M.ReferencePlan>, +subtotal: S.BytesExpr,
+  +planned: List<&2, M.Op>,
+  result: {S.NodeResult{S.State{name, expanded, referenced, failure}, M.NodePlan{S.declaration_slot(root), prefix}, subtotal} == S.analyze(root, catalog) : S.NodeResult},
+  accumulator: K.accumulator_relation(purpose, reversed_refs, prefix),
+  trace: {planned == Root.expected_operations(purpose, subtotal) : List<&2, M.Op>}) ->
+  Step.deferred(C.RootNext{C.Global{catalog, purpose, pending, C.save_outcome(purpose, M.Outcome{S.declaration_slot(root), failure, C.outcome_tree(purpose, S.declaration_slot(root), reversed_refs)}, outcomes), stored_request}}, root, C.Global{catalog, purpose, pending, outcomes, initial_request}, [], planned):
+  %Equal.sym(List<&2, M.Op>, planned, Root.expected_operations(purpose, subtotal), trace) :
+    Step.deferred(C.RootNext{C.Global{catalog, purpose, pending, C.save_outcome(purpose, M.Outcome{S.declaration_slot(root), failure, C.outcome_tree(purpose, S.declaration_slot(root), reversed_refs)}, outcomes), stored_request}}, root, C.Global{catalog, purpose, pending, outcomes, initial_request}, [], _)
+  %result : Root.correspondence(
+    Root.RootDone{C.global_count(C.Global{catalog, purpose, pending, C.save_outcome(purpose, M.Outcome{S.declaration_slot(root), failure, C.outcome_tree(purpose, S.declaration_slot(root), reversed_refs)}, outcomes), stored_request}, Nat.add(initial_request, List.length(&2, M.Op, Root.expected_operations(purpose, subtotal)))), List.reverse(&2, M.Op, Root.expected_operations(purpose, subtotal))},
+    Root.expectation(_, catalog, purpose, pending, outcomes, initial_request))
+  (Equal.cong(List<&2, M.Outcome>, C.Global, items => C.Global{catalog, purpose, pending, items, Nat.add(initial_request, List.length(&2, M.Op, Root.expected_operations(purpose, subtotal)))},
+    C.save_outcome(purpose, M.Outcome{S.declaration_slot(root), failure, C.outcome_tree(purpose, S.declaration_slot(root), reversed_refs)}, outcomes), Root.expected_prefix(purpose, M.NodePlan{S.declaration_slot(root), prefix}, failure, outcomes),
+    root_saved(purpose, S.declaration_slot(root), failure, reversed_refs, prefix, outcomes, accumulator)),
+    Reverse.reverse_reverse(&2, M.Op, Root.expected_operations(purpose, subtotal)))
+
+def root_schedule(+root: M.Declaration, +catalog: M.Catalog, +purpose: C.Purpose,
+  +pending: List<&2, M.Declaration>, +outcomes: List<&2, M.Outcome>, +initial_request: Nat,
+  +reversed_ops: List<&2, M.Op>, +name: String, +expanded: List<&2, String>, +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>, +remaining: Nat, +frame_slot: Nat, +reversed_refs: List<&2, M.ReferencePlan>,
+  +depth: Nat, +prefix: List<&2, M.ReferencePlan>, +subtotal: S.BytesExpr,
+  result: {S.NodeResult{S.State{name, expanded, referenced, failure}, M.NodePlan{S.declaration_slot(root), prefix}, subtotal} == S.analyze(root, catalog) : S.NodeResult},
+  accumulator: K.accumulator_relation(purpose, reversed_refs, prefix),
+  trace: {List.reverse(&2, M.Op, reversed_ops) == Step.cursor_postfix(purpose, [J.Ghost{depth, prefix, subtotal}]) : List<&2, M.Op>}) ->
+  Step.valid(root, C.Global{catalog, purpose, pending, outcomes, initial_request}, reversed_ops, Step.advance(C.Continue{C.Cursor{C.global_count(C.Global{catalog, purpose, pending, outcomes, initial_request}, Step.request(C.Global{catalog, purpose, pending, outcomes, initial_request}, reversed_ops)), S.declaration_slot(root), name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), []):
+  schedule_valid(root, C.Global{catalog, purpose, pending, outcomes, initial_request}, reversed_ops, C.finish_operations(purpose), C.RootNext{C.Global{catalog, purpose, pending, C.save_outcome(purpose, M.Outcome{S.declaration_slot(root), failure, C.outcome_tree(purpose, S.declaration_slot(root), reversed_refs)}, outcomes), Step.request(C.Global{catalog, purpose, pending, outcomes, initial_request}, reversed_ops)}}, [], Step.request(C.Global{catalog, purpose, pending, outcomes, initial_request}, reversed_ops), {==},
+    root_deferred(root, catalog, purpose, pending, outcomes, initial_request, Step.request(C.Global{catalog, purpose, pending, outcomes, initial_request}, reversed_ops), name, expanded, referenced, failure,
+      reversed_refs, prefix, subtotal, List.append(&2, M.Op, List.reverse(&2, M.Op, reversed_ops), C.finish_operations(purpose)),
+      result, accumulator, root_trace(purpose, reversed_ops, depth, prefix, subtotal, trace)))
+
+def root_normalized(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +frame_slot: Nat,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  result: {S.NodeResult{S.State{name, expanded, referenced, failure}, M.NodePlan{S.declaration_slot(root), prefix}, subtotal} == S.analyze(root, C.global_catalog(invocation)) : S.NodeResult},
+  accumulator: K.accumulator_relation(C.global_purpose(invocation), reversed_refs, prefix),
+  trace: {List.reverse(&2, M.Op, reversed_ops) == Step.cursor_postfix(C.global_purpose(invocation), [J.Ghost{depth, prefix, subtotal}]) : List<&2, M.Op>}) ->
+  Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{C.global_count(invocation, Step.request(invocation, reversed_ops)), S.declaration_slot(root), name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), []):
+  match invocation:
+    case C.Global{catalog, purpose, pending, outcomes, initial_request}:
+      root_schedule(root, catalog, purpose, pending, outcomes, initial_request, reversed_ops, name, expanded, referenced,
+        failure, remaining, frame_slot, reversed_refs, depth, prefix, subtotal, result, accumulator, trace)
+
+def root_semantic_step(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +frame_slot: Nat,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  trace: {List.reverse(&2, M.Op, reversed_ops) == Step.cursor_postfix(C.global_purpose(invocation), [J.Ghost{1n+depth, prefix, subtotal}]) : List<&2, M.Op>},
+  valid: J.cursor(root, invocation, Step.request(invocation, reversed_ops), C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}, [J.Ghost{1n+depth, prefix, subtotal}])) ->
+  Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), []):
+  match valid:
+    case (global_equal, (slot_equal, (_, (_, (_, ((accumulator, _), semantic)))))):
+      %Equal.sym(C.Global, global, C.global_count(invocation, Step.request(invocation, reversed_ops)), global_equal) :
+        Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{_, slot, name, expanded, referenced, failure,
+          remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), [])
+      %Equal.sym(Nat, slot, S.declaration_slot(root), slot_equal) :
+        Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{
+          C.global_count(invocation, Step.request(invocation, reversed_ops)), _, name, expanded, referenced, failure,
+          remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), [])
+      root_normalized(root, invocation, reversed_ops, name, expanded, referenced, failure, remaining, frame_slot,
+        reversed_refs, 1n+depth, prefix, subtotal,
+        root_result(root, C.global_catalog(invocation), C.global_purpose(invocation), S.State{name, expanded, referenced, failure},
+          frame_slot, reversed_refs, prefix, subtotal, depth, semantic), accumulator, trace)
+
+def root_continue(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +frame_slot: Nat,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr, valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}, [J.Ghost{1n+depth, prefix, subtotal}])) ->
+  Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), []):
+  match valid:
+    case (semantic, trace): root_semantic_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame_slot, reversed_refs, depth, prefix, subtotal, trace, semantic)
+
 def main() -> Unit:
   Unit{}
