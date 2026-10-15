@@ -2,7 +2,8 @@ import Base
 import ./CanonicalJson.bend as Json
 import ./CanonicalJsonPlan.bend as Plan
 
-# Draft laws for review; no proof or production acceptance is claimed.
+# Seven reviewed local stack laws; bindings are in CanonicalJsonPlanProof.bend.
+# These local guarantees do not establish production acceptance.
 # Integration also requires valid-tree primitive/literal trace correspondence,
 # raw-token assembly, flatten acceptance and both invocation/request counters.
 
