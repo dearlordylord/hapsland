@@ -34,6 +34,7 @@ export type ControlledStep =
   | Omit<Extract<Owner.Step, { readonly $: "Rejected" }>, "state">
 export type Control = {
   readState(): Owner.State
+  readChild?(invocation: bigint): ReturnType<Owner.ActiveReader["read_child"]>
   readActive?(invocation: bigint): ReturnType<Owner.ActiveReader["query"]>
   invoke<M extends Method>(method: M, args: Arguments<M>): ControlledStep
 }

@@ -1,5 +1,12 @@
 import type * as Owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { projectTrustedCanonical } from "../canonical-boundary.ts"
+
+// Generated data outputs may share nullary constructors with the captured Bend
+// value. Copy only the selected child before it crosses the private Control port.
+export const readChildSnapshot = (
+  reader: Owner.ActiveReader,
+  invocation: bigint
+): ReturnType<Owner.ActiveReader["read_child"]> => structuredClone(reader.read_child(invocation))
 // Inverse of the already-declared owner Nat/tag conversion for Canonical outputs.
 export type HostTransport<Value> = Value extends bigint
   ? number

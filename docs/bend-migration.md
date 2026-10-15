@@ -170,8 +170,7 @@ crossings with a Bend-selected serialization plan:
 
 The batch protocol is connected through FrozenInput and Finalization in the
 production dispatch path. The superseded per-primitive FrozenInput request path
-is removed. The whole Preparation migration is still **not accepted**: tree-proof mutations, original attachment gates and whole-path parity
-remain open.
+is removed. The whole Preparation migration is still **not accepted**: original attachment gates and whole-path parity remain open.
 The planner and validator decrease operation lists, without opaque handles or
 arbitrary fuel.
 
@@ -181,8 +180,7 @@ arbitrary fuel.
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
 | Original proof formatting | The complete attachment law must pass the pinned formatter. Its remaining deep block/list layouts still fail; prefix or isolated-definition checks are insufficient. |
-| JSON tree correspondence | Prove validator soundness/completeness and exact ordered literal/primitive trace for the exported `ProductValue`. All four reviewed laws passed the pinned kernel (including soundness for arbitrary accepted streams without a codec premise). Both files pass formatting; complete targeted mutations of this indexed forest correspondence. Eight batch laws separately pin typed String reply acceptance/substitution. |
-| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Requalify the full composed consumers after the newly connected tree validator; individual module checks are insufficient. |
+| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Requalify the full composed consumers after the tree validator and private child-reader connection; individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
@@ -210,12 +208,19 @@ bridge helper names.
   refusals; runtime cases cover prefix throw/abort and late token coercion.
 - The stream validator's emitted consumer checks 79 trees, 1344 refusals and two
   reverse continuations. The real FrozenInput consumer refuses a structurally
-  valid stream for a different exported tree. Four universal correspondence laws now pass the pinned kernel; both files pass formatting, with targeted mutations still pending.
+  valid stream for a different exported tree. Four universal correspondence laws pass the pinned kernel and formatting. Four
+  semantic validator mutants are rejected within the proof closure; this does not
+  claim that each first error isolates a named universal law.
 - The connected validator candidate passed the matching 46-workspace build,
   `check:fast` with cumulative lint (10 files), full Finalization consumer
   (66 cases / 52 runtime cases), and focused Source/Post/resident consumers.
   These finite/simulated scopes do not establish whole acceptance.
-- Primary analyzer/build on `bce78508` pass at 0.7532 / 0.9051.
+- Private child lookups reuse the committed Bend reader; the host clones only
+  the selected Child to isolate shared generated constructors. Exact find equality
+  passes the kernel. The emitted consumer passes 1429 assertions, including nested
+  mutation isolation and reentrant cancellation; matching build and cumulative
+  `check:fast` pass (six authored files). Whole-path performance is pending.
+- Primary analyzer/build on the earlier `bce78508` pass at 0.6847 / 0.9051.
   Complete current-native Preparation on `bce78508` **fails parity at 1.8977**. All 30 workspace
   dependencies resolved inside the measured checkout. Earlier measurements using
   a shared `node_modules` with workspace links into another checkout cannot qualify

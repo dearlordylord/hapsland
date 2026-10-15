@@ -5,7 +5,10 @@ import { execFileSync } from "node:child_process"
 import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
+import {
+  createChildExecutionDriver,
+  readChildSnapshot
+} from "../../canonical-policy/src/canonical/child-execution/index.ts"
 import {
   createServiceRegistry,
   createServiceSession
@@ -96,23 +99,67 @@ try {
     const constructionReads = reads
     assert.equal(reader.$, "ActiveReader")
     assert.equal(typeof reader.query, "function")
+    assert.equal(typeof reader.read_child, "function")
     assert.ok(constructionReads > 0)
     for (let repeat = 0; repeat < 16; repeat++) {
       assert.deepEqual(reader.query(1n), { $: "Some", value: true })
       assert.deepEqual(reader.query(0n), { $: "None" })
       assert.deepEqual(reader.query((1n << 48n) - 1n), { $: "None" })
-      assertions += 3
+      assert.deepEqual(reader.read_child(1n), { $: "Some", value: child })
+      assert.deepEqual(reader.read_child(0n), { $: "None" })
+      assert.deepEqual(reader.read_child((1n << 48n) - 1n), { $: "None" })
+      assertions += 6
     }
+    assert.equal(reads, constructionReads)
+    const projected = readChildSnapshot(reader, 1n)
+    assert.equal(projected.$, "Some")
+    projected.value.phase.$ = "ChildCancelled"
+    projected.value.scope.partition = 999n
+    assert.deepEqual(readChildSnapshot(reader, 1n), { $: "Some", value: child })
+    assert.deepEqual(reader.query(1n), { $: "Some", value: true })
     assert.equal(reads, constructionReads)
     observed.phase = { $: "ChildCancelled" }
     assert.deepEqual(reader.query(1n), { $: "Some", value: true })
+    assert.deepEqual(reader.read_child(1n), { $: "Some", value: child })
     assert.deepEqual(m.active_reader(children).query(1n), { $: "Some", value: false })
     assert.deepEqual(m.active_reader(after.children).query(1n), { $: "Some", value: false })
+    assert.deepEqual(m.active_reader(after.children).read_child(1n), { $: "Some", value: after.children.head })
+    const nested = {
+      ...child,
+      scope: {
+        $: "SourceScope",
+        partition: 1n,
+        lifetime: 1n,
+        round: 1n,
+        observation: 1n,
+        permission: { $: "SourceNew" }
+      },
+      request: { $: "Some", value: 3n },
+      lease: { $: "Some", value: { $: "Lease", id: 4n, request: 3n } },
+      parent: { $: "Some", value: { $: "Parent", invocation: 2n, generation: 1n, request: 5n } }
+    }
+    const nestedChildren = { $: "Con", head: nested, tail: { $: "Nil" } }
+    const nestedReader = m.active_reader(nestedChildren)
+    const snapshot = readChildSnapshot(nestedReader, 1n)
+    snapshot.value.phase.$ = "ChildCancelled"
+    snapshot.value.scope.permission.$ = "SourceObservation"
+    snapshot.value.lease.value.request = 99n
+    snapshot.value.parent.value.generation = 99n
+    snapshot.value.request.value = 99n
+    assert.deepEqual(readChildSnapshot(nestedReader, 1n), { $: "Some", value: nested })
+    assert.deepEqual(nestedReader.query(1n), { $: "Some", value: true })
+    const cancelled = advanced(m.cancel({ ...before, children: nestedChildren }, 1n))
+    assert.equal(cancelled.children.head.phase.$, "ChildCancelled")
+    assert.deepEqual(nestedReader.query(1n), { $: "Some", value: true })
+    assert.deepEqual(readChildSnapshot(m.active_reader(cancelled.children), 1n), {
+      $: "Some",
+      value: cancelled.children.head
+    })
     const emittedSource = await readFile(emitted, "utf8")
     const factoryExport = emittedSource.split("\n").find((line) => line.startsWith('  "active_reader":'))
     assert.match(factoryExport, /, 1\),$/u)
-    console.log(JSON.stringify({ reader: { constructionReads, repeatedCalls: 48, repeatedReads: 0, factoryArity: 1 } }))
-    assertions += 8
+    console.log(JSON.stringify({ reader: { constructionReads, repeatedCalls: 96, repeatedReads: 0, factoryArity: 1 } }))
+    assertions += 21
   }
   // The actual owner must retain synchronous reply chronology and revoke the
   // pump even when cancellation does not abort the caller's signal.
@@ -131,9 +178,30 @@ try {
         return 0
       }
     }
+    let controlledState = fresh()
+    let controlledReader = m.active_reader(controlledState.children)
+    let childReads = 0
     const driver = createChildExecutionDriver({
-      owner: m,
-      initialState: fresh(),
+      owner: {
+        ...m,
+        find() {
+          throw new Error("Private Control must use its committed child reader")
+        }
+      },
+      control: {
+        readState: () => controlledState,
+        readActive: (invocation) => controlledReader.query(invocation),
+        readChild(invocation) {
+          childReads++
+          return readChildSnapshot(controlledReader, invocation)
+        },
+        invoke(method, args) {
+          const step = m[method](controlledState, ...args)
+          controlledState = step.state
+          controlledReader = m.active_reader(controlledState.children)
+          return step
+        }
+      },
       scope,
       registry,
       machine,
@@ -174,6 +242,7 @@ try {
           : ["advance", "advance", "effect", "microtask"]
     )
     assert.equal(driver.stats.accepted, cancellation === "none" ? 1 : 0)
+    assert.ok(childReads > 0)
     if (cancellation === "none") assert.equal(outcome.result, "accepted")
     else assert.equal(outcome.failure.$, "Types.InvocationCancelled")
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
