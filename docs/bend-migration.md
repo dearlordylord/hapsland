@@ -173,7 +173,7 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 `migration/bend-abi-2037` assesses official Bend 2.0.37 (`4ff8545f`):
 Numeric Nat/shared records remove recursive JS marshalling. Preserve native bounds/isolation,
 raw-token identity, cancellation and errors; refuse recursive BigInt wrappers.
-Build 46/46, Graph 2600 replies/195 requests, Source 59+34, resident 67 and
+Build 46/46, Graph 2600 replies/195 requests, Source/resident and
 Finalization 66+52/9615 refusals pass. Post/workspace/owner pass; acceptance open.
 
 ### Remaining obstacles and acceptance evidence
@@ -182,7 +182,7 @@ Finalization 66+52/9615 refusals pass. Post/workspace/owner pass; acceptance ope
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Emission/kernel passes alone are diagnostic. |
 | Original proof formatting | Formatter 0.1.23 (`d1e5aa7`) passes local release gates: 653 tests + one optional skip, IDE compatibility and signature. Full-law formatting passes; release/pin await authorization. |
-| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Post-cut compiled Source/resident, Finalization and public Preparation pass; repeat on the final candidate. Individual module checks are insufficient. |
+| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. At `bea2c935`, Source (59/6687), resident (67/14323, 868 Post) pass. Finalization/public Preparation pass; repeat after production edits. |
 | Whole-path parity | Qualify the complete 2.0.37 producer/host cohort, then measure connected Preparation against current native, including conversion/effects/process costs. Require ratio ≤ 1; analyzer/build alone is insufficient. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
