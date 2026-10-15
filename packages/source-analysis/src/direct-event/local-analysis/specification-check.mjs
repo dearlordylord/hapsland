@@ -665,12 +665,16 @@ try {
         if (unlist(root.references).length === 0) {
           if (purpose === "Core.Preflight") {
             const queue = [entered.operation, ...unlist(entered.remaining)]
-            assert.deepEqual(queue, [
-              { $: "Model.MeasureArtifact", slot: root.slot },
-              { $: "Model.Push", value: 512 },
-              { $: "Model.Add" },
-              { $: "Model.Add" }
-            ], "leaf preflight preserves the exact four operations")
+            assert.deepEqual(
+              queue,
+              [
+                { $: "Model.MeasureArtifact", slot: root.slot },
+                { $: "Model.Push", value: 512 },
+                { $: "Model.Add" },
+                { $: "Model.Add" }
+              ],
+              "leaf preflight preserves the exact four operations"
+            )
             assert.equal(entered.next.$, "RootNext", "leaf needs no DFS cursor")
             let step = entered
             for (let offset = 0; offset < 4; offset++) {
