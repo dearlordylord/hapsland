@@ -47,9 +47,21 @@ type ForestEncoding<-values: List<&2, Value.ProductValue>, -operations: List<&2,
     tail_operations: List<&2, Plan.Operation>,
     tail_plans: List<&2, List<&2, Plan.Piece>>,
     tail: ForestEncoding<tail_values, tail_operations, tail_plans>,
-    values_shape: {values == primitive_value(primitive) <> tail_values : List<&2, Value.ProductValue>},
-    operations_shape: {operations == Plan.PrimitiveOperation{primitive} <> tail_operations : List<&2, Plan.Operation>},
-    plans_shape: {plans == [Plan.PrimitivePiece{primitive}] <> tail_plans : List<&2, List<&2, Plan.Piece>>}
+    values_shape: {
+      values
+      == primitive_value(primitive) <> tail_values
+      : List<&2, Value.ProductValue>
+    },
+    operations_shape: {
+      operations
+      == Plan.PrimitiveOperation{primitive} <> tail_operations
+      : List<&2, Plan.Operation>
+    },
+    plans_shape: {
+      plans
+      == [Plan.PrimitivePiece{primitive}] <> tail_plans
+      : List<&2, List<&2, Plan.Piece>>
+    }
   }
   ArrayForest{
     items: List<&2, Value.ProductValue>,
@@ -60,13 +72,21 @@ type ForestEncoding<-values: List<&2, Value.ProductValue>, -operations: List<&2,
     tail_plans: List<&2, List<&2, Plan.Piece>>,
     children: ForestEncoding<items, child_operations, child_plans>,
     tail: ForestEncoding<tail_values, tail_operations, tail_plans>,
-    values_shape: {values == Value.ProductArray{items} <> tail_values : List<&2, Value.ProductValue>},
+    values_shape: {
+      values
+      == Value.ProductArray{items} <> tail_values
+      : List<&2, Value.ProductValue>
+    },
     operations_shape: {
       operations == List.append(&2, Plan.Operation, child_operations,
         Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)} <> tail_operations)
       : List<&2, Plan.Operation>
     },
-    plans_shape: {plans == Compound.array_trace(child_plans) <> tail_plans : List<&2, List<&2, Plan.Piece>>}
+    plans_shape: {
+      plans
+      == Compound.array_trace(child_plans) <> tail_plans
+      : List<&2, List<&2, Plan.Piece>>
+    }
   }
   ObjectForest{
     fields: List<&2, Value.OrderedField<Value.ProductValue>>,
@@ -78,14 +98,21 @@ type ForestEncoding<-values: List<&2, Value.ProductValue>, -operations: List<&2,
     children: ForestEncoding<field_values(fields), child_operations, Compound.values(planned_fields)>,
     keys_shape: {Compound.keys(planned_fields) == field_keys(fields) : List<&2, String>},
     tail: ForestEncoding<tail_values, tail_operations, tail_plans>,
-    values_shape: {values == Value.ProductObject{fields} <> tail_values : List<&2, Value.ProductValue>},
+    values_shape: {
+      values
+      == Value.ProductObject{fields} <> tail_values
+      : List<&2, Value.ProductValue>
+    },
     operations_shape: {
       operations == List.append(&2, Plan.Operation, child_operations,
         Plan.ObjectOperation{field_keys(fields)} <> tail_operations)
       : List<&2, Plan.Operation>
     },
     plans_shape: {
-      plans == Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, planned_fields)) <> tail_plans
+      plans
+      == Compound.object_trace(
+        List.sort(~Plan.Field, ~Plan.fields_le, planned_fields)
+      ) <> tail_plans
       : List<&2, List<&2, Plan.Piece>>
     }
   }

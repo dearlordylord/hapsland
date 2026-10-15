@@ -170,8 +170,8 @@ crossings with a Bend-selected serialization plan:
 
 The batch protocol is connected through FrozenInput and Finalization in the
 production dispatch path. The superseded per-primitive FrozenInput request path
-is removed. The whole Preparation migration is still **not accepted**: universal
-tree/counter proofs, original attachment gates and whole-path parity remain open.
+is removed. The whole Preparation migration is still **not accepted**: tree-proof mutations, original attachment gates and whole-path parity
+remain open.
 The planner and validator decrease operation lists, without opaque handles or
 arbitrary fuel.
 
@@ -181,7 +181,7 @@ arbitrary fuel.
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
 | Original proof formatting | The complete attachment law must pass the pinned formatter. Its remaining deep block/list layouts still fail; prefix or isolated-definition checks are insufficient. |
-| JSON tree correspondence | Prove validator soundness/completeness and exact ordered literal/primitive trace for the exported `ProductValue`. Four reviewed laws use an indexed forest relation. Completeness and exact folds have front-end checks; soundness and the complete kernel verdict remain open. Eight batch laws separately pin typed String reply acceptance/substitution. |
+| JSON tree correspondence | Prove validator soundness/completeness and exact ordered literal/primitive trace for the exported `ProductValue`. All four reviewed laws passed the pinned kernel (including soundness for arbitrary accepted streams without a codec premise). Both files pass formatting; complete targeted mutations of this indexed forest correspondence. Eight batch laws separately pin typed String reply acceptance/substitution. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Requalify the full composed consumers after the newly connected tree validator; individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
@@ -199,8 +199,8 @@ bridge helper names.
   pop loss, single-root refusal, wrong comparison and rejecting all compounds.
 - The actual codec-to-emitted-planner consumer checks 79 trees / 2117 exact
   pieces, malformed streams, 361 fold splits and arbitrary compound stacks.
-  These finite checks complement the local proofs; they do not replace the
-  missing tree/trace and counter laws.
+  These finite checks complement the universal tree/trace and actual-machine
+  counter laws.
 - Eight batch protocol laws and eighteen actual-machine laws pass the pinned verdict.
   The actual-machine laws/proof also pass formatting; composition mutants reject
   a shifted first request ID and removed Export header guard.
@@ -210,8 +210,7 @@ bridge helper names.
   refusals; runtime cases cover prefix throw/abort and late token coercion.
 - The stream validator's emitted consumer checks 79 trees, 1344 refusals and two
   reverse continuations. The real FrozenInput consumer refuses a structurally
-  valid stream for a different exported tree. These are finite checks, not the
-  missing universal correspondence proof.
+  valid stream for a different exported tree. Four universal correspondence laws now pass the pinned kernel; both files pass formatting, with targeted mutations still pending.
 - The connected validator candidate passed the matching 46-workspace build,
   `check:fast` with cumulative lint (10 files), full Finalization consumer
   (66 cases / 52 runtime cases), and focused Source/Post/resident consumers.
