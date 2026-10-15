@@ -174,7 +174,7 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 records, preserving bounds/isolation. The JSON validator trial uses standard
 String.eq via JS intrinsic [e0ff2e76](https://github.com/dearlordylord/bend/commit/e0ff2e76c68d99cceec4d62ba7568b1099dbd65f).
 C/BendTT semantics remain. Five tree laws and 79 trees/1344
-refusals pass. Build 46/46, fast, public/physical consumers pass; parity pending.
+refusals pass. Build 46/46, fast, public/physical consumers pass; parity fails.
 
 ### Remaining obstacles and acceptance evidence
 
@@ -227,7 +227,7 @@ that only bridges helper names.
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
 - Primary `c0f265f5` analyzer/build: 0.7198 / 0.8222. Whole current-native
-  Preparation on `18202663` **fails parity at 1.3994**: equal outputs, 17 frozen pairs,
+  Preparation on `defa39e3` **fails parity at 1.3156**: equal outputs, 17 frozen pairs,
   30 local workspaces.
   Six-mode JSON/fast/focused pass.
 - Shared address facts and construction consumers pass verdict/format. Complete
