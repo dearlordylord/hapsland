@@ -30,6 +30,24 @@ env.update(HAPSLAND_PERFORMANCE_BASELINE_ROOT=str(baseline), HAPSLAND_PERFORMANC
 def git(checkout, *options):
     return subprocess.check_output(["git", *options], cwd=checkout)
 
+def workspace_resolutions(checkout):
+    resolved = {}
+    manifest = json.loads((checkout / "package.json").read_text())
+    for pattern in manifest["workspaces"]:
+        for directory in sorted(checkout.glob(pattern)):
+            declaration = directory / "package.json"
+            if not declaration.is_file():
+                continue
+            name = json.loads(declaration.read_text())["name"]
+            actual = (checkout / "node_modules" / name).resolve()
+            expected = directory.resolve()
+            if actual != expected:
+                raise RuntimeError(f"Workspace dependency escapes measurement checkout: {checkout}: {name}: {actual} != {expected}")
+            resolved[name] = str(actual)
+    if not resolved:
+        raise RuntimeError(f"No installed workspace dependencies verified: {checkout}")
+    return resolved
+
 def sources(checkout):
     # Include untracked authored inputs; an unchanged working diff alone omits them.
     names = set(git(checkout, "ls-files", "--cached", "--others", "--exclude-standard", "-z").split(b"\0"))
@@ -51,6 +69,9 @@ def artifacts():
                     if path.is_file() and path.suffix in [".js", ".mjs", ".cjs", ".node"]:
                         result[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
     return result
+
+frozen_workspaces = {str(p): workspace_resolutions(p) for p in [baseline, root]}
+print(json.dumps({"workspacePreflight": {path: len(packages) for path, packages in frozen_workspaces.items()}}), flush=True)
 
 worker = root / "packages/source-analysis/src/direct-event/analysis-checks/reference-isolated-worker.mjs"
 if args.lane == "execution":
@@ -79,10 +100,11 @@ measurement = json.loads(measurement_path.read_text()) if measurement_path.exist
 heads_unchanged = all(git(Path(p), "rev-parse", "HEAD").decode().strip() == value for p, value in heads.items())
 sources_unchanged = all(sources(Path(p)) == value for p, value in frozen_sources.items())
 artifacts_unchanged = artifacts() == frozen_artifacts
+workspaces_unchanged = all(workspace_resolutions(Path(p)) == value for p, value in frozen_workspaces.items())
 complete = measurement is not None and all(len(measurement.get("samples", {}).get(lane, [])) == 17 for lane in ["typescript", "integratedBend"])
-qualified = result.returncode == 0 and heads_unchanged and sources_unchanged and artifacts_unchanged and complete
+qualified = result.returncode == 0 and heads_unchanged and sources_unchanged and artifacts_unchanged and workspaces_unchanged and complete
 parity = qualified and bool(measurement.get(args.lane + "Parity"))
-record = {"startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "supplemental current-native whole preparation" if args.lane == "preparation" and args.preparation_reference == "current-native" else "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
+record = {"startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "workspaceResolutions": frozen_workspaces, "workspaceResolutionsUnchanged": workspaces_unchanged, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "supplemental current-native whole preparation" if args.lane == "preparation" and args.preparation_reference == "current-native" else "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
 (output / "qualification.json").write_text(json.dumps(record, indent=2) + "\n")
 print(json.dumps({"evidence": str(output / "qualification.json"), "exitCode": result.returncode, "qualified": qualified, "parity": parity, "preparationReference": args.preparation_reference if args.lane == "preparation" else None, "ratio": measurement.get("meanRatio") if measurement else None}), flush=True)
 raise SystemExit(0 if parity else 1)
