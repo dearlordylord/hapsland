@@ -262,7 +262,7 @@ for (const text of [
 test("valid receipt binds actual compiler/support/input bytes and exact forty-one outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
-  assert.equal(f.context.toolchain.version, "bend 2.0.36")
+  assert.equal(f.context.toolchain.version, "bend 2.0.37")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
   assert.equal(f.receipt.outputs.length, 44)

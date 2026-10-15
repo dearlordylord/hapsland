@@ -170,10 +170,11 @@ crossings with a Bend-selected serialization plan:
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
-Astra rejected State callbacks (full marshalling), transition closures
-(nondecreasing recursion), and native handles (no pinned C-library ABI). Direct tree planning needs a supported nested
-ProductValue fold and must preserve the ExportJson cancellation boundary. Existing
-ForestEncoding proofs require a supplied operation stream; they are not a builder.
+The isolated `migration/bend-abi-2037` assesses official Bend 2.0.37 (`4ff8545f`):
+number Nat and shared records remove recursive JS marshalling. Astra selected a
+whole producer/host cohort transition. Preserve native bounds, required isolation,
+raw-token identity, cancellation and errors; refuse recursive BigInt wrappers.
+This preparatory pin is unqualified.
 
 ### Remaining obstacles and acceptance evidence
 
