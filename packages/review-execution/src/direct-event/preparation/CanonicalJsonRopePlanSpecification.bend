@@ -51,7 +51,9 @@ def runs(values: List<&2, List<&2, Plan.RopeField>>) -> List<&2, List<&2, Spec.F
     case []: []
     case value <> tail: fields(value) <> runs(tail)
 
-def merge_state(value: List<&2, Plan.RopeField> & List<&2, Plan.RopeField> & List<&2, Plan.RopeField>)
+def merge_state(
+  value: List<&2, Plan.RopeField> & List<&2, Plan.RopeField> & List<&2, Plan.RopeField>
+)
   -> List<&2, Spec.Field> & List<&2, Spec.Field> & List<&2, Spec.Field>:
   match value:
     case (acc, xs, ys): (fields(acc), fields(xs), fields(ys))
@@ -60,7 +62,12 @@ def object_suffix(values: List<&2, Plan.RopeField>) -> List<&2, Plan.Piece>:
   match values:
     case []: [Plan.LiteralPiece{"}"}]
     case value <> tail:
-      Plan.LiteralPiece{","} <> List.append(&2, Plan.Piece, trace(Plan.rope_object_field(value)), object_suffix(tail))
+      Plan.LiteralPiece{","} <> List.append(
+        &2,
+        Plan.Piece,
+        trace(Plan.rope_object_field(value)),
+        object_suffix(tail)
+      )
 
 def main() -> Unit:
   Unit{}
