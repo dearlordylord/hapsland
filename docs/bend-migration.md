@@ -220,8 +220,9 @@ that only bridges helper names.
 - Workspace removes both TS sizing formulas. Bend serves admission/resize/handoff,
   retaining IEEE/coercion order. 18 laws, four mutants, 6930 differential cases
   and public/server/Source/resident consumers pass.
-- Primary `f4ca2eae` sequence cohort analyzer/build: 0.7674 / 0.8214.
-  Whole current-native Preparation **fails parity at 1.4616**: equal outputs,
+- Primary `01940c44` rope candidate analyzer/build: 0.7359 / 0.8211
+  (12:38 UTC, 17 pairs, frozen inputs, build cache 23/46).
+  Last whole current-native Preparation (`f4ca2eae`) **fails parity at 1.4616**: equal outputs,
   17 frozen pairs, 30 local workspaces; freezes pass, build cache 23/46.
   Sequence trial is closed after whole parity failure. Fused validate/plan stays closed.
 - Original full attachment verdict passes the CPU10/10s capability gate after
