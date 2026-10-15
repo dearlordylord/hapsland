@@ -156,7 +156,7 @@ crossings with a Bend-selected serialization plan:
    It preserves field order and Binary64 bits; it neither sorts nor serializes.
 2. Bend [validates the stream](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlanValidation.bend)
    against the exact exported tree, including primitive payloads, Binary64 bits,
-   original keys and child order. A different valid tree is refused before planning.
+   original keys and child order. Different trees are refused before planning.
 3. The [Bend planner](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlan.bend)
    folds that stream over a stack, preserves key/value pairing, sorts with the
    existing UTF16 comparator and produces exact literal/primitive pieces.
@@ -168,19 +168,19 @@ crossings with a Bend-selected serialization plan:
    `resume`; perform the original `String.concat` in the next ordinary `advance`,
    preserving its existing late-coercion/error boundary.
 
-The batch protocol is connected through FrozenInput and Finalization in the
-production dispatch path. The superseded per-primitive FrozenInput request path
+FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. The whole Preparation migration is still **not accepted**: original attachment gates and whole-path parity remain open.
-The planner and validator decrease operation lists. A retained-State getter or
-callback still marshals State; a transition closure needs nondecreasing recursion.
-Astra rejected this route; do not repeat the readChild experiment.
+Astra rejected State callbacks (full marshalling) and transition closures
+(nondecreasing recursion). Direct tree planning needs a supported nested
+ProductValue fold and must preserve the ExportJson cancellation boundary. Existing
+ForestEncoding proofs require a supplied operation stream; they are not a builder.
 
 ### Remaining obstacles and acceptance evidence
 
 | Obstacle | Required change or evidence |
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Emission/kernel passes alone are diagnostic. |
-| Original proof formatting | `bb531601` formats the whole law idempotently with identical full BendTT; 70 checks pass. Release and pin adoption await authorization. |
+| Original proof formatting | `bb531601` formats the whole law idempotently with identical full BendTT; 70 checks pass; release/pin await authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Post-cut compiled Source/resident, Finalization and public Preparation pass; repeat on the final candidate. Individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
@@ -228,7 +228,7 @@ that only bridges helper names.
   formulas remain only in the independent verification oracle.
 - Latest `c0f265f5` analyzer/build ratios: 0.8225 / 0.9100. Public current-native
   Preparation **fails parity at 2.0142**, with equal outputs, after the competing
-  CPU11 benchmark ended. All 17 pairs and 30 local workspace resolutions qualify.
+  CPU11 benchmark ended. 17 pairs and 30 workspace resolutions qualify.
   No whole-path gain is demonstrated.
 - Shared address facts and construction consumers pass verdict/format. Complete
   attachment TT decreases to 7,445,671 bytes; full verdict still times out.
