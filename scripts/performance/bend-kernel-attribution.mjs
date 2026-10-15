@@ -29,6 +29,7 @@ const replica = (body, name, result) =>
       `partial def observe${name}Core (counter : IO.Ref Nat) (depth : Nat) (path : String) (ck : Book)`
     )
     .replace(`Res ${result}`, `ExceptT String IO ${result}`)
+    .replaceAll("Min a b", "Term.Min a b")
     .replaceAll("Term.check ck", 'observeCheck counter depth (path ++ "/check") ck')
     .replaceAll("Term.infer ck", 'observeInfer counter depth (path ++ "/infer") ck')
 const subtreeObserver = String.raw`
