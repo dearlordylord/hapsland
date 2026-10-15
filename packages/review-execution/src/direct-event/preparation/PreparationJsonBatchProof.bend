@@ -301,9 +301,20 @@ def finite_n0_literals() -> {
   {==}
 
 def finite_unit() -> Top.UnitState:
-  Top.UnitState{Top.State{Top.Invocation{3n, 5n}, 11n,
-    Top.Context{"contract", "root.ts", "/repo", Value.ProductNull{}, [], [], [], []}, [], [], Top.Unprepared{}},
-    Value.ProductNull{}, None{}, False{}, Value.ProductNull{}}
+  Top.UnitState{
+    Top.State{
+      Top.Invocation{3n, 5n},
+      11n,
+      Top.Context{"contract", "root.ts", "/repo", Value.ProductNull{}, [], [], [], []},
+      [],
+      [],
+      Top.Unprepared{}
+    },
+    Value.ProductNull{},
+    None{},
+    False{},
+    Value.ProductNull{}
+  }
 
 def finite_input() -> Input.Step:
   Input.SerializeBatch{Input.State{7n, 9n, Input.BatchWork{Value.ProductNull{},

@@ -162,8 +162,13 @@ def unit_progress(unit: Top.UnitState, count: Nat) -> Top.UnitState:
   match unit:
     case Top.UnitState{Top.State{invocation, request, context, pending, reversed, cache},
       value, location, partial, fingerprints}:
-      Top.UnitState{Top.State{invocation, Nat.add(request, count), context, pending, reversed, cache},
-        value, location, partial, fingerprints}
+      Top.UnitState{
+        Top.State{invocation, Nat.add(request, count), context, pending, reversed, cache},
+        value,
+        location,
+        partial,
+        fingerprints
+      }
 
 def unit_request(unit: Top.UnitState) -> Nat:
   match unit:
