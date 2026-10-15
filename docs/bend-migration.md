@@ -173,8 +173,8 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 `migration/bend-abi-2037` assesses Bend 2.0.37 (`4ff8545f`), numeric Nat/shared
 records, preserving bounds/isolation. The JSON validator trial uses standard
 String.eq via JS intrinsic [e0ff2e76](https://github.com/dearlordylord/bend/commit/e0ff2e76c68d99cceec4d62ba7568b1099dbd65f).
-C/BendTT/native String semantics remain. Five tree laws and 79 trees/1344
-refusals pass; cohort and whole parity are pending.
+C/BendTT semantics remain. Five tree laws and 79 trees/1344
+refusals pass. Build 46/46, fast, public/physical consumers pass; parity pending.
 
 ### Remaining obstacles and acceptance evidence
 
@@ -182,7 +182,7 @@ refusals pass; cohort and whole parity are pending.
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Emission/kernel passes alone are diagnostic. |
 | Original proof formatting | Formatter 0.1.23 (`d1e5aa7`) passes local release gates: 653 tests + one optional skip, IDE compatibility and signature. Full-law formatting passes; release/pin await authorization. |
-| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. At `bea2c935`, Source (59/6687), resident (67/14323, 868 Post) pass. Finalization/public Preparation pass; repeat after production edits. |
+| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the equality cohort. Finalization/public Preparation pass; repeat after production edits. |
 | Whole-path parity | Qualify the complete 2.0.37 producer/host cohort, then measure connected Preparation against current native, including conversion/effects/process costs. Require ratio ≤ 1; analyzer/build alone is insufficient. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
@@ -226,7 +226,7 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary `c0f265f5` analyzer/build: 0.7995 / 0.8174. Whole current-native
+- Primary `c0f265f5` analyzer/build: 0.7198 / 0.8222. Whole current-native
   Preparation on `18202663` **fails parity at 1.3994**: equal outputs, 17 frozen pairs,
   30 local workspaces.
   Six-mode JSON/fast/focused pass.
@@ -254,4 +254,4 @@ Retained sources/tests/proofs/runners belong to ordinary domain owners under
 evidence/prototypes, snapshots, `.txt` copies or restoration inventories.
 Only results belong in ignored `.test-runs`.
 
-Replace superseded status in place. Keep chronology in Git and details in executable reports.
+Replace status in place; chronology stays in Git.

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
-import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
+import { execFileSync, spawnSync } from "node:child_process"
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { productValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
@@ -175,6 +175,60 @@ try {
     assert.equal(validator.validate_reversed(list(reversed.slice(1)), list(children)), false)
     continuations++
   }
+  // Mutants are temporary diagnostic inputs; their generation remains here,
+  // beside the tracked validator and its ordinary checking root.
+  const roots = [
+    "CanonicalJsonPlanValidation.bend",
+    "CanonicalJsonPlanTreeLaws.bend",
+    "CanonicalJsonPlanTreeProof.bend"
+  ]
+  const sources = roots.map((name) => readFileSync(join(import.meta.dirname, name), "utf8"))
+  const copies = new Map(roots.map((name) => [join(import.meta.dirname, name), join(temporary, name)]))
+  const rebase = (source, owner) =>
+    source.replace(/^import ([./][^ \n]+)(.*)$/gm, (_line, path, rest) => {
+      const absolute = resolve(dirname(owner), path)
+      return `import ${copies.get(absolute) ?? absolute}${rest}`
+    })
+  const mutations = [
+    ["baseline", undefined, undefined],
+    ["text payload accepted without equality", "equal_go(a, b, True{})", "True{}"],
+    [
+      "object key accepted without equality",
+      "Bool.and(equal_go(key, expected, True{}), object_keys(keys, fields))",
+      "object_keys(keys, fields)"
+    ],
+    ["equality accepts all strings", "Bool.and(same, String.eq(left, right))", "same"],
+    ["equality loses accumulator guard", "Bool.and(same, String.eq(left, right))", "String.eq(left, right)"]
+  ]
+  const proofMutants = []
+  for (const [name, before, after] of mutations) {
+    let validation = sources[0]
+    if (before !== undefined) {
+      assert.equal(validation.split(before).length, 2, "mutation must replace exactly one expression")
+      validation = validation.replace(before, after)
+    }
+    for (const [index, file] of roots.entries())
+      writeFileSync(
+        copies.get(join(import.meta.dirname, file)),
+        rebase(index === 0 ? validation : sources[index], join(import.meta.dirname, file))
+      )
+    const result = spawnSync(
+      "timeout",
+      ["-s", "KILL", "10s", "taskset", "-c", "10", process.env.BEND ?? "bend", join(temporary, roots[2]), "--verdict"],
+      { encoding: "utf8", timeout: 11000 }
+    )
+    assert.ifError(result.error)
+    const output = result.stdout + result.stderr
+    if (before === undefined) {
+      assert.equal(result.status, 0, output)
+      assert.match(output, /ALL PROOFS CHECK/)
+    } else {
+      assert.equal(result.status, 1, output)
+      assert.match(output, /SOME PROOFS FAIL/)
+      assert.match(output, /expected\s*:/)
+      proofMutants.push({ name, rejected: true, scope: "full proof closure; failure may be in a shared lemma" })
+    }
+  }
   console.log(
     JSON.stringify({
       passed: true,
@@ -182,6 +236,7 @@ try {
       refusals,
       continuations,
       equalityCases,
+      proofMutants,
       scope: "actual emitted plan validator; finite codec and continuation checks, not whole proof/runtime acceptance"
     })
   )
