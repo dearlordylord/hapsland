@@ -169,7 +169,9 @@ try {
             evidence,
             TYPE_INPUT_CONTRACT,
             list(declarations.map(productValue)),
-            list([...captures].map(([path, capture]) => productValue({ path, ...capture }))),
+            modules.UnitEvidence.prepare_captures(
+              list([...captures].map(([path, capture]) => productValue({ path, ...capture })))
+            ),
             wire(unit)
           )
           assert.equal(label(metadata), "EvidenceReady")

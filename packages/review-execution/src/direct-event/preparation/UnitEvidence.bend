@@ -395,27 +395,45 @@ def capture_fields(
       }
     case _ _: None{}
 
-def capture_selected(
-  matched: Bool,
-  value: Maybe<&2, ArtifactValue.ProductValue>,
-  rest: Maybe<&2, ArtifactValue.ProductValue>
-) -> Maybe<&2, ArtifactValue.ProductValue>:
+# Invocation-local immutable materialization; invalid first duplicates remain.
+type PreparedCapture is Data:
+  PreparedCapture{path: String, fingerprint: Maybe<&2, ArtifactValue.ProductValue>}
+
+def prepare_insert(path: Maybe<&2, String>, +capture: ArtifactValue.ProductValue,
+  reversed: List<&2, PreparedCapture>) -> List<&2, PreparedCapture>:
+  match path:
+    case None{}: reversed
+    case Some{+path}:
+      PreparedCapture{
+        path,
+        capture_fields(path, field("contentHash", capture), field("byteLength", capture))
+      } <> reversed
+
+def prepare_go(
+  pending: List<&2, ArtifactValue.ProductValue>,
+  reversed: List<&2, PreparedCapture>
+) -> List<&2, PreparedCapture>:
+  match pending:
+    case []: List.reverse(&2, PreparedCapture, reversed)
+    case +head <> tail: prepare_go(tail, prepare_insert(text(field("path", head)), head, reversed))
+
+def prepare_captures(captures: List<&2, ArtifactValue.ProductValue>) -> List<&2, PreparedCapture>:
+  prepare_go(captures, [])
+
+def prepared_selected(matched: Bool, value: Maybe<&2, ArtifactValue.ProductValue>,
+  rest: Unit -> Maybe<&2, ArtifactValue.ProductValue>) -> Maybe<&2, ArtifactValue.ProductValue>:
   match matched:
     case True{}: value
-    case False{}: rest
+    case False{}: rest(Unit{})
 
-def capture_at(
+def lookup_prepared(
   +path: String,
-  captures: List<&2, ArtifactValue.ProductValue>
+  captures: List<&2, PreparedCapture>
 ) -> Maybe<&2, ArtifactValue.ProductValue>:
   match captures:
     case []: None{}
-    case +capture <> tail:
-      capture_selected(
-        same_text(Some{ArtifactValue.ProductText{path}}, field("path", capture)),
-        capture_fields(path, field("contentHash", capture), field("byteLength", capture)),
-        capture_at(path, tail)
-      )
+    case PreparedCapture{candidate, fingerprint} <> tail:
+      prepared_selected(String.eq(path, candidate), fingerprint, _ => lookup_prepared(path, tail))
 
 def fingerprint_cons(
   head: Maybe<&2, ArtifactValue.ProductValue>,
@@ -425,13 +443,14 @@ def fingerprint_cons(
     case Some{head} Some{tail}: Some{head <> tail}
     case _ _: None{}
 
-def fingerprints(
-  paths: List<&2, String>,
-  +captures: List<&2, ArtifactValue.ProductValue>
-) -> Maybe<&2, List<&2, ArtifactValue.ProductValue>>:
+def fingerprints_prepared(paths: List<&2, String>, +captures: List<&2, PreparedCapture>)
+  -> Maybe<&2, List<&2, ArtifactValue.ProductValue>>:
   match paths:
     case []: Some{[]}
-    case path <> tail: fingerprint_cons(capture_at(path, captures), fingerprints(tail, captures))
+    case path <> tail: fingerprint_cons(
+      lookup_prepared(path, captures),
+      fingerprints_prepared(tail, captures)
+    )
 
 def metadata_ready(
   missing_root: Bool,
@@ -448,7 +467,7 @@ def metadata_location(
   paths: List<&2, String>,
   +contract: String,
   +location: Maybe<&2, ArtifactValue.ProductValue>,
-  captures: List<&2, ArtifactValue.ProductValue>
+  captures: List<&2, PreparedCapture>
 ) -> Metadata:
   metadata_ready(
     Bool.and(
@@ -460,14 +479,14 @@ def metadata_location(
     ),
     partial,
     location,
-    fingerprints(paths, captures)
+    fingerprints_prepared(paths, captures)
   )
 
 def metadata(
   step: Step,
   +contract: String,
   declarations: List<&2, ArtifactValue.ProductValue>,
-  captures: List<&2, ArtifactValue.ProductValue>,
+  captures: List<&2, PreparedCapture>,
   unit: ArtifactValue.ProductValue
 ) -> Metadata:
   match step:

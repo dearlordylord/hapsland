@@ -149,7 +149,9 @@ try {
       step,
       TYPE_INPUT_CONTRACT,
       wire(list(declarations.map(productValue))),
-      wire(list([...currentCaptures].map(([path, capture]) => productValue({ path, ...capture })))),
+      stage.prepare_captures(
+        wire(list([...currentCaptures].map(([path, capture]) => productValue({ path, ...capture }))))
+      ),
       wire(productValue(unit))
     )
     if (expected.length === 0) assert.equal(label(metadata), "EvidenceMissing")

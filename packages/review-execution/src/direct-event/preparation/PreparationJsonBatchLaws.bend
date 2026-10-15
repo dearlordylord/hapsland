@@ -160,18 +160,18 @@ law empty_plan_uncharged:
 # Independent record decomposition; no production increment/add_requests helper.
 def unit_progress(unit: Top.UnitState, count: Nat) -> Top.UnitState:
   match unit:
-    case Top.UnitState{Top.State{invocation, request, context, pending, reversed},
+    case Top.UnitState{Top.State{invocation, request, context, pending, reversed, cache},
       value, location, partial, fingerprints}:
-      Top.UnitState{Top.State{invocation, Nat.add(request, count), context, pending, reversed},
+      Top.UnitState{Top.State{invocation, Nat.add(request, count), context, pending, reversed, cache},
         value, location, partial, fingerprints}
 
 def unit_request(unit: Top.UnitState) -> Nat:
   match unit:
-    case Top.UnitState{Top.State{_, request, _, _, _}, _, _, _, _}: request
+    case Top.UnitState{Top.State{_, request, _, _, _, _}, _, _, _, _}: request
 
 def outer_header(unit: Top.UnitState, received: Top.Invocation, request: Nat) -> Bool:
   match unit received:
-    case Top.UnitState{Top.State{Top.Invocation{owner, command}, expected, _, _, _}, _, _, _, _}
+    case Top.UnitState{Top.State{Top.Invocation{owner, command}, expected, _, _, _, _}, _, _, _, _}
       Top.Invocation{other_owner, other_command}:
       Bool.and(Bool.and(Nat.is_eq(owner, other_owner), Nat.is_eq(command, other_command)),
         Nat.is_eq(expected, request))

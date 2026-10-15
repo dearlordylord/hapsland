@@ -302,7 +302,7 @@ def finite_n0_literals() -> {
 
 def finite_unit() -> Top.UnitState:
   Top.UnitState{Top.State{Top.Invocation{3n, 5n}, 11n,
-    Top.Context{"contract", "root.ts", "/repo", Value.ProductNull{}, [], [], [], []}, [], []},
+    Top.Context{"contract", "root.ts", "/repo", Value.ProductNull{}, [], [], [], []}, [], [], Top.Unprepared{}},
     Value.ProductNull{}, None{}, False{}, Value.ProductNull{}}
 
 def finite_input() -> Input.Step:
@@ -360,10 +360,10 @@ def Laws.empty_plan_uncharged(invocation, request, input, strings):
 
 def Laws.outer_batch_first_exact(unit, state, first, rest):
   match unit:
-    case Top.UnitState{Top.State{invocation, request, context, pending, reversed},
+    case Top.UnitState{Top.State{invocation, request, context, pending, reversed, cache},
       value, location, partial, fingerprints}:
       Equal.cong(Nat, Top.Step, count => Top.JsonBatchRequest{
-        Top.UnitState{Top.State{invocation, count, context, pending, reversed},
+        Top.UnitState{Top.State{invocation, count, context, pending, reversed, cache},
           value, location, partial, fingerprints}, Input.SerializeBatch{state, first <> rest},
         Batch.schedule(first <> rest, Nat.add(1n, request))},
         Nat.add(1n, request), Nat.add(request, 1n), Nats.add_comm(1n, request))
@@ -544,7 +544,7 @@ def accepted_choices(+unit: Top.UnitState, +count: Nat, +outer: Bool, +inner: Bo
   match unit outer inner:
     case _ False{} _: {==}
     case _ True{} False{}: {==}
-    case Top.UnitState{Top.State{_, _, _, _, _}, _, _, _, _} True{} True{}: {==}
+    case Top.UnitState{Top.State{_, _, _, _, _, _}, _, _, _, _} True{} True{}: {==}
 
 def outer_choice(+header: Bool, +outer: Bool, +inner: Bool, +result: Top.Step) -> {
   Bool.pick(Top.Step, header, Bool.pick(Top.Step, Bool.and(outer, inner), result,
@@ -692,7 +692,7 @@ def correlation_exact(+unit: Top.UnitState, +received: Top.Invocation, +request:
   Top.correlation(Top.unit_state(unit), received, request)
   == Laws.outer_header(unit, received, request) : Bool}:
   match unit received:
-    case Top.UnitState{Top.State{Top.Invocation{_, _}, _, _, _, _}, _, _, _, _} Top.Invocation{_,
+    case Top.UnitState{Top.State{Top.Invocation{_, _}, _, _, _, _, _}, _, _, _, _} Top.Invocation{_,
       _}: {==}
 
 def Laws.outer_batch_resume_exact(unit, received, received_request, invocation, request,

@@ -26,6 +26,9 @@ type Context is Data:
     bundled: List<&2, ArtifactValue.ProductValue>,
     languages: List<&2, Language.Registration>
   }
+type CaptureCache is Data:
+  Unprepared{}
+  Prepared{captures: List<&2, Evidence.PreparedCapture>}
 type State is Data:
   State{
     invocation: Invocation,
@@ -33,7 +36,7 @@ type State is Data:
     context: Context,
     pending: List<&2, ArtifactValue.ProductValue>,
     reversed: List<&2, ArtifactValue.ProductValue>
-  }
+  , cache: CaptureCache}
 type UnitState is Data:
   UnitState{
     state: State,
@@ -87,13 +90,13 @@ type Reply is Data:
 
 def increment(state: State) -> State:
   match state:
-    case State{invocation, request, context, pending, reversed}: State{
+    case State{invocation, request, context, pending, reversed, cache}: State{
       invocation,
       Nat.add(1n, request),
       context,
       pending,
       reversed
-    }
+    , cache}
 
 def increment_unit(unit: UnitState) -> UnitState:
   match unit:
@@ -107,8 +110,8 @@ def increment_unit(unit: UnitState) -> UnitState:
 
 def add_requests(state: State, count: Nat) -> State:
   match state:
-    case State{invocation, request, context, pending, reversed}:
-      State{invocation, Nat.add(request, count), context, pending, reversed}
+    case State{invocation, request, context, pending, reversed, cache}:
+      State{invocation, Nat.add(request, count), context, pending, reversed, cache}
 
 def add_unit_requests(unit: UnitState, count: Nat) -> UnitState:
   match unit:
@@ -119,9 +122,34 @@ def unit_state(unit: UnitState) -> State:
   match unit:
     case UnitState{state, _, _, _, _}: state
 
+def unit_cache(unit: UnitState) -> CaptureCache:
+  match unit:
+    case UnitState{State{_, _, _, _, _, cache}, _, _, _, _}: cache
+
+def unit_captures(unit: UnitState) -> List<&2, ArtifactValue.ProductValue>:
+  match unit:
+    case UnitState{State{_, _, Context{_, _, _, _, _, captures, _, _}, _, _, _}, _, _, _, _}: captures
+
+def with_cache(unit: UnitState, cache: CaptureCache) -> UnitState:
+  match unit:
+    case UnitState{
+      State{invocation, request, context, pending, reversed, _},
+      value,
+      location,
+      partial,
+      fingerprints
+    }:
+      UnitState{
+        State{invocation, request, context, pending, reversed, cache},
+        value,
+        location,
+        partial,
+        fingerprints
+      }
+
 def unit_path(unit: UnitState) -> String:
   match unit:
-    case UnitState{State{_, _, Context{_, path, _, _, _, _, _, _}, _, _}, _, _, _, _}: path
+    case UnitState{State{_, _, Context{_, path, _, _, _, _, _, _}, _, _, _}, _, _, _, _}: path
 
 def name(value: Maybe<&2, String>) -> String:
   match value:
@@ -144,7 +172,7 @@ def context_root(context: Context) -> String:
 
 def ready(+unit: UnitState, input: ArtifactValue.ProductValue, identity: String) -> Step:
   match unit:
-    case UnitState{State{invocation, request, +context, pending, reversed}, _, _, _, _}:
+    case UnitState{State{invocation, request, +context, pending, reversed, cache}, _, _, _, _}:
       Continue{
         NextUnit{
           State{
@@ -171,16 +199,16 @@ def ready(+unit: UnitState, input: ArtifactValue.ProductValue, identity: String)
                 }
               ]
             } <> reversed
-          }
+          , cache}
         }
       }
 
 def expose_batch(unit: UnitState, +step: Input.Step, commands: List<&2, Batch.Command>) -> Step:
   match unit:
-    case UnitState{State{invocation, +request, context, pending, reversed}, value,
+    case UnitState{State{invocation, +request, context, pending, reversed, cache}, value,
       location, partial, fingerprints}:
       JsonBatchRequest{
-        UnitState{State{invocation, Nat.add(1n, request), context, pending, reversed},
+        UnitState{State{invocation, Nat.add(1n, request), context, pending, reversed, cache},
           value, location, partial, fingerprints},
         step,
         Batch.schedule(commands, Nat.add(1n, request))
@@ -217,7 +245,7 @@ def frozen(
         Context{contract, path, _, graph_limits, _, _, _, _},
         _,
         _
-      },
+      , _},
       value,
       location,
       partial,
@@ -272,7 +300,7 @@ def rules_initial(
 ) -> Step:
   match unit:
     case UnitState{
-      State{invocation, _, Context{+contract, path, _, _, _, _, _, _}, _, _},
+      State{invocation, _, Context{+contract, path, _, _, _, _, _, _}, _, _, _},
       +value,
       _,
       partial,
@@ -318,7 +346,7 @@ def language_selected(+unit: UnitState, language: Maybe<&2, String>) -> Step:
 
 def extension_received(+unit: UnitState, extension: String) -> Step:
   match unit:
-    case UnitState{State{_, _, Context{_, _, _, _, _, _, _, languages}, _, _}, _, _, _, _}:
+    case UnitState{State{_, _, Context{_, _, _, _, _, _, _, languages}, _, _, _}, _, _, _, _}:
       language_selected(unit, Language.select(extension, languages))
 
 def metadata_expose(+unit: UnitState, metadata: Evidence.Metadata) -> Step:
@@ -331,17 +359,44 @@ def metadata_expose(+unit: UnitState, metadata: Evidence.Metadata) -> Step:
     case _ Evidence.EvidenceMissing{}: omission(unit, "missing-evidence")
     case _ _: InvalidInput{}
 
-def evidence_expose(+unit: UnitState, step: Evidence.Step) -> Step:
-  match unit step:
-    case _ Evidence.Continue{state}: Continue{EvidencePhase{unit, Evidence.Continue{state}}}
+def metadata_prepared(
+  +unit: UnitState,
+  step: Evidence.Step,
+  captures: List<&2, Evidence.PreparedCapture>
+) -> Step:
+  match unit:
     case UnitState{
-      State{_, _, Context{contract, _, _, _, declarations, captures, _, _}, _, _},
+      State{_, _, Context{contract, _, _, _, declarations, _, _, _}, _, _, _},
       value,
       _,
       _,
       _
-    } _:
+    }:
       metadata_expose(unit, Evidence.metadata(step, contract, declarations, captures, value))
+
+def materialized(
+  +unit: UnitState,
+  step: Evidence.Step,
+  +captures: List<&2, Evidence.PreparedCapture>
+) -> Step:
+  metadata_prepared(with_cache(unit, Prepared{captures}), step, captures)
+
+def evidence_cached(+unit: UnitState, +step: Evidence.Step, cache: CaptureCache) -> Step:
+  match step cache:
+    case Evidence.Inspected{_, Nil{}} _: metadata_prepared(unit, step, [])
+    case Evidence.Inspected{_, Con{_, _}} Unprepared{}:
+      materialized(unit, step, Evidence.prepare_captures(unit_captures(unit)))
+    case Evidence.Inspected{_, Con{_, _}} Prepared{captures}: metadata_prepared(
+      unit,
+      step,
+      captures
+    )
+    case _ _: metadata_prepared(unit, step, [])
+
+def evidence_expose(+unit: UnitState, step: Evidence.Step) -> Step:
+  match step:
+    case Evidence.Continue{state}: Continue{EvidencePhase{unit, Evidence.Continue{state}}}
+    case _: evidence_cached(unit, step, unit_cache(unit))
 
 def unit_value(unit: UnitState) -> ArtifactValue.ProductValue:
   match unit:
@@ -354,7 +409,7 @@ def start_location(missing: Bool, +unit: UnitState) -> Step:
 
 def start_unit(+state: State, +value: ArtifactValue.ProductValue) -> Step:
   match state:
-    case State{_, _, Context{+contract, _, _, _, declarations, _, _, _}, _, _}:
+    case State{_, _, Context{+contract, _, _, _, declarations, _, _, _}, _, _, _}:
       +location = Evidence.root_location(contract, Evidence.unit_artifact(value), declarations)
       start_location(
         Bool.and(
@@ -369,11 +424,11 @@ def start_unit(+state: State, +value: ArtifactValue.ProductValue) -> Step:
 
 def next_unit(state: State) -> Step:
   match state:
-    case State{_, _, _, Nil{}, reversed}: Completed{
+    case State{_, _, _, Nil{}, reversed, _}: Completed{
       List.reverse(&2, ArtifactValue.ProductValue, reversed)
     }
-    case State{invocation, request, context, Con{value, pending}, reversed}: start_unit(
-      State{invocation, request, context, pending, reversed},
+    case State{invocation, request, context, Con{value, pending}, reversed, cache}: start_unit(
+      State{invocation, request, context, pending, reversed, cache},
       value
     )
 
@@ -382,11 +437,11 @@ def initial(
   context: Context,
   units: List<&2, ArtifactValue.ProductValue>
 ) -> Step:
-  Continue{NextUnit{State{invocation, 0n, context, units, []}}}
+  Continue{NextUnit{State{invocation, 0n, context, units, [], Unprepared{}}}}
 
 def evidence_advance(+unit: UnitState, state: Evidence.State) -> Step:
   match unit:
-    case UnitState{State{_, _, Context{_, _, _, _, _, _, bundled, _}, _, _}, _, _, _, _}:
+    case UnitState{State{_, _, Context{_, _, _, _, _, _, bundled, _}, _, _, _}, _, _, _, _}:
       evidence_expose(unit, Evidence.advance(state, bundled))
 
 def advance(phase: Phase) -> Step:
@@ -408,7 +463,7 @@ def same_invocation(left: Invocation, right: Invocation) -> Bool:
 
 def correlation(state: State, invocation: Invocation, request: Nat) -> Bool:
   match state:
-    case State{expected_invocation, expected_request, _, _, _}: Bool.and(
+    case State{expected_invocation, expected_request, _, _, _, _}: Bool.and(
       same_invocation(expected_invocation, invocation),
       Nat.is_eq(expected_request, request)
     )

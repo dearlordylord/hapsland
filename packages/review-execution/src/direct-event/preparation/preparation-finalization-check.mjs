@@ -205,11 +205,27 @@ try {
       },
       list(units.map(productValue))
     )
+    const invocationContext = step.phase.state.context
+    assert.equal(label(step.phase.state.cache), "Unprepared", "initial never materializes captures")
+    let preparedCaptures
     let previousRequest = 0,
       savedReply,
       savedAt
     for (let turns = 0; !["Completed", "TypeError", "URIError"].includes(label(step)); turns++) {
       assert.ok(turns < 100000)
+      const observedState =
+        label(step) === "Continue" ? (step.phase.state ?? step.phase.unit?.state) : (step.state ?? step.unit?.state)
+      assert.strictEqual(observedState.context, invocationContext, "capture snapshot belongs to this invocation")
+      if (label(observedState.cache) === "Prepared") {
+        preparedCaptures ??= observedState.cache.captures
+        assert.strictEqual(
+          observedState.cache.captures,
+          preparedCaptures,
+          "prepared captures reused across unit transitions"
+        )
+      } else {
+        assert.equal(preparedCaptures, undefined, "prepared cache never resets within invocation")
+      }
       if (label(step) === "Continue") {
         assert.equal(
           label(core.resume(step, { $: "Reply", invocation, request: previousRequest, response: { $: "Observed" } })),
