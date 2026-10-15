@@ -52,7 +52,7 @@ import ../GraphSpecification.bend as GraphReference
 import ./AttachmentReplacementStructureProof.bend as ReplacementStructure
 import ./AttachmentNodeReplacementTransport.bend as NodeReplacement
 import ./ForestRollbackProof.bend as Rollback
-import ./ConstructionForestProof.bend as Construction
+import ./ForestAddressEqualityProof.bend as Construction
 import ./AttachmentForestLookupProof.bend as ForestLookup
 import ../Attach.bend as Attach
 import ../AttachPlanning.bend as Admission
