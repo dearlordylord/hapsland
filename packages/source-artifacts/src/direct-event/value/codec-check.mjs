@@ -39,6 +39,42 @@ assert.equal(fromBinary64(binary64(nested)), Number.MAX_VALUE)
 const retained = binary64(Math.PI)
 binary64(Number.MIN_VALUE)
 assert.equal(fromBinary64(retained), Math.PI)
+const expectedBits = binary64(Math.PI)
+for (const nestedKey of ["high", "low"]) {
+  const reads = { high: 0, low: 0 }
+  const bits = { $: expectedBits.$ }
+  for (const key of ["high", "low"])
+    Object.defineProperty(bits, key, {
+      get() {
+        reads[key]++
+        return key === nestedKey && reads[key] === 2
+          ? {
+              valueOf() {
+                assert.ok(Object.is(fromBinary64(binary64(-0)), -0))
+                return expectedBits[key]
+              }
+            }
+          : expectedBits[key]
+      }
+    })
+  assert.equal(fromBinary64(bits), Math.PI)
+  assert.deepEqual(reads, { high: 2, low: 2 })
+}
+const decodeFailure = { marker: "native low coercion" }
+let lowReads = 0
+assert.throws(
+  () =>
+    fromBinary64({
+      ...expectedBits,
+      get low() {
+        if (++lowReads === 1) return expectedBits.low
+        binary64(Number.MIN_VALUE)
+        throw decodeFailure
+      }
+    }),
+  (error) => error === decodeFailure
+)
+assert.equal(fromBinary64(expectedBits), Math.PI)
 const callable = Object.assign(() => {}, {
   $: "../../../../source-artifacts/src/direct-event/value/Value.ProductText",
   value: "callable constructor"
@@ -63,7 +99,7 @@ assert.throws(
 console.log(
   JSON.stringify({
     passed: true,
-    cases: 17,
+    cases: 20,
     scope:
       "compiled product codec boundary: list validation precedence, binary64 identity, callable constructors, ordered own fields and duplicate rejection"
   })

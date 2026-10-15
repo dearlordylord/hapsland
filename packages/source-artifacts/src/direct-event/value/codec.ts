@@ -86,9 +86,13 @@ export function fromBinary64(value: unknown): number {
     ![bits.high, bits.low].every((x) => typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= 0xffffffff)
   )
     throw new Error("invalid binary64")
-  const bytes = new DataView(new ArrayBuffer(8))
+  const bytes = binary64Scratch
   bytes.setUint32(0, bits.high as number, false)
+  // Reading/coercing low can reenter either codec. Preserve the completed high
+  // write and restore it after the outer low write has completed.
+  const high = bytes.getUint32(0, false)
   bytes.setUint32(4, bits.low as number, false)
+  bytes.setUint32(0, high, false)
   return bytes.getFloat64(0, false)
 }
 export function productValue(value: unknown): ProductValue {
