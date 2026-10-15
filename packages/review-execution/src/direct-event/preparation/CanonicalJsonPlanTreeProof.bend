@@ -1,5 +1,7 @@
 import Base
 import ./CanonicalJsonPlanTreeLaws.bend as Laws
+import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/GRAPH_REVERSE_FACTS.bend as Reverse
+import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/INTERPRETER_NAT_FACTS.bend as Nats
 import ./CanonicalJsonPlanCompoundLaws.bend as Compound
 import ./CanonicalJsonPlanCompoundProof.bend as CompoundProof
 import ./CanonicalJsonPlanLaws.bend as Local
@@ -668,6 +670,257 @@ def split_forest(
           head_equal, joined_operations(operations, co, Plan.ObjectOperation{Laws.field_keys(fields)}, to, o), object_builder(fields, pf, co, children, keys),
           split_forest(prefix, suffix, to, tp,
             encoding_values(List.append(&2, Value.ProductValue, prefix, suffix), tv, to, tp, tail_equal, tail))))
+
+def encoding_transport(
+  -values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>,
+  -actual_values: List<&2, Value.ProductValue>, -actual_operations: List<&2, Plan.Operation>, -actual_plans: List<&2, List<&2, Plan.Piece>>,
+  v: {values == actual_values : List<&2, Value.ProductValue>},
+  o: {operations == actual_operations : List<&2, Plan.Operation>},
+  p: {plans == actual_plans : List<&2, List<&2, Plan.Piece>>},
+  proof: Laws.ForestEncoding<actual_values, actual_operations, actual_plans>
+) -> Laws.ForestEncoding<values, operations, plans>:
+  %Equal.sym(List<&2, Value.ProductValue>, values, actual_values, v) : Laws.ForestEncoding<_, operations, plans>
+  %Equal.sym(List<&2, Plan.Operation>, operations, actual_operations, o) : Laws.ForestEncoding<actual_values, _, plans>
+  %Equal.sym(List<&2, List<&2, Plan.Piece>>, plans, actual_plans, p) : Laws.ForestEncoding<actual_values, actual_operations, _>
+  proof
+
+def append_step(
+  -values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>,
+  +head: Value.ProductValue, +head_operations: List<&2, Plan.Operation>, +parts: List<&2, Plan.Piece>,
+  +tv: List<&2, Value.ProductValue>, +to: List<&2, Plan.Operation>, +tp: List<&2, List<&2, Plan.Piece>>,
+  +rv: List<&2, Value.ProductValue>, +ro: List<&2, Plan.Operation>, +rp: List<&2, List<&2, Plan.Piece>>,
+  v: {values == head <> tv : List<&2, Value.ProductValue>},
+  o: {operations == List.append(&2, Plan.Operation, head_operations, to) : List<&2, Plan.Operation>},
+  p: {plans == parts <> tp : List<&2, List<&2, Plan.Piece>>},
+  build: head_builder(head, head_operations, parts),
+  tail: Laws.ForestEncoding<List.append(&2, Value.ProductValue, tv, rv), List.append(&2, Plan.Operation, to, ro), List.append(&2, List<&2, Plan.Piece>, tp, rp)>
+) -> Laws.ForestEncoding<List.append(&2, Value.ProductValue, values, rv), List.append(&2, Plan.Operation, operations, ro), List.append(&2, List<&2, Plan.Piece>, plans, rp)>:
+  encoding_transport(
+    List.append(&2, Value.ProductValue, values, rv), List.append(&2, Plan.Operation, operations, ro), List.append(&2, List<&2, Plan.Piece>, plans, rp),
+    head <> List.append(&2, Value.ProductValue, tv, rv), List.append(&2, Plan.Operation, head_operations, List.append(&2, Plan.Operation, to, ro)), parts <> List.append(&2, List<&2, Plan.Piece>, tp, rp),
+    Equal.cong(List<&2, Value.ProductValue>, List<&2, Value.ProductValue>, xs => List.append(&2, Value.ProductValue, xs, rv), values, head <> tv, v),
+    Equal.trans(List<&2, Plan.Operation>, List.append(&2, Plan.Operation, operations, ro), List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, head_operations, to), ro), List.append(&2, Plan.Operation, head_operations, List.append(&2, Plan.Operation, to, ro)),
+      Equal.cong(List<&2, Plan.Operation>, List<&2, Plan.Operation>, xs => List.append(&2, Plan.Operation, xs, ro), operations, List.append(&2, Plan.Operation, head_operations, to), o),
+      Lists.append_assoc(&2, Plan.Operation, head_operations, to, ro)),
+    Equal.cong(List<&2, List<&2, Plan.Piece>>, List<&2, List<&2, Plan.Piece>>, xs => List.append(&2, List<&2, Plan.Piece>, xs, rp), plans, parts <> tp, p),
+    build(List.append(&2, Value.ProductValue, tv, rv), List.append(&2, Plan.Operation, to, ro), List.append(&2, List<&2, Plan.Piece>, tp, rp), tail))
+
+# Concatenate checked forests without rechecking or duplicating their witnesses.
+def append_forest(
+  -lv: List<&2, Value.ProductValue>, -lo: List<&2, Plan.Operation>, -lp: List<&2, List<&2, Plan.Piece>>,
+  +rv: List<&2, Value.ProductValue>, +ro: List<&2, Plan.Operation>, +rp: List<&2, List<&2, Plan.Piece>>,
+  left: Laws.ForestEncoding<lv, lo, lp>, right: Laws.ForestEncoding<rv, ro, rp>
+) -> Laws.ForestEncoding<List.append(&2, Value.ProductValue, lv, rv), List.append(&2, Plan.Operation, lo, ro), List.append(&2, List<&2, Plan.Piece>, lp, rp)>:
+  match left:
+    case Laws.EmptyForest{v, o, p}:
+      encoding_transport(List.append(&2, Value.ProductValue, lv, rv), List.append(&2, Plan.Operation, lo, ro), List.append(&2, List<&2, Plan.Piece>, lp, rp), rv, ro, rp,
+        Equal.cong(List<&2, Value.ProductValue>, List<&2, Value.ProductValue>, xs => List.append(&2, Value.ProductValue, xs, rv), lv, [], v),
+        Equal.cong(List<&2, Plan.Operation>, List<&2, Plan.Operation>, xs => List.append(&2, Plan.Operation, xs, ro), lo, [], o),
+        Equal.cong(List<&2, List<&2, Plan.Piece>>, List<&2, List<&2, Plan.Piece>>, xs => List.append(&2, List<&2, Plan.Piece>, xs, rp), lp, [], p), right)
+    case Laws.PrimitiveForest{+primitive, +tv, +to, +tp, tail, v, o, p}:
+      append_step(lv, lo, lp, Laws.primitive_value(primitive), [Plan.PrimitiveOperation{primitive}], [Plan.PrimitivePiece{primitive}], tv, to, tp, rv, ro, rp,
+        v, o, p, primitive_builder(primitive), append_forest(tv, to, tp, rv, ro, rp, tail, right))
+    case Laws.ArrayForest{+items, +co, +cp, +tv, +to, +tp, children, tail, v, o, p}:
+      append_step(lv, lo, lp, Value.ProductArray{items}, List.append(&2, Plan.Operation, co, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), Compound.array_trace(cp), tv, to, tp, rv, ro, rp,
+        v, joined_operations(lo, co, Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}, to, o), p, array_builder(items, co, cp, children), append_forest(tv, to, tp, rv, ro, rp, tail, right))
+    case Laws.ObjectForest{+fields, +pf, +co, +tv, +to, +tp, children, keys, tail, v, o, p}:
+      append_step(lv, lo, lp, Value.ProductObject{fields}, List.append(&2, Plan.Operation, co, [Plan.ObjectOperation{Laws.field_keys(fields)}]), Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, pf)), tv, to, tp, rv, ro, rp,
+        v, joined_operations(lo, co, Plan.ObjectOperation{Laws.field_keys(fields)}, to, o), p, object_builder(fields, pf, co, children, keys), append_forest(tv, to, tp, rv, ro, rp, tail, right))
+
+def accepted_and(-R: Type, left: Bool, right: Bool, accepted: {Bool.and(left, right) == True{} : Bool}, use: {left == True{} : Bool} -> {right == True{} : Bool} -> R) -> R:
+  match left right:
+    case True{} True{}: use({==}, {==})
+    case True{} False{}: Empty.absurd(R, Strings.internal_false_ne_true(accepted))
+    case False{} True{}: Empty.absurd(R, Strings.internal_false_ne_true(accepted))
+    case False{} False{}: Empty.absurd(R, Strings.internal_false_ne_true(accepted))
+
+def bool_matches_equal(+left: Bool, +right: Bool, accepted: {Bool.not(Bool.xor(left, right)) == True{} : Bool}) -> {right == left : Bool}:
+  match left right:
+    case True{} True{}: {==}
+    case False{} False{}: {==}
+    case True{} False{}: Empty.absurd({False{} == True{} : Bool}, Strings.internal_false_ne_true(accepted))
+    case False{} True{}: Empty.absurd({True{} == False{} : Bool}, Strings.internal_false_ne_true(accepted))
+
+def bits_matches_equal(+left: Value.Binary64, +right: Value.Binary64, accepted: {Validation.bits_equal(left, right) == True{} : Bool}) -> {right == left : Value.Binary64}:
+  match left right:
+    case Value.Binary64{+a, +b} Value.Binary64{+c, +d}:
+      accepted_and({Value.Binary64{c, d} == Value.Binary64{a, b} : Value.Binary64}, U32.is_eq(a, c), U32.is_eq(b, d), accepted,
+        high => low => Equal.trans(Value.Binary64, Value.Binary64{c, d}, Value.Binary64{a, d}, Value.Binary64{a, b},
+          Equal.cong(U32, Value.Binary64, x => Value.Binary64{x, d}, c, a, Equal.sym(U32, a, c, Strings.u32_eq_of_is_eq(a, c, high))),
+          Equal.cong(U32, Value.Binary64, x => Value.Binary64{a, x}, d, b, Equal.sym(U32, b, d, Strings.u32_eq_of_is_eq(b, d, low)))))
+
+def primitive_matches_equal(+primitive: Json.Primitive, +value: Value.ProductValue, accepted: {Validation.primitive_matches(primitive, value) == True{} : Bool}) -> {value == Laws.primitive_value(primitive) : Value.ProductValue}:
+  match primitive value:
+    case Json.NullPrimitive{} Value.ProductNull{}: {==}
+    case Json.BoolPrimitive{+a} Value.ProductBool{+b}:
+      Equal.cong(Bool, Value.ProductValue, x => Value.ProductBool{x}, b, a, bool_matches_equal(a, b, accepted))
+    case Json.NumberPrimitive{+a} Value.ProductNumber{+b}:
+      Equal.cong(Value.Binary64, Value.ProductValue, x => Value.ProductNumber{x}, b, a, bits_matches_equal(a, b, accepted))
+    case Json.StringPrimitive{+a} Value.ProductText{+b}:
+      Equal.cong(String, Value.ProductValue, x => Value.ProductText{x}, b, a, Equal.sym(String, a, b, Strings.eq_of_eq_true(a, b, accepted)))
+    case _ _: Empty.absurd({value == Laws.primitive_value(primitive) : Value.ProductValue}, Strings.internal_false_ne_true(accepted))
+
+def matched_keys(+keys: List<&2, String>, +fields: List<&2, Value.OrderedField<Value.ProductValue>>, accepted: {Validation.object_keys(keys, fields) == True{} : Bool}) -> {keys == Laws.field_keys(fields) : List<&2, String>}:
+  match keys fields:
+    case Nil{} Nil{}: {==}
+    case Con{+key, +keys} Con{Value.OrderedField{+name, _}, +fields}:
+      accepted_and({key <> keys == name <> Laws.field_keys(fields) : List<&2, String>}, String.eq(key, name), Validation.object_keys(keys, fields), accepted,
+        first => rest => Equal.trans(List<&2, String>, key <> keys, name <> keys, name <> Laws.field_keys(fields),
+          Equal.cong(String, List<&2, String>, x => x <> keys, key, name, Strings.eq_of_eq_true(key, name, first)),
+          Equal.cong(List<&2, String>, List<&2, String>, xs => name <> xs, keys, Laws.field_keys(fields), matched_keys(keys, fields, rest))))
+    case _ _: Empty.absurd({keys == Laws.field_keys(fields) : List<&2, String>}, Strings.internal_false_ne_true(accepted))
+
+def reverse_values(+left: List<&2, Value.ProductValue>, +right: List<&2, Value.ProductValue>, +suffix: List<&2, Value.ProductValue>) -> {List.reverse.go(&2, Value.ProductValue, List.append(&2, Value.ProductValue, left, right), suffix) == List.reverse.go(&2, Value.ProductValue, right, List.reverse.go(&2, Value.ProductValue, left, suffix)) : List<&2, Value.ProductValue>}:
+  match left:
+    case []: {==}
+    case head <> tail: reverse_values(tail, right, head <> suffix)
+
+def paired_fields(-fields: List<&2, Value.OrderedField<Value.ProductValue>>, -plans: List<&2, List<&2, Plan.Piece>>) -> Type:
+  Sigma<&2, &1, List<&2, Plan.Field>, paired =>
+    {Compound.keys(paired) == Laws.field_keys(fields) : List<&2, String>} &
+    {Compound.values(paired) == plans : List<&2, List<&2, Plan.Piece>>}>
+
+def pair_field_step(+key: String, +value: Value.ProductValue, +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +parts: List<&2, Plan.Piece>, +plans: List<&2, List<&2, Plan.Piece>>, tail: paired_fields(fields, plans)) -> paired_fields(Value.OrderedField{key, value} <> fields, parts <> plans):
+  match tail:
+    case Tuple{+paired, Tuple{keys, values}}:
+      (Plan.Field{key, parts} <> paired,
+        (Equal.cong(List<&2, String>, List<&2, String>, xs => key <> xs, Compound.keys(paired), Laws.field_keys(fields), keys),
+        Equal.cong(List<&2, List<&2, Plan.Piece>>, List<&2, List<&2, Plan.Piece>>, xs => parts <> xs, Compound.values(paired), plans, values)))
+
+def pair_fields(+fields: List<&2, Value.OrderedField<Value.ProductValue>>, +plans: List<&2, List<&2, Plan.Piece>>, count: {List.length(&2, Value.ProductValue, Laws.field_values(fields)) == List.length(&2, List<&2, Plan.Piece>, plans) : Nat}) -> paired_fields(fields, plans):
+  match fields plans:
+    case Nil{} Nil{}: ([], ({==}, {==}))
+    case Nil{} Con{parts, plans}:
+      Empty.absurd(paired_fields([], parts <> plans), Strings.internal_false_ne_true(Equal.sym(Bool, True{}, False{},
+        Equal.cong(Nat, Bool, n => Nat.is_eq(0n, n), 0n, 1n+List.length(&2, List<&2, Plan.Piece>, plans), count))))
+    case Con{Value.OrderedField{key, value}, fields} Nil{}:
+      Empty.absurd(paired_fields(Value.OrderedField{key, value} <> fields, []), Strings.internal_false_ne_true(
+        Equal.cong(Nat, Bool, n => Nat.is_eq(0n, n), 1n+List.length(&2, Value.ProductValue, Laws.field_values(fields)), 0n, count)))
+    case Con{Value.OrderedField{+key, +value}, +fields} Con{+parts, +plans}:
+      pair_field_step(key, value, fields, parts, plans, pair_fields(fields, plans,
+        Equal.cong(Nat, Nat, n => Nat.sub(n, 1n), 1n+List.length(&2, Value.ProductValue, Laws.field_values(fields)), 1n+List.length(&2, List<&2, Plan.Piece>, plans), count)))
+
+def sound_result(-values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>) -> Type:
+  Sigma<&2, &1, List<&2, List<&2, Plan.Piece>>, plans => Laws.ForestEncoding<values, operations, plans>>
+
+def sound_transport(-values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -actual_values: List<&2, Value.ProductValue>, -actual_operations: List<&2, Plan.Operation>, v: {values == actual_values : List<&2, Value.ProductValue>}, o: {operations == actual_operations : List<&2, Plan.Operation>}, proof: sound_result(actual_values, actual_operations)) -> sound_result(values, operations):
+  match proof:
+    case Tuple{+plans, encoding}:
+      (plans, encoding_transport(values, operations, plans, actual_values, actual_operations, plans, v, o, {==}, encoding))
+
+def append_sound(+values: List<&2, Value.ProductValue>, +operations: List<&2, Plan.Operation>, +value: Value.ProductValue, +head_operations: List<&2, Plan.Operation>, +parts: List<&2, Plan.Piece>, proof: sound_result(values, operations), build: head_builder(value, head_operations, parts)) -> sound_result(List.append(&2, Value.ProductValue, values, [value]), List.append(&2, Plan.Operation, operations, head_operations)):
+  match proof:
+    case Tuple{+plans, encoding}:
+      (List.append(&2, List<&2, Plan.Piece>, plans, [parts]),
+        encoding_transport(List.append(&2, Value.ProductValue, values, [value]), List.append(&2, Plan.Operation, operations, head_operations), List.append(&2, List<&2, Plan.Piece>, plans, [parts]),
+          List.append(&2, Value.ProductValue, values, [value]), List.append(&2, Plan.Operation, operations, List.append(&2, Plan.Operation, head_operations, [])), List.append(&2, List<&2, Plan.Piece>, plans, [parts]), {==},
+          Equal.cong(List<&2, Plan.Operation>, List<&2, Plan.Operation>, xs => List.append(&2, Plan.Operation, operations, xs), head_operations, List.append(&2, Plan.Operation, head_operations, []),
+            Equal.sym(List<&2, Plan.Operation>, List.append(&2, Plan.Operation, head_operations, []), head_operations, Lists.append_nil(&2, Plan.Operation, head_operations))), {==},
+          append_forest(values, operations, plans, [value], List.append(&2, Plan.Operation, head_operations, []), [parts], encoding, build([], [], [], Laws.EmptyForest{{==}, {==}, {==}}))))
+
+def reverse_children(+children: List<&2, Value.ProductValue>, +rest: List<&2, Value.ProductValue>) -> {List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, children), rest)) == List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), children) : List<&2, Value.ProductValue>}:
+  Equal.trans(List<&2, Value.ProductValue>, List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, children), rest)),
+    List.reverse.go(&2, Value.ProductValue, rest, List.reverse(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, children))), List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), children),
+    reverse_values(List.reverse(&2, Value.ProductValue, children), rest, []),
+    Equal.trans(List<&2, Value.ProductValue>, List.reverse.go(&2, Value.ProductValue, rest, List.reverse(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, children))), List.reverse.go(&2, Value.ProductValue, rest, children), List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), children),
+      Equal.cong(List<&2, Value.ProductValue>, List<&2, Value.ProductValue>, xs => List.reverse.go(&2, Value.ProductValue, rest, xs), List.reverse(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, children)), children, Reverse.reverse_reverse(&2, Value.ProductValue, children)),
+      Lists.reverse_go_spec(&2, Value.ProductValue, rest, children)))
+
+def split_sound(+prefix: List<&2, Value.ProductValue>, +suffix: List<&2, Value.ProductValue>, +operations: List<&2, Plan.Operation>, proof: sound_result(List.append(&2, Value.ProductValue, prefix, suffix), operations)) -> cut_result(prefix, suffix, operations):
+  match proof:
+    case Tuple{plans, encoding}: split_forest(prefix, suffix, operations, plans, encoding)
+
+def split_reversed_children(+children: List<&2, Value.ProductValue>, +rest: List<&2, Value.ProductValue>, +operations: List<&2, Plan.Operation>, proof: sound_result(List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, children), rest)), operations)) -> cut_result(List.reverse(&2, Value.ProductValue, rest), children, operations):
+  split_sound(List.reverse(&2, Value.ProductValue, rest), children, operations,
+    sound_transport(List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), children), operations,
+      List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, children), rest)), operations,
+      Equal.sym(List<&2, Value.ProductValue>, List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, children), rest)),
+        List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), children), reverse_children(children, rest)), {==}, proof))
+
+def closed_operations(-operations: List<&2, Plan.Operation>, +left: List<&2, Plan.Operation>, +right: List<&2, Plan.Operation>, +last: Plan.Operation, equal: {operations == List.append(&2, Plan.Operation, left, right) : List<&2, Plan.Operation>}) -> {List.append(&2, Plan.Operation, operations, [last]) == List.append(&2, Plan.Operation, left, List.append(&2, Plan.Operation, right, [last])) : List<&2, Plan.Operation>}:
+  Equal.trans(List<&2, Plan.Operation>, List.append(&2, Plan.Operation, operations, [last]), List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, left, right), [last]), List.append(&2, Plan.Operation, left, List.append(&2, Plan.Operation, right, [last])),
+    Equal.cong(List<&2, Plan.Operation>, List<&2, Plan.Operation>, xs => List.append(&2, Plan.Operation, xs, [last]), operations, List.append(&2, Plan.Operation, left, right), equal), Lists.append_assoc(&2, Plan.Operation, left, right, [last]))
+
+def array_sound_cut(+prefix: List<&2, Value.ProductValue>, +items: List<&2, Value.ProductValue>, +operations: List<&2, Plan.Operation>, cut: cut_result(prefix, items, operations)) -> sound_result(List.append(&2, Value.ProductValue, prefix, [Value.ProductArray{items}]), List.append(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}])):
+  match cut:
+    case Tuple{+lo, Tuple{+ro, Tuple{+lp, Tuple{+rp, Tuple{left, Tuple{children, equal}}}}}}:
+      sound_transport(List.append(&2, Value.ProductValue, prefix, [Value.ProductArray{items}]), List.append(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]),
+        List.append(&2, Value.ProductValue, prefix, [Value.ProductArray{items}]), List.append(&2, Plan.Operation, lo, List.append(&2, Plan.Operation, ro, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}])),
+        {==}, closed_operations(operations, lo, ro, Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}, equal),
+        append_sound(prefix, lo, Value.ProductArray{items}, List.append(&2, Plan.Operation, ro, [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), Compound.array_trace(rp), (lp, left), array_builder(items, ro, rp, children)))
+
+def object_from_pair(+fields: List<&2, Value.OrderedField<Value.ProductValue>>, +operations: List<&2, Plan.Operation>, +plans: List<&2, List<&2, Plan.Piece>>, children: Laws.ForestEncoding<Laws.field_values(fields), operations, plans>, paired: paired_fields(fields, plans)) -> Sigma<&2, &1, List<&2, Plan.Piece>, parts => head_builder(Value.ProductObject{fields}, List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}]), parts)>:
+  match paired:
+    case Tuple{+fields_plan, Tuple{keys, values}}:
+      (Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, fields_plan)), object_builder(fields, fields_plan, operations,
+        encoding_transport(Laws.field_values(fields), operations, Compound.values(fields_plan), Laws.field_values(fields), operations, plans, {==}, {==}, values, children), keys))
+
+def object_from_count(+fields: List<&2, Value.OrderedField<Value.ProductValue>>, +operations: List<&2, Plan.Operation>, +plans: List<&2, List<&2, Plan.Piece>>, children: retained_count(Laws.field_values(fields), operations, plans)) -> Sigma<&2, &1, List<&2, Plan.Piece>, parts => head_builder(Value.ProductObject{fields}, List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}]), parts)>:
+  match children:
+    case Tuple{encoding, count}: object_from_pair(fields, operations, plans, encoding, pair_fields(fields, plans, count))
+
+def object_append(+prefix: List<&2, Value.ProductValue>, +lo: List<&2, Plan.Operation>, +lp: List<&2, List<&2, Plan.Piece>>, +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +ro: List<&2, Plan.Operation>, left: Laws.ForestEncoding<prefix, lo, lp>, object: Sigma<&2, &1, List<&2, Plan.Piece>, parts => head_builder(Value.ProductObject{fields}, List.append(&2, Plan.Operation, ro, [Plan.ObjectOperation{Laws.field_keys(fields)}]), parts)>) -> sound_result(List.append(&2, Value.ProductValue, prefix, [Value.ProductObject{fields}]), List.append(&2, Plan.Operation, lo, List.append(&2, Plan.Operation, ro, [Plan.ObjectOperation{Laws.field_keys(fields)}]))):
+  match object:
+    case Tuple{+parts, build}: append_sound(prefix, lo, Value.ProductObject{fields}, List.append(&2, Plan.Operation, ro, [Plan.ObjectOperation{Laws.field_keys(fields)}]), parts, (lp, left), build)
+
+def object_sound_cut(+prefix: List<&2, Value.ProductValue>, +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +operations: List<&2, Plan.Operation>, cut: cut_result(prefix, Laws.field_values(fields), operations)) -> sound_result(List.append(&2, Value.ProductValue, prefix, [Value.ProductObject{fields}]), List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}])):
+  match cut:
+    case Tuple{+lo, Tuple{+ro, Tuple{+lp, Tuple{+rp, Tuple{left, Tuple{children, equal}}}}}}:
+      sound_transport(List.append(&2, Value.ProductValue, prefix, [Value.ProductObject{fields}]), List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(fields)}]),
+        List.append(&2, Value.ProductValue, prefix, [Value.ProductObject{fields}]), List.append(&2, Plan.Operation, lo, List.append(&2, Plan.Operation, ro, [Plan.ObjectOperation{Laws.field_keys(fields)}])), {==},
+        closed_operations(operations, lo, ro, Plan.ObjectOperation{Laws.field_keys(fields)}, equal),
+        object_append(prefix, lo, lp, fields, ro, left, object_from_count(fields, ro, rp, preserve_count(Laws.field_values(fields), ro, rp, children))))
+
+def reverse_sound_step(+value: Value.ProductValue, +rest: List<&2, Value.ProductValue>, +operation: Plan.Operation, +tail: List<&2, Plan.Operation>, proof: sound_result(List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [value]), List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [operation]))) -> sound_result(List.reverse(&2, Value.ProductValue, value <> rest), List.reverse(&2, Plan.Operation, operation <> tail)):
+  sound_transport(List.reverse(&2, Value.ProductValue, value <> rest), List.reverse(&2, Plan.Operation, operation <> tail),
+    List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [value]), List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [operation]),
+    Lists.reverse_go_spec(&2, Value.ProductValue, rest, [value]), Lists.reverse_go_spec(&2, Plan.Operation, tail, [operation]), proof)
+
+def primitive_sound_step(+primitive: Json.Primitive, +value: Value.ProductValue, +rest: List<&2, Value.ProductValue>, +tail: List<&2, Plan.Operation>, matches: {Validation.primitive_matches(primitive, value) == True{} : Bool}, proof: sound_result(List.reverse(&2, Value.ProductValue, rest), List.reverse(&2, Plan.Operation, tail))) -> sound_result(List.reverse(&2, Value.ProductValue, value <> rest), List.reverse(&2, Plan.Operation, Plan.PrimitiveOperation{primitive} <> tail)):
+  reverse_sound_step(value, rest, Plan.PrimitiveOperation{primitive}, tail,
+    sound_transport(List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [value]), List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [Plan.PrimitiveOperation{primitive}]),
+      List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [Laws.primitive_value(primitive)]), List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [Plan.PrimitiveOperation{primitive}]),
+      Equal.cong(Value.ProductValue, List<&2, Value.ProductValue>, x => List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [x]), value, Laws.primitive_value(primitive), primitive_matches_equal(primitive, value, matches)), {==},
+      append_sound(List.reverse(&2, Value.ProductValue, rest), List.reverse(&2, Plan.Operation, tail), Laws.primitive_value(primitive), [Plan.PrimitiveOperation{primitive}], [Plan.PrimitivePiece{primitive}], proof, primitive_builder(primitive))))
+
+def array_sound_step(+arity: Nat, +items: List<&2, Value.ProductValue>, +rest: List<&2, Value.ProductValue>, +tail: List<&2, Plan.Operation>, count: {Nat.is_eq(arity, List.length(&2, Value.ProductValue, items)) == True{} : Bool}, proof: sound_result(List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, items), rest)), List.reverse(&2, Plan.Operation, tail))) -> sound_result(List.reverse(&2, Value.ProductValue, Value.ProductArray{items} <> rest), List.reverse(&2, Plan.Operation, Plan.ArrayOperation{arity} <> tail)):
+  reverse_sound_step(Value.ProductArray{items}, rest, Plan.ArrayOperation{arity}, tail,
+    sound_transport(List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [Value.ProductArray{items}]), List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [Plan.ArrayOperation{arity}]),
+      List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [Value.ProductArray{items}]), List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)}]), {==},
+      Equal.cong(Nat, List<&2, Plan.Operation>, n => List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [Plan.ArrayOperation{n}]), arity, List.length(&2, Value.ProductValue, items), Nats.eq_of_is_eq(arity, List.length(&2, Value.ProductValue, items), count)),
+      array_sound_cut(List.reverse(&2, Value.ProductValue, rest), items, List.reverse(&2, Plan.Operation, tail), split_reversed_children(items, rest, List.reverse(&2, Plan.Operation, tail), proof))))
+
+def object_sound_step(+keys: List<&2, String>, +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +rest: List<&2, Value.ProductValue>, +tail: List<&2, Plan.Operation>, matches: {Validation.object_keys(keys, fields) == True{} : Bool}, proof: sound_result(List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, Validation.field_values(fields)), rest)), List.reverse(&2, Plan.Operation, tail))) -> sound_result(List.reverse(&2, Value.ProductValue, Value.ProductObject{fields} <> rest), List.reverse(&2, Plan.Operation, Plan.ObjectOperation{keys} <> tail)):
+  reverse_sound_step(Value.ProductObject{fields}, rest, Plan.ObjectOperation{keys}, tail,
+    sound_transport(List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [Value.ProductObject{fields}]), List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [Plan.ObjectOperation{keys}]),
+      List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, rest), [Value.ProductObject{fields}]), List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [Plan.ObjectOperation{Laws.field_keys(fields)}]), {==},
+      Equal.cong(List<&2, String>, List<&2, Plan.Operation>, ks => List.append(&2, Plan.Operation, List.reverse(&2, Plan.Operation, tail), [Plan.ObjectOperation{ks}]), keys, Laws.field_keys(fields), matched_keys(keys, fields, matches)),
+      object_sound_cut(List.reverse(&2, Value.ProductValue, rest), fields, List.reverse(&2, Plan.Operation, tail), split_reversed_children(Laws.field_values(fields), rest, List.reverse(&2, Plan.Operation, tail),
+        sound_transport(List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, Laws.field_values(fields)), rest)), List.reverse(&2, Plan.Operation, tail),
+          List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, Validation.field_values(fields)), rest)), List.reverse(&2, Plan.Operation, tail),
+          Equal.cong(List<&2, Value.ProductValue>, List<&2, Value.ProductValue>, xs => List.reverse(&2, Value.ProductValue, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, xs), rest)), Laws.field_values(fields), Validation.field_values(fields), Equal.sym(List<&2, Value.ProductValue>, Validation.field_values(fields), Laws.field_values(fields), field_values_same(fields))), {==}, proof)))))
+
+# Soundness consumes the actual operation list. Each compound case reconstructs
+# its children and preceding roots from that smaller accepted stream.
+def sound_reversed(+operations: List<&2, Plan.Operation>, +expected: List<&2, Value.ProductValue>, accepted: {Validation.validate_reversed(operations, expected) == True{} : Bool}) -> sound_result(List.reverse(&2, Value.ProductValue, expected), List.reverse(&2, Plan.Operation, operations)):
+  match operations expected:
+    case Nil{} Nil{}: ([], Laws.EmptyForest{{==}, {==}, {==}})
+    case Con{Plan.PrimitiveOperation{+primitive}, +tail} Con{+value, +rest}:
+      accepted_and(sound_result(List.reverse(&2, Value.ProductValue, value <> rest), List.reverse(&2, Plan.Operation, Plan.PrimitiveOperation{primitive} <> tail)), Validation.primitive_matches(primitive, value), Validation.validate_reversed(tail, rest), accepted,
+        matches => later => primitive_sound_step(primitive, value, rest, tail, matches, sound_reversed(tail, rest, later)))
+    case Con{Plan.ArrayOperation{+arity}, +tail} Con{Value.ProductArray{+items}, +rest}:
+      accepted_and(sound_result(List.reverse(&2, Value.ProductValue, Value.ProductArray{items} <> rest), List.reverse(&2, Plan.Operation, Plan.ArrayOperation{arity} <> tail)), Nat.is_eq(arity, List.length(&2, Value.ProductValue, items)), Validation.validate_reversed(tail, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, items), rest)), accepted,
+        count => later => array_sound_step(arity, items, rest, tail, count, sound_reversed(tail, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, items), rest), later)))
+    case Con{Plan.ObjectOperation{+keys}, +tail} Con{Value.ProductObject{+fields}, +rest}:
+      accepted_and(sound_result(List.reverse(&2, Value.ProductValue, Value.ProductObject{fields} <> rest), List.reverse(&2, Plan.Operation, Plan.ObjectOperation{keys} <> tail)), Validation.object_keys(keys, fields), Validation.validate_reversed(tail, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, Validation.field_values(fields)), rest)), accepted,
+        matches => later => object_sound_step(keys, fields, rest, tail, matches, sound_reversed(tail, List.append(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, Validation.field_values(fields)), rest), later)))
+    case _ _: Empty.absurd(sound_result(List.reverse(&2, Value.ProductValue, expected), List.reverse(&2, Plan.Operation, operations)), Strings.internal_false_ne_true(accepted))
+
+def Laws.validation_sound(values, operations, accepted):
+  sound_transport(values, operations, List.reverse(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, values)), List.reverse(&2, Plan.Operation, List.reverse(&2, Plan.Operation, operations)),
+    Equal.sym(List<&2, Value.ProductValue>, List.reverse(&2, Value.ProductValue, List.reverse(&2, Value.ProductValue, values)), values, Reverse.reverse_reverse(&2, Value.ProductValue, values)),
+    Equal.sym(List<&2, Plan.Operation>, List.reverse(&2, Plan.Operation, List.reverse(&2, Plan.Operation, operations)), operations, Reverse.reverse_reverse(&2, Plan.Operation, operations)),
+    sound_reversed(List.reverse(&2, Plan.Operation, operations), List.reverse(&2, Value.ProductValue, values), accepted))
 
 def main() -> Unit:
   Unit{}
