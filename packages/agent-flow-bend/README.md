@@ -89,9 +89,9 @@ The generator checks the complete Boolean domain and derives a short-circuit
 phase dispatcher, direct native materializer bindings and command bindings; native
 constructor templates keep command IDs,
 hosts and digests. Array measurements, payload materialization, full-line consent
-and owner revalidation remain native obligations. The [migration checkpoint](../../evidence/bend-strangler/checkpoint.json)
-records current timing qualification and finite consumer evidence separately from
-the laws. These measurements do not establish acquisition, owner IO or platform support.
+and owner revalidation remain native obligations. The [migration guide](../../docs/bend-migration.md) records current whole-unit
+qualification separately from these laws. Pure proofs do not establish
+acquisition, owner IO or platform support.
 
 `update-notice-policy/core.bend` owns caller incompatibility, update-notice
 opportunities and budget grant decisions. Three Astra-approved exact laws cover
@@ -109,8 +109,8 @@ Four Astra-approved exact laws cover the finite operation and Boolean domain;
 the generator checks all 90 specializations against compiled Bend. The server
 retains strict lifetime equality, one snapshot read when selected, exact response
 payloads and incompatibility/lifetime/sweep/support guard ordering. These laws
-do not establish atomic admission or readiness after the snapshot. Current
-consumer and timing qualification is recorded in the migration checkpoint.
+do not establish atomic admission or readiness after the snapshot. Current whole-unit qualification is tracked in the
+[migration guide](../../docs/bend-migration.md).
 
 `callable-policy/core.bend` owns Effect runtime-import eligibility, wrapper
 selection, inline-body eligibility, callable-value plans and const-declaration
@@ -119,8 +119,8 @@ generator compares 209 core and staged specializations before publishing the ABI
 The source-analysis host retains AST parsing, exact field-read order and
 short-circuit behavior, original selected node identity, shared preflight,
 shadowing and overload exclusions, and completeness/evidence gates. These laws
-do not establish parser correctness, installed behavior or performance. Current
-qualification and measurement limits are recorded in [callable evidence](../../evidence/bend-strangler/callable-draft.json).
+do not establish parser correctness, installed behavior or performance. Current whole-unit qualification is tracked in the
+[migration guide](../../docs/bend-migration.md).
 
 `reference-policy/core.bend` owns direct-call, ignored-value, value-reference,
 declared-type, intrinsic Readonly and type-reference classification. Six
@@ -130,9 +130,8 @@ The host retains ordered native AST/Set projections, node identity, original
 names and offsets, traversal and duplicate handling, lexical resolution and
 complete review evidence. Ignore materializes as `undefined`; unsupported type
 syntax takes precedence. Conditional proofs do not establish parser correctness,
-installed support or timing parity. [Reference evidence](../../evidence/bend-strangler/reference-draft.json)
-records isolated Bun/Node analyzer and isolated helper measurements separately
-from earlier shared-process helper failures; broader qualification is still pending.
+installed support or timing parity. Whole-unit acceptance remains subject to the
+[migration guide](../../docs/bend-migration.md).
 
 `binding-policy/core.bend` owns unsupported assignment-target decisions, ordered
 per-node binding actions and initial `arguments` membership. Three Astra-approved
@@ -141,10 +140,8 @@ specializations. Native binders preserve early uncertain-scope return, execute
 mutation marks before binding reads, and retain repeated marks. The host retains
 fresh scope state, child traversal, names/offsets, Set mutations and unsupported
 record materialization. The conditional proofs do not establish lexical-scope or
-parser correctness. [Binding evidence](../../evidence/bend-strangler/binding-policy-validation.json)
-records 40 native trace comparisons, 284 injected exceptions, seven rejected
-mutants, focused consumer checks and bounded warm-build/analyzer measurements.
-These measurements do not establish whole-product or installed platform parity.
+parser correctness. Finite trace, exception and mutation checks do not establish
+whole-product or installed platform parity.
 
 `declaration-policy/core.bend` owns function/arrow/type admission, type-kind
 selection and collection-result decisions. Five Astra-approved exact laws cover
@@ -154,12 +151,8 @@ exclusion branch. The host retains identifier/body extraction, lazy collision
 reads, original source and locations, Map writes, native count arithmetic and
 collection stopping. Boolean ABI returns preserve runtime decisions; native
 post-admission assertions only provide erased TypeScript narrowing.
-[Declaration validation](../../evidence/bend-strangler/declaration-policy-validation.json)
-records 52 native prefix traces, 240 injected exceptions, eight rejected mutants,
-focused compiled consumers and paired build/analyzer measurements on the matching
-inspection-v1 master baseline. Prefix traces stop before materialization;
-conditional proofs leave complete collector, parser and numeric-limit correctness
-outside their scope. Performance evidence covers its declared warm contexts.
+Prefix traces stop before materialization; conditional proofs leave complete
+collector, parser and numeric-limit correctness outside their scope.
 
 `import-policy/core.bend` owns import readiness, namespace/named binding
 admission and the union of statement/specifier type-only facts. Four
@@ -168,12 +161,8 @@ module/clause and first/last identifier extraction, strict undefined checks,
 lazy Map reads, regex execution and original partial writes. The generated
 binder preserves lazy specifier text reads and repeated statement regex tests;
 Map.set method acquisition still precedes value argument evaluation.
-[Import validation](../../evidence/bend-strangler/import-policy-validation.json)
-records 1,728 controlled native helper cases, 38,440 injected exceptions,
-nine rejected mutants, focused compiled consumers and paired performance.
 Default/side-effect import support, parser and regex correctness and complete
-binding extraction remain outside the conditional proof. Performance claims
-cover the recorded analyzer fixtures and warm build context only.
+binding extraction remain outside the conditional proof.
 
 `setup-policy/core.bend` owns per-agent setup commands, stage readiness and
 transition plans, including progress ordering, exact approval fences, fresh

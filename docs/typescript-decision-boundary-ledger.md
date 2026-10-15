@@ -71,8 +71,8 @@ through its [adapter](../packages/canonical-policy/src/canonical/resident-reques
 The server projects decoded request fields and exact native lifetime equality,
 reads the lifecycle snapshot once when selected, and materializes ready, obsolete
 or edit-lost responses. Four exact laws cover the pure decisions; guard ordering,
-IPC payloads and later ownership checks remain native responsibilities. Qualification and measurement limits are recorded in the
-[migration checkpoint](../evidence/bend-strangler/checkpoint.json).
+IPC payloads and later ownership checks remain native responsibilities. Current whole-unit qualification is tracked in the
+[migration guide](bend-migration.md); these policy checks do not establish whole-unit parity.
 
 TypeScript callable import, Effect wrapper, inline-body, callable-value and
 const-declaration decisions use the [callable core](../packages/agent-flow-bend/callable-policy/core.bend)
@@ -81,9 +81,8 @@ The host projects AST and import facts in the original read order and retains
 selected node identity, shared extraction/preflight, shadowing and overload
 exclusions, and completeness/evidence checks. Five exact laws characterize the
 pure choices; [callable consumers](../src/direct-event/callable-review.test.ts)
-exercise parser and pipeline boundaries separately. Migration qualification and
-[measurement limits](../evidence/bend-strangler/callable-draft.json) are separate; pure proofs alone do not
-establish runtime support or timing parity.
+exercise parser and pipeline boundaries separately. Pure proofs alone do not establish runtime support or timing parity;
+see the [current migration acceptance path](bend-migration.md#current-whole-preparation-acceptance-path).
 
 TypeScript call/value/type reference classification uses the
 [reference core](../packages/agent-flow-bend/reference-policy/core.bend) through its
@@ -91,10 +90,8 @@ TypeScript call/value/type reference classification uses the
 Six exact laws decide conditional fact plans. Native code retains ordered AST
 and Set projections, original names/offsets and node identity, traversal,
 lexical resolution and completeness of review evidence. Unsupported type syntax
-wins before eligibility checks; Ignore remains `undefined`. Current
-[reference evidence](../evidence/bend-strangler/reference-draft.json) distinguishes
-isolated analyzer timing from controlled helper failures and pending package
-qualification. The proofs alone establish neither runtime nor performance support.
+wins before eligibility checks; Ignore remains `undefined`. The proofs alone establish neither runtime nor performance support.
+Current whole-unit qualification belongs to the [migration guide](bend-migration.md).
 
 TypeScript local binding actions and unsupported assignment targets use the
 [binding core](../packages/agent-flow-bend/binding-policy/core.bend) through its
@@ -103,9 +100,8 @@ Three exact laws characterize conditional assignment safety, ordered binding
 actions and initial `arguments` membership. Native effects remain staged: an
 uncertain-scope mark returns immediately; a mutation mark executes before any
 binding reads. Fresh Set/array state, traversal, name/offset materialization and
-record ordering remain host obligations. [Binding validation](../evidence/bend-strangler/binding-policy-validation.json)
-separates finite native traces, injected exceptions, universal pure proofs and
-bounded performance evidence; none establishes complete lexical-scope correctness.
+record ordering remain host obligations. Finite native traces, injected exceptions and universal conditional proofs
+do not establish complete lexical-scope correctness.
 
 TypeScript declaration admission, type-kind selection and collection-result
 choices use the [declaration core](../packages/agent-flow-bend/declaration-policy/core.bend)
@@ -114,10 +110,8 @@ Five exact conditional laws reject missing/conflicting names, preserve Interface
 priority and distinguish complete, declaration-limit and unsupported outcomes.
 The host extracts identifier/body before admission, preserves lazy collision
 lookups and overload effects, and owns count arithmetic, collection stopping and
-all materialization. [Declaration validation](../evidence/bend-strangler/declaration-policy-validation.json)
-separates universal pure proofs, admission-prefix trace/exception fixtures,
-compiled consumers and bounded paired measurements. The native loop and numeric
-limit remain host obligations.
+all materialization. Universal conditional proofs and admission-prefix fixtures do not prove
+the native loop or numeric limit; both remain host obligations.
 
 Update command and transition selection now uses the
 [update Bend core](../packages/agent-flow-bend/update-policy/core.bend) and
@@ -127,9 +121,8 @@ selected payload patches, consent and owner effects. The generator derives
 short-circuit fact selection, direct native materializer bindings and commands
 from checked Bend outcomes.
 [Update consumers](../src/onboarding/update.test.ts) check the real interpreter
-boundary. The [migration checkpoint](../evidence/bend-strangler/checkpoint.json)
-records measured build and execution qualification and its limits separately
-from these laws and consumer checks.
+boundary. Current whole-unit build and execution qualification is recorded separately
+in the [migration guide](bend-migration.md).
 
 Setup command, readiness and transition selection uses the
 [setup Bend core](../packages/agent-flow-bend/setup-policy/core.bend) and
