@@ -23,9 +23,13 @@ try {
       copyClosure(resolve(dirname(path), match[1]))
   }
   copyClosure(proof)
-  const path = join(temporary, relative(root, join(owner, "JointStep.bend")))
-  const original = readFileSync(path, "utf8")
-  for (const [mutant, before, after, expectedLocation] of [
+  const originals = new Map(
+    ["JointStep.bend", "Core.bend"].map((file) => {
+      const path = join(temporary, relative(root, join(owner, file)))
+      return [file, { path, source: readFileSync(path, "utf8") }]
+    })
+  )
+  for (const [mutant, before, after, expectedLocation, file = "JointStep.bend"] of [
     ["ack_uses_wrong_request", "C.Ack{queued_request}", "C.Ack{1n+queued_request}", "ack_step"],
     [
       "ack_operation_not_recorded",
@@ -38,8 +42,17 @@ try {
       "operation <> remaining))",
       "List.append(&2, M.Op, remaining, [operation])))",
       "initial_queue"
+    ],
+    [
+      "edge_base_charge_changed",
+      "        M.Push{512n},\n        M.Push{2n},",
+      "        M.Push{511n},\n        M.Push{2n},",
+      "edge_postfix",
+      "Core.bend"
     ]
   ]) {
+    for (const { path, source } of originals.values()) writeFileSync(path, source)
+    const { path, source: original } = originals.get(file)
     assert.equal(original.split(before).length, 2, mutant)
     writeFileSync(path, original.replace(before, after))
     const result = spawnSync("taskset", ["-c", "10", "bend", join(temporary, relative(root, proof)), "--verdict"], {
@@ -59,7 +72,7 @@ try {
         rejected: true,
         locations,
         scope:
-          "root-entry bootstrap and all Engine Ack transitions; cursor advance and weighted completion remain open; rejection may occur in a shared proof helper"
+          "root-entry, Engine Ack and no-child Continue with derived budgets; other cursor branches and weighted completion remain open; rejection may occur in a shared proof helper"
       })
     )
   }
