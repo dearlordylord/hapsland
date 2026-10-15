@@ -148,7 +148,7 @@ acceptance guarantees. Native identity, clock, settings, hash/reuse authority,
 IEEE operations, serialization engines and atomic resource operations remain
 with their native owners.
 
-The current performance candidate replaces the JSON stage's repeated primitive
+The connected candidate replaces the JSON stage's repeated primitive
 crossings with a Bend-selected serialization plan:
 
 1. The [mechanical codec](../packages/review-execution/src/direct-event/preparation/canonical-json-plan-codec.ts)
@@ -169,10 +169,10 @@ crossings with a Bend-selected serialization plan:
    preserving its existing late-coercion/error boundary.
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
-is removed. Preparation is **not accepted**: full-proof formatting and whole-path parity remain open.
+is removed. Preparation is **not accepted**: attachment hard10, pinned formatting and whole parity remain open.
 `migration/bend-abi-2037` uses Bend 2.0.37 with numeric Nat/shared records.
 Compiler cohort: [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084).
-Its producers, attachment verdict and full consumers pass; whole parity fails.
+Its producers/full consumers pass; current attachment hard10 and whole parity fail.
 Preparation/Finalization and Graph Effect forward Bend trees directly; public
 native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
@@ -180,6 +180,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
+| Capture evidence materialization | Next Astra-approved whole algorithm: prepare `(path, Maybe fingerprint)` once on first nonempty use, reuse per invocation; keep original order/invalid first duplicates. Prove lookup/fingerprints equality for arbitrary typed captures/paths. Preserve Context ABI/checkpoints and tie private Unprepared/Prepared cache to that invocation's immutable captures. Removes repeated field extraction/record construction; lookup stays linear. No generic Patricia proof project, no TS deletion claim. |
 | Attachment hard10 | Earlier shared-witness source passed. Current sequence-cohort recheck timed out twice at CPU10/hard10 (one printed ALL PROOFS CHECK before timeout). Neither qualifies; unchanged retries are closed. Need a new source-supported proof-shape hypothesis without changing the original law/premises/binding/main. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Rope candidate `1dc367f4`: normal build/23 receipts, Finalization (66+52 runtime/9615 refusals), Graph (105/58 fixtures), Source (59/6687, 34 physical), resident (67/14323, 868 Post), machine and public Preparation pass. Repeat only after relevant production edits. |
