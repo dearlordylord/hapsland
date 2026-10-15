@@ -10377,90 +10377,62 @@ def ready_encoded_shared(-World: Data, +actual: T.ResolverState, +reference: D.S
     coherent, shared, ready_original_joined(actual, reference, child, history,
       child_history, phase, previous, original_ready, original_reference_ready, coherent))
 
-def ready_attachment_transaction_exact(-World: Data, +actual: T.ResolverState, +reference: D.State, +child: X.Child, +phase: Phase.Phase, +history: V.History, +child_history: Phase.ChildHistory, +previous: Nat, +reply: T.Reply, +world: E.WorldState<World>, ready: {ActualReady.project(actual, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) -> Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world):
+# Classify all reply constructors once, independently of the transaction context.
+def ready_reply_eliminate(-Result: Type, +reply: T.Reply, incompatible: (@product: ArtifactValue.ProductValue -> {Boundary.compatible(T.EncodeProduct{product}, ready_reply_outcome(reply)) == False{} : Bool}) -> Result, encoded: @+owner: Nat -> @+id: Nat -> @+bytes: Nat -> {reply == T.Reply{owner, id, T.ProductEncoded{bytes}} : T.Reply} -> Result, rejected: @+owner: Nat -> @+id: Nat -> @+exception: T.ExceptionToken -> {reply == T.Reply{owner, id, T.ProviderRejected{exception}} : T.Reply} -> Result) -> Result:
   match reply:
-    case T.Reply{_, _, T.GoConfigurationRead{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.AnalysisConfigurationIdentityRead{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.ClockStarted{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.ClockRead{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.DirnameResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.BasenameResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.PathSeparatorResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.JoinedResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.NormalizedResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.RelativeResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.ExtensionResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.AbsoluteResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.JoinedPathFactsResult{_, _, _, _, _}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.StatusResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.MembershipResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.DirectoryEntriesObserved{_, _}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.DirectoryEntriesUnavailable{}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.ContextSelectionResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.PythonSyntaxResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.IdentifierCharactersResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.AccessResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.InvocationCacheCreated{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.CacheResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.CacheSnapshot{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.CacheStored{}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.RootCacheInserted{}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.CaptureResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.FrontendResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.CargoResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.CapturedText{_, _}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.GoCharactersResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.GoBuildTextResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.JsonProductHashed{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.GoFileResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.RustModulesResult{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{_, _, T.DiagnosticObserved{}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{+owner, +id, T.ProductEncoded{+bytes}}:
-      +ready = ready
-      +reference_ready = reference_ready
-      +coherent = coherent
+    case T.Reply{_, _, T.GoConfigurationRead{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.AnalysisConfigurationIdentityRead{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.ClockStarted{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.ClockRead{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.DirnameResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.BasenameResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.PathSeparatorResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.JoinedResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.NormalizedResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.RelativeResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.ExtensionResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.AbsoluteResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.JoinedPathFactsResult{_, _, _, _, _}}: incompatible(product => {==})
+    case T.Reply{_, _, T.StatusResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.MembershipResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.DirectoryEntriesObserved{_, _}}: incompatible(product => {==})
+    case T.Reply{_, _, T.DirectoryEntriesUnavailable{}}: incompatible(product => {==})
+    case T.Reply{_, _, T.ContextSelectionResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.PythonSyntaxResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.IdentifierCharactersResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.AccessResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.InvocationCacheCreated{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.CacheResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.CacheSnapshot{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.CacheStored{}}: incompatible(product => {==})
+    case T.Reply{_, _, T.RootCacheInserted{}}: incompatible(product => {==})
+    case T.Reply{_, _, T.CaptureResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.FrontendResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.CargoResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.CapturedText{_, _}}: incompatible(product => {==})
+    case T.Reply{_, _, T.GoCharactersResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.GoBuildTextResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.JsonProductHashed{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.GoFileResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.RustModulesResult{_}}: incompatible(product => {==})
+    case T.Reply{_, _, T.DiagnosticObserved{}}: incompatible(product => {==})
+    case T.Reply{_, _, T.SourceTextEncoded{_}}: incompatible(product => {==})
+    case T.Reply{+owner, +id, T.ProductEncoded{+bytes}}: encoded(owner)(id)(bytes)({==})
+    case T.Reply{+owner, +id, T.ProviderRejected{+exception}}: rejected(owner)(id)(exception)({==})
+
+def ready_attachment_transaction_exact(-World: Data, +actual: T.ResolverState, +reference: D.State, +child: X.Child, +phase: Phase.Phase, +history: V.History, +child_history: Phase.ChildHistory, +previous: Nat, +reply: T.Reply, +world: E.WorldState<World>, ready: {ActualReady.project(actual, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, reference_ready: {ReferenceReady.project(reference, child, history, child_history) == Some{phase} : Maybe<&2, Phase.Phase>}, coherent: {Contract.phase_frame_budget(phase) == Contract.phase_child_budget(phase) : V.Budget}) -> Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world):
+  +ready = ready
+  +reference_ready = reference_ready
+  +coherent = coherent
+  ready_reply_eliminate(Contract.conclusion(World, actual, reference, child, phase, history, previous, reply, world), reply,
+    incompatible => ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, incompatible, ready, reference_ready, coherent),
+    owner => id => bytes => same =>
+      %Equal.sym(T.Reply, reply, T.Reply{owner, id, T.ProductEncoded{bytes}}, same): Contract.conclusion(World, actual, reference, child, phase, history, previous, _, world)
       ready_encoded_shared(World, actual, reference, child, phase, history, previous, owner, id, bytes, world, child_history, ready, reference_ready, coherent,
-        ready_original_shared(actual, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent))
-    case T.Reply{_, _, T.SourceTextEncoded{_}}:
-      ready_original_incompatible(World, actual, reference, child, phase, history, child_history, previous, reply, world, product => {==}, ready, reference_ready, coherent)
-    case T.Reply{+owner, +id, T.ProviderRejected{+exception}}:
-      ready_original_provider(World, actual, reference, child, phase, history, child_history, previous, owner, id, exception, world, ready, reference_ready, coherent)
+        ready_original_shared(actual, reference, child, history, child_history, phase, previous, ready, reference_ready, coherent)),
+    owner => id => exception => same =>
+      %Equal.sym(T.Reply, reply, T.Reply{owner, id, T.ProviderRejected{exception}}, same): Contract.conclusion(World, actual, reference, child, phase, history, previous, _, world)
+      ready_original_provider(World, actual, reference, child, phase, history, child_history, previous, owner, id, exception, world, ready, reference_ready, coherent))
 
 # DRAFT: one complete attachment transaction, not a provider/scheduler law.
 # Successful ready projections are internal relational premises to be derived

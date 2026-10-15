@@ -181,7 +181,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Obstacle | Required change or evidence |
 | --- | --- |
 | Capture evidence materialization | Connected lazy invocation-local Unprepared/Prepared cache, unchanged Context/checkpoints, first invalid duplicates retained. Lookup/fingerprints/metadata laws and original batch laws pass kernel; 517 lists/4136 queries/three mutants pass. Old repeated capture traversal moved out of production into independent specification. Normal build/23 receipts, Evidence/FrozenInput, Finalization, Source/resident and public consumers pass. Whole parity fails at 1.3804; unchanged trial closed. Lookup remains linear; no TS removed. |
-| Attachment hard10 | Earlier shared-witness source passed. Current sequence-cohort recheck timed out twice at CPU10/hard10 (one printed ALL PROOFS CHECK before timeout). Neither qualifies; unchanged retries are closed. Need a new source-supported proof-shape hypothesis without changing the original law/premises/binding/main. |
+| Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Original law/premises/binding/main remain byte-identical. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Capture candidate `2f37ebc6`: normal build/23 receipts, Evidence/FrozenInput, Finalization (66+52 runtime/9615 refusals), Source (59/6687, 34 physical), resident (67/14323, 868 Post) and public Preparation pass. Cache/context checks use semantic equality; immutable internal container identity is not a product guarantee. Repeat after relevant production edits. |
 | Whole-path parity | Capture candidate whole current-native ratio is 1.3804; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup proposal closed without implementation: small fixture dependency sets, no existing order proof, and unequal Bend Strings can share UTF16 units. Exact insertion equivalence needs a new proof chain with unsupported whole-path payoff. Next implementation needs another source-supported hypothesis. |
@@ -203,8 +203,7 @@ that only bridges helper names.
   depth 25000. Production imports no specification/proof owner.
 - Eight batch protocol/eighteen actual-machine laws pass. Existing consumers
   cover correlated headers/counters, 606 FrozenInput and 9615 Finalization
-  refusals, prefix throw/abort and late raw-token coercion. Full rope candidate
-  consumers and three focused public suites pass; whole acceptance stays open.
+  refusals, prefix throw/abort and late raw-token coercion. Whole acceptance stays open.
 - UnitEvidence query: five arbitrary-input laws, 1940 cases/five mutants,
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
@@ -216,8 +215,8 @@ that only bridges helper names.
   Unchanged capture and rope trials are closed; separate runs establish no causal
   comparison. Later batch-proof formatting passes kernel, batch consumer, normal
   build and 23 receipts; it changes no production algorithm.
-- Original attachment shared-witness source remains byte-identical, but current
-  requalification hit hard10 twice. Historical passes do not qualify this candidate.
+- Original attachment law/premises/binding/main remain byte-identical. Shared-witness
+  and reply-dispatch factorization do not yet pass current hard10 qualification.
   Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
   Pinned formatting remains open. Renderer/pending-key, runtime attribution,
   attachment formatter alias/hoist, fused validate/plan and compiler sequence
