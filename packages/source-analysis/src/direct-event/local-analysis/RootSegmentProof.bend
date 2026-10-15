@@ -107,5 +107,41 @@ def preflight_completed(+fuel: Nat, +reversed: List<&2, M.Op>) -> {
     case 0n: {==}
     case 1n+_: {==}
 
+# Accumulator transport for whole-root composition. This changes only the
+# existing interpreter's reversed trace suffix, never its machine decisions.
+def append_run(+suffix: List<&2, M.Op>, result: E.Run) -> E.Run:
+  match result:
+    case E.Run{terminal, reversed}: E.Run{terminal, List.append(&2, M.Op, reversed, suffix)}
+
+def suffix_continuation(+fuel: Nat) -> Type:
+  @+step: C.Step -> @+reversed: List<&2, M.Op> -> @+suffix: List<&2, M.Op> -> {
+    E.run(fuel, step, List.append(&2, M.Op, reversed, suffix))
+      == append_run(suffix, E.run(fuel, step, reversed)) : E.Run
+  }
+
+def suffix_positive(+fuel: Nat, +step: C.Step, +reversed: List<&2, M.Op>, +suffix: List<&2, M.Op>,
+  continue: suffix_continuation(fuel)) -> {
+  E.run(1n+fuel, step, List.append(&2, M.Op, reversed, suffix))
+    == append_run(suffix, E.run(1n+fuel, step, reversed)) : E.Run
+}:
+  match step:
+    case C.Engine{+operation, +request, remaining, next}:
+      continue(C.resume(C.Engine{operation, request, remaining, next}, C.Ack{request}), operation <> reversed, suffix)
+    case C.Continue{cursor}: continue(C.advance(C.Continue{cursor}), reversed, suffix)
+    case C.NextRoot{global}: continue(C.advance(C.NextRoot{global}), reversed, suffix)
+    case C.Completed{_}: {==}
+    case C.PreflightCompleted{}: {==}
+    case C.Exhausted{}: {==}
+    case C.InvalidReply{}: {==}
+
+def trace_suffix(+fuel: Nat, +step: C.Step, +reversed: List<&2, M.Op>, +suffix: List<&2, M.Op>) -> {
+  E.run(fuel, step, List.append(&2, M.Op, reversed, suffix))
+    == append_run(suffix, E.run(fuel, step, reversed)) : E.Run
+}:
+  match fuel:
+    case 0n: {==}
+    case 1n++rest: suffix_positive(rest, step, reversed, suffix,
+      +next => +operations => +tail => trace_suffix(rest, next, operations, tail))
+
 def main() -> Unit:
   Unit{}
