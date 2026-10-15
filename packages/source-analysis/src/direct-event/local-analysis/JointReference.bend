@@ -82,6 +82,11 @@ def preserved(result: S.ReferenceResult, +root: M.Declaration, +invocation: C.Gl
 def reference_case(+root: M.Declaration, +invocation: C.Global, +request: Nat,
   +actual: C.Cursor, +values: List<&2, J.Ghost>) -> Type:
   match actual values:
+    case C.Cursor{_, _, _, _, _, _, 0n, _} _: Unit
+    case C.Cursor{_, _, _, _, _, _, 1n+_, Nil{}} _: Unit
+    case C.Cursor{_, _, _, _, _, _, 1n+_, C.Frame{_, Nil{}, _, _} <> _} _: Unit
+    case C.Cursor{_, _, _, _, _, _, 1n+_, C.Frame{_, _ <> _, _, _} <> _} Nil{}: Unit
+    case C.Cursor{_, _, _, _, _, _, 1n+_, C.Frame{_, _ <> _, _, _} <> _} J.Ghost{0n, _, _} <> _: Unit
     case C.Cursor{_, _, +name, +expanded, +referenced, +failure, 1n++rest,
       C.Frame{_, +reference <> _, _, _} <> _} J.Ghost{1n++depth, _, subtotal} <> _:
       preserved(
