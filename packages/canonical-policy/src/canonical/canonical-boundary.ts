@@ -1492,6 +1492,16 @@ const capacityRefusal = (value: unknown): CapacityRefusal => {
 }
 type OutputFields<T> = T extends { readonly category: string } ? Omit<T, "category"> : never
 type DecodedOutputFields = OutputFields<CanonicalOutput>
+type ConfigurationOutput = Extract<
+  CanonicalOutput,
+  {
+    readonly category: "decision"
+    readonly kind: "includeChoice" | "fileSelection" | "fileProtection" | "candidateFile" | "reviewAdmission"
+  }
+>
+type ConfigurationFields<Kind extends ConfigurationOutput["kind"]> = OutputFields<
+  Extract<ConfigurationOutput, { readonly kind: Kind }>
+>
 const readOutput = decoder(CanonicalOutputSchema)
 
 const decodeCapacityGranted = (value: unknown): DecodedOutputFields => {
@@ -1990,7 +2000,7 @@ const decodeNoticeSelected = (value: unknown): DecodedOutputFields => {
     ids: readList(decodeCanonicalConstructor(value, "Canonical.NoticeSelected").ids, (id) => nat(id, true))
   }
 }
-const decodeIncludeChoice = (value: unknown): DecodedOutputFields => {
+const decodeIncludeChoice = (value: unknown): ConfigurationFields<"includeChoice"> => {
   const choice = decodeCanonicalConstructor(value, "Canonical.IncludeChoice").choice
   const name = tag(choice)
   if (name !== "Configuration.ReplaceIncludes" && name !== "Configuration.KeepIncludes")
@@ -2001,7 +2011,7 @@ const decodeIncludeChoice = (value: unknown): DecodedOutputFields => {
     choice: name === "Configuration.ReplaceIncludes" ? "replaceIncludes" : "keepIncludes"
   }
 }
-const decodeFileSelection = (value: unknown): DecodedOutputFields => {
+const decodeFileSelection = (value: unknown): ConfigurationFields<"fileSelection"> => {
   const selection = decodeCanonicalConstructor(value, "Canonical.FileSelection").selection
   const names = ["Protected", "Excluded", "EmptyIncludes", "NotIncluded", "Selected"]
   const name = tag(selection)
@@ -2017,7 +2027,7 @@ const decodeFileSelection = (value: unknown): DecodedOutputFields => {
       | "selected"
   }
 }
-const decodeFileProtection = (value: unknown): DecodedOutputFields => {
+const decodeFileProtection = (value: unknown): ConfigurationFields<"fileProtection"> => {
   const protection = decodeCanonicalConstructor(value, "Canonical.FileProtection").protection
   const names = ["AllowedPath", "RepositoryBoundary", "SensitivePath", "GeneratedOrVendor", "FileExtension"]
   const name = tag(protection)
@@ -2033,7 +2043,7 @@ const decodeFileProtection = (value: unknown): DecodedOutputFields => {
       | "fileExtension"
   }
 }
-const decodeCandidateFile = (value: unknown): DecodedOutputFields => {
+const decodeCandidateFile = (value: unknown): ConfigurationFields<"candidateFile"> => {
   const candidate = decodeCanonicalConstructor(value, "Canonical.CandidateFile").candidate
   const names = ["CandidateAllowed", "RefuseGitAdmin", "RefuseFileKind", "RefuseGitIgnore"]
   const name = tag(candidate)
@@ -2048,7 +2058,7 @@ const decodeCandidateFile = (value: unknown): DecodedOutputFields => {
       | "refuseGitIgnore"
   }
 }
-const decodeReviewAdmission = (value: unknown): DecodedOutputFields => {
+const decodeReviewAdmission = (value: unknown): ConfigurationFields<"reviewAdmission"> => {
   const admission = decodeCanonicalConstructor(value, "Canonical.ReviewAdmission").admission
   const names = ["AdmitReview", "RefuseRoot", "RefuseConfiguration", "RefuseCredential", "RefuseSelection"]
   const name = tag(admission)
@@ -3055,6 +3065,33 @@ export type ConfigurationDecisionEvent = Extract<
       | "reviewAdmissionCheck"
   }
 >
+// These closed decoders return fresh enum-only fields. Raw inputs still use
+// the ordinary encoder; generic unknown output decoding retains its schema.
+const decodeConfigurationOutput = (value: unknown): ConfigurationOutput => {
+  const wrapper = tag(value)
+  if (wrapper !== "Canonical.PolicyDecided") throw new TypeError("unknown canonical output")
+  const payload = decodeCanonicalConstructor(value, wrapper).decision
+  switch (tag(payload)) {
+    case "Canonical.IncludeChoice":
+      return { ...decodeIncludeChoice(payload), category: "decision" }
+    case "Canonical.FileSelection":
+      return { ...decodeFileSelection(payload), category: "decision" }
+    case "Canonical.FileProtection":
+      return { ...decodeFileProtection(payload), category: "decision" }
+    case "Canonical.CandidateFile":
+      return { ...decodeCandidateFile(payload), category: "decision" }
+    case "Canonical.ReviewAdmission":
+      return { ...decodeReviewAdmission(payload), category: "decision" }
+    default:
+      throw new TypeError("unknown canonical output")
+  }
+}
+const decodeConfigurationStep = (raw: unknown): ReturnType<typeof decodeCanonicalStep> => {
+  if (tag(raw) !== "Canonical.Advanced") return decodeCanonicalStep(raw, false)
+  const step = decodeCanonicalConstructor(raw, "Canonical.Advanced")
+  const outputs = readList(step.outputs, decodeConfigurationOutput)
+  return { state: step.state, outputs }
+}
 let configurationState: unknown
 /** Stateless policy uses Canonical's existing six state-preserving branches.
  * The private initial state never escapes; only decoded outputs are published.
@@ -3073,7 +3110,7 @@ export const decideCanonicalConfiguration = (event: ConfigurationDecisionEvent) 
       throw new TypeError("expected canonical configuration event")
   }
   configurationState ??= initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 })
-  const { outputs, rejection } = decodeCanonicalStep(bendCanonicalStep(configurationState, encoded), false)
+  const { outputs, rejection } = decodeConfigurationStep(bendCanonicalStep(configurationState, encoded))
   return { outputs, ...(rejection === undefined ? {} : { rejection }) }
 }
 
