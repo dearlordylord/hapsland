@@ -35,11 +35,7 @@ def field_values(
     case []: []
     case Value.OrderedField{_, value} <> tail: value <> field_values(tail)
 
-type ForestEncoding<
-  -values: List<&2, Value.ProductValue>,
-  -operations: List<&2, Plan.Operation>,
-  -plans: List<&2, List<&2, Plan.Piece>>
-> is Type:
+type ForestEncoding<-values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2, Plan.Piece>>> is Type:
   EmptyForest{
     values_empty: {values == [] : List<&2, Value.ProductValue>},
     operations_empty: {operations == [] : List<&2, Plan.Operation>},
