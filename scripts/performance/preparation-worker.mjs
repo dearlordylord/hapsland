@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { readFileSync, writeFileSync } from "node:fs"
 import { performance } from "node:perf_hooks"
+import { ChildProcess } from "node:child_process"
 import { pathToFileURL } from "node:url"
 
 const [root, mode, fixturePath, goldenPath, implementation = "public"] = process.argv.slice(2)
@@ -145,17 +146,20 @@ const cases = await Promise.all(
   }))
 )
 phase("fixtures:complete")
-const observeProcesses = process.env.HAPSLAND_PREPARATION_PROFILE_PROCESSES === "1" && typeof Bun === "undefined"
+const observeProcesses = process.env.HAPSLAND_PREPARATION_PROFILE_PROCESSES === "1"
 let processStarts = 0
 const processCounts = []
-const processObserver = observeProcesses
-  ? (await import("node:async_hooks")).createHook({
-      init(_id, type) {
-        if (type === "PROCESSWRAP") processStarts++
-      }
-    })
-  : undefined
-processObserver?.enable()
+const processIntervals = []
+const originalSpawn = ChildProcess.prototype.spawn
+if (observeProcesses) {
+  assert.ok(process.env.HAPSLAND_PREPARATION_PROFILE_DIR, "process intervals are diagnostic only")
+  ChildProcess.prototype.spawn = function (...args) {
+    const started = performance.now()
+    processStarts++
+    this.once("close", () => processIntervals.push({ started, ended: performance.now() }))
+    return Reflect.apply(originalSpawn, this, args)
+  }
+}
 let sweep = 0
 const run = async () => {
   const results = []
@@ -163,13 +167,32 @@ const run = async () => {
   let index = 0
   for (const { observation, context } of cases) {
     const before = processStarts
+    const fixtureStarted = performance.now()
+    const intervalStart = processIntervals.length
     if (observeRequests) {
       requestEpoch++
       seenRequests.clear()
       requestMetadata.clear()
     }
     results.push(JSON.stringify(await Effect.runPromise(prepareObservation(observation, context))))
-    if (observeProcesses) processCounts.push({ sweep: round, fixture: index++, starts: processStarts - before })
+    if (observeProcesses) {
+      const intervals = processIntervals.slice(intervalStart).sort((a, b) => a.started - b.started)
+      let nativeMilliseconds = 0,
+        end = fixtureStarted
+      for (const interval of intervals) {
+        nativeMilliseconds += Math.max(0, interval.ended - Math.max(end, interval.started))
+        end = Math.max(end, interval.ended)
+      }
+      assert.equal(intervals.length, processStarts - before, "all spawned processes must physically close")
+      processCounts.push({
+        sweep: round,
+        fixture: index++,
+        starts: processStarts - before,
+        milliseconds: performance.now() - fixtureStarted,
+        nativeMilliseconds,
+        processMilliseconds: intervals.map(({ started, ended }) => ended - started)
+      })
+    }
   }
   return results
 }
@@ -236,7 +259,7 @@ for (let index = 0; index < rounds; index++) {
 }
 const used = process.cpuUsage(cpu)
 phase("measurement:complete")
-processObserver?.disable()
+if (observeProcesses) ChildProcess.prototype.spawn = originalSpawn
 if (observeRequests && implementation === "public") {
   assert.equal(
     Object.values(requestCounts).reduce((sum, count) => sum + count, 0),

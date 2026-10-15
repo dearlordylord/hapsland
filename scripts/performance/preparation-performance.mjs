@@ -71,8 +71,6 @@ try {
     assert.equal(reference, "current-native", "profiling requires the explicit supplemental native reference")
     const profileRuntime = process.env.HAPSLAND_PREPARATION_PROFILE_RUNTIME ?? "bun"
     assert.ok(profileRuntime === "bun" || profileRuntime === "node")
-    const processTrace = process.env.HAPSLAND_PREPARATION_PROFILE_PROCESSES === "1"
-    if (processTrace) assert.equal(profileRuntime, "node")
     mkdirSync(profileDirectory, { recursive: true })
     for (const implementation of ["native-oracle", "public"]) {
       const output = execFileSync(
