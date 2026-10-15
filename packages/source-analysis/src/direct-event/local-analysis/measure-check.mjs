@@ -46,7 +46,7 @@ try {
       "declaration_budget_short",
       "Nat.add(6n, Nat.mul(9n, List.length(&2, M.Reference, references)))",
       "Nat.add(5n, Nat.mul(9n, List.length(&2, M.Reference, references)))",
-      "initial_bound",
+      "entered_child",
       "Execution.bend"
     ]
   ]) {
@@ -71,7 +71,7 @@ try {
         rejected: true,
         locations,
         scope:
-          "actual Engine/frame-finish decrease and initial root resource bound; pending decrease and bounded completion remain open; rejection may occur in a shared proof helper"
+          "full universal execution decrease, positivity and initial root bound; root completion is proved separately; rejection may occur in a shared proof helper"
       })
     )
   }
