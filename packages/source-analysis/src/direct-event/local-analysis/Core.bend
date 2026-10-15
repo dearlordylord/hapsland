@@ -10,13 +10,33 @@ type Purpose is Data:
   Preflight{}
 
 type Global is Data:
-  Global{catalog: M.Catalog, purpose: Purpose, pending: List<&2, M.Declaration>, reversed: List<&2, M.Outcome>, request: Nat}
+  Global{
+    catalog: M.Catalog,
+    purpose: Purpose,
+    pending: List<&2, M.Declaration>,
+    reversed: List<&2, M.Outcome>,
+    request: Nat
+  }
 
 type Frame is Data:
-  Frame{slot: Nat, pending: List<&2, M.Reference>, reversed: List<&2, M.ReferencePlan>, site: Maybe<&2, String>}
+  Frame{
+    slot: Nat,
+    pending: List<&2, M.Reference>,
+    reversed: List<&2, M.ReferencePlan>,
+    site: Maybe<&2, String>
+  }
 
 type Cursor is Data:
-  Cursor{global: Global, root: Nat, root_name: String, expanded: List<&2, String>, referenced: List<&2, String>, failure: Maybe<&2, M.Failure>, remaining: Nat, frames: List<&2, Frame>}
+  Cursor{
+    global: Global,
+    root: Nat,
+    root_name: String,
+    expanded: List<&2, String>,
+    referenced: List<&2, String>,
+    failure: Maybe<&2, M.Failure>,
+    remaining: Nat,
+    frames: List<&2, Frame>
+  }
 
 type Deferred is Data:
   RootNext{global: Global}
@@ -52,12 +72,27 @@ def global_purpose(global: Global) -> Purpose:
 
 def global_count(global: Global, request: Nat) -> Global:
   match global:
-    case Global{catalog, purpose, pending, reversed, _}: Global{catalog, purpose, pending, reversed, request}
+    case Global{catalog, purpose, pending, reversed, _}: Global{
+      catalog,
+      purpose,
+      pending,
+      reversed,
+      request
+    }
 
 def cursor_count(cursor: Cursor, request: Nat) -> Cursor:
   match cursor:
     case Cursor{global, root, name, expanded, referenced, failure, remaining, frames}:
-      Cursor{global_count(global, request), root, name, expanded, referenced, failure, remaining, frames}
+      Cursor{
+        global_count(global, request),
+        root,
+        name,
+        expanded,
+        referenced,
+        failure,
+        remaining,
+        frames
+      }
 
 def ready(next: Deferred, request: Nat) -> Step:
   match next:
@@ -77,8 +112,11 @@ def preflight_ops(purpose: Purpose, operations: List<&2, M.Op>) -> List<&2, M.Op
 def cursor_ops(cursor: Cursor, operations: List<&2, M.Op>) -> Step:
   match cursor:
     case Cursor{+global, root, name, expanded, referenced, failure, remaining, frames}:
-      schedule(preflight_ops(global_purpose(global), operations),
-        CursorNext{Cursor{global, root, name, expanded, referenced, failure, remaining, frames}}, global_request(global))
+      schedule(
+        preflight_ops(global_purpose(global), operations),
+        CursorNext{Cursor{global, root, name, expanded, referenced, failure, remaining, frames}},
+        global_request(global)
+      )
 
 def contains_selected(same: Bool, next: Unit -> Bool) -> Bool:
   match same:
@@ -106,19 +144,44 @@ def declaration_name(declaration: M.Declaration) -> String:
   match declaration:
     case M.Declaration{_, _, name, _}: name
 
-def lookup_declarations(+name: String, declarations: List<&2, M.Declaration>, found: Maybe<&2, M.Declaration>) -> Maybe<&2, M.Declaration>:
+def lookup_declarations(
+  +name: String,
+  declarations: List<&2, M.Declaration>,
+  found: Maybe<&2, M.Declaration>
+) -> Maybe<&2, M.Declaration>:
   match declarations:
     case []: found
     case +head <> tail:
-      lookup_declarations(name, tail, Bool.pick(Maybe<&2, M.Declaration>, String.eq(name, declaration_name(head)), Some{head}, found))
+      lookup_declarations(
+        name,
+        tail,
+        Bool.pick(
+          Maybe<&2, M.Declaration>,
+          String.eq(name, declaration_name(head)),
+          Some{head},
+          found
+        )
+      )
 
-def lookup_supporting(+key: String, supporting: List<&2, M.Supporting>, found: Maybe<&2, M.Declaration>) -> Maybe<&2, M.Declaration>:
+def lookup_supporting(
+  +key: String,
+  supporting: List<&2, M.Supporting>,
+  found: Maybe<&2, M.Declaration>
+) -> Maybe<&2, M.Declaration>:
   match supporting:
     case []: found
     case M.Supporting{candidate, declaration} <> tail:
-      lookup_supporting(key, tail, Bool.pick(Maybe<&2, M.Declaration>, String.eq(key, candidate), Some{declaration}, found))
+      lookup_supporting(
+        key,
+        tail,
+        Bool.pick(Maybe<&2, M.Declaration>, String.eq(key, candidate), Some{declaration}, found)
+      )
 
-def lookup(catalog: M.Catalog, name: String, target_id: Maybe<&2, String>) -> Maybe<&2, M.Declaration>:
+def lookup(
+  catalog: M.Catalog,
+  name: String,
+  target_id: Maybe<&2, String>
+) -> Maybe<&2, M.Declaration>:
   match catalog target_id:
     case M.Catalog{declarations, _} None{}: lookup_declarations(name, declarations, None{})
     case M.Catalog{_, supporting} Some{key}: lookup_supporting(key, supporting, None{})
@@ -128,8 +191,18 @@ def reference_key(name: String, target_id: Maybe<&2, String>) -> String:
     case None{}: name
     case Some{key}: key
 
-def reference_names(root: String, +symbol: String, target_id: Maybe<&2, String>, +referenced: List<&2, String>) -> List<&2, String>:
-  Bool.pick(List<&2, String>, String.eq(root, symbol), referenced, insert(reference_key(symbol, target_id), referenced))
+def reference_names(
+  root: String,
+  +symbol: String,
+  target_id: Maybe<&2, String>,
+  +referenced: List<&2, String>
+) -> List<&2, String>:
+  Bool.pick(
+    List<&2, String>,
+    String.eq(root, symbol),
+    referenced,
+    insert(reference_key(symbol, target_id), referenced)
+  )
 
 def first_failure(current: Maybe<&2, M.Failure>, failure: M.Failure) -> Maybe<&2, M.Failure>:
   match current:
@@ -139,18 +212,60 @@ def first_failure(current: Maybe<&2, M.Failure>, failure: M.Failure) -> Maybe<&2
 def fail(cursor: Cursor, failure: M.Failure) -> Cursor:
   match cursor:
     case Cursor{global, root, name, expanded, referenced, current, remaining, frames}:
-      Cursor{global, root, name, expanded, referenced, first_failure(current, failure), remaining, frames}
+      Cursor{
+        global,
+        root,
+        name,
+        expanded,
+        referenced,
+        first_failure(current, failure),
+        remaining,
+        frames
+      }
 
-def keep_reference(purpose: Purpose, reference: M.ReferencePlan, reversed: List<&2, M.ReferencePlan>) -> List<&2, M.ReferencePlan>:
+def keep_reference(
+  purpose: Purpose,
+  reference: M.ReferencePlan,
+  reversed: List<&2, M.ReferencePlan>
+) -> List<&2, M.ReferencePlan>:
   match purpose:
     case Trees{}: reference <> reversed
     case _: reversed
 
-def append_reference(cursor: Cursor, reference: M.ReferencePlan, operations: List<&2, M.Op>) -> Step:
+def append_reference(
+  cursor: Cursor,
+  reference: M.ReferencePlan,
+  operations: List<&2, M.Op>
+) -> Step:
   match cursor:
-    case Cursor{+global, root, name, expanded, referenced, failure, remaining, Frame{slot, pending, reversed, site} <> parents}:
-      cursor_ops(Cursor{global, root, name, expanded, referenced, failure, remaining,
-        Frame{slot, pending, keep_reference(global_purpose(global), reference, reversed), site} <> parents}, operations)
+    case Cursor{
+      +global,
+      root,
+      name,
+      expanded,
+      referenced,
+      failure,
+      remaining,
+      Frame{slot, pending, reversed, site} <> parents
+    }:
+      cursor_ops(
+        Cursor{
+          global,
+          root,
+          name,
+          expanded,
+          referenced,
+          failure,
+          remaining,
+          Frame{
+            slot,
+            pending,
+            keep_reference(global_purpose(global), reference, reversed),
+            site
+          } <> parents
+        },
+        operations
+      )
     case _: InvalidReply{}
 
 def omitted_target(target: Maybe<&2, M.Declaration>) -> Maybe<&2, String>:
@@ -178,10 +293,23 @@ def initial_operations(purpose: Purpose) -> List<&2, M.Op>:
     case Preflight{}: [M.Push{0n}]
     case _: []
 
-def edge_operations(purpose: Purpose, symbol: String, target: Maybe<&2, M.Declaration>) -> List<&2, M.Op>:
+def edge_operations(
+  purpose: Purpose,
+  symbol: String,
+  target: Maybe<&2, M.Declaration>
+) -> List<&2, M.Op>:
   match purpose:
     case Preflight{}:
-      [M.Push{512n}, M.Push{2n}, M.MeasureText{symbol}, M.Multiply{}, M.Add{}, target_operation(target), M.Add{}, M.Add{}]
+      [
+        M.Push{512n},
+        M.Push{2n},
+        M.MeasureText{symbol},
+        M.Multiply{},
+        M.Add{},
+        target_operation(target),
+        M.Add{},
+        M.Add{}
+      ]
     case _: []
 
 def child_operations(purpose: Purpose, operations: List<&2, M.Op>, slot: Nat) -> List<&2, M.Op>:
@@ -193,26 +321,78 @@ def cursor_purpose(cursor: Cursor) -> Purpose:
   match cursor:
     case Cursor{global, _, _, _, _, _, _, _}: global_purpose(global)
 
-def enter_child(remaining: Nat, cursor: Cursor, declaration: M.Declaration, symbol: String, operations: List<&2, M.Op>) -> Step:
+def enter_child(
+  remaining: Nat,
+  cursor: Cursor,
+  declaration: M.Declaration,
+  symbol: String,
+  operations: List<&2, M.Op>
+) -> Step:
   match remaining cursor declaration:
     case 0n _ _: Exhausted{}
-    case 1n+rest Cursor{+global, root, name, expanded, referenced, failure, _, parents} M.Declaration{+slot, +identity, _, references}:
+    case 1n+rest Cursor{+global, root, name, expanded, referenced, failure, _, parents} M.Declaration{
+      +slot,
+      +identity,
+      _,
+      references
+    }:
       cursor_ops(Cursor{global, root, name, identity <> expanded, referenced, failure, rest,
         Frame{slot, references, [], Some{symbol}} <> parents},
         child_operations(global_purpose(global), operations, slot))
 
-def named_seen(already: Bool, cursor: Cursor, +target: M.Declaration, symbol: String, operations: List<&2, M.Op>, remaining: Nat) -> Step:
+def named_seen(
+  already: Bool,
+  cursor: Cursor,
+  +target: M.Declaration,
+  symbol: String,
+  operations: List<&2, M.Op>,
+  remaining: Nat
+) -> Step:
   match already:
-    case True{}: append_reference(cursor, M.Included{symbol, declaration_identity(target)}, operations)
+    case True{}: append_reference(
+      cursor,
+      M.Included{symbol, declaration_identity(target)},
+      operations
+    )
     case False{}: enter_child(remaining, cursor, target, symbol, operations)
-def named_target(target: Maybe<&2, M.Declaration>, +cursor: Cursor, symbol: String, operations: List<&2, M.Op>, +expanded: List<&2, String>, remaining: Nat) -> Step:
+def named_target(
+  target: Maybe<&2, M.Declaration>,
+  +cursor: Cursor,
+  symbol: String,
+  operations: List<&2, M.Op>,
+  +expanded: List<&2, String>,
+  remaining: Nat
+) -> Step:
   match target:
-    case None{}: append_reference(fail(cursor, M.MissingEvidence{}), M.Omitted{symbol, None{}, M.Unresolved{}}, operations)
-    case Some{+target}: named_seen(contains(declaration_identity(target), expanded), cursor, target, symbol, operations, remaining)
+    case None{}: append_reference(
+      fail(cursor, M.MissingEvidence{}),
+      M.Omitted{symbol, None{}, M.Unresolved{}},
+      operations
+    )
+    case Some{+target}: named_seen(
+      contains(declaration_identity(target), expanded),
+      cursor,
+      target,
+      symbol,
+      operations,
+      remaining
+    )
 
-def named_limit(limited: Bool, +target: Maybe<&2, M.Declaration>, cursor: Cursor, symbol: String, operations: List<&2, M.Op>, expanded: List<&2, String>, remaining: Nat) -> Step:
+def named_limit(
+  limited: Bool,
+  +target: Maybe<&2, M.Declaration>,
+  cursor: Cursor,
+  symbol: String,
+  operations: List<&2, M.Op>,
+  expanded: List<&2, String>,
+  remaining: Nat
+) -> Step:
   match limited:
-    case True{}: append_reference(fail(cursor, M.ReferenceLimit{}), M.Omitted{symbol, omitted_target(target), M.LimitExceeded{}}, operations)
+    case True{}: append_reference(
+      fail(cursor, M.ReferenceLimit{}),
+      M.Omitted{symbol, omitted_target(target), M.LimitExceeded{}},
+      operations
+    )
     case False{}: named_target(target, cursor, symbol, operations, expanded, remaining)
 
 def named_recorded(cursor: Cursor, +target: Maybe<&2, M.Declaration>, +symbol: String) -> Step:
@@ -225,76 +405,206 @@ def named_recorded(cursor: Cursor, +target: Maybe<&2, M.Declaration>, +symbol: S
 def visit_reference(reference: M.Reference, cursor: Cursor) -> Step:
   match reference cursor:
     case M.Unsupported{+symbol} +cursor:
-      append_reference(fail(cursor, M.UnsupportedReference{}), M.Omitted{symbol, None{}, M.UnsupportedSyntax{}}, edge_operations(cursor_purpose(cursor), symbol, None{}))
-    case M.Named{+symbol, +target_id} Cursor{+global, root, +name, expanded, referenced, failure, remaining, frames}:
-      named_recorded(Cursor{global, root, name, expanded, reference_names(name, symbol, target_id, referenced), failure, remaining, frames},
-        lookup(global_catalog(global), symbol, target_id), symbol)
+      append_reference(
+        fail(cursor, M.UnsupportedReference{}),
+        M.Omitted{symbol, None{}, M.UnsupportedSyntax{}},
+        edge_operations(cursor_purpose(cursor), symbol, None{})
+      )
+    case M.Named{+symbol, +target_id} Cursor{
+      +global,
+      root,
+      +name,
+      expanded,
+      referenced,
+      failure,
+      remaining,
+      frames
+    }:
+      named_recorded(
+        Cursor{
+          global,
+          root,
+          name,
+          expanded,
+          reference_names(name, symbol, target_id, referenced),
+          failure,
+          remaining,
+          frames
+        },
+        lookup(global_catalog(global), symbol, target_id),
+        symbol
+      )
 
 def finish_global(global: Global) -> Step:
   match global:
     case Global{_, Preflight{}, _, _, _}: PreflightCompleted{}
     case Global{_, _, _, reversed, _}: Completed{List.reverse(&2, M.Outcome, reversed)}
 
-def outcome_tree(purpose: Purpose, slot: Nat, reversed: List<&2, M.ReferencePlan>) -> Maybe<&2, M.NodePlan>:
+def outcome_tree(
+  purpose: Purpose,
+  slot: Nat,
+  reversed: List<&2, M.ReferencePlan>
+) -> Maybe<&2, M.NodePlan>:
   match purpose:
     case Trees{}: Some{M.NodePlan{slot, List.reverse(&2, M.ReferencePlan, reversed)}}
     case _: None{}
 
-def save_outcome(purpose: Purpose, outcome: M.Outcome, reversed: List<&2, M.Outcome>) -> List<&2, M.Outcome>:
+def save_outcome(
+  purpose: Purpose,
+  outcome: M.Outcome,
+  reversed: List<&2, M.Outcome>
+) -> List<&2, M.Outcome>:
   match purpose:
     case Preflight{}: reversed
     case _: outcome <> reversed
 
 def finish_root(cursor: Cursor, reversed: List<&2, M.ReferencePlan>) -> Step:
   match cursor:
-    case Cursor{Global{catalog, +purpose, pending, outcomes, +request}, +root, _, _, _, failure, _, _}:
-      schedule(finish_operations(purpose),
-        RootNext{Global{catalog, purpose, pending,
-          save_outcome(purpose, M.Outcome{root, failure, outcome_tree(purpose, root, reversed)}, outcomes), request}}, request)
+    case Cursor{
+      Global{catalog, +purpose, pending, outcomes, +request},
+      +root,
+      _,
+      _,
+      _,
+      failure,
+      _,
+      _
+    }:
+      schedule(
+        finish_operations(purpose),
+        RootNext{
+          Global{
+            catalog,
+            purpose,
+            pending,
+            save_outcome(
+              purpose,
+              M.Outcome{root, failure, outcome_tree(purpose, root, reversed)},
+              outcomes
+            ),
+            request
+          }
+        },
+        request
+      )
 
 def finish_child(+cursor: Cursor, tree: Maybe<&2, M.NodePlan>, symbol: String) -> Step:
   match tree:
     case None{}: cursor_ops(cursor, finish_operations(cursor_purpose(cursor)))
-    case Some{node}: append_reference(cursor, M.Expanded{symbol, node}, finish_operations(cursor_purpose(cursor)))
+    case Some{node}: append_reference(
+      cursor,
+      M.Expanded{symbol, node},
+      finish_operations(cursor_purpose(cursor))
+    )
 
 def finish_frame(cursor: Cursor, frame: Frame, parents: List<&2, Frame>) -> Step:
   match cursor frame:
-    case Cursor{+global, root, name, expanded, referenced, failure, remaining, _} Frame{slot, _, reversed, None{}}:
-      finish_root(Cursor{global, root, name, expanded, referenced, failure, remaining, parents}, reversed)
-    case Cursor{+global, root, name, expanded, referenced, failure, remaining, _} Frame{+slot, _, reversed, Some{symbol}}:
+    case Cursor{+global, root, name, expanded, referenced, failure, remaining, _} Frame{
+      slot,
+      _,
+      reversed,
+      None{}
+    }:
+      finish_root(
+        Cursor{global, root, name, expanded, referenced, failure, remaining, parents},
+        reversed
+      )
+    case Cursor{+global, root, name, expanded, referenced, failure, remaining, _} Frame{
+      +slot,
+      _,
+      reversed,
+      Some{symbol}
+    }:
       finish_child(Cursor{global, root, name, expanded, referenced, failure, remaining, parents},
         outcome_tree(global_purpose(global), slot, reversed), symbol)
 
-def visit_pending(remaining: Nat, cursor: Cursor, reference: M.Reference, frame: Frame, parents: List<&2, Frame>) -> Step:
+def visit_pending(
+  remaining: Nat,
+  cursor: Cursor,
+  reference: M.Reference,
+  frame: Frame,
+  parents: List<&2, Frame>
+) -> Step:
   match remaining cursor:
     case 0n _: Exhausted{}
     case 1n+rest Cursor{global, root, name, expanded, referenced, failure, _, _}:
-      visit_reference(reference, Cursor{global, root, name, expanded, referenced, failure, rest, frame <> parents})
+      visit_reference(
+        reference,
+        Cursor{global, root, name, expanded, referenced, failure, rest, frame <> parents}
+      )
 
 def advance_cursor(cursor: Cursor) -> Step:
   match cursor:
-    case Cursor{global, root, name, expanded, referenced, failure, +remaining, Frame{slot, [], reversed, site} <> parents}:
-      finish_frame(Cursor{global, root, name, expanded, referenced, failure, remaining, []}, Frame{slot, [], reversed, site}, parents)
-    case Cursor{global, root, name, expanded, referenced, failure, +remaining, Frame{slot, head <> tail, reversed, site} <> parents}:
-      visit_pending(remaining, Cursor{global, root, name, expanded, referenced, failure, remaining, []}, head,
-        Frame{slot, tail, reversed, site}, parents)
+    case Cursor{
+      global,
+      root,
+      name,
+      expanded,
+      referenced,
+      failure,
+      +remaining,
+      Frame{slot, [], reversed, site} <> parents
+    }:
+      finish_frame(
+        Cursor{global, root, name, expanded, referenced, failure, remaining, []},
+        Frame{slot, [], reversed, site},
+        parents
+      )
+    case Cursor{
+      global,
+      root,
+      name,
+      expanded,
+      referenced,
+      failure,
+      +remaining,
+      Frame{slot, head <> tail, reversed, site} <> parents
+    }:
+      visit_pending(
+        remaining,
+        Cursor{global, root, name, expanded, referenced, failure, remaining, []},
+        head,
+        Frame{slot, tail, reversed, site},
+        parents
+      )
     case _: InvalidReply{}
 
 def start_root(remaining: Nat, +global: Global, declaration: M.Declaration) -> Step:
   match remaining declaration:
     case 0n _: Exhausted{}
     case 1n+rest M.Declaration{+slot, identity, name, references}:
-      cursor_ops(Cursor{global, slot, name, [identity], [], None{}, rest, [Frame{slot, references, [], None{}}]},
-        node_operations(global_purpose(global), slot))
+      cursor_ops(
+        Cursor{
+          global,
+          slot,
+          name,
+          [identity],
+          [],
+          None{},
+          rest,
+          [Frame{slot, references, [], None{}}]
+        },
+        node_operations(global_purpose(global), slot)
+      )
 
 def next_root(global: Global) -> Step:
   match global:
-    case Global{catalog, purpose, [], reversed, request}: finish_global(Global{catalog, purpose, [], reversed, request})
+    case Global{catalog, purpose, [], reversed, request}: finish_global(
+      Global{catalog, purpose, [], reversed, request}
+    )
     case Global{+catalog, purpose, +head <> tail, reversed, request}:
-      start_root(M.traversal_inventory(head, catalog), Global{catalog, purpose, tail, reversed, request}, head)
+      start_root(
+        M.traversal_inventory(head, catalog),
+        Global{catalog, purpose, tail, reversed, request},
+        head
+      )
 
 def initial(+catalog: M.Catalog, +purpose: Purpose) -> Step:
-  schedule(initial_operations(purpose), RootNext{Global{catalog, purpose, catalog_declarations(catalog), [], 0n}}, 0n)
+  schedule(
+    initial_operations(purpose),
+    RootNext{Global{catalog, purpose, catalog_declarations(catalog), [], 0n}},
+    0n
+  )
 
 def advance(step: Step) -> Step:
   match step:
