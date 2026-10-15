@@ -665,9 +665,7 @@ export function createPostPreparationProvider(
             response = {
               $: "Offered",
               accepted:
-                (yield* run(
-                  ledger.preparedOffer(command.outcome.ready, command.allowed)
-                )) === "preparedAdmitted"
+                (yield* run(ledger.preparedOffer(command.outcome.ready, command.allowed))) === "preparedAdmitted"
             }
             break
           case "ObservePreparation":

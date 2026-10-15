@@ -2446,16 +2446,28 @@ def retained_observation_resume(step: RetainedObservationStep,
   response: RetainedObservationResponse) -> RetainedObservationStep:
   match step response:
     case RetainedObservationAwait{RetainedReadReceipt{}} RetainedObservationFlag{value}:
-      Bool.pick(RetainedObservationStep, value,
-        RetainedObservationAwait{RetainedCheckEnabled{}}, RetainedObservationAwait{RetainedComplete{}})
+      Bool.pick(
+        RetainedObservationStep,
+        value,
+        RetainedObservationAwait{RetainedCheckEnabled{}},
+        RetainedObservationAwait{RetainedComplete{}}
+      )
     case RetainedObservationAwait{RetainedCheckEnabled{}} RetainedObservationFlag{value}:
-      Bool.pick(RetainedObservationStep, value,
-        RetainedObservationAwait{RetainedPrepareBase{}}, RetainedObservationAwait{RetainedComplete{}})
+      Bool.pick(
+        RetainedObservationStep,
+        value,
+        RetainedObservationAwait{RetainedPrepareBase{}},
+        RetainedObservationAwait{RetainedComplete{}}
+      )
     case RetainedObservationAwait{RetainedPrepareBase{}} RetainedObservationAck{}:
       RetainedObservationAwait{RetainedReadEvaluation{}}
     case RetainedObservationAwait{RetainedReadEvaluation{}} RetainedObservationFlag{value}:
-      Bool.pick(RetainedObservationStep, value,
-        RetainedObservationAwait{RetainedAttachEvaluation{}}, RetainedObservationAwait{RetainedOffer{}})
+      Bool.pick(
+        RetainedObservationStep,
+        value,
+        RetainedObservationAwait{RetainedAttachEvaluation{}},
+        RetainedObservationAwait{RetainedOffer{}}
+      )
     case RetainedObservationAwait{RetainedAttachEvaluation{}} RetainedObservationAck{}:
       RetainedObservationAwait{RetainedOffer{}}
     case RetainedObservationAwait{RetainedOffer{}} RetainedObservationAck{}:
@@ -2473,7 +2485,12 @@ def settle(remaining: Nat, step: Step) -> Maybe<&2, Step>:
         case Internal{state}: settle(rest, advance(state))
         case _: Some{step}
 
-def initial_settled(invocation: Nat, round_bound: Bool, outcomes: List<&2, Outcome>, incomplete: Bool) -> Maybe<&2, Step>:
+def initial_settled(
+  invocation: Nat,
+  round_bound: Bool,
+  outcomes: List<&2, Outcome>,
+  incomplete: Bool
+) -> Maybe<&2, Step>:
   settle(10000n, initial(invocation, round_bound, outcomes, incomplete))
 
 def resume_settled(step: Step, reply: Reply) -> Maybe<&2, Step>:

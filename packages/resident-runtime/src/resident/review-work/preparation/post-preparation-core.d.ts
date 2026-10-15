@@ -286,8 +286,13 @@ export type PlanObservationResponse =
   | Tagged<"PlanObservationFlag", { readonly value: boolean }>
 
 export type RetainedObservationOperation = Tagged<
-  "RetainedReadReceipt" | "RetainedCheckEnabled" | "RetainedPrepareBase" | "RetainedReadEvaluation" |
-  "RetainedAttachEvaluation" | "RetainedOffer" | "RetainedComplete"
+  | "RetainedReadReceipt"
+  | "RetainedCheckEnabled"
+  | "RetainedPrepareBase"
+  | "RetainedReadEvaluation"
+  | "RetainedAttachEvaluation"
+  | "RetainedOffer"
+  | "RetainedComplete"
 >
 export type RetainedObservationStep =
   | Tagged<"RetainedObservationAwait", { readonly operation: RetainedObservationOperation }>
@@ -431,7 +436,10 @@ declare const core: {
   cleanup_initial(mode: CleanupMode, facts: List<CleanupFact>): CleanupCursor
   cleanup_reply(cursor: CleanupCursor, success: boolean): CleanupCursor
   retained_observation_initial(): RetainedObservationStep
-  retained_observation_resume(step: RetainedObservationStep, response: RetainedObservationResponse): RetainedObservationStep
+  retained_observation_resume(
+    step: RetainedObservationStep,
+    response: RetainedObservationResponse
+  ): RetainedObservationStep
   initial_settled(invocation: bigint, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Maybe<Step>
   resume_settled(step: Step, reply: Reply): Maybe<Step>
   initial(invocation: bigint, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Step

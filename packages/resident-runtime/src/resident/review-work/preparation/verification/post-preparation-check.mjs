@@ -50,52 +50,110 @@ try {
     return none
   }
   const finishedState = {
-    $: "State", invocation: 1n, next: 0n, round_bound: true, incomplete: false,
-    delivery_refused: false, phase: { $: "NextUnit", planned: list([]), retained: list([]), slots: list([]) }
+    $: "State",
+    invocation: 1n,
+    next: 0n,
+    round_bound: true,
+    incomplete: false,
+    delivery_refused: false,
+    phase: { $: "NextUnit", planned: list([]), retained: list([]), slots: list([]) }
   }
-  for (const step of [{ $: "Internal", state: finishedState }, { $: "Finished" }, { $: "Rejected" },
-    { $: "Stopped", reason: { $: "Inactive" } }, core.initial(1n, true, list([]), false)]) {
+  for (const step of [
+    { $: "Internal", state: finishedState },
+    { $: "Finished" },
+    { $: "Rejected" },
+    { $: "Stopped", reason: { $: "Inactive" } },
+    core.initial(1n, true, list([]), false)
+  ]) {
     for (const fuel of [0, 1, 2, 10000]) {
       assert.deepEqual(core.settle(BigInt(fuel), step), oldPump(fuel, step))
       cases++
     }
   }
-  for (const ready of [false, true]) for (const fits of [false, true]) {
-    const outcome = { $: "Outcome", handle: 77n, ready, fits, reservation_bytes: 101n }
-    const state = { $: "State", invocation: 9n, next: 13n, round_bound: true,
-      incomplete: false, delivery_refused: false, phase: { $: "Begin", outcomes: list([]) } }
-    const admission = core.admission_next(state, list([outcome]), list([]))
-    const delivery = core.delivering_next(state, list([outcome]), list([]))
-    assert.equal(admission.request.command.allowed, true)
-    assert.equal(delivery.request.command.allowed, fits)
-    assert.equal(admission.request.id, 13n)
-    assert.equal(delivery.state.next, 14n)
-    assert.deepEqual(admission.state.phase, { $: "Admitting", outcome, rest: list([]), ready: list([]) })
-    assert.deepEqual(delivery.state.phase, { $: "Delivering", outcome, rest: list([]), accepted: list([]) })
-    cases++
-  }
-  for (const bound of [false, true]) for (const incomplete of [false, true]) {
-    const initial = core.initial(3n, bound, list(outcomes), incomplete)
-    assert.deepEqual(core.initial_settled(3n, bound, list(outcomes), incomplete), oldPump(10000, initial))
-    for (const response of [{ $: "Ack" }, { $: "Failed", token: 7n }]) {
-      const reply = { $: "Reply", invocation: 3n, id: initial.request.id, response }
-      assert.deepEqual(core.resume_settled(initial, reply), oldPump(10000, core.resume(initial, reply)))
+  for (const ready of [false, true])
+    for (const fits of [false, true]) {
+      const outcome = { $: "Outcome", handle: 77n, ready, fits, reservation_bytes: 101n }
+      const state = {
+        $: "State",
+        invocation: 9n,
+        next: 13n,
+        round_bound: true,
+        incomplete: false,
+        delivery_refused: false,
+        phase: { $: "Begin", outcomes: list([]) }
+      }
+      const admission = core.admission_next(state, list([outcome]), list([]))
+      const delivery = core.delivering_next(state, list([outcome]), list([]))
+      assert.equal(admission.request.command.allowed, true)
+      assert.equal(delivery.request.command.allowed, fits)
+      assert.equal(admission.request.id, 13n)
+      assert.equal(delivery.state.next, 14n)
+      assert.deepEqual(admission.state.phase, { $: "Admitting", outcome, rest: list([]), ready: list([]) })
+      assert.deepEqual(delivery.state.phase, { $: "Delivering", outcome, rest: list([]), accepted: list([]) })
       cases++
     }
+  for (const bound of [false, true])
+    for (const incomplete of [false, true]) {
+      const initial = core.initial(3n, bound, list(outcomes), incomplete)
+      assert.deepEqual(core.initial_settled(3n, bound, list(outcomes), incomplete), oldPump(10000, initial))
+      for (const response of [{ $: "Ack" }, { $: "Failed", token: 7n }]) {
+        const reply = { $: "Reply", invocation: 3n, id: initial.request.id, response }
+        assert.deepEqual(core.resume_settled(initial, reply), oldPump(10000, core.resume(initial, reply)))
+        cases++
+      }
+    }
+  const flagOperations = ["RetainedReadReceipt", "RetainedCheckEnabled", "RetainedReadEvaluation"]
+  const ackOperations = ["RetainedPrepareBase", "RetainedAttachEvaluation", "RetainedOffer", "RetainedComplete"]
+  for (const operation of flagOperations) {
+    assert.deepEqual(
+      core.retained_observation_resume(
+        { $: "RetainedObservationAwait", operation: { $: operation } },
+        { $: "RetainedObservationAck" }
+      ),
+      { $: "RetainedObservationRejected" }
+    )
+    cases++
   }
+  for (const operation of ackOperations)
+    for (const value of [false, true]) {
+      assert.deepEqual(
+        core.retained_observation_resume(
+          { $: "RetainedObservationAwait", operation: { $: operation } },
+          { $: "RetainedObservationFlag", value }
+        ),
+        { $: "RetainedObservationRejected" }
+      )
+      cases++
+    }
+  for (const terminal of ["RetainedObservationDone", "RetainedObservationRejected"])
+    for (const response of [
+      { $: "RetainedObservationAck" },
+      { $: "RetainedObservationFlag", value: false },
+      { $: "RetainedObservationFlag", value: true }
+    ]) {
+      assert.deepEqual(core.retained_observation_resume({ $: terminal }, response), {
+        $: "RetainedObservationRejected"
+      })
+      cases++
+    }
   const nativeRetainedObservation = (tail, readInspection) => {
     const value = tail.unit
     if (value.inspectionReceipt !== undefined && readInspection().isEnabled(value.inspectionReceipt.scope.root))
       readInspection().offer(
         value.inspectionReceipt.scope,
-        { ...value.inspectionReceipt.correlation,
-          ...(value.inspectionEvaluationId === undefined ? {} : { evaluationId: value.inspectionEvaluationId }) },
+        {
+          ...value.inspectionReceipt.correlation,
+          ...(value.inspectionEvaluationId === undefined ? {} : { evaluationId: value.inspectionEvaluationId })
+        },
         captureInspectionFate(tail.evaluation.findings, "retained", "pending-advice", tail.receipt.capability.id)
       )
     value.completed = true
   }
   const observationFixture = (options, faultAt = 0, thrown) => {
-    const trace = [], memo = new WeakMap(), offers = [], controller = new AbortController()
+    const trace = [],
+      memo = new WeakMap(),
+      offers = [],
+      controller = new AbortController()
     const mark = (event) => {
       trace.push(event)
       if (trace.length === faultAt) {
@@ -111,7 +169,10 @@ try {
           mark(path + ".get:" + String(field))
           return wrap(Reflect.get(target, field, receiver), path + "." + String(field))
         },
-        ownKeys(target) { mark(path + ".keys"); return Reflect.ownKeys(target) },
+        ownKeys(target) {
+          mark(path + ".keys")
+          return Reflect.ownKeys(target)
+        },
         getOwnPropertyDescriptor(target, field) {
           mark(path + ".descriptor:" + String(field))
           return Reflect.getOwnPropertyDescriptor(target, field)
@@ -127,68 +188,88 @@ try {
     const marker = Symbol.for("post-observation-marker")
     const correlation = { stale: "kept", evaluationId: "old", [marker]: "symbol" }
     Object.defineProperty(correlation, "__proto__", { value: "data", enumerable: true })
-    const unit = { ...(options.receipt ? { inspectionReceipt: {
-      scope: { root: "/repo" }, correlation
-    } } : {}), ...(options.evaluation ? { inspectionEvaluationId: "evaluation" } : {}) }
+    const unit = {
+      ...(options.receipt ? { inspectionReceipt: { scope: { root: "/repo" }, correlation } } : {}),
+      ...(options.evaluation ? { inspectionEvaluationId: "evaluation" } : {})
+    }
     const tail = wrap({ unit, evaluation: { findings: [] }, receipt: { capability: { id: "advice" } } }, "tail")
     const recorder = {
-      isEnabled(root) { mark("isEnabled:" + root); return options.enabled },
+      isEnabled(root) {
+        mark("isEnabled:" + root)
+        return options.enabled
+      },
       get offer() {
         mark("offerMethod")
         if (options.noncallable) return undefined
-        return function(scope, metadata, fate) {
+        return function (scope, metadata, fate) {
           mark("offer")
           assert.equal(this, recorder)
           offers.push({ scope, metadata, fate })
         }
       }
     }
-    const readInspection = () => { mark("inspection"); return recorder }
+    const readInspection = () => {
+      mark("inspection")
+      return recorder
+    }
     return { tail, readInspection, trace, offers, unit, controller }
   }
   const runObservation = (implementation, options, faultAt = 0, thrown) => {
     const fixture = observationFixture(options, faultAt, thrown)
-    let error, failed = false
-    try { implementation(fixture.tail, fixture.readInspection) } catch (caught) { error = caught; failed = true }
-    return { trace: fixture.trace.slice(), completed: fixture.unit.completed,
-      offers: fixture.offers, failed, error, aborted: fixture.controller.signal.aborted }
-  }
-  for (const receipt of [false, true]) for (const enabled of [false, true])
-    for (const evaluation of [false, true]) for (const noncallable of [false, true]) {
-      const options = { receipt, enabled, evaluation, noncallable }
-      const candidate = (tail, inspection) => observeRetainedAdvice(core, tail, inspection)
-      const original = runObservation(nativeRetainedObservation, options)
-      const current = runObservation(candidate, options)
-      assert.deepEqual(current.trace, original.trace)
-      assert.equal(current.completed, original.completed)
-      assert.equal(current.failed, original.failed)
-      if (original.failed) assert.equal(current.error.constructor, original.error.constructor)
-      else assert.deepEqual(current.offers, original.offers)
-      cases++
-      for (let faultAt = 1; faultAt <= original.trace.length; faultAt++)
-        for (const thrown of [undefined, null, false, 0, "", Symbol("raw"), {}]) {
-          const expected = runObservation(nativeRetainedObservation, options, faultAt, thrown)
-          const actual = runObservation(candidate, options, faultAt, thrown)
-          assert.deepEqual(actual.trace, expected.trace)
-          assert.equal(actual.failed, true)
-          assert.equal(actual.error, thrown)
-          assert.equal(actual.completed, expected.completed)
-          assert.equal(actual.aborted, true)
-          cases++
-        }
+    let error,
+      failed = false
+    try {
+      implementation(fixture.tail, fixture.readInspection)
+    } catch (caught) {
+      error = caught
+      failed = true
     }
+    return {
+      trace: fixture.trace.slice(),
+      completed: fixture.unit.completed,
+      offers: fixture.offers,
+      failed,
+      error,
+      aborted: fixture.controller.signal.aborted
+    }
+  }
+  for (const receipt of [false, true])
+    for (const enabled of [false, true])
+      for (const evaluation of [false, true])
+        for (const noncallable of [false, true]) {
+          const options = { receipt, enabled, evaluation, noncallable }
+          const candidate = (tail, inspection) => observeRetainedAdvice(core, tail, inspection)
+          const original = runObservation(nativeRetainedObservation, options)
+          const current = runObservation(candidate, options)
+          assert.deepEqual(current.trace, original.trace)
+          assert.equal(current.completed, original.completed)
+          assert.equal(current.failed, original.failed)
+          if (original.failed) assert.equal(current.error.constructor, original.error.constructor)
+          else assert.deepEqual(current.offers, original.offers)
+          cases++
+          for (let faultAt = 1; faultAt <= original.trace.length; faultAt++)
+            for (const thrown of [undefined, null, false, 0, "", Symbol("raw"), {}]) {
+              const expected = runObservation(nativeRetainedObservation, options, faultAt, thrown)
+              const actual = runObservation(candidate, options, faultAt, thrown)
+              assert.deepEqual(actual.trace, expected.trace)
+              assert.equal(actual.failed, true)
+              assert.equal(actual.error, thrown)
+              assert.equal(actual.completed, expected.completed)
+              assert.equal(actual.aborted, true)
+              cases++
+            }
+        }
   function run(options = {}) {
-    let step = settledValue(core.initial_settled(1n, options.bound ?? true, list(options.outcomes ?? outcomes), options.incomplete ?? false)),
+    let step = settledValue(
+        core.initial_settled(1n, options.bound ?? true, list(options.outcomes ?? outcomes), options.incomplete ?? false)
+      ),
       ordinal = 0
     const commands = [],
       cleanup = [],
       enqueued = [],
       settled = []
     for (let fuel = 0; fuel < 1000; fuel++) {
-      if (step.$ === "Internal") {
-        step = core.advance(step.state)
-        continue
-      }
+      if (step.$ === "Internal") throw new Error("Settled Post entry returned an internal continuation")
       if (step.$ !== "Await") return { step, commands, cleanup, enqueued, settled }
       const request = step.request,
         command = request.command
@@ -205,10 +286,7 @@ try {
           response = { $: "Active", value: options.inactiveAt !== ordinal }
           break
         case "Offer":
-          response = {
-            $: "Offered",
-            accepted: command.outcome.ready && command.allowed
-          }
+          response = { $: "Offered", accepted: command.outcome.ready && command.allowed }
           break
         case "LookupReuse": {
           const index = Number(command.outcome.handle) - 1
@@ -1010,7 +1088,7 @@ try {
       cases,
       requests,
       scope:
-        "finite source-free whole postflow draft, native plan/inspection ordering and lazy sparse/UTF16 first-match correspondence, four original release sequences across native fact axes and failure before/after every primitive, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not physical integration or universal correspondence"
+        "finite source-free whole postflow candidate; actual retained-observation interpreter getter/spread/callee/receiver and raw-fault chronology, exact bounded settlement and entrypoint coupling; native plan/inspection ordering and lazy sparse/UTF16 first-match correspondence, four original release sequences across native fact axes and failure before/after every primitive, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not full resident integration or universal correspondence"
     })
   )
 } finally {

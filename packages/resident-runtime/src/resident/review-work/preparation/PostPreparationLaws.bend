@@ -1,7 +1,7 @@
 import Base
 import ./PostPreparation.bend as Post
 
-# Draft exact laws for the connected remaining Post capability; review before proof.
+# Reviewed exact laws for the connected remaining Post capability.
 # Native primitive effects and mutable resource receipts remain outside this domain.
 def reference_fits(outcome: Post.Outcome) -> Bool:
   match outcome:

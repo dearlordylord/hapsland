@@ -46,7 +46,10 @@ export function observeRetainedAdvice(
         break
       case "RetainedAttachEvaluation":
         Object.defineProperty(metadata, "evaluationId", {
-          value: value.inspectionEvaluationId, enumerable: true, writable: true, configurable: true
+          value: value.inspectionEvaluationId,
+          enumerable: true,
+          writable: true,
+          configurable: true
         })
         break
       case "RetainedOffer":
