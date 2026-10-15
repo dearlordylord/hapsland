@@ -226,13 +226,13 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary `c0f265f5` analyzer/build: 0.7198 / 0.8222. Whole current-native
+- Primary `c0f265f5` analyzer/build: 0.6962 / 0.8015. Whole current-native
   Preparation on `defa39e3` **fails parity at 1.3156**: equal outputs, 17 frozen pairs,
   30 local workspaces.
   Six-mode JSON/fast/focused pass.
 - Attachment facts/consumers pass verdict/format. Full TT is 7,445,671 bytes;
   original law/premises/binding/main remain byte-identical. Full verdict times out.
-  Per-book renderer cache preserves TT but shows no emission gain; stopped.
+  Renderer/pending-key trials preserve TT; no reliable gain. Both stopped.
 
 ### Check and source owners
 
