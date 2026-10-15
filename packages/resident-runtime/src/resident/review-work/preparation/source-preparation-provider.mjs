@@ -40,7 +40,7 @@ export function createSourcePreparationProvider(
   context,
   { owner, bridge, driver, candidates, buildPreparationSession, analyticsEnabled = false, entry = "full" }
 ) {
-  const handles = new Map(candidates.map((candidate, index) => [(Number(BigInt(index + 1))), candidate]))
+  const handles = new Map(candidates.map((candidate, index) => [Number(BigInt(index + 1)), candidate]))
   /** @type {Map<number, PreparationReceipt>} */
   const preparations = new Map()
   /** @type {Map<number, unknown>} */
@@ -372,7 +372,7 @@ export function createSourcePreparationProvider(
             } else {
               response = {
                 $: "WorkspaceRefused",
-                requested_bytes: (Number(BigInt(requestedBytes))),
+                requested_bytes: Number(BigInt(requestedBytes)),
                 reason:
                   result.status === "capacity-refused"
                     ? { $: "CapacityRefused" }
@@ -419,7 +419,7 @@ export function createSourcePreparationProvider(
                       partition: sourceScope.partition,
                       lifetime: sourceScope.lifetime,
                       round: sourceScope.round,
-                      preparation: (Number(BigInt(receipt.preparation.operation)))
+                      preparation: Number(BigInt(receipt.preparation.operation))
                     },
                     parent
                   )
@@ -496,7 +496,7 @@ export function createSourcePreparationProvider(
                 owner,
                 driver,
                 sourceInvocation: invocation,
-                operation: (Number(BigInt(receipt.preparation.operation))),
+                operation: Number(BigInt(receipt.preparation.operation)),
                 capability: receipt.preparation.reservation,
                 handoff,
                 parent
@@ -590,7 +590,9 @@ export function createSourcePreparationProvider(
             break
           case "ReadExpectedActivity": {
             expected.clear()
-            context.expectedActivityUnits.forEach((identity, index) => expected.set((Number(BigInt(index + 1))), identity))
+            context.expectedActivityUnits.forEach((identity, index) =>
+              expected.set(Number(BigInt(index + 1)), identity)
+            )
             response = { $: "ExpectedActivity", identities: list([...expected.keys()]) }
             break
           }
@@ -646,7 +648,7 @@ export function createSourcePreparationProvider(
       } catch (error) {
         primaryCause ??= failureCause ?? Cause.die(error)
         primaryFailure ??= error
-        const token = (Number(BigInt(errors.size + 1)))
+        const token = Number(BigInt(errors.size + 1))
         errors.set(token, error)
         const cause = failureCause ?? (failureKind === "Defect" ? Cause.die(error) : Cause.fail(error))
         const combinedCause =

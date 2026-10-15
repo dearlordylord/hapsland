@@ -85,13 +85,13 @@ async function run(mode, grouped, failure) {
     now() {
       nativeStarts++
       trace.push("native")
-      driver.cancel((invocation))
+      driver.cancel(invocation)
       throw failure
     },
     diagnostic() {
       nativeStarts++
       trace.push("native")
-      driver.cancel((invocation))
+      driver.cancel(invocation)
     }
   })
   const session = {
@@ -101,9 +101,7 @@ async function run(mode, grouped, failure) {
       raw.close()
     }
   }
-  const result = await Effect.runPromise(
-    driver.driveEffect(session, { $: "Types.ResolverInput", invocation: (invocation) })
-  )
+  const result = await Effect.runPromise(driver.driveEffect(session, { $: "Types.ResolverInput", invocation }))
   assert.equal(closes, 1)
   assert.equal(nativeStarts, 1)
   assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })

@@ -188,7 +188,7 @@ try {
       expectedError = { name: error.name, message: error.message }
     }
     const actualBindings = makeBindings()
-    const invocation = { $: "Invocation", owner: (cases + 1), command: 3 }
+    const invocation = { $: "Invocation", owner: cases + 1, command: 3 }
     let step = core.initial(
       invocation,
       {
@@ -350,8 +350,7 @@ try {
         const commands = unlist(step.commands)
         assert.ok(commands.length > 0)
         assert.equal(commands[0].request, request, "batch header is first pending outer request")
-        for (let index = 0; index < commands.length; index++)
-          assert.equal(commands[index].request, request + (index))
+        for (let index = 0; index < commands.length; index++) assert.equal(commands[index].request, request + index)
         const observations = unlist(response.observations)
         const malformed = [observations.slice(1), [...observations, observations[0]]]
         for (const index of new Set([0, Math.floor(observations.length / 2), observations.length - 1])) {
@@ -378,8 +377,8 @@ try {
         const digest = core.advance(after.phase)
         assert.equal(label(digest), "InputRequest")
         assert.equal(label(digest.step), "Digest")
-        assert.equal(digest.unit.state.request, request + (commands.length))
-        assert.equal(digest.step.state.request, commands[0].command.request + (commands.length))
+        assert.equal(digest.unit.state.request, request + commands.length)
+        assert.equal(digest.step.state.request, commands[0].command.request + commands.length)
       }
       for (const wrong of [
         { ...reply, invocation: { ...invocation, command: invocation.command - 1 } },
@@ -526,11 +525,7 @@ try {
         }
       }
       try {
-        const result = await driver.drive(
-          session,
-          { invocation: (invocation), finalization: input, execution },
-          execution
-        )
+        const result = await driver.drive(session, { invocation, finalization: input, execution }, execution)
         if ("failure" in result) throw new TransportFailure("aborted")
         assert.ok("finalization" in result)
         return result.finalization

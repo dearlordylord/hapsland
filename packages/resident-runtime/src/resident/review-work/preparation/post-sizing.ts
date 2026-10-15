@@ -113,7 +113,7 @@ export const measurePostSizing = (
         values.set(step.target, [])
         reply = {
           $: "SizingLength",
-          length: (Number(BigInt(Math.min(Math.max(Math.trunc(+rules.length) || 0, 0), Number.MAX_SAFE_INTEGER))))
+          length: Number(BigInt(Math.min(Math.max(Math.trunc(+rules.length) || 0, 0), Number.MAX_SAFE_INTEGER)))
         }
         break
       case "SizingPresence":
@@ -160,12 +160,14 @@ export const postOutcomeReservationBytes = (
   observation: DirectObservation,
   dispatch: ResidentDispatchContext
 ): number =>
-  Number(BigInt(
-    measurePostSizing(
-      { $: "ReservationSizing" },
-      () => outcomePrepared(outcome),
-      observation,
-      dispatch,
-      outcome.status === "ready"
-    ) as number
-  ))
+  Number(
+    BigInt(
+      measurePostSizing(
+        { $: "ReservationSizing" },
+        () => outcomePrepared(outcome),
+        observation,
+        dispatch,
+        outcome.status === "ready"
+      ) as number
+    )
+  )

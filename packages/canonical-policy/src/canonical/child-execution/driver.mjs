@@ -659,7 +659,9 @@ export function createChildExecutionDriver({
               const replyId = save(invocation, { kind: "reply", value: payload })
               try {
                 hooks.beforeCompletion?.({ invocation, lease: leaseId, request: lease.request, driver })
-                applyInInvocation(invoke("provider_completed", invocation, leaseId, Number(BigInt(lease.request.id)), replyId))
+                applyInInvocation(
+                  invoke("provider_completed", invocation, leaseId, Number(BigInt(lease.request.id)), replyId)
+                )
               } catch (error) {
                 taskFailure = takeFailure(error)
                 try {

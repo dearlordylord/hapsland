@@ -179,7 +179,7 @@ try {
             wire(unit)
           )
           assert.equal(label(metadata), "EvidenceReady")
-          const invocation = (cases + 1)
+          const invocation = cases + 1
           let rules = modules.RuleFinalization.initial(invocation, list([productValue(rule)]), {
             $: "Context",
             path: maybe(path),

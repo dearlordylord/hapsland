@@ -2,14 +2,14 @@ import type * as Owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { projectTrustedCanonical } from "../canonical-boundary.ts"
 // Canonical outputs retain numeric Nat; only imported constructor tags relocate.
 export type HostTransport<Value> = Value extends object
-    ? {
-        readonly [Key in keyof Value]: Key extends "$"
-          ? Value[Key] extends `../${infer Tag}`
-            ? Tag
-            : Value[Key]
-          : HostTransport<Value[Key]>
-      }
-    : Value
+  ? {
+      readonly [Key in keyof Value]: Key extends "$"
+        ? Value[Key] extends `../${infer Tag}`
+          ? Tag
+          : Value[Key]
+        : HostTransport<Value[Key]>
+    }
+  : Value
 
 // The owner ABI preserves numeric Nat and relocates imported constructor tags.
 const prefix = "../"

@@ -27,8 +27,8 @@ try {
   const maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
   const position = (p) => ({
     $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Position",
-    line: (p.line),
-    column: (p.column)
+    line: p.line,
+    column: p.column
   })
   const location = (p) => ({
     $: "../../../../native-observation/src/direct-event/edit-attribution/RootAttribution.Location",
@@ -95,7 +95,7 @@ try {
                     : contract === FUNCTION_INPUT_CONTRACT
                       ? { $: "FunctionContract" }
                       : { $: "OtherContract", name: contract },
-                line: maybe(line === undefined ? undefined : (line)),
+                line: maybe(line === undefined ? undefined : line),
                 frozen: maybe(frozen === undefined ? undefined : list([...frozen])),
                 verified: maybe(
                   verified === undefined

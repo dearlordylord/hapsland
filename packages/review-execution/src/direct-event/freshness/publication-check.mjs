@@ -122,7 +122,7 @@ const consume = async (observation, evaluations, context, engines, authority) =>
       case "InputEqual":
         return { $: "Flag", value: sameInput(values.get(q.left), values.get(q.right)) }
       case "Length":
-        return { $: "Count", value: (values.get(q.array).length) }
+        return { $: "Count", value: values.get(q.array).length }
       case "Element": {
         const array = values.get(q.array)
         return q.index in array ? { $: "Handle", value: store(array[q.index]) } : { $: "Missing" }

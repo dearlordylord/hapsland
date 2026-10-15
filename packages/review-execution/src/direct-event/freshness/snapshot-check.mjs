@@ -77,7 +77,7 @@ if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
           response = { $: "Handle", value: store(read(query.value)) }
           return response
         case "Length":
-          response = { $: "Count", value: (handles.get(query.array).length) }
+          response = { $: "Count", value: handles.get(query.array).length }
           return response
         case "Element": {
           const array = handles.get(query.array)

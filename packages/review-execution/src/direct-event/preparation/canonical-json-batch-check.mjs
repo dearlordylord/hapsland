@@ -24,7 +24,7 @@ const referenceSelect = (parts, invocation, first) => {
   const commands = []
   for (const part of parts)
     if (label(part) === "PrimitivePiece")
-      commands.push({ $: "Command", invocation, request: first + (commands.length), primitive: part.value })
+      commands.push({ $: "Command", invocation, request: first + commands.length, primitive: part.value })
   return commands
 }
 const referenceBind = (parts, tokens) => {
@@ -90,7 +90,7 @@ try {
           const scheduled = unlist(batch.schedule(list(commands), outer))
           assert.deepEqual(
             scheduled.map((value) => value.request),
-            commands.map((_, index) => outer + (index))
+            commands.map((_, index) => outer + index)
           )
           sameCommands(
             scheduled.map((value) => value.command),
@@ -141,13 +141,13 @@ try {
       const prefix = parts.slice(0, split),
         suffix = parts.slice(split)
       const left = unlist(batch.select(list(prefix), 17, 29))
-      const right = unlist(batch.select(list(suffix), 17, 29 + (left.length)))
+      const right = unlist(batch.select(list(suffix), 17, 29 + left.length))
       sameCommands(unlist(batch.select(list(parts), 17, 29)), [...left, ...right])
       const commands = [...left, ...right]
       for (let index = 0; index <= commands.length; index++) {
         assert.deepEqual(unlist(batch.schedule(list(commands), 41)), [
           ...unlist(batch.schedule(list(commands.slice(0, index)), 41)),
-          ...unlist(batch.schedule(list(commands.slice(index)), 41 + (index)))
+          ...unlist(batch.schedule(list(commands.slice(index)), 41 + index))
         ])
       }
     }

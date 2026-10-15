@@ -215,7 +215,7 @@ try {
   }
   const checkPump = (step) => {
     for (const fuel of [0, 1, 2, 9999, 10000]) {
-      assert.deepEqual(machine.settle((fuel), step), originalPump(step, fuel))
+      assert.deepEqual(machine.settle(fuel, step), originalPump(step, fuel))
       pumpComparisons++
     }
   }
@@ -288,7 +288,7 @@ try {
           const capture = {
             $: "Capture",
             path: command.path,
-            handle: (captures.length + 1),
+            handle: captures.length + 1,
             text: "x",
             content_hash: "hash",
             bytes: 1

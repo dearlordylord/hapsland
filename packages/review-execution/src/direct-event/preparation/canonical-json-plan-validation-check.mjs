@@ -33,7 +33,7 @@ const reference = (value) => {
       ]
     case "ProductArray": {
       const children = unlist(value.items)
-      return [...children.flatMap(reference), { $: "CanonicalJsonPlan.ArrayOperation", arity: (children.length) }]
+      return [...children.flatMap(reference), { $: "CanonicalJsonPlan.ArrayOperation", arity: children.length }]
     }
     case "ProductObject": {
       const fields = unlist(value.fields)

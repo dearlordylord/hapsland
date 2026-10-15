@@ -123,7 +123,8 @@ export function createPostPreparationProvider(
   /** @type {Map<number, number>} */
   const revisionReservations = new Map()
   /** @param {number} handle */
-  const transferredReservation = (handle) => [...transferred].some((value) => (Number(BigInt(value.reservation.id))) === handle)
+  const transferredReservation = (handle) =>
+    [...transferred].some((value) => Number(BigInt(value.reservation.id)) === handle)
   /** @param {number} handle */
   const transferredAcquisition = (handle) => {
     const reservation = revisionReservations.get(handle)
@@ -176,7 +177,7 @@ export function createPostPreparationProvider(
         throw new Error("Invalid main cleanup fact request")
     }
   }
-  const outcomes = new Map(prepared.outcomes.map((outcome, index) => [(Number(BigInt(index + 1))), outcome]))
+  const outcomes = new Map(prepared.outcomes.map((outcome, index) => [Number(BigInt(index + 1)), outcome]))
   /** @type {import("./post-preparation-core.js").Outcome[]} */
   const facts = [...outcomes].map(([handle, outcome]) => ({
     $: "Outcome",
@@ -367,7 +368,7 @@ export function createPostPreparationProvider(
           case "CleanupRevisions":
             return [...acquiredRevisions.keys()].map((handle) => cleanupFact({ $: "ReleaseCleanupRevision", handle }))
           case "CleanupClaims":
-            claimHandles = new Map([...ownedClaims].map((key, index) => [(Number(BigInt(index + 1))), key]))
+            claimHandles = new Map([...ownedClaims].map((key, index) => [Number(BigInt(index + 1)), key]))
             return [...claimHandles].map(([handle, key]) => ({
               $: "CleanupClaim",
               handle,
@@ -522,7 +523,7 @@ export function createPostPreparationProvider(
       /** @type {import("./post-preparation-core.js").Response} */
       let response = { $: "Ack" }
       const acquisitionHandle = ["RegisterClear", "RegisterRevision"].includes(command.$)
-        ? (Number(BigInt(revisions.size + 1)))
+        ? Number(BigInt(revisions.size + 1))
         : undefined
       const cleanup = [
         "Cleanup",
@@ -556,7 +557,7 @@ export function createPostPreparationProvider(
             )
               throw new Error("Invalid reservation receipt")
             reservations.set(
-              (Number(BigInt(reservation.id))),
+              Number(BigInt(reservation.id)),
               /** @type {import("../../state/capacity/model.ts").CapacityReservation} */ (reservation)
             )
           }
@@ -754,7 +755,7 @@ export function createPostPreparationProvider(
             response = {
               $: "CachedFacts",
               evaluation: command.item.key,
-              findings: (Number(BigInt(cached.evaluation.findings.length)))
+              findings: Number(BigInt(cached.evaluation.findings.length))
             }
             break
           }
@@ -762,7 +763,7 @@ export function createPostPreparationProvider(
             const planned = item(command.item),
               owner = yield* run(context.deps.residentReuse.pending(planned.evaluationKey))
             if (owner === undefined) throw new Error("canonical reuse route lacks pending evaluation")
-            const handle = (Number(BigInt(pendingOwners.size + 1)))
+            const handle = Number(BigInt(pendingOwners.size + 1))
             pendingOwners.set(handle, { key: planned.evaluationKey, owner })
             response = { $: "PendingOwner", owner: handle }
             break
@@ -918,9 +919,9 @@ export function createPostPreparationProvider(
               allocations: list(
                 allocations.map((allocation) => {
                   if (allocation === undefined) return none
-                  const handle = (Number(BigInt(allocation.reservation.id)))
+                  const handle = Number(BigInt(allocation.reservation.id))
                   reservations.set(handle, allocation.reservation)
-                  return some({ $: "Allocation", operation: (Number(BigInt(allocation.operation))), reservation: handle })
+                  return some({ $: "Allocation", operation: Number(BigInt(allocation.operation)), reservation: handle })
                 })
               )
             }
@@ -951,7 +952,7 @@ export function createPostPreparationProvider(
               (advice) => advice.evaluationKey === item(command.item).evaluationKey
             )
             const existing = selected.found ? selected.value : undefined
-            const handle = (Number(BigInt(adviceOwners.size + 1)))
+            const handle = Number(BigInt(adviceOwners.size + 1))
             if (existing !== undefined) adviceOwners.set(handle, existing)
             response = { $: "AdviceOwner", owner: existing === undefined ? none : some(handle) }
             break
@@ -960,7 +961,7 @@ export function createPostPreparationProvider(
             const existing = adviceOwners.get(command.advice)
             if (!existing) throw new Error("Unknown advice owner")
             const publication = yield* run(ledger.advice.publish(existing)),
-              handle = (Number(BigInt(publications.size + 1)))
+              handle = Number(BigInt(publications.size + 1))
             publications.set(handle, publication)
             response = { $: "Published", publication: handle }
             break
@@ -977,14 +978,14 @@ export function createPostPreparationProvider(
             if (!existing) throw new Error("Unknown advice owner")
             response = {
               $: "FindingCount",
-              findings: (Number(BigInt((yield* run(ledger.advice.current(existing))).findings.length)))
+              findings: Number(BigInt((yield* run(ledger.advice.current(existing))).findings.length))
             }
             break
           }
           case "ReadJoinedPending": {
             const planned = item(command.item),
               owner = yield* run(context.deps.residentReuse.pending(planned.evaluationKey)),
-              handle = (Number(BigInt(pendingOwners.size + 1)))
+              handle = Number(BigInt(pendingOwners.size + 1))
             if (owner !== undefined) pendingOwners.set(handle, { key: planned.evaluationKey, owner })
             response = { $: "JoinOwner", owner: owner === undefined ? none : some(handle) }
             break
@@ -1075,7 +1076,7 @@ export function createPostPreparationProvider(
                 break
               }
             }
-            response = { $: "Work", token: work === undefined ? none : some((Number(BigInt(work)))) }
+            response = { $: "Work", token: work === undefined ? none : some(Number(BigInt(work))) }
             break
           }
           case "ObserveUnit":
@@ -1270,7 +1271,7 @@ export function createPostPreparationProvider(
               (value) => value.evaluationKey === item(command.slot.item).evaluationKey
             )
             const existing = selected.found ? selected.value : undefined
-            const handle = (Number(BigInt(adviceOwners.size + 1)))
+            const handle = Number(BigInt(adviceOwners.size + 1))
             if (existing) adviceOwners.set(handle, existing)
             response = { $: "AdviceOwner", owner: existing === undefined ? none : some(handle) }
             break
@@ -1425,7 +1426,7 @@ export function createPostPreparationProvider(
         if (primaryFailure === undefined) primaryCause = cause
         else if (cleanup) primaryCause = primaryCause === undefined ? cause : Cause.combine(primaryCause, cause)
         primaryFailure ??= error
-        const token = (Number(BigInt(errors.size + 1)))
+        const token = Number(BigInt(errors.size + 1))
         errors.set(token, error)
         errorCauses.set(token, cause)
         response = { $: failureKind, token }

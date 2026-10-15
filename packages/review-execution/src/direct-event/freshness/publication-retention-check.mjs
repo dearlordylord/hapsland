@@ -116,7 +116,7 @@ const consume = async (evaluations, current, authority) => {
           response = { $: "Flag", value: Array.isArray(handles.get(q.value)) }
           break
         case "Length":
-          response = { $: "Count", value: (handles.get(q.array).length) }
+          response = { $: "Count", value: handles.get(q.array).length }
           break
         case "Element": {
           const array = handles.get(q.array)
