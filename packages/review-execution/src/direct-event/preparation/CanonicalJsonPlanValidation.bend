@@ -11,13 +11,9 @@ def bits_equal(left: Value.Binary64, right: Value.Binary64) -> Bool:
     case Value.Binary64{a, b} Value.Binary64{c, d}:
       Bool.and(U32.is_eq(a, c), U32.is_eq(b, d))
 
-# Equality needs no reconstructed copy of the two discarded strings.
+# Standard Base equality preserves the exact text/key semantics across backends.
 def equal_go(left: String, right: String, same: Bool) -> Bool:
-  match left right same:
-    case SNil{} SNil{} True{}: True{}
-    case SCon{a, left} SCon{b, right} True{}:
-      equal_go(left, right, Char.is_eq(a, b))
-    case _ _ _: False{}
+  Bool.and(same, String.eq(left, right))
 
 def primitive_matches(primitive: Json.Primitive, expected: Value.ProductValue) -> Bool:
   match primitive expected:

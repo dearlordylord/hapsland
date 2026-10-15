@@ -13,55 +13,9 @@ import ./CanonicalJsonPlanValidation.bend as Validation
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as Value
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/INTERPRETER_STRING_FACTS.bend as Strings
 
-# The native validator consumer falsified this exact strengthened equality before binding.
-def equal_cmp_step(
-  +x: U32,
-  +y: U32,
-  +left: String,
-  +right: String,
-  +comparison: Cmp,
-  ih: {
-    Validation.equal_go(left, right, Cmp.is_eq(comparison))
-    == Bool.and(Cmp.is_eq(comparison), String.eq(left, right))
-    : Bool
-  }
-) -> {Validation.equal_go(left, right, Cmp.is_eq(comparison))
-    == Cmp.is_eq(Pair.snd(String & String, Cmp,
-      String.cmp.fin(left, right, ((Chr{x}, Chr{y}), comparison)))) : Bool}:
-  match comparison:
-    case LT{}: ih
-    case GT{}: ih
-    case EQ{}:
-      Equal.trans(
-        Bool,
-        Validation.equal_go(left, right, True{}),
-        String.eq(left, right),
-        Cmp.is_eq(
-          Pair.snd(String & String, Cmp, String.cmp.rec(Chr{x}, Chr{y}, String.cmp(left, right)))
-        ),
-        ih,
-        Equal.sym(
-          Bool,
-          Cmp.is_eq(
-            Pair.snd(String & String, Cmp, String.cmp.rec(Chr{x}, Chr{y}, String.cmp(left, right)))
-          ),
-          String.eq(left, right),
-          Strings.internal_rec_is_eq(Chr{x}, Chr{y}, String.cmp(left, right))
-        )
-      )
-
+# The implementation uses the standard equality pinned by this unchanged law.
 def Laws.string_equal_exact(left, right, same):
-  match left right same:
-    case SNil{} SNil{} False{}: {==}
-    case SNil{} SNil{} True{}: {==}
-    case SNil{} SCon{_, _} False{}: {==}
-    case SNil{} SCon{_, _} True{}: {==}
-    case SCon{_, _} SNil{} False{}: {==}
-    case SCon{_, _} SNil{} True{}: {==}
-    case SCon{_, _} SCon{_, _} False{}: {==}
-    case SCon{Chr{+x}, +left} SCon{Chr{+y}, +right} True{}:
-      equal_cmp_step(x, y, left, right, U32.cmp(x, y),
-        Laws.string_equal_exact(left, right, Cmp.is_eq(U32.cmp(x, y))))
+  {==}
 
 # Existing proofs consume the original Base equality through the exact new theorem.
 def string_equal(

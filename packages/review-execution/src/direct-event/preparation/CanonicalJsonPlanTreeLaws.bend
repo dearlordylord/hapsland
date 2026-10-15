@@ -164,7 +164,7 @@ law tree_exact:
   for encoding: ForestEncoding<[value], operations, [parts]>
   {Plan.compile(operations) == Some{parts} : Maybe<&2, List<&2, Plan.Piece>>}
 
-# Tail comparison discards strings; its result is exactly the original Base equality.
+# Text/key comparison retains the exact Base equality and accumulator guard.
 law string_equal_exact:
   for +left: String
   for +right: String
