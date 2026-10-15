@@ -180,8 +180,8 @@ arbitrary fuel.
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
 | Original proof formatting | The complete attachment law must pass the pinned formatter. Its remaining deep block/list layouts still fail; prefix or isolated-definition checks are insufficient. |
-| Remaining Post host decisions | Move offer disposition, retained-advice observation and bounded Internal progression into the existing Post Bend capability. All three algorithms are removed; 27 laws pass the standard runner and four named mutants fail. Build (46 workspaces), fast gate (5 files), Post and compiled Source/resident consumers pass; repeat on the final candidate. Keep native receipt/settings/inspection IO and custody in the host; preserve offer/completion order and the exact existing pump bound/error behavior. Remove the replaced TS branches and loop. |
-| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. After the remaining Post host cut, requalify the full composed consumers on one final candidate; individual module checks are insufficient. |
+| Workspace sizing policy | Move both capture/analysis budget recipes from [workspace.ts](../packages/resident-runtime/src/resident/work-ownership/workspace.ts), covering Source admission, Preparation resize and handoff revalidation. Preserve validation/getter/serialization order, defaults and Binary64 grouping; native arithmetic and atomic ledger remain effects. Review the whole recipe before implementation. |
+| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Post-cut compiled Source/resident, Finalization and public Preparation pass; repeat on the final candidate. Individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
@@ -214,11 +214,13 @@ that only bridges helper names.
 - The connected validator candidate passed the matching 46-workspace build,
   `check:fast` with cumulative lint (10 files), full Finalization consumer
   (66 cases / 52 runtime cases), and focused Source/Post/resident consumers.
-  The earlier candidate passes 13 public Preparation tests, including
-  nested Graph cancellation and complete Causes. Post candidate `660bde05` passes
-  23360 finite Post cases, resident 67 cases and Source 59 cases (34 whole-native
-  comparisons), with actual compiled host/five-language IO. These scopes do not
-  establish universal correspondence, parity or whole acceptance.
+  Post candidate `660bde05` removes all three host algorithms: offer disposition,
+  retained-advice observation and bounded Internal progression. Its 27 laws pass
+  the standard runner; four mutants fail their named laws. Build (46 workspaces),
+  fast gate (5 files), Post 23360 cases, compiled resident 67 and Source 59 cases
+  (34 whole-native comparisons), Finalization 66/52 runtime cases, and all 13
+  public Preparation tests pass. These scopes do not establish universal
+  correspondence, parity or whole acceptance.
 - Primary analyzer/build on `660bde05` pass at 0.6820 / 0.7893.
   Complete current-native Preparation on that candidate **fails parity at 2.0473**.
   All 30 workspace dependencies resolve inside the measured checkout.
