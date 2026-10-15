@@ -183,7 +183,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Attachment hard10 | Earlier shared-witness source passed. Current sequence-cohort recheck timed out twice at CPU10/hard10 (one printed ALL PROOFS CHECK before timeout). Neither qualifies; unchanged retries are closed. Need a new source-supported proof-shape hypothesis without changing the original law/premises/binding/main. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Rope candidate `1dc367f4`: normal build/23 receipts, Finalization (66+52 runtime/9615 refusals), Graph (105/58 fixtures), Source (59/6687, 34 physical), resident (67/14323, 868 Post), machine and public Preparation pass. Repeat only after relevant production edits. |
-| Whole-path parity | The proved rope candidate passes full consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
+| Whole-path parity | Proved rope candidate passes full consumers but whole current-native ratio is 1.4954; ≤ 1 remains required including conversion/effects/process costs. No unchanged repeat; next change needs a new source-supported whole-path hypothesis. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,
@@ -208,16 +208,17 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `01940c44` rope candidate analyzer/build: 0.7359 / 0.8211
-  (12:38 UTC, 17 pairs, frozen inputs, build cache 23/46).
-  Last whole current-native Preparation (`f4ca2eae`) **fails parity at 1.4616**:
-  equal outputs, 17 frozen pairs, 30 local workspaces. Whole acceptance stays open.
+- Primary `476dd090` proved rope candidate analyzer/build: 0.7320 / 0.7880
+  (13:01 UTC, 17 pairs, frozen inputs, build cache 23/46).
+  Whole current-native Preparation at 13:04 UTC **fails parity at 1.4954**:
+  equal outputs, 17 frozen pairs, seven fixtures/five languages, 30 local workspaces.
+  The unchanged rope trial is closed; proofs/consumers do not establish acceptance.
 - Original attachment shared-witness source remains byte-identical, but current
   requalification hit hard10 twice. Historical passes do not qualify this candidate.
   Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
   Pinned formatting remains open. Renderer/pending-key, runtime attribution,
   attachment formatter alias/hoist, fused validate/plan and compiler sequence
-  trials are closed; renaming does not authorize another attempt.
+  and unchanged rope performance trials are closed; renaming does not reset them.
 
 ### Check and source owners
 
