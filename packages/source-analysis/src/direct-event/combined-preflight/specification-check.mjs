@@ -39,17 +39,26 @@ try {
   )
   const core = (await import(pathToFileURL(coreOutput))).default
   let protocolCases = 0
-  const runCore = (initial, counts = [], rootImports = false, typeImports = false, goValid = false) => {
+  const runCore = (
+    initial,
+    counts = [],
+    rootImports = false,
+    typeImports = false,
+    goValid = false,
+    grouped = false
+  ) => {
     let step = initial,
       priorRequest = -1
     const operations = []
     for (let limit = 0; limit < 10000; limit++) {
       if (step.$ === "Completed") {
         assert.equal(core.resume(step, { $: "Ack", request: 0 }).$, "InvalidReply")
+        assert.equal(core.resume_group(step, { $: "Ack", request: 0 }).$, "InvalidReply")
         return { decision: normalize(step.decision), operations }
       }
       if (step.$ === "Advance") {
         assert.equal(core.resume(step, { $: "Ack", request: step.request }).$, "InvalidReply")
+        assert.equal(core.resume_group(step, { $: "Ack", request: step.request }).$, "InvalidReply")
         step = core.advance(step)
         continue
       }
@@ -60,6 +69,21 @@ try {
         case "Engine":
           operations.push(normalize(step.operation))
           reply = { $: "Ack", request: step.request }
+          if (grouped) {
+            operations.push(...unlist(step.remaining).map(normalize))
+            priorRequest += unlist(step.remaining).length
+            // Compare the exact Step, including the next request, against the
+            // original scalar resume chain, not merely its terminal result.
+            let sequential = step
+            while (sequential.$ === "Engine")
+              sequential = core.resume(sequential, { $: "Ack", request: sequential.request })
+            assert.deepEqual(core.resume_group(step, reply), sequential)
+            assert.equal(core.resume_group(step, { ...reply, request: step.request + 1 }).$, "InvalidReply")
+            assert.equal(
+              core.resume_group(step, { $: "SitesObserved", request: step.request, count: 0 }).$,
+              "InvalidReply"
+            )
+          }
           assert.equal(core.resume(step, { $: "SitesObserved", request: step.request, count: 0 }).$, "InvalidReply")
           break
         case "AwaitSites":
@@ -85,10 +109,22 @@ try {
       assert.equal(core.resume(step, { ...reply, request: step.request + 1 }).$, "InvalidReply")
       if (step.$ !== "Engine") assert.equal(core.resume(step, { $: "Ack", request: step.request }).$, "InvalidReply")
       protocolCases++
-      step = core.resume(step, reply)
+      if (step.$ !== "Engine") assert.equal(core.resume_group(step, reply).$, "InvalidReply")
+      step = grouped && step.$ === "Engine" ? core.resume_group(step, reply) : core.resume(step, reply)
     }
     assert.fail("finite fixture failed to terminate")
   }
+  let groupEquivalenceCases = 0
+  const initial = core.typescript(true, 0, 1, false)
+  for (const count of [0, 1, 2, 12])
+    for (const request of [0, 7, 65535, 2 ** 40]) {
+      const step = { ...initial, request, remaining: list(Array.from({ length: count }, () => ({ $: "Model.Add" }))) }
+      let sequential = step
+      while (sequential.$ === "Engine") sequential = core.resume(sequential, { $: "Ack", request: sequential.request })
+      assert.deepEqual(core.resume_group(step, { $: "Ack", request }), sequential)
+      assert.equal(core.resume_group(step, { $: "Ack", request: request + 16 }).$, "InvalidReply")
+      groupEquivalenceCases++
+    }
   const operationEvents = (operations, fixture, fault, faultToken) => {
     const stack = [],
       events = []
@@ -185,6 +221,17 @@ try {
           .operations,
         operations
       )
+      assert.deepEqual(
+        runCore(
+          core.typescript(true, 1, counts.length, true),
+          counts,
+          fixture.rootImports,
+          fixture.typeImports,
+          false,
+          true
+        ).operations,
+        operations
+      )
       const expected = original(counts, fixture)
       assert.deepEqual(operationEvents(operations, fixture), expected)
       for (let fault = 1; fault <= expected.events.length; fault++) {
@@ -205,6 +252,10 @@ try {
               const plan = spec.typescript(valid, types, list(counts), bound, imports, typeImports)
               assert.deepEqual(
                 runCore(core.typescript(valid, types, counts.length, bound), counts, imports, typeImports),
+                { decision: plan.decision, operations: unlist(plan.operations) }
+              )
+              assert.deepEqual(
+                runCore(core.typescript(valid, types, counts.length, bound), counts, imports, typeImports, false, true),
                 { decision: plan.decision, operations: unlist(plan.operations) }
               )
               const count = types + counts.length
@@ -246,6 +297,7 @@ try {
     JSON.stringify({
       cases,
       protocolCases,
+      groupEquivalenceCases,
       scope:
         "draft combined preflight machine/spec agreement, native measurement/fault order, IEEE expression and reply correlation; no universal proof or production connection claimed"
     })

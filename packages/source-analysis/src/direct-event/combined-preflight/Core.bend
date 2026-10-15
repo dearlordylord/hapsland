@@ -162,6 +162,33 @@ def resume(step: Step, reply: Reply) -> Step:
       accepted_go(Nat.is_eq(request, actual), valid)
     case _ _: InvalidReply{}
 
+# A group acknowledges exactly the already selected queue. Observation phases
+# remain separate. The original scalar resume is retained as a verification
+# interpreter; production can avoid constructing each intermediate Engine.
+# Mirror the original successor order; this also gives the refinement proof a
+# direct structural induction over the existing queue.
+def group_request(remaining: List<&2, M.Operation>, request: Nat) -> Nat:
+  match remaining:
+    case []: Nat.add(request, 1n)
+    case _ <> tail: group_request(tail, Nat.add(request, 1n))
+
+def acknowledge_group(
+  same: Bool,
+  remaining: List<&2, M.Operation>,
+  next: Phase,
+  request: Nat
+) -> Step:
+  match same:
+    case False{}: InvalidReply{}
+    case True{}:
+      Advance{next, group_request(remaining, request)}
+
+def resume_group(step: Step, reply: Reply) -> Step:
+  match step reply:
+    case Engine{_, +request, remaining, next} Ack{actual}:
+      acknowledge_group(Nat.is_eq(request, actual), remaining, next, request)
+    case _ _: InvalidReply{}
+
 def nonempty(allowed: Bool, count: Nat, functions: Nat) -> Step:
   match allowed:
     case False{}: Completed{M.Unavailable{}}

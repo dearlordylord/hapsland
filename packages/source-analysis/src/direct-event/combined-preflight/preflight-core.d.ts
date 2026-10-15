@@ -56,5 +56,6 @@ declare const core: {
   passthrough(bound: boolean): Step
   advance(step: Step): Step
   resume(step: Step, reply: Reply): Step
+  resume_group(step: Step, reply: Reply): Step
 }
 export default core

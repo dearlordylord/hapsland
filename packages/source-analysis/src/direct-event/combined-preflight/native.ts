@@ -68,7 +68,9 @@ const run = (
         break
       case "Engine": {
         execute(step.operation, effects, stack)
-        step = core.resume(step, { $: "Ack", request: step.request })
+        for (let remaining = step.remaining; remaining.$ === "Con"; remaining = remaining.tail)
+          execute(remaining.head, effects, stack)
+        step = core.resume_group(step, { $: "Ack", request: step.request })
         break
       }
       case "AwaitSites": {

@@ -134,6 +134,36 @@ for (let fault = 1; fault <= expectedEvents.length; fault++) {
   assert.deepEqual(events, expectedEvents.slice(0, fault))
   cases++
 }
+// Numeric coercion may throw inside a group, including its final Add. Preserve
+// the old expression's event prefix and thrown identity, with no imports suffix.
+for (const field of ["artifactBytes", "siteBytes", "pathBytes", "typeBytes"]) {
+  const effects = (events) => {
+    const ports = makeEffects(undefined, events),
+      read = ports[field]
+    ports[field] = (...args) => {
+      read(...args)
+      return {
+        [Symbol.toPrimitive]() {
+          events.push(`${field}:coerce`)
+          throw marker
+        }
+      }
+    }
+    return ports
+  }
+  const actualEvents = [],
+    expectedEvents = []
+  assert.throws(
+    () => native.runTypeScriptPreflight(input, undefined, effects(actualEvents)),
+    (error) => error === marker
+  )
+  assert.throws(
+    () => reference.nativeTypeScriptPreflight(input, undefined, effects(expectedEvents)),
+    (error) => error === marker
+  )
+  assert.deepEqual(actualEvents, expectedEvents)
+  cases++
+}
 const bound = Object.freeze({ declarations: 1, expandedUnitBytes: 17, hasImports: false })
 assert.equal(
   native.runGoPreflight(bound, () => {
@@ -208,8 +238,9 @@ console.log(
 if (process.argv.includes("--measure-policy")) {
   const core = (await import(new URL("./combined-preflight/preflight-core.js", analyzerUrl))).default
   const originalAdvance = core.advance,
-    originalResume = core.resume
-  const calls = { advance: 0, resume: 0, engine: 0, observations: 0 }
+    originalResume = core.resume,
+    originalResumeGroup = core.resume_group
+  const calls = { advance: 0, resume: 0, groups: 0, engineInstructions: 0, observations: 0 }
   const probeSource = `export function run() { return ${Array.from({ length: 40 }, (_, i) => `"value${i}"`).join(" + ")}; }`
   try {
     core.advance = (...args) => {
@@ -218,9 +249,16 @@ if (process.argv.includes("--measure-policy")) {
     }
     core.resume = (step, reply) => {
       calls.resume++
-      if (step.$ === "Engine") calls.engine++
+      if (step.$ === "Engine") calls.engineInstructions++
       else calls.observations++
       return originalResume(step, reply)
+    }
+    core.resume_group = (step, reply) => {
+      calls.groups++
+      let instructions = 1
+      for (let remaining = step.remaining; remaining.$ === "Con"; remaining = remaining.tail) instructions++
+      calls.engineInstructions += instructions
+      return originalResumeGroup(step, reply)
     }
     const actual = withNativeTypeScriptPreflight("probe.ts", probeSource, undefined, native.runTypeScriptPreflight)
     const expected = withNativeTypeScriptPreflight(
@@ -233,6 +271,7 @@ if (process.argv.includes("--measure-policy")) {
   } finally {
     core.advance = originalAdvance
     core.resume = originalResume
+    core.resume_group = originalResumeGroup
   }
   const measure = (policy, rounds) => {
     const cpu = process.cpuUsage(),
