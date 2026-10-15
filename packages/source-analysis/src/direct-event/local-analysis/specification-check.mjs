@@ -112,6 +112,19 @@ try {
     { timeout: 11000 }
   )
   const referenceJoint = (await import(pathToFileURL(referenceOutput))).default
+  const stepOutput = join(temporary, "joint-step.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "JointStep.bend"), "-o", stepOutput],
+    { timeout: 11000 }
+  )
+  const jointStep = (await import(pathToFileURL(stepOutput))).default
+  const expressionTags = (expression) => ({
+    ...expression,
+    $: `Specification.${expression.$.replace(/^Spec\./u, "")}`,
+    ...(expression.left ? { left: expressionTags(expression.left), right: expressionTags(expression.right) } : {})
+  })
+  let rootTraceStates = 0
   let referenceTransitions = 0
   let specificationDepthBounds = 0
   let continuationStates = 0,
@@ -173,9 +186,11 @@ try {
     let currentRoot,
       rootCatalog,
       expectedRoot,
-      depths = []
+      depths = [],
+      rootOperationStart = 0
     const expressions = []
-    const beginRoot = (root, facts) => {
+    const beginRoot = (root, facts, operationStart = 0) => {
+      rootOperationStart = operationStart
       currentRoot = root
       rootCatalog = facts
       expectedRoot = spec.analyze(root, facts)
@@ -226,6 +241,20 @@ try {
         false,
         "orphan root site must refuse"
       )
+      const traceGhosts = list(
+        frames.map((frame, index) => ({
+          $: "Joint.Ghost",
+          depth: depths[index],
+          prefix: list(unlist(frame.reversed).reverse()),
+          subtotal: expressionTags(measuring ? expressions[expressions.length - 1 - index] : { $: "Literal", value: 0 })
+        }))
+      )
+      assert.deepEqual(
+        unlist(jointStep.cursor_postfix({ $: `Core.${cursor.global.purpose.$}` }, traceGhosts)),
+        operations.slice(rootOperationStart),
+        "root-local executed trace equals the complete ghost spine postfix"
+      )
+      rootTraceStates++
       let state = {
         $: "State",
         root_name: cursor.root_name,
@@ -291,7 +320,7 @@ try {
         const previous = step
         if (previous.$ === "NextRoot") {
           const pending = unlist(previous.global.pending)
-          if (pending.length) beginRoot(pending[0], previous.global.catalog)
+          if (pending.length) beginRoot(pending[0], previous.global.catalog, operations.length)
         }
         step = core.advance(previous)
         if (previous.$ === "Continue") {
@@ -897,6 +926,7 @@ try {
       specificationDepthBounds,
       childEntries,
       referenceTransitions,
+      rootTraceStates,
       childReturns,
       scope:
         "unconnected cursor and independent recursive specification; finite law instances, no universal proofs or production acceptance"
