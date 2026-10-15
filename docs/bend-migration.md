@@ -227,8 +227,9 @@ that only bridges helper names.
   formulas remain only in the independent verification oracle.
 - Primary actual `dbacc1cc` Map cohort analyzer/build: 0.7376 / 0.8397.
   Whole current-native Preparation **fails parity at 1.3293**: equal outputs,
-  17 frozen pairs, 30 local workspaces; all freezes pass. First build invalidated
-  by one changed receipt; separate warm builds restored qualified 23/46 cache.
+  17 frozen pairs, 30 local workspaces; freezes pass, build cache 23/46.
+  Fused validate/plan stopped after two checks: old/fused JS overflow at
+  5000/25000 nodes; 100/1000 pass. No adoption.
 - Attachment facts/consumers pass verdict/format. Full TT is 7,445,671 bytes;
   original law/premises/binding/main remain byte-identical. Full verdict times out.
   Renderer/pending-key trials preserve TT; no reliable gain. Both stopped.
