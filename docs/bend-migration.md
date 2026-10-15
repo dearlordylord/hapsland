@@ -180,11 +180,11 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Capture evidence materialization | Connected lazy invocation-local Unprepared/Prepared cache, unchanged Context/checkpoints, first invalid duplicates retained. Lookup/fingerprints/metadata laws and original batch laws pass kernel; 517 lists/4136 queries/three mutants pass. Old repeated capture traversal moved out of production into independent specification. Normal build/23 receipts, Evidence/FrozenInput, Finalization, Source/resident and public consumers pass; parity pending. Lookup remains linear; this cut removes repeated Bend traversal, no TS. |
+| Capture evidence materialization | Connected lazy invocation-local Unprepared/Prepared cache, unchanged Context/checkpoints, first invalid duplicates retained. Lookup/fingerprints/metadata laws and original batch laws pass kernel; 517 lists/4136 queries/three mutants pass. Old repeated capture traversal moved out of production into independent specification. Normal build/23 receipts, Evidence/FrozenInput, Finalization, Source/resident and public consumers pass. Whole parity fails at 1.3804; unchanged trial closed. Lookup remains linear; no TS removed. |
 | Attachment hard10 | Earlier shared-witness source passed. Current sequence-cohort recheck timed out twice at CPU10/hard10 (one printed ALL PROOFS CHECK before timeout). Neither qualifies; unchanged retries are closed. Need a new source-supported proof-shape hypothesis without changing the original law/premises/binding/main. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
-| Connected consumer qualification | Rope candidate `1dc367f4`: normal build/23 receipts, Finalization (66+52 runtime/9615 refusals), Graph (105/58 fixtures), Source (59/6687, 34 physical), resident (67/14323, 868 Post), machine and public Preparation pass. Repeat only after relevant production edits. |
-| Whole-path parity | Proved rope candidate passes full consumers but whole current-native ratio is 1.4954; ≤ 1 remains required including conversion/effects/process costs. No unchanged repeat; next change needs a new source-supported whole-path hypothesis. |
+| Connected consumer qualification | Capture candidate `2f37ebc6`: normal build/23 receipts, Evidence/FrozenInput, Finalization (66+52 runtime/9615 refusals), Source (59/6687, 34 physical), resident (67/14323, 868 Post) and public Preparation pass. Cache/context checks use semantic equality; immutable internal container identity is not a product guarantee. Repeat after relevant production edits. |
+| Whole-path parity | Capture candidate whole current-native ratio is 1.3804; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup proposal closed without implementation: small fixture dependency sets, no existing order proof, and unequal Bend Strings can share UTF16 units. Exact insertion equivalence needs a new proof chain with unsupported whole-path payoff. Next implementation needs another source-supported hypothesis. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,
@@ -209,11 +209,13 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `476dd090` proved rope candidate analyzer/build: 0.7320 / 0.7880
-  (13:01 UTC, 17 pairs, frozen inputs, build cache 23/46).
-  Whole current-native Preparation at 13:04 UTC **fails parity at 1.4954**:
+- Primary capture candidate `2f37ebc6`: analyzer/build 0.7860 / 0.8430
+  (13:30 UTC, 17 pairs, frozen inputs, build cache 23/46).
+  Whole current-native Preparation at 13:33 UTC **fails parity at 1.3804**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, 30 local workspaces.
-  The unchanged rope trial is closed; proofs/consumers do not establish acceptance.
+  Unchanged capture and rope trials are closed; separate runs establish no causal
+  comparison. Later batch-proof formatting passes kernel, batch consumer, normal
+  build and 23 receipts; it changes no production algorithm.
 - Original attachment shared-witness source remains byte-identical, but current
   requalification hit hard10 twice. Historical passes do not qualify this candidate.
   Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
