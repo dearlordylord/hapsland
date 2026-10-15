@@ -170,8 +170,8 @@ crossings with a Bend-selected serialization plan:
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
-Astra rejected State callbacks (full marshalling) and transition closures
-(nondecreasing recursion). Direct tree planning needs a supported nested
+Astra rejected State callbacks (full marshalling), transition closures
+(nondecreasing recursion), and native handles (no pinned C-library ABI). Direct tree planning needs a supported nested
 ProductValue fold and must preserve the ExportJson cancellation boundary. Existing
 ForestEncoding proofs require a supplied operation stream; they are not a builder.
 
@@ -180,7 +180,7 @@ ForestEncoding proofs require a supplied operation stream; they are not a builde
 | Obstacle | Required change or evidence |
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Emission/kernel passes alone are diagnostic. |
-| Original proof formatting | `bb531601` formats the whole law idempotently with identical full BendTT; 70 checks pass; release/pin await authorization. |
+| Original proof formatting | Formatter 0.1.23 (`d1e5aa7`) passes local release gates: 653 tests + one optional skip, IDE compatibility and signature. Full-law formatting passes; release/pin await authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Post-cut compiled Source/resident, Finalization and public Preparation pass; repeat on the final candidate. Individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
@@ -213,8 +213,7 @@ that only bridges helper names.
   Candidate `c0f265f5` adds discard-only string equality, proved equal to Base
   for arbitrary strings and accumulator. All five laws, two named equality
   mutants, 676 equality cases, formatting, build and fast gate (1 file) pass.
-  Matching FrozenInput (60/606 refusals), Finalization (66/52 runtime/9615
-  refusals), Source (59/34 native), resident (67) and 13 public tests pass.
+  FrozenInput, Finalization, compiled Source/resident and 13 public tests pass.
 - Post candidate `660bde05` removes all three host algorithms: offer disposition,
   retained-advice observation and bounded Internal progression. Its 27 laws pass
   the standard runner; four mutants fail their named laws. Build (46 workspaces),
@@ -226,13 +225,13 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Latest `c0f265f5` analyzer/build ratios: 0.8225 / 0.9100. Public current-native
+- Latest `c0f265f5` analyzer/build ratios: 0.7493 / 0.8206. Public current-native
   Preparation **fails parity at 2.0142**, with equal outputs, after the competing
   CPU11 benchmark ended. 17 pairs and 30 workspace resolutions qualify.
-  No whole-path gain is demonstrated.
+  No whole-path gain shown.
 - Shared address facts and construction consumers pass verdict/format. Complete
   attachment TT decreases to 7,445,671 bytes; full verdict still times out.
-  The original law, premises, binding and main remain byte-identical.
+  Original law/premises/binding/main remain byte-identical.
 
 ### Check and source owners
 
