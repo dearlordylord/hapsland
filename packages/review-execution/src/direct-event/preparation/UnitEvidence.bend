@@ -14,6 +14,25 @@ type Step is Data:
   MissingEvidence{}
   InvalidInput{}
 
+def field_answer(
+  found: Bool,
+  value: ArtifactValue.ProductValue,
+  rest: Unit -> Maybe<&2, ArtifactValue.ProductValue>
+) -> Maybe<&2, ArtifactValue.ProductValue>:
+  match found:
+    case True{}: Some{value}
+    case False{}: rest(Unit{})
+
+def query_and(first: Bool, rest: Unit -> Bool) -> Bool:
+  match first:
+    case False{}: False{}
+    case True{}: rest(Unit{})
+
+def query_or(first: Bool, rest: Unit -> Bool) -> Bool:
+  match first:
+    case True{}: True{}
+    case False{}: rest(Unit{})
+
 def field_list(
   +key: String,
   fields: List<&2, ArtifactValue.OrderedField<ArtifactValue.ProductValue>>
@@ -21,12 +40,7 @@ def field_list(
   match fields:
     case []: None{}
     case ArtifactValue.OrderedField{+candidate, value} <> tail:
-      Bool.pick(
-        Maybe<&2, ArtifactValue.ProductValue>,
-        String.eq(key, candidate),
-        Some{value},
-        field_list(key, tail)
-      )
+      field_answer(String.eq(key, candidate), value, _ => field_list(key, tail))
 
 def field(key: String, value: ArtifactValue.ProductValue) -> Maybe<&2, ArtifactValue.ProductValue>:
   match value:
@@ -59,9 +73,9 @@ def matching_fields(
   match keys:
     case []: True{}
     case +key <> tail:
-      Bool.and(
+      query_and(
         same_text(field(key, actual), field(key, candidate)),
-        matching_fields(tail, actual, candidate)
+        _ => matching_fields(tail, actual, candidate)
       )
 
 def origin_shape(value: Maybe<&2, ArtifactValue.ProductValue>) -> Bool:
@@ -86,10 +100,10 @@ def origin_equal(
     case _ _: False{}
 
 def member(+artifact: ArtifactValue.ProductValue, +actual: ArtifactValue.ProductValue) -> Bool:
-  Bool.and(absent(field("path", artifact)),
-    Bool.and(origin_shape(field("origin", artifact)),
-      Bool.and(matching_fields(["id", "kind", "name", "source", "sourceHash"], actual, artifact),
-        origin_equal(field("origin", actual), field("origin", artifact)))))
+  query_and(absent(field("path", artifact)), _ =>
+    query_and(origin_shape(field("origin", artifact)), _ =>
+      query_and(matching_fields(["id", "kind", "name", "source", "sourceHash"], actual, artifact),
+        _ => origin_equal(field("origin", actual), field("origin", artifact)))))
 
 def bundled(
   +artifact: ArtifactValue.ProductValue,
@@ -97,25 +111,25 @@ def bundled(
 ) -> Bool:
   match catalog:
     case []: False{}
-    case actual <> tail: Bool.or(member(artifact, actual), bundled(artifact, tail))
+    case actual <> tail: query_or(member(artifact, actual), _ => bundled(artifact, tail))
 
 def path_insert_result(
   less: Bool,
   +path: String,
   head: String,
   tail: List<&2, String>,
-  inserted: List<&2, String>
+  inserted: Unit -> List<&2, String>
 ) -> List<&2, String>:
   match less:
     case True{}: path <> head <> tail
-    case False{}: head <> inserted
+    case False{}: head <> inserted(Unit{})
 
 def path_insert_same(
   same: Bool,
   +path: String,
   +head: String,
   +tail: List<&2, String>,
-  inserted: List<&2, String>
+  inserted: Unit -> List<&2, String>
 ) -> List<&2, String>:
   match same:
     case True{}: head <> tail
@@ -135,7 +149,7 @@ def path_insert(+path: String, paths: List<&2, String>) -> List<&2, String>:
       path,
       head,
       tail,
-      path_insert(path, tail)
+      _ => path_insert(path, tail)
     )
 
 def source_paths(

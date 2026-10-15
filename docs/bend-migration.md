@@ -211,10 +211,10 @@ that only bridges helper names.
   reverse continuations. FrozenInput refuses a valid stream for a different tree.
   Four correspondence laws pass kernel and formatting. Four semantic mutants fail
   in the proof closure; their first errors do not all isolate named laws.
-  Candidate `c0f265f5` adds discard-only string equality, proved equal to Base
-  for arbitrary strings and accumulator. All five laws, two named equality
-  mutants, 676 equality cases, formatting, build and fast gate (1 file) pass.
-  FrozenInput, Finalization, compiled Source/resident and 13 public tests pass.
+  Query rewrite stops resolved field/catalog/path searches and failed predicates.
+  Astra approved five arbitrary-input equivalence laws; kernel and 1940 emitted
+  cases/five mutants pass. Formatter 0.1.19 refuses proof block expressions;
+  consumers and whole parity remain pending for this query candidate.
 - Post candidate `660bde05` removes all three host algorithms: offer disposition,
   retained-advice observation and bounded Internal progression. Its 27 laws pass
   the standard runner; four mutants fail their named laws. Build (46 workspaces),
