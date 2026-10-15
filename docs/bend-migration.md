@@ -230,9 +230,9 @@ that only bridges helper names.
   Preparation on `defa39e3` **fails parity at 1.3156**: equal outputs, 17 frozen pairs,
   30 local workspaces.
   Six-mode JSON/fast/focused pass.
-- Shared address facts and construction consumers pass verdict/format. Complete
-  attachment TT decreases to 7,445,671 bytes; full verdict still times out.
-  Original law/premises/binding/main remain byte-identical.
+- Attachment facts/consumers pass verdict/format. Full TT is 7,445,671 bytes;
+  original law/premises/binding/main remain byte-identical. Full verdict times out.
+  Per-book renderer cache preserves TT but shows no emission gain; stopped.
 
 ### Check and source owners
 
