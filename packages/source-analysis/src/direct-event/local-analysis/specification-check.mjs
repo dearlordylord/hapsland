@@ -60,6 +60,30 @@ try {
     { timeout: 11000 }
   )
   const stackModel = (await import(pathToFileURL(stackOutput))).default
+  const rootOutput = join(temporary, "root.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "Root.bend"), "-o", rootOutput],
+    { timeout: 11000 }
+  )
+  const rootContract = (await import(pathToFileURL(rootOutput))).default
+  let rootContexts = 0
+  const potentialOutput = join(temporary, "potential.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "Potential.bend"), "-o", potentialOutput],
+    { timeout: 11000 }
+  )
+  const potential = (await import(pathToFileURL(potentialOutput))).default
+  let potentialStates = 0
+  const checkPotential = (cursor) => {
+    assert.equal(
+      potential.cursor_valid(cursor),
+      true,
+      "remaining semantic tasks cover actual pending/unvisited potential"
+    )
+    potentialStates++
+  }
   const checkedCatalogs = new WeakSet()
   let lawCatalogs = 0
   const checkLawInstances = (facts) => {
@@ -103,6 +127,8 @@ try {
     let request = 0
     for (let count = 0; count < 100000; count++) {
       cursorSteps++
+      if (step.$ === "Continue") checkPotential(step.cursor)
+      if (step.$ === "Engine" && step.next.$ === "CursorNext") checkPotential(step.next.cursor)
       if (step.$ === "Continue" || step.$ === "NextRoot") {
         if (step.$ === "Continue" && step.cursor.global.purpose.$ !== "Trees")
           for (const frame of unlist(step.cursor.frames)) assert.deepEqual(frame.reversed, list([]))
@@ -164,6 +190,27 @@ try {
     assert.equal(result.$, "NodeResult", "derived recursive depth must suffice for each finite fixture")
     for (const depth of [0, 1, 3, 17])
       assert.deepEqual(stackModel.depth(spec.postfix(result.bytes), depth), some(depth + 1), "postfix_effect")
+    const pending = list([declaration(999, "suspended-outer-root", [unsupported("must-not-visit")])])
+    const prefix = list([{ $: "Model.Outcome", root: 777, failure: none, tree: none }])
+    for (const purpose of ["Core.Trees", "Core.Outcomes", "Core.Preflight"])
+      for (const request of [0, 17]) {
+        assert.equal(
+          potential.entry_valid(root, facts, { $: purpose }, pending, prefix, request),
+          true,
+          "root_entry_valid"
+        )
+        const actual = rootContract.execute(root, facts, { $: purpose }, pending, prefix, request)
+        const expected = rootContract.expected(root, facts, { $: purpose }, pending, prefix, request)
+        assert.equal(actual.$, "RootDone", "complete_root_with_continuation: cursor budget")
+        assert.equal(expected.$, "Some", "complete_root_with_continuation: independent spec budget")
+        assert.deepEqual(actual.global, expected.value.global, "exact outer continuation and request count")
+        assert.deepEqual(
+          unlist(actual.reversed).reverse(),
+          unlist(expected.value.operations),
+          "exact complete root trace"
+        )
+        rootContexts++
+      }
     const materialized = spec.outcome({ $: "Model.Materialize" }, result)
     const outcomes = spec.outcome({ $: "Model.OutcomesOnly" }, result)
     assert.equal(materialized.$, "Some")
@@ -486,6 +533,8 @@ try {
       cursorSteps,
       refusedAcks,
       lawCatalogs,
+      rootContexts,
+      potentialStates,
       scope:
         "unconnected cursor and independent recursive specification; finite law instances, no universal proofs or production acceptance"
     })
