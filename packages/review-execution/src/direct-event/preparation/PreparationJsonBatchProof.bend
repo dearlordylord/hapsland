@@ -28,6 +28,66 @@ def finite_first_header() -> {
     Json.NullPrimitive{}}]} : Input.Step}:
   {==}
 
+def Laws.export_resume_exact(invocation, request, input, value, displayed,
+  received_invocation, received_request, operations):
+  {==}
+
+def Laws.planned_none_refused(invocation, request, input):
+  {==}
+
+def zero_binding(+parts: List<&2, Plan.Piece>, empty: {
+  Reference.primitives(parts) == [] : List<&2, Json.Primitive>}) -> {
+  Batch.bind(parts, []) == Some{Reference.substituted(parts, [], 0n)} : Maybe<&2, List<&2,
+    String>>}:
+  Equal.trans(Maybe<&2, List<&2, String>>,
+    Batch.bind(parts, []),
+    Bool.pick(Maybe<&2, List<&2, String>>,
+      Nat.is_eq(List.length(&2, Json.Primitive, Reference.primitives(parts)), 0n),
+      Some{Reference.substituted(parts, [], 0n)}, None{}),
+    Some{Reference.substituted(parts, [], 0n)}, Reference.binding_exact(parts, []),
+    Equal.cong(Bool, Maybe<&2, List<&2, String>>,
+      flag => Bool.pick(Maybe<&2, List<&2, String>>, flag,
+        Some{Reference.substituted(parts, [], 0n)}, None{}),
+      Nat.is_eq(List.length(&2, Json.Primitive, Reference.primitives(parts)), 0n), True{},
+      Equal.cong(List<&2, Json.Primitive>, Bool,
+        values => Nat.is_eq(List.length(&2, Json.Primitive, values), 0n),
+        Reference.primitives(parts), [], empty)))
+
+def enumerated_plan_exact(+invocation: Nat, +request: Nat, +input: Value.ProductValue,
+  +parts: List<&2, Plan.Piece>, +primitives: List<&2, Json.Primitive>,
+  matched: {Reference.primitives(parts) == primitives : List<&2, Json.Primitive>}) -> {
+  Input.batch_selected(invocation, request, input, parts,
+    Reference.enumerate(primitives, invocation, Nat.add(1n, request)))
+  == Bool.pick(Input.Step, Nat.is_eq(List.length(&2, Json.Primitive, primitives), 0n),
+    Input.Continue{Input.State{invocation, request, Input.AssemblyWork{
+      input, Reference.substituted(parts, [], 0n)}}},
+    Input.SerializeBatch{Input.State{invocation, Nat.add(1n, request), Input.BatchWork{
+      input, parts, Reference.enumerate(primitives, invocation, Nat.add(1n, request))}},
+      Reference.enumerate(primitives, invocation, Nat.add(1n, request))}) : Input.Step}:
+  match primitives:
+    case []:
+      Equal.cong(Maybe<&2, List<&2, String>>, Input.Step,
+        result => Input.assembled(invocation, request, input, result),
+        Batch.bind(parts, []), Some{Reference.substituted(parts, [], 0n)}, zero_binding(parts,
+          matched))
+    case _ <> _: {==}
+
+def Laws.planned_exact(invocation, request, input, parts):
+  %Equal.sym(List<&2, Batch.Command>, Batch.select(parts, invocation, Nat.add(1n, request)),
+    Reference.enumerate(Reference.primitives(parts), invocation, Nat.add(1n, request)),
+    Reference.selection_exact(parts, invocation, Nat.add(1n, request))):
+    {Input.batch_selected(invocation, request, input, parts, _)
+    == Bool.pick(Input.Step,
+      Nat.is_eq(List.length(&2, Json.Primitive, Reference.primitives(parts)), 0n),
+      Input.Continue{Input.State{invocation, request, Input.AssemblyWork{
+        input, Reference.substituted(parts, [], 0n)}}},
+      Input.SerializeBatch{Input.State{invocation, Nat.add(1n, request), Input.BatchWork{
+        input, parts, Reference.enumerate(Reference.primitives(parts), invocation, Nat.add(1n,
+          request))}},
+        Reference.enumerate(Reference.primitives(parts), invocation, Nat.add(1n, request))}) :
+          Input.Step}
+  enumerated_plan_exact(invocation, request, input, parts, Reference.primitives(parts), {==})
+
 def Laws.export_exact(invocation, request, frame, identity):
   {==}
 
@@ -753,66 +813,6 @@ def finite_export_wrong_header() -> {
       [Plan.PrimitiveOperation{Json.NullPrimitive{}}]})
   == Input.InvalidReply{} : Input.Step}:
   {==}
-
-def Laws.export_resume_exact(invocation, request, input, value, displayed,
-  received_invocation, received_request, operations):
-  {==}
-
-def Laws.planned_none_refused(invocation, request, input):
-  {==}
-
-def zero_binding(+parts: List<&2, Plan.Piece>, empty: {
-  Reference.primitives(parts) == [] : List<&2, Json.Primitive>}) -> {
-  Batch.bind(parts, []) == Some{Reference.substituted(parts, [], 0n)} : Maybe<&2, List<&2,
-    String>>}:
-  Equal.trans(Maybe<&2, List<&2, String>>,
-    Batch.bind(parts, []),
-    Bool.pick(Maybe<&2, List<&2, String>>,
-      Nat.is_eq(List.length(&2, Json.Primitive, Reference.primitives(parts)), 0n),
-      Some{Reference.substituted(parts, [], 0n)}, None{}),
-    Some{Reference.substituted(parts, [], 0n)}, Reference.binding_exact(parts, []),
-    Equal.cong(Bool, Maybe<&2, List<&2, String>>,
-      flag => Bool.pick(Maybe<&2, List<&2, String>>, flag,
-        Some{Reference.substituted(parts, [], 0n)}, None{}),
-      Nat.is_eq(List.length(&2, Json.Primitive, Reference.primitives(parts)), 0n), True{},
-      Equal.cong(List<&2, Json.Primitive>, Bool,
-        values => Nat.is_eq(List.length(&2, Json.Primitive, values), 0n),
-        Reference.primitives(parts), [], empty)))
-
-def enumerated_plan_exact(+invocation: Nat, +request: Nat, +input: Value.ProductValue,
-  +parts: List<&2, Plan.Piece>, +primitives: List<&2, Json.Primitive>,
-  matched: {Reference.primitives(parts) == primitives : List<&2, Json.Primitive>}) -> {
-  Input.batch_selected(invocation, request, input, parts,
-    Reference.enumerate(primitives, invocation, Nat.add(1n, request)))
-  == Bool.pick(Input.Step, Nat.is_eq(List.length(&2, Json.Primitive, primitives), 0n),
-    Input.Continue{Input.State{invocation, request, Input.AssemblyWork{
-      input, Reference.substituted(parts, [], 0n)}}},
-    Input.SerializeBatch{Input.State{invocation, Nat.add(1n, request), Input.BatchWork{
-      input, parts, Reference.enumerate(primitives, invocation, Nat.add(1n, request))}},
-      Reference.enumerate(primitives, invocation, Nat.add(1n, request))}) : Input.Step}:
-  match primitives:
-    case []:
-      Equal.cong(Maybe<&2, List<&2, String>>, Input.Step,
-        result => Input.assembled(invocation, request, input, result),
-        Batch.bind(parts, []), Some{Reference.substituted(parts, [], 0n)}, zero_binding(parts,
-          matched))
-    case _ <> _: {==}
-
-def Laws.planned_exact(invocation, request, input, parts):
-  %Equal.sym(List<&2, Batch.Command>, Batch.select(parts, invocation, Nat.add(1n, request)),
-    Reference.enumerate(Reference.primitives(parts), invocation, Nat.add(1n, request)),
-    Reference.selection_exact(parts, invocation, Nat.add(1n, request))):
-    {Input.batch_selected(invocation, request, input, parts, _)
-    == Bool.pick(Input.Step,
-      Nat.is_eq(List.length(&2, Json.Primitive, Reference.primitives(parts)), 0n),
-      Input.Continue{Input.State{invocation, request, Input.AssemblyWork{
-        input, Reference.substituted(parts, [], 0n)}}},
-      Input.SerializeBatch{Input.State{invocation, Nat.add(1n, request), Input.BatchWork{
-        input, parts, Reference.enumerate(Reference.primitives(parts), invocation, Nat.add(1n,
-          request))}},
-        Reference.enumerate(Reference.primitives(parts), invocation, Nat.add(1n, request))}) :
-          Input.Step}
-  enumerated_plan_exact(invocation, request, input, parts, Reference.primitives(parts), {==})
 
 def main() -> Unit:
   Unit{}
