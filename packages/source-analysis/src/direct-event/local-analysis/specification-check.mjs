@@ -39,14 +39,121 @@ try {
     { timeout: 11000 }
   )
   const spec = (await import(pathToFileURL(output))).default
+  const coreOutput = join(temporary, "core.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "Core.bend"), "-o", coreOutput],
+    { timeout: 11000 }
+  )
+  const core = (await import(pathToFileURL(coreOutput))).default
+  const executionOutput = join(temporary, "execution.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "Execution.bend"), "-o", executionOutput],
+    { timeout: 11000 }
+  )
+  const execution = (await import(pathToFileURL(executionOutput))).default
+  const checkedCatalogs = new WeakSet()
+  let lawCatalogs = 0
+  const checkLawInstances = (facts) => {
+    if (checkedCatalogs.has(facts)) return
+    checkedCatalogs.add(facts)
+    assert.equal(spec.complete(facts), true, "derived_budget_sufficient: recursive specification")
+    for (const [purpose, mode] of [
+      ["Core.Trees", "Model.Materialize"],
+      ["Core.Outcomes", "Model.OutcomesOnly"]
+    ]) {
+      const result = execution.execute(facts, { $: purpose })
+      assert.equal(execution.completed(result), true, "derived_budget_sufficient: cursor")
+      assert.deepEqual(
+        execution.outcomes(result),
+        spec.outcomes(facts, { $: mode }),
+        purpose === "Core.Trees" ? "materialized_exact" : "outcomes_exact"
+      )
+    }
+    const measured = execution.execute(facts, { $: "Core.Preflight" })
+    assert.equal(execution.completed(measured), true, "derived_budget_sufficient: preflight")
+    assert.deepEqual(execution.trace(measured), spec.preflight_trace(facts), "preflight_trace_exact")
+    lawCatalogs++
+  }
+  let cursorSteps = 0,
+    refusedAcks = 0
+  const runCore = (start, artifacts = [], measuring = false) => {
+    let step = start
+    const operations = [],
+      stack = [],
+      measurements = []
+    let request = 0
+    for (let count = 0; count < 100000; count++) {
+      cursorSteps++
+      if (step.$ === "Continue" || step.$ === "NextRoot") {
+        if (step.$ === "Continue" && step.cursor.global.purpose.$ !== "Trees")
+          for (const frame of unlist(step.cursor.frames)) assert.deepEqual(frame.reversed, list([]))
+        step = core.advance(step)
+      } else if (step.$ === "Engine") {
+        assert.ok(measuring, "analysis modes must not issue arithmetic commands")
+        assert.equal(step.request, request++)
+        assert.equal(core.resume(step, { $: "Ack", request: step.request + 1 }).$, "InvalidReply")
+        refusedAcks++
+        const operation = step.operation
+        operations.push(operation)
+        switch (operation.$) {
+          case "Model.Push":
+            stack.push(Number(operation.value))
+            break
+          case "Model.MeasureArtifact":
+          case "Model.MeasureText": {
+            const encoded = JSON.stringify(
+              operation.$ === "Model.MeasureArtifact" ? artifacts[Number(operation.slot)] : operation.value
+            )
+            measurements.push([encoded, "utf8"])
+            stack.push(Buffer.byteLength(encoded, "utf8"))
+            break
+          }
+          case "Model.Add":
+          case "Model.Multiply": {
+            assert.ok(stack.length >= 2, "arithmetic stack underflow")
+            const right = stack.pop(),
+              left = stack.pop()
+            stack.push(operation.$ === "Model.Add" ? left + right : left * right)
+            break
+          }
+          default:
+            throw new Error("unknown arithmetic operation")
+        }
+        step = core.resume(step, { $: "Ack", request: step.request })
+      } else {
+        assert.equal(step.$, measuring ? "PreflightCompleted" : "Completed", "cursor must terminate without exhaustion")
+        assert.equal(core.resume(step, { $: "Ack", request }).$, "InvalidReply")
+        if (measuring) assert.equal(stack.length, 1, "preflight terminal stack must have one result")
+        return { step, operations, measurements, bytes: stack[0] }
+      }
+    }
+    throw new Error("local cursor fixture deadline exceeded")
+  }
   let rawCases = 0
   const inspect = (root, facts) => {
+    checkLawInstances(facts)
     const result = spec.analyze(root, facts)
     assert.equal(result.$, "NodeResult", "derived recursive depth must suffice for each finite fixture")
     const materialized = spec.outcome({ $: "Model.Materialize" }, result)
     const outcomes = spec.outcome({ $: "Model.OutcomesOnly" }, result)
     assert.equal(materialized.$, "Some")
     assert.deepEqual(outcomes, some({ ...materialized.value, tree: none }))
+    for (const [purpose, expected] of [
+      ["Trees", materialized],
+      ["Outcomes", outcomes]
+    ]) {
+      const start = core.next_root({
+        $: "Global",
+        catalog: facts,
+        purpose: { $: purpose },
+        pending: list([root]),
+        reversed: list([]),
+        request: 0
+      })
+      assert.deepEqual(unlist(runCore(start).step.outcomes), [expected.value])
+    }
     rawCases++
     return result
   }
@@ -263,6 +370,44 @@ try {
       for (const result of results) subtotal += evaluateBytes(result.bytes, artifacts, trace, fault, supplied)
       return subtotal
     }
+    const materializedOutcomes = results.map((result) => spec.outcome({ $: "Model.Materialize" }, result).value)
+    assert.deepEqual(unlist(runCore(core.initial(facts, { $: "Trees" })).step.outcomes), materializedOutcomes)
+    assert.deepEqual(
+      unlist(runCore(core.initial(facts, { $: "Outcomes" })).step.outcomes),
+      materializedOutcomes.map((outcome) => ({ ...outcome, tree: none }))
+    )
+    const expectedOperations = [{ $: "Model.Push", value: 0 }]
+    const postfix = (expression) => {
+      switch (expression.$) {
+        case "Literal":
+          expectedOperations.push({ $: "Model.Push", value: Number(expression.value) })
+          break
+        case "ArtifactBytes":
+          expectedOperations.push({ $: "Model.MeasureArtifact", slot: Number(expression.slot) })
+          break
+        case "TextBytes":
+          expectedOperations.push({ $: "Model.MeasureText", value: expression.value })
+          break
+        case "Add":
+        case "Multiply":
+          postfix(expression.left)
+          postfix(expression.right)
+          expectedOperations.push({ $: expression.$ === "Add" ? "Model.Add" : "Model.Multiply" })
+          break
+        default:
+          throw new Error("unexpected expression")
+      }
+    }
+    for (const result of results) {
+      postfix(result.bytes)
+      expectedOperations.push({ $: "Model.Add" })
+    }
+    const cursorMeasurement = runCore(core.initial(facts, { $: "Preflight" }), artifacts, true)
+    assert.deepEqual(
+      cursorMeasurement.operations,
+      expectedOperations,
+      "full preflight postfix trace including outer fold"
+    )
     const expressionTrace = [],
       nativeTrace = []
     const expectedBytes = evaluateAll(expressionTrace)
@@ -270,6 +415,8 @@ try {
     assert.equal(nativeBound.declarations, roots.length)
     assert.equal(nativeBound.expandedUnitBytes, expectedBytes, "original IEEE grouping and exact preflight bytes")
     assert.deepEqual(expressionTrace, nativeTrace, "ordered repeated native measurement trace")
+    assert.equal(cursorMeasurement.bytes, expectedBytes)
+    assert.deepEqual(cursorMeasurement.measurements, expressionTrace)
     measurementCases++
     if (path === "a.ts") {
       for (const at of new Set([1, Math.ceil(nativeTrace.length / 2), nativeTrace.length])) {
@@ -308,7 +455,11 @@ try {
       sourceRoots,
       measurementCases,
       faultCases,
-      scope: "independent DFS and preflight evaluation tree; no production cursor or universal totality proof yet"
+      cursorSteps,
+      refusedAcks,
+      lawCatalogs,
+      scope:
+        "unconnected cursor and independent recursive specification; finite law instances, no universal proofs or production acceptance"
     })
   )
 } finally {

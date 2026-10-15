@@ -42,6 +42,14 @@ type Mode is Data:
 type Outcome is Data:
   Outcome{root: Nat, failure: Maybe<&2, Failure>, tree: Maybe<&2, NodePlan>}
 
+# Native arithmetic-stack primitives selected by the local preflight cursor.
+type Op is Data:
+  Push{value: Nat}
+  MeasureArtifact{slot: Nat}
+  MeasureText{value: String}
+  Add{}
+  Multiply{}
+
 # Semantic tasks count declaration visits and reference visits only. Native
 # measurements and frame completion do not spend extra traversal tasks.
 def declaration_inventory(declaration: Declaration) -> Nat:

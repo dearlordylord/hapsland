@@ -288,3 +288,63 @@ def outcome(mode: M.Mode, result: NodeResult) -> Maybe<&2, M.Outcome>:
 
 def main() -> Unit:
   Unit{}
+
+def catalog_roots(catalog: M.Catalog) -> List<&2, M.Declaration>:
+  match catalog:
+    case M.Catalog{roots, _}: roots
+
+# Whole-catalog projections used by the public correspondence laws.
+def prepend_outcome(head: Maybe<&2, M.Outcome>, tail: Maybe<&2, List<&2, M.Outcome>>) -> Maybe<&2, List<&2, M.Outcome>>:
+  match head tail:
+    case Some{head} Some{tail}: Some{head <> tail}
+    case _ _: None{}
+
+def roots_outcomes(roots: List<&2, M.Declaration>, +catalog: M.Catalog, +mode: M.Mode) -> Maybe<&2, List<&2, M.Outcome>>:
+  match roots:
+    case []: Some{[]}
+    case head <> tail:
+      prepend_outcome(outcome(mode, analyze(head, catalog)), roots_outcomes(tail, catalog, mode))
+
+def outcomes(+catalog: M.Catalog, mode: M.Mode) -> Maybe<&2, List<&2, M.Outcome>>:
+  roots_outcomes(catalog_roots(catalog), catalog, mode)
+
+def postfix(expression: BytesExpr) -> List<&2, M.Op>:
+  match expression:
+    case ArtifactBytes{slot}: [M.MeasureArtifact{slot}]
+    case TextBytes{value}: [M.MeasureText{value}]
+    case Literal{value}: [M.Push{value}]
+    case Add{left, right}:
+      List.append(&2, M.Op, postfix(left), List.append(&2, M.Op, postfix(right), [M.Add{}]))
+    case Multiply{left, right}:
+      List.append(&2, M.Op, postfix(left), List.append(&2, M.Op, postfix(right), [M.Multiply{}]))
+
+def root_trace(result: NodeResult) -> Maybe<&2, List<&2, M.Op>>:
+  match result:
+    case DepthExhausted{}: None{}
+    case NodeResult{_, _, bytes}: Some{List.append(&2, M.Op, postfix(bytes), [M.Add{}])}
+
+def append_trace(head: Maybe<&2, List<&2, M.Op>>, tail: Maybe<&2, List<&2, M.Op>>) -> Maybe<&2, List<&2, M.Op>>:
+  match head tail:
+    case Some{head} Some{tail}: Some{List.append(&2, M.Op, head, tail)}
+    case _ _: None{}
+
+def roots_trace(roots: List<&2, M.Declaration>, +catalog: M.Catalog) -> Maybe<&2, List<&2, M.Op>>:
+  match roots:
+    case []: Some{[]}
+    case head <> tail: append_trace(root_trace(analyze(head, catalog)), roots_trace(tail, catalog))
+
+def preflight_trace(+catalog: M.Catalog) -> Maybe<&2, List<&2, M.Op>>:
+  append_trace(Some{[M.Push{0n}]}, roots_trace(catalog_roots(catalog), catalog))
+
+def node_complete(result: NodeResult) -> Bool:
+  match result:
+    case DepthExhausted{}: False{}
+    case NodeResult{_, _, _}: True{}
+
+def roots_complete(roots: List<&2, M.Declaration>, +catalog: M.Catalog) -> Bool:
+  match roots:
+    case []: True{}
+    case head <> tail: Bool.and(node_complete(analyze(head, catalog)), roots_complete(tail, catalog))
+
+def complete(+catalog: M.Catalog) -> Bool:
+  roots_complete(catalog_roots(catalog), catalog)
