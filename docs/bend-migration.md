@@ -171,7 +171,9 @@ crossings with a Bend-selected serialization plan:
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
 `migration/bend-abi-2037` assesses Bend 2.0.37 (`4ff8545f`), numeric Nat/shared
-records, preserving bounds/isolation. Compiler cohort: JS String/Map intrinsics [48a21ae2](https://github.com/dearlordylord/bend/commit/48a21ae2bc00035cfffa100c062716bf5b7bf0a7), unchanged C/TT bytes, 99 producer tests.
+records, preserving bounds/isolation. Next compiler cohort: iterative List/String concatenation [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084), retaining right-fold raw-token coercion.
+Node/Bun, affine/erased payloads, 25k sequences, 10 regressions and C/TT byte controls pass.
+Product qualification pending.
 Preparation/Finalization forwards Bend trees directly; intermediate roundtrips/freeze
 are removed, public decode/freeze stays. Full consumers pass; parity remains open.
 Graph Effect forwards accepted ProductValue; native Promise projection stays.
@@ -215,17 +217,11 @@ that only bridges helper names.
   Astra approved five arbitrary-input equivalence laws; kernel and 1940 emitted
   cases/five mutants and pinned 0.1.19 format pass; evidence/Finalization/compiled
   Source/resident/public consumers and fast pass.
-- Post candidate `660bde05` removes all three host algorithms: offer disposition,
-  retained-advice observation and bounded Internal progression. Its 27 laws pass
-  the standard runner; four mutants fail their named laws. Build (46 workspaces),
-  fast gate (5 files), 23360 Post cases and full consumers pass. These scopes do
-  not establish universal correspondence, parity or whole acceptance.
-- Workspace candidate `73d8c75d` removes both production TS formulas. Its Bend
-  recipe serves Source admission, resize and handoff synchronously, preserving
-  IEEE/coercion order. Astra approved 18 laws and structure. Kernel, four named
-  mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
-  tests, 6 server scenarios and compiled Source/resident consumers pass. Original
-  formulas remain only in the independent verification oracle.
+- Post removes TS offer disposition, retained-advice observation and bounded
+  progression. 27 laws, four named mutants, 23360 cases and full consumers pass.
+- Workspace removes both TS sizing formulas. Bend serves admission/resize/handoff,
+  retaining IEEE/coercion order. 18 laws, four mutants, 6930 differential cases
+  and public/server/Source/resident consumers pass.
 - Primary `c161b10a` Graph handoff cohort analyzer/build: 0.7014 / 0.8396.
   Whole current-native Preparation **fails parity at 1.3478**: equal outputs,
   17 frozen pairs, 30 local workspaces; freezes pass, build cache 23/46.
