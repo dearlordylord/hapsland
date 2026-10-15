@@ -226,7 +226,7 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary `c0f265f5` analyzer/build: 0.6962 / 0.8015. Whole current-native
+- Primary actual `f1fb6330` analyzer/build: 0.5914 / 0.8401. Whole current-native
   Preparation on `defa39e3` **fails parity at 1.3156**: equal outputs, 17 frozen pairs,
   30 local workspaces.
   Six-mode JSON/fast/focused pass.
