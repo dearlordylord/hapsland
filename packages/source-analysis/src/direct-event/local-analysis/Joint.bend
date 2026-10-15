@@ -192,5 +192,99 @@ def enter_ghosts(
       <> Ghost{1n+depth, prefix, S.edge_total(subtotal, symbol, Some{target})} <> rest
     case []: []
 
+# Internal successor-budget branch contract. Outside a named-head cursor
+# with two remaining ticks and two Spec equations it makes no claim. The
+# whole preservation proof must derive those successors from fresh credit.
+def fresh_case(+root: M.Declaration, +invocation: C.Global, +request: Nat,
+  +actual: C.Cursor, +ghosts: List<&2, Ghost>, +target: M.Declaration) -> Type:
+  match actual ghosts:
+    case C.Cursor{+global, +slot, +name, +expanded, +referenced, +failure, 2n++rest,
+      C.Frame{+parent_slot, M.Named{+symbol, +target_id} <> +tail, +reversed, +site} <> +ancestors}
+      Ghost{2n++depth, +prefix, +subtotal} <> +others:
+      {
+        C.lookup(C.global_catalog(global), symbol, target_id)
+        == Some{target}
+        : Maybe<&2, M.Declaration>
+      }
+      -> {C.contains(C.declaration_identity(target), expanded) == False{} : Bool}
+      -> {
+        Nat.is_gt(
+          List.length(&2, String, C.reference_names(name, symbol, target_id, referenced)),
+          16n
+        )
+        == False{}
+        : Bool
+      }
+      -> cursor(root, invocation, request,
+        C.Cursor{global, slot, name, expanded, referenced, failure, 2n+rest,
+          C.Frame{parent_slot, M.Named{symbol, target_id} <> tail, reversed, site} <> ancestors},
+        Ghost{2n+depth, prefix, subtotal} <> others)
+      -> (cursor(
+        root,
+        invocation,
+        request,
+        enter_cursor(
+          rest,
+          C.Cursor{
+            global,
+            slot,
+            name,
+            expanded,
+            referenced,
+            failure,
+            2n+rest,
+            C.Frame{parent_slot, M.Named{symbol, target_id} <> tail, reversed, site} <> ancestors
+          },
+          target,
+          symbol,
+          target_id
+        ),
+        enter_ghosts(depth, Ghost{2n+depth, prefix, subtotal} <> others, target, symbol)
+      )
+        & {
+          C.advance_cursor(
+            C.Cursor{
+              global,
+              slot,
+              name,
+              expanded,
+              referenced,
+              failure,
+              2n+rest,
+              C.Frame{parent_slot, M.Named{symbol, target_id} <> tail, reversed, site} <> ancestors
+            }
+          )
+          == C.cursor_ops(
+            enter_cursor(
+              rest,
+              C.Cursor{
+                global,
+                slot,
+                name,
+                expanded,
+                referenced,
+                failure,
+                2n+rest,
+                C.Frame{
+                  parent_slot,
+                  M.Named{symbol, target_id} <> tail,
+                  reversed,
+                  site
+                } <> ancestors
+              },
+              target,
+              symbol,
+              target_id
+            ),
+            C.child_operations(
+              C.global_purpose(global),
+              C.edge_operations(C.global_purpose(global), symbol, Some{target}),
+              S.declaration_slot(target)
+            )
+          )
+          : C.Step
+        })
+    case _ _: Unit
+
 def main() -> Unit:
   Unit{}

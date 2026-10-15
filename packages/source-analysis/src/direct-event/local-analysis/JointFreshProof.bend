@@ -149,5 +149,44 @@ def enclosing_own_fields(+slot: Nat, +site: Maybe<&2, String>,
     case None{} _ <> _ _ <> _: {==}
     case Some{_} _ _: {==}
 
+# The enclosing parent's slot/site and suffix determine stack shape; its
+# own pending references, accumulator and ghost fields can change in place.
+def shape_own_fields(+slot: Nat, +site: Maybe<&2, String>,
+  +before_pending: List<&2, M.Reference>, +after_pending: List<&2, M.Reference>,
+  +before_reversed: List<&2, M.ReferencePlan>, +after_reversed: List<&2, M.ReferencePlan>,
+  +parents: List<&2, C.Frame>, +rest: List<&2, J.Ghost>,
+  +before_depth: Nat, +after_depth: Nat, +before_prefix: List<&2, M.ReferencePlan>, +after_prefix: List<&2, M.ReferencePlan>,
+  +before_subtotal: S.BytesExpr, +after_subtotal: S.BytesExpr, +root_slot: Nat) -> {
+  J.shape(C.Frame{slot, before_pending, before_reversed, site} <> parents,
+    J.Ghost{before_depth, before_prefix, before_subtotal} <> rest, root_slot)
+  == J.shape(C.Frame{slot, after_pending, after_reversed, site} <> parents,
+    J.Ghost{after_depth, after_prefix, after_subtotal} <> rest, root_slot) : Bool
+}:
+  match site parents rest:
+    case None{} Nil{} Nil{}: {==}
+    case None{} Nil{} _ <> _: {==}
+    case None{} _ <> _ Nil{}: {==}
+    case None{} _ <> _ _ <> _: {==}
+    case Some{_} _ _: {==}
+
+# Exact actual transition accompanying the joint fresh-child invariant.
+def actual_fresh(+global: C.Global, +slot: Nat, +name: String, +expanded: List<&2, String>,
+  +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +rest: Nat,
+  +parent_slot: Nat, +tail: List<&2, M.Reference>, +reversed: List<&2, M.ReferencePlan>, +site: Maybe<&2, String>,
+  +ancestors: List<&2, C.Frame>, +symbol: String, +target_id: Maybe<&2, String>,
+  +target_slot: Nat, +identity: String, +target_name: String, +references: List<&2, M.Reference>,
+  found: {C.lookup(C.global_catalog(global), symbol, target_id) == Some{M.Declaration{target_slot, identity, target_name, references}} : Maybe<&2, M.Declaration>},
+  unlimited: {Nat.is_gt(List.length(&2, String, C.reference_names(name, symbol, target_id, referenced)), 16n) == False{} : Bool},
+  fresh: {C.contains(identity, expanded) == False{} : Bool}) -> {
+  C.advance_cursor(C.Cursor{global, slot, name, expanded, referenced, failure, 2n+rest, C.Frame{parent_slot, M.Named{symbol, target_id} <> tail, reversed, site} <> ancestors}) == C.cursor_ops(J.enter_cursor(rest, C.Cursor{global, slot, name, expanded, referenced, failure, 2n+rest, C.Frame{parent_slot, M.Named{symbol, target_id} <> tail, reversed, site} <> ancestors}, M.Declaration{target_slot, identity, target_name, references}, symbol, target_id), C.child_operations(C.global_purpose(global), C.edge_operations(C.global_purpose(global), symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), target_slot)) : C.Step
+}:
+  %Equal.sym(Maybe<&2, M.Declaration>, C.lookup(C.global_catalog(global), symbol, target_id), Some{M.Declaration{target_slot, identity, target_name, references}}, found) : {
+    C.named_recorded(C.Cursor{global, slot, name, expanded, C.reference_names(name, symbol, target_id, referenced), failure, 1n+rest, C.Frame{parent_slot, tail, reversed, site} <> ancestors}, _, symbol) == C.cursor_ops(J.enter_cursor(rest, C.Cursor{global, slot, name, expanded, referenced, failure, 2n+rest, C.Frame{parent_slot, M.Named{symbol, target_id} <> tail, reversed, site} <> ancestors}, M.Declaration{target_slot, identity, target_name, references}, symbol, target_id), C.child_operations(C.global_purpose(global), C.edge_operations(C.global_purpose(global), symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), target_slot)) : C.Step}
+  %Equal.sym(Bool, Nat.is_gt(List.length(&2, String, C.reference_names(name, symbol, target_id, referenced)), 16n), False{}, unlimited) : {
+    C.named_limit(_, Some{M.Declaration{target_slot, identity, target_name, references}}, C.Cursor{global, slot, name, expanded, C.reference_names(name, symbol, target_id, referenced), failure, 1n+rest, C.Frame{parent_slot, tail, reversed, site} <> ancestors}, symbol, C.edge_operations(C.global_purpose(global), symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), expanded, 1n+rest) == C.cursor_ops(J.enter_cursor(rest, C.Cursor{global, slot, name, expanded, referenced, failure, 2n+rest, C.Frame{parent_slot, M.Named{symbol, target_id} <> tail, reversed, site} <> ancestors}, M.Declaration{target_slot, identity, target_name, references}, symbol, target_id), C.child_operations(C.global_purpose(global), C.edge_operations(C.global_purpose(global), symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), target_slot)) : C.Step}
+  %Equal.sym(Bool, C.contains(identity, expanded), False{}, fresh) : {
+    C.named_seen(_, C.Cursor{global, slot, name, expanded, C.reference_names(name, symbol, target_id, referenced), failure, 1n+rest, C.Frame{parent_slot, tail, reversed, site} <> ancestors}, M.Declaration{target_slot, identity, target_name, references}, symbol, C.edge_operations(C.global_purpose(global), symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), 1n+rest) == C.cursor_ops(J.enter_cursor(rest, C.Cursor{global, slot, name, expanded, referenced, failure, 2n+rest, C.Frame{parent_slot, M.Named{symbol, target_id} <> tail, reversed, site} <> ancestors}, M.Declaration{target_slot, identity, target_name, references}, symbol, target_id), C.child_operations(C.global_purpose(global), C.edge_operations(C.global_purpose(global), symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), target_slot)) : C.Step}
+  {==}
+
 def main() -> Unit:
   Unit{}
