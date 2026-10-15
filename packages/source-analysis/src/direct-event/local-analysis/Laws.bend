@@ -4,9 +4,9 @@ import ./Core.bend as Core
 import ./Execution.bend as E
 import ./Specification.bend as S
 
-# Draft whole-capability obligations, awaiting proof. No law assumes a valid,
-# unique, acyclic catalog or an external fuel budget. The active native analyzer
-# cannot be deleted or replaced on finite cursor checks alone.
+# Whole-capability obligations proved by WholeProof.bend. No law assumes a
+# valid, unique, acyclic catalog or an external fuel budget. Native binding and
+# full consumer qualification remain required before production adoption.
 
 # Preserve every original root outcome, exact DFS tree and first failure.
 law materialized_exact:
