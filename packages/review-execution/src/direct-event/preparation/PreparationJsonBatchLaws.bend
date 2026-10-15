@@ -9,7 +9,7 @@ import ./CanonicalJsonBatchLaws.bend as Reference
 import ./FrozenInput.bend as Input
 import ./PreparationFinalization.bend as Top
 
-# DRAFT: actual connected transitions, pending designated review/falsification.
+# Reviewed laws for the actual connected transitions.
 # Header and authoritative command lists below come from the same constructor.
 # No agreement is assumed for independently forged copies of a Step's fields.
 
@@ -140,7 +140,7 @@ law outer_export_exact:
 def main() -> Unit:
   Unit{}
 
-# Proposed extension: pending root review before proof implementation.
+# Reviewed zero-request and outer-machine composition guarantees.
 def literal_pieces(strings: List<&2, String>) -> List<&2, Plan.Piece>:
   match strings:
     case []: []
@@ -296,7 +296,7 @@ law digest_rejects_batch:
   {Input.resume(Input.Digest{state, text}, Input.SerializedBatch{invocation, request, tokens})
     == Input.InvalidReply{} : Input.Step}
 
-# Proposed final composition laws: pending designated review before proof.
+# Reviewed final plan-selection and foreign-header composition guarantees.
 # This pins the actual plan-to-command connection, including the first logical ID.
 law planned_exact:
   for +invocation: Nat
@@ -335,8 +335,12 @@ law export_resume_exact:
   for +operations: List<&2, Plan.Operation>
   {
     Input.resume(
-      Input.ExportJson{Input.State{invocation, request, Input.FlattenWork{input, value}}, displayed},
-      Input.Planned{received_invocation, received_request, operations})
+      Input.ExportJson{
+        Input.State{invocation, request, Input.FlattenWork{input, value}},
+        displayed
+      },
+      Input.Planned{received_invocation, received_request, operations}
+    )
     == Bool.pick(
       Input.Step,
       Bool.and(
@@ -346,5 +350,16 @@ law export_resume_exact:
       Input.planned(invocation, request, input, Plan.compile(operations)),
       Input.InvalidReply{}
     )
+    : Input.Step
+  }
+
+# Missing mechanical plans are refused before primitive selection or charging.
+law planned_none_refused:
+  for +invocation: Nat
+  for +request: Nat
+  for +input: Value.ProductValue
+  {
+    Input.planned(invocation, request, input, None{})
+    == Input.InvalidReply{}
     : Input.Step
   }
