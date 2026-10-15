@@ -105,6 +105,14 @@ try {
     { timeout: 11000 }
   )
   const joint = (await import(pathToFileURL(jointOutput))).default
+  const referenceOutput = join(temporary, "joint-reference.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "JointReference.bend"), "-o", referenceOutput],
+    { timeout: 11000 }
+  )
+  const referenceJoint = (await import(pathToFileURL(referenceOutput))).default
+  let referenceTransitions = 0
   let specificationDepthBounds = 0
   let continuationStates = 0,
     childEntries = 0,
@@ -382,6 +390,40 @@ try {
                 )
                 depths.unshift(continuation.child_reference_depth(depth))
                 childEntries++
+              } else {
+                const reference = unlist(oldFrames[0].pending)[0]
+                const state = {
+                  $: "Specification.State",
+                  root_name: previous.cursor.root_name,
+                  expanded: previous.cursor.expanded,
+                  referenced: previous.cursor.referenced,
+                  failure: previous.cursor.failure
+                }
+                const result = referenceJoint.result(reference, state, rootCatalog, {
+                  $: "Specification.Literal",
+                  value: 0
+                })
+                assert.equal(result.$, "Specification.ReferenceResult", "no-child branch must return a reference")
+                const successor = referenceJoint.successor(
+                  previous.cursor.remaining - 1,
+                  jointTags(previous.cursor, true),
+                  result.state,
+                  result.reference
+                )
+                assert.deepEqual(
+                  jointTags(successor, false),
+                  next,
+                  "no-child successor preserves every actual cursor field"
+                )
+                const queue = referenceJoint.operations(reference, rootCatalog, {
+                  $: `Core.${previous.cursor.global.purpose.$}`
+                })
+                assert.deepEqual(
+                  jointTags(referenceJoint["Core.cursor_ops"](successor, queue), false),
+                  step,
+                  "no-child aggregate uses the exact actual edge queue"
+                )
+                referenceTransitions++
               }
             } else {
               assert.equal(nextFrames.length, oldFrames.length - 1)
@@ -854,6 +896,7 @@ try {
       continuationStates,
       specificationDepthBounds,
       childEntries,
+      referenceTransitions,
       childReturns,
       scope:
         "unconnected cursor and independent recursive specification; finite law instances, no universal proofs or production acceptance"
