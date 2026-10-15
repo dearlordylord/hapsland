@@ -5,7 +5,6 @@ import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import type { Step, State } from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import {
   toOwner,
-  readChildSnapshot,
   type Control,
   type Method,
   type Arguments,
@@ -58,11 +57,9 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
     activeReader = owner.active_reader(state.children)
     return step
   }
-  const readChild = (invocation: bigint) => readChildSnapshot(activeReader, invocation)
   const entries: EntryTable = owner
   const control: Control = {
     readState: () => state,
-    readChild,
     readActive: (invocation) => activeReader.query(invocation),
     invoke<M extends Method>(method: M, args: Arguments<M>) {
       const call = entries[method] as (state: State, ...args: Arguments<M>) => Step
@@ -170,7 +167,7 @@ const makeExecution = (observation: PreparationObservation, context: SourcePrepa
     recordMaterializationCapacity: () => Effect.void,
     resolveRoot: (request, facts, execution) =>
       Effect.gen(function* () {
-        const parent = readChild(request.invocation)
+        const parent = owner.find(request.invocation, driver.state.children)
         if (parent.$ !== "Some") throw new TypeError("Missing preparation parent invocation")
         let terminalFrame: GraphOutcome | undefined
         const resolve = createBendEffectResolver({

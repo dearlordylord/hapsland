@@ -1344,7 +1344,7 @@ def child_active(child: Child) -> Bool:
     case Child{_, _, _, _, phase, _, _, _}: active(phase)
 
 type ActiveReader is Type:
-  ActiveReader{query: Nat -> Maybe<&2, Bool>, read_child: Nat -> Maybe<&2, Child>}
+  ActiveReader{query: Nat -> Maybe<&2, Bool>}
 
 def active_observed(child: Maybe<&2, Child>) -> Maybe<&2, Bool>:
   match child:
@@ -1352,30 +1352,11 @@ def active_observed(child: Maybe<&2, Child>) -> Maybe<&2, Bool>:
     case Some{child}: Some{child_active(child)}
 
 def active_reader(+children: List<&2, Child>) -> ActiveReader:
-  ActiveReader{
-    invocation => active_observed(find(invocation, children)),
-    invocation => find(invocation, children)
-  }
+  ActiveReader{invocation => active_observed(find(invocation, children))}
 
 def active_query(reader: ActiveReader, invocation: Nat) -> Maybe<&2, Bool>:
   match reader:
-    case ActiveReader{query, _}: query(invocation)
-
-def child_query(reader: ActiveReader, invocation: Nat) -> Maybe<&2, Child>:
-  match reader:
-    case ActiveReader{_, read_child}: read_child(invocation)
-
-law child_reader_exact:
-  for +children: List<&2, Child>
-  for +invocation: Nat
-  {
-    child_query(active_reader(children), invocation)
-    == find(invocation, children)
-    : Maybe<&2, Child>
-  }
-
-def child_reader_exact(children, invocation):
-  {==}
+    case ActiveReader{query}: query(invocation)
 
 def active_reader_exact(+children: List<&2, Child>, +invocation: Nat) -> {
   active_query(active_reader(children), invocation)

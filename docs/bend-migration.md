@@ -180,7 +180,7 @@ arbitrary fuel.
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
 | Original proof formatting | The complete attachment law must pass the pinned formatter. Its remaining deep block/list layouts still fail; prefix or isolated-definition checks are insufficient. |
-| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Requalify the full composed consumers after the tree validator and private child-reader connection; individual module checks are insufficient. |
+| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Requalify the full composed consumers after the tree validator; individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
@@ -215,12 +215,8 @@ bridge helper names.
   `check:fast` with cumulative lint (10 files), full Finalization consumer
   (66 cases / 52 runtime cases), and focused Source/Post/resident consumers.
   These finite/simulated scopes do not establish whole acceptance.
-- Private child lookups reuse the committed Bend reader; the host clones only
-  the selected Child to isolate shared generated constructors. Exact find equality
-  passes the kernel. The emitted consumer passes 1429 assertions, including nested
-  mutation isolation and reentrant cancellation; matching build and cumulative
-  `check:fast` pass (six authored files). Whole-path performance is pending.
-- Primary analyzer/build on the earlier `bce78508` pass at 0.6847 / 0.9051.
+- Last qualified primary analyzer/build for the retained production shape, on
+  `bce78508`, pass at 0.6847 / 0.9051.
   Complete current-native Preparation on `bce78508` **fails parity at 1.8977**. All 30 workspace
   dependencies resolved inside the measured checkout. Earlier measurements using
   a shared `node_modules` with workspace links into another checkout cannot qualify

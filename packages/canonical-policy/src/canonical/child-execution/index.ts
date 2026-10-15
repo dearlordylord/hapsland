@@ -18,5 +18,5 @@ export type {
 } from "./driver.mjs"
 export { createChildExecutionDriver } from "./driver.mjs"
 
-export { toOwner, fromOwner, toOwnerCanonical, ownerList, ownerSequence, readChildSnapshot } from "./transport.ts"
+export { toOwner, fromOwner, toOwnerCanonical, ownerList, ownerSequence } from "./transport.ts"
 export type { HostTransport } from "./transport.ts"

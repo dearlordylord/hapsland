@@ -4,7 +4,7 @@ import type { Canonical_CanonicalEvent } from "./raw-canonical-event.d.ts"
 export type OwnerTransport<Value> = Value extends number ? bigint : Value extends object ? { readonly [Key in keyof Value]: Key extends "$" ? Value[Key] extends `${string}.${string}` ? `../${Value[Key]}` : Value[Key] : OwnerTransport<Value[Key]> } : Value
 export type List<Value> = { readonly $: "Nil" } | { readonly $: "Con"; readonly head: Value; readonly tail: List<Value> }
 type Maybe<Value> = { readonly $: "None" } | { readonly $: "Some"; readonly value: Value }
-export type ActiveReader = { readonly $: "ActiveReader"; readonly query: (invocation: bigint) => Maybe<boolean>; readonly read_child: (invocation: bigint) => Maybe<Child> }
+export type ActiveReader = { readonly $: "ActiveReader"; readonly query: (invocation: bigint) => Maybe<boolean> }
 export type State =
   | { readonly $: "State"; readonly canonical: OwnerTransport<Canonical_State>; readonly next_invocation: bigint; readonly next_lease: bigint; readonly children: List<Child> }
 
@@ -126,7 +126,6 @@ export interface CanonicalResolverOwner {
   find(invocation: bigint, children: List<Child>): Maybe<Child>
   child_active(child: Child): boolean
   active_reader(children: List<Child>): ActiveReader
-  child_query(reader: ActiveReader, invocation: bigint): Maybe<Child>
   live(canonical: OwnerTransport<Canonical_State>, scope: Scope): boolean
   provider_live(state: State, invocation: bigint, generation: bigint, lease: bigint, request: bigint): boolean
   advice_provider_allowed(state: State, invocation: bigint, generation: bigint, lease: bigint, request: bigint, kind: AdvicePermission): boolean
