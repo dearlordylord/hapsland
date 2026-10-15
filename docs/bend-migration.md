@@ -227,9 +227,9 @@ that only bridges helper names.
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
 - Primary actual `f1fb6330` analyzer/build: 0.5914 / 0.8401. Whole current-native
-  Preparation on `defa39e3` **fails parity at 1.3156**: equal outputs, 17 frozen pairs,
+  Preparation on `912a5174` **fails parity at 1.4458**: equal outputs, 17 frozen pairs,
   30 local workspaces.
-  Qualified-codec consumers pass; new whole parity pending.
+  Qualified-codec/public/physical consumers pass; whole parity fails.
 - Attachment facts/consumers pass verdict/format. Full TT is 7,445,671 bytes;
   original law/premises/binding/main remain byte-identical. Full verdict times out.
   Renderer/pending-key trials preserve TT; no reliable gain. Both stopped.
