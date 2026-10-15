@@ -46,7 +46,7 @@ import { createPreparationCapability } from "./machine.ts"
  * admitMaterialization: (capture: CaptureWire, preflight: import("@hapsland/source-analysis/direct-event/analyzer").AnalyzerMaterializationPreflight | undefined, execution: PreparationExecution) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<MaterializationReply>,
  * rejectMaterializationCapacity: (execution: PreparationExecution) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<void>,
  * recordMaterializationCapacity: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<void>,
- * resolveRoot: (request: PreparationEffectRequest, facts: RootFacts, execution: PreparationExecution) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<{unit: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewUnit | undefined, references: Extract<PreparationReply["response"], {$: "RootResolved"}>["references"]}>
+ * resolveRoot: (request: PreparationEffectRequest, facts: RootFacts, execution: PreparationExecution) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<{unit: import("@hapsland/source-artifacts/direct-event/value/codec").ProductValue | undefined, references: Extract<PreparationReply["response"], {$: "RootResolved"}>["references"]}>
  * }} PhysicalPreparationPorts
  * @param {PhysicalPreparationPorts} ports
  */
@@ -348,7 +348,7 @@ export function createPhysicalPreparationCapability({
         const { unit, references } = yield* awaitNativeWork(resolveRoot(request, rootFacts, options))
         response = {
           $: "RootResolved",
-          unit: unit === undefined ? none : some(productValue(unit)),
+          unit: unit === undefined ? none : some(unit),
           references,
           captures: snapshotCaptures()
         }

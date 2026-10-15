@@ -4,6 +4,7 @@ import {
   createBendEffectResolver,
   createBendResolver
 } from "@hapsland/source-analysis/direct-event/graph-resolution"
+import { fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { execFileSync } from "node:child_process"
@@ -519,13 +520,19 @@ try {
         }
       }
     })
+    let acceptedProduct
     const resolver = createBendEffectResolver({
+      observeProduct: (value) => {
+        acceptedProduct = value
+      },
       drive: driver.driveEffect,
       allocateInvocation: driver.allocateInvocation,
       onConstructionFailure: driver.constructionFailed
     })
     try {
-      actual = await Effect.runPromise(resolver(path, stable(path), "Root", contextFor(bendEvents, bendCache)))
+      const product = await Effect.runPromise(resolver(path, stable(path), "Root", contextFor(bendEvents, bendCache)))
+      assert.equal(product, acceptedProduct, fixture.name + " must retain the exact accepted Graph tree")
+      actual = product === undefined ? undefined : fromProductValue(product)
     } catch (error) {
       bendError = error
     }

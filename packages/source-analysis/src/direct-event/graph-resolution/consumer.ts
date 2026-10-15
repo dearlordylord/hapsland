@@ -93,7 +93,7 @@ function createResolverFlow(
     name: string,
     context: LanguageGraphHost,
     options: PerformOptions = {}
-  ): NativeFlow<ReviewUnit | undefined> {
+  ): NativeFlow<ProductValue | undefined> {
     const limits = { ...GRAPH_LIMIT_CEILINGS, ...context.limits }
     const activeInvocation = allocateInvocation()
     let session: ServiceSession | undefined, input: ResolverInput
@@ -176,22 +176,27 @@ function createResolverFlow(
     if ("failure" in outcome) throw new Error("Bend resolver technical failure: " + outcome.failure.$)
     if (outcome.result.$ === "Types.NoReviewUnit") return undefined
     observeProduct?.(outcome.result.value)
-    // This projection comes from the owning driver and emitted ReviewUnitResult.
-    return fromProductValue(outcome.result.value) as ReviewUnit
+    // Preserve the accepted owner-produced tree across Bend capability handoffs.
+    return outcome.result.value
   }
 }
 
 export function createBendResolver(options: ResolverPorts) {
   const resolve = createResolverFlow(options, false)
+  function* native(...args: Parameters<typeof resolve>): NativeFlow<ReviewUnit | undefined> {
+    const value = yield* resolve(...args)
+    return value === undefined ? undefined : (fromProductValue(value) as ReviewUnit)
+  }
   return (
     path: string,
     capture: StableCapture,
     name: string,
     context: LanguageGraphHost,
     execution: PerformOptions = {}
-  ) => runNativePromise(resolve(path, capture, name, context, execution))
+  ) => runNativePromise(native(path, capture, name, context, execution))
 }
 
+// Internal Effect consumers retain the accepted ProductValue until public decode.
 export function createBendEffectResolver(options: EffectResolverPorts) {
   const resolve = createResolverFlow(options, true)
   return (

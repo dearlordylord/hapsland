@@ -6,6 +6,56 @@ import { randomUUID } from "node:crypto"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createPreparationMachine } from "./preparation-dispatcher.ts"
+import * as Effect from "effect/Effect"
+import { productValue } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { createPhysicalPreparationCapability } from "../../../dist/direct-event/preparation/physical-effects.mjs"
+
+// The physical reply preserves the accepted Graph tree, including its identity.
+{
+  const path = "/graph-handoff.ts"
+  const capture = { text: "type Root = string", contentHash: "fixture", byteLength: 18 }
+  const unit = productValue({ root: { artifact: { id: "Root", kind: "type", name: "Root" } } })
+  const nil = { $: "Nil" }
+  const unused = () => {
+    throw new Error("Unrequested provider crossed Graph handoff")
+  }
+  const capability = createPhysicalPreparationCapability({
+    root: "/",
+    rootIdentity: {},
+    context: {},
+    settings: {},
+    cache: new Map([[path, capture]]),
+    canonicalGate: unused,
+    runFinalization: unused,
+    admitMaterialization: unused,
+    rejectMaterializationCapacity: unused,
+    recordMaterializationCapacity: unused,
+    resolveRoot: (_request, facts) => {
+      assert.equal(facts.capture, capture)
+      return Effect.succeed({ unit, references: nil })
+    }
+  })
+  const response = await Effect.runPromise(
+    capability.performEffect(
+      {
+        invocation: 1,
+        id: 7,
+        command: {
+          $: "ResolveRoot",
+          capture: { handle: 1, path },
+          root: { name: "Root" },
+          contract: { $: "PreparationSelection.TypeContract" }
+        }
+      },
+      { ownerLease: { invocation: 1, request: 7 } }
+    )
+  )
+  assert.equal(response.response.$, "RootResolved")
+  assert.equal(response.response.unit.$, "Some")
+  assert.equal(response.response.unit.value, unit)
+  console.log(JSON.stringify({ graphProductHandoffIdentity: true }))
+}
+
 // Closed ABI transport must touch only Graph references, never source payloads.
 {
   const list = (values) => values.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })

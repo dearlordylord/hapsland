@@ -171,12 +171,11 @@ crossings with a Bend-selected serialization plan:
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
 `migration/bend-abi-2037` assesses Bend 2.0.37 (`4ff8545f`), numeric Nat/shared
-records, preserving bounds/isolation. The assessed JS Map.bit/diff fork [48a21ae2](https://github.com/dearlordylord/bend/commit/48a21ae2bc00035cfffa100c062716bf5b7bf0a7) passes Astra review, independent Base equations,
-two-key Map shapes/evaluation-order checks and unchanged C/TT bytes.
-23 receipts, 99 producer tests and full consumers pass; whole parity fails.
-Preparation/Finalization forwards Bend units/prepared trees directly; deep roundtrips
-and intermediate freeze are removed. Public decode/freeze stays. Astra review,
-fast (3 files) and Finalization/Source/resident/public consumers pass.
+records, preserving bounds/isolation. Compiler cohort: JS String/Map intrinsics [48a21ae2](https://github.com/dearlordylord/bend/commit/48a21ae2bc00035cfffa100c062716bf5b7bf0a7), unchanged C/TT bytes, 99 producer tests.
+Preparation/Finalization forwards Bend trees directly; intermediate roundtrips/freeze
+are removed, public decode/freeze stays. Full consumers pass; parity remains open.
+Current candidate also forwards accepted Graph ProductValue through the existing
+Effect port; Promise Graph API retains native projection. Qualification pending.
 
 ### Remaining obstacles and acceptance evidence
 
