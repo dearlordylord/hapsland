@@ -55,7 +55,9 @@ export type Step =
       readonly next: State
     }
   | { readonly $: "Completed"; readonly outcomes: List<Outcome> }
-  | { readonly $: "PreflightCompleted" | "Exhausted" | "InvalidReply" }
+  | { readonly $: "PreflightCompleted" }
+  | { readonly $: "Exhausted" }
+  | { readonly $: "InvalidReply" }
 
 declare const core: {
   initial(catalog: Catalog, purpose: Purpose): Step

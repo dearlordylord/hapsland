@@ -4,28 +4,22 @@ import type {
   GraphDeclaration,
   GraphFile
 } from "./languages/contracts.ts"
-import type {
-  ArtifactReference,
-  ReviewArtifact,
-  ReviewNode,
-  ReviewUnit,
-  TypeDeclaration
-} from "@hapsland/source-artifacts/direct-event/artifact-model"
+import type { ReviewUnit, TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { languageForPath } from "./languages/registry.ts"
-export type { GraphDeclaration, GraphFile }
-type ParsedDeclaration = GraphDeclaration
-export type UnitAnalysis =
-  | { readonly status: "ready"; readonly unit: ReviewUnit }
-  | {
-      readonly status: "unsupported"
-      readonly root: ReviewArtifact
-      readonly unit: ReviewUnit
-      readonly reason: "missing-evidence" | "unsupported-reference" | "reference-limit"
-    }
-
+import {
+  analyzeDeclarations,
+  declarationOutcomes,
+  preflightDeclarations,
+  type UnitAnalysis,
+  type UnitOutcome
+} from "./local-analysis/native.ts"
+export type { GraphDeclaration, GraphFile, UnitAnalysis, UnitOutcome }
 export type TypeFileAnalysis =
   | TypeExtractionFailure
   | { readonly status: "analyzed"; readonly units: ReadonlyArray<UnitAnalysis> }
+export type TypeFileOutcomes =
+  | TypeExtractionFailure
+  | { readonly status: "analyzed"; readonly units: ReadonlyArray<UnitOutcome> }
 export { MAX_TYPE_DECLARATIONS } from "./languages/contracts.ts"
 /** The root is deliberately excluded from this count. */
 export const MAX_REFERENCED_NAMES = 16
@@ -34,7 +28,7 @@ const parsedDeclarations = (
   path: string,
   source: string,
   allowImports = false
-): TypeExtractionFailure | ReadonlyArray<ParsedDeclaration> =>
+): TypeExtractionFailure | ReadonlyArray<GraphDeclaration> =>
   languageForPath(path)?.parseTypes(path, source, allowImports) ?? {
     status: "unsupported",
     reason: "extension",
@@ -42,126 +36,26 @@ const parsedDeclarations = (
   }
 export const inspectGraphFile = (path: string, source: string): GraphFile | undefined =>
   languageForPath(path)?.inspect(path, source)
-type LocalGraphTraversal = {
-  readonly rootName: string
-  readonly expanded: Set<string>
-  readonly referencedNames: Set<string>
-  readonly declarations: ReadonlyMap<string, ParsedDeclaration>
-  readonly supportingDeclarations: ReadonlyMap<string, ParsedDeclaration>
-}
-type UnitTraversal = LocalGraphTraversal & {
-  reason: Extract<UnitAnalysis, { status: "unsupported" }>["reason"] | undefined
-}
-const localTraversal = (
-  root: ParsedDeclaration,
-  declarations: ReadonlyMap<string, ParsedDeclaration>,
-  supportingDeclarations: ReadonlyMap<string, ParsedDeclaration> = new Map()
-): LocalGraphTraversal => ({
-  rootName: root.artifact.name,
-  expanded: new Set([root.artifact.id]),
-  referencedNames: new Set(),
-  declarations,
-  supportingDeclarations
-})
-const namedTarget = (state: LocalGraphTraversal, name: string, targetId?: string): ParsedDeclaration | undefined => {
-  if (name !== state.rootName) state.referencedNames.add(targetId ?? name)
-  return targetId === undefined ? state.declarations.get(name) : state.supportingDeclarations.get(targetId)
-}
-const referenceTarget = (
-  name: string,
-  target: ParsedDeclaration | undefined
-): Extract<ArtifactReference, { kind: "omitted" }>["target"] =>
-  target === undefined ? { kind: "unresolved", symbol: name } : { kind: "known", artifactId: target.artifact.id }
-const visitNamedReference = (state: UnitTraversal, name: string, targetId?: string): ArtifactReference => {
-  const target = namedTarget(state, name, targetId)
-  const site = { symbol: name }
-  if (state.referencedNames.size > MAX_REFERENCED_NAMES) {
-    state.reason ??= "reference-limit"
-    return { kind: "omitted", site, target: referenceTarget(name, target), reason: "reference-limit" }
-  }
-  if (target === undefined) {
-    state.reason ??= "missing-evidence"
-    return { kind: "omitted", site, target: { kind: "unresolved", symbol: name }, reason: "unresolved" }
-  }
-  if (state.expanded.has(target.artifact.id)) return { kind: "included", site, target: target.artifact.id }
-  state.expanded.add(target.artifact.id)
-  return { kind: "expanded", site, node: visitUnitDeclaration(state, target) }
-}
-const visitUnitReference = (
-  state: UnitTraversal,
-  reference: ParsedDeclaration["references"][number]
-): ArtifactReference => {
-  if (reference.kind !== "unsupported") return visitNamedReference(state, reference.name, reference.targetId)
-  state.reason ??= "unsupported-reference"
-  return {
-    kind: "omitted",
-    site: { symbol: reference.name },
-    target: { kind: "unresolved", symbol: reference.name },
-    reason: "unsupported"
-  }
-}
-const visitUnitDeclaration = (state: UnitTraversal, declaration: ParsedDeclaration): ReviewNode => ({
-  artifact: declaration.artifact,
-  references: declaration.references.map((reference) => visitUnitReference(state, reference))
-})
-const unitFor = (
-  root: ParsedDeclaration,
-  declarations: ReadonlyMap<string, ParsedDeclaration>,
-  supportingDeclarations: ReadonlyMap<string, ParsedDeclaration>
-): UnitAnalysis => {
-  const state: UnitTraversal = { ...localTraversal(root, declarations, supportingDeclarations), reason: undefined }
-  const unit = { root: visitUnitDeclaration(state, root) } satisfies ReviewUnit
-  return state.reason === undefined
-    ? { status: "ready", unit }
-    : { status: "unsupported", root: root.artifact, unit, reason: state.reason }
-}
-
 export const analyzeTypeFile = (path: string, source: string, allowImports = false): TypeFileAnalysis => {
   const parsed = parsedDeclarations(path, source, allowImports)
   if ("status" in parsed) return parsed
-  const byName = new Map(parsed.map((declaration) => [declaration.artifact.name, declaration]))
-  const supporting = languageForPath(path)?.supportingTypes?.(path, source) ?? new Map()
-  return { status: "analyzed", units: parsed.map((declaration) => unitFor(declaration, byName, supporting)) }
-}
-
-/** Bounded preflight count used before recursive ReviewUnit materialization. */
-export type { AnalyzerMaterializationPreflight } from "./languages/contracts.ts"
-const encodedBytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value), "utf8")
-
-/**
- * Conservative logical bound computed without constructing recursive units.
- * Exact artifact/id/site payload bytes are charged with ample per-node/edge
- * structural allowance, following the same expansion and reference ceilings
- * as unitFor.
- */
-const preflightTarget = (
-  state: LocalGraphTraversal,
-  reference: ParsedDeclaration["references"][number]
-): ParsedDeclaration | undefined =>
-  reference.kind === "named" ? namedTarget(state, reference.name, reference.targetId) : undefined
-const canExpandPreflightTarget = (
-  state: LocalGraphTraversal,
-  target: ParsedDeclaration | undefined
-): target is ParsedDeclaration => {
-  if (target === undefined) return false
-  return state.referencedNames.size <= MAX_REFERENCED_NAMES && !state.expanded.has(target.artifact.id)
-}
-const targetEncodedBytes = (target: ParsedDeclaration | undefined): number =>
-  target === undefined ? 0 : encodedBytes(target.artifact.id)
-const preflightDeclarationBytes = (state: LocalGraphTraversal, declaration: ParsedDeclaration): number => {
-  let bytes = encodedBytes(declaration.artifact) + 512
-  for (const reference of declaration.references) {
-    const target = preflightTarget(state, reference)
-    // Covers tagged edge keys, site/symbol, omitted target/reason, and an
-    // included target ID at its exact escaped byte length.
-    bytes += 512 + 2 * encodedBytes(reference.name) + targetEncodedBytes(target)
-    if (canExpandPreflightTarget(state, target)) {
-      state.expanded.add(target.artifact.id)
-      bytes += preflightDeclarationBytes(state, target)
-    }
+  return {
+    status: "analyzed",
+    units: analyzeDeclarations(parsed, languageForPath(path)?.supportingTypes?.(path, source) ?? new Map())
   }
-  return bytes
 }
+
+/** Source consumes decisions without constructing discarded ReviewUnit trees. */
+export const analyzeTypeOutcomes = (path: string, source: string, allowImports = false): TypeFileOutcomes => {
+  const parsed = parsedDeclarations(path, source, allowImports)
+  if ("status" in parsed) return parsed
+  return {
+    status: "analyzed",
+    units: declarationOutcomes(parsed, languageForPath(path)?.supportingTypes?.(path, source) ?? new Map())
+  }
+}
+
+export type { AnalyzerMaterializationPreflight } from "./languages/contracts.ts"
 export const analyzerMaterializationPreflight = (
   path: string,
   source: string,
@@ -169,12 +63,10 @@ export const analyzerMaterializationPreflight = (
 ): AnalyzerMaterializationPreflight | undefined => {
   const parsed = parsedDeclarations(path, source, allowImports)
   if ("status" in parsed) return undefined
-  const byName = new Map(parsed.map((declaration) => [declaration.artifact.name, declaration]))
-  const supporting = languageForPath(path)?.supportingTypes?.(path, source)
-  let expandedUnitBytes = 0
-  for (const root of parsed) {
-    expandedUnitBytes += preflightDeclarationBytes(localTraversal(root, byName, supporting), root)
-  }
+  const expandedUnitBytes = preflightDeclarations(
+    parsed,
+    languageForPath(path)?.supportingTypes?.(path, source) ?? new Map()
+  )
   return {
     declarations: parsed.length,
     expandedUnitBytes,

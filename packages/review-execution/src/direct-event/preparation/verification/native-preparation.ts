@@ -24,7 +24,7 @@ import {
   type TypeFileAnalysis,
   type UnitAnalysis,
   inspectGraphFile
-} from "@hapsland/source-analysis/direct-event/analyzer"
+} from "@hapsland/source-analysis/testing/native-analyzer"
 import {
   observationCaptureBudgetRefusal,
   MAX_OBSERVATION_GRAPH_UNITS,

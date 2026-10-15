@@ -13,7 +13,7 @@ import { productValue, fromProductValue, list, unlist } from "@hapsland/source-a
 import {
   inspectGraphFile,
   combinedAnalyzerMaterializationPreflight,
-  analyzeTypeFile
+  analyzeTypeOutcomes
 } from "@hapsland/source-analysis/direct-event/analyzer"
 import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
 import { createPreparationCapability } from "./machine.ts"
@@ -254,7 +254,7 @@ export function createPhysicalPreparationCapability({
           hasCapturedGraph =
             facts !== undefined ||
             (functions !== undefined && functions.functions.size > 0 && functions.types.size === 0),
-          typeFile = analyzeTypeFile(command.capture.path, command.capture.text, hasCapturedGraph)
+          typeFile = analyzeTypeOutcomes(command.capture.path, command.capture.text, hasCapturedGraph)
         /** @param {{artifact: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewArtifact, location: import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation, selectionLocations?: readonly import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation[]}} fact
          * @returns {RootWire}
          */
@@ -299,8 +299,8 @@ export function createPhysicalPreparationCapability({
                     analyses: list(
                       typeFile.units.map((unit) =>
                         unit.status === "ready"
-                          ? { $: "NativeReady", name: unit.unit.root.artifact.name }
-                          : { $: "NativeUnsupported", name: unit.root.name, reason: unit.reason }
+                          ? { $: "NativeReady", name: unit.name }
+                          : { $: "NativeUnsupported", name: unit.name, reason: unit.reason }
                       )
                     )
                   }

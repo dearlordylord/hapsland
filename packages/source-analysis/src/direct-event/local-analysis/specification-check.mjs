@@ -4,7 +4,11 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { analyzeTypeFile, analyzerMaterializationPreflight } from "@hapsland/source-analysis/direct-event/analyzer"
+import {
+  analyzeTypeFile,
+  analyzeTypeOutcomes,
+  analyzerMaterializationPreflight
+} from "@hapsland/source-analysis/direct-event/analyzer"
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const { languageForPath } = await import(
@@ -13,6 +17,8 @@ const { languageForPath } = await import(
 const packagedCore = (
   await import(new URL("../../../dist/direct-event/local-analysis/analyzer-core.js", import.meta.url))
 ).default
+const referenceNative = await import("@hapsland/source-analysis/testing/native-analyzer")
+const nativeBinding = await import(new URL("../../../dist/direct-event/local-analysis/native.js", import.meta.url))
 const some = (value) => ({ $: "Some", value })
 const none = { $: "None" }
 const named = (name, targetId) => ({
@@ -798,7 +804,7 @@ try {
         throw new Error("unexpected measurement expression")
     }
   }
-  const nativePreflight = (path, source, trace, fault, supplied) => {
+  const nativePreflight = (path, source, trace, fault, supplied, implementation = analyzerMaterializationPreflight) => {
     const original = Buffer.byteLength
     Buffer.byteLength = (...args) => {
       // Observe only the original analyzer's measurement primitive, excluding
@@ -812,7 +818,7 @@ try {
       return original(...args)
     }
     try {
-      return analyzerMaterializationPreflight(path, source, true)
+      return implementation(path, source, true)
     } finally {
       Buffer.byteLength = original
     }
@@ -836,10 +842,28 @@ try {
       ].join("\n")
     ])
   ]
-  let sourceRoots = 0
+  let sourceRoots = 0,
+    artifactIdentities = 0
   for (const [path, source] of sources) {
     const native = analyzeTypeFile(path, source, true)
     assert.equal(native.status, "analyzed", "physical parser fixture must reach local analyzer: " + path)
+    assert.deepEqual(
+      native,
+      referenceNative.analyzeTypeFile(path, source, true),
+      "public Bend trees equal the independent original TS implementation"
+    )
+    assert.deepEqual(
+      analyzeTypeOutcomes(path, source, true),
+      {
+        status: "analyzed",
+        units: native.units.map((outcome) =>
+          outcome.status === "ready"
+            ? { status: "ready", name: outcome.unit.root.artifact.name }
+            : { status: "unsupported", name: outcome.root.name, reason: outcome.reason }
+        )
+      },
+      "public Outcomes preserves all statuses without trees"
+    )
     const adapter = languageForPath(path)
     const parsed = adapter.parseTypes(path, source, true)
     assert.ok(Array.isArray(parsed))
@@ -903,6 +927,21 @@ try {
           }
     })
     assert.deepEqual(actual, native.units, "independent recursive equations must equal actual native analyzer: " + path)
+    const bound = nativeBinding.analyzeDeclarations(parsed, supporting)
+    assert.deepEqual(bound, actual)
+    const identity = (nativeNode, plan) => {
+      assert.equal(
+        nativeNode.artifact,
+        artifacts[Number(plan.slot)],
+        "native binding must retain the exact artifact object"
+      )
+      artifactIdentities++
+      const references = unlist(plan.references)
+      references.forEach((reference, index) => {
+        if (reference.$ === "Model.Expanded") identity(nativeNode.references[index].node, reference.node)
+      })
+    }
+    bound.forEach((outcome, index) => identity(outcome.unit.root, results[index].node))
     const evaluateAll = (trace, fault, supplied) => {
       let subtotal = 0
       for (const result of results) subtotal += evaluateBytes(result.bytes, artifacts, trace, fault, supplied)
@@ -950,6 +989,11 @@ try {
       nativeTrace = []
     const expectedBytes = evaluateAll(expressionTrace)
     const nativeBound = nativePreflight(path, source, nativeTrace)
+    assert.deepEqual(
+      nativeBound,
+      referenceNative.analyzerMaterializationPreflight(path, source, true),
+      "public preflight equals the independent TS reference"
+    )
     assert.equal(nativeBound.declarations, roots.length)
     assert.equal(nativeBound.expandedUnitBytes, expectedBytes, "original IEEE grouping and exact preflight bytes")
     assert.deepEqual(expressionTrace, nativeTrace, "ordered repeated native measurement trace")
@@ -969,6 +1013,20 @@ try {
           () => nativePreflight(path, source, actualPrefix, { at, value: sentinel }),
           (error) => error === sentinel
         )
+        const referencePrefix = []
+        assert.throws(
+          () =>
+            nativePreflight(
+              path,
+              source,
+              referencePrefix,
+              { at, value: sentinel },
+              undefined,
+              referenceNative.analyzerMaterializationPreflight
+            ),
+          (error) => error === sentinel
+        )
+        assert.deepEqual(referencePrefix, actualPrefix, "native error identity and chronology match the original TS")
         assert.deepEqual(expectedPrefix, actualPrefix, "measurement fault must stop at the same primitive")
         faultCases++
       }
@@ -991,6 +1049,7 @@ try {
       rawAndSourceCases: rawCases,
       sourceFixtures: sources.length,
       sourceRoots,
+      artifactIdentities,
       measurementCases,
       faultCases,
       cursorSteps,
@@ -1009,7 +1068,7 @@ try {
       resourceEntries,
       childReturns,
       scope:
-        "unconnected cursor and independent recursive specification; finite law instances, no universal proofs or production acceptance"
+        "connected public local analyzer, packaged Core and independent native TS/recursive specification; whole Preparation acceptance remains open"
     })
   )
 } finally {
