@@ -8,7 +8,7 @@ import { withinWork } from "../../work-ownership/cancellation.ts"
 import { ResidentAdapterError } from "../../adapter-error.ts"
 import { createAdviceTailProvider } from "../evaluation/advice-tail-provider.mjs"
 import { enrollCachedAdvice } from "./post-enrollment.ts"
-import { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
+import { observeRetainedAdvice } from "./post-observation.ts"
 import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
 import * as Exit from "effect/Exit"
@@ -666,7 +666,7 @@ export function createPostPreparationProvider(
               $: "Offered",
               accepted:
                 (yield* run(
-                  ledger.preparedOffer(command.outcome.ready, !command.deliverability || command.outcome.fits)
+                  ledger.preparedOffer(command.outcome.ready, command.allowed)
                 )) === "preparedAdmitted"
             }
             break
@@ -1332,25 +1332,7 @@ export function createPostPreparationProvider(
           case "ObserveRetainedAdvice": {
             const tail = tails.get(command.tail)
             if (!tail) throw new Error("Unknown advice transfer")
-            const value = tail.unit
-            if (
-              value.inspectionReceipt !== undefined &&
-              context.deps.inspection.isEnabled(value.inspectionReceipt.scope.root)
-            )
-              context.deps.inspection.offer(
-                value.inspectionReceipt.scope,
-                {
-                  ...value.inspectionReceipt.correlation,
-                  ...(value.inspectionEvaluationId === undefined ? {} : { evaluationId: value.inspectionEvaluationId })
-                },
-                captureInspectionFate(
-                  tail.evaluation.findings,
-                  "retained",
-                  "pending-advice",
-                  tail.receipt.capability.id
-                )
-              )
-            value.completed = true
+            observeRetainedAdvice(postCore, tail, () => context.deps.inspection)
             break
           }
           case "PreserveAdviceTail": {

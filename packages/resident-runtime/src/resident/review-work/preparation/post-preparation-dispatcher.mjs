@@ -7,25 +7,18 @@
 // Mechanical ABI projection; Bend owns the entire post-preparation progression.
 /** @param {typeof import("./post-preparation-core.js").default} core */
 export function createPostPreparationMachine(core) {
-  /**
-   * @param {import("./post-preparation-core.js").Step} initial
-   * @returns {import("./post-preparation-core.js").Step}
-   */
-  const pump = (initial) => {
-    let step = initial
-    for (let count = 0; count < 10000; count++) {
-      if (step.$ !== "Internal") return step
-      step = core.advance(step.state)
-    }
-    throw new Error("Post-preparation internal dispatch did not settle")
+  /** @param {{ $: "None" } | { $: "Some", value: import("./post-preparation-core.js").Step }} result */
+  const settled = (result) => {
+    if (result.$ === "None") throw new Error("Post-preparation internal dispatch did not settle")
+    return result.value
   }
   return {
     /** @type {"post"} */
     kind: "post",
     /** @param {{ invocation: bigint, postPreparation: { roundBound: boolean, outcomes: import("@hapsland/source-artifacts/direct-event/value/codec").List<import("./post-preparation-core.js").Outcome>, incomplete: boolean } }} input */
     initial: (input) =>
-      pump(
-        core.initial(
+      settled(
+        core.initial_settled(
           input.invocation,
           input.postPreparation.roundBound,
           input.postPreparation.outcomes,
@@ -38,7 +31,7 @@ export function createPostPreparationMachine(core) {
      */
     resume: (step, event) => {
       if (event.$ !== "Types.ServiceReply") throw new Error("Invalid post-preparation reply envelope")
-      return pump(core.resume(step, event.reply))
+      return settled(core.resume_settled(step, event.reply))
     },
     /**
      * @param {import("./post-preparation-core.js").Step} step

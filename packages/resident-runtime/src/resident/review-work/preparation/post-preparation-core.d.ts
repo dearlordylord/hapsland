@@ -285,6 +285,17 @@ export type PlanObservationResponse =
   | Tagged<"PlanObservationAck">
   | Tagged<"PlanObservationFlag", { readonly value: boolean }>
 
+export type RetainedObservationOperation = Tagged<
+  "RetainedReadReceipt" | "RetainedCheckEnabled" | "RetainedPrepareBase" | "RetainedReadEvaluation" |
+  "RetainedAttachEvaluation" | "RetainedOffer" | "RetainedComplete"
+>
+export type RetainedObservationStep =
+  | Tagged<"RetainedObservationAwait", { readonly operation: RetainedObservationOperation }>
+  | Tagged<"RetainedObservationDone" | "RetainedObservationRejected">
+export type RetainedObservationResponse =
+  | Tagged<"RetainedObservationAck">
+  | Tagged<"RetainedObservationFlag", { readonly value: boolean }>
+
 export type Command =
   | Tagged<"ObservePreparation">
   | Tagged<"AdvicePendingBarrier", { readonly advice: bigint }>
@@ -295,7 +306,7 @@ export type Command =
   | Tagged<"AdviceRemove", { readonly advice: bigint; readonly retirement: AdviceRetirement }>
   | Tagged<"CheckActive">
   | Tagged<"ReleaseWorkspace">
-  | Tagged<"Offer", { readonly outcome: Outcome; readonly deliverability: boolean }>
+  | Tagged<"Offer", { readonly outcome: Outcome; readonly allowed: boolean }>
   | Tagged<"ReportDeliverabilityCapacity">
   | Tagged<"ReportDeliverabilityNotice">
   | Tagged<"ReportEmptyAnalytics", { readonly incomplete: boolean }>
@@ -419,6 +430,10 @@ declare const core: {
   cleanup_finish_reply(finish: CleanupFinish, success: boolean): CleanupFinish
   cleanup_initial(mode: CleanupMode, facts: List<CleanupFact>): CleanupCursor
   cleanup_reply(cursor: CleanupCursor, success: boolean): CleanupCursor
+  retained_observation_initial(): RetainedObservationStep
+  retained_observation_resume(step: RetainedObservationStep, response: RetainedObservationResponse): RetainedObservationStep
+  initial_settled(invocation: bigint, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Maybe<Step>
+  resume_settled(step: Step, reply: Reply): Maybe<Step>
   initial(invocation: bigint, round_bound: boolean, outcomes: List<Outcome>, incomplete: boolean): Step
   advance(state: State): Step
   resume(step: Step, reply: Reply): Step

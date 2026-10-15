@@ -685,6 +685,23 @@ type PlanObservationResponse is Data:
   PlanObservationAck{}
   PlanObservationFlag{value: Bool}
 
+# Synchronous native inspection effects share the existing Post command lease.
+type RetainedObservationOperation is Data:
+  RetainedReadReceipt{}
+  RetainedCheckEnabled{}
+  RetainedPrepareBase{}
+  RetainedReadEvaluation{}
+  RetainedAttachEvaluation{}
+  RetainedOffer{}
+  RetainedComplete{}
+type RetainedObservationStep is Data:
+  RetainedObservationAwait{operation: RetainedObservationOperation}
+  RetainedObservationDone{}
+  RetainedObservationRejected{}
+type RetainedObservationResponse is Data:
+  RetainedObservationAck{}
+  RetainedObservationFlag{value: Bool}
+
 type Command is Data:
   ObservePreparation{}
   AdvicePendingBarrier{advice: Nat}
@@ -695,7 +712,7 @@ type Command is Data:
   AdviceRemove{advice: Nat, retirement: AdviceRetirement}
   CheckActive{}
   ReleaseWorkspace{}
-  Offer{outcome: Outcome, deliverability: Bool}
+  Offer{outcome: Outcome, allowed: Bool}
   ReportDeliverabilityCapacity{}
   ReportDeliverabilityNotice{}
   ReportEmptyAnalytics{incomplete: Bool}
@@ -983,6 +1000,10 @@ def retained(items: List<&2, Planned>) -> List<&2, Planned>:
   match items:
     case Nil{}: Nil{}
     case +item <> rest: retained_item(item, retained(rest))
+
+def outcome_fits(outcome: Outcome) -> Bool:
+  match outcome:
+    case Outcome{_, _, fits, _}: fits
 
 def outcome_ready(outcome: Outcome) -> Bool:
   match outcome:
@@ -1692,7 +1713,7 @@ def admission_next(state: State, rest: List<&2, Outcome>, +ready: List<&2, Outco
     case +outcome <> rest: await_command(
       state,
       Admitting{outcome, rest, ready},
-      Offer{outcome, False{}}
+      Offer{outcome, True{}}
     )
 
 def delivering_next(state: State, rest: List<&2, Outcome>, accepted: List<&2, Outcome>) -> Step:
@@ -1701,7 +1722,7 @@ def delivering_next(state: State, rest: List<&2, Outcome>, accepted: List<&2, Ou
     case +outcome <> rest: await_command(
       state,
       Delivering{outcome, rest, accepted},
-      Offer{outcome, True{}}
+      Offer{outcome, outcome_fits(outcome)}
     )
 
 def routing_next(state: State, rest: List<&2, Outcome>, +planned: List<&2, Planned>) -> Step:
@@ -2417,3 +2438,43 @@ def resume(step: Step, reply: Reply) -> Step:
     case Await{+state, Request{invocation, id, _}} Reply{other, other_id, response}:
       resume_state(Bool.and(Nat.is_eq(invocation, other), Nat.is_eq(id, other_id)), state, response)
     case _ _: Rejected{}
+
+def retained_observation_initial() -> RetainedObservationStep:
+  RetainedObservationAwait{RetainedReadReceipt{}}
+
+def retained_observation_resume(step: RetainedObservationStep,
+  response: RetainedObservationResponse) -> RetainedObservationStep:
+  match step response:
+    case RetainedObservationAwait{RetainedReadReceipt{}} RetainedObservationFlag{value}:
+      Bool.pick(RetainedObservationStep, value,
+        RetainedObservationAwait{RetainedCheckEnabled{}}, RetainedObservationAwait{RetainedComplete{}})
+    case RetainedObservationAwait{RetainedCheckEnabled{}} RetainedObservationFlag{value}:
+      Bool.pick(RetainedObservationStep, value,
+        RetainedObservationAwait{RetainedPrepareBase{}}, RetainedObservationAwait{RetainedComplete{}})
+    case RetainedObservationAwait{RetainedPrepareBase{}} RetainedObservationAck{}:
+      RetainedObservationAwait{RetainedReadEvaluation{}}
+    case RetainedObservationAwait{RetainedReadEvaluation{}} RetainedObservationFlag{value}:
+      Bool.pick(RetainedObservationStep, value,
+        RetainedObservationAwait{RetainedAttachEvaluation{}}, RetainedObservationAwait{RetainedOffer{}})
+    case RetainedObservationAwait{RetainedAttachEvaluation{}} RetainedObservationAck{}:
+      RetainedObservationAwait{RetainedOffer{}}
+    case RetainedObservationAwait{RetainedOffer{}} RetainedObservationAck{}:
+      RetainedObservationAwait{RetainedComplete{}}
+    case RetainedObservationAwait{RetainedComplete{}} RetainedObservationAck{}:
+      RetainedObservationDone{}
+    case _ _: RetainedObservationRejected{}
+
+# Exact old host allowance: even a settled step is rejected when fuel is zero.
+def settle(remaining: Nat, step: Step) -> Maybe<&2, Step>:
+  match remaining:
+    case 0n: None{}
+    case 1n++rest:
+      match step:
+        case Internal{state}: settle(rest, advance(state))
+        case _: Some{step}
+
+def initial_settled(invocation: Nat, round_bound: Bool, outcomes: List<&2, Outcome>, incomplete: Bool) -> Maybe<&2, Step>:
+  settle(10000n, initial(invocation, round_bound, outcomes, incomplete))
+
+def resume_settled(step: Step, reply: Reply) -> Maybe<&2, Step>:
+  settle(10000n, resume(step, reply))
