@@ -528,41 +528,44 @@ try {
         assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
       }
     }
-  for (const createConsumer of [
+  for (const createWireConsumer of [
     (gate, machineCore) => createPreparationFinalizationConsumer({ machine: machineCore, canonicalGate: gate }),
     createOwnedConsumer
   ]) {
-    let expectedUnits
-    const machineCore = {
-      ...core,
-      initial(invocation, context, units) {
-        assert.equal(units, expectedUnits, "Finalization must retain the exact Bend units list")
-        return core.initial(invocation, context, units)
+    const createConsumer = (gate) => {
+      let expectedUnits
+      const machineCore = {
+        ...core,
+        initial(invocation, context, units) {
+          assert.equal(units, expectedUnits, "Finalization must retain the exact Bend units list")
+          return core.initial(invocation, context, units)
+        }
+      }
+      const consumeWire = createWireConsumer(gate, machineCore)
+      // Native fixtures enter the typed owner boundary once; production already
+      // holds this exact ProductValue list in Preparation.RenderUnits.
+      return async (input, execution) => {
+        expectedUnits = list(input.units.map(productValue))
+        const outcomes = await consumeWire({ ...input, units: expectedUnits }, execution)
+        for (const outcome of outcomes)
+          assert.equal(
+            outcome.prepared.$,
+            "../../../../source-artifacts/src/direct-event/value/Value.ProductObject",
+            "Prepared tree stays encoded until public decode"
+          )
+        return decodePreparationResult({
+          $: "PreparationResult",
+          complete: true,
+          paths: list([]),
+          outcomes: list(outcomes.map((outcome) => ({ $: "OutcomeReady", ...outcome }))),
+          units: list([]),
+          line_roots: list([]),
+          selected: 0,
+          ambiguous_line: false
+        }).outcomes
       }
     }
-    const consumeWire = createConsumer(runtimeGate, machineCore)
-    // Native fixtures enter the typed owner boundary once; production already
-    // holds this exact ProductValue list in Preparation.RenderUnits.
-    const consume = async (input, execution) => {
-      expectedUnits = list(input.units.map(productValue))
-      const outcomes = await consumeWire({ ...input, units: expectedUnits }, execution)
-      for (const outcome of outcomes)
-        assert.equal(
-          outcome.prepared.$,
-          "../../../../source-artifacts/src/direct-event/value/Value.ProductObject",
-          "Prepared tree stays encoded until public decode"
-        )
-      return decodePreparationResult({
-        $: "PreparationResult",
-        complete: true,
-        paths: list([]),
-        outcomes: list(outcomes.map((outcome) => ({ $: "OutcomeReady", ...outcome }))),
-        units: list([]),
-        line_roots: list([]),
-        selected: 0,
-        ambiguous_line: false
-      }).outcomes.map(({ status: _status, ...outcome }) => outcome)
-    }
+    const consume = createConsumer(runtimeGate)
 
     const runtimeInput = (settings, currentRules) => ({
       invocation: 700,
