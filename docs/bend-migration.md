@@ -176,8 +176,8 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Original law/premises/binding/main remain byte-identical. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation also affects local analyzer proofs; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Local analyzer connection requalified against independent TS: Source/resident/FrozenInput and 254 public tests pass, including failure/measurement ordering. |
-| Shared extraction | All five adapters use one invocation-local Source Analysis entry inside ExtractSource; no cross-command cache or new Core laws. Astra review: no blocker. Build/23 receipts, 42 ordered differential cases, Source59/6687, resident67/14323+868Post and Graph18/1425/7125 fences pass. Graph runner bigint fixtures corrected to numeric Nat. Fast checks 15 files. Public consumers and whole parity pending; deterministic parser facts, not arbitrary parser monkeypatches. |
-| Whole-path parity | Connected local candidate whole current-native ratio is 1.2650; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 scratch: encode 1.3228, encode/decode 1.4240; 17 frozen equal-output pairs each. Both failed; allocation trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
+| Shared extraction | All five adapters use one invocation-local Source Analysis entry inside ExtractSource; no cross-command cache or new Core laws. Astra review: no blocker. Build/23 receipts, 42 ordered differential cases, Source59/6687, resident67/14323+868Post and Graph18/1425/7125 fences pass. Graph runner bigint fixtures corrected to numeric Nat. Fast checks 15 files. Public consumers: 10 files/363 tests pass. Whole parity fails 1.5301. Deterministic parser facts only. |
+| Whole-path parity | Shared-extraction whole current-native ratio is 1.5301; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 scratch: encode 1.3228, encode/decode 1.4240; 17 frozen equal-output pairs each. Both failed; allocation trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,
@@ -197,17 +197,16 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `f8ce2efe`: function-analyzer/build 0.8212 / 0.8415
-  (19:49:16 / 19:50:37 UTC, 17 pairs, frozen inputs, cache 23/46).
-  Cadence starts exceeded 30 minutes by 10s / 48s; parity does not qualify cadence.
+- Primary `97b19d98`: function-analyzer/build 0.9735 / 0.8400
+  (20:15:14 / 20:18:14 UTC, 17 frozen pairs, cache 23/46); cadence met.
+  Prior f8ce starts exceeded 30 minutes by 10s / 48s; parity did not qualify cadence.
   Function execution does not measure the local type analyzer.
-  Connected local candidate whole Preparation at 19:25 UTC **fails parity at 1.2650**:
+  Shared-extraction whole Preparation at 20:23 UTC **fails parity at 1.5301**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
-  oracle and 30 local workspaces. Build/23 receipts, independent Source/resident/
-  FrozenInput and 254 public tests pass; check:fast selects nine lint files.
-  Imported type regressions pass the compiled gate.
-  The prior capture trial was 1.3804; separate runs establish no causal comparison.
-  Unchanged capture, rope and connected-local timing retries are closed.
+  oracle and 30 local workspaces. Build/23 receipts, physical Source/resident/Graph,
+  42 extraction cases and 363 public tests pass; check:fast selects 15 lint files.
+  Earlier whole 1.2650 and capture 1.3804 are separate runs, not causal comparisons.
+  Unchanged capture, rope and shared-extraction timing retries are closed.
 - Original attachment law/premises/binding/main remain byte-identical. Shared-witness
   and reply-dispatch factorization do not yet pass current hard10 qualification.
   Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
