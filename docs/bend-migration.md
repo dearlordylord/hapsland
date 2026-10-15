@@ -171,10 +171,9 @@ crossings with a Bend-selected serialization plan:
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: original attachment gates and whole-path parity remain open.
 `migration/bend-abi-2037` assesses Bend 2.0.37 (`4ff8545f`), numeric Nat/shared
-records, preserving bounds/isolation. The assessed fork adds code-point
-String.cmp to String.eq via JS intrinsics [309f0246](https://github.com/dearlordylord/bend/commit/309f0246c9244364085ed15fc544f4af19dd5fce).
-C/BendTT semantics remain. Five tree laws and 79 trees/1344
-refusals pass. Comparator cohort: 99 producer tests, public/physical consumers pass; whole parity fails.
+records, preserving bounds/isolation. The assessed String.eq/cmp fork passes 99 producer tests and full consumers; whole parity fails.
+Next cohort: JS Map.bit/diff key routing [48a21ae2](https://github.com/dearlordylord/bend/commit/48a21ae2bc00035cfffa100c062716bf5b7bf0a7).
+Independent Base equations, exact Map shapes and evaluation order pass emitted/interpreted tests; C/TT bytes match. Product qualification pending.
 
 ### Remaining obstacles and acceptance evidence
 
