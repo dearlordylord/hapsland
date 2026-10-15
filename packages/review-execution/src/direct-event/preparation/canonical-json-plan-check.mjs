@@ -96,6 +96,35 @@ try {
     { timeout: 11000 }
   )
   const plan = (await import(pathToFileURL(output))).default
+  const specificationOutput = join(temporary, "specification.mjs")
+  execFileSync(
+    "timeout",
+    [
+      "-s",
+      "KILL",
+      "10s",
+      "taskset",
+      "-c",
+      "10",
+      process.env.BEND ?? "bend",
+      join(import.meta.dirname, "CanonicalJsonPlanSpecification.bend"),
+      "-o",
+      specificationOutput
+    ],
+    { timeout: 11000 }
+  )
+  const original = (await import(pathToFileURL(specificationOutput))).default
+  // The independent specification imports Plan; only its operation boundary
+  // needs imported constructor tags. No production retagging is introduced.
+  const specificationOperations = (operations) =>
+    list(unlist(operations).map((operation) => ({ ...operation, $: `CanonicalJsonPlan.${label(operation)}` })))
+  const specification = {
+    ...original,
+    operation: (operation, stack) =>
+      original.operation({ ...operation, $: `CanonicalJsonPlan.${label(operation)}` }, stack),
+    fold: (operations, state) => original.fold(specificationOperations(operations), state),
+    compile: (operations) => original.compile(specificationOperations(operations))
+  }
   const values = [
     null,
     true,
@@ -128,6 +157,7 @@ try {
     const rootOperations = list(unlist(operations).map((operation) => ({ ...operation, $: label(operation) })))
     const result = plan.compile(rootOperations)
     assert.equal(label(result), "Some")
+    equal(result, specification.compile(rootOperations), "production rope equals independent original equations")
     const parts = unlist(result.value)
     equal(parts, expectedParts(value), "exact primitive identity, key pairing and punctuation")
     pieces += parts.length
@@ -141,7 +171,57 @@ try {
     [primitiveOperation, { $: "ArrayOperation", arity: 2 }],
     [{ $: "ArrayOperation", arity: 100000 }, primitiveOperation]
   ]
-  for (const operations of malformed) assert.equal(label(plan.compile(list(operations))), "None")
+  for (const operations of malformed) {
+    const result = plan.compile(list(operations))
+    assert.equal(label(result), "None")
+    equal(result, specification.compile(list(operations)), "malformed stream correspondence")
+  }
+  // Distinct payloads make equal-key stability observable through public compile.
+  for (const keys of [
+    ["a", "a", "a"],
+    ["z", "a", "a", "😀", "\ue000", "a"]
+  ]) {
+    const operations = list([
+      ...keys.map((_, index) => ({ $: "PrimitiveOperation", value: primitive(index) })),
+      { $: "ObjectOperation", keys: list(keys) }
+    ])
+    equal(plan.compile(operations), specification.compile(operations), "stable duplicate-key correspondence")
+  }
+  // The production operation stack and rope flatten must remain iterative.
+  const depth = 25000
+  const deep = list([primitiveOperation, ...Array.from({ length: depth }, () => ({ $: "ArrayOperation", arity: 1 }))])
+  const deepResult = plan.compile(deep)
+  assert.equal(label(deepResult), "Some")
+  const deepParts = unlist(deepResult.value)
+  assert.equal(deepParts.length, 2 * depth + 1)
+  for (let index = 0; index < depth; index += 1) {
+    equal(deepParts[index], literal("["), "deep opening order")
+    equal(deepParts[depth + 1 + index], literal("]"), "deep closing order")
+  }
+  equal(deepParts[depth], primitivePiece("first"), "deep primitive identity")
+  let randomState = 0x51a7c0de
+  const next = () => (randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0)
+  const keys = ["a", "a", "z", "", "😀", "\ue000", "\ud800", "\udfff", "constructor", "0"]
+  const streamCases = 2048
+  for (let sample = 0; sample < streamCases; sample += 1) {
+    const operations = []
+    const length = next() % 48
+    for (let index = 0; index < length; index += 1) {
+      const kind = next() % 3
+      operations.push(
+        kind === 0
+          ? { $: "PrimitiveOperation", value: primitive(next()) }
+          : kind === 1
+            ? { $: "ArrayOperation", arity: next() % 5 }
+            : { $: "ObjectOperation", keys: list(Array.from({ length: next() % 5 }, () => keys[next() % keys.length])) }
+      )
+    }
+    equal(
+      plan.compile(list(operations)),
+      specification.compile(list(operations)),
+      `arbitrary operation stream ${sample}, including invalid absorbing states`
+    )
+  }
   const stackValues = [[literal("old")], [literal("older")]]
   const state = { $: "ValidStack", values: list(stackValues.map(list)) }
   const streams = [
@@ -154,13 +234,13 @@ try {
   for (const prefix of streams)
     for (const suffix of streams)
       equal(
-        plan.fold(list([...prefix, ...suffix]), state),
-        plan.fold(list(suffix), plan.fold(list(prefix), state)),
+        specification.fold(list([...prefix, ...suffix]), state),
+        specification.fold(list(suffix), specification.fold(list(prefix), state)),
         "fold_composition"
       )
   for (let arity = 0; arity < 6; arity += 1) {
     const accumulated = [[literal("accumulated")]]
-    const result = plan.pop(arity, list(stackValues.map(list)), list(accumulated.map(list)))
+    const result = specification.pop(arity, list(stackValues.map(list)), list(accumulated.map(list)))
     const expected =
       arity > stackValues.length
         ? { $: "Underflow" }
@@ -172,18 +252,18 @@ try {
     equal(result, expected, "pop_exact")
   }
   equal(
-    plan.operation(primitiveOperation, state.values),
+    specification.operation(primitiveOperation, state.values),
     { $: "ValidStack", values: { $: "Con", head: list([primitivePiece("first")]), tail: state.values } },
     "primitive_exact"
   )
-  equal(plan.fold(list(streams.flat()), { $: "InvalidStack" }), { $: "InvalidStack" }, "invalid_absorbing")
+  equal(specification.fold(list(streams.flat()), { $: "InvalidStack" }), { $: "InvalidStack" }, "invalid_absorbing")
   assert.equal(label(plan.compile(list([]))), "None", "empty_refused")
   equal(
-    plan.finish({ $: "ValidStack", values: list([list([literal("root")])]) }),
+    specification.finish({ $: "ValidStack", values: list([list([literal("root")])]) }),
     { $: "Some", value: list([literal("root")]) },
     "single_root"
   )
-  assert.equal(label(plan.finish(state)), "None", "multiple_roots_refused")
+  assert.equal(label(specification.finish(state)), "None", "multiple_roots_refused")
   const childPlans = [
     [],
     [literal("part")],
@@ -200,14 +280,14 @@ try {
       literal("]")
     ]
     equal(
-      plan.operation({ $: "ArrayOperation", arity: count }, underlying),
+      specification.operation({ $: "ArrayOperation", arity: count }, underlying),
       { $: "ValidStack", values: list([array, ...stackValues].map(list)) },
       "array_exact over arbitrary child plans and older stack"
     )
     const names = ["z", "a", "😀", "\ue000", "a", "", "constructor", "0"].slice(0, count)
     const fields = names.map((key, index) => ({ $: "Field", key, parts: list(children[index]) }))
     equal(
-      plan.pair_fields(list(names), list(children.map(list)), list([])),
+      specification.pair_fields(list(names), list(children.map(list)), list([])),
       { $: "Some", value: list(fields) },
       "pairing_exact"
     )
@@ -223,29 +303,32 @@ try {
       literal("}")
     ]
     equal(
-      plan.operation({ $: "ObjectOperation", keys: list(names) }, underlying),
+      specification.operation({ $: "ObjectOperation", keys: list(names) }, underlying),
       { $: "ValidStack", values: list([object, ...stackValues].map(list)) },
       "object_exact including duplicate keys"
     )
     for (const left of fields)
-      for (const right of fields) assert.equal(plan.fields_le(left, right), left.key <= right.key, "comparison_exact")
+      for (const right of fields)
+        assert.equal(specification.fields_le(left, right), left.key <= right.key, "comparison_exact")
     const tooMany = count + stackValues.length + 1
     assert.equal(
-      label(plan.operation({ $: "ArrayOperation", arity: tooMany }, underlying)),
+      label(specification.operation({ $: "ArrayOperation", arity: tooMany }, underlying)),
       "InvalidStack",
       "array_underflow"
     )
     assert.equal(
-      label(plan.operation({ $: "ObjectOperation", keys: list(Array(Number(tooMany)).fill("x")) }, underlying)),
+      label(
+        specification.operation({ $: "ObjectOperation", keys: list(Array(Number(tooMany)).fill("x")) }, underlying)
+      ),
       "InvalidStack",
       "object_underflow"
     )
     compoundCases += 1
   }
-  assert.equal(label(plan.finish({ $: "InvalidStack" })), "None", "invalid_finish")
-  assert.equal(label(plan.finish({ $: "ValidStack", values: list([]) })), "None", "empty_finish")
+  assert.equal(label(specification.finish({ $: "InvalidStack" })), "None", "invalid_finish")
+  assert.equal(label(specification.finish({ $: "ValidStack", values: list([]) })), "None", "empty_finish")
   console.log(
-    `Canonical JSON postorder: ${values.length} trees/${pieces} exact pieces, ${malformed.length} malformed streams, ${streams.length ** 2} fold splits, ${compoundCases} compound stacks and all fifteen law instances`
+    `Canonical JSON postorder: ${values.length} trees/${pieces} exact pieces, ${malformed.length} malformed streams, ${streams.length ** 2} fold splits, ${compoundCases} specification compound stacks, ${streamCases} arbitrary streams, duplicate-key correspondence and depth ${depth}`
   )
 } finally {
   rmSync(temporary, { recursive: true, force: true })

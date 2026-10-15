@@ -170,19 +170,17 @@ crossings with a Bend-selected serialization plan:
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: full-proof formatting and whole-path parity remain open.
-`migration/bend-abi-2037` assesses Bend 2.0.37 (`4ff8545f`), numeric Nat/shared
-records, preserving bounds/isolation. Assessed compiler cohort: iterative List/String concatenation [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084), retaining right-fold raw-token coercion.
-Node/Bun, affine/erased payloads, 25k sequences, 10 regressions and C/TT byte controls pass.
-23 receipts, 99 producer tests, original attachment verdict and full consumers pass; whole parity fails.
-Preparation/Finalization forwards Bend trees directly; intermediate roundtrips/freeze
-are removed, public decode/freeze stays. Full consumers pass; parity remains open.
-Graph Effect forwards accepted ProductValue; native Promise projection stays.
-Astra, fast (4 files), 105 Graph cases/58 fixtures, identity checks and full consumers pass.
+`migration/bend-abi-2037` uses Bend 2.0.37 with numeric Nat/shared records.
+Compiler cohort: [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084).
+Its producers, attachment verdict and full consumers pass; whole parity fails.
+Preparation/Finalization and Graph Effect forward Bend trees directly; public
+native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 ### Remaining obstacles and acceptance evidence
 
 | Obstacle | Required change or evidence |
 | --- | --- |
+| Rope planner equivalence | Astra approved internal counted ropes and unchanged Operation/Piece ABI. Independent original specification/local and compound proofs pass. Finite production checks: 79 trees, 2048 arbitrary streams, duplicate keys, depth 25000. Still required: exact flatten/counts, stable-sort erasure, stack simulation and unconditional compile equality; tree proof remains unqualified. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the Map cohort. Finalization/public Preparation pass; repeat after production edits. |
 | Whole-path parity | The assessed 2.0.37 Map cohort passes producers/consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
@@ -194,14 +192,14 @@ that only bridges helper names.
 
 ### Current qualification limits
 
-- The JSON planner has seven local and eight compound laws, approved by Astra
-  and proved with the pinned kernel. The independent `comparison_exact` law is
+- The original planner has seven local and eight compound laws, approved by Astra
+  and proved against the independent specification. The production rope compile
+  bridge is unproved; these passes do not qualify the new tree proof. The independent `comparison_exact` law is
   mandatory alongside object layout. Named mutations cover primitive loss,
   pop loss, single-root refusal, wrong comparison and rejecting all compounds.
 - The actual codec-to-emitted-planner consumer checks 79 trees / 2117 exact
   pieces, malformed streams, 361 fold splits and arbitrary compound stacks.
-  These finite checks complement the universal tree/trace and actual-machine
-  counter laws.
+  Finite checks do not establish the open rope compile theorem.
 - Eight batch protocol laws and eighteen actual-machine laws pass the pinned verdict.
   The actual-machine laws/proof also pass formatting; composition mutants reject
   a shifted first request ID and removed Export header guard.
@@ -241,7 +239,7 @@ preparation-owned Bend roots and checkers; qualify affected roots/consumers rath
 than rerunning a suite with a known unrelated prerequisite failure.
 
 Primary [cadence](../scripts/performance/production-cadence.py): baseline
-`8948343b46f8426abebe675a39ac4039997b0d5b`, 17 pairs, 23/46 cached tasks, local
+`8948343b46f8426abebe675a39dc4039997b0d5b`, 17 pairs, 23/46 cached tasks, local
 workspaces, frozen HEAD/sources/artifacts/receipts/environment files. Build:
 `--environment` for candidate; `--baseline-environment` for baseline only.
 Start build and execution measurements at least every 30 minutes. Run whole Preparation parity separately; diagnostics are not parity.
