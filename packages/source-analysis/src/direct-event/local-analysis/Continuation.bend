@@ -67,6 +67,15 @@ def returned_reference(
 ) -> M.ReferencePlan:
   M.Expanded{symbol, M.NodePlan{child_slot, child_prefix}}
 
+# The actual returned parent frame: retain its slot, pending references and
+# site, and let Core's purpose policy decide whether to retain the child tree.
+def returned_frame(purpose: C.Purpose, parent: C.Frame, child_slot: Nat,
+  child_reversed: List<&2, M.ReferencePlan>, symbol: String) -> C.Frame:
+  match parent:
+    case C.Frame{slot, pending, reversed, site}:
+      C.Frame{slot, pending, C.keep_reference(purpose,
+        returned_reference(child_slot, List.reverse(&2, M.ReferencePlan, child_reversed), symbol), reversed), site}
+
 # Bootstrap compares the original Spec equation without assuming it completes.
 # The terminal Core case, rather than this initial relation, must establish
 # that the matching result is a NodeResult instead of DepthExhausted.

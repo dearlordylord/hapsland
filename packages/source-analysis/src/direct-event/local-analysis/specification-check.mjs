@@ -232,6 +232,26 @@ try {
               }
             } else {
               assert.equal(nextFrames.length, oldFrames.length - 1)
+              const returned = continuation.returned_frame(
+                { $: `Core.${previous.cursor.global.purpose.$}` },
+                { ...oldFrames[1], $: "Core.Frame" },
+                oldFrames[0].slot,
+                oldFrames[0].reversed,
+                oldFrames[0].site.value
+              )
+              assert.deepEqual(
+                { ...returned, $: "Frame" },
+                nextFrames[0],
+                "returned frame retains parent slot/site/pending and Core accumulator policy"
+              )
+              assert.deepEqual(
+                step,
+                core.cursor_ops(
+                  { ...previous.cursor, frames: list([{ ...returned, $: "Frame" }, ...oldFrames.slice(2)]) },
+                  core.finish_operations(previous.cursor.global.purpose)
+                ),
+                "actual child return preserves shared state, request and ancestors, with the exact finish queue"
+              )
               depths.shift()
               childReturns++
             }
