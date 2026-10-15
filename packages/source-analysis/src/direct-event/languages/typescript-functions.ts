@@ -585,7 +585,7 @@ const collectFunctionFacts = (top: readonly SyntaxNode[], state: FunctionAnalysi
   }
   return true
 }
-const analyzeFunctionRoot = (path: string, root: SyntaxNode): FunctionFileAnalysis | undefined => {
+export const analyzeFunctionRoot = (path: string, root: SyntaxNode): FunctionFileAnalysis | undefined => {
   if (root.hasError) return undefined
   const top = root.namedChildren.flatMap((child) =>
     child.type === "export_statement" ? child.namedChildren.filter((item) => item.type !== "export_clause") : [child]

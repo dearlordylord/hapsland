@@ -99,6 +99,10 @@
     "./testing/native-analyzer": {
       "types": "./dist/direct-event/local-analysis/verification/native-analyzer.d.ts",
       "default": "./dist/direct-event/local-analysis/verification/native-analyzer.js"
+    },
+    "./direct-event/source-extraction": {
+      "types": "./dist/direct-event/source-extraction.d.ts",
+      "default": "./dist/direct-event/source-extraction.js"
     }
   },
   "dependencies": {

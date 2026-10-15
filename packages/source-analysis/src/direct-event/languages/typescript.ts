@@ -11,7 +11,7 @@ import {
   type LanguageAdapter,
   type GraphFacts
 } from "./contracts.ts"
-import { analyzeFunctionFile, functionDeclarationNodes } from "./typescript-functions.ts"
+import { analyzeFunctionFile, analyzeFunctionRoot, functionDeclarationNodes } from "./typescript-functions.ts"
 
 type ParsedDeclaration = {
   readonly node: SyntaxNode
@@ -164,12 +164,13 @@ const parseDeclarationNodes = (
 const parsedDeclarations = (
   path: string,
   source: string,
-  allowImports = false
+  allowImports = false,
+  readRoot: () => SyntaxNode = () => typeScriptRoot(path, source)
 ): TypeExtractionFailure | ReadonlyArray<ParsedDeclaration> => {
   const extension = extname(path).toLowerCase()
   if (!supported.has(extension)) return { status: "unsupported", reason: "extension", units: [] }
   try {
-    const tree = { rootNode: typeScriptRoot(path, source) }
+    const tree = { rootNode: readRoot() }
     if (tree.rootNode.hasError) return { status: "unsupported", reason: "parse", units: [] }
     const nodes = [tree.rootNode, ...descendants(tree.rootNode)]
     if (!allowImports && nodes.some((node) => importSyntax.has(node.type) && !valueImportStatement(node))) {
@@ -233,10 +234,13 @@ const graphTypeDeclaration = (path: string, parsed: ParsedDeclaration): GraphDec
     }
   }
 }
-export const inspectTypeScript = (path: string, source: string): GraphFile | undefined => {
-  const parsed = parsedDeclarations(path, source, true)
+const inspectDeclarations = (
+  path: string,
+  parsed: ReturnType<typeof parsedDeclarations>,
+  readRoot: () => SyntaxNode
+): GraphFile | undefined => {
   if ("status" in parsed) return undefined
-  const tree = { rootNode: typeScriptRoot(path, source) }
+  const tree = { rootNode: readRoot() }
   if (tree.rootNode.hasError) return undefined
   const imports = graphTypeImports(tree.rootNode)
   if (imports === undefined) return undefined
@@ -247,6 +251,9 @@ export const inspectTypeScript = (path: string, source: string): GraphFile | und
     imports
   }
 }
+
+export const inspectTypeScript = (path: string, source: string): GraphFile | undefined =>
+  inspectDeclarations(path, parsedDeclarations(path, source, true), () => typeScriptRoot(path, source))
 
 const normalized = (
   parsed: TypeExtractionFailure | ReadonlyArray<ParsedDeclaration>
@@ -264,6 +271,27 @@ const normalized = (
       }))
 export const parseTypes = (path: string, source: string, allowImports = false) =>
   normalized(parsedDeclarations(path, source, allowImports))
+
+const extractTypeScriptSource: LanguageAdapter["extractSource"] = (path, source) => {
+  let root: SyntaxNode | undefined
+  const readRoot = () => (root ??= typeScriptRoot(path, source))
+  const parsed = parsedDeclarations(path, source, true, readRoot)
+  const graph = inspectDeclarations(path, parsed, readRoot)
+  let functions: ReturnType<typeof analyzeFunctionRoot>
+  try {
+    functions = analyzeFunctionRoot(path, readRoot())
+  } catch {
+    functions = undefined
+  }
+  return {
+    graph,
+    functions,
+    parseTypes: (allowImports) =>
+      normalized(
+        allowImports && !("status" in parsed) ? parsed : parsedDeclarations(path, source, allowImports, readRoot)
+      )
+  }
+}
 
 const encodedBytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value), "utf8")
 const isReviewDeclaration = (node: SyntaxNode): boolean =>
@@ -375,6 +403,7 @@ export const tsAdapter: LanguageAdapter = {
   displayName: "TypeScript",
   probe: { path: "doctor.ts", source: "export interface DoctorProbe { ready: boolean }" },
   analyzeFunctions: analyzeFunctionFile,
+  extractSource: extractTypeScriptSource,
   parseTypes,
   inspect: inspectTypeScript,
   hasImports: (source) => /\bimport\b/u.test(source),

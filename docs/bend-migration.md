@@ -176,7 +176,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Original law/premises/binding/main remain byte-identical. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation also affects local analyzer proofs; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Local analyzer connection requalified against independent TS: Source/resident/FrozenInput and 254 public tests pass, including failure/measurement ordering. |
-| Shared extraction | Astra's next parity candidate: one invocation-local parser materialization inside ExtractSource, with unchanged graph/functions/local projections. TS/Python/Bend currently repeat extraction of the same source. Preserve import admission, paths/locations/export flags, artifact identity/aliasing, exception order and Canonical lease/checkpoints; no cross-command cache. Differential all projections on five languages, then physical/public consumers and one independent whole trial. No new local Core representation or proof chain. |
+| Shared extraction | Connected all five adapters through one Source Analysis entry inside ExtractSource. Astra structural review found no blocker. Matching 46/46 build/23 receipts and 42 differential cases pass, including imports/limits/duplicates/graph refusal with local fallback. TS/Python/Go/Rust main source parses once per invocation; no cross-command cache. Deterministic parser facts are the boundary, not transient monkeypatch behavior. Physical/public consumers, fast gate and independent whole parity pending. No local Core representation/law change. |
 | Whole-path parity | Connected local candidate whole current-native ratio is 1.2650; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 scratch: encode 1.3228, encode/decode 1.4240; 17 frozen equal-output pairs each. Both failed; allocation trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
@@ -197,9 +197,10 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `03371908`: function-analyzer/build 0.6551 / 0.9450
-  (19:19 UTC, 17 pairs, frozen inputs, build cache 23/46).
-  These execution samples do not measure the newly connected local type analyzer.
+- Primary `f8ce2efe`: function-analyzer/build 0.8212 / 0.8415
+  (19:49:16 / 19:50:37 UTC, 17 pairs, frozen inputs, cache 23/46).
+  Cadence starts exceeded 30 minutes by 10s / 48s; parity does not qualify cadence.
+  Function execution does not measure the local type analyzer.
   Connected local candidate whole Preparation at 19:25 UTC **fails parity at 1.2650**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
   oracle and 30 local workspaces. Build/23 receipts, independent Source/resident/

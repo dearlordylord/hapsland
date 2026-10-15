@@ -79,6 +79,12 @@ export type LanguageGraphHost = {
   readonly observeCaptureDiagnostic?: (sourcePath: string, diagnostic: CaptureDiagnostic) => void
   readonly now?: () => number
 }
+/** Invocation-local foreign parser projections; no syntax state crosses commands. */
+export type NativeSourceExtraction = {
+  readonly graph: GraphFile | undefined
+  readonly functions: import("./function-facts.ts").FunctionFileAnalysis | undefined
+  parseTypes(allowImports: boolean): TypeExtractionFailure | readonly GraphDeclaration[]
+}
 export type LanguageAdapter = {
   readonly id: string
   readonly extensions: readonly string[]
@@ -87,6 +93,7 @@ export type LanguageAdapter = {
   /** Validate exact provenance for adapter-owned built-in support artifacts. */
   isBundledArtifact?(artifact: ReviewArtifact): boolean
   analyzeFunctions?(path: string, source: string): import("./function-facts.ts").FunctionFileAnalysis | undefined
+  extractSource(path: string, source: string): NativeSourceExtraction
   parseTypes(path: string, source: string, allowImports?: boolean): TypeExtractionFailure | readonly GraphDeclaration[]
   inspect(path: string, source: string): GraphFile | undefined
   supportingTypes?(path: string, source: string): ReadonlyMap<string, GraphDeclaration>

@@ -380,16 +380,21 @@ const collectRustDeclarations = (
   return parsed
 }
 
+const rustRoot = (source: string): SyntaxNode => {
+  const parser = new Parser()
+  parser.setLanguage(Rust)
+  return (parser.parse(source) as unknown as { readonly rootNode: SyntaxNode }).rootNode
+}
+
 /** Rust facts intentionally stay in one top-level scope without expansion. */
 const parseRustTypes = (
   path: string,
   source: string,
   allowImports: boolean,
-  options: GraphInspectionOptions = {}
+  options: GraphInspectionOptions = {},
+  readRoot: () => SyntaxNode = () => rustRoot(source)
 ): TypeExtractionFailure | ReadonlyArray<ParsedDeclaration> => {
-  const parser = new Parser()
-  parser.setLanguage(Rust)
-  const root = (parser.parse(source) as unknown as { readonly rootNode: SyntaxNode }).rootNode
+  const root = readRoot()
   if (root.hasError) return { status: "unsupported", reason: "parse", units: [] }
   const declarations = root.namedChildren.filter((node) =>
     ["struct_item", "enum_item", "type_item"].includes(node.type)
@@ -405,17 +410,15 @@ const parseRustTypes = (
   return parsed
 }
 
-export const inspectRust = (
+const inspectRustDeclarations = (
   path: string,
-  source: string,
-  options: GraphInspectionOptions = {}
+  parsed: ReturnType<typeof parseRustTypes>,
+  options: GraphInspectionOptions,
+  readRoot: () => SyntaxNode
 ): GraphFile | undefined => {
-  const parsed = parseRustTypes(path, source, true, options)
   if ("status" in parsed) return undefined
   {
-    const parser = new Parser()
-    parser.setLanguage(Rust)
-    const root = (parser.parse(source) as unknown as { readonly rootNode: SyntaxNode }).rootNode
+    const root = readRoot()
     return {
       declarations: new Map(
         parsed.map(({ artifact, references, node }) => [
@@ -436,6 +439,13 @@ export const inspectRust = (
   }
 }
 
+export const inspectRust = (
+  path: string,
+  source: string,
+  options: GraphInspectionOptions = {}
+): GraphFile | undefined =>
+  inspectRustDeclarations(path, parseRustTypes(path, source, true, options), options, () => rustRoot(source))
+
 const normalized = (
   parsed: TypeExtractionFailure | ReadonlyArray<ParsedDeclaration>
 ): TypeExtractionFailure | ReadonlyArray<GraphDeclaration> =>
@@ -455,5 +465,25 @@ export const parseTypes = (path: string, source: string, allowImports = false) =
     return normalized(parseRustTypes(path, source, allowImports))
   } catch {
     return { status: "unsupported", reason: "parse", units: [] } as const
+  }
+}
+
+export const extractRustSource: import("./contracts.ts").LanguageAdapter["extractSource"] = (path, source) => {
+  let root: SyntaxNode | undefined
+  const readRoot = () => (root ??= rustRoot(source))
+  const parsed = parseRustTypes(path, source, true, {}, readRoot)
+  const graph = inspectRustDeclarations(path, parsed, {}, readRoot)
+  return {
+    graph,
+    functions: undefined,
+    parseTypes(allowImports) {
+      try {
+        return normalized(
+          allowImports && !("status" in parsed) ? parsed : parseRustTypes(path, source, allowImports, {}, readRoot)
+        )
+      } catch {
+        return { status: "unsupported", reason: "parse", units: [] }
+      }
+    }
   }
 }

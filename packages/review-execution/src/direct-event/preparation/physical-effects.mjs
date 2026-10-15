@@ -10,12 +10,8 @@ import {
 } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import {
-  inspectGraphFile,
-  combinedAnalyzerMaterializationPreflight,
-  analyzeTypeOutcomes
-} from "@hapsland/source-analysis/direct-event/analyzer"
-import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
+import { combinedAnalyzerMaterializationPreflight } from "@hapsland/source-analysis/direct-event/analyzer"
+import { extractSource } from "@hapsland/source-analysis/direct-event/source-extraction"
 import { createPreparationCapability } from "./machine.ts"
 
 /**
@@ -249,12 +245,7 @@ export function createPhysicalPreparationCapability({
         break
       }
       case "ExtractSource": {
-        const facts = inspectGraphFile(command.capture.path, command.capture.text)
-        const functions = analyzeFunctionFile(command.capture.path, command.capture.text),
-          hasCapturedGraph =
-            facts !== undefined ||
-            (functions !== undefined && functions.functions.size > 0 && functions.types.size === 0),
-          typeFile = analyzeTypeOutcomes(command.capture.path, command.capture.text, hasCapturedGraph)
+        const { graph: facts, functions, typeFile } = extractSource(command.capture.path, command.capture.text)
         /** @param {{artifact: import("@hapsland/source-artifacts/direct-event/artifact-model").ReviewArtifact, location: import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation, selectionLocations?: readonly import("@hapsland/native-observation/direct-event/edit-attribution").PostEditLocation[]}} fact
          * @returns {RootWire}
          */

@@ -106,8 +106,7 @@ export const unavailableImportNamespace = (root: SyntaxNode, bindings: ReadonlyM
       ) || /^(?:__import__|exec|eval|globals|locals|setattr|delattr)(?:$|\()/u.test(identity)
     )
   })
-export const pythonImports = (source: string): ReadonlyMap<string, PythonImport> | undefined => {
-  const root = rootFor(source)
+export const pythonImportsForRoot = (root: SyntaxNode): ReadonlyMap<string, PythonImport> | undefined => {
   if (root.hasError) return undefined
   const { facts, bindings, staticBlocks } = moduleScope(root)
   if (descendants(root).some((node) => node.type === "wildcard_import")) return undefined
@@ -140,6 +139,8 @@ export const pythonImports = (source: string): ReadonlyMap<string, PythonImport>
   }
   return result
 }
+export const pythonImports = (source: string): ReadonlyMap<string, PythonImport> | undefined =>
+  pythonImportsForRoot(rootFor(source))
 /** Initializer authority cannot assume the effects of executable loader/path setup. */
 export const staticPackageAuthority = (source: string): boolean => {
   const root = rootFor(source)

@@ -466,8 +466,7 @@ export const goGraphFacts = (
     )
   }
 }
-export const parseGoTypes = (path: string, source: string): TypeExtractionFailure | readonly GraphDeclaration[] => {
-  const file = inspectGoFile(path, source)
+export const localGoDeclarations = (file: GoFile | undefined): TypeExtractionFailure | readonly GraphDeclaration[] => {
   if (file === undefined) return { status: "unsupported", reason: "parse", units: [] }
   if (file.types.length === 0)
     return {
@@ -486,6 +485,9 @@ export const parseGoTypes = (path: string, source: string): TypeExtractionFailur
     )
   }))
 }
+
+export const parseGoTypes = (path: string, source: string): TypeExtractionFailure | readonly GraphDeclaration[] =>
+  localGoDeclarations(inspectGoFile(path, source))
 
 export const goUnselectedTypeEditReason = (
   source: string,

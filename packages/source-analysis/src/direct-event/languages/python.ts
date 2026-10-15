@@ -6,13 +6,20 @@ import {
   typingMarker,
   moduleScope
 } from "./python/scope-bindings.ts"
-import { rootFor, pythonImports, staticPackageAuthority, type PythonImport } from "./python/module-authority.ts"
+import {
+  rootFor,
+  pythonImports,
+  pythonImportsForRoot,
+  staticPackageAuthority,
+  type PythonImport
+} from "./python/module-authority.ts"
 import { createHash } from "node:crypto"
 import { LANGUAGE_EXTENSIONS } from "@hapsland/native-observation/direct-event/languages/path-language"
 import { type SyntaxNode, descendants } from "./native-parser.ts"
 import {
   MAX_TYPE_DECLARATIONS,
   type GraphDeclaration,
+  type GraphFile,
   type GraphReference,
   type LanguageAdapter,
   type TypeExtractionFailure
@@ -169,8 +176,12 @@ const importedReference = (name: string, imports: ReadonlyMap<string, PythonImpo
   }
   return { path: imported.path, name: [imported.name, ...tail].join(".") }
 }
-const parsePython = (path: string, source: string): TypeExtractionFailure | readonly GraphDeclaration[] => {
-  const root = rootFor(source)
+const parsePython = (
+  path: string,
+  source: string,
+  root: SyntaxNode = rootFor(source),
+  readImports = () => pythonImports(source)
+): TypeExtractionFailure | readonly GraphDeclaration[] => {
   if (root.hasError) return { status: "unsupported", reason: "parse", units: [] }
   const { facts: bindingFacts, bindings, staticBlocks } = moduleScope(root)
   const locals = new Set(bindingFacts.map((fact) => fact.name))
@@ -188,7 +199,7 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
     return cls?.type === "class_definition" ? [{ node, cls, name: cls.childForFieldName("name")?.text ?? "" }] : []
   })
   if (classes.length > MAX_TYPE_DECLARATIONS) return { status: "unsupported", reason: "declaration-limit", units: [] }
-  const resolvedImports = pythonImports(source)
+  const resolvedImports = readImports()
   const imports = resolvedImports ?? new Map<string, PythonImport>()
   const admitted = new Set<string>()
   for (let pass = 0; pass <= classes.length; pass++) {
@@ -421,16 +432,23 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
     return { status: "unsupported", reason: "declaration-merge", units: [] }
   return declarations.length === 0 ? { status: "unsupported", reason: "no-declarations", units: [] } : declarations
 }
-const parseTypes: LanguageAdapter["parseTypes"] = (path, source) => {
+const parseTypes = (
+  path: string,
+  source: string,
+  _allowImports = false,
+  readRoot = () => rootFor(source),
+  readImports = () => pythonImports(source)
+): TypeExtractionFailure | readonly GraphDeclaration[] => {
   try {
-    return parsePython(path, source)
+    return parsePython(path, source, readRoot(), readImports)
   } catch {
     return { status: "unsupported", reason: "parse", units: [] }
   }
 }
-export const inspectPython: LanguageAdapter["inspect"] = (path, source) => {
-  const parsed = parseTypes(path, source)
-  const imports = pythonImports(source) ?? new Map<string, PythonImport>()
+const graphProjection = (
+  parsed: ReturnType<typeof parseTypes>,
+  imports: ReadonlyMap<string, PythonImport>
+): GraphFile | undefined => {
   if ("status" in parsed && parsed.reason !== "no-declarations") return undefined
   const declarations = "status" in parsed ? [] : parsed
   if (declarations.length === 0 && imports.size === 0) return undefined
@@ -451,6 +469,30 @@ export const inspectPython: LanguageAdapter["inspect"] = (path, source) => {
     imports: graphImports
   }
 }
+
+export const inspectPython: LanguageAdapter["inspect"] = (path, source) => {
+  const parsed = parseTypes(path, source)
+  return graphProjection(parsed, pythonImports(source) ?? new Map<string, PythonImport>())
+}
+const extractPythonSource: LanguageAdapter["extractSource"] = (path, source) => {
+  let root: SyntaxNode | undefined
+  const readRoot = () => (root ??= rootFor(source))
+  let importsRead = false
+  let imports: ReadonlyMap<string, PythonImport> | undefined
+  const readImports = () => {
+    if (!importsRead) {
+      imports = pythonImportsForRoot(readRoot())
+      importsRead = true
+    }
+    return imports
+  }
+  const parsed = parseTypes(path, source, false, readRoot, readImports)
+  return {
+    graph: graphProjection(parsed, readImports() ?? new Map<string, PythonImport>()),
+    functions: undefined,
+    parseTypes: () => ("status" in parsed ? parseTypes(path, source, false, readRoot, readImports) : parsed)
+  }
+}
 // Parser-owned module authority observations; no graph orchestration.
 export const pythonModuleAuthority = {
   package: staticPackageAuthority,
@@ -465,6 +507,7 @@ export const pythonAdapter: LanguageAdapter = {
   probe: { path: "doctor.py", source: "class DoctorProbe:\n    ready: bool" },
   parseTypes,
   inspect: inspectPython,
+  extractSource: extractPythonSource,
   hasImports: (source) => (pythonImports(source)?.size ?? 0) > 0,
   combinedPreflight: (_path, _source, bound) => bound
 }

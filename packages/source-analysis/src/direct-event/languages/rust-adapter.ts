@@ -8,6 +8,7 @@ export const rustAdapter: LanguageAdapter = {
   displayName: "Rust",
   probe: { path: "doctor.rs", source: "struct DoctorProbe { ready: bool }" },
   parseTypes: rust.parseTypes,
+  extractSource: rust.extractRustSource,
   inspect: rust.inspectRust,
   hasImports: (source) => /\b(?:use|mod)\b|::/u.test(source),
   combinedPreflight: (_path, _source, bound) => bound
