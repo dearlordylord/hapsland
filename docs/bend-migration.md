@@ -174,8 +174,9 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 records, preserving bounds/isolation. The assessed JS Map.bit/diff fork [48a21ae2](https://github.com/dearlordylord/bend/commit/48a21ae2bc00035cfffa100c062716bf5b7bf0a7) passes Astra review, independent Base equations,
 two-key Map shapes/evaluation-order checks and unchanged C/TT bytes.
 23 receipts, 99 producer tests and full consumers pass; whole parity fails.
-Next candidate removes both Preparation/Finalization tree roundtrips; original
-Bend units/prepared trees cross the private port directly, public decode/freeze remains.
+Preparation/Finalization forwards Bend units/prepared trees directly; deep roundtrips
+and intermediate freeze are removed. Public decode/freeze stays. Astra review,
+fast (3 files) and Finalization/Source/resident/public consumers pass.
 
 ### Remaining obstacles and acceptance evidence
 
@@ -226,11 +227,10 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary actual `dbacc1cc` Map cohort analyzer/build: 0.7376 / 0.8397.
-  Whole current-native Preparation **fails parity at 1.3293**: equal outputs,
+- Primary `bc2514e5` handoff cohort analyzer/build: 0.7441 / 0.8284.
+  Whole current-native Preparation **fails parity at 1.3922**: equal outputs,
   17 frozen pairs, 30 local workspaces; freezes pass, build cache 23/46.
-  Fused validate/plan stopped after two checks: old/fused JS overflow at
-  5000/25000 nodes; 100/1000 pass. No adoption.
+  Fused validate/plan is closed after deep-stream overflow; no retry.
 - Original full attachment verdict passes the CPU10/10s capability gate after
   replacing duplicated witness reconstruction with existing `ready_original_joined`.
   Astra approves; law/premises/binding/main and whole reply dispatch are byte-identical.
