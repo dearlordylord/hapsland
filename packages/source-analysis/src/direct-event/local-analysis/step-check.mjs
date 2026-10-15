@@ -49,6 +49,13 @@ try {
       "        M.Push{511n},\n        M.Push{2n},",
       "edge_postfix",
       "Core.bend"
+    ],
+    [
+      "child_measurements_before_edge",
+      "List.append(&2, M.Op, operations, node_operations(Preflight{}, slot))",
+      "List.append(&2, M.Op, node_operations(Preflight{}, slot), operations)",
+      "fresh_trace",
+      "Core.bend"
     ]
   ]) {
     for (const { path, source } of originals.values()) writeFileSync(path, source)
@@ -72,7 +79,7 @@ try {
         rejected: true,
         locations,
         scope:
-          "root-entry, Engine Ack and no-child Continue with derived budgets; other cursor branches and weighted completion remain open; rejection may occur in a shared proof helper"
+          "root-entry, Engine Ack and fresh/no-child Continue with derived budgets; dispatch, return/root branches and weighted completion remain open; rejection may occur in a shared proof helper"
       })
     )
   }
