@@ -539,7 +539,9 @@ it("stateless configuration preserves every branch and rank rejection of the sta
         events.push({ kind: "includeLayerCheck", supplied, currentRank, candidateRank })
   for (const event of events) {
     const { outputs, rejection } = stepCanonical(initial, event)
-    expect(decideCanonicalConfiguration(event)).toEqual({ outputs, ...(rejection === undefined ? {} : { rejection }) })
+    const actual = decideCanonicalConfiguration(event)
+    expect(actual).toEqual({ outputs, ...(rejection === undefined ? {} : { rejection }) })
+    expect(JSON.stringify(actual.outputs)).toBe(JSON.stringify(outputs))
   }
   const failure = (run: () => unknown) => {
     try {

@@ -3073,15 +3073,15 @@ const decodeConfigurationOutput = (value: unknown): ConfigurationOutput => {
   const payload = decodeCanonicalConstructor(value, wrapper).decision
   switch (tag(payload)) {
     case "Canonical.IncludeChoice":
-      return { ...decodeIncludeChoice(payload), category: "decision" }
+      return { category: "decision", ...decodeIncludeChoice(payload) }
     case "Canonical.FileSelection":
-      return { ...decodeFileSelection(payload), category: "decision" }
+      return { category: "decision", ...decodeFileSelection(payload) }
     case "Canonical.FileProtection":
-      return { ...decodeFileProtection(payload), category: "decision" }
+      return { category: "decision", ...decodeFileProtection(payload) }
     case "Canonical.CandidateFile":
-      return { ...decodeCandidateFile(payload), category: "decision" }
+      return { category: "decision", ...decodeCandidateFile(payload) }
     case "Canonical.ReviewAdmission":
-      return { ...decodeReviewAdmission(payload), category: "decision" }
+      return { category: "decision", ...decodeReviewAdmission(payload) }
     default:
       throw new TypeError("unknown canonical output")
   }
