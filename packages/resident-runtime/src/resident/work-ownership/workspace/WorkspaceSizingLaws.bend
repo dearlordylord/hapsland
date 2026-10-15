@@ -12,24 +12,47 @@ law analysis_entry_exact:
     == Workspace.next(Workspace.analysis_recipe(), 35n) : Workspace.Step}
 
 law capture_recipe_exact:
-  {Workspace.capture_recipe() == [
-    Workspace.WorkspaceCall{5n, Workspace.WorkspaceIdentity{}, [1n]},
-    Workspace.WorkspaceBranch{Workspace.WorkspaceIsUndefined{}, [5n],
-      [Workspace.WorkspaceConstant{5n, Workspace.WorkspaceMaxSource{}}], []},
-    Workspace.WorkspaceBranch{Workspace.WorkspaceSafeInteger{}, [5n], [], [Workspace.WorkspaceInvalidSource{}]},
-    Workspace.WorkspaceConstant{6n, Workspace.WorkspaceZero{}},
-    Workspace.WorkspaceBranch{Workspace.WorkspaceLess{}, [5n, 6n], [Workspace.WorkspaceInvalidSource{}], []},
-    Workspace.WorkspaceConstant{7n, Workspace.WorkspaceMaxSource{}},
-    Workspace.WorkspaceBranch{Workspace.WorkspaceGreater{}, [5n, 7n], [Workspace.WorkspaceInvalidSource{}], []},
-    Workspace.WorkspaceConstant{8n, Workspace.WorkspaceEight{}},
-    Workspace.WorkspaceCall{9n, Workspace.WorkspaceMultiply{}, [8n, 5n]},
-    Workspace.WorkspaceConstant{10n, Workspace.WorkspaceMaxDeclarations{}},
-    Workspace.WorkspaceCall{11n, Workspace.WorkspaceMeasure{}, [0n]},
-    Workspace.WorkspaceConstant{12n, Workspace.WorkspaceMetadataMargin{}},
-    Workspace.WorkspaceCall{13n, Workspace.WorkspaceAdd{}, [11n, 12n]},
-    Workspace.WorkspaceCall{14n, Workspace.WorkspaceMultiply{}, [10n, 13n]},
-    Workspace.WorkspaceCall{20n, Workspace.WorkspaceAdd{}, [9n, 14n]}
-  ] : List<&2, Workspace.Operation>}
+  {
+    Workspace.capture_recipe()
+    == [
+      Workspace.WorkspaceCall{5n, Workspace.WorkspaceIdentity{}, [1n]},
+      Workspace.WorkspaceBranch{
+        Workspace.WorkspaceIsUndefined{},
+        [5n],
+        [Workspace.WorkspaceConstant{5n, Workspace.WorkspaceMaxSource{}}],
+        []
+      },
+      Workspace.WorkspaceBranch{
+        Workspace.WorkspaceSafeInteger{},
+        [5n],
+        [],
+        [Workspace.WorkspaceInvalidSource{}]
+      },
+      Workspace.WorkspaceConstant{6n, Workspace.WorkspaceZero{}},
+      Workspace.WorkspaceBranch{
+        Workspace.WorkspaceLess{},
+        [5n, 6n],
+        [Workspace.WorkspaceInvalidSource{}],
+        []
+      },
+      Workspace.WorkspaceConstant{7n, Workspace.WorkspaceMaxSource{}},
+      Workspace.WorkspaceBranch{
+        Workspace.WorkspaceGreater{},
+        [5n, 7n],
+        [Workspace.WorkspaceInvalidSource{}],
+        []
+      },
+      Workspace.WorkspaceConstant{8n, Workspace.WorkspaceEight{}},
+      Workspace.WorkspaceCall{9n, Workspace.WorkspaceMultiply{}, [8n, 5n]},
+      Workspace.WorkspaceConstant{10n, Workspace.WorkspaceMaxDeclarations{}},
+      Workspace.WorkspaceCall{11n, Workspace.WorkspaceMeasure{}, [0n]},
+      Workspace.WorkspaceConstant{12n, Workspace.WorkspaceMetadataMargin{}},
+      Workspace.WorkspaceCall{13n, Workspace.WorkspaceAdd{}, [11n, 12n]},
+      Workspace.WorkspaceCall{14n, Workspace.WorkspaceMultiply{}, [10n, 13n]},
+      Workspace.WorkspaceCall{20n, Workspace.WorkspaceAdd{}, [9n, 14n]}
+    ]
+    : List<&2, Workspace.Operation>
+  }
 
 law analysis_recipe_exact:
   {Workspace.analysis_recipe() == List.append(&2, Workspace.Operation, [
@@ -79,9 +102,18 @@ law branch_true_exact:
   for no: List<&2, Workspace.Operation>
   for +remaining: List<&2, Workspace.Operation>
   for +result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceBranch{primitive, arguments, yes, no}, remaining, result},
-      Workspace.WorkspaceFlag{True{}})
-    == Workspace.next(List.append(&2, Workspace.Operation, yes, remaining), result) : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{
+        Workspace.WorkspaceBranch{primitive, arguments, yes, no},
+        remaining,
+        result
+      },
+      Workspace.WorkspaceFlag{True{}}
+    )
+    == Workspace.next(List.append(&2, Workspace.Operation, yes, remaining), result)
+    : Workspace.Step
+  }
 
 law branch_false_exact:
   for primitive: Workspace.Primitive
@@ -90,9 +122,18 @@ law branch_false_exact:
   for +no: List<&2, Workspace.Operation>
   for +remaining: List<&2, Workspace.Operation>
   for +result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceBranch{primitive, arguments, yes, no}, remaining, result},
-      Workspace.WorkspaceFlag{False{}})
-    == Workspace.next(List.append(&2, Workspace.Operation, no, remaining), result) : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{
+        Workspace.WorkspaceBranch{primitive, arguments, yes, no},
+        remaining,
+        result
+      },
+      Workspace.WorkspaceFlag{False{}}
+    )
+    == Workspace.next(List.append(&2, Workspace.Operation, no, remaining), result)
+    : Workspace.Step
+  }
 
 law branch_rejects_ack:
   for primitive: Workspace.Primitive
@@ -101,25 +142,48 @@ law branch_rejects_ack:
   for no: List<&2, Workspace.Operation>
   for remaining: List<&2, Workspace.Operation>
   for result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceBranch{primitive, arguments, yes, no}, remaining, result},
-      Workspace.WorkspaceAck{}) == Workspace.WorkspaceRejected{} : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{
+        Workspace.WorkspaceBranch{primitive, arguments, yes, no},
+        remaining,
+        result
+      },
+      Workspace.WorkspaceAck{}
+    )
+    == Workspace.WorkspaceRejected{}
+    : Workspace.Step
+  }
 
 law done_refuses:
   for result: Nat
   for reply: Workspace.Reply
-  {Workspace.resume(Workspace.WorkspaceDone{result}, reply) == Workspace.WorkspaceRejected{} : Workspace.Step}
+  {
+    Workspace.resume(Workspace.WorkspaceDone{result}, reply)
+    == Workspace.WorkspaceRejected{}
+    : Workspace.Step
+  }
 
 law rejected_refuses:
   for reply: Workspace.Reply
-  {Workspace.resume(Workspace.WorkspaceRejected{}, reply) == Workspace.WorkspaceRejected{} : Workspace.Step}
+  {
+    Workspace.resume(Workspace.WorkspaceRejected{}, reply)
+    == Workspace.WorkspaceRejected{}
+    : Workspace.Step
+  }
 law constant_ack_exact:
   for target: Nat
   for value: Workspace.Literal
   for +remaining: List<&2, Workspace.Operation>
   for +result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceConstant{target, value}, remaining, result},
-      Workspace.WorkspaceAck{})
-    == Workspace.next(remaining, result) : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{Workspace.WorkspaceConstant{target, value}, remaining, result},
+      Workspace.WorkspaceAck{}
+    )
+    == Workspace.next(remaining, result)
+    : Workspace.Step
+  }
 
 law constant_rejects_flag:
   for target: Nat
@@ -127,9 +191,14 @@ law constant_rejects_flag:
   for flag: Bool
   for +remaining: List<&2, Workspace.Operation>
   for +result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceConstant{target, value}, remaining, result},
-      Workspace.WorkspaceFlag{flag})
-    == Workspace.WorkspaceRejected{} : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{Workspace.WorkspaceConstant{target, value}, remaining, result},
+      Workspace.WorkspaceFlag{flag}
+    )
+    == Workspace.WorkspaceRejected{}
+    : Workspace.Step
+  }
 
 law optional_ack_exact:
   for target: Nat
@@ -137,9 +206,18 @@ law optional_ack_exact:
   for field: String
   for +remaining: List<&2, Workspace.Operation>
   for +result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceReadOptional{target, source, field}, remaining, result},
-      Workspace.WorkspaceAck{})
-    == Workspace.next(remaining, result) : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{
+        Workspace.WorkspaceReadOptional{target, source, field},
+        remaining,
+        result
+      },
+      Workspace.WorkspaceAck{}
+    )
+    == Workspace.next(remaining, result)
+    : Workspace.Step
+  }
 
 law optional_rejects_flag:
   for target: Nat
@@ -148,9 +226,18 @@ law optional_rejects_flag:
   for flag: Bool
   for +remaining: List<&2, Workspace.Operation>
   for +result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceReadOptional{target, source, field}, remaining, result},
-      Workspace.WorkspaceFlag{flag})
-    == Workspace.WorkspaceRejected{} : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{
+        Workspace.WorkspaceReadOptional{target, source, field},
+        remaining,
+        result
+      },
+      Workspace.WorkspaceFlag{flag}
+    )
+    == Workspace.WorkspaceRejected{}
+    : Workspace.Step
+  }
 
 law call_ack_exact:
   for target: Nat
@@ -158,9 +245,18 @@ law call_ack_exact:
   for arguments: List<&2, Nat>
   for +remaining: List<&2, Workspace.Operation>
   for +result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceCall{target, primitive, arguments}, remaining, result},
-      Workspace.WorkspaceAck{})
-    == Workspace.next(remaining, result) : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{
+        Workspace.WorkspaceCall{target, primitive, arguments},
+        remaining,
+        result
+      },
+      Workspace.WorkspaceAck{}
+    )
+    == Workspace.next(remaining, result)
+    : Workspace.Step
+  }
 
 law call_rejects_flag:
   for target: Nat
@@ -169,13 +265,28 @@ law call_rejects_flag:
   for flag: Bool
   for +remaining: List<&2, Workspace.Operation>
   for +result: Nat
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceCall{target, primitive, arguments}, remaining, result},
-      Workspace.WorkspaceFlag{flag})
-    == Workspace.WorkspaceRejected{} : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{
+        Workspace.WorkspaceCall{target, primitive, arguments},
+        remaining,
+        result
+      },
+      Workspace.WorkspaceFlag{flag}
+    )
+    == Workspace.WorkspaceRejected{}
+    : Workspace.Step
+  }
 
 law invalid_source_refuses:
   for remaining: List<&2, Workspace.Operation>
   for result: Nat
   for reply: Workspace.Reply
-  {Workspace.resume(Workspace.WorkspaceAwait{Workspace.WorkspaceInvalidSource{}, remaining, result}, reply)
-    == Workspace.WorkspaceRejected{} : Workspace.Step}
+  {
+    Workspace.resume(
+      Workspace.WorkspaceAwait{Workspace.WorkspaceInvalidSource{}, remaining, result},
+      reply
+    )
+    == Workspace.WorkspaceRejected{}
+    : Workspace.Step
+  }

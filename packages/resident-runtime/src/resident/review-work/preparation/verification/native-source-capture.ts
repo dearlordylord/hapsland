@@ -1,6 +1,9 @@
 import type { ReviewSettingsSnapshot } from "@hapsland/review-definition/runtime/review-settings"
 import { type DirectObservation } from "@hapsland/native-observation/direct-event/observation"
-import { captureWorkspaceBytes, analysisWorkspaceBytes } from "../../../work-ownership/workspace.ts"
+import {
+  captureWorkspaceBytes,
+  analysisWorkspaceBytes
+} from "../../../work-ownership/workspace/verification/native-workspace.ts"
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"

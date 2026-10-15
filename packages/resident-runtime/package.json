@@ -96,7 +96,7 @@
     "capabilities": [
       "review-orchestration"
     ],
-    "bendPrecompile": "src/resident/review-work/build-recipe.json",
+    "bendPrecompile": "src/resident/build-recipe.json",
     "checkedJavaScript": [
       "src/resident/review-work/composition/owned-artifact-driver.mjs",
       "src/resident/review-work/composition/owned-machine.mjs",

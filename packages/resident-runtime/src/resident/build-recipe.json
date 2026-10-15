@@ -1,0 +1,17 @@
+[
+  {
+    "source": "review-work/preparation/SourcePreparation.bend",
+    "output": "review-work/preparation/source-preparation-core.js",
+    "declaration": "review-work/preparation/source-preparation-core.d.ts"
+  },
+  {
+    "source": "review-work/preparation/PostPreparation.bend",
+    "output": "review-work/preparation/post-preparation-core.js",
+    "declaration": "review-work/preparation/post-preparation-core.d.ts"
+  },
+  {
+    "source": "work-ownership/workspace/WorkspaceSizing.bend",
+    "output": "work-ownership/workspace/workspace-sizing-core.js",
+    "declaration": "work-ownership/workspace/workspace-sizing-core.d.ts"
+  }
+]

@@ -29,7 +29,12 @@ type Operation is Data:
   WorkspaceConstant{target: Nat, value: Literal}
   WorkspaceReadOptional{target: Nat, source: Nat, field: String}
   WorkspaceCall{target: Nat, primitive: Primitive, arguments: List<&2, Nat>}
-  WorkspaceBranch{primitive: Primitive, arguments: List<&2, Nat>, yes: List<&2, Operation>, no: List<&2, Operation>}
+  WorkspaceBranch{
+    primitive: Primitive,
+    arguments: List<&2, Nat>,
+    yes: List<&2, Operation>,
+    no: List<&2, Operation>
+  }
   WorkspaceInvalidSource{}
 type Step is Data:
   WorkspaceAwait{operation: Operation, remaining: List<&2, Operation>, result: Nat}
@@ -38,11 +43,6 @@ type Step is Data:
 type Reply is Data:
   WorkspaceAck{}
   WorkspaceFlag{value: Bool}
-
-def append(first: List<&2, Operation>, last: List<&2, Operation>) -> List<&2, Operation>:
-  match first:
-    case Nil{}: last
-    case head <> tail: head <> append(tail, last)
 
 def next(operations: List<&2, Operation>, result: Nat) -> Step:
   match operations:
@@ -70,11 +70,11 @@ def capture_recipe() -> List<&2, Operation>:
   ]
 
 def analysis_recipe() -> List<&2, Operation>:
-  append([
+  List.append(&2, Operation, [
     WorkspaceReadOptional{4n, 2n, "declarations"},
     WorkspaceBranch{WorkspaceIsNullish{}, [4n],
       [WorkspaceConstant{4n, WorkspaceMaxDeclarations{}}], []}
-  ], append(capture_recipe(), [
+  ], List.append(&2, Operation, capture_recipe(), [
     WorkspaceReadOptional{21n, 2n, "hasImports"},
     WorkspaceBranch{WorkspaceTruthy{}, [21n],
       [WorkspaceConstant{22n, WorkspaceImportWorkspace{}}],
@@ -104,10 +104,21 @@ def initial(mode: Mode) -> Step:
     case WorkspaceCapture{}: next(capture_recipe(), 20n)
     case WorkspaceAnalysis{}: next(analysis_recipe(), 35n)
 
-def reply_operation(operation: Operation, remaining: List<&2, Operation>, result: Nat, reply: Reply) -> Step:
+def reply_operation(
+  operation: Operation,
+  remaining: List<&2, Operation>,
+  result: Nat,
+  reply: Reply
+) -> Step:
   match operation reply:
-    case WorkspaceBranch{_, _, yes, _} WorkspaceFlag{True{}}: next(append(yes, remaining), result)
-    case WorkspaceBranch{_, _, _, no} WorkspaceFlag{False{}}: next(append(no, remaining), result)
+    case WorkspaceBranch{_, _, yes, _} WorkspaceFlag{True{}}: next(
+      List.append(&2, Operation, yes, remaining),
+      result
+    )
+    case WorkspaceBranch{_, _, _, no} WorkspaceFlag{False{}}: next(
+      List.append(&2, Operation, no, remaining),
+      result
+    )
     case WorkspaceConstant{_, _} WorkspaceAck{}: next(remaining, result)
     case WorkspaceReadOptional{_, _, _} WorkspaceAck{}: next(remaining, result)
     case WorkspaceCall{_, _, _} WorkspaceAck{}: next(remaining, result)
@@ -115,5 +126,10 @@ def reply_operation(operation: Operation, remaining: List<&2, Operation>, result
 
 def resume(step: Step, reply: Reply) -> Step:
   match step:
-    case WorkspaceAwait{operation, remaining, result}: reply_operation(operation, remaining, result, reply)
+    case WorkspaceAwait{operation, remaining, result}: reply_operation(
+      operation,
+      remaining,
+      result,
+      reply
+    )
     case _: WorkspaceRejected{}

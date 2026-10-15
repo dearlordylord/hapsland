@@ -42,7 +42,7 @@ import {
 } from "@hapsland/source-analysis/direct-event/analyzer"
 import { resize as __resize } from "../../../state/capacity/reservations.ts"
 import { analyzeFunctionFile as __analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
-import { analysisWorkspaceBytes as __analysisWorkspaceBytes } from "../../../work-ownership/workspace.ts"
+import { analysisWorkspaceBytes as __analysisWorkspaceBytes } from "../../../work-ownership/workspace/verification/native-workspace.ts"
 import { configuredRules, advicee } from "./preparation-fixtures.mjs"
 import { nativePostPreparationSource } from "./native-post-preparation-child.mjs"
 import { consumeRetainedPreparation } from "./retention-consumer.mjs"
