@@ -225,8 +225,9 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Latest `c0f265f5` analyzer/build ratios: 0.7397 / 0.8003. Public current-native
-  Preparation **fails parity at 1.9633**, with equal outputs. 17 pairs and 30 workspace resolutions qualify.
+- Primary `c0f265f5` analyzer/build: 0.6370 / 0.7875. Whole current-native
+  Preparation on `b20acb05` **fails parity at 1.5744**: equal outputs, 17 frozen pairs,
+  30 local workspaces.
   No whole-path gain shown.
 - Shared address facts and construction consumers pass verdict/format. Complete
   attachment TT decreases to 7,445,671 bytes; full verdict still times out.
