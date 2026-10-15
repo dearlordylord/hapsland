@@ -23,6 +23,7 @@ import scala.runtime.ObjectRef;
  * Uses the actual private scanner, recognizer, settings and selector. No writes or format qualification.
  * Delete or replace when the pinned formatter supplies these locations itself; private ABI mismatch fails closed.
  */
+@SuppressWarnings("unchecked")
 class BendFormatDiagnostic {
   private static final String SHA = "50df827b59cb5bca51e2d555e81a2e2bbd8d28d7b799566d3e16653eaac50356";
   private static final String PREFIX = "com.dearlordylord.bend.idea.syntax.parser.BendLayoutPolicy$";
@@ -35,14 +36,23 @@ class BendFormatDiagnostic {
   private final Object structure;
   private final Vector<?> lists;
   private final Path file;
+  private final int[] starts, ends, commentPrefix;
+  private final String[] spellings;
+  private final List<Integer> blockTokens = new ArrayList<>();
+  private record MethodKey(Class<?> type, String name, int arity) {}
+  private static final java.util.Map<MethodKey, Method> METHODS = new java.util.HashMap<>();
 
   // The hash fixes the entire private ABI. Methods are additionally checked for name/arity uniqueness.
   private static Method method(Class<?> type, String name, int arity) throws ReflectiveOperationException {
+    MethodKey key = new MethodKey(type, name, arity);
+    Method cached = METHODS.get(key);
+    if (cached != null) return cached;
     List<Method> matches = Arrays.stream(type.getDeclaredMethods())
       .filter(m -> m.getName().equals(name) && m.getParameterCount() == arity && !m.isBridge()).toList();
     if (matches.size() != 1) throw new NoSuchMethodException("Unsupported pinned diagnostic signature: " + name);
     Method result = matches.get(0);
     result.setAccessible(true);
+    METHODS.put(key, result);
     return result;
   }
 
@@ -80,10 +90,24 @@ class BendFormatDiagnostic {
     Class<?> cliClass = Class.forName("com.dearlordylord.bend.idea.adapters.cli.BendFormatCli$");
     Object cli = cliClass.getField("MODULE$").get(null);
     settings = invoke(method(cliClass, "resolveSettings", 2), cli, new EditorConfig(), file);
+    if (!((Option<?>) field(settings, "maxLineLength")).isDefined())
+      throw new IllegalStateException("Pinned selector is disabled by actual settings");
     text = Files.readString(file);
     tokens = (Vector<?>) right(policy("scan", text));
     structure = right(policy("recognize", text, tokens));
     lists = (Vector<?>) field(structure, "lists");
+    starts = new int[tokens.length()];
+    ends = new int[tokens.length()];
+    spellings = new String[tokens.length()];
+    commentPrefix = new int[tokens.length() + 1];
+    for (int i = 0; i < tokens.length(); i++) {
+      Object token = tokens.apply(i);
+      starts[i] = number(token, "start");
+      ends[i] = number(token, "end");
+      spellings[i] = (String) field(token, "text");
+      commentPrefix[i + 1] = commentPrefix[i] + ((Boolean) policy("select$1$$anonfun$1", token) ? 1 : 0);
+      if ((Boolean) policy("select$1$$anonfun$2", token)) blockTokens.add(i);
+    }
   }
 
   private record Maps(Map<Object, Object> indentation, Map<Object, Object> gaps) {}
@@ -116,20 +140,30 @@ class BendFormatDiagnostic {
   }
 
   /** Only the selector's own error guards, using its actual spelling/width/token predicates. */
+  private static int lowerBound(int[] values, int target) {
+    int low = 0, high = values.length;
+    while (low < high) {
+      int mid = (low + high) >>> 1;
+      if (values[mid] < target) low = mid + 1; else high = mid;
+    }
+    return low;
+  }
+
   private List<Object> ownBlockTokens(Object list, Maps maps) throws Exception {
     int open = number(list, "open"), close = number(list, "close");
     if (((Vector<?>) field(list, "items")).isEmpty()) return List.of();
-    int lineStart = text.lastIndexOf('\n', number(tokens.apply(open), "start") - 1) + 1;
-    int lineEnd = text.indexOf('\n', number(tokens.apply(close), "end"));
+    int lineStart = text.lastIndexOf('\n', starts[open] - 1) + 1;
+    int lineEnd = text.indexOf('\n', ends[close]);
     if (lineEnd == -1) lineEnd = text.length();
-    int first = 0;
-    while (first < tokens.length() && !(Boolean) policy("$anonfun$11", lineStart, tokens.apply(first))) first++;
-    if (first == tokens.length()) throw new IllegalStateException("Unsupported selector line span");
+    int first = lowerBound(starts, lineStart);
+    if (first == tokens.length() || !(Boolean) policy("$anonfun$11", lineStart, tokens.apply(first)))
+      throw new IllegalStateException("Unsupported selector line span");
     int last = close;
-    if (open >= 2 && field(tokens.apply(open - 2), "text").equals("def")) {
-      last = tokens.length() - 1;
-      while (last >= 0 && !(Boolean) policy("$anonfun$12", lineEnd, tokens.apply(last))) last--;
-    } else if (close + 1 < tokens.length() && field(tokens.apply(close + 1), "text").equals(":")) last++;
+    if (open >= 2 && spellings[open - 2].equals("def")) {
+      last = lowerBound(ends, lineEnd + 1) - 1;
+      if (last < 0 || !(Boolean) policy("$anonfun$12", lineEnd, tokens.apply(last)))
+        throw new IllegalStateException("Unsupported selector line end");
+    } else if (close + 1 < tokens.length() && spellings[close + 1].equals(":")) last++;
     Option<?> planned = maps.indentation().get(lineStart);
     Option<?> indent = planned.isDefined()
       ? (Option<?>) invoke(method(settings.getClass(), "indent", 1), settings, planned.get()) : Option.empty();
@@ -137,11 +171,12 @@ class BendFormatDiagnostic {
       : (String) policy("$anonfun$14", text, lineStart, tokens, first);
     String spelling = (String) policy("spelling$1", tokens, maps.gaps(), text, first, last);
     if (!(Boolean) policy("overlong$1", settings, prefix + spelling, 0)) return List.of();
-    for (int i = open; i <= close; i++)
-      if ((Boolean) policy("select$1$$anonfun$1", tokens.apply(i))) return List.of();
+    if (commentPrefix[close + 1] != commentPrefix[open]) return List.of();
     List<Object> found = new ArrayList<>();
-    for (int i = open + 1; i < close; i++)
-      if ((Boolean) policy("select$1$$anonfun$2", tokens.apply(i))) found.add(tokens.apply(i));
+    int index = java.util.Collections.binarySearch(blockTokens, open + 1);
+    if (index < 0) index = -index - 1;
+    while (index < blockTokens.size() && blockTokens.get(index) < close)
+      found.add(tokens.apply(blockTokens.get(index++)));
     return found;
   }
 
@@ -159,9 +194,6 @@ class BendFormatDiagnostic {
   }
 
   private void run() throws Exception {
-    Object result = policy("plan", text, settings);
-    if (!result.getClass().getName().equals("scala.util.Left") || !ERROR.equals(field(result, "value")))
-      throw new IllegalStateException("Expected the pinned unsupported-block failure; this is not a format check");
     Maps initial = initialMaps(), sequential = copy(initial);
     List<Object> roots = new ArrayList<>();
     for (int i = 0; i < lists.length(); i++) {
@@ -187,7 +219,8 @@ class BendFormatDiagnostic {
       Object list = lists.apply(i);
       if (roots.contains(list)) continue;
       List<Object> own = ownBlockTokens(list, initial);
-      if (!own.isEmpty() && ERROR.equals(select(list, copy(initial))))
+      // The actual own-error guard returns before selector mutation; reuse original maps only on this path.
+      if (!own.isEmpty() && ERROR.equals(select(list, initial)))
         report("independently-failing-nested-list-original-maps-not-sequential-traversal", list, own);
     }
   }
