@@ -214,13 +214,13 @@ that only bridges helper names.
 - The connected validator candidate passed the matching 46-workspace build,
   `check:fast` with cumulative lint (10 files), full Finalization consumer
   (66 cases / 52 runtime cases), and focused Source/Post/resident consumers.
-  The earlier retained candidate passes 13 real public Preparation tests, including
+  The earlier candidate passes 13 public Preparation tests, including
   nested Graph cancellation and complete Causes. Post candidate `660bde05` passes
   23360 finite Post cases, resident 67 cases and Source 59 cases (34 whole-native
   comparisons), with actual compiled host/five-language IO. These scopes do not
   establish universal correspondence, parity or whole acceptance.
-- Primary analyzer/build on `1d025d0e` pass at 0.6489 / 0.7579.
-  Complete current-native Preparation on that candidate **fails parity at 2.1312**.
+- Primary analyzer/build on `660bde05` pass at 0.6820 / 0.7893.
+  Complete current-native Preparation on that candidate **fails parity at 2.0473**.
   All 30 workspace dependencies resolve inside the measured checkout.
 
 ### Check and source owners
