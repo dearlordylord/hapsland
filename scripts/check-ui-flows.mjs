@@ -110,9 +110,7 @@ export function checkUiFlows(
     const childNames = new Set(["childFlow"])
     const journeyNames = new Set(["cliJourney"])
     const childEntries = new Map(Object.entries(entries).map(([id, definition]) => [definition.entry, id]))
-    const observedNodes = []
     walk(tree, (node, parent) => {
-      observedNodes.push(node, parent)
       if (node.type === "ObjectProperty" && parent) parents.set(node, parent)
       if (node.type === "ImportDeclaration") {
         if (
@@ -155,9 +153,7 @@ export function checkUiFlows(
           errors.push(`Unregistered terminal adapter: ${path}`)
       }
     })
-    for (let observedIndex = 0; observedIndex < observedNodes.length; observedIndex += 2) {
-      const node = observedNodes[observedIndex],
-        parent = observedNodes[observedIndex + 1]
+    walk(tree, (node, parent) => {
       if (node.type === "CallExpression" && journeyNames.has(node.callee?.name)) {
         const id = node.arguments[0]?.type === "StringLiteral" ? node.arguments[0].value : undefined
         const definition = registry.uiJourneys?.[id]
@@ -272,7 +268,7 @@ export function checkUiFlows(
             errors.push(`Undeclared UI input kind: ${path}: ${method}`)
         }
       }
-    }
+    })
     if (owner && !registered) errors.push(`UI owner has no registered dispatch: ${path}`)
   }
   const reachable = new Set()
