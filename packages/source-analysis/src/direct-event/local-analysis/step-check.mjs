@@ -56,7 +56,8 @@ try {
       "List.append(&2, M.Op, node_operations(Preflight{}, slot), operations)",
       "fresh_trace",
       "Core.bend"
-    ]
+    ],
+    ["return_add_omitted", "case Preflight{}: [M.Add{}]", "case Preflight{}: []", "return_trace", "Core.bend"]
   ]) {
     for (const { path, source } of originals.values()) writeFileSync(path, source)
     const { path, source: original } = originals.get(file)
@@ -79,7 +80,7 @@ try {
         rejected: true,
         locations,
         scope:
-          "root-entry, Engine Ack and fresh/no-child Continue with derived budgets; dispatch, return/root branches and weighted completion remain open; rejection may occur in a shared proof helper"
+          "root-entry, Engine Ack and pending dispatch and child return with derived budgets; root terminal and weighted completion remain open; rejection may occur in a shared proof helper"
       })
     )
   }

@@ -4,11 +4,15 @@ import ./Specification.bend as S
 import ./Core.bend as C
 import ./Joint.bend as J
 import ./Potential.bend as P
+import ./WeightedInventory.bend as W
 import ./ChildBudgetProof.bend as ChildBudget
 import ./JointLaws.bend as JointLaws
 import ./JointProof.bend as JointProof
 import ./JointStep.bend as Step
 import ./JointReference.bend as R
+import ./Continuation.bend as K
+import ./ReturnProof.bend as Return
+import ./ReturnLaws.bend as ReturnLaws
 import ./JointReferenceProof.bend as ReferenceProof
 import ./JointFreshProof.bend as Fresh
 import ./Root.bend as Root
@@ -800,6 +804,577 @@ def fresh_all_budgets(+root: M.Declaration, +invocation: C.Global, +reversed_ops
         fresh_continue(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, rest, depth,
           parent_slot, tail, reversed, site, ancestors, others, prefix, subtotal, symbol, target_id,
           target_slot, identity, target_name, references, found, fresh, unlimited, valid))
+
+def lookup_in_context(+global: C.Global, +invocation: C.Global, +request: Nat,
+  +symbol: String, +target_id: Maybe<&2, String>,
+  equal: {global == C.global_count(invocation, request) : C.Global}) -> {
+  C.lookup(C.global_catalog(global), symbol, target_id) == S.lookup(C.global_catalog(invocation), symbol, target_id)
+    : Maybe<&2, M.Declaration>
+}:
+  Equal.trans(Maybe<&2, M.Declaration>, C.lookup(C.global_catalog(global), symbol, target_id),
+    C.lookup(C.global_catalog(invocation), symbol, target_id), S.lookup(C.global_catalog(invocation), symbol, target_id),
+    Equal.cong(M.Catalog, Maybe<&2, M.Declaration>, catalog => C.lookup(catalog, symbol, target_id),
+      C.global_catalog(global), C.global_catalog(invocation), Fresh.global_catalog_agrees(global, invocation, request, equal)),
+    Fresh.lookup_exact(C.global_catalog(invocation), symbol, target_id))
+
+def recorded_result_exact(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +parent_slot: Nat,
+  +symbol: String,
+  +target_id: Maybe<&2, String>,
+  +pending: List<&2, M.Reference>,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +site: Maybe<&2, String>,
+  +parents: List<&2, C.Frame>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  +others: List<&2, J.Ghost>,
+  global_equal: {global == C.global_count(invocation, Step.request(invocation, reversed_ops)) : C.Global}) -> {R.result(M.Named{symbol, target_id}, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), subtotal) == S.named_recorded(S.State{name, expanded, C.reference_names(name, symbol, target_id, referenced), failure}, C.lookup(C.global_catalog(global), symbol, target_id), symbol, subtotal, _ => _ => S.DepthExhausted{}) : S.ReferenceResult}:
+  %Equal.sym(S.State, S.State{name, expanded, C.reference_names(name, symbol, target_id, referenced), failure}, S.record_named(S.State{name, expanded, referenced, failure}, symbol, target_id), Fresh.record_exact(name, expanded, referenced, failure, symbol, target_id)) : {R.result(M.Named{symbol, target_id}, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), subtotal) == S.named_recorded(_, C.lookup(C.global_catalog(global), symbol, target_id), symbol, subtotal, _ => _ => S.DepthExhausted{}) : S.ReferenceResult}
+  %Equal.sym(Maybe<&2, M.Declaration>, C.lookup(C.global_catalog(global), symbol, target_id), S.lookup(C.global_catalog(invocation), symbol, target_id),
+    lookup_in_context(global, invocation, Step.request(invocation, reversed_ops), symbol, target_id, global_equal)) : {R.result(M.Named{symbol, target_id}, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), subtotal) == S.named_recorded(S.record_named(S.State{name, expanded, referenced, failure}, symbol, target_id), _, symbol, subtotal, _ => _ => S.DepthExhausted{}) : S.ReferenceResult}
+  {==}
+
+def named_seen_step(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +parent_slot: Nat,
+  +symbol: String,
+  +target_id: Maybe<&2, String>,
+  +pending: List<&2, M.Reference>,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +site: Maybe<&2, String>,
+  +parents: List<&2, C.Frame>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  +others: List<&2, J.Ghost>,
+  +already: Bool, +target_slot: Nat, +identity: String, +target_name: String, +references: List<&2, M.Reference>,
+  unlimited: {Nat.is_gt(List.length(&2, String, C.reference_names(name, symbol, target_id, referenced)), 16n) == False{} : Bool},
+  found: {C.lookup(C.global_catalog(global), symbol, target_id) == Some{M.Declaration{target_slot, identity, target_name, references}} : Maybe<&2, M.Declaration>},
+  seen: {C.contains(identity, expanded) == already : Bool},
+  equal: {R.result(M.Named{symbol, target_id}, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), subtotal) == S.named_seen(already, S.State{name, expanded, C.reference_names(name, symbol, target_id, referenced), failure}, symbol, M.Declaration{target_slot, identity, target_name, references}, S.edge_total(subtotal, symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), _ => _ => S.DepthExhausted{}) : S.ReferenceResult},
+  valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}, J.Ghost{depth, prefix, subtotal} <> others)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}), after)):
+  match already:
+    case True{}: nochild_all_budgets(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, M.Named{symbol, target_id}, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, name, expanded, C.reference_names(name, symbol, target_id, referenced), failure, M.Included{symbol, identity}, S.edge_total(subtotal, symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), equal, valid)
+    case False{}: fresh_all_budgets(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure,
+      remaining, depth, parent_slot, pending, reversed_refs, site, parents, others, prefix, subtotal, symbol, target_id,
+      target_slot, identity, target_name, references, found, seen, unlimited, valid)
+
+def named_target_step(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +parent_slot: Nat,
+  +symbol: String,
+  +target_id: Maybe<&2, String>,
+  +pending: List<&2, M.Reference>,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +site: Maybe<&2, String>,
+  +parents: List<&2, C.Frame>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  +others: List<&2, J.Ghost>,
+  +target: Maybe<&2, M.Declaration>, +unlimited: {Nat.is_gt(List.length(&2, String, C.reference_names(name, symbol, target_id, referenced)), 16n) == False{} : Bool},
+  found: {C.lookup(C.global_catalog(global), symbol, target_id) == target : Maybe<&2, M.Declaration>},
+  equal: {R.result(M.Named{symbol, target_id}, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), subtotal) == S.named_target(target, S.State{name, expanded, C.reference_names(name, symbol, target_id, referenced), failure}, symbol, S.edge_total(subtotal, symbol, target), _ => _ => S.DepthExhausted{}) : S.ReferenceResult},
+  valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}, J.Ghost{depth, prefix, subtotal} <> others)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}), after)):
+  match target:
+    case None{}: nochild_all_budgets(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, M.Named{symbol, target_id}, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, name, expanded, C.reference_names(name, symbol, target_id, referenced), S.first_failure(failure, M.MissingEvidence{}), M.Omitted{symbol, None{}, M.Unresolved{}}, S.edge_total(subtotal, symbol, None{}), equal, valid)
+    case Some{M.Declaration{+target_slot, +identity, +target_name, +references}}:
+      named_seen_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, symbol, target_id, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, C.contains(identity, expanded), target_slot, identity, target_name, references, unlimited, found, {==},
+        (%Equal.sym(Bool, C.contains(identity, expanded), S.contains(identity, expanded), Fresh.contains_exact(identity, expanded)) :
+          {R.result(M.Named{symbol, target_id}, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), subtotal) == S.named_seen(_, S.State{name, expanded, C.reference_names(name, symbol, target_id, referenced), failure}, symbol, M.Declaration{target_slot, identity, target_name, references}, S.edge_total(subtotal, symbol, Some{M.Declaration{target_slot, identity, target_name, references}}), _ => _ => S.DepthExhausted{}) : S.ReferenceResult}
+          equal), valid)
+
+def named_limit_step(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +parent_slot: Nat,
+  +symbol: String,
+  +target_id: Maybe<&2, String>,
+  +pending: List<&2, M.Reference>,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +site: Maybe<&2, String>,
+  +parents: List<&2, C.Frame>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  +others: List<&2, J.Ghost>,
+  +limited: Bool, +target: Maybe<&2, M.Declaration>, limited_equal: {Nat.is_gt(List.length(&2, String, C.reference_names(name, symbol, target_id, referenced)), 16n) == limited : Bool},
+  found: {C.lookup(C.global_catalog(global), symbol, target_id) == target : Maybe<&2, M.Declaration>},
+  equal: {R.result(M.Named{symbol, target_id}, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), subtotal) == S.named_limit(limited, target, S.State{name, expanded, C.reference_names(name, symbol, target_id, referenced), failure}, symbol, S.edge_total(subtotal, symbol, target), _ => _ => S.DepthExhausted{}) : S.ReferenceResult},
+  valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}, J.Ghost{depth, prefix, subtotal} <> others)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}), after)):
+  match limited:
+    case True{}: nochild_all_budgets(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, M.Named{symbol, target_id}, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, name, expanded, C.reference_names(name, symbol, target_id, referenced), S.first_failure(failure, M.ReferenceLimit{}), M.Omitted{symbol, S.omitted_target(target), M.LimitExceeded{}}, S.edge_total(subtotal, symbol, target), equal, valid)
+    case False{}: named_target_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, symbol, target_id, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, target, limited_equal, found, equal, valid)
+
+def named_semantic_step(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +parent_slot: Nat,
+  +symbol: String,
+  +target_id: Maybe<&2, String>,
+  +pending: List<&2, M.Reference>,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +site: Maybe<&2, String>,
+  +parents: List<&2, C.Frame>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  +others: List<&2, J.Ghost>,
+  trace: {List.reverse(&2, M.Op, reversed_ops) == Step.cursor_postfix(C.global_purpose(invocation), J.Ghost{depth, prefix, subtotal} <> others) : List<&2, M.Op>},
+  valid: J.cursor(root, invocation, Step.request(invocation, reversed_ops), C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}, J.Ghost{depth, prefix, subtotal} <> others)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}), after)):
+  match valid:
+    case (+global_equal, rest):
+      named_limit_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, symbol, target_id, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, Nat.is_gt(List.length(&2, String, C.reference_names(name, symbol, target_id, referenced)), 16n), C.lookup(C.global_catalog(global), symbol, target_id), {==}, {==},
+        recorded_result_exact(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, symbol, target_id, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, global_equal), ((global_equal, rest), trace))
+
+def named_step(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +parent_slot: Nat,
+  +symbol: String,
+  +target_id: Maybe<&2, String>,
+  +pending: List<&2, M.Reference>,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +site: Maybe<&2, String>,
+  +parents: List<&2, C.Frame>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  +others: List<&2, J.Ghost>, valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}, J.Ghost{depth, prefix, subtotal} <> others)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, M.Named{symbol, target_id} <> pending, reversed_refs, site} <> parents}}), after)):
+  match valid:
+    case (semantic, trace): named_semantic_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, symbol, target_id, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, trace, semantic)
+
+def pending_step(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +parent_slot: Nat,
+  +reference: M.Reference,
+  +pending: List<&2, M.Reference>,
+  +reversed_refs: List<&2, M.ReferencePlan>,
+  +site: Maybe<&2, String>,
+  +parents: List<&2, C.Frame>,
+  +depth: Nat,
+  +prefix: List<&2, M.ReferencePlan>,
+  +subtotal: S.BytesExpr,
+  +others: List<&2, J.Ghost>, valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, reference <> pending, reversed_refs, site} <> parents}}, J.Ghost{depth, prefix, subtotal} <> others)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{parent_slot, reference <> pending, reversed_refs, site} <> parents}}), after)):
+  match reference:
+    case M.Named{symbol, target_id}: named_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, parent_slot, symbol, target_id, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, valid)
+    case M.Unsupported{+symbol}:
+      nochild_all_budgets(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining,
+        parent_slot, M.Unsupported{symbol}, pending, reversed_refs, site, parents, depth, prefix, subtotal, others,
+        name, expanded, referenced, S.first_failure(failure, M.UnsupportedReference{}),
+        M.Omitted{symbol, None{}, M.UnsupportedSyntax{}}, S.edge_total(subtotal, symbol, None{}), {==}, valid)
+
+def return_trace(+purpose: C.Purpose, +child_depth: Nat, +parent_depth: Nat,
+  +child_prefix: List<&2, M.ReferencePlan>, +parent_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr, +parent_subtotal: S.BytesExpr, +others: List<&2, J.Ghost>,
+  +child_slot: Nat, +symbol: String) -> {
+  List.append(&2, M.Op, Step.cursor_postfix(purpose,
+    J.Ghost{child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others),
+    C.preflight_ops(purpose, C.finish_operations(purpose)))
+    == Step.cursor_postfix(purpose,
+      J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix,
+        [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others)
+    : List<&2, M.Op>
+}:
+  match purpose:
+    case C.Trees{}: {==}
+    case C.Outcomes{}: {==}
+    case C.Preflight{}:
+      Equal.trans(List<&2, M.Op>,
+        List.append(&2, M.Op, List.append(&2, M.Op,
+          List.append(&2, M.Op, Step.spine_postfix(others), S.postfix(parent_subtotal)), S.postfix(child_subtotal)), [M.Add{}]),
+        List.append(&2, M.Op, List.append(&2, M.Op, Step.spine_postfix(others), S.postfix(parent_subtotal)),
+          List.append(&2, M.Op, S.postfix(child_subtotal), [M.Add{}])),
+        List.append(&2, M.Op, Step.spine_postfix(others),
+          List.append(&2, M.Op, S.postfix(parent_subtotal), List.append(&2, M.Op, S.postfix(child_subtotal), [M.Add{}]))),
+        L.append_assoc(&2, M.Op, List.append(&2, M.Op, Step.spine_postfix(others), S.postfix(parent_subtotal)),
+          S.postfix(child_subtotal), [M.Add{}]),
+        L.append_assoc(&2, M.Op, Step.spine_postfix(others), S.postfix(parent_subtotal),
+          List.append(&2, M.Op, S.postfix(child_subtotal), [M.Add{}])))
+
+def copy_reference_equation(+left: List<&2, M.ReferencePlan>, +right: List<&2, M.ReferencePlan>,
+  +equal: {left == right : List<&2, M.ReferencePlan>}) ->
+  {left == right : List<&2, M.ReferencePlan>} & {left == right : List<&2, M.ReferencePlan>}:
+  (equal, equal)
+
+def copy_accumulator(+purpose: C.Purpose, +reversed: List<&2, M.ReferencePlan>, +prefix: List<&2, M.ReferencePlan>,
+  valid: K.accumulator_relation(purpose, reversed, prefix)) ->
+  K.accumulator_relation(purpose, reversed, prefix) & K.accumulator_relation(purpose, reversed, prefix):
+  match purpose:
+    case C.Trees{}: copy_reference_equation(List.reverse(&2, M.ReferencePlan, reversed), prefix, valid)
+    case C.Outcomes{}: copy_reference_equation(reversed, [], valid)
+    case C.Preflight{}: copy_reference_equation(reversed, [], valid)
+
+def return_semantic(+root: M.Declaration,
+  +purpose: C.Purpose,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +state: S.State,
+  +catalog: M.Catalog,
+  +symbol: String,
+  parent_accumulator: K.accumulator_relation(purpose, parent_reversed, parent_prefix),
+  valid: J.semantic(C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors, J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others, root, catalog, purpose, state)) ->
+  J.semantic(K.returned_frame(purpose, C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors, J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others, root, catalog, purpose, state):
+  match valid:
+    case (child_accumulator, semantic):
+      %Fresh.enclosing_own_fields(parent_slot, parent_site, parent_pending, parent_pending,
+        parent_reversed, C.keep_reference(purpose, K.returned_reference(child_slot, List.reverse(&2, M.ReferencePlan, child_reversed), symbol), parent_reversed), ancestors, others, parent_depth, parent_depth,
+        parent_prefix, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), parent_subtotal, S.Add{parent_subtotal, child_subtotal}, root, catalog, K.completed_prefix(List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.as_references(S.interpret(parent_depth, S.ReferencesRequest{parent_pending, state, S.Add{parent_subtotal, child_subtotal}}, catalog)))) :
+        K.accumulator_relation(purpose, C.keep_reference(purpose, K.returned_reference(child_slot, List.reverse(&2, M.ReferencePlan, child_reversed), symbol), parent_reversed), List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)])) & _
+      (Return.returned_accumulator(purpose, child_slot, child_reversed, child_prefix, parent_reversed, parent_prefix,
+        symbol, child_accumulator, parent_accumulator),
+        Return.returned_semantics(child_slot, child_prefix, child_subtotal, state, catalog, parent_pending,
+          parent_prefix, parent_subtotal, parent_depth, symbol, J.enclosing(C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors, J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others, root, catalog), semantic))
+
+def return_bounds(+root: M.Declaration,
+  +purpose: C.Purpose,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +state: S.State,
+  +catalog: M.Catalog,
+  +symbol: String, +expanded: List<&2, String>,
+  child_accumulator: K.accumulator_relation(purpose, child_reversed, child_prefix),
+  valid: J.bounds(C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors, J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others, catalog, purpose, expanded)) ->
+  J.bounds(K.returned_frame(purpose, C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors, J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others, catalog, purpose, expanded):
+  match valid:
+    case (parent_accumulator, (bound, tail)):
+      (Return.returned_accumulator(purpose, child_slot, child_reversed, child_prefix, parent_reversed, parent_prefix,
+        symbol, child_accumulator, parent_accumulator), (bound, tail))
+
+def return_with_accumulators(+root: M.Declaration,
+  +invocation: C.Global,
+  +request: Nat,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +symbol: String,
+  global_equal: {global == C.global_count(invocation, request) : C.Global},
+  slot_equal: {slot == S.declaration_slot(root) : Nat}, name_equal: {name == S.declaration_name(root) : String},
+  shape: {J.shape(C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors, J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others, S.declaration_slot(root)) == True{} : Bool},
+  potential: {P.cursor_valid(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}) == True{} : Bool},
+  child_accumulator: K.accumulator_relation(C.global_purpose(invocation), child_reversed, child_prefix),
+  parent_bound: N.le(W.specification_required(parent_pending, C.global_catalog(invocation), expanded), parent_depth),
+  ancestor_bounds: J.bounds(ancestors, others, C.global_catalog(invocation), C.global_purpose(invocation), expanded),
+  semantic: J.semantic(C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors, J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others, root, C.global_catalog(invocation), C.global_purpose(invocation), S.State{name, expanded, referenced, failure}),
+  accumulators: K.accumulator_relation(C.global_purpose(invocation), parent_reversed, parent_prefix)
+    & K.accumulator_relation(C.global_purpose(invocation), parent_reversed, parent_prefix)) -> J.cursor(root, invocation, request, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(invocation), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others):
+  match accumulators:
+    case (bounds_accumulator, semantic_accumulator):
+      (global_equal, (slot_equal, (name_equal,
+        ((%Fresh.shape_own_fields(parent_slot, parent_site, parent_pending, parent_pending, parent_reversed,
+          C.keep_reference(C.global_purpose(invocation), K.returned_reference(child_slot, List.reverse(&2, M.ReferencePlan, child_reversed), symbol), parent_reversed), ancestors, others, parent_depth, parent_depth, parent_prefix, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]),
+          parent_subtotal, S.Add{parent_subtotal, child_subtotal}, S.declaration_slot(root)) : {_ == True{} : Bool} shape),
+        (potential, (return_bounds(root, C.global_purpose(invocation), child_slot, child_reversed, child_prefix, child_subtotal, child_depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), symbol, expanded, child_accumulator,
+          (bounds_accumulator, (parent_bound, ancestor_bounds))),
+        return_semantic(root, C.global_purpose(invocation), child_slot, child_reversed, child_prefix, child_subtotal, child_depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, S.State{name, expanded, referenced, failure}, C.global_catalog(invocation), symbol, semantic_accumulator, semantic)))))))
+
+def reconstruct_return(+root: M.Declaration,
+  +invocation: C.Global,
+  +request: Nat,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +symbol: String, valid: J.cursor(root, invocation, request, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}, J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others)) -> J.cursor(root, invocation, request, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(invocation), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others):
+  match valid:
+    case (global_equal, (slot_equal, (name_equal, (shape, (potential,
+      ((child_accumulator, (_, (parent_accumulator, (parent_bound, ancestor_bounds)))), semantic)))))):
+      return_with_accumulators(root, invocation, request, global, slot, name, expanded, referenced, failure, remaining, child_slot, child_reversed, child_prefix, child_subtotal, child_depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, symbol, global_equal, slot_equal, name_equal, shape, potential,
+        child_accumulator, parent_bound, ancestor_bounds, semantic,
+        copy_accumulator(C.global_purpose(invocation), parent_reversed, parent_prefix, parent_accumulator))
+
+def return_actual_step(+global: C.Global, +slot: Nat, +name: String, +expanded: List<&2, String>,
+  +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +remaining: Nat,
+  +child_slot: Nat, +child_reversed: List<&2, M.ReferencePlan>, +symbol: String,
+  +parent_slot: Nat, +parent_pending: List<&2, M.Reference>, +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>, +ancestors: List<&2, C.Frame>) -> {
+  C.advance_cursor(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}) == C.cursor_ops(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(global), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, C.finish_operations(C.global_purpose(global))) : C.Step
+}:
+  match global:
+    case C.Global{catalog, purpose, pending, outcomes, request}:
+      ReturnLaws.child_return_step(catalog, purpose, pending, outcomes, request, slot, name, expanded, referenced,
+        failure, remaining, child_slot, child_reversed, symbol, parent_slot, parent_pending, parent_reversed, parent_site, ancestors)
+
+def return_evidence(+root: M.Declaration,
+  +invocation: C.Global,
+  +request: Nat,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +symbol: String, valid: J.cursor(root, invocation, request, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}, J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others)) ->
+  J.cursor(root, invocation, request, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(invocation), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others)
+  & {C.advance_cursor(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}) == C.cursor_ops(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(invocation), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, C.finish_operations(C.global_purpose(invocation))) : C.Step}:
+  match valid:
+    case (+global_equal, rest):
+      (reconstruct_return(root, invocation, request, global, slot, name, expanded, referenced, failure, remaining, child_slot, child_reversed, child_prefix, child_subtotal, child_depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, symbol, (global_equal, rest)),
+        Equal.trans(C.Step, C.advance_cursor(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}), C.cursor_ops(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(global), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, C.finish_operations(C.global_purpose(global))), C.cursor_ops(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(invocation), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, C.finish_operations(C.global_purpose(invocation))),
+          return_actual_step(global, slot, name, expanded, referenced, failure, remaining, child_slot, child_reversed,
+            symbol, parent_slot, parent_pending, parent_reversed, parent_site, ancestors),
+          Equal.cong(C.Purpose, C.Step, purpose => C.cursor_ops(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(purpose, C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, C.finish_operations(purpose)), C.global_purpose(global), C.global_purpose(invocation),
+            ReferenceProof.global_purpose_agrees(global, invocation, request, global_equal))))
+
+def return_output(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +symbol: String, trace: {List.reverse(&2, M.Op, reversed_ops) == Step.cursor_postfix(C.global_purpose(invocation), J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others) : List<&2, M.Op>},
+  observed: J.cursor(root, invocation, Step.request(invocation, reversed_ops), C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(invocation), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others) & {C.advance_cursor(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}) == C.cursor_ops(C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(invocation), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, C.finish_operations(C.global_purpose(invocation))) : C.Step}) -> Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}}), J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others):
+  match observed:
+    case (semantic, step):
+      advance_with_cursor(root, invocation, reversed_ops, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, K.returned_frame(C.global_purpose(invocation), C.Frame{parent_slot, parent_pending, parent_reversed, parent_site}, child_slot, child_reversed, symbol) <> ancestors}, C.finish_operations(C.global_purpose(invocation)), J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others, semantic, step,
+        Equal.trans(List<&2, M.Op>,
+          List.append(&2, M.Op, List.reverse(&2, M.Op, reversed_ops), C.preflight_ops(C.global_purpose(invocation), C.finish_operations(C.global_purpose(invocation)))),
+          List.append(&2, M.Op, Step.cursor_postfix(C.global_purpose(invocation), J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others), C.preflight_ops(C.global_purpose(invocation), C.finish_operations(C.global_purpose(invocation)))),
+          Step.cursor_postfix(C.global_purpose(invocation), J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others),
+          Equal.cong(List<&2, M.Op>, List<&2, M.Op>, before => List.append(&2, M.Op, before,
+            C.preflight_ops(C.global_purpose(invocation), C.finish_operations(C.global_purpose(invocation)))), List.reverse(&2, M.Op, reversed_ops), Step.cursor_postfix(C.global_purpose(invocation), J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others), trace),
+          return_trace(C.global_purpose(invocation), 1n+child_depth, parent_depth, child_prefix, parent_prefix, child_subtotal,
+            parent_subtotal, others, child_slot, symbol)))
+
+def return_continue(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +symbol: String, valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}}, J.Ghost{1n+child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others)) -> Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}}), J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others):
+  match valid:
+    case (semantic, trace):
+      return_output(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, child_slot, child_reversed, child_prefix, child_subtotal, child_depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, symbol, trace,
+        return_evidence(root, invocation, Step.request(invocation, reversed_ops), global, slot, name, expanded, referenced, failure, remaining, child_slot, child_reversed, child_prefix, child_subtotal, child_depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, symbol, semantic))
+
+def zero_return_depth(+root: M.Declaration,
+  +invocation: C.Global,
+  +request: Nat,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +symbol: String, valid: J.cursor(root, invocation, request, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}, J.Ghost{0n, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others)) -> Empty:
+  match valid:
+    case (_, (_, (_, (_, (_, ((_, (bound, _)), _)))))):
+      N.internal_false_ne_true(bound)
+
+def return_all_depths(+root: M.Declaration,
+  +invocation: C.Global,
+  +reversed_ops: List<&2, M.Op>,
+  +global: C.Global,
+  +slot: Nat,
+  +name: String,
+  +expanded: List<&2, String>,
+  +referenced: List<&2, String>,
+  +failure: Maybe<&2, M.Failure>,
+  +remaining: Nat,
+  +child_slot: Nat,
+  +child_reversed: List<&2, M.ReferencePlan>,
+  +child_prefix: List<&2, M.ReferencePlan>,
+  +child_subtotal: S.BytesExpr,
+  +child_depth: Nat,
+  +parent_slot: Nat,
+  +parent_pending: List<&2, M.Reference>,
+  +parent_reversed: List<&2, M.ReferencePlan>,
+  +parent_site: Maybe<&2, String>,
+  +parent_prefix: List<&2, M.ReferencePlan>,
+  +parent_subtotal: S.BytesExpr,
+  +parent_depth: Nat,
+  +ancestors: List<&2, C.Frame>,
+  +others: List<&2, J.Ghost>,
+  +symbol: String, valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}}, J.Ghost{child_depth, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}}), after)):
+  match child_depth:
+    case 0n:
+      Empty.absurd(Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors}}), after)),
+        impossible_continue(root, invocation, reversed_ops, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{child_slot, [], child_reversed, Some{symbol}} <> C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors},
+          J.Ghost{0n, child_prefix, child_subtotal} <> J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> others,
+          semantic => zero_return_depth(root, invocation, Step.request(invocation, reversed_ops), global, slot, name, expanded, referenced, failure, remaining, child_slot, child_reversed, child_prefix, child_subtotal, 0n, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, symbol, semantic), valid))
+    case 1n++child_depth:
+      (J.Ghost{parent_depth, List.append(&2, M.ReferencePlan, parent_prefix, [K.returned_reference(child_slot, child_prefix, symbol)]), S.Add{parent_subtotal, child_subtotal}} <> others, return_continue(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, child_slot, child_reversed, child_prefix, child_subtotal, child_depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, others, symbol, valid))
 
 def main() -> Unit:
   Unit{}
