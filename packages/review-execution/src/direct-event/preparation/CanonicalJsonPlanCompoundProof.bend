@@ -3,6 +3,7 @@ import ./CanonicalJsonPlanCompoundLaws.bend as Laws
 import ./CanonicalJsonPlanLaws.bend as Local
 import ./CanonicalJsonPlanProof.bend as LocalProof
 import ./CanonicalJsonPlan.bend as Plan
+import ./CanonicalJsonPlanSpecification.bend as Spec
 import ./CanonicalJson.bend as Json
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/GRAPH_REVERSE_FACTS.bend as Reverse
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/INTERPRETER_NAT_FACTS.bend as Nats
@@ -39,9 +40,9 @@ def reverse_length(+items: List<&2, List<&2, Plan.Piece>>) -> {
 
 def pop_prefix(+prefix: List<&2, List<&2, Plan.Piece>>, +rest: List<&2, List<&2, Plan.Piece>>,
   +acc: List<&2, List<&2, Plan.Piece>>) -> {
-  Plan.pop(List.length(&2, List<&2, Plan.Piece>, prefix), List.append(&2, List<&2, Plan.Piece>,
+  Spec.pop(List.length(&2, List<&2, Plan.Piece>, prefix), List.append(&2, List<&2, Plan.Piece>,
     prefix, rest), acc)
-  == Plan.Popped{List.reverse.go(&2, List<&2, Plan.Piece>, prefix, acc), rest} : Plan.Popped
+  == Spec.Popped{List.reverse.go(&2, List<&2, Plan.Piece>, prefix, acc), rest} : Spec.Popped
 }:
   match prefix:
     case []: {==}
@@ -49,30 +50,30 @@ def pop_prefix(+prefix: List<&2, List<&2, Plan.Piece>>, +rest: List<&2, List<&2,
 
 def pop_children(+children: List<&2, List<&2, Plan.Piece>>, +rest: List<&2, List<&2,
   Plan.Piece>>) -> {
-  Plan.pop(List.length(&2, List<&2, Plan.Piece>, children), List.append(&2, List<&2,
+  Spec.pop(List.length(&2, List<&2, Plan.Piece>, children), List.append(&2, List<&2,
     Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, children), rest), [])
-  == Plan.Popped{children, rest} : Plan.Popped
+  == Spec.Popped{children, rest} : Spec.Popped
 }:
   %reverse_length(children):
-    {Plan.pop(_, List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
-      children), rest), []) == Plan.Popped{children, rest} : Plan.Popped}
-  Equal.trans(Plan.Popped,
-    Plan.pop(List.length(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
+    {Spec.pop(_, List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
+      children), rest), []) == Spec.Popped{children, rest} : Spec.Popped}
+  Equal.trans(Spec.Popped,
+    Spec.pop(List.length(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
       children)), List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
       children), rest), []),
-    Plan.Popped{List.reverse(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
+    Spec.Popped{List.reverse(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
       children)), rest},
-    Plan.Popped{children, rest},
+    Spec.Popped{children, rest},
     pop_prefix(List.reverse(&2, List<&2, Plan.Piece>, children), rest, []),
     Equal.cong(List<&2, List<&2, Plan.Piece>>,
-      Plan.Popped,
-      value => Plan.Popped{value, rest},
+      Spec.Popped,
+      value => Spec.Popped{value, rest},
       List.reverse(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, children)),
       children,
       Reverse.reverse_reverse(&2, List<&2, Plan.Piece>, children)))
 
 def array_member(+tail: List<&2, List<&2, Plan.Piece>>, +head: List<&2, Plan.Piece>) -> {
-  Plan.array_parts(head <> tail) == List.append(&2, Plan.Piece, head, Laws.array_suffix(
+  Spec.array_parts(head <> tail) == List.append(&2, Plan.Piece, head, Laws.array_suffix(
     tail)) : List<&2, Plan.Piece>
 }:
   match tail:
@@ -81,12 +82,12 @@ def array_member(+tail: List<&2, List<&2, Plan.Piece>>, +head: List<&2, Plan.Pie
       Equal.cong(List<&2, Plan.Piece>,
         List<&2, Plan.Piece>,
         value => List.append(&2, Plan.Piece, head, Plan.LiteralPiece{","} <> value),
-        Plan.array_parts(next <> rest),
+        Spec.array_parts(next <> rest),
         List.append(&2, Plan.Piece, next, Laws.array_suffix(rest)),
         array_member(rest, next))
 
 def array_layout(+children: List<&2, List<&2, Plan.Piece>>) -> {
-  Plan.LiteralPiece{"["} <> Plan.array_parts(children) == Laws.array_trace(children) : List<&2,
+  Plan.LiteralPiece{"["} <> Spec.array_parts(children) == Laws.array_trace(children) : List<&2,
     Plan.Piece>
 }:
   match children:
@@ -95,63 +96,63 @@ def array_layout(+children: List<&2, List<&2, Plan.Piece>>) -> {
       Equal.cong(List<&2, Plan.Piece>,
         List<&2, Plan.Piece>,
         parts => Plan.LiteralPiece{"["} <> parts,
-        Plan.array_parts(head <> tail),
+        Spec.array_parts(head <> tail),
         List.append(&2, Plan.Piece, head, Laws.array_suffix(tail)),
         array_member(tail, head))
 
 def Laws.array_exact(children, rest):
-  Equal.trans(Plan.Stack,
-    Plan.operation(Plan.ArrayOperation{List.length(&2, List<&2, Plan.Piece>, children)},
+  Equal.trans(Spec.Stack,
+    Spec.operation(Plan.ArrayOperation{List.length(&2, List<&2, Plan.Piece>, children)},
       List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, children),
       rest)),
-    Plan.array_popped(Plan.Popped{children, rest}), Plan.ValidStack{Laws.array_trace(
+    Spec.array_popped(Spec.Popped{children, rest}), Spec.ValidStack{Laws.array_trace(
       children) <> rest},
-    Equal.cong(Plan.Popped,
-      Plan.Stack,
-      Plan.array_popped,
-      Plan.pop(List.length(&2, List<&2, Plan.Piece>, children), List.append(&2, List<&2,
+    Equal.cong(Spec.Popped,
+      Spec.Stack,
+      Spec.array_popped,
+      Spec.pop(List.length(&2, List<&2, Plan.Piece>, children), List.append(&2, List<&2,
         Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, children), rest), []),
-      Plan.Popped{children, rest},
+      Spec.Popped{children, rest},
       pop_children(children, rest)),
     Equal.cong(List<&2, Plan.Piece>,
-      Plan.Stack,
-      parts => Plan.ValidStack{parts <> rest},
-      Plan.LiteralPiece{"["} <> Plan.array_parts(children),
+      Spec.Stack,
+      parts => Spec.ValidStack{parts <> rest},
+      Plan.LiteralPiece{"["} <> Spec.array_parts(children),
       Laws.array_trace(children),
       array_layout(children)))
 
-def pairing_acc(+fields: List<&2, Plan.Field>, +acc: List<&2, Plan.Field>) -> {
-  Plan.pair_fields(Laws.keys(fields), Laws.values(fields), acc)
-  == Some{List.reverse.go(&2, Plan.Field, acc, fields)} : Maybe<&2, List<&2, Plan.Field>>
+def pairing_acc(+fields: List<&2, Spec.Field>, +acc: List<&2, Spec.Field>) -> {
+  Spec.pair_fields(Laws.keys(fields), Laws.values(fields), acc)
+  == Some{List.reverse.go(&2, Spec.Field, acc, fields)} : Maybe<&2, List<&2, Spec.Field>>
 }:
   match fields:
     case []: {==}
-    case Plan.Field{key, parts} <> tail: pairing_acc(tail, Plan.Field{key, parts} <> acc)
+    case Spec.Field{key, parts} <> tail: pairing_acc(tail, Spec.Field{key, parts} <> acc)
 
 def Laws.pairing_exact(fields):
   pairing_acc(fields, [])
 
 def Laws.comparison_exact(left, right):
   match left right:
-    case Plan.Field{_, _} Plan.Field{_, _}: {==}
+    case Spec.Field{_, _} Spec.Field{_, _}: {==}
 
-def object_member(+tail: List<&2, Plan.Field>, +head: Plan.Field) -> {
-  Plan.object_parts(head <> tail) == List.append(&2, Plan.Piece, Laws.member(head),
+def object_member(+tail: List<&2, Spec.Field>, +head: Spec.Field) -> {
+  Spec.object_parts(head <> tail) == List.append(&2, Plan.Piece, Laws.member(head),
     Laws.object_suffix(tail)) : List<&2, Plan.Piece>
 }:
   match tail head:
-    case Nil{} Plan.Field{_, _}: {==}
-    case Con{next, rest} Plan.Field{key, parts}:
+    case Nil{} Spec.Field{_, _}: {==}
+    case Con{next, rest} Spec.Field{key, parts}:
       Equal.cong(List<&2, Plan.Piece>,
         List<&2, Plan.Piece>,
         value => Plan.PrimitivePiece{Json.StringPrimitive{key}} <> Plan.LiteralPiece{
           ":"} <> List.append(&2, Plan.Piece, parts, Plan.LiteralPiece{","} <> value),
-        Plan.object_parts(next <> rest),
+        Spec.object_parts(next <> rest),
         List.append(&2, Plan.Piece, Laws.member(next), Laws.object_suffix(rest)),
         object_member(rest, next))
 
-def object_layout(+fields: List<&2, Plan.Field>) -> {
-  Plan.LiteralPiece{"{"} <> Plan.object_parts(fields) == Laws.object_trace(fields) : List<&2,
+def object_layout(+fields: List<&2, Spec.Field>) -> {
+  Plan.LiteralPiece{"{"} <> Spec.object_parts(fields) == Laws.object_trace(fields) : List<&2,
     Plan.Piece>
 }:
   match fields:
@@ -160,17 +161,17 @@ def object_layout(+fields: List<&2, Plan.Field>) -> {
       Equal.cong(List<&2, Plan.Piece>,
         List<&2, Plan.Piece>,
         parts => Plan.LiteralPiece{"{"} <> parts,
-        Plan.object_parts(head <> tail),
+        Spec.object_parts(head <> tail),
         List.append(&2, Plan.Piece, Laws.member(head), Laws.object_suffix(tail)),
         object_member(tail, head))
 
-def fields_length(+fields: List<&2, Plan.Field>) -> {
+def fields_length(+fields: List<&2, Spec.Field>) -> {
   List.length(&2, String, Laws.keys(fields)) == List.length(&2, List<&2, Plan.Piece>,
     Laws.values(fields)) : Nat
 }:
   match fields:
     case []: {==}
-    case Plan.Field{_, _} <> tail:
+    case Spec.Field{_, _} <> tail:
       Equal.cong(Nat,
         Nat,
         n => Nat.add(1n, n),
@@ -181,52 +182,52 @@ def fields_length(+fields: List<&2, Plan.Field>) -> {
 def Laws.object_exact(fields, rest):
   %Equal.sym(Nat, List.length(&2, String, Laws.keys(fields)), List.length(&2, List<&2,
     Plan.Piece>, Laws.values(fields)), fields_length(fields)):
-    {Plan.object_popped(Laws.keys(fields), Plan.pop(_, List.append(&2, List<&2, Plan.Piece>,
+    {Spec.object_popped(Laws.keys(fields), Spec.pop(_, List.append(&2, List<&2, Plan.Piece>,
       List.reverse(&2, List<&2, Plan.Piece>, Laws.values(fields)), rest),
-      [])) == Plan.ValidStack{Laws.object_trace(List.sort(~Plan.Field, ~Plan.fields_le,
-      fields)) <> rest} : Plan.Stack}
-  %Equal.sym(Plan.Popped,
-    Plan.pop(List.length(&2, List<&2, Plan.Piece>, Laws.values(fields)), List.append(&2,
+      [])) == Spec.ValidStack{Laws.object_trace(List.sort(~Spec.Field, ~Spec.fields_le,
+      fields)) <> rest} : Spec.Stack}
+  %Equal.sym(Spec.Popped,
+    Spec.pop(List.length(&2, List<&2, Plan.Piece>, Laws.values(fields)), List.append(&2,
       List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, Laws.values(fields)), rest),
       []),
-    Plan.Popped{Laws.values(fields), rest}, pop_children(Laws.values(fields), rest)):
-    {Plan.object_popped(Laws.keys(fields), _) == Plan.ValidStack{Laws.object_trace(List.sort(
-      ~Plan.Field, ~Plan.fields_le, fields)) <> rest} : Plan.Stack}
-  %Equal.sym(Maybe<&2, List<&2, Plan.Field>>, Plan.pair_fields(Laws.keys(fields), Laws.values(
+    Spec.Popped{Laws.values(fields), rest}, pop_children(Laws.values(fields), rest)):
+    {Spec.object_popped(Laws.keys(fields), _) == Spec.ValidStack{Laws.object_trace(List.sort(
+      ~Spec.Field, ~Spec.fields_le, fields)) <> rest} : Spec.Stack}
+  %Equal.sym(Maybe<&2, List<&2, Spec.Field>>, Spec.pair_fields(Laws.keys(fields), Laws.values(
     fields), []), Some{fields}, Laws.pairing_exact(fields)):
-    {Plan.object_fields(_, rest) == Plan.ValidStack{Laws.object_trace(List.sort(~Plan.Field,
-      ~Plan.fields_le, fields)) <> rest} : Plan.Stack}
+    {Spec.object_fields(_, rest) == Spec.ValidStack{Laws.object_trace(List.sort(~Spec.Field,
+      ~Spec.fields_le, fields)) <> rest} : Spec.Stack}
   Equal.cong(List<&2, Plan.Piece>,
-    Plan.Stack,
-    parts => Plan.ValidStack{parts <> rest},
-    Plan.LiteralPiece{"{"} <> Plan.object_parts(List.sort(~Plan.Field, ~Plan.fields_le, fields)),
-    Laws.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, fields)),
-    object_layout(List.sort(~Plan.Field, ~Plan.fields_le, fields)))
+    Spec.Stack,
+    parts => Spec.ValidStack{parts <> rest},
+    Plan.LiteralPiece{"{"} <> Spec.object_parts(List.sort(~Spec.Field, ~Spec.fields_le, fields)),
+    Laws.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, fields)),
+    object_layout(List.sort(~Spec.Field, ~Spec.fields_le, fields)))
 
 def pop_underflow(+arity: Nat, +stack: List<&2, List<&2, Plan.Piece>>, overflow: {Nat.is_gt(
-  arity, List.length(&2, List<&2, Plan.Piece>, stack)) == True{} : Bool}) -> {Plan.pop(arity,
-  stack, []) == Plan.Underflow{} : Plan.Popped}:
+  arity, List.length(&2, List<&2, Plan.Piece>, stack)) == True{} : Bool}) -> {Spec.pop(arity,
+  stack, []) == Spec.Underflow{} : Spec.Popped}:
   %overflow:
-    {Plan.pop(arity, stack, []) == Bool.pick(Plan.Popped, _, Plan.Underflow{}, Plan.Popped{
+    {Spec.pop(arity, stack, []) == Bool.pick(Spec.Popped, _, Spec.Underflow{}, Spec.Popped{
       List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, List.take(&2,
       List<&2, Plan.Piece>, stack, arity)), []), List.drop(&2, List<&2, Plan.Piece>, stack,
-      arity)}) : Plan.Popped}
+      arity)}) : Spec.Popped}
   Local.pop_exact(arity, stack, [])
 
 def Laws.array_underflow(arity, stack, overflow):
-  Equal.cong(Plan.Popped,
-    Plan.Stack,
-    Plan.array_popped,
-    Plan.pop(arity, stack, []),
-    Plan.Underflow{},
+  Equal.cong(Spec.Popped,
+    Spec.Stack,
+    Spec.array_popped,
+    Spec.pop(arity, stack, []),
+    Spec.Underflow{},
     pop_underflow(arity, stack, overflow))
 
 def Laws.object_underflow(names, stack, overflow):
-  Equal.cong(Plan.Popped,
-    Plan.Stack,
-    popped => Plan.object_popped(names, popped),
-    Plan.pop(List.length(&2, String, names), stack, []),
-    Plan.Underflow{},
+  Equal.cong(Spec.Popped,
+    Spec.Stack,
+    popped => Spec.object_popped(names, popped),
+    Spec.pop(List.length(&2, String, names), stack, []),
+    Spec.Underflow{},
     pop_underflow(List.length(&2, String, names), stack, overflow))
 
 def Laws.invalid_finish():

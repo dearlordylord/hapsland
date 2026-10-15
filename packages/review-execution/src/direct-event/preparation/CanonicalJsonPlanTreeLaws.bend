@@ -1,6 +1,7 @@
 import Base
 import ./CanonicalJson.bend as Json
 import ./CanonicalJsonPlan.bend as Plan
+import ./CanonicalJsonPlanSpecification.bend as Spec
 import ./CanonicalJsonPlanValidation.bend as Validation
 import ./CanonicalJsonPlanCompoundLaws.bend as Compound
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as Value
@@ -13,7 +14,7 @@ import ../../../../source-artifacts/src/direct-event/value/Value.bend as Value
 # Runtime acceptance must additionally establish this relation for the exported
 # ProductValue through the independent stream validator. These laws alone do not
 # assert that the TypeScript codec satisfies that obligation.
-# The mandatory Compound.comparison_exact law pins Plan.fields_le to the original
+# The mandatory Compound.comparison_exact law pins Spec.fields_le to the original
 # Json.fields_le; object traces therefore retain its UTF16 and duplicate ordering.
 
 def primitive_value(value: Json.Primitive) -> Value.ProductValue:
@@ -90,7 +91,7 @@ type ForestEncoding<-values: List<&2, Value.ProductValue>, -operations: List<&2,
   }
   ObjectForest{
     fields: List<&2, Value.OrderedField<Value.ProductValue>>,
-    planned_fields: List<&2, Plan.Field>,
+    planned_fields: List<&2, Spec.Field>,
     child_operations: List<&2, Plan.Operation>,
     tail_values: List<&2, Value.ProductValue>,
     tail_operations: List<&2, Plan.Operation>,
@@ -111,7 +112,7 @@ type ForestEncoding<-values: List<&2, Value.ProductValue>, -operations: List<&2,
     plans_shape: {
       plans
       == Compound.object_trace(
-        List.sort(~Plan.Field, ~Plan.fields_le, planned_fields)
+        List.sort(~Spec.Field, ~Spec.fields_le, planned_fields)
       ) <> tail_plans
       : List<&2, List<&2, Plan.Piece>>
     }
@@ -150,10 +151,10 @@ law forest_exact:
   for +rest: List<&2, List<&2, Plan.Piece>>
   for encoding: ForestEncoding<values, operations, plans>
   {
-    Plan.fold(operations, Plan.ValidStack{rest})
-    == Plan.ValidStack{List.append(&2, List<&2, Plan.Piece>,
+    Spec.fold(operations, Spec.ValidStack{rest})
+    == Spec.ValidStack{List.append(&2, List<&2, Plan.Piece>,
       List.reverse(&2, List<&2, Plan.Piece>, plans), rest)}
-    : Plan.Stack
+    : Spec.Stack
   }
 
 # The complete plan is exactly the trace of the exported tree, not input metadata.

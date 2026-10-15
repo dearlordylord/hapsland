@@ -1,6 +1,7 @@
 import Base
 import ./CanonicalJsonPlanLaws.bend as Laws
 import ./CanonicalJsonPlan.bend as Plan
+import ./CanonicalJsonPlanSpecification.bend as Spec
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/GRAPH_LIST_FACTS.bend as Lists
 
 def Laws.invalid_absorbing(pending):
@@ -10,17 +11,17 @@ def Laws.invalid_absorbing(pending):
 
 def Laws.fold_composition(prefix, suffix, state):
   match prefix state:
-    case Nil{} Plan.InvalidStack{}: {==}
-    case Con{_, _} Plan.InvalidStack{}:
+    case Nil{} Spec.InvalidStack{}: {==}
+    case Con{_, _} Spec.InvalidStack{}:
       Equal.sym(
-        Plan.Stack,
-        Plan.fold(suffix, Plan.InvalidStack{}),
-        Plan.InvalidStack{},
+        Spec.Stack,
+        Spec.fold(suffix, Spec.InvalidStack{}),
+        Spec.InvalidStack{},
         Laws.invalid_absorbing(suffix)
       )
-    case Nil{} Plan.ValidStack{_}: {==}
-    case Con{head, tail} Plan.ValidStack{stack}:
-      Laws.fold_composition(tail, suffix, Plan.operation(head, stack))
+    case Nil{} Spec.ValidStack{_}: {==}
+    case Con{head, tail} Spec.ValidStack{stack}:
+      Laws.fold_composition(tail, suffix, Spec.operation(head, stack))
 
 # The successor pop uses the same reverse accumulator as the existing list facts.
 def popped_accumulator(
@@ -102,12 +103,12 @@ def Laws.pop_exact(arity, stack, values):
         popped_accumulator(head, List.take(&2, List<&2, Plan.Piece>, tail, remaining), values)
       ):
         {
-          Plan.pop(remaining, tail, head <> values)
-          == Bool.pick(Plan.Popped,
+          Spec.pop(remaining, tail, head <> values)
+          == Bool.pick(Spec.Popped,
             Nat.is_gt(remaining, List.length(&2, List<&2, Plan.Piece>, tail)),
-            Plan.Underflow{},
-            Plan.Popped{_, List.drop(&2, List<&2, Plan.Piece>, tail, remaining)})
-          : Plan.Popped
+            Spec.Underflow{},
+            Spec.Popped{_, List.drop(&2, List<&2, Plan.Piece>, tail, remaining)})
+          : Spec.Popped
         }
       Laws.pop_exact(remaining, tail, head <> values)
 

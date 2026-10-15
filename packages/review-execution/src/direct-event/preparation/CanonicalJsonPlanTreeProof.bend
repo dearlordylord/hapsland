@@ -1,5 +1,6 @@
 import Base
 import ./CanonicalJsonPlanTreeLaws.bend as Laws
+import ./CanonicalJsonRopePlanLaws.bend as RopeLaws
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/GRAPH_REVERSE_FACTS.bend as Reverse
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/INTERPRETER_NAT_FACTS.bend as Nats
 import ./CanonicalJsonPlanCompoundLaws.bend as Compound
@@ -8,6 +9,7 @@ import ./CanonicalJsonPlanLaws.bend as Local
 import ./CanonicalJsonPlanProof.bend as LocalProof
 import ../../../../source-analysis/src/direct-event/graph-resolution/traversal/GRAPH_LIST_FACTS.bend as Lists
 import ./CanonicalJsonPlan.bend as Plan
+import ./CanonicalJsonPlanSpecification.bend as Spec
 import ./CanonicalJson.bend as Json
 import ./CanonicalJsonPlanValidation.bend as Validation
 import ../../../../source-artifacts/src/direct-event/value/Value.bend as Value
@@ -48,8 +50,8 @@ def instance_0_validation() -> {Validation.validate_reversed(List.reverse(&2, Pl
   List.reverse(&2, Value.ProductValue, [])) == True{} : Bool}:
   {==}
 
-def instance_0_forest() -> {Plan.fold([], Plan.ValidStack{[]}) == Plan.ValidStack{List.reverse(&2,
-  List<&2, Plan.Piece>, [])} : Plan.Stack}:
+def instance_0_forest() -> {Spec.fold([], Spec.ValidStack{[]}) == Spec.ValidStack{List.reverse(&2,
+  List<&2, Plan.Piece>, [])} : Spec.Stack}:
   {==}
 
 def instance_1_encoding() -> Laws.ForestEncoding<[Laws.primitive_value(Json.NullPrimitive{})],
@@ -62,9 +64,9 @@ def instance_1_validation() -> {Validation.validate_reversed(List.reverse(&2, Pl
   [Laws.primitive_value(Json.NullPrimitive{})])) == True{} : Bool}:
   {==}
 
-def instance_1_forest() -> {Plan.fold([Plan.PrimitiveOperation{Json.NullPrimitive{}}],
-  Plan.ValidStack{[]}) == Plan.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
-  [[Plan.PrimitivePiece{Json.NullPrimitive{}}]])} : Plan.Stack}:
+def instance_1_forest() -> {Spec.fold([Plan.PrimitiveOperation{Json.NullPrimitive{}}],
+  Spec.ValidStack{[]}) == Spec.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
+  [[Plan.PrimitivePiece{Json.NullPrimitive{}}]])} : Spec.Stack}:
   {==}
 
 def instance_1_tree() -> {
@@ -85,9 +87,9 @@ def instance_2_validation() -> {Validation.validate_reversed(List.reverse(&2, Pl
   [Laws.primitive_value(Json.BoolPrimitive{True{}})])) == True{} : Bool}:
   {==}
 
-def instance_2_forest() -> {Plan.fold([Plan.PrimitiveOperation{Json.BoolPrimitive{True{}}}],
-  Plan.ValidStack{[]}) == Plan.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
-  [[Plan.PrimitivePiece{Json.BoolPrimitive{True{}}}]])} : Plan.Stack}:
+def instance_2_forest() -> {Spec.fold([Plan.PrimitiveOperation{Json.BoolPrimitive{True{}}}],
+  Spec.ValidStack{[]}) == Spec.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
+  [[Plan.PrimitivePiece{Json.BoolPrimitive{True{}}}]])} : Spec.Stack}:
   {==}
 
 def instance_2_tree() -> {
@@ -110,10 +112,10 @@ def instance_3_validation() -> {Validation.validate_reversed(List.reverse(&2, Pl
   0}})])) == True{} : Bool}:
   {==}
 
-def instance_3_forest() -> {Plan.fold(
+def instance_3_forest() -> {Spec.fold(
   [Plan.PrimitiveOperation{Json.NumberPrimitive{Value.Binary64{2147483648, 0}}}],
-  Plan.ValidStack{[]}) == Plan.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
-  [[Plan.PrimitivePiece{Json.NumberPrimitive{Value.Binary64{2147483648, 0}}}]])} : Plan.Stack}:
+  Spec.ValidStack{[]}) == Spec.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
+  [[Plan.PrimitivePiece{Json.NumberPrimitive{Value.Binary64{2147483648, 0}}}]])} : Spec.Stack}:
   {==}
 
 def instance_3_tree() -> {Plan.compile(
@@ -133,9 +135,9 @@ def instance_4_validation() -> {Validation.validate_reversed(List.reverse(&2, Pl
   [Laws.primitive_value(Json.StringPrimitive{"λ"})])) == True{} : Bool}:
   {==}
 
-def instance_4_forest() -> {Plan.fold([Plan.PrimitiveOperation{Json.StringPrimitive{"λ"}}],
-  Plan.ValidStack{[]}) == Plan.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
-  [[Plan.PrimitivePiece{Json.StringPrimitive{"λ"}}]])} : Plan.Stack}:
+def instance_4_forest() -> {Spec.fold([Plan.PrimitiveOperation{Json.StringPrimitive{"λ"}}],
+  Spec.ValidStack{[]}) == Spec.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
+  [[Plan.PrimitivePiece{Json.StringPrimitive{"λ"}}]])} : Spec.Stack}:
   {==}
 
 def instance_4_tree() -> {
@@ -155,9 +157,9 @@ def instance_5_validation() -> {Validation.validate_reversed(List.reverse(&2, Pl
   [Value.ProductArray{[]}])) == True{} : Bool}:
   {==}
 
-def instance_5_forest() -> {Plan.fold([Plan.ArrayOperation{0n}],
-  Plan.ValidStack{[]}) == Plan.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
-  [Compound.array_trace([])])} : Plan.Stack}:
+def instance_5_forest() -> {Spec.fold([Plan.ArrayOperation{0n}],
+  Spec.ValidStack{[]}) == Spec.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
+  [Compound.array_trace([])])} : Spec.Stack}:
   {==}
 
 def instance_5_tree() -> {Plan.compile([Plan.ArrayOperation{0n}]) == Some{Compound.array_trace(
@@ -165,7 +167,7 @@ def instance_5_tree() -> {Plan.compile([Plan.ArrayOperation{0n}]) == Some{Compou
   {==}
 
 def instance_6_encoding() -> Laws.ForestEncoding<[Value.ProductObject{[]}],
-  [Plan.ObjectOperation{[]}], [Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, []))]>:
+  [Plan.ObjectOperation{[]}], [Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, []))]>:
   Laws.ObjectForest{[], [], [], [], [], [], Laws.EmptyForest{{==}, {==}, {==}}, {==},
     Laws.EmptyForest{{==}, {==}, {==}}, {==}, {==}, {==}}
 
@@ -174,13 +176,13 @@ def instance_6_validation() -> {Validation.validate_reversed(List.reverse(&2, Pl
   [Value.ProductObject{[]}])) == True{} : Bool}:
   {==}
 
-def instance_6_forest() -> {Plan.fold([Plan.ObjectOperation{[]}],
-  Plan.ValidStack{[]}) == Plan.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
-  [Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, []))])} : Plan.Stack}:
+def instance_6_forest() -> {Spec.fold([Plan.ObjectOperation{[]}],
+  Spec.ValidStack{[]}) == Spec.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
+  [Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, []))])} : Spec.Stack}:
   {==}
 
 def instance_6_tree() -> {Plan.compile([Plan.ObjectOperation{[]}]) == Some{Compound.object_trace(
-  List.sort(~Plan.Field, ~Plan.fields_le, []))} : Maybe<&2, List<&2, Plan.Piece>>}:
+  List.sort(~Spec.Field, ~Spec.fields_le, []))} : Maybe<&2, List<&2, Plan.Piece>>}:
   {==}
 
 def instance_7_encoding() -> Laws.ForestEncoding<[Value.ProductObject{[Value.OrderedField{"z",
@@ -193,19 +195,19 @@ def instance_7_encoding() -> Laws.ForestEncoding<[Value.ProductObject{[Value.Ord
   Plan.PrimitiveOperation{Json.NumberPrimitive{Value.Binary64{2146435072, 1}}},
   Plan.PrimitiveOperation{Json.StringPrimitive{"x"}}, Plan.ObjectOperation{["z", "z", "a"]},
   Plan.PrimitiveOperation{Json.StringPrimitive{"tail"}}, Plan.ArrayOperation{1n}],
-  [Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, [Plan.Field{"z",
+  [Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, [Spec.Field{"z",
   Compound.array_trace([[Plan.PrimitivePiece{Json.NullPrimitive{}}],
-  [Plan.PrimitivePiece{Json.BoolPrimitive{False{}}}]])}, Plan.Field{"z",
-  [Plan.PrimitivePiece{Json.NumberPrimitive{Value.Binary64{2146435072, 1}}}]}, Plan.Field{"a",
+  [Plan.PrimitivePiece{Json.BoolPrimitive{False{}}}]])}, Spec.Field{"z",
+  [Plan.PrimitivePiece{Json.NumberPrimitive{Value.Binary64{2146435072, 1}}}]}, Spec.Field{"a",
   [Plan.PrimitivePiece{Json.StringPrimitive{"x"}}]}])), Compound.array_trace(
   [[Plan.PrimitivePiece{Json.StringPrimitive{"tail"}}]])]>:
   Laws.ObjectForest{[Value.OrderedField{"z", Value.ProductArray{[Laws.primitive_value(
     Json.NullPrimitive{}), Laws.primitive_value(Json.BoolPrimitive{False{}})]}},
     Value.OrderedField{"z", Laws.primitive_value(Json.NumberPrimitive{Value.Binary64{2146435072,
     1}})}, Value.OrderedField{"a", Laws.primitive_value(Json.StringPrimitive{"x"})}],
-    [Plan.Field{"z", Compound.array_trace([[Plan.PrimitivePiece{Json.NullPrimitive{}}],
-    [Plan.PrimitivePiece{Json.BoolPrimitive{False{}}}]])}, Plan.Field{"z",
-    [Plan.PrimitivePiece{Json.NumberPrimitive{Value.Binary64{2146435072, 1}}}]}, Plan.Field{"a",
+    [Spec.Field{"z", Compound.array_trace([[Plan.PrimitivePiece{Json.NullPrimitive{}}],
+    [Plan.PrimitivePiece{Json.BoolPrimitive{False{}}}]])}, Spec.Field{"z",
+    [Plan.PrimitivePiece{Json.NumberPrimitive{Value.Binary64{2146435072, 1}}}]}, Spec.Field{"a",
     [Plan.PrimitivePiece{Json.StringPrimitive{"x"}}]}],
     [Plan.PrimitiveOperation{Json.NullPrimitive{}},
     Plan.PrimitiveOperation{Json.BoolPrimitive{False{}}}, Plan.ArrayOperation{2n},
@@ -256,26 +258,26 @@ def instance_7_validation() -> {Validation.validate_reversed(List.reverse(&2, Pl
   Json.StringPrimitive{"tail"})]}])) == True{} : Bool}:
   {==}
 
-def instance_7_forest() -> {Plan.fold([Plan.PrimitiveOperation{Json.NullPrimitive{}},
+def instance_7_forest() -> {Spec.fold([Plan.PrimitiveOperation{Json.NullPrimitive{}},
   Plan.PrimitiveOperation{Json.BoolPrimitive{False{}}}, Plan.ArrayOperation{2n},
   Plan.PrimitiveOperation{Json.NumberPrimitive{Value.Binary64{2146435072, 1}}},
   Plan.PrimitiveOperation{Json.StringPrimitive{"x"}}, Plan.ObjectOperation{["z", "z", "a"]},
   Plan.PrimitiveOperation{Json.StringPrimitive{"tail"}}, Plan.ArrayOperation{1n}],
-  Plan.ValidStack{[]}) == Plan.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
-  [Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, [Plan.Field{"z",
+  Spec.ValidStack{[]}) == Spec.ValidStack{List.reverse(&2, List<&2, Plan.Piece>,
+  [Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, [Spec.Field{"z",
   Compound.array_trace([[Plan.PrimitivePiece{Json.NullPrimitive{}}],
-  [Plan.PrimitivePiece{Json.BoolPrimitive{False{}}}]])}, Plan.Field{"z",
-  [Plan.PrimitivePiece{Json.NumberPrimitive{Value.Binary64{2146435072, 1}}}]}, Plan.Field{"a",
+  [Plan.PrimitivePiece{Json.BoolPrimitive{False{}}}]])}, Spec.Field{"z",
+  [Plan.PrimitivePiece{Json.NumberPrimitive{Value.Binary64{2146435072, 1}}}]}, Spec.Field{"a",
   [Plan.PrimitivePiece{Json.StringPrimitive{"x"}}]}])), Compound.array_trace(
-  [[Plan.PrimitivePiece{Json.StringPrimitive{"tail"}}]])])} : Plan.Stack}:
+  [[Plan.PrimitivePiece{Json.StringPrimitive{"tail"}}]])])} : Spec.Stack}:
   {==}
 
 def fold_result(-operations: List<&2, Plan.Operation>, -plans: List<&2, List<&2,
   Plan.Piece>>) -> Type:
   @rest: List<&2, List<&2, Plan.Piece>> -> {
-    Plan.fold(operations, Plan.ValidStack{rest}) == Plan.ValidStack{
+    Spec.fold(operations, Spec.ValidStack{rest}) == Spec.ValidStack{
       List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, plans),
-        rest)} : Plan.Stack}
+        rest)} : Spec.Stack}
 
 def forest_result(-values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>,
   -plans: List<&2, List<&2, Plan.Piece>>) -> Type:
@@ -305,34 +307,34 @@ def sequence_run(
   +head_operations: List<&2, Plan.Operation>, +head_parts: List<&2, Plan.Piece>,
   +tail_operations: List<&2, Plan.Operation>, +tail_plans: List<&2, List<&2, Plan.Piece>>,
   +rest: List<&2, List<&2, Plan.Piece>>,
-  first: {Plan.fold(head_operations,
-    Plan.ValidStack{rest}) == Plan.ValidStack{head_parts <> rest} : Plan.Stack},
-  later: {Plan.fold(tail_operations, Plan.ValidStack{head_parts <> rest}) == Plan.ValidStack{
+  first: {Spec.fold(head_operations,
+    Spec.ValidStack{rest}) == Spec.ValidStack{head_parts <> rest} : Spec.Stack},
+  later: {Spec.fold(tail_operations, Spec.ValidStack{head_parts <> rest}) == Spec.ValidStack{
     List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, tail_plans),
-      head_parts <> rest)} : Plan.Stack}
-) -> {Plan.fold(List.append(&2, Plan.Operation, head_operations, tail_operations),
-  Plan.ValidStack{rest}) == Plan.ValidStack{
+      head_parts <> rest)} : Spec.Stack}
+) -> {Spec.fold(List.append(&2, Plan.Operation, head_operations, tail_operations),
+  Spec.ValidStack{rest}) == Spec.ValidStack{
   List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
-    head_parts <> tail_plans), rest)} : Plan.Stack}:
-  %Equal.sym(Plan.Stack,
-    Plan.fold(List.append(&2, Plan.Operation, head_operations, tail_operations),
-      Plan.ValidStack{rest}),
-    Plan.fold(tail_operations, Plan.fold(head_operations, Plan.ValidStack{rest})),
-    Local.fold_composition(head_operations, tail_operations, Plan.ValidStack{rest})) :
-    {_ == Plan.ValidStack{List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2,
-      Plan.Piece>, head_parts <> tail_plans), rest)} : Plan.Stack}
-  %Equal.sym(Plan.Stack, Plan.fold(head_operations, Plan.ValidStack{rest}),
-    Plan.ValidStack{head_parts <> rest}, first) :
-    {Plan.fold(tail_operations, _) == Plan.ValidStack{List.append(&2, List<&2, Plan.Piece>,
-      List.reverse(&2, List<&2, Plan.Piece>, head_parts <> tail_plans), rest)} : Plan.Stack}
+    head_parts <> tail_plans), rest)} : Spec.Stack}:
+  %Equal.sym(Spec.Stack,
+    Spec.fold(List.append(&2, Plan.Operation, head_operations, tail_operations),
+      Spec.ValidStack{rest}),
+    Spec.fold(tail_operations, Spec.fold(head_operations, Spec.ValidStack{rest})),
+    Local.fold_composition(head_operations, tail_operations, Spec.ValidStack{rest})) :
+    {_ == Spec.ValidStack{List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2,
+      Plan.Piece>, head_parts <> tail_plans), rest)} : Spec.Stack}
+  %Equal.sym(Spec.Stack, Spec.fold(head_operations, Spec.ValidStack{rest}),
+    Spec.ValidStack{head_parts <> rest}, first) :
+    {Spec.fold(tail_operations, _) == Spec.ValidStack{List.append(&2, List<&2, Plan.Piece>,
+      List.reverse(&2, List<&2, Plan.Piece>, head_parts <> tail_plans), rest)} : Spec.Stack}
   %Equal.sym(List<&2, List<&2, Plan.Piece>>,
     List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>,
       head_parts <> tail_plans), rest),
     List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, tail_plans),
       head_parts <> rest),
     LocalProof.popped_accumulator(head_parts, tail_plans, rest)) :
-    {Plan.fold(tail_operations,
-      Plan.ValidStack{head_parts <> rest}) == Plan.ValidStack{_} : Plan.Stack}
+    {Spec.fold(tail_operations,
+      Spec.ValidStack{head_parts <> rest}) == Spec.ValidStack{_} : Spec.Stack}
   later
 
 def sequence_result(
@@ -340,8 +342,8 @@ def sequence_result(
     Plan.Piece>,
   +tail_values: List<&2, Value.ProductValue>, +tail_operations: List<&2, Plan.Operation>,
     +tail_plans: List<&2, List<&2, Plan.Piece>>,
-  first: @rest: List<&2, List<&2, Plan.Piece>> -> {Plan.fold(head_operations,
-    Plan.ValidStack{rest}) == Plan.ValidStack{head_parts <> rest} : Plan.Stack},
+  first: @rest: List<&2, List<&2, Plan.Piece>> -> {Spec.fold(head_operations,
+    Spec.ValidStack{rest}) == Spec.ValidStack{head_parts <> rest} : Spec.Stack},
   later: forest_result(tail_values, tail_operations, tail_plans)
 ) -> forest_result(value <> tail_values, List.append(&2, Plan.Operation, head_operations,
   tail_operations), head_parts <> tail_plans):
@@ -356,27 +358,27 @@ def sequence_result(
 def close_run(
   +operations: List<&2, Plan.Operation>, +plans: List<&2, List<&2, Plan.Piece>>,
   +operation: Plan.Operation, +parts: List<&2, Plan.Piece>, +rest: List<&2, List<&2, Plan.Piece>>,
-  children: {Plan.fold(operations, Plan.ValidStack{rest}) == Plan.ValidStack{
+  children: {Spec.fold(operations, Spec.ValidStack{rest}) == Spec.ValidStack{
     List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, plans),
-      rest)} : Plan.Stack},
-  closed: {Plan.operation(operation,
+      rest)} : Spec.Stack},
+  closed: {Spec.operation(operation,
     List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, plans),
-      rest)) == Plan.ValidStack{parts <> rest} : Plan.Stack}
-) -> {Plan.fold(List.append(&2, Plan.Operation, operations, [operation]),
-  Plan.ValidStack{rest}) == Plan.ValidStack{parts <> rest} : Plan.Stack}:
-  %Equal.sym(Plan.Stack,
-    Plan.fold(List.append(&2, Plan.Operation, operations, [operation]), Plan.ValidStack{rest}),
-    Plan.fold([operation], Plan.fold(operations, Plan.ValidStack{rest})),
-    Local.fold_composition(operations, [operation], Plan.ValidStack{rest})) :
-    {_ == Plan.ValidStack{parts <> rest} : Plan.Stack}
-  %Equal.sym(Plan.Stack, Plan.fold(operations, Plan.ValidStack{rest}), Plan.ValidStack{
+      rest)) == Spec.ValidStack{parts <> rest} : Spec.Stack}
+) -> {Spec.fold(List.append(&2, Plan.Operation, operations, [operation]),
+  Spec.ValidStack{rest}) == Spec.ValidStack{parts <> rest} : Spec.Stack}:
+  %Equal.sym(Spec.Stack,
+    Spec.fold(List.append(&2, Plan.Operation, operations, [operation]), Spec.ValidStack{rest}),
+    Spec.fold([operation], Spec.fold(operations, Spec.ValidStack{rest})),
+    Local.fold_composition(operations, [operation], Spec.ValidStack{rest})) :
+    {_ == Spec.ValidStack{parts <> rest} : Spec.Stack}
+  %Equal.sym(Spec.Stack, Spec.fold(operations, Spec.ValidStack{rest}), Spec.ValidStack{
     List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, plans), rest)},
       children) :
-    {Plan.fold([operation], _) == Plan.ValidStack{parts <> rest} : Plan.Stack}
-  %Equal.sym(Plan.Stack, Plan.operation(operation,
+    {Spec.fold([operation], _) == Spec.ValidStack{parts <> rest} : Spec.Stack}
+  %Equal.sym(Spec.Stack, Spec.operation(operation,
     List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, plans), rest)),
-    Plan.ValidStack{parts <> rest}, closed) :
-    {Plan.fold([], _) == Plan.ValidStack{parts <> rest} : Plan.Stack}
+    Spec.ValidStack{parts <> rest}, closed) :
+    {Spec.fold([], _) == Spec.ValidStack{parts <> rest} : Spec.Stack}
   {==}
 
 def array_close(
@@ -384,14 +386,14 @@ def array_close(
   +rest: List<&2, List<&2, Plan.Piece>>,
   count: {List.length(&2, Value.ProductValue, items) == List.length(&2, List<&2, Plan.Piece>,
     plans) : Nat}
-) -> {Plan.operation(Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)},
+) -> {Spec.operation(Plan.ArrayOperation{List.length(&2, Value.ProductValue, items)},
   List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, plans), rest))
-  == Plan.ValidStack{Compound.array_trace(plans) <> rest} : Plan.Stack}:
+  == Spec.ValidStack{Compound.array_trace(plans) <> rest} : Spec.Stack}:
   %Equal.sym(Nat, List.length(&2, Value.ProductValue, items), List.length(&2, List<&2, Plan.Piece>,
     plans), count) :
-    {Plan.operation(Plan.ArrayOperation{_}, List.append(&2, List<&2, Plan.Piece>, List.reverse(&2,
+    {Spec.operation(Plan.ArrayOperation{_}, List.append(&2, List<&2, Plan.Piece>, List.reverse(&2,
       List<&2, Plan.Piece>, plans), rest))
-    == Plan.ValidStack{Compound.array_trace(plans) <> rest} : Plan.Stack}
+    == Spec.ValidStack{Compound.array_trace(plans) <> rest} : Spec.Stack}
   Compound.array_exact(plans, rest)
 
 def array_run(
@@ -399,9 +401,9 @@ def array_run(
     List<&2, Plan.Piece>>,
   result: forest_result(items, operations, plans)
 ) -> @rest: List<&2, List<&2, Plan.Piece>> -> {
-  Plan.fold(List.append(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2,
-    Value.ProductValue, items)}]), Plan.ValidStack{rest})
-  == Plan.ValidStack{Compound.array_trace(plans) <> rest} : Plan.Stack}:
+  Spec.fold(List.append(&2, Plan.Operation, operations, [Plan.ArrayOperation{List.length(&2,
+    Value.ProductValue, items)}]), Spec.ValidStack{rest})
+  == Spec.ValidStack{Compound.array_trace(plans) <> rest} : Spec.Stack}:
   match result:
     case (count, run):
       +rest => close_run(operations, plans, Plan.ArrayOperation{List.length(&2, Value.ProductValue,
@@ -409,36 +411,36 @@ def array_run(
         Compound.array_trace(plans), rest, run(rest), array_close(items, plans, rest, count))
 
 def object_close(
-  +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +planned_fields: List<&2, Plan.Field>,
+  +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +planned_fields: List<&2, Spec.Field>,
   +rest: List<&2, List<&2, Plan.Piece>>,
   keys: {Compound.keys(planned_fields) == Laws.field_keys(fields) : List<&2, String>}
-) -> {Plan.operation(Plan.ObjectOperation{Laws.field_keys(fields)},
+) -> {Spec.operation(Plan.ObjectOperation{Laws.field_keys(fields)},
   List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, Compound.values(
     planned_fields)), rest))
-  == Plan.ValidStack{Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le,
-    planned_fields)) <> rest} : Plan.Stack}:
-  %keys : {Plan.operation(Plan.ObjectOperation{_},
+  == Spec.ValidStack{Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le,
+    planned_fields)) <> rest} : Spec.Stack}:
+  %keys : {Spec.operation(Plan.ObjectOperation{_},
     List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, Compound.values(
       planned_fields)), rest))
-    == Plan.ValidStack{Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le,
-      planned_fields)) <> rest} : Plan.Stack}
+    == Spec.ValidStack{Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le,
+      planned_fields)) <> rest} : Spec.Stack}
   Compound.object_exact(planned_fields, rest)
 
 def object_run(
-  +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +planned_fields: List<&2, Plan.Field>,
+  +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +planned_fields: List<&2, Spec.Field>,
   +operations: List<&2, Plan.Operation>,
   keys: {Compound.keys(planned_fields) == Laws.field_keys(fields) : List<&2, String>},
   result: forest_result(Laws.field_values(fields), operations, Compound.values(planned_fields))
 ) -> @rest: List<&2, List<&2, Plan.Piece>> -> {
-  Plan.fold(List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(
-    fields)}]), Plan.ValidStack{rest})
-  == Plan.ValidStack{Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le,
-    planned_fields)) <> rest} : Plan.Stack}:
+  Spec.fold(List.append(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(
+    fields)}]), Spec.ValidStack{rest})
+  == Spec.ValidStack{Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le,
+    planned_fields)) <> rest} : Spec.Stack}:
   match result:
     case (_, run):
       +rest => close_run(operations, Compound.values(planned_fields),
         Plan.ObjectOperation{Laws.field_keys(fields)},
-        Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, planned_fields)), rest, run(
+        Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, planned_fields)), rest, run(
           rest), object_close(fields, planned_fields, rest, keys))
 
 def joined_operations(
@@ -492,11 +494,11 @@ def derive_forest(
         Value.ProductObject{fields} <> tv,
         List.append(&2, Plan.Operation, List.append(&2, Plan.Operation, co,
           [Plan.ObjectOperation{Laws.field_keys(fields)}]), to),
-        Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, pf)) <> tp, v,
+        Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, pf)) <> tp, v,
         joined_operations(operations, co, Plan.ObjectOperation{Laws.field_keys(fields)}, to, o), p,
         sequence_result(Value.ProductObject{fields}, List.append(&2, Plan.Operation, co,
           [Plan.ObjectOperation{Laws.field_keys(fields)}]),
-          Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, pf)), tv, to, tp,
+          Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, pf)), tv, to, tp,
           object_run(fields, pf, co, keys, derive_forest(Laws.field_values(fields), co,
             Compound.values(pf), children)), derive_forest(tv, to, tp, tail)))
 
@@ -504,9 +506,9 @@ def use_forest_result(
   -values: List<&2, Value.ProductValue>, -operations: List<&2, Plan.Operation>, -plans: List<&2,
     List<&2, Plan.Piece>>,
   rest: List<&2, List<&2, Plan.Piece>>, result: forest_result(values, operations, plans)
-) -> {Plan.fold(operations, Plan.ValidStack{rest}) == Plan.ValidStack{
+) -> {Spec.fold(operations, Spec.ValidStack{rest}) == Spec.ValidStack{
   List.append(&2, List<&2, Plan.Piece>, List.reverse(&2, List<&2, Plan.Piece>, plans),
-    rest)} : Plan.Stack}:
+    rest)} : Spec.Stack}:
   match result:
     case (_, run): run(rest)
 
@@ -515,8 +517,9 @@ def Laws.forest_exact(values, operations, plans, rest, encoding):
     encoding))
 
 def Laws.tree_exact(value, operations, parts, encoding):
-  Equal.cong(Plan.Stack, Maybe<&2, List<&2, Plan.Piece>>, state => Plan.finish(state),
-    Plan.fold(operations, Plan.ValidStack{[]}), Plan.ValidStack{[parts]},
+  %RopeLaws.compile_exact(operations) : {_ == Some{parts} : Maybe<&2, List<&2, Plan.Piece>>}
+  Equal.cong(Spec.Stack, Maybe<&2, List<&2, Plan.Piece>>, state => Spec.finish(state),
+    Spec.fold(operations, Spec.ValidStack{[]}), Spec.ValidStack{[parts]},
     Laws.forest_exact([value], operations, [parts], [], encoding))
 
 def nat_reflexive(+value: Nat) -> {Nat.is_eq(value, value) == True{} : Bool}:
@@ -851,10 +854,10 @@ def preserve_count(
         v1 => p1 => rest => Laws.ArrayForest{items, co, cp, tv, to, tp, children, rest, v1, o, p1})
     case Laws.ObjectForest{+fields, +pf, co, +tv, +to, +tp, children, keys, tail, v, o, p}:
       preserve_step(values, operations, plans, Value.ProductObject{fields}, Compound.object_trace(
-        List.sort(~Plan.Field, ~Plan.fields_le, pf)), tv, to, tp,
+        List.sort(~Spec.Field, ~Spec.fields_le, pf)), tv, to, tp,
         equality_twice(List<&2, Value.ProductValue>, values, Value.ProductObject{fields} <> tv, v),
         equality_twice(List<&2, List<&2, Plan.Piece>>, plans, Compound.object_trace(List.sort(
-          ~Plan.Field, ~Plan.fields_le, pf)) <> tp, p),
+          ~Spec.Field, ~Spec.fields_le, pf)) <> tp, p),
         preserve_count(tv, to, tp, tail),
         v1 => p1 => rest => Laws.ObjectForest{fields, pf, co, tv, to, tp, children, keys, rest, v1,
           o, p1})
@@ -920,13 +923,13 @@ def array_builder(
       Value.ProductValue, items)}], to), {==}}
 
 def object_builder(
-  +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +planned: List<&2, Plan.Field>,
+  +fields: List<&2, Value.OrderedField<Value.ProductValue>>, +planned: List<&2, Spec.Field>,
     +operations: List<&2, Plan.Operation>,
   children: Laws.ForestEncoding<Laws.field_values(fields), operations, Compound.values(planned)>,
   keys: {Compound.keys(planned) == Laws.field_keys(fields) : List<&2, String>}
 ) -> head_builder(Value.ProductObject{fields}, List.append(&2, Plan.Operation, operations,
   [Plan.ObjectOperation{Laws.field_keys(fields)}]),
-  Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, planned))):
+  Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, planned))):
   tv => +to => tp => tail => Laws.ObjectForest{fields, planned, operations, tv, to, tp, children,
     keys, tail, {==},
     Lists.append_assoc(&2, Plan.Operation, operations, [Plan.ObjectOperation{Laws.field_keys(
@@ -1032,7 +1035,7 @@ def split_forest(
         head_equal => tail_equal => cut_prepend(source, prefix, suffix, operations,
           Value.ProductObject{fields}, List.append(&2, Plan.Operation, co,
             [Plan.ObjectOperation{Laws.field_keys(fields)}]),
-          Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, pf)), to,
+          Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, pf)), to,
           head_equal, joined_operations(operations, co, Plan.ObjectOperation{Laws.field_keys(
             fields)}, to, o), object_builder(fields, pf, co, children, keys),
           split_forest(prefix, suffix, to, tp,
@@ -1128,7 +1131,7 @@ def append_forest(
     case Laws.ObjectForest{+fields, +pf, +co, +tv, +to, +tp, children, keys, tail, v, o, p}:
       append_step(lv, lo, lp, Value.ProductObject{fields}, List.append(&2, Plan.Operation, co,
         [Plan.ObjectOperation{Laws.field_keys(fields)}]), Compound.object_trace(List.sort(
-        ~Plan.Field, ~Plan.fields_le, pf)), tv, to, tp, rv, ro, rp,
+        ~Spec.Field, ~Spec.fields_le, pf)), tv, to, tp, rv, ro, rp,
         v, joined_operations(lo, co, Plan.ObjectOperation{Laws.field_keys(fields)}, to, o), p,
           object_builder(fields, pf, co, children, keys), append_forest(tv, to, tp, rv, ro, rp,
           tail, right))
@@ -1270,7 +1273,7 @@ def reverse_values(+left: List<&2, Value.ProductValue>, +right: List<&2, Value.P
 
 def paired_fields(-fields: List<&2, Value.OrderedField<Value.ProductValue>>, -plans: List<&2,
   List<&2, Plan.Piece>>) -> Type:
-  Sigma<&2, &1, List<&2, Plan.Field>, paired =>
+  Sigma<&2, &1, List<&2, Spec.Field>, paired =>
     {Compound.keys(paired) == Laws.field_keys(fields) : List<&2, String>} &
     {Compound.values(paired) == plans : List<&2, List<&2, Plan.Piece>>}>
 
@@ -1280,7 +1283,7 @@ def pair_field_step(+key: String, +value: Value.ProductValue, +fields: List<&2,
   value} <> fields, parts <> plans):
   match tail:
     case Tuple{+paired, Tuple{keys, values}}:
-      (Plan.Field{key, parts} <> paired,
+      (Spec.Field{key, parts} <> paired,
         (Equal.cong(List<&2, String>, List<&2, String>, xs => key <> xs, Compound.keys(paired),
           Laws.field_keys(fields), keys),
         Equal.cong(List<&2, List<&2, Plan.Piece>>, List<&2, List<&2, Plan.Piece>>,
@@ -1430,7 +1433,7 @@ def object_from_pair(+fields: List<&2, Value.OrderedField<Value.ProductValue>>,
   [Plan.ObjectOperation{Laws.field_keys(fields)}]), parts)>:
   match paired:
     case Tuple{+fields_plan, Tuple{keys, values}}:
-      (Compound.object_trace(List.sort(~Plan.Field, ~Plan.fields_le, fields_plan)), object_builder(
+      (Compound.object_trace(List.sort(~Spec.Field, ~Spec.fields_le, fields_plan)), object_builder(
         fields, fields_plan, operations,
         encoding_transport(Laws.field_values(fields), operations, Compound.values(fields_plan),
           Laws.field_values(fields), operations, plans, {==}, {==}, values, children), keys))
