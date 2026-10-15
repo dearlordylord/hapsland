@@ -80,7 +80,7 @@ try {
         rejected: true,
         locations,
         scope:
-          "root-entry, Engine Ack and pending dispatch and child return with derived budgets; root terminal and weighted completion remain open; rejection may occur in a shared proof helper"
+          "full root-step preservation and exact root completion with derived budgets; weighted completion remains open; rejection may occur in a shared proof helper"
       })
     )
   }

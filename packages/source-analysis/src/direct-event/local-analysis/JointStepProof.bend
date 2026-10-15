@@ -9,6 +9,7 @@ import ./ChildBudgetProof.bend as ChildBudget
 import ./JointLaws.bend as JointLaws
 import ./JointProof.bend as JointProof
 import ./JointStep.bend as Step
+import ./JointStepLaws.bend as Laws
 import ./JointReference.bend as R
 import ./Continuation.bend as K
 import ./ReturnProof.bend as Return
@@ -1523,6 +1524,115 @@ def root_continue(+root: M.Declaration,
   Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), []):
   match valid:
     case (semantic, trace): root_semantic_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame_slot, reversed_refs, depth, prefix, subtotal, trace, semantic)
+
+def zero_root_depth(+root: M.Declaration, +invocation: C.Global, +reversed_ops: List<&2, M.Op>,
+  +global: C.Global, +slot: Nat, +name: String, +expanded: List<&2, String>,
+  +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +remaining: Nat,
+  +frame_slot: Nat, +reversed_refs: List<&2, M.ReferencePlan>,
+  +depth: Nat, +prefix: List<&2, M.ReferencePlan>, +subtotal: S.BytesExpr,
+  valid: J.cursor(root, invocation, Step.request(invocation, reversed_ops), C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}, [J.Ghost{0n, prefix, subtotal}])) -> Empty:
+  match valid:
+    case (_, (_, (_, (_, (_, ((_, (bound, _)), _)))))):
+      N.internal_false_ne_true(bound)
+
+def root_all_depths(+root: M.Declaration, +invocation: C.Global, +reversed_ops: List<&2, M.Op>,
+  +global: C.Global, +slot: Nat, +name: String, +expanded: List<&2, String>,
+  +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +remaining: Nat,
+  +frame_slot: Nat, +reversed_refs: List<&2, M.ReferencePlan>,
+  +depth: Nat, +prefix: List<&2, M.ReferencePlan>, +subtotal: S.BytesExpr,
+  valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}, [J.Ghost{depth, prefix, subtotal}])) ->
+  Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), after)):
+  match depth:
+    case 0n:
+      Empty.absurd(Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}}), after)),
+        impossible_continue(root, invocation, reversed_ops, C.Cursor{global, slot, name, expanded, referenced, failure, remaining, [C.Frame{frame_slot, [], reversed_refs, None{}}]}, [J.Ghost{0n, prefix, subtotal}],
+          semantic => zero_root_depth(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame_slot, reversed_refs, 0n, prefix, subtotal, semantic), valid))
+    case 1n++depth:
+      ([], root_continue(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame_slot, reversed_refs, depth, prefix, subtotal, valid))
+
+def shape_without_ghosts(frames: List<&2, C.Frame>, +root_slot: Nat) -> {J.shape(frames, [], root_slot) == False{} : Bool}:
+  match frames:
+    case Nil{}: {==}
+    case C.Frame{_, _, _, None{}} <> Nil{}: {==}
+    case C.Frame{_, _, _, None{}} <> _ <> _: {==}
+    case C.Frame{_, _, _, Some{_}} <> _: {==}
+
+def reject_shape(+root: M.Declaration, +invocation: C.Global, +reversed_ops: List<&2, M.Op>,
+  +global: C.Global, +slot: Nat, +name: String, +expanded: List<&2, String>,
+  +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +remaining: Nat, +frames: List<&2, C.Frame>, +ghosts: List<&2, J.Ghost>,
+  rejected: {J.shape(frames, ghosts, S.declaration_slot(root)) == False{} : Bool},
+  valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}, ghosts)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}), after)):
+  match valid:
+    case ((_, (_, (_, (shape, _)))), _):
+      Empty.absurd(Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}), after)), N.internal_false_ne_true(
+        Equal.trans(Bool, False{}, J.shape(frames, ghosts, S.declaration_slot(root)), True{},
+          Equal.sym(Bool, J.shape(frames, ghosts, S.declaration_slot(root)), False{}, rejected), shape)))
+
+def frame_step(+root: M.Declaration, +invocation: C.Global, +reversed_ops: List<&2, M.Op>,
+  +global: C.Global, +slot: Nat, +name: String, +expanded: List<&2, String>,
+  +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +remaining: Nat, +frame_slot: Nat, +pending: List<&2, M.Reference>,
+  +reversed_refs: List<&2, M.ReferencePlan>, +site: Maybe<&2, String>, +parents: List<&2, C.Frame>,
+  +depth: Nat, +prefix: List<&2, M.ReferencePlan>, +subtotal: S.BytesExpr, +others: List<&2, J.Ghost>,
+  valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{frame_slot, pending, reversed_refs, site} <> parents}}, J.Ghost{depth, prefix, subtotal} <> others)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, C.Frame{frame_slot, pending, reversed_refs, site} <> parents}}), after)):
+  match pending site parents others:
+    case reference <> tail site parents others:
+      pending_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame_slot, reference, tail, reversed_refs, site, parents, depth, prefix, subtotal, others, valid)
+    case Nil{} None{} Nil{} Nil{}:
+      root_all_depths(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame_slot, reversed_refs, depth, prefix, subtotal, valid)
+    case Nil{} Some{symbol} C.Frame{parent_slot, parent_pending, parent_reversed, parent_site} <> ancestors J.Ghost{parent_depth, parent_prefix, parent_subtotal} <> rest:
+      return_all_depths(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame_slot, reversed_refs, prefix, subtotal, depth, parent_slot, parent_pending, parent_reversed, parent_site, parent_prefix, parent_subtotal, parent_depth, ancestors, rest, symbol, valid)
+    case Nil{} None{} Nil{} head <> rest:
+      reject_shape(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, C.Frame{frame_slot, [], reversed_refs, None{}} <> [], J.Ghost{depth, prefix, subtotal} <> head <> rest, {==}, valid)
+    case Nil{} None{} parent <> ancestors others:
+      reject_shape(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, C.Frame{frame_slot, [], reversed_refs, None{}} <> parent <> ancestors, J.Ghost{depth, prefix, subtotal} <> others, {==}, valid)
+    case Nil{} Some{symbol} Nil{} others:
+      reject_shape(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, C.Frame{frame_slot, [], reversed_refs, Some{symbol}} <> [], J.Ghost{depth, prefix, subtotal} <> others, {==}, valid)
+    case Nil{} Some{symbol} parent <> ancestors Nil{}:
+      reject_shape(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, C.Frame{frame_slot, [], reversed_refs, Some{symbol}} <> parent <> ancestors, J.Ghost{depth, prefix, subtotal} <> [], shape_without_ghosts(parent <> ancestors, S.declaration_slot(root)), valid)
+
+def continue_frames(+root: M.Declaration, +invocation: C.Global, +reversed_ops: List<&2, M.Op>,
+  +global: C.Global, +slot: Nat, +name: String, +expanded: List<&2, String>,
+  +referenced: List<&2, String>, +failure: Maybe<&2, M.Failure>, +remaining: Nat, +frames: List<&2, C.Frame>, +ghosts: List<&2, J.Ghost>,
+  valid: Step.valid(root, invocation, reversed_ops, C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}, ghosts)) -> Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}}), after)):
+  match frames ghosts:
+    case Nil{} ghosts: reject_shape(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, [], ghosts, {==}, valid)
+    case frame <> parents Nil{}: reject_shape(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame <> parents, [], shape_without_ghosts(frame <> parents, S.declaration_slot(root)), valid)
+    case C.Frame{frame_slot, pending, reversed_refs, site} <> parents J.Ghost{depth, prefix, subtotal} <> others:
+      frame_step(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frame_slot, pending, reversed_refs, site, parents, depth, prefix, subtotal, others, valid)
+
+def continue_step(+root: M.Declaration, +invocation: C.Global, +reversed_ops: List<&2, M.Op>,
+  +cursor: C.Cursor, +ghosts: List<&2, J.Ghost>,
+  valid: Step.valid(root, invocation, reversed_ops, C.Continue{cursor}, ghosts)) ->
+  Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation, reversed_ops, Step.advance(C.Continue{cursor}), after)):
+  match cursor:
+    case C.Cursor{global, slot, name, expanded, referenced, failure, remaining, frames}:
+      continue_frames(root, invocation, reversed_ops, global, slot, name, expanded, referenced, failure, remaining, frames, ghosts, valid)
+
+def Laws.initial_root(root, invocation):
+  initial_root(root, invocation)
+
+def Laws.step_preserves(root, invocation, reversed, step, ghosts, valid):
+  match step ghosts:
+    case C.Continue{cursor} ghosts:
+      continue_step(root, invocation, reversed, cursor, ghosts, valid)
+    case C.Engine{operation, queued, remaining, next} ghosts:
+      engine_step(root, invocation, reversed, operation, queued, remaining, next, ghosts, valid)
+    case C.NextRoot{global} Nil{}: ([], valid)
+    case C.NextRoot{global} head <> tail:
+      Empty.absurd(Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation,
+        Step.record(C.NextRoot{global}, reversed), Step.advance(C.NextRoot{global}), after)), valid)
+    case C.Completed{outcomes} ghosts:
+      Empty.absurd(Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation,
+        Step.record(C.Completed{outcomes}, reversed), Step.advance(C.Completed{outcomes}), after)), valid)
+    case C.PreflightCompleted{} ghosts:
+      Empty.absurd(Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation,
+        Step.record(C.PreflightCompleted{}, reversed), Step.advance(C.PreflightCompleted{}), after)), valid)
+    case C.Exhausted{} ghosts:
+      Empty.absurd(Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation,
+        Step.record(C.Exhausted{}, reversed), Step.advance(C.Exhausted{}), after)), valid)
+    case C.InvalidReply{} ghosts:
+      Empty.absurd(Exists(List<&2, J.Ghost>, after => Step.valid(root, invocation,
+        Step.record(C.InvalidReply{}, reversed), Step.advance(C.InvalidReply{}), after)), valid)
 
 def main() -> Unit:
   Unit{}
