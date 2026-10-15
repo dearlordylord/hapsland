@@ -16,6 +16,75 @@ import { test } from "node:test"
 import { installGitHooks } from "./install-git-hooks.mjs"
 
 const runner = resolve("scripts/run-quality-lint.mjs")
+test("qualification requires a base and nonempty committed selection; base alone bounds the diff", () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-lint-qualification-"))
+  const callFile = join(root, "calls")
+  const git = (...args) => {
+    const result = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 5000 })
+    assert.equal(result.status, 0, result.stdout + result.stderr)
+  }
+  const run = (args, environment = {}) => {
+    writeFileSync(callFile, "")
+    return spawnSync(process.execPath, [runner, ...args], {
+      cwd: root,
+      env: { ...process.env, HAPSLAND_LINT_BASE: undefined, ...environment },
+      encoding: "utf8",
+      timeout: 15000
+    })
+  }
+  try {
+    git("init", "--quiet")
+    mkdirSync(join(root, "src"))
+    mkdirSync(join(root, "node_modules/.bin"), { recursive: true })
+    writeFileSync(join(root, ".gitignore"), "node_modules\ncalls\n")
+    for (const name of ["changed", "unchanged"]) writeFileSync(join(root, `src/${name}.ts`), "export const value = 1\n")
+    for (const tool of ["oxlint", "dprint"])
+      writeFileSync(
+        join(root, "node_modules/.bin", tool),
+        `#!${process.execPath}\nrequire('node:fs').appendFileSync(${JSON.stringify(callFile)}, JSON.stringify(process.argv.slice(2))+'\\n');\n`,
+        { mode: 0o755 }
+      )
+    const commit = () => {
+      git("add", ".")
+      git(
+        "-c",
+        "core.hooksPath=/dev/null",
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.test",
+        "commit",
+        "-qm",
+        "fixture"
+      )
+    }
+    commit()
+    writeFileSync(join(root, "src/changed.ts"), "export const value = 2\n")
+    commit()
+
+    assert.match(run(["--qualification"]).stderr, /requires --base/u)
+    assert.equal(readFileSync(callFile, "utf8"), "")
+    for (const args of [["--base=HEAD^"], ["--qualification", "--base=HEAD^"]]) {
+      const selected = run(args)
+      assert.equal(selected.status, 0, selected.stdout + selected.stderr)
+      assert.match(selected.stdout, /Checking 1 authored code files against HEAD\^/u)
+      assert.match(readFileSync(callFile, "utf8"), /src\/changed\.ts/u)
+      assert.doesNotMatch(readFileSync(callFile, "utf8"), /src\/unchanged\.ts/u)
+    }
+    const empty = run(["--qualification", "--base=HEAD"])
+    assert.notEqual(empty.status, 0)
+    assert.match(empty.stderr, /selected zero authored code files/u)
+    assert.equal(readFileSync(callFile, "utf8"), "")
+
+    const environment = run(["--changed"], { HAPSLAND_LINT_BASE: "HEAD^" })
+    assert.equal(environment.status, 0, environment.stdout + environment.stderr)
+    assert.match(environment.stdout, /Checking 1 authored code files against HEAD\^/u)
+    assert.notEqual(run(["--changed"], { HAPSLAND_LINT_BASE: "HEAD" }).status, 0)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test("lint failure prevents formatting; explicit and changed selection stay bounded", () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-lint-runner-")))
   try {
@@ -31,7 +100,7 @@ test("lint failure prevents formatting; explicit and changed selection stay boun
     const run = (args, extra = {}) =>
       spawnSync(process.execPath, [runner, ...args], {
         cwd: root,
-        env: { ...process.env, ...extra },
+        env: { ...process.env, HAPSLAND_LINT_BASE: undefined, ...extra },
         encoding: "utf8",
         timeout: 15_000
       })
@@ -62,7 +131,12 @@ test("lint failure prevents formatting; explicit and changed selection stay boun
 test("real pre-commit formats staged code and rejects a lint defect", () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-precommit-"))
   const run = (command, args) =>
-    spawnSync(command, args, { cwd: root, encoding: "utf8", timeout: 30_000, env: process.env })
+    spawnSync(command, args, {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 30_000,
+      env: { ...process.env, HAPSLAND_LINT_BASE: undefined }
+    })
   try {
     assert.equal(run("git", ["init", "--quiet"]).status, 0)
     symlinkSync(resolve("node_modules"), join(root, "node_modules"), "dir")

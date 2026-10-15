@@ -726,6 +726,18 @@ cannot silently start the full suite. Follow the
 [checks policy](../CHECKS.md) for escalation
 to the full gate and diagnosis after failure.
 
+### Lint qualification
+
+For committed JavaScript/TypeScript changes, select the acceptance diff explicitly:
+`HAPSLAND_LINT_BASE=<commit> npm run check:fast`. The existing `lint:changed`
+step then checks that cumulative diff and refuses an empty code selection.
+The focused equivalent is
+`node scripts/run-quality-lint.mjs --qualification --base=<commit>`.
+`--base` also implies changed-file selection without a separate `--changed`.
+Ordinary development lint may select no code; that output does not qualify
+committed changes. For documentation-only or Bend-only work, select the relevant
+documentation/Bend checks rather than demanding JavaScript/TypeScript inputs.
+
 ### Task and batch acceptance
 
 For delegated work on one task or a jointly accepted batch, the existing parent

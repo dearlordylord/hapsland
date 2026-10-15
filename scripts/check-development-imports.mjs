@@ -282,7 +282,17 @@ export const checkDevelopmentImports = (root) => {
     }
   }
   for (const owner of graph.workspaces.values()) if (owner.role === "production") visitVerification(owner, owner.path)
-  if (errors.length) throw new Error(`Invalid development imports:\n${errors.join("\n")}`)
+  if (errors.length) {
+    const missingCompiledOutput = errors.some(
+      (message) =>
+        message.includes("Unresolved development import:") &&
+        /(?:\/dist\/|\/artifacts\/native\/|\.generated\.)/u.test(message)
+    )
+    const preparation = missingCompiledOutput
+      ? "\nMissing compiled outputs: prepare this worktree with node scripts/build-workspaces.mjs, then rerun the check."
+      : ""
+    throw new Error(`Invalid development imports:\n${errors.join("\n")}${preparation}`)
+  }
   return {
     files: records.length,
     edges: records.reduce((sum, record) => sum + record.imports.length, 0),

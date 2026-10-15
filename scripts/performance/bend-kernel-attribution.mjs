@@ -1,9 +1,20 @@
 // Diagnostic only: preserve the full kernel and book; never a proof acceptance gate.
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
-import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
 
 const [
@@ -227,10 +238,68 @@ try {
   )
   const c = join(temporary, "kernel.c")
   const binary = join(temporary, "kernel")
-  const compiled = run(lean, ["--stdin", "-c", c], remaining(), generated)
-  assert.equal(compiled.status, 0, compiled.stdout + compiled.stderr)
-  const linked = run(join(resolve(toolchainPath), "bin/leanc"), ["-O3", "-DNDEBUG", c, "-o", binary], remaining())
-  assert.equal(linked.status, 0, linked.stdout + linked.stderr)
+  // Toolchain installations are immutable inputs. Include every file's identity so
+  // replacing or editing a compiler, library or header invalidates its binary.
+  const toolchain = resolve(toolchainPath)
+  const inventory = (directory) =>
+    readdirSync(directory)
+      .sort()
+      .flatMap((name) => {
+        const path = join(directory, name)
+        const stat = statSync(path, { bigint: true })
+        return stat.isDirectory()
+          ? inventory(path)
+          : [[path, String(stat.size), String(stat.mtimeNs), String(stat.ctimeNs), String(stat.ino)]]
+      })
+  const cacheKey = hash(
+    JSON.stringify({
+      generated,
+      toolchain: inventory(toolchain),
+      version: version.stdout,
+      platform: process.platform,
+      arch: process.arch,
+      flags: ["-O3", "-DNDEBUG"],
+      environment: Object.fromEntries(
+        Object.entries(process.env).filter(([key]) =>
+          /^(LEAN|LEANC|CC|CFLAGS|CPPFLAGS|LDFLAGS|LIBRARY_PATH|LD_LIBRARY_PATH|PATH)/u.test(key)
+        )
+      )
+    })
+  )
+  const cacheRoot = fileURLToPath(new URL("../../.test-runs/kernel-attribution-cache/", import.meta.url))
+  const cached = join(cacheRoot, cacheKey)
+  let cachedBinary
+  try {
+    const bytes = readFileSync(join(cached, "kernel"))
+    if (hash(bytes) === readFileSync(join(cached, "sha256"), "utf8")) cachedBinary = bytes
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error
+  }
+  if (cachedBinary) {
+    writeFileSync(binary, cachedBinary, { mode: 0o700 })
+  } else {
+    const compiled = run(lean, ["--stdin", "-c", c], remaining(), generated)
+    assert.equal(compiled.status, 0, compiled.stdout + compiled.stderr)
+    const linked = run(join(toolchain, "bin/leanc"), ["-O3", "-DNDEBUG", c, "-o", binary], remaining())
+    assert.equal(linked.status, 0, linked.stdout + linked.stderr)
+    mkdirSync(cacheRoot, { recursive: true })
+    const pending = mkdtempSync(join(cacheRoot, "pending-"))
+    try {
+      const bytes = readFileSync(binary)
+      writeFileSync(join(pending, "kernel"), bytes, { mode: 0o700 })
+      writeFileSync(join(pending, "sha256"), hash(bytes))
+      // Replace a corrupt entry; publish complete entries atomically.
+      if (existsSync(cached)) rmSync(cached, { recursive: true, force: true })
+      try {
+        renameSync(pending, cached)
+      } catch (error) {
+        if (error.code !== "EEXIST" && error.code !== "ENOTEMPTY") throw error
+      }
+    } finally {
+      rmSync(pending, { recursive: true, force: true })
+    }
+  }
+  console.error(JSON.stringify({ stage: "checker-build", cache: cachedBinary ? "hit" : "miss", cacheKey }))
   console.error(
     JSON.stringify({ diagnosticOnly: true, sourceHash: hash(source), bookHash: hash(book), bookBytes: book.length })
   )
