@@ -30,7 +30,23 @@ const catalog = (declarations, supporting = []) => ({
   declarations: list(declarations),
   supporting: list(supporting.map(([key, value]) => ({ $: "Model.Supporting", key, declaration: value })))
 })
-const coreTags = new Set(["Cursor", "Global", "Frame", "Trees", "Outcomes", "Preflight"])
+const coreTags = new Set([
+  "Cursor",
+  "Global",
+  "Frame",
+  "Trees",
+  "Outcomes",
+  "Preflight",
+  "Continue",
+  "Engine",
+  "CursorNext",
+  "RootNext",
+  "NextRoot",
+  "Completed",
+  "PreflightCompleted",
+  "Exhausted",
+  "InvalidReply"
+])
 const jointTags = (value, imported) => {
   if (value === null || typeof value !== "object") return value
   return Object.fromEntries(
@@ -124,6 +140,15 @@ try {
     $: `Specification.${expression.$.replace(/^Spec\./u, "")}`,
     ...(expression.left ? { left: expressionTags(expression.left), right: expressionTags(expression.right) } : {})
   })
+  const measureOutput = join(temporary, "execution-measure.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "ExecutionMeasure.bend"), "-o", measureOutput],
+    { timeout: 11000 }
+  )
+  const resource = (await import(pathToFileURL(measureOutput))).default
+  let resourceTransitions = 0
+  let resourceEntries = 0
   let rootTraceStates = 0
   let referenceTransitions = 0
   let specificationDepthBounds = 0
@@ -309,6 +334,8 @@ try {
     let request = 0
     for (let count = 0; count < 100000; count++) {
       cursorSteps++
+      const resourceBefore = resource.measure(jointTags(step, true))
+      const activeBefore = resource.active(jointTags(step, true))
       if (step.$ === "Continue") {
         checkPotential(step.cursor)
         checkContinuation(step.cursor)
@@ -323,6 +350,16 @@ try {
           if (pending.length) beginRoot(pending[0], previous.global.catalog, operations.length)
         }
         step = core.advance(previous)
+        if (previous.$ === "NextRoot") {
+          const pending = unlist(previous.global.pending)
+          if (pending.length) {
+            assert.ok(
+              resource.measure(jointTags(step, true)) <= execution.root_weight(pending[0], previous.global.catalog) - 1,
+              "actual root entry fits its existing derived budget"
+            )
+            resourceEntries++
+          }
+        }
         if (previous.$ === "Continue") {
           const oldFrames = unlist(previous.cursor.frames)
           const next = cursorOf(step)
@@ -527,6 +564,14 @@ try {
         assert.equal(core.resume(step, { $: "Ack", request }).$, "InvalidReply")
         if (measuring) assert.equal(stack.length, 1, "preflight terminal stack must have one result")
         return { step, operations, measurements, bytes: stack[0] }
+      }
+      if (activeBefore) {
+        assert.ok(resourceBefore >= 1, "active root resource is positive")
+        assert.ok(
+          resource.measure(jointTags(step, true)) + 1 <= resourceBefore,
+          "each actual root transition strictly decreases resource"
+        )
+        resourceTransitions++
       }
     }
     throw new Error("local cursor fixture deadline exceeded")
@@ -927,6 +972,8 @@ try {
       childEntries,
       referenceTransitions,
       rootTraceStates,
+      resourceTransitions,
+      resourceEntries,
       childReturns,
       scope:
         "unconnected cursor and independent recursive specification; finite law instances, no universal proofs or production acceptance"
