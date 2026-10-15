@@ -17,7 +17,7 @@ law fold_composition:
     : Plan.Stack
   }
 
-# Underflow is total; a successful pop reverses exactly the requested suffix.
+# Underflow is total; a successful pop reverses exactly the requested stack prefix.
 law pop_exact:
   for +arity: Nat
   for +stack: List<&2, List<&2, Plan.Piece>>

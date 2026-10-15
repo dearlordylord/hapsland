@@ -26,8 +26,8 @@ def pop(
 ) -> Popped:
   match arity stack:
     case 0n _: Popped{values, stack}
-    case 1n+_ []: Underflow{}
-    case 1n+remaining value <> tail: pop(remaining, tail, value <> values)
+    case 1n++_ Nil{}: Underflow{}
+    case 1n++remaining Con{value, tail}: pop(remaining, tail, value <> values)
 
 def array_parts(values: List<&2, List<&2, Piece>>) -> List<&2, Piece>:
   match values:
@@ -51,8 +51,8 @@ def pair_fields(
   reversed: List<&2, Field>
 ) -> Maybe<&2, List<&2, Field>>:
   match keys values:
-    case [] []: Some{List.reverse(&2, Field, reversed)}
-    case key <> keys parts <> values: pair_fields(keys, values, Field{key, parts} <> reversed)
+    case Nil{} Nil{}: Some{List.reverse(&2, Field, reversed)}
+    case Con{key, keys} Con{parts, values}: pair_fields(keys, values, Field{key, parts} <> reversed)
     case _ _: None{}
 
 def fields_le(left: Field, right: Field) -> Bool:
