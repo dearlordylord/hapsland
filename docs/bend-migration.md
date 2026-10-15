@@ -150,25 +150,15 @@ acceptance guarantees. Native identity, clock, settings, hash/reuse authority,
 IEEE operations, serialization engines and atomic resource operations remain
 with their native owners.
 
-The connected candidate replaces the JSON stage's repeated primitive
-crossings with a Bend-selected serialization plan:
-
-1. The [mechanical codec](../packages/review-execution/src/direct-event/preparation/canonical-json-plan-codec.ts)
-   emits qualified postorder operations from `ProductValue`, preserving order
-   and Binary64 identity. No second host retag/reboxing pass remains.
-2. Bend [validates the stream](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlanValidation.bend)
-   against the exact exported tree, including primitive payloads, Binary64 bits,
-   original keys and child order. Different trees are refused before planning.
-3. The [Bend planner](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlan.bend)
-   folds that stream over a stack, preserves key/value pairing, sorts with the
-   existing UTF16 comparator and produces exact literal/primitive pieces.
-   Underflow and a nonsingleton final stack are explicit refusals.
-4. The existing Canonical checkpointed ForeignGroup executes the selected
-   primitive commands individually. Preserve signal checks, post-effect liveness,
-   raw token identity, failure ordering and immediate cancellation.
-5. Bend accepts the replies and owns assembly/progression. Store raw tokens in
-   `resume`; perform the original `String.concat` in the next ordinary `advance`,
-   preserving its existing late-coercion/error boundary.
+The connected JSON stage uses the [mechanical postorder codec](../packages/review-execution/src/direct-event/preparation/canonical-json-plan-codec.ts),
+[Bend exact-tree validation](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlanValidation.bend)
+and [Bend planner](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlan.bend).
+It preserves ordered keys, Binary64 bits, UTF16 sorting, malformed-stream refusal
+and exact literal/primitive pieces. The existing checkpointed ForeignGroup
+executes primitive commands separately, preserving signal/liveness checks,
+raw token identity, failure order and immediate cancellation. Bend stores replies
+in resume and assembles in the next ordinary advance, retaining the original
+late String.concat coercion/error boundary. No host retag/reboxing pass remains.
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
 is removed. Preparation is **not accepted**: attachment hard10, pinned formatting and whole parity remain open.
@@ -186,7 +176,8 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Original law/premises/binding/main remain byte-identical. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation also affects local analyzer proofs; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Local analyzer connection requalified against independent TS: Source/resident/FrozenInput and 254 public tests pass, including failure/measurement ordering. |
-| Whole-path parity | Connected local candidate whole current-native ratio is 1.2650; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup remains closed: unsupported whole-path payoff and new UTF16-order proof chain. Encoding-only scratch fails parity at 1.3228. Final trial shares decoding scratch, preserving high across reentrant low coercion. Build/23 receipts, 20 codec cases, fast and FrozenInput pass; timing pending. |
+| Shared extraction | Astra's next parity candidate: one invocation-local parser materialization inside ExtractSource, with unchanged graph/functions/local projections. TS/Python/Bend currently repeat extraction of the same source. Preserve import admission, paths/locations/export flags, artifact identity/aliasing, exception order and Canonical lease/checkpoints; no cross-command cache. Differential all projections on five languages, then physical/public consumers and one independent whole trial. No new local Core representation or proof chain. |
+| Whole-path parity | Connected local candidate whole current-native ratio is 1.2650; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 scratch: encode 1.3228, encode/decode 1.4240; 17 frozen equal-output pairs each. Both failed; allocation trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,

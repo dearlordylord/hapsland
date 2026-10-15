@@ -67,11 +67,8 @@ export function unlist(value: unknown): unknown[] {
   if (item.$ !== "Nil") throw new Error("invalid list")
   return result
 }
-// A write completes after native numeric coercion; nested coercion calls finish
-// before this write. Only numeric copies escape, never the scratch buffer.
-const binary64Scratch = new DataView(new ArrayBuffer(8))
 export function binary64(value: number): Binary64 {
-  const bytes = binary64Scratch
+  const bytes = new DataView(new ArrayBuffer(8))
   bytes.setFloat64(0, value, false)
   return {
     $: "../../../../source-artifacts/src/direct-event/value/Value.Binary64",
@@ -86,13 +83,9 @@ export function fromBinary64(value: unknown): number {
     ![bits.high, bits.low].every((x) => typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= 0xffffffff)
   )
     throw new Error("invalid binary64")
-  const bytes = binary64Scratch
+  const bytes = new DataView(new ArrayBuffer(8))
   bytes.setUint32(0, bits.high as number, false)
-  // Reading/coercing low can reenter either codec. Preserve the completed high
-  // write and restore it after the outer low write has completed.
-  const high = bytes.getUint32(0, false)
   bytes.setUint32(4, bits.low as number, false)
-  bytes.setUint32(0, high, false)
   return bytes.getFloat64(0, false)
 }
 export function productValue(value: unknown): ProductValue {
