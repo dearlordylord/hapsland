@@ -28,6 +28,17 @@ for (const [tag, property] of [
 }
 for (const value of [-0, 0, NaN, Infinity, -Infinity, Number.MIN_VALUE, Number.MAX_VALUE])
   assert.ok(Object.is(fromBinary64(binary64(value)), value))
+// Nested numeric coercion must finish before the outer full-width write.
+const nested = {
+  valueOf() {
+    assert.ok(Object.is(fromBinary64(binary64(-0)), -0))
+    return Number.MAX_VALUE
+  }
+}
+assert.equal(fromBinary64(binary64(nested)), Number.MAX_VALUE)
+const retained = binary64(Math.PI)
+binary64(Number.MIN_VALUE)
+assert.equal(fromBinary64(retained), Math.PI)
 const callable = Object.assign(() => {}, {
   $: "../../../../source-artifacts/src/direct-event/value/Value.ProductText",
   value: "callable constructor"
@@ -52,7 +63,7 @@ assert.throws(
 console.log(
   JSON.stringify({
     passed: true,
-    cases: 15,
+    cases: 17,
     scope:
       "compiled product codec boundary: list validation precedence, binary64 identity, callable constructors, ordered own fields and duplicate rejection"
   })
