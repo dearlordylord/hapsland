@@ -29,10 +29,10 @@ try {
   const routes = ["Owner", "CachedClear", "CachedFinding", "JoinedAdvice", "JoinedPending", "JoinedClaimed"]
   const outcomes = routes.map((route, index) => ({
     $: "Outcome",
-    handle: BigInt(index + 1),
+    handle: Number(BigInt(index + 1)),
     ready: true,
     fits: true,
-    reservation_bytes: 100n
+    reservation_bytes: 100
   }))
   let cases = 0,
     requests = 0
@@ -51,8 +51,8 @@ try {
   }
   const finishedState = {
     $: "State",
-    invocation: 1n,
-    next: 0n,
+    invocation: 1,
+    next: 0,
     round_bound: true,
     incomplete: false,
     delivery_refused: false,
@@ -63,20 +63,20 @@ try {
     { $: "Finished" },
     { $: "Rejected" },
     { $: "Stopped", reason: { $: "Inactive" } },
-    core.initial(1n, true, list([]), false)
+    core.initial(1, true, list([]), false)
   ]) {
     for (const fuel of [0, 1, 2, 10000]) {
-      assert.deepEqual(core.settle(BigInt(fuel), step), oldPump(fuel, step))
+      assert.deepEqual(core.settle(Number(BigInt(fuel)), step), oldPump(fuel, step))
       cases++
     }
   }
   for (const ready of [false, true])
     for (const fits of [false, true]) {
-      const outcome = { $: "Outcome", handle: 77n, ready, fits, reservation_bytes: 101n }
+      const outcome = { $: "Outcome", handle: 77, ready, fits, reservation_bytes: 101 }
       const state = {
         $: "State",
-        invocation: 9n,
-        next: 13n,
+        invocation: 9,
+        next: 13,
         round_bound: true,
         incomplete: false,
         delivery_refused: false,
@@ -86,18 +86,18 @@ try {
       const delivery = core.delivering_next(state, list([outcome]), list([]))
       assert.equal(admission.request.command.allowed, true)
       assert.equal(delivery.request.command.allowed, fits)
-      assert.equal(admission.request.id, 13n)
-      assert.equal(delivery.state.next, 14n)
+      assert.equal(admission.request.id, 13)
+      assert.equal(delivery.state.next, 14)
       assert.deepEqual(admission.state.phase, { $: "Admitting", outcome, rest: list([]), ready: list([]) })
       assert.deepEqual(delivery.state.phase, { $: "Delivering", outcome, rest: list([]), accepted: list([]) })
       cases++
     }
   for (const bound of [false, true])
     for (const incomplete of [false, true]) {
-      const initial = core.initial(3n, bound, list(outcomes), incomplete)
-      assert.deepEqual(core.initial_settled(3n, bound, list(outcomes), incomplete), oldPump(10000, initial))
-      for (const response of [{ $: "Ack" }, { $: "Failed", token: 7n }]) {
-        const reply = { $: "Reply", invocation: 3n, id: initial.request.id, response }
+      const initial = core.initial(3, bound, list(outcomes), incomplete)
+      assert.deepEqual(core.initial_settled(3, bound, list(outcomes), incomplete), oldPump(10000, initial))
+      for (const response of [{ $: "Ack" }, { $: "Failed", token: 7 }]) {
+        const reply = { $: "Reply", invocation: 3, id: initial.request.id, response }
         assert.deepEqual(core.resume_settled(initial, reply), oldPump(10000, core.resume(initial, reply)))
         cases++
       }
@@ -261,7 +261,7 @@ try {
         }
   function run(options = {}) {
     let step = settledValue(
-        core.initial_settled(1n, options.bound ?? true, list(options.outcomes ?? outcomes), options.incomplete ?? false)
+        core.initial_settled(1, options.bound ?? true, list(options.outcomes ?? outcomes), options.incomplete ?? false)
       ),
       ordinal = 0
     const commands = [],
@@ -277,7 +277,7 @@ try {
       requests++
       ordinal++
       assert.equal(
-        core.resume(step, { $: "Reply", invocation: 2n, id: request.id, response: { $: "Ack" } }).$,
+        core.resume(step, { $: "Reply", invocation: 2, id: request.id, response: { $: "Ack" } }).$,
         "Rejected"
       )
       let response = { $: "Ack" }
@@ -298,10 +298,10 @@ try {
           break
         }
         case "ReadCached":
-          response = { $: "CachedFacts", evaluation: 999n, findings: command.item.key === 2n ? 0n : 1n }
+          response = { $: "CachedFacts", evaluation: 999, findings: command.item.key === 2 ? 0 : 1 }
           break
         case "ReadPending":
-          response = { $: "PendingOwner", owner: 700n }
+          response = { $: "PendingOwner", owner: 700 }
           break
         case "CompletePreparation":
           response = {
@@ -310,31 +310,31 @@ try {
               array(command.retained).map((item) =>
                 options.capacityRefused
                   ? none
-                  : some({ $: "Allocation", operation: 100n + item.key, reservation: 200n + item.key })
+                  : some({ $: "Allocation", operation: 100 + item.key, reservation: 200 + item.key })
               )
             )
           }
           break
         case "ReadLiveAdvice":
-          response = { $: "AdviceOwner", owner: command.item.key === 4n ? some(800n) : none }
+          response = { $: "AdviceOwner", owner: command.item.key === 4 ? some(800) : none }
           break
         case "PublishJoinedAdvice":
-          response = { $: "Published", publication: 900n }
+          response = { $: "Published", publication: 900 }
           break
         case "ReadCurrentAdvice":
-          response = { $: "FindingCount", findings: 2n }
+          response = { $: "FindingCount", findings: 2 }
           break
         case "ReadJoinedPending":
-          response = { $: "JoinOwner", owner: command.item.key === 5n ? some(700n) : none }
+          response = { $: "JoinOwner", owner: command.item.key === 5 ? some(700) : none }
           break
         case "RegisterClear":
-          response = { $: "Revision", token: 302n }
+          response = { $: "Revision", token: 302 }
           break
         case "RegisterRevision":
-          response = { $: "Revision", token: 300n + command.slot.item.key }
+          response = { $: "Revision", token: 300 + command.slot.item.key }
           break
         case "RegisterWork":
-          response = { $: "Work", token: options.noWork ? none : some(400n + command.slot.item.key) }
+          response = { $: "Work", token: options.noWork ? none : some(400 + command.slot.item.key) }
           break
         case "AttachOwner":
           response = { $: "Attached", accepted: !options.attachRefused }
@@ -353,7 +353,7 @@ try {
           response = { $: "AdviceOwner", owner: none }
           break
         case "InsertCachedAdvice":
-          response = { $: "AdviceInserted", tail: 1000n }
+          response = { $: "AdviceInserted", tail: 1000 }
           break
         case "Cleanup":
           cleanup.push(command)
@@ -384,14 +384,14 @@ try {
           }
           break
       }
-      if (options.failAt === ordinal && command.$ !== "Cleanup") response = { $: "Failed", token: 77n }
-      if (options.defectAt === ordinal && command.$ !== "Cleanup") response = { $: "Defect", token: 89n }
-      if (options.cancelAt === ordinal && command.$ !== "Cleanup") response = { $: "Cancelled", token: 88n }
+      if (options.failAt === ordinal && command.$ !== "Cleanup") response = { $: "Failed", token: 77 }
+      if (options.defectAt === ordinal && command.$ !== "Cleanup") response = { $: "Defect", token: 89 }
+      if (options.cancelAt === ordinal && command.$ !== "Cleanup") response = { $: "Cancelled", token: 88 }
       if (options.cleanupFailOnce && command.$ === "Cleanup" && cleanup.length === 1)
-        response = { $: "Failed", token: 99n }
+        response = { $: "Failed", token: 99 }
       if (command.$ === "Enqueue" && response.$ === "Queued" && response.accepted) enqueued.push(command.slot.item.key)
       if (command.$ === "FinalizeCachedUnit" && response.$ === "Ack") settled.push(command.slot.item.key)
-      step = settledValue(core.resume_settled(step, { $: "Reply", invocation: 1n, id: request.id, response }))
+      step = settledValue(core.resume_settled(step, { $: "Reply", invocation: 1, id: request.id, response }))
     }
     throw new Error("Postflow did not terminate")
   }
@@ -408,11 +408,11 @@ try {
   }
   const success = run()
   assert.equal(success.step.$, "Finished")
-  assert.deepEqual(success.enqueued, [1n])
-  assert.deepEqual(success.settled, [3n])
+  assert.deepEqual(success.enqueued, [1])
+  assert.deepEqual(success.settled, [3])
   assert.deepEqual(
     success.commands.filter((command) => command.$ === "LookupReuse").map((command) => command.outcome.handle),
-    [1n, 2n, 3n, 4n, 5n, 6n]
+    [1, 2, 3, 4, 5, 6]
   )
   assert.equal(success.commands.filter((command) => command.$ === "OwnerBarrier").length, 1)
   assert.equal(success.commands.filter((command) => command.$ === "JoinedBarrier").length, 1)
@@ -421,7 +421,7 @@ try {
     false
   )
   cases++
-  for (const refused of [[1n], [1n, 3n]]) {
+  for (const refused of [[1], [1, 3]]) {
     const result = run({
       outcomes: outcomes.map((outcome) => ({ ...outcome, fits: !refused.includes(outcome.handle) }))
     })
@@ -450,8 +450,8 @@ try {
       assert.deepEqual(
         array(failed.cleanup[0].actions)
           .filter((action) => action.$ === "ReleaseCleanupReservation")
-          .map((action) => action.handle - 200n),
-        refused.includes(3n) ? [] : [3n]
+          .map((action) => action.handle - 200),
+        refused.includes(3) ? [] : [3]
       )
       cases++
     }
@@ -465,7 +465,7 @@ try {
       { noWork: true },
       (result) => assert.equal(result.commands.filter((command) => command.$ === "ReleaseUnspawned").length, 2)
     ],
-    [{ noWork: true, bound: false }, (result) => assert.deepEqual(result.enqueued, [1n])],
+    [{ noWork: true, bound: false }, (result) => assert.deepEqual(result.enqueued, [1])],
     [
       { enqueueRefused: true },
       (result) => assert.equal(result.commands.filter((command) => command.$ === "ReleaseAttached").length, 1)
@@ -478,7 +478,7 @@ try {
         assert.equal(result.cleanup.length, 1)
         assert.ok(
           array(result.cleanup[0].actions).some(
-            (action) => action.$ === "ReleaseCleanupReservation" && action.handle === 201n
+            (action) => action.$ === "ReleaseCleanupReservation" && action.handle === 201
           )
         )
       }
@@ -496,13 +496,13 @@ try {
         result.step.reason.$,
         kind === "failAt" ? "TechnicalFailure" : kind === "defectAt" ? "DefectFailure" : "CancelledReason"
       )
-      assert.equal(result.step.reason.token, kind === "failAt" ? 77n : kind === "defectAt" ? 89n : 88n)
+      assert.equal(result.step.reason.token, kind === "failAt" ? 77 : kind === "defectAt" ? 89 : 88)
       assert.equal(result.cleanup.length, 2)
       assert.deepEqual(result.cleanup[0], result.cleanup[1])
       for (const command of result.cleanup)
         for (const action of array(command.actions)) {
           if (action.$ !== "ReleaseCleanupReservation") continue
-          const key = action.handle - 200n
+          const key = action.handle - 200
           assert.ok(!result.enqueued.includes(key), "cleanup touched transferred dispatcher owner")
           assert.ok(
             array(command.actions).some((other) => other.$ === "ReleaseCleanupClaim" && other.handle === key),
@@ -531,22 +531,22 @@ try {
   for (let mask = 0; mask < 512; mask++) {
     const bit = (index) => Boolean(mask & (1 << index))
     const facts = [
-      { $: "CleanupTail", handle: 1n, started: bit(0) },
-      { $: "CleanupWork", handle: 2n, cached: bit(1), completed: bit(2), round_bound: bit(3), work_bound: bit(4) },
-      { $: "CleanupReservation", handle: 3n, present: bit(5), transferred: bit(6), discharged: bit(7) },
-      { $: "CleanupRevision", handle: 4n, present: bit(5), transferred: bit(6) },
-      { $: "CleanupClaim", handle: 5n, present: bit(7), transferred: bit(8) },
+      { $: "CleanupTail", handle: 1, started: bit(0) },
+      { $: "CleanupWork", handle: 2, cached: bit(1), completed: bit(2), round_bound: bit(3), work_bound: bit(4) },
+      { $: "CleanupReservation", handle: 3, present: bit(5), transferred: bit(6), discharged: bit(7) },
+      { $: "CleanupRevision", handle: 4, present: bit(5), transferred: bit(6) },
+      { $: "CleanupClaim", handle: 5, present: bit(7), transferred: bit(8) },
       { $: "CleanupWorkspace", source_owned: bit(8), active: bit(0) }
     ]
     const expected = []
-    if (!bit(0)) expected.push({ $: "DrainCleanupTail", handle: 1n })
-    if (bit(1) && !bit(2) && bit(3) && bit(4)) expected.push({ $: "RetireCleanupWork", handle: 2n })
+    if (!bit(0)) expected.push({ $: "DrainCleanupTail", handle: 1 })
+    if (bit(1) && !bit(2) && bit(3) && bit(4)) expected.push({ $: "RetireCleanupWork", handle: 2 })
     if (!bit(6)) {
-      if (bit(5)) expected.push({ $: "ReleaseCleanupReservation", handle: 3n })
+      if (bit(5)) expected.push({ $: "ReleaseCleanupReservation", handle: 3 })
       else if (!bit(7)) expected.push({ $: "InvalidCleanupReservation" })
     }
-    if (bit(5) && !bit(6)) expected.push({ $: "ReleaseCleanupRevision", handle: 4n })
-    if (bit(7) && !bit(8)) expected.push({ $: "ReleaseCleanupClaim", handle: 5n })
+    if (bit(5) && !bit(6)) expected.push({ $: "ReleaseCleanupRevision", handle: 4 })
+    if (bit(7) && !bit(8)) expected.push({ $: "ReleaseCleanupClaim", handle: 5 })
     if (!bit(8) && bit(0)) expected.push({ $: "ReleaseCleanupWorkspace" })
     for (const mode of ["RetryCleanup", "CollectCleanup"]) {
       let cursor = core.cleanup_initial({ $: mode }, list(facts))
@@ -576,10 +576,10 @@ try {
     // Each stage is requested only after the preceding action settles, including failures.
     finish = core.cleanup_finish_inventory(
       finish,
-      list([{ $: "CleanupClaim", handle: 33n, present: true, transferred: false }])
+      list([{ $: "CleanupClaim", handle: 33, present: true, transferred: false }])
     )
     assert.equal(finish.$, "CleanupFinishRun")
-    assert.deepEqual(finish.cursor.action, { $: "ReleaseCleanupClaim", handle: 33n })
+    assert.deepEqual(finish.cursor.action, { $: "ReleaseCleanupClaim", handle: 33 })
     finish = core.cleanup_finish_reply(finish, false)
   }
   assert.equal(finish.$, "CleanupFinishDone")
@@ -753,7 +753,7 @@ try {
   ]
   const nativeRouteNames = Object.fromEntries(routeCases.map((entry) => [entry[4], entry[3]]))
   for (const [tag, kind, join] of routeCases) {
-    const route = tag === "CachedFinding" ? { $: tag, evaluation: 99n } : { $: tag }
+    const route = tag === "CachedFinding" ? { $: tag, evaluation: 99 } : { $: tag }
     assert.equal(core.route_cached(route), kind === "cached")
     assert.deepEqual(
       array(core.native_plan_actions(route)).map((x) => x.$),
@@ -1001,7 +1001,7 @@ try {
         cases++
       }
   const runTail = (options) => {
-    let step = core.advice_initial(77n, 900n),
+    let step = core.advice_initial(77, 900),
       ordinal = 0
     const commands = []
     for (let fuel = 0; fuel < 20; fuel++) {
@@ -1011,13 +1011,13 @@ try {
       commands.push(command)
       requests++
       ordinal++
-      assert.equal(command.advice, 900n)
+      assert.equal(command.advice, 900)
       assert.equal(
-        core.advice_resume(step, { $: "Reply", invocation: 78n, id: request.id, response: { $: "Ack" } }).$,
+        core.advice_resume(step, { $: "Reply", invocation: 78, id: request.id, response: { $: "Ack" } }).$,
         "AdviceRejected"
       )
       assert.equal(
-        core.advice_resume(step, { $: "Reply", invocation: 77n, id: request.id + 1n, response: { $: "Ack" } }).$,
+        core.advice_resume(step, { $: "Reply", invocation: 77, id: request.id + 1, response: { $: "Ack" } }).$,
         "AdviceRejected"
       )
       let response =
@@ -1026,25 +1026,25 @@ try {
           : command.$ === "AdviceCheckActive"
             ? { $: "Active", value: !options.inactive }
             : command.$ === "AdvicePublish"
-              ? { $: "Published", publication: 44n }
+              ? { $: "Published", publication: 44 }
               : { $: "Ack" }
-      if (ordinal === options.failAt) response = { $: "Failed", token: 71n }
-      if (ordinal === options.defectAt) response = { $: "Defect", token: 74n }
-      if (ordinal === options.cancelAt) response = { $: "Cancelled", token: 72n }
+      if (ordinal === options.failAt) response = { $: "Failed", token: 71 }
+      if (ordinal === options.defectAt) response = { $: "Defect", token: 74 }
+      if (ordinal === options.cancelAt) response = { $: "Cancelled", token: 72 }
       if (
         command.$ === "AdviceRemove" &&
         options.cleanupFailure &&
         (options.cleanupAlways || commands.filter((value) => value.$ === "AdviceRemove").length === 1)
       )
-        response = { $: "Failed", token: 73n }
-      step = core.advice_resume(step, { $: "Reply", invocation: 77n, id: request.id, response })
+        response = { $: "Failed", token: 73 }
+      step = core.advice_resume(step, { $: "Reply", invocation: 77, id: request.id, response })
     }
     throw new Error("Advice tail did not terminate")
   }
   const permanentCleanupFailure = runTail({ failAt: 1, cleanupFailure: true, cleanupAlways: true })
   assert.equal(permanentCleanupFailure.step.$, "AdviceCleanupPending")
-  assert.equal(permanentCleanupFailure.step.advice, 900n)
-  assert.equal(permanentCleanupFailure.step.reason.token, 71n)
+  assert.equal(permanentCleanupFailure.step.advice, 900)
+  assert.equal(permanentCleanupFailure.step.reason.token, 71)
   assert.equal(permanentCleanupFailure.commands.filter((value) => value.$ === "AdviceRemove").length, 2)
   cases++
   const expiredTail = runTail({ failAt: 1, expired: true })
@@ -1078,7 +1078,7 @@ try {
         result.step.reason.$,
         kind === "failAt" ? "TechnicalFailure" : kind === "defectAt" ? "DefectFailure" : "CancelledReason"
       )
-      assert.equal(result.step.reason.token, kind === "failAt" ? 71n : kind === "defectAt" ? 74n : 72n)
+      assert.equal(result.step.reason.token, kind === "failAt" ? 71 : kind === "defectAt" ? 74 : 72)
       assert.equal(result.commands.filter((value) => value.$ === "AdviceRemove").length, 2)
       cases++
     }

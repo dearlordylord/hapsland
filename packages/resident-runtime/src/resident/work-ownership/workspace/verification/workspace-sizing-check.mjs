@@ -172,11 +172,11 @@ try {
   // Closed cursor protocol: no fabricated receipt may pass a branch/error/terminal.
   const nil = list([])
   for (const operation of [
-    { $: "WorkspaceConstant", target: 5n, value: { $: "WorkspaceMaxSource" } },
-    { $: "WorkspaceReadOptional", target: 4n, source: 2n, field: "declarations" },
-    { $: "WorkspaceCall", target: 9n, primitive: { $: "WorkspaceMultiply" }, arguments: list([1n, 2n]) }
+    { $: "WorkspaceConstant", target: 5, value: { $: "WorkspaceMaxSource" } },
+    { $: "WorkspaceReadOptional", target: 4, source: 2, field: "declarations" },
+    { $: "WorkspaceCall", target: 9, primitive: { $: "WorkspaceMultiply" }, arguments: list([1, 2]) }
   ]) {
-    const step = { $: "WorkspaceAwait", operation, remaining: nil, result: 9n }
+    const step = { $: "WorkspaceAwait", operation, remaining: nil, result: 9 }
     assert.equal(core.resume(step, { $: "WorkspaceAck" }).$, "WorkspaceDone")
     for (const value of [false, true])
       assert.equal(core.resume(step, { $: "WorkspaceFlag", value }).$, "WorkspaceRejected")
@@ -192,15 +192,15 @@ try {
       no: nil
     },
     remaining: nil,
-    result: 9n
+    result: 9
   }
   assert.equal(core.resume(branch, { $: "WorkspaceAck" }).$, "WorkspaceRejected")
   assert.equal(core.resume(branch, { $: "WorkspaceFlag", value: true }).operation.$, "WorkspaceInvalidSource")
   assert.equal(core.resume(branch, { $: "WorkspaceFlag", value: false }).$, "WorkspaceDone")
   for (const step of [
-    { $: "WorkspaceDone", result: 9n },
+    { $: "WorkspaceDone", result: 9 },
     { $: "WorkspaceRejected" },
-    { $: "WorkspaceAwait", operation: { $: "WorkspaceInvalidSource" }, remaining: nil, result: 9n }
+    { $: "WorkspaceAwait", operation: { $: "WorkspaceInvalidSource" }, remaining: nil, result: 9 }
   ]) {
     for (const reply of [
       { $: "WorkspaceAck" },

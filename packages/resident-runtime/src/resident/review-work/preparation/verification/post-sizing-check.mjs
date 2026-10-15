@@ -126,7 +126,7 @@ for (const status of ["ready", "incomplete"]) {
   assert.equal(postSizing.postOutcomeFits(outcome), status === "ready" && nativeWorst(prepared) <= 262144 - 1024)
   assert.equal(
     postSizing.postOutcomeReservationBytes(outcome, observation, dispatch),
-    status === "ready" ? BigInt(nativeReservation(observation, dispatch, prepared)) : 0n
+    status === "ready" ? Number(BigInt(nativeReservation(observation, dispatch, prepared))) : 0
   )
   assert.equal(statusReads, 2)
   assert.equal(preparedReads, status === "ready" ? 2 : 0)

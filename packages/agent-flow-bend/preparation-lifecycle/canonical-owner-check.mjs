@@ -48,7 +48,7 @@ try {
   )
   const m = (await import(pathToFileURL(emitted))).default
   const c = (name, fields = {}) => ({ $: "../Canonical." + name, ...fields })
-  const scope = { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n }
+  const scope = { $: "Scope", partition: 1, lifetime: 1, round: 1, preparation: 2 }
   const list = (value) => {
     const out = []
     while (value.$ === "Con") {
@@ -67,12 +67,12 @@ try {
     assert.equal(value.refusal.$, reason)
   }
   const fresh = () => {
-    let s = m.initial_limits(100n, 100000n, 100n, 100000n)
+    let s = m.initial_limits(100, 100000, 100, 100000)
     for (const event of [
-      c("OpenRound", { partition: 1n, lifetime: 1n }),
-      c("AdmitObservation", { partition: 1n, lifetime: 1n, round: 1n }),
-      c("StartObservation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n }),
-      c("BeginObservedPreparation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n, bytes: 100n })
+      c("OpenRound", { partition: 1, lifetime: 1 }),
+      c("AdmitObservation", { partition: 1, lifetime: 1, round: 1 }),
+      c("StartObservation", { partition: 1, lifetime: 1, round: 1, observation: 1 }),
+      c("BeginObservedPreparation", { partition: 1, lifetime: 1, round: 1, observation: 1, bytes: 100 })
     ])
       s = advanced(m.canonical_event(s, event))
     assert.equal(m.live(s.canonical, scope), true)
@@ -80,8 +80,8 @@ try {
   }
   let assertions = 0
   {
-    const before = advanced(m.launch(fresh(), scope, 50n))
-    const after = advanced(m.cancel(before, 1n))
+    const before = advanced(m.launch(fresh(), scope, 50))
+    const after = advanced(m.cancel(before, 1))
     let reads = 0
     const child = before.children.head
     const observed = {
@@ -98,16 +98,16 @@ try {
     assert.equal(typeof reader.query, "function")
     assert.ok(constructionReads > 0)
     for (let repeat = 0; repeat < 16; repeat++) {
-      assert.deepEqual(reader.query(1n), { $: "Some", value: true })
-      assert.deepEqual(reader.query(0n), { $: "None" })
-      assert.deepEqual(reader.query((1n << 48n) - 1n), { $: "None" })
+      assert.deepEqual(reader.query(1), { $: "Some", value: true })
+      assert.deepEqual(reader.query(0), { $: "None" })
+      assert.deepEqual(reader.query((1 << 48) - 1), { $: "None" })
       assertions += 3
     }
     assert.equal(reads, constructionReads)
     observed.phase = { $: "ChildCancelled" }
-    assert.deepEqual(reader.query(1n), { $: "Some", value: true })
-    assert.deepEqual(m.active_reader(children).query(1n), { $: "Some", value: false })
-    assert.deepEqual(m.active_reader(after.children).query(1n), { $: "Some", value: false })
+    assert.deepEqual(reader.query(1), { $: "Some", value: true })
+    assert.deepEqual(m.active_reader(children).query(1), { $: "Some", value: false })
+    assert.deepEqual(m.active_reader(after.children).query(1), { $: "Some", value: false })
     const emittedSource = await readFile(emitted, "utf8")
     const factoryExport = emittedSource.split("\n").find((line) => line.startsWith('  "active_reader":'))
     assert.match(factoryExport, /, 1\),$/u)
@@ -142,12 +142,12 @@ try {
         synchronousAdvance(held) {
           if (held.step.$ !== "Continue") return undefined
           trace.push("advance")
-          if (cancellation === "advance") driver.cancel(BigInt(invocation))
+          if (cancellation === "advance") driver.cancel(Number(BigInt(invocation)))
           return {
             ...held,
             step:
               held.step.remaining === 1
-                ? { $: "Types.AwaitService", request: { invocation: BigInt(invocation), id: 7n } }
+                ? { $: "Types.AwaitService", request: { invocation: Number(BigInt(invocation)), id: 7 } }
                 : { $: "Continue", remaining: held.step.remaining - 1 }
           }
         }
@@ -155,7 +155,7 @@ try {
       foreignSync() {
         trace.push("effect")
         queueMicrotask(() => trace.push("microtask"))
-        if (cancellation === "effect") driver.cancel(BigInt(invocation))
+        if (cancellation === "effect") driver.cancel(Number(BigInt(invocation)))
         return { value: { value: "reply" } }
       },
       foreign() {
@@ -164,7 +164,7 @@ try {
     })
     const invocation = driver.allocateInvocation()
     const session = { invocation, finish() {}, close() {}, revoke() {} }
-    const outcome = await driver.drive(session, { invocation: BigInt(invocation) })
+    const outcome = await driver.drive(session, { invocation: Number(BigInt(invocation)) })
     assert.deepEqual(
       trace,
       cancellation === "none"
@@ -191,7 +191,7 @@ try {
       maps = 0,
       closes = 0
     const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
       view: (value) => value,
       resume() {
         trace.push("resume")
@@ -204,7 +204,7 @@ try {
     }
     const driver = createFixtureDriver({
       owner: m,
-      initialState: m.initial_limits(100n, 100000n, 100n, 100000n),
+      initialState: m.initial_limits(100, 100000, 100, 100000),
       registry,
       machine,
       hooks: {
@@ -217,7 +217,7 @@ try {
       },
       foreignSync(requests, execution) {
         assert.equal(requests.length, 1)
-        assert.equal(execution.ownerLease.request, 7n)
+        assert.equal(execution.ownerLease.request, 7)
         let primitive = 0
         return {
           group: {
@@ -231,7 +231,7 @@ try {
                     if (index === 0) {
                       queueMicrotask(() => trace.push("microtask"))
                       if (mode === "cancel" || mode === "throw" || mode.startsWith("cancel-"))
-                        driver.cancel(BigInt(invocation))
+                        driver.cancel(Number(BigInt(invocation)))
                     }
                     if (index === 1 && mode === "throw") throw original
                   }
@@ -272,11 +272,11 @@ try {
     }
     if (mode === "throw") {
       await assert.rejects(
-        () => driver.drive(session, { invocation: BigInt(invocation) }),
+        () => driver.drive(session, { invocation: Number(BigInt(invocation)) }),
         (error) => error === original
       )
     } else {
-      const outcome = await driver.drive(session, { invocation: BigInt(invocation) })
+      const outcome = await driver.drive(session, { invocation: Number(BigInt(invocation)) })
       if (mode === "terminal" || mode === "pending") assert.equal(outcome.result, "accepted")
       else assert.equal(outcome.failure.$, "Types.InvocationCancelled")
     }
@@ -311,7 +311,7 @@ try {
       completions = 0,
       primitive = 0
     const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
       view: (value) => value,
       resume() {
         trace.push("resume")
@@ -322,7 +322,7 @@ try {
     }
     const driver = createFixtureDriver({
       owner: m,
-      initialState: m.initial_limits(100n, 100000n, 100n, 100000n),
+      initialState: m.initial_limits(100, 100000, 100, 100000),
       registry,
       machine,
       hooks: {
@@ -340,7 +340,7 @@ try {
             next() {
               if (mode === "cancel-next") {
                 trace.push("next-cancel")
-                driver.cancel(BigInt(invocation))
+                driver.cancel(Number(BigInt(invocation)))
               }
               if (primitive < 2) {
                 const index = primitive++
@@ -350,7 +350,7 @@ try {
                     trace.push("effect " + index)
                     if (index === 0) {
                       queueMicrotask(() => trace.push("microtask"))
-                      if (mode === "cancel-effect" || mode === "cancel-throw") driver.cancel(BigInt(invocation))
+                      if (mode === "cancel-effect" || mode === "cancel-throw") driver.cancel(Number(BigInt(invocation)))
                       if (mode === "cancel-throw") throw original
                     }
                     return {
@@ -366,7 +366,7 @@ try {
                 kind: "checkpointed",
                 perform() {
                   trace.push("start")
-                  if (mode !== "pending") driver.cancel(BigInt(invocation))
+                  if (mode !== "pending") driver.cancel(Number(BigInt(invocation)))
                   if (mode === "start-throw") throw original
                   return {
                     pending: mode === "cancel-reject" ? Promise.reject(original) : Promise.resolve("reply"),
@@ -397,11 +397,11 @@ try {
     }
     if (mode === "cancel-throw" || mode === "start-throw")
       await assert.rejects(
-        () => driver.drive(session, { invocation: BigInt(invocation) }),
+        () => driver.drive(session, { invocation: Number(BigInt(invocation)) }),
         (error) => Object.is(error, original)
       )
     else {
-      const result = await driver.drive(session, { invocation: BigInt(invocation) })
+      const result = await driver.drive(session, { invocation: Number(BigInt(invocation)) })
       if (mode === "terminal" || mode === "pending") assert.equal(result.result, "accepted")
       else assert.equal(result.failure.$, "Types.InvocationCancelled")
     }
@@ -430,7 +430,7 @@ try {
         starts = 0,
         resumes = 0
       const machine = {
-        initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+        initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
         view: (value) => value,
         resume() {
           resumes++
@@ -441,13 +441,13 @@ try {
       }
       const driver = createFixtureDriver({
         owner: m,
-        initialState: m.initial_limits(100n, 100000n, 100n, 100000n),
+        initialState: m.initial_limits(100, 100000, 100, 100000),
         registry,
         machine,
         foreignSync() {
           const effect = Effect.sync(() => {
             starts++
-            driver.cancel(BigInt(invocation))
+            driver.cancel(Number(BigInt(invocation)))
             throw failure
           })
           return grouped
@@ -477,7 +477,7 @@ try {
           closes++
         }
       }
-      const result = await Effect.runPromise(driver.driveEffect(session, { invocation: BigInt(invocation) }))
+      const result = await Effect.runPromise(driver.driveEffect(session, { invocation: Number(BigInt(invocation)) }))
       assert.equal(result.failure.$, "Types.InvocationCancelled")
       outcomes.push({ result, closes, starts, resumes, resources: driver.resources })
     }
@@ -501,7 +501,7 @@ try {
       startedEngine = resolve
     })
     const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
       view: (value) => value,
       resume() {
         resumed++
@@ -521,10 +521,10 @@ try {
       foreignSync() {
         startedEngine()
         if (mode === "immediate") {
-          driver.cancel(BigInt(invocation))
+          driver.cancel(Number(BigInt(invocation)))
           throw original
         }
-        if (mode.startsWith("cancel")) driver.cancel(BigInt(invocation))
+        if (mode.startsWith("cancel")) driver.cancel(Number(BigInt(invocation)))
         const pending =
           mode === "external-reject"
             ? new Promise((_resolve, reject) => {
@@ -555,10 +555,10 @@ try {
         closes++
       }
     }
-    const execution = driver.drive(session, { invocation: BigInt(invocation) })
+    const execution = driver.drive(session, { invocation: Number(BigInt(invocation)) })
     if (mode === "external-reject") {
       await started
-      driver.cancel(BigInt(invocation))
+      driver.cancel(Number(BigInt(invocation)))
       rejectPending(original)
     }
     if (mode === "immediate") await assert.rejects(execution, (error) => error === original)
@@ -580,62 +580,62 @@ try {
     ["SettingsScope", "launch_settings"],
     ["FreshnessScope", "launch_freshness"]
   ]) {
-    let settings = m.initial_limits(100n, 100000n, 100n, 100000n)
+    let settings = m.initial_limits(100, 100000, 100, 100000)
     const untouchedCanonical = settings.canonical
-    let settingsOut = m[launchMethod](settings, 500n)
+    let settingsOut = m[launchMethod](settings, 500)
     assert.deepEqual(list(settingsOut.outputs), [])
     settings = advanced(settingsOut)
     assert.deepEqual(settings.canonical, untouchedCanonical)
-    const settingsChild = m.find(1n, settings.children).value
-    assert.deepEqual(settingsChild.scope, { $: scopeKind, operation: 1n })
+    const settingsChild = m.find(1, settings.children).value
+    assert.deepEqual(settingsChild.scope, { $: scopeKind, operation: 1 })
     assert.equal(m.live(settings.canonical, settingsChild.scope), false)
     assert.equal(m.child_live(settings.canonical, settings.children, settingsChild), true)
     assert.equal(
-      m.child_live(settings.canonical, settings.children, { ...settingsChild, scope: { $: scopeKind, operation: 2n } }),
+      m.child_live(settings.canonical, settings.children, { ...settingsChild, scope: { $: scopeKind, operation: 2 } }),
       false
     )
-    reject(m.launch(settings, settingsChild.scope, 501n), "NotPreparing")
-    settings = advanced(m.install(settings, 1n, 0n, 511n, 0n))
-    settings = advanced(m.provider_start(settings, 1n))
-    assert.equal(m.provider_live(settings, 1n, 0n, 1n, 0n), true)
+    reject(m.launch(settings, settingsChild.scope, 501), "NotPreparing")
+    settings = advanced(m.install(settings, 1, 0, 511, 0))
+    settings = advanced(m.provider_start(settings, 1))
+    assert.equal(m.provider_live(settings, 1, 0, 1, 0), true)
     for (const tuple of [
-      [2n, 0n, 1n, 0n],
-      [1n, 1n, 1n, 0n],
-      [1n, 0n, 2n, 0n],
-      [1n, 0n, 1n, 1n]
+      [2, 0, 1, 0],
+      [1, 1, 1, 0],
+      [1, 0, 2, 0],
+      [1, 0, 1, 1]
     ])
       assert.equal(m.provider_live(settings, ...tuple), false)
-    const settingsNested = m.launch_nested(settings, { $: "Parent", invocation: 1n, generation: 0n, request: 0n }, 516n)
+    const settingsNested = m.launch_nested(settings, { $: "Parent", invocation: 1, generation: 0, request: 0 }, 516)
     reject(settingsNested, "WrongPhase")
     assert.deepEqual(settingsNested.state, settings)
     assert.deepEqual(
       list(settings.children).map((child) => child.invocation),
-      [1n]
+      [1]
     )
-    const cancelledSettings = advanced(m.cancel(settings, 1n))
-    assert.equal(m.provider_live(cancelledSettings, 1n, 0n, 1n, 0n), false)
-    const cancelledCompletion = m.provider_completed(cancelledSettings, 1n, 1n, 0n, 512n)
+    const cancelledSettings = advanced(m.cancel(settings, 1))
+    assert.equal(m.provider_live(cancelledSettings, 1, 0, 1, 0), false)
+    const cancelledCompletion = m.provider_completed(cancelledSettings, 1, 1, 0, 512)
     assert.equal(
       list(cancelledCompletion.actions).some((action) => action.$ === "Resume" || action.$ === "AcceptResult"),
       false
     )
-    settings = advanced(m.provider_completed(settings, 1n, 1n, 0n, 512n))
-    settingsOut = m.terminal(settings, 1n, 1n, 513n)
+    settings = advanced(m.provider_completed(settings, 1, 1, 0, 512))
+    settingsOut = m.terminal(settings, 1, 1, 513)
     assert.deepEqual(list(settingsOut.actions), [
-      { $: "AcceptResult", scope: settingsChild.scope, invocation: 1n, result_handle: 513n }
+      { $: "AcceptResult", scope: settingsChild.scope, invocation: 1, result_handle: 513 }
     ])
     settings = advanced(settingsOut)
-    assert.equal(m.child_live(settings.canonical, settings.children, m.find(1n, settings.children).value), false)
-    reject(m.terminal(settings, 1n, 1n, 513n), "WrongPhase")
-    settings = advanced(m[launchMethod](settings, 514n))
-    assert.deepEqual(m.find(2n, settings.children).value.scope, { $: scopeKind, operation: 2n })
+    assert.equal(m.child_live(settings.canonical, settings.children, m.find(1, settings.children).value), false)
+    reject(m.terminal(settings, 1, 1, 513), "WrongPhase")
+    settings = advanced(m[launchMethod](settings, 514))
+    assert.deepEqual(m.find(2, settings.children).value.scope, { $: scopeKind, operation: 2 })
     assert.deepEqual(settings.canonical, untouchedCanonical)
-    reject(m[launchMethod]({ ...settings, next_invocation: 0n }, 515n), "NotPreparing")
-    reject(m[launchMethod]({ ...settings, next_invocation: 1n }, 515n), "NotPreparing")
+    reject(m[launchMethod]({ ...settings, next_invocation: 0 }, 515), "NotPreparing")
+    reject(m[launchMethod]({ ...settings, next_invocation: 1 }, 515), "NotPreparing")
     assert.equal(
       m.child_live(settings.canonical, settings.children, {
-        ...m.find(2n, settings.children).value,
-        scope: { $: scopeKind === "SettingsScope" ? "FreshnessScope" : "SettingsScope", operation: 2n }
+        ...m.find(2, settings.children).value,
+        scope: { $: scopeKind === "SettingsScope" ? "FreshnessScope" : "SettingsScope", operation: 2 }
       }),
       false
     )
@@ -645,11 +645,11 @@ try {
   // Its named operation must not create preparation work or require host IDs.
   for (const cancelled of [false, true]) {
     const registry = createServiceRegistry()
-    const initialState = m.initial_limits(100n, 100000n, 100n, 100000n)
+    const initialState = m.initial_limits(100, 100000, 100, 100000)
     let closes = 0,
       resumed = 0
     const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 1n } }),
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 1 } }),
       view: (value) => value,
       resume() {
         resumed++
@@ -666,7 +666,7 @@ try {
       registry,
       machine,
       foreignSync() {
-        if (cancelled) driver.cancel(BigInt(invocation))
+        if (cancelled) driver.cancel(Number(BigInt(invocation)))
         return { value: { value: "fact" } }
       },
       foreign() {
@@ -675,7 +675,7 @@ try {
     })
     const invocation = driver.allocateFreshnessInvocation()
     assert.equal(invocation, 1)
-    assert.deepEqual(m.find(1n, driver.state.children).value.scope, { $: "FreshnessScope", operation: 1n })
+    assert.deepEqual(m.find(1, driver.state.children).value.scope, { $: "FreshnessScope", operation: 1 })
     const session = {
       invocation,
       finish() {},
@@ -684,7 +684,7 @@ try {
         closes++
       }
     }
-    const outcome = await driver.drive(session, { invocation: BigInt(invocation) })
+    const outcome = await driver.drive(session, { invocation: Number(BigInt(invocation)) })
     if (cancelled) assert.equal(outcome.failure.$, "Types.InvocationCancelled")
     else assert.equal(outcome.result, "freshness")
     assert.equal(resumed, cancelled ? 0 : 1)
@@ -697,10 +697,10 @@ try {
   let invalidSource = fresh()
   const wrongScope = {
     $: "SourceScope",
-    partition: 1n,
-    lifetime: 1n,
-    round: 1n,
-    observation: 2n,
+    partition: 1,
+    lifetime: 1,
+    round: 1,
+    observation: 2,
     permission: { $: "SourceNew" }
   }
   invalidSource = {
@@ -710,9 +710,9 @@ try {
       head: {
         $: "Child",
         scope: wrongScope,
-        invocation: 1n,
-        generation: 0n,
-        handle: 0n,
+        invocation: 1,
+        generation: 0,
+        handle: 0,
         phase: { $: "ChildInstalling" },
         request: { $: "None" },
         lease: { $: "None" },
@@ -721,7 +721,7 @@ try {
       tail: { $: "Nil" }
     }
   }
-  const refusedSource = m.terminal_source_failed(invalidSource, 1n, 0n, 600n)
+  const refusedSource = m.terminal_source_failed(invalidSource, 1, 0, 600)
   reject(refusedSource, "CanonicalRejected")
   assert.equal(refusedSource.refusal.reason.$, "../Canonical.WrongStage")
   assert.deepEqual(refusedSource.state, invalidSource)
@@ -729,128 +729,126 @@ try {
   let source = fresh()
   const sourceScope = {
     $: "SourceScope",
-    partition: 1n,
-    lifetime: 1n,
-    round: 1n,
-    observation: 1n,
+    partition: 1,
+    lifetime: 1,
+    round: 1,
+    observation: 1,
     permission: { $: "SourceNew" }
   }
-  source = advanced(m.launch_source(source, sourceScope, 400n))
-  reject(m.launch_source(source, sourceScope, 499n), "NotPreparing")
-  reject(m.complete_source_observation(source, 1n, 0n, 1n, 0n), "WrongPhase")
-  source = advanced(m.install_source(source, 1n, 0n, 401n, 0n, { $: "SourceCandidate" }))
-  source = advanced(m.provider_start(source, 1n))
-  const sourceParent = { $: "Parent", invocation: 1n, generation: 0n, request: 0n }
+  source = advanced(m.launch_source(source, sourceScope, 400))
+  reject(m.launch_source(source, sourceScope, 499), "NotPreparing")
+  reject(m.complete_source_observation(source, 1, 0, 1, 0), "WrongPhase")
+  source = advanced(m.install_source(source, 1, 0, 401, 0, { $: "SourceCandidate" }))
+  source = advanced(m.provider_start(source, 1))
+  const sourceParent = { $: "Parent", invocation: 1, generation: 0, request: 0 }
   source = advanced(
     m.launch_source_preparation(
       source,
       sourceParent,
-      { $: "PreparationScope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },
-      402n
+      { $: "PreparationScope", partition: 1, lifetime: 1, round: 1, preparation: 2 },
+      402
     )
   )
-  assert.deepEqual(m.find(2n, source.children).value.parent.value, sourceParent)
-  source = advanced(m.install(source, 2n, 0n, 403n, 0n))
-  source = advanced(m.provider_start(source, 2n))
-  source = advanced(m.launch_nested(source, { $: "Parent", invocation: 2n, generation: 0n, request: 0n }, 404n))
-  assert.equal(m.find(3n, source.children).value.scope.$, "Scope")
-  const sourceCancelled = advanced(m.cancel(source, 1n))
-  for (const invocation of [1n, 2n, 3n])
+  assert.deepEqual(m.find(2, source.children).value.parent.value, sourceParent)
+  source = advanced(m.install(source, 2, 0, 403, 0))
+  source = advanced(m.provider_start(source, 2))
+  source = advanced(m.launch_nested(source, { $: "Parent", invocation: 2, generation: 0, request: 0 }, 404))
+  assert.equal(m.find(3, source.children).value.scope.$, "Scope")
+  const sourceCancelled = advanced(m.cancel(source, 1))
+  for (const invocation of [1, 2, 3])
     assert.equal(m.find(invocation, sourceCancelled.children).value.phase.$, "ChildCancelled")
-  reject(m.launch_nested(source, { $: "Parent", invocation: 3n, generation: 0n, request: 0n }, 405n), "WrongPhase")
-  source = advanced(m.terminal(source, 3n, 0n, 406n))
-  source = advanced(m.provider_completed(source, 2n, 2n, 0n, 407n))
-  source = advanced(m.terminal_preparation(source, 2n, 1n, 408n))
-  assert.deepEqual(m.find(4n, source.children).value.parent.value, sourceParent)
-  source = advanced(m.terminal(source, 4n, 0n, 409n))
-  source = advanced(m.provider_completed(source, 1n, 1n, 0n, 410n))
-  source = advanced(m.install_source(source, 1n, 1n, 411n, 1n, { $: "SourceActivity" }))
-  source = advanced(m.provider_start(source, 1n))
-  reject(m.complete_source_observation(source, 1n, 1n, 3n, 1n), "WrongPhase")
-  source = advanced(m.provider_completed(source, 1n, 3n, 1n, 412n))
-  source = advanced(m.install_source(source, 1n, 2n, 413n, 2n, { $: "SourceObservation" }))
-  source = advanced(m.provider_start(source, 1n))
-  const sourceOut = m.complete_source_observation(source, 1n, 2n, 4n, 2n)
+  reject(m.launch_nested(source, { $: "Parent", invocation: 3, generation: 0, request: 0 }, 405), "WrongPhase")
+  source = advanced(m.terminal(source, 3, 0, 406))
+  source = advanced(m.provider_completed(source, 2, 2, 0, 407))
+  source = advanced(m.terminal_preparation(source, 2, 1, 408))
+  assert.deepEqual(m.find(4, source.children).value.parent.value, sourceParent)
+  source = advanced(m.terminal(source, 4, 0, 409))
+  source = advanced(m.provider_completed(source, 1, 1, 0, 410))
+  source = advanced(m.install_source(source, 1, 1, 411, 1, { $: "SourceActivity" }))
+  source = advanced(m.provider_start(source, 1))
+  reject(m.complete_source_observation(source, 1, 1, 3, 1), "WrongPhase")
+  source = advanced(m.provider_completed(source, 1, 3, 1, 412))
+  source = advanced(m.install_source(source, 1, 2, 413, 2, { $: "SourceObservation" }))
+  source = advanced(m.provider_start(source, 1))
+  const sourceOut = m.complete_source_observation(source, 1, 2, 4, 2)
   source = advanced(sourceOut)
-  assert.equal(m.find(1n, source.children).value.scope.$, "AfterSourceScope")
+  assert.equal(m.find(1, source.children).value.scope.$, "AfterSourceScope")
   assert.equal(
-    list(sourceOut.actions).some((action) => action.$ === "CancelChild" && action.invocation === 1n),
+    list(sourceOut.actions).some((action) => action.$ === "CancelChild" && action.invocation === 1),
     false
   )
-  reject(m.complete_source_observation(source, 1n, 2n, 4n, 2n), "WrongPhase")
-  source = advanced(m.provider_completed(source, 1n, 4n, 2n, 414n))
-  reject(m.install(source, 1n, 3n, 415n, 9n), "WrongGeneration")
-  source = advanced(m.install_after_source(source, 1n, 3n, 415n, 3n, { $: "AfterBarrier" }))
-  source = advanced(m.provider_start(source, 1n))
-  source = advanced(m.provider_completed(source, 1n, 5n, 3n, 416n))
-  reject(m.install(source, 1n, 4n, 418n, 3n), "WrongGeneration")
+  reject(m.complete_source_observation(source, 1, 2, 4, 2), "WrongPhase")
+  source = advanced(m.provider_completed(source, 1, 4, 2, 414))
+  reject(m.install(source, 1, 3, 415, 9), "WrongGeneration")
+  source = advanced(m.install_after_source(source, 1, 3, 415, 3, { $: "AfterBarrier" }))
+  source = advanced(m.provider_start(source, 1))
+  source = advanced(m.provider_completed(source, 1, 5, 3, 416))
+  reject(m.install(source, 1, 4, 418, 3), "WrongGeneration")
   assert.equal(m.source_claimed(sourceScope, source.children), true)
-  source = advanced(m.terminal(source, 1n, 4n, 417n))
-  assert.equal(m.find(1n, source.children).value.phase.$, "ChildAccepted")
+  source = advanced(m.terminal(source, 1, 4, 417))
+  assert.equal(m.find(1, source.children).value.phase.$, "ChildAccepted")
   assertions += 12
   let s = fresh()
-  reject(m.launch(s, { ...scope, preparation: 1n }, 50n), "NotPreparing")
+  reject(m.launch(s, { ...scope, preparation: 1 }, 50), "NotPreparing")
   assertions++
-  let out = m.launch(s, scope, 50n)
-  assert.deepEqual(list(out.actions), [{ $: "Launch", invocation: 1n, input_handle: 50n }])
+  let out = m.launch(s, scope, 50)
+  assert.deepEqual(list(out.actions), [{ $: "Launch", invocation: 1, input_handle: 50 }])
   s = advanced(out)
-  s = advanced(m.install(s, 1n, 0n, 11n, 0n))
-  out = m.provider_start(s, 1n)
-  assert.deepEqual(list(out.actions), [
-    { $: "ExecuteProvider", invocation: 1n, lease: 1n, request: 0n, state_handle: 11n }
-  ])
+  s = advanced(m.install(s, 1, 0, 11, 0))
+  out = m.provider_start(s, 1)
+  assert.deepEqual(list(out.actions), [{ $: "ExecuteProvider", invocation: 1, lease: 1, request: 0, state_handle: 11 }])
   s = advanced(out)
   assertions += 2
-  assert.equal(m.provider_live(s, 1n, 0n, 1n, 0n), true)
+  assert.equal(m.provider_live(s, 1, 0, 1, 0), true)
   for (const tuple of [
-    [2n, 0n, 1n, 0n],
-    [1n, 1n, 1n, 0n],
-    [1n, 0n, 2n, 0n],
-    [1n, 0n, 1n, 1n]
+    [2, 0, 1, 0],
+    [1, 1, 1, 0],
+    [1, 0, 2, 0],
+    [1, 0, 1, 1]
   ])
     assert.equal(m.provider_live(s, ...tuple), false)
-  assert.equal(m.provider_live(advanced(m.cancel(s, 1n)), 1n, 0n, 1n, 0n), false)
+  assert.equal(m.provider_live(advanced(m.cancel(s, 1)), 1, 0, 1, 0), false)
   assertions += 6
-  reject(m.provider_completed(s, 1n, 2n, 0n, 60n), "WrongLease")
-  reject(m.provider_completed(s, 1n, 1n, 1n, 60n), "WrongLease")
+  reject(m.provider_completed(s, 1, 2, 0, 60), "WrongLease")
+  reject(m.provider_completed(s, 1, 1, 1, 60), "WrongLease")
   assertions += 2
-  out = m.provider_completed(s, 1n, 1n, 0n, 60n)
+  out = m.provider_completed(s, 1, 1, 0, 60)
   assert.deepEqual(
     list(out.actions).map((x) => x.$),
     ["Resume", "RetireHandle", "CleanupProvider"]
   )
   s = advanced(out)
   assertions++
-  reject(m.provider_completed(s, 1n, 1n, 0n, 60n), "WrongLease")
-  reject(m.install(s, 1n, 0n, 12n, 1n), "WrongGeneration")
+  reject(m.provider_completed(s, 1, 1, 0, 60), "WrongLease")
+  reject(m.install(s, 1, 0, 12, 1), "WrongGeneration")
   assertions += 2
-  out = m.terminal(s, 1n, 1n, 70n)
-  assert.deepEqual(list(out.actions), [{ $: "AcceptResult", scope, invocation: 1n, result_handle: 70n }])
+  out = m.terminal(s, 1, 1, 70)
+  assert.deepEqual(list(out.actions), [{ $: "AcceptResult", scope, invocation: 1, result_handle: 70 }])
   s = advanced(out)
-  reject(m.terminal(s, 1n, 1n, 70n), "WrongPhase")
-  reject(m.cancel(s, 1n), "WrongPhase")
+  reject(m.terminal(s, 1, 1, 70), "WrongPhase")
+  reject(m.cancel(s, 1), "WrongPhase")
   assertions += 3
-  out = m.launch(s, scope, 51n)
-  assert.equal(list(out.actions)[0].invocation, 2n)
+  out = m.launch(s, scope, 51)
+  assert.equal(list(out.actions)[0].invocation, 2)
   s = advanced(out)
-  s = advanced(m.cancel(s, 2n))
-  reject(m.install(s, 2n, 0n, 20n, 0n), "WrongGeneration")
+  s = advanced(m.cancel(s, 2))
+  reject(m.install(s, 2, 0, 20, 0), "WrongGeneration")
   assertions += 2
   for (const invalidate of ["cancel", "round", "observation", "preparation"]) {
     let state = fresh()
-    state = advanced(m.launch(state, scope, 50n))
-    state = advanced(m.install(state, 1n, 0n, 11n, 0n))
-    state = advanced(m.provider_start(state, 1n))
+    state = advanced(m.launch(state, scope, 50))
+    state = advanced(m.install(state, 1, 0, 11, 0))
+    state = advanced(m.provider_start(state, 1))
     let revoked
-    if (invalidate === "cancel") revoked = m.cancel(state, 1n)
+    if (invalidate === "cancel") revoked = m.cancel(state, 1)
     else
       revoked = m.canonical_event(
         state,
         invalidate === "round"
-          ? c("RetirePartition", { partition: 1n, lifetime: 1n, round: 1n })
+          ? c("RetirePartition", { partition: 1, lifetime: 1, round: 1 })
           : invalidate === "observation"
-            ? c("InterruptObservation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n })
-            : c("InterruptPreparation", { partition: 1n, lifetime: 1n, round: 1n, operation: 2n })
+            ? c("InterruptObservation", { partition: 1, lifetime: 1, round: 1, observation: 1 })
+            : c("InterruptPreparation", { partition: 1, lifetime: 1, round: 1, operation: 2 })
       )
     assert.equal(revoked.$, "Advanced", invalidate + " " + JSON.stringify(revoked.refusal))
     assert.deepEqual(
@@ -859,92 +857,92 @@ try {
     )
     state = advanced(revoked)
     if (invalidate === "round")
-      state = advanced(m.canonical_event(state, c("OpenRound", { partition: 1n, lifetime: 2n })))
-    const late = m.provider_completed(state, 1n, 1n, 0n, 99n)
+      state = advanced(m.canonical_event(state, c("OpenRound", { partition: 1, lifetime: 2 })))
+    const late = m.provider_completed(state, 1, 1, 0, 99)
     assert.deepEqual(
       list(late.actions).map((x) => x.$),
       ["CleanupProvider"]
     )
     state = advanced(late)
-    reject(m.provider_completed(state, 1n, 1n, 0n, 99n), "WrongLease")
-    reject(m.terminal(state, 1n, 0n, 99n), "WrongPhase")
+    reject(m.provider_completed(state, 1, 1, 0, 99), "WrongLease")
+    reject(m.terminal(state, 1, 0, 99), "WrongPhase")
     assertions += 4
   }
   // Parent custody is tied to the exact outstanding generation/request.
   let nested = fresh()
-  nested = advanced(m.launch(nested, scope, 100n))
-  nested = advanced(m.install(nested, 1n, 0n, 101n, 7n))
-  nested = advanced(m.provider_start(nested, 1n))
-  const parent = { $: "Parent", invocation: 1n, generation: 0n, request: 7n }
-  reject(m.launch_nested(nested, { ...parent, generation: 1n }, 200n), "WrongPhase")
-  reject(m.launch_nested(nested, { ...parent, request: 8n }, 200n), "WrongPhase")
+  nested = advanced(m.launch(nested, scope, 100))
+  nested = advanced(m.install(nested, 1, 0, 101, 7))
+  nested = advanced(m.provider_start(nested, 1))
+  const parent = { $: "Parent", invocation: 1, generation: 0, request: 7 }
+  reject(m.launch_nested(nested, { ...parent, generation: 1 }, 200), "WrongPhase")
+  reject(m.launch_nested(nested, { ...parent, request: 8 }, 200), "WrongPhase")
   assertions += 2
-  out = m.launch_nested(nested, parent, 200n)
-  assert.deepEqual(list(out.actions), [{ $: "Launch", invocation: 2n, input_handle: 200n }])
+  out = m.launch_nested(nested, parent, 200)
+  assert.deepEqual(list(out.actions), [{ $: "Launch", invocation: 2, input_handle: 200 }])
   nested = advanced(out)
-  reject(m.launch_nested(nested, parent, 205n), "WrongPhase")
+  reject(m.launch_nested(nested, parent, 205), "WrongPhase")
   assertions++
-  assert.deepEqual(m.find(2n, nested.children).value.parent.value, parent)
-  nested = advanced(m.install(nested, 2n, 0n, 201n, 0n))
-  nested = advanced(m.provider_start(nested, 2n))
+  assert.deepEqual(m.find(2, nested.children).value.parent.value, parent)
+  nested = advanced(m.install(nested, 2, 0, 201, 0))
+  nested = advanced(m.provider_start(nested, 2))
   assertions++
-  reject(m.launch_nested(nested, { $: "Parent", invocation: 2n, generation: 0n, request: 0n }, 300n), "WrongPhase")
+  reject(m.launch_nested(nested, { $: "Parent", invocation: 2, generation: 0, request: 0 }, 300), "WrongPhase")
   assertions++
-  out = m.cancel(nested, 1n)
+  out = m.cancel(nested, 1)
   assert.deepEqual(
     list(out.actions)
       .filter((action) => action.$ === "CancelChild")
       .map((action) => action.invocation),
-    [1n, 2n]
+    [1, 2]
   )
   nested = advanced(out)
-  assert.equal(m.find(1n, nested.children).value.phase.$, "ChildCancelled")
-  assert.equal(m.find(2n, nested.children).value.phase.$, "ChildCancelled")
+  assert.equal(m.find(1, nested.children).value.phase.$, "ChildCancelled")
+  assert.equal(m.find(2, nested.children).value.phase.$, "ChildCancelled")
   assertions++
-  out = m.provider_completed(nested, 2n, 2n, 0n, 202n)
+  out = m.provider_completed(nested, 2, 2, 0, 202)
   assert.deepEqual(
     list(out.actions).map((action) => action.$),
     ["CleanupProvider"]
   )
   nested = advanced(out)
-  out = m.provider_completed(nested, 1n, 1n, 7n, 102n)
+  out = m.provider_completed(nested, 1, 1, 7, 102)
   assert.deepEqual(
     list(out.actions).map((action) => action.$),
     ["CleanupProvider"]
   )
   nested = advanced(out)
   assertions += 2
-  reject(m.terminal(nested, 2n, 0n, 203n), "WrongPhase")
-  reject(m.launch_nested(nested, parent, 204n), "WrongPhase")
+  reject(m.terminal(nested, 2, 0, 203), "WrongPhase")
+  reject(m.launch_nested(nested, parent, 204), "WrongPhase")
   assertions += 2
   let successful = fresh()
-  successful = advanced(m.launch(successful, scope, 100n))
-  successful = advanced(m.install(successful, 1n, 0n, 101n, 7n))
-  successful = advanced(m.provider_start(successful, 1n))
-  successful = advanced(m.launch_nested(successful, parent, 200n))
-  successful = advanced(m.terminal(successful, 2n, 0n, 201n))
-  successful = advanced(m.provider_completed(successful, 1n, 1n, 7n, 102n))
-  successful = advanced(m.install(successful, 1n, 1n, 103n, 8n))
-  successful = advanced(m.provider_start(successful, 1n))
-  reject(m.launch_nested(successful, parent, 202n), "WrongPhase")
-  successful = advanced(m.launch_nested(successful, { ...parent, generation: 1n, request: 8n }, 203n))
+  successful = advanced(m.launch(successful, scope, 100))
+  successful = advanced(m.install(successful, 1, 0, 101, 7))
+  successful = advanced(m.provider_start(successful, 1))
+  successful = advanced(m.launch_nested(successful, parent, 200))
+  successful = advanced(m.terminal(successful, 2, 0, 201))
+  successful = advanced(m.provider_completed(successful, 1, 1, 7, 102))
+  successful = advanced(m.install(successful, 1, 1, 103, 8))
+  successful = advanced(m.provider_start(successful, 1))
+  reject(m.launch_nested(successful, parent, 202), "WrongPhase")
+  successful = advanced(m.launch_nested(successful, { ...parent, generation: 1, request: 8 }, 203))
   assertions += 2
   let premature = fresh()
-  premature = advanced(m.launch(premature, scope, 100n))
-  premature = advanced(m.install(premature, 1n, 0n, 101n, 7n))
-  premature = advanced(m.provider_start(premature, 1n))
-  premature = advanced(m.launch_nested(premature, parent, 200n))
-  premature = advanced(m.install(premature, 2n, 0n, 201n, 0n))
-  premature = advanced(m.provider_start(premature, 2n))
-  out = m.provider_completed(premature, 1n, 1n, 7n, 102n)
+  premature = advanced(m.launch(premature, scope, 100))
+  premature = advanced(m.install(premature, 1, 0, 101, 7))
+  premature = advanced(m.provider_start(premature, 1))
+  premature = advanced(m.launch_nested(premature, parent, 200))
+  premature = advanced(m.install(premature, 2, 0, 201, 0))
+  premature = advanced(m.provider_start(premature, 2))
+  out = m.provider_completed(premature, 1, 1, 7, 102)
   assert.equal(
-    list(out.actions).some((action) => action.$ === "CancelChild" && action.invocation === 2n),
+    list(out.actions).some((action) => action.$ === "CancelChild" && action.invocation === 2),
     true
   )
   premature = advanced(out)
   assertions++
-  reject(m.terminal(premature, 2n, 0n, 203n), "WrongPhase")
-  out = m.provider_completed(premature, 2n, 2n, 0n, 204n)
+  reject(m.terminal(premature, 2, 0, 203), "WrongPhase")
+  out = m.provider_completed(premature, 2, 2, 0, 204)
   assert.deepEqual(
     list(out.actions).map((action) => action.$),
     ["CleanupProvider"]
@@ -952,189 +950,186 @@ try {
   assertions += 2
   // Preparation acceptance produces a new retaining child; callers cannot launch it.
   let handoffState = fresh()
-  handoffState = advanced(m.launch_preparation(handoffState, scope, 300n))
-  reject(m.launch_preparation(handoffState, scope, 301n), "NotPreparing")
+  handoffState = advanced(m.launch_preparation(handoffState, scope, 300))
+  reject(m.launch_preparation(handoffState, scope, 301), "NotPreparing")
   assertions++
-  reject(m.terminal(handoffState, 1n, 0n, 302n), "WrongPhase")
+  reject(m.terminal(handoffState, 1, 0, 302), "WrongPhase")
   assertions++
-  reject(m.terminal_preparation(handoffState, 1n, 1n, 302n), "WrongPhase")
+  reject(m.terminal_preparation(handoffState, 1, 1, 302), "WrongPhase")
   assertions++
-  out = m.terminal_preparation(handoffState, 1n, 0n, 302n)
+  out = m.terminal_preparation(handoffState, 1, 0, 302)
   const handoffAction = list(out.actions)[0],
-    retaining = { $: "RetainingScope", partition: 1n, lifetime: 1n, round: 1n, observation: 1n, origin: 1n }
+    retaining = { $: "RetainingScope", partition: 1, lifetime: 1, round: 1, observation: 1, origin: 1 }
   assert.deepEqual(handoffAction, {
     $: "LaunchPostPreparation",
-    invocation: 2n,
-    preparation_invocation: 1n,
-    result_handle: 302n,
+    invocation: 2,
+    preparation_invocation: 1,
+    result_handle: 302,
     scope: retaining
   })
   handoffState = advanced(out)
   assertions++
-  assert.equal(m.find(1n, handoffState.children).value.phase.$, "ChildAccepted")
-  assert.equal(m.find(2n, handoffState.children).value.parent.$, "None")
+  assert.equal(m.find(1, handoffState.children).value.phase.$, "ChildAccepted")
+  assert.equal(m.find(2, handoffState.children).value.parent.$, "None")
   assertions++
-  reject(m.launch(handoffState, retaining, 303n), "NotPreparing")
-  reject(m.launch_preparation(handoffState, retaining, 303n), "NotPreparing")
+  reject(m.launch(handoffState, retaining, 303), "NotPreparing")
+  reject(m.launch_preparation(handoffState, retaining, 303), "NotPreparing")
   assertions += 2
-  reject(m.terminal_preparation(handoffState, 1n, 0n, 304n), "WrongPhase")
-  reject(m.terminal_preparation(handoffState, 2n, 0n, 304n), "WrongPhase")
+  reject(m.terminal_preparation(handoffState, 1, 0, 304), "WrongPhase")
+  reject(m.terminal_preparation(handoffState, 2, 0, 304), "WrongPhase")
   assertions += 2
   out = m.canonical_event(
     handoffState,
-    c("PreparationCompleted", { partition: 1n, lifetime: 1n, round: 1n, operation: 2n, unit_bytes: { $: "Nil" } })
+    c("PreparationCompleted", { partition: 1, lifetime: 1, round: 1, operation: 2, unit_bytes: { $: "Nil" } })
   )
   handoffState = advanced(out)
   assert.equal(m.live(handoffState.canonical, retaining), true)
-  assert.equal(m.find(2n, handoffState.children).value.phase.$, "ChildInstalling")
+  assert.equal(m.find(2, handoffState.children).value.phase.$, "ChildInstalling")
   assertions++
-  handoffState = advanced(m.install(handoffState, 2n, 0n, 305n, 0n))
-  handoffState = advanced(m.provider_start(handoffState, 2n))
+  handoffState = advanced(m.install(handoffState, 2, 0, 305, 0))
+  handoffState = advanced(m.provider_start(handoffState, 2))
   out = m.canonical_event(
     handoffState,
-    c("InterruptObservation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n })
+    c("InterruptObservation", { partition: 1, lifetime: 1, round: 1, observation: 1 })
   )
-  assert.ok(list(out.actions).some((action) => action.$ === "CancelChild" && action.invocation === 2n))
+  assert.ok(list(out.actions).some((action) => action.$ === "CancelChild" && action.invocation === 2))
   handoffState = advanced(out)
   assertions++
-  out = m.provider_completed(handoffState, 2n, 1n, 0n, 306n)
+  out = m.provider_completed(handoffState, 2, 1, 0, 306)
   assert.deepEqual(
     list(out.actions).map((action) => action.$),
     ["CleanupProvider"]
   )
   assertions++
   let beforeInstall = fresh()
-  beforeInstall = advanced(m.launch_preparation(beforeInstall, scope, 400n))
-  beforeInstall = advanced(m.terminal_preparation(beforeInstall, 1n, 0n, 401n))
-  out = m.cancel(beforeInstall, 2n)
+  beforeInstall = advanced(m.launch_preparation(beforeInstall, scope, 400))
+  beforeInstall = advanced(m.terminal_preparation(beforeInstall, 1, 0, 401))
+  out = m.cancel(beforeInstall, 2)
   assert.deepEqual(
     list(out.actions).map((action) => action.$),
     ["CancelChild"]
   )
   assertions++
   let cancelledPreparation = fresh()
-  cancelledPreparation = advanced(m.launch_preparation(cancelledPreparation, scope, 600n))
-  cancelledPreparation = advanced(m.cancel(cancelledPreparation, 1n))
-  reject(m.launch_preparation(cancelledPreparation, scope, 601n), "NotPreparing")
+  cancelledPreparation = advanced(m.launch_preparation(cancelledPreparation, scope, 600))
+  cancelledPreparation = advanced(m.cancel(cancelledPreparation, 1))
+  reject(m.launch_preparation(cancelledPreparation, scope, 601), "NotPreparing")
   assertions++
   let failedPreparation = fresh()
-  failedPreparation = advanced(m.launch_preparation(failedPreparation, scope, 500n))
-  out = m.terminal_preparation_failed(failedPreparation, 1n, 0n, 501n)
+  failedPreparation = advanced(m.launch_preparation(failedPreparation, scope, 500))
+  out = m.terminal_preparation_failed(failedPreparation, 1, 0, 501)
   assert.deepEqual(
     list(out.actions).map((action) => action.$),
     ["AcceptResult"]
   )
   assertions++
-  reject(m.terminal_preparation(fresh(), 99n, 0n, 600n), "UnknownInvocation")
+  reject(m.terminal_preparation(fresh(), 99, 0, 600), "UnknownInvocation")
   assertions++
   // Advice custody is born at PendingFinding and survives source/round cutoff.
   let adviceState = fresh()
-  adviceState = advanced(m.launch_preparation(adviceState, scope, 700n))
-  adviceState = advanced(m.terminal_preparation(adviceState, 1n, 0n, 701n))
+  adviceState = advanced(m.launch_preparation(adviceState, scope, 700))
+  adviceState = advanced(m.terminal_preparation(adviceState, 1, 0, 701))
   adviceState = advanced(
     m.canonical_event(
       adviceState,
       c("PreparationCompleted", {
-        partition: 1n,
-        lifetime: 1n,
-        round: 1n,
-        operation: 2n,
-        unit_bytes: { $: "Con", head: 100n, tail: { $: "Nil" } }
+        partition: 1,
+        lifetime: 1,
+        round: 1,
+        operation: 2,
+        unit_bytes: { $: "Con", head: 100, tail: { $: "Nil" } }
       })
     )
   )
-  adviceState = advanced(m.install(adviceState, 2n, 0n, 702n, 0n))
-  adviceState = advanced(m.provider_start(adviceState, 2n))
-  reject(m.handoff_advice(adviceState, 2n, 0n, 1n, 0n, 3n, 703n), "WrongPhase")
+  adviceState = advanced(m.install(adviceState, 2, 0, 702, 0))
+  adviceState = advanced(m.provider_start(adviceState, 2))
+  reject(m.handoff_advice(adviceState, 2, 0, 1, 0, 3, 703), "WrongPhase")
   assertions++
   adviceState = advanced(
-    m.canonical_event(adviceState, c("StartReview", { partition: 1n, lifetime: 1n, round: 1n, operation: 3n }))
+    m.canonical_event(adviceState, c("StartReview", { partition: 1, lifetime: 1, round: 1, operation: 3 }))
   )
   adviceState = advanced(
     m.canonical_event(
       adviceState,
-      c("ReviewCompleted", { partition: 1n, lifetime: 1n, round: 1n, operation: 3n, outcome: c("Finding") })
+      c("ReviewCompleted", { partition: 1, lifetime: 1, round: 1, operation: 3, outcome: c("Finding") })
     )
   )
   for (const tuple of [
-    [2n, 1n, 1n, 0n],
-    [2n, 0n, 2n, 0n],
-    [2n, 0n, 1n, 1n]
+    [2, 1, 1, 0],
+    [2, 0, 2, 0],
+    [2, 0, 1, 1]
   ]) {
-    reject(m.handoff_advice(adviceState, ...tuple, 3n, 703n), "WrongLease")
+    reject(m.handoff_advice(adviceState, ...tuple, 3, 703), "WrongLease")
     assertions++
   }
-  out = m.handoff_advice(adviceState, 2n, 0n, 1n, 0n, 3n, 703n)
+  out = m.handoff_advice(adviceState, 2, 0, 1, 0, 3, 703)
   assert.deepEqual(list(out.actions), [
-    { $: "LaunchAdviceTail", invocation: 3n, origin: 2n, operation: 3n, input_handle: 703n }
+    { $: "LaunchAdviceTail", invocation: 3, origin: 2, operation: 3, input_handle: 703 }
   ])
   adviceState = advanced(out)
   assertions++
-  reject(m.handoff_advice(adviceState, 2n, 0n, 1n, 0n, 3n, 704n), "WrongPhase")
+  reject(m.handoff_advice(adviceState, 2, 0, 1, 0, 3, 704), "WrongPhase")
   assertions++
-  const tail = m.find(3n, adviceState.children).value
+  const tail = m.find(3, adviceState.children).value
   assert.equal(tail.parent.$, "None")
-  reject(m.launch(adviceState, tail.scope, 704n), "NotPreparing")
-  reject(m.install(adviceState, 3n, 0n, 705n, 0n), "WrongGeneration")
-  reject(m.install_advice(adviceState, 3n, 0n, 705n, 0n, { $: "TailPublish" }), "WrongGeneration")
-  reject(m.terminal(adviceState, 3n, 0n, 706n), "WrongPhase")
+  reject(m.launch(adviceState, tail.scope, 704), "NotPreparing")
+  reject(m.install(adviceState, 3, 0, 705, 0), "WrongGeneration")
+  reject(m.install_advice(adviceState, 3, 0, 705, 0, { $: "TailPublish" }), "WrongGeneration")
+  reject(m.terminal(adviceState, 3, 0, 706), "WrongPhase")
   assertions += 5
-  reject(m.terminal_advice_preserved(adviceState, 3n, 1n, 715n), "WrongPhase")
-  reject(m.terminal_advice_preserved(adviceState, 2n, 0n, 715n), "WrongPhase")
+  reject(m.terminal_advice_preserved(adviceState, 3, 1, 715), "WrongPhase")
+  reject(m.terminal_advice_preserved(adviceState, 2, 0, 715), "WrongPhase")
   assertions += 2
-  const preserved = m.terminal_advice_preserved(adviceState, 3n, 0n, 715n)
+  const preserved = m.terminal_advice_preserved(adviceState, 3, 0, 715)
   assert.equal(preserved.$, "Advanced")
   assert.deepEqual(preserved.state.canonical, adviceState.canonical)
   assert.deepEqual(list(preserved.actions), [
-    { $: "AcceptResult", scope: tail.scope, invocation: 3n, result_handle: 715n }
+    { $: "AcceptResult", scope: tail.scope, invocation: 3, result_handle: 715 }
   ])
-  assert.equal(m.find(3n, preserved.state.children).value.phase.$, "ChildAccepted")
+  assert.equal(m.find(3, preserved.state.children).value.phase.$, "ChildAccepted")
   assertions++
-  reject(m.terminal_advice_preserved(preserved.state, 3n, 0n, 716n), "WrongPhase")
+  reject(m.terminal_advice_preserved(preserved.state, 3, 0, 716), "WrongPhase")
   assertions++
-  const cutoffPreserved = advanced(m.cancel(adviceState, 2n))
-  assert.equal(m.terminal_advice_preserved(cutoffPreserved, 3n, 0n, 717n).$, "Advanced")
+  const cutoffPreserved = advanced(m.cancel(adviceState, 2))
+  assert.equal(m.terminal_advice_preserved(cutoffPreserved, 3, 0, 717).$, "Advanced")
   assertions++
-  adviceState = advanced(m.install_advice(adviceState, 3n, 0n, 705n, 0n, { $: "TailBarrier" }))
-  adviceState = advanced(m.provider_start(adviceState, 3n))
-  reject(m.terminal_advice_preserved(adviceState, 3n, 0n, 716n), "WrongPhase")
+  adviceState = advanced(m.install_advice(adviceState, 3, 0, 705, 0, { $: "TailBarrier" }))
+  adviceState = advanced(m.provider_start(adviceState, 3))
+  reject(m.terminal_advice_preserved(adviceState, 3, 0, 716), "WrongPhase")
   assertions++
-  adviceState = advanced(m.cancel(adviceState, 2n))
-  assert.equal(m.find(3n, adviceState.children).value.phase.$, "ChildAwaiting")
-  assert.equal(m.provider_live(adviceState, 3n, 0n, 2n, 0n), true)
-  assert.equal(m.advice_provider_allowed(adviceState, 3n, 0n, 2n, 0n, { $: "TailPublish" }), false)
+  adviceState = advanced(m.cancel(adviceState, 2))
+  assert.equal(m.find(3, adviceState.children).value.phase.$, "ChildAwaiting")
+  assert.equal(m.provider_live(adviceState, 3, 0, 2, 0), true)
+  assert.equal(m.advice_provider_allowed(adviceState, 3, 0, 2, 0, { $: "TailPublish" }), false)
   assertions += 3
   adviceState = advanced(
-    m.canonical_event(
-      adviceState,
-      c("InterruptObservation", { partition: 1n, lifetime: 1n, round: 1n, observation: 1n })
-    )
+    m.canonical_event(adviceState, c("InterruptObservation", { partition: 1, lifetime: 1, round: 1, observation: 1 }))
   )
-  assert.equal(m.provider_live(adviceState, 3n, 0n, 2n, 0n), true)
+  assert.equal(m.provider_live(adviceState, 3, 0, 2, 0), true)
   assertions++
-  adviceState = advanced(m.provider_completed(adviceState, 3n, 2n, 0n, 707n))
-  adviceState = advanced(m.install_advice(adviceState, 3n, 1n, 708n, 1n, { $: "TailActive" }))
-  adviceState = advanced(m.provider_start(adviceState, 3n))
-  adviceState = advanced(m.provider_completed(adviceState, 3n, 3n, 1n, 709n))
-  adviceState = advanced(m.install_advice(adviceState, 3n, 2n, 710n, 2n, { $: "TailPublish" }))
-  adviceState = advanced(m.provider_start(adviceState, 3n))
-  assert.equal(m.advice_provider_allowed(adviceState, 3n, 2n, 4n, 2n, { $: "TailPublish" }), true)
-  assert.equal(m.advice_provider_allowed(adviceState, 3n, 2n, 4n, 2n, { $: "TailRemove" }), false)
+  adviceState = advanced(m.provider_completed(adviceState, 3, 2, 0, 707))
+  adviceState = advanced(m.install_advice(adviceState, 3, 1, 708, 1, { $: "TailActive" }))
+  adviceState = advanced(m.provider_start(adviceState, 3))
+  adviceState = advanced(m.provider_completed(adviceState, 3, 3, 1, 709))
+  adviceState = advanced(m.install_advice(adviceState, 3, 2, 710, 2, { $: "TailPublish" }))
+  adviceState = advanced(m.provider_start(adviceState, 3))
+  assert.equal(m.advice_provider_allowed(adviceState, 3, 2, 4, 2, { $: "TailPublish" }), true)
+  assert.equal(m.advice_provider_allowed(adviceState, 3, 2, 4, 2, { $: "TailRemove" }), false)
   assertions += 2
-  adviceState = advanced(m.cancel(adviceState, 3n))
-  assert.equal(m.advice_provider_allowed(adviceState, 3n, 2n, 4n, 2n, { $: "TailPublish" }), false)
-  assert.equal(m.advice_provider_allowed(adviceState, 3n, 2n, 4n, 2n, { $: "TailRemove" }), true)
+  adviceState = advanced(m.cancel(adviceState, 3))
+  assert.equal(m.advice_provider_allowed(adviceState, 3, 2, 4, 2, { $: "TailPublish" }), false)
+  assert.equal(m.advice_provider_allowed(adviceState, 3, 2, 4, 2, { $: "TailRemove" }), true)
   assertions += 2
-  adviceState = advanced(m.provider_completed(adviceState, 3n, 4n, 2n, 711n))
-  reject(m.install_advice(adviceState, 3n, 3n, 712n, 3n, { $: "TailPublish" }), "WrongGeneration")
+  adviceState = advanced(m.provider_completed(adviceState, 3, 4, 2, 711))
+  reject(m.install_advice(adviceState, 3, 3, 712, 3, { $: "TailPublish" }), "WrongGeneration")
   assertions++
-  adviceState = advanced(m.install_advice(adviceState, 3n, 3n, 712n, 3n, { $: "TailRemove" }))
-  adviceState = advanced(m.provider_start(adviceState, 3n))
-  adviceState = advanced(m.provider_completed(adviceState, 3n, 5n, 3n, 713n))
-  adviceState = advanced(m.terminal(adviceState, 3n, 4n, 714n))
-  assert.equal(m.find(3n, adviceState.children).value.phase.$, "ChildAccepted")
-  assert.equal(m.provider_live(adviceState, 3n, 4n, 5n, 3n), false)
-  reject(m.advice_cleanup_only(adviceState, 3n), "WrongPhase")
+  adviceState = advanced(m.install_advice(adviceState, 3, 3, 712, 3, { $: "TailRemove" }))
+  adviceState = advanced(m.provider_start(adviceState, 3))
+  adviceState = advanced(m.provider_completed(adviceState, 3, 5, 3, 713))
+  adviceState = advanced(m.terminal(adviceState, 3, 4, 714))
+  assert.equal(m.find(3, adviceState.children).value.phase.$, "ChildAccepted")
+  assert.equal(m.provider_live(adviceState, 3, 4, 5, 3), false)
+  reject(m.advice_cleanup_only(adviceState, 3), "WrongPhase")
   assertions += 3
   for (const mode of ["promise", "effect"])
     for (const failureAt of ["input", "machine", "register"]) {
@@ -1164,7 +1159,7 @@ try {
       })
       const invocation = driver.allocatePreparationInvocation()
       const prepSession = { invocation, close() {}, revoke() {} }
-      const receipt = await driver.drive(prepSession, { invocation: BigInt(invocation) })
+      const receipt = await driver.drive(prepSession, { invocation: Number(BigInt(invocation)) })
       let finishes = 0,
         closes = 0
       const session = {
@@ -1202,7 +1197,7 @@ try {
     const machine = {
       initial: (input) =>
         input.postPreparation
-          ? { $: "Types.AwaitService", request: { invocation: input.invocation, id: 0n } }
+          ? { $: "Types.AwaitService", request: { invocation: input.invocation, id: 0 } }
           : { $: "PreparationFinished", result: {} },
       view: (value) => value,
       resume: () => ({ $: "Types.CompletedResolver", result: "post accepted" }),
@@ -1228,7 +1223,10 @@ try {
       }
     })
     const invocation = driver.allocatePreparationInvocation()
-    const receipt = await driver.drive({ invocation, close() {}, revoke() {} }, { invocation: BigInt(invocation) })
+    const receipt = await driver.drive(
+      { invocation, close() {}, revoke() {} },
+      { invocation: Number(BigInt(invocation)) }
+    )
     const session = {
       invocation: Number(receipt.handoff),
       close() {
@@ -1253,13 +1251,13 @@ try {
       let refusedCloses = 0
       const refused = {
         invocation: 9999,
-        input: { invocation: 9999n },
+        input: { invocation: 9999 },
         close() {
           refusedCloses++
         },
         revoke() {}
       }
-      const forged = { handoff: 9999n, scope: { $: "AdviceTailScope", origin: 1n } }
+      const forged = { handoff: 9999, scope: { $: "AdviceTailScope", origin: 1 } }
       await assert.rejects(
         mode === "promise"
           ? driver.driveAdvice(forged, refused)
@@ -1287,7 +1285,7 @@ try {
       starts = 0,
       caller
     const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
       view: (value) => value,
       resume: () => ({ $: "Types.CompletedResolver", result: "accepted" }),
       disposeInvocation() {},
@@ -1295,7 +1293,7 @@ try {
     }
     const driver = createFixtureDriver({
       owner: m,
-      initialState: m.initial_limits(100n, 100000n, 100n, 100000n),
+      initialState: m.initial_limits(100, 100000, 100, 100000),
       registry,
       machine,
       foreignSync: () => ({
@@ -1336,7 +1334,7 @@ try {
             }
           }
         }
-        return { session, input: { invocation: BigInt(invocation) } }
+        return { session, input: { invocation: Number(BigInt(invocation)) } }
       }
       return mode === "async-construct-interrupted"
         ? driver.driveConstructedFlowEffect(function* () {
@@ -1392,12 +1390,12 @@ try {
         closeFails: phase === "close"
       }))
     )) {
-      const token = { $: "Types.ExceptionToken", invocation: 0n, id: 1n }
+      const token = { $: "Types.ExceptionToken", invocation: 0, id: 1 }
       let closed = false,
         projections = 0
       const registry = createServiceRegistry()
       const machine = {
-        initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+        initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
         view: (value) => value,
         resume() {
           if (failureKind === "thrown") assert.fail("failed provider must not resume the engine")
@@ -1420,7 +1418,7 @@ try {
         }
       })
       const invocation = driver.allocateInvocation()
-      token.invocation = BigInt(invocation)
+      token.invocation = Number(BigInt(invocation))
       const cleanupError = new Error("original cleanup failure")
       let allowCleanup = !cleanupFails
       const session = {
@@ -1440,7 +1438,7 @@ try {
         },
         revoke() {}
       }
-      const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+      const observed = await driver.drive(session, { invocation: Number(BigInt(invocation)) }).then(
         () => ({ raised: false }),
         (error) => ({ raised: true, error })
       )
@@ -1480,7 +1478,7 @@ try {
       const machine = {
         initial: (input) => ({
           $: "Types.AwaitService",
-          request: { $: "Types.Request", invocation: input.invocation, id: 7n, operation: { $: "Types.StartClock" } }
+          request: { $: "Types.Request", invocation: input.invocation, id: 7, operation: { $: "Types.StartClock" } }
         }),
         view: (value) => value,
         resume(_raw, event) {
@@ -1515,7 +1513,7 @@ try {
           if (!allowCleanup) throw cleanupError
         }
       }
-      const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+      const observed = await driver.drive(session, { invocation: Number(BigInt(invocation)) }).then(
         () => ({ raised: false }),
         (error) => ({ raised: true, error })
       )
@@ -1549,7 +1547,7 @@ try {
       cancellations = 0
     let providerSignal
     const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
       view: (value) => value,
       resume() {
         assert.fail("failed provider cannot resume")
@@ -1587,13 +1585,13 @@ try {
         revokes++
       }
     }
-    await assert.rejects(driver.drive(session, { invocation: BigInt(invocation) }), (error) => {
+    await assert.rejects(driver.drive(session, { invocation: Number(BigInt(invocation)) }), (error) => {
       assert.equal(error.cause, primary)
       assert.ok(error.errors.includes(disposalFailure))
       assert.ok(error.errors.includes(sinkFailure))
       return true
     })
-    assert.equal(m.find(BigInt(invocation), driver.state.children).value.phase.$, "ChildCancelled")
+    assert.equal(m.find(Number(BigInt(invocation)), driver.state.children).value.phase.$, "ChildCancelled")
     assert.equal(revokes, 1)
     // Provider completion already discharged its lease before cancellation.
     assert.equal(providerSignal.aborted, false)
@@ -1632,7 +1630,7 @@ try {
       startedProvider = resolve
     })
     const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
       view: (value) => value,
       resume() {
         assert.fail("late provider must not Resume")
@@ -1676,7 +1674,7 @@ try {
         revokes++
       }
     }
-    const observed = driver.drive(session, { invocation: BigInt(invocation) }).then(
+    const observed = driver.drive(session, { invocation: Number(BigInt(invocation)) }).then(
       () => ({ raised: false }),
       (error) => ({ raised: true, error })
     )
@@ -1742,7 +1740,7 @@ try {
       close() {},
       revoke() {}
     }
-    const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+    const observed = await driver.drive(session, { invocation: Number(BigInt(invocation)) }).then(
       () => ({ raised: false }),
       (error) => ({ raised: true, error })
     )
@@ -1785,11 +1783,11 @@ try {
       nestedFailed = false,
       resumes = 0
     const machine = {
-      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7n } }),
+      initial: (input) => ({ $: "Types.AwaitService", request: { invocation: input.invocation, id: 7 } }),
       view: (value) => value,
       resume(value) {
         resumes++
-        return { $: "Types.AwaitService", request: { invocation: value.request.invocation, id: 8n } }
+        return { $: "Types.AwaitService", request: { invocation: value.request.invocation, id: 8 } }
       },
       disposeInvocation() {},
       get retainedHandles() {
@@ -1805,7 +1803,7 @@ try {
       foreign: () => ({ value: "provider result" }),
       hooks: {
         beforeInstall({ generation }) {
-          if (generation === 1n) {
+          if (generation === 1) {
             armed = true
             if (mode === "before-install") throw primary
           }
@@ -1826,7 +1824,7 @@ try {
     })
     const invocation = driver.allocateInvocation()
     const session = { invocation, finish() {}, close() {}, revoke() {} }
-    const observed = await driver.drive(session, { invocation: BigInt(invocation) }).then(
+    const observed = await driver.drive(session, { invocation: Number(BigInt(invocation)) }).then(
       () => ({ raised: false }),
       (error) => ({ raised: true, error })
     )
@@ -1838,7 +1836,7 @@ try {
     assert.equal(driver.stats.providerStarts, 1)
     assert.equal(driver.stats.providerCleanups, 1)
     assert.equal(driver.stats.accepted, 0)
-    assert.equal(m.find(BigInt(invocation), driver.state.children).value.phase.$, "ChildCancelled")
+    assert.equal(m.find(Number(BigInt(invocation)), driver.state.children).value.phase.$, "ChildCancelled")
     assert.equal(registry.pendingCleanup, 0)
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 11
@@ -1860,7 +1858,7 @@ try {
         initial: () => ({
           $: "SourcePreparationStopped",
           completed: false,
-          reason: { $: "TechnicalFailure", token: 1n }
+          reason: { $: "TechnicalFailure", token: 1 }
         }),
         view: (value) => value,
         disposeInvocation() {},
@@ -1877,7 +1875,7 @@ try {
         beforeTerminal: () => {
           savedWork = controlled.canonical.work
           const changed = list(savedWork).map((work) =>
-            work.operation === 1n ? { ...work, kind: c("Preparing") } : work
+            work.operation === 1 ? { ...work, kind: c("Preparing") } : work
           )
           controlled = {
             ...controlled,
@@ -1894,7 +1892,7 @@ try {
     })
     const invocation = driver.allocateSourceInvocation(sourceScope)
     const session = { invocation, finish() {}, close() {}, revoke() {} }
-    await assert.rejects(driver.drive(session, { invocation: BigInt(invocation) }), (error) => {
+    await assert.rejects(driver.drive(session, { invocation: Number(BigInt(invocation)) }), (error) => {
       assert.ok(error instanceof AggregateError)
       assert.match(error.cause.message, /Canonical resolver refused: CanonicalRejected/)
       assert.ok(error.errors.includes(error.cause))
@@ -1904,25 +1902,25 @@ try {
     assert.equal(registry.pendingCleanup, 1)
     assert.equal(driver.resources.sessions, 1)
     assert.equal(driver.resources.payloads, 0)
-    assert.equal(m.find(1n, controlled.children).value.phase.$, "ChildInstalling")
+    assert.equal(m.find(1, controlled.children).value.phase.$, "ChildInstalling")
     await assert.rejects(registry.retryCleanup(), /cleanup obligations remain pending/)
     assert.equal(registry.pendingCleanup, 1)
     controlled = { ...controlled, canonical: { ...controlled.canonical, work: savedWork } }
     await registry.retryCleanup()
     assert.equal(registry.pendingCleanup, 0)
-    assert.equal(m.find(1n, controlled.children).value.phase.$, "ChildCancelled")
+    assert.equal(m.find(1, controlled.children).value.phase.$, "ChildCancelled")
     assert.deepEqual(driver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
     assertions += 8
   }
   // Compare full publications, including refused prefixes, to the original
   // public host's event sequence. These are private non-reentrant entries.
-  const unopened = m.initial_limits(1n, 100n, 1n, 100n)
-  const opened = advanced(m.canonical_event(unopened, c("OpenRound", { partition: 1n, lifetime: 1n })))
+  const unopened = m.initial_limits(1, 100, 1, 100)
+  const opened = advanced(m.canonical_event(unopened, c("OpenRound", { partition: 1, lifetime: 1 })))
   for (const state of [unopened, opened, fresh()])
-    for (const partition of [0n, 1n, 2n])
-      for (const round of [0n, 1n, 2n])
-        for (const bytes of [0n, 100n, 101n]) {
-          const admitted = m.canonical_event(state, c("AdmitObservation", { partition, lifetime: 1n, round }))
+    for (const partition of [0, 1, 2])
+      for (const round of [0, 1, 2])
+        for (const bytes of [0, 100, 101]) {
+          const admitted = m.canonical_event(state, c("AdmitObservation", { partition, lifetime: 1, round }))
           const expected = [admitted]
           if (admitted.$ === "Advanced") {
             const observation = list(admitted.outputs).find(
@@ -1931,36 +1929,36 @@ try {
             ).event.id
             const started = m.canonical_event(
               admitted.state,
-              c("StartObservation", { partition, lifetime: 1n, round, observation })
+              c("StartObservation", { partition, lifetime: 1, round, observation })
             )
             expected.push(started)
             if (started.$ === "Advanced")
               expected.push(
                 m.canonical_event(
                   started.state,
-                  c("BeginObservedPreparation", { partition, lifetime: 1n, round, observation, bytes })
+                  c("BeginObservedPreparation", { partition, lifetime: 1, round, observation, bytes })
                 )
               )
           }
-          assert.deepEqual(list(m.begin_public_preparation(state, partition, 1n, round, bytes)), expected)
+          assert.deepEqual(list(m.begin_public_preparation(state, partition, 1, round, bytes)), expected)
           assertions++
         }
   for (const state of [unopened, opened, fresh()])
-    for (const operation of [0n, 1n, 2n, 3n])
-      for (const observation of [0n, 1n, 2n]) {
+    for (const operation of [0, 1, 2, 3])
+      for (const observation of [0, 1, 2]) {
         const prepared = m.canonical_event(
           state,
-          c("PreparationCompleted", { partition: 1n, lifetime: 1n, round: 1n, operation, unit_bytes: { $: "Nil" } })
+          c("PreparationCompleted", { partition: 1, lifetime: 1, round: 1, operation, unit_bytes: { $: "Nil" } })
         )
         const expected = [prepared]
         if (prepared.$ === "Advanced")
           expected.push(
             m.canonical_event(
               prepared.state,
-              c("CompleteObservation", { partition: 1n, lifetime: 1n, round: 1n, observation })
+              c("CompleteObservation", { partition: 1, lifetime: 1, round: 1, observation })
             )
           )
-        assert.deepEqual(list(m.complete_public_preparation(state, 1n, 1n, 1n, operation, observation)), expected)
+        assert.deepEqual(list(m.complete_public_preparation(state, 1, 1, 1, operation, observation)), expected)
         assertions++
       }
   console.log(

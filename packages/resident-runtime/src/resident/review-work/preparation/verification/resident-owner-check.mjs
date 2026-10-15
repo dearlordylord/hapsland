@@ -80,28 +80,27 @@ const postCore = (
     assert.equal(preparation.status, "admitted")
     const scope = {
       $: "Scope",
-      partition: BigInt(partition),
-      lifetime: 1n,
-      round: BigInt(round),
-      preparation: BigInt(preparation.operation)
+      partition: Number(BigInt(partition)),
+      lifetime: 1,
+      round: Number(BigInt(round)),
+      preparation: Number(BigInt(preparation.operation))
     }
     const event = (name, fields = {}) => run(bridge.event({ $: name, ...fields }))
-    for (const input_handle of [50n, 51n])
-      assert.equal(event("LaunchEvent", { scope, input_handle }).refusal, undefined)
+    for (const input_handle of [50, 51]) assert.equal(event("LaunchEvent", { scope, input_handle }).refusal, undefined)
     assert.deepEqual(
       published.map((x) => x.invocation),
-      [1n, 2n]
+      [1, 2]
     )
     assert.equal("canonical" in run(transaction.read).resolverCustody, false)
-    event("InstallEvent", { invocation: 1n, generation: 0n, handle: 11n, request: 0n })
-    event("ProviderStartEvent", { invocation: 1n })
-    const credential = { invocation: 1n, generation: 0n, lease: 1n, request: 0n }
+    event("InstallEvent", { invocation: 1, generation: 0, handle: 11, request: 0 })
+    event("ProviderStartEvent", { invocation: 1 })
+    const credential = { invocation: 1, generation: 0, lease: 1, request: 0 }
     for (const key of ["invocation", "generation", "lease", "request"]) {
       const before = run(transaction.read)
       assert.throws(
         () =>
           run(
-            bridge.nativeScoped({ ...credential, [key]: credential[key] + 1n }, (draft, nativeRecords) => [
+            bridge.nativeScoped({ ...credential, [key]: credential[key] + 1 }, (draft, nativeRecords) => [
               undefined,
               { ...nativeRecords, marker: 999 }
             ])
@@ -151,7 +150,7 @@ const postCore = (
     if (variant === "single-action-consumer") {
       const currentOwner = bridge.control.readState()
       const freshness = currentOwner.next_invocation
-      const launchedFreshness = bridge.control.invoke("launch_freshness", [901n])
+      const launchedFreshness = bridge.control.invoke("launch_freshness", [901])
       assert.equal(launchedFreshness.$, "Advanced")
       assert.deepEqual(owner.find(freshness, bridge.control.readState().children).value.scope, {
         $: "FreshnessScope",
@@ -162,7 +161,7 @@ const postCore = (
       assert.equal(owner.child_active(owner.find(freshness, bridge.control.readState().children).value), false)
       cases++
       const before = published.length
-      const step = bridge.control.invoke("cancel", [1n])
+      const step = bridge.control.invoke("cancel", [1])
       assert.equal(step.$, "Advanced")
       assert.equal(step.actions.head.$, "CancelChild")
       assert.equal(published.length, before, "driver control does not also deliver actions to external sink")
@@ -188,17 +187,11 @@ const postCore = (
       continue
     }
     if (variant === "completed") {
-      event("ProviderCompletedEvent", { invocation: 1n, lease: 1n, request: 0n, reply_handle: 60n })
-      assert.equal(
-        event("TerminalEvent", { invocation: 1n, generation: 0n, result_handle: 70n }).refusal.$,
-        "WrongPhase"
-      )
-      event("TerminalEvent", { invocation: 1n, generation: 1n, result_handle: 70n })
-      assert.equal(
-        event("TerminalEvent", { invocation: 1n, generation: 1n, result_handle: 70n }).refusal.$,
-        "WrongPhase"
-      )
-      event("TerminalEvent", { invocation: 2n, generation: 0n, result_handle: 71n })
+      event("ProviderCompletedEvent", { invocation: 1, lease: 1, request: 0, reply_handle: 60 })
+      assert.equal(event("TerminalEvent", { invocation: 1, generation: 0, result_handle: 70 }).refusal.$, "WrongPhase")
+      event("TerminalEvent", { invocation: 1, generation: 1, result_handle: 70 })
+      assert.equal(event("TerminalEvent", { invocation: 1, generation: 1, result_handle: 70 }).refusal.$, "WrongPhase")
+      event("TerminalEvent", { invocation: 2, generation: 0, result_handle: 71 })
       const completed = run(
         bridge.native((draft, nativeRecords) => [
           completePreparation(draft, "agent", preparation.operation, preparation.reservation, [10, 20], round),
@@ -249,19 +242,16 @@ const postCore = (
         /Revoked resident provider permit/
       )
       assert.strictEqual(run(transaction.read), beforeDenied)
-      const late = event("ProviderCompletedEvent", { invocation: 1n, lease: 1n, request: 0n, reply_handle: 60n })
+      const late = event("ProviderCompletedEvent", { invocation: 1, lease: 1, request: 0, reply_handle: 60 })
       assert.deepEqual(
         late.actions.map((x) => x.$),
         ["CleanupProvider"]
       )
       assert.equal(
-        event("ProviderCompletedEvent", { invocation: 1n, lease: 1n, request: 0n, reply_handle: 60n }).refusal.$,
+        event("ProviderCompletedEvent", { invocation: 1, lease: 1, request: 0, reply_handle: 60 }).refusal.$,
         "WrongLease"
       )
-      assert.equal(
-        event("TerminalEvent", { invocation: 1n, generation: 1n, result_handle: 70n }).refusal.$,
-        "WrongPhase"
-      )
+      assert.equal(event("TerminalEvent", { invocation: 1, generation: 1, result_handle: 70 }).refusal.$, "WrongPhase")
       assert.equal(published.filter((x) => x.$ === "Resume" || x.$ === "AcceptResult").length, 0)
       assert.equal(published.filter((x) => x.$ === "CancelChild").length, 2)
       assert.equal(
@@ -315,14 +305,14 @@ const postCore = (
     })
     const scope = {
       $: "Scope",
-      partition: BigInt(partition),
-      lifetime: 1n,
-      round: BigInt(round),
-      preparation: BigInt(preparation.operation)
+      partition: Number(BigInt(partition)),
+      lifetime: 1,
+      round: Number(BigInt(round)),
+      preparation: Number(BigInt(preparation.operation))
     }
-    run(bridge.event({ $: "LaunchEvent", scope, input_handle: 50n }))
-    run(bridge.event({ $: "InstallEvent", invocation: 1n, generation: 0n, handle: 11n, request: 0n }))
-    run(bridge.event({ $: "ProviderStartEvent", invocation: 1n }))
+    run(bridge.event({ $: "LaunchEvent", scope, input_handle: 50 }))
+    run(bridge.event({ $: "InstallEvent", invocation: 1, generation: 0, handle: 11, request: 0 }))
+    run(bridge.event({ $: "ProviderStartEvent", invocation: 1 }))
     interrupt = true
     await Effect.runPromise(
       bridge.canonical({
@@ -372,7 +362,7 @@ const postCore = (
     const bridge = createResidentOwnerTransaction({ owner, transaction })
     const original = run(capacity.reserve("agent", 32, "observationDispatch"))
     assert.ok(original)
-    bridge.bindSourceReservation(1n, original)
+    bridge.bindSourceReservation(1, original)
     const event = (input) => {
       const result = run(bridge.event(input))
       assert.equal(result.refusal, undefined)
@@ -382,34 +372,34 @@ const postCore = (
       $: "LaunchSourceEvent",
       scope: {
         $: "SourceScope",
-        partition: BigInt(partition),
-        lifetime: 1n,
-        round: BigInt(round),
-        observation: BigInt(observation),
+        partition: Number(BigInt(partition)),
+        lifetime: 1,
+        round: Number(BigInt(round)),
+        observation: Number(BigInt(observation)),
         permission: { $: "SourceNew" }
       },
-      input_handle: 1n
+      input_handle: 1
     })
     event({
       $: "InstallSourceEvent",
-      invocation: 1n,
-      generation: 0n,
-      handle: 2n,
-      request: 0n,
+      invocation: 1,
+      generation: 0,
+      handle: 2,
+      request: 0,
       permission: { $: "SourceActivity" }
     })
-    event({ $: "ProviderStartEvent", invocation: 1n })
-    event({ $: "ProviderCompletedEvent", invocation: 1n, lease: 1n, request: 0n, reply_handle: 3n })
+    event({ $: "ProviderStartEvent", invocation: 1 })
+    event({ $: "ProviderCompletedEvent", invocation: 1, lease: 1, request: 0, reply_handle: 3 })
     event({
       $: "InstallSourceEvent",
-      invocation: 1n,
-      generation: 1n,
-      handle: 4n,
-      request: 1n,
+      invocation: 1,
+      generation: 1,
+      handle: 4,
+      request: 1,
       permission: { $: "SourceObservation" }
     })
-    event({ $: "ProviderStartEvent", invocation: 1n })
-    const credential = { invocation: 1n, generation: 1n, lease: 2n, request: 1n }
+    event({ $: "ProviderStartEvent", invocation: 1 })
+    const credential = { invocation: 1, generation: 1, lease: 2, request: 1 }
     assert.throws(
       () =>
         run(
@@ -430,7 +420,7 @@ const postCore = (
         ),
       /source completion ack loss/
     )
-    assert.equal(owner.find(1n, run(transaction.read).resolverCustody.children).value.scope.$, "AfterSourceScope")
+    assert.equal(owner.find(1, run(transaction.read).resolverCustody.children).value.scope.$, "AfterSourceScope")
     assert.equal(
       committed.outputs.filter(
         (output) => output.$ === "Canonical.EventEstablished" && output.event.$ === "Canonical.ObservationCompleted"
@@ -438,7 +428,7 @@ const postCore = (
       1
     )
     assert.equal(
-      committed.actions.some((action) => action.$ === "CancelChild" && action.invocation === 1n),
+      committed.actions.some((action) => action.$ === "CancelChild" && action.invocation === 1),
       false
     )
     const completed = run(transaction.read)
@@ -453,41 +443,41 @@ const postCore = (
         ),
       /forbids native mutations/
     )
-    event({ $: "ProviderCompletedEvent", invocation: 1n, lease: 2n, request: 1n, reply_handle: 5n })
+    event({ $: "ProviderCompletedEvent", invocation: 1, lease: 2, request: 1, reply_handle: 5 })
     event({
       $: "InstallAfterSourceEvent",
-      invocation: 1n,
-      generation: 2n,
-      handle: 6n,
-      request: 2n,
+      invocation: 1,
+      generation: 2,
+      handle: 6,
+      request: 2,
       permission: { $: "AfterBarrier" }
     })
-    event({ $: "ProviderStartEvent", invocation: 1n })
-    event({ $: "ProviderCompletedEvent", invocation: 1n, lease: 3n, request: 2n, reply_handle: 7n })
+    event({ $: "ProviderStartEvent", invocation: 1 })
+    event({ $: "ProviderCompletedEvent", invocation: 1, lease: 3, request: 2, reply_handle: 7 })
     event({
       $: "InstallAfterSourceEvent",
-      invocation: 1n,
-      generation: 3n,
-      handle: 8n,
-      request: 3n,
+      invocation: 1,
+      generation: 3,
+      handle: 8,
+      request: 3,
       permission: { $: "AfterRecoveryAnalytics" }
     })
-    event({ $: "ProviderStartEvent", invocation: 1n })
-    event({ $: "ProviderCompletedEvent", invocation: 1n, lease: 4n, request: 3n, reply_handle: 9n })
+    event({ $: "ProviderStartEvent", invocation: 1 })
+    event({ $: "ProviderCompletedEvent", invocation: 1, lease: 4, request: 3, reply_handle: 9 })
     event({
       $: "InstallAfterSourceEvent",
-      invocation: 1n,
-      generation: 4n,
-      handle: 10n,
-      request: 4n,
+      invocation: 1,
+      generation: 4,
+      handle: 10,
+      request: 4,
       permission: { $: "AfterRecoveryRelease" }
     })
-    event({ $: "ProviderStartEvent", invocation: 1n })
-    const releaseCredential = { invocation: 1n, generation: 4n, lease: 5n, request: 4n }
-    assert.throws(() => bridge.forgetSourceReservation(1n), /Source authority remains active/)
-    assert.throws(() => bridge.bindSourceReservation(1n, original), /before invocation launch/)
+    event({ $: "ProviderStartEvent", invocation: 1 })
+    const releaseCredential = { invocation: 1, generation: 4, lease: 5, request: 4 }
+    assert.throws(() => bridge.forgetSourceReservation(1), /Source authority remains active/)
+    assert.throws(() => bridge.bindSourceReservation(1, original), /before invocation launch/)
     assert.throws(
-      () => run(bridge.releaseSourceReservation({ ...releaseCredential, request: 3n })),
+      () => run(bridge.releaseSourceReservation({ ...releaseCredential, request: 3 })),
       /Revoked resident provider permit/
     )
     let replacement
@@ -518,13 +508,13 @@ const postCore = (
     if (replacement) assert.strictEqual(run(transaction.read).reservations.get(original.id).capability, replacement)
     else assert.equal(run(transaction.read).reservations.has(original.id), false)
     assert.equal(run(bridge.releaseSourceReservation(releaseCredential)).value, false)
-    event({ $: "ProviderCompletedEvent", invocation: 1n, lease: 5n, request: 4n, reply_handle: 11n })
+    event({ $: "ProviderCompletedEvent", invocation: 1, lease: 5, request: 4, reply_handle: 11 })
     assert.throws(() => run(bridge.releaseSourceReservation(releaseCredential)), /Revoked resident provider permit/)
-    event({ $: "TerminalEvent", invocation: 1n, generation: 5n, result_handle: 12n })
-    bridge.forgetSourceReservation(1n)
-    assert.throws(() => bridge.bindSourceReservation(1n, original), /before invocation launch/)
+    event({ $: "TerminalEvent", invocation: 1, generation: 5, result_handle: 12 })
+    bridge.forgetSourceReservation(1)
+    assert.throws(() => bridge.bindSourceReservation(1, original), /before invocation launch/)
     if (replacement) run(capacity.release(replacement))
-    assert.equal(owner.find(1n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
+    assert.equal(owner.find(1, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
     cases++
   }
   // Exact source interruption is atomic with custody, including a leased child.
@@ -556,53 +546,50 @@ const postCore = (
       event = (input) => run(bridge.event(input))
     const sourceScope = {
       $: "SourceScope",
-      partition: BigInt(partition),
-      lifetime: 1n,
-      round: BigInt(round),
-      observation: BigInt(observation),
+      partition: Number(BigInt(partition)),
+      lifetime: 1,
+      round: Number(BigInt(round)),
+      observation: Number(BigInt(observation)),
       permission: { $: "SourceNew" }
     }
-    event({ $: "LaunchSourceEvent", scope: sourceScope, input_handle: 1n })
+    event({ $: "LaunchSourceEvent", scope: sourceScope, input_handle: 1 })
     const beforeGeneric = run(transaction.read)
-    assert.equal(
-      event({ $: "TerminalEvent", invocation: 1n, generation: 0n, result_handle: 9n }).refusal.$,
-      "WrongPhase"
-    )
+    assert.equal(event({ $: "TerminalEvent", invocation: 1, generation: 0, result_handle: 9 }).refusal.$, "WrongPhase")
     assert.deepEqual(run(transaction.read), beforeGeneric)
     let preparation
     if (variant === "cancel-leased") {
       preparation = run(capacity.beginObservedPreparation("agent", observation, 100, round))
       event({
         $: "InstallSourceEvent",
-        invocation: 1n,
-        generation: 0n,
-        handle: 2n,
-        request: 0n,
+        invocation: 1,
+        generation: 0,
+        handle: 2,
+        request: 0,
         permission: { $: "SourceCandidate" }
       })
-      event({ $: "ProviderStartEvent", invocation: 1n })
+      event({ $: "ProviderStartEvent", invocation: 1 })
       event({
         $: "LaunchSourcePreparationEvent",
-        parent: { $: "Parent", invocation: 1n, generation: 0n, request: 0n },
+        parent: { $: "Parent", invocation: 1, generation: 0, request: 0 },
         scope: {
           $: "PreparationScope",
-          partition: BigInt(partition),
-          lifetime: 1n,
-          round: BigInt(round),
-          preparation: BigInt(preparation.operation)
+          partition: Number(BigInt(partition)),
+          lifetime: 1,
+          round: Number(BigInt(round)),
+          preparation: Number(BigInt(preparation.operation))
         },
-        input_handle: 3n
+        input_handle: 3
       })
-      event({ $: "InstallEvent", invocation: 2n, generation: 0n, handle: 4n, request: 0n })
-      event({ $: "ProviderStartEvent", invocation: 2n })
+      event({ $: "InstallEvent", invocation: 2, generation: 0, handle: 4, request: 0 })
+      event({ $: "ProviderStartEvent", invocation: 2 })
     }
     if (variant === "absent")
       assert.equal(run(capacity.observation("agent", observation, "completeObservation", round)), true)
     const before = run(transaction.read)
     const result = event(
       variant === "cancel-leased"
-        ? { $: "CancelEvent", invocation: 1n }
-        : { $: "TerminalSourceFailedEvent", invocation: 1n, generation: 0n, result_handle: 9n }
+        ? { $: "CancelEvent", invocation: 1 }
+        : { $: "TerminalSourceFailedEvent", invocation: 1, generation: 0, result_handle: 9 }
     )
     if (variant === "wrong-stage") {
       assert.equal(result.refusal.$, "CanonicalRejected")
@@ -619,20 +606,20 @@ const postCore = (
       variant === "absent" ? 0 : 1
     )
     const snapshot = run(transaction.read),
-      child = owner.find(1n, snapshot.resolverCustody.children).value
+      child = owner.find(1, snapshot.resolverCustody.children).value
     assert.equal(child.phase.$, variant === "cancel-leased" ? "ChildCancelled" : "ChildAccepted")
     assert.equal(
-      result.actions.some((action) => action.$ === "AcceptResult" && action.result_handle === 9n),
+      result.actions.some((action) => action.$ === "AcceptResult" && action.result_handle === 9),
       variant !== "cancel-leased"
     )
     if (variant === "cancel-leased") {
       assert.equal(child.lease.$, "Some")
-      assert.equal(owner.find(2n, snapshot.resolverCustody.children).value.phase.$, "ChildCancelled")
+      assert.equal(owner.find(2, snapshot.resolverCustody.children).value.phase.$, "ChildCancelled")
       for (const [invocation, lease] of [
-        [1n, 1n],
-        [2n, 2n]
+        [1, 1],
+        [2, 2]
       ]) {
-        const late = event({ $: "ProviderCompletedEvent", invocation, lease, request: 0n, reply_handle: 8n })
+        const late = event({ $: "ProviderCompletedEvent", invocation, lease, request: 0, reply_handle: 8 })
         assert.equal(
           late.actions.some((action) => action.$ === "Resume"),
           false
@@ -687,8 +674,8 @@ const postCore = (
     let adviceDriver,
       deliverTail = false
     const adviceInputs = new Map([
-      [4n, 2n],
-      [5n, 2n]
+      [4, 2],
+      [5, 2]
     ])
     const bridge = createResidentOwnerTransaction({
         owner,
@@ -708,13 +695,13 @@ const postCore = (
     const preparation = run(capacity.beginObservedPreparation("agent", observation, 100, round)),
       scope = {
         $: "Scope",
-        partition: BigInt(partition),
-        lifetime: 1n,
-        round: BigInt(round),
-        preparation: BigInt(preparation.operation)
+        partition: Number(BigInt(partition)),
+        lifetime: 1,
+        round: Number(BigInt(round)),
+        preparation: Number(BigInt(preparation.operation))
       }
-    event({ $: "LaunchPreparationEvent", scope, input_handle: 1n })
-    event({ $: "TerminalPreparationEvent", invocation: 1n, generation: 0n, result_handle: 2n })
+    event({ $: "LaunchPreparationEvent", scope, input_handle: 1 })
+    event({ $: "TerminalPreparationEvent", invocation: 1, generation: 0, result_handle: 2 })
     const allocations = run(
       bridge.native((draft, records) => [
         completePreparation(draft, "agent", preparation.operation, preparation.reservation, [100, 100], round),
@@ -772,18 +759,18 @@ const postCore = (
       evaluations: [{ prepared, findings }],
       findings
     })
-    event({ $: "InstallEvent", invocation: 2n, generation: 0n, handle: 3n, request: 0n })
-    event({ $: "ProviderStartEvent", invocation: 2n })
-    const birthCredential = { invocation: 2n, generation: 0n, lease: 1n, request: 0n }
+    event({ $: "InstallEvent", invocation: 2, generation: 0, handle: 3, request: 0 })
+    event({ $: "ProviderStartEvent", invocation: 2 })
+    const birthCredential = { invocation: 2, generation: 0, lease: 1, request: 0 }
     const beforeBirth = run(transaction.read)
     assert.throws(
-      () => run(bridge.adviceInsertAndHandoff({ ...birthCredential, lease: 99n }, initialAdvice(0), 4n)),
+      () => run(bridge.adviceInsertAndHandoff({ ...birthCredential, lease: 99 }, initialAdvice(0), 4)),
       /Revoked/
     )
     assert.strictEqual(run(transaction.read), beforeBirth)
     // An otherwise valid insertion with a foreign canonical operation must roll back.
     assert.throws(() =>
-      run(bridge.adviceInsertAndHandoff(birthCredential, { ...initialAdvice(0), canonicalOperationId: 999 }, 4n))
+      run(bridge.adviceInsertAndHandoff(birthCredential, { ...initialAdvice(0), canonicalOperationId: 999 }, 4))
     )
     assert.strictEqual(run(transaction.read), beforeBirth)
     const constructorFailure = new Error("injected tail constructor failure")
@@ -802,12 +789,12 @@ const postCore = (
         },
         foreign: ([request], options) => registry.get(Number(request.invocation)).performEffect(request, options)
       })
-      const input = adviceDriver.prepareAdviceInput(2n, {})
-      assert.equal(input, 1n)
-      assert.equal(adviceDriver.validateAdviceInput(99n, input), false)
+      const input = adviceDriver.prepareAdviceInput(2, {})
+      assert.equal(input, 1)
+      assert.equal(adviceDriver.validateAdviceInput(99, input), false)
       deliverTail = true
     }
-    const birthInput = tailVariant.startsWith("driver-") ? 1n : 4n
+    const birthInput = tailVariant.startsWith("driver-") ? 1 : 4
     assert.throws(
       () =>
         run(
@@ -821,15 +808,15 @@ const postCore = (
     const capability = birthReceipt.capability
     assert.strictEqual(run(advice.values())[0], capability)
     assert.strictEqual(bridge.adviceReceipts[0], birthReceipt)
-    assert.equal(birthReceipt.invocation, 3n)
-    assert.equal(birthReceipt.scope.lifetime, 1n)
-    assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildInstalling")
+    assert.equal(birthReceipt.invocation, 3)
+    assert.equal(birthReceipt.scope.lifetime, 1)
+    assert.equal(owner.find(3, run(transaction.read).resolverCustody.children).value.phase.$, "ChildInstalling")
     const afterBirth = run(transaction.read)
-    assert.throws(() => run(bridge.adviceInsertAndHandoff(birthCredential, initialAdvice(0), 5n)))
+    assert.throws(() => run(bridge.adviceInsertAndHandoff(birthCredential, initialAdvice(0), 5)))
     assert.strictEqual(run(transaction.read), afterBirth, "duplicate birth does not publish native replacement")
     if (tailVariant.startsWith("driver-")) {
       deliverTail = false
-      event({ $: "CancelEvent", invocation: 2n })
+      event({ $: "CancelEvent", invocation: 2 })
       const lifetimeController = new AbortController()
       let cleanupFails =
           tailVariant === "driver-cleanup-pending" || tailVariant === "driver-construction-cleanup-failure",
@@ -887,7 +874,7 @@ const postCore = (
         }
       }
       const provider = createAdviceTailProvider(
-        3n,
+        3,
         tailBridge,
         capability,
         {},
@@ -913,7 +900,7 @@ const postCore = (
       )
       if (tailVariant === "driver-construction-cleanup-failure") {
         const rejected = await exitTail(
-          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3), provider, tailOptions)
         )
         assert.ok(Exit.isFailure(rejected))
         assert.ok(
@@ -927,7 +914,7 @@ const postCore = (
         // FiberFailure is wrapped by the host finalization aggregate.
         assert.ok(Cause.hasFails(provider.addedFailureCause))
         assert.strictEqual(Cause.findErrorOption(provider.addedFailureCause).value, cleanupFailure)
-        assert.notEqual(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
+        assert.notEqual(owner.find(3, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
         assert.equal(registry.pendingCleanup, 1)
         assert.ok(adviceDriver.resources.sessions > 0)
         assert.strictEqual(run(advice.values())[0], capability)
@@ -938,7 +925,7 @@ const postCore = (
         cleanupFails = false
         await runTail(registry.retryCleanupEffect())
         assert.equal(registry.pendingCleanup, 0)
-        assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
+        assert.equal(owner.find(3, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
         assert.deepEqual(adviceDriver.resources, {
           payloads: 0,
           leases: 0,
@@ -956,10 +943,10 @@ const postCore = (
       }
       if (tailVariant === "driver-construction-failure") {
         await assert.rejects(
-          runTail(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)),
+          runTail(adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3), provider, tailOptions)),
           /injected tail constructor failure/
         )
-        assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
+        assert.equal(owner.find(3, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
         assert.equal(run(advice.values()).length, 0)
         assert.equal(registry.pendingCleanup, 0)
         assert.deepEqual(adviceDriver.resources, {
@@ -978,7 +965,7 @@ const postCore = (
       }
       if (tailVariant === "driver-cleanup-pending" || tailVariant === "driver-observer-pending") {
         const rejected = await exitTail(
-          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3), provider, tailOptions)
         )
         assert.ok(Exit.isFailure(rejected))
         const barrier = provider.terminationCause.reasons.find(
@@ -1024,11 +1011,11 @@ const postCore = (
       }
       if (tailVariant !== "driver-active-false") {
         const outcome = await runTail(
-          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, tailOptions)
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3), provider, tailOptions)
         )
         assert.equal(outcome.adviceRetained, false)
         assert.equal(outcome.reason.$, "TechnicalFailure")
-        assert.equal(outcome.reason.token, 1n)
+        assert.equal(outcome.reason.token, 1)
         assert.equal(run(advice.values()).length, 0)
         assert.equal(registry.pendingCleanup, 0)
         assert.deepEqual(fates, [
@@ -1053,9 +1040,7 @@ const postCore = (
       }
       assert.deepEqual(
         await runTail(
-          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3n), provider, {
-            signal: lifetimeController.signal
-          })
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3), provider, { signal: lifetimeController.signal })
         ),
         { adviceRetained: true }
       )
@@ -1064,7 +1049,7 @@ const postCore = (
         capability,
         "completed advice survives parent cancellation and inactive work"
       )
-      assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
+      assert.equal(owner.find(3, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
       assert.deepEqual(adviceDriver.resources, { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 })
       assert.equal(registry.size, 0)
       assert.equal(run(bridge.adviceCleanup(capability)), true)
@@ -1077,24 +1062,24 @@ const postCore = (
     const install = (generation, request, permission) =>
       event({
         $: "InstallAdviceEvent",
-        invocation: 3n,
+        invocation: 3,
         generation,
-        handle: 10n + request,
+        handle: 10 + request,
         request,
         permission: { $: permission }
       })
-    const begin = () => event({ $: "ProviderStartEvent", invocation: 3n }),
+    const begin = () => event({ $: "ProviderStartEvent", invocation: 3 }),
       complete = (lease, request) =>
-        event({ $: "ProviderCompletedEvent", invocation: 3n, lease, request, reply_handle: 20n + request })
-    install(0n, 0n, "TailBarrier")
+        event({ $: "ProviderCompletedEvent", invocation: 3, lease, request, reply_handle: 20 + request })
+    install(0, 0, "TailBarrier")
     begin()
-    complete(2n, 0n)
-    install(1n, 1n, "TailActive")
+    complete(2, 0)
+    install(1, 1, "TailActive")
     begin()
-    complete(3n, 1n)
-    install(2n, 2n, "TailPublish")
+    complete(3, 1)
+    install(2, 2, "TailPublish")
     begin()
-    const credential = { invocation: 3n, generation: 2n, lease: 4n, request: 2n }
+    const credential = { invocation: 3, generation: 2, lease: 4, request: 2 }
     let attempted = false
     const before = run(transaction.read)
     assert.throws(
@@ -1113,10 +1098,10 @@ const postCore = (
     assert.strictEqual(run(transaction.read), before)
     if (tailVariant === "missing-publish") assert.equal(run(bridge.adviceCleanup(capability)), true)
     assert.deepEqual(run(bridge.adviceTailPublish(credential, capability)), [])
-    complete(4n, 2n)
-    install(3n, 3n, "TailRemove")
+    complete(4, 2)
+    install(3, 3, "TailRemove")
     begin()
-    const cleanupCredential = { invocation: 3n, generation: 3n, lease: 5n, request: 3n }
+    const cleanupCredential = { invocation: 3, generation: 3, lease: 5, request: 3 }
     let committedRemoval
     assert.throws(
       () =>
@@ -1142,9 +1127,9 @@ const postCore = (
     assert.strictEqual(run(advice.values())[0], replacement)
     assert.equal(run(bridge.adviceCleanup(replacement)), true)
     assert.equal(run(revision.count()), 0)
-    complete(5n, 3n)
-    event({ $: "TerminalEvent", invocation: 3n, generation: 4n, result_handle: 40n })
-    assert.equal(owner.find(3n, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
+    complete(5, 3)
+    event({ $: "TerminalEvent", invocation: 3, generation: 4, result_handle: 40 })
+    assert.equal(owner.find(3, run(transaction.read).resolverCustody.children).value.phase.$, "ChildAccepted")
     assert.equal(projectCanonical(run(transaction.read).canonical).global.bytes, 0)
     cases++
   }
