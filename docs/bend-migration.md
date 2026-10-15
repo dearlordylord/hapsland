@@ -179,7 +179,7 @@ arbitrary fuel.
 | Obstacle | Required change or evidence |
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
-| Original proof formatting | The complete law must pass the pinned formatter, which rejects inline proof/lambda blocks in wide argument lists across 216 definitions. Local or prefix fixes are insufficient; preserve every statement and premise. |
+| Original proof formatting | The complete law must pass formatting. Block-aware layout is under review in a separate formatter branch; Hapsland pin is unchanged. Preserve every statement and premise. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Post-cut compiled Source/resident, Finalization and public Preparation pass; repeat on the final candidate. Individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
@@ -225,11 +225,13 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- On `c0f265f5`, primary analyzer/build ratios are 0.7922 / 0.8263; public
-  current-native Preparation **fails parity at 1.9817**, with equal outputs.
-  All 17 pairs and 30 checkout-local workspace resolutions qualify mechanically.
-  Another project concurrently occupied CPU11: timings establish neither
-  optimization benefit nor final uncontended parity.
+- Latest `c0f265f5` analyzer/build ratios: 0.7949 / 0.7807. Public current-native
+  Preparation **fails parity at 2.0142**, with equal outputs, after the competing
+  CPU11 benchmark ended. All 17 pairs and 30 local workspace resolutions qualify.
+  No whole-path benefit is demonstrated for the string change.
+- Shared address facts and construction consumers pass verdict/format. Complete
+  attachment TT decreases to 7,445,671 bytes; full verdict still times out.
+  The original law, premises, binding and main remain byte-identical.
 
 ### Check and source owners
 
@@ -246,11 +248,9 @@ frozen HEAD/authored inputs/artifacts, checkout-local workspace resolution and
 Start build and execution measurements at least every 30 minutes. Run complete
 Preparation parity separately; diagnostics and instrumented timings are not parity.
 
-Keep retained code, tests, specifications, proofs and necessary runners in their
-ordinary domain owners under [source organization](source-organization.md), with
-one maintained source authority. An unfinished candidate still belongs there.
-Results belong in ignored `.test-runs`; evidence/prototypes, source snapshots,
-`.txt` copies and source-restoration inventories are not migration source owners.
+Retained sources/tests/proofs/runners belong to ordinary domain owners under
+[source organization](source-organization.md), with one tracked authority, never
+evidence/prototypes, snapshots, `.txt` copies or restoration inventories.
+Only results belong in ignored `.test-runs`.
 
-Replace superseded status in place. History stays in Git, detailed run output
-in executable qualification reports; do not append chronology or archive copies.
+Replace superseded status in place. Keep chronology in Git and run details in executable reports.
