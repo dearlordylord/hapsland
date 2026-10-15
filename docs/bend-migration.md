@@ -186,7 +186,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Original law/premises/binding/main remain byte-identical. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation also affects local analyzer proofs; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | Local analyzer connection requalified against independent TS: Source/resident/FrozenInput and 254 public tests pass, including failure/measurement ordering. |
-| Whole-path parity | Capture candidate whole current-native ratio is 1.3804; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup proposal closed without implementation: small fixture dependency sets, no existing order proof, and unequal Bend Strings can share UTF16 units. Exact insertion equivalence needs a new proof chain with unsupported whole-path payoff. Next implementation needs another source-supported hypothesis. |
+| Whole-path parity | Connected local candidate whole current-native ratio is 1.2650; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup proposal closed without implementation: small fixture dependency sets, no existing order proof, and unequal Bend Strings can share UTF16 units. Exact insertion equivalence needs a new proof chain with unsupported whole-path payoff. Next implementation needs another source-supported hypothesis. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,
@@ -206,13 +206,16 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `b7807a92`: analyzer/build 0.6493 / 0.8257
-  (18:51/18:52 UTC, 17 pairs, frozen inputs, build cache 23/46).
-  46/46 build, 23 receipts and check:fast (3 lint files) pass; production algorithm unchanged.
-  Capture candidate `2f37ebc6` whole Preparation at 13:33 UTC **fails parity at 1.3804**:
-  equal outputs, 17 frozen pairs, seven fixtures/five languages, 30 local workspaces.
-  Unchanged capture and rope trials are closed; separate runs establish no causal comparison.
-  Capture materialization laws/three mutants and full consumers pass; lookup remains linear, no TS removed.
+- Primary `03371908`: function-analyzer/build 0.6551 / 0.9450
+  (19:19 UTC, 17 pairs, frozen inputs, build cache 23/46).
+  These execution samples do not measure the newly connected local type analyzer.
+  Connected local candidate whole Preparation at 19:25 UTC **fails parity at 1.2650**:
+  equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
+  oracle and 30 local workspaces. Build/23 receipts, independent Source/resident/
+  FrozenInput and 254 public tests pass; check:fast selects nine lint files.
+  Imported type regressions pass the compiled gate.
+  The prior capture trial was 1.3804; separate runs establish no causal comparison.
+  Unchanged capture, rope and connected-local timing retries are closed.
 - Original attachment law/premises/binding/main remain byte-identical. Shared-witness
   and reply-dispatch factorization do not yet pass current hard10 qualification.
   Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
