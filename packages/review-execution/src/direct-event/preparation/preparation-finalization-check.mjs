@@ -23,6 +23,7 @@ import {
   performFinalizationAsync
 } from "../../../dist/direct-event/preparation/finalization-protocol.js"
 import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
+import { decodePreparationResult } from "../../../dist/direct-event/preparation/preparation-result-codec.js"
 import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import {
   productValue,
@@ -485,7 +486,7 @@ try {
     return result.outputs[0].gate === "admit"
   }
   const createOwnedConsumer =
-    (canonicalGate) =>
+    (canonicalGate, machineCore) =>
     async (input, execution = {}) => {
       let state = owner.initial_limits(100, 1000000, 100, 1000000)
       const opened = owner.canonical_event(state, { $: "../Canonical.OpenRound", partition: 1, lifetime: 1 })
@@ -496,7 +497,7 @@ try {
         state = step.state
       }
       const registry = createNativeSessionRegistry()
-      const machine = createFinalizationMachine({ machine: core, canonicalGate })
+      const machine = createFinalizationMachine({ machine: machineCore, canonicalGate })
       const driver = createChildExecutionDriver({
         owner,
         initialState: state,
@@ -528,10 +529,40 @@ try {
       }
     }
   for (const createConsumer of [
-    (gate) => createPreparationFinalizationConsumer({ machine: core, canonicalGate: gate }),
+    (gate, machineCore) => createPreparationFinalizationConsumer({ machine: machineCore, canonicalGate: gate }),
     createOwnedConsumer
   ]) {
-    const consume = createConsumer(runtimeGate)
+    let expectedUnits
+    const machineCore = {
+      ...core,
+      initial(invocation, context, units) {
+        assert.equal(units, expectedUnits, "Finalization must retain the exact Bend units list")
+        return core.initial(invocation, context, units)
+      }
+    }
+    const consumeWire = createConsumer(runtimeGate, machineCore)
+    // Native fixtures enter the typed owner boundary once; production already
+    // holds this exact ProductValue list in Preparation.RenderUnits.
+    const consume = async (input, execution) => {
+      expectedUnits = list(input.units.map(productValue))
+      const outcomes = await consumeWire({ ...input, units: expectedUnits }, execution)
+      for (const outcome of outcomes)
+        assert.equal(
+          outcome.prepared.$,
+          "../../../../source-artifacts/src/direct-event/value/Value.ProductObject",
+          "Prepared tree stays encoded until public decode"
+        )
+      return decodePreparationResult({
+        $: "PreparationResult",
+        complete: true,
+        paths: list([]),
+        outcomes: list(outcomes.map((outcome) => ({ $: "OutcomeReady", ...outcome }))),
+        units: list([]),
+        line_roots: list([]),
+        selected: 0,
+        ambiguous_line: false
+      }).outcomes.map(({ status: _status, ...outcome }) => outcome)
+    }
 
     const runtimeInput = (settings, currentRules) => ({
       invocation: 700,

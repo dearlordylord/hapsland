@@ -174,6 +174,8 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 records, preserving bounds/isolation. The assessed JS Map.bit/diff fork [48a21ae2](https://github.com/dearlordylord/bend/commit/48a21ae2bc00035cfffa100c062716bf5b7bf0a7) passes Astra review, independent Base equations,
 two-key Map shapes/evaluation-order checks and unchanged C/TT bytes.
 23 receipts, 99 producer tests and full consumers pass; whole parity fails.
+Next candidate removes both Preparation/Finalization tree roundtrips; original
+Bend units/prepared trees cross the private port directly, public decode/freeze remains.
 
 ### Remaining obstacles and acceptance evidence
 

@@ -2,8 +2,8 @@ import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
 import type { CanonicalEvent } from "@hapsland/canonical-policy/canonical/models"
 import type { ReviewBackendSettings } from "@hapsland/runtime-environment/runtime/backend"
-import type { List } from "@hapsland/source-artifacts/direct-event/value/codec"
-import type { SourcePreparationContext, PreparedSource } from "./contract.ts"
+import type { List, ProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
+import type { SourcePreparationContext } from "./contract.ts"
 import type {
   Context,
   Invocation,
@@ -18,15 +18,8 @@ import { createHash } from "node:crypto"
 import { extname } from "node:path"
 import { registeredLanguages } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
-import { freezeInput } from "@hapsland/review-definition/direct-event/model"
 import { TransportFailure } from "@hapsland/runtime-environment/runtime/effect-transport"
-import {
-  productValue,
-  fromProductValue,
-  fromBinary64,
-  list,
-  unlist
-} from "@hapsland/source-artifacts/direct-event/value/codec"
+import { productValue, fromBinary64, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 export type Execution = { readonly signal?: AbortSignal }
 export type CanonicalRuleGate = (
@@ -46,12 +39,30 @@ export type FinalizationFrame = {
 export type FinalizationInput = {
   readonly invocation: number
   readonly command: number
-  readonly units: readonly unknown[]
+  readonly units: List<ProductValue>
   readonly declarations: readonly unknown[]
   readonly path: string
   readonly frame: FinalizationFrame
 }
-export type FinalizedOutcome = { readonly path: string; readonly prepared: PreparedSource }
+export type FinalizedOutcome = { readonly path: string; readonly prepared: ProductValue }
+
+// Completed is a producer-valid envelope. Keep its prepared tree in the
+// owning Bend representation until the public preparation result decoder.
+const finalizedOutcome = (value: ProductValue): FinalizedOutcome => {
+  if (value.$ !== "../../../../source-artifacts/src/direct-event/value/Value.ProductObject")
+    throw new TypeError("Invalid finalization outcome envelope")
+  let path: string | undefined, prepared: ProductValue | undefined
+  for (const field of unlist(value.fields)) {
+    if (
+      field.key === "path" &&
+      field.value.$ === "../../../../source-artifacts/src/direct-event/value/Value.ProductText"
+    )
+      path = field.value.value
+    if (field.key === "prepared") prepared = field.value
+  }
+  if (path === undefined || prepared === undefined) throw new TypeError("Incomplete finalization outcome envelope")
+  return { path, prepared }
+}
 
 const backend = "../../../../runtime-environment/src/runtime/backend/Backend."
 const language = "../../../../native-observation/src/direct-event/languages/path-language/PathLanguage."
@@ -169,7 +180,7 @@ export function createPreparationFinalizationExecution({
     const scope: Invocation = { $: "Invocation", owner: Number(BigInt(invocation)), command: Number(BigInt(command)) }
     let encodingError: URIError | undefined
     return {
-      initial: () => machine.initial(scope, context, list(units.map(productValue))),
+      initial: () => machine.initial(scope, context, units),
       advance(step: Step): Step | undefined {
         checkSignal(options.signal)
         return step.$ === "Continue" ? machine.advance(step.phase) : undefined
@@ -177,9 +188,7 @@ export function createPreparationFinalizationExecution({
       accepted(step: Step): readonly FinalizedOutcome[] | undefined {
         switch (step.$) {
           case "Completed": {
-            const outcomes = unlist(step.outcomes).map((value) => fromProductValue(value) as FinalizedOutcome)
-            for (const outcome of outcomes)
-              (outcome.prepared as { input: PreparedSource["input"] }).input = freezeInput(outcome.prepared.input)
+            const outcomes = unlist(step.outcomes).map(finalizedOutcome)
             checkSignal(options.signal)
             return outcomes
           }

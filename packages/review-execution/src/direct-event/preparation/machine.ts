@@ -18,7 +18,7 @@ import {
 import { decodePreparationResult } from "./preparation-result-codec.ts"
 import type { Command, Request } from "./preparation-core.js"
 import type { SourcePreparationContext } from "./contract.ts"
-import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
 export type PreparationEffectRequest = Omit<Request, "command"> & {
@@ -81,7 +81,7 @@ export function createPreparationCapability(ports: PreparationPorts) {
         {
           invocation: request.invocation,
           command: request.id,
-          units: unlist(command.units).map(fromProductValue),
+          units: command.units,
           declarations,
           path: command.context.capture.path,
           frame: {
@@ -102,11 +102,7 @@ export function createPreparationCapability(ports: PreparationPorts) {
       response: {
         $: "UnitsRendered",
         outcomes: list(
-          outcomes.map((outcome) => ({
-            $: "OutcomeReady" as const,
-            path: outcome.path,
-            prepared: productValue(outcome.prepared)
-          }))
+          outcomes.map((outcome) => ({ $: "OutcomeReady" as const, path: outcome.path, prepared: outcome.prepared }))
         )
       }
     }
