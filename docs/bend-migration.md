@@ -174,8 +174,8 @@ is removed. Preparation is **not accepted**: original attachment gates and whole
 records, preserving bounds/isolation. Compiler cohort: JS String/Map intrinsics [48a21ae2](https://github.com/dearlordylord/bend/commit/48a21ae2bc00035cfffa100c062716bf5b7bf0a7), unchanged C/TT bytes, 99 producer tests.
 Preparation/Finalization forwards Bend trees directly; intermediate roundtrips/freeze
 are removed, public decode/freeze stays. Full consumers pass; parity remains open.
-Current candidate also forwards accepted Graph ProductValue through the existing
-Effect port; Promise Graph API retains native projection. Qualification pending.
+Graph Effect forwards accepted ProductValue; native Promise projection stays.
+Astra, fast (4 files), 105 Graph cases/58 fixtures, identity checks and full consumers pass.
 
 ### Remaining obstacles and acceptance evidence
 
@@ -226,8 +226,8 @@ that only bridges helper names.
   mutants, 6930 differential cases, build, fast gate (8 files), 4 public workspace
   tests, 6 server scenarios and compiled Source/resident consumers pass. Original
   formulas remain only in the independent verification oracle.
-- Primary `bc2514e5` handoff cohort analyzer/build: 0.7441 / 0.8284.
-  Whole current-native Preparation **fails parity at 1.3922**: equal outputs,
+- Primary `c161b10a` Graph handoff cohort analyzer/build: 0.7014 / 0.8396.
+  Whole current-native Preparation **fails parity at 1.3478**: equal outputs,
   17 frozen pairs, 30 local workspaces; freezes pass, build cache 23/46.
   Fused validate/plan is closed after deep-stream overflow; no retry.
 - Original full attachment verdict passes the CPU10/10s capability gate after
