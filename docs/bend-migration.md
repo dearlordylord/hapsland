@@ -180,10 +180,10 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Rope planner consumers | Unconditional compile equality, exact stack simulation, counts, stable-sort erasure and original tree-laws pass kernel. Three proof roots/eight semantic mutants and validator pass. Requalify complete production consumers and whole Preparation parity; pinned proof formatting remains open. |
+| Attachment hard10 | Earlier shared-witness source passed. Current sequence-cohort recheck timed out twice at CPU10/hard10 (one printed ALL PROOFS CHECK before timeout). Neither qualifies; unchanged retries are closed. Need a new source-supported proof-shape hypothesis without changing the original law/premises/binding/main. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
-| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the Map cohort. Finalization/public Preparation pass; repeat after production edits. |
-| Whole-path parity | The assessed 2.0.37 Map cohort passes producers/consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
+| Connected consumer qualification | Rope candidate `1dc367f4`: normal build/23 receipts, Finalization (66+52 runtime/9615 refusals), Graph (105/58 fixtures), Source (59/6687, 34 physical), resident (67/14323, 868 Post), machine and public Preparation pass. Repeat only after relevant production edits. |
+| Whole-path parity | The proved rope candidate passes full consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Each action must close one row. Before adding a representation or proof chain,
@@ -202,8 +202,8 @@ that only bridges helper names.
   depth 25000. Production imports no specification/proof owner.
 - Eight batch protocol/eighteen actual-machine laws pass. Existing consumers
   cover correlated headers/counters, 606 FrozenInput and 9615 Finalization
-  refusals, prefix throw/abort and late raw-token coercion. Requalify consumers
-  on the completed rope candidate before whole acceptance.
+  refusals, prefix throw/abort and late raw-token coercion. Full rope candidate
+  consumers and three focused public suites pass; whole acceptance stays open.
 - UnitEvidence query: five arbitrary-input laws, 1940 cases/five mutants,
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
@@ -212,8 +212,8 @@ that only bridges helper names.
   (12:38 UTC, 17 pairs, frozen inputs, build cache 23/46).
   Last whole current-native Preparation (`f4ca2eae`) **fails parity at 1.4616**:
   equal outputs, 17 frozen pairs, 30 local workspaces. Whole acceptance stays open.
-- Original attachment verdict passes CPU10/10s through the existing shared
-  witness lemma; law/premises/binding/main/reply dispatch remain byte-identical.
+- Original attachment shared-witness source remains byte-identical, but current
+  requalification hit hard10 twice. Historical passes do not qualify this candidate.
   Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
   Pinned formatting remains open. Renderer/pending-key, runtime attribution,
   attachment formatter alias/hoist, fused validate/plan and compiler sequence
