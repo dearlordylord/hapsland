@@ -75,6 +75,16 @@ try {
     { timeout: 11000 }
   )
   const potential = (await import(pathToFileURL(potentialOutput))).default
+  const continuationOutput = join(temporary, "continuation.mjs")
+  execFileSync(
+    "timeout",
+    ["10s", "taskset", "-c", "10", "bend", join(import.meta.dirname, "Continuation.bend"), "-o", continuationOutput],
+    { timeout: 11000 }
+  )
+  const continuation = (await import(pathToFileURL(continuationOutput))).default
+  let continuationStates = 0,
+    childEntries = 0,
+    childReturns = 0
   let selectedDropCases = 0
   let potentialStates = 0
   const checkPotential = (cursor) => {
@@ -120,7 +130,73 @@ try {
   }
   let cursorSteps = 0,
     refusedAcks = 0
-  const runCore = (start, artifacts = [], measuring = false) => {
+  const runCore = (start, artifacts = [], measuring = false, initialRoot) => {
+    let currentRoot,
+      rootCatalog,
+      expectedRoot,
+      depths = []
+    const expressions = []
+    const beginRoot = (root, facts) => {
+      currentRoot = root
+      rootCatalog = facts
+      expectedRoot = spec.analyze(root, facts)
+      assert.equal(expectedRoot.$, "NodeResult")
+      depths = [continuation.root_reference_depth(root, facts)]
+    }
+    if (initialRoot) beginRoot(initialRoot.root, initialRoot.facts)
+    const cursorOf = (value) =>
+      value.$ === "Continue"
+        ? value.cursor
+        : value.$ === "Engine" && value.next.$ === "CursorNext"
+          ? value.next.cursor
+          : undefined
+    const checkContinuation = (cursor) => {
+      const frames = unlist(cursor.frames)
+      assert.equal(frames.length, depths.length)
+      assert.equal(frames.at(-1).site.$, "None", "root frame has no parent site")
+      assert.equal(frames.at(-1).slot, currentRoot.slot)
+      let state = {
+        $: "State",
+        root_name: cursor.root_name,
+        expanded: cursor.expanded,
+        referenced: cursor.referenced,
+        failure: cursor.failure
+      }
+      let result
+      for (let index = 0; index < frames.length; index++) {
+        const frame = frames[index]
+        assert.ok(depths[index] > 0, "original Spec continuation depth must suffice")
+        if (index < frames.length - 1) assert.equal(frame.site.$, "Some", "child has an existing parent")
+        let subtotal = measuring ? expressions[expressions.length - 1 - index] : { $: "Literal", value: 0 }
+        const prefix = unlist(frame.reversed).reverse()
+        if (result) {
+          prefix.push({ $: "Model.Expanded", symbol: frames[index - 1].site.value, node: result.node })
+          subtotal = { $: "Add", left: subtotal, right: result.bytes }
+        }
+        const remaining = spec.as_references(
+          spec.interpret(
+            depths[index],
+            { $: "ReferencesRequest", references: frame.pending, state, subtotal },
+            rootCatalog
+          )
+        )
+        assert.equal(remaining.$, "ReferencesResult", "parked Spec continuation must complete")
+        result = spec.node_result(continuation.completed_prefix(list(prefix), remaining), frame.slot)
+        state = result.state
+      }
+      assert.deepEqual(state, expectedRoot.state, "every suspended continuation preserves final traversal state")
+      if (cursor.global.purpose.$ === "Trees")
+        assert.deepEqual(result.node, expectedRoot.node, "every suspended continuation preserves the full tree")
+      if (measuring) {
+        assert.equal(expressions.length, frames.length + 1, "one subtotal per frame and the outer fold")
+        assert.deepEqual(
+          result.bytes,
+          expectedRoot.bytes,
+          "every suspended continuation preserves exact IEEE expression grouping"
+        )
+      }
+      continuationStates++
+    }
     let step = start
     const operations = [],
       stack = [],
@@ -128,12 +204,39 @@ try {
     let request = 0
     for (let count = 0; count < 100000; count++) {
       cursorSteps++
-      if (step.$ === "Continue") checkPotential(step.cursor)
+      if (step.$ === "Continue") {
+        checkPotential(step.cursor)
+        checkContinuation(step.cursor)
+      }
       if (step.$ === "Engine" && step.next.$ === "CursorNext") checkPotential(step.next.cursor)
       if (step.$ === "Continue" || step.$ === "NextRoot") {
         if (step.$ === "Continue" && step.cursor.global.purpose.$ !== "Trees")
           for (const frame of unlist(step.cursor.frames)) assert.deepEqual(frame.reversed, list([]))
-        step = core.advance(step)
+        const previous = step
+        if (previous.$ === "NextRoot") {
+          const pending = unlist(previous.global.pending)
+          if (pending.length) beginRoot(pending[0], previous.global.catalog)
+        }
+        step = core.advance(previous)
+        if (previous.$ === "Continue") {
+          const oldFrames = unlist(previous.cursor.frames)
+          const next = cursorOf(step)
+          if (next) {
+            const nextFrames = unlist(next.frames)
+            if (unlist(oldFrames[0].pending).length) {
+              const depth = depths[0]
+              depths[0] = continuation.sibling_depth(depth)
+              if (nextFrames.length > oldFrames.length) {
+                depths.unshift(continuation.child_reference_depth(depth))
+                childEntries++
+              }
+            } else {
+              assert.equal(nextFrames.length, oldFrames.length - 1)
+              depths.shift()
+              childReturns++
+            }
+          } else depths = []
+        }
       } else if (step.$ === "Engine") {
         assert.ok(measuring, "analysis modes must not issue arithmetic commands")
         assert.equal(step.request, request++)
@@ -141,6 +244,15 @@ try {
         refusedAcks++
         const operation = step.operation
         operations.push(operation)
+        if (operation.$ === "Model.Push") expressions.push({ $: "Literal", value: operation.value })
+        else if (operation.$ === "Model.MeasureArtifact") expressions.push({ $: "ArtifactBytes", slot: operation.slot })
+        else if (operation.$ === "Model.MeasureText") expressions.push({ $: "TextBytes", value: operation.value })
+        else {
+          const right = expressions.pop(),
+            left = expressions.pop()
+          assert.ok(left && right)
+          expressions.push({ $: operation.$ === "Model.Add" ? "Add" : "Multiply", left, right })
+        }
         switch (operation.$) {
           case "Model.Push":
             stack.push(Number(operation.value))
@@ -237,7 +349,7 @@ try {
         reversed: list([]),
         request: 0
       })
-      assert.deepEqual(unlist(runCore(start).step.outcomes), [expected.value])
+      assert.deepEqual(unlist(runCore(start, [], false, { root, facts }).step.outcomes), [expected.value])
     }
     rawCases++
     return result
@@ -546,6 +658,9 @@ try {
       rootContexts,
       potentialStates,
       selectedDropCases,
+      continuationStates,
+      childEntries,
+      childReturns,
       scope:
         "unconnected cursor and independent recursive specification; finite law instances, no universal proofs or production acceptance"
     })
