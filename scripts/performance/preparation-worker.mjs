@@ -251,7 +251,15 @@ console.log(
     rounds,
     definedAndEqual: true,
     implementation,
-    ...(process.env.HAPSLAND_PREPARATION_PROFILE_DIR === undefined ? {} : { diagnosticMemory: process.memoryUsage() }),
+    ...(process.env.HAPSLAND_PREPARATION_PROFILE_DIR === undefined
+      ? {}
+      : {
+          diagnosticMemory: process.memoryUsage(),
+          diagnosticMeasurementWindow: {
+            startedAtMicroseconds: (performance.timeOrigin + started) * 1000,
+            endedAtMicroseconds: (performance.timeOrigin + performance.now()) * 1000
+          }
+        }),
     ...(process.env.HAPSLAND_PREPARATION_PROFILE_OWNER === "1" ? { diagnosticOwnerCalls: ownerCalls } : {}),
     ...(observeRequests
       ? {
