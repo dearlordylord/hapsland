@@ -105,10 +105,18 @@ def visit(
         }
       }
 
+# Finish the existing literal-only traversal before crossing the host ABI.
+# Stop before Visit so primitive serialization retains its native boundary.
+def literal_prefix(pending: List<&2, Work>, parts: List<&2, String>) -> State:
+  match pending:
+    case []: State{[], parts}
+    case Literal{value} <> tail: literal_prefix(tail, value <> parts)
+    case Visit{value} <> tail: State{Visit{value} <> tail, parts}
+
 def advance(state: State) -> Step:
   match state:
     case State{[], parts}: Complete{String.concat(List.reverse(&2, String, parts))}
-    case State{Literal{value} <> pending, parts}: Continue{State{pending, value <> parts}}
+    case State{Literal{value} <> pending, parts}: Continue{literal_prefix(pending, value <> parts)}
     case State{Visit{value} <> pending, parts}: visit(value, pending, parts)
 
 def primitive_returned(state: State, token: String) -> State:

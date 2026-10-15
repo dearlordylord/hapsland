@@ -37,6 +37,15 @@ const primitive = (value) => {
       throw new Error("Unexpected primitive " + value.$)
   }
 }
+const primitiveTrace = (value) => {
+  if (Array.isArray(value)) return value.flatMap(primitiveTrace)
+  if (value !== null && typeof value === "object")
+    return Object.keys(value)
+      .sort()
+      .flatMap((key) => [...primitiveTrace(key), ...primitiveTrace(value[key])])
+  const kind = value === null ? "Null" : { boolean: "Bool", number: "Number", string: "String" }[typeof value]
+  return [[kind + "Primitive", JSON.stringify(value)]]
+}
 try {
   const output = join(temporary, "canonical-json.mjs")
   execFileSync(
@@ -45,6 +54,25 @@ try {
     { timeout: 6000 }
   )
   const stage = (await import(pathToFileURL(output))).default
+  const visit = { $: "Visit", value: wire(productValue(null)) }
+  let literals = { $: "Nil" }
+  const tokens = Array.from({ length: 2048 }, (_, index) => (index % 2 ? "," : ":"))
+  for (const token of [...tokens].reverse())
+    literals = { $: "Con", head: { $: "Literal", value: token }, tail: literals }
+  const parts = { $: "Con", head: "before", tail: { $: "Nil" } }
+  const exhausted = stage.advance({ $: "State", pending: literals, reversed_parts: parts })
+  assert.equal(label(exhausted), "Continue", "literal flush must not complete early")
+  assert.equal(label(exhausted.state.pending), "Nil")
+  assert.equal(stage.advance(exhausted.state).bytes, "before" + tokens.join(""))
+  const stopped = stage.advance({
+    $: "State",
+    pending: { $: "Con", head: { $: "Literal", value: ":" }, tail: { $: "Con", head: visit, tail: { $: "Nil" } } },
+    reversed_parts: parts
+  })
+  assert.equal(label(stopped), "Continue")
+  assert.deepEqual(stopped.state.pending, { $: "Con", head: visit, tail: { $: "Nil" } })
+  assert.equal(label(stage.advance(stopped.state)), "JsonPrimitive", "Visit retains its own primitive boundary")
+  assert.equal(stage.advance({ $: "State", pending: { $: "Nil" }, reversed_parts: parts }).bytes, "before")
   const values = [
     null,
     true,
@@ -67,19 +95,23 @@ try {
     values.push({ z: [index / 7, index % 2 === 0, null], a: { [String(index)]: "\n" + index } })
   let primitiveRequests = 0
   for (const value of values) {
+    const trace = []
     let state = stage.initial(wire(productValue(value)))
     for (let steps = 0; ; steps++) {
       assert.ok(steps < 10000, "canonical traversal terminates")
       const step = stage.advance(state)
       if (label(step) === "Complete") {
         assert.equal(step.bytes, canonicalValue(value))
+        assert.deepEqual(trace, primitiveTrace(value), "primitive order and values match the original traversal")
         break
       }
       if (label(step) === "Continue") state = step.state
       else {
         assert.equal(label(step), "JsonPrimitive")
         primitiveRequests++
-        state = stage.primitive_returned(step.state, primitive(step.value))
+        const token = primitive(step.value)
+        trace.push([label(step.value), token])
+        state = stage.primitive_returned(step.state, token)
       }
     }
   }

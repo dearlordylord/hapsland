@@ -19,6 +19,12 @@ const phase = (name) => {
 }
 phase("imports:start")
 const load = (path) => import(pathToFileURL(root + path).href)
+let abiAttribution
+if (process.env.HAPSLAND_PREPARATION_PROFILE_ABI === "1" && implementation === "public") {
+  assert.ok(process.env.HAPSLAND_PREPARATION_PROFILE_DIR, "ABI attribution is diagnostic only")
+  assert.ok(typeof Bun !== "undefined", "ABI attribution requires Bun's in-memory loader")
+  abiAttribution = (await import("./bend-abi-attribution.mjs")).installAbiAttribution(root)
+}
 const ownerCalls = {}
 const requestCounts = {},
   logicalRequestCounts = {},
@@ -219,6 +225,7 @@ for (const histogram of [requestCounts, logicalRequestCounts])
 issuedLeases.clear()
 for (const key of Object.keys(providerOutcomes)) providerOutcomes[key] = 0
 phase("measurement:start")
+abiAttribution?.reset()
 const started = performance.now(),
   cpu = process.cpuUsage()
 let checksum = 0
@@ -261,6 +268,7 @@ console.log(
           }
         }),
     ...(process.env.HAPSLAND_PREPARATION_PROFILE_OWNER === "1" ? { diagnosticOwnerCalls: ownerCalls } : {}),
+    ...(abiAttribution ? { diagnosticAbi: abiAttribution.snapshot() } : {}),
     ...(observeRequests
       ? {
           diagnosticRequestCounts: requestCounts,
