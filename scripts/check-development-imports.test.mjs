@@ -104,6 +104,19 @@ test("tooling bootstrap can access only the authored source of its declared prod
   assert.throws(() => checkDevelopmentImports(root), /Undeclared development dependency/)
 })
 
+test("missing owner-local compiled outputs identify the existing worktree preparation command", (t) => {
+  const root = fixture(t, "")
+  mkdirSync(join(root, "packages/input/src/capability/verification"), { recursive: true })
+  writeFileSync(join(root, "packages/input/src/capability/verification/check.mjs"), 'import "../../../dist/index.js";')
+  assert.throws(
+    () => checkDevelopmentImports(root),
+    /Unresolved development import:[\s\S]*Missing compiled outputs:[\s\S]*node scripts\/build-workspaces\.mjs/u
+  )
+  mkdirSync(join(root, "packages/input/dist"))
+  writeFileSync(join(root, "packages/input/dist/index.js"), "export const input = 1")
+  assert.equal(checkDevelopmentImports(root).edges, 1)
+})
+
 test("computed import sites are explicitly reported as unresolved analysis rather than fixture strings", (t) => {
   const result = checkDevelopmentImports(
     fixture(t, 'const target = "effect"; import(target); const fixture = `import("undeclared")`;')

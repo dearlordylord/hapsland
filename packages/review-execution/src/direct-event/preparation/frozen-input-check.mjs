@@ -279,9 +279,24 @@ try {
             else if (kind === "ExportJson") {
               reply = { $: "Planned", invocation: currentInvocation, request, operations: planOperations(step.value) }
               if (batchBoundaryCases === 0) {
-                const empty = modules.FrozenInput.resume(step, {
+                assert.equal(
+                  label(modules.FrozenInput.resume(step, { ...reply, operations: planOperations(productValue([])) })),
+                  "InvalidReply",
+                  "a valid plan for another tree cannot replace the exact export"
+                )
+                assert.equal(step.state.request, request)
+                rejectedReplies++
+                // Helper state fixtures exercise zero/nonzero counters against
+                // their own exact exported tree; no production bypass is implied.
+                const helperExport = (value) => ({
+                  ...step,
+                  value,
+                  state: { ...step.state, work: { $: "FlattenWork", input: step.state.work.input, value } }
+                })
+                const emptyValue = productValue([])
+                const empty = modules.FrozenInput.resume(helperExport(emptyValue), {
                   ...reply,
-                  operations: planOperations(productValue([]))
+                  operations: planOperations(emptyValue)
                 })
                 assert.equal(label(empty), "Continue")
                 assert.equal(empty.state.request, request)
@@ -290,9 +305,10 @@ try {
                 assert.equal(emptyDigest.state.request, request + 1n)
                 assert.equal(emptyDigest.bytes, "[]")
                 batchBoundaryCases++
-                const batch = modules.FrozenInput.resume(step, {
+                const batchValue = productValue([true, false])
+                const batch = modules.FrozenInput.resume(helperExport(batchValue), {
                   ...reply,
-                  operations: planOperations(productValue([true, false]))
+                  operations: planOperations(batchValue)
                 })
                 assert.equal(label(batch), "SerializeBatch")
                 assert.equal(batch.state.request, request + 1n)

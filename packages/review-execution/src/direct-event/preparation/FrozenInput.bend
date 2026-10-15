@@ -4,6 +4,7 @@ import ../../../../runtime-environment/src/runtime/backend/Backend.bend as Backe
 import ../../../../runtime-inputs/src/configuration/review-backend/ReviewBackend.bend as Configuration
 import ../../../../review-definition/src/review-providers/ProviderFinalization.bend as Provider
 import ./CanonicalJsonPlan.bend as Plan
+import ./CanonicalJsonPlanValidation.bend as Validation
 import ./CanonicalJsonBatch.bend as Batch
 import ./UnitEvidence.bend as Evidence
 
@@ -23,7 +24,7 @@ type Frame is Data:
   }
 type Work is Data:
   ProviderWork{frame: Frame, step: Provider.Step}
-  FlattenWork{input: ArtifactValue.ProductValue}
+  FlattenWork{input: ArtifactValue.ProductValue, value: ArtifactValue.ProductValue}
   BatchWork{
     input: ArtifactValue.ProductValue,
     parts: List<&2, Plan.Piece>,
@@ -130,7 +131,11 @@ def identity_ready(
 ) -> Step:
   +fields = core_fields(frame, identity)
   ExportJson{
-    State{invocation, request, FlattenWork{input_value(frame, fields)}},
+    State{
+      invocation,
+      request,
+      FlattenWork{input_value(frame, fields), ArtifactValue.ProductObject{fields}}
+    },
     ArtifactValue.ProductObject{fields}
   }
 
@@ -267,12 +272,15 @@ def resume(step: Step, reply: Reply) -> Step:
         provider_expose(invocation, request, frame, provider_failed(state)),
         InvalidReply{}
       )
-    case ExportJson{State{+invocation, +request, FlattenWork{input}}, _} Planned{
-      received_invocation, received_request, operations
+    case ExportJson{State{+invocation, +request, FlattenWork{input, value}}, _} Planned{
+      received_invocation, received_request, +operations
     }:
       Bool.pick(
         Step,
-        same(invocation, request, received_invocation, received_request),
+        Bool.and(
+          same(invocation, request, received_invocation, received_request),
+          Validation.validate(operations, value)
+        ),
         planned(invocation, request, input, Plan.compile(operations)),
         InvalidReply{}
       )
