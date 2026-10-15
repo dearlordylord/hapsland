@@ -142,7 +142,9 @@ acceptance of this unit.
 
 ### Selected implementation
 
-Production Source/Post/Advice already use the common Canonical Effect owner.
+Production Source/Post/Advice use the common Canonical Effect owner.
+Source still calls the TS local analyzer; Canonical wiring alone does not
+complete its algorithm migration.
 Preserve its caller-fiber, lifecycle, cancellation, resource-custody and result
 acceptance guarantees. Native identity, clock, settings, hash/reuse authority,
 IEEE operations, serialization engines and atomic resource operations remain
@@ -180,10 +182,10 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Capture evidence materialization | Connected lazy invocation-local Unprepared/Prepared cache, unchanged Context/checkpoints, first invalid duplicates retained. Lookup/fingerprints/metadata laws and original batch laws pass kernel; 517 lists/4136 queries/three mutants pass. Old repeated capture traversal moved out of production into independent specification. Normal build/23 receipts, Evidence/FrozenInput, Finalization, Source/resident and public consumers pass. Whole parity fails at 1.3804; unchanged trial closed. Lookup remains linear; no TS removed. |
+| Local analyzer still in TS | Astra agrees to migrate the whole local declaration traversal and preflight from `analyzer.ts`, reached by production `ExtractSource`/`Preflight`. Bend owns DFS, visited/reference sets, ceiling 16, first failure and exact tree/outcome/preflight plans. Preserve parser, native artifact identity, ordered byte measurements/IEEE arithmetic and existing Canonical leases. Outcome-only Preparation avoids constructing discarded ReviewUnits. Laws/model and derived finite-catalog termination remain to implement; remove the superseded traversal/preflight TS, retain mechanical public adapters. |
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Original law/premises/binding/main remain byte-identical. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
-| Connected consumer qualification | Capture candidate `2f37ebc6`: normal build/23 receipts, Evidence/FrozenInput, Finalization (66+52 runtime/9615 refusals), Source (59/6687, 34 physical), resident (67/14323, 868 Post) and public Preparation pass. Cache/context checks use semantic equality; immutable internal container identity is not a product guarantee. Repeat after relevant production edits. |
+| Connected consumer qualification | Capture candidate: Evidence/FrozenInput, Finalization, Source/resident and public Preparation pass. Internal immutable cache/context checks use semantic equality. Requalify analyzer/public tree consumers and actual Source/resident after local analyzer connection, including failure/measurement ordering. |
 | Whole-path parity | Capture candidate whole current-native ratio is 1.3804; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup proposal closed without implementation: small fixture dependency sets, no existing order proof, and unequal Bend Strings can share UTF16 units. Exact insertion equivalence needs a new proof chain with unsupported whole-path payoff. Next implementation needs another source-supported hypothesis. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
@@ -193,14 +195,10 @@ that only bridges helper names.
 
 ### Current qualification limits
 
-- Rope planner: unconditional compile equality for arbitrary operation streams,
-  exact stack/fold simulation, count preservation, stable-sort payload erasure,
-  flatten and array/object assembly pass kernel. No caller count/tree/budget
-  premise was added. Original tree-laws pass through this bridge; validator
-  79 trees/1344 refusals/676 equality cases and four mutations pass.
-  Three proof roots/eight semantic mutants pass the owner runner. Finite codec
-  checks cover 79 trees/2117 pieces, 2048 arbitrary streams, duplicate keys and
-  depth 25000. Production imports no specification/proof owner.
+- Rope planner: unconditional compile/stack/count/flatten/stable-sort equivalence
+  and original tree laws pass kernel without caller budgets or validity premises.
+  Owner runners cover actual codec streams, malformed stacks, duplicate keys,
+  deep trees and semantic mutants. Production imports no proof/spec owner.
 - Eight batch protocol/eighteen actual-machine laws pass. Existing consumers
   cover correlated headers/counters, 606 FrozenInput and 9615 Finalization
   refusals, prefix throw/abort and late raw-token coercion. Whole acceptance stays open.
@@ -208,13 +206,13 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary capture candidate `2f37ebc6`: analyzer/build 0.7860 / 0.8430
-  (13:30 UTC, 17 pairs, frozen inputs, build cache 23/46).
-  Whole current-native Preparation at 13:33 UTC **fails parity at 1.3804**:
+- Primary `19718875`: analyzer/build 0.7184 / 0.8454
+  (13:50/13:51 UTC, 17 pairs, frozen inputs, build cache 23/46).
+  Normal workspace build and 23 receipts pass; proof-body edits change no runtime algorithm.
+  Capture candidate `2f37ebc6` whole Preparation at 13:33 UTC **fails parity at 1.3804**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, 30 local workspaces.
-  Unchanged capture and rope trials are closed; separate runs establish no causal
-  comparison. Later batch-proof formatting passes kernel, batch consumer, normal
-  build and 23 receipts; it changes no production algorithm.
+  Unchanged capture and rope trials are closed; separate runs establish no causal comparison.
+  Capture materialization laws/three mutants and full consumers pass; lookup remains linear, no TS removed.
 - Original attachment law/premises/binding/main remain byte-identical. Shared-witness
   and reply-dispatch factorization do not yet pass current hard10 qualification.
   Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.

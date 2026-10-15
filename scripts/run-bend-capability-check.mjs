@@ -12,6 +12,7 @@ const root = resolve(import.meta.dirname, "..")
 const sourceOwners = [
   "packages/source-artifacts/src/direct-event/value",
   "packages/source-analysis/src/direct-event/graph-resolution",
+  "packages/source-analysis/src/direct-event/local-analysis",
   "packages/native-observation/src/direct-event/edit-attribution",
   "packages/native-observation/src/direct-event/languages/path-language",
   "packages/review-execution/src/direct-event/preparation",
