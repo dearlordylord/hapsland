@@ -181,7 +181,7 @@ Astra, fast (4 files), 105 Graph cases/58 fixtures, identity checks and full con
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Original proof formatting | Formatter 0.1.23 (`d1e5aa7`) passes local release gates: 653 tests + one optional skip, IDE compatibility and signature. Full-law formatting passes; release/pin await authorization. |
+| Original proof formatting | Pinned 0.1.19 block-list limitation; alias/hoist route closed. 0.1.23 (`d1e5aa7`): 653 tests + one skip, IDE/signature/full-law PASS. Release/pin require explicit authorization. |
 | Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Source (59/6687), resident (67/14323, 868 Post) pass on the Map cohort. Finalization/public Preparation pass; repeat after production edits. |
 | Whole-path parity | The assessed 2.0.37 Map cohort passes producers/consumers; connected Preparation still needs current-native ratio ≤ 1 including conversion/effects/process costs. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
