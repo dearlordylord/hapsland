@@ -27,6 +27,11 @@ algorithms and product orchestration. Completion means connected Bend, deleted
 superseded TypeScript and passing local checks of the composed flow. Counts of
 migrated decisions, helpers or proofs are intermediate evidence.
 
+After two diagnostic attempts without a distinguishing result, stop the current
+experiment. Continue only with a new testable hypothesis that closes a named
+production obstacle; otherwise return to implementation. Renaming the experiment
+or changing its executor does not reset this limit.
+
 ## Bend check and emission deadline
 
 The owner raised the per-process migration Bend proof/check and emission deadline
@@ -149,20 +154,26 @@ crossings with a Bend-selected serialization plan:
 1. The [mechanical codec](../packages/review-execution/src/direct-event/preparation/canonical-json-plan-codec.ts)
    converts an already materialized `ProductValue` into postorder operations.
    It preserves field order and Binary64 bits; it neither sorts nor serializes.
-2. The [Bend planner](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlan.bend)
+2. Bend [validates the stream](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlanValidation.bend)
+   against the exact exported tree, including primitive payloads, Binary64 bits,
+   original keys and child order. A different valid tree is refused before planning.
+3. The [Bend planner](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlan.bend)
    folds that stream over a stack, preserves key/value pairing, sorts with the
    existing UTF16 comparator and produces exact literal/primitive pieces.
    Underflow and a nonsingleton final stack are explicit refusals.
-3. The existing Canonical checkpointed ForeignGroup executes the selected
+4. The existing Canonical checkpointed ForeignGroup executes the selected
    primitive commands individually. Preserve signal checks, post-effect liveness,
    raw token identity, failure ordering and immediate cancellation.
-4. Bend accepts the replies and owns assembly/progression. Store raw tokens in
+5. Bend accepts the replies and owns assembly/progression. Store raw tokens in
    `resume`; perform the original `String.concat` in the next ordinary `advance`,
    preserving its existing late-coercion/error boundary.
 
-The planner and codec are implemented; this batch protocol is **not connected to
-production**. The old nested-recursion template approach is replaced by the
-structurally decreasing postorder fold, without opaque handles or arbitrary fuel.
+The batch protocol is connected through FrozenInput and Finalization in the
+production dispatch path. The superseded per-primitive FrozenInput request path
+is removed. The whole Preparation migration is still **not accepted**: universal
+tree/counter proofs, original attachment gates and whole-path parity remain open.
+The planner and validator decrease operation lists, without opaque handles or
+arbitrary fuel.
 
 ### Remaining obstacles and acceptance evidence
 
@@ -170,9 +181,9 @@ structurally decreasing postorder fold, without opaque handles or arbitrary fuel
 | --- | --- |
 | Original attachment proof | The complete pinned verdict for [the original law](../packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend) must finish within 10 seconds on CPU10. Preserve arbitrary World/reply, all seven branches and original premises/binding/main. Separate emission and kernel passes are diagnostic only. |
 | Original proof formatting | The complete attachment law must pass the pinned formatter. Its remaining deep block/list layouts still fail; prefix or isolated-definition checks are insufficient. |
-| JSON tree and reply correspondence | Prove the exact ordered literal/primitive trace against the existing `ProductValue` traversal, then raw-token substitution/assembly. The fifteen local stack/compound laws do not establish this correspondence. |
+| JSON tree correspondence | Prove validator soundness/completeness and exact ordered literal/primitive trace for the exported `ProductValue`. The indexed forest relation and four reviewed laws are drafted; their proofs remain open. Eight separate batch laws already pin reply acceptance and raw-token substitution within the typed String domain. |
 | Batch correlation and counters | Explicitly accept/refuse the flatten response without consuming logical request IDs. Bend selects each primitive's original `r+i`; preserve partial-failure prefixes and both FrozenInput and outer Finalization counters. Digest remains `r+N+1`; object keys count as primitives. Refuse wrong phase, invocation, offset and token count before assembly. |
-| Production connection | Connect the qualified batch through [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding. Replace the superseded `JsonPrimitive` path; host executes the selected commands rather than choosing JSON progression. |
+| Connected consumer qualification | [FrozenInput](../packages/review-execution/src/direct-event/preparation/FrozenInput.bend), [Finalization](../packages/review-execution/src/direct-event/preparation/PreparationFinalization.bend) and their native binding use the batch. Requalify the full composed consumers after the newly connected tree validator; individual module checks are insufficient. |
 | Whole-path parity | Measure the complete connected Preparation consumer against the current native reference, including conversion, effects and process costs. Require ratio ≤ 1; analyzer/build parity alone does not satisfy this gate. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
@@ -191,13 +202,22 @@ bridge helper names.
   pieces, malformed streams, 361 fold splits and arbitrary compound stacks.
   These finite checks complement the local proofs; they do not replace the
   missing tree/trace and counter laws.
-- The JSON candidate has passed its matching 46-workspace build and `check:fast`.
-  After integration, qualify the actual merged inputs before claiming that gate
-  for the working candidate. Addressed lint must select the changed code.
-- Last recorded primary analyzer/build measurements on `37520ab0` pass at
-  0.7299 / 0.8167. Last recorded complete Preparation measurement on `82b06faa`
-  fails parity at 1.8496. These are different scopes and candidates; neither
-  establishes parity for a newly connected JSON batch.
+- Eight batch laws pass the pinned verdict, with named mutations for selection
+  offsets, invocation checking, outer IDs and literal preservation. Actual machine
+  consumers cover headers/counters, 606 FrozenInput refusals and 9615 Finalization
+  refusals; runtime cases cover prefix throw/abort and late token coercion.
+- The stream validator's emitted consumer checks 79 trees, 1344 refusals and two
+  reverse continuations. The real FrozenInput consumer refuses a structurally
+  valid stream for a different exported tree. These are finite checks, not the
+  missing universal correspondence proof.
+- The connected batch before tree validation passed the matching 46-workspace
+  build and `check:fast`; cumulative lint selected 13 actual authored files.
+  Requalify current inputs after the validator and guidance changes.
+- Primary analyzer/build on `f1421c2c` pass at 0.7702 / 0.8165. Complete current-native
+  Preparation on that same candidate **fails parity at 2.0011**. All 30 workspace
+  dependencies resolved inside the measured checkout. Earlier measurements using
+  a shared `node_modules` with workspace links into another checkout cannot qualify
+  the isolated candidate and are superseded by these local-workspace measurements.
 
 ### Check and source owners
 
@@ -209,7 +229,8 @@ than rerunning a suite with a known unrelated prerequisite failure.
 
 Primary cadence uses [production-cadence.py](../scripts/performance/production-cadence.py):
 fixed baseline `8948343b46f8426abebe675a39ac4039997b0d5b`, 17 alternating pairs,
-frozen HEAD/authored inputs/artifacts and 23/46 cached tasks in every build sample.
+frozen HEAD/authored inputs/artifacts, checkout-local workspace resolution and
+23/46 cached tasks in every build sample.
 Start build and execution measurements at least every 30 minutes. Run complete
 Preparation parity separately; diagnostics and instrumented timings are not parity.
 
