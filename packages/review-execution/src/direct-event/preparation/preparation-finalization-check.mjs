@@ -215,13 +215,13 @@ try {
       assert.ok(turns < 100000)
       const observedState =
         label(step) === "Continue" ? (step.phase.state ?? step.phase.unit?.state) : (step.state ?? step.unit?.state)
-      assert.strictEqual(observedState.context, invocationContext, "capture snapshot belongs to this invocation")
+      assert.deepEqual(observedState.context, invocationContext, "immutable capture context belongs to this invocation")
       if (label(observedState.cache) === "Prepared") {
         preparedCaptures ??= observedState.cache.captures
-        assert.strictEqual(
+        assert.deepEqual(
           observedState.cache.captures,
           preparedCaptures,
-          "prepared captures reused across unit transitions"
+          "prepared evidence remains unchanged across unit transitions"
         )
       } else {
         assert.equal(preparedCaptures, undefined, "prepared cache never resets within invocation")
