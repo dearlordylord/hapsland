@@ -139,70 +139,65 @@ that a subsystem has migrated.
 
 **Scope:** accept the complete Preparation flow: graph/source preparation,
 finalization, Post and Advice through the production Canonical owner.
-**Accepted whole migration units: 0.** Local proofs and module checks are not
-acceptance of this unit.
+**Accepted whole migration units: 1 — Preparation.** Accepted scope: production
+Canonical Source/Graph/Finalization/Post/Advice; the global migration continues.
 
 ### Selected implementation
 
 Production Source/Post/Advice use the common Canonical Effect owner.
 Source calls packaged local Bend Core in Outcomes mode; public Trees and
-Preflight use the same core. Whole Preparation acceptance remains open.
+Preflight use the same core. The whole Preparation flow is accepted.
 Preserve its caller-fiber, lifecycle, cancellation, resource-custody and result
 acceptance guarantees. Native identity, clock, settings, hash/reuse authority,
 IEEE operations, serialization engines and atomic resource operations remain
 with their native owners.
 
-The connected JSON stage uses the [mechanical postorder codec](../packages/review-execution/src/direct-event/preparation/canonical-json-plan-codec.ts),
-[Bend exact-tree validation](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlanValidation.bend)
-and [Bend planner](../packages/review-execution/src/direct-event/preparation/CanonicalJsonPlan.bend).
-It preserves ordered keys, Binary64 bits, UTF16 sorting, malformed-stream refusal
-and exact literal/primitive pieces. The existing checkpointed ForeignGroup
-executes primitive commands separately, preserving signal/liveness checks,
-raw token identity, failure order and immediate cancellation. Bend stores replies
-in resume and assembles in the next ordinary advance, retaining the original
-late String.concat coercion/error boundary. No host retag/reboxing pass remains.
+JSON validation/planning preserve key order, Binary64, UTF16 sorting, malformed
+stream refusal and raw identity. Checkpointed primitives retain liveness, failure
+and cancellation boundaries. Bend stores replies, then assembles on advance,
+preserving late String.concat coercion without reboxing.
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
-is removed. Preparation is **not accepted**: final acceptance and cleanup remain open.
+is removed. Preparation is accepted after deletion, full consumers and source qualification.
 `migration/bend-abi-2037` uses Bend 2.0.37 with numeric Nat/shared records.
 Compiler cohort: [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084).
-Its producers/full consumers pass; attachment kernel passes in 11.35s; whole performance meets the new limit.
-Preparation/Finalization and Graph Effect forward Bend trees directly; public
-native projection/freeze and lifecycle boundaries remain. Full consumers pass.
+Preparation/Finalization and Graph Effect forward Bend trees directly; native
+projection/freeze and lifecycle boundaries remain.
 
-### Remaining obstacles and acceptance evidence
+### Preparation acceptance evidence and next obstacle
 
 | Obstacle | Required change or evidence |
 | --- | --- |
 | Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; host retains slots/materialization/postfix effects. 30 laws/45 mutants and 78 packaged modes pass. Retained checks use explicit fixtures and the independent Bend specification; whole performance qualifies separately. |
-| Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original complete law passes checker+kernel: ALL PROOFS CHECK, 11.35s wall/11.04s CPU, unchanged source SHA073e9514. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
+| Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original law passed11.35s wall/11.04s CPU; latest focused PASS18.93s/18.52s, unchanged SHA073e9514. A20s timeout remains recorded, not a pass. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
 | Combined preflight | Production Core owns callable policy/Go fallback in Canonical Preflight. After five laws/kernel controls and ten proof mutants passed, removed the eight temporary Bend/spec/proof/runner files under the owner’s deletion condition. 21 physical regressions, build46/46, 23 receipts and compiled Source pass after deletion. The old TS preflight oracle and its whole-Preparation caller chain are deleted. |
-| Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 18:59 UTC qualifies **1.4044×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Earlier current-native runs are historical; their oracle/profiling paths are removed. |
-| Final consumers and deletion | Deleted TS Source/Post, analyzer/preflight, plan/sizing, native Graph/local/Go/Python/Rust preparation and reference drivers. Full consumers: Preparation13, Post23360/enrollment793/sizing131, Source59/6687+34, resident52/11316+893Post, Graph120/5200, Python composition18/7125. Build46/46, fast, receipts23, GoBuild4958/GoPackage247/unit41/public75 pass. Python roots67/alternatives21/parents17/target21/import26 use authored plans; session9/owned120/composed18 pass. Rust search6/cache32/UTF1/Cargo56 pass; native workflow deleted. Bounded host review found no new production policy blocker. Deletion closed; final whole acceptance remains open. |
+| Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 20:24 UTC qualifies **1.4441×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Current-native oracle/profiling paths are removed. |
+| Final consumers and deletion | Deleted TS Source/Post, analyzer/preflight, plan/sizing, native Graph/local/Go/Python/Rust orchestration and reference drivers. Full consumers: Preparation13, Post23360/enrollment793, Source59/6687+34, resident52/11316+893Post, Graph120/5200, composition18/7125. Build46/46, fast41, receipts23, Go public75 and final public181/7 files pass. Protocol19 and five additional consumers pass. Source gate:248 checks,473 Bend files/108 roots, including14 exact-location mutant rejections. Six unproved declaration copies removed; identical law signatures remain in proved owners. Final changes affect proofs/checks only; production is unchanged since consumer qualification. |
 
-Engine grouping preserves observation boundaries: 1484 instructions, 127 group
-Acks/three observations. One-callable CPU ratio 1.3570 is diagnostic only. Whole
-1.4448 failed strict parity; unchanged retries closed. Astra finds no justified next perf mechanism.
+Whole1.4448 failed strict parity; unchanged performance experiments are closed.
 
-Each action closes a row. Before adding a representation or proof chain,
-explain how it shortens this path; prefer equivalent laws to generic machinery
-that only bridges helper names.
+Current candidate: `299e7894`; changes preserve production. RANK source-gate10s timeout
+remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU.
+Each action must close the next unit’s production obstacle; justify new representations first.
 
 ### Current qualification limits
 
-- Rope planner: unconditional compile/stack/count/flatten/stable-sort equivalence
-  and original tree laws pass kernel without caller budgets or validity premises.
-  Owner runners cover actual codec streams, malformed stacks, duplicate keys,
-  deep trees and semantic mutants. Production imports no proof/spec owner.
-- Eight batch protocol/eighteen actual-machine laws pass. Existing consumers
-  cover correlated headers/counters, 606 FrozenInput and 9615 Finalization
-  refusals, prefix throw/abort and late raw-token coercion. Whole acceptance stays open.
-- UnitEvidence query: five arbitrary-input laws, 1940 cases/five mutants,
-  pinned format and compiled consumers pass. Post removes three TS algorithms
-  (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
-  (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- `57e4081d` execution at 2026-10-16 19:23 UTC qualifies **0.6987×**.
-  Prepared build at 19:26 qualifies **0.9039×**: 17 frozen pairs, all samples 23/46 cached.
+- Rope compile/stack/count/flatten/stable-sort and original tree laws pass without
+  caller validity/budget premises. Batch protocol/actual-machine laws and finite
+  malformed-stream, prefix throw/abort and late raw-token controls pass.
+  Production imports no proof/spec owner.
+- UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
+  algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
+  compiled consumers and semantic mutants qualify the stated finite scopes.
+- `299e7894` execution/build at 2026-10-16 20:21/22 UTC qualify **0.8471×/0.8665×**:
+  17 frozen pairs each; all build samples23/46 cached; unchanged sources/artifacts/environments.
+  Ratios compare means. TS/Bend median[range], seconds:
+  execution .0623[.0538,.1048]/.0601[.0393,.0835];
+  build3.495[3.075,3.649]/2.982[2.694,3.388];
+  Preparation .2791[.2407,.5633]/.4167[.3606,.6619].
+  Build uses ordinary scheduling: gate verdicts, not causal speedup claims. Earlier cadence slipped32.5min.
+  First workspace preparation timed out60s before measurement; registered writers stopped,
+  custody reconciled,180s prepare and23/46 warm verification passed before retry.
   First 19:23 build was not comparable: candidate cache15/46 on sample0; ratio1.1535, warm gate failed. Both prepared23/46 before rerun.
   New build series retains ordinary scheduler/parallelism in both lanes; earlier
   CPU11 series is not directly comparable.
@@ -235,8 +230,12 @@ and original TS orchestration. Primary analyzer/build stays `8948343b`, which
 lacks Go. Public runner: exact result/control equality, 17 pairs, parity ≤1,
 owner-approved acceptance ≤3. Current-native/profiling paths are removed;
 earlier results remain historical.
-2026-10-16 16:21 UTC: 17 frozen pairs pass exact equality, ratio **1.4334**;
-performance accepted (≤3), strict parity false.
+Latest whole ratio **1.4441×** accepts the ≤3 limit; strict parity remains false.
+Scope: Linux offline physical consumers; native parser/Unicode/IEEE/hash/IO engines
+remain trusted. No Darwin, live-provider, browser or cold-IPC qualification is claimed.
+Next whole unit: resident advice collection through final delivery handoff, including
+freshness/authority, fitting, lease/finish and IPC cleanup. Agree the full path with
+Astra before implementation; acceptance here permits that unit, not global completion.
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
 [source organization](source-organization.md), with one tracked authority, never
