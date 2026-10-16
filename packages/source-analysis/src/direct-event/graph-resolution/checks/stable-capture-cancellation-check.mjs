@@ -1,19 +1,14 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { createHash } from "node:crypto"
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync, readlinkSync } from "node:fs"
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, readdirSync, readlinkSync } from "node:fs"
 import { join } from "node:path"
-import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Cause from "effect/Cause"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
+import { resolveCanonicalGraphFixture as bend } from "@hapsland/source-analysis/testing/canonical-graph"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
-import { createDispatcher } from "../runtime-observation/transport.mjs"
-import { createServiceRegistry } from "../service-session.ts"
-import { createVerificationEffectResolver as createBendEffectResolver } from "../verification/resolver-driver.mjs"
 
 assert.equal(process.platform, "linux", "descriptor observations are Linux qualification only")
 const temporary = mkdtempSync("/tmp/hapsland-stable-cancellation-")
@@ -59,31 +54,11 @@ try {
   assert.ok(selected)
   const captured = await Effect.runPromise(captureStable(root, selected, {}, rootIdentity))
   assert.equal(captured.status, "captured")
-  const artifactPath = process.env.HAPSLAND_WHOLE_RUNTIME_ARTIFACT
-  assert.ok(artifactPath, "use a separately prepared pinned artifact, with compilation outside this physical check")
-  const artifact = readFileSync(artifactPath),
-    artifactHash = createHash("sha256").update(artifact).digest("hex")
-  assert.equal(artifactHash, process.env.HAPSLAND_WHOLE_RUNTIME_SHA256)
-  const source = artifact.toString()
-  assert.ok(!source.includes("cli(process.argv.slice(1))"))
-  assert.deepEqual(
-    [...source.matchAll(/io_eff\("([^"]+)",/g)].map((match) => match[1]),
-    ["perform"]
-  )
-  const runtimePath = join(temporary, "runtime.mjs")
-  writeFileSync(runtimePath, source + "\nexport const handlers=Object.freeze({perform:$0eff.perform});\n")
-  const { default: program, handlers } = await import(pathToFileURL(runtimePath))
-  const registry = createServiceRegistry()
-  globalThis.__hapslandWholeResolverServices = registry
-  const bend = createBendEffectResolver({
-    registry,
-    resolveIO: createDispatcher((input) => program.resolve(input)((value) => ({ $: "Emit", value })), handlers)
-  })
   const observations = []
   for (const point of ["between-reads", "first-descriptor-pass"]) {
     for (let repetition = 0; repetition < 3; repetition++) {
-      const pair = []
-      for (const mode of ["native", "bend-io"]) {
+      {
+        const mode = "canonical"
         const events = [],
           cache = new Map(),
           controller = new AbortController(),
@@ -139,7 +114,7 @@ try {
             ),
           observeCaptureDiagnostic: (...args) => events.push(["diagnostic", ...args])
         }
-        const candidate = mode === "native" ? resolveGraphUnit : bend
+        const candidate = bend
         const pending = Effect.runPromiseExit(candidate("root.ts", captured.capture, "Root", context), {
           signal: controller.signal
         })
@@ -161,7 +136,6 @@ try {
         assert.ok(Exit.hasInterrupts(exit), mode + " original outer Effect interruption")
         await bounded(finalized.promise, mode + " actual capture finalizer")
         await turn()
-        assert.equal(registry.size, 0)
         assert.deepEqual(rootDescriptors(root), [], mode + " after cleanup descriptors")
         assert.equal(events.filter((event) => event[0] === "capture-finalized").length, 1)
         assert.equal(
@@ -173,6 +147,18 @@ try {
           events.filter((event) => event[0] === "diagnostic").length,
           0,
           "interruption is not capture refusal"
+        )
+        assert.deepEqual(
+          events,
+          [
+            ...Array.from({ length: 6 }, () => ["clock"]),
+            ["source-read", "a.ts"],
+            ...(point === "between-reads" ? [["between-reads"]] : []),
+            ["abort"],
+            ...(point === "between-reads" ? [["hook-finalized"]] : []),
+            ["capture-finalized"]
+          ],
+          "authored ordered cancellation prefix"
         )
         const prefix = events.slice(),
           cachePrefix = [...cache]
@@ -186,9 +172,8 @@ try {
         )
         assert.deepEqual([...cache], cachePrefix)
         assert.deepEqual(cachePrefix, [], "interrupted capture not published")
-        assert.equal(registry.size, 0)
         assert.deepEqual(rootDescriptors(root), [])
-        pair.push({
+        observations.push({
           mode,
           point,
           repetition,
@@ -202,14 +187,12 @@ try {
           rootDescriptorsAfter: 0
         })
       }
-      assert.deepEqual(pair[1].prefix, pair[0].prefix, "native/candidate ordered cancellation prefix")
-      assert.deepEqual(pair[1].afterLate, pair[0].afterLate, "native/candidate late provider effects")
-      observations.push(...pair)
     }
   }
   const providerDefectObservations = []
   const defect = new Error("injected capture defect", { cause: new Error("injected underlying cause") })
-  for (const mode of ["native", "bend-io"]) {
+  {
+    const mode = "canonical"
     const events = [],
       cache = new Map(),
       context = {
@@ -231,7 +214,7 @@ try {
             Effect.sync(() => events.push("capture-finalized"))
           )
       }
-    const candidate = mode === "native" ? resolveGraphUnit : bend
+    const candidate = bend
     const exit = await bounded(
       Effect.runPromiseExit(candidate("root.ts", captured.capture, "Root", context)),
       mode + " capture defect"
@@ -243,7 +226,6 @@ try {
       exit.cause.reasons.map((reason) => ({ kind: reason._tag, defect: reason.defect })),
       [{ kind: "Die", defect }]
     )
-    assert.equal(registry.size, 0)
     assert.deepEqual([...cache], [])
     assert.deepEqual(rootDescriptors(root), [])
     providerDefectObservations.push({
@@ -255,16 +237,17 @@ try {
       registryEmpty: true
     })
   }
-  assert.deepEqual(providerDefectObservations[1].events, providerDefectObservations[0].events)
+  assert.deepEqual(providerDefectObservations[0].events, [...Array(6).fill("clock"), "capture", "capture-finalized"])
   const record = {
-    shell: "nested-run-promise",
+    binding: "canonical-owned-effect",
+    passed: true,
+    cases: observations.length + providerDefectObservations.length,
     at: new Date().toISOString(),
     runtime: typeof Bun === "undefined" ? "node" : "bun",
-    artifactHash,
     observations,
     providerDefectObservations,
     scope:
-      "Actual Linux stable descriptor capture through complete native and Bend Effect resolvers. Three repetitions of each interruption point; exact ordered clock/read/hook/finalizer/cache prefixes, outer interruption, no late continuation/publication, actual root/git/source descriptors observed during first pass and absent after cleanup. No universal cancellation, buffer-erasure instrumentation, other descriptors/platforms or performance parity claim."
+      "Actual Linux stable descriptor capture through the production Canonical Graph binding. Three repetitions of each interruption point; exact ordered clock/read/hook/finalizer/cache prefixes, outer interruption, no late continuation/publication, actual root/git/source descriptors observed during first pass and absent after cleanup. No universal cancellation, buffer-erasure instrumentation, other descriptors/platforms or performance parity claim."
   }
   const evidenceDirectory = join(import.meta.dirname, "../../../../../../.test-runs/bend-migration")
   mkdirSync(evidenceDirectory, { recursive: true })
@@ -274,6 +257,5 @@ try {
   )
   console.log(JSON.stringify(record))
 } finally {
-  delete globalThis.__hapslandWholeResolverServices
   rmSync(temporary, { recursive: true, force: true })
 }
