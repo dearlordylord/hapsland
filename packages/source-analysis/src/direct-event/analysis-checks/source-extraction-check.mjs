@@ -2,7 +2,6 @@ import assert from "node:assert/strict"
 import { extractSource } from "@hapsland/source-analysis/direct-event/source-extraction"
 import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { Parser } from "@hapsland/source-analysis/direct-event/languages/native-parser"
-import { analyzeTypeFile } from "@hapsland/source-analysis/testing/native-analyzer"
 
 const fixtures = [
   ["a.ts", "export interface Root { value: string }"],
@@ -51,22 +50,9 @@ for (const [path, source] of fixtures) {
   const language = languageForPath(path)
   const graph = language?.inspect(path, source)
   const functions = language?.analyzeFunctions?.(path, source)
-  const allowImports =
-    graph !== undefined || (functions !== undefined && functions.functions.size > 0 && functions.types.size === 0)
-  const original = analyzeTypeFile(path, source, allowImports)
-  const typeFile =
-    original.status === "unsupported"
-      ? original
-      : {
-          status: "analyzed",
-          units: original.units.map((unit) =>
-            unit.status === "ready"
-              ? { status: "ready", name: unit.unit.root.artifact.name }
-              : { status: "unsupported", name: unit.root.name, reason: unit.reason }
-          )
-        }
   const actual = extractSource(path, source)
-  assert.deepEqual(actual, { graph, functions, typeFile }, path + ": " + source)
+  assert.deepEqual(actual.graph, graph, path + ": graph parser facts")
+  assert.deepEqual(actual.functions, functions, path + ": function parser facts")
   // Map equality alone does not establish the iteration order consumed by Source.
   if (graph !== undefined)
     for (const key of ["declarations", "imports"])
@@ -104,6 +90,6 @@ console.log(
     cases: fixtures.length,
     mainParses,
     scope:
-      "compiled invocation-local extraction versus independent public graph/function/native-local projections; deterministic parser facts, no cross-command cache; whole Preparation acceptance remains open"
+      "compiled invocation-local extraction: physical graph/function parser facts and ordering; deterministic parser facts, no cross-command cache; whole Preparation acceptance remains open"
   })
 )

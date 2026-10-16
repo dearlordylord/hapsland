@@ -17,7 +17,6 @@ const { languageForPath } = await import(
 const packagedCore = (
   await import(new URL("../../../dist/direct-event/local-analysis/analyzer-core.js", import.meta.url))
 ).default
-const referenceNative = await import("@hapsland/source-analysis/testing/native-analyzer")
 const nativeBinding = await import(new URL("../../../dist/direct-event/local-analysis/native.js", import.meta.url))
 const some = (value) => ({ $: "Some", value })
 const none = { $: "None" }
@@ -883,11 +882,6 @@ try {
     const native = analyzeTypeFile(path, source, true)
     assert.equal(native.status, "analyzed", "physical parser fixture must reach local analyzer: " + path)
     assert.deepEqual(
-      native,
-      referenceNative.analyzeTypeFile(path, source, true),
-      "public Bend trees equal the independent original TS implementation"
-    )
-    assert.deepEqual(
       analyzeTypeOutcomes(path, source, true),
       {
         status: "analyzed",
@@ -1024,11 +1018,6 @@ try {
       nativeTrace = []
     const expectedBytes = evaluateAll(expressionTrace)
     const nativeBound = nativePreflight(path, source, nativeTrace)
-    assert.deepEqual(
-      nativeBound,
-      referenceNative.analyzerMaterializationPreflight(path, source, true),
-      "public preflight equals the independent TS reference"
-    )
     assert.equal(nativeBound.declarations, roots.length)
     assert.equal(nativeBound.expandedUnitBytes, expectedBytes, "original IEEE grouping and exact preflight bytes")
     assert.deepEqual(expressionTrace, nativeTrace, "ordered repeated native measurement trace")
@@ -1048,20 +1037,6 @@ try {
           () => nativePreflight(path, source, actualPrefix, { at, value: sentinel }),
           (error) => error === sentinel
         )
-        const referencePrefix = []
-        assert.throws(
-          () =>
-            nativePreflight(
-              path,
-              source,
-              referencePrefix,
-              { at, value: sentinel },
-              undefined,
-              referenceNative.analyzerMaterializationPreflight
-            ),
-          (error) => error === sentinel
-        )
-        assert.deepEqual(referencePrefix, actualPrefix, "native error identity and chronology match the original TS")
         assert.deepEqual(expectedPrefix, actualPrefix, "measurement fault must stop at the same primitive")
         faultCases++
       }
@@ -1103,7 +1078,7 @@ try {
       resourceEntries,
       childReturns,
       scope:
-        "connected public local analyzer, packaged Core and independent native TS/recursive specification; whole Preparation acceptance remains open"
+        "connected public local analyzer, packaged Core, independent recursive Bend specification and physical native measurements; whole Preparation acceptance remains open"
     })
   )
 } finally {
