@@ -1,32 +1,20 @@
-import * as Effect from "effect/Effect"
-import { referenceIo } from "./native-reference-io.mjs"
 import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtemp, mkdir, writeFile, readFile, lstat, rm, symlink } from "node:fs/promises"
-import { join, dirname, isAbsolute, sep } from "node:path"
+import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from "node:fs/promises"
+import { join, dirname, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createServiceSession } from "../../service-session.ts"
 import { parsePythonSyntax } from "../../frontends.ts"
-import { Parser, Python } from "@hapsland/source-analysis/direct-event/languages/native-parser"
-import { projectPythonSyntax } from "../syntax-projection.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields })
-const temp = await mkdtemp("/tmp/hapsland-python-parents-")
+const temp = await mkdtemp("/tmp/hapsland-python-target-")
 try {
   const emitted = join(temp, "child.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, "../../PythonModule.bend"), "-o", emitted], {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  const { createPythonModuleResolution } = await import(
-    pathToFileURL(
-      join(
-        import.meta.dirname,
-        "../../../../../dist/direct-event/graph-resolution/python-module/verification/native-module-resolution.js"
-      )
-    )
-  )
   const fixtures = [
     { name: "ordinary-absolute", import: "foo", files: { "foo.py": "" }, target: "foo.py" },
     { name: "source-before-stub", import: "foo", files: { "foo.py": "", "foo.pyi": "" }, target: "foo.py" },
@@ -102,6 +90,187 @@ try {
     { name: "missing", import: "foo", files: {} }
   ]
   const list = (values) => values.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+  const select = (path) => "select:" + path
+  const probe = (path) => ["clock", "probe:" + path]
+  const capture = (path) => ["clock", "access:" + path, "capture:" + path, "clock", "parse"]
+  const fooSource = [select("foo.py"), ...probe("foo.py")]
+  const fooStub = [select("foo.pyi"), select("foo.pyi"), ...probe("foo.pyi")]
+  const missingFooPackage = [
+    select("foo/__init__.py"),
+    ...probe("foo"),
+    select("foo/__init__.pyi"),
+    select("foo/__init__.pyi")
+  ]
+  const fooPackage = [select("foo/__init__.py"), ...probe("foo"), ...probe("foo/__init__.py")]
+  const missingSrc = [
+    select("src/foo.py"),
+    ...probe("src"),
+    select("src/foo.pyi"),
+    select("src/foo.pyi"),
+    select("src/foo/__init__.py"),
+    select("src/foo/__init__.pyi"),
+    select("src/foo/__init__.pyi")
+  ]
+  const ordinary = [...fooSource, ...missingFooPackage, ...missingSrc]
+  const ordinaryMembership = ["foo.py", "foo", "src"]
+  const parent = [
+    select("pkg/__init__.py"),
+    ...probe("pkg"),
+    ...probe("pkg/__init__.py"),
+    ...capture("pkg/__init__.py")
+  ]
+  const retainedParent = [select("pkg/__init__.py"), "parse"]
+  const relative = [
+    select("pkg/foo.py"),
+    ...probe("pkg/foo.py"),
+    select("pkg/foo/__init__.py"),
+    ...probe("pkg/foo"),
+    select("pkg/foo/__init__.pyi"),
+    select("pkg/foo/__init__.pyi")
+  ]
+  const relativeMembership = ["pkg", "pkg/__init__.py", "pkg/foo.py", "pkg/foo"]
+  const nestedParent = [
+    select("pkg/sub/__init__.py"),
+    ...probe("pkg/sub"),
+    ...probe("pkg/sub/__init__.py"),
+    ...capture("pkg/sub/__init__.py")
+  ]
+  const srcParent = [
+    select("src/pkg/__init__.py"),
+    ...probe("src"),
+    ...probe("src/pkg"),
+    ...probe("src/pkg/__init__.py"),
+    ...capture("src/pkg/__init__.py")
+  ]
+  const srcRelative = [
+    select("src/pkg/foo.py"),
+    ...probe("src/pkg/foo.py"),
+    select("src/pkg/foo/__init__.py"),
+    ...probe("src/pkg/foo"),
+    select("src/pkg/foo/__init__.pyi"),
+    select("src/pkg/foo/__init__.pyi")
+  ]
+  const libInitial = [
+    select("lib/__init__.py"),
+    ...probe("lib"),
+    ...probe("lib/__init__.py"),
+    select("lib/__init__.pyi"),
+    ...probe("lib/__init__.pyi")
+  ]
+  const libParent = [
+    select("lib/pkg/__init__.py"),
+    ...probe("lib/pkg"),
+    ...probe("lib/pkg/__init__.py"),
+    ...capture("lib/pkg/__init__.py")
+  ]
+  const libRelative = [
+    select("lib/pkg/foo.py"),
+    ...probe("lib/pkg/foo.py"),
+    select("lib/pkg/foo/__init__.py"),
+    ...probe("lib/pkg/foo"),
+    select("lib/pkg/foo/__init__.pyi"),
+    select("lib/pkg/foo/__init__.pyi")
+  ]
+  // Fixed fixture plans contain no target search, ancestor walk or reservation policy.
+  const plans = [
+    [true, ordinaryMembership, [], ordinary],
+    [true, ordinaryMembership, [], ordinary],
+    [true, ["foo.py", "foo.pyi", "foo", "src"], [], [...fooSource, ...fooStub, ...missingFooPackage, ...missingSrc]],
+    [
+      true,
+      ["foo.py", "foo.pyi", "foo", "foo/__init__.py", "src"],
+      ["foo/__init__.py"],
+      [...fooSource, ...fooStub, ...fooPackage, ...missingSrc, select("foo/__init__.py"), ...capture("foo/__init__.py")]
+    ],
+    [true, ["foo.py", "foo", "foo/__init__.py", "src"], [], [...fooSource, ...fooPackage, ...missingSrc]],
+    [
+      true,
+      ["foo.py", "foo", "src", "src/foo.py", "src/foo"],
+      [],
+      [
+        ...fooSource,
+        ...missingFooPackage,
+        select("src/foo.py"),
+        ...probe("src"),
+        ...probe("src/foo.py"),
+        select("src/foo/__init__.py"),
+        ...probe("src/foo"),
+        select("src/foo/__init__.pyi"),
+        select("src/foo/__init__.pyi")
+      ]
+    ],
+    [false, ["foo.py", "foo"], [], [...fooSource, ...missingFooPackage, select("src/foo.py")]],
+    [true, relativeMembership, ["pkg/__init__.py"], [...parent, ...relative, ...retainedParent]],
+    [true, ["pkg", "pkg/__init__.py"], ["pkg/__init__.py"], [...parent, select("pkg/__init__.py"), ...retainedParent]],
+    [
+      true,
+      ["pkg", "pkg/__init__.py", "pkg/__init__.pyi"],
+      ["pkg/__init__.pyi"],
+      [
+        select("pkg/__init__.py"),
+        ...probe("pkg"),
+        ...probe("pkg/__init__.py"),
+        select("pkg/__init__.pyi"),
+        ...probe("pkg/__init__.pyi"),
+        ...capture("pkg/__init__.pyi"),
+        select("pkg/__init__.py"),
+        select("pkg/__init__.pyi"),
+        select("pkg/__init__.py"),
+        select("pkg/__init__.pyi"),
+        "parse"
+      ]
+    ],
+    [true, ["pkg", "pkg/__init__.py"], [], [select("pkg/__init__.py"), ...probe("pkg"), ...probe("pkg/__init__.py")]],
+    [true, [], [], []],
+    [
+      true,
+      ["pkg", "pkg/__init__.py", "pkg/sub", "pkg/sub/__init__.py", "pkg/foo.py", "pkg/foo"],
+      ["pkg/__init__.py", "pkg/sub/__init__.py"],
+      [...parent, ...nestedParent, ...relative, ...retainedParent]
+    ],
+    [
+      true,
+      ["src", "src/pkg", "src/pkg/__init__.py", "src/pkg/foo.py", "src/pkg/foo"],
+      ["src/pkg/__init__.py"],
+      [...srcParent, ...srcRelative, select("src/pkg/__init__.py"), "parse"]
+    ],
+    [
+      true,
+      ["lib", "lib/__init__.py", "lib/__init__.pyi", "lib/pkg", "lib/pkg/__init__.py", "lib/pkg/foo.py", "lib/pkg/foo"],
+      ["lib/pkg/__init__.py"],
+      [...libInitial, ...libParent, ...libRelative, select("lib/pkg/__init__.py"), "parse"]
+    ],
+    [
+      true,
+      ["src", "src/__init__.py", "src/__init__.pyi", "src/pkg", "src/pkg/__init__.py", "src/pkg/foo.py", "src/pkg/foo"],
+      ["src/pkg/__init__.py"],
+      [
+        select("src/__init__.py"),
+        ...probe("src"),
+        ...probe("src/__init__.py"),
+        select("src/__init__.pyi"),
+        ...probe("src/__init__.pyi"),
+        select("src/pkg/__init__.py"),
+        ...probe("src/pkg"),
+        ...probe("src/pkg/__init__.py"),
+        ...capture("src/pkg/__init__.py"),
+        ...srcRelative,
+        select("src/pkg/__init__.py"),
+        "parse"
+      ]
+    ],
+    [
+      true,
+      ordinaryMembership.map((path) => path.replaceAll("foo", "删除")),
+      [],
+      ordinary.map((event) => event.replaceAll("foo", "删除"))
+    ],
+    [true, [], [], []],
+    [true, [], [], []],
+    [true, [], [], []],
+    [true, ["foo.py", "foo.pyi", "foo", "src"], [], [...fooSource, ...fooStub, ...missingFooPackage, ...missingSrc]]
+  ]
+  assert.equal(plans.length, fixtures.length)
   let requests = 0
   for (const [index, fixture] of fixtures.entries()) {
     const root = join(temp, String(index))
@@ -112,109 +281,10 @@ try {
     }
     if (fixture.directory) await mkdir(join(root, fixture.directory))
     if (fixture.link) await symlink(fixture.link[0], join(root, fixture.link[1]))
-    let available = true,
-      work = 0,
-      started = false
-    const membership = new Map(),
-      authority = new Map(),
-      deps = [],
-      expected = [],
-      actual = [],
+    let started = false
+    const actual = [],
       depth = fixture.depth ?? 4
-    const within = (path) => !isAbsolute(path) && path !== ".." && !path.startsWith(".." + sep),
-      selected = (path) => path !== fixture.excluded
-    const permit = () => {
-      if (!available) return false
-      expected.push("clock")
-      return work <= 40
-    }
-    function* observe(path) {
-      if (membership.has(path)) return membership.get(path)
-      if (!within(path) || !permit() || work >= 40) {
-        available = false
-        return undefined
-      }
-      work++
-      expected.push("probe:" + path)
-      let status
-      try {
-        status = yield lstat(join(root, path))
-      } catch (error) {
-        if (error.code !== "ENOENT") available = false
-      }
-      if (status?.isSymbolicLink()) available = false
-      membership.set(path, status)
-      return status
-    }
-    function* stat(path) {
-      if (!within(path)) {
-        available = false
-        return undefined
-      }
-      expected.push("select:" + path)
-      if (!selected(path)) {
-        available = false
-        return undefined
-      }
-      const dirs = []
-      let directory = dirname(path)
-      while (directory !== ".") {
-        if (dirs.length > depth + 1) {
-          available = false
-          return undefined
-        }
-        dirs.push(directory)
-        directory = dirname(directory)
-      }
-      for (const dir of dirs.reverse()) {
-        const status = yield* observe(dir)
-        if (!available || !status) return undefined
-        if (!status.isDirectory()) {
-          available = false
-          return undefined
-        }
-      }
-      return yield* observe(path)
-    }
-    function* readAuthority(path) {
-      if (authority.has(path)) return authority.get(path)
-      if (!permit()) return undefined
-      expected.push("access:" + path)
-      expected.push("capture:" + path)
-      const text = yield readFile(join(root, path), "utf8")
-      const capture = { text, byteLength: Buffer.byteLength(text) }
-      if (!permit()) return undefined
-      authority.set(path, capture)
-      deps.push(path)
-      return capture
-    }
-    // Parser engines are reused; policy is independently evaluated by the exact
-    // production authority consumer above, while this reference isolates chronology.
-    const staticPackageAuthority = (text) => {
-      expected.push("parse")
-      const parser = new Parser()
-      try {
-        parser.setLanguage(Python)
-        return child.static_package_authority(projectPythonSyntax(parser.parse(text).rootNode))
-      } finally {
-        parser.reset()
-      }
-    }
-    const { moduleTarget: reference } = createPythonModuleResolution({
-      limits: { depth },
-      stat: referenceIo(stat),
-      readAuthority: referenceIo(readAuthority),
-      staticPackageAuthority,
-      isAvailable: () => available,
-      absoluteRoots: () => Effect.succeed(fixture.roots ?? [".", "src"]),
-      rootPath: fixture.rootPath ?? "root.py",
-      isSelected: (path) => {
-        expected.push("select:" + path)
-        return selected(path)
-      }
-    })
-    const result = await Effect.runPromise(reference(fixture.from ?? "root.py", fixture.import))
-    assert.equal(result, fixture.target, fixture.name + " fixture")
+    const [available, membership, deps, expected] = plans[index]
     const io = createServiceSession({
       invocation: index + 1,
       root,
@@ -224,7 +294,7 @@ try {
       },
       selectContextPath: (path) => {
         actual.push("select:" + path)
-        return selected(path)
+        return path !== fixture.excluded
       },
       access: async (path) => {
         actual.push("access:" + path)
@@ -249,12 +319,12 @@ try {
       started = true
       const initial = child.initial_session(
         "root.py",
-        1024n,
-        BigInt(depth),
+        1024,
+        depth,
         s("Remaining", {
-          files: s("Nonnegative", { value: 10n }),
-          read_bytes: s("Nonnegative", { value: 10000n }),
-          work: s("Nonnegative", { value: 40n })
+          files: s("Nonnegative", { value: 10 }),
+          read_bytes: s("Nonnegative", { value: 10000 }),
+          work: s("Nonnegative", { value: 40 })
         })
       )
       const state = child.cached_roots(initial, list(fixture.roots ?? [".", "src"]))
@@ -266,8 +336,8 @@ try {
         clock,
         cache,
         sep,
-        BigInt(index + 1),
-        2n
+        index + 1,
+        2
       )
       while (step.$.endsWith(".Await")) {
         requests++
@@ -275,19 +345,19 @@ try {
         step = child.resume_target(step, await io.perform(step.request))
       }
       assert.equal(step.$, "python-module/ModuleTargetMachine.Returned", fixture.name)
-      assert.equal(step.path.$ === "None" ? undefined : step.path.value, result, fixture.name)
+      assert.equal(step.path.$ === "None" ? undefined : step.path.value, fixture.target, fixture.name)
       assert.deepEqual(actual, expected, fixture.name + " ordered effects")
       assert.equal(step.session.available, available, fixture.name)
-      assert.equal(step.session.work, BigInt(work), fixture.name)
+      assert.equal(step.session.work, membership.length, fixture.name)
       assert.deepEqual(
         unlist(step.session.membership).map((row) => row.path),
-        [...membership.keys()],
+        membership,
         fixture.name
       )
       assert.deepEqual(unlist(step.session.dependencies), deps, fixture.name)
       assert.deepEqual(
         unlist(step.session.authority).map((row) => [row.path, Number(row.bytes)]),
-        [...authority].map(([path, capture]) => [path, capture.byteLength]),
+        deps.map((path) => [path, Buffer.byteLength(fixture.files[path])]),
         fixture.name
       )
     } finally {
@@ -296,11 +366,11 @@ try {
   }
   console.log(
     JSON.stringify({
-      status: "PASS",
+      passed: true,
       cases: fixtures.length,
       requests,
       scope:
-        "whole moduleTarget/native ordered effects with cached roots and physical membership/syntax; injected capture and selection; not full GraphSession/Canonical acceptance"
+        "authored target outcomes and ordered root/parent observations, budgets and authority publication; physical ports; not whole GraphSession acceptance"
     })
   )
 } finally {

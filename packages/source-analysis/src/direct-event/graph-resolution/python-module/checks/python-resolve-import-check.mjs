@@ -1,34 +1,22 @@
-import * as Effect from "effect/Effect"
-import { referenceIo } from "./native-reference-io.mjs"
 import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtemp, mkdir, writeFile, readFile, lstat, rm, symlink } from "node:fs/promises"
-import { join, dirname, isAbsolute, sep } from "node:path"
+import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from "node:fs/promises"
+import { join, dirname, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createServiceSession } from "../../service-session.ts"
 import { inspectSourceFrontend, parsePythonSyntax } from "../../frontends.ts"
 import { pythonAdapter } from "../../../../../dist/direct-event/languages/python.js"
 import { sourceFacts } from "../../frontend-codec.ts"
-import { Parser, Python } from "@hapsland/source-analysis/direct-event/languages/native-parser"
-import { projectPythonSyntax } from "../syntax-projection.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields })
-const temp = await mkdtemp("/tmp/hapsland-python-parents-")
+const temp = await mkdtemp("/tmp/hapsland-python-import-")
 try {
   const emitted = join(temp, "child.mjs")
   execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, "../../PythonModule.bend"), "-o", emitted], {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  const { createPythonModuleResolution } = await import(
-    pathToFileURL(
-      join(
-        import.meta.dirname,
-        "../../../../../dist/direct-event/graph-resolution/python-module/verification/native-module-resolution.js"
-      )
-    )
-  )
   const fixtures = [
     { name: "ordinary-module", import: "foo", member: "Foo", files: { "foo.py": "" }, target: "foo.py", result: "Foo" },
     { name: "ordinary-dotted-refusal", import: "foo", member: "nested.Foo", files: { "foo.py": "" } },
@@ -175,6 +163,322 @@ try {
     }
   ]
   const list = (values) => values.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+  const select = (path) => "select:" + path
+  const probe = (path) => ["clock", "probe:" + path]
+  const capture = (path) => ["clock", "access:" + path, "capture:" + path, "clock", "parse"]
+  const fooSource = [select("foo.py"), ...probe("foo.py")]
+  const fooStub = [select("foo.pyi"), select("foo.pyi"), ...probe("foo.pyi")]
+  const missingFooPackage = [
+    select("foo/__init__.py"),
+    ...probe("foo"),
+    select("foo/__init__.pyi"),
+    select("foo/__init__.pyi")
+  ]
+  const missingSrc = [
+    select("src/foo.py"),
+    ...probe("src"),
+    select("src/foo.pyi"),
+    select("src/foo.pyi"),
+    select("src/foo/__init__.py"),
+    select("src/foo/__init__.pyi"),
+    select("src/foo/__init__.pyi")
+  ]
+  const ordinary = ["clock", ...fooSource, ...missingFooPackage, ...missingSrc]
+  const searchPkg = [
+    select("pkg.py"),
+    ...probe("pkg.py"),
+    select("pkg.pyi"),
+    select("pkg.pyi"),
+    ...probe("pkg.pyi"),
+    select("pkg/__init__.py"),
+    ...probe("pkg"),
+    ...probe("pkg/__init__.py"),
+    ...missingSrc.map((event) => event.replaceAll("foo", "pkg"))
+  ]
+  const pkgParent = [select("pkg/__init__.py"), ...capture("pkg/__init__.py")]
+  const pkgPrelude = ["clock", ...searchPkg, ...pkgParent]
+  const pkgInspection = [...pkgPrelude, "parse", "inspect:pkg/__init__.py"]
+  const pkgMembership = ["pkg.py", "pkg.pyi", "pkg", "pkg/__init__.py", "src"]
+  const retainedParent = [select("pkg/__init__.py"), "parse"]
+  const packageItself = [...retainedParent, select("pkg/__init__.py"), ...retainedParent]
+  const leaf = [
+    select("pkg/leaf.py"),
+    ...probe("pkg/leaf.py"),
+    select("pkg/leaf/__init__.py"),
+    ...probe("pkg/leaf"),
+    select("pkg/leaf/__init__.pyi"),
+    select("pkg/leaf/__init__.pyi")
+  ]
+  const relativeLeaf = ["clock", ...retainedParent, ...leaf, ...retainedParent]
+  const childAbsolute = [
+    "clock",
+    ...leaf.map((event) => event.replaceAll("leaf", "child")),
+    ...missingSrc
+      .map((event) => event.replaceAll("foo", "pkg/child"))
+      .filter((event) => event !== "clock" && event !== "probe:src"),
+    ...retainedParent
+  ]
+  const otherSearch = searchPkg.map((event) => event.replaceAll("pkg", "other"))
+  // The second package uses the already observed missing src root.
+  const otherPrelude = [
+    "clock",
+    ...otherSearch.slice(0, -missingSrc.length),
+    ...missingSrc
+      .map((event) => event.replaceAll("foo", "other"))
+      .filter((event) => event !== "clock" && event !== "probe:src"),
+    select("other/__init__.py"),
+    ...capture("other/__init__.py"),
+    "parse",
+    "inspect:other/__init__.py"
+  ]
+  const cachedPkgSearch = [
+    select("pkg.py"),
+    select("pkg.pyi"),
+    select("pkg.pyi"),
+    select("pkg/__init__.py"),
+    ...missingSrc
+      .map((event) => event.replaceAll("foo", "pkg"))
+      .filter((event) => event !== "clock" && event !== "probe:src"),
+    ...retainedParent
+  ]
+  const leafAbsolute = [
+    "clock",
+    ...fooSource.map((event) => event.replaceAll("foo", "leaf")),
+    ...missingFooPackage.map((event) => event.replaceAll("foo", "leaf")),
+    ...missingSrc
+      .map((event) => event.replaceAll("foo", "leaf"))
+      .filter((event) => event !== "clock" && event !== "probe:src")
+  ]
+  const stubSearch = [
+    select("pkg.py"),
+    ...probe("pkg.py"),
+    select("pkg.pyi"),
+    select("pkg.pyi"),
+    ...probe("pkg.pyi"),
+    select("pkg/__init__.py"),
+    ...probe("pkg"),
+    ...probe("pkg/__init__.py"),
+    select("pkg/__init__.pyi"),
+    select("pkg/__init__.pyi"),
+    ...probe("pkg/__init__.pyi"),
+    ...missingSrc.map((event) => event.replaceAll("foo", "pkg"))
+  ]
+  const stubParent = [select("pkg/__init__.py"), select("pkg/__init__.pyi"), "parse"]
+  const stubPrelude = [
+    "clock",
+    ...stubSearch,
+    select("pkg/__init__.py"),
+    select("pkg/__init__.pyi"),
+    ...capture("pkg/__init__.pyi"),
+    "parse",
+    "inspect:pkg/__init__.pyi"
+  ]
+  const stubLeaf = [
+    select("pkg/leaf.py"),
+    ...probe("pkg/leaf.py"),
+    select("pkg/leaf.pyi"),
+    select("pkg/leaf.pyi"),
+    ...probe("pkg/leaf.pyi"),
+    select("pkg/leaf/__init__.py"),
+    ...probe("pkg/leaf"),
+    select("pkg/leaf/__init__.pyi"),
+    select("pkg/leaf/__init__.pyi")
+  ]
+  const srcParent = [
+    select("src/pkg/__init__.py"),
+    ...probe("src"),
+    ...probe("src/pkg"),
+    ...probe("src/pkg/__init__.py"),
+    ...capture("src/pkg/__init__.py")
+  ]
+  const retainedSrc = [select("src/pkg/__init__.py"), "parse"]
+  const srcLeaf = leaf.map((event) => event.replaceAll("pkg/", "src/pkg/"))
+  // Authored routes, publications and effect sequences; no native resolver or
+  // mutable probe/capture simulator determines the expected result.
+  const plans = [
+    [true, ["foo.py", "foo", "src"], [], [], [], [], ordinary],
+    [true, ["foo.py", "foo", "src"], [], [], [], [], ordinary],
+    [true, pkgMembership, ["pkg/__init__.py"], [], ["pkg/__init__.py"], ["pkg/__init__.py"], pkgInspection],
+    [
+      true,
+      [...pkgMembership, "pkg/leaf.py", "pkg/leaf"],
+      ["pkg/__init__.py"],
+      ["pkg/__init__.py"],
+      [],
+      ["pkg/__init__.py"],
+      [...pkgInspection, ...relativeLeaf]
+    ],
+    [
+      true,
+      [...pkgMembership, "pkg/leaf.py", "pkg/leaf"],
+      ["pkg/__init__.py"],
+      ["pkg/__init__.py"],
+      [],
+      ["pkg/__init__.py"],
+      [...pkgInspection, ...relativeLeaf]
+    ],
+    [
+      true,
+      [...pkgMembership, "pkg/child.py", "pkg/child"],
+      ["pkg/__init__.py"],
+      ["pkg/__init__.py"],
+      [],
+      ["pkg/__init__.py"],
+      [...pkgInspection, ...packageItself, ...childAbsolute]
+    ],
+    [
+      true,
+      [...pkgMembership, "pkg/child.py", "pkg/child"],
+      ["pkg/__init__.py"],
+      ["pkg/__init__.py"],
+      [],
+      ["pkg/__init__.py"],
+      [...pkgInspection, ...childAbsolute]
+    ],
+    [true, pkgMembership, ["pkg/__init__.py"], ["pkg/__init__.py"], [], ["pkg/__init__.py"], pkgInspection],
+    [
+      true,
+      [...pkgMembership, "pkg/nested.py", "pkg/nested"],
+      ["pkg/__init__.py"],
+      ["pkg/__init__.py"],
+      [],
+      ["pkg/__init__.py", "pkg/__init__.py"],
+      [
+        ...pkgInspection,
+        ...packageItself,
+        "clock",
+        ...packageItself,
+        "parse",
+        "inspect:pkg/__init__.py",
+        ...relativeLeaf.map((event) => event.replaceAll("leaf", "nested"))
+      ]
+    ],
+    [
+      true,
+      [...pkgMembership, "pkg/nested.py", "pkg/nested"],
+      ["pkg/__init__.py"],
+      ["pkg/__init__.py"],
+      [],
+      ["pkg/__init__.py", "pkg/__init__.py"],
+      [
+        ...pkgInspection,
+        ...packageItself,
+        "clock",
+        ...packageItself,
+        "parse",
+        "inspect:pkg/__init__.py",
+        ...relativeLeaf.map((event) => event.replaceAll("leaf", "nested"))
+      ]
+    ],
+    [
+      true,
+      pkgMembership,
+      ["pkg/__init__.py"],
+      ["pkg/__init__.py"],
+      [],
+      ["pkg/__init__.py"],
+      [...pkgInspection, "clock", ...packageItself]
+    ],
+    [
+      true,
+      [...pkgMembership, "other.py", "other.pyi", "other", "other/__init__.py"],
+      ["pkg/__init__.py", "other/__init__.py"],
+      ["pkg/__init__.py", "other/__init__.py"],
+      [],
+      ["pkg/__init__.py", "other/__init__.py"],
+      [...pkgInspection, ...otherPrelude, "clock", ...cachedPkgSearch]
+    ],
+    [
+      true,
+      [...pkgMembership, "other.py", "other.pyi", "other", "other/__init__.py"],
+      ["pkg/__init__.py", "other/__init__.py"],
+      ["pkg/__init__.py", "other/__init__.py"],
+      [],
+      ["pkg/__init__.py", "other/__init__.py"],
+      [...pkgInspection, ...otherPrelude]
+    ],
+    [
+      true,
+      [...pkgMembership, "other.py", "other.pyi", "other", "other/__init__.py", "leaf.py", "leaf"],
+      ["pkg/__init__.py", "other/__init__.py"],
+      ["pkg/__init__.py", "other/__init__.py"],
+      [],
+      ["pkg/__init__.py", "other/__init__.py"],
+      [...pkgInspection, ...otherPrelude, ...leafAbsolute]
+    ],
+    [true, pkgMembership, ["pkg/__init__.py"], ["pkg/__init__.py"], [], [], pkgPrelude],
+    [true, pkgMembership, ["pkg/__init__.py"], ["pkg/__init__.py"], [], ["pkg/__init__.py"], pkgInspection],
+    [
+      true,
+      [...pkgMembership.slice(0, 4), "pkg/__init__.pyi", "src", "pkg/leaf.py", "pkg/leaf.pyi", "pkg/leaf"],
+      ["pkg/__init__.pyi"],
+      ["pkg/__init__.pyi"],
+      [],
+      ["pkg/__init__.pyi"],
+      [...stubPrelude, "clock", ...stubParent, ...stubLeaf, ...stubParent]
+    ],
+    [
+      true,
+      [...pkgMembership, "pkg/leaf.py", "pkg/leaf"],
+      ["pkg/__init__.py"],
+      ["pkg/__init__.py"],
+      [],
+      ["pkg/__init__.py"],
+      [...pkgInspection, ...relativeLeaf]
+    ],
+    [
+      true,
+      ["src", "src/pkg", "src/pkg/__init__.py", "src/pkg/leaf.py", "src/pkg/leaf"],
+      ["src/pkg/__init__.py"],
+      ["src/pkg/__init__.py"],
+      [],
+      ["src/pkg/__init__.py"],
+      [
+        "clock",
+        ...srcParent,
+        select("src/pkg/__init__.py"),
+        ...retainedSrc,
+        "parse",
+        "inspect:src/pkg/__init__.py",
+        "clock",
+        ...retainedSrc,
+        ...srcLeaf,
+        ...retainedSrc
+      ]
+    ],
+    [
+      true,
+      ["foo.py", "foo", "foo/__init__.py", "src"],
+      [],
+      [],
+      [],
+      [],
+      ["clock", ...fooSource, select("foo/__init__.py"), ...probe("foo"), ...probe("foo/__init__.py"), ...missingSrc]
+    ],
+    [
+      true,
+      ["foo.py", "foo.pyi", "foo", "src"],
+      [],
+      [],
+      [],
+      [],
+      ["clock", ...fooSource, ...fooStub, ...missingFooPackage, ...missingSrc]
+    ],
+    [true, [], [], [], [], [], ["clock"]],
+    [false, [], [], [], [], [], ["clock", select("foo.py"), "clock"]],
+    [true, pkgMembership, [], [], [], [], ["clock", ...searchPkg, select("pkg/__init__.py"), "clock"]],
+    [true, pkgMembership, [], [], [], [], ["clock", ...searchPkg, select("pkg/__init__.py"), "clock"]],
+    [
+      true,
+      pkgMembership,
+      [],
+      [],
+      [],
+      [],
+      ["clock", ...searchPkg, select("pkg/__init__.py"), "clock", "access:pkg/__init__.py"]
+    ]
+  ]
+  assert.equal(plans.length, fixtures.length)
   let requests = 0
   for (const [index, fixture] of fixtures.entries()) {
     const root = join(temp, String(index))
@@ -185,163 +489,18 @@ try {
     }
     if (fixture.directory) await mkdir(join(root, fixture.directory))
     if (fixture.link) await symlink(fixture.link[0], join(root, fixture.link[1]))
-    let available = true,
-      work = 0,
-      started = false
-    const membership = new Map(),
-      authority = new Map(),
-      canonical = new Set([fixture.rootPath ?? "root.py"]),
-      captureCache = new Map(),
-      failedCaptures = new Set(),
-      deps = [],
-      expected = [],
-      actual = [],
-      expectedFacts = [],
+    let started = false
+    const actual = [],
       actualFacts = [],
       depth = fixture.depth ?? 4,
       workBudget = fixture.workBudget ?? 40,
       filesBudget = fixture.filesBudget ?? 10,
       readBudget = fixture.readBudget ?? 10000
-    const within = (path) => !isAbsolute(path) && path !== ".." && !path.startsWith(".." + sep),
-      selected = (path) => path !== fixture.excluded
-    const permit = (reserveFiles = 0, reserveBytes = 0) => {
-      if (!available) return false
-      expected.push("clock")
-      return (
-        !fixture.expired &&
-        work <= workBudget &&
-        authority.size + failedCaptures.size + reserveFiles <= filesBudget &&
-        [...authority.values()].reduce((sum, c) => sum + c.byteLength, 0) + failedCaptures.size * 1024 + reserveBytes <=
-          readBudget
-      )
-    }
-    function* observe(path) {
-      if (membership.has(path)) return membership.get(path)
-      if (!within(path) || !permit() || work >= workBudget) {
-        available = false
-        return undefined
-      }
-      work++
-      expected.push("probe:" + path)
-      let status
-      try {
-        status = yield lstat(join(root, path))
-      } catch (error) {
-        if (error.code !== "ENOENT") available = false
-      }
-      if (status?.isSymbolicLink()) available = false
-      membership.set(path, status)
-      return status
-    }
-    function* stat(path) {
-      if (!within(path)) {
-        available = false
-        return undefined
-      }
-      expected.push("select:" + path)
-      if (!selected(path)) {
-        available = false
-        return undefined
-      }
-      const dirs = []
-      let directory = dirname(path)
-      while (directory !== ".") {
-        if (dirs.length > depth + 1) {
-          available = false
-          return undefined
-        }
-        dirs.push(directory)
-        directory = dirname(directory)
-      }
-      for (const dir of dirs.reverse()) {
-        const status = yield* observe(dir)
-        if (!available || !status) return undefined
-        if (!status.isDirectory()) {
-          available = false
-          return undefined
-        }
-      }
-      return yield* observe(path)
-    }
-    function* readAuthority(path) {
-      if (authority.has(path)) return authority.get(path)
-      if (failedCaptures.has(path)) return undefined
-      let capture = captureCache.get(path)
-      if (canonical.has(path)) return permit() ? capture : undefined
-      if (!permit(1, capture?.byteLength ?? 1024)) return undefined
-      expected.push("access:" + path)
-      if (fixture.denyCapture) return undefined
-      if (!capture) {
-        failedCaptures.add(path)
-        expected.push("capture:" + path)
-        const text = yield readFile(join(root, path), "utf8")
-        capture = { text, byteLength: Buffer.byteLength(text) }
-        failedCaptures.delete(path)
-        captureCache.set(path, capture)
-      }
-      if (capture.byteLength > 1024 || !permit(1, capture.byteLength)) return undefined
-      authority.set(path, capture)
-      if (!deps.includes(path)) deps.push(path)
-      return capture
-    }
-    // Parser engines are reused; policy is independently evaluated by the exact
-    // production authority consumer above, while this reference isolates chronology.
-    const staticPackageAuthority = (text) => {
-      expected.push("parse")
-      const parser = new Parser()
-      try {
-        parser.setLanguage(Python)
-        return child.static_package_authority(projectPythonSyntax(parser.parse(text).rootNode))
-      } finally {
-        parser.reset()
-      }
-    }
-    const { resolveImport: reference } = createPythonModuleResolution({
-      limits: { depth },
-      stat: referenceIo(stat),
-      readAuthority: referenceIo(readAuthority),
-      staticPackageAuthority,
-      isAvailable: () => available,
-      absoluteRoots: () => Effect.succeed(fixture.roots ?? [".", "src"]),
-      rootPath: fixture.rootPath ?? "root.py",
-      isSelected: (path) => {
-        expected.push("select:" + path)
-        return selected(path)
-      },
-      permit,
-      setRemaining: () => {},
-      inspectPython: (path, text) => {
-        expected.push("inspect:" + path)
-        const facts = pythonAdapter.inspect(path, text)
-        expectedFacts.push(facts === undefined ? undefined : sourceFacts(facts))
-        return facts
-      },
-      hasPackageBinding: (text, name) => {
-        const parser = new Parser()
-        try {
-          parser.setLanguage(Python)
-          return child.has_package_binding(projectPythonSyntax(parser.parse(text).rootNode), name)
-        } finally {
-          parser.reset()
-        }
-      },
-      transferAuthority: (target) => {
-        authority.delete(target)
-        canonical.add(target)
-      }
+    const [available, membership, deps, authority, transferred, inspections, expected] = plans[index]
+    const expectedFacts = inspections.map((path) => {
+      const facts = pythonAdapter.inspect(path, fixture.files[path])
+      return facts === undefined ? undefined : sourceFacts(facts)
     })
-    const result = await Effect.runPromise(
-      reference(fixture.from ?? "root.py", fixture.import, fixture.member, {
-        files: filesBudget,
-        readBytes: readBudget,
-        work: workBudget
-      })
-    )
-    assert.deepEqual(
-      result,
-      fixture.target === undefined ? undefined : { path: fixture.target, name: fixture.result },
-      fixture.name + " fixture"
-    )
     const io = createServiceSession({
       invocation: index + 1,
       root,
@@ -351,7 +510,7 @@ try {
       },
       selectContextPath: (path) => {
         actual.push("select:" + path)
-        return selected(path)
+        return path !== fixture.excluded
       },
       access: async (path) => {
         actual.push("access:" + path)
@@ -382,12 +541,12 @@ try {
       started = true
       const initial = child.initial_session(
         fixture.rootPath ?? "root.py",
-        1024n,
-        BigInt(depth),
+        1024,
+        depth,
         s("Remaining", {
-          files: s("Nonnegative", { value: BigInt(filesBudget) }),
-          read_bytes: s("Nonnegative", { value: BigInt(readBudget) }),
-          work: s("Nonnegative", { value: BigInt(workBudget) })
+          files: s("Nonnegative", { value: filesBudget }),
+          read_bytes: s("Nonnegative", { value: readBudget }),
+          work: s("Nonnegative", { value: workBudget })
         })
       )
       const state = child.cached_roots(initial, list(fixture.roots ?? [".", "src"]))
@@ -401,8 +560,8 @@ try {
         clock,
         cache,
         sep,
-        BigInt(index + 1),
-        2n
+        index + 1,
+        2
       )
       while (step.$.endsWith(".Await")) {
         requests++
@@ -414,23 +573,38 @@ try {
         step.resolution.$ === "None"
           ? undefined
           : { path: step.resolution.value.path, name: step.resolution.value.name },
-        result,
+        fixture.target === undefined ? undefined : { path: fixture.target, name: fixture.result },
         fixture.name
       )
       assert.deepEqual(actual, expected, fixture.name + " ordered effects")
       assert.deepEqual(actualFacts, expectedFacts, fixture.name + " complete extraction payload")
-      assert.deepEqual(unlist(step.session.canonical), [...canonical], fixture.name + " canonical transfer")
+      assert.deepEqual(
+        unlist(step.session.canonical),
+        [fixture.rootPath ?? "root.py", ...transferred],
+        fixture.name + " canonical transfer"
+      )
       assert.equal(step.session.available, available, fixture.name)
-      assert.equal(step.session.work, BigInt(work), fixture.name)
+      assert.equal(step.session.work, membership.length, fixture.name)
+      assert.deepEqual(unlist(step.session.failed), [], fixture.name + " no retained capture reservation")
+      assert.deepEqual(
+        child.usage(step.session),
+        s("Usage", {
+          files: authority.length,
+          read_bytes: authority.reduce((bytes, path) => bytes + Buffer.byteLength(fixture.files[path]), 0),
+          work: membership.length
+        }),
+        fixture.name + " exact published usage"
+      )
+
       assert.deepEqual(
         unlist(step.session.membership).map((row) => row.path),
-        [...membership.keys()],
+        membership,
         fixture.name
       )
       assert.deepEqual(unlist(step.session.dependencies), deps, fixture.name)
       assert.deepEqual(
         unlist(step.session.authority).map((row) => [row.path, Number(row.bytes)]),
-        [...authority].map(([path, capture]) => [path, capture.byteLength]),
+        authority.map((path) => [path, Buffer.byteLength(fixture.files[path])]),
         fixture.name
       )
     } finally {
@@ -439,11 +613,11 @@ try {
   }
   console.log(
     JSON.stringify({
-      status: "PASS",
+      passed: true,
       cases: fixtures.length,
       requests,
       scope:
-        "whole resolveImport/native ordered effects and full SourceFacts payload, cached roots, physical membership/syntax, injected capture/selection; not full GraphSession/Canonical acceptance"
+        "authored import routes, ordered physical effects, full parser payload, canonical transfer and authority budgets; not whole GraphSession/Canonical acceptance"
     })
   )
 } finally {
