@@ -208,6 +208,15 @@ export function fixtureExpectation(fixture, sources) {
       return rootRefusal(undefined, 11, ["Cargo.toml"], [capture(4, "Cargo.toml")], [path, "Cargo.toml"])
     case "rust-function-binding-unsupported":
       return noUnit(9, [capture(4, "Cargo.toml")], [path, "Cargo.toml"])
+    case "rust-preparation-observer-error":
+    case "rust-preparation-capture-unavailable":
+      return rootRefusal(
+        "A",
+        9,
+        [],
+        [capture(4, "Cargo.toml"), diagnostic(4, "Cargo.toml", "fixture-unavailable")],
+        [path]
+      )
     case "rust-private-preparation-cache":
     case "rust-context-read-policy":
     case "rust-date-library":

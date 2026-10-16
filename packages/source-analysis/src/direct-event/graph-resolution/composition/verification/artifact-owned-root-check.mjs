@@ -448,6 +448,19 @@ try {
   }
   const retainedEntryFixtures = [
     {
+      ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
+      name: "rust-preparation-observer-error",
+      unavailable: true,
+      throwDiagnostic: true,
+      requiredExpanded: undefined
+    },
+    {
+      ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
+      name: "rust-preparation-capture-unavailable",
+      unavailable: true,
+      requiredExpanded: undefined
+    },
+    {
       name: "rust-malformed-cargo-port",
       path: "src/lib.rs",
       source: "mod a; pub struct Root {}",
@@ -549,7 +562,10 @@ try {
               : { status: "captured", capture: stable(selected.relativePath) }
           )
         },
-        observeCaptureDiagnostic: (file, value) => events.push(["diagnostic", file, value])
+        observeCaptureDiagnostic: (file, value) => {
+          events.push(["diagnostic", file, value])
+          if (fixture.throwDiagnostic) throw injectedError
+        }
       }
     }
     let actual, bendError
