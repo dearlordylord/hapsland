@@ -8,49 +8,26 @@ import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Cause from "effect/Cause"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { resolveGraphUnit as __resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
-import {
-  eligibleNamedPath as __eligibleNamedPath,
-  DEFAULT_DIRECT_FILE_POLICY
-} from "@hapsland/native-observation/direct-event/selection"
+import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { performGraphServiceEffect } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
-import {
-  hostNatural,
-  productValue as __productValue,
-  fromProductValue,
-  list,
-  unlist
-} from "@hapsland/source-artifacts/direct-event/value/codec"
-import { createBendResolver as __createBendResolver } from "../../../../../../source-analysis/src/direct-event/graph-resolution/consumer.ts"
+import { hostNatural, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import * as Ref from "effect/Ref"
-import { initialCanonical, projectCanonical as __projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
+import { initialCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 import { residentTransaction } from "../../../state/resident/transaction.ts"
 import { residentCapacity } from "../../../state/resident/capacity.ts"
 import { residentRuntime } from "../../../state/resident/runtime.ts"
 import { providerTransaction } from "../../../state/resolver-custody/resident-provider-permit.mjs"
-import { retireRound as __retireRound } from "../../../state/capacity/rounds.ts"
 import { completePreparation } from "../../../state/capacity/preparation.ts"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
 import { createAdviceTailMachine, createPostPreparationMachine } from "../post-preparation-dispatcher.mjs"
-import {
-  inspectGraphFile as __inspectGraphFile,
-  combinedAnalyzerMaterializationPreflight as __combinedAnalyzerMaterializationPreflight,
-  analyzeTypeFile as __analyzeTypeFile
-} from "@hapsland/source-analysis/direct-event/analyzer"
-import { resize as __resize } from "../../../state/capacity/reservations.ts"
-import { analyzeFunctionFile as __analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
-import { analysisWorkspaceBytes as __analysisWorkspaceBytes } from "../../../work-ownership/workspace/verification/native-workspace.ts"
 import { configuredRules, advicee } from "./preparation-fixtures.mjs"
 import { consumeRetainedPreparation } from "./retention-consumer.mjs"
-import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
+import { createFixturePreparationForeign as createPreparationForeign } from "./preparation-foreign-fixture.mjs"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
-import {
-  TYPE_INPUT_CONTRACT,
-  FUNCTION_INPUT_CONTRACT as __FUNCTION_INPUT_CONTRACT
-} from "@hapsland/review-definition/rules/targets"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 const twoDeclarations = {
   path: "root.py",
   source: "from leaf import Foo\nclass Root:\n first: Foo\nclass Second:\n second: Foo\n",
@@ -698,7 +675,7 @@ try {
       requests,
       postRequests,
       scope:
-        "actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Go/Rust/Bend/Python/TypeScript IO and full native preparation differential for successful branches; parent cancellation/late success/rejection and first semantic refusal; actual native preflight/workspace sizing bindings and whole Bend finalization through the same resident Canonical gate; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers plus owner-claim and pre-spawn exceptions with guaranteed cleanup; native policy deletion, source-free Canonical progression and production adoption remain open"
+        "actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Go/Rust/Bend/Python/TypeScript IO and explicit successful/refused fixture expectations; parent cancellation/late success/rejection and first semantic refusal; actual Bend preflight/workspace sizing bindings and whole Bend finalization through the same resident Canonical gate; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers plus owner-claim and pre-spawn exceptions with guaranteed cleanup; Graph reference deletion, final host-policy audit and whole Preparation acceptance remain open"
     })
   )
 } finally {

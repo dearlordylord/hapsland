@@ -1,18 +1,15 @@
-import assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
-import { fromProductValue, list } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { list } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { resize } from "../../../state/capacity/reservations.ts"
 import { createPreparationForeign } from "../../composition/preparation-foreign.mjs"
 
-// Independent native correspondence belongs to verification, never product effects.
-export function createVerificationPreparationForeign({ compareRoots = true, onRoot, mode = "two-roots", ...options }) {
-  let facts,
-    roots = 0
+// Fixture fault injection over the production foreign capability. No Graph oracle:
+// retained consumers assert expected results, identity, refusal and cleanup.
+export function createFixturePreparationForeign({ onRoot, mode = "two-roots", ...options }) {
+  let roots = 0
   const capability = createPreparationForeign({
     ...options,
     onRoot(value) {
-      facts = value
       roots++
       onRoot?.(value)
     }
@@ -57,19 +54,10 @@ export function createVerificationPreparationForeign({ compareRoots = true, onRo
             $: "Reply",
             invocation: request.invocation,
             id: request.id,
-            response: { $: "MaterializationDone", requested: BigInt(bytes), result: admission }
+            response: { $: "MaterializationDone", requested: bytes, result: admission }
           }
         }
-        const reply = yield* capability.performEffect(request, effectOptions)
-        if (compareRoots && request.command.$ === "ResolveRoot") {
-          const expected = yield* resolveGraphUnit(facts.path, facts.capture, facts.name, {
-            ...facts.context,
-            captureCache: new Map()
-          })
-          const unit = reply.response.unit
-          assert.deepEqual(unit.$ === "None" ? undefined : fromProductValue(unit.value), expected)
-        }
-        return reply
+        return yield* capability.performEffect(request, effectOptions)
       })
     }
   }

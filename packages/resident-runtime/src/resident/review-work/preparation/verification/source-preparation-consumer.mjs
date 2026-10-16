@@ -41,7 +41,7 @@ import { createResidentOwnerTransaction } from "../../../state/resolver-custody/
 import { createResidentPreparationDriver } from "../../composition/preparation-driver.ts"
 import { createResidentPreparationSession } from "../../composition/preparation-session.ts"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
-import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
+import { createFixturePreparationForeign as createPreparationForeign } from "./preparation-foreign-fixture.mjs"
 import { runResidentSourcePreparation } from "../../composition/source-preparation-entry.ts"
 const withUnissuedAuthority = (effect) =>
   effect.pipe(
@@ -720,7 +720,6 @@ try {
             ? {
                 graphLimits: sourceGraphLimits,
                 residentContext: context,
-                compareRoots: false,
                 onMaterialization: (event) => sourceEffects.push(event)
               }
             : {})
