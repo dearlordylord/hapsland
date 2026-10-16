@@ -1,37 +1,78 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { createHash } from "node:crypto"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { basename, join } from "node:path"
 import { pathToFileURL } from "node:url"
-import {
-  GO_OS,
-  GO_ARCH,
-  freezeGoBuildSnapshot,
-  evaluateGoBuildExpression,
-  goFilenameMembership,
-  goFileMembership
-} from "../../languages/go-build-context.ts"
 import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
-// Only engine observations: no token, constraint or membership computation.
+const A = "active",
+  I = "inactive",
+  U = "unknown"
+const all = (value) => Array(7).fill(value)
+const unknown = all(U),
+  active = all(A),
+  inactive = all(I)
+const linux = [U, A, A, I, I, I, I]
+const windows = [U, I, I, I, I, A, I]
+const android = [U, I, A, I, I, I, I]
+const darwin = [U, I, I, A, I, I, I]
+const solaris = [U, I, I, I, A, I, I]
+const arm64 = [U, I, A, A, I, I, I]
+const amd64 = [U, A, I, I, A, I, I]
+const unix = [U, A, A, A, A, I, I]
+const custom = [U, I, A, I, I, I, A]
+const yes = [U, I, I, I, A, I, A]
+const absent = [U, I, I, I, I, I, I]
+const GO_OS = [
+  "aix",
+  "android",
+  "darwin",
+  "dragonfly",
+  "freebsd",
+  "hurd",
+  "illumos",
+  "ios",
+  "js",
+  "linux",
+  "netbsd",
+  "openbsd",
+  "plan9",
+  "solaris",
+  "wasip1",
+  "windows"
+]
+const GO_ARCH = [
+  "386",
+  "amd64",
+  "arm",
+  "arm64",
+  "loong64",
+  "mips",
+  "mipsle",
+  "mips64",
+  "mips64le",
+  "ppc64",
+  "ppc64le",
+  "riscv64",
+  "s390x",
+  "wasm"
+]
+// Native engine observations only: character codes, whitespace and basename.
 const raw = (value) => ({
   $: "RawText.Text",
   value,
   characters: list(
     [...value].map((character) => ({
       $: "RawText.Character",
-      code: BigInt(character.codePointAt(0)),
+      code: character.codePointAt(0),
       whitespace: /^\s$/u.test(character)
     }))
   )
 })
 const wireSnapshot = (value) =>
-  value === undefined
-    ? { $: "None" }
-    : { $: "Some", value: { $: "Snapshot", goos: value.goos, goarch: value.goarch, tags: list(value.tags) } }
-const membership = (value) => ({ Active: "active", Inactive: "inactive", Unknown: "unknown" })[value.$]
+  value === undefined ? { $: "None" } : { $: "Some", value: { $: "Snapshot", ...value, tags: list(value.tags) } }
+const membership = (value) => ({ Active: A, Inactive: I, Unknown: U })[value.$]
 const temp = mkdtempSync(join(tmpdir(), "hapsland-go-build-"))
 try {
   const output = join(temp, "build.mjs")
@@ -54,20 +95,15 @@ try {
     "\ufeff",
     "\u2028\u2029"
   ]) {
-    assert.equal(
-      core["RawTextMeasurement.bytes"](raw(text).characters),
-      BigInt(new TextEncoder().encode(text).length),
-      JSON.stringify(text)
-    )
-    assert.equal(core["RawTextMeasurement.utf16"](raw(text).characters), BigInt(text.length))
+    assert.equal(core["RawTextMeasurement.bytes"](raw(text).characters), new TextEncoder().encode(text).length)
+    assert.equal(core["RawTextMeasurement.utf16"](raw(text).characters), text.length)
   }
   const configurations = [
-    ...GO_OS.map((goos) => ({ goos, goarch: "amd64", tags: ["z", "a", "a"] })),
-    ...GO_ARCH.map((goarch) => ({ goos: "linux", goarch, tags: [] })),
-    ...["", "Linux", "bogus", "\ud800"].map((goos) => ({ goos, goarch: "amd64", tags: [] })),
+    ...GO_OS.map((goos) => [{ goos, goarch: "amd64", tags: ["z", "a", "a"] }, ["a", "z"]]),
+    ...GO_ARCH.map((goarch) => [{ goos: "linux", goarch, tags: [] }, []]),
+    ...["", "Linux", "bogus", "\ud800"].map((goos) => [{ goos, goarch: "amd64", tags: [] }, "InvalidTarget"]),
     ...[
       "",
-      "x",
       "unix",
       "cgo",
       "gc",
@@ -82,7 +118,6 @@ try {
       "é",
       "𐐀",
       "\ud800",
-      "x".repeat(128),
       "x".repeat(129),
       "x\n",
       "x\r",
@@ -90,171 +125,254 @@ try {
       "x\u2029",
       "x\ufeff",
       "x\r\n"
-    ].map((tag) => ({ goos: "linux", goarch: "amd64", tags: [tag] })),
-    { goos: "linux", goarch: "amd64", tags: Array(64).fill("same") },
-    { goos: "linux", goarch: "amd64", tags: Array(65).fill("same") },
-    { goos: "bogus", goarch: "bogus", tags: ["bad-tag"] }
+    ].map((tag) => [{ goos: "linux", goarch: "amd64", tags: [tag] }, "InvalidUserTag"]),
+    [{ goos: "linux", goarch: "amd64", tags: ["x"] }, ["x"]],
+    [{ goos: "linux", goarch: "amd64", tags: ["x".repeat(128)] }, ["x".repeat(128)]],
+    [{ goos: "linux", goarch: "amd64", tags: Array(64).fill("same") }, ["same"]],
+    [{ goos: "linux", goarch: "amd64", tags: Array(65).fill("same") }, "InvalidUserTag"],
+    [{ goos: "bogus", goarch: "bogus", tags: ["bad-tag"] }, "InvalidTarget"]
   ]
-  for (const configuration of configurations) {
-    let native, failure
-    try {
-      native = freezeGoBuildSnapshot(configuration)
-    } catch (error) {
-      failure = error
-    }
+  for (const [configuration, expected] of configurations) {
     const actual = core.snapshot(configuration.goos, configuration.goarch, list(configuration.tags.map(raw)))
-    if (failure) {
-      assert.ok(failure instanceof RangeError)
-      assert.equal(
-        actual.$,
-        failure.message === "Unsupported Go analysis target" ? "InvalidTarget" : "InvalidUserTag",
-        JSON.stringify(configuration)
-      )
-    } else {
+    if (typeof expected === "string") assert.equal(actual.$, expected, JSON.stringify(configuration))
+    else {
       assert.equal(actual.$, "SnapshotValid")
-      const facts = { goos: actual.snapshot.goos, goarch: actual.snapshot.goarch, tags: unlist(actual.snapshot.tags) }
-      assert.deepEqual(facts, { goos: native.goos, goarch: native.goarch, tags: [...native.tags] })
-      assert.equal(createHash("sha256").update(JSON.stringify(facts)).digest("hex"), native.fingerprint)
+      assert.deepEqual(
+        { goos: actual.snapshot.goos, goarch: actual.snapshot.goarch, tags: unlist(actual.snapshot.tags) },
+        { goos: configuration.goos, goarch: configuration.goarch, tags: expected }
+      )
     }
+    configurationCases++
+  }
+  for (const configuration of [
+    { goos: "host", goarch: "arm64", tags: [] },
+    { goos: "linux", goarch: "bogus", tags: [] }
+  ]) {
+    assert.equal(core.snapshot(configuration.goos, configuration.goarch, list([])).$, "InvalidTarget")
+    configurationCases++
+  }
+  for (const tag of ["go1.27", "arm64.v8.0", "foo bar"]) {
+    assert.equal(core.snapshot("linux", "arm64", list([raw(tag)])).$, "InvalidUserTag")
     configurationCases++
   }
   const snapshots = [
     undefined,
-    ...[
-      ["linux", "amd64", []],
-      ["android", "arm64", ["custom"]],
-      ["ios", "arm64", []],
-      ["illumos", "amd64", ["yes"]],
-      ["windows", "386", []],
-      ["js", "wasm", ["custom", "yes"]]
-    ].map(([goos, goarch, tags]) => freezeGoBuildSnapshot({ goos, goarch, tags }))
+    { goos: "linux", goarch: "amd64", tags: [] },
+    { goos: "android", goarch: "arm64", tags: ["custom"] },
+    { goos: "ios", goarch: "arm64", tags: [] },
+    { goos: "illumos", goarch: "amd64", tags: ["yes"] },
+    { goos: "windows", goarch: "386", tags: [] },
+    { goos: "js", goarch: "wasm", tags: ["custom", "yes"] }
   ]
   const atoms = [
-    "linux",
-    "windows",
-    "android",
-    "darwin",
-    "solaris",
-    "arm64",
-    "amd64",
-    "unix",
-    "custom",
-    "yes",
-    "absent",
-    "cgo",
-    "gc",
-    "gccgo",
-    "go1.22",
-    "x.y",
-    "_",
-    "123",
-    "."
+    ["linux", linux],
+    ["windows", windows],
+    ["android", android],
+    ["darwin", darwin],
+    ["solaris", solaris],
+    ["arm64", arm64],
+    ["amd64", amd64],
+    ["unix", unix],
+    ["custom", custom],
+    ["yes", yes],
+    ["absent", absent],
+    ["cgo", unknown],
+    ["gc", unknown],
+    ["gccgo", unknown],
+    ["go1.22", unknown],
+    ["x.y", unknown],
+    ["_", absent],
+    ["123", absent],
+    [".", unknown]
   ]
+  // Fixed logical outcome tables construct fixture expectations without parsing
+  // a Go expression or deriving any target facts in JavaScript.
+  const not = { [A]: I, [I]: A, [U]: U }
+  const and = { [A]: { [A]: A, [I]: I, [U]: U }, [I]: { [A]: I, [I]: I, [U]: U }, [U]: { [A]: U, [I]: U, [U]: U } }
+  const or = { [A]: { [A]: A, [I]: A, [U]: U }, [I]: { [A]: A, [I]: I, [U]: U }, [U]: { [A]: U, [I]: U, [U]: U } }
   const expressions = [
-    "",
-    " ",
-    "()",
-    "!",
-    "&&",
-    "a & b",
-    "a | b",
-    "a b",
-    "(linux",
-    "linux)",
-    "min(a)",
-    "é",
-    "𐐀",
-    "\ud800",
-    "linux\u00a0&&\ufeffunix",
-    "linux\u200b",
-    "true || cgo",
-    "false && cgo",
-    ...atoms,
-    ...atoms.map((x) => `!(${x})`),
-    ...atoms.flatMap((a) =>
-      ["linux", "cgo", "custom"].flatMap((b) => [
-        `${a} && ${b}`,
-        `${a} || ${b}`,
-        `!${a} || ${b} && unix`,
-        `(${a} || ${b}) && !windows`
-      ])
+    ...["", " ", "()", "!", "&&", "a & b", "a | b", "a b", "(linux", "linux)", "min(a)", "é", "𐐀", "\ud800"].map(
+      (text) => [text, unknown]
     ),
-    ...[31, 32, 33].flatMap((n) => ["!".repeat(n) + "linux", "(".repeat(n) + "linux" + ")".repeat(n)]),
-    ...[127, 128, 129].map((n) => Array(n).fill("linux").join(" && ")),
-    "a".repeat(4096),
-    "a".repeat(4097),
-    "é".repeat(2048),
-    "é".repeat(2049)
+    ["linux\u00a0&&\ufeffunix", linux],
+    ["linux\u200b", unknown],
+    ["true || cgo", unknown],
+    ["false && cgo", unknown],
+    ...atoms,
+    ...atoms.map(([text, values]) => [`!(${text})`, values.map((v) => not[v])])
+  ]
+  for (const [a, av] of atoms)
+    for (const [b, bv] of [
+      ["linux", linux],
+      ["cgo", unknown],
+      ["custom", custom]
+    ])
+      expressions.push(
+        [`${a} && ${b}`, av.map((v, i) => and[v][bv[i]])],
+        [`${a} || ${b}`, av.map((v, i) => or[v][bv[i]])],
+        [`!${a} || ${b} && unix`, av.map((v, i) => or[not[v]][and[bv[i]][unix[i]]])],
+        [`(${a} || ${b}) && !windows`, av.map((v, i) => and[or[v][bv[i]]][not[windows[i]]])]
+      )
+  expressions.push(
+    ["!".repeat(31) + "linux", linux.map((v) => not[v])],
+    ["(".repeat(31) + "linux" + ")".repeat(31), linux],
+    ["!".repeat(32) + "linux", linux],
+    ["(".repeat(32) + "linux" + ")".repeat(32), linux],
+    ["!".repeat(33) + "linux", unknown],
+    ["(".repeat(33) + "linux" + ")".repeat(33), unknown],
+    [Array(127).fill("linux").join(" && "), linux],
+    [Array(128).fill("linux").join(" && "), linux],
+    [Array(129).fill("linux").join(" && "), unknown],
+    ["a".repeat(4096), absent],
+    ["a".repeat(4097), unknown],
+    ["é".repeat(2048), unknown],
+    ["é".repeat(2049), unknown]
+  )
+  const osNames = [
+    absent,
+    android,
+    darwin,
+    absent,
+    absent,
+    absent,
+    solaris,
+    darwin,
+    [U, I, I, I, I, I, A],
+    linux,
+    absent,
+    absent,
+    absent,
+    solaris,
+    absent,
+    windows
+  ]
+  const archNames = [
+    windows,
+    amd64,
+    absent,
+    arm64,
+    absent,
+    absent,
+    absent,
+    absent,
+    absent,
+    absent,
+    absent,
+    absent,
+    absent,
+    [U, I, I, I, I, I, A]
   ]
   const names = [
-    "x.go",
-    "x_test.go",
-    ".x.go",
-    "_x.go",
-    "x.GO",
-    "go",
-    "x",
-    "x_.go",
-    "a__amd64.go",
-    "a_linux_amd64.go",
-    "a_android_arm64.go",
-    "a_ios.go",
-    "a_illumos.go",
-    "amd64.go",
-    "x_unknown.go",
-    "𐐀_linux.go",
-    "\ud800_linux.go",
-    ...GO_OS.map((os) => `d/x_${os}.go`),
-    ...GO_ARCH.map((arch) => `d/x_${arch}.go`)
+    ["x.go", active],
+    ["x_test.go", inactive],
+    [".x.go", inactive],
+    ["_x.go", inactive],
+    ["x.GO", inactive],
+    ["go", inactive],
+    ["x", inactive],
+    ["x_.go", active],
+    ["a__amd64.go", amd64],
+    ["a_linux_amd64.go", [U, A, I, I, I, I, I]],
+    ["a_android_arm64.go", android],
+    ["a_ios.go", darwin],
+    ["a_illumos.go", solaris],
+    ["amd64.go", active],
+    ["x_unknown.go", active],
+    ["𐐀_linux.go", linux],
+    ["\ud800_linux.go", linux],
+    ...GO_OS.map((os, i) => [`d/x_${os}.go`, osNames[i]]),
+    ...GO_ARCH.map((arch, i) => [`d/x_${arch}.go`, archNames[i]])
   ]
   const headers = [
-    "package p\n",
-    "\n// normal\npackage p\n",
-    "package\n",
-    "// no package\n",
-    "/* header */\npackage p\n",
-    "// +build linux\npackage p\n",
-    "//\t+buildé\npackage p\n",
-    "// +builder\npackage p\n",
-    "// +buildα\npackage p\n",
-    "//go:build linux\rpackage p\r",
-    "//go:build\npackage p\n",
-    "//go:buildlinux\npackage p\n",
-    "//go:build linux\n//go:build unix\npackage p\n",
-    "//go:build linux\npackage p\n//go:build cgo\n",
-    "//go:build linux\r\npackage p\r\n",
-    "//go:build linux\rcgo\npackage p\n",
-    "\ufeff//go:build linux\u00a0\npackage\u00a0p\n",
-    "//go:build linux\u2028cgo\npackage p\n",
-    ...expressions.slice(0, 70).map((expression) => `//go:build ${expression}\npackage p\n`)
+    ["package p\n", active],
+    ["\n// normal\npackage p\n", active],
+    ["package\n", unknown],
+    ["// no package\n", unknown],
+    ["/* header */\npackage p\n", unknown],
+    ["// +build linux\npackage p\n", unknown],
+    ["//\t+buildé\npackage p\n", unknown],
+    ["// +builder\npackage p\n", active],
+    ["// +buildα\npackage p\n", unknown],
+    ["//go:build linux\rpackage p\r", unknown],
+    ["//go:build\npackage p\n", unknown],
+    ["//go:buildlinux\npackage p\n", active],
+    ["//go:build linux\n//go:build unix\npackage p\n", unknown],
+    ["//go:build linux\npackage p\n//go:build cgo\n", linux],
+    ["//go:build linux\r\npackage p\r\n", linux],
+    ["//go:build linux\rcgo\npackage p\n", active],
+    ["\ufeff//go:build linux\u00a0\npackage\u00a0p\n", linux],
+    ["//go:build linux\u2028cgo\npackage p\n", active],
+    ...expressions.slice(0, 70).map(([expression, values]) => [`//go:build ${expression}\npackage p\n`, values])
   ]
-  for (const snapshot of snapshots) {
+  const fileVectors = [
+    ["root.go", active],
+    ["root_linux.go", linux],
+    ["root_windows.go", windows],
+    ["root_test.go", inactive]
+  ]
+  for (const [index, snapshot] of snapshots.entries()) {
     const wire = wireSnapshot(snapshot)
-    for (const expression of expressions) {
+    for (const [expression, values] of expressions) {
       assert.equal(
         membership(core.expression(raw(expression), wire)),
-        evaluateGoBuildExpression(expression, snapshot),
+        values[index],
         `expression ${JSON.stringify(expression.slice(0, 100))} ${snapshot?.goos}`
       )
       expressionCases++
     }
-    for (const path of names) {
-      assert.equal(
-        membership(core.filename(basename(path), wire)),
-        goFilenameMembership(path, snapshot),
-        `filename ${path}`
-      )
+    for (const [path, values] of names) {
+      assert.equal(membership(core.filename(basename(path), wire)), values[index], `filename ${path} ${snapshot?.goos}`)
       filenameCases++
     }
-    for (const path of ["root.go", "root_linux.go", "root_windows.go", "root_test.go"])
-      for (const source of headers) {
+    for (const [path, filenames] of fileVectors)
+      for (const [source, values] of headers) {
+        const fileOutcomes = { [A]: values[index], [I]: I, [U]: U }
         assert.equal(
           membership(core.file(basename(path), raw(source), wire)),
-          goFileMembership(path, source, snapshot),
+          fileOutcomes[filenames[index]],
           `file ${path} ${JSON.stringify(source)} ${snapshot?.goos}`
         )
         fileCases++
       }
+  }
+  // Meaningful cases formerly exercised only by the deleted TS-only unit API.
+  const tags = ["paid", "demo", "paid"]
+  const unitSnapshot = core.snapshot("linux", "arm64", list(tags.map(raw)))
+  tags.push("after")
+  assert.equal(unitSnapshot.$, "SnapshotValid")
+  assert.deepEqual(unlist(unitSnapshot.snapshot.tags), ["demo", "paid"])
+  configurationCases++
+  const unitWire = { $: "Some", value: unitSnapshot.snapshot }
+  for (const [text, expected] of [
+    ["paid && linux && arm64", A],
+    ["darwin || linux && !free", A],
+    ["(darwin || linux) && free", I],
+    ["!paid", I],
+    ["!!paid", A],
+    ["!goexperiment.rangefunc", U],
+    ["amd64.v3", U],
+    ["!".repeat(40) + "linux", U]
+  ]) {
+    assert.equal(membership(core.expression(raw(text), unitWire)), expected, text)
+    expressionCases++
+  }
+  assert.equal(membership(core.filename("model_linux_arm64.go", unitWire)), A)
+  filenameCases++
+  assert.equal(membership(core.file("model.go", raw("//go:build paid\n\npackage p\n"), unitWire)), A)
+  fileCases++
+  for (const [target, alias] of [
+    ["android", "linux"],
+    ["ios", "darwin"],
+    ["illumos", "solaris"]
+  ]) {
+    const aliasSnapshot = core.snapshot(target, "arm64", list([]))
+    assert.equal(aliasSnapshot.$, "SnapshotValid")
+    configurationCases++
+    const wire = { $: "Some", value: aliasSnapshot.snapshot }
+    assert.equal(membership(core.expression(raw(`${target} && ${alias} && unix`), wire)), A)
+    expressionCases++
+    assert.equal(membership(core.filename(`model_${alias}.go`, wire)), A)
+    filenameCases++
   }
   console.log(
     JSON.stringify({
@@ -265,7 +383,7 @@ try {
       filenameCases,
       fileCases,
       scope:
-        "whole native go-build-context functions, mechanical character/basename/SHA observations; no whole Go session or universal-law claim"
+        "actual Bend GoBuildContext against authored target/tag/filename/header facts and fixed logical outcome tables; native character/basename observations; full configured session and Canonical consumers qualified separately"
     })
   )
 } finally {

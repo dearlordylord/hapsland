@@ -72,10 +72,6 @@
       "types": "./dist/direct-event/languages/bend/lexical.d.ts",
       "default": "./dist/direct-event/languages/bend/lexical.js"
     },
-    "./direct-event/languages/go-build-context": {
-      "types": "./dist/direct-event/languages/go-build-context.d.ts",
-      "default": "./dist/direct-event/languages/go-build-context.js"
-    },
     "./direct-event/languages/go": {
       "types": "./dist/direct-event/languages/go.d.ts",
       "default": "./dist/direct-event/languages/go.js"
