@@ -1,12 +1,12 @@
 import { createGraphMachine } from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm, readdir, readlink } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
@@ -81,7 +81,7 @@ try {
     captured = await Effect.runPromise(captureStable(root, selection, {}, rootIdentity))
   assert.equal(captured.status, "captured")
   const c = (name, fields = {}) => ({ $: "../Canonical." + name, ...fields }),
-    scope = { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n }
+    scope = { $: "Scope", partition: 1, lifetime: 1, round: 1, preparation: 2 }
   const initial = () => {
     const run = Effect.runSync,
       limits = { globalItems: 100, globalBytes: 100000000, partitionItems: 16, partitionBytes: 100000000 }
@@ -134,6 +134,32 @@ try {
       }
     }
   }
+  // Authored tree expectation for this fixture, not a second Graph execution.
+  const expectedUnit = (name) => {
+    const source = name === "Root" ? "class Root:\n first: Foo" : "class Second:\n second: Foo"
+    const artifact = (path, name, source) => ({
+      path,
+      id: `${path}:class:${name}`,
+      kind: "class",
+      name,
+      source,
+      sourceHash: createHash("sha256").update(source).digest("hex")
+    })
+    return {
+      root: {
+        artifact: artifact("root.py", name, source),
+        references: [
+          {
+            kind: "expanded",
+            site: { symbol: "Foo" },
+            node: { artifact: artifact("leaf.py", "Foo", "class Foo:\n value: str"), references: [] }
+          }
+        ]
+      },
+      // The expanded artifact carries leaf.py and its hash; no extra binding-only file.
+      sourceDependencies: []
+    }
+  }
   let cases = 0,
     totalRequests = 0
   for (const mode of [
@@ -179,7 +205,7 @@ try {
     if (mode === "external-abort") hooks.beforeProvider = () => controller.abort()
     if (mode === "cancel-before-install")
       hooks.beforeInstall = ({ invocation, generation, driver }) => {
-        if (generation === 0n || triggered) return
+        if (generation === 0 || triggered) return
         triggered = true
         driver.cancel(invocation)
       }
@@ -258,18 +284,12 @@ try {
         TypeError
       )
     } else if (mode === "two-roots" || mode === "between-roots") {
-      const expected = await Effect.runPromise(
-        resolveGraphUnit("root.py", captured.capture, "Root", { ...context, captureCache: new Map() })
-      )
-      assert.deepEqual(await resolver("root.py", captured.capture, "Root", context), expected)
+      assert.deepEqual(await resolver("root.py", captured.capture, "Root", context), expectedUnit("Root"))
       if (mode === "between-roots") {
-        driver.canonicalEvent(c("InterruptPreparation", { partition: 1n, lifetime: 1n, round: 1n, operation: 2n }))
+        driver.canonicalEvent(c("InterruptPreparation", { partition: 1, lifetime: 1, round: 1, operation: 2 }))
         await assert.rejects(resolver("root.py", captured.capture, "Second", context), /NotPreparing/)
       } else {
-        const second = await Effect.runPromise(
-          resolveGraphUnit("root.py", captured.capture, "Second", { ...context, captureCache: new Map() })
-        )
-        assert.deepEqual(await resolver("root.py", captured.capture, "Second", context), second)
+        assert.deepEqual(await resolver("root.py", captured.capture, "Second", context), expectedUnit("Second"))
         const completed = Effect.runSync(
           connection.bridge.native((draft, records) => [
             completePreparation(
