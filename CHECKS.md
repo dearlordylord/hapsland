@@ -29,7 +29,9 @@ establish the same goal-relevant behavior; retain real boundaries when needed.
 Choose local checks by changed behavior and physical boundaries using the
 [testing matrix](docs/testing-matrix.md#which-gate-to-run). For TypeScript changes,
 run `npm run check:fast` and focused tests for the changed owners and affected
-consumers. Run affected integration checks when transport, process lifetime,
+consumers. Unit fixtures that use private Bend cores require a matching workspace
+build; the source resolver loads recipe-declared private outputs from `dist`.
+Run affected integration checks when transport, process lifetime,
 installation, packaging, or cross-component wiring changes.
 For delegated tasks and jointly accepted batches, follow
 [task and batch acceptance](docs/testing-matrix.md#task-and-batch-acceptance)
