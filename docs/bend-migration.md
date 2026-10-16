@@ -186,13 +186,14 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- `34b2e70b` execution/build at 2026-10-16 20:53/54 UTC qualify **0.6137×/0.8453×**:
-  17 frozen pairs each; all build samples23/46 cached; unchanged sources/artifacts/environments.
-  Ratios compare means. TS/Bend median[range], seconds:
-  execution .1767[.0804,.8211]/.1205[.0661,.3616];
-  build4.162[3.518,6.933]/3.423[2.982,6.723];
-  Preparation .3537[.2330,.5698]/.4717[.3907,.5776].
-  Build uses ordinary scheduling: gate verdicts, not causal speedup claims. Cadence slipped32.5min earlier,31.3min latest.
+- Receipt candidate (parent `44fb128d`), 2026-10-16 21:35 UTC: execution/build
+  qualify **0.8581×/0.8376×**; 17 frozen pairs each, build23/46 cached, all inputs
+  unchanged. Mean ratios, not causal speedup claims. TS/Bend median[range], seconds:
+  execution .0827[.0627,.1616]/.0603[.0468,.1732];
+  build4.133[3.712,6.540]/3.473[3.214,5.188]. Last Preparation at34b2e70b:
+  .3537[.2330,.5698]/.4717[.3907,.5776]. Cadence slips32.5,31.3,42.1min.
+  Baseline prepare refused double serialization; preserved its serialized producer
+  environment, then prepare/warm23/46 passed before measurement.
   First workspace preparation timed out60s before measurement; registered writers stopped,
   custody reconciled,180s prepare and23/46 warm verification passed before retry.
   First 19:23 build was not comparable: candidate cache15/46 on sample0; ratio1.1535, warm gate failed. Both prepared23/46 before rerun.
@@ -203,7 +204,6 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
   Prior 21:01 execution failed 1.1571; grouped preflight whole at 23:20 UTC
   failed parity at 1.4448 (equal outputs, 17 pairs, seven fixtures/five languages).
   Later passes do not erase either failure.
-  Unchanged capture, rope, shared-extraction, empty-root and connected preflight trials are closed.
 - Attachment factorization and renderer/compiler/rope performance trials are
   closed; renaming does not reset them. Full attachment now qualifies under its
   owner-approved 20s deadline (11.35s); other roots retain 10s.
@@ -236,7 +236,7 @@ remain trusted. No Darwin, live-provider, browser or cold-IPC qualification is c
 Astra agreed collection → interruptible freshness → uninterruptible finalization
 using Canonical-issued handoff receipts, not a paused child or another ledger.
 Existing Collection/Handoff/Delivery state owns advice, leases and finish slots.
-Native code retains capabilities, IO, capture/encoding and atomic resource receipts.
+Host retains native capabilities, IO and capture/encoding.
 Preserve both canWrite observations, local/IPC differences and all async boundaries.
 
 Concrete obstacles, in order:
@@ -244,8 +244,9 @@ Concrete obstacles, in order:
    six protocol scenarios, public120/5 files, fast41 and23 receipts PASS. A callback
    receiver regression failed before its wrapper fix and passed after. Collection passes
    still require transfer; this does not accept the whole unit.
-2. Issue/consume one-use receipt bound to invocation, request/recipient/round, token
-   and selected ownership; preserve cancellation/error prefixes and token/cache cleanup.
+2. Receipt transitions/ABI/resident events and1398 owner assertions PASS; generic
+   terminal cannot bypass handoff. Native transfer, disconnect cleanup and universal
+   laws remain open; no production delivery caller is connected yet.
 3. Connect prepare/finalize, reuse evaluated-input freshness, delete workflow/policy
    loops. Prove whole ordered trace, reply fencing and lease/finish accounting using
    existing atomic primitives.

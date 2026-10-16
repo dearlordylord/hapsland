@@ -80,6 +80,77 @@ try {
   }
   let assertions = 0
   {
+    const context = {
+      $: "DeliveryContext",
+      request: 41,
+      recipient: 7,
+      partition: 1,
+      lifetime: 1,
+      round: { $: "Some", value: 1 },
+      local_delivery: false
+    }
+    const selection = {
+      $: "DeliverySelection",
+      token: 93,
+      advice: { $: "Con", head: 12, tail: { $: "Nil" } },
+      notices: { $: "Nil" }
+    }
+    const launched = m.resident_event(fresh(), { $: "LaunchCollectionEvent", context, input_handle: 50 })
+    let state = advanced(launched)
+    const invocation = list(launched.actions)[0].invocation
+    reject(m.terminal(state, invocation, 0, 60), "WrongPhase")
+    const completed = m.resident_event(state, {
+      $: "CompleteDeliveryEvent",
+      invocation,
+      generation: 0,
+      result_handle: 60,
+      selection
+    })
+    state = advanced(completed)
+    const actions = list(completed.actions)
+    assert.deepEqual(
+      actions.map((action) => action.$),
+      ["IssueDeliveryHandoff"]
+    )
+    const receipt = actions[0].receipt
+    assert.deepEqual(receipt.context, context)
+    assert.deepEqual(receipt.permission, { $: "PrepareDeliveryIssued", selection })
+    reject(m.install(state, receipt.invocation, 0, 70, 1), "WrongGeneration")
+    reject(m.terminal(state, receipt.invocation, 0, 70), "WrongPhase")
+    for (const changed of [
+      { ...receipt, origin: receipt.origin + 1 },
+      { ...receipt, generation: 1 },
+      { ...receipt, input_handle: 61 },
+      ...["request", "recipient", "partition", "lifetime"].map((field) => ({
+        ...receipt,
+        context: { ...context, [field]: context[field] + 1 }
+      })),
+      { ...receipt, context: { ...context, local_delivery: true } },
+      { ...receipt, context: { ...context, round: { $: "None" } } },
+      { ...receipt, permission: { $: "PrepareDeliveryIssued", selection: { ...selection, token: 94 } } }
+    ])
+      reject(m.claim_delivery(state, changed), "WrongPhase")
+    const claimed = m.resident_event(state, { $: "ClaimDeliveryEvent", receipt })
+    state = advanced(claimed)
+    assert.deepEqual(list(claimed.actions), [{ $: "Launch", invocation: receipt.invocation, input_handle: 60 }])
+    reject(m.claim_delivery(state, receipt), "WrongPhase")
+    const prepared = m.complete_delivery(state, receipt.invocation, 0, 80, { $: "NoDeliverySelection" })
+    state = advanced(prepared)
+    const finalReceipt = list(prepared.actions)[0].receipt
+    assert.deepEqual(finalReceipt.permission, { $: "FinalizeDeliveryIssued", selection })
+    const cancelled = advanced(m.cancel(state, finalReceipt.invocation))
+    reject(m.claim_delivery(cancelled, finalReceipt), "WrongPhase")
+    state = advanced(m.claim_delivery(state, finalReceipt))
+    const finalized = m.complete_delivery(state, finalReceipt.invocation, 0, 90, selection)
+    state = advanced(finalized)
+    assert.deepEqual(
+      list(finalized.actions).map((action) => action.$),
+      ["AcceptResult"]
+    )
+    reject(m.complete_delivery(state, finalReceipt.invocation, 0, 91, selection), "WrongPhase")
+    assertions++
+  }
+  {
     const before = advanced(m.launch(fresh(), scope, 50))
     // active_reader_exact owns queries over immutable Bend children. A new
     // committed state must not change the reader for its predecessor.

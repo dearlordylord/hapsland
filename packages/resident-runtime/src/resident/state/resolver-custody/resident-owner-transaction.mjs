@@ -496,6 +496,19 @@ export function createResidentOwnerTransaction({
      * @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchFreshnessEvent" }>}
      */
     launch_freshness: (input_handle) => ({ $: "LaunchFreshnessEvent", input_handle }),
+    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliveryContext} context @param {number} input_handle @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "LaunchCollectionEvent"}>} */
+    launch_collection: (context, input_handle) => ({ $: "LaunchCollectionEvent", context, input_handle }),
+    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliveryReceipt} receipt @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "ClaimDeliveryEvent"}>} */
+    claim_delivery: (receipt) => ({ $: "ClaimDeliveryEvent", receipt }),
+    /** @param {number} invocation @param {number} generation @param {number} result_handle @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliverySelection} selection @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "CompleteDeliveryEvent"}>} */
+    complete_delivery: (invocation, generation, result_handle, selection) => ({
+      $: "CompleteDeliveryEvent",
+      invocation,
+      generation,
+      result_handle,
+      selection
+    }),
+
     /**
      * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourceEvent" }> ["scope"]} scope
      * @param {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, { $: "LaunchSourceEvent" }> ["input_handle"]} input_handle

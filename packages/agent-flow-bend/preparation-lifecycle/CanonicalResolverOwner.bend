@@ -28,7 +28,27 @@ type AfterSourcePermission is Data:
   AfterRecoveryRelease{}
   AfterRecoveryRuntime{}
   AfterRecoveryActivity{}
+# Delivery request/selection bindings are immutable custody metadata, not a
+# second advice or lease ledger. Current eligibility remains in Canonical.
+type DeliveryContext is Data:
+  DeliveryContext{request: Nat, recipient: Nat, partition: Nat, lifetime: Nat,
+    round: Maybe<&2, Nat>, local_delivery: Bool}
+type DeliverySelection is Data:
+  NoDeliverySelection{}
+  DeliverySelection{token: Nat, advice: List<&2, Nat>, notices: List<&2, Nat>}
+type DeliveryPermission is Data:
+  CollectDelivery{}
+  PrepareDeliveryIssued{selection: DeliverySelection}
+  PrepareDelivery{selection: DeliverySelection}
+  FinalizeDeliveryIssued{selection: DeliverySelection}
+  FinalizeDelivery{selection: DeliverySelection}
+type DeliveryReceipt is Data:
+  DeliveryReceipt{invocation: Nat, generation: Nat, origin: Nat,
+    context: DeliveryContext, permission: DeliveryPermission, input_handle: Nat}
+
 type Scope is Data:
+  DeliveryScope{operation: Nat, origin: Nat, context: DeliveryContext,
+    permission: DeliveryPermission, input_handle: Nat}
   SettingsScope{operation: Nat}
   FreshnessScope{operation: Nat}
   Scope{partition: Nat, lifetime: Nat, round: Nat, preparation: Nat}
@@ -75,6 +95,7 @@ type Child is Data:
 type State is Data:
   State{canonical: C.State, next_invocation: Nat, next_lease: Nat, children: List<&2, Child>}
 type Action is Data:
+  IssueDeliveryHandoff{invocation: Nat, receipt: DeliveryReceipt}
   Launch{invocation: Nat, input_handle: Nat}
   LaunchPostPreparation{
     invocation: Nat,
@@ -123,6 +144,7 @@ def preparing_live(
 
 def resolver_scope(scope: Scope) -> Scope:
   match scope:
+    case DeliveryScope{_, _, _, _, _}: scope
     case SettingsScope{operation}: SettingsScope{operation}
     case FreshnessScope{operation}: FreshnessScope{operation}
     case Scope{partition, lifetime, round, preparation}: Scope{
@@ -207,6 +229,7 @@ def source_scope_live(
 
 def live(+canonical: C.State, scope: Scope) -> Bool:
   match canonical scope:
+    case _ DeliveryScope{_, _, _, _, _}: False{}
     case _ SettingsScope{_}: False{}
     case _ FreshnessScope{_}: False{}
     case _ AdviceTailScope{_, _, _, _, _, _}: True{}
@@ -387,8 +410,26 @@ def freshness_current(
       )
     case _: False{}
 
+def delivery_current(+operation: Nat, +invocation: Nat, generation: Nat,
+    found: Maybe<&2, Child>) -> Bool:
+  match found:
+    case Some{Child{DeliveryScope{actual, _, _, _, _}, current, epoch, _, phase, _, _, None{}}}:
+      Bool.and(
+        Nat.is_eq(operation, invocation),
+        Bool.and(
+          Nat.is_eq(operation, actual),
+          Bool.and(
+            Nat.is_eq(invocation, current),
+            Bool.and(Nat.is_eq(generation, epoch), active(phase))
+          )
+        )
+      )
+    case _: False{}
+
 def child_scope_live(+canonical: C.State, +children: List<&2, Child>, child: Child) -> Bool:
   match child:
+    case Child{DeliveryScope{operation, _, _, _, _}, +invocation, generation, _, _, _, _, _}:
+      delivery_current(operation, invocation, generation, find(invocation, children))
     case Child{SettingsScope{operation}, +invocation, generation, _, _, _, _, _}:
       settings_current(operation, invocation, generation, find(invocation, children))
     case Child{FreshnessScope{operation}, +invocation, generation, _, _, _, _, _}:
@@ -702,6 +743,18 @@ def launch_freshness(+state: State, input_handle: Nat) -> Step:
       launched(settings_next_free(next_invocation, find(next_invocation, children)), state,
         FreshnessScope{next_invocation}, input_handle)
 
+# This entry issues the operation itself. A manufactured DeliveryScope cannot
+# acquire authority through the ordinary launch entry.
+def launch_collection(+state: State, context: DeliveryContext, +input_handle: Nat) -> Step:
+  match state:
+    case State{_, +next_invocation, _, +children}:
+      launched(
+        settings_next_free(next_invocation, find(next_invocation, children)),
+        state,
+        DeliveryScope{next_invocation, next_invocation, context, CollectDelivery{}, input_handle},
+        input_handle
+      )
+
 def launch(+state: State, +scope: Scope, input_handle: Nat) -> Step:
   match scope:
     case Scope{_, _, _, _}: launched(
@@ -905,8 +958,16 @@ def install_matches(child: Child, generation: Nat) -> Bool:
     )
     case _: False{}
 
+def delivery_installable(permission: DeliveryPermission) -> Bool:
+  match permission:
+    case CollectDelivery{}: True{}
+    case PrepareDelivery{_}: True{}
+    case FinalizeDelivery{_}: True{}
+    case _: False{}
+
 def ordinary_scope(scope: Scope) -> Bool:
   match scope:
+    case DeliveryScope{_, _, _, permission, _}: delivery_installable(permission)
     case AdviceTailScope{_, _, _, _, _, _}: False{}
     case SourceScope{_, _, _, _, _}: False{}
     case AfterSourceScope{_, _, _, _, _, _, _}: False{}
@@ -1460,6 +1521,7 @@ def terminal_source_failed(
 
 def terminal_scope(scope: Scope) -> Bool:
   match scope:
+    case DeliveryScope{_, _, _, _, _}: False{}
     case PreparationScope{_, _, _, _}: False{}
     case SourceScope{_, _, _, _, _}: False{}
     case AdviceTailScope{_, _, _, _, _, TailActive{}}: True{}
@@ -1741,6 +1803,225 @@ def terminal_preparation(
     find(invocation, state_children(state)),
     generation,
     result_handle
+  )
+
+def delivery_nats_equal(left: List<&2, Nat>, right: List<&2, Nat>) -> Bool:
+  match left right:
+    case Nil{} Nil{}: True{}
+    case x <> xs y <> ys: Bool.and(Nat.is_eq(x, y), delivery_nats_equal(xs, ys))
+    case _ _: False{}
+
+def delivery_round_equal(left: Maybe<&2, Nat>, right: Maybe<&2, Nat>) -> Bool:
+  match left right:
+    case None{} None{}: True{}
+    case Some{x} Some{y}: Nat.is_eq(x, y)
+    case _ _: False{}
+
+def delivery_bool_equal(left: Bool, right: Bool) -> Bool:
+  match left right:
+    case True{} True{}: True{}
+    case False{} False{}: True{}
+    case _ _: False{}
+
+def delivery_context_equal(left: DeliveryContext, right: DeliveryContext) -> Bool:
+  match left right:
+    case DeliveryContext{a, b, c, d, e, f} DeliveryContext{g, h, i, j, k, l}:
+      Bool.and(
+        Nat.is_eq(a, g),
+        Bool.and(
+          Nat.is_eq(b, h),
+          Bool.and(
+            Nat.is_eq(c, i),
+            Bool.and(
+              Nat.is_eq(d, j),
+              Bool.and(delivery_round_equal(e, k), delivery_bool_equal(f, l))
+            )
+          )
+        )
+      )
+
+def delivery_selection_equal(left: DeliverySelection, right: DeliverySelection) -> Bool:
+  match left right:
+    case NoDeliverySelection{} NoDeliverySelection{}: True{}
+    case DeliverySelection{a, b, c} DeliverySelection{d, e, f}:
+      Bool.and(Nat.is_eq(a, d), Bool.and(delivery_nats_equal(b, e), delivery_nats_equal(c, f)))
+    case _ _: False{}
+
+def delivery_permission_equal(left: DeliveryPermission, right: DeliveryPermission) -> Bool:
+  match left right:
+    case CollectDelivery{} CollectDelivery{}: True{}
+    case PrepareDeliveryIssued{a} PrepareDeliveryIssued{b}: delivery_selection_equal(a, b)
+    case PrepareDelivery{a} PrepareDelivery{b}: delivery_selection_equal(a, b)
+    case FinalizeDeliveryIssued{a} FinalizeDeliveryIssued{b}: delivery_selection_equal(a, b)
+    case FinalizeDelivery{a} FinalizeDelivery{b}: delivery_selection_equal(a, b)
+    case _ _: False{}
+
+def delivery_claim_permission(permission: DeliveryPermission) -> Maybe<&2, DeliveryPermission>:
+  match permission:
+    case PrepareDeliveryIssued{selection}: Some{PrepareDelivery{selection}}
+    case FinalizeDeliveryIssued{selection}: Some{FinalizeDelivery{selection}}
+    case _: None{}
+
+def delivery_receipt_matches(child: Child, receipt: DeliveryReceipt) -> Bool:
+  match child receipt:
+    case Child{DeliveryScope{operation, origin, context, permission, input}, invocation, generation,
+        _, ChildInstalling{}, None{}, None{}, None{}}
+        DeliveryReceipt{
+          +actual,
+          epoch,
+          expected_origin,
+          expected_context,
+          expected_permission,
+          expected_input
+        }:
+      Bool.and(
+        Nat.is_eq(operation, actual),
+        Bool.and(
+          Nat.is_eq(invocation, actual),
+          Bool.and(
+            Nat.is_eq(generation, epoch),
+            Bool.and(
+              Nat.is_eq(origin, expected_origin),
+              Bool.and(
+                delivery_context_equal(context, expected_context),
+                Bool.and(
+                  delivery_permission_equal(permission, expected_permission),
+                  Nat.is_eq(input, expected_input)
+                )
+              )
+            )
+          )
+        )
+      )
+    case _ _: False{}
+
+def claim_delivery_permission(
+  state: State,
+  child: Child,
+  permission: Maybe<&2, DeliveryPermission>
+) -> Step:
+  match child permission:
+    case Child{DeliveryScope{operation, origin, context, _, +input}, +invocation, generation,
+        _, _, _, _, parent} Some{permission}:
+      updated(state, ChildUpdate{
+        Child{DeliveryScope{operation, origin, context, permission, input}, invocation, generation,
+          0n, ChildInstalling{}, None{}, None{}, parent},
+        Launch{invocation, input} <> Nil{}})
+    case _ _: Rejected{state, WrongPhase{}}
+
+def claim_delivery_allowed(valid: Bool, state: State, +child: Child) -> Step:
+  match valid child:
+    case True{} Child{DeliveryScope{_, _, _, permission, _}, _, _, _, _, _, _, _}:
+      claim_delivery_permission(state, child, delivery_claim_permission(permission))
+    case _ _: Rejected{state, WrongPhase{}}
+
+def claim_delivery_found(state: State, found: Maybe<&2, Child>, +receipt: DeliveryReceipt) -> Step:
+  match found:
+    case None{}: Rejected{state, UnknownInvocation{}}
+    case Some{+child}: claim_delivery_allowed(
+      delivery_receipt_matches(child, receipt),
+      state,
+      child
+    )
+
+def claim_delivery(+state: State, +receipt: DeliveryReceipt) -> Step:
+  match receipt:
+    case DeliveryReceipt{invocation, _, _, _, _, _}:
+      claim_delivery_found(state, find(invocation, state_children(state)), receipt)
+
+# Acceptance creates a pending next child and its immutable receipt in one
+# publication. It does not launch freshness across the caller/transport gap.
+def issue_delivery(
+  state: State,
+  child: Child,
+  +result_handle: Nat,
+  +permission: DeliveryPermission
+) -> Step:
+  match state child:
+    case State{canonical, +next_invocation, next_lease, children}
+        Child{DeliveryScope{_, +origin, +context, +old_permission, +input}, +invocation,
+          generation, handle, _, _, None{}, None{}}:
+      Advanced{
+        State{
+          canonical,
+          Nat.add(next_invocation, 1n),
+          next_lease,
+          Child{
+            DeliveryScope{next_invocation, origin, context, permission, result_handle},
+            next_invocation,
+            0n,
+            0n,
+            ChildInstalling{},
+            None{},
+            None{},
+            None{}
+          } <> replace(
+            invocation,
+            children,
+            Child{
+              DeliveryScope{invocation, origin, context, old_permission, input},
+              invocation,
+              generation,
+              0n,
+              ChildAccepted{},
+              None{},
+              None{},
+              None{}
+            }
+          )
+        },
+        Nil{},
+        IssueDeliveryHandoff{
+          invocation,
+          DeliveryReceipt{next_invocation, 0n, origin, context, permission, result_handle}
+        } <> retire(invocation, handle)
+      }
+    case _ _: Rejected{state, WrongPhase{}}
+
+def complete_delivery_permission(
+  state: State,
+  +child: Child,
+  result_handle: Nat,
+  selection: DeliverySelection
+) -> Step:
+  match child:
+    case Child{DeliveryScope{_, _, _, CollectDelivery{}, _}, _, _, _, _, _, _, _}:
+      issue_delivery(state, child, result_handle, PrepareDeliveryIssued{selection})
+    case Child{DeliveryScope{_, _, _, PrepareDelivery{original}, _}, _, _, _, _, _, _, _}:
+      issue_delivery(state, child, result_handle, FinalizeDeliveryIssued{original})
+    case Child{DeliveryScope{_, _, _, FinalizeDelivery{_}, _}, _, _, _, _, _, _, _}:
+      terminal_allowed(True{}, state, child, result_handle)
+    case _: Rejected{state, WrongPhase{}}
+
+def complete_delivery_allowed(valid: Bool, state: State, child: Child, result_handle: Nat,
+    selection: DeliverySelection) -> Step:
+  match valid:
+    case True{}: complete_delivery_permission(state, child, result_handle, selection)
+    case False{}: Rejected{state, WrongPhase{}}
+
+def complete_delivery_found(+state: State, found: Maybe<&2, Child>, generation: Nat,
+    result_handle: Nat, selection: DeliverySelection) -> Step:
+  match found:
+    case None{}: Rejected{state, UnknownInvocation{}}
+    case Some{+child}: complete_delivery_allowed(
+      Bool.and(
+        child_live(state_canonical(state), state_children(state), child),
+        install_matches(child, generation)
+      ),
+      state,
+      child,
+      result_handle,
+      selection
+    )
+
+def complete_delivery(+state: State, invocation: Nat, generation: Nat, result_handle: Nat,
+    selection: DeliverySelection) -> Step:
+  complete_delivery_found(
+    state,
+    find(invocation, state_children(state)),
+    generation,
+    result_handle,
+    selection
   )
 
 # Advice-tail lifetime is issued only at a checked PendingFinding birth. It
@@ -2110,6 +2391,14 @@ type ResidentEvent is Data:
   CanonicalEvent{event: C.CanonicalEvent}
   LaunchSettingsEvent{input_handle: Nat}
   LaunchFreshnessEvent{input_handle: Nat}
+  LaunchCollectionEvent{context: DeliveryContext, input_handle: Nat}
+  ClaimDeliveryEvent{receipt: DeliveryReceipt}
+  CompleteDeliveryEvent{
+    invocation: Nat,
+    generation: Nat,
+    result_handle: Nat,
+    selection: DeliverySelection
+  }
   LaunchEvent{scope: Scope, input_handle: Nat}
   LaunchSourceEvent{scope: Scope, input_handle: Nat}
   LaunchSourcePreparationEvent{parent: Parent, scope: Scope, input_handle: Nat}
@@ -2184,6 +2473,14 @@ def resident_event(state: State, event: ResidentEvent) -> Step:
     case CanonicalEvent{event}: canonical_event(state, event)
     case LaunchSettingsEvent{input_handle}: launch_settings(state, input_handle)
     case LaunchFreshnessEvent{input_handle}: launch_freshness(state, input_handle)
+    case LaunchCollectionEvent{context, input_handle}: launch_collection(
+      state,
+      context,
+      input_handle
+    )
+    case ClaimDeliveryEvent{receipt}: claim_delivery(state, receipt)
+    case CompleteDeliveryEvent{invocation, generation, result_handle, selection}:
+      complete_delivery(state, invocation, generation, result_handle, selection)
     case LaunchEvent{scope, input_handle}: launch(state, scope, input_handle)
     case LaunchSourceEvent{scope, input_handle}: launch_source(state, scope, input_handle)
     case LaunchSourcePreparationEvent{parent, scope, input_handle}: launch_source_preparation(

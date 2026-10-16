@@ -11,7 +11,20 @@ export type State =
 export type Child =
   | { readonly $: "Child"; readonly scope: Scope; readonly invocation: number; readonly generation: number; readonly handle: number; readonly phase: Phase; readonly request: Maybe<number>; readonly lease: Maybe<Lease>; readonly parent: Maybe<Parent> }
 
+export type DeliveryContext = { readonly $: "DeliveryContext"; readonly request: number; readonly recipient: number; readonly partition: number; readonly lifetime: number; readonly round: Maybe<number>; readonly local_delivery: boolean }
+export type DeliverySelection =
+  | { readonly $: "NoDeliverySelection" }
+  | { readonly $: "DeliverySelection"; readonly token: number; readonly advice: List<number>; readonly notices: List<number> }
+export type DeliveryPermission =
+  | { readonly $: "CollectDelivery" }
+  | { readonly $: "PrepareDeliveryIssued"; readonly selection: DeliverySelection }
+  | { readonly $: "PrepareDelivery"; readonly selection: DeliverySelection }
+  | { readonly $: "FinalizeDeliveryIssued"; readonly selection: DeliverySelection }
+  | { readonly $: "FinalizeDelivery"; readonly selection: DeliverySelection }
+export type DeliveryReceipt = { readonly $: "DeliveryReceipt"; readonly invocation: number; readonly generation: number; readonly origin: number; readonly context: DeliveryContext; readonly permission: DeliveryPermission; readonly input_handle: number }
+
 export type Scope =
+  | { readonly $: "DeliveryScope"; readonly operation: number; readonly origin: number; readonly context: DeliveryContext; readonly permission: DeliveryPermission; readonly input_handle: number }
   | { readonly $: "SettingsScope"; readonly operation: number }
   | { readonly $: "FreshnessScope"; readonly operation: number }
   | { readonly $: "Scope"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly preparation: number }
@@ -70,6 +83,7 @@ export type Step =
   | { readonly $: "Rejected"; readonly state: State; readonly refusal: Refusal }
 
 export type Action =
+  | { readonly $: "IssueDeliveryHandoff"; readonly invocation: number; readonly receipt: DeliveryReceipt }
   | { readonly $: "Launch"; readonly invocation: number; readonly input_handle: number }
   | { readonly $: "LaunchPostPreparation"; readonly invocation: number; readonly preparation_invocation: number; readonly result_handle: number; readonly scope: Scope }
   | { readonly $: "LaunchAdviceTail"; readonly invocation: number; readonly origin: number; readonly operation: number; readonly input_handle: number }
@@ -89,6 +103,9 @@ export type Refusal =
   | { readonly $: "CanonicalRejected"; readonly reason: OwnerTransport<Canonical_Reason> }
 
 export type ResidentEvent =
+  | { readonly $: "LaunchCollectionEvent"; readonly context: DeliveryContext; readonly input_handle: number }
+  | { readonly $: "ClaimDeliveryEvent"; readonly receipt: DeliveryReceipt }
+  | { readonly $: "CompleteDeliveryEvent"; readonly invocation: number; readonly generation: number; readonly result_handle: number; readonly selection: DeliverySelection }
   | { readonly $: "CanonicalEvent"; readonly event: OwnerTransport<Canonical_CanonicalEvent> }
   | { readonly $: "LaunchSettingsEvent"; readonly input_handle: number }
   | { readonly $: "LaunchFreshnessEvent"; readonly input_handle: number }
@@ -134,6 +151,9 @@ export interface CanonicalResolverOwner {
   canonical_event(state: State, event: OwnerTransport<Canonical_CanonicalEvent>): Step
   launch_settings(state: State, input_handle: number): Step
   launch_freshness(state: State, input_handle: number): Step
+  launch_collection(state: State, context: DeliveryContext, input_handle: number): Step
+  claim_delivery(state: State, receipt: DeliveryReceipt): Step
+  complete_delivery(state: State, invocation: number, generation: number, result_handle: number, selection: DeliverySelection): Step
   launch(state: State, scope: Scope, input_handle: number): Step
   launch_preparation(state: State, scope: Scope, input_handle: number): Step
   launch_source(state: State, scope: Scope, input_handle: number): Step
