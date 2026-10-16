@@ -23,10 +23,17 @@ def allocation_valid(machine: Core.Machine) -> Bool:
 def successor(+n: Nat) -> {(n + 1n : Nat) == 1n+n : Nat}:
   N.add_comm(n, 1n)
 
-def enter_node_valid(+machine: Core.Machine, +declaration: Core.Declaration, +depth: Nat,
-    valid: {allocation_valid(machine) == True{} : Bool}) -> {
-  allocation_valid(CoreTraversal.enter_node(machine, declaration, depth)) == True{} : Bool
-}:
+def enter_node_valid(
+  +machine: Core.Machine,
+  +declaration: Core.Declaration,
+  +depth: Nat,
+  +entry_path: String,
+  valid: {allocation_valid(machine) == True{} : Bool}
+) -> {
+      allocation_valid(CoreTraversal.enter_node_at(machine, declaration, depth, entry_path))
+      == True{}
+      : Bool
+    }:
   match machine declaration:
     case Core.Machine{facts, path, frames, visited, budget, +next, +nodes, refs, pending}
         Core.Declaration{+artifact, identity, function, bundled, children, +source_path}:
@@ -164,6 +171,7 @@ def expand_node_valid(
     ),
     declaration,
     depth,
+    CoreTraversal.declaration_path(declaration, CoreTraversal.machine_path(machine)),
     add_reference_valid(
       machine,
       Core.ReferenceSlot{owner, index, name, Core.Expanded{CoreTraversal.next_node(machine)}},

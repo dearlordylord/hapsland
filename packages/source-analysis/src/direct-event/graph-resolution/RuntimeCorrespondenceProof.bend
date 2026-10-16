@@ -47,6 +47,9 @@ def resumed_exact(~World: Data, ~observe: T.ExceptionToken -> World -> O.Error,
     case L.ServiceStep{T.FinishedResolver{_, _}}: {==}
     case L.PythonIteration{_}: {==}
     case L.PythonTerminal{_, _}: {==}
+    case L.GoTerminal{_, _}: {==}
+    case L.PrepareGo{_}: {==}
+    case L.InspectGoRoot{_}: {==}
     case L.AdmitPythonCapture{_, _}: {==}
     case L.PythonCaptured{_, _}: {==}
     case L.InspectPythonTarget{_, _}: {==}
@@ -195,6 +198,12 @@ def ready_exact(~World: Data, ~respond: T.Operation -> World -> R.ProviderRespon
     case L.PythonIteration{_}:
       resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
     case L.PythonTerminal{_, _}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.GoTerminal{_, _}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.PrepareGo{_}:
+      resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
+    case L.InspectGoRoot{_}:
       resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)
     case L.AdmitPythonCapture{_, _}:
       resumed_exact(~World, ~observe, step, invocation, next, world, effects, actions)

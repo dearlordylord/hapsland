@@ -9,6 +9,12 @@ const declaration = args.find((arg) => arg.startsWith("--environment="))
 const suite = args.find((arg) => arg.startsWith("--suite="))?.slice(8)
 const files = args.filter((arg) => !arg.startsWith("--"))
 const root = resolve(import.meta.dirname, "..")
+const rejectionOwner = "packages/source-analysis/src/direct-event/graph-resolution/attachment"
+const proofRejections = new Map(
+  Object.entries(JSON.parse(readFileSync(resolve(root, rejectionOwner, "checks/proof-rejections.json"), "utf8"))).map(
+    ([file, location]) => [`${rejectionOwner}/${file}`, location]
+  )
+)
 const sourceOwners = [
   "packages/source-artifacts/src/direct-event/value",
   "packages/source-analysis/src/direct-event/graph-resolution",
@@ -107,6 +113,9 @@ if (
   )
 const selected = suite ? suites[suite]() : files
 if (!selected.length) throw new Error("No authored capability sources selected")
+if (suite === "preparation-sources")
+  for (const file of proofRejections.keys())
+    if (!selected.includes(file)) throw new Error(`Expected proof rejection is not a checking root: ${file}`)
 for (const file of selected) {
   const local = relative(root, resolve(root, file))
   if (local.startsWith("../") || !/^(packages|src|scripts)\//u.test(local) || !/\.(mjs|bend|py)$/u.test(local))
@@ -120,7 +129,8 @@ await bendProducerToolchain(root)
 console.log(`Checking ${selected.length} authored capability files${suite ? ` (${suite})` : ""}`)
 const runtimeEntries = new Set([
   "packages/source-analysis/src/direct-event/graph-resolution/Runtime.bend",
-  "packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/Runtime.bend"
+  "packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/Runtime.bend",
+  "packages/source-analysis/src/direct-event/graph-resolution/runtime-observation/Embedding.bend"
 ])
 let passed = 0
 const deadline = Date.now() + (suite === "preparation-consumer" ? 360000 : 600000)
@@ -137,10 +147,9 @@ for (const file of selected) {
   const isPython = path.endsWith(".py")
   const syntax = suite === "preparation-sources" && !isProof
   const command = isProof ? "taskset" : isPython ? "python3" : process.execPath
-  const runtimeOutput =
-    suite === "preparation-sources" && runtimeEntries.has(file)
-      ? mkdtempSync(join(tmpdir(), "hapsland-runtime-source-check-"))
-      : undefined
+  const runtimeOutput = runtimeEntries.has(file)
+    ? mkdtempSync(join(tmpdir(), "hapsland-runtime-source-check-"))
+    : undefined
   const options = isProof
     ? ["-c", "10", "bend", path, ...(runtimeOutput ? ["-o", join(runtimeOutput, "runtime.js")] : ["--verdict"])]
     : syntax && isPython
@@ -190,15 +199,31 @@ for (const file of selected) {
   const result = spawnSync(command, options, {
     cwd: root,
     env: executionEnv,
-    stdio: ["inherit", "pipe", "inherit"],
+    stdio: ["inherit", "pipe", "pipe"],
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
     timeout: Math.min(deadline - Date.now(), isProof ? proofTimeout : syntax ? 5000 : 120000)
   })
   if (runtimeOutput) rmSync(runtimeOutput, { recursive: true, force: true })
   process.stdout.write(result.stdout ?? "")
+  process.stderr.write(result.stderr ?? "")
   if (result.error) throw new Error(`Capability check failed: ${file}`, { cause: result.error })
   if (result.signal) throw new Error(`Capability check terminated by ${result.signal}: ${file}`)
+  const rejectedAt = proofRejections.get(file)
+  if (rejectedAt !== undefined) {
+    const diagnostic = `${result.stdout ?? ""}\n${result.stderr ?? ""}`
+    if (
+      result.status !== 1 ||
+      !diagnostic.includes("SOME PROOFS FAIL") ||
+      !diagnostic.includes("\n- expected :") ||
+      !diagnostic.includes("\n- observed :") ||
+      !diagnostic.split("\n").includes(`Location: ${rejectedAt}`)
+    )
+      throw new Error(`Proof mutant did not fail at its expected law location ${rejectedAt}: ${file}`)
+    console.log(`Expected proof rejection at ${rejectedAt}: ${file}`)
+    passed++
+    continue
+  }
   if (result.status !== 0) {
     console.error(`Capability check failed: ${file}; ${passed}/${selected.length} passed`)
     process.exitCode = result.status ?? 1

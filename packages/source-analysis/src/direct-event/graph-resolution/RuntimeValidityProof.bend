@@ -38,6 +38,9 @@ def resumed_valid(
     case L.ServiceStep{T.FinishedResolver{_, _}}: {==}
     case L.PythonIteration{_}: {==}
     case L.PythonTerminal{_, _}: {==}
+    case L.GoTerminal{_, _}: {==}
+    case L.PrepareGo{_}: {==}
+    case L.InspectGoRoot{_}: {==}
     case L.AdmitPythonCapture{_, _}: {==}
     case L.PythonCaptured{_, _}: {==}
     case L.InspectPythonTarget{_, _}: {==}
@@ -183,6 +186,9 @@ def advance_step_valid(
     case L.ServiceStep{T.FinishedResolver{_, _}}: {==}
     case L.PythonIteration{_}: {==}
     case L.PythonTerminal{_, _}: {==}
+    case L.GoTerminal{_, _}: {==}
+    case L.PrepareGo{_}: {==}
+    case L.InspectGoRoot{_}: {==}
     case L.AdmitPythonCapture{_, _}: {==}
     case L.PythonCaptured{_, _}: {==}
     case L.InspectPythonTarget{_, _}: {==}

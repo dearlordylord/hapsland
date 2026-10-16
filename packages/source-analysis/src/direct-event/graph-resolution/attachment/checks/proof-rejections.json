@@ -1,0 +1,16 @@
+{
+  "AttachmentArtifactIndexOwnMutantClaim.bend": "claim_1",
+  "AttachmentArtifactProductMutantLiteral.bend": "claim_0",
+  "AttachmentArtifactProductMutantProof.bend": "finish_values",
+  "AttachmentMapPayloadMutantLiteral.bend": "claim_1",
+  "AttachmentMaterializationMutant.bend": "exact_claim",
+  "AttachmentNaturalKeyEqualityMutantClaim.bend": "claim",
+  "AttachmentNaturalKeyMutantClaim.bend": "claim",
+  "AttachmentOriginProductMutantLiteral.bend": "literal_origin_product",
+  "AttachmentOriginProductMutantProof.bend": "origin_product_total",
+  "AttachmentOriginRenderingMutant.bend": "literal_field_3",
+  "AttachmentOriginRenderingMutantListLiteral.bend": "literal_fields_1",
+  "AttachmentOriginRenderingMutantProof.bend": "origin_field_exact",
+  "AttachmentReferenceGroupMutantLiteral.bend": "claim_12",
+  "AttachmentReferenceOwnerMutantLiteral.bend": "claim_1_0"
+}
