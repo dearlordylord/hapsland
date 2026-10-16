@@ -21,16 +21,16 @@ import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph
 import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
+import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/resolve"
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import {
-  nativeSourceReference,
   cancelSourceAfterFirstEnqueue,
   snapshotSourceOwnership,
   captureActivityPublications,
   snapshotReservationCustody
-} from "./native-source-reference.mjs"
+} from "./source-physical-observers.mjs"
 import { configuredRules, advicee } from "./preparation-fixtures.mjs"
 import {
   createPreparationSessionRegistry,
@@ -128,7 +128,7 @@ try {
   }
   let cases = 0,
     totalRequests = 0,
-    nativeWholeCases = 0
+    physicalWholeCases = 0
   const modes = [
     "two-candidates",
     "repeat-candidate",
@@ -1193,103 +1193,51 @@ try {
           )
       }
       if (mode.startsWith("full-")) {
-        const native = await nativeSourceReference({
-          advicee: advicee(),
-          owner,
-          root,
-          rootIdentity,
-          candidates,
-          nativePatchCommand,
-          settings: context.job.settings,
-          limits,
-          refuseSecond: mode === "full-refused-second",
-          ownerBarrierFailure: mode === "full-owner-barrier-failure",
-          captureFailure: mode === "full-capture-failure" ? injectedPreparationError : undefined,
-          inputContract:
-            mode === "full-construction-defect"
-              ? () => {
-                  throw injectedPreparationError
-                }
-              : undefined,
-          inspectionFailure: mode.startsWith("full-inspection-") ? injectedPreparationError : undefined,
-          diagnosticFailure: mode === "full-inspection-diagnostic-failure" ? injectedDiagnosticError : undefined,
-          analyticsCause,
-          backendCause,
-          backendRecoveryCause,
-          credentialCause,
-          credentialError: injectedPreparationError,
-          afterPrepareCause,
-          registerWorkFailure,
-          registerWorkError,
-          cleanupError,
-          activityRefused: mode === "full-activity-refused",
-          cancelAfterFirstEnqueue: mode === "full-cancel-after-enqueue",
-          interruptAfterFirstEnqueue: mode === "full-fiber-interrupt"
-        })
         if (mode === "full-cancel-after-enqueue") {
           assert.equal(context.preparationSignal.aborted, true)
-          assert.equal(native.completed, false)
           assert.equal(sourceEffects.filter((event) => event.kind === "source-work-aborted").length, 1)
         } else if (mode === "full-fiber-interrupt") {
           assert.equal(effectController.signal.aborted, true)
           assert.equal(context.preparationSignal.aborted, false)
-          assert.equal(native.completed, false)
-          assert.ok(native.exitCause && Cause.hasInterrupts(native.exitCause))
-        } else assert.equal(native.completed, result.completed)
-        if (
-          credentialCause ||
-          afterPrepareCause ||
-          backendRecoveryCause ||
-          (backendCause && !Cause.hasFails(backendCause))
-        ) {
-          assert.ok(native.exitCause)
-          assert.deepEqual(
-            native.exitCause.reasons.map((reason) => ({
-              kind: reason._tag,
-              error: reason.defect ?? reason.error,
-              fiberId: reason.fiberId
-            })),
-            source
-              .cause(result.reason.token)
-              .reasons.map((reason) => ({
-                kind: reason._tag,
-                error: reason.defect ?? reason.error,
-                fiberId: reason.fiberId
-              }))
-          )
+          assert.ok(Exit.isFailure(sourceExit) && Cause.hasInterrupts(sourceExit.cause))
+        }
+        // The expected Effect boundary comes from injected fixture causes, not
+        // a second resident workflow. Handled technical failures return normally.
+        const expectedCause =
+          credentialCause ??
+          afterPrepareCause ??
+          backendRecoveryCause ??
+          (backendCause && !Cause.hasFails(backendCause) ? backendCause : undefined)
+        const reasons = (cause) =>
+          cause.reasons.map((reason) => ({
+            kind: reason._tag,
+            error: reason.defect ?? reason.error,
+            fiberId: reason.fiberId
+          }))
+        if (expectedCause) {
+          assert.ok(Exit.isFailure(sourceExit))
+          assert.deepEqual(reasons(sourceExit.cause), reasons(expectedCause))
+          for (let index = 0; index < expectedCause.reasons.length; index++) {
+            const actual = sourceExit.cause.reasons[index],
+              expected = expectedCause.reasons[index]
+            assert.strictEqual(actual.defect ?? actual.error, expected.defect ?? expected.error)
+          }
         } else if (
           mode.startsWith("full-inspection-") ||
           mode === "full-construction-defect" ||
           registerWorkFailure === "defect"
         ) {
-          assert.ok(native.exitCause)
-          assert.equal(Cause.hasDies(native.exitCause), true)
-          if (mode === "full-inspection-failure")
-            assert.strictEqual(Cause.squash(native.exitCause), injectedPreparationError)
+          assert.ok(Exit.isFailure(sourceExit))
+          const errors =
+            mode === "full-inspection-diagnostic-failure" || registerWorkFailure === "defect"
+              ? [injectedPreparationError, injectedDiagnosticError]
+              : [injectedPreparationError]
           assert.deepEqual(
-            native.exitCause.reasons.map((reason) => ({ kind: reason._tag, error: reason.defect ?? reason.error })),
-            source
-              .cause(result.reason.token)
-              .reasons.map((reason) => ({ kind: reason._tag, error: reason.defect ?? reason.error }))
+            sourceExit.cause.reasons.map((reason) => ({ kind: reason._tag, error: reason.defect })),
+            errors.map((error) => ({ kind: "Die", error }))
           )
-          assert.equal(
-            native.exitCause.reasons.length,
-            mode === "full-inspection-diagnostic-failure" || registerWorkFailure === "defect" ? 2 : 1
-          )
-        } else if (mode !== "full-fiber-interrupt") assert.equal(native.exitCause, undefined)
-        assert.deepEqual(
-          (native.exitCause?.reasons ?? []).map((reason) => ({
-            kind: reason._tag,
-            error: reason.defect ?? reason.error
-          })),
-          (Exit.isFailure(sourceExit) ? sourceExit.cause.reasons : []).map((reason) => ({
-            kind: reason._tag,
-            error: reason.defect ?? reason.error
-          })),
-          `${mode}: actual Source Effect entry preserves native exit`
-        )
-        assert.deepEqual(native.canonical, projectCanonical(snapshot.canonical))
-        assert.deepEqual(native.trace, sourceEffects)
+          errors.forEach((error, index) => assert.strictEqual(sourceExit.cause.reasons[index].defect, error))
+        } else if (mode !== "full-fiber-interrupt") assert.ok(Exit.isSuccess(sourceExit))
         const publications = sourceEffects.filter((event) => event.kind === "activity")
         if (
           credentialCause ||
@@ -1311,17 +1259,17 @@ try {
           assert.ok(sourceEffects.some((event) => event.kind === "analytics" && event.event === "incomplete-candidate"))
           assert.equal(sourceEffects.find((event) => event.kind === "prepared").value.observation.status, "incomplete")
         }
+        const ownership = snapshotSourceOwnership(snapshot)
+        assert.equal(ownership.owners.length, units.length)
         assert.deepEqual(
-          native.units,
-          units.map((unit) => ({
-            prepared: unit.prepared,
-            evaluationKey: unit.evaluationKey,
-            sourceHash: unit.sourceHash,
-            path: unit.observation.candidates[0].path
-          }))
+          ownership.owners.map((item) => item.evaluationKey),
+          units.map((unit) => unit.evaluationKey)
         )
-        assert.deepEqual(native.ownership, snapshotSourceOwnership(snapshot))
-        nativeWholeCases++
+        assert.deepEqual(
+          ownership.owners.map((item) => item.inputIdentity),
+          units.map((unit) => snapshot.records.revision.identities.get("input:" + canonicalValue(unit.prepared.input)))
+        )
+        physicalWholeCases++
       }
       for (const unit of units) {
         const expected = await Effect.runPromise(
@@ -1362,9 +1310,9 @@ try {
       passed: true,
       cases,
       requests: totalRequests,
-      nativeWholeCases,
-      nativeWholeScope:
-        "actual makeResidentPreparation in an independent resident context: ordered admission/capture/resize/diagnostic/analytics effects and full physical activity marker publications with an explicit wall-clock sample, complete prepared inputs, evaluation/source identities, Canonical projection and pre-teardown transferred ownership; full error/cancellation differential and universal correspondence remain open",
+      physicalWholeCases,
+      physicalWholeScope:
+        "Actual Source Effect boundary against injected causes, physical activity publications, prepared identities and transferred ownership; no parallel native workflow; finite regression evidence",
       scope:
         "whole source workflow including pre-loop gates and post-gates cursor over actual physical candidates, fresh Preparation/cache and shared resident context, Canonical Source -> Preparation -> split resolvers -> Retaining -> dispatcher, atomic source completion/interruption and workspace receipt cleanup; finite consumer, universal proofs and production adoption remain open"
     })

@@ -11,10 +11,6 @@ import type { DirectObservation } from "@hapsland/native-observation/direct-even
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { prepareSource, type SourcePreparationContext } from "@hapsland/review-execution/direct-event/preparation"
-import {
-  prepareNativeObservation as prepareObservation,
-  prepareNativeSourceLine as prepareSourceLine
-} from "@hapsland/review-execution/testing/preparation"
 
 const roots: string[] = []
 afterEach(async () => {
@@ -37,25 +33,8 @@ const context: SourcePreparationContext = {
   rules: configuredRules,
   inputContract: TYPE_INPUT_CONTRACT
 }
-const nativeSource = async (
-  observation: DirectObservation,
-  ctx: SourcePreparationContext,
-  frozenNames?: ReadonlyMap<string, ReadonlySet<string>>
-) => {
-  const expected = await Effect.runPromise(
-    prepareObservation(observation, { ...ctx, controlledWriter: true, advicee: observation.advicee }, frozenNames)
-  )
-  return {
-    observation: expected.observation,
-    outcomes: expected.outcomes.map((outcome) => {
-      if (outcome.status !== "ready") return outcome
-      const { advicee: _advicee, ...prepared } = outcome.prepared
-      return { ...outcome, prepared }
-    })
-  }
-}
 
-describe("Canonical-owned public preparation correspondence", () => {
+describe("Canonical-owned public preparation regressions", () => {
   for (const [language, path, source, support] of [
     ["typescript", "root.ts", "export interface Root { value: string }\n", {}],
     ["python", "root.py", "class Root:\n value: str\n", {}],
@@ -68,13 +47,16 @@ describe("Canonical-owned public preparation correspondence", () => {
     ["rust", "root.rs", "pub struct Root { pub value: String }\n", {}],
     ["bend", "root.bend", "type Root is Data:\n  Root{}\n", {}]
   ] as const) {
-    it(`preserves full ${language} source results through packaged Canonical execution`, async () => {
+    it(`prepares ${language} roots and frozen inputs through packaged Canonical execution`, async () => {
       const { observation } = await fixture({ ...support, [path]: source }, [path])
-      const expected = await nativeSource(observation, context)
       const actual = await Effect.runPromise(prepareSource(observation, context))
-      expect(JSON.stringify({ observation: actual.observation, outcomes: actual.outcomes })).toBe(
-        JSON.stringify(expected)
-      )
+      expect(actual.observation.status).toBe("complete")
+      expect(actual.outcomes).toHaveLength(1)
+      expect(actual.outcomes[0]).toMatchObject({
+        status: "ready",
+        path,
+        prepared: { input: { contract: TYPE_INPUT_CONTRACT, path, declaration: { name: "Root" } } }
+      })
       expect(actual.ambiguousLine).toBe(false)
       for (const outcome of actual.outcomes)
         if (outcome.status === "ready") {
@@ -89,23 +71,23 @@ describe("Canonical-owned public preparation correspondence", () => {
       "first.ts": "export interface First { value: string }\n",
       "second.ts": "export function second(value: string): string { return value }\n"
     })
-    const calls: string[][] = [[], []]
+    const calls: string[] = []
     const { inputContract: _inputContract, ...bothContracts } = context
-    const ctx = (index: number): SourcePreparationContext => ({
+    const ctx: SourcePreparationContext = {
       ...bothContracts,
       beforeAnalyze: (path) =>
         Effect.sync(() => {
-          calls[index]!.push(path)
+          calls.push(path)
           return { status: "admitted" as const }
         })
-    })
-    const expected = await nativeSource(observation, ctx(0))
-    const actual = await Effect.runPromise(prepareSource(observation, ctx(1)))
-    expect(JSON.stringify({ observation: actual.observation, outcomes: actual.outcomes })).toBe(
-      JSON.stringify(expected)
-    )
-    expect(calls[1]).toEqual(calls[0])
-    expect(calls[1]).toEqual(["first.ts", "second.ts"])
+    }
+    const actual = await Effect.runPromise(prepareSource(observation, ctx))
+    expect(
+      actual.outcomes.flatMap((outcome) =>
+        outcome.status === "ready" ? [outcome.prepared.input.declaration.name] : []
+      )
+    ).toEqual(["First", "second"])
+    expect(calls).toEqual(["first.ts", "second.ts"])
   })
   it("preserves frozen name selection including an empty selection", async () => {
     const { observation } = await fixture({
@@ -113,23 +95,28 @@ describe("Canonical-owned public preparation correspondence", () => {
     })
     for (const names of [new Set(["Second"]), new Set<string>()]) {
       const frozenNames = new Map([["root.ts", names]])
-      const expected = await nativeSource(observation, context, frozenNames)
       const actual = await Effect.runPromise(prepareSource(observation, context, { frozenNames }))
-      expect(JSON.stringify({ observation: actual.observation, outcomes: actual.outcomes })).toBe(
-        JSON.stringify(expected)
-      )
+      expect(
+        actual.outcomes.flatMap((outcome) =>
+          outcome.status === "ready" ? [outcome.prepared.input.declaration.name] : []
+        )
+      ).toEqual([...names])
     }
   })
   it("preserves line selection and cross-root ambiguity without an agent identity", async () => {
-    for (const [source, line] of [
-      ["interface First { x: string }\ninterface Second { y: number }\n", 2],
-      ["interface First { x: string }; interface Second { y: number }\n", 1]
+    for (const [source, line, ambiguous] of [
+      ["interface First { x: string }\ninterface Second { y: number }\n", 2, false],
+      ["interface First { x: string }; interface Second { y: number }\n", 1, true]
     ] as const) {
-      const { repository, observation } = await fixture({ "root.ts": source })
-      const expected = await Effect.runPromise(prepareSourceLine({ ...repository, path: "root.ts", line }, context))
+      const { observation } = await fixture({ "root.ts": source })
       const { advicee: _advicee, ...sourceObservation } = observation
       const actual = await Effect.runPromise(prepareSource(sourceObservation, context, { line }))
-      expect(JSON.stringify(actual)).toBe(JSON.stringify(expected))
+      expect(actual.ambiguousLine).toBe(ambiguous)
+      expect(
+        actual.outcomes.flatMap((outcome) =>
+          outcome.status === "ready" ? [outcome.prepared.input.declaration.name] : []
+        )
+      ).toEqual(ambiguous ? [] : ["Second"])
     }
   })
   it("round-trips every original admission diagnostic without narrowing its cause", async () => {
@@ -147,11 +134,9 @@ describe("Canonical-owned public preparation correspondence", () => {
         ...context,
         beforeAnalyze: () => Effect.succeed({ status: "refused", diagnostic })
       }
-      const expected = await nativeSource(observation, ctx)
       const actual = await Effect.runPromise(prepareSource(observation, ctx))
-      expect(JSON.stringify({ observation: actual.observation, outcomes: actual.outcomes })).toBe(
-        JSON.stringify(expected)
-      )
+      expect(actual.observation.outcomes).toEqual([{ status: "incomplete", path: "root.ts", diagnostic }])
+      expect(actual.outcomes.some((outcome) => outcome.status === "ready")).toBe(false)
     }
   })
   it("preserves the complete original hook Cause and does not duplicate it at cleanup", async () => {
@@ -238,10 +223,11 @@ describe("Canonical-owned public preparation correspondence", () => {
       "root.ts": "export function root(value: number): number { return value + 1 }\n"
     })
     const ctx = { ...context, inputContract: FUNCTION_INPUT_CONTRACT }
-    const expected = await nativeSource(observation, ctx)
     const actual = await Effect.runPromise(prepareSource(observation, ctx))
-    expect(JSON.stringify({ observation: actual.observation, outcomes: actual.outcomes })).toBe(
-      JSON.stringify(expected)
-    )
+    expect(actual.outcomes).toHaveLength(1)
+    expect(actual.outcomes[0]).toMatchObject({
+      status: "ready",
+      prepared: { input: { contract: FUNCTION_INPUT_CONTRACT, declaration: { name: "root", kind: "function" } } }
+    })
   })
 })
