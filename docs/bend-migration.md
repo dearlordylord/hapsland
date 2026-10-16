@@ -21,7 +21,8 @@ consumer and acceptance checks. Every action must close a concrete obstacle on
 that path. Before introducing a new representation or a chain of supporting
 laws, explain why it reaches the connected subsystem sooner.
 
-Preserve the original guarantees and require at least performance parity;
+Preserve the original guarantees; apply the owner’s 2026-10-16 whole
+Preparation exception (≤2×) below; otherwise require performance parity;
 measure build and execution every 30 minutes. Remove the superseded TypeScript
 algorithms and product orchestration. Completion means connected Bend, deleted
 superseded TypeScript and passing local checks of the composed flow. Counts of
@@ -161,10 +162,10 @@ in resume and assembles in the next ordinary advance, retaining the original
 late String.concat coercion/error boundary. No host retag/reboxing pass remains.
 
 FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
-is removed. Preparation is **not accepted**: attachment hard10 and whole parity remain open.
+is removed. Preparation is **not accepted**: attachment hard10 and final acceptance remain open.
 `migration/bend-abi-2037` uses Bend 2.0.37 with numeric Nat/shared records.
 Compiler cohort: [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084).
-Its producers/full consumers pass; current attachment hard10 and whole parity fail.
+Its producers/full consumers pass; attachment hard10 remains open; whole 1.4448 meets the new limit.
 Preparation/Finalization and Graph Effect forward Bend trees directly; public
 native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 
@@ -175,8 +176,8 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; host retains slots/materialization/postfix effects. 30 laws/45 mutants and 78 packaged modes pass. Source/resident/FrozenInput pass against independent verification-only TS; whole parity remains. |
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Formatting preserves complete BendTT. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Closed: 0.1.23 source `bend-idea:55e106a`; 54 behavior/two architecture/six wrapper tests pass. Nine proofs conform; JointStep fixed point in one pass. Whole kernel/eight runners/28 mutants pass. Attachment complete BendTT unchanged. |
-| Combined preflight | Core replaces TS callable policy/Go fallback through Canonical Preflight. Five approved laws pass kernel hard10; formatted sources pass five isolated controls/ten proof mutants. Astra approves. Finite runner, 32 physical cases and fast3 pass. Earlier timeout remains historical; current full run passes unchanged limits. At whole Preparation acceptance delete [temporary verification sources](../packages/source-analysis/src/direct-event/combined-preflight/LAWS.bend) and gate/import entries. Whole parity remains open. |
-| Whole-path parity | Empty-root Core skips inventory/cursor; original Root/Whole proofs, eight whole mutants, exact leaf queue/Acks and 78 cases pass. Whole grouped current-native ratio is 1.4448; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 allocation failed twice; trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
+| Combined preflight | Core replaces TS callable policy/Go fallback through Canonical Preflight. Five approved laws pass kernel hard10; formatted sources pass five isolated controls/ten proof mutants. Astra approves. Finite runner, 32 physical cases and fast3 pass. Earlier timeout remains historical; current full run passes unchanged limits. At whole Preparation acceptance delete [temporary verification sources](../packages/source-analysis/src/direct-event/combined-preflight/LAWS.bend) and gate/import entries. Whole performance meets the new limit. |
+| Whole-path performance | Owner decision 2026-10-16 supersedes the strict whole parity requirement: Preparation may take ≤2× previous TS time. Qualified current-native ratio 1.4448 meets this limit; strict parity remains false. Primary analyzer/build limits stay ≤1. Preserve historical evidence and requalify the final candidate. Closed optimization trials remain closed. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Engine grouping preserves observation boundaries: 1484 instructions, 127 group
@@ -207,7 +208,6 @@ that only bridges helper names.
   Prior primary execution/build pass 0.7761/0.8300 (23:22/23:23 UTC).
   Prior 22:55/22:56 pass 0.7085/0.8612 started 4m52s/4m55s late.
   Prior 21:01 execution failed 1.1571; later passes do not erase that result.
-  Function execution excludes the local type analyzer.
   Grouped preflight whole at 23:20 UTC **fails parity at 1.4448**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
   oracle and 30 local workspaces. Build/23 receipts, physical Source/resident/Graph,

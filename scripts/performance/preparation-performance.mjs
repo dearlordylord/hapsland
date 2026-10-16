@@ -127,6 +127,8 @@ try {
       samples,
       meanRatio,
       preparationParity: meanRatio <= 1,
+      preparationAcceptanceRatioLimit: 2,
+      preparationPerformanceAccepted: meanRatio <= 2,
       baselineScope:
         reference === "current-native"
           ? "supplemental current independent native TS oracle; does not substitute fixed894 primary gates"
@@ -135,7 +137,14 @@ try {
         "actual compiled public prepareObservation: Canonical lifecycle, Preparation/Graph, physical capture/parser/rendering and result acceptance; seven offline fixtures, all five languages, recursive supporting capture and original import failure; full JSON equality on every call; three warmups then two whole rounds per worker; 17 alternating isolated Bun pairs on CPU11; setup/import/startup excluded; not dispatch, maximal capacity or platform performance"
     }
     writeFileSync(process.env.HAPSLAND_PERFORMANCE_OUTPUT, JSON.stringify(record, null, 2) + "\n")
-    console.log(JSON.stringify({ meanRatio, preparationParity: record.preparationParity }))
+    console.log(
+      JSON.stringify({
+        meanRatio,
+        preparationParity: record.preparationParity,
+        preparationPerformanceAccepted: record.preparationPerformanceAccepted,
+        ratioLimit: record.preparationAcceptanceRatioLimit
+      })
+    )
   }
 } finally {
   rmSync(temporary, { recursive: true, force: true })
