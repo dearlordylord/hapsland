@@ -209,6 +209,6 @@ console.log(
   JSON.stringify({
     cases,
     scope:
-      "packaged combined preflight: native sentinel/UTF8 measurements, parser invocation lifetime, phase-specific errors, lazy sites, import short-circuit and Go identity; universal laws checked separately; whole acceptance remains open"
+      "packaged combined preflight: native sentinel/UTF8 measurements, parser invocation lifetime, phase-specific errors, lazy sites, import short-circuit and Go identity; ordinary physical regression checks"
   })
 )
