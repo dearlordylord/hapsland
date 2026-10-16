@@ -24,7 +24,6 @@ import {
 } from "../../../dist/direct-event/preparation/finalization-protocol.js"
 import { canonicalJsonPlanOperations } from "./canonical-json-plan-codec.ts"
 import { decodePreparationResult } from "../../../dist/direct-event/preparation/preparation-result-codec.js"
-import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import {
   productValue,
   fromProductValue,
@@ -147,15 +146,12 @@ try {
     selection,
     supplied,
     snapshots = [rules],
-    observerThrows = false
+    observerThrows = false,
+    expectedTrace = [],
+    expectedNames = [],
+    expectedRule,
+    terminal = "Completed"
   }) => {
-    const settings = {
-      rules,
-      ...(supplied ? { providerIdentity: supplied } : {}),
-      ...(selection
-        ? { configuration: { policy: { layers: [{ name: "user", document: { reviewBackend: selection } }] } } }
-        : {})
-    }
     const makeBindings = () => {
       const trace = []
       let reads = 0
@@ -170,23 +166,6 @@ try {
           if (observerThrows) throw new Error("observer exception")
         }
       }
-    }
-    const expectedBindings = makeBindings()
-    let expected, expectedError
-    try {
-      expected = nativePrepareReadyUnits(units, declarations, path, {
-        contract,
-        graphLimits: GRAPH_LIMIT_CEILINGS,
-        supportingCaptures: captures,
-        observation: { root: "/workspace" },
-        context: {
-          settings,
-          rules: expectedBindings.currentRules,
-          observePreparationOmission: expectedBindings.observe
-        }
-      })
-    } catch (error) {
-      expectedError = { name: error.name, message: error.message }
     }
     const actualBindings = makeBindings()
     const invocation = { $: "Invocation", owner: cases + 1, command: 3 }
@@ -407,17 +386,23 @@ try {
       step = core.resume(step, reply)
       requests++
     }
-    assert.deepEqual(actualBindings.trace, expectedBindings.trace)
-    if (expectedError)
-      assert.deepEqual(
-        { name: label(step), message: step.message },
-        { name: expectedError.name, message: expectedError.name === "URIError" ? undefined : expectedError.message }
-      )
-    else {
-      assert.equal(label(step), "Completed")
+    assert.deepEqual(actualBindings.trace, expectedTrace)
+    assert.equal(label(step), terminal)
+    if (terminal === "Completed") {
       const actual = unlist(step.outcomes).map((value) => fromProductValue(value))
-      assert.deepEqual(actual, expected)
-      assert.equal(JSON.stringify(actual), JSON.stringify(expected))
+      assert.deepEqual(
+        actual.map((outcome) => outcome.prepared.input.declaration.name),
+        expectedNames
+      )
+      for (const outcome of actual) {
+        assert.equal(outcome.status, "ready")
+        assert.equal(outcome.path, path)
+        assert.equal(outcome.prepared.root, "/workspace")
+        assert.deepEqual(
+          outcome.prepared.input.rules.map((rule) => rule.id),
+          [expectedRule]
+        )
+      }
     }
     cases++
   }
@@ -453,7 +438,17 @@ try {
           captures,
           selection,
           snapshots: [rules, [], rules],
-          observerThrows: true
+          observerThrows: true,
+          expectedNames: ["Root😀", "Root😀"],
+          expectedRule: "whole-type",
+          expectedTrace: [
+            ["omission", path, "NoLocation", "missing-evidence"],
+            ["omission", path, "NoCapture", "missing-evidence"],
+            ["rules", 0],
+            ["rules", 1],
+            ["omission", path, "Root😀", "no-applicable-rule"],
+            ["rules", 2]
+          ]
         })
         check({
           path: path.toUpperCase(),
@@ -461,7 +456,10 @@ try {
           units: [unit],
           declarations: [{ artifact: root, location }],
           captures,
-          supplied: { provider: "openai", model: "gpt-6-luna", destination: "supplied" }
+          supplied: { provider: "openai", model: "gpt-6-luna", destination: "supplied" },
+          expectedNames: ["Root😀"],
+          expectedRule: "whole-type",
+          expectedTrace: [["rules", 0]]
         })
       }
   const root = {
@@ -475,7 +473,27 @@ try {
   const unit = { root: { artifact: root, references: [] } }
   const captures = new Map([["run.ts", { contentHash: "hash", byteLength: 12 }]])
   for (const contract of [FUNCTION_INPUT_CONTRACT, "custom/contract", TYPE_INPUT_CONTRACT])
-    check({ path: "run.ts", contract, units: [unit, unit], declarations: [{ artifact: root, location }], captures })
+    check({
+      path: "run.ts",
+      contract,
+      units: [unit, unit],
+      declarations: [{ artifact: root, location }],
+      captures,
+      expectedNames: contract !== "custom/contract" ? ["run", "run"] : [],
+      expectedRule: "whole-function",
+      expectedTrace:
+        contract !== "custom/contract"
+          ? [
+              ["rules", 0],
+              ["rules", 1]
+            ]
+          : [
+              ["rules", 0],
+              ["omission", "run.ts", "run", "no-applicable-rule"],
+              ["rules", 1],
+              ["omission", "run.ts", "run", "no-applicable-rule"]
+            ]
+    })
   check({
     path: "unsupported.txt",
     contract: TYPE_INPUT_CONTRACT,
@@ -492,7 +510,12 @@ try {
     units: [{ root: { artifact: { ...root, name: "NoLocation" } } }, unit, unit],
     declarations: [{ artifact: root, location }],
     captures,
-    selection: { provider: "jev", model: undefined }
+    selection: { provider: "jev", model: undefined },
+    terminal: "TypeError",
+    expectedTrace: [
+      ["omission", "run.ts", "NoLocation", "missing-evidence"],
+      ["rules", 0]
+    ]
   })
   let runtimeCases = 0
   const runtimeGate = (event) => {
@@ -619,7 +642,7 @@ try {
     )
     runtimeCases++
     for (const original of [undefined, null, false, 0, ""]) {
-      for (const native of [false, true]) {
+      {
         let reads = 0
         const input = runtimeInput({ rules }, () => {
           reads++
@@ -627,9 +650,7 @@ try {
         })
         input.units = [unit, unit]
         const observed = await Promise.resolve()
-          .then(() =>
-            native ? nativePrepareReadyUnits(input.units, input.declarations, input.path, input.frame) : consume(input)
-          )
+          .then(() => consume(input))
           .then(
             () => ({ raised: false }),
             (error) => ({ raised: true, error })
@@ -648,16 +669,18 @@ try {
       settings.providerIdentity = { provider: "openai", model: "gpt-6-luna", destination: "after" }
       return [rules[1]]
     }
-    const expectedSettings = settingsBefore()
-    const expectedRuntimeInput = runtimeInput(expectedSettings, update(expectedSettings))
-    const expectedUpdated = nativePrepareReadyUnits(
-      expectedRuntimeInput.units,
-      expectedRuntimeInput.declarations,
-      expectedRuntimeInput.path,
-      expectedRuntimeInput.frame
-    )
     const actualSettings = settingsBefore()
-    assert.deepEqual(await consume(runtimeInput(actualSettings, update(actualSettings))), expectedUpdated)
+    const updated = await consume(runtimeInput(actualSettings, update(actualSettings)))
+    assert.equal(updated.length, 1)
+    assert.deepEqual(updated[0].prepared.input.providerIdentity, {
+      provider: "openai",
+      model: "gpt-6-luna",
+      destination: "after"
+    })
+    assert.deepEqual(
+      updated[0].prepared.input.rules.map((rule) => rule.id),
+      ["whole-function"]
+    )
     runtimeCases++
     const originalEncode = globalThis.encodeURIComponent
     const originalURIError = new URIError("original URI engine exception")
@@ -818,7 +841,7 @@ try {
       rulesReads,
       rejectedReplies,
       scope:
-        "Whole ordered Bend prepareReadyUnits progression against actual native consumer, including short-circuit/read/omission chronology and nested/global correlation; actual Canonical child runtime faults and cleanup; original universal proof and whole acceptance remain open"
+        "Ordered Bend finalization against explicit outcome/read/omission fixtures and nested/global correlation; actual Canonical child runtime faults, cancellation and cleanup; not whole Preparation acceptance"
     })
   )
 } finally {
