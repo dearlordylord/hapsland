@@ -99,6 +99,10 @@
     "./direct-event/source-extraction": {
       "types": "./dist/direct-event/source-extraction.d.ts",
       "default": "./dist/direct-event/source-extraction.js"
+    },
+    "./testing/go-package": {
+      "types": "./dist/direct-event/graph-resolution/go-module/package.d.ts",
+      "default": "./dist/direct-event/graph-resolution/go-module/package.js"
     }
   },
   "dependencies": {

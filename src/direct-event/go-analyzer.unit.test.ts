@@ -1,5 +1,6 @@
+import { inspectGoPackage } from "@hapsland/source-analysis/testing/go-package"
 import { describe, expect, it } from "vitest"
-import { parseGoTypes, inspectGoFile, goGraphFacts } from "@hapsland/source-analysis/direct-event/languages/go"
+import { parseGoTypes, inspectGoFile } from "@hapsland/source-analysis/direct-event/languages/go"
 describe("Go named type identity and source", () => {
   it("keeps grouped specs, defined types, aliases, interfaces and generics exact", () => {
     const source =
@@ -36,7 +37,7 @@ describe("Go named type identity and source", () => {
     ]) {
       const file = inspectGoFile("model.go", `package p\n${definition}\n${constant}\n`)
       if (file === undefined) throw new Error("parse failed")
-      const facts = goGraphFacts([file])
+      const facts = inspectGoPackage([file])
       const reference = facts?.declarations
         .get("Status")
         ?.references.find((entry) => facts.declarations.get(entry.name)?.artifact.kind === "constant-group")
@@ -52,7 +53,7 @@ describe("Go named type identity and source", () => {
       )
       if (file === undefined) throw new Error("parse failed")
       expect(file.aliases.has("Alias")).toBe(false)
-      const facts = goGraphFacts([file])
+      const facts = inspectGoPackage([file])
       expect(facts?.declarations.get("State")?.references).toEqual([])
       expect(facts?.declarations.get("Alias")?.references).toHaveLength(1)
       const reference = facts!.declarations.get("Alias")!.references[0]!
@@ -65,7 +66,7 @@ describe("Go named type identity and source", () => {
     if (!root || !sibling) throw new Error("parse failed")
     expect(root.bindings).toEqual(["Root"])
     expect(sibling.bindings).toEqual([])
-    expect(goGraphFacts([root, sibling])?.declarations.get("Root")?.references).toEqual([])
+    expect(inspectGoPackage([root, sibling])?.declarations.get("Root")?.references).toEqual([])
   })
   it("limits dot-import uncertainty to potentially exported references", () => {
     const file = inspectGoFile(
@@ -73,14 +74,14 @@ describe("Go named type identity and source", () => {
       'package p\nimport . "math"\ntype Root struct { ID string }\nvar _ = Pi\ntype External struct { Value Exported }\n'
     )
     if (!file) throw new Error("parse failed")
-    expect(goGraphFacts([file])?.declarations.get("Root")?.references).toEqual([])
+    expect(inspectGoPackage([file])?.declarations.get("Root")?.references).toEqual([])
     expect(file.types[1]?.references).toEqual([{ kind: "unsupported", name: "Exported" }])
   })
   it("retains builtin min/max and wrapped generic conversions without invented values", () => {
     for (const expression of ["min(A, 2)", "max(A, 2)", "((Status))(1)"]) {
       const file = inspectGoFile("root.go", `package p\ntype Status int\nconst A Status = 1\nconst B = ${expression}\n`)
       if (!file) throw new Error("parse failed")
-      const facts = goGraphFacts([file])
+      const facts = inspectGoPackage([file])
       expect(facts?.declarations.get("Status")?.references).toHaveLength(2)
       expect(
         [...facts!.declarations.values()]
@@ -93,7 +94,7 @@ describe("Go named type identity and source", () => {
       "package p\ntype ID int\ntype Status[T any] int\nconst A = ((Status[ID]))(1)\n"
     )
     if (!generic) throw new Error("parse failed")
-    const facts = goGraphFacts([generic])
+    const facts = inspectGoPackage([generic])
     const group = facts?.declarations.get("Status")?.references[0]
     expect(group).toBeDefined()
     expect(facts?.declarations.get(group!.name)?.references).toContainEqual({ kind: "named", name: "ID" })
@@ -101,7 +102,7 @@ describe("Go named type identity and source", () => {
   it("preserves package shadows of predeclared boolean constants", () => {
     const file = inspectGoFile("root.go", "package p\ntype Flag bool\nconst true = false\nconst A Flag = true\n")
     if (!file) throw new Error("parse failed")
-    const facts = goGraphFacts([file])
+    const facts = inspectGoPackage([file])
     const group = facts?.declarations.get("Flag")?.references[0]
     const dependencies = facts?.declarations.get(group!.name)?.references ?? []
     expect(
@@ -114,7 +115,7 @@ describe("Go named type identity and source", () => {
     const root = inspectGoFile("root.go", "package p\ntype Root struct { Value string }\n")
     const sibling = inspectGoFile("string.go", "package p\ntype string int\n")
     if (root === undefined || sibling === undefined) throw new Error("parse")
-    expect(goGraphFacts([root, sibling])?.declarations.get("Root")?.references).toEqual([
+    expect(inspectGoPackage([root, sibling])?.declarations.get("Root")?.references).toEqual([
       { kind: "named", name: "string" }
     ])
   })
@@ -135,7 +136,7 @@ describe("Go named type identity and source", () => {
       inspectGoFile("second.go", "package p\nconst (\n C Status = iota\n D\n)\n")
     ]
     if (files.some((file) => file === undefined)) throw new Error("parse")
-    const facts = goGraphFacts(files.filter((file) => file !== undefined))
+    const facts = inspectGoPackage(files.filter((file) => file !== undefined))
     const targets = facts?.declarations.get("Status")?.references ?? []
     expect(targets).toHaveLength(2)
     expect(new Set(targets.map((reference) => reference.name)).size).toBe(2)
@@ -148,7 +149,7 @@ describe("Go named type identity and source", () => {
     const root = inspectGoFile("root.go", "package p\ntype Status int\n")
     const constants = inspectGoFile("const.go", "package p\nconst (\n A Status = iota\n B = A\n)\nconst C = B\n")
     if (root === undefined || constants === undefined) throw new Error("parse")
-    const facts = goGraphFacts([root, constants])
+    const facts = inspectGoPackage([root, constants])
     const groups = facts?.declarations.get("Status")?.references ?? []
     expect(groups).toHaveLength(2)
     const second = facts?.declarations.get(groups[1]!.name)
@@ -162,7 +163,7 @@ describe("Go named type identity and source", () => {
       'package p\nimport "external"\ntype Status int\ntype Other int\nconst (\n A Status = 1\n B Other = Other(2)\n C external.Kind = 3\n)\n'
     )
     if (file === undefined) throw new Error("parse")
-    const facts = goGraphFacts([file])
+    const facts = inspectGoPackage([file])
     const target = facts?.declarations.get("Status")?.references[0]
     expect(facts?.declarations.get(target!.name)?.references).toEqual([
       { kind: "named", name: "Status" },
@@ -174,7 +175,7 @@ describe("Go named type identity and source", () => {
     const root = inspectGoFile("root.go", "package p\ntype Status int\nconst A Status = iota\n")
     const shadow = inspectGoFile("shadow.go", "package p\nconst iota = 7\n")
     if (root === undefined || shadow === undefined) throw new Error("parse")
-    const facts = goGraphFacts([root, shadow])
+    const facts = inspectGoPackage([root, shadow])
     const group = facts?.declarations.get("Status")?.references[0]
     const dependency = facts?.declarations.get(group!.name)?.references.find((reference) => reference.name !== "Status")
     expect(facts?.declarations.get(dependency!.name)?.artifact.source).toBe("const iota = 7")
@@ -182,7 +183,7 @@ describe("Go named type identity and source", () => {
   it("captures a named local array bound from its complete original group", () => {
     const file = inspectGoFile("array.go", "package p\ntype Buffer [Size]byte\nconst (\n Size = 8\n Other = 16\n)\n")
     if (file === undefined) throw new Error("parse")
-    const facts = goGraphFacts([file])
+    const facts = inspectGoPackage([file])
     const dependency = facts?.declarations.get("Buffer")?.references[0]
     expect(facts?.declarations.get(dependency!.name)?.artifact.source).toBe("const (\n Size = 8\n Other = 16\n)")
   })
@@ -193,7 +194,7 @@ describe("Go named type identity and source", () => {
       'package p\nimport iota "example.org/external"\nconst A Status = iota.External\n'
     )
     if (root === undefined || constants === undefined) throw new Error("parse")
-    const facts = goGraphFacts([root, constants])
+    const facts = inspectGoPackage([root, constants])
     const target = facts?.declarations.get("Status")?.references[0]
     expect(facts?.declarations.get(target!.name)?.references).toContainEqual({
       kind: "unsupported",
@@ -206,7 +207,7 @@ describe("Go named type identity and source", () => {
       'package p\nimport "external"\ntype Status int\ntype Alias = Status\nconst (\n A Alias = 1\n U = 2\n)\nconst B = A + 1\nconst Comparison = A == external.Limit\nconst Unrelated = U\n'
     )
     if (file === undefined) throw new Error("parse")
-    const facts = goGraphFacts([file])
+    const facts = inspectGoPackage([file])
     const groups = facts?.declarations
       .get("Status")
       ?.references.map((reference) => facts?.declarations.get(reference.name)?.artifact.source)
@@ -219,7 +220,7 @@ describe("Go named type identity and source", () => {
     )
     if (file === undefined) throw new Error("parse")
     expect(file.bindings).toEqual(["Receipt", "Result", "Other"])
-    expect(goGraphFacts([file])).toBeDefined()
+    expect(inspectGoPackage([file])).toBeDefined()
   })
   it("does not rewrite the pinned grammar's compact constant block gap", () => {
     const parsed = parseGoTypes("model.go", "package p\ntype Status int\nconst (A Status = iota; B)\n")

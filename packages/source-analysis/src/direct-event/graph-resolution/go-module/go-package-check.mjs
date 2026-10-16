@@ -1,53 +1,129 @@
 import assert from "node:assert/strict"
-import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { pathToFileURL } from "node:url"
-import { inspectGoFile, goGraphFacts } from "../../languages/go.ts"
+import { inspectGoFile } from "@hapsland/source-analysis/direct-event/languages/go"
+import { inspectGoPackage, packageSpellings, projectGoFile } from "@hapsland/source-analysis/testing/go-package"
+import core from "../../../../dist/direct-event/graph-resolution/go-artifact-core.js"
 import { goFileFacts } from "./parser-facts.ts"
-import { factDeclaration } from "../frontend-codec.ts"
-import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-
-// Mechanical transport: emitter-relative nominal paths and Nat representation.
-const transport = (value) => {
-  if (typeof value === "number") return BigInt(value)
-  if (Array.isArray(value)) return value.map(transport)
-  if (value && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        key === "$" && typeof item === "string"
-          ? item.replace(/^Types\./u, "../Types.").replace(/^traversal\/core\./u, "../traversal/core.")
-          : transport(item)
-      ])
-    )
-  return value
-}
-const spellings = (files) => {
-  const strings = new Set()
-  const visit = (value) => {
-    if (typeof value === "string") strings.add(value)
-    else if (Array.isArray(value)) value.forEach(visit)
-    else if (value && typeof value === "object") Object.values(value).forEach(visit)
+import { list } from "@hapsland/source-artifacts/direct-event/value/codec"
+const named = (name) => ({ kind: "named", name })
+const unsupported = (name) => ({ kind: "unsupported", name })
+const declaration = (file, name, references = []) => [file, name, references]
+const inferred = (name, sourcePath) => (sourcePath === undefined ? { name } : { name, sourcePath })
+const cycle = (work) => ({
+  work,
+  declarations: [declaration(0, "Root", [named("@0:0")]), declaration(0, "@0:0", [named("Root")])],
+  constants: [["@0:0", [inferred("Root")]]]
+})
+// Finite authored package plans. @file:group selects parser-supplied artifact
+// identity only. Bindings, reference order, inference and work are explicit.
+const plans = [
+  { work: 0, declarations: [], constants: [] },
+  { work: 2, declarations: [declaration(0, "Root")], constants: [] },
+  cycle(10),
+  cycle(21),
+  cycle(34),
+  { work: 12, declarations: [declaration(0, "Root"), declaration(0, "@0:0")], constants: [["@0:0", []]] },
+  {
+    work: 15,
+    declarations: [
+      declaration(0, "Root", [named("@0:0")]),
+      declaration(0, "Alias", [named("Root"), named("@0:0")]),
+      declaration(0, "@0:0", [named("Alias")])
+    ],
+    constants: [["@0:0", [inferred("Alias"), inferred("Root")]]]
+  },
+  {
+    work: 15,
+    declarations: [
+      declaration(0, "A", [named("B"), named("@0:0")]),
+      declaration(0, "B", [named("A"), named("@0:0")]),
+      declaration(0, "@0:0", [named("A")])
+    ],
+    constants: [["@0:0", [inferred("A"), inferred("B")]]]
+  },
+  cycle(32),
+  cycle(31),
+  {
+    work: 18,
+    declarations: [
+      declaration(0, "Root", [named("@0:0")]),
+      declaration(0, "@0:0", [named("Root"), unsupported("min")])
+    ],
+    constants: [["@0:0", [inferred("Root")]]]
+  },
+  cycle(36),
+  {
+    work: 10,
+    declarations: [
+      declaration(0, "Alias", [unsupported("x.T"), named("@0:0")]),
+      declaration(0, "@0:0", [named("Alias")])
+    ],
+    constants: [["@0:0", [inferred("Alias"), inferred("x.T", "f0.go")]]]
+  },
+  {
+    work: 14,
+    declarations: [declaration(0, "@0:0", [unsupported("x.T")]), declaration(1, "@1:0", [unsupported("x.T")])],
+    constants: [
+      ["@0:0", [inferred("x.T", "f0.go")]],
+      ["@1:0", [inferred("x.T", "f1.go")]]
+    ]
+  },
+  {
+    work: 7,
+    declarations: [declaration(0, "@0:0", [unsupported("α.Τ")])],
+    constants: [["@0:0", [inferred("α.Τ", "f0.go")]]]
+  },
+  {
+    work: 10,
+    declarations: [declaration(0, "Root", [named("@1:0")]), declaration(1, "@1:0", [named("Root")])],
+    constants: [["@1:0", [inferred("Root")]]]
+  },
+  undefined,
+  { work: 7, declarations: [declaration(0, "@0:0")], constants: [["@0:0", []]] },
+  cycle(16),
+  {
+    work: 8,
+    declarations: [declaration(0, "Root", [named("@0:0")]), declaration(0, "@0:0")],
+    constants: [["@0:0", []]]
+  },
+  {
+    work: 12,
+    declarations: [
+      declaration(0, "int", [named("@0:0")]),
+      declaration(0, "Root", [named("int")]),
+      declaration(0, "@0:0", [named("int")])
+    ],
+    constants: [["@0:0", [inferred("int")]]]
+  },
+  {
+    work: 8,
+    declarations: [declaration(0, "Root", [unsupported("T")]), declaration(0, "@0:0", [unsupported("T")])],
+    constants: [["@0:0", []]]
+  },
+  {
+    work: 7,
+    declarations: [declaration(0, "Root"), declaration(0, "@0:0", [unsupported("Root")])],
+    constants: [["@0:0", []]]
+  },
+  cycle(15),
+  cycle(30),
+  cycle(14),
+  {
+    work: 10,
+    declarations: [
+      declaration(0, "Alias", [unsupported("x.T"), named("@1:0")]),
+      declaration(1, "@1:0", [named("Alias")])
+    ],
+    constants: [["@1:0", [inferred("Alias"), inferred("x.T", "f0.go")]]]
+  },
+  {
+    work: 14,
+    declarations: [declaration(0, "@0:0", [unsupported("x.C")]), declaration(1, "@1:0", [named("@0:0")])],
+    constants: [
+      ["@0:0", [inferred("x.C", "f0.go")]],
+      ["@1:0", [inferred("x.C", "f0.go")]]
+    ]
   }
-  files.forEach(visit)
-  return list(
-    [...strings].map((text) => ({
-      $: "Input.Spelling",
-      text,
-      characters: list(
-        [...text].map((text) => ({
-          $: "Input.Character",
-          text,
-          letter: /^\p{L}$/u.test(text),
-          number: /^\p{N}$/u.test(text),
-          uppercase: /^\p{Lu}$/u.test(text)
-        }))
-      )
-    }))
-  )
-}
+]
 const cases = [
   [],
   ["package p\ntype Root int"],
@@ -78,77 +154,82 @@ const cases = [
   ['package p\nimport x "example/x"\ntype Alias = x.T', "package p\nconst A Alias = 1"],
   ['package p\nimport x "example/x"\nconst A = x.C', "package p\nconst B = A"]
 ]
-const temporary = mkdtempSync(join(tmpdir(), "hapsland-go-package-"))
-try {
-  const output = join(temporary, "package.mjs")
-  execFileSync("bend", [join(import.meta.dirname, "Package.bend"), "-o", output], { timeout: 10000 })
-  const core = (await import(pathToFileURL(output))).default
-  const missingFacts = [goFileFacts(inspectGoFile("missing.go", "package p\ntype Root int\nconst A Root = 1\n"))]
-  assert.equal(core.run(list(missingFacts.map(transport)), 100000n, list([])).$, "Refused")
-  let comparisons = 1
-  for (const [index, sources] of cases.entries()) {
-    const files = sources.map((source, i) =>
-      inspectGoFile(`f${i}.go`, source.replaceAll("; ", "\n").replaceAll(" )", "\n)") + "\n")
-    )
-    assert.ok(files.every(Boolean), `parser fixture ${index}`)
-    const facts = files.map(goFileFacts)
-    const expected = goGraphFacts(files, 100000)
-    const budgets = expected
-      ? [
-          ...new Set([
-            0,
-            1,
-            Math.max(0, expected.discoveryWork - 1),
-            expected.discoveryWork,
-            expected.discoveryWork + 1,
-            100000
-          ])
-        ]
-      : [0, 1, 128, 100000]
-    for (const budget of budgets) {
-      const native = goGraphFacts(files, budget)
-      const actual = core.run(list(facts.map(transport)), BigInt(budget), spellings(facts))
-      if (native === undefined) assert.equal(actual.$, "Refused", `fixture ${index} budget ${budget}`)
-      else {
-        assert.equal(actual.$, "PackageFacts", `fixture ${index} budget ${budget}`)
-        assert.equal(actual.discovery_work, BigInt(native.discoveryWork), `work ${index}/${budget}`)
-        const declarations = unlist(actual.declarations).map(({ value, location }) => ({ value, location }))
-        const expectedDeclarations = [...native.declarations].map(([key, value]) => ({
-          value: transport(factDeclaration(key, value)),
-          location:
-            value.location === undefined
-              ? { $: "None" }
-              : transport({
-                  $: "Some",
-                  value: {
-                    $: "Types.GoSourceLocation",
-                    start: { $: "Types.GoSourcePosition", ...value.location.start },
-                    end: { $: "Types.GoSourcePosition", ...value.location.end }
-                  }
-                })
-        }))
-        assert.deepEqual(declarations, expectedDeclarations, `declarations ${index}/${budget}`)
-        const constantTypes = unlist(actual.constant_types).map(({ name, values }) => [
-          name,
-          unlist(values).map((value) =>
-            value.$ === "LocalType" ? { name: value.name } : { name: value.name, sourcePath: value.source_path }
-          )
-        ])
-        assert.deepEqual(constantTypes, [...native.constantTypes], `inferred ${index}/${budget}`)
-        assert.equal(native.imports.size, 0)
-      }
-      comparisons++
-    }
-  }
-  console.log(
-    JSON.stringify({
-      passed: true,
-      cases: comparisons,
-      packages: cases.length,
-      scope:
-        "actual native whole goGraphFacts ordered outputs/work/refusal; no universal proof or whole Go session adoption"
-    })
+
+assert.equal(cases.length, plans.length)
+let comparisons = 0
+for (const [index, sources] of cases.entries()) {
+  const files = sources.map((source, i) =>
+    inspectGoFile(`f${i}.go`, source.replaceAll("; ", "\n").replaceAll(" )", "\n)") + "\n")
   )
-} finally {
-  rmSync(temporary, { recursive: true, force: true })
+  assert.ok(files.every(Boolean), "parser fixture " + index)
+  const plan = plans[index]
+  const identity = (name) => {
+    if (!name.startsWith("@")) return name
+    const [file, group] = name.slice(1).split(":").map(Number)
+    return files[file].constants[group].artifact.name
+  }
+  const expected = plan && {
+    declarations: new Map(
+      plan.declarations.map(([file, name, references]) => {
+        const key = identity(name),
+          parsed = files[file]
+        const source = [...parsed.types, ...parsed.constants].find(({ artifact }) => artifact.name === key)
+        assert.ok(source, "authored fixture metadata")
+        return [
+          key,
+          {
+            artifact: source.artifact,
+            exported: source.exported ?? false,
+            references: references.map((ref) => ({ ...ref, name: identity(ref.name) })),
+            ...(source.location ? { location: source.location } : {})
+          }
+        ]
+      })
+    ),
+    imports: new Map(),
+    discoveryWork: plan.work,
+    constantTypes: new Map(plan.constants.map(([name, values]) => [identity(name), values]))
+  }
+  const budgets = [
+    ...new Set([0, 1, ...(plan ? [Math.max(0, plan.work - 1), plan.work, plan.work + 1] : []), 127, 128, 129, 100000])
+  ]
+  for (const budget of budgets) {
+    const actual = inspectGoPackage(files, budget)
+    const admitted = plan && budget >= plan.work ? expected : undefined
+    assert.deepEqual(actual, admitted, `fixture ${index} budget ${budget}`)
+    if (admitted)
+      for (const [name, value] of admitted.declarations)
+        assert.equal(
+          actual.declarations.get(name).artifact,
+          value.artifact,
+          `fixture ${index} parser artifact identity ${name}`
+        )
+    comparisons++
+  }
 }
+for (const source of ["package p\ntype Root int\n", "package p\ntype Root int\nconst A Root = 1\n"]) {
+  const file = inspectGoFile("projection.go", source)
+  const projection = projectGoFile(file)
+  assert.ok(projection)
+  for (const type of file.types) {
+    const projected = projection.declarations.get(type.artifact.name)
+    assert.equal(projected, type, "Source projection retains original declaration")
+    assert.equal(projected.artifact, type.artifact)
+    assert.equal(projected.references, type.references)
+  }
+}
+const missing = goFileFacts(inspectGoFile("missing.go", "package p\ntype Root int\nconst A Root = 1\n"))
+assert.equal(core.package_facts(list([missing]), 100000, list([])).$, "go-module/Package.Refused")
+assert.equal(
+  core.package_facts(list([missing]), 100000, packageSpellings([missing])).$,
+  "go-module/Package.PackageFacts"
+)
+console.log(
+  JSON.stringify({
+    passed: true,
+    cases: comparisons + 2,
+    packageFixtures: cases.length,
+    scope:
+      "Packaged GoPackage against authored full declaration/reference/inference/work plans at exact budget boundaries; missing spelling refusal. Native parser metadata is shared; finite evidence, not universal correspondence."
+  })
+)
