@@ -1978,6 +1978,18 @@ def issue_delivery(
       }
     case _ _: Rejected{state, WrongPhase{}}
 
+def complete_collection_selection(
+  state: State,
+  child: Child,
+  result_handle: Nat,
+  selection: DeliverySelection
+) -> Step:
+  match selection:
+    case NoDeliverySelection{}: terminal_allowed(True{}, state, child, result_handle)
+    case DeliverySelection{token, advice, notices}:
+      issue_delivery(state, child, result_handle,
+        PrepareDeliveryIssued{DeliverySelection{token, advice, notices}})
+
 def complete_delivery_permission(
   state: State,
   +child: Child,
@@ -1986,7 +1998,7 @@ def complete_delivery_permission(
 ) -> Step:
   match child:
     case Child{DeliveryScope{_, _, _, CollectDelivery{}, _}, _, _, _, _, _, _, _}:
-      issue_delivery(state, child, result_handle, PrepareDeliveryIssued{selection})
+      complete_collection_selection(state, child, result_handle, selection)
     case Child{DeliveryScope{_, _, _, PrepareDelivery{original}, _}, _, _, _, _, _, _, _}:
       issue_delivery(state, child, result_handle, FinalizeDeliveryIssued{original})
     case Child{DeliveryScope{_, _, _, FinalizeDelivery{_}, _}, _, _, _, _, _, _, _}:

@@ -21,9 +21,9 @@ consumer and acceptance checks. Every action must close a concrete obstacle on
 that path. Before introducing a new representation or a chain of supporting
 laws, explain why it reaches the connected subsystem sooner.
 
-Preserve the original guarantees; apply the owner’s 2026-10-16 whole
-Preparation exception (≤3×) below; otherwise require performance parity;
-measure build and execution every 30 minutes. Remove the superseded TypeScript
+Preserve the original guarantees. The owner allows ≤3× performance loss during
+migration; report strict parity separately and repair performance later.
+Measure build and execution every 30 minutes. Remove the superseded TypeScript
 algorithms and product orchestration. Completion means connected Bend, deleted
 superseded TypeScript and passing local checks of the composed flow. Counts of
 migrated decisions, helpers or proofs are intermediate evidence.
@@ -179,19 +179,18 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 
 ### Current qualification limits
 
-- Rope compile/stack/count/flatten/stable-sort and original tree laws pass without
-  caller validity/budget premises. Batch protocol/actual-machine laws and finite
-  malformed-stream, prefix throw/abort and late raw-token controls pass.
+- Rope/tree laws pass without caller validity/budget premises. Batch protocol/machine
+  laws and malformed-stream/throw/abort/late-token controls pass.
   Production imports no proof/spec owner.
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Collection (`6efb6307`+worktree), 2026-10-16 22:52 UTC: analyzer/build
-  **.4620×/.8984×**, 17 pairs each, build23/46 cached, inputs unchanged.
-  Mean ratios; no causal speedup claim. TS/Bend median[range] seconds:
-  execution .0925[.0619,.4795]/.0542[.0443,.0879];
-  build3.591[3.341,5.033]/3.150[2.938,4.759].
-  Cadence: prior32.5,31.3,42.1min; latest29.3/29.3min.
+- Collection (`916aa4c1`+root custody), 2026-10-16 23:19/20 UTC: analyzer/build
+  **.7461×/1.0561×**, 17 frozen pairs; build23/46 cached. Build strict parity
+  failed (runner limit1); within owner’s ≤3× budget. No causal speedup claim.
+  TS/Bend median[range] seconds: execution .0919[.0749,.1330]/.0761[.0488,.1396];
+  build5.080[3.602,6.219]/4.890[3.421,9.325]. Load10/12 cores; scope analyzer/build.
+  Cadence: prior32.5,31.3,42.1min; latest27.5/27.5min.
   Baseline prepare refused double serialization; preserved its serialized producer
   environment, then prepare/warm23/46 passed before measurement.
   First workspace preparation timed out60s before measurement; registered writers stopped,
@@ -246,15 +245,14 @@ Current path:
    Public219/7 files PASS: Deferred replaces fixture spin starving Effect.
    Prior aborted300s; saturated30s timeout→18.86s PASS; latest26.69s.
    Canonical root and whole laws remain open.
-2. Receipt/native custody PASS1408 assertions: pending cancellation, registration/
-   interruption, close/observer faults and cleanup retry. Claimed successors survive
-   predecessor cleanup. Whole laws and production delivery caller remain open.
-3. Connect prepare/finalize, reuse evaluated-input freshness, delete workflow/policy
-   loops. Prove whole ordered trace, reply fencing and lease/finish accounting using
-   existing atomic primitives.
+2. Canonical root custody/empty terminal PASS1416 across Await; cancellation precedes cleanup,
+   retained across launch/registration faults. Claimed successors survive old cleanup.
+   Production root caller and whole laws remain open.
+3. Thread receipts via request-local ResponseContext/local Effect scope; connect
+   prepare/finalize, reuse freshness and delete workflow/policy loops. Prove whole
+   ordered trace/reply fencing/lease/finish using existing atomic primitives.
 4. Qualify real IPC overlap/disconnect/stale/credential/10KiB/four-slot/uncertain-reoffer
-   and output regressions, plus current performance policy. Baseline2e73cc47:
-   collection/terminal/Claude/composed delivery102 tests in4 files PASS. Unit not accepted.
+   and output regressions plus whole-path performance. Unit not accepted.
 
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under

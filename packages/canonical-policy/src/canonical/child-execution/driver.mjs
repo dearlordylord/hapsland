@@ -117,10 +117,11 @@ export function createChildExecutionDriver({
   protocol
 }) {
   /**
-   * @typedef {{receipt: DeliveryHandoff, projected: P, cleanup: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<unknown>, cleaned: boolean, retained: boolean, successor?: DeliveryHandoff}} DeliveryInput
+   * @typedef {{cleanup: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<unknown>, cleaned: boolean, retained: boolean, successor?: DeliveryHandoff}} DeliveryCustody
+   * @typedef {DeliveryCustody & {receipt: DeliveryHandoff, projected: P}} DeliveryInput
    * @typedef {P | ConstructionFailure} ResultPayload
    * @typedef {{value: Reply} | {error: unknown} | {revoked: true}} ReplyPayload
-   * @typedef {{kind: "state", value: C} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: I | P | AdviceInput | undefined, delivery?: DeliveryInput, successor?: DeliveryHandoff} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined} | {kind: "delivery-input", value: DeliveryInput}} Payload
+   * @typedef {{kind: "state", value: C} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: I | P | AdviceInput | undefined, custody?: DeliveryCustody, successor?: DeliveryHandoff} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined} | {kind: "delivery-input", value: DeliveryInput}} Payload
    * @typedef {Payload & {invocation: number}} HeldResource
    * @typedef {import("./contract.ts").Outcome<A>} TerminalOutcome
    */
@@ -325,9 +326,9 @@ export function createChildExecutionDriver({
   // Keep successful suboperations so a later cleanup retry cannot replay them.
   /** @type {Map<number, CancellationCleanup>} */
   const cancellationCleanup = new Map()
-  /** @param {number} handle @param {number} invocation @param {DeliveryInput} input */
+  /** @param {number} handle @param {number} invocation @param {DeliveryCustody} input */
   const cleanDeliveryFlow = function* (handle, invocation, input) {
-    if (!input.cleaned) {
+    if (!input.cleaned && !input.successor) {
       yield* input.cleanup()
       input.cleaned = true
     }
@@ -339,7 +340,7 @@ export function createChildExecutionDriver({
     }
     release(handle, invocation)
   }
-  /** @param {number} handle @param {number} invocation @param {DeliveryInput} input */
+  /** @param {number} handle @param {number} invocation @param {DeliveryCustody} input */
   const retainDeliveryCleanup = (handle, invocation, input) => {
     if (input.retained || input.successor) return
     registry.retainConstructionCleanupFlow(invocation, undefined, function* () {
@@ -356,8 +357,11 @@ export function createChildExecutionDriver({
       () => engine(invocation).disposeInvocation(invocation),
       () => {
         for (const [handle, held] of resources)
-          if (held.invocation === invocation && held.kind === "delivery-input")
-            retainDeliveryCleanup(handle, invocation, held.value)
+          if (held.invocation === invocation) {
+            if (held.kind === "delivery-input") retainDeliveryCleanup(handle, invocation, held.value)
+            else if (held.kind === "input" && held.custody && !sessions.has(invocation))
+              retainDeliveryCleanup(handle, invocation, held.custody)
+          }
         const pending = launches.get(invocation)
         if (pending) {
           release(pending.input_handle, invocation)
@@ -416,7 +420,7 @@ export function createChildExecutionDriver({
               : undefined
           if (input?.kind === "input") {
             input.successor = receipt
-            if (input.delivery) input.delivery.successor = receipt
+            if (input.custody) input.custody.successor = receipt
           }
           finished.set(invocation, transfer.accepted)
           stats.accepted++
@@ -639,7 +643,12 @@ export function createChildExecutionDriver({
       sessions.set(invocation, session)
       machines.set(invocation, (selectMachine ? selectMachine(input, session) : undefined) ?? machine)
       if (!delivery) {
-        resources.set(launch.input_handle, { invocation, kind: "input", value: input })
+        resources.set(launch.input_handle, {
+          invocation,
+          kind: "input",
+          value: input,
+          ...(nativeInput?.kind === "input" && nativeInput.custody ? { custody: nativeInput.custody } : {})
+        })
         nativeInput = resources.get(launch.input_handle)
       }
       invocationSignals.set(invocation, options.signal)
@@ -651,7 +660,7 @@ export function createChildExecutionDriver({
           // resource remains available to cancellation without a session.
           if (delivery) {
             if (!requireActive(invocation)) throw new Error("Delivery cancelled before registration")
-            resources.set(launch.input_handle, { invocation, kind: "input", value: input, delivery })
+            resources.set(launch.input_handle, { invocation, kind: "input", value: input, custody: delivery })
             nativeInput = resources.get(launch.input_handle)
           }
           /** @type {Failure | undefined} */
@@ -687,7 +696,9 @@ export function createChildExecutionDriver({
             try {
               settleInInvocation(invocation, 0, protocol.initial(engine(invocation), input))
             } finally {
-              release(launch.input_handle, invocation)
+              // Custody must remain reachable when a later provider completion
+              // issues the successor. Ordinary copied inputs can retire now.
+              if (nativeInput?.kind !== "input" || !nativeInput.custody) release(launch.input_handle, invocation)
             }
             while (!finished.has(invocation)) {
               applyInInvocation(invoke("provider_start", invocation))
@@ -885,6 +896,10 @@ export function createChildExecutionDriver({
           if (child.$ === "Some" && owner.child_active(child.value))
             throw new Error("Finalization has no closed Canonical owner")
         }
+        // A root that did not transfer custody must settle its lease before
+        // its input can disappear, including empty success and registration failure.
+        if (!delivery && nativeInput?.kind === "input" && nativeInput.custody)
+          yield* cleanDeliveryFlow(launch.input_handle, invocation, nativeInput.custody)
         releaseInvocation()
       } catch (error) {
         attemptFailures.push({ phase: "finalization", error })
@@ -1079,12 +1094,16 @@ export function createChildExecutionDriver({
         throw error
       }
     },
-    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliveryContext} context @returns {number} */
-    allocateCollectionInvocation(context) {
+    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliveryContext} context @param {DeliveryCustody["cleanup"]} cleanup @returns {number} */
+    allocateCollectionInvocation(context, cleanup) {
       const invocation = current().next_invocation
       if (!Number.isSafeInteger(invocation) || invocation < 1)
         throw new RangeError("Invocation exceeds exact native ID range")
-      const inputId = save(invocation, { kind: "input", value: undefined })
+      const inputId = save(invocation, {
+        kind: "input",
+        value: undefined,
+        custody: { cleanup, cleaned: false, retained: false }
+      })
       try {
         apply(invoke("launch_collection", context, inputId))
         return invocation
@@ -1192,7 +1211,10 @@ export function createChildExecutionDriver({
     /** @param {number} invocation @param {{session?: S | undefined, closePending?: boolean, inputHandle?: number}} [cleanup] */
     constructionFailed(invocation, { session, closePending = false, inputHandle } = {}) {
       const ownerInvocation = Number(BigInt(invocation))
-      let cancelCommitted = false
+      const held = inputHandle === undefined ? undefined : resources.get(inputHandle)
+      const custody = held?.kind === "input" ? held.custody : undefined
+      const child = owner.find(ownerInvocation, current().children)
+      let cancelCommitted = !!custody && (child.$ === "None" || !owner.child_active(child.value))
       /** @type {Extract<Step, {$: "Advanced"}>["outputs"] | undefined} */
       let pendingOutputs
       const attempt = () => {
@@ -1235,13 +1257,22 @@ export function createChildExecutionDriver({
           throw nativeFailureAggregate(failures, "Construction cleanup failed", { cause: failures[0] })
         // A committed launch can fail before its action enters launches. Only
         // release the allocator's exact input after cancellation has settled.
-        if (inputHandle !== undefined && resources.has(inputHandle)) release(inputHandle, ownerInvocation)
+        if (!custody && inputHandle !== undefined && resources.has(inputHandle)) release(inputHandle, ownerInvocation)
         cancellationCleanup.delete(ownerInvocation)
+      }
+      if (custody && inputHandle !== undefined) {
+        // Keep one pre-session owner. Retry cancellation before touching the
+        // physical lease, even when publication failed before creating a child.
+        registry.retainConstructionCleanupFlow(invocation, undefined, function* () {
+          attempt()
+          yield* cleanDeliveryFlow(inputHandle, ownerInvocation, custody)
+        })
+        custody.retained = true
       }
       try {
         attempt()
       } catch (error) {
-        registry.retainConstructionCleanup(invocation, session, attempt)
+        if (!custody) registry.retainConstructionCleanup(invocation, session, attempt)
         throw error
       }
     },

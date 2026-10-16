@@ -91,10 +91,15 @@ try {
       round: { $: "Some", value: 1 },
       local_delivery: false
     }
-    const selection = { $: "NoDeliverySelection" }
+    const selection = {
+      $: "DeliverySelection",
+      token: 93,
+      advice: { $: "Con", head: 12, tail: { $: "Nil" } },
+      notices: { $: "Nil" }
+    }
     const fixture = (fault = {}) => {
       const registry = createNativeSessionRegistry()
-      const physical = { identity: {}, releases: 0, attempts: 0, handoffs: [] }
+      const physical = { identity: {}, releases: 0, attempts: 0, cancelAttempts: 0, handoffs: [] }
       const closed = []
       const cleanup = function* () {
         physical.attempts++
@@ -103,9 +108,17 @@ try {
       }
       const machine = {
         initial: (input) => input,
-        view: (input) => ({ kind: "delivery", view: { $: "Finished" }, input }),
-        resume() {
-          throw new Error("No provider in custody fixture")
+        view: (input) => ({
+          kind: "delivery",
+          view: input.done
+            ? { $: "Finished" }
+            : { $: "Types.AwaitService", request: { invocation: input.invocation, id: 1 } },
+          input
+        }),
+        resume(input, reply) {
+          assert.equal(reply.invocation, input.invocation)
+          assert.equal(reply.id, 1)
+          return { ...input, done: true }
         },
         disposeInvocation() {},
         retainedHandles: 0
@@ -120,29 +133,42 @@ try {
         revoke() {}
       })
       const driver = createChildExecutionDriver({
-        owner: m,
-        initialState: fresh(),
-        registry: fault.registration
-          ? {
-              ...registry,
-              get size() {
-                return registry.size
-              },
-              get pendingCleanup() {
-                return registry.pendingCleanup
-              },
-              *runOutcomeFlow(session, task) {
-                if (session.invocation !== 1) throw new Error("delivery registration fault")
-                return yield* registry.runOutcomeFlow(session, task)
-              }
-            }
-          : registry,
-        machine,
-        foreign: async () => {
-          throw new Error("No external provider")
+        owner: {
+          ...m,
+          launch_collection(...args) {
+            if (fault.launchBefore) throw new Error("collection launch fault")
+            return m.launch_collection(...args)
+          },
+          cancel(...args) {
+            if (fault.cancelBefore && !physical.cancelAttempts++) throw new Error("collection cancel fault")
+            return m.cancel(...args)
+          }
         },
+        initialState: fresh(),
+        registry:
+          fault.registration || fault.rootRegistration
+            ? {
+                ...registry,
+                get size() {
+                  return registry.size
+                },
+                get pendingCleanup() {
+                  return registry.pendingCleanup
+                },
+                *runOutcomeFlow(session, task) {
+                  if (session.invocation !== 1 || fault.rootRegistration) throw new Error("delivery registration fault")
+                  return yield* registry.runOutcomeFlow(session, task)
+                }
+              }
+            : registry,
+        machine,
+        foreign: async ([request]) => ({ invocation: request.invocation, id: request.id }),
         hooks: {
+          beforeProvider({ invocation, driver }) {
+            if (fault.cancelProvider) driver.cancel(invocation)
+          },
           afterAction({ command, driver }) {
+            if (command.$ === "Launch" && fault.launchAfter) throw new Error("collection launch observer fault")
             if (command.$ === "IssueDeliveryHandoff" && command.invocation === 2)
               fault.afterTransfer?.(physical.handoffs.at(-1), driver)
             if (fault.observer && command.$ === "IssueDeliveryHandoff") throw new Error("delivery observer fault")
@@ -152,9 +178,13 @@ try {
           initial: (_machine, input) => machine.initial(input),
           view: machine.view,
           resume: machine.resume,
-          awaitRequest: () => undefined,
+          awaitRequest: (projection) =>
+            projection.view.$ === "Types.AwaitService" ? projection.view.request : undefined,
           installation: () => ({ method: "install" }),
-          terminal: () => ({ method: "complete_delivery", selection }),
+          terminal: () => ({
+            method: "complete_delivery",
+            selection: fault.emptyRoot ? { $: "NoDeliverySelection" } : selection
+          }),
           preparation() {
             throw new Error("Not Preparation")
           },
@@ -169,21 +199,103 @@ try {
         }
       })
       const issue = async () => {
-        const invocation = driver.allocateCollectionInvocation(context)
-        try {
-          const outcome = await Effect.runPromise(driver.driveEffect(session(invocation), { invocation, physical }))
-          return outcome.handoff
-        } catch (error) {
-          // Original request owns the capability until successful handoff.
-          if (!physical.releases) physical.releases++
-          throw error
-        }
+        const invocation = driver.allocateCollectionInvocation(context, cleanup)
+        const outcome = await Effect.runPromise(driver.driveEffect(session(invocation), { invocation, physical }))
+        return outcome.handoff
       }
       const construct = function* (projection, invocation) {
         assert.equal(projection.input.physical, physical)
         return { session: session(invocation), input: { invocation, physical } }
       }
-      return { registry, physical, driver, session, issue, construct, closed }
+      return {
+        registry,
+        physical,
+        driver,
+        session,
+        issue,
+        construct,
+        closed,
+        allocate: () => driver.allocateCollectionInvocation(context, cleanup)
+      }
+    }
+    {
+      const f = fixture({ emptyRoot: true })
+      assert.equal(await f.issue(), undefined)
+      assert.equal(f.physical.handoffs.length, 0)
+      assert.equal(f.physical.attempts, 1)
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.driver.state.next_invocation, 2)
+      assert.equal(f.driver.resources.payloads, 0)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.attempts, 1)
+    }
+    {
+      const f = fixture({ cancelBefore: true }),
+        invocation = f.allocate()
+      const inputHandle = m.find(invocation, f.driver.state.children).value.scope.input_handle
+      assert.throws(
+        () =>
+          f.driver.constructionFailed(invocation, { session: f.session(invocation), closePending: true, inputHandle }),
+        /collection cancel fault/
+      )
+      assert.equal(m.child_active(m.find(invocation, f.driver.state.children).value), true)
+      assert.equal(f.physical.attempts, 0)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(m.child_active(m.find(invocation, f.driver.state.children).value), false)
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.physical.attempts, 1)
+      assert.equal(f.registry.pendingCleanup, 0)
+      assert.equal(f.driver.resources.payloads, 0)
+    }
+    {
+      const f = fixture({ cancelProvider: true })
+      assert.equal(await f.issue(), undefined)
+      assert.equal(f.physical.handoffs.length, 0)
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.physical.attempts, 1)
+      assert.equal(f.driver.resources.payloads, 0)
+    }
+    {
+      const f = fixture(),
+        invocation = f.allocate(),
+        cancellation = new AbortController()
+      cancellation.abort()
+      const outcome = await Effect.runPromiseExit(
+        f.driver.driveEffect(
+          f.session(invocation),
+          { invocation, physical: f.physical },
+          { signal: cancellation.signal }
+        )
+      )
+      assert.equal(outcome._tag, "Success")
+      assert.equal(outcome.value.failure.$, "Types.InvocationCancelled")
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.physical.handoffs.length, 0)
+      assert.equal(f.driver.resources.payloads, 0)
+      assert.equal(f.registry.pendingCleanup, 0)
+    }
+    for (const fault of ["launchBefore", "launchAfter", "rootRegistration"]) {
+      const f = fixture({ [fault]: true })
+      await assert.rejects(f.issue(), /collection launch|delivery registration/)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.physical.attempts, 1)
+      assert.equal(f.driver.resources.payloads, 0)
+      assert.equal(f.registry.pendingCleanup, 0)
+      assert.equal(f.driver.pendingCancellationCleanups, 0)
+    }
+    {
+      const f = fixture({ cleanup: true }),
+        invocation = f.allocate()
+      f.driver.cancel(invocation)
+      await assert.rejects(Effect.runPromise(f.registry.retryCleanupEffect()), /delivery cleanup fault/)
+      assert.equal(f.registry.pendingCleanup, 1)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.attempts, 2)
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.driver.resources.payloads, 0)
     }
     {
       const f = fixture(),
@@ -364,7 +476,7 @@ try {
       assert.equal(result.result, f.physical)
       assert.equal(f.driver.resources.payloads, 0)
     }
-    assertions += 10
+    assertions += 18
   }
   {
     const context = {
