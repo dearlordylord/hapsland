@@ -179,7 +179,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Original proof formatting | Closed: formatter0.1.23 (`55e106a`), nine proofs conform; complete attachment BendTT unchanged. |
 | Combined preflight | Production Core owns callable policy/Go fallback in Canonical Preflight. After five laws/kernel controls and ten proof mutants passed, removed the eight temporary Bend/spec/proof/runner files under the owner’s deletion condition. 21 physical regressions, build46/46, 23 receipts and compiled Source pass after deletion. The old TS preflight oracle and its whole-Preparation caller chain are deleted. |
 | Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 16:21 UTC qualifies **1.4334×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Earlier current-native runs are historical; their oracle/profiling paths are removed. |
-| Final consumers and deletion | Deleted TS Source/Post workflows, local analyzer/preflight, plan/sizing references and closed Graph diagnostics (928 lines). Explicit fixtures/physical observers pass: public Preparation13, Post23360/sizing131, Source59/6687+34 physical, resident52/11316+893Post, resident Graph13/629. Six public Graph/Rust/Bend suites use Canonical/parser fixtures (76 tests); Graph owner105/4252, build46/46, 23 receipts and fast pass. Resident/Source Graph oracle removed; refusal injections remain over production. Remaining Graph references and host-policy audit block acceptance. |
+| Final consumers and deletion | Deleted TS Source/Post workflows, local analyzer/preflight, plan/sizing references and closed Graph diagnostics (928 lines). Explicit fixtures/physical observers pass: public Preparation13, Post23360/sizing131, Source59/6687+34 physical, resident52/11316+893Post, resident Graph13/629. Six public Graph/Rust/Bend suites use Canonical/parser fixtures (76 tests); Graph owner105/4252, build46/46, 23 receipts and fast pass. Resident/Source Graph oracle removed; refusal injections remain over production. Python composition uses 18 explicit trees/refusals with 7125 fences, no TS oracle. Remaining Graph references and host-policy audit block acceptance. |
 
 Engine grouping preserves observation boundaries: 1484 instructions, 127 group
 Acks/three observations. One-callable CPU ratio 1.3570 is diagnostic only. Whole
@@ -207,11 +207,9 @@ that only bridges helper names.
   New build series retains ordinary scheduler/parallelism in both lanes; earlier
   CPU11 series is not directly comparable. The 04:54 CPU11 baseline admission-lock
   failure and unchanged retries remain unqualified.
-  Prior 21:01 execution failed 1.1571; later passes do not erase that result.
-  Grouped preflight whole at 23:20 UTC **fails parity at 1.4448**:
-  equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
-  oracle and 30 local workspaces. Build/23 receipts, physical Source/resident/Graph,
-  78 local cases/468 contexts pass; grouped fast selects four files; 363 public tests pass.
+  Prior 21:01 execution failed 1.1571; grouped preflight whole at 23:20 UTC
+  failed parity at 1.4448 (equal outputs, 17 pairs, seven fixtures/five languages).
+  Later passes do not erase either failure.
   Unchanged capture, rope, shared-extraction, empty-root and connected preflight trials are closed.
 - Attachment factorization and renderer/compiler/rope performance trials are
   closed; renaming does not reset them. Full attachment now qualifies under its

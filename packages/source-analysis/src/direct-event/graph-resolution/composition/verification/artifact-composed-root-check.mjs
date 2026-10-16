@@ -1,12 +1,12 @@
 import { artifactValueTag } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, lstat, rm } from "node:fs/promises"
 import { join, dirname } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import {
@@ -184,44 +184,83 @@ try {
     onConstructionFailure: driver.constructionFailed,
     drive: driver.drive
   })
+  // Authored expected trees. Native hashing is shared physical serialization;
+  // no Graph resolver computes these reference, refusal or binding decisions.
+  const classNode = (path, name, source, references = []) => ({
+    artifact: {
+      path,
+      id: `${path}:class:${name}`,
+      kind: "class",
+      name,
+      source,
+      sourceHash: createHash("sha256").update(source).digest("hex")
+    },
+    references
+  })
+  const unit = (source, references = [], sourceDependencies = []) => ({
+    root: classNode("root.py", "Root", source, references),
+    sourceDependencies
+  })
+  const simple = unit("class Root:\n value: str")
+  const imported = (path, name = "Foo") => [
+    { kind: "expanded", site: { symbol: "Foo" }, node: classNode(path, name, `class ${name}:\n id: str`) }
+  ]
+  const unavailable = [
+    { kind: "omitted", site: { symbol: "Foo" }, target: { kind: "unresolved", symbol: "Foo" }, reason: "unavailable" }
+  ]
+  const importedRoot = "class Root:\n value: Foo"
+  const packageFiles = { "pkg/__init__.py": "from .leaf import Foo\n", "pkg/leaf.py": "class Foo:\n id: str\n" }
   let cases = 0
   for (const [index, fixture] of [
-    { branch: "type", text: "class Root:\n value: str\n" },
-    { branch: "type", text: "class Leaf:\n id: str\nclass Root:\n leaf: Leaf\n" },
-    { branch: "function", text: "def Root():\n return 1\n" },
-    { branch: "type", text: "class Root:\n value: str\n", limits: { files: 0 } },
-    { branch: "type", text: "class Root:\n value: str\n", limits: { readBytes: 0 } },
-    { branch: "type", text: "class Root:\n value: str\n", cache: true },
+    { branch: "type", text: "class Root:\n value: str\n", expected: simple },
+    {
+      branch: "type",
+      text: "class Leaf:\n id: str\nclass Root:\n leaf: Leaf\n",
+      expected: unit("class Root:\n leaf: Leaf", [
+        { kind: "expanded", site: { symbol: "Leaf" }, node: classNode("root.py", "Leaf", "class Leaf:\n id: str") }
+      ])
+    },
+    { branch: "function", text: "def Root():\n return 1\n", expected: undefined },
+    { branch: "type", text: "class Root:\n value: str\n", limits: { files: 0 }, expected: undefined },
+    { branch: "type", text: "class Root:\n value: str\n", limits: { readBytes: 0 }, expected: undefined },
+    { branch: "type", text: "class Root:\n value: str\n", cache: true, expected: simple },
     {
       branch: "type",
       text: "from leaf import Foo\nclass Root:\n value: Foo\n",
-      files: { "leaf.py": "class Foo:\n id: str\n" }
+      files: { "leaf.py": "class Foo:\n id: str\n" },
+      expected: unit(importedRoot, imported("leaf.py"))
     },
     {
       branch: "type",
       text: "from pkg import Foo\nclass Root:\n value: Foo\n",
-      files: { "pkg/__init__.py": "from .leaf import Foo\n", "pkg/leaf.py": "class Foo:\n id: str\n" }
+      files: packageFiles,
+      expected: unit(importedRoot, imported("pkg/leaf.py"), ["pkg/__init__.py"])
     },
     {
       branch: "type",
       text: "from pkg import Foo\nclass Root:\n value: Foo\n",
-      files: { "pkg/__init__.py": "from .leaf import Bar as Foo\n", "pkg/leaf.py": "class Bar:\n id: str\n" }
+      files: { "pkg/__init__.py": "from .leaf import Bar as Foo\n", "pkg/leaf.py": "class Bar:\n id: str\n" },
+      expected: unit(importedRoot, imported("pkg/leaf.py", "Bar"), ["pkg/__init__.py"])
     },
-    { branch: "type", text: "from absent import Foo\nclass Root:\n value: Foo\n" },
+    {
+      branch: "type",
+      text: "from absent import Foo\nclass Root:\n value: Foo\n",
+      expected: unit(importedRoot, unavailable)
+    },
     ...[
-      { files: 1 },
-      { files: 2 },
-      { files: 3 },
-      { work: 1 },
-      { work: 3 },
-      { work: 8 },
-      { sourceBytes: 16 },
-      { readBytes: 80, sourceBytes: 80 }
-    ].map((limits) => ({
+      { limits: { files: 1 }, expected: unit(importedRoot, unavailable) },
+      { limits: { files: 2 }, expected: unit(importedRoot, unavailable, ["pkg/__init__.py"]) },
+      { limits: { files: 3 }, expected: unit(importedRoot, imported("pkg/leaf.py"), ["pkg/__init__.py"]) },
+      { limits: { work: 1 }, expected: undefined },
+      { limits: { work: 3 }, expected: undefined },
+      { limits: { work: 8 }, expected: undefined },
+      { limits: { sourceBytes: 16 }, expected: undefined },
+      { limits: { readBytes: 80, sourceBytes: 80 }, expected: unit(importedRoot, unavailable) }
+    ].map((boundary) => ({
       branch: "type",
       text: "from pkg import Foo\nclass Root:\n value: Foo\n",
-      files: { "pkg/__init__.py": "from .leaf import Foo\n", "pkg/leaf.py": "class Foo:\n id: str\n" },
-      limits
+      files: packageFiles,
+      ...boundary
     }))
   ].entries()) {
     const root = join(temp, String(index))
@@ -254,17 +293,12 @@ try {
       limits: { ...GRAPH_LIMIT_CEILINGS, ...fixture.limits },
       now: () => 0
     }
-    const expected = await Effect.runPromise(
-      resolveGraphUnit("root.py", captured.capture, "Root", {
-        ...context,
-        ...(fixture.cache ? { captureCache: new Map() } : {})
-      })
-    )
     const actual = await resolver("root.py", captured.capture, "Root", {
       ...context,
       ...(fixture.cache ? { captureCache: new Map() } : {})
     })
-    assert.deepEqual(actual, expected, "full root ReviewUnit " + index)
+    assert.ok(Object.hasOwn(fixture, "expected"), "every fixture declares its terminal expectation")
+    assert.deepEqual(actual, fixture.expected, "full root ReviewUnit " + index)
     cases++
   }
   assert.equal(registry.size, 0)
@@ -283,7 +317,7 @@ try {
       splitArtifacts: true,
       canonicalAccepted: driver.stats.accepted,
       scope:
-        "actual Canonical child lifecycle/result acceptance and resolveGraphUnit Python root/module/reexport consumer, split/monolithic equality, preparation/cache/import/inspect; capture census/terminal revalidation and per-Await cancellation/wrong identity refusal; finite qualification, whole resident production adoption and universal proofs remain open"
+        "actual Canonical child lifecycle/result acceptance and explicit Python root/module/reexport tree fixtures, split/monolithic equality, preparation/cache/import/inspect; capture census/terminal revalidation and per-Await cancellation/wrong identity refusal; finite qualification, whole resident production adoption and universal proofs remain open"
     })
   )
 } finally {
