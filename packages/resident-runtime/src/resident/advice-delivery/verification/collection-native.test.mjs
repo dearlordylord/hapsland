@@ -119,7 +119,7 @@ const fixture = (hooks = {}) => {
         state.content = content
       })
   })
-  return { trace, state, collect: collection.residentCollect("/repo", advicee, {}) }
+  return { trace, state, collect: collection.residentCollect("/repo", advicee, { credential: null }) }
 }
 
 it(
@@ -191,3 +191,28 @@ it("loss of the original token after final fitting prevents the final delivery u
   assert.equal(f.state.content.delivery.token, "replacement")
   assert.deepEqual(f.trace, ["facts", "offer", "post", "update", "facts", "offer", "post"])
 })
+
+it(
+  "the complete native collection reaches its response after renewal and final fitting",
+  { timeout: 5000 },
+  async () => {
+    const f = fixture()
+    const response = await Effect.runPromise(f.collect)
+    assert.equal(response.status, "advice")
+    assert.equal(response.findingCount, 1)
+    assert.deepEqual(f.trace, [
+      "facts",
+      "offer",
+      "post",
+      "update",
+      "facts",
+      "offer",
+      "post",
+      "update",
+      "update",
+      "facts",
+      "offer",
+      "update"
+    ])
+  }
+)

@@ -186,11 +186,12 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- `16965d0b`, 2026-10-16 22:23 UTC: analyzer/build **.7966×/.8056×**, 17 pairs each;
-  build23/46 cached, inputs unchanged. Mean ratios; no causal speedup claim.
-  TS/Bend median[range] seconds: execution .0802[.0575,.1370]/.0672[.0400,.1107];
-  build3.739[3.450,5.897]/3.075[2.840,3.948].
-  Cadence: prior32.5,31.3,42.1min; latest25.6/25.5min.
+- Collection (`6efb6307`+worktree), 2026-10-16 22:52 UTC: analyzer/build
+  **.4620×/.8984×**, 17 pairs each, build23/46 cached, inputs unchanged.
+  Mean ratios; no causal speedup claim. TS/Bend median[range] seconds:
+  execution .0925[.0619,.4795]/.0542[.0443,.0879];
+  build3.591[3.341,5.033]/3.150[2.938,4.759].
+  Cadence: prior32.5,31.3,42.1min; latest29.3/29.3min.
   Baseline prepare refused double serialization; preserved its serialized producer
   environment, then prepare/warm23/46 passed before measurement.
   First workspace preparation timed out60s before measurement; registered writers stopped,
@@ -239,11 +240,12 @@ Host retains native capabilities, IO and capture/encoding.
 Preserve both canWrite observations, local/IPC differences and all async boundaries.
 
 Current path:
-1. BatchFitting and both Collection passes run production Bend; replaced TS passes
-   are deleted, but native bridge adds net TS. Protocol17 (four native Effect cases),
-   public120/5, fast41 and23 receipts PASS; missing-mask mutant rejected.
-   Server/controls98/99:30s timeout, isolated PASS18.86s. Remaining:
-   prelude, eligibility/order, final handoff and Canonical root wiring.
+1. Full Collection loop flow calls compiled Bend: prelude, eligibility/order,
+   both passes and final handoff loops are deleted from TS; native bridge grows TS.
+   Owner23/native happy/64-item PASS; fast41 and23 receipts PASS.
+   Seven-file public run aborted300s; next: verbose file-level isolation.
+   Prior saturated30s timeout→18.86s PASS; current29.97s.
+   Canonical root and whole laws remain open.
 2. Receipt/native custody PASS1408 assertions: pending cancellation, registration/
    interruption, close/observer faults and cleanup retry. Claimed successors survive
    predecessor cleanup. Whole laws and production delivery caller remain open.
