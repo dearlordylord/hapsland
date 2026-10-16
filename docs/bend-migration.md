@@ -202,17 +202,16 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Resumed `18cd39a8` execution passes 0.9347 (2026-10-16 04:53:44 UTC,
-  17 frozen pairs). Build at 04:54:39 is unqualified: baseline admission-lock
-  deadline; warm preparation repeats it. Stopped-writer custody reconciled.
-  No successful resumed build ratio; unchanged retries closed.
-  Prior primary execution/build pass 0.7761/0.8300 (23:22/23:23 UTC).
+- `8bf546e8` execution at 2026-10-16 16:36 UTC qualifies **0.6373×**.
+  Build at 16:37 qualifies **0.8610×**: 17 frozen pairs, all samples 23/46 cached.
+  New build series retains ordinary scheduler/parallelism in both lanes; earlier
+  CPU11 series is not directly comparable. The 04:54 CPU11 baseline admission-lock
+  failure and unchanged retries remain unqualified.
   Prior 21:01 execution failed 1.1571; later passes do not erase that result.
   Grouped preflight whole at 23:20 UTC **fails parity at 1.4448**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
   oracle and 30 local workspaces. Build/23 receipts, physical Source/resident/Graph,
   78 local cases/468 contexts pass; grouped fast selects four files; 363 public tests pass.
-  Earlier whole 1.2650/1.5301/1.4098/1.6743 are separate runs, not causal comparisons.
   Unchanged capture, rope, shared-extraction, empty-root and connected preflight trials are closed.
 - Attachment factorization and renderer/compiler/rope performance trials are
   closed; renaming does not reset them. Full attachment now qualifies under its
@@ -230,6 +229,7 @@ Primary [cadence](../scripts/performance/production-cadence.py): baseline
 `8948343b46f8426abebe675a39dc4039997b0d5b`, 17 pairs, 23/46 cached tasks, local
 workspaces, frozen HEAD/sources/artifacts/receipts/environment files. Build:
 `--environment` for candidate; `--baseline-environment` for baseline only.
+Build uses ordinary scheduler/parallelism in both lanes; execution stays CPU11.
 Start build and execution measurements at least every 30 minutes. Run whole Preparation parity separately; diagnostics are not parity.
 Whole Preparation baseline is TS `a0773f79` (origin/master): all five languages
 and original TS orchestration. Primary analyzer/build stays `8948343b`, which

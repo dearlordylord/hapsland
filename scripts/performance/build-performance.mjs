@@ -37,7 +37,7 @@ for (let round = 0; round < 17; round++) {
     const timeout = Math.floor(Math.min(150000, stop - performance.now()))
     if (timeout <= 0) throw new Error("Build comparison deadline exhausted")
     const start = performance.now()
-    const result = spawnSync("taskset", ["-c", "11", process.execPath, "scripts/build-workspaces.mjs"], {
+    const result = spawnSync(process.execPath, ["scripts/build-workspaces.mjs"], {
       cwd: root,
       env: name === "typescript" ? baselineEnvironment : candidateEnvironment,
       timeout,
@@ -89,8 +89,8 @@ const record = {
   startedAt,
   at: new Date().toISOString(),
   roots,
-  command: ["taskset", "-c", "11", process.execPath, "scripts/build-workspaces.mjs"],
-  affinity: "CPU 11 for both lanes; not exclusive",
+  command: [process.execPath, "scripts/build-workspaces.mjs"],
+  affinity: "ordinary scheduler for both lanes; workspace build parallelism retained; not exclusive",
   samples,
   meanRatio: ratio,
   buildParity: warmPreparationMatched && ratio <= 1,
