@@ -1,81 +1,26 @@
-import { artifactTransport, graphEntryTransport } from "./artifact-check-codec.mjs"
+import { goPreparationExpectation } from "./go-preparation-expectations.mjs"
+import { artifactTransport } from "./artifact-check-codec.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { existsSync } from "node:fs"
 import { mkdtemp, mkdir, writeFile, lstat, rm } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
+import * as Cause from "effect/Cause"
+import { resolveCanonicalGraphFixture } from "@hapsland/source-analysis/testing/canonical-graph"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
   contextDirectFilePolicy,
   eligibleNamedPath
 } from "@hapsland/native-observation/direct-event/selection"
-import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-import { prepareGoGraph } from "./verification/native-preparation.ts"
-import { createServiceRegistry, createServiceSession } from "../service-session.ts"
-import { factDeclaration } from "../frontend-codec.ts"
-import { encodeGraphReply } from "../reply-codec.ts"
-import { createEntryReferenceDriver } from "../entry-driver-check.mjs"
-
-import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { resolveGraphUnit } from "../verification/native-graph-resolver.ts"
-import { createBendResolver } from "../consumer.ts"
-import {
-  createGraphDriver,
-  createGraphMachine
-} from "@hapsland/source-analysis/direct-event/graph-resolution/composition"
-const entryMode = process.argv.includes("--entry")
-const ownedMode = process.argv.includes("--owned") || entryMode
-const artifactMode = process.argv.includes("--artifact")
+import { unlist, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
+import { createServiceSession } from "../service-session.ts"
 const temp = await mkdtemp("/tmp/hapsland-go-preparation-")
-const t = (name, fields = {}) => ({ $: `Types.${name}`, ...fields })
-const m = (name, fields = {}) => ({
-  $:
-    name === "Configuration"
-      ? "Configuration.Configuration"
-      : `${["Input", "Prepared", "BoundDeclaration"].includes(name) ? "ArtifactProtocol" : "PreparationModel"}.${name}`,
-  ...fields
-})
-const raw = (value) => ({
-  $: "RawText.Text",
-  value,
-  characters: list(
-    [...value].map((c) => ({ $: "RawText.Character", code: BigInt(c.codePointAt(0)), whitespace: /^\s$/u.test(c) }))
-  )
-})
-const transport = (value, outgoing = false) => {
-  if (typeof value === "number") return BigInt(value)
-  if (Array.isArray(value)) return value.map((v) => transport(v, outgoing))
-  if (value && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, v]) => [
-        key,
-        key === "$" && typeof v === "string"
-          ? outgoing
-            ? v
-                .replace(/^\.\.\/Types\./u, "Types.")
-                .replace(
-                  "../../../../../source-artifacts/src/direct-event/value/Value.",
-                  "../../../../source-artifacts/src/direct-event/value/Value."
-                )
-                .replace(/^\.\.\/traversal\/core\./u, "traversal/core.")
-            : v
-                .replace(/^Types\./u, "../Types.")
-                .replace(
-                  "../../../../source-artifacts/src/direct-event/value/Value.",
-                  "../../../../../source-artifacts/src/direct-event/value/Value."
-                )
-                .replace(/^traversal\/core\./u, "../traversal/core.")
-                .replace(/^go-module\/RawText\./u, "RawText.")
-                .replace(/^go-module\/Input\./u, "Input.")
-                .replace(/^go-module\/Configuration\./u, "Configuration.")
-          : transport(v, outgoing)
-      ])
-    )
-  return value
-}
+const t = (name, fields = {}) => ({ $: "Types." + name, ...fields })
+const label = (value) => value.$.split(".").at(-1)
 const rootText = "package p\ntype Root int\n"
 const fixtures = [
   { name: "single", files: { "root.go": rootText } },
@@ -270,80 +215,16 @@ const fixtures = [
     }
   }
 ]
-let emissionTemp
 try {
-  emissionTemp = await mkdtemp(join(existsSync("/dev/shm") ? "/dev/shm" : "/tmp", "hapsland-go-emission-"))
-  const emitted = join(emissionTemp, "machine.mjs")
-  execFileSync(
-    "bend",
-    [
-      artifactMode
-        ? join(import.meta.dirname, "../composition/GoArtifact.bend")
-        : join(import.meta.dirname, "PreparationMachine.bend"),
-      "-o",
-      emitted
-    ],
-    { timeout: 10000 }
-  )
-  const emittedCore = (await import(pathToFileURL(emitted))).default
-  const project = (rawStep) => {
-    const view = artifactTransport(emittedCore.view(rawStep), false)
-    switch (view.$) {
-      case "ArtifactProtocol.GoContinue":
-        return { $: "Internal", state: rawStep }
-      case "ArtifactProtocol.GoAwait":
-        return { $: "Await", request: view.request, rawStep }
-      case "ArtifactProtocol.GoReturned":
-        return {
-          $: "Returned",
-          prepared:
-            view.result.$ === "ArtifactProtocol.GoUnavailable"
-              ? { $: "None" }
-              : { $: "Some", value: view.result.prepared },
-          next_request: view.next
-        }
-      case "ArtifactProtocol.GoFailed":
-        return { $: "Failed", failure: view.failure, next_request: view.next }
-      default:
-        throw new Error(`Unknown Go artifact view ${view.$}`)
-    }
-  }
-  const core = artifactMode
-    ? {
-        initial: (input) => project(emittedCore.begin(artifactTransport({ $: "ArtifactProtocol.GoPrepare", input }))),
-        advance: (state) => project(emittedCore.advance(state)),
-        resume: (step, reply) => project(emittedCore.resume(step.rawStep, artifactTransport(reply)))
-      }
-    : emittedCore
-  const ownedFailures = []
-  let ownedRequests = 0,
-    ownedCases = 0
-  const ownedArtifacts = {}
-  let owner
-  if (ownedMode)
-    for (const [key, source] of [
-      ["composition", "source-analysis/src/direct-event/graph-resolution/GraphCompositionEntry.bend"],
-      ["parent", "source-analysis/src/direct-event/graph-resolution/GenericGraphEntry.bend"],
-      ["python", "source-analysis/src/direct-event/graph-resolution/PythonGraphEntry.bend"],
-      ["go", "source-analysis/src/direct-event/graph-resolution/GoGraphEntry.bend"],
-      ["owner", "agent-flow-bend/preparation-lifecycle/CanonicalResolverOwner.bend"]
-    ]) {
-      const output = join(emissionTemp, key + ".mjs")
-      execFileSync("bend", [join(import.meta.dirname, "../../../../../", source), "-o", output], { timeout: 10000 })
-      const artifact = (await import(pathToFileURL(output))).default
-      if (key === "owner") owner = artifact
-      else ownedArtifacts[key] = artifact
-    }
-  const referenceEntry = entryMode
-    ? await createEntryReferenceDriver({
-        temporary: emissionTemp,
-        go: ownedArtifacts.go,
-        artifactTransport: graphEntryTransport
-      })
-    : undefined
-  let requests = 0,
+  const output = join(temp, "go-artifact.mjs")
+  execFileSync("bend", [join(import.meta.dirname, "../composition/GoArtifact.bend"), "-o", output], { timeout: 10000 })
+  const core = (await import(pathToFileURL(output))).default
+  const wholeFailures = []
+  let canonicalCases = 0,
+    requests = 0,
     transitions = 0
   for (const [index, fixture] of fixtures.entries()) {
+    console.log(JSON.stringify({ goFixture: fixture.name }))
     const root = join(temp, String(index))
     await mkdir(root)
     execFileSync("git", ["init", "-q", root], { timeout: 5000 })
@@ -361,10 +242,10 @@ try {
       gitInode: String(gitStat.ino)
     }
     const path = fixture.path ?? "root.go",
-      branch = fixture.branch ?? "type",
-      policy = fixture.excluded
-        ? { ...DEFAULT_DIRECT_FILE_POLICY, contextExcludes: fixture.excluded }
-        : DEFAULT_DIRECT_FILE_POLICY
+      branch = fixture.branch ?? "type"
+    const policy = fixture.excluded
+      ? { ...DEFAULT_DIRECT_FILE_POLICY, contextExcludes: fixture.excluded }
+      : DEFAULT_DIRECT_FILE_POLICY
     const limits = {
       version: 1,
       sourceBytes: 2097152,
@@ -380,64 +261,46 @@ try {
     assert.ok(selected)
     const captured = await Effect.runPromise(captureStable(root, selected, {}, rootIdentity, 2097152))
     assert.equal(captured.status, "captured")
-    const rootCapture = captured.capture
-    const traces = { native: [], bend: [] },
-      caches = { native: new Map(), bend: new Map() }
-    const hooks = (lane) => ({ sourceRead: (path) => traces[lane].push(["read", path]) })
-    const host = {
-      root,
-      rootIdentity,
-      policy,
-      branch,
-      analysisConfiguration: fixture.configuration ? { go: fixture.configuration } : undefined,
-      captureCache: fixture.noCache ? undefined : caches.native,
-      captureHooks: hooks("native"),
-      captureSource: (...args) =>
-        Effect.gen(function* () {
-          traces.native.push(["capture", args[1].relativePath])
-          return yield* captureStable(...args)
-        })
-    }
-    let native,
-      nativeError,
-      nativeFailed = false
-    try {
-      native = await Effect.runPromise(
-        prepareGoGraph(path, rootCapture, host, limits, () => {
-          traces.native.push(["clock"])
-          return fixture.expired === true
-        })
-      )
-    } catch (error) {
-      nativeFailed = true
-      nativeError = error
-    }
-    let started = false
+    const rootCapture = captured.capture,
+      events = [],
+      cache = fixture.noCache ? undefined : new Map(),
+      hashInputs = [],
+      capturedValues = new Map()
+    const expected = goPreparationExpectation(fixture, limits)
+    let started = false,
+      actualError
     const io = createServiceSession({
       invocation: index + 1,
       root,
-      callerCache: fixture.noCache ? undefined : caches.bend,
+      callerCache: cache,
       readGoConfiguration: () => fixture.configuration,
       readAnalysisConfigurationIdentity: () => undefined,
       now: () => {
-        if (started) traces.bend.push(["clock"])
+        if (started) events.push(["clock"])
         return started && fixture.expired ? 5000 : 0
       },
       access: (path, { signal } = {}) =>
         Effect.runPromise(eligibleNamedPath(root, path, contextDirectFilePolicy(policy), rootIdentity), { signal }),
       capture: (selection, cap, { signal } = {}) => {
-        traces.bend.push(["capture", selection.relativePath])
-        return Effect.runPromise(captureStable(root, selection, hooks("bend"), rootIdentity, cap), { signal })
+        events.push(["capture", selection.relativePath])
+        return Effect.runPromise(
+          captureStable(root, selection, { sourceRead: (path) => events.push(["read", path]) }, rootIdentity, cap),
+          { signal }
+        ).then((result) => {
+          if (result.status === "captured") capturedValues.set(selection.relativePath, result.capture)
+          return result
+        })
       }
     })
     try {
       const clock = (await io.perform(t("Request", { invocation: index + 1, id: 0, operation: t("StartClock") })))
         .outcome.clock
       started = true
-      const configuration = fixture.configuration
-      let step = core.initial(
-        transport(
-          m("Input", {
+      let state = core.begin(
+        artifactTransport({
+          $: "ArtifactProtocol.GoPrepare",
+          input: {
+            $: "ArtifactProtocol.Input",
             invocation: index + 1,
             next_request: 1,
             root_path: path,
@@ -447,7 +310,7 @@ try {
             clock,
             caller_cache: io.callerCache,
             limits: {
-              $: "../../../../../agent-flow-bend/ImportGraph.Limits",
+              $: "../../../../agent-flow-bend/ImportGraph.Limits",
               version: 1,
               source_bytes: limits.sourceBytes,
               tree_bytes: limits.treeBytes,
@@ -457,304 +320,224 @@ try {
               depth: limits.depth,
               work: limits.work
             },
-            configuration: configuration
-              ? {
-                  $: "Some",
-                  value: m("Configuration", {
-                    goos: configuration.goos,
-                    goarch: configuration.goarch,
-                    tags: list(configuration.tags.map(raw))
-                  })
-                }
-              : { $: "None" },
+            configuration: { $: "None" },
             configuration_identity: { $: "None" }
-          })
-        )
+          }
+        })
       )
-      while (step.$ === "Internal" || step.$ === "Await") {
-        transitions++
-        assert.ok(transitions < 1000000, fixture.name + " diagnostic runaway")
-        if (step.$ === "Internal") step = core.advance(step.state)
-        else {
-          requests++
-          step = core.resume(step, transport(await io.perform(transport(step.request, true))))
+      let view,
+        next = 1
+      for (;;) {
+        view = artifactTransport(core.view(state), false)
+        if (label(view) === "GoContinue") {
+          transitions++
+          assert.ok(transitions < 1000000)
+          state = core.advance(state)
+          continue
+        }
+        if (label(view) !== "GoAwait") break
+        requests++
+        assert.equal(view.request.id, next++, fixture.name + " request successor")
+        if (view.request.operation.$ === "Types.HashJsonProduct")
+          hashInputs.push(fromProductValue(view.request.operation.value))
+        state = core.resume(state, artifactTransport(await io.perform(view.request)))
+      }
+      if (label(view) === "GoFailed" && view.failure.exception) throw io.exception(view.failure.exception)
+      assert.equal(label(view), "GoReturned", fixture.name)
+      const prepared = label(view.result) === "GoPrepared" ? view.result.prepared : undefined
+      assert.equal(expected.error, undefined, fixture.name + " expected RangeError")
+      assert.equal(Boolean(prepared), expected.prepared, fixture.name + " preparation admission")
+      assert.equal(view.next, next, fixture.name + " terminal successor")
+      if (prepared) {
+        assert.deepEqual(
+          {
+            declarations: unlist(prepared.declarations).map(({ key, declaration }) => ({
+              key,
+              value: declaration.value,
+              location: declaration.location
+            })),
+            dependencies: unlist(prepared.dependencies),
+            limits: prepared.limits,
+            fingerprint: prepared.binding_fingerprint
+          },
+          {
+            declarations: expected.declarations,
+            dependencies: expected.dependencies,
+            limits: expected.limits,
+            fingerprint: expected.fingerprint
+          },
+          fixture.name + " complete prepared facts"
+        )
+        for (const [inspectPath, branch, present] of [
+          [path, "TypeBranch", true],
+          [path + ".other", "TypeBranch", false],
+          [path, "FunctionBranch", false]
+        ]) {
+          const inspected = core.begin(
+            artifactTransport({ $: "ArtifactProtocol.GoInspect", prepared, path: inspectPath, branch: t(branch), next })
+          )
+          const inspectedView = artifactTransport(core.view(inspected), false)
+          assert.equal(label(inspectedView.result), "GoInspected")
+          assert.equal(inspectedView.next, next)
+          assert.equal(inspectedView.result.facts.$ === "Some", present)
+          if (present)
+            assert.deepEqual(
+              unlist(inspectedView.result.facts.value.declarations),
+              expected.declarations.map(({ key, value }) => ({ ...value, key }))
+            )
+          const late = artifactTransport(
+            core.view(
+              core.resume(
+                inspected,
+                artifactTransport(t("Reply", { invocation: index + 1, id: 0, outcome: t("ClockStarted", { clock }) }))
+              )
+            ),
+            false
+          )
+          assert.equal(label(late), "GoFailed")
+          assert.equal(late.failure.$, "Types.ReplyAfterTerminal")
+          assert.equal(late.next, next)
         }
       }
-      if (nativeFailed) {
-        assert.equal(step.$, "Failed", fixture.name)
-        const error = io.exception(transport(step.failure.exception, true))
-        assert.equal(error.constructor, nativeError.constructor, fixture.name)
-        assert.equal(error.message, nativeError.message, fixture.name)
-      } else {
-        if (step.$ === "Failed" && step.failure.exception) throw io.exception(transport(step.failure.exception, true))
-        assert.equal(
-          step.$,
-          "Returned",
-          fixture.name + " " + JSON.stringify(step, (_, v) => (typeof v === "bigint" ? String(v) : v))
-        )
-        assert.equal(step.prepared.$ === "Some", native !== undefined, fixture.name)
-        if (native !== undefined) {
-          const prepared = step.prepared.value
-          assert.deepEqual(unlist(prepared.dependencies), native.dependencies, fixture.name + " dependencies")
-          assert.equal(prepared.binding_fingerprint, native.bindingFingerprint, fixture.name + " fingerprint")
-          const expectedLimits = {
-            $: "../../../../../agent-flow-bend/ImportGraph.Limits",
-            version: native.limits.version,
-            source_bytes: native.limits.sourceBytes,
-            tree_bytes: native.limits.treeBytes,
-            files: native.limits.files,
-            read_bytes: native.limits.readBytes,
-            outgoing_edges: native.limits.outgoingEdges,
-            depth: native.limits.depth,
-            work: native.limits.work
-          }
-          assert.deepEqual(prepared.limits, transport(expectedLimits), fixture.name + " limits")
-          const facts = native.session.inspect(path, rootCapture.text, "type")
-          const actualDeclarations = unlist(prepared.declarations).map(({ key, declaration }) => ({
-            key,
-            value: declaration.value,
-            location: declaration.location
-          }))
-          const expectedDeclarations = [...facts.declarations].map(([key, declaration]) => ({
-            key,
-            value: transport(factDeclaration(declaration.artifact.name, declaration)),
-            location: declaration.location
-              ? {
-                  $: "Some",
-                  value: transport({
-                    $: "Types.GoSourceLocation",
-                    start: { $: "Types.GoSourcePosition", ...declaration.location.start },
-                    end: { $: "Types.GoSourcePosition", ...declaration.location.end }
-                  })
-                }
-              : { $: "None" }
-          }))
-          assert.deepEqual(actualDeclarations, expectedDeclarations, fixture.name + " declarations")
-          if (artifactMode) {
-            for (const [inspectPath, inspectBranch, present] of [
-              [path, "TypeBranch", true],
-              [path + ".other", "TypeBranch", false],
-              [path, "FunctionBranch", false]
-            ]) {
-              const inspected = emittedCore.begin(
-                artifactTransport({
-                  $: "ArtifactProtocol.GoInspect",
-                  prepared: artifactTransport(prepared),
-                  path: inspectPath,
-                  branch: artifactTransport(transport(t(inspectBranch))),
-                  next: step.next_request
-                })
-              )
-              const view = artifactTransport(emittedCore.view(inspected), false)
-              assert.equal(view.$, "ArtifactProtocol.GoReturned")
-              assert.equal(view.result.$, "ArtifactProtocol.GoInspected")
-              assert.equal(view.next, step.next_request)
-              assert.equal(view.result.facts.$ === "Some", present)
-              if (present)
-                assert.deepEqual(
-                  unlist(view.result.facts.value.declarations),
-                  expectedDeclarations.map(({ key, value }) => ({ ...value, key }))
-                )
-              const late = artifactTransport(
-                emittedCore.view(
-                  emittedCore.resume(
-                    inspected,
-                    artifactTransport(
-                      transport(t("Reply", { invocation: index + 1, id: 0, outcome: t("ClockStarted", { clock }) }))
-                    )
-                  )
-                ),
-                false
-              )
-              assert.equal(late.$, "ArtifactProtocol.GoFailed")
-              assert.equal(late.failure.$, "../Types.ReplyAfterTerminal")
-              assert.equal(late.next, step.next_request)
-            }
-          }
-        }
-      }
-      assert.deepEqual(traces.bend, traces.native, fixture.name + " physical chronology")
-      assert.deepEqual(
-        [...caches.bend].map(([p, c]) => [p, c.contentHash]),
-        [...caches.native].map(([p, c]) => [p, c.contentHash]),
-        fixture.name + " caller cache"
+      const terminalLate = artifactTransport(
+        core.view(
+          core.resume(
+            state,
+            artifactTransport(t("Reply", { invocation: index + 1, id: 0, outcome: t("ClockStarted", { clock }) }))
+          )
+        ),
+        false
       )
+      assert.equal(terminalLate.failure.$, "Types.ReplyAfterTerminal")
+      assert.equal(terminalLate.next, next)
+    } catch (error) {
+      actualError = error
     } finally {
       io.close()
     }
-    if (ownedMode)
-      for (const fault of [
-        false,
-        ...(fixture.name === "single" ? ["final-clock"] : []),
-        ...(["sibling", "module-import"].includes(fixture.name) ? [true] : [])
-      ]) {
-        ownedCases++
-        const captureFailure = new Error(fixture.name + " physical capture failure")
-        let state = owner.initial_limits(100n, 100000000n, 100n, 100000000n)
-        for (const [name, fields] of [
-          ["OpenRound", {}],
-          ["AdmitObservation", { round: 1n }],
-          ["StartObservation", { round: 1n, observation: 1n }],
-          ["BeginObservedPreparation", { round: 1n, observation: 1n, bytes: 1000n }]
-        ]) {
-          const result = owner.canonical_event(state, {
-            $: "../Canonical." + name,
-            partition: 1n,
-            lifetime: 1n,
-            ...fields
-          })
-          assert.equal(result.$, "Advanced")
-          state = result.state
-        }
-        const registry = createServiceRegistry()
-        const driver = createGraphDriver({
-          owner,
-          initialState: state,
-          scope: { $: "Scope", partition: 1n, lifetime: 1n, round: 1n, preparation: 2n },
-          machine: createGraphMachine({ cores: ownedArtifacts, retainPrefixes: false }),
-          registry,
-          foreign: async ([request], options) => {
-            ownedRequests++
-            return encodeGraphReply(await registry.get(Number(request.invocation)).perform(request, options))
-          }
+    if (expected.error) {
+      assert.deepEqual({ name: actualError?.name, message: actualError?.message }, expected.error, fixture.name)
+    } else assert.ifError(actualError)
+    assert.deepEqual(events, expected.events, fixture.name + " exact clock/capture/read chronology")
+    assert.deepEqual(hashInputs, expected.hashInputs, fixture.name + " authored fingerprint preimages")
+    if (cache) {
+      assert.deepEqual([...cache.keys()], expected.cachePaths, fixture.name + " ordered cache")
+      for (const [path, value] of cache)
+        assert.equal(value, capturedValues.get(path), fixture.name + " capture identity")
+    }
+    for (const variant of [
+      "ordinary",
+      ...(fixture.name === "single" ? ["final-clock"] : []),
+      ...(fixture.name === "sibling" ? [0] : fixture.name === "module-import" ? [0, 1] : [])
+    ]) {
+      canonicalCases++
+      const captureDefect = new Error(fixture.name + " capture fault", {
+        cause: new Error("underlying Go capture fault")
+      })
+      const wholeEvents = [],
+        wholeCache = fixture.noCache ? undefined : new Map(),
+        wholeCaptures = new Map()
+      let tick = 0,
+        captureCount = 0
+      const exit = await Effect.runPromiseExit(
+        resolveCanonicalGraphFixture(path, rootCapture, "Root", {
+          root,
+          rootIdentity,
+          policy,
+          branch,
+          limits: { ...GRAPH_LIMIT_CEILINGS, ...fixture.limits },
+          analysisConfiguration: fixture.configuration ? { go: fixture.configuration } : undefined,
+          captureCache: wholeCache,
+          now: () => {
+            wholeEvents.push(["clock"])
+            const current = tick++
+            return (fixture.expired && current > 0) || (variant === "final-clock" && current >= 9) ? 5000 : 0
+          },
+          captureHooks: { sourceRead: (path) => wholeEvents.push(["read", path]) },
+          captureSource: (...args) =>
+            Effect.gen(function* () {
+              wholeEvents.push(["capture", args[1].relativePath])
+              if (captureCount++ === variant) return yield* Effect.die(captureDefect)
+              const result = yield* captureStable(...args)
+              if (result.status === "captured") wholeCaptures.set(args[1].relativePath, result.capture)
+              return result
+            })
         })
-        const resolver = createBendResolver({
-          registry,
-          drive: driver.drive,
-          allocateInvocation: driver.allocateInvocation,
-          onConstructionFailure: driver.constructionFailed
-        })
-        const wholeTraces = { native: [], bend: [], entry: [] },
-          wholeCaches = { native: new Map(), bend: new Map(), entry: new Map() }
-        const context = (lane) => {
-          let ticks = 0
-          return {
-            root,
-            rootIdentity,
-            policy,
-            branch,
-            limits: { ...GRAPH_LIMIT_CEILINGS, ...fixture.limits },
-            analysisConfiguration: fixture.configuration ? { go: fixture.configuration } : undefined,
-            captureCache: fixture.noCache ? undefined : wholeCaches[lane],
-            now: () => {
-              wholeTraces[lane].push(["clock"])
-              const tick = ticks++
-              return (fixture.expired && tick > 0) || (fault === "final-clock" && tick >= 9) ? 5000 : 0
-            },
-            captureHooks: { sourceRead: (file) => wholeTraces[lane].push(["read", file]) },
-            captureSource: (...args) =>
-              Effect.gen(function* () {
-                wholeTraces[lane].push(["capture", args[1].relativePath])
-                if (fault === true) return yield* Effect.fail(captureFailure)
-                return yield* captureStable(...args)
-              })
-          }
-        }
-        const outcome = async (task) => {
-          try {
-            return { ok: true, value: await task() }
-          } catch (error) {
-            return { ok: false, error }
-          }
-        }
-        const expected = await outcome(() =>
-          Effect.runPromise(resolveGraphUnit(path, rootCapture, "Root", context("native")))
-        )
-        const actual = await outcome(() => resolver(path, rootCapture, "Root", context("bend")))
-        const reference =
-          referenceEntry === undefined
-            ? undefined
-            : await outcome(() => createBendResolver(referenceEntry)(path, rootCapture, "Root", context("entry")))
-        try {
-          if (reference !== undefined) {
-            assert.equal(
-              reference.ok,
-              expected.ok,
-              fixture.name + " full reference entry failure: " + String(reference.error)
-            )
-            if (expected.ok) {
-              assert.deepEqual(reference.value, expected.value, fixture.name + " full reference entry product")
-              assert.equal(
-                JSON.stringify(reference.value),
-                JSON.stringify(expected.value),
-                fixture.name + " full reference entry JSON order"
-              )
-            } else {
-              assert.equal(
-                reference.error.constructor,
-                expected.error.constructor,
-                fixture.name + " full reference entry error type"
-              )
-              assert.equal(
-                reference.error.message,
-                expected.error.message,
-                fixture.name + " full reference entry error message"
-              )
-              if (fault === true)
-                assert.equal(reference.error, captureFailure, fixture.name + " opaque entry error identity")
-            }
-            assert.deepEqual(wholeTraces.entry, wholeTraces.native, fixture.name + " full reference entry chronology")
-            assert.deepEqual(
-              [...wholeCaches.entry].map(([file, capture]) => [file, capture.contentHash]),
-              [...wholeCaches.native].map(([file, capture]) => [file, capture.contentHash]),
-              fixture.name + " full reference entry cache"
-            )
-          }
-          assert.equal(actual.ok, expected.ok, fixture.name + " owned failure: " + String(expected.error))
-          if (expected.ok) {
-            assert.deepEqual(actual.value, expected.value, fixture.name + " owned whole unit")
-            assert.equal(
-              JSON.stringify(actual.value),
-              JSON.stringify(expected.value),
-              fixture.name + " owned JSON order"
-            )
-          } else {
-            assert.equal(actual.error.constructor, expected.error.constructor, fixture.name + " owned error type")
-            assert.equal(actual.error.message, expected.error.message, fixture.name + " owned error message")
-            if (fault === true) {
-              assert.equal(actual.error, captureFailure)
-              assert.equal(expected.error, captureFailure)
-            }
-          }
-          assert.deepEqual(wholeTraces.bend, wholeTraces.native, fixture.name + " owned chronology")
-          assert.deepEqual(
-            [...wholeCaches.bend].map(([file, capture]) => [file, capture.contentHash]),
-            [...wholeCaches.native].map(([file, capture]) => [file, capture.contentHash]),
-            fixture.name + " owned cache"
-          )
-        } catch (error) {
-          ownedFailures.push(new Error(fixture.name + " / " + String(fault), { cause: error }))
-        }
-        assert.deepEqual(
-          driver.resources,
-          { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 },
-          fixture.name + " owned resources"
-        )
-        assert.equal(registry.size, 0)
+      )
+      const fault = typeof variant === "number"
+      let expectedEvents = expected.wholeEvents,
+        expectedCachePaths = expected.cachePaths
+      if (fault) {
+        let seen = 0
+        const last = expectedEvents.findIndex((event) => event[0] === "capture" && seen++ === variant)
+        assert.ok(last >= 0, "authored capture fault position")
+        expectedEvents = expectedEvents.slice(0, last + 1)
+        expectedCachePaths = expectedCachePaths.slice(0, variant)
       }
+      const checkWhole = (part, check) => {
+        try {
+          check()
+        } catch (error) {
+          wholeFailures.push(error)
+          console.log(
+            JSON.stringify({
+              failure: Exit.isFailure(exit)
+                ? { name: Cause.squash(exit.cause)?.name, message: Cause.squash(exit.cause)?.message }
+                : undefined,
+              variant,
+              wholeMismatch: fixture.name,
+              part,
+              events: wholeEvents,
+              cache: wholeCache && [...wholeCache.keys()]
+            })
+          )
+        }
+      }
+      checkWhole("result", () => {
+        if (fault || expected.wholeError) {
+          assert.ok(Exit.isFailure(exit), fixture.name)
+          const error = Cause.squash(exit.cause)
+          if (fault) {
+            assert.equal(error, captureDefect)
+            assert.equal(error.cause, captureDefect.cause)
+          } else assert.deepEqual({ name: error.name, message: error.message }, expected.wholeError, fixture.name)
+          assert.deepEqual(
+            exit.cause.reasons.map((reason) => ({ kind: reason._tag, defect: reason.defect })),
+            [{ kind: "Die", defect: error }]
+          )
+        } else {
+          assert.ok(Exit.isSuccess(exit), fixture.name)
+          assert.deepEqual(
+            exit.value,
+            variant === "final-clock" ? undefined : expected.whole,
+            fixture.name + " whole authored ReviewUnit"
+          )
+        }
+      })
+      checkWhole("effects", () =>
+        assert.deepEqual(wholeEvents, expectedEvents, fixture.name + " whole physical chronology")
+      )
+      if (wholeCache)
+        checkWhole("cache", () => {
+          assert.deepEqual([...wholeCache.keys()], expectedCachePaths, fixture.name + " whole cache order")
+          for (const [path, value] of wholeCache)
+            assert.equal(value, wholeCaptures.get(path), fixture.name + " whole capture identity")
+        })
+    }
   }
-  if (ownedFailures.length > 0)
-    throw new AggregateError(ownedFailures, `${ownedFailures.length} of ${ownedCases} owned Go cases failed`)
+  if (wholeFailures.length) throw new AggregateError(wholeFailures, "Go Canonical expectations failed")
   console.log(
     JSON.stringify({
       passed: true,
-      artifactMode,
-      entryMode,
-      entry: referenceEntry?.counts,
-      entryEmissions: referenceEntry?.emissions,
-      ownedMode,
-      ownedRequests,
-      ownedCases,
-      cases: fixtures.length,
+      cases: fixtures.length + canonicalCases,
+      artifactCases: fixtures.length,
+      canonicalCases,
       requests,
       transitions,
       scope:
-        "actual native prepareGoGraph whole effects/result/cache correspondence on physical fixtures; no universal proof/adoption"
+        "GoArtifact protocol and actual Canonical whole Graph over authored package/edge/hash/effect/cache facts; shared native parser metadata, not universal equivalence or whole Preparation acceptance."
     })
   )
 } finally {
-  await Promise.all([
-    rm(temp, { recursive: true, force: true }),
-    ...(emissionTemp ? [rm(emissionTemp, { recursive: true, force: true })] : [])
-  ])
+  await rm(temp, { recursive: true, force: true })
 }
