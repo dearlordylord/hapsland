@@ -179,7 +179,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Original proof formatting | Closed: formatter0.1.23 (`55e106a`), nine proofs conform; complete attachment BendTT unchanged. |
 | Combined preflight | Production Core owns callable policy/Go fallback in Canonical Preflight. After five laws/kernel controls and ten proof mutants passed, removed the eight temporary Bend/spec/proof/runner files under the owner’s deletion condition. 21 physical regressions, build46/46, 23 receipts and compiled Source pass after deletion. The old TS preflight oracle and its whole-Preparation caller chain are deleted. |
 | Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 16:21 UTC qualifies **1.4334×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Earlier current-native runs are historical; their oracle/profiling paths are removed. |
-| Final consumers and deletion | Deleted old TS Source/Post orchestration, local analyzer/preflight and testing exports. Retained explicit fixtures/Bend specification/physical observers pass: public13, fast, build46/46, 23 receipts, Source59/6687+34 physical and resident52/11316+893Post. Post plan/sizing references deleted; 23360 Post and 131 sizing cases pass. Four public Graph suites now use Canonical fixtures; remaining Graph references and host-policy audit block acceptance. |
+| Final consumers and deletion | Deleted old TS Source/Post orchestration, local analyzer/preflight and testing exports. Retained explicit fixtures/Bend specification/physical observers pass: public13, fast, build46/46, 23 receipts, Source59/6687+34 physical and resident52/11316+893Post. Post plan/sizing references deleted; 23360 Post and 131 sizing cases pass. All six public Graph/Rust/Bend suites use Canonical/parser fixtures (76 tests, common plus focused corrections); remaining Graph references and host-policy audit block acceptance. |
 
 Engine grouping preserves observation boundaries: 1484 instructions, 127 group
 Acks/three observations. One-callable CPU ratio 1.3570 is diagnostic only. Whole
@@ -202,8 +202,8 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- `8bf546e8` execution at 2026-10-16 16:36 UTC qualifies **0.6373×**.
-  Build at 16:37 qualifies **0.8610×**: 17 frozen pairs, all samples 23/46 cached.
+- `ae6acb41` execution at 2026-10-16 17:09 UTC qualifies **0.7178×**.
+  Build at 17:10 qualifies **0.9658×**: 17 frozen pairs, all samples 23/46 cached.
   New build series retains ordinary scheduler/parallelism in both lanes; earlier
   CPU11 series is not directly comparable. The 04:54 CPU11 baseline admission-lock
   failure and unchanged retries remain unqualified.

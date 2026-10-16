@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest"
-import { nativeBendImportCandidates as bendImportCandidates } from "@hapsland/source-analysis/testing/native-graph"
 import { bendAdapter, parseBendDeclarations } from "@hapsland/source-analysis/direct-event/languages/bend/adapter"
 
 describe("Bend normalized adapter facts", () => {
@@ -24,14 +23,5 @@ describe("Bend normalized adapter facts", () => {
     const graph = bendAdapter.inspect("/repo/model.bend", source)
     expect(graph?.declarations.get("Root")?.artifact.path).toBe("/repo/model.bend")
     expect(graph?.imports.get("R.Receipt")).toEqual({ path: "./receipt.bend", name: "Receipt" })
-  })
-
-  it("owns relative Bend candidate paths and refuses other language/dependency paths", () => {
-    expect(bendImportCandidates("src/model.bend", "../receipt.bend")).toEqual(["receipt.bend"])
-    expect(bendImportCandidates("src/model.bend", "./receipt.bend")).toEqual(["src/receipt.bend"])
-    expect(bendImportCandidates("model.bend", "../receipt.bend")).toEqual(["../receipt.bend"])
-    for (const path of ["./receipt.rs", "./receipt.ts", "./receipt", "hub/receipt.bend", "/repo/receipt.bend"]) {
-      expect(bendImportCandidates("src/model.bend", path)).toEqual([])
-    }
   })
 })

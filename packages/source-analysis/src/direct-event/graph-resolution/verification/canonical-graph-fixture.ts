@@ -49,9 +49,18 @@ export const resolveCanonicalGraphFixture = (
         if (requests.length !== 1 || !request) throw new TypeError("Expected one Graph service request")
         const session = registry.get(request.invocation)
         if (!session) throw new Error("Missing owned Graph service session")
+        let produced: GraphServiceReply | undefined
         return {
-          effect: performGraphServiceEffect(session, request, options),
-          map: (reply) => reply as GraphServiceReply
+          effect: performGraphServiceEffect(session, request, options).pipe(
+            Effect.map((reply) => {
+              produced = reply
+              return reply
+            })
+          ),
+          map: (reply) => {
+            if (produced === undefined || reply !== produced) throw new TypeError("Unexpected Graph service receipt")
+            return produced
+          }
         }
       }
     })

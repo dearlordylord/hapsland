@@ -13,10 +13,8 @@ import {
 } from "@hapsland/review-execution/direct-event/pipeline"
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
-import {
-  resolveRustModuleContext,
-  nativeRustAdapter as rustAdapter
-} from "@hapsland/source-analysis/testing/native-graph"
+import { resolveCanonicalGraphFixture } from "@hapsland/source-analysis/testing/canonical-graph"
+import { rustAdapter } from "@hapsland/source-analysis/direct-event/languages/rust-adapter"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
@@ -53,7 +51,7 @@ const prepare = (event: unknown, closure = true) =>
   })
 
 describe("Rust direct review integration", () => {
-  it.effect("keeps Rust graph sessions type-only and resolves module candidates from source paths", () =>
+  it.effect("keeps Canonical Rust roots type-only and preserves native parser facts", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       try {
@@ -69,21 +67,14 @@ describe("Rust direct review integration", () => {
         if (selected === undefined) throw new Error("Rust root path was not eligible")
         const captured = yield* captureStable(root, selected, {}, observation.rootIdentity)
         if (captured.status !== "captured") throw new Error("Rust root capture failed")
-        const graph = yield* rustAdapter.prepareGraph(
-          "model.rs",
-          captured.capture,
-          { root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY },
-          GRAPH_LIMIT_CEILINGS,
-          () => false
-        )
-        if (graph === undefined) throw new Error("Rust graph session was not prepared")
-        expect(graph.session.inspect("model.rs", captured.capture.text, "type")?.declarations.has("Root")).toBe(true)
-        expect(graph.session.inspect("model.rs", captured.capture.text, "function")).toBeUndefined()
-        expect(graph.session.inspect("child.rs", "struct Child { value: u8 }", "type")?.declarations.has("Child")).toBe(
-          true
-        )
-        expect(graph.session.importCandidates("model.rs", "./child")).toEqual(["child.rs", "child/mod.rs"])
-        expect(graph.session.importCandidates("model.rs", "./child.rs")).toEqual([])
+        const context = { root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY }
+        const graph = yield* resolveCanonicalGraphFixture("model.rs", captured.capture, "Root", context)
+        expect(graph?.root.artifact.name).toBe("Root")
+        expect(
+          yield* resolveCanonicalGraphFixture("model.rs", captured.capture, "Root", { ...context, branch: "function" })
+        ).toBeUndefined()
+        expect(rustAdapter.inspect("model.rs", captured.capture.text)?.declarations.has("Root")).toBe(true)
+        expect(rustAdapter.inspect("child.rs", "struct Child { value: u8 }")?.declarations.has("Child")).toBe(true)
       } finally {
         yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
       }
@@ -482,9 +473,10 @@ describe("Rust direct review integration", () => {
       yield* Effect.promise(() =>
         put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n')
       )
-      yield* Effect.promise(() => put(root, "src/lib.rs", "mod model;"))
+      yield* Effect.promise(() => put(root, "src/lib.rs", "mod model; mod receipt;"))
       yield* Effect.promise(() => put(root, "src/model.rs", "mod item;"))
-      yield* Effect.promise(() => put(root, "src/model/item.rs", "struct Count { value: u8 }"))
+      yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"))
+      yield* Effect.promise(() => put(root, "src/model/item.rs", "struct Count { value: crate::receipt::Receipt }"))
       const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/model/item.rs"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(
@@ -498,22 +490,20 @@ describe("Rust direct review integration", () => {
       if (captureResult.status !== "captured") throw new Error("capture failed")
       const capture = captureResult.capture
       const context = { root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY }
-      const denied = yield* resolveRustModuleContext(
-        "src/model/item.rs",
-        capture,
-        context,
-        { ...GRAPH_LIMIT_CEILINGS, depth: 1 },
-        () => false
+      const denied = yield* resolveCanonicalGraphFixture("src/model/item.rs", capture, "Count", {
+        ...context,
+        limits: { ...GRAPH_LIMIT_CEILINGS, depth: 1 }
+      })
+      expect(denied?.root.references).toContainEqual(expect.objectContaining({ kind: "omitted" }))
+      const accepted = yield* resolveCanonicalGraphFixture("src/model/item.rs", capture, "Count", context)
+      expect(accepted?.root.artifact.name).toBe("Count")
+      expect(accepted?.root.references).toContainEqual(
+        expect.objectContaining({
+          kind: "expanded",
+          node: expect.objectContaining({ artifact: expect.objectContaining({ name: "Receipt" }) })
+        })
       )
-      expect(denied.options).toBeUndefined()
-      const accepted = yield* resolveRustModuleContext(
-        "src/model/item.rs",
-        capture,
-        context,
-        GRAPH_LIMIT_CEILINGS,
-        () => false
-      )
-      expect(accepted.options).toMatchObject({ rustExternalModule: true })
+      expect(accepted?.sourceDependencies).toEqual(expect.arrayContaining(["Cargo.toml", "src/lib.rs", "src/model.rs"]))
     })
   )
 
@@ -538,24 +528,21 @@ describe("Rust direct review integration", () => {
       const capture = captureResult.capture
       for (const denied of ["exclusion", "budget"] as const) {
         const reads: string[] = []
-        const resolved = yield* resolveRustModuleContext(
-          "src/lib.rs",
-          capture,
-          {
-            root,
-            rootIdentity: observation.rootIdentity,
-            policy:
-              denied === "exclusion" ? { includes: ["**/*"], excludes: ["Cargo.toml"] } : DEFAULT_DIRECT_FILE_POLICY,
-            captureHooks: {
-              sourceRead: (path) => {
-                reads.push(path)
-              }
+        const resolved = yield* resolveCanonicalGraphFixture("src/lib.rs", capture, "Root", {
+          limits: denied === "budget" ? { ...GRAPH_LIMIT_CEILINGS, files: 1 } : GRAPH_LIMIT_CEILINGS,
+          root,
+          rootIdentity: observation.rootIdentity,
+          policy:
+            denied === "exclusion" ? { includes: ["**/*"], excludes: ["Cargo.toml"] } : DEFAULT_DIRECT_FILE_POLICY,
+          captureHooks: {
+            sourceRead: (path) => {
+              reads.push(path)
             }
-          },
-          denied === "budget" ? { ...GRAPH_LIMIT_CEILINGS, files: 1 } : GRAPH_LIMIT_CEILINGS,
-          () => false
+          }
+        })
+        expect(resolved?.root.references).toContainEqual(
+          expect.objectContaining({ kind: "omitted", site: { symbol: "receipt::Receipt" } })
         )
-        expect(resolved.options).toBeUndefined()
         expect(reads).toEqual([])
       }
     })

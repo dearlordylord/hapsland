@@ -61,8 +61,10 @@ describe("checked local graph budget authority", () => {
   it.effect("obeys a Bend depth denial before a supporting-file read", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
-      yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
-      yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"))
+      yield* Effect.promise(() =>
+        put(root, "a.ts", "import type { C } from './b'; interface A { b: B } interface B { c: C }")
+      )
+      yield* Effect.promise(() => put(root, "b.ts", "export interface C { value: string }"))
       const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
@@ -75,7 +77,7 @@ describe("checked local graph budget authority", () => {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
-        limits: { ...GRAPH_LIMIT_CEILINGS, depth: 0 },
+        limits: { ...GRAPH_LIMIT_CEILINGS, depth: 1 },
         captureHooks: {
           sourceRead: (path) => {
             reads.push(path)

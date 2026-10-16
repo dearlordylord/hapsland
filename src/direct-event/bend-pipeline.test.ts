@@ -52,6 +52,28 @@ const prepare = (event: unknown, closure = true) =>
   })
 
 describe("Bend direct review integration", () => {
+  for (const [specifier, dependency] of [
+    ["../support.bend", "support.bend"],
+    ["./support.bend", "src/support.bend"]
+  ] as const) {
+    it.effect(`resolves ${specifier} from a nested Bend source through production preparation`, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        yield* Effect.promise(() => put(root, dependency, "import Base\ntype Support is Data:\n  Support{value: U32}"))
+        yield* Effect.promise(() =>
+          put(root, "src/model.bend", `import ${specifier} as S\ntype Root is Data:\n  Root{value: S.Support}`)
+        )
+        const prepared = yield* prepare(addEvent(root, ["src/model.bend"]))
+        const ready = prepared.outcomes.find((outcome) => outcome.status === "ready")
+        if (ready?.status !== "ready") throw new Error("nested Bend dependency was not prepared")
+        expect(preparedProviderInput(ready.prepared)).toMatchObject({
+          evidence: { nodes: [{ name: "Support", domain: dependency }] },
+          inputContract: { completeness: "complete" }
+        })
+      })
+    )
+  }
+
   it.effect("prepares imported datatype evidence without unrelated literal-bearing functions", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
@@ -511,7 +533,17 @@ describe("Bend cross-file review evidence", () => {
 
   it.effect("never reads excluded, ignored, symlinked, outside-root or cross-language targets", () =>
     Effect.gen(function* () {
-      for (const mode of ["excluded", "ignored", "symlink", "outside", "typescript", "rust"] as const) {
+      for (const mode of [
+        "excluded",
+        "ignored",
+        "symlink",
+        "outside",
+        "typescript",
+        "rust",
+        "extensionless",
+        "hub",
+        "absolute"
+      ] as const) {
         const root = yield* Effect.promise(makeGitFixture)
         const outside = yield* Effect.promise(makeGitFixture)
         const target =
@@ -521,7 +553,13 @@ describe("Bend cross-file review evidence", () => {
               ? "./support.ts"
               : mode === "rust"
                 ? "./support.rs"
-                : "./support.bend"
+                : mode === "extensionless"
+                  ? "./support"
+                  : mode === "hub"
+                    ? "hub/support.bend"
+                    : mode === "absolute"
+                      ? join(root, "support.bend")
+                      : "./support.bend"
         yield* Effect.promise(() =>
           put(root, "model.bend", `import ${target} as S\ntype Root is Data:\n  Root{value: S.Support}`)
         )
