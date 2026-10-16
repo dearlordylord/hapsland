@@ -117,7 +117,8 @@
     "release:prepare:distribution": "node scripts/prepare-platform-distribution.mjs",
     "check:bend-preparation:sources": "node scripts/run-bend-capability-check.mjs --suite=preparation-sources",
     "check:bend-preparation:protocol": "node scripts/run-bend-capability-check.mjs --suite=preparation-protocol",
-    "check:bend-preparation:consumer": "node scripts/run-bend-capability-check.mjs --suite=preparation-consumer"
+    "check:bend-preparation:consumer": "node scripts/run-bend-capability-check.mjs --suite=preparation-consumer",
+    "check:bend-delivery:protocol": "node scripts/run-bend-capability-check.mjs --suite=delivery-protocol"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",

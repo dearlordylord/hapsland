@@ -23,6 +23,7 @@ import {
   selectFittingClaudeStopFindings,
   selectFittingClaudeStopNotices,
   selectFittingNotices,
+  type CanonicalNoticeOffer,
   type FindingSelectionFacts
 } from "@hapsland/resident-runtime/resident/collection"
 
@@ -42,6 +43,19 @@ const finding = (index: number, message = "use a domain name"): Finding => ({
 })
 
 describe("resident advice collection policy", () => {
+  it("calls notice offer callbacks without a receiver", () => {
+    const received: unknown[] = []
+    const offer: CanonicalNoticeOffer = function (this: unknown) {
+      received.push(this)
+      return "include"
+    }
+    const notice = { kind: "capacity", suppressedCount: 0 } as const
+    expect(selectFittingNotices([], [], [notice], offer)).toEqual([notice])
+    expect(selectFittingClaudeNotices([], [notice], "advisory", offer)).toEqual([notice])
+    expect(selectFittingClaudeStopNotices([], [notice], offer)).toEqual([notice])
+    expect(received).toEqual([undefined, undefined, undefined])
+  })
+
   it("preserves fractional-time expiry boundaries", () => {
     const pending = candidate({ pendingAt: 0.9 })
     expect(isPendingAdviceExpired(pending, PENDING_ADVICE_EXPIRY_MS + 0.1)).toBe(false)

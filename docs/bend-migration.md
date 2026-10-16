@@ -168,17 +168,14 @@ projection/freeze and lifecycle boundaries remain.
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Analyzer and preflight | Packaged Bend owns traversal, budgets, first failure and callable/Go preflight through Canonical. Superseded TS algorithms and native oracle chains are deleted; physical consumers, laws and mutation checks pass. |
+| Analyzer/preflight | Bend owns Trees/Preflight/Outcomes through Canonical. Superseded TS traversal/preflight and native oracle chains are deleted; physical consumers, laws and mutation checks pass. |
 | Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original law passed11.35s wall/11.04s CPU; latest focused PASS18.93s/18.52s, unchanged SHA073e9514. A20s timeout remains recorded, not a pass. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
 
-| Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 20:24 UTC qualifies **1.4441×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Current-native oracle/profiling paths are removed. |
+| Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 20:56 UTC (`34b2e70b`) qualifies **1.3378×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Current-native oracle/profiling paths are removed. |
 | Full consumers and deletion | TS Source/Post, traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust orchestration/reference drivers are deleted. Production Source/Graph/resident consumers, public181/7 files and protocol19 pass. Source gate248/248 covers473 Bend files/108 roots, including14 exact mutant rejections. Six duplicate declarations removed; identical proved laws retained. Build46/46, fast41, receipts23 and Go public75 pass. |
 
-Whole1.4448 failed strict parity; unchanged performance experiments are closed.
-
-Current candidate: `299e7894`; changes preserve production. RANK source-gate10s timeout
+Accepted Preparation candidate: `299e7894`. RANK source-gate10s timeout
 remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU.
-Each action must close the next unit’s production obstacle; justify new representations first.
 
 ### Current qualification limits
 
@@ -189,13 +186,13 @@ Each action must close the next unit’s production obstacle; justify new repres
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- `299e7894` execution/build at 2026-10-16 20:21/22 UTC qualify **0.8471×/0.8665×**:
+- `34b2e70b` execution/build at 2026-10-16 20:53/54 UTC qualify **0.6137×/0.8453×**:
   17 frozen pairs each; all build samples23/46 cached; unchanged sources/artifacts/environments.
   Ratios compare means. TS/Bend median[range], seconds:
-  execution .0623[.0538,.1048]/.0601[.0393,.0835];
-  build3.495[3.075,3.649]/2.982[2.694,3.388];
-  Preparation .2791[.2407,.5633]/.4167[.3606,.6619].
-  Build uses ordinary scheduling: gate verdicts, not causal speedup claims. Earlier cadence slipped32.5min.
+  execution .1767[.0804,.8211]/.1205[.0661,.3616];
+  build4.162[3.518,6.933]/3.423[2.982,6.723];
+  Preparation .3537[.2330,.5698]/.4717[.3907,.5776].
+  Build uses ordinary scheduling: gate verdicts, not causal speedup claims. Cadence slipped32.5min earlier,31.3min latest.
   First workspace preparation timed out60s before measurement; registered writers stopped,
   custody reconciled,180s prepare and23/46 warm verification passed before retry.
   First 19:23 build was not comparable: candidate cache15/46 on sample0; ratio1.1535, warm gate failed. Both prepared23/46 before rerun.
@@ -230,7 +227,7 @@ and original TS orchestration. Primary analyzer/build stays `8948343b`, which
 lacks Go. Public runner: exact result/control equality, 17 pairs, parity ≤1,
 owner-approved acceptance ≤3. Current-native/profiling paths are removed;
 earlier results remain historical.
-Latest whole ratio **1.4441×** accepts the ≤3 limit; strict parity remains false.
+Latest Preparation ratio **1.3378×** accepts the ≤3 limit; strict parity remains false.
 Scope: Linux offline physical consumers; native parser/Unicode/IEEE/hash/IO engines
 remain trusted. No Darwin, live-provider, browser or cold-IPC qualification is claimed.
 
@@ -243,7 +240,10 @@ Native code retains capabilities, IO, capture/encoding and atomic resource recei
 Preserve both canWrite observations, local/IPC differences and all async boundaries.
 
 Concrete obstacles, in order:
-1. Replace whole shared finding/notice fitting and collection passes; delete TS loops.
+1. Shared finding/notice fitting now uses compiled BatchFitting and native engine ports;
+   six protocol scenarios, public120/5 files, fast41 and23 receipts PASS. A callback
+   receiver regression failed before its wrapper fix and passed after. Collection passes
+   still require transfer; this does not accept the whole unit.
 2. Issue/consume one-use receipt bound to invocation, request/recipient/round, token
    and selected ownership; preserve cancellation/error prefixes and token/cache cleanup.
 3. Connect prepare/finalize, reuse evaluated-input freshness, delete workflow/policy

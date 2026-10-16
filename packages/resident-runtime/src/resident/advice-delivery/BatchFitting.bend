@@ -93,10 +93,22 @@ def limited(invocation: Nat, next: Nat, batch: Batch, +stream: Stream, index: Na
     case Retained{}: Finished{[]}
     case _: issue(invocation, next, LimitedPending{batch, stream}, NotifyLimited{index})
 
-def measured_prospective(invocation: Nat, next: Nat, +batch: Batch, stream: Stream, +index: Nat, prospective: Nat) -> Step:
+def measured_prospective(
+  invocation: Nat,
+  next: Nat,
+  +batch: Batch,
+  stream: Stream,
+  +index: Nat,
+  prospective: Nat
+) -> Step:
   match batch:
     case Batch{Notices{skip_unfitting}, _, _}:
-      issue(invocation, next, NoticeOffered{batch, index}, OfferNotice{index, prospective, skip_unfitting})
+      issue(
+        invocation,
+        next,
+        NoticeOffered{batch, index},
+        OfferNotice{index, prospective, skip_unfitting}
+      )
     case _:
       issue(invocation, next, Solo{batch, stream, index, prospective}, MeasureSolo{index})
 
@@ -112,14 +124,27 @@ def exhausted(invocation: Nat, next: Nat, +batch: Batch, stream: Stream) -> Step
     case _ Retained{}: pull(invocation, next, batch, Candidates{})
     case Batch{_, _, selected} _: Finished{selected}
 
-def finding_response(invocation: Nat, next: Nat, batch: Batch, stream: Stream, index: Nat, response: Response) -> Step:
+def finding_response(
+  invocation: Nat,
+  next: Nat,
+  batch: Batch,
+  stream: Stream,
+  index: Nat,
+  response: Response
+) -> Step:
   match response:
     case Selected{}: accepted(invocation, next, batch, stream, index)
     case Limited{}: limited(invocation, next, batch, stream, index)
     case Omitted{}: omitted(invocation, next, batch, stream)
     case _: Rejected{}
 
-def notice_response(invocation: Nat, next: Nat, +batch: Batch, index: Nat, response: Response) -> Step:
+def notice_response(
+  invocation: Nat,
+  next: Nat,
+  +batch: Batch,
+  index: Nat,
+  response: Response
+) -> Step:
   match batch response:
     case _ Included{}: accepted(invocation, next, batch, NoticeOffers{}, index)
     case _ Skipped{}: pull(invocation, next, batch, NoticeOffers{})
@@ -134,7 +159,12 @@ def match_found(invocation: Nat, next: Nat, +batch: Batch, stream: Stream, +inde
 
 def phase_response(invocation: Nat, next: Nat, phase: Phase, response: Response) -> Step:
   match phase response:
-    case CurrentStarting{} CurrentStarted{}: pull(invocation, next, Batch{CurrentFindings{}, [], []}, CurrentOffers{})
+    case CurrentStarting{} CurrentStarted{}: pull(
+      invocation,
+      next,
+      Batch{CurrentFindings{}, [], []},
+      CurrentOffers{}
+    )
     case CurrentStarting{} Exhausted{}: Finished{[]}
     case Pulling{+batch, +stream} Found{+index}:
       match_found(invocation, next, batch, stream, index)

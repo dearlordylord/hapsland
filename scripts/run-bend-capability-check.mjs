@@ -73,6 +73,9 @@ const suites = {
     )
     return roots
   },
+  "delivery-protocol": () => [
+    "packages/resident-runtime/src/resident/advice-delivery/verification/batch-fitting.test.mjs"
+  ],
   "preparation-protocol": () => [
     "packages/review-execution/src/direct-event/preparation/unit-evidence-query-check.mjs",
     "packages/review-execution/src/direct-event/preparation/canonical-json-plan-validation-check.mjs",
@@ -110,7 +113,7 @@ if (
   (suite ? files.length !== 0 || !Object.hasOwn(suites, suite) : files.length !== 1)
 )
   throw new Error(
-    "Use run-bend-capability-check.mjs [--environment=producer-environment.json] owner/check.mjs|owner/PROOF.bend|owner/check.py|--suite=preparation-sources|preparation-protocol|preparation-consumer"
+    "Use run-bend-capability-check.mjs [--environment=producer-environment.json] owner/check.mjs|owner/PROOF.bend|owner/check.py|--suite=preparation-sources|preparation-protocol|preparation-consumer|delivery-protocol"
   )
 const selected = suite ? suites[suite]() : files
 if (!selected.length) throw new Error("No authored capability sources selected")

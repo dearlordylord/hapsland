@@ -17,7 +17,11 @@ export type FindingBatchPorts = {
   readonly pull: (stream: Stream) => number | undefined
   readonly prospective: (staged: readonly number[], index: number) => number
   readonly solo: (index: number) => number
-  readonly offer: (command: OfferFinding, prospective: number, solo: number) => Effect.Effect<"selected" | "retained" | "limited" | "expired">
+  readonly offer: (
+    command: OfferFinding,
+    prospective: number,
+    solo: number
+  ) => Effect.Effect<"selected" | "retained" | "limited" | "expired">
   readonly limited: (index: number) => void
   readonly close: () => void
 }
@@ -55,7 +59,11 @@ export const runFindingBatch = Effect.fn("Collection.runFindingBatch")(
               response = measured(ports.solo(command.index))
               break
             case "OfferFinding": {
-              const offered = yield* ports.offer(command, measurements[command.prospective]!, measurements[command.solo]!)
+              const offered = yield* ports.offer(
+                command,
+                measurements[command.prospective]!,
+                measurements[command.solo]!
+              )
               response = { $: offered === "selected" ? "Selected" : offered === "limited" ? "Limited" : "Omitted" }
               break
             }
