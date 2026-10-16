@@ -55,7 +55,7 @@ const fixture = (hooks = {}) => {
         active = false
         return {
           $: "Advanced",
-          actions: { $: "Con", head: { $: "CancelChild", invocation: 1n }, tail: { $: "Nil" } },
+          actions: { $: "Con", head: { $: "CancelChild", invocation: 1 }, tail: { $: "Nil" } },
           outputs: { $: "Nil" }
         }
       }
@@ -226,12 +226,12 @@ for (const phase of ["control", "action", "outputs", "cleanup"]) {
     const original = new Error("launch publication failed")
     const cleanup = new Error("first disposal failed")
     const registry = createServiceRegistry()
-    const state = { next_invocation: 1n, children: new Map() }
+    const state = { next_invocation: 1, children: new Map() }
     let disposals = 0,
       cancellations = 0
     const driver = createOwnedArtifactDriver({
       registry,
-      scope: { $: "PreparationScope", partition: 1n, lifetime: 1n, round: 1n, preparation: 1n },
+      scope: { $: "PreparationScope", partition: 1, lifetime: 1, round: 1, preparation: 1 },
       machine: {
         retainedHandles: 0,
         disposeInvocation() {
@@ -284,7 +284,7 @@ for (const phase of ["control", "action", "outputs", "cleanup"]) {
         return true
       }
     )
-    assert.equal(state.children.get(1n).active, false)
+    assert.equal(state.children.get(1).active, false)
     assert.equal(registry.pendingCleanup, phase === "cleanup" ? 1 : 0)
     await registry.retryCleanup()
     assert.equal(cancellations, 1)
