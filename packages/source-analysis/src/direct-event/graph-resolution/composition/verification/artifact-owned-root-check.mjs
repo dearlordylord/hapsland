@@ -15,7 +15,7 @@ import { pathToFileURL } from "node:url"
 import { deserialize } from "node:v8"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
+import { assertFixtureOutcome, physicalRootExpectation } from "./owned-fixture-expectations.mjs"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
@@ -275,16 +275,35 @@ try {
           )
       }
       if (mode === "unit-budget") {
-        const full = await Effect.runPromise(
-          resolveGraphUnit(fixturePath, fixtureCapture, "Root", { ...context, captureCache: new Map() })
+        const full = physicalRootExpectation(fixturePath, fixtureCapture.text, "Root", configuration)
+        assert.deepEqual(
+          await resolver(fixturePath, fixtureCapture, "Root", context),
+          full,
+          fixturePath + " authored positive control"
         )
-        assert.ok(full)
         const bytes = Buffer.byteLength(JSON.stringify(full))
         for (const treeBytes of [bytes - 1, bytes, bytes + 1]) {
           const bounded = { ...context, limits: { ...context.limits, treeBytes }, captureCache: new Map() }
-          const expected = await Effect.runPromise(
-            resolveGraphUnit(fixturePath, fixtureCapture, "Root", { ...bounded, captureCache: new Map() })
-          )
+          const partial =
+            treeBytes < bytes
+              ? {
+                  ...full,
+                  root: {
+                    ...full.root,
+                    references: [
+                      {
+                        kind: "omitted",
+                        site: full.root.references[0].site,
+                        target: { kind: "unresolved", symbol: full.root.references[0].site.symbol },
+                        reason: "reference-limit"
+                      }
+                    ]
+                  }
+                }
+              : full
+          const expected = treeBytes < bytes && fixturePath === "root.go" ? undefined : partial
+          if (treeBytes < bytes && fixturePath === "root.py")
+            assert.ok(Buffer.byteLength(JSON.stringify(partial)) <= treeBytes, "authored omission fits the boundary")
           assert.deepEqual(
             await resolver(fixturePath, fixtureCapture, "Root", bounded),
             expected,
@@ -297,17 +316,13 @@ try {
           TypeError
         )
       } else if (mode === "two-roots" || mode === "between-roots") {
-        const expected = await Effect.runPromise(
-          resolveGraphUnit(fixturePath, fixtureCapture, "Root", { ...context, captureCache: new Map() })
-        )
+        const expected = physicalRootExpectation(fixturePath, fixtureCapture.text, "Root", configuration)
         assert.deepEqual(await resolver(fixturePath, fixtureCapture, "Root", context), expected)
         if (mode === "between-roots") {
           driver.canonicalEvent(c("InterruptPreparation", { partition: 1, lifetime: 1, round: 1, operation: 2 }))
           await assert.rejects(resolver(fixturePath, fixtureCapture, "Second", context), /NotPreparing/)
         } else {
-          const second = await Effect.runPromise(
-            resolveGraphUnit(fixturePath, fixtureCapture, "Second", { ...context, captureCache: new Map() })
-          )
+          const second = physicalRootExpectation(fixturePath, fixtureCapture.text, "Second", configuration)
           assert.deepEqual(await resolver(fixturePath, fixtureCapture, "Second", context), second)
           driver.canonicalEvent(
             c("PreparationCompleted", {
@@ -398,7 +413,8 @@ try {
           throw new Error("unused configuration observed: " + name)
         }
       })
-    const expected = await Effect.runPromise(resolveGraphUnit(fixturePath, fixtureCapture, "Root", context))
+    const expected =
+      fixturePath === "root.go" ? undefined : physicalRootExpectation(fixturePath, fixtureCapture.text, "Root")
     context.captureCache = new Map()
     assert.deepEqual(
       await resolver(fixturePath, fixtureCapture, "Root", context),
@@ -439,9 +455,7 @@ try {
         metadata: "fixture:" + file
       }
     }
-    const nativeEvents = [],
-      bendEvents = []
-    const nativeCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
+    const bendEvents = []
     const bendCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
     const contextFor = (events, cache) => {
       let ticks = 0
@@ -467,7 +481,7 @@ try {
         observeCaptureDiagnostic: (file, value) => events.push(["diagnostic", file, value])
       }
     }
-    let expected, nativeError, actual, bendError
+    let actual, bendError
     const operationTrace = []
     const ownedTranscript = [],
       directTranscript = []
@@ -478,13 +492,6 @@ try {
       const terminal = ownedView(step)
       if (terminal.$ !== "Types.AwaitService") ownedTerminal = structuredClone(terminal)
       return terminal
-    }
-    try {
-      expected = await Effect.runPromise(
-        resolveGraphUnit(path, stable(path), "Root", contextFor(nativeEvents, nativeCache))
-      )
-    } catch (error) {
-      nativeError = error
     }
     const registry = createServiceRegistry()
     const driver = createGraphDriver({
@@ -536,18 +543,8 @@ try {
     } catch (error) {
       bendError = error
     }
-    if (fixture.technicalFailure) {
-      assert.ok(nativeError && bendError, fixture.name + " must retain its technical failure")
-      const shape = (error) => ({
-        name: error.name,
-        message: error.message,
-        cause: { name: error.cause.name, message: error.cause.message }
-      })
-      assert.deepEqual(shape(bendError), shape(nativeError), fixture.name)
-    } else {
-      assert.ifError(nativeError)
-      assert.ifError(bendError)
-      assert.deepEqual(actual, expected, fixture.name + " whole ReviewUnit")
+    assertFixtureOutcome({ fixture, sources, stable, actual, error: bendError, events: bendEvents, cache: bendCache })
+    if (!fixture.technicalFailure) {
       if (fixture.requireUnit) {
         assert.ok(actual, fixture.name + " must return a ReviewUnit")
         if (fixture.name === "large-local-reuse" || fixture.name === "large-import-diamond-cycle")
@@ -626,8 +623,6 @@ try {
     assert.equal(directMachine.retainedHandles, 0, fixture.name + " IO artifact cleanup")
     assert.equal(directRegistry.size, 0, fixture.name + " IO registry cleanup")
     assert.equal(driver.stats.accepted, 1, fixture.name + " single Canonical terminal acceptance")
-    assert.deepEqual(bendEvents, nativeEvents, fixture.name + " effect sequence")
-    if (nativeCache) assert.deepEqual([...bendCache], [...nativeCache], fixture.name + " caller cache")
     assert.deepEqual(
       driver.resources,
       { payloads: 0, leases: 0, sessions: 0, artifactStates: 0, launches: 0 },
@@ -646,7 +641,7 @@ try {
       finalPublicationDeadlineCases: 1,
       completeRequestReplyAndAcceptedTerminalComparisons: graphFixtures.length + 1,
       scope:
-        "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; all 58 original graph fixture facts compare full native results/effects/cache/errors; complete request/reply IO and accepted full terminal compare Canonical-owned execution with the existing dispatcher verification loop; standalone generic pure-chain/Cause qualification, real resident preparation progression/retention/revision and universal proofs remain open"
+        "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; all 58 original fixtures assert full authored trees/refusals, native declaration facts, explicit effects/cache/errors; driver refinement compares full request/reply IO and accepted terminal with the dispatcher verification loop, not an independent Graph algorithm; standalone generic pure-chain/Cause qualification, real resident preparation progression/retention/revision and universal proofs remain open"
     })
   )
 } finally {
