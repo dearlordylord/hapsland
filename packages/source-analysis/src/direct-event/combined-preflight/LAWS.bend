@@ -6,6 +6,13 @@ import ./Specification.bend as S
 import ./ProtocolReference.bend as P
 
 # DRAFT: owner approval pending. No proofs have been written against these laws.
+# Lifecycle: retain these Hapsland preflight laws, their proofs once completed,
+# and the independent Bend specifications after whole-unit migration acceptance.
+# At acceptance, delete superseded TypeScript implementations and temporary TS
+# differential oracles. These equations do not require the old TS implementation.
+# TypeScript and Go name the analyzed source languages. Maintain these guarantees
+# when an accepted change to the preflight contract requires it.
+#
 # Exact whole grouped execution: admission, <=1024 count, missing type bound,
 # refusal/empty effects, ordered callable/IEEE primitives and lazy imports.
 # None cannot satisfy the law. Native parser facts, numbers and thrown identity
